@@ -22,3 +22,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Env files (track .env for Lovable build)
+!.env
+.env.local
+.env.*.local
+.env.development.local
+.env.production.local
+.env.test.local
+
+# Coverage and caches
+coverage/
+.eslintcache
+
+# Playwright MCP
+.playwright-mcp/
+
+# Database exports (too large for git)
+database-export-*.json
+migration-export-*.json

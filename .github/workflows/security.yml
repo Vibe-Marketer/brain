@@ -1,0 +1,107 @@
+name: Security Review
+
+permissions:
+  pull-requests: write
+  contents: read
+
+on:
+  pull_request:
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 2
+
+      # Node.js code linting (frontend and utility TS/JS)
+      - name: Node.js Lint
+        run: npm ci && npm run lint
+
+      # Deno format/lint for edge functions
+      - name: Deno Lint
+        run: |
+          for d in supabase/functions/*; do deno lint "$d"; done
+
+      # Deno security static analysis
+      - name: Deno Check
+        run: |
+          for f in supabase/functions/*/index.ts; do deno check "$f"; done
+
+      # Scan for secrets in codebase
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+
+      # Quick npm vulnerability audit
+      - name: NPM Audit
+        run: npm audit --audit-level=moderate || true
+
+      # Claude security review with custom instructions
+      - uses: anthropics/claude-code-security-review@main
+        with:
+          comment-pr: true
+          claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude-model: claude-opus-4-1-20250805
+          custom-security-scan-instructions: |
+            You are reviewing a SaaS application with:
+
+            - A React+Vite+TypeScript frontend with Supabase Auth
+            - Database/API backend via Supabase Edge/Deno Functions (source in supabase/functions/)
+            - Demo/production environment uses environment variables (SUPABASE_*, API keys) for secrets
+
+            The codebase has these security-sensitive areas:
+            - API keys/tokens (OAuth, AI, Fathom) are sometimes stored in the database (user_settings).
+            - Webhooks are processed and verified via custom Svix HMAC logic.
+            - Service-role Supabase keys are used in serverless functions.
+            - Inputs are validated via Zod or similar schema, but not always.
+            - The product is multi-tenant: every user's data MUST be isolated by user_id filtering, both in Edge and API logic.
+            - CORS is used; permissive wildcard origin everywhere may leak data or raise CSRF risks.
+
+            **SECURITY ISSUES TO FLAG (examples and patterns):**
+
+            ### Supabase & Deno Functions (supabase/functions/)
+            - Is every access to user data filtered by user_id? Any operation on DB that could access multi-tenant data MUST include a user_id check.
+            - Service Role key (`SUPABASE_SERVICE_ROLE_KEY`) should _only_ be used in contexts where user/token auth is also verified.
+            - JWT tokens should always be validated via `supabase.auth.getUser(token)` before accessing/modifying resources.
+            - Confirm no elevation or bypass of RLS-like checks because of service role use.
+            - Webhook HMAC (Svix): Ensure signature is cryptographically verified (timing, base64/encoding issues, canonical string, secret format).
+            - Webhook endpoints: Check for replay attacks — is idempotency ensured (e.g. processed_webhooks tracking)?
+            - OAuth code/flows: All `state` parameters should be checked for CSRF. Tokens stored in DB should be encrypted if possible, never sent to clients. Expose as little about error reasons as possible.
+            - Cascading deletes: Are all related records deleted, orphans prevented? Check for failure cases.
+            - CORS: Is `Access-Control-Allow-Origin` too permissive ('*') for all endpoints—including those returning sensitive data? Flag if so.
+            - Input validation: Flag ANY direct DB write based on req.body with no Zod (or equivalent) validation.
+
+            ### React Frontend (src/)
+            - Route guards: Are routes not intended for unauthenticated users truly protected?
+            - Is any session or user info stored in insecure localStorage? (Acceptable for Supabase, but flag if other sensitive data is present.)
+            - Are any secrets, tokens, or keys accidentally exposed in the frontend or public files?
+            - Client-side API invocation: Are responses and errors handled securely, without leaking internals to the end-user?
+            - Only perform authorization on server-side: flag any logic that restricts features based solely on client-side state.
+
+            ### Shared/Dangerous Patterns
+            - AI/LLM: Are user prompts or data sent to LLM endpoints? Check for prompt injection or data leakage. Never send auth tokens or sensitive secrets to LLMs.
+            - Secrets: Are any hardcoded, checked-in, or accidentally exposed in code or logs? Review .env, console.logs, and error reports.
+            - Error handling: Ensure detailed error messages (original error stack trace, DB errors) are NEVER returned to the caller/user; use generic error strings.
+
+            ### Suggest remediation or improved patterns for each finding.
+
+            **IN SUMMARY:**
+            - Please identify any issues related to authorization (multi-tenant isolation), input validation, CORS/external exposure, secret management, webhook signature verification, AI integration, serverless execution, error disclosure, and OAuth correctness.
+            - For each, cite the file and line or snippet. Offer remediation guidance when possible.
+
+            Your recommendations must be actionable and reference best practices for React/Supabase/Deno SaaS stacks.
+
+      # Dependency Review for open source vulnerabilities
+      - uses: actions/dependency-review-action@v3
+        with:
+          fail-on-severity: high
+
+      # (OPTIONAL) CodeQL static analysis for JavaScript/TypeScript
+      # - name: Initialize CodeQL
+      #   uses: github/codeql-action/init@v3
+      #   with:
+      #     languages: javascript
+      # - name: Perform CodeQL Analysis
+      #   uses: github/codeql-action/analyze@v3

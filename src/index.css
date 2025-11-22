@@ -2,95 +2,300 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here.
 All colors MUST be HSL.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* ============================================
+       CONVERSION BRAIN MONOCHROMATIC PALETTE
+       ============================================ */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* Primary Neutrals - LIGHT MODE */
+    --cb-white: 0 0% 100%;              /* #FFFFFF - Primary backgrounds */
+    --cb-ink: 210 17% 7%;               /* #111111 - Primary text */
+    --cb-ink-soft: 0 0% 27%;            /* #444444 - Secondary text */
+    --cb-ink-muted: 0 0% 48%;           /* #7A7A7A - Tertiary text, icons */
+    --cb-border: 0 0% 90%;              /* #E5E5E5 - Borders, dividers */
+    --cb-border-soft: 0 0% 95%;         /* #F2F2F2 - Light dividers */
+    --cb-hover: 0 0% 97%;               /* #F8F8F8 - Row hover states */
+    --cb-bg-gray: 0 0% 98%;             /* #FAFAFA - DEPRECATED, minimal use */
 
+    /* Vibe Green - STRUCTURAL USE ONLY (9 approved contexts) */
+    --vibe-green: 72 96% 70%;           /* #D9FC67 - Active indicators */
+    --vibe-green-light: 72 100% 77%;    /* #E5FD9E - Hover states */
+    --vibe-green-dark: 72 77% 60%;      /* #C9E855 - Active pressed */
+
+    /* Dark Mode Neutrals */
+    --cb-viewport-dark: 0 0% 9%;        /* #161616 - Dark viewport bg */
+    --cb-card-dark: 0 0% 13%;           /* #202020 - Dark card bg */
+    --cb-panel-dark: 0 0% 16%;          /* #2A2A2A - Dark panel bg */
+    --cb-border-dark: 0 0% 23%;         /* #3A3A3A - Dark borders */
+    --cb-text-dark-primary: 0 0% 100%;  /* #FFFFFF - Dark primary text */
+    --cb-text-dark-secondary: 0 0% 69%; /* #B0B0B0 - Dark secondary text */
+    --cb-text-dark-muted: 0 0% 42%;     /* #6B6B6B - Dark muted text */
+
+    /* ============================================
+       BUTTON SYSTEM TOKENS
+       Single source of truth for all button styles
+       ============================================ */
+
+    /* Button Backgrounds - Light Mode */
+    --btn-bg-hollow-light: 0 0% 100%;     /* #FFFFFF - White */
+    --btn-bg-ghost: transparent;           /* Transparent */
+
+    /* Button Backgrounds - Dark Mode */
+    --btn-bg-hollow-dark: 0 0% 13%;       /* #202020 - Dark card */
+
+    /* Button Hover States - Light Mode */
+    --btn-hover-hollow-light: 0 0% 97%;   /* #F8F8F8 - Light gray */
+    --btn-hover-ghost-light: 0 0% 96%;    /* rgba(0,0,0,0.05) equivalent */
+
+    /* Button Hover States - Dark Mode */
+    --btn-hover-hollow-dark: 0 0% 16%;    /* #2A2A2A - Dark panel */
+    --btn-hover-ghost-dark: 0 0% 20%;     /* rgba(255,255,255,0.05) equivalent */
+
+    /* Button Borders - Light Mode */
+    --btn-border-light: 0 0% 90%;         /* #E5E5E5 - Same as cb-border */
+
+    /* Button Borders - Dark Mode */
+    --btn-border-dark: 0 0% 23%;          /* #3A3A3A - Same as cb-border-dark */
+
+    /* Button Text - Light Mode */
+    --btn-text-hollow-light: 210 17% 7%;  /* #111111 - Same as cb-ink */
+    --btn-text-primary: 0 0% 100%;        /* #FFFFFF - White */
+
+    /* Button Text - Dark Mode */
+    --btn-text-hollow-dark: 0 0% 100%;    /* #FFFFFF - White */
+
+    /* Button Focus Ring (always vibe green) */
+    --btn-focus-ring: var(--vibe-green);  /* #D9FC67 */
+
+    /* ============================================
+       SEMANTIC STATUS COLORS
+       Professional indicators with subtle backgrounds
+       ============================================ */
+
+    /* Success / Live / Active */
+    --cb-success-bg: 142 71% 96%;       /* #F0F9F4 - Background (subtle) */
+    --cb-success-text: 142 76% 29%;     /* #166534 - Text (strong) */
+    --cb-success-border: 142 76% 84%;   /* #BBF7D0 - Border (medium) */
+
+    /* Warning / Pending / Attention */
+    --cb-warning-bg: 48 100% 96%;       /* #FFFBEB - Background */
+    --cb-warning-text: 30 78% 27%;      /* #78350F - Text */
+    --cb-warning-border: 48 96% 77%;    /* #FDE68A - Border */
+
+    /* Danger / Error / Critical */
+    --cb-danger-bg: 0 86% 97%;          /* #FEF2F2 - Background */
+    --cb-danger-text: 0 74% 42%;        /* #B91C1C - Text */
+    --cb-danger-border: 0 91% 71%;      /* #FCA5A5 - Border */
+
+    /* Info / Blue */
+    --cb-info-bg: 199 89% 95%;          /* #E0F2FE - Background */
+    --cb-info-text: 199 89% 35%;        /* #0C4A6E - Text */
+    --cb-info-border: 199 89% 67%;      /* #5AC8FA - Border */
+
+    /* Neutral / Inactive */
+    --cb-neutral-bg: 0 0% 97%;          /* #F8F8F8 - Background */
+    --cb-neutral-text: 0 0% 40%;        /* #666666 - Text */
+    --cb-neutral-border: 0 0% 90%;      /* #E5E5E5 - Border */
+
+    /* ============================================
+       PREMIUM BUTTON GRADIENTS
+       ============================================ */
+    --gradient-premium: linear-gradient(135deg, hsl(var(--vibe-green)), hsl(var(--vibe-green-light)));
+    --gradient-premium-hover: linear-gradient(135deg, hsl(var(--vibe-green-dark)), hsl(var(--vibe-green)));
+    --gradient-premium-disabled: linear-gradient(135deg, hsl(var(--cb-border)), hsl(var(--cb-border-soft)));
+
+    /* Legacy (keep for backwards compatibility) */
+    --vibe-black: 0 0% 9%;
+    --vibe-gray: 0 0% 13%;
+    --vibe-gray-100: 0 0% 95%;
+    --vibe-gray-200: 0 0% 80%;
+    --vibe-gray-400: 0 0% 60%;
+    --vibe-gray-500: 0 0% 40%;
+    --vibe-off-white: 40 33% 97%;
+    --vibe-white: 0 0% 100%;
+
+    /* Purple - Gradient Partner */
+    --vibe-purple: 270 81% 56%;         /* #9333ea */
+    --vibe-purple-light: 280 85% 72%;   /* #c77ef5 */
+    --vibe-purple-dark: 276 67% 41%;    /* #7321b3 */
+
+    /* Semantic Colors */
+    --vibe-success: 142 76% 49%;        /* #34C759 */
+    --vibe-warning: 38 92% 50%;         /* #FF9500 */
+    --vibe-danger: 0 91% 48%;           /* Deep alarming red */
+    --vibe-info: 199 89% 67%;           /* #5AC8FA */
+
+    /* Supporting Colors */
+    --border-gray: 0 0% 90%;            /* #e5e5e5 */
+    --form-gray: 0 0% 91%;              /* #e7e7e7 */
+
+    /* Conversion Brain Brand Colors - Monochromatic Palette */
+    --cb-black: 0 0% 0%;                /* #000000 - Pure black */
+    --cb-gray-light: 0 0% 96%;          /* #F5F5F5 - Light gray backgrounds */
+    --cb-gray-medium: 0 0% 88%;         /* #E0E0E0 - Borders, disabled states */
+    --cb-gray-dark: 0 0% 63%;           /* #A1A1A1 - Secondary text, icons */
+
+    /* Apple Design System - Surfaces */
+    --surface-primary: 40 33% 97%;      /* #FAFAFA - Background */
+    --surface-secondary: 0 0% 100%;     /* #FFFFFF - Cards */
+    --surface-tertiary: 0 0% 96%;       /* #F5F5F5 - Sections */
+
+    /* Apple Design System - Accents */
+    --accent-blue: 211 100% 50%;        /* #007AFF */
+    --accent-green: 142 76% 49%;        /* #34C759 */
+    --accent-orange: 28 100% 50%;       /* #FF9500 */
+    --accent-red: 4 100% 60%;           /* #FF3B30 */
+    --accent-purple: 280 81% 60%;       /* #AF52DE */
+    --accent-yellow: 48 100% 50%;       /* #FFCC00 */
+
+    /* Apple Design System - Intel Types */
+    --intel-deal: 211 100% 50%;         /* Blue */
+    --intel-risk: 4 100% 60%;           /* Red */
+    --intel-product: 280 81% 60%;       /* Purple */
+    --intel-competitive: 28 100% 50%;   /* Orange */
+    --intel-action: 142 76% 49%;        /* Green */
+
+    /* Apple Design System - Shadows */
+    --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.04);
+    --shadow-md: 0 4px 12px 0 rgb(0 0 0 / 0.08);
+    --shadow-lg: 0 12px 32px 0 rgb(0 0 0 / 0.12);
+    --shadow-xl: 0 20px 60px 0 rgb(0 0 0 / 0.16);
+
+    /* Semantic token mappings - HSL values only */
+    /* NEW: Separate viewport from content background */
+    --viewport: 0 0% 99%;       /* #FCFCFC - very light gray for gutters */
+    --background: 0 0% 100%;    /* #FFFFFF - pure white for content */
+    --card: 0 0% 100%;          /* #FFFFFF - same as background */
+
+    /* Keep for backwards compatibility */
+    --cb-viewport: 0 0% 99%;    /* #FCFCFC */
+    --cb-card: 0 0% 100%;       /* #FFFFFF */
+
+    --foreground: 0 0% 9%;
+    --card-foreground: 0 0% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 13%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 0 0% 95%;
+    --accent-foreground: 0 0% 9%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 40%;
+    --destructive: 0 91% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 76% 49%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --info: 199 89% 67%;
+    --info-foreground: 0 0% 9%;
+    --border: 0 0% 90%;
+    --input: 0 0% 91%;
+    --ring: 0 0% 9%;
+    --radius: 0.75rem;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
-    --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    /* Sidebar colors */
+    --sidebar-background: 40 33% 97%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 72 96% 70%;
+    --sidebar-primary-foreground: 0 0% 9%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 72 96% 70%;
   }
 
+  /* Dark mode */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    /* Apple Design System - Dark Surfaces */
+    --surface-primary: 0 0% 9%;         /* #161616 - Background (CB viewport-dark) */
+    --surface-secondary: 0 0% 13%;      /* #202020 - Cards (CB card-dark) */
+    --surface-tertiary: 0 0% 16%;       /* #2A2A2A - Sections (CB panel-dark) */
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    /* Apple Design System - Dark Accents (Higher contrast) */
+    --accent-blue: 211 100% 55%;        /* #0A84FF */
+    --accent-green: 142 71% 52%;        /* #32D74B */
+    --accent-orange: 28 100% 54%;       /* #FF9F0A */
+    --accent-red: 4 100% 63%;           /* #FF453A */
+    --accent-purple: 280 81% 65%;       /* #BF5AF2 */
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    /* NEW: Separate viewport from content background */
+    --viewport: 0 0% 9%;        /* #161616 - black for gutters */
+    --background: 0 0% 13%;     /* #202020 - off-black for content */
+    --card: 0 0% 13%;           /* #202020 - same as background */
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    /* Keep for backwards compatibility */
+    --cb-viewport: 0 0% 9%;     /* #161616 */
+    --cb-card: 0 0% 13%;        /* #202020 */
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --foreground: 0 0% 98%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 13%;                /* #202020 - CB card-dark */
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 16%;              /* #2A2A2A - CB panel-dark */
+    --secondary-foreground: 0 0% 98%;
+    --accent: 0 0% 16%;                 /* #2A2A2A - CB panel-dark */
+    --accent-foreground: 0 0% 98%;
+    --muted: 0 0% 16%;                  /* #2A2A2A - CB panel-dark */
+    --muted-foreground: 0 0% 60%;
+    --destructive: 0 91% 48%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 23%;                 /* #3A3A3A - CB border-dark */
+    --input: 0 0% 23%;                  /* #3A3A3A - CB border-dark */
+    --ring: 0 0% 98%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --sidebar-background: 0 0% 9%;      /* #161616 - CB viewport-dark */
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 72 96% 70%;
+    --sidebar-primary-foreground: 0 0% 9%;
+    --sidebar-accent: 0 0% 16%;         /* #2A2A2A - CB panel-dark */
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 23%;         /* #3A3A3A - CB border-dark */
+    --sidebar-ring: 72 96% 70%;
+  }
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+  /* Light mode explicit */
+  .light {
+    /* NEW: Separate viewport from content background */
+    --viewport: 0 0% 99%;       /* #FCFCFC - very light gray for gutters */
+    --background: 0 0% 100%;    /* #FFFFFF - pure white for content */
+    --card: 0 0% 100%;          /* #FFFFFF - same as background */
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --foreground: 0 0% 9%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 13%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 72 77% 60%;
+    --accent-foreground: 0 0% 9%;
+    --muted: 0 0% 95%;
+    --muted-foreground: 0 0% 40%;
+    --destructive: 0 91% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 91%;
+    --ring: 72 96% 70%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 0 0% 9%;
+    --sidebar-primary: 72 96% 70%;
+    --sidebar-primary-foreground: 0 0% 9%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 0 0% 9%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 72 96% 70%;
   }
 }
 
@@ -100,6 +305,110 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-weight: 600;
+  }
+}
+
+/* Fonts now loaded in index.html for better performance */
+
+/* ============================================
+   BUTTON UTILITY CLASSES
+   Enforces token usage, prevents inline styles
+   ============================================ */
+@layer components {
+  /* Base button class - shared by all variants */
+  .btn-base {
+    @apply inline-flex items-center justify-center rounded-md transition-colors;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2;
+    @apply disabled:pointer-events-none disabled:opacity-50;
+    @apply [&_svg]:pointer-events-none [&_svg]:shrink-0;
+  }
+
+  /* Hollow button - white bg with border */
+  .btn-hollow {
+    @apply btn-base;
+    @apply border border-cb-border dark:border-cb-border-dark;
+    @apply bg-white dark:bg-card;
+    @apply text-cb-ink dark:text-white;
+    @apply hover:bg-cb-hover dark:hover:bg-cb-panel-dark;
+  }
+
+  /* Ghost button - transparent, no border */
+  .btn-ghost {
+    @apply btn-base;
+    @apply hover:bg-muted/50;
+  }
+
+  /* Icon button base - removes padding */
+  .btn-icon {
+    @apply p-0;
+  }
+
+  /* Icon button small - responsive sizing */
+  .btn-icon-sm {
+    @apply h-5 w-5 md:h-6 md:w-6;
+    @apply [&_svg]:h-3 [&_svg]:w-3 md:[&_svg]:h-3.5 md:[&_svg]:w-3.5;
+  }
+
+  /* Icon button medium - fixed sizing */
+  .btn-icon-md {
+    @apply h-8 w-8;
+    @apply [&_svg]:h-4 [&_svg]:w-4;
+  }
+
+  /* Combination classes for common patterns */
+  .btn-icon-hollow-sm {
+    @apply btn-hollow btn-icon btn-icon-sm;
+  }
+
+  .btn-icon-hollow-md {
+    @apply btn-hollow btn-icon btn-icon-md;
+  }
+
+  .btn-icon-ghost-sm {
+    @apply btn-ghost btn-icon btn-icon-sm;
+  }
+
+  .btn-icon-ghost-md {
+    @apply btn-ghost btn-icon btn-icon-md;
+  }
+}
+
+/* ============================================
+   TREMOR CHART OVERRIDES
+   Force correct backgrounds on chart components
+   ============================================ */
+@layer components {
+  /* Force background colors on Tremor DonutChart components */
+  .tremor-DonutChart-root,
+  .tremor-DonutChart-root > div,
+  .tremor-Chart-root,
+  .tremor-Chart-root > div {
+    background-color: white !important;
+  }
+
+  .dark .tremor-DonutChart-root,
+  .dark .tremor-DonutChart-root > div,
+  .dark .tremor-Chart-root,
+  .dark .tremor-Chart-root > div {
+    background-color: #202020 !important;
+  }
+
+  /* Ensure SVG backgrounds are transparent */
+  .tremor-DonutChart-root svg,
+  .tremor-Chart-root svg {
+    background-color: transparent !important;
+  }
+
+  /* Angular clip-path for active tab underlines (horizontal) */
+  /* Trapezoid: narrow top, wide bottom - both edges slant outward */
+  [data-state="active"]::after {
+    clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
   }
 }

@@ -1,0 +1,35 @@
+# Normalize line endings
+* text=auto
+
+# Enforce LF for source files
+*.ts   text eol=lf
+*.tsx  text eol=lf
+*.js   text eol=lf
+*.jsx  text eol=lf
+*.css  text eol=lf
+*.scss text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf
+*.yaml text eol=lf
+*.sh   text eol=lf
+*.lock text eol=lf
+package-lock.json text eol=lf
+
+# Images and fonts as binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary
+*.ico  binary
+*.ttf  binary
+*.woff binary
+*.woff2 binary
+
+# Media
+*.mp4  binary
+*.mov  binary
+
+# SVG are text (keep diffs readable)
+*.svg text eol=lf
