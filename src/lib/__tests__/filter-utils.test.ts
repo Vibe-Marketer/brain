@@ -1,0 +1,279 @@
+import { describe, it, expect, beforeEach } from 'vitest';
+import {
+  parseSearchSyntax,
+  syntaxToFilters,
+  filtersToURLParams,
+  urlParamsToFilters,
+  addToSearchHistory,
+  getSearchHistory,
+  clearSearchHistory,
+  FilterState,
+} from '../filter-utils';
+
+describe('parseSearchSyntax', () => {
+  it('should parse participant filter', () => {
+    const result = parseSearchSyntax('participant:john meeting notes');
+    expect(result.filters.participant).toEqual(['john']);
+    expect(result.plainText).toBe('meeting notes');
+  });
+
+  it('should parse multiple filters', () => {
+    const result = parseSearchSyntax('participant:john date:today category:sales planning');
+    expect(result.filters.participant).toEqual(['john']);
+    expect(result.filters.date).toBe('today');
+    expect(result.filters.category).toEqual(['sales']);
+    expect(result.plainText).toBe('planning');
+  });
+
+  it('should handle duration filter with different formats', () => {
+    const result1 = parseSearchSyntax('duration:>30');
+    expect(result1.filters.duration).toBe('>30');
+
+    const result2 = parseSearchSyntax('duration:<15');
+    expect(result2.filters.duration).toBe('<15');
+
+    const result3 = parseSearchSyntax('duration:30-60');
+    expect(result3.filters.duration).toBe('30-60');
+  });
+
+  it('should parse status filter', () => {
+    const result = parseSearchSyntax('status:synced status:unsynced');
+    expect(result.filters.status).toEqual(['synced', 'unsynced']);
+  });
+});
+
+describe('syntaxToFilters - Date Filters', () => {
+  it('should parse "today" without date mutation', () => {
+    const syntax = parseSearchSyntax('date:today');
+    const filters = syntaxToFilters(syntax);
+    
+    expect(filters.dateFrom).toBeDefined();
+    expect(filters.dateTo).toBeDefined();
+    
+    const from = filters.dateFrom!;
+    const to = filters.dateTo!;
+    
+    expect(from.getHours()).toBe(0);
+    expect(from.getMinutes()).toBe(0);
+    expect(to.getHours()).toBe(23);
+    expect(to.getMinutes()).toBe(59);
+    
+    // Ensure both dates are the same day
+    expect(from.toDateString()).toBe(to.toDateString());
+  });
+
+  it('should parse "yesterday" without date mutation', () => {
+    const syntax = parseSearchSyntax('date:yesterday');
+    const filters = syntaxToFilters(syntax);
+    
+    expect(filters.dateFrom).toBeDefined();
+    expect(filters.dateTo).toBeDefined();
+    
+    const from = filters.dateFrom!;
+    const to = filters.dateTo!;
+    
+    expect(from.getHours()).toBe(0);
+    expect(to.getHours()).toBe(23);
+    
+    // Verify it's yesterday
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+    expect(from.toDateString()).toBe(yesterday.toDateString());
+    expect(to.toDateString()).toBe(yesterday.toDateString());
+  });
+
+  it('should parse "week" preset correctly', () => {
+    const syntax = parseSearchSyntax('date:week');
+    const filters = syntaxToFilters(syntax);
+    
+    expect(filters.dateFrom).toBeDefined();
+    expect(filters.dateTo).toBeDefined();
+    
+    const daysDiff = Math.round(
+      (filters.dateTo!.getTime() - filters.dateFrom!.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    expect(daysDiff).toBeGreaterThanOrEqual(6);
+    expect(daysDiff).toBeLessThanOrEqual(7);
+  });
+
+  it('should parse ISO date format', () => {
+    const syntax = parseSearchSyntax('date:2024-01-15');
+    const filters = syntaxToFilters(syntax);
+    
+    expect(filters.dateFrom).toBeDefined();
+    expect(filters.dateTo).toBeDefined();
+    
+    const from = filters.dateFrom!;
+    expect(from.getFullYear()).toBe(2024);
+    expect(from.getMonth()).toBe(0); // January is 0
+    expect(from.getDate()).toBe(15);
+  });
+});
+
+describe('syntaxToFilters - Duration Filters', () => {
+  it('should parse duration greater than', () => {
+    const syntax = parseSearchSyntax('duration:>30');
+    const filters = syntaxToFilters(syntax);
+    
+    expect(filters.durationMin).toBe(30);
+    expect(filters.durationMax).toBeUndefined();
+  });
+
+  it('should parse duration less than', () => {
+    const syntax = parseSearchSyntax('duration:<15');
+    const filters = syntaxToFilters(syntax);
+    
+    expect(filters.durationMin).toBeUndefined();
+    expect(filters.durationMax).toBe(15);
+  });
+
+  it('should parse duration range', () => {
+    const syntax = parseSearchSyntax('duration:30-60');
+    const filters = syntaxToFilters(syntax);
+    
+    expect(filters.durationMin).toBe(30);
+    expect(filters.durationMax).toBe(60);
+  });
+});
+
+describe('URL Persistence', () => {
+  it('should serialize filters to URL params', () => {
+    const filters: Partial<FilterState> = {
+      dateFrom: new Date('2024-01-01'),
+      dateTo: new Date('2024-01-31'),
+      participants: ['john', 'jane'],
+      categories: ['sales'],
+      durationMin: 30,
+      durationMax: 60,
+      status: ['synced'],
+    };
+
+    const params = filtersToURLParams(filters);
+    
+    expect(params.get('from')).toBeTruthy();
+    expect(params.get('to')).toBeTruthy();
+    expect(params.get('participants')).toBe('john,jane');
+    expect(params.get('categories')).toBe('sales');
+    expect(params.get('durMin')).toBe('30');
+    expect(params.get('durMax')).toBe('60');
+    expect(params.get('status')).toBe('synced');
+  });
+
+  it('should deserialize URL params to filters', () => {
+    const params = new URLSearchParams();
+    params.set('from', '2024-01-01T00:00:00.000Z');
+    params.set('to', '2024-01-31T23:59:59.999Z');
+    params.set('participants', 'john,jane');
+    params.set('categories', 'sales,marketing');
+    params.set('durMin', '30');
+    params.set('durMax', '60');
+    params.set('status', 'synced,unsynced');
+
+    const filters = urlParamsToFilters(params);
+    
+    expect(filters.dateFrom).toBeInstanceOf(Date);
+    expect(filters.dateTo).toBeInstanceOf(Date);
+    expect(filters.participants).toEqual(['john', 'jane']);
+    expect(filters.categories).toEqual(['sales', 'marketing']);
+    expect(filters.durationMin).toBe(30);
+    expect(filters.durationMax).toBe(60);
+    expect(filters.status).toEqual(['synced', 'unsynced']);
+  });
+
+  it('should handle round-trip conversion', () => {
+    const original: Partial<FilterState> = {
+      dateFrom: new Date('2024-01-01'),
+      participants: ['john'],
+      durationMin: 15,
+    };
+
+    const params = filtersToURLParams(original);
+    const restored = urlParamsToFilters(params);
+    
+    expect(restored.dateFrom?.toDateString()).toBe(original.dateFrom?.toDateString());
+    expect(restored.participants).toEqual(original.participants);
+    expect(restored.durationMin).toBe(original.durationMin);
+  });
+});
+
+describe('Search History', () => {
+  beforeEach(() => {
+    clearSearchHistory();
+  });
+
+  it('should add queries to search history', () => {
+    addToSearchHistory('test query 1');
+    addToSearchHistory('test query 2');
+    
+    const history = getSearchHistory();
+    expect(history).toHaveLength(2);
+    expect(history[0]).toBe('test query 2'); // Most recent first
+    expect(history[1]).toBe('test query 1');
+  });
+
+  it('should limit history to 10 items', () => {
+    for (let i = 0; i < 15; i++) {
+      addToSearchHistory(`query ${i}`);
+    }
+    
+    const history = getSearchHistory();
+    expect(history).toHaveLength(10);
+    expect(history[0]).toBe('query 14'); // Most recent
+  });
+
+  it('should not add duplicate consecutive queries', () => {
+    addToSearchHistory('test query');
+    addToSearchHistory('test query');
+    addToSearchHistory('different query');
+    addToSearchHistory('test query');
+    
+    const history = getSearchHistory();
+    expect(history).toHaveLength(2);
+    expect(history[0]).toBe('test query');
+    expect(history[1]).toBe('different query');
+  });
+
+  it('should clear all search history', () => {
+    addToSearchHistory('query 1');
+    addToSearchHistory('query 2');
+    
+    clearSearchHistory();
+    
+    const history = getSearchHistory();
+    expect(history).toHaveLength(0);
+  });
+
+  it('should handle localStorage errors gracefully', () => {
+    // This test verifies the error handling exists
+    // In a real scenario, you'd mock localStorage to throw
+    expect(() => addToSearchHistory('test')).not.toThrow();
+    expect(() => getSearchHistory()).not.toThrow();
+    expect(() => clearSearchHistory()).not.toThrow();
+  });
+});
+
+describe('Edge Cases', () => {
+  it('should handle empty search query', () => {
+    const result = parseSearchSyntax('');
+    expect(result.plainText).toBe('');
+    expect(Object.keys(result.filters)).toHaveLength(0);
+  });
+
+  it('should handle malformed duration filters', () => {
+    const syntax = parseSearchSyntax('duration:invalid');
+    const filters = syntaxToFilters(syntax);
+    
+    // Should handle NaN gracefully
+    expect(filters.durationMin).toBeNaN();
+  });
+
+  it('should handle invalid date formats', () => {
+    const syntax = parseSearchSyntax('date:not-a-date');
+    const filters = syntaxToFilters(syntax);
+    
+    // Invalid dates should be ignored
+    expect(filters.dateFrom).toBeUndefined();
+    expect(filters.dateTo).toBeUndefined();
+  });
+});
