@@ -120,8 +120,9 @@ export default function FathomSetupWizard({ open, onComplete }: FathomSetupWizar
         return false;
       }
 
-      if (!apiKey.startsWith('fth_')) {
-        toast.error("Invalid API key format. Should start with 'fth_'");
+      // Basic validation - ensure API key is not empty (format varies)
+      if (apiKey.trim().length === 0) {
+        toast.error("API key cannot be empty");
         return false;
       }
 

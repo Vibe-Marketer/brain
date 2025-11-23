@@ -15,9 +15,19 @@
         "ghcr.io/github/github-mcp-server"
       ],
       "env": {
-        "GITHUB_PERSONAL_ACCESS_TOKEN": "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",
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "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HZVpMIVLPUIeSgkJwppH8eUaRyKS5gdEnGzYXKGROVEO5keW6hee",
         "GITHUB_TOOLSETS": "",
         "GITHUB_READ_ONLY": ""
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-playwright"
+      ],
+      "env": {
+        "PLAYWRIGHT_HEADLESS": "true"
       }
     },
     "puppeteer": {
@@ -25,7 +35,10 @@
       "args": [
         "-y",
         "@modelcontextprotocol/server-puppeteer"
-      ]
+      ],
+      "env": {
+        "PUPPETEER_HEADLESS": "true"
+      }
     },
     "memory": {
       "command": "npx",
