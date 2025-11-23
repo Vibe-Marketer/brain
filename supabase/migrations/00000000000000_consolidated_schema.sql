@@ -265,9 +265,6 @@ CREATE INDEX idx_transcripts_edited ON public.fathom_transcripts(edited_at) WHER
 CREATE INDEX idx_user_roles_user_id ON public.user_roles(user_id);
 CREATE INDEX idx_user_roles_role ON public.user_roles(role);
 
--- user_profiles indexes
-CREATE INDEX idx_user_profiles_role ON public.user_profiles(role) WHERE role IN ('TEAM', 'ADMIN');
-
 -- webhook_deliveries indexes
 CREATE INDEX idx_webhook_deliveries_user_id ON public.webhook_deliveries(user_id);
 CREATE INDEX idx_webhook_deliveries_created_at ON public.webhook_deliveries(created_at DESC);
@@ -508,12 +505,7 @@ WITH CHECK (auth.uid() = user_id);
 CREATE POLICY "Admins can view all profiles"
 ON public.user_profiles FOR SELECT
 TO authenticated
-USING (
-  EXISTS (
-    SELECT 1 FROM public.user_profiles up
-    WHERE up.user_id = auth.uid() AND up.role = 'ADMIN'
-  )
-);
+USING (public.has_role(auth.uid(), 'ADMIN'));
 
 -- user_settings policies
 CREATE POLICY "Users can read own settings"

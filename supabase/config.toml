@@ -1,11 +1,5 @@
 project_id = "vltmrnjsubfzrgrtdqey"
 
-[functions.run-agent]
-verify_jwt = true
-
-[functions.install-starter-agent]
-verify_jwt = true
-
 [functions.fetch-meetings]
 verify_jwt = true
 
@@ -30,22 +24,13 @@ verify_jwt = true
 [functions.get-config-status]
 verify_jwt = true
 
-[functions.test-webhook]
-verify_jwt = true
-
-[functions.test-webhook-endpoint]
-verify_jwt = true
-
 [functions.fetch-single-meeting]
 verify_jwt = true
 
 [functions.save-host-email]
 verify_jwt = true
 
-[functions.create-share-link]
-verify_jwt = true
-
-[functions.ai-analyze-transcripts]
+[functions.create-fathom-webhook]
 verify_jwt = true
 
 [functions.resync-all-calls]
@@ -62,32 +47,5 @@ verify_jwt = true
 
 [functions.fathom-oauth-refresh]
 verify_jwt = true
-
-[functions.migrate-speakers-to-contacts]
-verify_jwt = true
-
-[functions.update-contact-metrics]
-verify_jwt = true
-
-[functions.bulk-update-contacts]
-verify_jwt = true
-
-[functions.test-webhook-signature]
-verify_jwt = true
-
-[functions.schedule-agents]
-  verify_jwt = false
-
-[functions.upload-knowledge-file]
-  verify_jwt = true
-
-[functions.deliver-to-slack]
-  verify_jwt = true
-
-[functions.deliver-via-email]
-  verify_jwt = true
-
-[functions.process-call-ai]
-  verify_jwt = true
 
 

@@ -17,22 +17,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get Fathom API key from config
-    const { data: config, error: configError } = await supabaseClient
-      .from('app_config')
-      .select('value')
-      .eq('key', 'FATHOM_API_KEY')
-      .maybeSingle();
-
-    if (configError) throw configError;
-    if (!config?.value) {
-      return new Response(
-        JSON.stringify({ error: 'Fathom API key not configured' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const { recording_id } = await req.json();
+    const { recording_id, user_id } = await req.json();
     
     if (!recording_id) {
       return new Response(
@@ -41,6 +26,31 @@ serve(async (req) => {
       );
     }
 
+    if (!user_id) {
+      return new Response(
+        JSON.stringify({ error: 'User ID is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get Fathom credentials from user_settings
+    const { data: settings, error: settingsError } = await supabaseClient
+      .from('user_settings')
+      .select('fathom_api_key, oauth_access_token')
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    if (settingsError) throw settingsError;
+    
+    const apiKey = settings?.oauth_access_token || settings?.fathom_api_key;
+    
+    if (!apiKey) {
+      return new Response(
+        JSON.stringify({ error: 'Fathom credentials not configured' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     console.log('Fetching meeting with recording_id:', recording_id);
 
     // Use the specific recordings endpoint to get meeting details directly
@@ -49,13 +59,13 @@ serve(async (req) => {
     const [summaryResponse, transcriptResponse] = await Promise.all([
       fetch(url, {
         headers: {
-          'X-Api-Key': config.value,
+          'X-Api-Key': apiKey,
           'Content-Type': 'application/json',
         },
       }),
       fetch(`https://api.fathom.ai/external/v1/recordings/${recording_id}/transcript`, {
         headers: {
-          'X-Api-Key': config.value,
+          'X-Api-Key': apiKey,
           'Content-Type': 'application/json',
         },
       })
@@ -85,7 +95,7 @@ serve(async (req) => {
       
       const listResponse = await fetch(listUrl.toString(), {
         headers: {
-          'X-Api-Key': config.value,
+          'X-Api-Key': apiKey,
           'Content-Type': 'application/json',
         },
       });
