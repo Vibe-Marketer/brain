@@ -23,8 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 
-# Env files (track .env for Lovable build)
-!.env
+# Env files - NEVER commit sensitive credentials
+.env
 .env.local
 .env.*.local
 .env.development.local
