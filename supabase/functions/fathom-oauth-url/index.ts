@@ -34,16 +34,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get OAuth credentials from environment (using dev for now)
-    const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID_DEV');
-    const redirectUri = Deno.env.get('FATHOM_OAUTH_REDIRECT_URI_DEV');
+    // Get production OAuth credentials
+    const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID');
+    const redirectUri = 'https://transcriptsos.com/oauth/callback';
 
-    if (!clientId || !redirectUri) {
+    if (!clientId) {
       return new Response(
         JSON.stringify({ error: 'OAuth not configured. Contact administrator.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Fathom OAuth - Production mode');
+    console.log('Redirect URI:', redirectUri);
 
     // Generate random state for CSRF protection
     const state = crypto.randomUUID();

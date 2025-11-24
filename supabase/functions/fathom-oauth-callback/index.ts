@@ -57,17 +57,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get OAuth credentials (using dev for now)
-    const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID_DEV');
-    const clientSecret = Deno.env.get('FATHOM_OAUTH_CLIENT_SECRET_DEV');
-    const redirectUri = Deno.env.get('FATHOM_OAUTH_REDIRECT_URI_DEV');
+    // Get production OAuth credentials
+    const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID');
+    const clientSecret = Deno.env.get('FATHOM_OAUTH_CLIENT_SECRET');
+    const redirectUri = 'https://transcriptsos.com/oauth/callback';
 
-    if (!clientId || !clientSecret || !redirectUri) {
+    if (!clientId || !clientSecret) {
       return new Response(
         JSON.stringify({ error: 'OAuth not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Fathom OAuth callback - Production mode');
+    console.log('Redirect URI:', redirectUri);
 
     // Exchange code for tokens
     const tokenResponse = await fetch('https://fathom.video/external/v1/oauth2/token', {

@@ -324,7 +324,30 @@ Deno.serve(async (req) => {
       }
     }
     
-    // Fallback to first user's settings
+    // Fallback to OAuth app webhook secret (for OAuth-based webhooks)
+    if (!webhookSecret) {
+      console.log('🔄 No user-specific secret found, trying OAuth app secret');
+      const oauthAppSecret = Deno.env.get('FATHOM_OAUTH_WEBHOOK_SECRET');
+
+      if (oauthAppSecret) {
+        webhookSecret = oauthAppSecret;
+        secretMatchMethod = 'oauth_app_secret';
+        console.log('✅ Using OAuth app webhook secret');
+
+        // For OAuth webhooks, try to find user by email
+        if (meeting.recorded_by?.email) {
+          const { data: userByEmail } = await supabase
+            .from('user_settings')
+            .select('user_id')
+            .eq('host_email', meeting.recorded_by.email)
+            .maybeSingle();
+
+          matchedUserId = userByEmail?.user_id || null;
+        }
+      }
+    }
+
+    // Final fallback to first user's settings (for legacy API key webhooks)
     if (!webhookSecret) {
       console.log('🔄 Falling back to first user\'s webhook secret');
       const { data: firstSettings } = await supabase
@@ -332,7 +355,7 @@ Deno.serve(async (req) => {
         .select('webhook_secret, user_id')
         .limit(1)
         .maybeSingle();
-      
+
       if (firstSettings?.webhook_secret) {
         webhookSecret = firstSettings.webhook_secret;
         matchedUserId = firstSettings.user_id;
@@ -344,7 +367,7 @@ Deno.serve(async (req) => {
     }
 
     if (!webhookSecret) {
-      console.error('WEBHOOK_SECRET not configured for any user');
+      console.error('WEBHOOK_SECRET not configured - no user secret or OAuth app secret found');
       return new Response(
         JSON.stringify({ error: 'Webhook not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

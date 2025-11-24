@@ -41,3 +41,4 @@ coverage/
 # Database exports (too large for git)
 database-export-*.json
 migration-export-*.json
+.vercel
