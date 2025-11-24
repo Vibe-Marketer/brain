@@ -55,7 +55,7 @@ export function CallOverviewTab({
                       href={call.share_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-sm text-blue-600 dark:text-blue-400 hover:underline truncate block"
+                      className="text-sm text-accent-blue hover:underline truncate block"
                     >
                       {call.share_url}
                     </a>
@@ -111,8 +111,8 @@ export function CallOverviewTab({
 
             {/* Show warning if critical data is missing */}
             {(!call.recording_start_time || !call.recording_end_time || !call.share_url) && (
-              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
-                <div className="flex gap-2 text-sm text-yellow-800 dark:text-yellow-200">
+              <div className="mt-4 p-3 bg-cb-warning-bg border border-cb-warning-border rounded-md text-cb-warning-text">
+                <div className="flex gap-2 text-sm">
                   <RiErrorWarningLine className="h-4 w-4 flex-shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium">Some meeting data is unavailable:</p>

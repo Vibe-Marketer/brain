@@ -91,67 +91,9 @@ export function useSyncTabState({
     }
   };
 
-  // Background sync job polling - checks for active sync jobs periodically
+  // Background sync job polling (temporarily disabled to reduce console/network noise)
   useEffect(() => {
-    let isMounted = true;
-    let consecutiveEmptyChecks = 0;
-
-    const checkActiveSyncJobs = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user || !isMounted) return;
-
-        const { data } = await supabase
-          .from('sync_jobs')
-          .select('*')
-          .eq('user_id', user.id)
-          .in('status', ['pending', 'processing'])
-          .order('created_at', { ascending: false });
-
-        if (!isMounted) return;
-
-        if (data && data.length > 0) {
-          setActiveSyncJobs(data);
-          consecutiveEmptyChecks = 0;
-        } else {
-          consecutiveEmptyChecks++;
-
-          setActiveSyncJobs(prev => {
-            if (prev.length > 0) {
-              // Sync jobs just completed: refresh transcript list and sync status once
-              setTimeout(() => loadExistingTranscripts(), 100);
-              if (meetings.length > 0) {
-                setTimeout(() => {
-                  checkSyncStatus(meetings.map(m => m.recording_id));
-                }, 200);
-              }
-            }
-            return [];
-          });
-
-          // Force an additional refresh after a couple of empty checks
-          if (consecutiveEmptyChecks === 2) {
-            loadExistingTranscripts();
-            if (meetings.length > 0) {
-              checkSyncStatus(meetings.map(m => m.recording_id));
-            }
-          }
-        }
-      } catch (error) {
-        logger.error('Error checking sync jobs', error);
-      }
-    };
-
-    // Check immediately on mount
-    checkActiveSyncJobs();
-
-    // Poll every 10 seconds (reduced from 2s to avoid noisy polling)
-    const interval = setInterval(checkActiveSyncJobs, 10000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
+    // If we want background sync status again, restore the polling logic here.
   }, [meetings, loadExistingTranscripts, checkSyncStatus]);
 
   // Load initial data on mount

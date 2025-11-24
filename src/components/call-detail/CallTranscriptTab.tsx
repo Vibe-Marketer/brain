@@ -128,7 +128,12 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                   {call.share_url && (
                     <div className="col-span-2">
                       <Label className="text-xs text-muted-foreground">Fathom Share Link</Label>
-                      <a href={call.share_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline text-sm flex items-center gap-1">
+                      <a
+                        href={call.share_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-accent-blue hover:underline text-sm flex items-center gap-1"
+                      >
                         {call.share_url}
                       </a>
                     </div>
@@ -164,7 +169,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                     className="flex items-center gap-2"
                   >
                     <RiDownloadLine className="h-4 w-4" />
-                    <span className="font-mono text-gray-600 dark:text-gray-400">.TXT</span>
+                    <span className="font-mono text-cb-ink-soft">.TXT</span>
                   </Button>
                   <Button
                     variant="hollow"
@@ -173,7 +178,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                     className="flex items-center gap-2"
                   >
                     <RiDownloadLine className="h-4 w-4" />
-                    <span className="font-mono text-orange-600 dark:text-orange-400">.MD</span>
+                    <span className="font-mono text-cb-ink-soft">.MD</span>
                   </Button>
                   <Button
                     variant="hollow"
@@ -182,7 +187,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                     className="flex items-center gap-2"
                   >
                     <RiDownloadLine className="h-4 w-4" />
-                    <span className="font-mono text-red-600 dark:text-red-400">.PDF</span>
+                    <span className="font-mono text-cb-ink-soft">.PDF</span>
                   </Button>
                   <Button
                     variant="hollow"
@@ -191,7 +196,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                     className="flex items-center gap-2"
                   >
                     <RiDownloadLine className="h-4 w-4" />
-                    <span className="font-mono text-blue-600 dark:text-blue-400">.DOCX</span>
+                    <span className="font-mono text-cb-ink-soft">.DOCX</span>
                   </Button>
                   <Button
                     variant="hollow"
@@ -343,7 +348,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                         className="h-7 text-xs"
                       >
                         <RiDownloadLine className="h-3 w-3 mr-1" />
-                        <span className="text-purple-600 dark:text-purple-400">.JSON</span>
+                        <span className="text-cb-ink-soft">.JSON</span>
                       </Button>
                       <Button
                         variant="hollow"

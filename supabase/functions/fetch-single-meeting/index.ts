@@ -42,9 +42,23 @@ serve(async (req) => {
 
     if (settingsError) throw settingsError;
     
-    const apiKey = settings?.oauth_access_token || settings?.fathom_api_key;
+    // Build auth headers based on available credentials
+    let authHeaders: Record<string, string> | null = null;
+    if (settings?.oauth_access_token) {
+      // OAuth access token: use Authorization bearer header
+      authHeaders = {
+        'Authorization': `Bearer ${settings.oauth_access_token}`,
+        'Content-Type': 'application/json',
+      };
+    } else if (settings?.fathom_api_key) {
+      // Legacy API key: use X-Api-Key header
+      authHeaders = {
+        'X-Api-Key': settings.fathom_api_key,
+        'Content-Type': 'application/json',
+      };
+    }
     
-    if (!apiKey) {
+    if (!authHeaders) {
       return new Response(
         JSON.stringify({ error: 'Fathom credentials not configured' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -58,16 +72,10 @@ serve(async (req) => {
     
     const [summaryResponse, transcriptResponse] = await Promise.all([
       fetch(url, {
-        headers: {
-          'X-Api-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: authHeaders,
       }),
       fetch(`https://api.fathom.ai/external/v1/recordings/${recording_id}/transcript`, {
-        headers: {
-          'X-Api-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: authHeaders,
       })
     ]);
 
@@ -94,10 +102,7 @@ serve(async (req) => {
       }
       
       const listResponse = await fetch(listUrl.toString(), {
-        headers: {
-          'X-Api-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
+        headers: authHeaders,
       });
 
       if (!listResponse.ok) {
