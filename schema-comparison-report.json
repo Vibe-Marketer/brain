@@ -1,0 +1,167 @@
+{
+  "timestamp": "2025-11-23T22:08:05.105Z",
+  "tablesOnlyInOld": [
+    "app_config",
+    "transcript_tag_assignments",
+    "shared_links"
+  ],
+  "tablesOnlyInNew": [
+    "transcript_tags"
+  ],
+  "tablesInBoth": [
+    "fathom_calls",
+    "fathom_transcripts",
+    "user_settings",
+    "user_profiles",
+    "call_categories",
+    "call_category_assignments",
+    "processed_webhooks",
+    "webhook_deliveries",
+    "sync_jobs",
+    "call_speakers",
+    "speakers"
+  ],
+  "columnDifferences": {
+    "fathom_calls": {
+      "onlyInOld": [
+        "recording_id",
+        "title",
+        "created_at",
+        "recording_start_time",
+        "recording_end_time",
+        "url",
+        "share_url",
+        "synced_at",
+        "full_transcript",
+        "summary",
+        "recorded_by_name",
+        "recorded_by_email",
+        "user_id",
+        "calendar_invitees",
+        "title_edited_by_user",
+        "summary_edited_by_user",
+        "ai_generated_title",
+        "ai_title_generated_at",
+        "auto_tags",
+        "auto_tags_generated_at"
+      ],
+      "onlyInNew": [],
+      "common": []
+    },
+    "fathom_transcripts": {
+      "onlyInOld": [
+        "id",
+        "recording_id",
+        "speaker_name",
+        "speaker_email",
+        "text",
+        "timestamp",
+        "created_at",
+        "edited_text",
+        "edited_speaker_name",
+        "edited_speaker_email",
+        "is_deleted",
+        "edited_at",
+        "edited_by"
+      ],
+      "onlyInNew": [],
+      "common": []
+    },
+    "user_settings": {
+      "onlyInOld": [
+        "id",
+        "user_id",
+        "fathom_api_key",
+        "webhook_secret",
+        "host_email",
+        "created_at",
+        "updated_at",
+        "timezone",
+        "oauth_access_token",
+        "oauth_refresh_token",
+        "oauth_token_expires",
+        "oauth_state",
+        "oauth_last_tested_at",
+        "oauth_test_status",
+        "webhook_last_tested_at",
+        "webhook_test_status"
+      ],
+      "onlyInNew": [],
+      "common": []
+    },
+    "user_profiles": {
+      "onlyInOld": [],
+      "onlyInNew": [
+        "setup_wizard_completed",
+        "last_login_at"
+      ],
+      "common": [
+        "id",
+        "user_id",
+        "display_name",
+        "created_at",
+        "updated_at",
+        "onboarding_completed",
+        "email"
+      ]
+    },
+    "call_categories": {
+      "onlyInOld": [
+        "id",
+        "name",
+        "description",
+        "created_at",
+        "updated_at",
+        "user_id",
+        "icon"
+      ],
+      "onlyInNew": [],
+      "common": []
+    },
+    "call_category_assignments": {
+      "onlyInOld": [
+        "id",
+        "call_recording_id",
+        "category_id",
+        "auto_assigned",
+        "created_at"
+      ],
+      "onlyInNew": [],
+      "common": []
+    },
+    "webhook_deliveries": {
+      "onlyInOld": [
+        "id",
+        "user_id",
+        "webhook_id",
+        "recording_id",
+        "status",
+        "error_message",
+        "request_headers",
+        "request_body",
+        "signature_valid",
+        "created_at"
+      ],
+      "onlyInNew": [],
+      "common": []
+    },
+    "sync_jobs": {
+      "onlyInOld": [
+        "id",
+        "user_id",
+        "recording_ids",
+        "status",
+        "progress_current",
+        "progress_total",
+        "synced_ids",
+        "failed_ids",
+        "error_message",
+        "created_at",
+        "updated_at",
+        "completed_at"
+      ],
+      "onlyInNew": [],
+      "common": []
+    }
+  }
+}

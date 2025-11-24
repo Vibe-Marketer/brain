@@ -1,0 +1,177 @@
+<span id="markdown-mermaid" aria-hidden="true"
+                    data-dark-mode-theme="dark"
+                    data-light-mode-theme="default"
+                    data-max-text-size="50000"></span>
+                <h1 id="adr-003-reactflow-for-visual-agent-builder">ADR-003: ReactFlow for Visual Agent Builder</h1>
+<p><strong>Status:</strong> Accepted
+<strong>Date:</strong> 2025-01-23
+<strong>Context:</strong> AI Chat Agent System Implementation</p>
+<hr>
+<h2 id="context">Context</h2>
+<p>The AI Chat Agent System requires a visual workflow builder that allows users to design agent workflows without coding. Users need to:</p>
+<ul>
+<li>Drag and drop nodes onto a canvas</li>
+<li>Connect nodes with edges to define data flow</li>
+<li>Configure each node's parameters</li>
+<li>Visualize the complete agent workflow</li>
+<li>Save and load workflow definitions</li>
+</ul>
+<p>Key requirements:</p>
+<ul>
+<li>React-first architecture (matches our stack)</li>
+<li>TypeScript support</li>
+<li>Customizable nodes and edges</li>
+<li>Production-ready performance</li>
+<li>Active maintenance and community</li>
+</ul>
+<h2 id="decision">Decision</h2>
+<p>We will use <strong>ReactFlow 12.x</strong> as the visual workflow builder library.</p>
+<p>ReactFlow provides:</p>
+<ul>
+<li>Built-in features: zoom, pan, minimap, controls</li>
+<li>Custom node/edge support with full React components</li>
+<li>State management via hooks (<code>useNodesState</code>, <code>useEdgesState</code>)</li>
+<li>TypeScript-first API</li>
+<li>Extensive documentation and examples</li>
+<li>MIT license</li>
+<li>2.79M weekly npm downloads</li>
+</ul>
+<h2 id="alternatives-considered">Alternatives Considered</h2>
+<h3 id="1-retejs">1. Rete.js</h3>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Specifically designed for node editors</li>
+<li>Plugin architecture</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Less React-native integration</li>
+<li>Smaller community (89k weekly downloads)</li>
+<li>More complex setup</li>
+</ul>
+<h3 id="2-custom-canvas-implementation">2. Custom Canvas Implementation</h3>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Full control over features</li>
+<li>No external dependencies</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Estimated 4-6 weeks development time</li>
+<li>Need to implement: zoom, pan, snap-to-grid, minimap, etc.</li>
+<li>High maintenance burden</li>
+<li>Risk of bugs and edge cases</li>
+</ul>
+<h3 id="3-gojs">3. GoJS</h3>
+<p><strong>Pros:</strong></p>
+<ul>
+<li>Very mature library</li>
+<li>Rich feature set</li>
+</ul>
+<p><strong>Cons:</strong></p>
+<ul>
+<li>Commercial license required ($2,500+)</li>
+<li>Not React-first</li>
+<li>Heavier bundle size</li>
+</ul>
+<h2 id="consequences">Consequences</h2>
+<h3 id="positive">Positive</h3>
+<ol>
+<li><strong>Rapid Development</strong> - Production-ready canvas in days instead of weeks</li>
+<li><strong>Proven Reliability</strong> - Used by thousands of production apps</li>
+<li><strong>Customization</strong> - Full control over node/edge rendering with React components</li>
+<li><strong>Performance</strong> - Optimized for large graphs (100+ nodes)</li>
+<li><strong>TypeScript</strong> - Strong typing reduces bugs</li>
+<li><strong>Ecosystem</strong> - Plugins, examples, community support</li>
+</ol>
+<h3 id="negative">Negative</h3>
+<ol>
+<li><strong>Bundle Size</strong> - Adds ~150KB to bundle (acceptable for feature value)</li>
+<li><strong>Learning Curve</strong> - Team needs to learn ReactFlow APIs</li>
+<li><strong>Dependency Risk</strong> - Reliant on external library maintenance</li>
+</ol>
+<h3 id="neutral">Neutral</h3>
+<ol>
+<li><strong>MIT License</strong> - No licensing issues, can fork if needed</li>
+<li><strong>React Dependency</strong> - Already committed to React</li>
+</ol>
+<h2 id="implementation-notes">Implementation Notes</h2>
+<h3 id="node-types-well-implement">Node Types We'll Implement</h3>
+<pre><code class="language-typescript"><span class="hljs-keyword">export</span> <span class="hljs-keyword">const</span> nodeTypes = {
+  <span class="hljs-attr">llm</span>: <span class="hljs-title class_">LLMNode</span>,          <span class="hljs-comment">// Model configuration</span>
+  <span class="hljs-attr">tool</span>: <span class="hljs-title class_">ToolNode</span>,        <span class="hljs-comment">// Tool selection</span>
+  <span class="hljs-attr">search</span>: <span class="hljs-title class_">SearchNode</span>,    <span class="hljs-comment">// RAG search configuration</span>
+  <span class="hljs-attr">condition</span>: <span class="hljs-title class_">ConditionNode</span>, <span class="hljs-comment">// Conditional routing</span>
+  <span class="hljs-attr">output</span>: <span class="hljs-title class_">OutputNode</span>,    <span class="hljs-comment">// Final output</span>
+};
+</code></pre>
+<h3 id="sample-usage">Sample Usage</h3>
+<pre><code class="language-typescript"><span class="hljs-keyword">import</span> <span class="hljs-title class_">ReactFlow</span>, {
+  <span class="hljs-title class_">Background</span>,
+  <span class="hljs-title class_">Controls</span>,
+  <span class="hljs-title class_">MiniMap</span>,
+  useNodesState,
+  useEdgesState,
+} <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;reactflow&#x27;</span>;
+<span class="hljs-keyword">import</span> <span class="hljs-string">&#x27;reactflow/dist/style.css&#x27;</span>;
+
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">AgentBuilder</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-keyword">const</span> [nodes, setNodes, onNodesChange] = <span class="hljs-title function_">useNodesState</span>(initialNodes);
+  <span class="hljs-keyword">const</span> [edges, setEdges, onEdgesChange] = <span class="hljs-title function_">useEdgesState</span>(initialEdges);
+
+  <span class="hljs-keyword">return</span> (
+    <span class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">ReactFlow</span>
+      <span class="hljs-attr">nodes</span>=<span class="hljs-string">{nodes}</span>
+      <span class="hljs-attr">edges</span>=<span class="hljs-string">{edges}</span>
+      <span class="hljs-attr">onNodesChange</span>=<span class="hljs-string">{onNodesChange}</span>
+      <span class="hljs-attr">onEdgesChange</span>=<span class="hljs-string">{onEdgesChange}</span>
+      <span class="hljs-attr">nodeTypes</span>=<span class="hljs-string">{nodeTypes}</span>
+      <span class="hljs-attr">fitView</span>
+    &gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">Background</span> /&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">Controls</span> /&gt;</span>
+      <span class="hljs-tag">&lt;<span class="hljs-name">MiniMap</span> /&gt;</span>
+    <span class="hljs-tag">&lt;/<span class="hljs-name">ReactFlow</span>&gt;</span></span>
+  );
+}
+</code></pre>
+<h3 id="storage-format">Storage Format</h3>
+<p>Workflow definitions will be stored as JSON in the <code>ai_agents.workflow_definition</code> column:</p>
+<pre><code class="language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;nodes&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;node-1&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;type&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;llm&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;position&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span> <span class="hljs-attr">&quot;x&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span><span class="hljs-punctuation">,</span> <span class="hljs-attr">&quot;y&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">100</span> <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;data&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;label&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;Generate Response&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;config&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+          <span class="hljs-attr">&quot;model&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;openai/gpt-4o&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;temperature&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">0.7</span>
+        <span class="hljs-punctuation">}</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;edges&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+    <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;id&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;edge-1&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;source&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;node-1&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;target&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;node-2&quot;</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">]</span>
+<span class="hljs-punctuation">}</span>
+</code></pre>
+<h2 id="related-decisions">Related Decisions</h2>
+<ul>
+<li>ADR-001: Vercel AI SDK for Agent Framework (agents will be built from ReactFlow graphs)</li>
+<li>Future ADR: Node validation and workflow testing strategy</li>
+</ul>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="https://reactflow.dev">ReactFlow Documentation</a></li>
+<li><a href="https://github.com/xyflow/xyflow">ReactFlow GitHub</a></li>
+<li><a href="https://creati.ai/ai-tools/langgraph-gui-reactflow/">LangGraph GUI ReactFlow Example</a></li>
+</ul>
+<hr>
+<p><strong>Approved by:</strong> Claude
+<strong>Review Date:</strong> 2025-01-23</p>

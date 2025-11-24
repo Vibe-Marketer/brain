@@ -23,7 +23,8 @@ export function useSetupWizard(): SetupWizardData {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        logger.warn("No authenticated user found");
+        // Expected on login page - not an error condition
+        logger.debug("No authenticated user (expected on login page)");
         setWizardCompleted(false);
         setLoading(false);
         return;

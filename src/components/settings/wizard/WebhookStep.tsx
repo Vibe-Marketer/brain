@@ -24,7 +24,7 @@ export function WebhookStep({ webhookUrl, webhookCopied, onWebhookCopy }: Webhoo
         <div className="flex items-start gap-3">
           <Badge variant="default" className="shrink-0">1</Badge>
           <div className="flex-1 space-y-3">
-            <p className="font-medium">Copy this webhook URL</p>
+            <p className="font-medium">Copy the webhook destination URL</p>
             <div className="flex gap-2">
               <Input
                 value={webhookUrl}
@@ -49,7 +49,7 @@ export function WebhookStep({ webhookUrl, webhookCopied, onWebhookCopy }: Webhoo
           <div className="flex-1 flex items-center justify-between">
             <p className="font-medium">Open Fathom webhook settings</p>
             <Button
-              onClick={() => window.open("https://fathom.video/api_settings/new", "_blank")}
+              onClick={() => window.open("https://fathom.video/customize", "_blank")}
             >
               <RiExternalLinkLine className="mr-2 h-4 w-4" />
               Click Here
@@ -62,7 +62,7 @@ export function WebhookStep({ webhookUrl, webhookCopied, onWebhookCopy }: Webhoo
         <div className="flex items-start gap-3">
           <Badge variant="default" className="shrink-0">3</Badge>
           <div className="flex-1">
-            <p className="font-medium">Add new webhook</p>
+            <p className="font-medium">Add the webhook</p>
             <p className="text-sm text-muted-foreground mt-1">
               Paste the URL you copied in step 1
             </p>

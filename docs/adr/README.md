@@ -28,6 +28,9 @@ Short docs explaining important technical choices, written when we make them. Ea
 
 - [ADR-001: Vercel AI SDK for Chat Features](adr-001-vercel-ai-sdk.md) - 2025-11-19
 - [ADR-002: Remix Icon for Icon System](adr-002-remix-icon.md) - 2025-11-19
+- [ADR-003: ReactFlow for Visual Agent Builder](adr-003-reactflow-agent-builder.md) - 2025-01-23
+- [ADR-004: pgvector + RRF Hybrid Search for Knowledge Base](adr-004-pgvector-hybrid-search.md) - 2025-01-23
+- [ADR-005: Prompt-Kit for Chat UI Components](adr-005-prompt-kit-chat-ui.md) - 2025-01-23
 
 ## Superseded Decisions
 

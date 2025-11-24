@@ -1,0 +1,55 @@
+🚀 Starting data import with user mapping...
+📡 Target: https://vltmrnjsubfzrgrtdqey.supabase.co
+📂 Source: database-export-2025-11-23.json
+
+🔍 Finding your new user ID...
+✅ Found user: a@govibey.com
+   New User ID: ef054159-3a5a-49e3-9fd8-31fa5a180ee6
+
+📋 Old User ID: a0564ad8-e57f-48b5-989a-a064dd0e1368
+   Mapping: a0564ad8-e57f-48b5-989a-a064dd0e1368 → ef054159-3a5a-49e3-9fd8-31fa5a180ee6
+
+📊 Importing tables...
+
+  ⏳ user_settings: 5 rows... ❌ Failed: insert or update on table "user_settings" violates foreign key constraint "user_settings_user_id_fkey"
+     Hint: Check constraints
+  ⏳ app_config: 3 rows... ❌ Failed: Could not find the table 'public.app_config' in the schema cache
+     Hint: Check constraints
+  ⏳ fathom_calls: 1158 rows... ❌ Failed: insert or update on table "fathom_calls" violates foreign key constraint "fathom_calls_user_id_fkey"
+     Hint: Check constraints
+  ⏳ fathom_transcripts: 10000 rows... ❌ Failed: insert or update on table "fathom_transcripts" violates foreign key constraint "fathom_transcripts_recording_id_fkey"
+     Hint: Check constraints
+  ⏳ processed_webhooks: 41 rows... ✅ 41 rows
+  ⏳ webhook_deliveries: 348 rows... ❌ Failed: Could not find the 'recording_id' column of 'webhook_deliveries' in the schema cache
+     Hint: Check constraints
+  ⏭️  call_speakers: No data
+  ⏭️  speakers: No data
+  ❌ contacts: Export failed (Could not find the table 'public.contacts' in the schema cache)
+  ❌ contact_tags: Export failed (Could not find the table 'public.contact_tags' in the schema cache)
+  ❌ contact_tag_assignments: Export failed (Could not find the table 'public.contact_tag_assignments' in the schema cache)
+  ❌ contact_call_associations: Export failed (Could not find the table 'public.contact_call_associations' in the schema cache)
+  ⏳ call_categories: 7 rows... ❌ Failed: insert or update on table "call_categories" violates foreign key constraint "call_categories_user_id_fkey"
+     Hint: Check constraints
+  ⏳ call_category_assignments: 56 rows... ❌ Failed: insert or update on table "call_category_assignments" violates foreign key constraint "call_category_assignments_call_recording_id_fkey"
+     Hint: Check constraints
+  ❌ transcript_tags: Export failed (Could not find the table 'public.transcript_tags' in the schema cache)
+  ⏭️  transcript_tag_assignments: No data
+  ❌ intel_items: Export failed (Could not find the table 'public.intel_items' in the schema cache)
+  ⏳ sync_jobs: 32 rows... ❌ Failed: Could not find the 'error_message' column of 'sync_jobs' in the schema cache
+     Hint: Check constraints
+  ⏭️  shared_links: No data
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 IMPORT COMPLETE!
+
+📊 Summary:
+   • Imported: 5 tables
+   • Total rows: 41
+   • User IDs mapped: 1
+   • Failed: 14 tables
+
+⚠️  Some tables failed to import. Check the errors above.
+
+✅ Your data is now linked to: a@govibey.com
+
