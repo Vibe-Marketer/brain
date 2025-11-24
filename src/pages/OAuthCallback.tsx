@@ -41,27 +41,8 @@ export default function OAuthCallback() {
         setStatus('success');
         toast.success('Successfully connected to Fathom!');
 
-        // Mark wizard as complete and redirect to settings
-        setTimeout(async () => {
-          try {
-            const { supabase } = await import("@/integrations/supabase/client");
-            const { data: { user } } = await supabase.auth.getUser();
-
-            if (user) {
-              // Mark wizard as completed
-              await supabase
-                .from("user_settings")
-                .upsert({
-                  user_id: user.id,
-                  wizard_completed: true,
-                }, {
-                  onConflict: "user_id"
-                });
-            }
-          } catch (error) {
-            console.error('Error marking wizard complete:', error);
-          }
-
+        // Redirect to settings after successful OAuth
+        setTimeout(() => {
           navigate('/settings');
         }, 2000);
       } catch (error: any) {
