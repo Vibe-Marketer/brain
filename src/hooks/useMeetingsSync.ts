@@ -163,9 +163,20 @@ export function useMeetingsSync() {
     try {
       const recordingIds = Array.from(selectedMeetings).map((id) => parseInt(id));
 
+      // Convert date range to match what Edge Function expects
+      const createdAfter = appliedDateRange?.from
+        ? new Date(Date.UTC(appliedDateRange.from.getFullYear(), appliedDateRange.from.getMonth(), appliedDateRange.from.getDate(), 0, 0, 0, 0)).toISOString()
+        : undefined;
+
+      const createdBefore = appliedDateRange?.to
+        ? new Date(Date.UTC(appliedDateRange.to.getFullYear(), appliedDateRange.to.getMonth(), appliedDateRange.to.getDate(), 23, 59, 59, 999)).toISOString()
+        : undefined;
+
       const { data, error } = await supabase.functions.invoke("sync-meetings", {
-        body: { 
-          recording_ids: recordingIds,
+        body: {
+          recordingIds,  // Changed from recording_ids (snake_case) to recordingIds (camelCase)
+          createdAfter,  // Added date range parameters
+          createdBefore, // Added date range parameters
           category_id: preSyncCategoryId !== 'none' ? preSyncCategoryId : undefined
         }
       });
@@ -226,7 +237,7 @@ export function useMeetingsSync() {
       toast.error(error.message || "Failed to sync meetings");
       setSyncing(false);
     }
-  }, [checkSyncStatus]);
+  }, [appliedDateRange, checkSyncStatus]);
 
   const syncSingleMeeting = useCallback(async (recordingId: string, categoryId?: string) => {
     setSyncingMeetings((prev) => new Set(prev).add(recordingId));

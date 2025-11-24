@@ -174,11 +174,19 @@ CREATE TABLE public.sync_jobs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   status TEXT NOT NULL,
-  type TEXT NOT NULL,
+  type TEXT DEFAULT 'sync',
   started_at TIMESTAMPTZ DEFAULT NOW(),
   completed_at TIMESTAMPTZ,
   error TEXT,
   metadata JSONB,
+
+  -- Progress tracking columns
+  recording_ids INTEGER[],
+  progress_current INTEGER DEFAULT 0,
+  progress_total INTEGER DEFAULT 0,
+  synced_ids INTEGER[],
+  failed_ids INTEGER[],
+
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
