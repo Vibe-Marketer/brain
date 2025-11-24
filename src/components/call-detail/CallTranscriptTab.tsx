@@ -228,10 +228,19 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                   </div>
                 </div>
                 <div className="h-[300px] rounded-md border overflow-y-auto">
-                  <div className="space-y-6 py-4 px-4 bg-background dark:bg-card">
+                  <div className="space-y-6 py-4 px-4 bg-card">
                     {transcripts && transcripts.length > 0 ? (
                       (() => {
-                        const hostEmail = userSettings?.host_email?.toLowerCase();
+                        // Determine host email for blue bubble: prefer explicit host_email,
+                        // but fall back to recorded_by_email from the call if needed.
+                        const hostEmail = (
+                          userSettings?.host_email ||
+                          call.recorded_by_email ||
+                          ""
+                        )
+                          .toString()
+                          .toLowerCase() || null;
+
                         const groups = groupTranscriptsBySpeaker(transcripts);
 
                         return groups.map((group, groupIndex) => {
@@ -314,7 +323,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                         });
                       })()
                     ) : (
-                      <Card className="p-8 text-center bg-background dark:bg-card">
+                      <Card className="p-8 text-center">
                         <p className="text-muted-foreground">No conversation available</p>
                       </Card>
                     )}
