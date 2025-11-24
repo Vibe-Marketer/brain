@@ -241,11 +241,20 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                           .toString()
                           .toLowerCase() || null;
 
+                        const hostName = (call.recorded_by_name || "")
+                          .toString()
+                          .toLowerCase() || null;
+
                         const groups = groupTranscriptsBySpeaker(transcripts);
 
                         return groups.map((group, groupIndex) => {
                           const speakerEmail = group.email?.toLowerCase();
-                          const isHost = (hostEmail && speakerEmail && speakerEmail === hostEmail);
+                          const speakerName = group.speaker?.toLowerCase();
+
+                          const isHost = (
+                            (hostEmail && speakerEmail && speakerEmail === hostEmail) ||
+                            (hostName && speakerName && speakerName === hostName)
+                          );
 
                           return (
                             <div
