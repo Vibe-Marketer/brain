@@ -64,15 +64,15 @@ export function CallDetailHeader({
           {call.share_url && (
             <>
               <Button
-                variant="default"
+                variant="hollow"
                 size="sm"
                 onClick={() => window.open(call.share_url, "_blank")}
               >
                 <RiVidiconLine className="h-4 w-4 mr-2" />
-                View
+                VIEW
               </Button>
               <Button
-                variant="default"
+                variant="hollow"
                 size="sm"
                 onClick={() => {
                   navigator.clipboard.writeText(call.share_url);
@@ -80,7 +80,7 @@ export function CallDetailHeader({
                 }}
               >
                 <RiFileCopyLine className="h-4 w-4 mr-2" />
-                Copy
+                COPY
               </Button>
             </>
           )}
@@ -96,22 +96,22 @@ export function CallDetailHeader({
                 }}
               >
                 <RiCloseLine className="h-4 w-4 mr-2" />
-                Cancel
+                CANCEL
               </Button>
               <Button variant="default" size="sm" onClick={onSave}>
                 <RiSaveLine className="h-4 w-4 mr-2" />
-                Save
+                SAVE
               </Button>
             </>
           ) : (
             <>
               <Button
-                variant="default"
+                variant="hollow"
                 size="sm"
                 onClick={() => setIsEditing(true)}
               >
                 <RiEditLine className="h-4 w-4 mr-2" />
-                Edit
+                EDIT
               </Button>
             </>
           )}

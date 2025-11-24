@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { logger } from "@/lib/logger";
 
 interface Category {
   id: string;
@@ -79,7 +80,7 @@ export default function ManualCategorizeDialog({
         setSelectedCategories(assigned);
       }
     } catch (error) {
-      console.error("Error loading assignments:", error);
+      logger.error("Error loading assignments", error);
     } finally {
       setLoading(false);
     }
@@ -103,7 +104,7 @@ export default function ManualCategorizeDialog({
       if (error) throw error;
       setCategories(data || []);
     } catch (error) {
-      console.error("Error loading categories:", error);
+      logger.error("Error loading categories", error);
     }
   };
 
@@ -192,7 +193,7 @@ export default function ManualCategorizeDialog({
       onCategoriesUpdated?.();
       onOpenChange(false);
     } catch (error) {
-      console.error("Error saving categories:", error);
+      logger.error("Error saving categories", error);
       toast.error("Failed to update categories");
     } finally {
       setSaving(false);

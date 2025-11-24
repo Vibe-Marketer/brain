@@ -12,6 +12,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import { logger } from "@/lib/logger";
 
 interface WebhookDelivery {
   id: string;
@@ -73,7 +74,7 @@ export default function WebhookDeliveryViewer() {
         setSecrets(secretsData);
       }
     } catch (error) {
-      console.error('Error loading webhook deliveries:', error);
+      logger.error('Error loading webhook deliveries', error);
       toast.error('Failed to load webhook deliveries');
     } finally {
       setLoading(false);

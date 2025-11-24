@@ -32,7 +32,7 @@ export function CallOverviewTab({
       <ScrollArea className="h-full">
         <div className="space-y-6 pr-4 pb-6">
           <Card className="p-6">
-            <h3 className="text-sm font-semibold mb-4">Call Details</h3>
+            <h3 className="font-display text-sm font-extrabold uppercase mb-4">CALL DETAILS</h3>
             <div className="grid grid-cols-2 gap-x-8 gap-y-6">
               {/* Left Column - Date & Duration */}
               <div className="space-y-4">

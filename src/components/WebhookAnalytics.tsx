@@ -132,7 +132,7 @@ export default function WebhookAnalytics() {
       });
 
     } catch (error) {
-      console.error('Error loading analytics:', error);
+      logger.error('Error loading analytics', error);
       toast.error('Failed to load webhook analytics');
     } finally {
       setLoading(false);

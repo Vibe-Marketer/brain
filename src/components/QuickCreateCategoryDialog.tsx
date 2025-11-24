@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { categorySchema } from "@/lib/validations";
+import { logger } from "@/lib/logger";
 
 interface QuickCreateCategoryDialogProps {
   open: boolean;
@@ -60,7 +61,7 @@ export default function QuickCreateCategoryDialog({
       onOpenChange(false);
       setName("");
     } catch (error) {
-      console.error("Error creating category:", error);
+      logger.error("Error creating category", error);
       toast.error("Failed to create category");
     } finally {
       setSaving(false);

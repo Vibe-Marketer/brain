@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
 import { groupTranscriptsBySpeaker, formatSimpleTimestamp } from "@/lib/transcriptUtils";
+import { logger } from "@/lib/logger";
 
 interface UseTranscriptExportProps {
   call: any;
@@ -58,7 +59,7 @@ export function useTranscriptExport({
       await navigator.clipboard.writeText(transcriptText);
       toast.success("Transcript copied to clipboard");
     } catch (error) {
-      console.error("Failed to copy transcript:", error);
+      logger.error("Failed to copy transcript", error);
       toast.error("Failed to copy transcript");
     }
   };
@@ -174,7 +175,7 @@ export function useTranscriptExport({
       toast.success(`Transcript exported as ${format.toUpperCase()}`);
     } catch (error) {
       toast.error("Failed to export transcript");
-      console.error(error);
+      logger.error("Export error", error);
     }
   };
 

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { RiLoader2Line, RiCheckboxCircleLine, RiCloseCircleLine } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 
 export default function OAuthCallback() {
   const [searchParams] = useSearchParams();
@@ -46,7 +47,7 @@ export default function OAuthCallback() {
           navigate('/settings');
         }, 2000);
       } catch (error: any) {
-        console.error('OAuth callback error:', error);
+        logger.error('OAuth callback error', error);
         setStatus('error');
         setErrorMessage(error?.message || 'Failed to complete OAuth authorization');
         toast.error('Failed to connect to Fathom');
