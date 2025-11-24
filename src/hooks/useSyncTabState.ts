@@ -91,7 +91,7 @@ export function useSyncTabState({
     }
   };
 
-  // Background sync job polling - checks for active sync jobs every 2 seconds
+  // Background sync job polling - checks for active sync jobs periodically
   useEffect(() => {
     let isMounted = true;
     let consecutiveEmptyChecks = 0;
@@ -110,8 +110,6 @@ export function useSyncTabState({
 
         if (!isMounted) return;
 
-        console.log('Active sync jobs check:', { count: data?.length || 0, hasJobs: !!(data && data.length > 0) });
-
         if (data && data.length > 0) {
           setActiveSyncJobs(data);
           consecutiveEmptyChecks = 0;
@@ -120,10 +118,8 @@ export function useSyncTabState({
 
           setActiveSyncJobs(prev => {
             if (prev.length > 0) {
-              console.log('✓ Sync jobs completed, refreshing transcript list and sync status...');
-              // Force immediate refresh of synced transcripts
+              // Sync jobs just completed: refresh transcript list and sync status once
               setTimeout(() => loadExistingTranscripts(), 100);
-              // Update sync status of unsynced meetings
               if (meetings.length > 0) {
                 setTimeout(() => {
                   checkSyncStatus(meetings.map(m => m.recording_id));
@@ -133,9 +129,8 @@ export function useSyncTabState({
             return [];
           });
 
-          // Force additional refresh after multiple empty checks
+          // Force an additional refresh after a couple of empty checks
           if (consecutiveEmptyChecks === 2) {
-            console.log('Force refresh after sync completion');
             loadExistingTranscripts();
             if (meetings.length > 0) {
               checkSyncStatus(meetings.map(m => m.recording_id));
@@ -150,8 +145,8 @@ export function useSyncTabState({
     // Check immediately on mount
     checkActiveSyncJobs();
 
-    // Poll every 2 seconds (faster detection)
-    const interval = setInterval(checkActiveSyncJobs, 2000);
+    // Poll every 10 seconds (reduced from 2s to avoid noisy polling)
+    const interval = setInterval(checkActiveSyncJobs, 10000);
 
     return () => {
       isMounted = false;

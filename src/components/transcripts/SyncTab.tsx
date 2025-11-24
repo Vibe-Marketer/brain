@@ -231,8 +231,14 @@ export function SyncTab() {
   const viewUnsyncedMeeting = async (recordingId: string) => {
     setLoadingUnsyncedMeeting(recordingId);
     try {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData?.user) {
+        throw new Error('Not authenticated');
+      }
+
       const { data, error } = await supabase.functions.invoke('fetch-single-meeting', {
-        body: { recording_id: parseInt(recordingId) }
+        body: { recording_id: parseInt(recordingId, 10), user_id: authData.user.id }
       });
 
       if (error) throw error;
@@ -284,8 +290,14 @@ export function SyncTab() {
   const downloadUnsyncedTranscript = async (recordingId: string, title: string) => {
     setLoadingUnsyncedMeeting(recordingId);
     try {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData?.user) {
+        throw new Error('Not authenticated');
+      }
+
       const { data, error } = await supabase.functions.invoke('fetch-single-meeting', {
-        body: { recording_id: parseInt(recordingId) }
+        body: { recording_id: parseInt(recordingId, 10), user_id: authData.user.id }
       });
 
       if (error) throw error;

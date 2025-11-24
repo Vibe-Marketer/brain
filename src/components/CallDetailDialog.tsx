@@ -492,8 +492,14 @@ export function CallDetailDialog({
   const resyncCallMutation = useMutation({
     mutationFn: async () => {
       // Fetch fresh meeting data from Fathom
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData?.user) {
+        throw new Error("Not authenticated");
+      }
+
       const { data: meetingData, error: fetchError } = await supabase.functions.invoke('fetch-single-meeting', {
-        body: { recordingId: call.recording_id }
+        body: { recording_id: call.recording_id, user_id: authData.user.id }
       });
       if (fetchError) throw fetchError;
       if (!meetingData?.meeting) throw new Error("No meeting data received");

@@ -243,16 +243,19 @@ export function useMeetingsSync() {
     setSyncingMeetings((prev) => new Set(prev).add(recordingId));
 
     try {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData?.user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase.functions.invoke("fetch-single-meeting", {
-        body: { recording_id: parseInt(recordingId) }
+        body: { recording_id: parseInt(recordingId, 10), user_id: authData.user.id }
       });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
       const meeting = data.meeting;
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = authData.user;
 
       // Build full_transcript from transcript array
       const fullTranscript = meeting.transcript && Array.isArray(meeting.transcript)
@@ -321,8 +324,12 @@ export function useMeetingsSync() {
   const viewUnsyncedMeeting = useCallback(async (recordingId: string, onOpen: (id: string) => void) => {
     setLoadingUnsyncedMeeting(recordingId);
     try {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData?.user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase.functions.invoke("fetch-single-meeting", {
-        body: { recording_id: parseInt(recordingId) }
+        body: { recording_id: parseInt(recordingId, 10), user_id: authData.user.id }
       });
 
       if (error) throw error;
@@ -340,8 +347,12 @@ export function useMeetingsSync() {
   const downloadUnsyncedTranscript = useCallback(async (recordingId: string, title: string) => {
     setLoadingUnsyncedMeeting(recordingId);
     try {
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData?.user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase.functions.invoke("fetch-single-meeting", {
-        body: { recording_id: parseInt(recordingId) }
+        body: { recording_id: parseInt(recordingId, 10), user_id: authData.user.id }
       });
 
       if (error) throw error;
