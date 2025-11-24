@@ -1,7 +1,6 @@
 import { memo } from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
@@ -104,30 +103,29 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
     <TabsContent value="transcript" className="flex-1 overflow-hidden">
       <ScrollArea className="h-full">
         <div className="pr-4 pb-6">
-          <Card className="p-6 max-w-full overflow-hidden">
-            <div className="space-y-4">
+          <div className="space-y-6">
               <div>
-                <h3 className="text-sm font-semibold mb-3">Metadata</h3>
+                <h3 className="font-display text-sm font-extrabold uppercase mb-3">METADATA</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <Label className="text-xs text-muted-foreground">Database Name</Label>
+                    <Label className="text-xs font-medium uppercase text-cb-ink-muted">DATABASE NAME</Label>
                     <p className="font-medium">{call.title}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Recording ID</Label>
+                    <Label className="text-xs font-medium uppercase text-cb-ink-muted">RECORDING ID</Label>
                     <p className="font-mono text-xs">{call.recording_id}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Date</Label>
+                    <Label className="text-xs font-medium uppercase text-cb-ink-muted">DATE</Label>
                     <p>{new Date(call.created_at).toLocaleString()}</p>
                   </div>
                   <div>
-                    <Label className="text-xs text-muted-foreground">Duration</Label>
+                    <Label className="text-xs font-medium uppercase text-cb-ink-muted">DURATION</Label>
                     <p className="opacity-50">{duration ? `${duration} minutes` : "Not available"}</p>
                   </div>
                   {call.share_url && (
                     <div className="col-span-2">
-                      <Label className="text-xs text-muted-foreground">Fathom Share Link</Label>
+                      <Label className="text-xs font-medium uppercase text-cb-ink-muted">FATHOM SHARE LINK</Label>
                       <a
                         href={call.share_url}
                         target="_blank"
@@ -145,13 +143,13 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
 
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold">Export Options</h3>
+                  <h3 className="font-display text-sm font-extrabold uppercase">EXPORT OPTIONS</h3>
                 </div>
 
                 {/* Timestamp Toggle */}
-                <div className="flex items-center justify-between p-4 mb-4 bg-muted/50 rounded-lg border">
-                  <Label htmlFor="timestamp-toggle" className="text-sm font-medium cursor-pointer">
-                    Include Timestamps
+                <div className="flex items-center justify-between py-2 mb-4">
+                  <Label htmlFor="timestamp-toggle" className="text-sm font-medium uppercase cursor-pointer">
+                    INCLUDE TIMESTAMPS
                   </Label>
                   <Switch
                     id="timestamp-toggle"
@@ -169,7 +167,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                     className="flex items-center gap-2"
                   >
                     <RiDownloadLine className="h-4 w-4" />
-                    <span className="font-mono text-cb-ink-soft">.TXT</span>
+                    <span className="text-xs uppercase">TXT</span>
                   </Button>
                   <Button
                     variant="hollow"
@@ -178,7 +176,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                     className="flex items-center gap-2"
                   >
                     <RiDownloadLine className="h-4 w-4" />
-                    <span className="font-mono text-cb-ink-soft">.MD</span>
+                    <span className="text-xs uppercase">MD</span>
                   </Button>
                   <Button
                     variant="hollow"
@@ -187,7 +185,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                     className="flex items-center gap-2"
                   >
                     <RiDownloadLine className="h-4 w-4" />
-                    <span className="font-mono text-cb-ink-soft">.PDF</span>
+                    <span className="text-xs uppercase">PDF</span>
                   </Button>
                   <Button
                     variant="hollow"
@@ -196,7 +194,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                     className="flex items-center gap-2"
                   >
                     <RiDownloadLine className="h-4 w-4" />
-                    <span className="font-mono text-cb-ink-soft">.DOCX</span>
+                    <span className="text-xs uppercase">DOCX</span>
                   </Button>
                   <Button
                     variant="hollow"
@@ -205,7 +203,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                     className="ml-auto"
                   >
                     <RiFileCopyLine className="h-4 w-4 mr-2" />
-                    <span className="font-mono text-xs">COPY</span>
+                    <span className="text-xs uppercase">COPY</span>
                   </Button>
                 </div>
               </div>
@@ -214,10 +212,10 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
 
               <div>
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-sm font-semibold">Full Transcript</h3>
+                  <h3 className="font-display text-sm font-extrabold uppercase">FULL TRANSCRIPT</h3>
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="view-raw-toggle" className="text-xs font-medium cursor-pointer text-muted-foreground">
-                      View RAW
+                    <Label htmlFor="view-raw-toggle" className="text-xs font-medium uppercase cursor-pointer text-cb-ink-muted">
+                      VIEW RAW
                     </Label>
                     <Switch
                       id="view-raw-toggle"
@@ -263,11 +261,11 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                             >
                               <div className={`max-w-[70%] ${isHost ? 'items-end' : 'items-start'} flex flex-col gap-2`}>
                                 <div className="flex items-center gap-2 px-3">
-                                  <span className={`text-xs font-medium ${isHost ? 'text-right' : 'text-left'} text-gray-600 dark:text-gray-400`}>
+                                  <span className={`text-xs font-medium ${isHost ? 'text-right' : 'text-left'} text-cb-ink-muted`}>
                                     {group.speaker || "Unknown"}
                                   </span>
                                   {group.messages[0].timestamp && (
-                                    <span className="text-[11px] text-gray-500 dark:text-gray-400">
+                                    <span className="text-[11px] text-cb-ink-muted">
                                       {group.messages[0].timestamp}
                                     </span>
                                   )}
@@ -332,9 +330,9 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                         });
                       })()
                     ) : (
-                      <Card className="p-8 text-center">
-                        <p className="text-muted-foreground">No conversation available</p>
-                      </Card>
+                      <div className="p-8 text-center">
+                        <p className="text-cb-ink-muted">No conversation available</p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -343,7 +341,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
               {viewRaw && (
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold">Raw JSON Data</h3>
+                    <h3 className="font-display text-sm font-extrabold uppercase">RAW JSON DATA</h3>
                     <div className="flex gap-2">
                       <Button
                         variant="hollow"
@@ -366,16 +364,16 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                         className="h-7 text-xs"
                       >
                         <RiDownloadLine className="h-3 w-3 mr-1" />
-                        <span className="text-cb-ink-soft">.JSON</span>
+                        <span className="uppercase">JSON</span>
                       </Button>
                       <Button
                         variant="hollow"
                         size="sm"
                         onClick={onResyncCall}
-                        className="h-7 text-xs"
+                        className="h-7 text-xs uppercase"
                       >
                         <RiRefreshLine className="h-3 w-3 mr-1" />
-                        Re-sync
+                        RE-SYNC
                       </Button>
                     </div>
                   </div>
@@ -386,8 +384,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                   </ScrollArea>
                 </div>
               )}
-            </div>
-          </Card>
+          </div>
         </div>
       </ScrollArea>
     </TabsContent>

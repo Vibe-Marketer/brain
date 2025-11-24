@@ -1,7 +1,6 @@
 import { Dispatch, SetStateAction } from "react";
 import { TabsContent } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,17 +30,17 @@ export function CallOverviewTab({
     <TabsContent value="overview" className="flex-1 overflow-hidden">
       <ScrollArea className="h-full">
         <div className="space-y-6 pr-4 pb-6">
-          <Card className="p-6">
+          <div className="p-6 border-b border-cb-border">
             <h3 className="font-display text-sm font-extrabold uppercase mb-4">CALL DETAILS</h3>
             <div className="grid grid-cols-2 gap-x-8 gap-y-6">
               {/* Left Column - Date & Duration */}
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Date</Label>
+                  <Label className="text-xs font-medium uppercase text-cb-ink-muted">DATE</Label>
                   <p className="text-sm font-medium">{new Date(call.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Duration</Label>
+                  <Label className="text-xs font-medium uppercase text-cb-ink-muted">DURATION</Label>
                   <p className="text-sm font-medium">{duration ? `${duration} minutes` : "Not available"}</p>
                 </div>
               </div>
@@ -50,7 +49,7 @@ export function CallOverviewTab({
               <div className="space-y-4">
                 {call.share_url && (
                   <div className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">Fathom Share Link</Label>
+                    <Label className="text-xs font-medium uppercase text-cb-ink-muted">FATHOM SHARE LINK</Label>
                     <a
                       href={call.share_url}
                       target="_blank"
@@ -62,24 +61,24 @@ export function CallOverviewTab({
                   </div>
                 )}
                 <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Recording ID</Label>
+                  <Label className="text-xs font-medium uppercase text-cb-ink-muted">RECORDING ID</Label>
                   <p className="text-sm font-mono">{call.recording_id}</p>
                 </div>
               </div>
 
               {/* Second Row - Invitees & Participants */}
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Number of Invitees</Label>
+                <Label className="text-xs font-medium uppercase text-cb-ink-muted">NUMBER OF INVITEES</Label>
                 <p className="text-sm font-medium">{call.calendar_invitees?.length || 0} invited</p>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Participants (Speakers)</Label>
+                <Label className="text-xs font-medium uppercase text-cb-ink-muted">PARTICIPANTS (SPEAKERS)</Label>
                 <p className="text-sm font-medium">{callSpeakers?.length || 0} spoke</p>
               </div>
 
               {/* Bottom Row - Categories & Tags */}
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Folders</Label>
+                <Label className="text-xs font-medium uppercase text-cb-ink-muted">FOLDERS</Label>
                 <div className="flex flex-wrap gap-2">
                   {callCategories && callCategories.length > 0 ? (
                     callCategories.map((category: any) => (
@@ -94,7 +93,7 @@ export function CallOverviewTab({
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Auto-Generated Tags</Label>
+                <Label className="text-xs font-medium uppercase text-cb-ink-muted">AUTO-GENERATED TAGS</Label>
                 <div className="flex flex-wrap gap-2">
                   {call.auto_tags && call.auto_tags.length > 0 ? (
                     call.auto_tags.map((tag: string) => (
@@ -125,11 +124,11 @@ export function CallOverviewTab({
                 </div>
               </div>
             )}
-          </Card>
+          </div>
 
-          <div className="space-y-3">
+          <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold">Summary</h3>
+              <h3 className="font-display text-sm font-extrabold uppercase">SUMMARY</h3>
             </div>
             {isEditing ? (
               <Textarea
@@ -140,15 +139,15 @@ export function CallOverviewTab({
                 className="min-h-[300px]"
               />
             ) : (
-              <Card className="p-6 max-w-full overflow-hidden">
-                <div className="prose prose-sm dark:prose-invert max-w-none break-words overflow-wrap-anywhere text-cb-ink [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:mb-4 [&_h1]:mt-6 [&_h1:first-child]:mt-0 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_p]:mb-4 [&_p]:leading-relaxed [&_ul]:mb-4 [&_ul]:space-y-2 [&_li]:leading-relaxed">
+              <div className="p-6 max-w-full overflow-hidden border border-cb-border rounded-lg bg-card">
+                <div className="prose prose-sm max-w-none break-words overflow-wrap-anywhere text-cb-ink dark:text-white [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:mb-4 [&_h1]:mt-6 [&_h1:first-child]:mt-0 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_p]:mb-4 [&_p]:leading-relaxed [&_ul]:mb-4 [&_ul]:space-y-2 [&_li]:leading-relaxed [&_a]:text-accent-blue [&_a]:underline hover:[&_a]:opacity-80">
                   {call.summary ? (
                     <ReactMarkdown>{call.summary}</ReactMarkdown>
                   ) : (
-                    <p className="text-muted-foreground text-center py-8">No summary available</p>
+                    <p className="text-cb-ink-muted text-center py-8">No summary available</p>
                   )}
                 </div>
-              </Card>
+              </div>
             )}
           </div>
         </div>

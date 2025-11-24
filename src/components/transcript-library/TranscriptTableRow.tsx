@@ -183,7 +183,7 @@ export function TranscriptTableRow({
         <div className="flex items-center justify-center gap-0.5 md:gap-1">
           <button
             onClick={onCallClick}
-            className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted/50 transition-colors"
+            className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors"
             title="View details"
           >
             <RiEyeLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
@@ -193,7 +193,7 @@ export function TranscriptTableRow({
             <Popover>
               <PopoverTrigger asChild>
                 <button
-                  className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted/50 transition-colors"
+                  className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors"
                   title="Quick categorize"
                 >
                   <RiFolderTransferLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
@@ -204,7 +204,7 @@ export function TranscriptTableRow({
                   {categories.map((cat) => (
                     <button
                       key={cat.id}
-                      className="w-full justify-start text-sm px-2 py-1.5 rounded-md hover:bg-muted/50 transition-colors text-left"
+                      className="w-full justify-start text-sm px-2 py-1.5 rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors text-left"
                       onClick={() => onDirectCategorize(cat.id)}
                     >
                       {cat.name}
@@ -216,7 +216,7 @@ export function TranscriptTableRow({
           ) : (
             <button
               onClick={onCategorize}
-              className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted/50 transition-colors"
+              className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors"
               title="Categorize"
             >
               <RiFolderTransferLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
@@ -225,7 +225,7 @@ export function TranscriptTableRow({
           {onCustomDownload ? (
             <button
               onClick={() => onCustomDownload(call.recording_id, call.title)}
-              className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted/50 transition-colors"
+              className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors"
               title="Download transcript"
             >
               <RiDownloadLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
