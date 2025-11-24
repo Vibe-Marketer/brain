@@ -279,7 +279,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                                         className={`relative rounded-[18px] px-4 py-2 ${
                                           isHost
                                             ? 'bg-[#007AFF] dark:bg-[#0A84FF] text-white rounded-br-[4px]'
-                                            : 'bg-[#E5E7EB] dark:bg-[#2A2A2A] text-cb-ink rounded-bl-[4px]'
+                                            : 'bg-cb-hover dark:bg-cb-panel-dark text-cb-ink rounded-bl-[4px]'
                                         }`}
                                       >
                                       {editingSegmentId === message.id ? (

@@ -140,7 +140,7 @@ export function CallOverviewTab({
               />
             ) : (
               <div className="p-6 max-w-full overflow-hidden border border-cb-border rounded-lg bg-card">
-                <div className="prose prose-sm max-w-none break-words overflow-wrap-anywhere text-cb-ink dark:text-white [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:mb-4 [&_h1]:mt-6 [&_h1:first-child]:mt-0 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_p]:mb-4 [&_p]:leading-relaxed [&_ul]:mb-4 [&_ul]:space-y-2 [&_li]:leading-relaxed [&_a]:text-accent-blue [&_a]:underline hover:[&_a]:opacity-80">
+                <div className="prose prose-sm max-w-none break-words overflow-wrap-anywhere text-cb-ink [&_h1]:text-lg [&_h1]:font-semibold [&_h1]:mb-4 [&_h1]:mt-6 [&_h1:first-child]:mt-0 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:mb-3 [&_h2]:mt-5 [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:mb-2 [&_h3]:mt-4 [&_p]:mb-4 [&_p]:leading-relaxed [&_ul]:mb-4 [&_ul]:space-y-2 [&_li]:leading-relaxed [&_a]:text-accent-blue [&_a]:underline hover:[&_a]:opacity-80">
                   {call.summary ? (
                     <ReactMarkdown>{call.summary}</ReactMarkdown>
                   ) : (
