@@ -228,7 +228,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                   </div>
                 </div>
                 <div className="h-[300px] rounded-md border overflow-y-auto">
-                  <div className="space-y-6 py-4 px-4 bg-background">
+                  <div className="space-y-6 py-4 px-4 bg-card">
                     {transcripts && transcripts.length > 0 ? (
                       (() => {
                         // Determine host email for blue bubble: prefer explicit host_email,
@@ -281,7 +281,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                                         className={`relative rounded-[18px] px-4 py-2 ${
                                           isHost
                                             ? 'bg-[#007AFF] dark:bg-[#0A84FF] text-white rounded-br-[4px]'
-                                            : 'bg-[#F8F8F8] dark:bg-[#2A2A2A] text-cb-ink rounded-bl-[4px]'
+                                            : 'bg-[#E5E7EB] dark:bg-[#2A2A2A] text-cb-ink rounded-bl-[4px]'
                                         }`}
                                       >
                                       {editingSegmentId === message.id ? (

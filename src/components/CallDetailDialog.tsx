@@ -704,7 +704,10 @@ export function CallDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl h-[90vh] flex flex-col overflow-hidden" aria-describedby="call-detail-description">
+      <DialogContent
+        className="max-w-5xl h-[90vh] flex flex-col overflow-hidden bg-card"
+        aria-describedby="call-detail-description"
+      >
         <CallDetailHeader
           call={call}
           isEditing={isEditing}

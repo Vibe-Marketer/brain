@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { categorySchema } from "@/lib/validations";
+import { logger } from "@/lib/logger";
 
 import { TranscriptTable } from "@/components/transcript-library/TranscriptTable";
 import { CallDetailDialog } from "@/components/CallDetailDialog";
@@ -333,7 +334,7 @@ export function TranscriptsTab() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      console.log("Starting delete for IDs:", ids);
+      logger.info("Starting delete for IDs", ids);
 
       // Delete from all related tables first - throw errors to stop execution
       const { error: assignmentsError } = await supabase
@@ -341,7 +342,7 @@ export function TranscriptsTab() {
         .delete()
         .in("call_recording_id", ids);
       if (assignmentsError) {
-        console.error("Error deleting category assignments:", assignmentsError);
+        logger.error("Error deleting category assignments", assignmentsError);
         throw assignmentsError;
       }
 
@@ -350,7 +351,7 @@ export function TranscriptsTab() {
         .delete()
         .in("call_recording_id", ids);
       if (tagsError) {
-        console.error("Error deleting tag assignments:", tagsError);
+        logger.error("Error deleting tag assignments", tagsError);
         throw tagsError;
       }
 
@@ -362,7 +363,7 @@ export function TranscriptsTab() {
         .delete()
         .in("call_recording_id", ids);
       if (speakersError) {
-        console.error("Error deleting speakers:", speakersError);
+        logger.error("Error deleting speakers", speakersError);
         throw speakersError;
       }
 
@@ -371,7 +372,7 @@ export function TranscriptsTab() {
         .delete()
         .in("recording_id", ids);
       if (transcriptsError) {
-        console.error("Error deleting transcripts:", transcriptsError);
+        logger.error("Error deleting transcripts", transcriptsError);
         throw transcriptsError;
       }
       
@@ -384,15 +385,15 @@ export function TranscriptsTab() {
         .select();
         
       if (error) {
-        console.error("Error deleting fathom_calls:", error);
+        logger.error("Error deleting fathom_calls", error);
         throw error;
       }
-      
-      console.log("Successfully deleted calls:", deletedCalls);
+
+      logger.info("Successfully deleted calls", deletedCalls);
       return deletedCalls;
     },
     onSuccess: async (deletedCalls) => {
-      console.log("Delete mutation succeeded, refetching queries");
+      logger.info("Delete mutation succeeded, refetching queries");
       // Force immediate refetch of all queries
       await queryClient.invalidateQueries({ queryKey: ["category-calls"] });
       await queryClient.invalidateQueries({ queryKey: ["category-assignments"] });
@@ -403,7 +404,7 @@ export function TranscriptsTab() {
     },
     onError: (error: any) => {
       setShowDeleteDialog(false);
-      console.error("Delete mutation failed:", error);
+      logger.error("Delete mutation failed", error);
       toast.error(`Failed to delete transcript(s): ${error.message || "Unknown error"}`);
     },
   });
