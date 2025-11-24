@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface FilterBarProps {
   filters: {
@@ -84,7 +85,7 @@ export function FilterBar({
           setAllParticipants(Array.from(participantsSet).sort());
         }
       } catch (error) {
-        console.error("Error fetching participants:", error);
+        logger.error("Error fetching participants", error);
       }
     };
     fetchParticipants();

@@ -279,7 +279,7 @@ export function SyncTab() {
         setDialogOpen(true);
       }
     } catch (error: any) {
-      console.error('Error fetching meeting:', error);
+      logger.error('Error fetching meeting', error);
       toast.error(error.message || 'Failed to fetch meeting details');
     } finally {
       setLoadingUnsyncedMeeting(null);
@@ -322,7 +322,7 @@ export function SyncTab() {
         toast.error('No transcript available');
       }
     } catch (error: any) {
-      console.error('Error downloading transcript:', error);
+      logger.error('Error downloading transcript', error);
       toast.error(error.message || 'Failed to download transcript');
     } finally {
       setLoadingUnsyncedMeeting(null);

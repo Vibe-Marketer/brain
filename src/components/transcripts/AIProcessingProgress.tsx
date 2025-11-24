@@ -50,7 +50,7 @@ export const AIProcessingProgress = ({ onJobsComplete }: AIProcessingProgressPro
         } else {
           setActiveJobs(prev => {
             if (prev.length > 0 && onJobsComplete) {
-              console.log('✓ AI jobs completed, triggering callback...');
+              logger.info('AI jobs completed, triggering callback');
               setTimeout(() => onJobsComplete(), 100);
             }
             return [];

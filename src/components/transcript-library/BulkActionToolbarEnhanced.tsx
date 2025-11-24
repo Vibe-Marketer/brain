@@ -10,6 +10,7 @@ import { CategorizeDropdown } from "./CategorizeDropdown";
 import { ExportDropdown } from "./ExportDropdown";
 import { exportToPDF, exportToDOCX, exportToTXT, exportToJSON, exportToZIP } from "@/lib/export-utils";
 import { supabase } from "@/integrations/supabase/client";
+import { logger } from "@/lib/logger";
 
 interface BulkActionToolbarEnhancedProps {
   selectedCount: number;
@@ -60,7 +61,7 @@ export function BulkActionToolbarEnhanced({
       }
       toast.success(`Successfully exported ${selectedCount} transcript${selectedCount > 1 ? 's' : ''}`, { id: loadingToast });
     } catch (error) {
-      console.error('Export error:', error);
+      logger.error('Export error', error);
       toast.error(`Failed to export transcripts`, { id: loadingToast });
     }
   };
@@ -91,7 +92,7 @@ export function BulkActionToolbarEnhanced({
       toast.success(`Updated tags for ${selectedCount} call${selectedCount > 1 ? 's' : ''}`);
       onClearSelection();
     } catch (error) {
-      console.error('Error updating tags:', error);
+      logger.error('Error updating tags', error);
       toast.error('Failed to update tags');
     }
   };

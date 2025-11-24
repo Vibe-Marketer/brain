@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { RiCheckDoubleLine, RiCloseCircleLine, RiTimeLine, RiShieldLine, RiLineChartLine } from "@remixicon/react";
+import { logger } from "@/lib/logger";
 
 interface AnalyticsData {
   totalDeliveries: number;

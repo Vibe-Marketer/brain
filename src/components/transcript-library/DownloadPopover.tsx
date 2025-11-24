@@ -8,6 +8,7 @@ import { saveAs } from "file-saver";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { logger } from "@/lib/logger";
 
 interface DownloadPopoverProps {
   call: any;
@@ -104,7 +105,7 @@ export function DownloadPopover({ call }: DownloadPopoverProps) {
       toast.success(`Transcript exported as ${format.toUpperCase()}`);
       setOpen(false);
     } catch (error) {
-      console.error("Export error:", error);
+      logger.error("Export error", error);
       toast.error("Failed to export transcript");
     } finally {
       setIsExporting(false);

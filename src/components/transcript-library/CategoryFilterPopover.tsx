@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { FilterButton } from "./FilterButton";
+import { logger } from "@/lib/logger";
 
 interface CategoryFilterPopoverProps {
   selectedCategories?: string[];
@@ -44,7 +45,7 @@ export function CategoryFilterPopover({
 
       e.currentTarget.reset();
     } catch (error) {
-      console.error("Error creating category:", error);
+      logger.error("Error creating category", error);
     }
   };
 

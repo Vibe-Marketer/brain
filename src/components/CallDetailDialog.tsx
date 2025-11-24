@@ -44,6 +44,7 @@ import {
   type TranscriptHandlers,
   type TranscriptData,
 } from "@/components/call-detail/CallTranscriptTab";
+import { logger } from "@/lib/logger";
 
 interface CallDetailDialogProps {
   call: any;
@@ -138,7 +139,7 @@ export function CallDetailDialog({
         .single();
       
       if (callError) {
-        console.error("Error fetching full_transcript:", callError);
+        logger.error("Error fetching full_transcript", callError);
       }
       
       // Parse full_transcript into segments
@@ -187,17 +188,17 @@ export function CallDetailDialog({
               segment.speaker_email = email;
             }
           });
-          
-          console.log(`✅ Parsed ${segments.length} segments with ${speakerEmailMap.size} speaker email mappings`);
+
+          logger.info(`Parsed ${segments.length} segments with ${speakerEmailMap.size} speaker email mappings`);
         } else {
-          console.log(`✅ Parsed ${segments.length} segments from full_transcript (no email mapping available)`);
+          logger.info(`Parsed ${segments.length} segments from full_transcript (no email mapping available)`);
         }
         
         return segments;
       }
       
       // FALLBACK METHOD: Fetch from fathom_transcripts with pagination to handle 10K limit
-      console.log("⚠️ full_transcript not available, using paginated query fallback");
+      logger.info("full_transcript not available, using paginated query fallback");
       const segments = [];
       let from = 0;
       const batchSize = 1000;
@@ -222,7 +223,7 @@ export function CallDetailDialog({
         }
       }
 
-      console.log(`✅ Fetched ${segments.length} segments via pagination`);
+      logger.info(`Fetched ${segments.length} segments via pagination`);
       return segments;
     },
     enabled: open && !!call,
@@ -559,7 +560,7 @@ export function CallDetailDialog({
       setResyncDialog(false);
     },
     onError: (error: any) => {
-      console.error("Resync error:", error);
+      logger.error("Resync error", error);
       toast.error("Failed to resync call: " + (error.message || "Unknown error"));
     }
   });
@@ -567,9 +568,9 @@ export function CallDetailDialog({
   const handleConfirmTrim = () => {
     if (!trimDialog.segmentId || !transcripts) return;
 
-    console.log("Trim dialog:", trimDialog);
-    console.log("Visible transcripts count:", transcripts?.length);
-    console.log("All transcripts count:", allTranscripts?.length);
+    logger.info("Trim dialog", trimDialog);
+    logger.info("Visible transcripts count", transcripts?.length);
+    logger.info("All transcripts count", allTranscripts?.length);
 
     if (trimDialog.type === "this") {
       trimSegmentMutation.mutate({ segmentIds: [trimDialog.segmentId] });
@@ -578,7 +579,7 @@ export function CallDetailDialog({
       const segmentIndex = transcripts.findIndex((t: any) => t.id === trimDialog.segmentId);
       // Get all VISIBLE segments before it
       const segmentIds = transcripts.slice(0, segmentIndex).map((t: any) => t.id);
-      console.log("Trimming segments:", segmentIds);
+      logger.info("Trimming segments", segmentIds);
       trimSegmentMutation.mutate({ segmentIds });
     }
     setTrimDialog({ open: false, type: "this", segmentId: null });
@@ -591,7 +592,7 @@ export function CallDetailDialog({
   // Debug logging for missing data
   useEffect(() => {
     if (open && call) {
-      console.log('CallDetailDialog - Call data:', {
+      logger.info('CallDetailDialog - Call data', {
         recording_id: call.recording_id,
         has_recording_start_time: !!call.recording_start_time,
         has_recording_end_time: !!call.recording_end_time,
