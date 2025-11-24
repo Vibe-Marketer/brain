@@ -47,6 +47,9 @@ export function SyncedTranscriptsSection({
   onDelete,
   onBulkCategorize,
 }: SyncedTranscriptsSectionProps) {
+  // Normalize selected IDs to strings so we can reliably match against recording_id
+  const selectedIdSet = new Set(selectedExistingTranscripts.map((id) => String(id)));
+
   return (
     <div className="space-y-4 mt-8">
       <div className="flex items-center justify-between">
@@ -67,7 +70,7 @@ export function SyncedTranscriptsSection({
         <BulkActionToolbarEnhanced
           selectedCount={selectedExistingTranscripts.length}
           selectedCalls={existingTranscripts.filter((t) =>
-            selectedExistingTranscripts.includes(Number(t.recording_id))
+            selectedIdSet.has(String(t.recording_id))
           )}
           categories={categories}
           onClearSelection={onClearSelection}

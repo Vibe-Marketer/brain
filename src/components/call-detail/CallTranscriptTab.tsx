@@ -228,7 +228,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                   </div>
                 </div>
                 <div className="h-[300px] rounded-md border overflow-y-auto">
-                  <div className="space-y-6 py-4 px-4 bg-card">
+                  <div className="space-y-6 py-4 px-4 bg-background">
                     {transcripts && transcripts.length > 0 ? (
                       (() => {
                         // Determine host email for blue bubble: prefer explicit host_email,

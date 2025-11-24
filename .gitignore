@@ -42,3 +42,5 @@ coverage/
 database-export-*.json
 migration-export-*.json
 .vercel
+PROJECT_INDEX.md
+PROJECT_INDEX.json
