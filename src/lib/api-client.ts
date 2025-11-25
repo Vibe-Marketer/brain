@@ -177,3 +177,34 @@ export async function exportDatabaseDirect() {
 export async function getCredentials() {
   return callEdgeFunction('get-credentials', undefined, { retry: false });
 }
+
+// =============================================
+// AI CHAT & RAG FUNCTIONS
+// =============================================
+
+export interface EmbedChunksResponse {
+  success: boolean;
+  job_id: string;
+  recordings_processed: number;
+  recordings_failed: number;
+  chunks_created: number;
+  failed_recording_ids: number[];
+}
+
+/**
+ * Embed transcript chunks for RAG search
+ * Creates embeddings for the specified recordings and stores them in transcript_chunks table
+ */
+export async function embedChunks(recordingIds: number[]): Promise<ApiResponse<EmbedChunksResponse>> {
+  return callEdgeFunction<EmbedChunksResponse>('embed-chunks', { recording_ids: recordingIds }, { retry: false });
+}
+
+/**
+ * Embed all unindexed transcripts for a user
+ * Finds all recordings that don't have chunks and embeds them
+ */
+export async function embedAllUnindexedTranscripts(): Promise<ApiResponse<EmbedChunksResponse>> {
+  // This will be implemented by finding unindexed recordings first
+  // For now, we'll use the embed-chunks endpoint with auto-discovery
+  return callEdgeFunction<EmbedChunksResponse>('embed-chunks', { auto_discover: true }, { retry: false });
+}
