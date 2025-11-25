@@ -48,4 +48,8 @@ verify_jwt = true
 [functions.fathom-oauth-refresh]
 verify_jwt = true
 
+[functions.embed-chunks]
+verify_jwt = true
 
+[functions.chat-stream]
+verify_jwt = true
