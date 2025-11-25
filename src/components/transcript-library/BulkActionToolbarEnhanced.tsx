@@ -9,6 +9,7 @@ import { ActionButton } from "./ActionButton";
 import { CategorizeDropdown } from "./CategorizeDropdown";
 import { ExportDropdown } from "./ExportDropdown";
 import { exportToPDF, exportToDOCX, exportToTXT, exportToJSON, exportToZIP } from "@/lib/export-utils";
+import { autoTagCalls, generateAiTitles } from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 
@@ -97,12 +98,48 @@ export function BulkActionToolbarEnhanced({
     }
   };
 
-  const handleGenerateAITitles = () => {
-    toast.info("AI title generation coming soon");
+  const handleGenerateAITitles = async () => {
+    const loadingToast = toast.loading(`Generating AI titles for ${selectedCount} call${selectedCount > 1 ? 's' : ''}...`);
+
+    try {
+      const recordingIds = selectedCalls.map(c => c.recording_id);
+      const { data, error } = await generateAiTitles(recordingIds);
+
+      if (error) {
+        throw new Error(error);
+      }
+
+      toast.success(
+        `Generated ${data.successCount} title${data.successCount > 1 ? 's' : ''} successfully`,
+        { id: loadingToast }
+      );
+      onClearSelection();
+    } catch (error) {
+      logger.error('Error generating AI titles', error);
+      toast.error('Failed to generate AI titles', { id: loadingToast });
+    }
   };
 
-  const handleAutoTagCalls = () => {
-    toast.info("Auto-tagging coming soon");
+  const handleAutoTagCalls = async () => {
+    const loadingToast = toast.loading(`AI tagging ${selectedCount} call${selectedCount > 1 ? 's' : ''}...`);
+
+    try {
+      const recordingIds = selectedCalls.map(c => c.recording_id);
+      const { data, error } = await autoTagCalls(recordingIds);
+
+      if (error) {
+        throw new Error(error);
+      }
+
+      toast.success(
+        `Tagged ${data.successCount} call${data.successCount > 1 ? 's' : ''} successfully`,
+        { id: loadingToast }
+      );
+      onClearSelection();
+    } catch (error) {
+      logger.error('Error auto-tagging calls', error);
+      toast.error('Failed to auto-tag calls', { id: loadingToast });
+    }
   };
 
   return (
@@ -157,14 +194,14 @@ export function BulkActionToolbarEnhanced({
             icon={RiMagicLine}
             label="Generate Titles"
             onClick={handleGenerateAITitles}
-            title="AI title generation coming soon"
+            title="Generate AI-powered titles for selected calls"
           />
 
           <ActionButton
             icon={RiPriceTag3Line}
             label="Auto-Tag"
             onClick={handleAutoTagCalls}
-            title="Auto-tagging coming soon"
+            title="AI selects single most appropriate tag based on your preferences and history"
           />
 
           <div className="h-6 w-px bg-border mx-1" />

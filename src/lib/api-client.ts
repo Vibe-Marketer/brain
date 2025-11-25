@@ -208,3 +208,25 @@ export async function embedAllUnindexedTranscripts(): Promise<ApiResponse<EmbedC
   // For now, we'll use the embed-chunks endpoint with auto-discovery
   return callEdgeFunction<EmbedChunksResponse>('embed-chunks', { auto_discover: true }, { retry: false });
 }
+
+// =============================================
+// AI TAGGING & TITLE FUNCTIONS
+// =============================================
+
+/**
+ * Auto-tag calls using AI
+ * Analyzes transcript and summary to generate relevant tags
+ * Uses OpenAI GPT-4o-mini via Vercel AI SDK
+ */
+export async function autoTagCalls(recordingIds: number[]) {
+  return callEdgeFunction('auto-tag-calls', { recordingIds }, { retry: false });
+}
+
+/**
+ * Generate AI-powered titles for calls
+ * Creates concise, descriptive titles based on content
+ * Uses OpenAI GPT-4o-mini via Vercel AI SDK
+ */
+export async function generateAiTitles(recordingIds: number[]) {
+  return callEdgeFunction('generate-ai-titles', { recordingIds }, { retry: false });
+}

@@ -25,7 +25,7 @@ import { ThinkingLoader } from '@/components/chat/loader';
 import { Sources } from '@/components/chat/source';
 import { ToolCalls } from '@/components/chat/tool-call';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
 interface ChatFilters {
