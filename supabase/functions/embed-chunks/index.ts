@@ -162,25 +162,87 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { recording_ids } = await req.json();
+    const { recording_ids, auto_discover } = await req.json();
 
-    if (!recording_ids || !Array.isArray(recording_ids) || recording_ids.length === 0) {
+    let recordingsToProcess: number[] = [];
+
+    // Auto-discover mode: find all recordings without chunks
+    if (auto_discover) {
+      console.log(`Auto-discovering unindexed recordings for user ${user.id}`);
+
+      // Get all user's recordings
+      const { data: allCalls, error: callsError } = await supabase
+        .from('fathom_calls')
+        .select('recording_id')
+        .eq('user_id', user.id)
+        .not('full_transcript', 'is', null);
+
+      if (callsError) {
+        throw new Error(`Failed to fetch calls: ${callsError.message}`);
+      }
+
+      if (!allCalls || allCalls.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'No calls found to embed',
+            recordings_processed: 0,
+            recordings_failed: 0,
+            chunks_created: 0,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Get recordings that already have chunks
+      const { data: indexedChunks, error: chunksError } = await supabase
+        .from('transcript_chunks')
+        .select('recording_id')
+        .eq('user_id', user.id);
+
+      if (chunksError) {
+        throw new Error(`Failed to fetch indexed chunks: ${chunksError.message}`);
+      }
+
+      const indexedRecordingIds = new Set(indexedChunks?.map(c => c.recording_id) || []);
+      recordingsToProcess = allCalls
+        .map(c => c.recording_id)
+        .filter(id => !indexedRecordingIds.has(id));
+
+      console.log(`Found ${recordingsToProcess.length} unindexed recordings out of ${allCalls.length} total`);
+
+      if (recordingsToProcess.length === 0) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            message: 'All recordings are already indexed',
+            recordings_processed: 0,
+            recordings_failed: 0,
+            chunks_created: 0,
+            total_indexed: indexedRecordingIds.size,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    } else if (recording_ids && Array.isArray(recording_ids) && recording_ids.length > 0) {
+      recordingsToProcess = recording_ids;
+    } else {
       return new Response(
-        JSON.stringify({ error: 'recording_ids array is required' }),
+        JSON.stringify({ error: 'Either recording_ids array or auto_discover=true is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Embedding ${recording_ids.length} recordings for user ${user.id}`);
+    console.log(`Embedding ${recordingsToProcess.length} recordings for user ${user.id}`);
 
     // Create embedding job
     const { data: job, error: jobError } = await supabase
       .from('embedding_jobs')
       .insert({
         user_id: user.id,
-        recording_ids: recording_ids,
+        recording_ids: recordingsToProcess,
         status: 'running',
-        progress_total: recording_ids.length,
+        progress_total: recordingsToProcess.length,
         started_at: new Date().toISOString(),
       })
       .select()
@@ -195,8 +257,8 @@ Deno.serve(async (req) => {
     const failedRecordingIds: number[] = [];
 
     // Process each recording
-    for (let i = 0; i < recording_ids.length; i++) {
-      const recordingId = recording_ids[i];
+    for (let i = 0; i < recordingsToProcess.length; i++) {
+      const recordingId = recordingsToProcess[i];
 
       try {
         // Get call metadata
@@ -327,8 +389,8 @@ Deno.serve(async (req) => {
     await supabase
       .from('embedding_jobs')
       .update({
-        status: failedRecordingIds.length === recording_ids.length ? 'failed' : 'completed',
-        progress_current: recording_ids.length,
+        status: failedRecordingIds.length === recordingsToProcess.length ? 'failed' : 'completed',
+        progress_current: recordingsToProcess.length,
         chunks_created: totalChunksCreated,
         failed_recording_ids: failedRecordingIds,
         completed_at: new Date().toISOString(),
@@ -339,7 +401,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         job_id: job.id,
-        recordings_processed: recording_ids.length - failedRecordingIds.length,
+        recordings_processed: recordingsToProcess.length - failedRecordingIds.length,
         recordings_failed: failedRecordingIds.length,
         chunks_created: totalChunksCreated,
         failed_recording_ids: failedRecordingIds,
