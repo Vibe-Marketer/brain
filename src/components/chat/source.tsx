@@ -56,7 +56,7 @@ export function Source({ source, index, onViewCall, className }: SourceProps) {
         <button
           className={cn(
             'inline-flex items-center gap-1 rounded-md px-2 py-0.5',
-            'bg-cb-vibe-green/10 text-cb-ink-primary hover:bg-cb-vibe-green/20',
+            'bg-vibe-green/10 text-cb-ink hover:bg-vibe-green/20',
             'text-xs font-medium transition-colors',
             className
           )}
@@ -73,7 +73,7 @@ export function Source({ source, index, onViewCall, className }: SourceProps) {
         <div className="p-3 space-y-2">
           {/* Header */}
           <div className="flex items-start justify-between gap-2">
-            <h4 className="text-sm font-medium text-cb-ink-primary line-clamp-1">
+            <h4 className="text-sm font-medium text-cb-ink line-clamp-1">
               {source.call_title || 'Transcript'}
             </h4>
             {source.similarity_score && (
@@ -100,7 +100,7 @@ export function Source({ source, index, onViewCall, className }: SourceProps) {
           </div>
 
           {/* Content preview */}
-          <p className="text-xs text-cb-ink-secondary leading-relaxed">
+          <p className="text-xs text-cb-ink-soft leading-relaxed">
             "{truncatedText}"
           </p>
 
@@ -108,7 +108,7 @@ export function Source({ source, index, onViewCall, className }: SourceProps) {
           {onViewCall && (
             <button
               onClick={() => onViewCall(source.recording_id)}
-              className="flex items-center gap-1 text-xs text-cb-ink-primary hover:underline"
+              className="flex items-center gap-1 text-xs text-cb-ink hover:underline"
             >
               <RiExternalLinkLine className="h-3 w-3" />
               View full call
@@ -161,9 +161,9 @@ export function InlineCitation({ index, onClick, className }: InlineCitationProp
       className={cn(
         'inline-flex items-center justify-center',
         'h-4 min-w-4 rounded-sm px-1',
-        'bg-cb-vibe-green/20 text-cb-ink-primary',
+        'bg-vibe-green/20 text-cb-ink',
         'text-[10px] font-medium',
-        'hover:bg-cb-vibe-green/30 transition-colors',
+        'hover:bg-vibe-green/30 transition-colors',
         className
       )}
     >

@@ -57,8 +57,9 @@ export function PromptInput({
       <form
         onSubmit={handleSubmit}
         className={cn(
-          'relative flex w-full flex-col rounded-xl border border-cb-border-primary bg-card',
-          'focus-within:border-cb-border-focus focus-within:ring-1 focus-within:ring-cb-border-focus',
+          'relative flex w-full flex-col rounded-2xl border border-cb-border bg-card shadow-sm',
+          'transition-all duration-200',
+          'focus-within:border-vibe-green focus-within:ring-2 focus-within:ring-vibe-green/20 focus-within:shadow-md',
           className
         )}
         {...props}
@@ -74,14 +75,15 @@ interface PromptInputTextareaProps extends Omit<React.TextareaHTMLAttributes<HTM
   disableAutosize?: boolean;
 }
 
-export function PromptInputTextarea({
+export const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, PromptInputTextareaProps>(({
   className,
   disableAutosize = false,
   onKeyDown,
   ...props
-}: PromptInputTextareaProps) {
+}, forwardedRef) => {
   const { value, onValueChange, isLoading, maxHeight, onSubmit } = usePromptInputContext();
-  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
+  const internalRef = React.useRef<HTMLTextAreaElement>(null);
+  const textareaRef = forwardedRef as React.RefObject<HTMLTextAreaElement> || internalRef;
 
   // Auto-resize textarea
   React.useEffect(() => {
@@ -113,17 +115,20 @@ export function PromptInputTextarea({
       disabled={isLoading}
       rows={1}
       className={cn(
-        'w-full resize-none bg-transparent px-4 py-3',
-        'text-sm text-cb-ink-primary placeholder:text-cb-ink-muted',
+        'w-full resize-none bg-transparent px-5 py-4 min-h-[52px]',
+        'text-sm text-cb-ink placeholder:text-cb-ink-muted',
         'focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
-        'font-inter font-light',
+        'font-sans font-light',
+        'transition-colors duration-150',
         className
       )}
       style={{ maxHeight: typeof maxHeight === 'number' ? `${maxHeight}px` : maxHeight }}
       {...props}
     />
   );
-}
+});
+
+PromptInputTextarea.displayName = 'PromptInputTextarea';
 
 // Actions container
 interface PromptInputActionsProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -132,7 +137,15 @@ interface PromptInputActionsProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function PromptInputActions({ children, className, ...props }: PromptInputActionsProps) {
   return (
-    <div className={cn('flex items-center gap-1 border-t border-cb-border-subtle px-2 py-2', className)} {...props}>
+    <div
+      className={cn(
+        'flex items-center gap-1 border-t border-cb-border-soft/50 px-3 py-2',
+        '[&_button]:transition-all [&_button]:duration-150',
+        '[&_button:hover]:scale-105',
+        className
+      )}
+      {...props}
+    >
       {children}
     </div>
   );

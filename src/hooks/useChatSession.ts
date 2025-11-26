@@ -94,7 +94,7 @@ export function useChatSession(userId: string | undefined) {
         .select('*')
         .eq('user_id', userId)
         .eq('is_archived', false)
-        .order('last_message_at', { ascending: false, nullsFirst: false });
+        .order('updated_at', { ascending: false }); // Sort by updated_at so newest/active chats are first
 
       if (error) throw error;
       return data || [];
@@ -157,40 +157,95 @@ export function useChatSession(userId: string | undefined) {
     mutationFn: async ({ sessionId, messages, model }: SaveMessagesParams) => {
       if (!userId) throw new Error('User ID is required');
 
-      // Get existing message IDs to avoid duplicates
+      // Get existing messages to check for duplicates by content hash
+      // (AI SDK uses short random IDs that aren't valid UUIDs)
       const { data: existingMessages } = await supabase
         .from('chat_messages')
-        .select('id')
+        .select('content, role, created_at')
         .eq('session_id', sessionId);
 
-      const existingIds = new Set(existingMessages?.map((m) => m.id) || []);
+      // Create a Set of content+role combos to detect duplicates
+      const existingContentKeys = new Set(
+        existingMessages?.map((m) => `${m.role}:${m.content}`) || []
+      );
 
-      // Filter out messages that already exist
-      const newMessages = messages.filter((msg) => !existingIds.has(msg.id));
+      // Filter out messages that already exist (by content+role)
+      const newMessages = messages.filter(
+        (msg) => !existingContentKeys.has(`${msg.role}:${msg.content}`)
+      );
 
       if (newMessages.length === 0) return;
 
-      // Convert AI SDK messages to database format
-      const messagesToInsert = newMessages.map((msg) => ({
-        id: msg.id,
-        session_id: sessionId,
-        user_id: userId,
-        role: msg.role,
-        content: msg.content,
-        parts: msg.parts || null,
-        model: msg.role === 'assistant' ? model : null,
-        created_at: msg.createdAt?.toISOString() || new Date().toISOString(),
-      }));
+      // Convert AI SDK messages to database format with proper UUIDs
+      // Sanitize parts to ensure JSON-serializable (remove functions, circular refs)
+      const sanitizeParts = (parts: unknown): unknown => {
+        if (!parts) return null;
+        try {
+          // Round-trip through JSON to strip non-serializable data
+          return JSON.parse(JSON.stringify(parts));
+        } catch {
+          console.warn('Failed to serialize message parts, skipping');
+          return null;
+        }
+      };
 
-      const { error } = await supabase.from('chat_messages').insert(messagesToInsert);
+      // Valid roles per database constraint
+      const validRoles = ['user', 'assistant', 'system', 'tool'] as const;
 
-      if (error) throw error;
+      const messagesToInsert = newMessages
+        .filter((msg) => {
+          // Skip messages with invalid roles
+          if (!validRoles.includes(msg.role as typeof validRoles[number])) {
+            console.warn('Skipping message with invalid role:', msg.role);
+            return false;
+          }
+          return true;
+        })
+        .map((msg) => ({
+          id: crypto.randomUUID(), // Generate proper UUID instead of using AI SDK's short ID
+          session_id: sessionId,
+          user_id: userId,
+          role: msg.role as string,
+          content: typeof msg.content === 'string' ? msg.content : '', // Ensure content is a string
+          parts: sanitizeParts(msg.parts),
+          model: msg.role === 'assistant' ? (model || null) : null,
+          created_at: msg.createdAt?.toISOString() || new Date().toISOString(),
+        }));
 
-      // If this is the first message, auto-generate title from user's message
+      if (messagesToInsert.length === 0) {
+        console.log('No valid messages to insert');
+        return;
+      }
+
+      console.log('Saving messages:', JSON.stringify(messagesToInsert, null, 2));
+
+      const { error, data } = await supabase.from('chat_messages').insert(messagesToInsert).select();
+
+      if (error) {
+        console.error('Supabase insert error:', JSON.stringify(error, null, 2));
+        console.error('Error code:', error.code);
+        console.error('Error message:', error.message);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        throw new Error(`Failed to save messages: ${error.message}`);
+      }
+
+      console.log('Saved messages successfully:', data?.length);
+
+      // Note: message_count, last_message_at, and updated_at are handled by database trigger
+      // We only need to update the title here if this is the first user message
       const firstUserMessage = newMessages.find((m) => m.role === 'user');
+
       if (firstUserMessage) {
-        const session = sessions.find((s) => s.id === sessionId);
-        if (session && !session.title) {
+        // Check if session already has a title by querying the database directly
+        // (avoid using sessions array which may have stale data)
+        const { data: sessionData } = await supabase
+          .from('chat_sessions')
+          .select('title')
+          .eq('id', sessionId)
+          .single();
+
+        if (sessionData && !sessionData.title) {
           const title = firstUserMessage.content.slice(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '');
           await supabase
             .from('chat_sessions')

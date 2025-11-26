@@ -45,14 +45,14 @@ export function ToolCall({ toolPart, defaultOpen = false, className }: ToolCallP
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div
         className={cn(
-          'rounded-lg border border-cb-border-subtle bg-card overflow-hidden',
+          'rounded-lg border border-cb-border-soft bg-card overflow-hidden',
           className
         )}
       >
-        <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 hover:bg-cb-ink-subtle/5">
+        <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 hover:bg-cb-hover">
           <div className="flex items-center gap-2">
             <RiToolsFill className="h-4 w-4 text-cb-ink-muted" />
-            <span className="text-sm font-medium text-cb-ink-primary">
+            <span className="text-sm font-medium text-cb-ink">
               {formatToolName(toolPart.toolName)}
             </span>
           </div>
@@ -74,12 +74,12 @@ export function ToolCall({ toolPart, defaultOpen = false, className }: ToolCallP
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="border-t border-cb-border-subtle p-3 space-y-3">
+          <div className="border-t border-cb-border-soft p-3 space-y-3">
             {/* Input/Args */}
             {toolPart.args && Object.keys(toolPart.args).length > 0 && (
               <div>
                 <div className="text-xs font-medium text-cb-ink-muted uppercase mb-1">Input</div>
-                <pre className="text-xs bg-cb-ink-subtle/5 rounded p-2 overflow-x-auto">
+                <pre className="text-xs bg-cb-hover rounded p-2 overflow-x-auto">
                   <code>{JSON.stringify(toolPart.args, null, 2)}</code>
                 </pre>
               </div>
@@ -89,7 +89,7 @@ export function ToolCall({ toolPart, defaultOpen = false, className }: ToolCallP
             {toolPart.result && (
               <div>
                 <div className="text-xs font-medium text-cb-ink-muted uppercase mb-1">Output</div>
-                <pre className="text-xs bg-cb-ink-subtle/5 rounded p-2 overflow-x-auto">
+                <pre className="text-xs bg-cb-hover rounded p-2 overflow-x-auto">
                   <code>{JSON.stringify(toolPart.result, null, 2)}</code>
                 </pre>
               </div>

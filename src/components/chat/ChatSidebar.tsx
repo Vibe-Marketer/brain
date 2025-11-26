@@ -88,14 +88,14 @@ const SessionItem = React.memo(function SessionItem({
     <div
       className={`group relative flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors cursor-pointer ${
         isActive
-          ? 'bg-cb-vibe-green/10 border-l-[3px] border-cb-vibe-green pl-[9px]'
-          : 'hover:bg-cb-ink-subtle/5 border-l-[3px] border-transparent pl-[9px]'
+          ? 'bg-vibe-green/10 border-l-[3px] border-vibe-green pl-[9px]'
+          : 'hover:bg-cb-hover border-l-[3px] border-transparent pl-[9px]'
       }`}
       onClick={() => onSelect(session.id)}
     >
       <RiChat3Line
         className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
-          isActive ? 'text-cb-ink-primary' : 'text-cb-ink-muted'
+          isActive ? 'text-cb-ink' : 'text-cb-ink-muted'
         }`}
         aria-hidden="true"
       />
@@ -104,7 +104,7 @@ const SessionItem = React.memo(function SessionItem({
         <div className="flex items-start justify-between gap-2">
           <h3
             className={`text-sm font-medium truncate ${
-              isActive ? 'text-cb-ink-primary' : 'text-cb-ink-secondary'
+              isActive ? 'text-cb-ink' : 'text-cb-ink-soft'
             }`}
           >
             {getSessionTitle(session)}
@@ -213,10 +213,10 @@ export function ChatSidebar({
 
   return (
     <>
-      <div className="flex h-full flex-col bg-card border-r border-cb-border-primary">
+      <div className="flex h-full flex-col bg-card border-r border-cb-border">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-cb-border-primary px-4 py-3">
-          <h2 className="font-montserrat text-sm font-extrabold uppercase text-cb-ink-primary">
+        <div className="flex items-center justify-between border-b border-cb-border px-4 py-3">
+          <h2 className="font-montserrat text-sm font-extrabold uppercase text-cb-ink">
             Conversations
           </h2>
           <Button variant="hollow" size="icon" onClick={onNewChat} aria-label="New chat">
@@ -273,7 +273,7 @@ export function ChatSidebar({
             {sessions.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                 <RiChat3Line className="h-12 w-12 text-cb-ink-muted mb-3" aria-hidden="true" />
-                <p className="text-sm text-cb-ink-secondary mb-1">No conversations yet</p>
+                <p className="text-sm text-cb-ink-soft mb-1">No conversations yet</p>
                 <p className="text-xs text-cb-ink-muted">
                   Start a new chat to begin asking questions
                 </p>

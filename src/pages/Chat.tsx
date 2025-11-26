@@ -1,13 +1,14 @@
 import * as React from 'react';
 import { useChat } from '@ai-sdk/react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { RiSendPlaneFill, RiFilterLine, RiCalendarLine, RiUser3Line, RiFolder3Line, RiCloseLine, RiAddLine } from '@remixicon/react';
+import { RiSendPlaneFill, RiFilterLine, RiCalendarLine, RiUser3Line, RiFolder3Line, RiCloseLine, RiAddLine, RiMenuLine, RiAtLine, RiVideoLine } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { Badge } from '@/components/ui/badge';
+import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   ChatContainer,
   ChatContainerRoot,
@@ -50,6 +51,12 @@ interface Category {
   call_count: number;
 }
 
+interface Call {
+  recording_id: number;
+  title: string;
+  created_at: string;
+}
+
 interface ToolCallPart {
   type: string;
   toolName: string;
@@ -86,9 +93,23 @@ export default function Chat() {
   });
   const [availableSpeakers, setAvailableSpeakers] = React.useState<Speaker[]>([]);
   const [availableCategories, setAvailableCategories] = React.useState<Category[]>([]);
+  const [availableCalls, setAvailableCalls] = React.useState<Call[]>([]);
   const [showFilters, setShowFilters] = React.useState(false);
+  const [showSidebar, setShowSidebar] = React.useState(false);
   const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(sessionId || null);
   const [isLoadingSession, setIsLoadingSession] = React.useState(false);
+
+  // Ref to track current session ID for async callbacks (avoids stale closure)
+  const currentSessionIdRef = React.useRef<string | null>(currentSessionId);
+  React.useEffect(() => {
+    currentSessionIdRef.current = currentSessionId;
+  }, [currentSessionId]);
+
+  // Mentions state
+  const [showMentions, setShowMentions] = React.useState(false);
+  const [mentionSearch, setMentionSearch] = React.useState('');
+  const [mentionTriggerPos, setMentionTriggerPos] = React.useState<number | null>(null);
+  const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   // Chat session management
   const {
@@ -118,6 +139,15 @@ export default function Chat() {
         p_user_id: session.user.id,
       });
       if (categories) setAvailableCategories(categories);
+
+      // Fetch recent calls
+      const { data: calls } = await supabase
+        .from('fathom_calls')
+        .select('recording_id, title, created_at')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false })
+        .limit(30);
+      if (calls) setAvailableCalls(calls);
     }
 
     fetchFilterOptions();
@@ -152,13 +182,16 @@ export default function Chat() {
     onError: (error) => {
       console.error('Chat error:', error);
     },
-    onFinish: async (message) => {
+    onFinish: async (message, { messages: allMessages }) => {
       // Save messages to database after AI response completes
-      if (currentSessionId && session?.user?.id) {
+      // Use allMessages from the callback which includes all messages in the conversation
+      // Use ref to get current session ID (avoids stale closure)
+      const sessionIdToSave = currentSessionIdRef.current;
+      if (sessionIdToSave && session?.user?.id) {
         try {
           await saveMessages({
-            sessionId: currentSessionId,
-            messages: [...messages, message],
+            sessionId: sessionIdToSave,
+            messages: allMessages,
             model: 'gpt-4o',
           });
         } catch (err) {
@@ -173,6 +206,7 @@ export default function Chat() {
     async function loadSessionMessages() {
       if (!sessionId) {
         setCurrentSessionId(null);
+        currentSessionIdRef.current = null;
         setMessages([]);
         return;
       }
@@ -180,8 +214,10 @@ export default function Chat() {
       setIsLoadingSession(true);
       try {
         const loadedMessages = await fetchMessages(sessionId);
+        console.log(`Loaded ${loadedMessages.length} messages for session ${sessionId}`);
         setMessages(loadedMessages);
         setCurrentSessionId(sessionId);
+        currentSessionIdRef.current = sessionId;
       } catch (err) {
         console.error('Failed to load session messages:', err);
       } finally {
@@ -217,6 +253,7 @@ export default function Chat() {
   // Handle session selection
   const handleSessionSelect = React.useCallback((selectedSessionId: string) => {
     navigate(`/chat/${selectedSessionId}`);
+    setShowSidebar(false); // Close sidebar on mobile after selection
   }, [navigate]);
 
   // Handle session deletion
@@ -251,10 +288,19 @@ export default function Chat() {
 
   // Save user message to database after submission
   const handleChatSubmit = React.useCallback(async (e?: React.FormEvent) => {
-    // Create session if it doesn't exist
-    if (!currentSessionId && session?.user?.id) {
+    e?.preventDefault();
+
+    // Don't submit if input is empty
+    if (!input.trim()) return;
+
+    // Create session if it doesn't exist BEFORE submitting
+    let sessionIdToUse = currentSessionId;
+    if (!sessionIdToUse && session?.user?.id) {
       try {
         const newSession = await createNewSession();
+        sessionIdToUse = newSession.id;
+        // Update both state and ref (ref is immediate, state is async)
+        currentSessionIdRef.current = newSession.id;
         setCurrentSessionId(newSession.id);
         navigate(`/chat/${newSession.id}`, { replace: true });
       } catch (err) {
@@ -263,11 +309,20 @@ export default function Chat() {
       }
     }
 
-    // Call the original handleSubmit
+    // Call the original handleSubmit which will add the user message and trigger the AI
     handleSubmit(e);
-  }, [currentSessionId, session?.user?.id, createNewSession, navigate, handleSubmit]);
+  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, handleSubmit]);
 
-  const hasActiveFilters = filters.dateStart || filters.dateEnd || filters.speakers.length > 0 || filters.categories.length > 0;
+  // Handle suggestion clicks - sets input AND submits
+  const handleSuggestionClick = React.useCallback((text: string) => {
+    handleInputChange(createInputChangeEvent(text));
+    // Use requestAnimationFrame to ensure state update completes before submit
+    requestAnimationFrame(() => {
+      handleChatSubmit();
+    });
+  }, [handleInputChange, handleChatSubmit]);
+
+  const hasActiveFilters = filters.dateStart || filters.dateEnd || filters.speakers.length > 0 || filters.categories.length > 0 || filters.recordingIds.length > 0;
 
   const clearFilters = React.useCallback(() => {
     setFilters({
@@ -295,10 +350,110 @@ export default function Chat() {
     }));
   }, []);
 
+  const toggleCall = React.useCallback((recordingId: number) => {
+    setFilters(prev => ({
+      ...prev,
+      recordingIds: prev.recordingIds.includes(recordingId)
+        ? prev.recordingIds.filter(id => id !== recordingId)
+        : [...prev.recordingIds, recordingId],
+    }));
+  }, []);
+
+  // Handle @ mention detection in input
+  const handleInputChangeWithMentions = React.useCallback((value: string) => {
+    handleInputChange(createInputChangeEvent(value));
+
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const cursorPos = textarea.selectionStart;
+    const textBeforeCursor = value.slice(0, cursorPos);
+
+    // Find the last @ symbol before cursor
+    const lastAtIndex = textBeforeCursor.lastIndexOf('@');
+
+    if (lastAtIndex !== -1) {
+      // Check if there's text after @ (search query)
+      const textAfterAt = textBeforeCursor.slice(lastAtIndex + 1);
+
+      // Only show mentions if @ is at start or preceded by whitespace
+      const charBeforeAt = lastAtIndex > 0 ? textBeforeCursor[lastAtIndex - 1] : ' ';
+      const isValidTrigger = charBeforeAt === ' ' || charBeforeAt === '\n';
+
+      // And not followed by whitespace (user is still typing)
+      const hasNoSpaceAfterAt = !textAfterAt.includes(' ') && !textAfterAt.includes('\n');
+
+      if (isValidTrigger && hasNoSpaceAfterAt) {
+        setMentionTriggerPos(lastAtIndex);
+        setMentionSearch(textAfterAt);
+        setShowMentions(true);
+        return;
+      }
+    }
+
+    // Hide mentions if conditions not met
+    setShowMentions(false);
+    setMentionTriggerPos(null);
+    setMentionSearch('');
+  }, [handleInputChange]);
+
+  // Handle mention selection
+  const handleMentionSelect = React.useCallback((call: Call) => {
+    if (mentionTriggerPos === null) return;
+
+    // Replace @search with @[Title](recording:id)
+    const mentionText = `@[${call.title}](recording:${call.recording_id})`;
+    const beforeMention = input.slice(0, mentionTriggerPos);
+    const afterMention = input.slice(mentionTriggerPos + mentionSearch.length + 1); // +1 for @
+
+    const newInput = beforeMention + mentionText + ' ' + afterMention;
+    handleInputChange(createInputChangeEvent(newInput));
+
+    // Add to filters
+    setFilters(prev => ({
+      ...prev,
+      recordingIds: prev.recordingIds.includes(call.recording_id)
+        ? prev.recordingIds
+        : [...prev.recordingIds, call.recording_id],
+    }));
+
+    // Close mentions
+    setShowMentions(false);
+    setMentionTriggerPos(null);
+    setMentionSearch('');
+
+    // Focus back on textarea
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  }, [input, mentionTriggerPos, mentionSearch, handleInputChange]);
+
+  // Filter calls based on search
+  const filteredCalls = React.useMemo(() => {
+    if (!mentionSearch) return availableCalls.slice(0, 10);
+
+    const search = mentionSearch.toLowerCase();
+    return availableCalls
+      .filter(call => call.title.toLowerCase().includes(search))
+      .slice(0, 10);
+  }, [availableCalls, mentionSearch]);
+
   return (
     <div className="flex h-[calc(100vh-52px)] bg-viewport">
-      {/* Sidebar */}
-      <div className="w-80 flex-shrink-0">
+      {/* Mobile sidebar overlay */}
+      {showSidebar && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setShowSidebar(false)}
+        />
+      )}
+
+      {/* Sidebar - hidden on mobile, shown as overlay when toggled */}
+      <div className={`
+        fixed md:relative inset-y-0 left-0 z-50 md:z-auto
+        w-80 flex-shrink-0
+        transform transition-transform duration-200 ease-in-out
+        ${showSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        md:block
+      `}>
         <ChatSidebar
           sessions={sessions}
           activeSessionId={currentSessionId}
@@ -311,15 +466,24 @@ export default function Chat() {
       </div>
 
       {/* Main chat area */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex flex-1 flex-col w-full">
       {/* Header with filters */}
-      <div className="flex items-center justify-between border-b border-cb-border-primary bg-card px-4 py-3">
-        <div className="flex items-center gap-3">
-          <h1 className="font-montserrat text-lg font-extrabold uppercase text-cb-ink-primary">
+      <div className="flex items-center justify-between border-b border-cb-border bg-card px-2 md:px-4 py-3">
+        <div className="flex items-center gap-2 md:gap-3">
+          {/* Mobile menu toggle */}
+          <Button
+            variant="hollow"
+            size="sm"
+            className="md:hidden h-8 w-8 p-0"
+            onClick={() => setShowSidebar(!showSidebar)}
+          >
+            <RiMenuLine className="h-5 w-5" />
+          </Button>
+          <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
             AI Chat
           </h1>
           {hasActiveFilters && (
-            <div className="flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               {filters.dateStart && (
                 <Badge variant="secondary" className="gap-1">
                   <RiCalendarLine className="h-3 w-3" />
@@ -339,6 +503,12 @@ export default function Chat() {
                   {filters.categories.length} categor{filters.categories.length > 1 ? 'ies' : 'y'}
                 </Badge>
               )}
+              {filters.recordingIds.length > 0 && (
+                <Badge variant="secondary" className="gap-1">
+                  <RiVideoLine className="h-3 w-3" />
+                  {filters.recordingIds.length} call{filters.recordingIds.length > 1 ? 's' : ''}
+                </Badge>
+              )}
               <Button
                 variant="hollow"
                 size="sm"
@@ -350,17 +520,23 @@ export default function Chat() {
               </Button>
             </div>
           )}
+          {/* Mobile filter indicator */}
+          {hasActiveFilters && (
+            <Badge variant="secondary" className="md:hidden">
+              Filtered
+            </Badge>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 md:gap-2">
           <Button
             variant="hollow"
             size="sm"
             onClick={handleNewChat}
-            className="gap-1"
+            className="gap-1 h-8 px-2 md:px-3"
           >
             <RiAddLine className="h-4 w-4" />
-            New Chat
+            <span className="hidden md:inline">New Chat</span>
           </Button>
 
           <Popover open={showFilters} onOpenChange={setShowFilters}>
@@ -368,15 +544,15 @@ export default function Chat() {
               <Button
                 variant={hasActiveFilters ? 'default' : 'outline'}
                 size="sm"
-                className="gap-1"
+                className="gap-1 h-8 px-2 md:px-3"
               >
                 <RiFilterLine className="h-4 w-4" />
-                Filters
+                <span className="hidden md:inline">Filters</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-80 p-0" align="end">
               <div className="p-4">
-                <h3 className="font-montserrat text-sm font-bold uppercase text-cb-ink-primary mb-3">
+                <h3 className="font-display text-sm font-bold uppercase text-cb-ink mb-3">
                   Filter Transcripts
                 </h3>
 
@@ -385,38 +561,21 @@ export default function Chat() {
                   <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
                     Date Range
                   </label>
-                  <div className="flex gap-2">
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex-1 justify-start text-left font-normal">
-                          <RiCalendarLine className="mr-2 h-4 w-4" />
-                          {filters.dateStart ? format(filters.dateStart, 'MMM d, yyyy') : 'Start date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={filters.dateStart}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dateStart: date }))}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="flex-1 justify-start text-left font-normal">
-                          <RiCalendarLine className="mr-2 h-4 w-4" />
-                          {filters.dateEnd ? format(filters.dateEnd, 'MMM d, yyyy') : 'End date'}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={filters.dateEnd}
-                          onSelect={(date) => setFilters(prev => ({ ...prev, dateEnd: date }))}
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
+                  <DateRangePicker
+                    dateRange={{ from: filters.dateStart, to: filters.dateEnd }}
+                    onDateRangeChange={(range) => {
+                      setFilters(prev => ({
+                        ...prev,
+                        dateStart: range?.from,
+                        dateEnd: range?.to,
+                      }));
+                    }}
+                    placeholder="Select date range"
+                    showQuickSelect={true}
+                    numberOfMonths={2}
+                    disableFuture={false}
+                    triggerClassName="w-full"
+                  />
                 </div>
 
                 <Separator className="my-4" />
@@ -434,8 +593,8 @@ export default function Chat() {
                           onClick={() => toggleSpeaker(speaker.speaker_name)}
                           className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors ${
                             filters.speakers.includes(speaker.speaker_name)
-                              ? 'bg-cb-vibe-green/10 text-cb-ink-primary'
-                              : 'hover:bg-cb-ink-subtle/5 text-cb-ink-secondary'
+                              ? 'bg-vibe-green/10 text-cb-ink'
+                              : 'hover:bg-cb-hover text-cb-ink-soft'
                           }`}
                         >
                           <span className="truncate">{speaker.speaker_name}</span>
@@ -452,7 +611,7 @@ export default function Chat() {
                 <Separator className="my-4" />
 
                 {/* Categories */}
-                <div>
+                <div className="mb-4">
                   <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
                     Categories ({availableCategories.length})
                   </label>
@@ -472,6 +631,46 @@ export default function Chat() {
                     )}
                   </div>
                 </div>
+
+                <Separator className="my-4" />
+
+                {/* Specific Calls */}
+                <div>
+                  <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
+                    Specific Calls ({availableCalls.length})
+                  </label>
+                  <ScrollArea className="h-[150px]">
+                    <div className="space-y-2 pr-4">
+                      {availableCalls.map((call) => (
+                        <div
+                          key={call.recording_id}
+                          className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-cb-hover transition-colors"
+                        >
+                          <Checkbox
+                            id={`call-${call.recording_id}`}
+                            checked={filters.recordingIds.includes(call.recording_id)}
+                            onCheckedChange={() => toggleCall(call.recording_id)}
+                            className="mt-0.5"
+                          />
+                          <label
+                            htmlFor={`call-${call.recording_id}`}
+                            className="flex-1 cursor-pointer text-sm"
+                          >
+                            <div className="text-cb-ink font-medium truncate">
+                              {call.title || 'Untitled Call'}
+                            </div>
+                            <div className="text-xs text-cb-ink-muted">
+                              {format(new Date(call.created_at), 'MMM d, yyyy')}
+                            </div>
+                          </label>
+                        </div>
+                      ))}
+                      {availableCalls.length === 0 && (
+                        <p className="text-sm text-cb-ink-muted py-2">No calls found</p>
+                      )}
+                    </div>
+                  </ScrollArea>
+                </div>
               </div>
             </PopoverContent>
           </Popover>
@@ -481,17 +680,17 @@ export default function Chat() {
       {/* Chat area */}
       <div className="flex-1 overflow-hidden">
         <ChatContainerRoot className="h-full">
-          <ChatContainerContent className="px-4 py-4 max-w-3xl mx-auto">
+          <ChatContainerContent className="px-4 md:px-6 py-4">
             {/* Welcome message when empty */}
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="w-16 h-16 rounded-full bg-cb-vibe-green/10 flex items-center justify-center mb-4">
-                  <RiSendPlaneFill className="h-8 w-8 text-cb-vibe-green" />
+                <div className="w-16 h-16 rounded-full bg-vibe-green/10 flex items-center justify-center mb-4">
+                  <RiSendPlaneFill className="h-8 w-8 text-vibe-green" />
                 </div>
-                <h2 className="font-montserrat text-xl font-extrabold uppercase text-cb-ink-primary mb-2">
+                <h2 className="font-display text-xl font-extrabold uppercase text-cb-ink mb-2">
                   Chat with your transcripts
                 </h2>
-                <p className="text-cb-ink-secondary max-w-md mb-6">
+                <p className="text-cb-ink-soft max-w-md mb-6">
                   Ask questions about your meeting transcripts. I can search across all your calls,
                   find specific discussions, and help you uncover insights.
                 </p>
@@ -499,21 +698,21 @@ export default function Chat() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleInputChange(createInputChangeEvent('What were the main objections in my recent sales calls?'))}
+                    onClick={() => handleSuggestionClick('What were the main objections in my recent sales calls?')}
                   >
                     Sales objections
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleInputChange(createInputChangeEvent('Summarize my calls from last week'))}
+                    onClick={() => handleSuggestionClick('Summarize my calls from last week')}
                   >
                     Weekly summary
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleInputChange(createInputChangeEvent('What topics came up most frequently?'))}
+                    onClick={() => handleSuggestionClick('What topics came up most frequently?')}
                   >
                     Common topics
                   </Button>
@@ -587,16 +786,48 @@ export default function Chat() {
       </div>
 
       {/* Input area */}
-      <div className="border-t border-cb-border-primary bg-card px-4 py-4">
-        <div className="max-w-3xl mx-auto">
+      <div className="border-t border-cb-border bg-card px-4 py-4">
+        <div className="relative">
+          {/* Mentions popover */}
+          {showMentions && filteredCalls.length > 0 && (
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-card rounded-lg border border-cb-border shadow-lg max-h-64 overflow-y-auto z-50">
+              <div className="p-2">
+                <div className="text-xs font-medium text-cb-ink-muted uppercase mb-2 px-2">
+                  <RiAtLine className="inline h-3 w-3 mr-1" />
+                  Mention a call
+                </div>
+                <div className="space-y-1">
+                  {filteredCalls.map((call) => (
+                    <button
+                      key={call.recording_id}
+                      onClick={() => handleMentionSelect(call)}
+                      className="w-full flex items-start gap-2 rounded-md px-2 py-2 hover:bg-cb-hover transition-colors text-left"
+                    >
+                      <RiVideoLine className="h-4 w-4 text-cb-ink-muted flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-cb-ink font-medium truncate">
+                          {call.title || 'Untitled Call'}
+                        </div>
+                        <div className="text-xs text-cb-ink-muted">
+                          {format(new Date(call.created_at), 'MMM d, yyyy')}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           <PromptInput
             value={input}
-            onValueChange={(value) => handleInputChange(createInputChangeEvent(value))}
+            onValueChange={handleInputChangeWithMentions}
             onSubmit={() => handleChatSubmit()}
             isLoading={isLoading}
           >
             <PromptInputTextarea
-              placeholder="Ask about your transcripts..."
+              ref={textareaRef}
+              placeholder="Ask about your transcripts... (type @ to mention a call)"
               disabled={isLoading}
             />
             <PromptInputActions>

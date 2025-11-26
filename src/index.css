@@ -198,7 +198,7 @@ All colors MUST be HSL.
     --info-foreground: 0 0% 9%;
     --border: 0 0% 90%;
     --input: 0 0% 91%;
-    --ring: 0 0% 9%;
+    --ring: 72 96% 70%;  /* Vibe green for focus states per brand guidelines */
     --radius: 0.75rem;
 
     /* Sidebar colors */
@@ -251,7 +251,7 @@ All colors MUST be HSL.
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 23%;                 /* #3A3A3A - CB border-dark */
     --input: 0 0% 23%;                  /* #3A3A3A - CB border-dark */
-    --ring: 0 0% 98%;
+    --ring: 72 96% 70%;                 /* Vibe green for focus states per brand guidelines */
 
     --sidebar-background: 0 0% 9%;      /* #161616 - CB viewport-dark */
     --sidebar-foreground: 0 0% 98%;
@@ -286,7 +286,7 @@ All colors MUST be HSL.
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 90%;
     --input: 0 0% 91%;
-    --ring: 72 96% 70%;
+    --ring: 72 96% 70%;  /* Vibe green for focus states per brand guidelines */
 
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 9%;
@@ -410,5 +410,25 @@ All colors MUST be HSL.
   /* Trapezoid: narrow top, wide bottom - both edges slant outward */
   [data-state="active"]::after {
     clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
+  }
+}
+
+/* ============================================
+   MOBILE UTILITIES
+   ============================================ */
+@layer utilities {
+  /* Hide scrollbar while maintaining scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari and Opera */
+  }
+
+  /* Minimum touch target size for accessibility */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }

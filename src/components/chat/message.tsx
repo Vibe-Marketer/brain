@@ -45,7 +45,7 @@ export function MessageContent({ children, markdown = false, className, ...props
   if (markdown && typeof children === 'string') {
     return (
       <div className={cn('flex-1 space-y-2 overflow-hidden', className)} {...props}>
-        <Markdown className="prose prose-sm dark:prose-invert max-w-none font-inter font-light text-cb-ink-primary">
+        <Markdown className="prose prose-sm dark:prose-invert max-w-none font-sans font-light text-cb-ink">
           {children}
         </Markdown>
       </div>
@@ -54,7 +54,7 @@ export function MessageContent({ children, markdown = false, className, ...props
 
   return (
     <div
-      className={cn('flex-1 space-y-2 overflow-hidden font-inter font-light text-cb-ink-primary', className)}
+      className={cn('flex-1 space-y-2 overflow-hidden font-sans font-light text-cb-ink', className)}
       {...props}
     >
       {children}
@@ -106,7 +106,7 @@ export function MessageAction({ tooltip, children, side = 'top', className }: Me
   );
 }
 
-// User message variant
+// User message variant - iMessage blue style (exact match with Transcript Conversation View)
 interface UserMessageProps {
   children: React.ReactNode;
   className?: string;
@@ -114,15 +114,17 @@ interface UserMessageProps {
 
 export function UserMessage({ children, className }: UserMessageProps) {
   return (
-    <Message className={cn('justify-end', className)}>
-      <div className="max-w-[80%] rounded-2xl rounded-br-sm bg-cb-slate-gradient px-4 py-2 text-white">
-        <p className="text-sm font-inter font-light">{children}</p>
+    <div className={cn('flex justify-end py-3', className)}>
+      <div className="max-w-[70%] flex flex-col items-end gap-1">
+        <div className="rounded-[18px] rounded-br-[4px] bg-[#007AFF] dark:bg-[#0A84FF] px-4 py-2 text-white">
+          <p className="text-[15px] leading-[20px]">{children}</p>
+        </div>
       </div>
-    </Message>
+    </div>
   );
 }
 
-// Assistant message variant
+// Assistant message variant - gray bubble style (exact match with Transcript Conversation View)
 interface AssistantMessageProps {
   children: React.ReactNode;
   markdown?: boolean;
@@ -132,19 +134,26 @@ interface AssistantMessageProps {
 
 export function AssistantMessage({ children, markdown = true, className, isLoading }: AssistantMessageProps) {
   return (
-    <Message className={className}>
-      <MessageAvatar fallback="AI" className="bg-cb-ink-subtle text-cb-ink-primary" />
-      <MessageContent markdown={markdown}>
-        {isLoading ? (
-          <div className="flex items-center gap-1">
-            <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted [animation-delay:-0.3s]" />
-            <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted [animation-delay:-0.15s]" />
-            <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted" />
-          </div>
-        ) : (
-          children
-        )}
-      </MessageContent>
-    </Message>
+    <div className={cn('flex justify-start py-3', className)}>
+      <div className="max-w-[70%] flex flex-col items-start gap-1">
+        <div className="rounded-[18px] rounded-bl-[4px] bg-cb-hover dark:bg-cb-panel-dark px-4 py-2 text-cb-ink">
+          {isLoading ? (
+            <div className="flex items-center gap-1 py-1">
+              <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted [animation-delay:-0.3s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted [animation-delay:-0.15s]" />
+              <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted" />
+            </div>
+          ) : markdown && typeof children === 'string' ? (
+            <Markdown className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-[20px]">
+              {children}
+            </Markdown>
+          ) : (
+            <div className="text-[15px] leading-[20px]">
+              {children}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
