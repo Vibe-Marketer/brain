@@ -27,7 +27,7 @@ interface TranscriptTableRowProps {
   onCallClick: () => void;
   onCategorize: () => void;
   onDirectCategorize?: (categoryId: string) => void;
-  onCustomDownload?: (callId: number, title: string) => void;
+  onCustomDownload?: (callId: number | string, title: string) => void;
   DownloadComponent?: React.ComponentType<{ call: any }>;
 }
 

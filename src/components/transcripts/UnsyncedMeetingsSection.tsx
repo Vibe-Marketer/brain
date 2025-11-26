@@ -17,7 +17,7 @@ interface UnsyncedMeetingsSectionProps {
   onSync: () => void;
   onClearSelection: () => void;
   onViewCall: (recordingId: string) => void;
-  onDirectCategorize: (callId: number, categoryId: string) => Promise<void>;
+  onDirectCategorize: (callId: number | string, categoryId: string) => Promise<void>;
   onDownload: (callId: string, title: string) => void;
 }
 
@@ -81,7 +81,7 @@ export function UnsyncedMeetingsSection({
 
       <TranscriptTable
         calls={meetings.map(m => ({
-          recording_id: Number(m.recording_id),
+          recording_id: m.recording_id, // Keep as string - no conversion
           title: m.title,
           created_at: m.created_at,
           recording_start_time: m.recording_start_time,
@@ -96,14 +96,14 @@ export function UnsyncedMeetingsSection({
           full_transcript: m.full_transcript || null,
           summary: null,
         }))}
-        selectedCalls={Array.from(selectedMeetings).map(id => Number(id))}
+        selectedCalls={Array.from(selectedMeetings)} // Keep as string[] - no conversion
         categories={categories}
         categoryAssignments={{}}
         hostEmail={hostEmail}
         totalCount={meetings.length}
         page={1}
         pageSize={meetings.length}
-        onSelectCall={(id) => onSelectCall(String(id))}
+        onSelectCall={(id) => onSelectCall(String(id))} // Ensure string
         onSelectAll={onSelectAll}
         onCallClick={(call) => onViewCall(String(call.recording_id))}
         onCategorizeCall={() => {

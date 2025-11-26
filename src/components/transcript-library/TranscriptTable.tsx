@@ -16,25 +16,25 @@ import { DownloadPopover } from "./DownloadPopover";
 
 interface TranscriptTableProps {
   calls: any[];
-  selectedCalls: number[];
+  selectedCalls: (number | string)[]; // Support both number (synced) and string (unsynced)
   categories: Array<{ id: string; name: string }>;
   categoryAssignments: Record<string, string[]>;
   hostEmail?: string;
   totalCount?: number;
   page?: number;
   pageSize?: number;
-  onSelectCall: (id: number) => void;
+  onSelectCall: (id: number | string) => void;
   onSelectAll: () => void;
   onCallClick: (call: any) => void;
-  onCategorizeCall: (callId: number) => void;
-  onDirectCategorize?: (callId: number, categoryId: string) => void;
+  onCategorizeCall: (callId: number | string) => void;
+  onDirectCategorize?: (callId: number | string, categoryId: string) => void;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
   // Unsynced meeting support
   isUnsyncedView?: boolean;
   syncingMeetings?: Set<string>;
   loadingMeeting?: string | null;
-  onCustomDownload?: (callId: number, title: string) => void;
+  onCustomDownload?: (callId: number | string, title: string) => void;
 }
 
 
@@ -110,23 +110,28 @@ export const TranscriptTable = React.memo(({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedCalls.map((call) => (
-                <TranscriptTableRow
-                  key={call.recording_id}
-                  call={call}
-                  isSelected={selectedCalls.includes(call.recording_id)}
-                  categories={categories}
-                  categoryAssignments={categoryAssignments[call.recording_id] || []}
-                  hostEmail={hostEmail}
-                  isUnsyncedView={isUnsyncedView}
-                  onSelect={() => onSelectCall(call.recording_id)}
-                  onCallClick={() => onCallClick(call)}
-                  onCategorize={() => onCategorizeCall(call.recording_id)}
-                  onDirectCategorize={onDirectCategorize ? (categoryId) => onDirectCategorize(call.recording_id, categoryId) : undefined}
-                  onCustomDownload={onCustomDownload}
-                  DownloadComponent={!onCustomDownload ? DownloadPopover : undefined}
-                />
-              ))}
+              {sortedCalls.map((call) => {
+                // Normalize to string for consistent comparison (handles both synced number IDs and unsynced string IDs)
+                const callId = String(call.recording_id);
+                const isSelected = selectedCalls.some(id => String(id) === callId);
+                return (
+                  <TranscriptTableRow
+                    key={call.recording_id}
+                    call={call}
+                    isSelected={isSelected}
+                    categories={categories}
+                    categoryAssignments={categoryAssignments[call.recording_id] || []}
+                    hostEmail={hostEmail}
+                    isUnsyncedView={isUnsyncedView}
+                    onSelect={() => onSelectCall(call.recording_id)}
+                    onCallClick={() => onCallClick(call)}
+                    onCategorize={() => onCategorizeCall(call.recording_id)}
+                    onDirectCategorize={onDirectCategorize ? (categoryId) => onDirectCategorize(call.recording_id, categoryId) : undefined}
+                    onCustomDownload={onCustomDownload}
+                    DownloadComponent={!onCustomDownload ? DownloadPopover : undefined}
+                  />
+                );
+              })}
             </TableBody>
           </Table>
         </div>
