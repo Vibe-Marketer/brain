@@ -58,7 +58,7 @@ export function ChatContainerContent({ children, className, ...props }: ChatCont
 }
 
 // Scroll anchor (optional)
-interface ChatContainerScrollAnchorProps extends React.HTMLAttributes<HTMLDivElement> {}
+type ChatContainerScrollAnchorProps = React.HTMLAttributes<HTMLDivElement>;
 
 export function ChatContainerScrollAnchor({ className, ...props }: ChatContainerScrollAnchorProps) {
   return <div className={cn('h-px w-full', className)} {...props} />;

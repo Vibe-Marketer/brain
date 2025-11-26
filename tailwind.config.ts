@@ -1,7 +1,15 @@
 import type { Config } from "tailwindcss";
 import colors from "tailwindcss/colors";
 
-const { lightBlue, warmGray, trueGray, coolGray, blueGray, ...tailwindColors } = colors;
+// Tailwind deprecated these color aliases in v3. Accessing them (even via destructuring)
+// triggers console warnings. Using Object.keys + filter avoids accessing the deprecated getters.
+const deprecatedColors = new Set(['lightBlue', 'warmGray', 'trueGray', 'coolGray', 'blueGray']);
+const tailwindColors = Object.keys(colors)
+  .filter(key => !deprecatedColors.has(key))
+  .reduce((acc, key) => {
+    acc[key] = (colors as unknown as Record<string, unknown>)[key];
+    return acc;
+  }, {} as Record<string, unknown>);
 
 export default {
   darkMode: ["class"],

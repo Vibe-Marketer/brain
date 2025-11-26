@@ -1,5 +1,6 @@
 import * as React from 'react';
-import { useChat } from '@ai-sdk/react';
+import { useChat } from 'ai/react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { RiSendPlaneFill, RiFilterLine, RiCalendarLine, RiUser3Line, RiFolder3Line, RiCloseLine, RiAddLine } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -24,7 +25,9 @@ import { ScrollButton } from '@/components/chat/scroll-button';
 import { ThinkingLoader } from '@/components/chat/loader';
 import { Sources } from '@/components/chat/source';
 import { ToolCalls } from '@/components/chat/tool-call';
+import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { useAuth } from '@/contexts/AuthContext';
+import { useChatSession } from '@/hooks/useChatSession';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
@@ -47,8 +50,35 @@ interface Category {
   call_count: number;
 }
 
+interface ToolCallPart {
+  type: string;
+  toolName: string;
+  toolCallId: string;
+  state?: 'pending' | 'running' | 'success' | 'error';
+  args?: Record<string, unknown>;
+  result?: Record<string, unknown> & {
+    results?: Array<{
+      recording_id: number;
+      text: string;
+      speaker: string;
+      call_date: string;
+      call_title: string;
+      relevance: string;
+    }>;
+  };
+  error?: string;
+}
+
+// Helper to create a fake change event for the AI SDK's handleInputChange
+const createInputChangeEvent = (value: string): React.ChangeEvent<HTMLTextAreaElement> => ({
+  target: { value } as HTMLTextAreaElement,
+} as React.ChangeEvent<HTMLTextAreaElement>);
+
 export default function Chat() {
   const { session } = useAuth();
+  const navigate = useNavigate();
+  const { sessionId } = useParams<{ sessionId: string }>();
+
   const [filters, setFilters] = React.useState<ChatFilters>({
     speakers: [],
     categories: [],
@@ -57,6 +87,20 @@ export default function Chat() {
   const [availableSpeakers, setAvailableSpeakers] = React.useState<Speaker[]>([]);
   const [availableCategories, setAvailableCategories] = React.useState<Category[]>([]);
   const [showFilters, setShowFilters] = React.useState(false);
+  const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(sessionId || null);
+  const [isLoadingSession, setIsLoadingSession] = React.useState(false);
+
+  // Chat session management
+  const {
+    sessions,
+    isLoadingSessions,
+    fetchMessages,
+    createSession,
+    saveMessages,
+    deleteSession,
+    togglePin,
+    toggleArchive,
+  } = useChatSession(session?.user?.id);
 
   // Fetch available filters on mount
   React.useEffect(() => {
@@ -108,7 +152,120 @@ export default function Chat() {
     onError: (error) => {
       console.error('Chat error:', error);
     },
+    onFinish: async (message) => {
+      // Save messages to database after AI response completes
+      if (currentSessionId && session?.user?.id) {
+        try {
+          await saveMessages({
+            sessionId: currentSessionId,
+            messages: [...messages, message],
+            model: 'gpt-4o',
+          });
+        } catch (err) {
+          console.error('Failed to save messages:', err);
+        }
+      }
+    },
   });
+
+  // Load session messages when sessionId changes
+  React.useEffect(() => {
+    async function loadSessionMessages() {
+      if (!sessionId) {
+        setCurrentSessionId(null);
+        setMessages([]);
+        return;
+      }
+
+      setIsLoadingSession(true);
+      try {
+        const loadedMessages = await fetchMessages(sessionId);
+        setMessages(loadedMessages);
+        setCurrentSessionId(sessionId);
+      } catch (err) {
+        console.error('Failed to load session messages:', err);
+      } finally {
+        setIsLoadingSession(false);
+      }
+    }
+
+    loadSessionMessages();
+  }, [sessionId, fetchMessages, setMessages]);
+
+  // Handle new chat creation
+  const handleNewChat = async () => {
+    try {
+      const newSession = await createSession({
+        filter_date_start: filters.dateStart,
+        filter_date_end: filters.dateEnd,
+        filter_speakers: filters.speakers,
+        filter_categories: filters.categories,
+        filter_recording_ids: filters.recordingIds,
+      });
+      navigate(`/chat/${newSession.id}`);
+    } catch (err) {
+      console.error('Failed to create session:', err);
+    }
+  };
+
+  // Handle session selection
+  const handleSessionSelect = (selectedSessionId: string) => {
+    navigate(`/chat/${selectedSessionId}`);
+  };
+
+  // Handle session deletion
+  const handleDeleteSession = async (sessionIdToDelete: string) => {
+    try {
+      await deleteSession(sessionIdToDelete);
+      if (sessionIdToDelete === currentSessionId) {
+        navigate('/chat');
+      }
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+    }
+  };
+
+  // Handle toggle pin
+  const handleTogglePin = async (sessionId: string, isPinned: boolean) => {
+    try {
+      await togglePin({ sessionId, isPinned });
+    } catch (err) {
+      console.error('Failed to toggle pin:', err);
+    }
+  };
+
+  // Handle toggle archive
+  const handleToggleArchive = async (sessionId: string, isArchived: boolean) => {
+    try {
+      await toggleArchive({ sessionId, isArchived });
+    } catch (err) {
+      console.error('Failed to toggle archive:', err);
+    }
+  };
+
+  // Save user message to database after submission
+  const handleChatSubmit = async (e?: React.FormEvent) => {
+    // Create session if it doesn't exist
+    if (!currentSessionId && session?.user?.id) {
+      try {
+        const newSession = await createSession({
+          filter_date_start: filters.dateStart,
+          filter_date_end: filters.dateEnd,
+          filter_speakers: filters.speakers,
+          filter_categories: filters.categories,
+          filter_recording_ids: filters.recordingIds,
+        });
+        setCurrentSessionId(newSession.id);
+        navigate(`/chat/${newSession.id}`, { replace: true });
+      } catch (err) {
+        console.error('Failed to create session:', err);
+        return;
+      }
+    }
+
+    // Call the original handleSubmit
+    handleSubmit(e);
+  };
 
   const hasActiveFilters = filters.dateStart || filters.dateEnd || filters.speakers.length > 0 || filters.categories.length > 0;
 
@@ -138,12 +295,23 @@ export default function Chat() {
     }));
   };
 
-  const startNewChat = () => {
-    setMessages([]);
-  };
-
   return (
-    <div className="flex h-[calc(100vh-52px)] flex-col bg-viewport">
+    <div className="flex h-[calc(100vh-52px)] bg-viewport">
+      {/* Sidebar */}
+      <div className="w-80 flex-shrink-0">
+        <ChatSidebar
+          sessions={sessions}
+          activeSessionId={currentSessionId}
+          onSessionSelect={handleSessionSelect}
+          onNewChat={handleNewChat}
+          onDeleteSession={handleDeleteSession}
+          onTogglePin={handleTogglePin}
+          onToggleArchive={handleToggleArchive}
+        />
+      </div>
+
+      {/* Main chat area */}
+      <div className="flex flex-1 flex-col">
       {/* Header with filters */}
       <div className="flex items-center justify-between border-b border-cb-border-primary bg-card px-4 py-3">
         <div className="flex items-center gap-3">
@@ -172,7 +340,7 @@ export default function Chat() {
                 </Badge>
               )}
               <Button
-                variant="ghost"
+                variant="hollow"
                 size="sm"
                 onClick={clearFilters}
                 className="h-6 px-2 text-xs"
@@ -186,9 +354,9 @@ export default function Chat() {
 
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
+            variant="hollow"
             size="sm"
-            onClick={startNewChat}
+            onClick={handleNewChat}
             className="gap-1"
           >
             <RiAddLine className="h-4 w-4" />
@@ -331,21 +499,21 @@ export default function Chat() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleInputChange({ target: { value: 'What were the main objections in my recent sales calls?' } } as any)}
+                    onClick={() => handleInputChange(createInputChangeEvent('What were the main objections in my recent sales calls?'))}
                   >
                     Sales objections
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleInputChange({ target: { value: 'Summarize my calls from last week' } } as any)}
+                    onClick={() => handleInputChange(createInputChangeEvent('Summarize my calls from last week'))}
                   >
                     Weekly summary
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => handleInputChange({ target: { value: 'What topics came up most frequently?' } } as any)}
+                    onClick={() => handleInputChange(createInputChangeEvent('What topics came up most frequently?'))}
                   >
                     Common topics
                   </Button>
@@ -365,11 +533,11 @@ export default function Chat() {
 
               if (message.role === 'assistant') {
                 // Extract tool calls from parts if available
-                const toolParts = message.parts?.filter((p: any) => p.type === 'tool-call' || p.type === 'tool-result') || [];
+                const toolParts = (message.parts as ToolCallPart[] | undefined)?.filter((p) => p.type === 'tool-call' || p.type === 'tool-result') || [];
                 // Extract sources from tool results
                 const sources = toolParts
-                  .filter((p: any) => p.type === 'tool-result' && p.result?.results)
-                  .flatMap((p: any) => p.result.results || [])
+                  .filter((p) => p.type === 'tool-result' && p.result?.results)
+                  .flatMap((p) => p.result?.results || [])
                   .slice(0, 5);
 
                 return (
@@ -380,7 +548,7 @@ export default function Chat() {
                     </AssistantMessage>
                     {sources.length > 0 && (
                       <Sources
-                        sources={sources.map((s: any, i: number) => ({
+                        sources={sources.map((s, i) => ({
                           id: `${message.id}-source-${i}`,
                           recording_id: s.recording_id,
                           chunk_text: s.text,
@@ -423,8 +591,8 @@ export default function Chat() {
         <div className="max-w-3xl mx-auto">
           <PromptInput
             value={input}
-            onValueChange={(value) => handleInputChange({ target: { value } } as any)}
-            onSubmit={() => handleSubmit()}
+            onValueChange={(value) => handleInputChange(createInputChangeEvent(value))}
+            onSubmit={() => handleChatSubmit()}
             isLoading={isLoading}
           >
             <PromptInputTextarea
@@ -447,6 +615,7 @@ export default function Chat() {
             </PromptInputActions>
           </PromptInput>
         </div>
+      </div>
       </div>
     </div>
   );

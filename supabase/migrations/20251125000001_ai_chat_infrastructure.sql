@@ -57,8 +57,7 @@ CREATE TABLE IF NOT EXISTS public.transcript_chunks (
   fts tsvector GENERATED ALWAYS AS (
     setweight(to_tsvector('english', coalesce(chunk_text, '')), 'A') ||
     setweight(to_tsvector('english', coalesce(speaker_name, '')), 'B') ||
-    setweight(to_tsvector('english', coalesce(call_title, '')), 'C') ||
-    setweight(to_tsvector('english', coalesce(array_to_string(topics, ' '), '')), 'B')
+    setweight(to_tsvector('english', coalesce(call_title, '')), 'C')
   ) STORED,
 
   -- Embedding status
@@ -75,7 +74,7 @@ CREATE TABLE IF NOT EXISTS public.transcript_chunks (
 
 COMMENT ON TABLE public.transcript_chunks IS 'Chunked transcript segments with vector embeddings for hybrid RAG search';
 COMMENT ON COLUMN public.transcript_chunks.embedding IS 'Vector embedding using text-embedding-3-small (1536 dimensions)';
-COMMENT ON COLUMN public.transcript_chunks.fts IS 'Weighted full-text search: chunk_text (A), speaker/topics (B), title (C)';
+COMMENT ON COLUMN public.transcript_chunks.fts IS 'Weighted full-text search: chunk_text (A), speaker (B), title (C)';
 COMMENT ON COLUMN public.transcript_chunks.topics IS 'Auto-extracted topics from LLM analysis';
 COMMENT ON COLUMN public.transcript_chunks.intent_signals IS 'Auto-detected intent: buying_signal, objection, question, concern';
 

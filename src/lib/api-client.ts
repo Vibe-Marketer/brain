@@ -230,3 +230,105 @@ export async function autoTagCalls(recordingIds: number[]) {
 export async function generateAiTitles(recordingIds: number[]) {
   return callEdgeFunction('generate-ai-titles', { recordingIds }, { retry: false });
 }
+
+// =============================================
+// YOUTUBE API FUNCTIONS
+// =============================================
+
+export interface YouTubeVideo {
+  videoId: string;
+  title: string;
+  description: string;
+  channelId: string;
+  channelTitle: string;
+  publishedAt: string;
+  thumbnails: any;
+}
+
+export interface YouTubeSearchResult {
+  videos: YouTubeVideo[];
+  totalResults: number;
+  nextPageToken?: string;
+}
+
+export interface YouTubeVideoDetails extends YouTubeVideo {
+  tags: string[];
+  categoryId: string;
+  duration: string;
+  definition: string;
+  caption: string;
+  viewCount: number;
+  likeCount: number;
+  commentCount: number;
+}
+
+export interface VideoTranscript {
+  videoId: string;
+  transcript: string;
+  language: string;
+  duration: number;
+}
+
+export interface BatchTranscriptsResult {
+  transcripts: VideoTranscript[];
+  errors: Array<{ videoId: string; error: string }>;
+  totalRequested: number;
+  successCount: number;
+  failureCount: number;
+}
+
+/**
+ * Search YouTube videos by query
+ * Returns video results matching the search query
+ */
+export async function searchYouTubeVideos(query: string, maxResults: number = 10): Promise<ApiResponse<YouTubeSearchResult>> {
+  return callEdgeFunction<YouTubeSearchResult>('youtube-api', {
+    action: 'search',
+    params: { query, maxResults },
+  });
+}
+
+/**
+ * Get videos from a specific YouTube channel
+ * Returns recent videos from the channel
+ */
+export async function getChannelVideos(channelId: string, maxResults: number = 25): Promise<ApiResponse<YouTubeSearchResult>> {
+  return callEdgeFunction<YouTubeSearchResult>('youtube-api', {
+    action: 'channel-videos',
+    params: { channelId, maxResults },
+  });
+}
+
+/**
+ * Get detailed information about a YouTube video
+ * Includes statistics, duration, tags, and content details
+ */
+export async function getVideoDetails(videoId: string): Promise<ApiResponse<YouTubeVideoDetails>> {
+  return callEdgeFunction<YouTubeVideoDetails>('youtube-api', {
+    action: 'video-details',
+    params: { videoId },
+  });
+}
+
+/**
+ * Get transcript for a single YouTube video
+ * Returns full transcript text with language and duration
+ */
+export async function getVideoTranscript(videoId: string): Promise<ApiResponse<VideoTranscript>> {
+  return callEdgeFunction<VideoTranscript>('youtube-api', {
+    action: 'transcript',
+    params: { videoId },
+  });
+}
+
+/**
+ * Get transcripts for multiple YouTube videos in parallel
+ * Efficiently fetches transcripts for batch processing
+ * Returns both successful transcripts and any errors
+ */
+export async function getBatchTranscripts(videoIds: string[]): Promise<ApiResponse<BatchTranscriptsResult>> {
+  return callEdgeFunction<BatchTranscriptsResult>('youtube-api', {
+    action: 'batch-transcripts',
+    params: { videoIds },
+  });
+}
