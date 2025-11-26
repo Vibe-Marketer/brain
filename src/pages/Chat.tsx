@@ -215,6 +215,10 @@ export default function Chat() {
       console.error('Chat error:', error);
     },
     onFinish: async (message) => {
+      // Debug: log the message to see if parts are present
+      console.log('onFinish message:', JSON.stringify(message, null, 2));
+      console.log('onFinish message.parts:', message.parts);
+
       // Save messages to database after AI response completes
       // Use messagesRef to get current messages (avoids stale closure)
       // Include the finished message in case ref is slightly behind
@@ -223,10 +227,14 @@ export default function Chat() {
         try {
           // Get current messages from ref and ensure the finished message is included
           const currentMessages = messagesRef.current;
+          console.log('messagesRef.current:', currentMessages.map(m => ({ id: m.id, role: m.role, hasParts: !!m.parts, partsLength: m.parts?.length })));
+
           const hasFinishedMessage = currentMessages.some(m => m.id === message.id);
           const messagesToSave = hasFinishedMessage
             ? currentMessages
             : [...currentMessages, message];
+
+          console.log('messagesToSave:', messagesToSave.map(m => ({ id: m.id, role: m.role, hasParts: !!m.parts, partsLength: m.parts?.length })));
 
           await saveMessages({
             sessionId: sessionIdToSave,
@@ -796,6 +804,9 @@ export default function Chat() {
               }
 
               if (message.role === 'assistant') {
+                // Debug: log message.parts during render
+                console.log('Render assistant message:', message.id, 'parts:', message.parts);
+
                 // Extract tool calls from parts if available
                 const toolParts = (message.parts as ToolCallPart[] | undefined)?.filter((p) => p.type === 'tool-call' || p.type === 'tool-result') || [];
 
