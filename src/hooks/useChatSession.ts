@@ -157,6 +157,12 @@ export function useChatSession(userId: string | undefined) {
     mutationFn: async ({ sessionId, messages, model }: SaveMessagesParams) => {
       if (!userId) throw new Error('User ID is required');
 
+      // Guard against undefined or empty messages
+      if (!messages || !Array.isArray(messages) || messages.length === 0) {
+        console.log('No messages to save (empty or undefined)');
+        return;
+      }
+
       // Get existing messages to check for duplicates by content hash
       // (AI SDK uses short random IDs that aren't valid UUIDs)
       const { data: existingMessages } = await supabase

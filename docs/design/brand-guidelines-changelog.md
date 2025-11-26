@@ -6,6 +6,25 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 
 ---
 
+## v3.3.9 (November 26, 2025)
+**Git Commit:** pending
+**Summary:** Button System expansion from 4 to 6 variants
+- **ADDED:** `variant="outline"` - Subtle bordered button for toggleable/selectable items
+  - Designed to pair with `default` for selected state toggle pattern
+  - Use case: Filter toggles, tag selection, suggestion chips, date presets
+  - Transparent background, subtle border, hover state brings focus
+- **ADDED:** `variant="ghost"` - Transparent button for minimal UI contexts
+  - No border, subtle hover state
+  - Use case: Code block actions, toolbar icons, inline subtle actions
+  - Default behavior for icon buttons without specified variant
+- **REMOVED:** `variant="secondary"` from Button types (was only used on Badge component)
+- **UPDATED:** Button Usage Decision Tree to include new variants
+- **UPDATED:** Button checklist in QA section to reflect 6 variants
+- **IMPLEMENTED:** Proper styling in `src/components/ui/button.tsx` for both new variants
+- **FIXED:** 7 existing usages of `variant="outline"` now have proper styling (previously fell back to default glossy)
+
+---
+
 ## v3.3.8 (November 21, 2025)
 **Git Commit:** pending
 **Summary:** Vibe Green status indicator + Icon library enforcement

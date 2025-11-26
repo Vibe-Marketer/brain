@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { useChat } from '@ai-sdk/react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { RiSendPlaneFill, RiFilterLine, RiCalendarLine, RiUser3Line, RiFolder3Line, RiCloseLine, RiAddLine, RiMenuLine, RiAtLine, RiVideoLine } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
+import { CallDetailDialog } from '@/components/CallDetailDialog';
+import { Meeting } from '@/types';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Badge } from '@/components/ui/badge';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
@@ -38,6 +40,13 @@ interface ChatFilters {
   speakers: string[];
   categories: string[];
   recordingIds: number[];
+}
+
+interface ChatLocationState {
+  prefilter?: {
+    recordingIds?: number[];
+  };
+  callTitle?: string;
 }
 
 interface Speaker {
@@ -84,6 +93,7 @@ const createInputChangeEvent = (value: string): React.ChangeEvent<HTMLTextAreaEl
 export default function Chat() {
   const { session } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const { sessionId } = useParams<{ sessionId: string }>();
 
   const [filters, setFilters] = React.useState<ChatFilters>({
@@ -99,11 +109,18 @@ export default function Chat() {
   const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(sessionId || null);
   const [isLoadingSession, setIsLoadingSession] = React.useState(false);
 
+  // CallDetailDialog state for viewing sources
+  const [selectedCall, setSelectedCall] = React.useState<Meeting | null>(null);
+  const [showCallDialog, setShowCallDialog] = React.useState(false);
+
   // Ref to track current session ID for async callbacks (avoids stale closure)
   const currentSessionIdRef = React.useRef<string | null>(currentSessionId);
   React.useEffect(() => {
     currentSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
+
+  // Ref to track messages for async callbacks (avoids stale closure in onFinish)
+  const messagesRef = React.useRef<typeof messages>([]);
 
   // Mentions state
   const [showMentions, setShowMentions] = React.useState(false);
@@ -153,6 +170,21 @@ export default function Chat() {
     fetchFilterOptions();
   }, [session]);
 
+  // Handle incoming location state for pre-filtering (e.g., from CallDetailDialog)
+  // This intentionally runs only once on mount to process initial navigation state
+  React.useEffect(() => {
+    const state = location.state as ChatLocationState | undefined;
+    if (state?.prefilter?.recordingIds?.length) {
+      setFilters(prev => ({
+        ...prev,
+        recordingIds: state.prefilter!.recordingIds!,
+      }));
+      // Clear the location state to prevent re-applying on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Build filter object for API
   const apiFilters = React.useMemo(() => ({
     date_start: filters.dateStart?.toISOString(),
@@ -182,16 +214,23 @@ export default function Chat() {
     onError: (error) => {
       console.error('Chat error:', error);
     },
-    onFinish: async (message, { messages: allMessages }) => {
+    onFinish: async (message) => {
       // Save messages to database after AI response completes
-      // Use allMessages from the callback which includes all messages in the conversation
-      // Use ref to get current session ID (avoids stale closure)
+      // Use messagesRef to get current messages (avoids stale closure)
+      // Include the finished message in case ref is slightly behind
       const sessionIdToSave = currentSessionIdRef.current;
       if (sessionIdToSave && session?.user?.id) {
         try {
+          // Get current messages from ref and ensure the finished message is included
+          const currentMessages = messagesRef.current;
+          const hasFinishedMessage = currentMessages.some(m => m.id === message.id);
+          const messagesToSave = hasFinishedMessage
+            ? currentMessages
+            : [...currentMessages, message];
+
           await saveMessages({
             sessionId: sessionIdToSave,
-            messages: allMessages,
+            messages: messagesToSave,
             model: 'gpt-4o',
           });
         } catch (err) {
@@ -200,6 +239,11 @@ export default function Chat() {
       }
     },
   });
+
+  // Keep messagesRef in sync with messages (for use in async callbacks)
+  React.useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   // Load session messages when sessionId changes
   React.useEffect(() => {
@@ -321,6 +365,27 @@ export default function Chat() {
       handleChatSubmit();
     });
   }, [handleInputChange, handleChatSubmit]);
+
+  // Handler to view a call from a source citation
+  const handleViewCall = React.useCallback(async (recordingId: number) => {
+    try {
+      const { data: callData, error } = await supabase
+        .from('fathom_calls')
+        .select('*')
+        .eq('recording_id', recordingId)
+        .single();
+
+      if (error) {
+        console.error('Failed to fetch call:', error);
+        return;
+      }
+
+      setSelectedCall(callData as Meeting);
+      setShowCallDialog(true);
+    } catch (err) {
+      console.error('Error fetching call:', err);
+    }
+  }, []);
 
   const hasActiveFilters = filters.dateStart || filters.dateEnd || filters.speakers.length > 0 || filters.categories.length > 0 || filters.recordingIds.length > 0;
 
@@ -739,12 +804,20 @@ export default function Chat() {
                   .flatMap((p) => p.result?.results || [])
                   .slice(0, 5);
 
+                // Determine if we should show content or loading state
+                const hasContent = message.content && message.content.trim().length > 0;
+                const isThinking = !hasContent && toolParts.length > 0;
+
                 return (
                   <div key={message.id} className="space-y-2">
                     {toolParts.length > 0 && <ToolCalls parts={toolParts} />}
-                    <AssistantMessage markdown>
-                      {message.content}
-                    </AssistantMessage>
+                    {hasContent ? (
+                      <AssistantMessage markdown>
+                        {message.content}
+                      </AssistantMessage>
+                    ) : isThinking ? (
+                      <AssistantMessage isLoading />
+                    ) : null}
                     {sources.length > 0 && (
                       <Sources
                         sources={sources.map((s, i) => ({
@@ -756,6 +829,7 @@ export default function Chat() {
                           call_title: s.call_title,
                           similarity_score: parseFloat(s.relevance) / 100,
                         }))}
+                        onViewCall={handleViewCall}
                         className="ml-11"
                       />
                     )}
@@ -848,6 +922,13 @@ export default function Chat() {
         </div>
       </div>
       </div>
+
+      {/* Call Detail Dialog for viewing source citations */}
+      <CallDetailDialog
+        call={selectedCall}
+        open={showCallDialog}
+        onOpenChange={setShowCallDialog}
+      />
     </div>
   );
 }

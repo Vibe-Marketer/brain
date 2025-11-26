@@ -59,7 +59,7 @@ export function PromptInput({
         className={cn(
           'relative flex w-full flex-col rounded-2xl border border-cb-border bg-card shadow-sm',
           'transition-all duration-200',
-          'focus-within:border-vibe-green focus-within:ring-2 focus-within:ring-vibe-green/20 focus-within:shadow-md',
+          'focus-within:border-cb-ink-muted focus-within:shadow-md',
           className
         )}
         {...props}
@@ -116,8 +116,10 @@ export const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, PromptI
       rows={1}
       className={cn(
         'w-full resize-none bg-transparent px-5 py-4 min-h-[52px]',
+        'border-0 outline-none ring-0',
         'text-sm text-cb-ink placeholder:text-cb-ink-muted',
-        'focus:outline-none disabled:cursor-not-allowed disabled:opacity-50',
+        'focus:outline-none focus:ring-0 focus:border-0',
+        'disabled:cursor-not-allowed disabled:opacity-50',
         'font-sans font-light',
         'transition-colors duration-150',
         className

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -41,6 +42,7 @@ export function CallDetailDialog({
   onDataChange,
 }: CallDetailDialogProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Local UI state
@@ -242,6 +244,16 @@ export function CallDetailDialog({
     revertSegmentMutation.mutate({ segmentId });
   }, [revertSegmentMutation]);
 
+  const handleChatWithAI = useCallback(() => {
+    onOpenChange(false);
+    navigate('/chat', {
+      state: {
+        prefilter: { recordingIds: [call?.recording_id] },
+        callTitle: call?.title
+      }
+    });
+  }, [call?.recording_id, call?.title, navigate, onOpenChange]);
+
   // Create grouped props using useMemo for optimal performance
   const transcriptViewState: TranscriptViewState = useMemo(() => ({
     includeTimestamps,
@@ -307,6 +319,7 @@ export function CallDetailDialog({
           setEditedSummary={setEditedSummary}
           onSave={handleSave}
           isSaving={updateCallMutation.isPending}
+          onChatWithAI={handleChatWithAI}
         />
 
         <Tabs defaultValue="overview" className="w-full flex-1 flex flex-col overflow-hidden">

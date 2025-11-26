@@ -1,7 +1,7 @@
-# CONVERSION BRAIN BRAND GUIDELINES v3.3.8
+# CONVERSION BRAIN BRAND GUIDELINES v3.3.9
 ## Authoritative Design System Reference
 
-**Last Updated:** November 21, 2025
+**Last Updated:** November 26, 2025
 **Status:** Complete & Accurate - Supersedes ALL previous versions
 **Purpose:** Single source of truth for all design and development decisions
 
@@ -239,11 +239,13 @@ Both cards use `bg-card` and maintain consistent styling.
 
 ### Overview
 
-**4 standardized variants only:**
+**6 standardized variants:**
 1. Primary (default) - Glossy slate gradient for main actions
 2. Plain (hollow) - Simple border for secondary actions
 3. Destructive - Red for dangerous actions
 4. Link - Text-only for tertiary actions
+5. Outline - Subtle bordered for toggleable/selectable items
+6. Ghost - Transparent with hover for minimal UI contexts
 
 **Single component:** `<Button>` from `@/components/ui/button`
 
@@ -517,6 +519,149 @@ focus: {
 
 ---
 
+### 5. OUTLINE BUTTON (Toggleable/Selectable Items)
+
+**Variant:** `variant="outline"`
+
+**Visual Specifications:**
+
+**Light Mode:**
+```css
+background: transparent;
+color: #6B6B6B;  /* cb-ink-soft */
+border: 1px solid #E8E8E8;  /* cb-border-soft */
+border-radius: 8px;
+```
+
+**Dark Mode:**
+```css
+background: transparent;
+color: #9A9A9A;  /* cb-text-dark-secondary */
+border: 1px solid #3A3A3A;  /* cb-border-dark */
+border-radius: 8px;
+```
+
+**Sizes:**
+| Size | Height | Padding | Font Size |
+|------|--------|---------|-----------|
+| sm | 32px | 0 12px | 12px |
+| default | 36px | 0 16px | 14px |
+| lg | 40px | 0 20px | 14px |
+| icon | 32px/24px | - | 16px |
+
+**States:**
+```css
+/* Hover */
+hover: {
+  background: #F8F8F8 (light) / #2A2A2A (dark);
+  color: #111111 (light) / #FFFFFF (dark);
+  border-color: #E5E5E5 (light) / #4A4A4A (dark);
+}
+
+/* Focus */
+focus: {
+  outline: 2px solid #d9fc67;  /* vibe green ring */
+  outline-offset: 2px;
+}
+```
+
+**Usage:**
+```tsx
+{/* For toggleable filters - pairs with default for selected state */}
+<Button variant={isSelected ? 'default' : 'outline'}>Category</Button>
+
+{/* For suggestion chips */}
+<Button variant="outline" size="sm">Sales objections</Button>
+
+{/* For date presets */}
+<Button variant="outline" size="sm">This month</Button>
+```
+
+**When to use:**
+- Filter toggles (unselected state)
+- Tag/category selection (pairs with `default` for selected)
+- Suggestion chips
+- Date range presets
+- Multi-select options
+- Low-emphasis selectable items
+
+**Key Pattern:** Use `variant={isSelected ? 'default' : 'outline'}` for toggle buttons
+
+**Dark Mode Behavior:** Colors adapt to maintain contrast
+
+---
+
+### 6. GHOST BUTTON (Minimal UI)
+
+**Variant:** `variant="ghost"`
+
+**Visual Specifications:**
+
+**Light Mode:**
+```css
+background: transparent;
+color: #7A7A7A;  /* cb-ink-muted */
+border: none;
+border-radius: 8px;
+```
+
+**Dark Mode:**
+```css
+background: transparent;
+color: #9A9A9A;  /* cb-text-dark-secondary */
+border: none;
+border-radius: 8px;
+```
+
+**Sizes:**
+| Size | Height | Padding | Font Size |
+|------|--------|---------|-----------|
+| sm | 32px | 0 12px | 12px |
+| default | 36px | 0 16px | 14px |
+| lg | 40px | 0 20px | 14px |
+| icon | 32px/24px | - | 16px |
+
+**States:**
+```css
+/* Hover */
+hover: {
+  background: #F8F8F8 (light) / #2A2A2A (dark);
+  color: #111111 (light) / #FFFFFF (dark);
+}
+
+/* Focus */
+focus: {
+  outline: 2px solid #d9fc67;  /* vibe green ring */
+  outline-offset: 2px;
+}
+```
+
+**Usage:**
+```tsx
+{/* Code block copy button */}
+<Button variant="ghost" size="icon">
+  <RiFileCopyLine />
+</Button>
+
+{/* Toolbar icons with minimal chrome */}
+<Button variant="ghost" size="sm">
+  <RiMoreLine /> More
+</Button>
+```
+
+**When to use:**
+- Icon toolbars with minimal UI
+- Code block actions (copy, expand)
+- Inline actions that should be subtle
+- Secondary icon actions
+- When you need clickable area but minimal visual presence
+
+**Note:** For icon buttons, `ghost` is the default behavior when no variant is specified with `size="icon"`
+
+**Dark Mode Behavior:** Colors adapt to maintain contrast
+
+---
+
 ### Button Usage Decision Tree
 
 ```
@@ -530,6 +675,14 @@ Is this a DESTRUCTIVE action?
 
 Is this inline with text / very low priority?
 ├─ YES → variant="link"
+└─ NO ↓
+
+Is this a TOGGLEABLE/SELECTABLE item (filter, tag, preset)?
+├─ YES → variant="outline" (unselected) / variant="default" (selected)
+└─ NO ↓
+
+Is this a MINIMAL UI context (code block, subtle toolbar)?
+├─ YES → variant="ghost"
 └─ NO ↓
 
 Is this a secondary action / toolbar / table / mobile?
@@ -1952,10 +2105,12 @@ Before shipping any feature:
 - [ ] Numbers use tabular figures
 
 ### Buttons
-- [ ] Only 4 variants used (default, hollow, destructive, link)
+- [ ] Only 6 variants used (default, hollow, destructive, link, outline, ghost)
 - [ ] Primary actions use variant="default"
 - [ ] Secondary actions use variant="hollow"
-- [ ] Icon buttons have border and correct hover state
+- [ ] Toggleable/selectable items use variant="outline" (unselected) / variant="default" (selected)
+- [ ] Minimal UI contexts use variant="ghost"
+- [ ] Icon buttons have appropriate variant (hollow=bordered, ghost=transparent)
 - [ ] Green ring on active/focus states
 - [ ] Sizes appropriate for context
 - [ ] Mobile uses plain buttons
@@ -2065,7 +2220,7 @@ This document follows semantic versioning to track changes:
 
 ## DOCUMENT VERSION
 
-**Current Version:** v3.3.8
+**Current Version:** v3.3.9
 
 This version reference must match the title at the top of the document.
 
@@ -2094,7 +2249,7 @@ This version reference must match the title at the top of the document.
 
 ---
 
-**END OF BRAND GUIDELINES v3.3.8**
+**END OF BRAND GUIDELINES v3.3.9**
 
-This document is complete and accurate as of November 21, 2025.
+This document is complete and accurate as of November 26, 2025.
 All implementations must follow these specifications exactly.  

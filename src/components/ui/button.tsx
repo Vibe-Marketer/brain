@@ -6,7 +6,16 @@ import { cn } from "@/lib/utils";
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   asChild?: boolean;
-  variant?: "default" | "destructive" | "hollow" | "link" | "outline" | "secondary";
+  /**
+   * Button variants:
+   * - `default`: Primary slate gradient glossy button (main CTAs)
+   * - `destructive`: Red gradient glossy button (delete/remove actions)
+   * - `hollow`: Plain bordered button (secondary actions, toolbars)
+   * - `outline`: Subtle bordered button for toggleable/selectable items (pairs with `default` for selected state)
+   * - `ghost`: Transparent button with hover state (icon toolbars, minimal UI)
+   * - `link`: Text-only with underline (tertiary actions, inline links)
+   */
+  variant?: "default" | "destructive" | "hollow" | "outline" | "ghost" | "link";
   size?: "default" | "sm" | "lg" | "icon" | "icon-sm";
 }
 
@@ -91,7 +100,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     
     // Special case: icon buttons
     if (size === 'icon' || size === 'icon-sm') {
-      // Hollow variant icon buttons get borders
+      // Hollow variant icon buttons get solid borders and white background
       if (variant === 'hollow') {
         return (
           <Comp
@@ -113,16 +122,41 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         );
       }
 
-      // Ghost variant icon buttons (no border, transparent)
+      // Outline variant icon buttons get subtle borders
+      if (variant === 'outline') {
+        return (
+          <Comp
+            ref={ref}
+            className={cn(
+              size === 'icon-sm' ? 'h-6 w-6' : 'h-8 w-8',
+              'inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium',
+              'border border-cb-border-soft dark:border-cb-border-dark',
+              'bg-transparent',
+              'text-cb-ink-soft dark:text-cb-text-dark-secondary',
+              'hover:bg-cb-hover hover:text-cb-ink hover:border-cb-border',
+              'dark:hover:bg-cb-panel-dark dark:hover:text-white',
+              'ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
+              'disabled:pointer-events-none disabled:opacity-50',
+              '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+              className
+            )}
+            {...props}
+          />
+        );
+      }
+
+      // Ghost variant icon buttons (no border, transparent) - default for icon buttons
       return (
         <Comp
           ref={ref}
           className={cn(
             size === 'icon-sm' ? 'h-6 w-6' : 'h-8 w-8',
             'inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium',
-            'bg-transparent hover:bg-muted/50',
-            'text-cb-ink dark:text-white',
-            'ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+            'bg-transparent',
+            'text-cb-ink-muted dark:text-cb-text-dark-secondary',
+            'hover:bg-cb-hover hover:text-cb-ink',
+            'dark:hover:bg-cb-panel-dark dark:hover:text-white',
+            'ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
             'disabled:pointer-events-none disabled:opacity-50',
             '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
             className
@@ -170,6 +204,57 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             size === 'sm' && 'h-9 px-5 text-[13px] rounded-xl',      // 12px to match glossy
             size === 'default' && 'h-10 px-6 text-[13px] rounded-xl', // 12px
             size === 'lg' && 'h-11 px-7 text-[13px] rounded-xl',      // 12px
+            className
+          )}
+          {...props}
+        />
+      );
+    }
+
+    // Special case: outline variant (subtle bordered button for toggleable/selectable items)
+    // Designed to pair with variant="default" for selected state
+    if (variant === 'outline') {
+      return (
+        <Comp
+          ref={ref}
+          className={cn(
+            'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all',
+            'border bg-transparent',
+            'text-cb-ink-soft dark:text-cb-text-dark-secondary',
+            'border-cb-border-soft dark:border-cb-border-dark',
+            'hover:bg-cb-hover hover:text-cb-ink hover:border-cb-border',
+            'dark:hover:bg-cb-panel-dark dark:hover:text-white dark:hover:border-cb-border-dark',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
+            'disabled:pointer-events-none disabled:opacity-50',
+            '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+            size === 'sm' && 'h-8 px-3 text-xs rounded-lg',
+            size === 'default' && 'h-9 px-4 text-sm rounded-lg',
+            size === 'lg' && 'h-10 px-5 text-sm rounded-lg',
+            className
+          )}
+          {...props}
+        />
+      );
+    }
+
+    // Special case: ghost variant (transparent button with subtle hover)
+    // Used for icon toolbars, minimal UI contexts
+    if (variant === 'ghost') {
+      return (
+        <Comp
+          ref={ref}
+          className={cn(
+            'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors',
+            'bg-transparent',
+            'text-cb-ink-muted dark:text-cb-text-dark-secondary',
+            'hover:bg-cb-hover hover:text-cb-ink',
+            'dark:hover:bg-cb-panel-dark dark:hover:text-white',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
+            'disabled:pointer-events-none disabled:opacity-50',
+            '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
+            size === 'sm' && 'h-8 px-3 text-xs rounded-lg',
+            size === 'default' && 'h-9 px-4 text-sm rounded-lg',
+            size === 'lg' && 'h-10 px-5 text-sm rounded-lg',
             className
           )}
           {...props}

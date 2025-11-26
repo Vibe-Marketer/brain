@@ -6,7 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine } from "@remixicon/react";
+import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine, RiRobotLine } from "@remixicon/react";
 
 interface CallDetailHeaderProps {
   call: any;
@@ -17,6 +17,7 @@ interface CallDetailHeaderProps {
   setEditedSummary: Dispatch<SetStateAction<string>>;
   onSave: () => void;
   isSaving: boolean;
+  onChatWithAI?: () => void;
 }
 
 export function CallDetailHeader({
@@ -28,6 +29,7 @@ export function CallDetailHeader({
   setEditedSummary,
   onSave,
   isSaving,
+  onChatWithAI,
 }: CallDetailHeaderProps) {
   return (
     <DialogHeader className="flex-shrink-0">
@@ -105,6 +107,16 @@ export function CallDetailHeader({
             </>
           ) : (
             <>
+              {onChatWithAI && (
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={onChatWithAI}
+                >
+                  <RiRobotLine className="h-4 w-4 mr-2" />
+                  AI CHAT
+                </Button>
+              )}
               <Button
                 variant="hollow"
                 size="sm"
