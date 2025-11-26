@@ -49,7 +49,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen w-full bg-viewport relative">
       <TopBar pageLabel={getPageLabel()} />
       <main className="fixed inset-2 top-[52px]">
-        <div className="bg-card rounded-2xl px-10 pb-10 pt-2 shadow-lg border border-border h-full overflow-auto">
+        <div className="bg-card rounded-2xl px-4 md:px-10 pb-20 md:pb-10 pt-2 shadow-lg border border-border h-full overflow-auto">
           {children}
         </div>
       </main>

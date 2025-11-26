@@ -125,9 +125,9 @@ Deno.serve(async (req) => {
 
     // Define tools for the agent
     const searchTranscriptsTool = tool({
-      description: 'Search through meeting transcripts using semantic and keyword search. Use this to find relevant information from past calls.',
+      description: 'Search through meeting transcripts using semantic and keyword search. Use this to find relevant information from past calls. For temporal queries (recent, last week, etc.), use summarizeCalls FIRST to filter by date, then use this tool to find specific content.',
       parameters: z.object({
-        query: z.string().describe('The search query to find relevant transcript chunks'),
+        query: z.string().describe('The search query to find relevant transcript chunks (e.g., "objections", "pricing concerns", "next steps")'),
         limit: z.number().optional().default(10).describe('Maximum number of results to return'),
       }),
       execute: async ({ query, limit }) => {
@@ -222,11 +222,11 @@ Deno.serve(async (req) => {
     });
 
     const summarizeCallsTool = tool({
-      description: 'Get a summary overview of calls matching certain criteria. Use this for high-level analysis across multiple calls.',
+      description: 'Get a summary overview of calls matching certain criteria. MUST be used for temporal queries (recent, last week, yesterday, etc.) to filter by date range. Use this for high-level analysis across multiple calls.',
       parameters: z.object({
         query: z.string().optional().describe('Optional search query to filter calls'),
-        date_start: z.string().optional().describe('Start date in ISO format'),
-        date_end: z.string().optional().describe('End date in ISO format'),
+        date_start: z.string().optional().describe('Start date in ISO format (YYYY-MM-DD). Use this for temporal queries like "recent calls" (14 days ago), "last week" (7 days ago), etc.'),
+        date_end: z.string().optional().describe('End date in ISO format (YYYY-MM-DD). Optional - if omitted, includes calls up to today.'),
         category: z.string().optional().describe('Category to filter by'),
       }),
       execute: async ({ query, date_start, date_end, category }) => {
@@ -269,6 +269,10 @@ Deno.serve(async (req) => {
       },
     });
 
+    // Get today's date for temporal query handling
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+
     // System prompt
     const systemPrompt = `You are an intelligent assistant for Conversion Brain, helping users analyze their meeting transcripts and extract insights.
 
@@ -284,6 +288,23 @@ When responding:
 - If you need to search for information, use the searchTranscripts tool
 - For specific call details, use getCallDetails
 - For high-level overviews, use summarizeCalls
+
+TEMPORAL QUERY HANDLING:
+Today's date is ${todayStr}. When users mention temporal terms, interpret them as date filters:
+
+- "recent calls" = last 14 days (date_start: ${new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]})
+- "last week" = past 7 days (date_start: ${new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]})
+- "this week" = since Monday of current week
+- "this month" = since the 1st of current month (date_start: ${new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]})
+- "last month" = entire previous month
+- "yesterday" = yesterday only (both date_start and date_end set to yesterday)
+- "today" = today only (both date_start and date_end set to today)
+
+IMPORTANT: When you detect temporal queries (like "recent", "last week", "yesterday", etc.), you MUST use the summarizeCalls tool with the appropriate date_start and/or date_end parameters. Then use searchTranscripts to find specific details within those calls.
+
+Example workflow for "What were the main objections in my recent sales calls?":
+1. Use summarizeCalls with date_start set to 14 days ago to get recent calls
+2. Use searchTranscripts with query="objections" to find objection-related content in those calls
 
 ${filterContext}
 

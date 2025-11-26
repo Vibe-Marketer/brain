@@ -9,14 +9,14 @@ const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
-  <div className="w-full border-b border-cb-gray-light dark:border-cb-gray-dark">
+  <div className="w-full border-b border-cb-gray-light dark:border-cb-gray-dark overflow-x-auto scrollbar-hide">
     <TabsPrimitive.List
       ref={ref}
       className={cn(
-        "flex items-center",
+        "flex items-center min-w-max",
         className,
-        // ENFORCED: Always left-justified with 24px gap - cannot be overridden
-        "justify-start gap-6",
+        // ENFORCED: Always left-justified with responsive gap
+        "justify-start gap-4 md:gap-6",
       )}
       {...props}
     />

@@ -2,9 +2,11 @@ import { useMutation, UseMutationResult, QueryClient } from "@tanstack/react-que
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { Meeting } from "@/types";
+import { queryKeys } from "@/lib/query-config";
 
 interface UseCallDetailMutationsOptions {
-  call: any;
+  call: Meeting | null;
   userId?: string;
   queryClient: QueryClient;
   onDataChange?: () => void;
@@ -67,7 +69,7 @@ export function useCallDetailMutations({
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["calls-with-transcripts"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.calls.list() });
       toast.success("Call updated successfully");
       onDataChange?.();
     },
@@ -89,8 +91,8 @@ export function useCallDetailMutations({
       if (error) throw error;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      await queryClient.refetchQueries({ queryKey: ["call-transcripts", call?.recording_id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
+      await queryClient.refetchQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
       toast.success("Transcript segment updated");
     },
     onError: () => {
@@ -112,8 +114,8 @@ export function useCallDetailMutations({
       if (error) throw error;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      await queryClient.refetchQueries({ queryKey: ["call-transcripts", call?.recording_id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
+      await queryClient.refetchQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
       toast.success("Speaker changed");
     },
     onError: () => {
@@ -138,7 +140,7 @@ export function useCallDetailMutations({
     },
     onSuccess: async () => {
       // Force complete cache reset for aggressive refresh
-      await queryClient.resetQueries({ queryKey: ["call-transcripts", call?.recording_id] });
+      await queryClient.resetQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
 
       // Wait a bit more to ensure UI updates
       await new Promise(resolve => setTimeout(resolve, 150));
@@ -165,8 +167,8 @@ export function useCallDetailMutations({
       if (error) throw error;
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      await queryClient.refetchQueries({ queryKey: ["call-transcripts", call?.recording_id] });
+      await queryClient.invalidateQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
+      await queryClient.refetchQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
       toast.success("Changes reverted");
     },
     onError: () => {
@@ -238,8 +240,8 @@ export function useCallDetailMutations({
       if (updateError) throw updateError;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      queryClient.invalidateQueries({ queryKey: ["calls-with-transcripts"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
+      queryClient.invalidateQueries({ queryKey: queryKeys.calls.list() });
       toast.success("Call resynced from Fathom");
     },
     onError: (error: any) => {

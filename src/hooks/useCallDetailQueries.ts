@@ -3,20 +3,22 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { groupTranscriptsBySpeaker } from "@/lib/transcriptUtils";
 import { logger } from "@/lib/logger";
+import { queryKeys } from "@/lib/query-config";
+import { Meeting, TranscriptSegment, TranscriptSegmentDisplay, Speaker, Category } from "@/types";
 
 interface UseCallDetailQueriesOptions {
-  call: any; // Will be typed later
+  call: Meeting | null;
   userId?: string;
   open: boolean;
 }
 
 interface UseCallDetailQueriesResult {
-  userSettings: any;
-  allTranscripts: any[];
-  transcripts: any[];
-  callCategories: any[];
-  callTags: any[];
-  callSpeakers: any[];
+  userSettings: { host_email: string | null } | null;
+  allTranscripts: TranscriptSegment[];
+  transcripts: TranscriptSegmentDisplay[];
+  callCategories: Category[];
+  callTags: Array<{ id: string; name: string; color: string }>;
+  callSpeakers: Speaker[];
   transcriptStats: { characters: number; tokens: number; words: number };
   editedCount: number;
   deletedCount: number;
@@ -29,7 +31,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
 
   // Fetch user settings to get host email
   const { data: userSettings } = useQuery({
-    queryKey: ["user-settings", userId],
+    queryKey: queryKeys.user.settings(userId!),
     queryFn: async () => {
       if (!userId) return null;
       const { data, error } = await supabase
@@ -50,7 +52,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   // Fetch transcripts for this call - always fetch fresh to show updates
   // For unsynced meetings, use the provided transcript data instead of querying DB
   const { data: allTranscripts } = useQuery({
-    queryKey: ["call-transcripts", call?.recording_id],
+    queryKey: queryKeys.calls.transcripts(call?.recording_id),
     queryFn: async () => {
       if (!call) return [];
 
@@ -200,7 +202,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
 
   // Fetch categories for this call
   const { data: callCategories } = useQuery({
-    queryKey: ["call-categories", call?.recording_id],
+    queryKey: queryKeys.calls.categories(call?.recording_id),
     queryFn: async () => {
       if (!call) return [];
       const { data, error } = await supabase
@@ -222,7 +224,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
 
   // Fetch tags for this call
   const { data: callTags } = useQuery({
-    queryKey: ["call-tags", call?.recording_id],
+    queryKey: queryKeys.calls.tags(call?.recording_id),
     queryFn: async () => {
       if (!call) return [];
       const { data, error } = await supabase
@@ -244,7 +246,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
 
   // Fetch unique speakers from transcripts and enrich with calendar invitee data
   const { data: callSpeakers } = useQuery({
-    queryKey: ["call-speakers", call?.recording_id, call?.calendar_invitees],
+    queryKey: queryKeys.calls.speakers(call?.recording_id),
     queryFn: async () => {
       if (!call) return [];
       const { data: transcriptData, error } = await supabase

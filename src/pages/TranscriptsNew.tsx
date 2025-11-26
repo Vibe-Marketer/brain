@@ -67,7 +67,7 @@ const TranscriptsNew = () => {
             <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
               LIBRARY
             </p>
-            <h1 className="font-display text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
+            <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
               {currentConfig.title}
             </h1>
             <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>

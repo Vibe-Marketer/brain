@@ -67,7 +67,7 @@ export default function Settings() {
         {/* Page Header */}
         <div className="max-w-[1800px] mx-auto">
           <div className="mt-2 mb-3">
-            <h1 className="font-display text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
+            <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
               Settings
             </h1>
             <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">

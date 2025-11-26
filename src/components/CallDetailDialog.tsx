@@ -1,18 +1,17 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { ChangeSpeakerDialog } from "@/components/transcript-library/ChangeSpeakerDialog";
 import { TrimConfirmDialog } from "@/components/transcript-library/TrimConfirmDialog";
 import { ResyncConfirmDialog } from "@/components/transcript-library/ResyncConfirmDialog";
-import { groupTranscriptsBySpeaker } from "@/lib/transcriptUtils";
 import { useTranscriptExport } from "@/hooks/useTranscriptExport";
+import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
+import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
 import { CallParticipantsTab } from "@/components/call-detail/CallParticipantsTab";
@@ -25,9 +24,10 @@ import {
   type TranscriptData,
 } from "@/components/call-detail/CallTranscriptTab";
 import { logger } from "@/lib/logger";
+import { Meeting } from "@/types";
 
 interface CallDetailDialogProps {
-  call: any;
+  call: Meeting | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onDataChange?: () => void;
@@ -41,6 +41,9 @@ export function CallDetailDialog({
   onDataChange,
 }: CallDetailDialogProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  // Local UI state
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(call?.title || "");
   const [editedSummary, setEditedSummary] = useState(call?.summary || "");
@@ -49,7 +52,6 @@ export function CallDetailDialog({
     return saved ? JSON.parse(saved) : true;
   });
   const [viewRaw, setViewRaw] = useState(false);
-  const queryClient = useQueryClient();
 
   // Transcript editing state
   const [editingSegmentId, setEditingSegmentId] = useState<string | null>(null);
@@ -67,25 +69,40 @@ export function CallDetailDialog({
   }>({ open: false, type: "this", segmentId: null });
   const [resyncDialog, setResyncDialog] = useState(false);
 
-  // Fetch user settings to get host email
-  const { data: userSettings } = useQuery({
-    queryKey: ["user-settings", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data, error } = await supabase
-        .from("user_settings")
-        .select("host_email")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: open && !!user,
+  // Use custom hooks for queries and mutations
+  const {
+    userSettings,
+    allTranscripts,
+    transcripts,
+    callCategories,
+    callTags,
+    callSpeakers,
+    transcriptStats,
+    editedCount,
+    deletedCount,
+    hasTranscriptChanges,
+    isHostedByUser,
+  } = useCallDetailQueries({
+    call,
+    userId: user?.id,
+    open,
   });
 
-  const _isHostedByUser = userSettings?.host_email && call?.recorded_by_email &&
-    userSettings.host_email.toLowerCase() === call.recorded_by_email.toLowerCase();
+  const {
+    updateCall: updateCallMutation,
+    editSegment: editSegmentMutation,
+    changeSpeaker: changeSpeakerMutation,
+    trimSegment: trimSegmentMutation,
+    revertSegment: revertSegmentMutation,
+    resyncCall: resyncCallMutation,
+  } = useCallDetailMutations({
+    call,
+    userId: user?.id,
+    queryClient,
+    onDataChange,
+  });
 
+  // Update local state when call changes
   useEffect(() => {
     if (call?.title) {
       setEditedTitle(call.title);
@@ -95,481 +112,44 @@ export function CallDetailDialog({
     }
   }, [call]);
 
+  // Persist timestamps preference
   useEffect(() => {
     localStorage.setItem('transcript-include-timestamps', JSON.stringify(includeTimestamps));
   }, [includeTimestamps]);
 
-  // Fetch transcripts for this call - always fetch fresh to show updates
-  // For unsynced meetings, use the provided transcript data instead of querying DB
-  const { data: allTranscripts } = useQuery({
-    queryKey: ["call-transcripts", call?.recording_id],
-    queryFn: async () => {
-      if (!call) return [];
-      
-      // If this is an unsynced meeting with provided transcripts, use those
-      if (call.unsyncedTranscripts) {
-        return call.unsyncedTranscripts;
-      }
-      
-      // PRIMARY METHOD: Parse from full_transcript field (complete data, single query)
-      const { data: callData, error: callError } = await supabase
-        .from("fathom_calls")
-        .select("full_transcript")
-        .eq("recording_id", call.recording_id)
-        .single();
-      
-      if (callError) {
-        logger.error("Error fetching full_transcript", callError);
-      }
-      
-      // Parse full_transcript into segments
-      if (callData?.full_transcript) {
-        const segmentRegex = /\[(\d{2}:\d{2}:\d{2})\]\s+([^:]+):\s+([^\n]+)/g;
-        const segments = [];
-        let match;
-        let segmentIndex = 0;
-        
-        while ((match = segmentRegex.exec(callData.full_transcript)) !== null) {
-          segments.push({
-            id: `parsed-${segmentIndex}`,
-            recording_id: call.recording_id,
-            timestamp: match[1],
-            speaker_name: match[2].trim(),
-            speaker_email: null, // Will be populated from speaker mapping below
-            text: match[3].trim(),
-            edited_text: null,
-            edited_speaker_name: null,
-            edited_speaker_email: null,
-            is_deleted: false,
-            created_at: new Date().toISOString(),
-          });
-          segmentIndex++;
-        }
-        
-        // Fetch speaker email mapping from fathom_transcripts to restore email data
-        const { data: speakerData, error: speakerError } = await supabase
-          .from("fathom_transcripts")
-          .select("speaker_name, speaker_email")
-          .eq("recording_id", call.recording_id);
-        
-        if (!speakerError && speakerData) {
-          // Create speaker name -> email mapping (use first non-null email for each speaker)
-          const speakerEmailMap = new Map<string, string>();
-          speakerData.forEach((row: any) => {
-            if (row.speaker_email && !speakerEmailMap.has(row.speaker_name)) {
-              speakerEmailMap.set(row.speaker_name, row.speaker_email);
-            }
-          });
-          
-          // Apply email mapping to parsed segments
-          segments.forEach(segment => {
-            const email = speakerEmailMap.get(segment.speaker_name);
-            if (email) {
-              segment.speaker_email = email;
-            }
-          });
-
-          logger.info(`Parsed ${segments.length} segments with ${speakerEmailMap.size} speaker email mappings`);
-        } else {
-          logger.info(`Parsed ${segments.length} segments from full_transcript (no email mapping available)`);
-        }
-        
-        return segments;
-      }
-      
-      // FALLBACK METHOD: Fetch from fathom_transcripts with pagination to handle 10K limit
-      logger.info("full_transcript not available, using paginated query fallback");
-      const segments = [];
-      let from = 0;
-      const batchSize = 1000;
-      let hasMore = true;
-
-      while (hasMore) {
-        const { data, error } = await supabase
-          .from("fathom_transcripts")
-          .select("*")
-          .eq("recording_id", call.recording_id)
-          .order("timestamp")
-          .range(from, from + batchSize - 1);
-
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          segments.push(...data);
-          from += batchSize;
-          hasMore = data.length === batchSize;
-        } else {
-          hasMore = false;
-        }
-      }
-
-      logger.info(`Fetched ${segments.length} segments via pagination`);
-      return segments;
-    },
-    enabled: open && !!call,
-    refetchOnMount: "always",
-    staleTime: 0,
-  });
-  
-  // Process transcripts to use edited values when available and filter deleted
-  const transcripts = allTranscripts?.filter((t: any) => !t.is_deleted).map((t: any) => ({
-    ...t,
-    display_text: t.edited_text || t.text,
-    display_speaker_name: t.edited_speaker_name || t.speaker_name,
-    display_speaker_email: t.edited_speaker_email || t.speaker_email,
-    has_edits: !!(t.edited_text || t.edited_speaker_name)
-  }));
-
-  const editedCount = allTranscripts?.filter((t: any) => t.edited_text || t.edited_speaker_name).length || 0;
-  const deletedCount = allTranscripts?.filter((t: any) => t.is_deleted).length || 0;
-  const _hasTranscriptChanges = editedCount > 0 || deletedCount > 0;
-
-  // Calculate character and token counts for the entire transcript
-  const transcriptStats = useMemo(() => {
-    if (!transcripts || transcripts.length === 0) {
-      return { characters: 0, tokens: 0, words: 0 };
-    }
-
-    // Build the full transcript text (grouped by speaker)
-    const groups = groupTranscriptsBySpeaker(transcripts);
-    let fullText = "";
-
-    groups.forEach(group => {
-      fullText += `${group.speaker}:\n`;
-      group.messages.forEach(msg => {
-        fullText += `${msg.text}\n`;
-      });
-      fullText += "\n";
-    });
-
-    const characters = fullText.length;
-    const words = fullText.trim().split(/\s+/).length;
-    // Token estimation: ~4 characters per token (common approximation for GPT models)
-    const tokens = Math.ceil(characters / 4);
-
-    return { characters, tokens, words };
-  }, [transcripts]);
-
-  // Fetch categories for this call
-  const { data: callCategories } = useQuery({
-    queryKey: ["call-categories", call?.recording_id],
-    queryFn: async () => {
-      if (!call) return [];
-      const { data, error } = await supabase
-        .from("call_category_assignments")
-        .select(`
-          category_id,
-          call_categories (
-            id,
-            name,
-            icon
-          )
-        `)
-        .eq("call_recording_id", call.recording_id);
-      if (error) throw error;
-      return data?.map(d => d.call_categories).filter(Boolean) || [];
-    },
-    enabled: open && !!call,
-  });
-
-  // Fetch tags for this call
-  const { data: _callTags } = useQuery({
-    queryKey: ["call-tags", call?.recording_id],
-    queryFn: async () => {
-      if (!call) return [];
-      const { data, error } = await supabase
-        .from("transcript_tag_assignments")
-        .select(`
-          tag_id,
-          transcript_tags (
-            id,
-            name,
-            color
-          )
-        `)
-        .eq("call_recording_id", call.recording_id);
-      if (error) throw error;
-      return data?.map(d => d.transcript_tags).filter(Boolean) || [];
-    },
-    enabled: open && !!call,
-  });
-
-  // Fetch unique speakers from transcripts and enrich with calendar invitee data
-  const { data: callSpeakers } = useQuery({
-    queryKey: ["call-speakers", call?.recording_id, call?.calendar_invitees],
-    queryFn: async () => {
-      if (!call) return [];
-      const { data: transcriptData, error } = await supabase
-        .from("fathom_transcripts")
-        .select("speaker_name, speaker_email")
-        .eq("recording_id", call.recording_id);
-      
-      if (error) throw error;
-      
-      // Get unique speakers with their emails from transcripts
-      const speakerMap = new Map();
-      transcriptData?.forEach((t) => {
-        if (!speakerMap.has(t.speaker_name)) {
-          speakerMap.set(t.speaker_name, t.speaker_email || null);
-        } else if (t.speaker_email && !speakerMap.get(t.speaker_name)) {
-          speakerMap.set(t.speaker_name, t.speaker_email);
-        }
-      });
-      
-      // Enrich with calendar invitee data if email is missing
-      const speakers = Array.from(speakerMap.entries()).map(([name, email]) => {
-        // If we don't have an email from transcript, try to match with calendar invitees
-        if (!email && call.calendar_invitees) {
-          const matchedInvitee = call.calendar_invitees.find((inv: any) => 
-            inv.matched_speaker_display_name === name || 
-            inv.name === name
-          );
-          if (matchedInvitee) {
-            email = matchedInvitee.email;
-          }
-        }
-        return {
-          speaker_name: name,
-          speaker_email: email
-        };
-      });
-      
-      return speakers;
-    },
-    enabled: open && !!call,
-  });
-
-  const updateCallMutation = useMutation({
-    mutationFn: async () => {
-      if (!call) return;
-      const { error } = await supabase
-        .from("fathom_calls")
-        .update({
-          title: editedTitle,
-          summary: editedSummary,
-          title_edited_by_user: editedTitle !== call.title,
-          summary_edited_by_user: editedSummary !== (call.summary || ""),
-        })
-        .eq("recording_id", call.recording_id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["calls-with-transcripts"] });
+  // Close editing mode when update succeeds
+  useEffect(() => {
+    if (updateCallMutation.isSuccess) {
       setIsEditing(false);
-      toast.success("Call updated successfully");
-      onDataChange?.();
-    },
-    onError: () => {
-      toast.error("Failed to update call");
-    },
-  });
+    }
+  }, [updateCallMutation.isSuccess]);
 
-  const handleSave = () => {
-    updateCallMutation.mutate();
-  };
-
-  // Transcript editing mutations
-  const editSegmentMutation = useMutation({
-    mutationFn: async ({ segmentId, text }: { segmentId: string; text: string }) => {
-      const { error } = await supabase
-        .from("fathom_transcripts")
-        .update({
-          edited_text: text,
-          edited_at: new Date().toISOString(),
-          edited_by: user?.id
-        })
-        .eq("id", segmentId);
-      if (error) throw error;
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      await queryClient.refetchQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      toast.success("Transcript segment updated");
+  // Close editing segment when update succeeds
+  useEffect(() => {
+    if (editSegmentMutation.isSuccess) {
       setEditingSegmentId(null);
-    },
-    onError: () => {
-      toast.error("Failed to update segment");
     }
-  });
+  }, [editSegmentMutation.isSuccess]);
 
-  const changeSpeakerMutation = useMutation({
-    mutationFn: async ({ segmentId, name, email }: { segmentId: string; name: string; email?: string }) => {
-      const { error } = await supabase
-        .from("fathom_transcripts")
-        .update({
-          edited_speaker_name: name,
-          edited_speaker_email: email || null,
-          edited_at: new Date().toISOString(),
-          edited_by: user?.id
-        })
-        .eq("id", segmentId);
-      if (error) throw error;
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      await queryClient.refetchQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      toast.success("Speaker changed");
-    },
-    onError: () => {
-      toast.error("Failed to change speaker");
-    }
-  });
-
-  const trimSegmentMutation = useMutation({
-    mutationFn: async ({ segmentIds }: { segmentIds: string[] }) => {
-      const { error } = await supabase
-        .from("fathom_transcripts")
-        .update({
-          is_deleted: true,
-          edited_at: new Date().toISOString(),
-          edited_by: user?.id
-        })
-        .in("id", segmentIds);
-      if (error) throw error;
-      
-      // Add small delay to ensure database commits
-      await new Promise(resolve => setTimeout(resolve, 100));
-    },
-    onSuccess: async () => {
-      // Force complete cache reset for aggressive refresh
-      await queryClient.resetQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      
-      // Wait a bit more to ensure UI updates
-      await new Promise(resolve => setTimeout(resolve, 150));
-      
-      toast.success("Section(s) trimmed");
-      setTrimDialog({ open: false, type: "this", segmentId: null });
-    },
-    onError: () => {
-      toast.error("Failed to trim section");
+  // Close trim dialog when update succeeds
+  useEffect(() => {
+    if (trimSegmentMutation.isSuccess) {
       setTrimDialog({ open: false, type: "this", segmentId: null });
     }
-  });
+  }, [trimSegmentMutation.isSuccess]);
 
-  const revertSegmentMutation = useMutation({
-    mutationFn: async ({ segmentId }: { segmentId: string }) => {
-      const { error } = await supabase
-        .from("fathom_transcripts")
-        .update({
-          edited_text: null,
-          edited_speaker_name: null,
-          edited_speaker_email: null,
-          edited_at: null,
-          edited_by: null
-        })
-        .eq("id", segmentId);
-      if (error) throw error;
-    },
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      await queryClient.refetchQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      toast.success("Changes reverted");
-    },
-    onError: () => {
-      toast.error("Failed to revert changes");
-    }
-  });
-
-  const resyncCallMutation = useMutation({
-    mutationFn: async () => {
-      // Fetch fresh meeting data from Fathom
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!authData?.user) {
-        throw new Error("Not authenticated");
-      }
-
-      const { data: meetingData, error: fetchError } = await supabase.functions.invoke('fetch-single-meeting', {
-        body: { recording_id: call.recording_id, user_id: authData.user.id }
-      });
-      if (fetchError) throw fetchError;
-      if (!meetingData?.meeting) throw new Error("No meeting data received");
-
-      const meeting = meetingData.meeting;
-
-      // Delete all existing transcripts for this recording
-      const { error: deleteError } = await supabase
-        .from('fathom_transcripts')
-        .delete()
-        .eq('recording_id', call.recording_id);
-      
-      if (deleteError) throw deleteError;
-
-      // Insert fresh transcripts from Fathom
-      if (meeting.transcript && meeting.transcript.length > 0) {
-        const transcripts = meeting.transcript.map((t: any) => ({
-          recording_id: call.recording_id,
-          speaker_name: t.speaker.display_name,
-          speaker_email: t.speaker.matched_calendar_invitee_email || null,
-          text: t.text,
-          timestamp: t.timestamp,
-        }));
-
-        const { error: insertError } = await supabase
-          .from('fathom_transcripts')
-          .insert(transcripts);
-        
-        if (insertError) throw insertError;
-      }
-
-      // Update call metadata if not user-edited
-      const updateData: any = {
-        synced_at: new Date().toISOString(),
-        calendar_invitees: meeting.calendar_invitees || null,
-      };
-
-      // Only update title/summary if they haven't been manually edited
-      if (!call.title_edited_by_user && meeting.title) {
-        updateData.title = meeting.title;
-      }
-      if (!call.summary_edited_by_user && meeting.default_summary?.markdown_formatted) {
-        updateData.summary = meeting.default_summary.markdown_formatted;
-      }
-
-      const { error: updateError } = await supabase
-        .from('fathom_calls')
-        .update(updateData)
-        .eq('recording_id', call.recording_id);
-      
-      if (updateError) throw updateError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["call-transcripts", call?.recording_id] });
-      queryClient.invalidateQueries({ queryKey: ["calls-with-transcripts"] });
-      toast.success("Call resynced from Fathom");
+  // Close resync dialog when update succeeds
+  useEffect(() => {
+    if (resyncCallMutation.isSuccess) {
       setResyncDialog(false);
-    },
-    onError: (error: any) => {
-      logger.error("Resync error", error);
-      toast.error("Failed to resync call: " + (error.message || "Unknown error"));
     }
-  });
+  }, [resyncCallMutation.isSuccess]);
 
-  const handleConfirmTrim = () => {
-    if (!trimDialog.segmentId || !transcripts) return;
-
-    logger.info("Trim dialog", trimDialog);
-    logger.info("Visible transcripts count", transcripts?.length);
-    logger.info("All transcripts count", allTranscripts?.length);
-
-    if (trimDialog.type === "this") {
-      trimSegmentMutation.mutate({ segmentIds: [trimDialog.segmentId] });
-    } else {
-      // Find the index in VISIBLE transcripts (excluding deleted)
-      const segmentIndex = transcripts.findIndex((t: any) => t.id === trimDialog.segmentId);
-      // Get all VISIBLE segments before it
-      const segmentIds = transcripts.slice(0, segmentIndex).map((t: any) => t.id);
-      logger.info("Trimming segments", segmentIds);
-      trimSegmentMutation.mutate({ segmentIds });
-    }
-    setTrimDialog({ open: false, type: "this", segmentId: null });
-  };
-
+  // Debug logging for missing data
   const duration = call?.recording_start_time && call?.recording_end_time
     ? Math.round((new Date(call.recording_end_time).getTime() - new Date(call.recording_start_time).getTime()) / 1000 / 60)
     : null;
 
-  // Debug logging for missing data
   useEffect(() => {
     if (open && call) {
       logger.info('CallDetailDialog - Call data', {
@@ -592,6 +172,35 @@ export function CallDetailDialog({
     duration,
     includeTimestamps
   });
+
+  // Handlers
+  const handleSave = () => {
+    updateCallMutation.mutate({
+      title: editedTitle,
+      summary: editedSummary,
+      originalTitle: call?.title || "",
+      originalSummary: call?.summary || null,
+    });
+  };
+
+  const handleConfirmTrim = () => {
+    if (!trimDialog.segmentId || !transcripts) return;
+
+    logger.info("Trim dialog", trimDialog);
+    logger.info("Visible transcripts count", transcripts?.length);
+    logger.info("All transcripts count", allTranscripts?.length);
+
+    if (trimDialog.type === "this") {
+      trimSegmentMutation.mutate({ segmentIds: [trimDialog.segmentId] });
+    } else {
+      // Find the index in VISIBLE transcripts (excluding deleted)
+      const segmentIndex = transcripts.findIndex((t: any) => t.id === trimDialog.segmentId);
+      // Get all VISIBLE segments before it
+      const segmentIds = transcripts.slice(0, segmentIndex).map((t: any) => t.id);
+      logger.info("Trimming segments", segmentIds);
+      trimSegmentMutation.mutate({ segmentIds });
+    }
+  };
 
   // Wrap all handlers in useCallback for performance optimization
   const handleResyncCall = useCallback(() => {
