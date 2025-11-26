@@ -18,7 +18,7 @@ export function ChangeSpeakerDialog({
   open,
   onOpenChange,
   currentSpeaker,
-  currentEmail,
+  currentEmail: _currentEmail,
   availableSpeakers,
   onSave,
 }: ChangeSpeakerDialogProps) {

@@ -27,8 +27,8 @@ export function UnsyncedMeetingsSection({
   syncing,
   categories,
   hostEmail,
-  syncingMeetings,
-  loadingUnsyncedMeeting,
+  syncingMeetings: _syncingMeetings,
+  loadingUnsyncedMeeting: _loadingUnsyncedMeeting,
   onSelectCall,
   onSelectAll,
   onSync,
@@ -112,8 +112,6 @@ export function UnsyncedMeetingsSection({
         onDirectCategorize={onDirectCategorize}
         onCustomDownload={(callId, title) => onDownload(String(callId), title)}
         isUnsyncedView={true}
-        syncingMeetings={syncingMeetings}
-        loadingMeeting={loadingUnsyncedMeeting}
         onPageChange={() => {}}
         onPageSizeChange={() => {}}
       />

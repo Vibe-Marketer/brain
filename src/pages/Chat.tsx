@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { RiSendPlaneFill, RiFilterLine, RiCalendarLine, RiUser3Line, RiFolder3Line, RiCloseLine, RiAddLine } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
@@ -192,29 +192,35 @@ export default function Chat() {
     loadSessionMessages();
   }, [sessionId, fetchMessages, setMessages]);
 
+  // Create a new session with current filters (shared logic)
+  const createNewSession = React.useCallback(async () => {
+    const newSession = await createSession({
+      filter_date_start: filters.dateStart,
+      filter_date_end: filters.dateEnd,
+      filter_speakers: filters.speakers,
+      filter_categories: filters.categories,
+      filter_recording_ids: filters.recordingIds,
+    });
+    return newSession;
+  }, [createSession, filters]);
+
   // Handle new chat creation
-  const handleNewChat = async () => {
+  const handleNewChat = React.useCallback(async () => {
     try {
-      const newSession = await createSession({
-        filter_date_start: filters.dateStart,
-        filter_date_end: filters.dateEnd,
-        filter_speakers: filters.speakers,
-        filter_categories: filters.categories,
-        filter_recording_ids: filters.recordingIds,
-      });
+      const newSession = await createNewSession();
       navigate(`/chat/${newSession.id}`);
     } catch (err) {
       console.error('Failed to create session:', err);
     }
-  };
+  }, [createNewSession, navigate]);
 
   // Handle session selection
-  const handleSessionSelect = (selectedSessionId: string) => {
+  const handleSessionSelect = React.useCallback((selectedSessionId: string) => {
     navigate(`/chat/${selectedSessionId}`);
-  };
+  }, [navigate]);
 
   // Handle session deletion
-  const handleDeleteSession = async (sessionIdToDelete: string) => {
+  const handleDeleteSession = React.useCallback(async (sessionIdToDelete: string) => {
     try {
       await deleteSession(sessionIdToDelete);
       if (sessionIdToDelete === currentSessionId) {
@@ -223,38 +229,32 @@ export default function Chat() {
     } catch (err) {
       console.error('Failed to delete session:', err);
     }
-  };
+  }, [deleteSession, currentSessionId, navigate]);
 
   // Handle toggle pin
-  const handleTogglePin = async (sessionId: string, isPinned: boolean) => {
+  const handleTogglePin = React.useCallback(async (sessionId: string, isPinned: boolean) => {
     try {
       await togglePin({ sessionId, isPinned });
     } catch (err) {
       console.error('Failed to toggle pin:', err);
     }
-  };
+  }, [togglePin]);
 
   // Handle toggle archive
-  const handleToggleArchive = async (sessionId: string, isArchived: boolean) => {
+  const handleToggleArchive = React.useCallback(async (sessionId: string, isArchived: boolean) => {
     try {
       await toggleArchive({ sessionId, isArchived });
     } catch (err) {
       console.error('Failed to toggle archive:', err);
     }
-  };
+  }, [toggleArchive]);
 
   // Save user message to database after submission
-  const handleChatSubmit = async (e?: React.FormEvent) => {
+  const handleChatSubmit = React.useCallback(async (e?: React.FormEvent) => {
     // Create session if it doesn't exist
     if (!currentSessionId && session?.user?.id) {
       try {
-        const newSession = await createSession({
-          filter_date_start: filters.dateStart,
-          filter_date_end: filters.dateEnd,
-          filter_speakers: filters.speakers,
-          filter_categories: filters.categories,
-          filter_recording_ids: filters.recordingIds,
-        });
+        const newSession = await createNewSession();
         setCurrentSessionId(newSession.id);
         navigate(`/chat/${newSession.id}`, { replace: true });
       } catch (err) {
@@ -265,35 +265,35 @@ export default function Chat() {
 
     // Call the original handleSubmit
     handleSubmit(e);
-  };
+  }, [currentSessionId, session?.user?.id, createNewSession, navigate, handleSubmit]);
 
   const hasActiveFilters = filters.dateStart || filters.dateEnd || filters.speakers.length > 0 || filters.categories.length > 0;
 
-  const clearFilters = () => {
+  const clearFilters = React.useCallback(() => {
     setFilters({
       speakers: [],
       categories: [],
       recordingIds: [],
     });
-  };
+  }, []);
 
-  const toggleSpeaker = (speaker: string) => {
+  const toggleSpeaker = React.useCallback((speaker: string) => {
     setFilters(prev => ({
       ...prev,
       speakers: prev.speakers.includes(speaker)
         ? prev.speakers.filter(s => s !== speaker)
         : [...prev.speakers, speaker],
     }));
-  };
+  }, []);
 
-  const toggleCategory = (category: string) => {
+  const toggleCategory = React.useCallback((category: string) => {
     setFilters(prev => ({
       ...prev,
       categories: prev.categories.includes(category)
         ? prev.categories.filter(c => c !== category)
         : [...prev.categories, category],
     }));
-  };
+  }, []);
 
   return (
     <div className="flex h-[calc(100vh-52px)] bg-viewport">

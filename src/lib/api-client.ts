@@ -7,17 +7,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { retryWithBackoff, getErrorMessage } from "./fathom";
 import { logger } from "./logger";
 
-export interface ApiResponse<T = any> {
+// API Response types
+export interface ApiError {
+  message: string;
+  code?: string;
+  status?: number;
+}
+
+export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
+}
+
+// YouTube thumbnail type
+export interface YouTubeThumbnails {
+  default?: { url: string; width: number; height: number };
+  medium?: { url: string; width: number; height: number };
+  high?: { url: string; width: number; height: number };
+  standard?: { url: string; width: number; height: number };
+  maxres?: { url: string; width: number; height: number };
 }
 
 /**
  * Call a backend edge function with automatic retry and error handling
  */
-export async function callEdgeFunction<T = any>(
+export async function callEdgeFunction<T = unknown>(
   functionName: string,
-  body?: any,
+  body?: Record<string, unknown>,
   options: { retry?: boolean; maxRetries?: number } = {}
 ): Promise<ApiResponse<T>> {
   const { retry = true, maxRetries = 3 } = options;
@@ -182,6 +198,28 @@ export async function getCredentials() {
 // AI CHAT & RAG FUNCTIONS
 // =============================================
 
+/**
+ * Diversity Filter Utility
+ * Location: supabase/functions/_shared/diversity-filter.ts
+ *
+ * Purpose: Filters search results to ensure diversity across recordings and semantic topics
+ *
+ * Typical RAG Flow:
+ *   hybrid_search_transcripts (20 results)
+ *     → rerank-results (top 10 by relevance)
+ *     → diversity_filter (top 5 diverse results)
+ *     → LLM context
+ *
+ * Functions:
+ *   - diversityFilter() - Full filtering with semantic similarity checking
+ *   - simpleDiversityFilter() - Recording-based filtering only (no embeddings)
+ *
+ * Options:
+ *   - maxPerRecording: Max chunks from same recording (default: 2)
+ *   - minSemanticDistance: Min cosine distance between chunks (default: 0.3)
+ *   - targetCount: Target number of diverse results (default: 5)
+ */
+
 export interface EmbedChunksResponse {
   success: boolean;
   job_id: string;
@@ -231,6 +269,56 @@ export async function generateAiTitles(recordingIds: number[]) {
   return callEdgeFunction('generate-ai-titles', { recordingIds }, { retry: false });
 }
 
+/**
+ * Enrich transcript chunks with metadata
+ * Extracts topics, sentiment, entities, and intent signals using GPT-4o-mini
+ * Can process specific chunks, recordings, or auto-discover chunks without metadata
+ */
+export async function enrichChunkMetadata(params: {
+  chunk_ids?: string[];
+  recording_ids?: number[];
+  auto_discover?: boolean;
+}) {
+  return callEdgeFunction('enrich-chunk-metadata', params, { retry: false });
+}
+
+/**
+ * Re-rank search results using cross-encoder model
+ * Uses HuggingFace cross-encoder/ms-marco-MiniLM-L-12-v2 for accurate query-document relevance scoring
+ * Takes hybrid search candidates and returns top-k most relevant chunks
+ */
+export interface RerankChunkCandidate {
+  chunk_id: string;
+  chunk_text: string;
+  recording_id: number;
+  speaker_name?: string;
+  call_title?: string;
+  rrf_score: number;  // Original hybrid search score
+}
+
+export interface RerankResult extends RerankChunkCandidate {
+  rerank_score: number;
+  final_rank: number;
+}
+
+export interface RerankResponse {
+  success: boolean;
+  query: string;
+  model: string;
+  total_candidates: number;
+  returned: number;
+  results: RerankResult[];
+}
+
+export async function rerankResults(params: {
+  query: string;
+  chunks: RerankChunkCandidate[];
+  top_k?: number;
+  batch_size?: number;
+}): Promise<ApiResponse<RerankResponse>> {
+  return callEdgeFunction<RerankResponse>('rerank-results', params, { retry: false });
+}
+
 // =============================================
 // YOUTUBE API FUNCTIONS
 // =============================================
@@ -242,7 +330,7 @@ export interface YouTubeVideo {
   channelId: string;
   channelTitle: string;
   publishedAt: string;
-  thumbnails: any;
+  thumbnails: YouTubeThumbnails;
 }
 
 export interface YouTubeSearchResult {

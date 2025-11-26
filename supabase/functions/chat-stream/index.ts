@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@2.0.72';
-import { streamText, tool } from 'https://esm.sh/ai@6.0.0-beta.114';
-import { z } from 'https://esm.sh/zod@3.25.76';
+import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1.0.0';
+import { streamText, tool } from 'https://esm.sh/ai@3.4.33';
+import { z } from 'https://esm.sh/zod@3.23.8';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -290,7 +290,7 @@ ${filterContext}
 Important: Only access transcripts belonging to the current user. Never fabricate information - if you can't find relevant data, say so.`;
 
     // Create streaming response
-    const result = streamText({
+    const result = await streamText({
       model: openai('gpt-4o'),
       system: systemPrompt,
       messages: messages.map(m => ({
@@ -302,19 +302,12 @@ Important: Only access transcripts belonging to the current user. Never fabricat
         getCallDetails: getCallDetailsTool,
         summarizeCalls: summarizeCallsTool,
       },
-      maxSteps: 5, // Allow up to 5 tool calls
+      maxToolRoundtrips: 5, // v3.x uses maxToolRoundtrips instead of maxSteps
     });
 
-    // Return streaming response with proper headers
-    const stream = result.toDataStream();
-
-    return new Response(stream, {
-      headers: {
-        ...corsHeaders,
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
+    // Return streaming response with proper headers for v3.x
+    return result.toAIStreamResponse({
+      headers: corsHeaders,
     });
 
   } catch (error) {

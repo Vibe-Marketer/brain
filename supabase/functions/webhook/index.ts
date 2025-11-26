@@ -5,26 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, webhook-id, webhook-signature',
 };
 
-async function autoCategorizeCall(supabase: any, recordingId: number, meeting: any) {
-  // Auto-categorization removed - categories are now manually assigned
-  return;
-}
-
-async function createContactsFromWebhook(supabase: any, userId: string, meeting: any) {
-  // DISABLED: This function previously wrote to deleted tables 'contacts' and 'contact_call_associations'
-  // These tables no longer exist in the database schema
-  // Keeping function stub to avoid breaking references, but all operations are commented out
-
-  // The following code has been removed to prevent orphan data creation:
-  // - Extraction of contacts from calendar_invitees and recorded_by
-  // - Upsert to 'contacts' table (table deleted)
-  // - Upsert to 'contact_call_associations' table (table deleted)
-  // - Invocation of 'update-contact-metrics' edge function (function deleted)
-
-  console.log(`[DISABLED] createContactsFromWebhook called for meeting ${meeting.recording_id} - skipping (tables deleted)`);
-  return;
-}
-
 async function verifyWebhookSignature(
   secret: string,
   headers: Headers,
@@ -235,9 +215,6 @@ async function processMeetingWebhook(meeting: any, supabase: any) {
 
       console.log(`✅ Successfully inserted ${transcriptRows.length} transcript segments into database`);
     }
-
-    // Auto-create contacts from this webhook
-    await createContactsFromWebhook(supabase, userId, meeting);
 
     console.log(`Successfully processed webhook for meeting: ${meeting.recording_id}`);
   } catch (error) {

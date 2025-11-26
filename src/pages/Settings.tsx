@@ -8,6 +8,7 @@ import BillingTab from "@/components/settings/BillingTab";
 import IntegrationsTab from "@/components/settings/IntegrationsTab";
 import UsersTab from "@/components/settings/UsersTab";
 import AdminTab from "@/components/settings/AdminTab";
+import AITab from "@/components/settings/AITab";
 import FathomSetupWizard from "@/components/settings/FathomSetupWizard";
 
 export default function Settings() {
@@ -53,6 +54,7 @@ export default function Settings() {
             )}
             <TabsTrigger value="billing">BILLING</TabsTrigger>
             <TabsTrigger value="integrations">INTEGRATIONS</TabsTrigger>
+            <TabsTrigger value="ai">AI</TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="admin">ADMIN</TabsTrigger>
             )}
@@ -96,6 +98,11 @@ export default function Settings() {
           {/* INTEGRATIONS TAB */}
           <TabsContent value="integrations" className="space-y-0">
             <IntegrationsTab />
+          </TabsContent>
+
+          {/* AI TAB */}
+          <TabsContent value="ai" className="space-y-0">
+            <AITab />
           </TabsContent>
 
           {/* ADMIN TAB (ADMIN only) */}

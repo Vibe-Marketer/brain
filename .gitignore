@@ -44,3 +44,4 @@ migration-export-*.json
 .vercel
 PROJECT_INDEX.md
 PROJECT_INDEX.json
+test-results/

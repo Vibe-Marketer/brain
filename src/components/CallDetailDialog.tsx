@@ -4,34 +4,14 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { RiSaveLine, RiCloseLine, RiDownloadLine, RiRefreshLine, RiErrorWarningLine, RiVidiconLine, RiFileCopyLine, RiEditLine } from "@remixicon/react";
 import { useAuth } from "@/contexts/AuthContext";
-import ReactMarkdown from "react-markdown";
-import { jsPDF } from "jspdf";
-import { Document, Packer, Paragraph, TextRun } from "docx";
-import { saveAs } from "file-saver";
-import { TranscriptSegmentContextMenu } from "@/components/transcript-library/TranscriptSegmentContextMenu";
 import { ChangeSpeakerDialog } from "@/components/transcript-library/ChangeSpeakerDialog";
 import { TrimConfirmDialog } from "@/components/transcript-library/TrimConfirmDialog";
 import { ResyncConfirmDialog } from "@/components/transcript-library/ResyncConfirmDialog";
-import { groupTranscriptsBySpeaker, formatSimpleTimestamp } from "@/lib/transcriptUtils";
+import { groupTranscriptsBySpeaker } from "@/lib/transcriptUtils";
 import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
@@ -103,7 +83,7 @@ export function CallDetailDialog({
     enabled: open && !!user,
   });
 
-  const isHostedByUser = userSettings?.host_email && call?.recorded_by_email && 
+  const _isHostedByUser = userSettings?.host_email && call?.recorded_by_email &&
     userSettings.host_email.toLowerCase() === call.recorded_by_email.toLowerCase();
 
   useEffect(() => {
@@ -242,7 +222,7 @@ export function CallDetailDialog({
 
   const editedCount = allTranscripts?.filter((t: any) => t.edited_text || t.edited_speaker_name).length || 0;
   const deletedCount = allTranscripts?.filter((t: any) => t.is_deleted).length || 0;
-  const hasTranscriptChanges = editedCount > 0 || deletedCount > 0;
+  const _hasTranscriptChanges = editedCount > 0 || deletedCount > 0;
 
   // Calculate character and token counts for the entire transcript
   const transcriptStats = useMemo(() => {
@@ -293,7 +273,7 @@ export function CallDetailDialog({
   });
 
   // Fetch tags for this call
-  const { data: callTags } = useQuery({
+  const { data: _callTags } = useQuery({
     queryKey: ["call-tags", call?.recording_id],
     queryFn: async () => {
       if (!call) return [];

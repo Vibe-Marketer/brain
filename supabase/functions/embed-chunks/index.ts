@@ -1,9 +1,14 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { get_encoding } from 'https://esm.sh/tiktoken@1.0.12';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
+
+// Initialize tiktoken encoder for accurate token counting
+// Using cl100k_base encoding for OpenAI text-embedding-3-small model
+const encoder = get_encoding('cl100k_base');
 
 interface TranscriptSegment {
   id: string;
@@ -37,10 +42,12 @@ interface TranscriptChunk {
   embedded_at: string;
 }
 
-// Chunk transcripts into ~500 token segments with speaker awareness
+// Chunk transcripts into ~400 token segments with 20% overlap (100 tokens)
+// Total chunk size with overlap: ~500 tokens
 function chunkTranscript(
   segments: TranscriptSegment[],
-  maxTokens: number = 500
+  maxTokens: number = 400,
+  overlapTokens: number = 100
 ): Array<{
   text: string;
   speakers: Set<string>;
@@ -62,16 +69,34 @@ function chunkTranscript(
   };
   let currentTokens = 0;
 
+  // Buffer to store segments for overlap (last ~100 tokens worth)
+  interface SegmentWithTokens {
+    segment: TranscriptSegment;
+    formattedText: string;
+    tokens: number;
+  }
+  let overlapBuffer: SegmentWithTokens[] = [];
+  let overlapBufferTokens = 0;
+
   for (const segment of segments) {
     const segmentText = segment.text.trim();
     if (!segmentText) continue;
 
-    // Rough token estimation: ~4 chars per token
-    const segmentTokens = Math.ceil(segmentText.length / 4);
+    // Accurate token counting using tiktoken (cl100k_base encoding)
+    const speakerPrefix = segment.speaker_name ? `${segment.speaker_name}: ` : '';
+    const fullSegmentText = speakerPrefix + segmentText;
+    const tokens = encoder.encode(fullSegmentText);
+    const segmentTokens = tokens.length;
 
     // If adding this segment would exceed the limit, save current chunk and start new one
     if (currentTokens + segmentTokens > maxTokens && currentChunk.text.length > 0) {
       chunks.push({ ...currentChunk, speakers: new Set(currentChunk.speakers) });
+
+      // Log the completed chunk token count for debugging
+      const chunkTokens = encoder.encode(currentChunk.text);
+      console.log(`Chunk ${chunks.length - 1}: ${chunkTokens.length} tokens, ${currentChunk.text.length} chars`);
+
+      // Start new chunk with overlap from previous chunk
       currentChunk = {
         text: '',
         speakers: new Set<string>(),
@@ -79,10 +104,26 @@ function chunkTranscript(
         endTimestamp: null,
       };
       currentTokens = 0;
+
+      // Add overlap buffer to new chunk
+      for (const bufferedItem of overlapBuffer) {
+        const bufferedSegment = bufferedItem.segment;
+
+        currentChunk.text += (currentChunk.text ? '\n' : '') + bufferedItem.formattedText;
+
+        if (bufferedSegment.speaker_name) {
+          currentChunk.speakers.add(bufferedSegment.speaker_name);
+        }
+
+        if (!currentChunk.startTimestamp && bufferedSegment.timestamp) {
+          currentChunk.startTimestamp = bufferedSegment.timestamp;
+        }
+        currentChunk.endTimestamp = bufferedSegment.timestamp;
+        currentTokens += bufferedItem.tokens;
+      }
     }
 
     // Add speaker prefix for context
-    const speakerPrefix = segment.speaker_name ? `${segment.speaker_name}: ` : '';
     currentChunk.text += (currentChunk.text ? '\n' : '') + speakerPrefix + segmentText;
 
     if (segment.speaker_name) {
@@ -94,11 +135,29 @@ function chunkTranscript(
     }
     currentChunk.endTimestamp = segment.timestamp;
     currentTokens += segmentTokens;
+
+    // Update overlap buffer - keep last ~100 tokens worth of segments
+    overlapBuffer.push({
+      segment,
+      formattedText: fullSegmentText,
+      tokens: segmentTokens,
+    });
+    overlapBufferTokens += segmentTokens;
+
+    // Remove oldest segments from buffer if we exceed overlap token limit
+    while (overlapBufferTokens > overlapTokens && overlapBuffer.length > 1) {
+      const removed = overlapBuffer.shift()!;
+      overlapBufferTokens -= removed.tokens;
+    }
   }
 
   // Don't forget the last chunk
   if (currentChunk.text.length > 0) {
     chunks.push(currentChunk);
+
+    // Log the final chunk token count for debugging
+    const chunkTokens = encoder.encode(currentChunk.text);
+    console.log(`Chunk ${chunks.length - 1} (final): ${chunkTokens.length} tokens, ${currentChunk.text.length} chars`);
   }
 
   return chunks;
@@ -303,8 +362,8 @@ Deno.serve(async (req) => {
 
         const categoryName = categoryAssignment?.call_categories?.name || null;
 
-        // Chunk the transcript
-        const chunks = chunkTranscript(segments, 500);
+        // Chunk the transcript with 400 token chunks + 100 token overlap
+        const chunks = chunkTranscript(segments, 400, 100);
         console.log(`Created ${chunks.length} chunks for recording ${recordingId}`);
 
         if (chunks.length === 0) continue;
@@ -357,9 +416,10 @@ Deno.serve(async (req) => {
           .eq('user_id', user.id);
 
         // Insert all chunks
-        const { error: insertError } = await supabase
+        const { data: insertedChunks, error: insertError } = await supabase
           .from('transcript_chunks')
-          .insert(allChunksToInsert);
+          .insert(allChunksToInsert)
+          .select('id');
 
         if (insertError) {
           console.error(`Error inserting chunks for ${recordingId}:`, insertError);
@@ -369,6 +429,25 @@ Deno.serve(async (req) => {
 
         totalChunksCreated += allChunksToInsert.length;
         console.log(`Inserted ${allChunksToInsert.length} chunks for recording ${recordingId}`);
+
+        // Enrich chunk metadata asynchronously (fire-and-forget)
+        // Don't await - we don't want to block the embedding response
+        if (insertedChunks && insertedChunks.length > 0) {
+          const insertedChunkIds = insertedChunks.map(c => c.id);
+          console.log(`Triggering metadata enrichment for ${insertedChunkIds.length} chunks`);
+
+          supabase.functions.invoke('enrich-chunk-metadata', {
+            body: { chunk_ids: insertedChunkIds },
+          }).then(({ data, error }) => {
+            if (error) {
+              console.error(`Metadata enrichment failed for recording ${recordingId}:`, error);
+            } else {
+              console.log(`Metadata enrichment completed for recording ${recordingId}:`, data);
+            }
+          }).catch((err) => {
+            console.error(`Metadata enrichment call failed for recording ${recordingId}:`, err);
+          });
+        }
 
         // Update job progress
         await supabase

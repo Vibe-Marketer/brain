@@ -40,6 +40,14 @@ export function CodeBlockCode({
   const [html, setHtml] = React.useState<string>('');
   const [copied, setCopied] = React.useState(false);
 
+  // Escape HTML entities to prevent XSS
+  const escapeHtml = (str: string) =>
+    str.replace(/&/g, '&amp;')
+       .replace(/</g, '&lt;')
+       .replace(/>/g, '&gt;')
+       .replace(/"/g, '&quot;')
+       .replace(/'/g, '&#039;');
+
   React.useEffect(() => {
     let mounted = true;
 
@@ -51,9 +59,9 @@ export function CodeBlockCode({
         setHtml(result);
       }
     }).catch(() => {
-      // Fallback to plain code if shiki fails
+      // Fallback to plain code if shiki fails (sanitized to prevent XSS)
       if (mounted) {
-        setHtml(`<pre><code>${code}</code></pre>`);
+        setHtml(`<pre><code>${escapeHtml(code)}</code></pre>`);
       }
     });
 

@@ -55,11 +55,11 @@ export const TranscriptTable = React.memo(({
   onPageChange,
   onPageSizeChange,
   isUnsyncedView = false,
-  syncingMeetings,
-  loadingMeeting,
+  syncingMeetings: _syncingMeetings,
+  loadingMeeting: _loadingMeeting,
   onCustomDownload,
 }: TranscriptTableProps) => {
-  const { sortField, sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
+  const { sortField, sortDirection: _sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
 
   const SortButton = ({ field, children }: { field: any; children: React.ReactNode }) => (
     <button

@@ -49,6 +49,139 @@ interface ChatSidebarProps {
   onToggleArchive: (sessionId: string, isArchived: boolean) => void;
 }
 
+// Helper functions extracted outside component for better performance
+const formatSessionDate = (dateString: string | null): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffInDays === 0) return 'Today';
+  if (diffInDays === 1) return 'Yesterday';
+  if (diffInDays < 7) return `${diffInDays} days ago`;
+  return format(date, 'MMM d');
+};
+
+const getSessionTitle = (session: ChatSession): string => {
+  return session.title || 'New conversation';
+};
+
+// Extracted SessionItem component with React.memo for performance
+interface SessionItemProps {
+  session: ChatSession;
+  isActive: boolean;
+  onSelect: (sessionId: string) => void;
+  onTogglePin: (sessionId: string, isPinned: boolean) => void;
+  onToggleArchive: (sessionId: string, isArchived: boolean) => void;
+  onDelete: (sessionId: string) => void;
+}
+
+const SessionItem = React.memo(function SessionItem({
+  session,
+  isActive,
+  onSelect,
+  onTogglePin,
+  onToggleArchive,
+  onDelete,
+}: SessionItemProps) {
+  return (
+    <div
+      className={`group relative flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors cursor-pointer ${
+        isActive
+          ? 'bg-cb-vibe-green/10 border-l-[3px] border-cb-vibe-green pl-[9px]'
+          : 'hover:bg-cb-ink-subtle/5 border-l-[3px] border-transparent pl-[9px]'
+      }`}
+      onClick={() => onSelect(session.id)}
+    >
+      <RiChat3Line
+        className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
+          isActive ? 'text-cb-ink-primary' : 'text-cb-ink-muted'
+        }`}
+        aria-hidden="true"
+      />
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-start justify-between gap-2">
+          <h3
+            className={`text-sm font-medium truncate ${
+              isActive ? 'text-cb-ink-primary' : 'text-cb-ink-secondary'
+            }`}
+          >
+            {getSessionTitle(session)}
+          </h3>
+          {session.is_pinned && (
+            <RiPushpinFill className="h-3 w-3 text-cb-ink-muted flex-shrink-0" aria-label="Pinned" />
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-xs text-cb-ink-muted">
+            {session.message_count} {session.message_count === 1 ? 'message' : 'messages'}
+          </span>
+          <span className="text-xs text-cb-ink-muted">•</span>
+          <span className="text-xs text-cb-ink-muted">
+            {formatSessionDate(session.last_message_at || session.created_at)}
+          </span>
+        </div>
+      </div>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="hollow"
+            size="icon"
+            className="h-6 w-6 opacity-0 group-hover:opacity-100 flex-shrink-0"
+            onClick={(e) => e.stopPropagation()}
+            aria-label="Session options"
+          >
+            <RiMoreLine className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              onTogglePin(session.id, !session.is_pinned);
+            }}
+          >
+            {session.is_pinned ? (
+              <>
+                <RiPushpinLine className="h-4 w-4 mr-2" />
+                Unpin
+              </>
+            ) : (
+              <>
+                <RiPushpinFill className="h-4 w-4 mr-2" />
+                Pin
+              </>
+            )}
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleArchive(session.id, !session.is_archived);
+            }}
+          >
+            <RiArchiveLine className="h-4 w-4 mr-2" />
+            Archive
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(session.id);
+            }}
+            className="text-red-600 dark:text-red-400"
+          >
+            <RiDeleteBinLine className="h-4 w-4 mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+});
+
 export function ChatSidebar({
   sessions,
   activeSessionId,
@@ -61,140 +194,22 @@ export function ChatSidebar({
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [sessionToDelete, setSessionToDelete] = React.useState<string | null>(null);
 
-  // Separate pinned and unpinned sessions
-  const pinnedSessions = sessions.filter((s) => s.is_pinned);
-  const unpinnedSessions = sessions.filter((s) => !s.is_pinned);
+  // Memoize filtered sessions to prevent unnecessary recalculations
+  const pinnedSessions = React.useMemo(() => sessions.filter((s) => s.is_pinned), [sessions]);
+  const unpinnedSessions = React.useMemo(() => sessions.filter((s) => !s.is_pinned), [sessions]);
 
-  const handleDeleteClick = (sessionId: string) => {
+  const handleDeleteClick = React.useCallback((sessionId: string) => {
     setSessionToDelete(sessionId);
     setDeleteDialogOpen(true);
-  };
+  }, []);
 
-  const confirmDelete = () => {
+  const confirmDelete = React.useCallback(() => {
     if (sessionToDelete) {
       onDeleteSession(sessionToDelete);
       setSessionToDelete(null);
       setDeleteDialogOpen(false);
     }
-  };
-
-  const formatSessionDate = (dateString: string | null) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-    if (diffInDays === 0) return 'Today';
-    if (diffInDays === 1) return 'Yesterday';
-    if (diffInDays < 7) return `${diffInDays} days ago`;
-    return format(date, 'MMM d');
-  };
-
-  const getSessionTitle = (session: ChatSession) => {
-    if (session.title) return session.title;
-    return 'New conversation';
-  };
-
-  const SessionItem = ({ session }: { session: ChatSession }) => {
-    const isActive = session.id === activeSessionId;
-
-    return (
-      <div
-        className={`group relative flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors cursor-pointer ${
-          isActive
-            ? 'bg-cb-vibe-green/10 border-l-[3px] border-cb-vibe-green pl-[9px]'
-            : 'hover:bg-cb-ink-subtle/5 border-l-[3px] border-transparent pl-[9px]'
-        }`}
-        onClick={() => onSessionSelect(session.id)}
-      >
-        <RiChat3Line
-          className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
-            isActive ? 'text-cb-ink-primary' : 'text-cb-ink-muted'
-          }`}
-          aria-hidden="true"
-        />
-
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <h3
-              className={`text-sm font-medium truncate ${
-                isActive ? 'text-cb-ink-primary' : 'text-cb-ink-secondary'
-              }`}
-            >
-              {getSessionTitle(session)}
-            </h3>
-            {session.is_pinned && (
-              <RiPushpinFill className="h-3 w-3 text-cb-ink-muted flex-shrink-0" aria-label="Pinned" />
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-cb-ink-muted">
-              {session.message_count} {session.message_count === 1 ? 'message' : 'messages'}
-            </span>
-            <span className="text-xs text-cb-ink-muted">•</span>
-            <span className="text-xs text-cb-ink-muted">
-              {formatSessionDate(session.last_message_at || session.created_at)}
-            </span>
-          </div>
-        </div>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="hollow"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 flex-shrink-0"
-              onClick={(e) => e.stopPropagation()}
-              aria-label="Session options"
-            >
-              <RiMoreLine className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onTogglePin(session.id, !session.is_pinned);
-              }}
-            >
-              {session.is_pinned ? (
-                <>
-                  <RiPushpinLine className="h-4 w-4 mr-2" />
-                  Unpin
-                </>
-              ) : (
-                <>
-                  <RiPushpinFill className="h-4 w-4 mr-2" />
-                  Pin
-                </>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleArchive(session.id, !session.is_archived);
-              }}
-            >
-              <RiArchiveLine className="h-4 w-4 mr-2" />
-              Archive
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeleteClick(session.id);
-              }}
-              className="text-red-600 dark:text-red-400"
-            >
-              <RiDeleteBinLine className="h-4 w-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    );
-  };
+  }, [sessionToDelete, onDeleteSession]);
 
   return (
     <>
@@ -219,7 +234,15 @@ export function ChatSidebar({
                   <span className="text-xs font-medium text-cb-ink-muted uppercase">Pinned</span>
                 </div>
                 {pinnedSessions.map((session) => (
-                  <SessionItem key={session.id} session={session} />
+                  <SessionItem
+                    key={session.id}
+                    session={session}
+                    isActive={session.id === activeSessionId}
+                    onSelect={onSessionSelect}
+                    onTogglePin={onTogglePin}
+                    onToggleArchive={onToggleArchive}
+                    onDelete={handleDeleteClick}
+                  />
                 ))}
               </div>
             )}
@@ -233,7 +256,15 @@ export function ChatSidebar({
                   </div>
                 )}
                 {unpinnedSessions.map((session) => (
-                  <SessionItem key={session.id} session={session} />
+                  <SessionItem
+                    key={session.id}
+                    session={session}
+                    isActive={session.id === activeSessionId}
+                    onSelect={onSessionSelect}
+                    onTogglePin={onTogglePin}
+                    onToggleArchive={onToggleArchive}
+                    onDelete={handleDeleteClick}
+                  />
                 ))}
               </div>
             )}

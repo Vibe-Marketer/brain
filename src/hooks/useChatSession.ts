@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Message } from '@ai-sdk/react';
@@ -101,8 +102,8 @@ export function useChatSession(userId: string | undefined) {
     enabled: !!userId,
   });
 
-  // Fetch messages for a specific session
-  const fetchMessages = async (sessionId: string): Promise<Message[]> => {
+  // Fetch messages for a specific session - memoized for stable reference
+  const fetchMessages = useCallback(async (sessionId: string): Promise<Message[]> => {
     const { data, error } = await supabase
       .from('chat_messages')
       .select('*')
@@ -119,7 +120,7 @@ export function useChatSession(userId: string | undefined) {
       parts: msg.parts,
       createdAt: new Date(msg.created_at),
     }));
-  };
+  }, []);
 
   // Create new session
   const createSessionMutation = useMutation({

@@ -18,15 +18,10 @@ import NotFound from "./pages/NotFound";
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 60 * 1000, // 1 minute default stale time
-      gcTime: 5 * 60 * 1000, // 5 minutes garbage collection time
+      staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh longer
+      gcTime: 10 * 60 * 1000, // 10 minutes - keep unused data in cache
       refetchOnWindowFocus: false, // Prevent refetch on window focus by default
-      refetchOnReconnect: true, // Refetch when connection is restored
       retry: 1, // Only retry failed requests once
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Exponential backoff
-    },
-    mutations: {
-      retry: 1,
     },
   },
 });
