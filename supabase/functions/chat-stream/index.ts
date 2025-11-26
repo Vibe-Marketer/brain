@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1.0.0';
+import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@2.0.72';  // FIXED: Updated to match frontend version
 import { streamText, tool } from 'https://esm.sh/ai@3.4.33';
 import { z } from 'https://esm.sh/zod@3.23.8';
 
@@ -42,6 +42,142 @@ async function generateQueryEmbedding(text: string, openaiApiKey: string): Promi
   const data = await response.json();
   return data.data[0].embedding;
 }
+
+// ============================================
+// RE-RANKING FUNCTIONS (Phase 2 - Quality Enhancement)
+// ============================================
+
+interface RerankCandidate {
+  chunk_id: string;
+  chunk_text: string;
+  recording_id: number;
+  speaker_name: string | null;
+  call_title: string;
+  call_date: string;
+  call_category: string | null;
+  rrf_score: number;
+  similarity_score: number;
+  rerank_score?: number;
+}
+
+function extractScore(data: unknown): number {
+  if (Array.isArray(data) && data.length > 0) {
+    const results = Array.isArray(data[0]) ? data[0] : data;
+    // deno-lint-ignore no-explicit-any
+    const sorted = [...results].sort((a: any, b: any) => {
+      const labelA = parseInt(a?.label?.match(/\d+/)?.[0] || '0', 10);
+      const labelB = parseInt(b?.label?.match(/\d+/)?.[0] || '0', 10);
+      return labelB - labelA;
+    });
+    return sorted[0]?.score ?? 0.5;
+  }
+  return typeof data === 'number' ? data : 0.5;
+}
+
+async function rerankResults(
+  query: string,
+  candidates: RerankCandidate[],
+  topK: number = 10
+): Promise<RerankCandidate[]> {
+  const hfApiKey = Deno.env.get('HUGGINGFACE_API_KEY');
+
+  if (!hfApiKey || candidates.length === 0) {
+    console.log('Re-ranking skipped (no API key or no candidates)');
+    return candidates.slice(0, topK);
+  }
+
+  const RERANK_MODEL = 'cross-encoder/ms-marco-MiniLM-L-12-v2';
+  const startTime = Date.now();
+
+  try {
+    // Process in batches of 5 to avoid rate limits
+    const batchSize = 5;
+    const scoredCandidates: RerankCandidate[] = [];
+
+    for (let i = 0; i < candidates.length; i += batchSize) {
+      const batch = candidates.slice(i, i + batchSize);
+
+      const batchResults = await Promise.all(
+        batch.map(async (candidate) => {
+          try {
+            const response = await fetch(
+              `https://api-inference.huggingface.co/models/${RERANK_MODEL}`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${hfApiKey}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  inputs: `${query} [SEP] ${candidate.chunk_text.substring(0, 500)}`,
+                  options: { wait_for_model: true },
+                }),
+              }
+            );
+
+            if (!response.ok) {
+              return { ...candidate, rerank_score: candidate.rrf_score };
+            }
+
+            const data = await response.json();
+            const score = extractScore(data);
+            return { ...candidate, rerank_score: score };
+          } catch {
+            return { ...candidate, rerank_score: candidate.rrf_score };
+          }
+        })
+      );
+
+      scoredCandidates.push(...batchResults);
+
+      // Small delay between batches to avoid rate limits
+      if (i + batchSize < candidates.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+
+    console.log(`Re-ranking completed in ${Date.now() - startTime}ms`);
+
+    // Sort by rerank score and return top K
+    return scoredCandidates
+      .sort((a, b) => (b.rerank_score || 0) - (a.rerank_score || 0))
+      .slice(0, topK);
+
+  } catch (error) {
+    console.error('Re-ranking failed, using original order:', error);
+    return candidates.slice(0, topK);
+  }
+}
+
+// ============================================
+// DIVERSITY FILTER (Phase 2 - Quality Enhancement)
+// ============================================
+
+function diversityFilter<T extends { recording_id: number }>(
+  chunks: T[],
+  maxPerRecording: number = 2,
+  targetCount: number = 5
+): T[] {
+  const diverse: T[] = [];
+  const recordingCounts = new Map<number, number>();
+
+  for (const chunk of chunks) {
+    if (diverse.length >= targetCount) break;
+
+    const count = recordingCounts.get(chunk.recording_id) || 0;
+    if (count >= maxPerRecording) continue;
+
+    diverse.push(chunk);
+    recordingCounts.set(chunk.recording_id, count + 1);
+  }
+
+  console.log(`Diversity filter: ${chunks.length} input → ${diverse.length} diverse results`);
+  return diverse;
+}
+
+// ============================================
+// MAIN HANDLER
+// ============================================
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -132,15 +268,18 @@ Deno.serve(async (req) => {
       }),
       execute: async ({ query, limit }) => {
         console.log(`Searching transcripts: "${query}" (limit: ${limit})`);
+        const searchStartTime = Date.now();
 
         // Generate query embedding
         const queryEmbedding = await generateQueryEmbedding(query, openaiApiKey);
 
-        // Call hybrid search function
-        const { data: results, error } = await supabase.rpc('hybrid_search_transcripts', {
+        // Step 1: Get more candidates for re-ranking (3x the requested limit, max 30)
+        const candidateCount = Math.min(limit * 3, 30);
+
+        const { data: candidates, error } = await supabase.rpc('hybrid_search_transcripts', {
           query_text: query,
           query_embedding: queryEmbedding,
-          match_count: limit,
+          match_count: candidateCount,
           full_text_weight: 1.0,
           semantic_weight: 1.0,
           rrf_k: 60,
@@ -157,13 +296,23 @@ Deno.serve(async (req) => {
           return { error: 'Search failed', details: error.message };
         }
 
-        if (!results || results.length === 0) {
+        if (!candidates || candidates.length === 0) {
           return { message: 'No relevant transcripts found for this query.' };
         }
 
+        console.log(`Hybrid search returned ${candidates.length} candidates in ${Date.now() - searchStartTime}ms`);
+
+        // Step 2: Re-rank candidates using cross-encoder (if HuggingFace key available)
+        const reranked = await rerankResults(query, candidates, limit * 2);
+
+        // Step 3: Apply diversity filter (max 2 chunks per recording)
+        const diverse = diversityFilter(reranked, 2, limit);
+
+        console.log(`Search pipeline complete: ${candidates.length} → ${reranked.length} → ${diverse.length} results`);
+
         // Format results for the LLM
         return {
-          results: results.map((r: any, i: number) => ({
+          results: diverse.map((r: RerankCandidate, i: number) => ({
             index: i + 1,
             recording_id: r.recording_id,
             call_title: r.call_title,
@@ -171,9 +320,13 @@ Deno.serve(async (req) => {
             speaker: r.speaker_name,
             category: r.call_category,
             text: r.chunk_text,
-            relevance: Math.round(r.rrf_score * 100) + '%',
+            relevance: r.rerank_score
+              ? Math.round(r.rerank_score * 100) + '%'
+              : Math.round(r.rrf_score * 100) + '%',
           })),
-          total_found: results.length,
+          total_found: candidates.length,
+          reranked: reranked.length,
+          returned: diverse.length,
         };
       },
     });
@@ -326,8 +479,9 @@ Important: Only access transcripts belonging to the current user. Never fabricat
       maxToolRoundtrips: 5, // v3.x uses maxToolRoundtrips instead of maxSteps
     });
 
-    // Return streaming response with proper headers for v3.x
-    return result.toAIStreamResponse({
+    // FIXED: Use toDataStreamResponse for proper tool call streaming
+    // This ensures message.parts (tool-call, tool-result) are transmitted to client
+    return result.toDataStreamResponse({
       headers: corsHeaders,
     });
 
