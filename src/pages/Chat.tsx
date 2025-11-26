@@ -798,10 +798,41 @@ export default function Chat() {
               if (message.role === 'assistant') {
                 // Extract tool calls from parts if available
                 const toolParts = (message.parts as ToolCallPart[] | undefined)?.filter((p) => p.type === 'tool-call' || p.type === 'tool-result') || [];
-                // Extract sources from tool results
-                const sources = toolParts
-                  .filter((p) => p.type === 'tool-result' && p.result?.results)
-                  .flatMap((p) => p.result?.results || [])
+
+                // Extract sources from tool results - handle both searchTranscripts (results array)
+                // and getCallDetails (single call object with recording_id)
+                const sources: Array<{
+                  recording_id: number;
+                  text: string;
+                  speaker: string;
+                  call_date: string;
+                  call_title: string;
+                  relevance: string;
+                }> = [];
+
+                toolParts.forEach((p) => {
+                  if (p.type === 'tool-result' && p.result) {
+                    // Handle searchTranscripts results array
+                    if (p.result.results && Array.isArray(p.result.results)) {
+                      sources.push(...p.result.results);
+                    }
+                    // Handle getCallDetails single result (has recording_id and title at top level)
+                    else if (p.result.recording_id && p.result.title && !p.result.error) {
+                      sources.push({
+                        recording_id: p.result.recording_id as number,
+                        text: (p.result.summary as string) || '',
+                        speaker: (p.result.recorded_by as string) || '',
+                        call_date: (p.result.date as string) || '',
+                        call_title: (p.result.title as string) || '',
+                        relevance: '100',
+                      });
+                    }
+                  }
+                });
+
+                // Dedupe by recording_id and limit to 5
+                const uniqueSources = sources
+                  .filter((s, i, arr) => arr.findIndex(x => x.recording_id === s.recording_id) === i)
                   .slice(0, 5);
 
                 // Determine if we should show content or loading state
@@ -818,9 +849,9 @@ export default function Chat() {
                     ) : isThinking ? (
                       <AssistantMessage isLoading />
                     ) : null}
-                    {sources.length > 0 && (
+                    {uniqueSources.length > 0 && (
                       <Sources
-                        sources={sources.map((s, i) => ({
+                        sources={uniqueSources.map((s, i) => ({
                           id: `${message.id}-source-${i}`,
                           recording_id: s.recording_id,
                           chunk_text: s.text,
