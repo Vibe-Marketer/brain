@@ -208,9 +208,8 @@ export function DateRangePicker({
               numberOfMonths={displayMonths}
               defaultMonth={getDefaultMonth()}
               disabled={disableFuture ? (date) => date > new Date() : undefined}
-              toDate={disableFuture ? new Date() : undefined}
-              toMonth={disableFuture ? new Date() : undefined}
-              initialFocus
+              endMonth={disableFuture ? new Date() : undefined}
+              autoFocus
               className={cn("p-3 pointer-events-auto")}
             />
           </div>

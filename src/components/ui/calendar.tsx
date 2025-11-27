@@ -7,58 +7,70 @@ import { buttonVariants } from "@/components/ui/button";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
-// Generate date range for dropdown navigation (v8 uses fromMonth/toMonth)
+// Generate date range for dropdown navigation (v9 uses startMonth/endMonth)
 const currentYear = new Date().getFullYear();
-const defaultFromMonth = new Date(currentYear - 10, 0); // 10 years back
-const defaultToMonth = new Date(currentYear + 1, 11); // 1 year forward
+const defaultStartMonth = new Date(currentYear - 10, 0); // 10 years back
+const defaultEndMonth = new Date(currentYear + 1, 11); // 1 year forward
 
-function Calendar({ className, classNames, showOutsideDays = true, fromMonth, toMonth, ...props }: CalendarProps) {
+function Calendar({ className, classNames, showOutsideDays = true, startMonth, endMonth, ...props }: CalendarProps) {
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       captionLayout="dropdown" // Enable month/year dropdown navigation
-      fromMonth={fromMonth ?? defaultFromMonth}
-      toMonth={toMonth ?? defaultToMonth}
+      navLayout="around" // Navigation arrows on both sides
+      reverseYears // Most recent years at top of dropdown
+      startMonth={startMonth ?? defaultStartMonth}
+      endMonth={endMonth ?? defaultEndMonth}
       className={cn("p-3", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
-        month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center gap-1",
-        caption_label: "text-sm font-medium hidden", // Hide when using dropdown layout
-        // Dropdown styling - styled native selects
-        caption_dropdowns: "flex items-center gap-2",
-        dropdown: "appearance-none bg-transparent border border-input rounded-md px-2 py-1 text-sm font-medium cursor-pointer hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-        dropdown_month: "w-[110px]",
-        dropdown_year: "w-[80px]",
-        dropdown_icon: "hidden", // Hide default icon, we can add custom one via CSS if needed
-        nav: "space-x-1 flex items-center",
-        nav_button: cn(
+        months: "flex flex-col sm:flex-row gap-4",
+        month: "flex flex-col gap-4",
+        month_caption: "flex justify-center items-center h-7 relative",
+        caption_label: "text-sm font-medium hidden", // Hidden when using dropdown
+        // Dropdown styling
+        dropdowns: "flex items-center justify-center gap-2",
+        dropdown: "appearance-none bg-transparent border border-input rounded-md px-2 py-1 text-sm font-medium cursor-pointer hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring",
+        months_dropdown: "w-[110px]",
+        years_dropdown: "w-[80px]",
+        // Navigation
+        nav: "flex items-center gap-1",
+        button_previous: cn(
           buttonVariants({ variant: "hollow" }),
           "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
         ),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
-        table: "w-full border-collapse space-y-1",
-        head_row: "flex",
-        head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-        row: "flex w-full mt-2",
-        cell: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-        day: cn(buttonVariants({ variant: "hollow" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100 rounded-none"),
+        button_next: cn(
+          buttonVariants({ variant: "hollow" }),
+          "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+        ),
+        // Calendar grid
+        month_grid: "w-full border-collapse",
+        weekdays: "flex",
+        weekday: "text-muted-foreground w-9 font-normal text-[0.8rem]",
+        week: "flex w-full mt-2",
+        day: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
+        day_button: cn(
+          buttonVariants({ variant: "hollow" }),
+          "h-9 w-9 p-0 font-normal rounded-none aria-selected:opacity-100"
+        ),
         // Selected dates: solid dark fill with white text (high contrast, square)
-        day_range_end: "day-range-end bg-foreground text-background hover:bg-foreground hover:text-background rounded-none",
-        day_selected: "bg-foreground text-background hover:bg-foreground hover:text-background rounded-none",
+        selected: "bg-foreground text-background hover:bg-foreground hover:text-background",
+        range_start: "bg-foreground text-background hover:bg-foreground hover:text-background rounded-none",
+        range_end: "bg-foreground text-background hover:bg-foreground hover:text-background rounded-none",
+        range_middle: "bg-foreground/20 dark:bg-foreground/30 text-foreground rounded-none",
         // Today: subtle outline
-        day_today: "bg-muted text-foreground ring-1 ring-foreground/30 rounded-none",
-        day_outside: "day-outside text-muted-foreground opacity-50 aria-selected:bg-foreground/50 aria-selected:text-background aria-selected:opacity-70",
-        day_disabled: "text-muted-foreground opacity-50",
-        // Range middle: lighter fill
-        day_range_middle: "aria-selected:bg-foreground/20 dark:aria-selected:bg-foreground/30 aria-selected:text-foreground rounded-none",
-        day_hidden: "invisible",
+        today: "bg-muted text-foreground ring-1 ring-foreground/30",
+        outside: "text-muted-foreground opacity-50 aria-selected:bg-foreground/50 aria-selected:text-background aria-selected:opacity-70",
+        disabled: "text-muted-foreground opacity-50",
+        hidden: "invisible",
         ...classNames,
       }}
       components={{
-        IconLeft: ({ ..._props }) => <RiArrowLeftSLine className="h-4 w-4" />,
-        IconRight: ({ ..._props }) => <RiArrowRightSLine className="h-4 w-4" />,
+        Chevron: ({ orientation }) => {
+          if (orientation === "left") {
+            return <RiArrowLeftSLine className="h-4 w-4" />;
+          }
+          return <RiArrowRightSLine className="h-4 w-4" />;
+        },
       }}
       {...props}
     />
