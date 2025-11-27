@@ -133,28 +133,31 @@ export const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, PromptI
 
 PromptInputTextarea.displayName = 'PromptInputTextarea';
 
-// Actions container
+// Actions container - wraps children with TooltipProvider for efficient tooltip rendering
 interface PromptInputActionsProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
 export function PromptInputActions({ children, className, ...props }: PromptInputActionsProps) {
   return (
-    <div
-      className={cn(
-        'flex items-center gap-1 border-t border-cb-border-soft/50 px-3 py-2',
-        '[&_button]:transition-all [&_button]:duration-150',
-        '[&_button:hover]:scale-105',
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </div>
+    <TooltipProvider>
+      <div
+        className={cn(
+          'flex items-center gap-1 border-t border-cb-border-soft/50 px-3 py-2',
+          '[&_button]:transition-all [&_button]:duration-150',
+          '[&_button:hover]:scale-105',
+          className
+        )}
+        {...props}
+      >
+        {children}
+      </div>
+    </TooltipProvider>
   );
 }
 
 // Single action with tooltip
+// Note: For best performance, wrap multiple PromptInputAction components with a single TooltipProvider
 interface PromptInputActionProps {
   tooltip?: React.ReactNode;
   children: React.ReactNode;
@@ -175,14 +178,12 @@ export function PromptInputAction({
   }
 
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild disabled={disabled}>
-          <span className={className}>{children}</span>
-        </TooltipTrigger>
-        <TooltipContent side={side}>{tooltip}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild disabled={disabled}>
+        <span className={className}>{children}</span>
+      </TooltipTrigger>
+      <TooltipContent side={side}>{tooltip}</TooltipContent>
+    </Tooltip>
   );
 }
 
