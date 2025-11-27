@@ -10,8 +10,8 @@ const corsHeaders = {
  * Called internally by other edge functions when tokens expire
  */
 export async function refreshOAuthTokens(userId: string, refreshToken: string) {
-  const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID_DEV');
-  const clientSecret = Deno.env.get('FATHOM_OAUTH_CLIENT_SECRET_DEV');
+  const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID');
+  const clientSecret = Deno.env.get('FATHOM_OAUTH_CLIENT_SECRET');
 
   if (!clientId || !clientSecret) {
     throw new Error('OAuth not configured');

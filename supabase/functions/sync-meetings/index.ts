@@ -249,16 +249,27 @@ Deno.serve(async (req) => {
       throw new Error('Fathom credentials not configured. Please add them in Settings.');
     }
 
-    // Use API key authentication only for bulk sync operations
-    if (!settings.fathom_api_key) {
-      throw new Error('Fathom API key is required for sync operations. Please add your API key in Settings.');
-    }
-
-    const authHeaders: Record<string, string> = {
-      'X-Api-Key': settings.fathom_api_key,
+    // Determine authentication method - prefer OAuth if available and valid
+    let authHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    console.log('Using API key authentication for sync-meetings');
+
+    // Check if OAuth token is available and not expired
+    const oauthTokenExpires = settings.oauth_token_expires ? new Date(settings.oauth_token_expires) : null;
+    const isOAuthValid = settings.oauth_access_token && oauthTokenExpires && oauthTokenExpires > new Date();
+
+    if (isOAuthValid) {
+      // Use OAuth Bearer token authentication
+      authHeaders['Authorization'] = `Bearer ${settings.oauth_access_token}`;
+      console.log('Using OAuth Bearer token authentication for sync-meetings');
+    } else if (settings.fathom_api_key) {
+      // Fall back to API key authentication
+      authHeaders['X-Api-Key'] = settings.fathom_api_key;
+      console.log('Using API key authentication for sync-meetings');
+    } else {
+      // OAuth token expired and no API key available
+      throw new Error('Fathom OAuth token has expired. Please reconnect your Fathom account in Settings.');
+    }
 
 
     console.log(`Syncing ${recordingIds.length} meetings with date range:`, { createdAfter, createdBefore });

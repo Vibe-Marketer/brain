@@ -204,6 +204,7 @@ export default function Chat() {
     error,
     setMessages,
   } = useChat({
+    streamProtocol: 'data',
     api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`,
     headers: {
       Authorization: `Bearer ${session?.access_token}`,
@@ -796,8 +797,28 @@ export default function Chat() {
               }
 
               if (message.role === 'assistant') {
-                // Extract tool calls from parts if available
-                const toolParts = (message.parts as ToolCallPart[] | undefined)?.filter((p) => p.type === 'tool-call' || p.type === 'tool-result') || [];
+                // Convert AI SDK v3.x toolInvocations to our ToolCallPart format
+                // v3.x uses toolInvocations with state: 'partial-call' | 'call' | 'result'
+                const toolParts: ToolCallPart[] = (message.toolInvocations || []).map((invocation) => {
+                  // Map v3.x state to our component state
+                  let state: 'pending' | 'running' | 'success' | 'error' = 'pending';
+                  if (invocation.state === 'partial-call') {
+                    state = 'running';
+                  } else if (invocation.state === 'call') {
+                    state = 'running';
+                  } else if (invocation.state === 'result') {
+                    state = 'success';
+                  }
+
+                  return {
+                    type: invocation.state === 'result' ? 'tool-result' : 'tool-call',
+                    toolName: invocation.toolName,
+                    toolCallId: invocation.toolCallId,
+                    state,
+                    args: invocation.args as Record<string, unknown>,
+                    result: invocation.state === 'result' ? invocation.result as Record<string, unknown> : undefined,
+                  };
+                });
 
                 // Extract sources from tool results - handle both searchTranscripts (results array)
                 // and getCallDetails (single call object with recording_id)

@@ -34,30 +34,45 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Retrieve the user's API key
+    // Retrieve the user's credentials (OAuth or API key)
     const { data: settings, error: configError } = await supabase
       .from('user_settings')
-      .select('fathom_api_key')
+      .select('fathom_api_key, oauth_access_token, oauth_token_expires')
       .eq('user_id', user.id)
       .maybeSingle();
 
     if (configError) throw configError;
 
-    if (!settings?.fathom_api_key) {
-      throw new Error('Fathom API key not configured');
+    if (!settings?.fathom_api_key && !settings?.oauth_access_token) {
+      throw new Error('Fathom credentials not configured. Connect via OAuth or add an API key in Settings.');
     }
 
-    const apiKey = settings.fathom_api_key;
+    // Determine which authentication method to use
+    let authHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    let authMethod = '';
+
+    // Check if OAuth token is available and not expired
+    const oauthTokenExpires = settings.oauth_token_expires ? new Date(settings.oauth_token_expires) : null;
+    const isOAuthValid = settings.oauth_access_token && oauthTokenExpires && oauthTokenExpires > new Date();
+
+    if (isOAuthValid) {
+      authHeaders['Authorization'] = `Bearer ${settings.oauth_access_token}`;
+      authMethod = 'OAuth';
+    } else if (settings.fathom_api_key) {
+      authHeaders['X-Api-Key'] = settings.fathom_api_key;
+      authMethod = 'API Key';
+    } else {
+      throw new Error('OAuth token has expired. Please reconnect your Fathom account in Settings.');
+    }
+
+    console.log(`Testing Fathom connection using ${authMethod} authentication`);
 
     // Test the connection with a simple API call
     const response = await fetch(
       'https://api.fathom.ai/external/v1/meetings?limit=1',
-      {
-        headers: {
-          'X-Api-Key': apiKey,
-          'Content-Type': 'application/json',
-        },
-      }
+      { headers: authHeaders }
     );
 
     if (!response.ok) {
@@ -66,12 +81,13 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json();
-    console.log('Fathom API test successful for user:', user.id);
+    console.log(`Fathom API test successful for user: ${user.id} using ${authMethod}`);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
-        message: 'Connection successful',
+        message: `Connection successful via ${authMethod}`,
+        authMethod,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

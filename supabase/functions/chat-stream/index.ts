@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@2.0.72';  // FIXED: Updated to match frontend version
+import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@0.0.66';  // FIXED: Compatible with ai@3.4.33
 import { streamText, tool } from 'https://esm.sh/ai@3.4.33';
 import { z } from 'https://esm.sh/zod@3.23.8';
 
@@ -479,7 +479,7 @@ Important: Only access transcripts belonging to the current user. Never fabricat
       maxToolRoundtrips: 5, // v3.x uses maxToolRoundtrips instead of maxSteps
     });
 
-    // FIXED: Use toDataStreamResponse for proper tool call streaming
+    // FIXED: Use toDataStreamResponse for AI SDK v3.x
     // This ensures message.parts (tool-call, tool-result) are transmitted to client
     return result.toDataStreamResponse({
       headers: corsHeaders,

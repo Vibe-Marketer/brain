@@ -112,8 +112,8 @@ Deno.serve(async (req) => {
 
         try {
           // Refresh the token
-          const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID_DEV');
-          const clientSecret = Deno.env.get('FATHOM_OAUTH_CLIENT_SECRET_DEV');
+          const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID');
+          const clientSecret = Deno.env.get('FATHOM_OAUTH_CLIENT_SECRET');
 
           if (!clientId || !clientSecret) {
             throw new Error('OAuth not configured on server');

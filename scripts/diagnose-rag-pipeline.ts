@@ -357,7 +357,34 @@ async function testHybridSearch(userId: string): Promise<void> {
 }
 
 // =============================================
-// TEST 4: RE-RANKING SERVICE
+// TEST 4: RE-RANKING SERVICE TEST
+// =============================================
+
+async function testReranking(): Promise<void> {
+  console.log('\n' + '═'.repeat(70));
+  console.log('4. RE-RANKING SERVICE TEST');
+  console.log('═'.repeat(70));
+
+  const edgeFunctionPath = path.join(process.cwd(), 'supabase/functions/chat-stream/index.ts');
+  
+  try {
+    if (!fs.existsSync(edgeFunctionPath)) {
+      log('WARN', 'Reranking', `Edge function file not found at ${edgeFunctionPath}`);
+      return;
+    }
+
+    const content = fs.readFileSync(edgeFunctionPath, 'utf-8');
+    
+    if (content.includes('rerankResults(') || content.includes('rerankResults (')) {
+      log('PASS', 'Reranking', 'Re-ranking logic is integrated into chat-stream');
+    } else {
+      log('WARN', 'Reranking', 'Re-ranking logic NOT found in chat-stream');
+      log('INFO', 'Reranking', 'Recommendation: Consider integrating cross-encoder re-ranking');
+    }
+
+  } catch (error) {
+    log('FAIL', 'Reranking', `Error reading edge function: $Failed to edit, 0 occurrences found for old_string (// =============================================
+// TEST 4: RE-RANKING SERVICE TEST
 // =============================================
 
 async function testReranking(): Promise<void> {
@@ -371,6 +398,23 @@ async function testReranking(): Promise<void> {
   log('WARN', 'Reranking', 'Re-ranking function (rerank-results) exists but is NOT integrated into chat-stream');
   log('INFO', 'Reranking', 'The chat-stream function directly uses hybrid_search_transcripts without re-ranking');
   log('INFO', 'Reranking', 'Recommendation: Consider integrating cross-encoder re-ranking for improved relevance');
+}). Original old_string was (// =============================================
+// TEST 4: RE-RANKING SERVICE TEST
+// =============================================
+
+async function testReranking(): Promise<void> {
+  console.log('\n' + '═'.repeat(70));
+  console.log('4. RE-RANKING SERVICE TEST');
+  console.log('═'.repeat(70));
+
+  // Note: Re-ranking requires HUGGINGFACE_API_KEY which may not be available locally
+  // This test checks if the service is configured and callable
+
+  log('WARN', 'Reranking', 'Re-ranking function (rerank-results) exists but is NOT integrated into chat-stream');
+  log('INFO', 'Reranking', 'The chat-stream function directly uses hybrid_search_transcripts without re-ranking');
+  log('INFO', 'Reranking', 'Recommendation: Consider integrating cross-encoder re-ranking for improved relevance');
+}) in /Users/Naegele/dev/brain/scripts/diagnose-rag-pipeline.ts. No edits made. The exact text in old_string was not found. Ensure you're not escaping content incorrectly and check whitespace, indentation, and context. Use read_file tool to verify.`);
+  }
 }
 
 // =============================================
@@ -439,6 +483,11 @@ async function testChatPersistence(userId: string): Promise<void> {
   }
 }
 
+import * as fs from 'fs';
+import * as path from 'path';
+
+// ... (keep existing imports)
+
 // =============================================
 // TEST 6: AI SDK STREAMING PROTOCOL
 // =============================================
@@ -450,25 +499,33 @@ async function testStreamingProtocol(): Promise<void> {
 
   log('INFO', 'Streaming', 'Analyzing AI SDK configuration...');
 
-  // Check version compatibility
-  log('WARN', 'Streaming', 'VERSION MISMATCH DETECTED:', {
-    frontend: {
-      'ai': '3.4.33',
-      '@ai-sdk/openai': '2.0.72',
-      '@ai-sdk/react': 'implicit from ai package',
-    },
-    edgeFunction: {
-      'ai': '3.4.33 (from esm.sh)',
-      '@ai-sdk/openai': '1.0.0 (from esm.sh - OUTDATED)',
-    },
-  });
+  const edgeFunctionPath = path.join(process.cwd(), 'supabase/functions/chat-stream/index.ts');
+  
+  try {
+    if (!fs.existsSync(edgeFunctionPath)) {
+      log('FAIL', 'Streaming', `Edge function file not found at ${edgeFunctionPath}`);
+      return;
+    }
 
-  log('FAIL', 'Streaming', 'Edge function uses @ai-sdk/openai@1.0.0 but frontend expects @2.0.72');
-  log('INFO', 'Streaming', 'This version mismatch may cause protocol incompatibilities');
+    const content = fs.readFileSync(edgeFunctionPath, 'utf-8');
+    
+    // Check for toDataStreamResponse
+    if (content.includes('toDataStreamResponse')) {
+      log('PASS', 'Streaming', 'Edge function uses toDataStreamResponse()');
+    } else if (content.includes('toAIStreamResponse')) {
+      log('WARN', 'Streaming', 'Edge function uses toAIStreamResponse() - deprecated');
+    } else {
+      log('WARN', 'Streaming', 'Could not identify response streaming method');
+    }
 
-  // Check streaming method
-  log('WARN', 'Streaming', 'chat-stream uses toAIStreamResponse() which may not stream tool call parts correctly');
-  log('INFO', 'Streaming', 'Recommendation: Consider using toDataStreamResponse() for proper tool call streaming');
+    // Check imports
+    if (content.includes('@ai-sdk/openai')) {
+       log('INFO', 'Streaming', 'Edge function imports @ai-sdk/openai');
+    }
+
+  } catch (error) {
+    log('FAIL', 'Streaming', `Error reading edge function: ${error}`);
+  }
 }
 
 // =============================================
@@ -543,8 +600,8 @@ async function runDiagnostics(userId?: string): Promise<DiagnosticReport> {
     recommendations.push('Verify AI SDK streaming data protocol includes tool call parts');
   }
 
-  const rerankWarn = results.find(r => r.component === 'Reranking');
-  if (rerankWarn) {
+  const rerankResult = results.find(r => r.component === 'Reranking');
+  if (rerankResult && rerankResult.status !== 'PASS') {
     rootCauses.push('Re-ranking service not integrated into search pipeline');
     recommendations.push('Integrate cross-encoder re-ranking for improved relevance');
   }
