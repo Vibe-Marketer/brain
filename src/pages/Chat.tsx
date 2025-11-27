@@ -20,9 +20,14 @@ import {
 import {
   PromptInput,
   PromptInputTextarea,
-  PromptInputActions,
-  PromptInputAction,
+  PromptInputContextBar,
+  PromptInputFooter,
+  PromptInputFooterLeft,
+  PromptInputFooterRight,
+  PromptInputHintBar,
+  KeyboardHint,
 } from '@/components/chat/prompt-input';
+import { ModelSelector } from '@/components/chat/model-selector';
 import { UserMessage, AssistantMessage } from '@/components/chat/message';
 import { ScrollButton } from '@/components/chat/scroll-button';
 import { ThinkingLoader } from '@/components/chat/loader';
@@ -911,9 +916,9 @@ export default function Chat() {
         </ChatContainerRoot>
       </div>
 
-      {/* Input area */}
+      {/* Input area - Kortex-style centered container */}
       <div className="border-t border-cb-border bg-card px-4 py-4">
-        <div className="relative">
+        <div className="relative w-full max-w-[800px] mx-auto">
           {/* Mentions popover */}
           {showMentions && filteredCalls.length > 0 && (
             <div className="absolute bottom-full left-0 right-0 mb-2 bg-card rounded-lg border border-cb-border shadow-lg max-h-64 overflow-y-auto z-50">
@@ -951,14 +956,34 @@ export default function Chat() {
             onSubmit={() => handleChatSubmit()}
             isLoading={isLoading}
           >
+            {/* Kortex-style Context Bar */}
+            <PromptInputContextBar
+              onAddContext={() => {
+                // TODO: Open context/attachment picker
+                console.log('Add context clicked');
+              }}
+            />
+
+            {/* Main textarea */}
             <PromptInputTextarea
               ref={textareaRef}
               placeholder="Ask about your transcripts... (type @ to mention a call)"
               disabled={isLoading}
+              className="px-4 py-2"
             />
-            <PromptInputActions>
-              <div className="flex-1" />
-              <PromptInputAction tooltip="Send message">
+
+            {/* Kortex-style Footer with model selector and submit */}
+            <PromptInputFooter>
+              <PromptInputFooterLeft>
+                <ModelSelector
+                  value="gpt-4o"
+                  onValueChange={(modelId) => {
+                    // TODO: Handle model change
+                    console.log('Model changed:', modelId);
+                  }}
+                />
+              </PromptInputFooterLeft>
+              <PromptInputFooterRight>
                 <Button
                   type="submit"
                   size="sm"
@@ -968,9 +993,15 @@ export default function Chat() {
                   <RiSendPlaneFill className="h-4 w-4" />
                   Send
                 </Button>
-              </PromptInputAction>
-            </PromptInputActions>
+              </PromptInputFooterRight>
+            </PromptInputFooter>
           </PromptInput>
+
+          {/* Kortex-style Keyboard Hint Bar */}
+          <PromptInputHintBar>
+            <KeyboardHint label="Send with" shortcut="Enter" />
+            <KeyboardHint label="New line" shortcut="Shift+Enter" />
+          </PromptInputHintBar>
         </div>
       </div>
       </div>

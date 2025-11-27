@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { RiAddLine } from '@remixicon/react';
 
 // Context for prompt input state
 interface PromptInputContextValue {
@@ -182,5 +183,135 @@ export function PromptInputAction({
         <TooltipContent side={side}>{tooltip}</TooltipContent>
       </Tooltip>
     </TooltipProvider>
+  );
+}
+
+// ============================================================================
+// Kortex-Style Components
+// ============================================================================
+
+// Context bar for adding attachments/context at the top of input
+interface PromptInputContextBarProps extends React.HTMLAttributes<HTMLDivElement> {
+  onAddContext?: () => void;
+  children?: React.ReactNode;
+}
+
+export function PromptInputContextBar({
+  onAddContext,
+  children,
+  className,
+  ...props
+}: PromptInputContextBarProps) {
+  return (
+    <div
+      className={cn(
+        'flex items-center gap-1 px-3 pt-2 pb-1 min-h-[28px]',
+        className
+      )}
+      {...props}
+    >
+      {children ?? (
+        <button
+          type="button"
+          onClick={onAddContext}
+          className={cn(
+            'group flex items-center gap-1 px-2 py-1 rounded-xl',
+            'border border-cb-border-soft/50 bg-transparent',
+            'hover:bg-cb-hover hover:border-cb-border',
+            'transition-all duration-150 cursor-pointer select-none'
+          )}
+        >
+          <RiAddLine className="h-3.5 w-3.5 text-cb-ink-muted group-hover:text-cb-ink transition-colors" />
+          <span className="text-xs text-cb-ink-muted group-hover:text-cb-ink transition-colors">
+            Add context
+          </span>
+        </button>
+      )}
+    </div>
+  );
+}
+
+// Footer with left/right sections (model selector on left, submit on right)
+interface PromptInputFooterProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+
+export function PromptInputFooter({ children, className, ...props }: PromptInputFooterProps) {
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-between gap-2 px-3 py-2 h-[44px]',
+        'border-t border-cb-border-soft/30',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Left section of footer (for model selector, toggles)
+interface PromptInputFooterLeftProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+
+export function PromptInputFooterLeft({ children, className, ...props }: PromptInputFooterLeftProps) {
+  return (
+    <div className={cn('flex items-center gap-1.5', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+// Right section of footer (for submit button)
+interface PromptInputFooterRightProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+
+export function PromptInputFooterRight({ children, className, ...props }: PromptInputFooterRightProps) {
+  return (
+    <div className={cn('flex items-center gap-2', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+// Keyboard hint bar (shown below the main input container)
+interface PromptInputHintBarProps extends React.HTMLAttributes<HTMLDivElement> {
+  children?: React.ReactNode;
+}
+
+export function PromptInputHintBar({ children, className, ...props }: PromptInputHintBarProps) {
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-between w-full',
+        'text-[11px] text-cb-ink-muted select-none',
+        'pt-1.5 px-1',
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+// Keyboard shortcut display component
+interface KeyboardHintProps {
+  label: string;
+  shortcut: string;
+  className?: string;
+}
+
+export function KeyboardHint({ label, shortcut, className }: KeyboardHintProps) {
+  return (
+    <span className={cn('flex items-center gap-1', className)}>
+      <span>{label}</span>
+      <kbd className="px-1.5 py-0.5 text-[9px] bg-cb-hover rounded-md border border-cb-border-soft font-mono">
+        {shortcut}
+      </kbd>
+    </span>
   );
 }
