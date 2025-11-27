@@ -50,15 +50,15 @@ function Calendar({ className, classNames, showOutsideDays = true, startMonth, e
         day: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
         day_button: cn(
           buttonVariants({ variant: "hollow" }),
-          "h-9 w-9 p-0 font-normal rounded-none aria-selected:opacity-100"
+          "h-9 w-9 p-0 font-normal rounded-full aria-selected:opacity-100"
         ),
-        // Selected dates: solid dark fill with white text (high contrast, square)
-        selected: "bg-foreground text-background hover:bg-foreground hover:text-background",
-        range_start: "bg-foreground text-background hover:bg-foreground hover:text-background rounded-none",
-        range_end: "bg-foreground text-background hover:bg-foreground hover:text-background rounded-none",
-        range_middle: "bg-foreground/20 dark:bg-foreground/30 text-foreground rounded-none",
-        // Today: subtle outline
-        today: "bg-muted text-foreground ring-1 ring-foreground/30",
+        // Selected dates: gray fill with circular shape
+        selected: "bg-neutral-600 text-white hover:bg-neutral-700 dark:bg-neutral-400 dark:text-neutral-900 dark:hover:bg-neutral-300 rounded-full",
+        range_start: "bg-neutral-600 text-white hover:bg-neutral-700 dark:bg-neutral-400 dark:text-neutral-900 rounded-full",
+        range_end: "bg-neutral-600 text-white hover:bg-neutral-700 dark:bg-neutral-400 dark:text-neutral-900 rounded-full",
+        range_middle: "bg-neutral-200 dark:bg-neutral-700 text-foreground rounded-full",
+        // Today: subtle gray outline
+        today: "bg-neutral-100 dark:bg-neutral-800 text-foreground ring-1 ring-neutral-400 dark:ring-neutral-500 rounded-full",
         outside: "text-muted-foreground opacity-50 aria-selected:bg-foreground/50 aria-selected:text-background aria-selected:opacity-70",
         disabled: "text-muted-foreground opacity-50",
         hidden: "invisible",
