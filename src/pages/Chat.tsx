@@ -12,11 +12,17 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
-  ChatContainer,
   ChatContainerRoot,
   ChatContainerContent,
   ChatContainerScrollAnchor,
 } from '@/components/chat/chat-container';
+import {
+  ChatMainCard,
+  ChatMainCardContent,
+  ChatMainCardInputArea,
+  ChatMainCardHeader,
+} from '@/components/chat/chat-main-card';
+import { ChatWelcome } from '@/components/chat/chat-welcome';
 import {
   PromptInput,
   PromptInputTextarea,
@@ -481,474 +487,448 @@ export default function Chat() {
         />
       </div>
 
-      {/* Main chat area */}
-      <div className="flex flex-1 flex-col w-full">
-      {/* Header with filters */}
-      <div className="flex items-center justify-between border-b border-cb-border bg-card px-2 md:px-4 py-3">
-        <div className="flex items-center gap-2 md:gap-3">
-          {/* Mobile menu toggle */}
-          <Button
-            variant="hollow"
-            size="sm"
-            className="md:hidden h-8 w-8 p-0"
-            onClick={() => setShowSidebar(!showSidebar)}
-          >
-            <RiMenuLine className="h-5 w-5" />
-          </Button>
-          <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
-            AI Chat
-          </h1>
-          {hasActiveFilters && (
-            <div className="hidden md:flex items-center gap-2">
-              {filters.dateStart && (
-                <Badge variant="secondary" className="gap-1">
-                  <RiCalendarLine className="h-3 w-3" />
-                  {format(filters.dateStart, 'MMM d')}
-                  {filters.dateEnd && ` - ${format(filters.dateEnd, 'MMM d')}`}
-                </Badge>
-              )}
-              {filters.speakers.length > 0 && (
-                <Badge variant="secondary" className="gap-1">
-                  <RiUser3Line className="h-3 w-3" />
-                  {filters.speakers.length} speaker{filters.speakers.length > 1 ? 's' : ''}
-                </Badge>
-              )}
-              {filters.categories.length > 0 && (
-                <Badge variant="secondary" className="gap-1">
-                  <RiFolder3Line className="h-3 w-3" />
-                  {filters.categories.length} categor{filters.categories.length > 1 ? 'ies' : 'y'}
-                </Badge>
-              )}
-              {filters.recordingIds.length > 0 && (
-                <Badge variant="secondary" className="gap-1">
-                  <RiVideoLine className="h-3 w-3" />
-                  {filters.recordingIds.length} call{filters.recordingIds.length > 1 ? 's' : ''}
-                </Badge>
-              )}
-              <Button
-                variant="hollow"
-                size="sm"
-                onClick={clearFilters}
-                className="h-6 px-2 text-xs"
-              >
-                <RiCloseLine className="h-3 w-3" />
-                Clear
-              </Button>
-            </div>
-          )}
-          {/* Mobile filter indicator */}
-          {hasActiveFilters && (
-            <Badge variant="secondary" className="md:hidden">
-              Filtered
-            </Badge>
-          )}
-        </div>
-
-        <div className="flex items-center gap-1 md:gap-2">
-          <Button
-            variant="hollow"
-            size="sm"
-            onClick={handleNewChat}
-            className="gap-1 h-8 px-2 md:px-3"
-          >
-            <RiAddLine className="h-4 w-4" />
-            <span className="hidden md:inline">New Chat</span>
-          </Button>
-
-          <Popover open={showFilters} onOpenChange={setShowFilters}>
-            <PopoverTrigger asChild>
-              <Button
-                variant={hasActiveFilters ? 'default' : 'outline'}
-                size="sm"
-                className="gap-1 h-8 px-2 md:px-3"
-              >
-                <RiFilterLine className="h-4 w-4" />
-                <span className="hidden md:inline">Filters</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80 p-0" align="end">
-              <div className="p-4">
-                <h3 className="font-display text-sm font-bold uppercase text-cb-ink mb-3">
-                  Filter Transcripts
-                </h3>
-
-                {/* Date Range */}
-                <div className="mb-4">
-                  <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
-                    Date Range
-                  </label>
-                  <DateRangePicker
-                    dateRange={{ from: filters.dateStart, to: filters.dateEnd }}
-                    onDateRangeChange={(range) => {
-                      setFilters(prev => ({
-                        ...prev,
-                        dateStart: range?.from,
-                        dateEnd: range?.to,
-                      }));
-                    }}
-                    placeholder="Select date range"
-                    showQuickSelect={true}
-                    numberOfMonths={2}
-                    disableFuture={false}
-                    triggerClassName="w-full"
-                  />
-                </div>
-
-                <Separator className="my-4" />
-
-                {/* Speakers */}
-                <div className="mb-4">
-                  <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
-                    Speakers ({availableSpeakers.length})
-                  </label>
-                  <ScrollArea className="h-32">
-                    <div className="space-y-1">
-                      {availableSpeakers.map((speaker) => (
-                        <button
-                          key={speaker.speaker_email || speaker.speaker_name}
-                          onClick={() => toggleSpeaker(speaker.speaker_name)}
-                          className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors ${
-                            filters.speakers.includes(speaker.speaker_name)
-                              ? 'bg-vibe-green/10 text-cb-ink'
-                              : 'hover:bg-cb-hover text-cb-ink-soft'
-                          }`}
-                        >
-                          <span className="truncate">{speaker.speaker_name}</span>
-                          <span className="text-xs text-cb-ink-muted">{speaker.call_count} calls</span>
-                        </button>
-                      ))}
-                      {availableSpeakers.length === 0 && (
-                        <p className="text-sm text-cb-ink-muted py-2">No speakers indexed yet</p>
-                      )}
-                    </div>
-                  </ScrollArea>
-                </div>
-
-                <Separator className="my-4" />
-
-                {/* Categories */}
-                <div className="mb-4">
-                  <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
-                    Categories ({availableCategories.length})
-                  </label>
-                  <div className="flex flex-wrap gap-1">
-                    {availableCategories.map((cat) => (
-                      <Badge
-                        key={cat.category}
-                        variant={filters.categories.includes(cat.category) ? 'default' : 'outline'}
-                        className="cursor-pointer"
-                        onClick={() => toggleCategory(cat.category)}
-                      >
-                        {cat.category} ({cat.call_count})
+      {/* Main chat area - Kortex-style premium card layout */}
+      <div className="flex flex-1 flex-col w-full p-2 md:p-4 bg-viewport">
+        <ChatMainCard>
+          {/* Header with title and filters */}
+          <ChatMainCardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 md:gap-3">
+                {/* Mobile menu toggle */}
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  className="md:hidden h-8 w-8 p-0"
+                  onClick={() => setShowSidebar(!showSidebar)}
+                >
+                  <RiMenuLine className="h-5 w-5" />
+                </Button>
+                <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
+                  AI Chat
+                </h1>
+                {hasActiveFilters && (
+                  <div className="hidden md:flex items-center gap-2">
+                    {filters.dateStart && (
+                      <Badge variant="secondary" className="gap-1">
+                        <RiCalendarLine className="h-3 w-3" />
+                        {format(filters.dateStart, 'MMM d')}
+                        {filters.dateEnd && ` - ${format(filters.dateEnd, 'MMM d')}`}
                       </Badge>
-                    ))}
-                    {availableCategories.length === 0 && (
-                      <p className="text-sm text-cb-ink-muted py-2">No categories indexed yet</p>
                     )}
+                    {filters.speakers.length > 0 && (
+                      <Badge variant="secondary" className="gap-1">
+                        <RiUser3Line className="h-3 w-3" />
+                        {filters.speakers.length} speaker{filters.speakers.length > 1 ? 's' : ''}
+                      </Badge>
+                    )}
+                    {filters.categories.length > 0 && (
+                      <Badge variant="secondary" className="gap-1">
+                        <RiFolder3Line className="h-3 w-3" />
+                        {filters.categories.length} categor{filters.categories.length > 1 ? 'ies' : 'y'}
+                      </Badge>
+                    )}
+                    {filters.recordingIds.length > 0 && (
+                      <Badge variant="secondary" className="gap-1">
+                        <RiVideoLine className="h-3 w-3" />
+                        {filters.recordingIds.length} call{filters.recordingIds.length > 1 ? 's' : ''}
+                      </Badge>
+                    )}
+                    <Button
+                      variant="hollow"
+                      size="sm"
+                      onClick={clearFilters}
+                      className="h-6 px-2 text-xs"
+                    >
+                      <RiCloseLine className="h-3 w-3" />
+                      Clear
+                    </Button>
                   </div>
-                </div>
+                )}
+                {/* Mobile filter indicator */}
+                {hasActiveFilters && (
+                  <Badge variant="secondary" className="md:hidden">
+                    Filtered
+                  </Badge>
+                )}
+              </div>
 
-                <Separator className="my-4" />
+              <div className="flex items-center gap-1 md:gap-2">
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={handleNewChat}
+                  className="gap-1 h-8 px-2 md:px-3"
+                >
+                  <RiAddLine className="h-4 w-4" />
+                  <span className="hidden md:inline">New Chat</span>
+                </Button>
 
-                {/* Specific Calls */}
-                <div>
-                  <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
-                    Specific Calls ({availableCalls.length})
-                  </label>
-                  <ScrollArea className="h-[150px]">
-                    <div className="space-y-2 pr-4">
-                      {availableCalls.map((call) => (
-                        <div
-                          key={call.recording_id}
-                          className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-cb-hover transition-colors"
-                        >
-                          <Checkbox
-                            id={`call-${call.recording_id}`}
-                            checked={filters.recordingIds.includes(call.recording_id)}
-                            onCheckedChange={() => toggleCall(call.recording_id)}
-                            className="mt-0.5"
+                <Popover open={showFilters} onOpenChange={setShowFilters}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={hasActiveFilters ? 'default' : 'outline'}
+                      size="sm"
+                      className="gap-1 h-8 px-2 md:px-3"
+                    >
+                      <RiFilterLine className="h-4 w-4" />
+                      <span className="hidden md:inline">Filters</span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-80 p-0" align="end">
+                    <div className="p-4">
+                      <h3 className="font-display text-sm font-bold uppercase text-cb-ink mb-3">
+                        Filter Transcripts
+                      </h3>
+
+                      {/* Date Range */}
+                      <div className="mb-4">
+                        <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
+                          Date Range
+                        </label>
+                        <DateRangePicker
+                          dateRange={{ from: filters.dateStart, to: filters.dateEnd }}
+                          onDateRangeChange={(range) => {
+                            setFilters(prev => ({
+                              ...prev,
+                              dateStart: range?.from,
+                              dateEnd: range?.to,
+                            }));
+                          }}
+                          placeholder="Select date range"
+                          showQuickSelect={true}
+                          numberOfMonths={2}
+                          disableFuture={false}
+                          triggerClassName="w-full"
+                        />
+                      </div>
+
+                      <Separator className="my-4" />
+
+                      {/* Speakers */}
+                      <div className="mb-4">
+                        <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
+                          Speakers ({availableSpeakers.length})
+                        </label>
+                        <ScrollArea className="h-32">
+                          <div className="space-y-1">
+                            {availableSpeakers.map((speaker) => (
+                              <button
+                                key={speaker.speaker_email || speaker.speaker_name}
+                                onClick={() => toggleSpeaker(speaker.speaker_name)}
+                                className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors ${
+                                  filters.speakers.includes(speaker.speaker_name)
+                                    ? 'bg-vibe-green/10 text-cb-ink'
+                                    : 'hover:bg-cb-hover text-cb-ink-soft'
+                                }`}
+                              >
+                                <span className="truncate">{speaker.speaker_name}</span>
+                                <span className="text-xs text-cb-ink-muted">{speaker.call_count} calls</span>
+                              </button>
+                            ))}
+                            {availableSpeakers.length === 0 && (
+                              <p className="text-sm text-cb-ink-muted py-2">No speakers indexed yet</p>
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </div>
+
+                      <Separator className="my-4" />
+
+                      {/* Categories */}
+                      <div className="mb-4">
+                        <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
+                          Categories ({availableCategories.length})
+                        </label>
+                        <div className="flex flex-wrap gap-1">
+                          {availableCategories.map((cat) => (
+                            <Badge
+                              key={cat.category}
+                              variant={filters.categories.includes(cat.category) ? 'default' : 'outline'}
+                              className="cursor-pointer"
+                              onClick={() => toggleCategory(cat.category)}
+                            >
+                              {cat.category} ({cat.call_count})
+                            </Badge>
+                          ))}
+                          {availableCategories.length === 0 && (
+                            <p className="text-sm text-cb-ink-muted py-2">No categories indexed yet</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <Separator className="my-4" />
+
+                      {/* Specific Calls */}
+                      <div>
+                        <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
+                          Specific Calls ({availableCalls.length})
+                        </label>
+                        <ScrollArea className="h-[150px]">
+                          <div className="space-y-2 pr-4">
+                            {availableCalls.map((call) => (
+                              <div
+                                key={call.recording_id}
+                                className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-cb-hover transition-colors"
+                              >
+                                <Checkbox
+                                  id={`call-${call.recording_id}`}
+                                  checked={filters.recordingIds.includes(call.recording_id)}
+                                  onCheckedChange={() => toggleCall(call.recording_id)}
+                                  className="mt-0.5"
+                                />
+                                <label
+                                  htmlFor={`call-${call.recording_id}`}
+                                  className="flex-1 cursor-pointer text-sm"
+                                >
+                                  <div className="text-cb-ink font-medium truncate">
+                                    {call.title || 'Untitled Call'}
+                                  </div>
+                                  <div className="text-xs text-cb-ink-muted">
+                                    {format(new Date(call.created_at), 'MMM d, yyyy')}
+                                  </div>
+                                </label>
+                              </div>
+                            ))}
+                            {availableCalls.length === 0 && (
+                              <p className="text-sm text-cb-ink-muted py-2">No calls found</p>
+                            )}
+                          </div>
+                        </ScrollArea>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </div>
+          </ChatMainCardHeader>
+
+          {/* Chat content area */}
+          <ChatMainCardContent>
+            <ChatContainerRoot className="h-full">
+              <ChatContainerContent className="px-2 md:px-4 py-4">
+                {/* Kortex-style Welcome/Empty State */}
+                {messages.length === 0 && (
+                  <ChatWelcome
+                    userName={session?.user?.user_metadata?.full_name?.split(' ')[0]}
+                    subtitle="Search across all your calls, find specific discussions, and uncover insights."
+                    onSuggestionClick={handleSuggestionClick}
+                  />
+                )}
+
+                {/* Messages */}
+                {messages.map((message) => {
+                  if (message.role === 'user') {
+                    return (
+                      <UserMessage key={message.id}>
+                        {message.content}
+                      </UserMessage>
+                    );
+                  }
+
+                  if (message.role === 'assistant') {
+                    // Convert AI SDK v3.x toolInvocations to our ToolCallPart format
+                    // v3.x uses toolInvocations with state: 'partial-call' | 'call' | 'result'
+                    const toolParts: ToolCallPart[] = (message.toolInvocations || []).map((invocation) => {
+                      // Map v3.x state to our component state
+                      let state: 'pending' | 'running' | 'success' | 'error' = 'pending';
+                      if (invocation.state === 'partial-call') {
+                        state = 'running';
+                      } else if (invocation.state === 'call') {
+                        state = 'running';
+                      } else if (invocation.state === 'result') {
+                        state = 'success';
+                      }
+
+                      return {
+                        type: invocation.state === 'result' ? 'tool-result' : 'tool-call',
+                        toolName: invocation.toolName,
+                        toolCallId: invocation.toolCallId,
+                        state,
+                        args: invocation.args as Record<string, unknown>,
+                        result: invocation.state === 'result' ? invocation.result as Record<string, unknown> : undefined,
+                      };
+                    });
+
+                    // Extract sources from tool results - handle both searchTranscripts (results array)
+                    // and getCallDetails (single call object with recording_id)
+                    const sources: Array<{
+                      recording_id: number;
+                      text: string;
+                      speaker: string;
+                      call_date: string;
+                      call_title: string;
+                      relevance: string;
+                    }> = [];
+
+                    toolParts.forEach((p) => {
+                      if (p.type === 'tool-result' && p.result) {
+                        // Handle searchTranscripts results array
+                        if (p.result.results && Array.isArray(p.result.results)) {
+                          sources.push(...p.result.results);
+                        }
+                        // Handle getCallDetails single result (has recording_id and title at top level)
+                        else if (p.result.recording_id && p.result.title && !p.result.error) {
+                          sources.push({
+                            recording_id: p.result.recording_id as number,
+                            text: (p.result.summary as string) || '',
+                            speaker: (p.result.recorded_by as string) || '',
+                            call_date: (p.result.date as string) || '',
+                            call_title: (p.result.title as string) || '',
+                            relevance: '100',
+                          });
+                        }
+                      }
+                    });
+
+                    // Dedupe by recording_id and limit to 5
+                    const uniqueSources = sources
+                      .filter((s, i, arr) => arr.findIndex(x => x.recording_id === s.recording_id) === i)
+                      .slice(0, 5);
+
+                    // Determine if we should show content or loading state
+                    const hasContent = message.content && message.content.trim().length > 0;
+                    const isThinking = !hasContent && toolParts.length > 0;
+
+                    return (
+                      <div key={message.id} className="space-y-2">
+                        {toolParts.length > 0 && <ToolCalls parts={toolParts} />}
+                        {hasContent ? (
+                          <AssistantMessage markdown>
+                            {message.content}
+                          </AssistantMessage>
+                        ) : isThinking ? (
+                          <AssistantMessage isLoading />
+                        ) : null}
+                        {uniqueSources.length > 0 && (
+                          <Sources
+                            sources={uniqueSources.map((s, i) => ({
+                              id: `${message.id}-source-${i}`,
+                              recording_id: s.recording_id,
+                              chunk_text: s.text,
+                              speaker_name: s.speaker,
+                              call_date: s.call_date,
+                              call_title: s.call_title,
+                              similarity_score: parseFloat(s.relevance) / 100,
+                            }))}
+                            onViewCall={handleViewCall}
+                            className="ml-11"
                           />
-                          <label
-                            htmlFor={`call-${call.recording_id}`}
-                            className="flex-1 cursor-pointer text-sm"
-                          >
-                            <div className="text-cb-ink font-medium truncate">
+                        )}
+                      </div>
+                    );
+                  }
+
+                  return null;
+                })}
+
+                {/* Loading indicator */}
+                {isLoading && (
+                  <div className="ml-11">
+                    <ThinkingLoader />
+                  </div>
+                )}
+
+                {/* Error message */}
+                {error && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 p-4 text-red-600 dark:text-red-400">
+                    <p className="text-sm">Error: {error.message}</p>
+                  </div>
+                )}
+              </ChatContainerContent>
+              <ChatContainerScrollAnchor />
+              <ScrollButton className="shadow-lg" />
+            </ChatContainerRoot>
+          </ChatMainCardContent>
+
+          {/* Input area - Kortex-style centered container */}
+          <ChatMainCardInputArea>
+            <div className="relative w-full">
+              {/* Mentions popover */}
+              {showMentions && filteredCalls.length > 0 && (
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-card rounded-lg border border-cb-border shadow-lg max-h-64 overflow-y-auto z-50">
+                  <div className="p-2">
+                    <div className="text-xs font-medium text-cb-ink-muted uppercase mb-2 px-2">
+                      <RiAtLine className="inline h-3 w-3 mr-1" />
+                      Mention a call
+                    </div>
+                    <div className="space-y-1">
+                      {filteredCalls.map((call) => (
+                        <button
+                          key={call.recording_id}
+                          onClick={() => handleMentionSelect(call)}
+                          className="w-full flex items-start gap-2 rounded-md px-2 py-2 hover:bg-cb-hover transition-colors text-left"
+                        >
+                          <RiVideoLine className="h-4 w-4 text-cb-ink-muted flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-cb-ink font-medium truncate">
                               {call.title || 'Untitled Call'}
                             </div>
                             <div className="text-xs text-cb-ink-muted">
                               {format(new Date(call.created_at), 'MMM d, yyyy')}
                             </div>
-                          </label>
-                        </div>
+                          </div>
+                        </button>
                       ))}
-                      {availableCalls.length === 0 && (
-                        <p className="text-sm text-cb-ink-muted py-2">No calls found</p>
-                      )}
                     </div>
-                  </ScrollArea>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
-
-      {/* Chat area */}
-      <div className="flex-1 overflow-hidden">
-        <ChatContainerRoot className="h-full">
-          <ChatContainerContent className="px-4 md:px-6 py-4">
-            {/* Welcome message when empty */}
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center h-full text-center">
-                <div className="w-16 h-16 rounded-full bg-vibe-green/10 flex items-center justify-center mb-4">
-                  <RiSendPlaneFill className="h-8 w-8 text-vibe-green" />
-                </div>
-                <h2 className="font-display text-xl font-extrabold uppercase text-cb-ink mb-2">
-                  Chat with your transcripts
-                </h2>
-                <p className="text-cb-ink-soft max-w-md mb-6">
-                  Ask questions about your meeting transcripts. I can search across all your calls,
-                  find specific discussions, and help you uncover insights.
-                </p>
-                <div className="flex flex-wrap gap-2 justify-center">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSuggestionClick('What were the main objections in my recent sales calls?')}
-                  >
-                    Sales objections
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSuggestionClick('Summarize my calls from last week')}
-                  >
-                    Weekly summary
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSuggestionClick('What topics came up most frequently?')}
-                  >
-                    Common topics
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Messages */}
-            {messages.map((message) => {
-              if (message.role === 'user') {
-                return (
-                  <UserMessage key={message.id}>
-                    {message.content}
-                  </UserMessage>
-                );
-              }
-
-              if (message.role === 'assistant') {
-                // Convert AI SDK v3.x toolInvocations to our ToolCallPart format
-                // v3.x uses toolInvocations with state: 'partial-call' | 'call' | 'result'
-                const toolParts: ToolCallPart[] = (message.toolInvocations || []).map((invocation) => {
-                  // Map v3.x state to our component state
-                  let state: 'pending' | 'running' | 'success' | 'error' = 'pending';
-                  if (invocation.state === 'partial-call') {
-                    state = 'running';
-                  } else if (invocation.state === 'call') {
-                    state = 'running';
-                  } else if (invocation.state === 'result') {
-                    state = 'success';
-                  }
-
-                  return {
-                    type: invocation.state === 'result' ? 'tool-result' : 'tool-call',
-                    toolName: invocation.toolName,
-                    toolCallId: invocation.toolCallId,
-                    state,
-                    args: invocation.args as Record<string, unknown>,
-                    result: invocation.state === 'result' ? invocation.result as Record<string, unknown> : undefined,
-                  };
-                });
-
-                // Extract sources from tool results - handle both searchTranscripts (results array)
-                // and getCallDetails (single call object with recording_id)
-                const sources: Array<{
-                  recording_id: number;
-                  text: string;
-                  speaker: string;
-                  call_date: string;
-                  call_title: string;
-                  relevance: string;
-                }> = [];
-
-                toolParts.forEach((p) => {
-                  if (p.type === 'tool-result' && p.result) {
-                    // Handle searchTranscripts results array
-                    if (p.result.results && Array.isArray(p.result.results)) {
-                      sources.push(...p.result.results);
-                    }
-                    // Handle getCallDetails single result (has recording_id and title at top level)
-                    else if (p.result.recording_id && p.result.title && !p.result.error) {
-                      sources.push({
-                        recording_id: p.result.recording_id as number,
-                        text: (p.result.summary as string) || '',
-                        speaker: (p.result.recorded_by as string) || '',
-                        call_date: (p.result.date as string) || '',
-                        call_title: (p.result.title as string) || '',
-                        relevance: '100',
-                      });
-                    }
-                  }
-                });
-
-                // Dedupe by recording_id and limit to 5
-                const uniqueSources = sources
-                  .filter((s, i, arr) => arr.findIndex(x => x.recording_id === s.recording_id) === i)
-                  .slice(0, 5);
-
-                // Determine if we should show content or loading state
-                const hasContent = message.content && message.content.trim().length > 0;
-                const isThinking = !hasContent && toolParts.length > 0;
-
-                return (
-                  <div key={message.id} className="space-y-2">
-                    {toolParts.length > 0 && <ToolCalls parts={toolParts} />}
-                    {hasContent ? (
-                      <AssistantMessage markdown>
-                        {message.content}
-                      </AssistantMessage>
-                    ) : isThinking ? (
-                      <AssistantMessage isLoading />
-                    ) : null}
-                    {uniqueSources.length > 0 && (
-                      <Sources
-                        sources={uniqueSources.map((s, i) => ({
-                          id: `${message.id}-source-${i}`,
-                          recording_id: s.recording_id,
-                          chunk_text: s.text,
-                          speaker_name: s.speaker,
-                          call_date: s.call_date,
-                          call_title: s.call_title,
-                          similarity_score: parseFloat(s.relevance) / 100,
-                        }))}
-                        onViewCall={handleViewCall}
-                        className="ml-11"
-                      />
-                    )}
                   </div>
-                );
-              }
-
-              return null;
-            })}
-
-            {/* Loading indicator */}
-            {isLoading && (
-              <div className="ml-11">
-                <ThinkingLoader />
-              </div>
-            )}
-
-            {/* Error message */}
-            {error && (
-              <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 p-4 text-red-600 dark:text-red-400">
-                <p className="text-sm">Error: {error.message}</p>
-              </div>
-            )}
-          </ChatContainerContent>
-          <ChatContainerScrollAnchor />
-          <ScrollButton className="shadow-lg" />
-        </ChatContainerRoot>
-      </div>
-
-      {/* Input area - Kortex-style centered container */}
-      <div className="border-t border-cb-border bg-card px-4 py-4">
-        <div className="relative w-full max-w-[800px] mx-auto">
-          {/* Mentions popover */}
-          {showMentions && filteredCalls.length > 0 && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 bg-card rounded-lg border border-cb-border shadow-lg max-h-64 overflow-y-auto z-50">
-              <div className="p-2">
-                <div className="text-xs font-medium text-cb-ink-muted uppercase mb-2 px-2">
-                  <RiAtLine className="inline h-3 w-3 mr-1" />
-                  Mention a call
                 </div>
-                <div className="space-y-1">
-                  {filteredCalls.map((call) => (
-                    <button
-                      key={call.recording_id}
-                      onClick={() => handleMentionSelect(call)}
-                      className="w-full flex items-start gap-2 rounded-md px-2 py-2 hover:bg-cb-hover transition-colors text-left"
-                    >
-                      <RiVideoLine className="h-4 w-4 text-cb-ink-muted flex-shrink-0 mt-0.5" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm text-cb-ink font-medium truncate">
-                          {call.title || 'Untitled Call'}
-                        </div>
-                        <div className="text-xs text-cb-ink-muted">
-                          {format(new Date(call.created_at), 'MMM d, yyyy')}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          <PromptInput
-            value={input}
-            onValueChange={handleInputChangeWithMentions}
-            onSubmit={() => handleChatSubmit()}
-            isLoading={isLoading}
-          >
-            {/* Kortex-style Context Bar */}
-            <PromptInputContextBar
-              onAddContext={() => {
-                // TODO: Open context/attachment picker
-                console.log('Add context clicked');
-              }}
-            />
-
-            {/* Main textarea */}
-            <PromptInputTextarea
-              ref={textareaRef}
-              placeholder="Ask about your transcripts... (type @ to mention a call)"
-              disabled={isLoading}
-              className="px-4 py-2"
-            />
-
-            {/* Kortex-style Footer with model selector and submit */}
-            <PromptInputFooter>
-              <PromptInputFooterLeft>
-                <ModelSelector
-                  value="gpt-4o"
-                  onValueChange={(modelId) => {
-                    // TODO: Handle model change
-                    console.log('Model changed:', modelId);
+              <PromptInput
+                value={input}
+                onValueChange={handleInputChangeWithMentions}
+                onSubmit={() => handleChatSubmit()}
+                isLoading={isLoading}
+              >
+                {/* Kortex-style Context Bar */}
+                <PromptInputContextBar
+                  onAddContext={() => {
+                    // TODO: Open context/attachment picker
+                    console.log('Add context clicked');
                   }}
                 />
-              </PromptInputFooterLeft>
-              <PromptInputFooterRight>
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={!input.trim() || isLoading}
-                  className="gap-1"
-                >
-                  <RiSendPlaneFill className="h-4 w-4" />
-                  Send
-                </Button>
-              </PromptInputFooterRight>
-            </PromptInputFooter>
-          </PromptInput>
 
-          {/* Kortex-style Keyboard Hint Bar */}
-          <PromptInputHintBar>
-            <KeyboardHint label="Send with" shortcut="Enter" />
-            <KeyboardHint label="New line" shortcut="Shift+Enter" />
-          </PromptInputHintBar>
-        </div>
-      </div>
+                {/* Main textarea */}
+                <PromptInputTextarea
+                  ref={textareaRef}
+                  placeholder="Ask about your transcripts... (type @ to mention a call)"
+                  disabled={isLoading}
+                  className="px-4 py-2"
+                />
+
+                {/* Kortex-style Footer with model selector and submit */}
+                <PromptInputFooter>
+                  <PromptInputFooterLeft>
+                    <ModelSelector
+                      value="gpt-4o"
+                      onValueChange={(modelId) => {
+                        // TODO: Handle model change
+                        console.log('Model changed:', modelId);
+                      }}
+                    />
+                  </PromptInputFooterLeft>
+                  <PromptInputFooterRight>
+                    <Button
+                      type="submit"
+                      size="sm"
+                      disabled={!input.trim() || isLoading}
+                      className="gap-1"
+                    >
+                      <RiSendPlaneFill className="h-4 w-4" />
+                      Send
+                    </Button>
+                  </PromptInputFooterRight>
+                </PromptInputFooter>
+              </PromptInput>
+
+              {/* Kortex-style Keyboard Hint Bar */}
+              <PromptInputHintBar>
+                <KeyboardHint label="Send with" shortcut="Enter" />
+                <KeyboardHint label="New line" shortcut="Shift+Enter" />
+              </PromptInputHintBar>
+            </div>
+          </ChatMainCardInputArea>
+        </ChatMainCard>
       </div>
 
       {/* Call Detail Dialog for viewing source citations */}

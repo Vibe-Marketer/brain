@@ -1,5 +1,4 @@
 import * as React from 'react';
-import { format } from 'date-fns';
 import {
   RiAddLine,
   RiDeleteBinLine,
@@ -49,24 +48,8 @@ interface ChatSidebarProps {
   onToggleArchive: (sessionId: string, isArchived: boolean) => void;
 }
 
-// Helper functions extracted outside component for better performance
-const formatSessionDate = (dateString: string | null): string => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffInDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (diffInDays === 0) return 'Today';
-  if (diffInDays === 1) return 'Yesterday';
-  if (diffInDays < 7) return `${diffInDays} days ago`;
-  return format(date, 'MMM d');
-};
-
-const getSessionTitle = (session: ChatSession): string => {
-  return session.title || 'New conversation';
-};
-
-// Extracted SessionItem component with React.memo for performance
+// ChatGPT-style compact session item
+// Fixed height: 36px, single line, title truncates, menu always visible
 interface SessionItemProps {
   session: ChatSession;
   isActive: boolean;
@@ -84,60 +67,49 @@ const SessionItem = React.memo(function SessionItem({
   onToggleArchive,
   onDelete,
 }: SessionItemProps) {
+  const title = session.title || 'New conversation';
+
   return (
     <div
-      className={`group relative flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors cursor-pointer ${
-        isActive
-          ? 'bg-vibe-green/10 border-l-[3px] border-vibe-green pl-[9px]'
-          : 'hover:bg-cb-hover border-l-[3px] border-transparent pl-[9px]'
-      }`}
+      className={`
+        group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer
+        transition-colors duration-150 overflow-hidden
+        ${isActive
+          ? 'bg-cb-hover'
+          : 'hover:bg-cb-hover/50'
+        }
+      `}
       onClick={() => onSelect(session.id)}
     >
-      <RiChat3Line
-        className={`h-4 w-4 mt-0.5 flex-shrink-0 ${
-          isActive ? 'text-cb-ink' : 'text-cb-ink-muted'
-        }`}
-        aria-hidden="true"
-      />
+      {/* Title - truncates with ellipsis */}
+      <span
+        className={`
+          flex-1 min-w-0 truncate text-sm
+          ${isActive ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'}
+        `}
+        dir="auto"
+      >
+        {title}
+      </span>
 
-      <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
-          <h3
-            className={`text-sm font-medium truncate ${
-              isActive ? 'text-cb-ink' : 'text-cb-ink-soft'
-            }`}
-          >
-            {getSessionTitle(session)}
-          </h3>
-          {session.is_pinned && (
-            <RiPushpinFill className="h-3 w-3 text-cb-ink-muted flex-shrink-0" aria-label="Pinned" />
-          )}
-        </div>
+      {/* Pin indicator (small, inline) */}
+      {session.is_pinned && (
+        <RiPushpinFill className="h-3 w-3 text-cb-ink-muted flex-shrink-0 mr-1" aria-label="Pinned" />
+      )}
 
-        <div className="flex items-center gap-2 mt-1">
-          <span className="text-xs text-cb-ink-muted">
-            {session.message_count} {session.message_count === 1 ? 'message' : 'messages'}
-          </span>
-          <span className="text-xs text-cb-ink-muted">•</span>
-          <span className="text-xs text-cb-ink-muted">
-            {formatSessionDate(session.last_message_at || session.created_at)}
-          </span>
-        </div>
-      </div>
-
+      {/* 3-dot menu - ALWAYS visible */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="hollow"
-            size="icon"
-            className="h-6 w-6 opacity-0 group-hover:opacity-100 flex-shrink-0"
+          <button
+            type="button"
+            className="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded hover:bg-cb-border/50 transition-colors"
             onClick={(e) => e.stopPropagation()}
-            aria-label="Session options"
+            aria-label="Options"
           >
-            <RiMoreLine className="h-4 w-4" />
-          </Button>
+            <RiMoreLine className="h-5 w-5 text-cb-ink-muted" />
+          </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation();
@@ -224,14 +196,14 @@ export function ChatSidebar({
           </Button>
         </div>
 
-        {/* Sessions list */}
+        {/* Sessions list - compact padding */}
         <ScrollArea className="flex-1 overflow-hidden">
-          <div className="p-3 space-y-1 overflow-hidden">
+          <div className="p-2 space-y-0.5 overflow-hidden">
             {/* Pinned sessions */}
             {pinnedSessions.length > 0 && (
-              <div className="mb-4">
-                <div className="px-3 py-1 mb-1">
-                  <span className="text-xs font-medium text-cb-ink-muted uppercase">Pinned</span>
+              <div className="mb-2">
+                <div className="px-2 py-1">
+                  <span className="text-[11px] text-cb-ink-muted">Pinned</span>
                 </div>
                 {pinnedSessions.map((session) => (
                   <SessionItem
@@ -251,8 +223,8 @@ export function ChatSidebar({
             {unpinnedSessions.length > 0 && (
               <div>
                 {pinnedSessions.length > 0 && (
-                  <div className="px-3 py-1 mb-1">
-                    <span className="text-xs font-medium text-cb-ink-muted uppercase">Recent</span>
+                  <div className="px-2 py-1">
+                    <span className="text-[11px] text-cb-ink-muted">Recent</span>
                   </div>
                 )}
                 {unpinnedSessions.map((session) => (
@@ -272,11 +244,9 @@ export function ChatSidebar({
             {/* Empty state */}
             {sessions.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <RiChat3Line className="h-12 w-12 text-cb-ink-muted mb-3" aria-hidden="true" />
+                <RiChat3Line className="h-10 w-10 text-cb-ink-muted mb-3" aria-hidden="true" />
                 <p className="text-sm text-cb-ink-soft mb-1">No conversations yet</p>
-                <p className="text-xs text-cb-ink-muted">
-                  Start a new chat to begin asking questions
-                </p>
+                <p className="text-xs text-cb-ink-muted">Start a new chat</p>
               </div>
             )}
           </div>
