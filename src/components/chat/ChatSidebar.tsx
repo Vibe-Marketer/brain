@@ -213,7 +213,7 @@ export function ChatSidebar({
 
   return (
     <>
-      <div className="flex h-full flex-col bg-card border-r border-cb-border">
+      <div className="flex h-full flex-col bg-card border-r border-cb-border overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-cb-border px-4 py-3">
           <h2 className="font-montserrat text-sm font-extrabold uppercase text-cb-ink">
@@ -225,8 +225,8 @@ export function ChatSidebar({
         </div>
 
         {/* Sessions list */}
-        <ScrollArea className="flex-1">
-          <div className="p-3 space-y-1">
+        <ScrollArea className="flex-1 overflow-hidden">
+          <div className="p-3 space-y-1 overflow-hidden">
             {/* Pinned sessions */}
             {pinnedSessions.length > 0 && (
               <div className="mb-4">
