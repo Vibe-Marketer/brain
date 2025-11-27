@@ -574,7 +574,3 @@ export default function Chat() {
 7. **The ONLY difference:** BG-CARD-MAIN has no navigation; BG-CARD-INNER has a header with navigation buttons.
 
 **Think:** Browser window (BG-CARD-MAIN) → Sidebar (navigation) → Website (BG-CARD-INNER)
-
-That's it! Everything else is just details.
-
-Sources
