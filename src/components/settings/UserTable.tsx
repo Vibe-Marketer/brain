@@ -72,9 +72,9 @@ export const UserTable = React.memo(({
   onManageUser,
   showActions = true,
 }: UserTableProps) => {
-  const { sortField, sortDirection, sortedData: sortedUsers, handleSort } = useTableSort(users, "created_at");
+  const { sortField, sortedData: sortedUsers, handleSort } = useTableSort(users, "created_at");
 
-  const SortButton = ({ field, children }: { field: any; children: React.ReactNode }) => (
+  const SortButton = ({ field, children }: { field: keyof UserProfile; children: React.ReactNode }) => (
     <button
       onClick={() => handleSort(field)}
       className="h-8 px-2 inline-flex items-center justify-center gap-2 hover:bg-muted/50 font-medium text-sm rounded-md transition-colors cursor-pointer"
@@ -138,7 +138,7 @@ export const UserTable = React.memo(({
                     <Select
                       value={user.role}
                       onValueChange={(value) =>
-                        onRoleChange(user.user_id, value as any)
+                        onRoleChange(user.user_id, value as "FREE" | "PRO" | "TEAM" | "ADMIN")
                       }
                     >
                       <SelectTrigger className="w-32">

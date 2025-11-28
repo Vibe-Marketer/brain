@@ -1,5 +1,8 @@
 import type { Config } from "tailwindcss";
 import colors from "tailwindcss/colors";
+import tailwindcssAnimate from "tailwindcss-animate";
+import headlessuiTailwindcss from "@headlessui/tailwindcss";
+import tailwindcssForms from "@tailwindcss/forms";
 
 // Tailwind deprecated these color aliases in v3. Accessing them (even via destructuring)
 // triggers console warnings. Using Object.keys + filter avoids accessing the deprecated getters.
@@ -360,8 +363,8 @@ export default {
     },
   ],
   plugins: [
-    require("tailwindcss-animate"), 
-    require("@headlessui/tailwindcss"), 
-    require("@tailwindcss/forms")
+    tailwindcssAnimate,
+    headlessuiTailwindcss,
+    tailwindcssForms
   ],
 } satisfies Config;

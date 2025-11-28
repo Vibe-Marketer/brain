@@ -232,7 +232,7 @@ export function PromptInputContextBar({
     if (!searchQuery) return availableCalls.slice(0, 20);
     const query = searchQuery.toLowerCase();
     return availableCalls
-      .filter(call => call.title.toLowerCase().includes(query))
+      .filter(call => call.title?.toLowerCase().includes(query))
       .slice(0, 20);
   }, [availableCalls, searchQuery]);
 

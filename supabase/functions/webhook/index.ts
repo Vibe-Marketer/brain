@@ -260,8 +260,6 @@ Deno.serve(async (req) => {
   
   let meeting: any;
   let userId: string | null = null;
-  let signatureValid = false;
-  let deliveryStatus = 'failed';
   let errorMessage: string | null = null;
   
   try {
@@ -383,7 +381,6 @@ Deno.serve(async (req) => {
     
     // Verify webhook signature
     const isValid = await verifyWebhookSignature(webhookSecret, req.headers, rawBody);
-    signatureValid = isValid;
     console.log('Signature verification:', isValid ? 'VALID' : 'INVALID');
     
     if (!isValid) {
@@ -430,8 +427,7 @@ Deno.serve(async (req) => {
 
     if (existing) {
       console.log('Webhook already processed:', webhookId);
-      deliveryStatus = 'duplicate';
-      
+
       // Log duplicate delivery
       if (userId) {
         await supabase.from('webhook_deliveries').insert({

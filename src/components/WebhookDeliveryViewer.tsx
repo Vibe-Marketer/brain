@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { RiRefreshLine, RiCheckboxCircleLine, RiCloseCircleLine, RiAlertLine, RiArrowDownSLine, RiArrowUpSLine, RiExternalLinkLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
 import {
   Collapsible,
   CollapsibleContent,
@@ -20,8 +19,13 @@ interface WebhookDelivery {
   recording_id: number | null;
   status: string;
   error_message: string | null;
-  request_headers: any;
-  request_body: any;
+  request_headers: Record<string, string> | null;
+  request_body: {
+    url?: string;
+    title?: string;
+    recorded_by?: { email?: string };
+    [key: string]: unknown;
+  } | null;
   signature_valid: boolean | null;
   created_at: string;
   user_id: string;

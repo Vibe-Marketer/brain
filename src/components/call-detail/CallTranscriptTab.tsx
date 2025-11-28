@@ -12,6 +12,7 @@ import { RiDownloadLine, RiFileCopyLine, RiRefreshLine } from "@remixicon/react"
 import { saveAs } from "file-saver";
 import { TranscriptSegmentContextMenu } from "@/components/transcript-library/TranscriptSegmentContextMenu";
 import { groupTranscriptsBySpeaker } from "@/lib/transcriptUtils";
+import { Meeting, TranscriptSegmentDisplay, Speaker } from "@/types";
 
 /**
  * View state for the transcript tab - groups all UI state together
@@ -40,13 +41,21 @@ export interface TranscriptHandlers {
 }
 
 /**
+ * User settings relevant to transcript display
+ */
+interface UserSettings {
+  host_email?: string;
+  [key: string]: unknown;
+}
+
+/**
  * Data props for the transcript tab - groups all data together
  */
 export interface TranscriptData {
-  call: any;
-  transcripts: any[];
-  userSettings: any;
-  callSpeakers: any[];
+  call: Meeting;
+  transcripts: TranscriptSegmentDisplay[];
+  userSettings: UserSettings | null;
+  callSpeakers: Speaker[];
 }
 
 /**
@@ -96,7 +105,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
   } = handlers;
 
   // Helper to update view state
-  const updateViewState = (key: keyof TranscriptViewState, value: any) => {
+  const updateViewState = <K extends keyof TranscriptViewState>(key: K, value: TranscriptViewState[K]) => {
     onViewStateChange({ [key]: value });
   };
   return (
@@ -357,7 +366,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                             const blob = new Blob([jsonData], { type: "application/json" });
                             saveAs(blob, `${call.title.replace(/[^a-z0-9]/gi, "_")}_raw_data.json`);
                             toast.success("JSON data exported");
-                          } catch (error) {
+                          } catch {
                             toast.error("Failed to export JSON data");
                           }
                         }}

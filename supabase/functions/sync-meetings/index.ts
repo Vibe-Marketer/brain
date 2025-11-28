@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
     }
 
     // Determine authentication method - prefer OAuth if available and valid
-    let authHeaders: Record<string, string> = {
+    const authHeaders: Record<string, string> = {
       'Content-Type': 'application/json',
     };
 

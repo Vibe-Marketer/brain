@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { RiFolderOpenLine, RiAddLine, RiPencilLine } from "@remixicon/react";
 import {
   Dialog,
@@ -8,12 +7,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 interface Category {
   id: string;

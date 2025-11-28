@@ -115,7 +115,7 @@ export function useMentions({
 
     const search = mentionSearch.toLowerCase();
     return availableCalls
-      .filter(call => call.title.toLowerCase().includes(search))
+      .filter(call => call.title?.toLowerCase().includes(search))
       .slice(0, maxResults);
   }, [availableCalls, mentionSearch, maxResults]);
 

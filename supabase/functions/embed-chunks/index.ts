@@ -75,7 +75,7 @@ function chunkTranscript(
     formattedText: string;
     tokens: number;
   }
-  let overlapBuffer: SegmentWithTokens[] = [];
+  const overlapBuffer: SegmentWithTokens[] = [];
   let overlapBufferTokens = 0;
 
   for (const segment of segments) {

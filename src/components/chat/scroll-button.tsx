@@ -8,7 +8,7 @@ interface ScrollButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement
   threshold?: number;
 }
 
-export function ScrollButton({ className, threshold = 50, ...props }: ScrollButtonProps) {
+export function ScrollButton({ className, threshold: _threshold = 50, ...props }: ScrollButtonProps) {
   const { isAtBottom, scrollToBottom } = useChatContainer();
 
   if (isAtBottom) {

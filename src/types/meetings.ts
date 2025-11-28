@@ -49,6 +49,7 @@ export interface Meeting {
   synced?: boolean;
   user_id?: string;
   synced_at?: string;
+  auto_tags?: string[] | null;
 }
 
 export interface MeetingWithTranscripts extends Meeting {

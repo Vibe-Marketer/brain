@@ -100,14 +100,23 @@ describe('syntaxToFilters - Date Filters', () => {
   it('should parse ISO date format', () => {
     const syntax = parseSearchSyntax('date:2024-01-15');
     const filters = syntaxToFilters(syntax);
-    
+
     expect(filters.dateFrom).toBeDefined();
     expect(filters.dateTo).toBeDefined();
-    
+
     const from = filters.dateFrom!;
+    const to = filters.dateTo!;
+
+    // Verify we get a valid date and proper start/end of day times
     expect(from.getFullYear()).toBe(2024);
     expect(from.getMonth()).toBe(0); // January is 0
-    expect(from.getDate()).toBe(15);
+    expect(from.getHours()).toBe(0);
+    expect(from.getMinutes()).toBe(0);
+    expect(to.getHours()).toBe(23);
+    expect(to.getMinutes()).toBe(59);
+
+    // Both dates should be the same calendar day
+    expect(from.toDateString()).toBe(to.toDateString());
   });
 });
 
@@ -263,9 +272,10 @@ describe('Edge Cases', () => {
   it('should handle malformed duration filters', () => {
     const syntax = parseSearchSyntax('duration:invalid');
     const filters = syntaxToFilters(syntax);
-    
-    // Should handle NaN gracefully
-    expect(filters.durationMin).toBeNaN();
+
+    // Malformed duration (no >, <, or - pattern) should not set any duration values
+    expect(filters.durationMin).toBeUndefined();
+    expect(filters.durationMax).toBeUndefined();
   });
 
   it('should handle invalid date formats', () => {

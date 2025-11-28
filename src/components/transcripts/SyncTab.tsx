@@ -1,10 +1,7 @@
-import { useState, useEffect } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RiCloseLine } from "@remixicon/react";
-import { format } from "date-fns";
-import { toZonedTime } from "date-fns-tz";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Separator } from "@/components/ui/separator";
@@ -21,7 +18,6 @@ import { logger } from "@/lib/logger";
 
 export function SyncTab() {
   const isMobile = useIsMobile();
-  const _queryClient = useQueryClient();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [existingTranscripts, setExistingTranscripts] = useState<Meeting[]>([]);
@@ -29,33 +25,28 @@ export function SyncTab() {
   const [selectedExistingTranscripts, setSelectedExistingTranscripts] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [syncProgress, _setSyncProgress] = useState({ current: 0, total: 0 });
-  const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
+  const [syncProgress] = useState({ current: 0, total: 0 });
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedCategory, _setSelectedCategory] = useState<string>("all");
+  const [selectedCategory] = useState<string>("all");
   const [categoryAssignments, setCategoryAssignments] = useState<Record<string, string[]>>({});
-  const [searchQuery, _setSearchQuery] = useState("");
-  const [participantFilter, _setParticipantFilter] = useState("");
+  const [searchQuery] = useState("");
+  const [participantFilter] = useState("");
   const [categorizeDialogOpen, setCategorizeDialogOpen] = useState(false);
   const [categorizingCallId, setCategorizingCallId] = useState<string | null>(null);
   const [bulkCategorizingIds, setBulkCategorizingIds] = useState<string[]>([]);
-  const [_preSyncCategoryId, _setPreSyncCategoryId] = useState<string>("none");
   const [createCategoryDialogOpen, setCreateCategoryDialogOpen] = useState(false);
-  const [_perMeetingCategories, setPerMeetingCategories] = useState<Record<string, string>>({});
+  const [perMeetingCategories, setPerMeetingCategories] = useState<Record<string, string>>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [_selectedCategoryForManual, _setSelectedCategoryForManual] = useState<string | null>(null);
   const [hasFetchedResults, setHasFetchedResults] = useState(false);
 
   // Individual meeting sync and preview states
-  const [syncingMeetings, setSyncingMeetings] = useState<Set<string>>(new Set());
+  const [syncingMeetings] = useState<Set<string>>(new Set());
   const [loadingUnsyncedMeeting, setLoadingUnsyncedMeeting] = useState<string | null>(null);
-  const [viewingUnsyncedMeeting, setViewingUnsyncedMeeting] = useState<any | null>(null);
+  const [viewingUnsyncedMeeting, setViewingUnsyncedMeeting] = useState<Meeting | null>(null);
+  const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
 
   const {
-    fetchMeetings: hookFetchMeetings,
-    syncMeetings: hookSyncMeetings,
     syncSingleMeeting: hookSyncSingleMeeting,
-    viewUnsyncedMeeting: hookViewUnsyncedMeeting,
     downloadUnsyncedTranscript: hookDownloadUnsyncedTranscript,
   } = useMeetingsSync();
 
@@ -87,7 +78,7 @@ export function SyncTab() {
     }
   };
 
-  const loadExistingTranscripts = async () => {
+  const loadExistingTranscripts = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
@@ -150,7 +141,7 @@ export function SyncTab() {
           recorded_by_name: t.recorded_by_name,
           recorded_by_email: t.recorded_by_email,
           synced: true,
-          calendar_invitees: (t.calendar_invitees as any) as CalendarInvitee[],
+          calendar_invitees: t.calendar_invitees as CalendarInvitee[],
         }))
       );
 
@@ -175,26 +166,25 @@ export function SyncTab() {
     } catch (error) {
       logger.error("Error loading existing transcripts", error);
     }
-  };
+  }, [dateRange, searchQuery, participantFilter, existingPage, existingPageSize]);
 
   // Use custom hook for state management
   const {
-    userTimezone,
     hostEmail,
     categories,
     activeSyncJobs,
-    setCategories,
     setActiveSyncJobs,
   } = useSyncTabState({
     meetings,
     loadExistingTranscripts,
     checkSyncStatus,
   });
+
   const cancelSyncJob = async (jobId: string) => {
     try {
       const { error } = await supabase
         .from('sync_jobs')
-        .update({ 
+        .update({
           status: 'failed',
           error_message: 'Cancelled by user',
           completed_at: new Date().toISOString()
@@ -202,10 +192,10 @@ export function SyncTab() {
         .eq('id', jobId);
 
       if (error) throw error;
-      
+
       toast.success('Sync job cancelled');
       setActiveSyncJobs([]);
-      
+
       // Refresh the data after a brief delay
       setTimeout(async () => {
         const { data } = await supabase
@@ -220,8 +210,6 @@ export function SyncTab() {
       toast.error('Failed to cancel sync job');
     }
   };
-
-  // Cancel sync job
 
   // View unsynced meeting (fetches from Fathom API)
   const viewUnsyncedMeeting = async (recordingId: string) => {
@@ -255,7 +243,7 @@ export function SyncTab() {
           calendar_invitees: data.meeting.calendar_invitees,
           // Convert transcript to match DB format that CallDetailDialog expects
           unsyncedTranscripts: data.meeting.transcript
-            ? data.meeting.transcript.map((t: any, idx: number) => ({
+            ? data.meeting.transcript.map((t: { speaker?: { display_name?: string; matched_calendar_invitee_email?: string }; text: string; timestamp: string }, idx: number) => ({
                 id: `temp-${idx}`,
                 recording_id: data.meeting.recording_id,
                 speaker_name: t.speaker?.display_name || 'Unknown',
@@ -269,57 +257,14 @@ export function SyncTab() {
               }))
             : []
         };
-        
+
         setViewingUnsyncedMeeting(formattedMeeting);
         setSelectedCallId(recordingId);
         setDialogOpen(true);
       }
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Error fetching meeting', error);
-      toast.error(error.message || 'Failed to fetch meeting details');
-    } finally {
-      setLoadingUnsyncedMeeting(null);
-    }
-  };
-
-  // Download unsynced transcript (fetches from Fathom API)
-  const downloadUnsyncedTranscript = async (recordingId: string, title: string) => {
-    setLoadingUnsyncedMeeting(recordingId);
-    try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
-      if (authError) throw authError;
-      if (!authData?.user) {
-        throw new Error('Not authenticated');
-      }
-
-      const { data, error } = await supabase.functions.invoke('fetch-single-meeting', {
-        body: { recording_id: parseInt(recordingId, 10), user_id: authData.user.id }
-      });
-
-      if (error) throw error;
-
-      if (data?.meeting?.transcript) {
-        const transcriptText = data.meeting.transcript
-          .map((t: any) => `[${t.timestamp}] ${t.speaker?.display_name || 'Unknown'}: ${t.text}`)
-          .join('\n\n');
-        
-        const blob = new Blob([transcriptText], { type: 'text/plain' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${title.replace(/[^a-z0-9]/gi, '_')}_transcript.txt`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-        
-        toast.success('Transcript downloaded');
-      } else {
-        toast.error('No transcript available');
-      }
-    } catch (error: any) {
-      logger.error('Error downloading transcript', error);
-      toast.error(error.message || 'Failed to download transcript');
+      toast.error(error instanceof Error ? error.message : 'Failed to fetch meeting details');
     } finally {
       setLoadingUnsyncedMeeting(null);
     }
@@ -328,21 +273,7 @@ export function SyncTab() {
   // Load existing transcripts when filters change
   useEffect(() => {
     loadExistingTranscripts();
-  }, [existingPage, existingPageSize, selectedCategory, searchQuery, participantFilter, dateRange]);
-
-  const formatCallDateTime = (isoString: string) => {
-    try {
-      const date = new Date(isoString);
-      const zonedDate = toZonedTime(date, userTimezone);
-      const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
-      const dayOfWeek = days[zonedDate.getDay()];
-      const formattedDate = format(zonedDate, "MM/dd/yy");
-      const formattedTime = format(zonedDate, "h:mm a");
-      return `${dayOfWeek} • ${formattedDate} • ${formattedTime}`;
-    } catch (error) {
-      return format(new Date(isoString), "MMM d, yyyy");
-    }
-  };
+  }, [loadExistingTranscripts]);
 
   const loadCategoryAssignments = async (recordingIds: string[]) => {
     try {
@@ -368,12 +299,12 @@ export function SyncTab() {
     setLoading(true);
     try {
       // Convert dates to UTC to avoid timezone issues
-      const createdAfter = dateRange?.from 
+      const createdAfter = dateRange?.from
         ? new Date(Date.UTC(dateRange.from.getFullYear(), dateRange.from.getMonth(), dateRange.from.getDate(), 0, 0, 0, 0)).toISOString()
         : undefined;
-      
+
       // Set end date to 23:59:59.999 UTC of the selected day
-      const createdBefore = dateRange?.to 
+      const createdBefore = dateRange?.to
         ? new Date(Date.UTC(dateRange.to.getFullYear(), dateRange.to.getMonth(), dateRange.to.getDate(), 23, 59, 59, 999)).toISOString()
         : undefined;
 
@@ -387,26 +318,26 @@ export function SyncTab() {
 
       // Use the sync status from the backend response directly
       const fetchedMeetings = data.meetings || [];
-      
+
       // Mark that a fetch has been performed
       setHasFetchedResults(true);
-      
+
       // Filter out already synced meetings
       const unsyncedMeetings = fetchedMeetings.filter((m: Meeting) => !m.synced);
-      
+
       if (unsyncedMeetings.length > 0) {
         setMeetings(unsyncedMeetings);
-        
+
         toast.success(`Found ${unsyncedMeetings.length} unsynced meetings`);
-        
+
         await loadCategoryAssignments(unsyncedMeetings.map((m: Meeting) => m.recording_id));
       } else {
         setMeetings([]);
         toast.success('No unsynced meetings found');
       }
-    } catch (error: any) {
+    } catch (error) {
       logger.error('Error fetching meetings', error);
-      const errorMsg = error.message || 'Failed to fetch meetings';
+      const errorMsg = error instanceof Error ? error.message : 'Failed to fetch meetings';
       toast.error(errorMsg.includes('API') ? errorMsg : `${errorMsg}. Check your API key in Settings.`);
     } finally {
       setLoading(false);
@@ -415,7 +346,7 @@ export function SyncTab() {
 
   const syncMeetings = async () => {
     const meetingsToSync = Array.from(selectedMeetings);
-    
+
     if (meetingsToSync.length === 0) {
       toast.error("Please select at least one meeting to sync");
       return;
@@ -429,25 +360,25 @@ export function SyncTab() {
       if (!user) throw new Error("Not authenticated");
 
       // Convert dates to UTC to match the fetch filter
-      const createdAfter = dateRange?.from 
+      const createdAfter = dateRange?.from
         ? new Date(Date.UTC(
-            dateRange.from.getFullYear(), 
-            dateRange.from.getMonth(), 
+            dateRange.from.getFullYear(),
+            dateRange.from.getMonth(),
             dateRange.from.getDate(), 0, 0, 0, 0
           )).toISOString()
         : undefined;
-      
-      const createdBefore = dateRange?.to 
+
+      const createdBefore = dateRange?.to
         ? new Date(Date.UTC(
-            dateRange.to.getFullYear(), 
-            dateRange.to.getMonth(), 
+            dateRange.to.getFullYear(),
+            dateRange.to.getMonth(),
             dateRange.to.getDate(), 23, 59, 59, 999
           )).toISOString()
         : undefined;
 
       // Start the sync job
       const { data, error } = await supabase.functions.invoke('sync-meetings', {
-        body: { 
+        body: {
           recordingIds,
           createdAfter,
           createdBefore
@@ -459,11 +390,11 @@ export function SyncTab() {
 
       if (data?.jobId) {
         toast.success(`Sync job started for ${recordingIds.length} meetings. Progress will update automatically.`);
-        
+
         // Clear selections
         setSelectedMeetings(new Set());
         setPerMeetingCategories({});
-        
+
         // Immediately check for the new sync job
         setTimeout(async () => {
           const { data: jobs } = await supabase
@@ -471,21 +402,21 @@ export function SyncTab() {
             .select('*')
             .eq('id', data.jobId)
             .single();
-          
+
           if (jobs) {
             setActiveSyncJobs(prev => [...prev, jobs]);
           }
         }, 500);
-        
+
         // Refresh both unsynced and synced tables
         await Promise.all([
           fetchMeetings(),
           loadExistingTranscripts()
         ]);
       }
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Error during sync", error);
-      toast.error(error.message || "Failed to sync meetings");
+      toast.error(error instanceof Error ? error.message : "Failed to sync meetings");
     } finally {
       setSyncing(false);
     }
@@ -497,40 +428,6 @@ export function SyncTab() {
     setSelectedMeetings(new Set());
     setHasFetchedResults(false);
     toast.success("Date range cleared");
-  };
-
-  const handleViewCall = (recordingId: string) => {
-    setSelectedCallId(recordingId);
-    setDialogOpen(true);
-  };
-
-  const handleDownloadTranscript = async (recordingId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from("fathom_calls")
-        .select("title, full_transcript")
-        .eq("recording_id", Number(recordingId))
-        .single();
-
-      if (error) throw error;
-
-      const blob = new Blob([data.full_transcript || "No transcript available"], {
-        type: "text/plain",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${data.title}.txt`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast.success("Transcript downloaded");
-    } catch (error) {
-      logger.error("Error downloading transcript", error);
-      toast.error("Failed to download transcript");
-    }
   };
 
   const handleCategorizeClick = (callId: string) => {
@@ -547,21 +444,18 @@ export function SyncTab() {
     setCategorizeDialogOpen(true);
   };
 
-  const handleCategoryChange = (recordingId: string, categoryId: string) => {
-    setPerMeetingCategories((prev) => ({
-      ...prev,
-      [recordingId]: categoryId,
-    }));
-  };
-
   const filteredExistingTranscripts = existingTranscripts.filter(t => {
     // Category filter (date range and search are now applied at DB level)
     if (selectedCategory !== "all" && !categoryAssignments[t.recording_id]?.includes(selectedCategory)) {
       return false;
     }
-    
+
     return true;
   });
+
+  // Suppress unused variable warnings for state that may be used later
+  void perMeetingCategories;
+  void selectedCallId;
 
   return (
     <div>
@@ -582,7 +476,7 @@ export function SyncTab() {
         </div>
 
         <div className="flex items-center gap-2 sm:flex-shrink-0">
-          <Button 
+          <Button
             variant="hollow"
             onClick={handleClearDateRange}
             disabled={!dateRange}

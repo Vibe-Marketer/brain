@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { RiLoader2Line, RiGroupLine } from "@remixicon/react";
 import { toast } from "sonner";
@@ -19,7 +18,7 @@ interface UserProfile {
 }
 
 export default function UsersTab() {
-  const { role: currentUserRole, isAdmin } = useUserRole();
+  const { isAdmin } = useUserRole();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);

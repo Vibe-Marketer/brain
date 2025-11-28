@@ -100,7 +100,7 @@ function CreateNewZone({ onDrop }: { onDrop: () => void }) {
   );
 }
 
-function DropZone({ category, side }: { category: { id: string; name: string }; side: "left" | "right" }) {
+function DropZone({ category, side: _side }: { category: { id: string; name: string }; side: "left" | "right" }) {
   const { setNodeRef, isOver } = useDroppable({
     id: `drop-zone-${category.id}`,
     data: {

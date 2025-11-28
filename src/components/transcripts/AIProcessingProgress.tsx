@@ -4,7 +4,6 @@ import { Progress } from "@/components/ui/progress";
 import {
   RiMagicLine,
   RiPriceTag3Line,
-  RiCheckboxCircleLine,
   RiErrorWarningLine,
   RiLoader4Line,
 } from "@remixicon/react";

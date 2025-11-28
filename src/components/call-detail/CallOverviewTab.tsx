@@ -6,12 +6,13 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { RiErrorWarningLine } from "@remixicon/react";
 import ReactMarkdown from "react-markdown";
+import { Meeting, Category, Speaker } from "@/types";
 
 interface CallOverviewTabProps {
-  call: any;
+  call: Meeting;
   duration: number | null;
-  callSpeakers: any[];
-  callCategories: any[];
+  callSpeakers: Speaker[];
+  callCategories: Category[];
   isEditing: boolean;
   editedSummary: string;
   setEditedSummary: Dispatch<SetStateAction<string>>;
@@ -81,7 +82,7 @@ export function CallOverviewTab({
                 <Label className="text-xs font-medium uppercase text-cb-ink-muted">FOLDERS</Label>
                 <div className="flex flex-wrap gap-2">
                   {callCategories && callCategories.length > 0 ? (
-                    callCategories.map((category: any) => (
+                    callCategories.map((category) => (
                       <Badge key={category.id} variant="hollow" className="text-xs">
                         {category.icon && <span className="mr-1">{category.icon}</span>}
                         {category.name}

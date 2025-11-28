@@ -25,7 +25,7 @@ interface TranscriptSegmentContextMenuProps {
 }
 
 export function TranscriptSegmentContextMenu({
-  segmentId,
+  segmentId: _segmentId,
   hasEdits,
   onEdit,
   onChangeSpeaker,

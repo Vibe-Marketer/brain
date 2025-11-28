@@ -46,8 +46,11 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   });
 
   // Calculate if call is hosted by user
-  const isHostedByUser = userSettings?.host_email && call?.recorded_by_email &&
-    userSettings.host_email.toLowerCase() === call.recorded_by_email.toLowerCase();
+  const isHostedByUser = Boolean(
+    userSettings?.host_email &&
+    call?.recorded_by_email &&
+    userSettings.host_email.toLowerCase() === call.recorded_by_email.toLowerCase()
+  );
 
   // Fetch transcripts for this call - always fetch fresh to show updates
   // For unsynced meetings, use the provided transcript data instead of querying DB

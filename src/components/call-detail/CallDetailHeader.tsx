@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine, RiRobotLine } from "@remixicon/react";
+import { Meeting } from "@/types";
 
 interface CallDetailHeaderProps {
-  call: any;
+  call: Meeting | null;
   isEditing: boolean;
   setIsEditing: Dispatch<SetStateAction<boolean>>;
   editedTitle: string;

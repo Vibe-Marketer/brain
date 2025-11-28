@@ -39,7 +39,7 @@ interface FathomSetupWizardProps {
   onComplete: () => void;
 }
 
-export default function FathomSetupWizard({ open, onComplete }: FathomSetupWizardProps) {
+export default function FathomSetupWizard({ open, onComplete: _onComplete }: FathomSetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [apiKey, setApiKey] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");

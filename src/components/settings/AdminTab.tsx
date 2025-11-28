@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,7 +70,7 @@ export default function AdminTab() {
 
   useEffect(() => {
     applyFilters();
-  }, [users, searchQuery, roleFilter]);
+  }, [users, searchQuery, roleFilter, applyFilters]);
 
   const loadSystemData = async () => {
     try {
