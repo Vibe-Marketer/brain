@@ -185,13 +185,17 @@ export function ChatSidebar({
 
   return (
     <>
-      <div className="flex h-full flex-col bg-card border-r border-cb-border overflow-hidden">
+      {/* Sidebar wrapper - w-[280px] per guidelines */}
+      <div
+        className="bg-card h-full flex flex-col rounded-lg border border-border overflow-hidden"
+        data-component="SIDEBAR"
+      >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-cb-border px-4 py-3">
-          <h2 className="font-montserrat text-sm font-extrabold uppercase text-cb-ink">
-            Conversations
-          </h2>
-          <Button variant="hollow" size="icon" onClick={onNewChat} aria-label="New chat">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <h3 className="font-display text-xs font-extrabold uppercase text-cb-ink">
+            Chat History
+          </h3>
+          <Button variant="ghost" size="icon" onClick={onNewChat} aria-label="New chat">
             <RiAddLine className="h-4 w-4" />
           </Button>
         </div>

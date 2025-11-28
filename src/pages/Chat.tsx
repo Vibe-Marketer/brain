@@ -17,10 +17,11 @@ import {
   ChatContainerScrollAnchor,
 } from '@/components/chat/chat-container';
 import {
-  ChatMainCard,
-  ChatMainCardContent,
-  ChatMainCardInputArea,
-  ChatMainCardHeader,
+  ChatOuterCard,
+  ChatInnerCard,
+  ChatInnerCardContent,
+  ChatInnerCardInputArea,
+  ChatInnerCardHeader,
 } from '@/components/chat/chat-main-card';
 import { ChatWelcome } from '@/components/chat/chat-welcome';
 import {
@@ -459,39 +460,42 @@ export default function Chat() {
   });
 
   return (
-    <div className="flex h-[calc(100vh-52px)] bg-viewport">
-      {/* Mobile sidebar overlay */}
+    <div className="h-[calc(100vh-52px)] bg-viewport">
+      {/* Mobile sidebar overlay backdrop */}
       {showSidebar && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setShowSidebar(false)}
         />
       )}
 
-      {/* Sidebar - hidden on mobile, shown as overlay when toggled */}
-      <div className={`
-        fixed md:relative inset-y-0 left-0 z-50 md:z-auto
-        w-80 flex-shrink-0
-        transform transition-transform duration-200 ease-in-out
-        ${showSidebar ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-        md:block
-      `}>
-        <ChatSidebar
-          sessions={sessions}
-          activeSessionId={currentSessionId}
-          onSessionSelect={handleSessionSelect}
-          onNewChat={handleNewChat}
-          onDeleteSession={handleDeleteSession}
-          onTogglePin={handleTogglePin}
-          onToggleArchive={handleToggleArchive}
-        />
-      </div>
+      {/* Main container with gutters */}
+      <div className="h-full p-2 md:p-4">
+        {/* BG-CARD-MAIN: Browser window container */}
+        <ChatOuterCard>
+          {/* SIDEBAR (Chat Session Navigation) - inside BG-CARD-MAIN */}
+          <div
+            className={`
+              ${showSidebar ? 'fixed inset-y-0 left-0 z-50 shadow-2xl' : 'hidden'}
+              md:block md:relative md:z-auto md:shadow-none
+              w-[280px] flex-shrink-0 transition-all duration-200
+            `}
+          >
+            <ChatSidebar
+              sessions={sessions}
+              activeSessionId={currentSessionId}
+              onSessionSelect={handleSessionSelect}
+              onNewChat={handleNewChat}
+              onDeleteSession={handleDeleteSession}
+              onTogglePin={handleTogglePin}
+              onToggleArchive={handleToggleArchive}
+            />
+          </div>
 
-      {/* Main chat area - Kortex-style premium card layout */}
-      <div className="flex flex-1 flex-col w-full p-2 md:p-4 bg-viewport">
-        <ChatMainCard>
-          {/* Header with title and filters */}
-          <ChatMainCardHeader>
+          {/* BG-CARD-INNER: Chat interface */}
+          <ChatInnerCard>
+            {/* Header - INSIDE BG-CARD-INNER */}
+            <ChatInnerCardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 md:gap-3">
                 {/* Mobile menu toggle */}
@@ -700,12 +704,12 @@ export default function Chat() {
                 </Popover>
               </div>
             </div>
-          </ChatMainCardHeader>
+            </ChatInnerCardHeader>
 
-          {/* Chat content area */}
-          <ChatMainCardContent>
+            {/* Chat content area */}
+            <ChatInnerCardContent>
             <ChatContainerRoot className="h-full">
-              <ChatContainerContent className="px-2 md:px-4 py-4">
+              <ChatContainerContent className="px-6 py-4">
                 {/* Kortex-style Welcome/Empty State */}
                 {messages.length === 0 && (
                   <ChatWelcome
@@ -838,10 +842,10 @@ export default function Chat() {
               <ChatContainerScrollAnchor />
               <ScrollButton className="shadow-lg" />
             </ChatContainerRoot>
-          </ChatMainCardContent>
+            </ChatInnerCardContent>
 
-          {/* Input area - Kortex-style centered container */}
-          <ChatMainCardInputArea>
+            {/* Input area */}
+            <ChatInnerCardInputArea>
             <div className="relative w-full">
               {/* Mentions popover */}
               {showMentions && filteredCalls.length > 0 && (
@@ -921,14 +925,15 @@ export default function Chat() {
                 </PromptInputFooter>
               </PromptInput>
 
-              {/* Kortex-style Keyboard Hint Bar */}
+              {/* Keyboard Hint Bar */}
               <PromptInputHintBar>
                 <KeyboardHint label="Send with" shortcut="Enter" />
                 <KeyboardHint label="New line" shortcut="Shift+Enter" />
               </PromptInputHintBar>
             </div>
-          </ChatMainCardInputArea>
-        </ChatMainCard>
+            </ChatInnerCardInputArea>
+          </ChatInnerCard>
+        </ChatOuterCard>
       </div>
 
       {/* Call Detail Dialog for viewing source citations */}

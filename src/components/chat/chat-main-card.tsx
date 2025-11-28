@@ -2,38 +2,104 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 /**
- * ChatMainCard - Premium Card Container (Kortex-inspired)
+ * Chat Card System - Two-Card Layout (per new-chat-design-guidelines.md)
  *
- * This is the main content card for the chat interface following the
- * Conversion Brain brand guidelines while incorporating Kortex design patterns.
+ * This implements the "Two-Card System" from the design guidelines:
+ * - BG-CARD-MAIN (ChatOuterCard): The "browser window" - outermost container
+ * - BG-CARD-INNER (ChatInnerCard): The "website content" - chat interface
  *
- * Structure:
- * - Card wrapper with rounded corners, subtle shadow, and border
- * - Flexible content area for chat messages or welcome state
- * - Bottom-fixed input area
+ * Both cards use IDENTICAL styling (bg-card, rounded-2xl, shadow-lg, border).
+ * The only difference is their navigation pattern:
+ * - BG-CARD-MAIN has NO navigation (just contains sidebar + inner card)
+ * - BG-CARD-INNER has header with title + action buttons
  */
 
 // ============================================================================
-// ChatMainCard - The outer card wrapper
+// ChatOuterCard (BG-CARD-MAIN) - The "browser window" container
+// ============================================================================
+
+interface ChatOuterCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+
+/**
+ * BG-CARD-MAIN: The outermost application container.
+ * Contains a flex layout with sidebar + inner card (NO header, NO wrapper).
+ *
+ * Styling: bg-card rounded-2xl shadow-lg border border-border px-10 overflow-hidden h-full
+ */
+export function ChatOuterCard({ children, className, ...props }: ChatOuterCardProps) {
+  return (
+    <div
+      className={cn(
+        // BG-CARD-MAIN styling (from guidelines)
+        'bg-card rounded-2xl shadow-lg',
+        'border border-border',
+        'px-10 overflow-hidden h-full',
+        className
+      )}
+      data-component="BG-CARD-MAIN"
+      {...props}
+    >
+      {/* Direct child is flex container with sidebar + inner card */}
+      <div className="flex gap-4 h-full py-4">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// ChatInnerCard (BG-CARD-INNER) - The chat interface container
+// ============================================================================
+
+interface ChatInnerCardProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+
+/**
+ * BG-CARD-INNER: The nested card containing the actual chat interface.
+ * Contains: Header → Messages → Input (vertical flex layout)
+ *
+ * Styling: flex-1 bg-card rounded-2xl shadow-lg border border-border overflow-hidden flex flex-col
+ */
+export function ChatInnerCard({ children, className, ...props }: ChatInnerCardProps) {
+  return (
+    <div
+      className={cn(
+        // BG-CARD-INNER styling (IDENTICAL to BG-CARD-MAIN except flex-1 and flex-col)
+        'flex-1 bg-card rounded-2xl shadow-lg',
+        'border border-border',
+        'overflow-hidden flex flex-col',
+        className
+      )}
+      data-component="BG-CARD-INNER"
+      {...props}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ============================================================================
+// LEGACY: ChatMainCard - kept for backwards compatibility (use ChatInnerCard)
 // ============================================================================
 
 interface ChatMainCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
+/**
+ * @deprecated Use ChatOuterCard + ChatInnerCard instead for proper two-card system
+ */
 export function ChatMainCard({ children, className, ...props }: ChatMainCardProps) {
   return (
     <div
       className={cn(
-        // Kortex-style card with rounded corners and shadow
         'relative flex flex-col h-full w-full',
         'bg-card rounded-2xl',
-        'border border-cb-border dark:border-cb-border-dark',
+        'border border-border',
         'shadow-lg',
-        // Smooth transitions on hover (subtle effect)
-        'transition-shadow duration-200',
-        'hover:shadow-xl',
-        // Overflow handling
         'overflow-hidden',
         className
       )}
@@ -45,20 +111,22 @@ export function ChatMainCard({ children, className, ...props }: ChatMainCardProp
 }
 
 // ============================================================================
-// ChatMainCardContent - Scrollable content area
+// ChatInnerCardContent - Scrollable content area (inside BG-CARD-INNER)
 // ============================================================================
 
-interface ChatMainCardContentProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ChatInnerCardContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
-export function ChatMainCardContent({ children, className, ...props }: ChatMainCardContentProps) {
+/**
+ * Content area inside BG-CARD-INNER.
+ * Padding: px-6 py-4 (per guidelines)
+ */
+export function ChatInnerCardContent({ children, className, ...props }: ChatInnerCardContentProps) {
   return (
     <div
       className={cn(
-        'flex-1 overflow-y-auto',
-        // Padding for content breathing room
-        'px-4 md:px-8 py-6',
+        'flex-1 overflow-hidden',
         className
       )}
       {...props}
@@ -68,51 +136,64 @@ export function ChatMainCardContent({ children, className, ...props }: ChatMainC
   );
 }
 
+// Legacy alias
+export const ChatMainCardContent = ChatInnerCardContent;
+
 // ============================================================================
-// ChatMainCardInputArea - Bottom-fixed input section
+// ChatInnerCardInputArea - Bottom-fixed input section (inside BG-CARD-INNER)
 // ============================================================================
 
-interface ChatMainCardInputAreaProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ChatInnerCardInputAreaProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
-export function ChatMainCardInputArea({ children, className, ...props }: ChatMainCardInputAreaProps) {
+/**
+ * Input area inside BG-CARD-INNER, fixed at bottom.
+ * Padding: px-6 py-4 (per guidelines)
+ * NO max-width constraint - fills the card width
+ */
+export function ChatInnerCardInputArea({ children, className, ...props }: ChatInnerCardInputAreaProps) {
   return (
     <div
       className={cn(
         // Fixed at bottom with border separator
         'flex-shrink-0',
-        'border-t border-cb-border dark:border-cb-border-dark',
+        'border-t border-border',
         'bg-card',
-        // Padding and max-width for centered input
-        'px-4 py-4',
+        // Padding per guidelines: px-6 py-4 (24px horizontal, 16px vertical)
+        'px-6 py-4',
         className
       )}
       {...props}
     >
-      {/* Centered container for input - Kortex style max-width */}
-      <div className="w-full max-w-[800px] mx-auto">
-        {children}
-      </div>
+      {children}
     </div>
   );
 }
 
+// Legacy alias
+export const ChatMainCardInputArea = ChatInnerCardInputArea;
+
 // ============================================================================
-// ChatMainCardHeader - Optional header section for title/filters
+// ChatInnerCardHeader - Header section inside BG-CARD-INNER
 // ============================================================================
 
-interface ChatMainCardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
+interface ChatInnerCardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
 }
 
-export function ChatMainCardHeader({ children, className, ...props }: ChatMainCardHeaderProps) {
+/**
+ * Header inside BG-CARD-INNER with title + action buttons.
+ * Padding: px-6 py-4 (per guidelines)
+ */
+export function ChatInnerCardHeader({ children, className, ...props }: ChatInnerCardHeaderProps) {
   return (
     <div
       className={cn(
         'flex-shrink-0',
-        'px-4 md:px-6 py-3',
-        'border-b border-cb-border dark:border-cb-border-dark',
+        // Padding per guidelines: px-6 py-4 (24px horizontal, 16px vertical)
+        'px-6 py-4',
+        'border-b border-border',
         'bg-card',
         className
       )}
@@ -122,3 +203,6 @@ export function ChatMainCardHeader({ children, className, ...props }: ChatMainCa
     </div>
   );
 }
+
+// Legacy alias
+export const ChatMainCardHeader = ChatInnerCardHeader;
