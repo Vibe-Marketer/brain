@@ -790,7 +790,8 @@ export default function Chat() {
                       .slice(0, 5);
 
                     // Determine if we should show content or loading state
-                    const hasContent = message.content && message.content.trim().length > 0;
+                    // message.content can be string or array in AI SDK, so we need to check type
+                    const hasContent = typeof message.content === 'string' && message.content.trim().length > 0;
                     const isThinking = !hasContent && toolParts.length > 0;
 
                     return (

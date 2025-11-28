@@ -251,7 +251,7 @@ export function useChatSession(userId: string | undefined) {
           .eq('id', sessionId)
           .single();
 
-        if (sessionData && !sessionData.title) {
+        if (sessionData && !sessionData.title && typeof firstUserMessage.content === 'string') {
           const title = firstUserMessage.content.slice(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '');
           await supabase
             .from('chat_sessions')
