@@ -1,319 +1,574 @@
-# Optimal Claude Code Workflow Guide
+# WORKFLOW GUIDE V2: 10-20X PARALLEL AGENT ORCHESTRATION
 
-**Goal**: Maximize speed and accuracy by using the right tool for each situation.
-
----
-
-## THE GOLDEN RULE: Start Simple, Escalate When Needed
-
-Most tasks don't need complex workflows. Use this escalation ladder:
-
-```
-Level 1: Direct Request     → Just ask Claude directly (80% of tasks)
-Level 2: Slash Command      → Use when you need specialized analysis
-Level 3: Multi-Agent        → Use for complex, multi-step projects
-```
+**Philosophy**: Stop thinking sequentially. Every task is an opportunity for parallel execution.
 
 ---
 
-## QUICK REFERENCE: What To Use When
+## THE 10X MINDSET SHIFT
 
-### For Speed
-
-| Task Type | FAST Approach | SLOW (Avoid Unless Needed) |
-|-----------|---------------|---------------------------|
-| Simple edit | Direct request | /sc:implement |
-| Bug fix | Describe error directly | /sc:troubleshoot (use for complex only) |
-| New feature | Direct request + TodoWrite | /sc:brainstorm → /sc:design → /sc:implement |
-| Code review | `/code-review` | Multiple review commands |
-| UI work | Direct + Playwright verify | Full /design-review |
-
-### Decision Tree: Which Command?
-
+### OLD WAY (1x Speed)
 ```
-Is this a quick fix (<10 min)?
-  YES → Just ask directly, no commands needed
-  NO  → Continue...
+Research → Design → Implement → Test → Review → Done
+(Sequential, one thing at a time)
+```
 
-Do I need to understand unfamiliar code first?
-  YES → Use Task(Explore) agent OR /codebase-analyst
-  NO  → Continue...
-
-Is this UI/frontend work?
-  YES → Implement directly, then verify with Playwright
-        If major UI → /conversion-brain-commands:brain-ui-consistency-review
-  NO  → Continue...
-
-Is this a multi-step feature (>3 files)?
-  YES → Ask Claude to plan with TodoWrite, then execute
-        If very complex → /sc:implement or PRP workflow
-  NO  → Continue...
-
-Ready to merge/PR?
-  YES → /code-review (quick) or /security-review (if auth/data)
-  NO  → Keep working
+### NEW WAY (10-20x Speed)
+```
+┌─────────────────────────────────────────────────────────┐
+│  WAVE 1: PARALLEL DISCOVERY (3 agents)                  │
+│  ├── Agent 1: Explore existing patterns                 │
+│  ├── Agent 2: Research external docs/libraries          │
+│  └── Agent 3: Analyze affected systems/dependencies     │
+└─────────────────────────────────────────────────────────┘
+                          ↓ CHECKPOINT
+┌─────────────────────────────────────────────────────────┐
+│  WAVE 2: PARALLEL DESIGN + PREP (3 agents)              │
+│  ├── Agent 1: Design component architecture             │
+│  ├── Agent 2: Design API/data layer                     │
+│  └── Agent 3: Design test strategy                      │
+└─────────────────────────────────────────────────────────┘
+                          ↓ CHECKPOINT
+┌─────────────────────────────────────────────────────────┐
+│  WAVE 3: PARALLEL IMPLEMENTATION (3+ agents)            │
+│  ├── Agent 1: Implement frontend components             │
+│  ├── Agent 2: Implement backend/Edge Functions          │
+│  ├── Agent 3: Implement database migrations             │
+│  └── Agent 4: Write tests in parallel                   │
+└─────────────────────────────────────────────────────────┘
+                          ↓ CHECKPOINT
+┌─────────────────────────────────────────────────────────┐
+│  WAVE 4: PARALLEL VALIDATION (3 agents)                 │
+│  ├── Agent 1: /code-review                              │
+│  ├── Agent 2: /security-review                          │
+│  └── Agent 3: /design-review + Playwright               │
+└─────────────────────────────────────────────────────────┘
+                          ↓ MERGE & SHIP
 ```
 
 ---
 
-## FAST WORKFLOWS BY TASK TYPE
+## CORE PRINCIPLE: WAVE → CHECKPOINT → WAVE
 
-### 1. Quick Bug Fix (5-15 min)
+**WAVE**: Spawn maximum parallel agents for independent work
+**CHECKPOINT**: Sync results, resolve conflicts, make decisions
+**WAVE**: Launch next parallel wave with checkpoint outputs
 
+### Token ROI
+- Sequential: 50,000 tokens over 2 hours
+- Parallel Waves: 50,000 tokens in 20 minutes (same cost, 6x faster)
+
+---
+
+## ULTRA-PARALLEL WORKFLOWS
+
+### 1. FEATURE DEVELOPMENT (10x Pattern)
+
+**You say:**
 ```
-YOU: "There's an error in [file] where [describe issue]"
-CLAUDE: Reads file, fixes it, done.
-```
-
-No commands needed. Just describe the problem clearly.
-
-### 2. Small Feature (15-60 min)
-
-```
-YOU: "Add [feature] to [location]"
-CLAUDE:
-  1. Uses TodoWrite to break down steps
-  2. Implements each step
-  3. Marks complete as it goes
-```
-
-**Speed tip**: Let Claude use TodoWrite - it keeps things organized without overhead.
-
-### 3. Larger Feature (1-4 hours)
-
-```
-YOU: "I want to build [complex feature]"
-
-Option A (Faster - Direct with Planning):
-  → Claude uses TodoWrite for breakdown
-  → Implements step by step
-  → You verify at checkpoints
-
-Option B (More Structured - PRP Workflow):
-  → /prp:1-story-task-create [description]
-  → Review the generated PRP
-  → /prp:3-story-task-execute [prp-file]
+"Build [feature] - use parallel agents"
 ```
 
-### 4. UI/Design Work
+**Claude executes:**
 
 ```
-FAST PATH:
-1. Describe what you want
-2. Claude implements
-3. Claude uses Playwright to screenshot and verify
-4. Quick check against brand guidelines
+WAVE 1: Discovery (Single message, 3 parallel Task calls)
+├── Task(Explore): "Find all existing patterns for [similar feature]"
+├── Task(Explore): "Map all files that will need changes"
+└── Task(Explore): "Research [any external libs/APIs needed]"
 
-THOROUGH PATH (before PR):
-→ /conversion-brain-commands:brain-ui-consistency-review [path]
+CHECKPOINT: Synthesize findings, create implementation plan
+
+WAVE 2: Implementation (Single message, 3-4 parallel Task calls)
+├── Task(general-purpose): "Implement [frontend component] following [patterns]"
+├── Task(general-purpose): "Create Edge Function [backend logic]"
+├── Task(general-purpose): "Write database migration for [schema]"
+└── Task(general-purpose): "Generate tests for [feature]"
+
+CHECKPOINT: Integrate all pieces, resolve any conflicts
+
+WAVE 3: Validation (Single message, 3 parallel SlashCommand calls)
+├── /code-review
+├── /security-review
+└── /conversion-brain-commands:brain-ui-consistency-review
 ```
 
-### 5. Code Review (Before Merge)
+**Result**: 3-4 hour feature in 30-45 minutes
+
+---
+
+### 2. BUG INVESTIGATION (5x Pattern)
+
+**You say:**
+```
+"Debug [issue] - investigate in parallel"
+```
+
+**Claude executes:**
 
 ```
-QUICK (most PRs):
-→ /code-review
+WAVE 1: Parallel Investigation
+├── Task(Explore): "Search for error patterns in logs/code"
+├── Task(Explore): "Find recent changes to affected area"
+├── Task(Explore): "Check related systems for side effects"
+└── Direct: Check runtime state with Playwright
 
-SECURITY-SENSITIVE (auth, payments, user data):
-→ /security-review
+CHECKPOINT: Correlate findings, identify root cause
 
-UI CHANGES:
-→ /design-review-agent (requires dev server running)
+WAVE 2: Fix + Validate
+├── Direct: Implement fix
+├── Task(general-purpose): "Write regression test"
+└── Task(general-purpose): "Check for similar issues elsewhere"
+```
+
+**Result**: 2-hour debug session in 20-30 minutes
+
+---
+
+### 3. CODEBASE UNDERSTANDING (10x Pattern)
+
+**You say:**
+```
+"I need to understand [system/feature] deeply - parallel exploration"
+```
+
+**Claude executes:**
+
+```
+WAVE 1: Multi-Angle Exploration
+├── Task(Explore): "Map the data flow from UI to database"
+├── Task(Explore): "Document all entry points and APIs"
+├── Task(Explore): "Find all configuration and environment dependencies"
+└── Task(Explore): "Identify all external service integrations"
+
+CHECKPOINT: Create unified architecture diagram/documentation
+```
+
+**Result**: Full system understanding in 10-15 minutes vs 1+ hour
+
+---
+
+### 4. REFACTORING (15x Pattern)
+
+**You say:**
+```
+"Refactor [system] - parallel analysis and execution"
+```
+
+**Claude executes:**
+
+```
+WAVE 1: Analysis
+├── Task(Explore): "Map all usages and dependencies"
+├── Task(Explore): "Identify code smells and improvement opportunities"
+├── Task(Explore): "Find test coverage gaps"
+└── /sc:analyze [path] --focus architecture
+
+CHECKPOINT: Create refactoring plan with independent chunks
+
+WAVE 2: Parallel Refactoring (chunks with no dependencies)
+├── Task(general-purpose): "Refactor chunk A [specific files]"
+├── Task(general-purpose): "Refactor chunk B [specific files]"
+├── Task(general-purpose): "Refactor chunk C [specific files]"
+└── Task(general-purpose): "Update/add tests for all chunks"
+
+CHECKPOINT: Integrate, resolve conflicts
+
+WAVE 3: Validation
+├── /code-review
+├── /security-review
+└── Run full test suite
+```
+
+**Result**: Major refactor in 1 hour vs full day
+
+---
+
+### 5. NEW PROJECT ONBOARDING (20x Pattern)
+
+**You say:**
+```
+"I'm new to this codebase - give me full parallel onboarding"
+```
+
+**Claude executes:**
+
+```
+WAVE 1: Comprehensive Discovery
+├── Task(Explore): "Document project structure and architecture"
+├── Task(Explore): "Map all key abstractions and patterns"
+├── Task(Explore): "List all external dependencies and integrations"
+├── Task(Explore): "Find all configuration and environment setup"
+└── Task(Explore): "Document testing patterns and how to run tests"
+
+CHECKPOINT: Create comprehensive onboarding document
+
+WAVE 2: Deep Dives (parallel)
+├── Task(Explore): "Deep dive: Authentication system"
+├── Task(Explore): "Deep dive: Data fetching patterns"
+├── Task(Explore): "Deep dive: UI component system"
+└── Task(Explore): "Deep dive: Edge Functions architecture"
+
+OUTPUT: Complete project understanding in 15-20 minutes
 ```
 
 ---
 
-## SUPERCLAUDE COMMANDS: WHEN TO ACTUALLY USE THEM
+## AGENT SPAWN PATTERNS
 
-### High-Value Commands (Use Often)
-
-| Command | When | Speed Impact |
-|---------|------|--------------|
-| `/sc:recommend` | Unsure what to use | Saves decision time |
-| `/sc:implement` | Complex feature with many files | Coordinates well |
-| `/sc:troubleshoot` | Debugging complex issues | Systematic diagnosis |
-| `/sc:analyze --focus security` | Before deploying auth changes | Catches vulnerabilities |
-
-### Medium-Value Commands (Use Sometimes)
-
-| Command | When | Speed Impact |
-|---------|------|--------------|
-| `/sc:brainstorm` | Requirements unclear | Good for discovery |
-| `/sc:design` | Need architecture decisions | Prevents rework |
-| `/sc:research` | Unfamiliar technology | Comprehensive research |
-| `/sc:test` | Need test coverage | Automated test generation |
-
-### Low-Value for Speed (Use Rarely)
-
-| Command | Why Skip | Alternative |
-|---------|----------|-------------|
-| `/sc:pm` | Often overkill | Direct requests |
-| `/sc:spawn` | Complex orchestration | Break into smaller tasks |
-| `/sc:spec-panel` | Multi-expert panels | Direct code review |
-
----
-
-## PROJECT-SPECIFIC COMMANDS: CONVERSION BRAIN
-
-### Essential (Know These)
-
-| Command | Use Case | Speed |
-|---------|----------|-------|
-| `/code-review` | Before any PR | Fast |
-| `/security-review` | Auth/data changes | Medium |
-| `/codebase-analyst` | Find patterns | Medium |
-| `/library-researcher` | New library docs | Medium |
-
-### Conversion Brain Specific
-
-| Command | Use Case |
-|---------|----------|
-| `/conversion-brain-commands:brain-prime-simple` | Quick context loading |
-| `/conversion-brain-commands:brain-ui-consistency-review [path]` | Verify brand compliance |
-| `/conversion-brain-commands:brain-alpha-review` | Project-specific code review |
-| `/conversion-brain-commands:brain-rca [issue]` | Root cause analysis |
-
----
-
-## SPEED OPTIMIZATION TIPS
-
-### 1. Parallel Execution
-When asking for multiple independent things, Claude can do them in parallel:
+### Pattern 1: Explore Swarm
+Use for understanding before acting:
 ```
-"Read these 3 files and tell me how they connect"
-→ Claude reads all 3 in parallel (faster than sequential)
+YOU: "Before implementing, explore in parallel: [specific questions]"
+
+CLAUDE: Spawns 3 Explore agents with specific focus areas
 ```
 
-### 2. Be Specific Upfront
+### Pattern 2: Implementation Army
+Use for multi-file features:
 ```
-SLOW: "Fix the bug"
-FAST: "Fix the null error in src/hooks/useAuth.ts line 45 where user.id is accessed before checking if user exists"
-```
+YOU: "Implement these independently in parallel:
+- Component A in [file]
+- Component B in [file]
+- Edge Function C
+- Tests for all"
 
-### 3. Use TodoWrite for Multi-Step Tasks
-It keeps Claude organized and shows you progress. Worth the small overhead.
-
-### 4. Skip Unnecessary Reviews
-- Quick typo fix? No review needed
-- Internal refactor? Maybe just /code-review
-- User-facing auth change? Full /security-review
-
-### 5. Context Priming (Start of Session)
-If starting fresh on Conversion Brain:
-```
-/conversion-brain-commands:brain-prime-simple
-```
-Gets Claude up to speed in ~30 seconds.
-
----
-
-## WORKFLOW EXAMPLES
-
-### Example 1: "Add a new API endpoint"
-
-```
-YOU: "Add an endpoint to fetch user preferences"
-
-CLAUDE:
-1. TodoWrite: Plan the steps
-2. Create Edge Function (supabase/functions/fetch-user-preferences/)
-3. Add to api-client.ts (fetchUserPreferences)
-4. Test the endpoint
-5. Mark complete
-
-Time: 15-30 min, no special commands needed
+CLAUDE: Spawns 4 general-purpose agents, each with specific deliverable
 ```
 
-### Example 2: "Something's broken in production"
-
+### Pattern 3: Review Battalion
+Use before any merge:
 ```
-YOU: "Users are getting 500 errors on the settings page"
+YOU: "Run all reviews in parallel"
 
-FAST PATH:
-→ Claude investigates directly, checks logs, finds issue
-
-IF COMPLEX:
-→ /conversion-brain-commands:brain-rca "500 errors on settings page"
-→ Generates systematic RCA report
+CLAUDE: Simultaneously runs:
+- /code-review
+- /security-review
+- /conversion-brain-commands:brain-ui-consistency-review
 ```
 
-### Example 3: "Build a new dashboard widget"
-
+### Pattern 4: Research Squad
+Use for unfamiliar territory:
 ```
-YOU: "Add a call volume chart to the analytics dashboard"
+YOU: "Research [topic] from multiple angles in parallel"
 
-CLAUDE:
-1. TodoWrite: Break down (design, implement, test)
-2. Check brand guidelines for chart styling
-3. Implement component
-4. Use Playwright to screenshot and verify
-5. Done
-
-BEFORE PR:
-→ /conversion-brain-commands:brain-ui-consistency-review src/components/analytics/
-```
-
-### Example 4: "I need to refactor the auth system"
-
-```
-This is complex - use structured approach:
-
-1. /sc:analyze src/contexts/AuthContext.tsx --focus architecture
-2. Review findings, plan approach
-3. /sc:implement "refactor auth to [new pattern]"
-   OR
-   /prp:1-story-task-create "Refactor authentication system to..."
-   Then execute the PRP
+CLAUDE: Spawns agents for:
+- Official documentation
+- GitHub examples
+- Stack Overflow patterns
+- Existing codebase usage
 ```
 
 ---
 
-## WHEN THINGS GO WRONG
+## MAGIC PHRASES THAT TRIGGER PARALLEL EXECUTION
 
-### Claude Seems Confused
+Add these to your requests:
+
+| Phrase | Effect |
+|--------|--------|
+| "in parallel" | Spawns multiple agents simultaneously |
+| "parallel agents" | Explicit multi-agent request |
+| "wave pattern" | Uses Wave → Checkpoint → Wave |
+| "explore from multiple angles" | 3+ Explore agents |
+| "implement independently" | Parallel implementation agents |
+| "all reviews simultaneously" | Parallel review commands |
+| "10x this" | Maximum parallelization |
+
+---
+
+## CONVERSATION STARTERS FOR 10X MODE
+
+### Feature Development
 ```
-→ Be more specific in your request
-→ Break into smaller steps
-→ Use /conversion-brain-commands:brain-prime-simple to reset context
+"Build [feature]. Use parallel waves:
+Wave 1: 3 agents explore patterns, dependencies, and APIs
+Wave 2: Parallel implementation of frontend, backend, and tests
+Wave 3: All reviews in parallel
+Let's crush this."
 ```
 
-### Task Taking Too Long
+### Bug Fix
 ```
-→ Is TodoWrite being used? (helps track progress)
-→ Break into smaller pieces
-→ Ask for checkpoint verification
+"Debug [issue]. Parallel investigation:
+- Search for error patterns
+- Check recent changes
+- Analyze related systems
+Then fix and validate."
 ```
 
-### Quality Issues
+### Refactoring
 ```
-→ Use /code-review before considering done
-→ For UI: verify with Playwright screenshots
-→ For security: /security-review
+"Refactor [system]. Parallel approach:
+1. Multi-agent analysis of dependencies and usages
+2. Break into independent chunks
+3. Parallel refactoring of each chunk
+4. Parallel reviews"
+```
+
+### Learning/Onboarding
+```
+"I need to understand [system] fast. Spawn parallel Explore agents for:
+- Architecture and data flow
+- Key patterns and conventions
+- External integrations
+- Configuration and setup"
 ```
 
 ---
 
-## SUMMARY: YOUR SPEED-OPTIMIZED WORKFLOW
+## DEPENDENCY MAPPING: WHAT CAN RUN IN PARALLEL
+
+### Always Parallel-Safe
+- Reading different files
+- Exploring different parts of codebase
+- Running different review commands
+- Researching different topics
+- Writing to different files
+
+### Requires Sequencing
+- File A depends on File B → B first, then A
+- Tests depend on implementation → impl first (or parallel if mocked)
+- Migration depends on schema design → design first
+
+### Smart Chunking
+Break work into independent pieces:
+```
+Feature: User Profile Page
+├── Chunk A: Profile display component (independent)
+├── Chunk B: Profile edit form (independent)
+├── Chunk C: Avatar upload (independent)
+├── Chunk D: Edge Function for profile API (independent)
+└── Chunk E: Integration/E2E tests (depends on A-D)
+
+→ Run A, B, C, D in parallel
+→ Then E after checkpoint
+```
+
+---
+
+## REAL EXAMPLES
+
+### Example 1: Build Settings Page Feature
+
+**You:**
+```
+Build a new "Notification Preferences" section in Settings. Use parallel waves.
+```
+
+**Claude Executes:**
+
+**WAVE 1** (3 parallel Explore agents):
+- Agent 1: Explore existing Settings page patterns
+- Agent 2: Find notification-related code and schemas
+- Agent 3: Check brand guidelines for settings UI
+
+**CHECKPOINT**: Plan with patterns, identify all files
+
+**WAVE 2** (4 parallel implementation agents):
+- Agent 1: NotificationPreferences component
+- Agent 2: Edge Function save-notification-preferences
+- Agent 3: Database migration for preferences table
+- Agent 4: Unit tests for new functionality
+
+**CHECKPOINT**: Integrate, wire up
+
+**WAVE 3** (3 parallel reviews):
+- /code-review
+- /security-review
+- /brain-ui-consistency-review
+
+**Total time: 30-40 minutes** (vs 3-4 hours sequential)
+
+---
+
+### Example 2: Debug Complex Issue
+
+**You:**
+```
+Calls aren't syncing properly. Parallel debug investigation.
+```
+
+**Claude Executes:**
+
+**WAVE 1** (4 parallel investigations):
+- Agent 1: Check sync Edge Functions for errors
+- Agent 2: Review recent changes to sync code
+- Agent 3: Analyze Fathom webhook handling
+- Agent 4: Check database for sync state inconsistencies
+
+**CHECKPOINT**: Correlate findings → Root cause identified
+
+**WAVE 2** (2 parallel):
+- Direct: Implement fix
+- Agent: Write regression test + check for similar issues
+
+**Total time: 15-20 minutes** (vs 1-2 hours)
+
+---
+
+### Example 3: Major Refactoring
+
+**You:**
+```
+Refactor the FilterBar component (700+ lines). Parallel approach.
+```
+
+**Claude Executes:**
+
+**WAVE 1** (3 parallel analysis):
+- Agent 1: Map all FilterBar usages and props
+- Agent 2: Identify extraction opportunities (sub-components)
+- Agent 3: Analyze test coverage gaps
+
+**CHECKPOINT**: Refactoring plan with 5 independent chunks
+
+**WAVE 2** (5 parallel extractions):
+- Agent 1: Extract CategoryFilter component
+- Agent 2: Extract DateRangeFilter component
+- Agent 3: Extract ParticipantFilter component
+- Agent 4: Extract DurationFilter component
+- Agent 5: Create shared filter hook
+
+**CHECKPOINT**: Integrate, update parent component
+
+**WAVE 3** (parallel validation):
+- Run tests
+- /code-review
+- /brain-ui-consistency-review
+
+**Total time: 45-60 minutes** (vs 4-6 hours)
+
+---
+
+## MAXIMIZING AGENT EFFICIENCY
+
+### 1. Be Specific in Agent Prompts
+```
+BAD: "Explore the codebase"
+GOOD: "Find all files that handle user authentication, map the auth flow from login to session storage, list all auth-related hooks"
+```
+
+### 2. Give Clear Deliverables
+```
+BAD: "Implement the feature"
+GOOD: "Implement NotificationToggle component in src/components/settings/ following the existing Toggle pattern from IntegrationsTab.tsx, export from index.ts"
+```
+
+### 3. Set Boundaries
+```
+"Implement ONLY [specific scope]. Do not modify [other files]."
+```
+
+### 4. Request Checkpoint Summaries
+```
+"After completing, provide: files changed, key decisions made, any blockers"
+```
+
+---
+
+## WHEN TO USE WHAT LEVEL
+
+### Level 1: Direct (Simple tasks)
+- Single file edits
+- Quick fixes
+- Simple questions
+**Time: 1-5 minutes**
+
+### Level 2: Single Agent (Focused tasks)
+- Single feature implementation
+- Targeted investigation
+- Specific review
+**Time: 10-30 minutes**
+
+### Level 3: Multi-Agent Parallel (Complex tasks)
+- Multi-file features
+- System-wide changes
+- Major refactoring
+- Deep debugging
+**Time: 30-60 minutes (vs 3-6 hours sequential)**
+
+### Level 4: Wave Pattern (Major projects)
+- New major features
+- Architecture changes
+- Full system onboarding
+- Complex migrations
+**Time: 1-2 hours (vs full day+ sequential)**
+
+---
+
+## QUICK REFERENCE CARD
 
 ```
-1. START SIMPLE
-   → Direct requests for most tasks
-   → Let Claude use TodoWrite for organization
-
-2. ESCALATE WHEN NEEDED
-   → Complex debugging → /sc:troubleshoot
-   → Multi-file features → /sc:implement or PRP
-   → Unfamiliar code → Task(Explore) agent
-
-3. VERIFY BEFORE MERGE
-   → /code-review (always)
-   → /security-review (auth/data)
-   → UI consistency check (frontend)
-
-4. CONTEXT MANAGEMENT
-   → /brain-prime-simple at session start
-   → Let TodoWrite track progress
-   → Break complex work into sessions
+┌────────────────────────────────────────────────────────────┐
+│                    10X WORKFLOW CHEATSHEET                  │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  TRIGGER PHRASES:                                          │
+│  • "parallel agents"    • "wave pattern"                   │
+│  • "in parallel"        • "10x this"                       │
+│  • "simultaneously"     • "explore from multiple angles"   │
+│                                                            │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  WAVE PATTERN:                                             │
+│  Wave 1: Explore (3 agents) → Checkpoint                   │
+│  Wave 2: Implement (3-4 agents) → Checkpoint               │
+│  Wave 3: Review (3 parallel commands) → Ship               │
+│                                                            │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  PARALLEL-SAFE OPERATIONS:                                 │
+│  ✓ Reading different files                                 │
+│  ✓ Exploring different areas                               │
+│  ✓ Writing to different files                              │
+│  ✓ Running different reviews                               │
+│  ✓ Researching different topics                            │
+│                                                            │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  AGENT TYPES:                                              │
+│  • Explore: Codebase discovery, pattern finding            │
+│  • general-purpose: Implementation, complex tasks          │
+│  • Plan: Architecture, design decisions                    │
+│  • SlashCommands: Reviews, specialized analysis            │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
 ```
 
-**The fastest workflow is often the simplest one. Use commands to augment, not replace, direct communication.**
+---
+
+## THE ULTIMATE 10X PROMPT
+
+When you want maximum speed, use this template:
+
+```
+[TASK DESCRIPTION]
+
+Execute with parallel waves:
+
+WAVE 1 - Discovery (3 parallel Explore agents):
+1. [Specific exploration focus 1]
+2. [Specific exploration focus 2]
+3. [Specific exploration focus 3]
+
+CHECKPOINT: Synthesize findings, create plan
+
+WAVE 2 - Implementation (parallel agents for independent chunks):
+1. [Chunk 1 - specific deliverable]
+2. [Chunk 2 - specific deliverable]
+3. [Chunk 3 - specific deliverable]
+4. [Tests for all chunks]
+
+CHECKPOINT: Integrate all pieces
+
+WAVE 3 - Validation (parallel):
+1. /code-review
+2. /security-review (if auth/data)
+3. UI consistency check (if frontend)
+
+Let's 10x this.
+```
+
+---
+
+**Remember: The same tokens spent sequentially over 4 hours can be spent in parallel in 30 minutes. Choose parallel.**
