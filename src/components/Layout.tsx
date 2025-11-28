@@ -45,13 +45,22 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     return 'HOME';
   };
   
+  // Chat page provides its own container (ChatOuterCard), so we don't wrap it
+  const isChatPage = location.pathname.startsWith('/chat');
+
   return (
     <div className="min-h-screen w-full bg-viewport relative">
       <TopBar pageLabel={getPageLabel()} />
       <main className="fixed inset-2 top-[52px]">
-        <div className="bg-card rounded-2xl px-4 md:px-10 pb-20 md:pb-10 pt-2 shadow-lg border border-border h-full overflow-auto">
-          {children}
-        </div>
+        {isChatPage ? (
+          // Chat page uses ChatOuterCard directly - no wrapper
+          children
+        ) : (
+          // Other pages get the standard card wrapper
+          <div className="bg-card rounded-2xl px-4 md:px-10 pb-20 md:pb-10 pt-2 shadow-lg border border-border h-full overflow-auto">
+            {children}
+          </div>
+        )}
       </main>
       <MacOSDock apps={dockApps} openApps={getOpenApps()} />
     </div>

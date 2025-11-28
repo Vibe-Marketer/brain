@@ -1,7 +1,14 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { RiAddLine } from '@remixicon/react';
+import { RiAddLine, RiVideoLine, RiCloseLine, RiSearchLine } from '@remixicon/react';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { format } from 'date-fns';
 
 // Context for prompt input state
 interface PromptInputContextValue {
@@ -191,41 +198,197 @@ export function PromptInputAction({
 // Kortex-Style Components
 // ============================================================================
 
+// Types for context attachments
+export interface ContextAttachment {
+  type: 'call';
+  id: number;
+  title: string;
+  date?: string;
+}
+
 // Context bar for adding attachments/context at the top of input
 interface PromptInputContextBarProps extends React.HTMLAttributes<HTMLDivElement> {
-  onAddContext?: () => void;
+  attachments?: ContextAttachment[];
+  onRemoveAttachment?: (id: number) => void;
+  availableCalls?: Array<{ recording_id: number; title: string; created_at: string }>;
+  onAddCall?: (call: { recording_id: number; title: string; created_at: string }) => void;
   children?: React.ReactNode;
 }
 
 export function PromptInputContextBar({
-  onAddContext,
+  attachments = [],
+  onRemoveAttachment,
+  availableCalls = [],
+  onAddCall,
   children,
   className,
   ...props
 }: PromptInputContextBarProps) {
+  const [isOpen, setIsOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+
+  // Filter calls based on search query
+  const filteredCalls = React.useMemo(() => {
+    if (!searchQuery) return availableCalls.slice(0, 20);
+    const query = searchQuery.toLowerCase();
+    return availableCalls
+      .filter(call => call.title.toLowerCase().includes(query))
+      .slice(0, 20);
+  }, [availableCalls, searchQuery]);
+
+  // Check if a call is already attached
+  const isAttached = (recordingId: number) => {
+    return attachments.some(a => a.type === 'call' && a.id === recordingId);
+  };
+
+  const handleSelectCall = (call: { recording_id: number; title: string; created_at: string }) => {
+    if (!isAttached(call.recording_id)) {
+      onAddCall?.(call);
+    }
+    setIsOpen(false);
+    setSearchQuery('');
+  };
+
   return (
     <div
       className={cn(
-        'flex items-center gap-1 px-3 pt-2 pb-1 min-h-[28px]',
+        'flex flex-wrap items-center gap-1.5 px-3 pt-2 pb-1 min-h-[28px]',
         className
       )}
       {...props}
     >
+      {/* Attached items as pills */}
+      {attachments.map((attachment) => (
+        <ContextAttachmentPill
+          key={`${attachment.type}-${attachment.id}`}
+          attachment={attachment}
+          onRemove={() => onRemoveAttachment?.(attachment.id)}
+        />
+      ))}
+
+      {/* Add context button with popover */}
       {children ?? (
+        <Popover open={isOpen} onOpenChange={setIsOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className={cn(
+                'group flex items-center gap-1 px-2 py-1 rounded-xl',
+                'border border-cb-border-soft/50 bg-transparent',
+                'hover:bg-cb-hover hover:border-cb-border',
+                'transition-all duration-150 cursor-pointer select-none'
+              )}
+            >
+              <RiAddLine className="h-3.5 w-3.5 text-cb-ink-muted group-hover:text-cb-ink transition-colors" />
+              <span className="text-xs text-cb-ink-muted group-hover:text-cb-ink transition-colors">
+                Add context
+              </span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            side="top"
+            sideOffset={8}
+            className="w-80 p-0"
+          >
+            <div className="p-3 border-b border-cb-border">
+              <div className="relative">
+                <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cb-ink-muted" />
+                <input
+                  type="text"
+                  placeholder="Search calls..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={cn(
+                    'w-full pl-8 pr-3 py-2 rounded-lg',
+                    'border border-cb-border bg-card',
+                    'text-sm text-cb-ink placeholder:text-cb-ink-muted',
+                    'focus:outline-none focus:ring-2 focus:ring-cb-vibe-green/50 focus:border-transparent',
+                    'transition-all duration-150'
+                  )}
+                  autoFocus
+                />
+              </div>
+            </div>
+            <ScrollArea className="max-h-64">
+              <div className="p-2">
+                {filteredCalls.length > 0 ? (
+                  <div className="space-y-1">
+                    {filteredCalls.map((call) => {
+                      const attached = isAttached(call.recording_id);
+                      return (
+                        <button
+                          key={call.recording_id}
+                          type="button"
+                          onClick={() => handleSelectCall(call)}
+                          disabled={attached}
+                          className={cn(
+                            'w-full flex items-start gap-2 rounded-lg px-2.5 py-2 text-left transition-colors',
+                            attached
+                              ? 'opacity-50 cursor-not-allowed bg-cb-hover'
+                              : 'hover:bg-cb-hover cursor-pointer'
+                          )}
+                        >
+                          <RiVideoLine className="h-4 w-4 text-cb-ink-muted flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-cb-ink truncate font-medium">
+                              {call.title}
+                            </p>
+                            <p className="text-xs text-cb-ink-muted">
+                              {format(new Date(call.created_at), 'MMM d, yyyy')}
+                              {attached && ' • Already added'}
+                            </p>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="py-6 text-center">
+                    <p className="text-sm text-cb-ink-muted">
+                      {searchQuery ? 'No calls found' : 'No calls available'}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
+          </PopoverContent>
+        </Popover>
+      )}
+    </div>
+  );
+}
+
+// Pill component for attached context items
+interface ContextAttachmentPillProps {
+  attachment: ContextAttachment;
+  onRemove?: () => void;
+}
+
+function ContextAttachmentPill({ attachment, onRemove }: ContextAttachmentPillProps) {
+  return (
+    <div
+      className={cn(
+        'group flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-full',
+        'bg-cb-hover border border-cb-border',
+        'text-xs text-cb-ink',
+        'transition-all duration-150'
+      )}
+    >
+      <RiVideoLine className="h-3 w-3 text-cb-ink-muted flex-shrink-0" />
+      <span className="max-w-[150px] truncate font-medium">{attachment.title}</span>
+      {onRemove && (
         <button
           type="button"
-          onClick={onAddContext}
+          onClick={onRemove}
           className={cn(
-            'group flex items-center gap-1 px-2 py-1 rounded-xl',
-            'border border-cb-border-soft/50 bg-transparent',
-            'hover:bg-cb-hover hover:border-cb-border',
-            'transition-all duration-150 cursor-pointer select-none'
+            'h-4 w-4 flex items-center justify-center rounded-full',
+            'text-cb-ink-muted hover:text-cb-ink hover:bg-cb-border',
+            'transition-colors duration-150'
           )}
+          aria-label={`Remove ${attachment.title}`}
         >
-          <RiAddLine className="h-3.5 w-3.5 text-cb-ink-muted group-hover:text-cb-ink transition-colors" />
-          <span className="text-xs text-cb-ink-muted group-hover:text-cb-ink transition-colors">
-            Add context
-          </span>
+          <RiCloseLine className="h-3 w-3" />
         </button>
       )}
     </div>

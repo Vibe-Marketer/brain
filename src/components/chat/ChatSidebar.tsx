@@ -72,11 +72,11 @@ const SessionItem = React.memo(function SessionItem({
   return (
     <div
       className={`
-        group relative flex items-center h-8 w-full pl-3.5 pr-2 rounded-xl cursor-pointer
+        group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer
         transition-colors duration-150 overflow-hidden
         ${isActive
           ? 'bg-cb-hover'
-          : 'hover:bg-black/5 dark:hover:bg-white/5'
+          : 'hover:bg-cb-hover/50'
         }
       `}
       onClick={() => onSelect(session.id)}
@@ -187,7 +187,7 @@ export function ChatSidebar({
     <>
       {/* Sidebar wrapper - simplified, integrated panel style */}
       <div
-        className="h-full flex flex-col rounded-xl overflow-hidden"
+        className="h-full flex flex-col rounded-overflow"
         data-component="SIDEBAR"
       >
         {/* Header - simplified, no border */}
@@ -201,8 +201,8 @@ export function ChatSidebar({
         </div>
 
         {/* Sessions list - compact padding */}
-        <ScrollArea className="flex-1 overflow-hidden">
-          <div className="p-2 space-y-0.5">
+        <ScrollArea className="flex-1 overflow-hidden min-w-0">
+          <div className="p-2 space-y-0.5 overflow-hidden">
             {/* Pinned sessions */}
             {pinnedSessions.length > 0 && (
               <div className="mb-2">
@@ -268,19 +268,13 @@ export function ChatSidebar({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              style={{
-                background: 'linear-gradient(160deg, #E54D4D 0%, #C93A3A 100%)',
-                color: 'white',
-                borderColor: 'rgba(190, 50, 50, 0.8)',
-                borderWidth: '1px',
-                textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)',
-                boxShadow: '0 4px 6px rgba(255, 255, 255, 0.25) inset, 0 -4px 6px rgba(0, 0, 0, 0.3) inset, 0 10px 20px rgba(0, 0, 0, 0.15)',
-              }}
-            >
-              Delete
+            <AlertDialogCancel asChild>
+              <Button variant="hollow">Cancel</Button>
+            </AlertDialogCancel>
+            <AlertDialogAction asChild>
+              <Button variant="destructive" onClick={confirmDelete}>
+                Delete
+              </Button>
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
