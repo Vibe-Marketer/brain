@@ -83,10 +83,10 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
           segments.push({
             id: `parsed-${segmentIndex}`,
             recording_id: call.recording_id,
-            timestamp: match[1],
-            speaker_name: match[2].trim(),
+            timestamp: match[1] || '',
+            speaker_name: (match[2] || '').trim(),
             speaker_email: null, // Will be populated from speaker mapping below
-            text: match[3].trim(),
+            text: (match[3] || '').trim(),
             edited_text: null,
             edited_speaker_name: null,
             edited_speaker_email: null,

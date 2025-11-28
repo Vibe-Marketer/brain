@@ -34,7 +34,8 @@ export function ToolCall({ toolPart, defaultOpen = false, className }: ToolCallP
   const config = statusConfig[status];
   const StatusIcon = config.icon;
 
-  const formatToolName = (name: string) => {
+  const formatToolName = (name: string | undefined) => {
+    if (!name) return 'Tool';
     return name
       .replace(/([A-Z])/g, ' $1')
       .replace(/^./, (str) => str.toUpperCase())

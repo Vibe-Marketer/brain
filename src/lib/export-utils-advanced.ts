@@ -61,17 +61,17 @@ function reformatTranscriptToFathom(transcript: string, includeTimestamps: boole
     
     if (match) {
       const [, timestamp, speakerFull, text] = match;
-      
+
       // Remove email from speaker name (e.g., "Name (email@domain.com)" -> "Name")
-      const speaker = speakerFull.split('(')[0].trim();
-      
+      const speaker = (speakerFull || '').split('(')[0].trim();
+
       // Remove suffixes like "| Company" from speaker name
       const cleanSpeaker = speaker.split('|')[0].trim();
-      
+
       segments.push({
-        timestamp: formatTimestampSmart(timestamp),
+        timestamp: formatTimestampSmart(timestamp || ''),
         speaker: cleanSpeaker,
-        text: text.trim()
+        text: (text || '').trim()
       });
     }
   }
@@ -150,9 +150,9 @@ function extractSpeakersFromTranscript(transcript: string): { name: string; emai
     // Match format: [HH:MM:SS] Speaker Name (email@domain.com): or [HH:MM:SS] Speaker Name:
     const match = line.match(/^\[[\d:]+\]\s+([^(:]+?)(?:\s*\(([^)]+)\))?\s*:/);
     if (match) {
-      const name = match[1].trim();
+      const name = (match[1] || '').trim();
       const email = match[2]?.trim();
-      if (!speakerMap.has(name)) {
+      if (name && !speakerMap.has(name)) {
         speakerMap.set(name, { name, email });
       }
     }

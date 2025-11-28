@@ -346,7 +346,7 @@ export default function Chat() {
     e?.preventDefault();
 
     // Don't submit if input is empty
-    if (!input.trim()) return;
+    if (!input || !input.trim()) return;
 
     // Create session if it doesn't exist BEFORE submitting
     let sessionIdToUse = currentSessionId;
@@ -913,7 +913,7 @@ export default function Chat() {
                     <Button
                       type="submit"
                       size="sm"
-                      disabled={!input.trim() || isLoading}
+                      disabled={!input || !input.trim() || isLoading}
                       className="gap-1"
                     >
                       <RiSendPlaneFill className="h-4 w-4" />

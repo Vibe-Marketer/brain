@@ -48,7 +48,7 @@ export function PromptInput({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (value.trim() && !isLoading && onSubmit) {
+    if (value && value.trim() && !isLoading && onSubmit) {
       onSubmit();
     }
   };
@@ -100,7 +100,7 @@ export const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, PromptI
     // Submit on Enter (without shift)
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      if (value.trim() && !isLoading && onSubmit) {
+      if (value && value.trim() && !isLoading && onSubmit) {
         onSubmit();
       }
     }
