@@ -33,6 +33,7 @@ import {
   PromptInputFooterRight,
   PromptInputHintBar,
   KeyboardHint,
+  type ContextAttachment,
 } from '@/components/chat/prompt-input';
 import { ModelSelector } from '@/components/chat/model-selector';
 import { UserMessage, AssistantMessage } from '@/components/chat/message';
@@ -125,6 +126,9 @@ export default function Chat() {
   // CallDetailDialog state for viewing sources
   const [selectedCall, setSelectedCall] = React.useState<Meeting | null>(null);
   const [showCallDialog, setShowCallDialog] = React.useState(false);
+
+  // Context attachments state (calls attached via "+ Add context")
+  const [contextAttachments, setContextAttachments] = React.useState<ContextAttachment[]>([]);
 
   // Ref to track current session ID for async callbacks (avoids stale closure)
   const currentSessionIdRef = React.useRef<string | null>(currentSessionId);
@@ -364,9 +368,23 @@ export default function Chat() {
       }
     }
 
+    // If there are context attachments, add them as @mentions to the input
+    if (contextAttachments.length > 0) {
+      const attachmentMentions = contextAttachments
+        .map(a => `@[${a.title}](recording:${a.id})`)
+        .join(' ');
+
+      // Prepend the attachments to the input as context
+      const enrichedInput = `[Context: ${attachmentMentions}]\n\n${input}`;
+      handleInputChange(createInputChangeEvent(enrichedInput));
+
+      // Clear attachments after adding to input
+      setContextAttachments([]);
+    }
+
     // Call the original handleSubmit which will add the user message and trigger the AI
     handleSubmit(e);
-  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, handleSubmit]);
+  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, handleSubmit, contextAttachments, handleInputChange]);
 
   // Handle suggestion clicks - sets input AND submits
   const handleSuggestionClick = React.useCallback((text: string) => {
@@ -880,11 +898,23 @@ export default function Chat() {
                 onSubmit={() => handleChatSubmit()}
                 isLoading={isLoading}
               >
-                {/* Kortex-style Context Bar */}
+                {/* Kortex-style Context Bar with call attachments */}
                 <PromptInputContextBar
-                  onAddContext={() => {
-                    // TODO: Open context/attachment picker
-                    console.log('Add context clicked');
+                  attachments={contextAttachments}
+                  onRemoveAttachment={(id) => {
+                    setContextAttachments(prev => prev.filter(a => a.id !== id));
+                  }}
+                  availableCalls={availableCalls}
+                  onAddCall={(call) => {
+                    setContextAttachments(prev => [
+                      ...prev,
+                      {
+                        type: 'call',
+                        id: call.recording_id,
+                        title: call.title,
+                        date: call.created_at,
+                      },
+                    ]);
                   }}
                 />
 
