@@ -477,7 +477,7 @@ export default function Chat() {
           <div
             className={`
               ${showSidebar ? 'fixed inset-y-0 left-0 z-50 shadow-2xl' : 'hidden'}
-              md:block md:relative md:z-auto md:shadow-none
+              md:block md:relative md:shadow-none
               w-[280px] flex-shrink-0 transition-all duration-200
             `}
           >
@@ -507,9 +507,6 @@ export default function Chat() {
                 >
                   <RiMenuLine className="h-5 w-5" />
                 </Button>
-                <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
-                  AI Chat
-                </h1>
                 {hasActiveFilters && (
                   <div className="hidden md:flex items-center gap-2">
                     {filters.dateStart && (
@@ -709,7 +706,7 @@ export default function Chat() {
             {/* Chat content area */}
             <ChatInnerCardContent>
             <ChatContainerRoot className="h-full">
-              <ChatContainerContent className="px-6 py-4">
+              <ChatContainerContent className="px-4 py-0">
                 {/* Kortex-style Welcome/Empty State */}
                 {messages.length === 0 && (
                   <ChatWelcome

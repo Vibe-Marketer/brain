@@ -26,23 +26,24 @@ interface ChatOuterCardProps extends React.HTMLAttributes<HTMLDivElement> {
  * BG-CARD-MAIN: The outermost application container.
  * Contains a flex layout with sidebar + inner card (NO header, NO wrapper).
  *
- * Styling: bg-card rounded-2xl shadow-lg border border-border px-10 overflow-hidden h-full
+ * Styling: bg-card rounded-2xl shadow-lg border border-border px-2 overflow-hidden h-full
+ * NOTE: Updated to compact padding (px-2, gap-2, py-2) for native app feel
  */
 export function ChatOuterCard({ children, className, ...props }: ChatOuterCardProps) {
   return (
     <div
       className={cn(
-        // BG-CARD-MAIN styling (from guidelines)
+        // BG-CARD-MAIN styling (compact version per updated guidelines)
         'bg-card rounded-2xl shadow-lg',
         'border border-border',
-        'px-10 overflow-hidden h-full',
+        'px-2 overflow-hidden h-full',
         className
       )}
       data-component="BG-CARD-MAIN"
       {...props}
     >
-      {/* Direct child is flex container with sidebar + inner card */}
-      <div className="flex gap-4 h-full py-4">
+      {/* Direct child is flex container with sidebar + inner card - compact gap-2 and py-2 */}
+      <div className="flex gap-2 h-full py-2">
         {children}
       </div>
     </div>
@@ -149,19 +150,18 @@ interface ChatInnerCardInputAreaProps extends React.HTMLAttributes<HTMLDivElemen
 
 /**
  * Input area inside BG-CARD-INNER, fixed at bottom.
- * Padding: px-6 py-4 (per guidelines)
+ * Padding: px-2 py-2 (compact version - no border separator)
  * NO max-width constraint - fills the card width
  */
 export function ChatInnerCardInputArea({ children, className, ...props }: ChatInnerCardInputAreaProps) {
   return (
     <div
       className={cn(
-        // Fixed at bottom with border separator
+        // Fixed at bottom (no border separator for cleaner look)
         'flex-shrink-0',
-        'border-t border-border',
         'bg-card',
-        // Padding per guidelines: px-6 py-4 (24px horizontal, 16px vertical)
-        'px-6 py-4',
+        // Compact padding: px-2 py-2
+        'px-2 py-2',
         className
       )}
       {...props}
@@ -184,16 +184,15 @@ interface ChatInnerCardHeaderProps extends React.HTMLAttributes<HTMLDivElement> 
 
 /**
  * Header inside BG-CARD-INNER with title + action buttons.
- * Padding: px-6 py-4 (per guidelines)
+ * Padding: px-4 py-2 (compact version - no border separator)
  */
 export function ChatInnerCardHeader({ children, className, ...props }: ChatInnerCardHeaderProps) {
   return (
     <div
       className={cn(
         'flex-shrink-0',
-        // Padding per guidelines: px-6 py-4 (24px horizontal, 16px vertical)
-        'px-6 py-4',
-        'border-b border-border',
+        // Compact padding: px-4 py-2 (no border for cleaner look)
+        'px-4 py-2',
         'bg-card',
         className
       )}

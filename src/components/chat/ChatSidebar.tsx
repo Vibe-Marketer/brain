@@ -185,16 +185,16 @@ export function ChatSidebar({
 
   return (
     <>
-      {/* Sidebar wrapper - w-[280px] per guidelines */}
+      {/* Sidebar wrapper - simplified, integrated panel style */}
       <div
-        className="bg-card h-full flex flex-col rounded-lg border border-border overflow-hidden"
+        className="h-full flex flex-col"
         data-component="SIDEBAR"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-border px-4 py-3">
-          <h3 className="font-display text-xs font-extrabold uppercase text-cb-ink">
-            Chat History
-          </h3>
+        {/* Header - simplified, no border */}
+        <div className="flex items-center justify-between">
+          <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
+            AI Chat
+          </h1>
           <Button variant="ghost" size="icon" onClick={onNewChat} aria-label="New chat">
             <RiAddLine className="h-4 w-4" />
           </Button>
@@ -202,7 +202,7 @@ export function ChatSidebar({
 
         {/* Sessions list - compact padding */}
         <ScrollArea className="flex-1 overflow-hidden">
-          <div className="p-2 space-y-0.5 overflow-hidden">
+          <div className="p-2 space-y-0.5">
             {/* Pinned sessions */}
             {pinnedSessions.length > 0 && (
               <div className="mb-2">
@@ -269,7 +269,17 @@ export function ChatSidebar({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
+            <AlertDialogAction
+              onClick={confirmDelete}
+              style={{
+                background: 'linear-gradient(160deg, #E54D4D 0%, #C93A3A 100%)',
+                color: 'white',
+                borderColor: 'rgba(190, 50, 50, 0.8)',
+                borderWidth: '1px',
+                textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)',
+                boxShadow: '0 4px 6px rgba(255, 255, 255, 0.25) inset, 0 -4px 6px rgba(0, 0, 0, 0.3) inset, 0 10px 20px rgba(0, 0, 0, 0.15)',
+              }}
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
