@@ -460,7 +460,7 @@ export default function Chat() {
   });
 
   return (
-    <div className="h-[calc(100vh-52px)] bg-viewport">
+    <>
       {/* Mobile sidebar overlay backdrop */}
       {showSidebar && (
         <div
@@ -469,10 +469,8 @@ export default function Chat() {
         />
       )}
 
-      {/* Main container with gutters */}
-      <div className="h-full p-2 md:p-4">
-        {/* BG-CARD-MAIN: Browser window container */}
-        <ChatOuterCard>
+      {/* BG-CARD-MAIN: Browser window container - directly on viewport */}
+      <ChatOuterCard>
           {/* SIDEBAR (Chat Session Navigation) - inside BG-CARD-MAIN */}
           <div
             className={`
@@ -932,7 +930,6 @@ export default function Chat() {
             </ChatInnerCardInputArea>
           </ChatInnerCard>
         </ChatOuterCard>
-      </div>
 
       {/* Call Detail Dialog for viewing source citations */}
       <CallDetailDialog
@@ -940,6 +937,6 @@ export default function Chat() {
         open={showCallDialog}
         onOpenChange={setShowCallDialog}
       />
-    </div>
+    </>
   );
 }

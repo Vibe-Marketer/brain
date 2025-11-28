@@ -72,11 +72,11 @@ const SessionItem = React.memo(function SessionItem({
   return (
     <div
       className={`
-        group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer
+        group relative flex items-center h-8 w-full pl-3.5 pr-2 rounded-xl cursor-pointer
         transition-colors duration-150 overflow-hidden
         ${isActive
           ? 'bg-cb-hover'
-          : 'hover:bg-cb-hover/50'
+          : 'hover:bg-black/5 dark:hover:bg-white/5'
         }
       `}
       onClick={() => onSelect(session.id)}
@@ -187,7 +187,7 @@ export function ChatSidebar({
     <>
       {/* Sidebar wrapper - simplified, integrated panel style */}
       <div
-        className="h-full flex flex-col"
+        className="h-full flex flex-col rounded-xl overflow-hidden"
         data-component="SIDEBAR"
       >
         {/* Header - simplified, no border */}
