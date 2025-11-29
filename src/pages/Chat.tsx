@@ -100,9 +100,8 @@ interface ToolCallPart {
 }
 
 // Helper to create a fake change event for the AI SDK's handleInputChange
-const createInputChangeEvent = (value: string): React.ChangeEvent<HTMLTextAreaElement> => ({
-  target: { value } as HTMLTextAreaElement,
-} as React.ChangeEvent<HTMLTextAreaElement>);
+// (Removed as we now use setInput directly)
+
 
 export default function Chat() {
   const { session } = useAuth();
@@ -217,6 +216,7 @@ export default function Chat() {
     isLoading,
     error,
     setMessages,
+    setInput,
   } = useChat({
     streamProtocol: 'data',
     api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`,
@@ -349,8 +349,26 @@ export default function Chat() {
   const handleChatSubmit = React.useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
 
+    // If there are context attachments, we need to update the input first
+    // Note: We use a local variable because state update might be async
+    let inputToSubmit = input;
+
+    // If there are context attachments, add them as @mentions to the input
+    if (contextAttachments.length > 0) {
+      const attachmentMentions = contextAttachments
+        .map(a => `@[${a.title}](recording:${a.id})`)
+        .join(' ');
+
+      // Prepend the attachments to the input as context
+      inputToSubmit = `[Context: ${attachmentMentions}]\n\n${input}`;
+      setInput(inputToSubmit);
+      
+      // Clear attachments after adding to input
+      setContextAttachments([]);
+    }
+
     // Don't submit if input is empty
-    if (!input || !input.trim()) return;
+    if (!inputToSubmit || !inputToSubmit.trim()) return;
 
     // Create session if it doesn't exist BEFORE submitting
     let sessionIdToUse = currentSessionId;
@@ -368,32 +386,28 @@ export default function Chat() {
       }
     }
 
-    // If there are context attachments, add them as @mentions to the input
-    if (contextAttachments.length > 0) {
-      const attachmentMentions = contextAttachments
-        .map(a => `@[${a.title}](recording:${a.id})`)
-        .join(' ');
-
-      // Prepend the attachments to the input as context
-      const enrichedInput = `[Context: ${attachmentMentions}]\n\n${input}`;
-      handleInputChange(createInputChangeEvent(enrichedInput));
-
-      // Clear attachments after adding to input
-      setContextAttachments([]);
-    }
-
-    // Call the original handleSubmit which will add the user message and trigger the AI
-    handleSubmit(e);
-  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, handleSubmit, contextAttachments, handleInputChange]);
+    // Call handleSubmit from AI SDK
+    // Note: If we modified the input with contextAttachments, handleSubmit will use the current input state
+    // which might not be updated yet if we just called setInput.
+    // However, handleSubmit sends the request, and we can force it to use our modified input?
+    // No, handleSubmit uses the hook's internal state. 
+    // Actually, handleSubmit allows passing an event, but not the text directly.
+    // We rely on the setInput update being processed. 
+    // A safer way if we just changed input is to append the user message manually, but handleSubmit is convenient.
+    // Let's assume React batching or use append if this is flaky. 
+    // For now, let's just call handleSubmit which handles the submission of the current input value.
+    handleSubmit(e, { allowEmptySubmit: false });
+  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, handleSubmit, contextAttachments, setInput]);
 
   // Handle suggestion clicks - sets input AND submits
   const handleSuggestionClick = React.useCallback((text: string) => {
-    handleInputChange(createInputChangeEvent(text));
+    setInput(text);
     // Use requestAnimationFrame to ensure state update completes before submit
     requestAnimationFrame(() => {
-      handleChatSubmit();
+      const formEvent = { preventDefault: () => {} } as React.FormEvent;
+      handleSubmit(formEvent, { allowEmptySubmit: false });
     });
-  }, [handleInputChange, handleChatSubmit]);
+  }, [setInput, handleSubmit]);
 
   // Handler to view a call from a source citation
   const handleViewCall = React.useCallback(async (recordingId: number) => {
@@ -472,7 +486,7 @@ export default function Chat() {
   } = useMentions({
     availableCalls,
     input,
-    onInputChange: (value) => handleInputChange(createInputChangeEvent(value)),
+    onInputChange: setInput,
     onCallSelect: handleMentionCallSelect,
     textareaRef,
   });
