@@ -101,11 +101,12 @@ async function testEmbeddingService(): Promise<void> {
       "What security questions did customers ask?"
     ];
 
-    const response = await fetch('https://api.openai.com/v1/embeddings', {
+    const response = await fetch('https://gateway.ai.vercel.dev/v1/embeddings', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
+        'x-vercel-ai-provider': 'openai',
       },
       body: JSON.stringify({
         model: 'text-embedding-3-small',

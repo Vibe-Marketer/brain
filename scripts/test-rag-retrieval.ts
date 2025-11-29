@@ -237,12 +237,13 @@ function calculatePrecisionAtK(results: RetrievalResult[], testQuery: TestQuery,
 /**
  * Generate embedding using OpenAI text-embedding-3-small
  */
-async function generateEmbedding(text: string): Promise<number[]> {
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
+async function generateQueryEmbedding(text: string, apiKey: string): Promise<number[]> {
+  const response = await fetch('https://gateway.ai.vercel.dev/v1/embeddings', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
+      'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
+      'x-vercel-ai-provider': 'openai',
     },
     body: JSON.stringify({
       model: 'text-embedding-3-small',

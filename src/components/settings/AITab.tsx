@@ -52,13 +52,17 @@ interface IndexingStats {
 
 interface EmbeddingJob {
   id: string;
-  status: "pending" | "running" | "completed" | "failed";
+  status: "pending" | "running" | "completed" | "failed" | "completed_with_errors";
   progress_current: number;
   progress_total: number;
   chunks_created: number;
   error_message: string | null;
   started_at: string | null;
   completed_at: string | null;
+  // Queue-based tracking columns
+  queue_total?: number;
+  queue_completed?: number;
+  queue_failed?: number;
 }
 
 export default function AITab() {
@@ -81,7 +85,7 @@ export default function AITab() {
     try {
       const { data: job } = await supabase
         .from("embedding_jobs")
-        .select("*")
+        .select("id, status, progress_current, progress_total, chunks_created, error_message, started_at, completed_at, queue_total, queue_completed, queue_failed")
         .eq("id", jobId)
         .single();
 
@@ -93,9 +97,18 @@ export default function AITab() {
             `Indexing complete! ${job.chunks_created} chunks created from ${job.progress_total} recordings.`
           );
           setIndexing(false);
+          setActiveJob(null);
+        } else if (job.status === "completed_with_errors") {
+          const failedCount = job.queue_failed || 0;
+          toast.warning(
+            `Indexing completed with ${failedCount} failed recording${failedCount !== 1 ? "s" : ""}. ${job.chunks_created} chunks created.`
+          );
+          setIndexing(false);
+          setActiveJob(null);
         } else if (job.status === "failed") {
           toast.error(`Indexing failed: ${job.error_message || "Unknown error"}`);
           setIndexing(false);
+          setActiveJob(null);
         }
       }
     } catch (error) {
@@ -150,7 +163,7 @@ export default function AITab() {
       // Check for active jobs
       const { data: jobs } = await supabase
         .from("embedding_jobs")
-        .select("*")
+        .select("id, status, progress_current, progress_total, chunks_created, error_message, started_at, completed_at, queue_total, queue_completed, queue_failed")
         .eq("user_id", user.id)
         .in("status", ["pending", "running"])
         .order("created_at", { ascending: false })
@@ -158,6 +171,7 @@ export default function AITab() {
 
       if (jobs && jobs.length > 0) {
         setActiveJob(jobs[0] as EmbeddingJob);
+        setIndexing(true); // Resume polling for active job
       }
 
       // Load saved AI model preference
@@ -238,7 +252,7 @@ export default function AITab() {
 
   // Refresh stats when job completes
   useEffect(() => {
-    if (activeJob?.status === "completed") {
+    if (activeJob?.status === "completed" || activeJob?.status === "completed_with_errors") {
       loadIndexingStats();
     }
   }, [activeJob?.status, loadIndexingStats]);
@@ -268,7 +282,7 @@ export default function AITab() {
         if (job_id) {
           const { data: job } = await supabase
             .from("embedding_jobs")
-            .select("*")
+            .select("id, status, progress_current, progress_total, chunks_created, error_message, started_at, completed_at, queue_total, queue_completed, queue_failed")
             .eq("id", job_id)
             .single();
 
@@ -535,6 +549,11 @@ export default function AITab() {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">
                       Processing {activeJob.progress_current} of {activeJob.progress_total}
+                      {(activeJob.queue_failed ?? 0) > 0 && (
+                        <span className="text-amber-600 dark:text-amber-400 ml-2">
+                          ({activeJob.queue_failed} failed)
+                        </span>
+                      )}
                     </span>
                     <span className="font-medium tabular-nums">{getProgressPercentage()}%</span>
                   </div>

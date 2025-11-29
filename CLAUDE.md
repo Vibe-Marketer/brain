@@ -433,17 +433,20 @@ Before implementing ANY UI component or making design changes:
 
 ## AI/SDK Implementation Defaults
 
-**Default to Vercel SDKs** for all new features involving:
-- AI (LLM models, chat, agents, RAG, function calling)
-- Chat interfaces (chat experience, session UI)
-- Workflow orchestration (triggers, chains, multi-step agents)
-- Feature toggles and flags
+**MANDATORY: Vercel SDK Ecosystem**
 
-**Required SDKs:**
-- **AI SDK** (`ai`) - LLM integration, streaming, tool calling
-- **AI SDK React** (`@ai-sdk/react`) - useChat, useCompletion hooks
-- **AI SDK UI Utils** - Chat UI components
-- **Flags SDK** - Feature toggles (when needed)
+You **MUST** use Vercel SDKs and related tools for **ALL** applicable features. This is a strict mandate.
+
+**Core Required Stack:**
+- **AI SDK** (`ai`) - **MANDATORY** for all LLM integration, streaming, and tool calling.
+- **AI SDK React** (`@ai-sdk/react`) - **MANDATORY** for all frontend chat/completion hooks.
+- **AI Gateway** - **MANDATORY** for managing AI model providers and observability.
+- **Workflow DevKit** - **MANDATORY** for all orchestration, triggers, and multi-step agent flows.
+- **Flags SDK** - **MANDATORY** for all feature flagging and toggles.
+- **Streamdown AI** - **MANDATORY** pattern for streaming markdown content (maximize streaming capabilities).
+- **Prompt-Kit UI** - **MANDATORY** for all chat-related UI components (as per ADR-005).
+
+**Why?** We prioritize deep integration with the Vercel ecosystem to maximize performance, observability, and developer experience.
 
 **Reference Documentation:**
 - [AI SDK Cookbook Examples](./docs/reference/ai-sdk-cookbook-examples) - Implementation patterns and use cases
@@ -477,14 +480,11 @@ const stream = await streamText({
 });
 ```
 
-### When to Deviate
+### Deviations
 
-Only deviate from Vercel SDKs if:
-1. Required capability doesn't exist in Vercel SDK
-2. Compatibility issue with existing infrastructure
-3. Performance requirement not met
-
-**Document the reason** in code comments when deviating.
+**Deviations are generally NOT permitted.** 
+If a Vercel SDK solution exists, it **must** be used.
+Only if a feature is *completely impossible* with the Vercel ecosystem may you consider alternatives, and this requires an **Explicit ADR** approval first.
 
 ## Code Quality Standards
 

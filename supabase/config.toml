@@ -51,6 +51,11 @@ verify_jwt = true
 [functions.embed-chunks]
 verify_jwt = true
 
+[functions.process-embeddings]
+# Worker function called by self-invocation and pg_cron
+# Needs to work without user JWT (uses service role)
+verify_jwt = false
+
 [functions.chat-stream]
 verify_jwt = true
 

@@ -149,17 +149,18 @@ function chunkTranscript(
 
 // Generate embeddings using OpenAI API
 async function generateEmbeddings(texts: string[]): Promise<number[][]> {
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'text-embedding-3-small',
-      input: texts,
-    }),
-  });
+    const response = await fetch("https://gateway.ai.vercel.dev/v1/embeddings", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${openaiApiKey}`,
+        "Content-Type": "application/json",
+        "x-vercel-ai-provider": "openai"
+      },
+      body: JSON.stringify({
+        model: "text-embedding-3-small",
+        input: text,
+      }),
+    });
 
   if (!response.ok) {
     const error = await response.text();

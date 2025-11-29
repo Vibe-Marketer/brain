@@ -9,11 +9,19 @@ const corsHeaders = {
 };
 
 interface GenerateTitlesRequest {
-  recordingIds: number[];
+  recordingIds?: number[];
+  auto_discover?: boolean;  // Find all calls without AI titles
+  limit?: number;           // Max calls to process when auto_discover is true
 }
 
 const TitleSchema = z.object({
-  title: z.string().describe('A concise, descriptive title for the call (5-10 words max)'),
+  title: z.string().describe('A concise, descriptive title for the call (3-8 words max)'),
+  category_hint: z.enum([
+    'TEAM', 'COACH_GROUP', 'COACH_1ON1', 'WEBINAR', 'SALES',
+    'EXTERNAL', 'DISCOVERY', 'ONBOARDING', 'REFUND', 'FREE',
+    'EDUCATION', 'PRODUCT', 'SUPPORT', 'REVIEW', 'STRATEGY', 'SKIP'
+  ]).describe('Best-fit category for this call'),
+  key_theme: z.string().describe('The single most important theme/topic (2-4 words)'),
   reasoning: z.string().describe('Brief explanation of why this title was chosen'),
 });
 
@@ -55,21 +63,62 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { recordingIds }: GenerateTitlesRequest = await req.json();
+    const { recordingIds, auto_discover, limit = 50 }: GenerateTitlesRequest = await req.json();
 
-    if (!recordingIds || recordingIds.length === 0) {
+    let idsToProcess: number[] = [];
+
+    if (auto_discover) {
+      // Find all calls without AI-generated titles
+      console.log(`Auto-discovering calls without AI titles for user ${user.id} (limit: ${limit})`);
+
+      const { data: callsWithoutTitles, error: discoverError } = await supabase
+        .from('fathom_calls')
+        .select('recording_id')
+        .eq('user_id', user.id)
+        .is('ai_generated_title', null)
+        .not('full_transcript', 'is', null)  // Must have transcript
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (discoverError) {
+        return new Response(
+          JSON.stringify({ error: `Failed to discover calls: ${discoverError.message}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      idsToProcess = (callsWithoutTitles || []).map(c => c.recording_id);
+      console.log(`Found ${idsToProcess.length} calls needing AI titles`);
+
+    } else if (recordingIds && recordingIds.length > 0) {
+      idsToProcess = recordingIds;
+    } else {
       return new Response(
-        JSON.stringify({ error: 'No recording IDs provided' }),
+        JSON.stringify({ error: 'Either recordingIds or auto_discover=true is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Generating AI titles for ${recordingIds.length} calls for user ${user.id}`);
+    if (idsToProcess.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, message: 'No calls to process', totalProcessed: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Generating AI titles for ${idsToProcess.length} calls for user ${user.id}`);
 
     const results = [];
-    const openai = createOpenAI({ apiKey: openaiApiKey });
+    // Use Vercel AI Gateway for observability and provider management
+    const openai = createOpenAI({
+      apiKey: openaiApiKey,
+      baseURL: 'https://gateway.ai.vercel.dev/v1',
+      headers: {
+        'x-vercel-ai-provider': 'openai',
+      },
+    });
 
-    for (const recordingId of recordingIds) {
+    for (const recordingId of idsToProcess) {
       try {
         // Fetch call data
         const { data: call, error: callError } = await supabase
@@ -107,33 +156,68 @@ Deno.serve(async (req) => {
           call.full_transcript ? `Transcript excerpt: ${call.full_transcript.substring(0, 2000)}` : '',
         ].filter(Boolean).join('\n\n');
 
-        // Generate improved title using Vercel AI SDK
+        // Generate improved title using Vercel AI SDK via AI Gateway
         const result = await generateObject({
           model: openai('gpt-4o-mini'),
           schema: TitleSchema,
-          prompt: `Analyze this meeting call and generate a concise, descriptive title that captures the main purpose and topics discussed.
+          prompt: `You are an expert at analyzing sales calls, coaching sessions, and business meetings to extract the CORE PURPOSE and PRIMARY OUTCOME.
 
-Requirements:
-- 5-10 words maximum
-- Clear and professional
-- Action-oriented when possible (e.g., "Q4 Sales Review", "Product Roadmap Planning", "Customer Onboarding - Acme Corp")
-- Should be more descriptive than the original title if it's generic
-- Include key participants or companies if mentioned prominently
-
-Meeting Content:
+CALL CONTENT:
 ${content}
 
-Generate an improved title for this call.`,
+YOUR TASK:
+Generate a title that immediately tells someone what this call was about and why it mattered.
+
+TITLE REQUIREMENTS:
+1. 3-8 words MAXIMUM (shorter is better)
+2. Lead with the PRIMARY ACTION or OUTCOME, not the format
+3. Use this pattern: [Action/Topic] + [Context/Who]
+4. Be SPECIFIC - avoid generic words like "Meeting", "Call", "Discussion", "Session"
+5. Include company/person name ONLY if it's the main subject
+
+GOOD EXAMPLES:
+- "Pricing Objections - Enterprise Deal" (not "Sales Call with John")
+- "Scaling Facebook Ads Strategy" (not "Marketing Coaching Session")
+- "New Feature Walkthrough for Onboarding" (not "Product Demo")
+- "Q4 Revenue Goals & OKRs" (not "Team Meeting")
+- "Handling Refund Request - Billing Issue" (not "Support Call")
+- "Cold Email Teardown & Optimization" (not "Email Review Session")
+
+BAD EXAMPLES (too generic):
+- "Weekly Team Sync" → Instead: "Sprint Planning & Blockers"
+- "1:1 with Sarah" → Instead: "Sarah's Pipeline Review"
+- "Group Coaching" → Instead: "Objection Handling Workshop"
+- "Customer Call" → Instead: "Expansion Opportunity - Acme"
+
+CATEGORY GUIDANCE:
+- TEAM: Internal meetings, founder syncs, team standups
+- COACH_GROUP: Paid group coaching/mastermind (2+ participants)
+- COACH_1ON1: One-on-one paid coaching
+- SALES: Prospect/closing calls
+- DISCOVERY: Pre-sales qualification/triage
+- ONBOARDING: Customer onboarding/implementation
+- SUPPORT: Tech support, troubleshooting
+- PRODUCT: Product demos
+- WEBINAR: Large group events
+- EXTERNAL: Podcasts, collaborations
+- FREE: Free community calls
+- EDUCATION: Courses/coaching you attend (as student)
+- REVIEW: Testimonials, feedback interviews
+- REFUND: Retention/cancellation calls
+- STRATEGY: Mission/vision planning
+
+Generate the most descriptive, specific title possible.`,
         });
 
-        const aiTitle = result.object.title;
-        console.log(`Generated title for ${recordingId}: "${aiTitle}" (${result.object.reasoning})`);
+        const { title: aiTitle, category_hint, key_theme, reasoning } = result.object;
+        console.log(`Generated for ${recordingId}: "${aiTitle}" | Category: ${category_hint} | Theme: ${key_theme}`);
 
-        // Update database
+        // Update database with AI-generated title and timestamp
         const { error: updateError } = await supabase
           .from('fathom_calls')
           .update({
             ai_generated_title: aiTitle,
+            ai_title_generated_at: new Date().toISOString(),
           })
           .eq('recording_id', recordingId);
 
@@ -145,12 +229,43 @@ Generate an improved title for this call.`,
             error: updateError.message,
           });
         } else {
+          // Also apply category if we have a hint and no existing category
+          const { data: existingCategory } = await supabase
+            .from('call_category_assignments')
+            .select('id')
+            .eq('call_recording_id', recordingId)
+            .maybeSingle();
+
+          if (!existingCategory && category_hint) {
+            // Look up category ID
+            const { data: category } = await supabase
+              .from('call_categories')
+              .select('id')
+              .eq('name', category_hint)
+              .maybeSingle();
+
+            if (category) {
+              await supabase
+                .from('call_category_assignments')
+                .insert({
+                  call_recording_id: recordingId,
+                  category_id: category.id,
+                  user_id: user.id,
+                  auto_assigned: true,
+                })
+                .onConflict('call_recording_id,category_id')
+                .ignore();
+            }
+          }
+
           results.push({
             recordingId,
             success: true,
             originalTitle: call.title,
             aiGeneratedTitle: aiTitle,
-            reasoning: result.object.reasoning,
+            categoryHint: category_hint,
+            keyTheme: key_theme,
+            reasoning,
           });
         }
       } catch (error) {
@@ -168,9 +283,9 @@ Generate an improved title for this call.`,
     return new Response(
       JSON.stringify({
         success: true,
-        totalProcessed: recordingIds.length,
+        totalProcessed: idsToProcess.length,
         successCount,
-        failureCount: recordingIds.length - successCount,
+        failureCount: idsToProcess.length - successCount,
         results,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

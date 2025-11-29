@@ -2,10 +2,52 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, webhook-id, webhook-signature',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, webhook-id, webhook-signature, webhook-timestamp, x-signature',
 };
 
-async function verifyWebhookSignature(
+// Fathom's simple signature verification (for OAuth webhooks)
+// Per Fathom docs: HMAC-SHA256 of raw body with secret, base64 encoded
+async function verifyFathomSignature(
+  secret: string,
+  headers: Headers,
+  rawBody: string
+): Promise<boolean> {
+  // Fathom uses x-signature header for their native webhooks
+  const xSignature = headers.get('x-signature');
+
+  if (!xSignature) {
+    return false;
+  }
+
+  console.log('Verifying Fathom native signature (x-signature header)');
+
+  // Use the secret directly (no base64 decoding needed for Fathom native)
+  // Remove whsec_ prefix if present
+  const secretToUse = secret.startsWith('whsec_') ? secret.substring(6) : secret;
+
+  const encoder = new TextEncoder();
+  const secretBytes = encoder.encode(secretToUse);
+  const messageData = encoder.encode(rawBody);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    secretBytes,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+  const expected = btoa(String.fromCharCode(...new Uint8Array(signature)));
+
+  console.log('Expected Fathom signature:', expected);
+  console.log('Received x-signature:', xSignature);
+
+  return expected === xSignature;
+}
+
+// Svix signature verification (for API Key webhooks)
+async function verifySvixSignature(
   secret: string,
   headers: Headers,
   rawBody: string
@@ -13,15 +55,16 @@ async function verifyWebhookSignature(
   const signatureHeader = headers.get('webhook-signature');
   const webhookId = headers.get('webhook-id');
   const webhookTimestamp = headers.get('webhook-timestamp');
-  
+
   if (!signatureHeader || !webhookId || !webhookTimestamp) {
-    console.error('Missing required webhook headers');
     return false;
   }
 
+  console.log('Verifying Svix signature (webhook-signature header)');
+
   const [version, signatureBlock] = signatureHeader.split(',');
   if (version !== 'v1') {
-    console.error('Invalid signature version:', version);
+    console.error('Invalid Svix signature version:', version);
     return false;
   }
 
@@ -35,7 +78,7 @@ async function verifyWebhookSignature(
     console.error('Invalid secret format, expected whsec_XXXXX');
     return false;
   }
-  
+
   // Base64 decode the secret
   const secretBytes = Uint8Array.from(atob(secretParts[1]), c => c.charCodeAt(0));
   console.log('Decoded secret length:', secretBytes.length);
@@ -43,7 +86,7 @@ async function verifyWebhookSignature(
   // Use Web Crypto API to sign the Svix format
   const encoder = new TextEncoder();
   const messageData = encoder.encode(signedContent);
-  
+
   const cryptoKey = await crypto.subtle.importKey(
     'raw',
     secretBytes,
@@ -51,15 +94,55 @@ async function verifyWebhookSignature(
     false,
     ['sign']
   );
-  
+
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
   const expected = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
-  console.log('Expected signature:', expected);
-  console.log('Received signatures:', signatureBlock);
+  console.log('Expected Svix signature:', expected);
+  console.log('Received Svix signatures:', signatureBlock);
 
   const signatures = signatureBlock.split(' ');
   return signatures.includes(expected);
+}
+
+// Main verification function that tries both methods
+async function verifyWebhookSignature(
+  secret: string,
+  headers: Headers,
+  rawBody: string
+): Promise<boolean> {
+  // Log available headers for debugging
+  console.log('📝 Available signature headers:');
+  console.log('   - x-signature:', headers.get('x-signature') ? 'present' : 'missing');
+  console.log('   - webhook-signature:', headers.get('webhook-signature') ? 'present' : 'missing');
+  console.log('   - webhook-id:', headers.get('webhook-id') ? 'present' : 'missing');
+  console.log('   - webhook-timestamp:', headers.get('webhook-timestamp') ? 'present' : 'missing');
+
+  // Try Fathom native signature first (x-signature header)
+  if (headers.get('x-signature')) {
+    console.log('🔐 Attempting Fathom native signature verification...');
+    const fathomValid = await verifyFathomSignature(secret, headers, rawBody);
+    if (fathomValid) {
+      console.log('✅ Fathom native signature verified');
+      return true;
+    }
+    console.log('❌ Fathom native signature failed');
+  }
+
+  // Try Svix signature (webhook-signature header)
+  if (headers.get('webhook-signature')) {
+    console.log('🔐 Attempting Svix signature verification...');
+    const svixValid = await verifySvixSignature(secret, headers, rawBody);
+    if (svixValid) {
+      console.log('✅ Svix signature verified');
+      return true;
+    }
+    console.log('❌ Svix signature failed');
+  }
+
+  // No valid signature found
+  console.error('❌ No valid signature found with any method');
+  return false;
 }
 
 async function processMeetingWebhook(meeting: any, supabase: any) {
@@ -272,21 +355,35 @@ Deno.serve(async (req) => {
     // Parse body to get meeting email for webhook secret lookup
     meeting = JSON.parse(rawBody);
     
-    // Retrieve the webhook secret from user_settings
-    // Try to match by recorded_by email first
+    // ==========================================================================
+    // WEBHOOK SIGNATURE VERIFICATION
+    // ==========================================================================
+    // We support BOTH personal API webhooks AND OAuth app webhooks:
+    //
+    // 1. Personal API Webhooks: signed with user-specific webhook_secret stored
+    //    in user_settings. The secret is matched by recorded_by.email → host_email.
+    //
+    // 2. OAuth App Webhooks: signed with shared FATHOM_OAUTH_WEBHOOK_SECRET.
+    //    This is the fallback when no user-specific secret matches.
+    //
+    // Priority: User-specific secret (matched by email) → OAuth app secret → First user's secret
+    // ==========================================================================
+
+    console.log('🔍 Webhook received - recorded_by:', meeting.recorded_by?.email);
+
+    // Try to find a matching webhook secret
     let webhookSecret = null;
     let secretMatchMethod = 'none';
     let matchedUserId = null;
-    
-    console.log('🔍 Looking up webhook secret for email:', meeting.recorded_by?.email);
-    
+
+    // 1. Try to match by recorded_by email to user_settings.host_email
     if (meeting.recorded_by?.email) {
       const { data: settings } = await supabase
         .from('user_settings')
         .select('webhook_secret, user_id')
         .eq('host_email', meeting.recorded_by.email)
         .maybeSingle();
-      
+
       if (settings?.webhook_secret) {
         webhookSecret = settings.webhook_secret;
         matchedUserId = settings.user_id;
@@ -298,8 +395,8 @@ Deno.serve(async (req) => {
         console.log('❌ No webhook secret found for email:', meeting.recorded_by.email);
       }
     }
-    
-    // Fallback to OAuth app webhook secret (for OAuth-based webhooks)
+
+    // 2. Fallback to OAuth app webhook secret
     if (!webhookSecret) {
       console.log('🔄 No user-specific secret found, trying OAuth app secret');
       const oauthAppSecret = Deno.env.get('FATHOM_OAUTH_WEBHOOK_SECRET');
@@ -308,8 +405,9 @@ Deno.serve(async (req) => {
         webhookSecret = oauthAppSecret;
         secretMatchMethod = 'oauth_app_secret';
         console.log('✅ Using OAuth app webhook secret');
+        console.log('   - Secret (masked):', oauthAppSecret.substring(0, 15) + '...');
 
-        // For OAuth webhooks, try to find user by email
+        // For OAuth webhooks, try to find user by email for later processing
         if (meeting.recorded_by?.email) {
           const { data: userByEmail } = await supabase
             .from('user_settings')
@@ -322,7 +420,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Final fallback to first user's settings (for legacy API key webhooks)
+    // 3. Final fallback to first user's webhook secret
     if (!webhookSecret) {
       console.log('🔄 Falling back to first user\'s webhook secret');
       const { data: firstSettings } = await supabase
@@ -334,64 +432,50 @@ Deno.serve(async (req) => {
       if (firstSettings?.webhook_secret) {
         webhookSecret = firstSettings.webhook_secret;
         matchedUserId = firstSettings.user_id;
-        secretMatchMethod = 'fallback_first_user';
-        console.log('✅ Using fallback secret');
-        console.log('   - User ID:', matchedUserId);
+        secretMatchMethod = 'first_user_fallback';
+        console.log('✅ Using first user\'s webhook secret');
         console.log('   - Secret (masked):', webhookSecret.substring(0, 15) + '...');
       }
     }
 
     if (!webhookSecret) {
-      console.error('WEBHOOK_SECRET not configured - no user secret or OAuth app secret found');
+      console.error('❌ No webhook secret available (none in user_settings, no FATHOM_OAUTH_WEBHOOK_SECRET)');
       return new Response(
-        JSON.stringify({ error: 'Webhook not configured' }),
+        JSON.stringify({ error: 'Webhook secret not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('Webhook secret loaded successfully');
-    console.log('📊 Webhook Signature Verification Details:');
-    console.log('   - Secret match method:', secretMatchMethod);
-    console.log('   - Matched User ID:', matchedUserId);
-    console.log('   - Webhook ID:', req.headers.get('webhook-id'));
-    console.log('   - Webhook Timestamp:', req.headers.get('webhook-timestamp'));
-    console.log('   - Signature Header:', req.headers.get('webhook-signature'));
-    console.log('   - Body length:', rawBody.length);
-    
-    // Get user_id for logging
-    if (meeting.recorded_by?.email) {
-      const { data: userSettings } = await supabase
-        .from('user_settings')
-        .select('user_id')
-        .eq('host_email', meeting.recorded_by.email)
-        .maybeSingle();
-      
-      userId = userSettings?.user_id || null;
-    }
-    
+    console.log('🔐 Verifying signature using method:', secretMatchMethod);
+
+    // Verify the webhook signature
+    const isValid = await verifyWebhookSignature(webhookSecret, req.headers, rawBody);
+
+    // Use the userId we already found during secret lookup
+    userId = matchedUserId;
+
+    // If still no userId, get first user for logging purposes
     if (!userId) {
       const { data: firstUser } = await supabase
         .from('user_settings')
         .select('user_id')
         .limit(1)
         .maybeSingle();
-      
+
       userId = firstUser?.user_id || null;
     }
-    
-    // Verify webhook signature
-    const isValid = await verifyWebhookSignature(webhookSecret, req.headers, rawBody);
-    console.log('Signature verification:', isValid ? 'VALID' : 'INVALID');
-    
+
     if (!isValid) {
-      console.error('Invalid webhook signature');
-      errorMessage = 'Invalid webhook signature';
-      
+      console.error('❌ Webhook signature verification FAILED');
+      console.error('   - Webhook ID:', req.headers.get('webhook-id'));
+      console.error('   - Signature Header:', req.headers.get('webhook-signature'));
+      errorMessage = `Invalid webhook signature (method: ${secretMatchMethod})`;
+
       // Log failed delivery
       if (userId) {
         await supabase.from('webhook_deliveries').insert({
           user_id: userId,
-          webhook_id: req.headers.get('webhook-id') || 'unknown',
+          webhook_id: req.headers.get('webhook-id') || req.headers.get('svix-id') || 'unknown',
           recording_id: meeting.recording_id,
           status: 'failed',
           error_message: errorMessage,
@@ -400,12 +484,17 @@ Deno.serve(async (req) => {
           signature_valid: false
         });
       }
-      
+
       return new Response(
-        JSON.stringify({ error: 'Invalid signature' }),
+        JSON.stringify({
+          error: 'Invalid signature',
+          hint: 'Verify FATHOM_OAUTH_WEBHOOK_SECRET matches your OAuth app webhook secret in the Fathom Developer Portal'
+        }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('✅ Webhook signature verified successfully using OAuth app secret');
 
     const webhookId = req.headers.get('webhook-id');
     console.log('Webhook ID:', webhookId);

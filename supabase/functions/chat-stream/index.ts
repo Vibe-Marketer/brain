@@ -23,11 +23,12 @@ interface SessionFilters {
 
 // Generate embedding for search query
 async function generateQueryEmbedding(text: string, openaiApiKey: string): Promise<number[]> {
-  const response = await fetch('https://api.openai.com/v1/embeddings', {
+  const response = await fetch('https://gateway.ai.vercel.dev/v1/embeddings', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
+      'x-vercel-ai-provider': 'openai',
     },
     body: JSON.stringify({
       model: 'text-embedding-3-small',
@@ -194,7 +195,13 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const openai = createOpenAI({ apiKey: openaiApiKey });
+    const openai = createOpenAI({
+      apiKey: openaiApiKey,
+      baseURL: 'https://gateway.ai.vercel.dev/v1',
+      headers: {
+        'x-vercel-ai-provider': 'openai',
+      },
+    });
 
     // Get user ID from JWT
     const authHeader = req.headers.get('Authorization');

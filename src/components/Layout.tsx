@@ -1,7 +1,7 @@
 import { MacOSDock, DockApp } from "@/components/ui/mac-os-dock";
 import { TopBar } from "@/components/ui/top-bar";
 import { useNavigate, useLocation } from "react-router-dom";
-import { RiChat1Fill } from "@remixicon/react";
+import { RiChat1Fill, RiPriceTag3Fill } from "@remixicon/react";
 import homeIcon from '@/assets/icons/home.svg';
 import settingsIcon from '@/assets/icons/settings.svg';
 
@@ -23,6 +23,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       onClick: () => navigate('/chat'),
     },
     {
+      id: 'categorization',
+      name: 'Categories',
+      icon: <div className="w-full h-full flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/80 to-purple-600"><RiPriceTag3Fill className="w-7 h-7 text-white" /></div>,
+      onClick: () => navigate('/categorization'),
+    },
+    {
       id: 'settings',
       name: 'Settings',
       icon: <img src={settingsIcon} alt="Settings" className="w-full h-full object-cover rounded-xl" />,
@@ -34,6 +40,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     const apps: string[] = [];
     if (location.pathname === '/') apps.push('home');
     if (location.pathname.startsWith('/chat')) apps.push('chat');
+    if (location.pathname.startsWith('/categorization')) apps.push('categorization');
     if (location.pathname.startsWith('/settings')) apps.push('settings');
     return apps;
   };
@@ -41,6 +48,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const getPageLabel = () => {
     if (location.pathname === '/') return 'HOME';
     if (location.pathname === '/chat') return 'AI CHAT';
+    if (location.pathname === '/categorization') return 'CATEGORIES';
     if (location.pathname === '/settings') return 'SETTINGS';
     return 'HOME';
   };

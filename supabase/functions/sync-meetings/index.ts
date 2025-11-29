@@ -1,15 +1,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { FathomClient } from '../_shared/fathom-client.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Rate limiter for API calls
+// Rate limiter for API calls - conservative to avoid 429 errors
 class RateLimiter {
   private requestCount = 0;
   private windowStart = Date.now();
-  private readonly maxRequests = 55;
+  private readonly maxRequests = 30; // Reduced from 55 to be more conservative
   private readonly windowMs = 60000;
 
   async throttle(): Promise<void> {
@@ -262,6 +263,60 @@ Deno.serve(async (req) => {
       // Use OAuth Bearer token authentication
       authHeaders['Authorization'] = `Bearer ${settings.oauth_access_token}`;
       console.log('Using OAuth Bearer token authentication for sync-meetings');
+    } else if (settings.oauth_access_token && settings.oauth_refresh_token) {
+      // OAuth token expired but we have a refresh token - try to refresh
+      console.log('OAuth token expired, attempting refresh...');
+      try {
+        const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID');
+        const clientSecret = Deno.env.get('FATHOM_OAUTH_CLIENT_SECRET');
+
+        if (!clientId || !clientSecret) {
+          throw new Error('OAuth not configured on server');
+        }
+
+        const tokenResponse = await fetch('https://fathom.video/external/v1/oauth2/token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            grant_type: 'refresh_token',
+            refresh_token: settings.oauth_refresh_token,
+            client_id: clientId,
+            client_secret: clientSecret,
+          }),
+        });
+
+        if (!tokenResponse.ok) {
+          const errorText = await tokenResponse.text();
+          console.error('Token refresh failed:', tokenResponse.status, errorText);
+          throw new Error('Failed to refresh access token. Please reconnect Fathom in Settings.');
+        }
+
+        const tokens = await tokenResponse.json();
+        const expiresAt = Date.now() + (tokens.expires_in * 1000);
+
+        // Store new tokens
+        await supabase
+          .from('user_settings')
+          .update({
+            oauth_access_token: tokens.access_token,
+            oauth_refresh_token: tokens.refresh_token,
+            oauth_token_expires: expiresAt,
+          })
+          .eq('user_id', user.id);
+
+        // Use the new token
+        authHeaders['Authorization'] = `Bearer ${tokens.access_token}`;
+        console.log('OAuth token refreshed successfully for sync-meetings');
+      } catch (refreshError) {
+        console.error('Error refreshing OAuth token:', refreshError);
+        if (settings.fathom_api_key) {
+          // Fall back to API key if refresh fails
+          authHeaders['X-Api-Key'] = settings.fathom_api_key;
+          console.log('OAuth refresh failed, falling back to API key authentication');
+        } else {
+          throw new Error('OAuth token expired and refresh failed. Please reconnect Fathom in Settings.');
+        }
+      }
     } else if (settings.fathom_api_key) {
       // Fall back to API key authentication
       authHeaders['X-Api-Key'] = settings.fathom_api_key;
@@ -292,81 +347,121 @@ Deno.serve(async (req) => {
 
     console.log(`Created sync job ${jobId} for ${recordingIds.length} meetings`);
 
+    // Helper function to fetch meeting metadata from paginated list
+    const fetchMeetingMetadata = async (targetRecordingId: number): Promise<any | null> => {
+      let cursor: string | undefined = undefined;
+      const maxPages = 100; // Increase max pages for old meetings
+
+      for (let pageCount = 0; pageCount < maxPages; pageCount++) {
+        const url = new URL('https://api.fathom.ai/external/v1/meetings');
+        url.searchParams.append('include_calendar_invitees', 'true');
+
+        // Add date filters if provided
+        if (createdAfter) {
+          url.searchParams.append('created_after', createdAfter);
+        }
+        if (createdBefore) {
+          url.searchParams.append('created_before', createdBefore);
+        }
+
+        if (cursor) {
+          url.searchParams.append('cursor', cursor);
+        }
+
+        const response = await FathomClient.fetchWithRetry(url.toString(), {
+          headers: authHeaders,
+          maxRetries: 3,
+        });
+
+        if (!response || !response.ok) {
+          console.error(`Failed to fetch meetings page ${pageCount + 1}`);
+          break;
+        }
+
+        const data = await response.json();
+        const found = data.items?.find((m: any) => m.recording_id === targetRecordingId);
+
+        if (found) {
+          return found;
+        }
+
+        cursor = data.next_cursor;
+        if (!cursor) break;
+
+        // Small delay between pages
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      return null;
+    };
+
+    // Helper function to fetch transcript and summary separately (like fetch-single-meeting)
+    const fetchMeetingData = async (recordingId: number): Promise<any | null> => {
+      try {
+        // Fetch summary and transcript separately by recording_id
+        const [summaryResponse, transcriptResponse] = await Promise.all([
+          FathomClient.fetchWithRetry(
+            `https://api.fathom.ai/external/v1/recordings/${recordingId}/summary`,
+            { headers: authHeaders, maxRetries: 3 }
+          ),
+          FathomClient.fetchWithRetry(
+            `https://api.fathom.ai/external/v1/recordings/${recordingId}/transcript`,
+            { headers: authHeaders, maxRetries: 3 }
+          )
+        ]);
+
+        if (!summaryResponse.ok && summaryResponse.status !== 404) {
+          console.error(`Failed to fetch summary for ${recordingId}: ${summaryResponse.status}`);
+        }
+        if (!transcriptResponse.ok && transcriptResponse.status !== 404) {
+          console.error(`Failed to fetch transcript for ${recordingId}: ${transcriptResponse.status}`);
+        }
+
+        const summaryData = summaryResponse.ok ? await summaryResponse.json() : { summary: null };
+        const transcriptData = transcriptResponse.ok ? await transcriptResponse.json() : { transcript: [] };
+
+        // Get meeting metadata from paginated list
+        const meetingMetadata = await fetchMeetingMetadata(recordingId);
+
+        if (!meetingMetadata) {
+          console.error(`Meeting metadata not found for ${recordingId}`);
+          return null;
+        }
+
+        // Combine data like fetch-single-meeting does
+        return {
+          ...meetingMetadata,
+          transcript: transcriptData.transcript || [],
+          default_summary: summaryData.summary || null,
+        };
+      } catch (error) {
+        console.error(`Error fetching meeting data for ${recordingId}:`, error);
+        return null;
+      }
+    };
+
     // Process the sync in the background
     const processSyncJob = async () => {
       const synced: number[] = [];
       const failed: number[] = [];
       const rateLimiter = new RateLimiter();
-      
+
       console.log(`Background processing started for sync job ${jobId}`);
+      console.log(`Using NEW direct recording_id approach for ${recordingIds.length} meetings`);
 
       try {
-        // First, fetch all meetings metadata
-        const meetingsMap = new Map<number, any>();
-        let cursor: string | undefined = undefined;
-        let pageCount = 0;
-        const maxPages = 50;
-        
-        console.log('Fetching meetings list...');
-        while (pageCount < maxPages) {
-          pageCount++;
-          const url = new URL('https://api.fathom.ai/external/v1/meetings');
-          
-          // Include transcript and summary in the request
-          url.searchParams.append('include_transcript', 'true');
-          url.searchParams.append('include_summary', 'true');
-          
-          // Add date filters to match the frontend fetch
-          if (createdAfter) {
-            url.searchParams.append('created_after', createdAfter);
-          }
-          if (createdBefore) {
-            url.searchParams.append('created_before', createdBefore);
-          }
-          
-          if (cursor) {
-            url.searchParams.append('cursor', cursor);
-          }
-
-          await rateLimiter.throttle();
-
-          const response = await fetch(url.toString(), { headers: authHeaders });
-
-          if (!response.ok) {
-            const errorText = await response.text();
-            console.error(`Failed to fetch meetings (page ${pageCount}): ${response.status} - ${errorText}`);
-            break;
-          }
-
-          const data = await response.json();
-          const items = data.items || [];
-          
-          // Add meetings to map
-          for (const meeting of items) {
-            if (recordingIds.includes(meeting.recording_id)) {
-              meetingsMap.set(meeting.recording_id, meeting);
-            }
-          }
-          
-          console.log(`Fetched page ${pageCount}, found ${meetingsMap.size}/${recordingIds.length} requested meetings`);
-          
-          cursor = data.next_cursor;
-          if (!cursor) break;
-          
-          await new Promise(resolve => setTimeout(resolve, 500));
-        }
-
-        console.log(`Found ${meetingsMap.size} meetings, starting sync...`);
-
-        // Sync each requested recording
+        // Process each meeting individually using direct recording_id endpoints
         for (const recordingId of recordingIds) {
           try {
-            const meeting = meetingsMap.get(recordingId);
-            
+            await rateLimiter.throttle();
+
+            console.log(`Fetching meeting ${recordingId} via direct recording_id endpoints...`);
+            const meeting = await fetchMeetingData(recordingId);
+
             if (!meeting) {
-              console.error(`Meeting ${recordingId} not found in meetings list`);
+              console.error(`Meeting ${recordingId} not found or failed to fetch`);
               failed.push(recordingId);
-              
+
               // Update progress
               await supabase
                 .from('sync_jobs')
@@ -376,14 +471,12 @@ Deno.serve(async (req) => {
                   failed_ids: failed,
                 })
                 .eq('id', jobId);
-              
+
               continue;
             }
-            
-            await rateLimiter.throttle();
 
             const success = await syncMeeting(supabase, userId, recordingId, meeting);
-            
+
             if (success) {
               synced.push(recordingId);
               console.log(`✓ Synced ${recordingId} (${synced.length}/${recordingIds.length})`);
@@ -402,11 +495,12 @@ Deno.serve(async (req) => {
               })
               .eq('id', jobId);
 
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Small delay between meetings to be nice to the API
+            await new Promise(resolve => setTimeout(resolve, 500));
           } catch (error) {
             console.error(`Error processing recording ${recordingId}:`, error);
             failed.push(recordingId);
-            
+
             // Update progress even on error
             await supabase
               .from('sync_jobs')
@@ -429,10 +523,10 @@ Deno.serve(async (req) => {
         // }
 
         // Mark job as completed with appropriate status
-        const finalStatus = failed.length === 0 ? 'completed' : 
-                           synced.length === 0 ? 'failed' : 
+        const finalStatus = failed.length === 0 ? 'completed' :
+                           synced.length === 0 ? 'failed' :
                            'completed_with_errors';
-        
+
         await supabase
           .from('sync_jobs')
           .update({
@@ -442,6 +536,50 @@ Deno.serve(async (req) => {
           .eq('id', jobId);
 
         console.log(`Sync job ${jobId} complete: ${synced.length} succeeded, ${failed.length} failed`);
+
+        // Automatically trigger embedding generation for successfully synced meetings
+        if (synced.length > 0) {
+          console.log(`Triggering embedding generation for ${synced.length} synced meetings...`);
+
+          // Fire-and-forget: invoke embed-chunks for the synced recordings
+          // The embed-chunks function will also trigger enrich-chunk-metadata automatically
+          supabase.functions.invoke('embed-chunks', {
+            body: {
+              recording_ids: synced,
+            },
+            headers: {
+              Authorization: `Bearer ${jwt}`,
+            },
+          }).then(({ data, error }) => {
+            if (error) {
+              console.error(`Embedding generation failed for sync job ${jobId}:`, error);
+            } else {
+              console.log(`Embedding generation started for ${synced.length} meetings:`, data);
+            }
+          }).catch((err) => {
+            console.error(`Embedding invocation failed for sync job ${jobId}:`, err);
+          });
+
+          // Fire-and-forget: invoke generate-ai-titles for the synced recordings
+          // This generates descriptive AI titles and auto-categorizes calls
+          console.log(`Triggering AI title generation for ${synced.length} synced meetings...`);
+          supabase.functions.invoke('generate-ai-titles', {
+            body: {
+              recordingIds: synced,
+            },
+            headers: {
+              Authorization: `Bearer ${jwt}`,
+            },
+          }).then(({ data, error }) => {
+            if (error) {
+              console.error(`AI title generation failed for sync job ${jobId}:`, error);
+            } else {
+              console.log(`AI title generation completed for ${synced.length} meetings:`, data);
+            }
+          }).catch((err) => {
+            console.error(`AI title invocation failed for sync job ${jobId}:`, err);
+          });
+        }
       } catch (error) {
         console.error(`Sync job ${jobId} failed:`, error);
         await supabase
