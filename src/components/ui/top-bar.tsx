@@ -46,7 +46,18 @@ export function TopBar({
   return <header className={cn("h-[52px] fixed top-0 left-0 right-0 z-40", "flex items-center justify-between px-3 md:px-6", "bg-[#FCFCFC] dark:bg-[#161616]", className)}>
       {/* Left: Logo/Branding */}
       <button onClick={() => navigate('/')} className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity">
-        <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg flex items-center justify-center p-1.5 bg-[#202020]">
+        <div
+          className="w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center p-1.5"
+          style={{
+            background: 'linear-gradient(160deg, #627285 0%, #394655 100%)',
+            border: '1px solid rgba(57, 70, 85, 0.8)',
+            boxShadow: `
+              0 4px 6px rgba(255, 255, 255, 0.25) inset,
+              0 -4px 6px rgba(0, 0, 0, 0.35) inset,
+              0 10px 20px rgba(61, 74, 91, 0.2)
+            `,
+          }}
+        >
           <img src={brainLogo} alt="Conversion Brain" className="h-full w-full object-contain" />
         </div>
         <span className="text-sm md:text-[15px] font-semibold tracking-tight hidden sm:inline">
