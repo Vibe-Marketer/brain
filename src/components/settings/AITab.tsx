@@ -26,6 +26,8 @@ import { supabase } from "@/integrations/supabase/client";
 // Format: value (preset key) -> label (display name) -> provider -> description
 // The preset keys are used for user_settings storage, actual model IDs are resolved in backend
 const AI_MODEL_PRESETS = [
+  // Z.AI models (Default)
+  { value: "z-ai/glm-4.6", label: "GLM-4.6", provider: "Z.AI", description: "Default model" },
   // OpenAI models
   { value: "openai/gpt-4.1", label: "GPT-4.1", provider: "OpenAI", description: "Latest flagship model" },
   { value: "openai/gpt-4o", label: "GPT-4o", provider: "OpenAI", description: "Most capable, multimodal" },
@@ -66,6 +68,7 @@ const AI_MODEL_PRESETS = [
 
 // Group presets by provider for display
 const PRESET_GROUPS = {
+  "Z.AI": AI_MODEL_PRESETS.filter(p => p.provider === "Z.AI"),
   OpenAI: AI_MODEL_PRESETS.filter(p => p.provider === "OpenAI"),
   Anthropic: AI_MODEL_PRESETS.filter(p => p.provider === "Anthropic"),
   Google: AI_MODEL_PRESETS.filter(p => p.provider === "Google"),
@@ -109,21 +112,21 @@ export default function AITab() {
   const [loading, setLoading] = useState(true);
   const [activeJob, setActiveJob] = useState<EmbeddingJob | null>(null);
 
-  // AI Model selection state - default to GPT-4o
-  const [selectedModel, setSelectedModel] = useState("openai/gpt-4o");
-  const [savedModel, setSavedModel] = useState("openai/gpt-4o");
+  // AI Model selection state - default to GLM-4.6
+  const [selectedModel, setSelectedModel] = useState("z-ai/glm-4.6");
+  const [savedModel, setSavedModel] = useState("z-ai/glm-4.6");
   const [modelSaving, setModelSaving] = useState(false);
 
   // Map legacy preset values to new format
   const mapLegacyPreset = (preset: string): string => {
     const legacyMap: Record<string, string> = {
-      'openai': 'openai/gpt-4o',
+      'openai': 'z-ai/glm-4.6',  // Default to GLM-4.6
       'fast': 'openai/gpt-4o-mini',
-      'quality': 'openai/gpt-4o',
+      'quality': 'z-ai/glm-4.6',  // Default to GLM-4.6
       'best': 'anthropic/claude-3-5-sonnet-20241022',
       'anthropic': 'anthropic/claude-3-5-haiku-20241022',
       'google': 'google/gemini-1.5-flash',
-      'balanced': 'google/gemini-1.5-flash',
+      'balanced': 'z-ai/glm-4.6',  // Default to GLM-4.6
     };
     return legacyMap[preset] || preset;
   };
