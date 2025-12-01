@@ -22,25 +22,58 @@ import { logger } from "@/lib/logger";
 import { embedAllUnindexedTranscripts } from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
 
-// AI Model presets matching the backend configuration
+// AI Model presets - these map to the full model IDs used by the backend
+// Format: value (preset key) -> label (display name) -> provider -> description
+// The preset keys are used for user_settings storage, actual model IDs are resolved in backend
 const AI_MODEL_PRESETS = [
   // OpenAI models
-  { value: "openai", label: "GPT-5.1", provider: "OpenAI", description: "Default - Best quality" },
-  { value: "fast", label: "GPT-4o Mini", provider: "OpenAI", description: "Fast & cost-effective" },
-  { value: "quality", label: "GPT-4o", provider: "OpenAI", description: "High quality" },
+  { value: "openai/gpt-4.1", label: "GPT-4.1", provider: "OpenAI", description: "Latest flagship model" },
+  { value: "openai/gpt-4o", label: "GPT-4o", provider: "OpenAI", description: "Most capable, multimodal" },
+  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", description: "Fast and efficient" },
+  { value: "openai/o1", label: "o1", provider: "OpenAI", description: "Advanced reasoning" },
+  { value: "openai/o1-mini", label: "o1 Mini", provider: "OpenAI", description: "Fast reasoning" },
+  { value: "openai/o3-mini", label: "o3 Mini", provider: "OpenAI", description: "Latest reasoning model" },
   // Anthropic models
-  { value: "best", label: "Claude 3.5 Sonnet", provider: "Anthropic", description: "Premium quality" },
-  { value: "anthropic", label: "Claude 3 Haiku", provider: "Anthropic", description: "Fast & efficient" },
+  { value: "anthropic/claude-sonnet-4-20250514", label: "Claude Sonnet 4", provider: "Anthropic", description: "Latest Claude model" },
+  { value: "anthropic/claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", provider: "Anthropic", description: "Balanced quality & speed" },
+  { value: "anthropic/claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", provider: "Anthropic", description: "Fast and affordable" },
+  { value: "anthropic/claude-3-opus-20240229", label: "Claude 3 Opus", provider: "Anthropic", description: "Most capable Claude 3" },
   // Google models
-  { value: "google", label: "Gemini 1.5 Flash", provider: "Google", description: "Balanced performance" },
-  { value: "balanced", label: "Gemini 1.5 Flash", provider: "Google", description: "Balanced performance" },
+  { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "Google", description: "Fast multimodal" },
+  { value: "google/gemini-2.0-flash-thinking", label: "Gemini 2.0 Flash Thinking", provider: "Google", description: "Reasoning model" },
+  { value: "google/gemini-1.5-pro", label: "Gemini 1.5 Pro", provider: "Google", description: "Best for complex tasks" },
+  { value: "google/gemini-1.5-flash", label: "Gemini 1.5 Flash", provider: "Google", description: "Fast and efficient" },
+  // xAI models (Grok)
+  { value: "xai/grok-3", label: "Grok 3", provider: "xAI", description: "Latest xAI model" },
+  { value: "xai/grok-3-fast", label: "Grok 3 Fast", provider: "xAI", description: "Faster Grok 3" },
+  { value: "xai/grok-2-1212", label: "Grok 2", provider: "xAI", description: "Powerful reasoning" },
+  { value: "xai/grok-2-vision-1212", label: "Grok 2 Vision", provider: "xAI", description: "Multimodal Grok" },
+  // Groq models (Fast inference)
+  { value: "groq/llama-3.3-70b-versatile", label: "Llama 3.3 70B", provider: "Groq", description: "Fast Llama inference" },
+  { value: "groq/llama-3.1-8b-instant", label: "Llama 3.1 8B", provider: "Groq", description: "Ultra-fast inference" },
+  { value: "groq/mixtral-8x7b-32768", label: "Mixtral 8x7B", provider: "Groq", description: "Fast MoE model" },
+  // Mistral models
+  { value: "mistral/mistral-large-latest", label: "Mistral Large", provider: "Mistral", description: "Most capable Mistral" },
+  { value: "mistral/mistral-small-latest", label: "Mistral Small", provider: "Mistral", description: "Fast and efficient" },
+  { value: "mistral/codestral-latest", label: "Codestral", provider: "Mistral", description: "Optimized for code" },
+  // DeepSeek models
+  { value: "deepseek/deepseek-chat", label: "DeepSeek V3", provider: "DeepSeek", description: "Latest DeepSeek model" },
+  { value: "deepseek/deepseek-reasoner", label: "DeepSeek R1", provider: "DeepSeek", description: "Reasoning model" },
+  // Perplexity models
+  { value: "perplexity/sonar-pro", label: "Sonar Pro", provider: "Perplexity", description: "Best for research" },
+  { value: "perplexity/sonar", label: "Sonar", provider: "Perplexity", description: "Fast web search" },
 ] as const;
 
 // Group presets by provider for display
 const PRESET_GROUPS = {
   OpenAI: AI_MODEL_PRESETS.filter(p => p.provider === "OpenAI"),
   Anthropic: AI_MODEL_PRESETS.filter(p => p.provider === "Anthropic"),
-  Google: AI_MODEL_PRESETS.filter(p => p.provider === "Google").slice(0, 1), // Avoid duplicate
+  Google: AI_MODEL_PRESETS.filter(p => p.provider === "Google"),
+  xAI: AI_MODEL_PRESETS.filter(p => p.provider === "xAI"),
+  Groq: AI_MODEL_PRESETS.filter(p => p.provider === "Groq"),
+  Mistral: AI_MODEL_PRESETS.filter(p => p.provider === "Mistral"),
+  DeepSeek: AI_MODEL_PRESETS.filter(p => p.provider === "DeepSeek"),
+  Perplexity: AI_MODEL_PRESETS.filter(p => p.provider === "Perplexity"),
 };
 
 interface IndexingStats {
@@ -76,10 +109,24 @@ export default function AITab() {
   const [loading, setLoading] = useState(true);
   const [activeJob, setActiveJob] = useState<EmbeddingJob | null>(null);
 
-  // AI Model selection state
-  const [selectedModel, setSelectedModel] = useState("openai");
-  const [savedModel, setSavedModel] = useState("openai");
+  // AI Model selection state - default to GPT-4o
+  const [selectedModel, setSelectedModel] = useState("openai/gpt-4o");
+  const [savedModel, setSavedModel] = useState("openai/gpt-4o");
   const [modelSaving, setModelSaving] = useState(false);
+
+  // Map legacy preset values to new format
+  const mapLegacyPreset = (preset: string): string => {
+    const legacyMap: Record<string, string> = {
+      'openai': 'openai/gpt-4o',
+      'fast': 'openai/gpt-4o-mini',
+      'quality': 'openai/gpt-4o',
+      'best': 'anthropic/claude-3-5-sonnet-20241022',
+      'anthropic': 'anthropic/claude-3-5-haiku-20241022',
+      'google': 'google/gemini-1.5-flash',
+      'balanced': 'google/gemini-1.5-flash',
+    };
+    return legacyMap[preset] || preset;
+  };
 
   const checkJobStatus = useCallback(async (jobId: string) => {
     try {
@@ -182,8 +229,10 @@ export default function AITab() {
         .maybeSingle();
 
       if (settings?.ai_model_preset) {
-        setSelectedModel(settings.ai_model_preset);
-        setSavedModel(settings.ai_model_preset);
+        // Map legacy preset values to new format
+        const mappedPreset = mapLegacyPreset(settings.ai_model_preset);
+        setSelectedModel(mappedPreset);
+        setSavedModel(mappedPreset);
       }
     } catch (error) {
       logger.error("Error loading indexing stats", error);
@@ -389,40 +438,22 @@ export default function AITab() {
                       </SelectValue>
                     )}
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectLabel>OpenAI</SelectLabel>
-                      {PRESET_GROUPS.OpenAI.map((preset) => (
-                        <SelectItem key={preset.value} value={preset.value}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{preset.label}</span>
-                            <span className="text-xs text-muted-foreground">{preset.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                    <SelectGroup>
-                      <SelectLabel>Anthropic</SelectLabel>
-                      {PRESET_GROUPS.Anthropic.map((preset) => (
-                        <SelectItem key={preset.value} value={preset.value}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{preset.label}</span>
-                            <span className="text-xs text-muted-foreground">{preset.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                    <SelectGroup>
-                      <SelectLabel>Google</SelectLabel>
-                      {PRESET_GROUPS.Google.map((preset) => (
-                        <SelectItem key={preset.value} value={preset.value}>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{preset.label}</span>
-                            <span className="text-xs text-muted-foreground">{preset.description}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
+                  <SelectContent className="max-h-[400px]">
+                    {Object.entries(PRESET_GROUPS).map(([provider, presets]) => (
+                      presets.length > 0 && (
+                        <SelectGroup key={provider}>
+                          <SelectLabel>{provider}</SelectLabel>
+                          {presets.map((preset) => (
+                            <SelectItem key={preset.value} value={preset.value}>
+                              <div className="flex flex-col">
+                                <span className="font-medium">{preset.label}</span>
+                                <span className="text-xs text-muted-foreground">{preset.description}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      )
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
