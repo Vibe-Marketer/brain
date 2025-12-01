@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
-import { streamText, tool } from 'https://esm.sh/ai@5.0.102';
+import { streamText, tool, convertToModelMessages } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 
 const corsHeaders = {
@@ -518,13 +518,14 @@ Important: Only access transcripts belonging to the current user. Never fabricat
     // Create the OpenRouter provider instance using official AI SDK provider
     const openrouter = createOpenRouterProvider(openrouterApiKey);
 
+    // Convert UI messages to model messages for AI SDK v5
+    // The frontend sends UIMessage[] format, but streamText expects ModelMessage[]
+    const modelMessages = convertToModelMessages(messages);
+
     const result = await streamText({
       model: openrouter.chat(selectedModel),
       system: systemPrompt,
-      messages: messages.map(m => ({
-        role: m.role,
-        content: m.content,
-      })),
+      messages: modelMessages,
       tools: {
         searchTranscripts: searchTranscriptsTool,
         getCallDetails: getCallDetailsTool,
