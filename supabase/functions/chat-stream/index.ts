@@ -1,5 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1.3.22';
+import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@0.4.3';
 import { streamText, tool } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 
@@ -28,23 +28,22 @@ interface SessionFilters {
 /**
  * OpenRouter Configuration
  * All models are routed through OpenRouter for unified access to 300+ models
+ * Using the official @openrouter/ai-sdk-provider for AI SDK v5 compatibility
  *
- * OpenRouter is OpenAI-compatible, so we use the OpenAI SDK with custom baseURL
  * Models use format: 'provider/model-name' (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4')
  *
  * Docs: https://openrouter.ai/docs
+ * Provider: https://ai-sdk.dev/providers/community-providers/openrouter
  */
 
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-
-// Create OpenRouter provider instance (OpenAI-compatible)
+// Create OpenRouter provider instance
 function createOpenRouterProvider(apiKey: string) {
-  return createOpenAI({
+  return createOpenRouter({
     apiKey,
-    baseURL: OPENROUTER_BASE_URL,
+    // Optional headers for OpenRouter dashboard tracking
     headers: {
-      'HTTP-Referer': 'https://conversion.brain', // Required by OpenRouter
-      'X-Title': 'Conversion Brain', // Optional - shows in OpenRouter dashboard
+      'HTTP-Referer': 'https://conversion.brain',
+      'X-Title': 'Conversion Brain',
     },
   });
 }
@@ -516,11 +515,11 @@ Important: Only access transcripts belonging to the current user. Never fabricat
     // OpenRouter uses the full model string directly (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4')
     console.log(`Streaming with OpenRouter - Model: ${selectedModel}`);
 
-    // Create the OpenRouter provider instance (OpenAI-compatible)
+    // Create the OpenRouter provider instance using official AI SDK provider
     const openrouter = createOpenRouterProvider(openrouterApiKey);
 
     const result = await streamText({
-      model: openrouter(selectedModel),
+      model: openrouter.chat(selectedModel),
       system: systemPrompt,
       messages: messages.map(m => ({
         role: m.role,
