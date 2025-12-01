@@ -135,18 +135,28 @@ export const TranscriptTable = React.memo(({
                 <TableHead className="min-w-[150px] md:min-w-[200px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
                   <SortButton field="title">TITLE</SortButton>
                 </TableHead>
-                <TableHead className="min-w-[100px] md:min-w-[120px] h-10 md:h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                  <SortButton field="date">DATE</SortButton>
-                </TableHead>
-                <TableHead className="hidden lg:table-cell text-center w-[80px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                  <SortButton field="duration">DURATION</SortButton>
-                </TableHead>
-                <TableHead className="hidden lg:table-cell text-center w-[85px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                  <SortButton field="participants">PARTICIPANTS</SortButton>
-                </TableHead>
+                {visibleColumns.date !== false && (
+                  <TableHead className="min-w-[100px] md:min-w-[120px] h-10 md:h-11 whitespace-nowrap py-2 text-xs md:text-sm">
+                    <SortButton field="date">DATE</SortButton>
+                  </TableHead>
+                )}
+                {visibleColumns.duration !== false && (
+                  <TableHead className="hidden lg:table-cell text-center w-[80px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
+                    <SortButton field="duration">DURATION</SortButton>
+                  </TableHead>
+                )}
+                {visibleColumns.participants !== false && (
+                  <TableHead className="hidden lg:table-cell text-center w-[85px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
+                    <SortButton field="participants">PARTICIPANTS</SortButton>
+                  </TableHead>
+                )}
                 <TableHead className="hidden xl:table-cell text-center w-20 h-12 whitespace-nowrap text-xs md:text-sm">COUNT</TableHead>
-                <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">TAGS</TableHead>
-                <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">FOLDERS</TableHead>
+                {visibleColumns.tags !== false && (
+                  <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">TAGS</TableHead>
+                )}
+                {visibleColumns.folders !== false && (
+                  <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">FOLDERS</TableHead>
+                )}
                 <TableHead className="w-[80px] md:w-[120px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
                   <div className="flex items-center justify-end gap-1">
                     {/* Column visibility toggle */}
@@ -226,6 +236,7 @@ export const TranscriptTable = React.memo(({
                     folderAssignments={folderAssignments[call.recording_id] || []}
                     hostEmail={hostEmail}
                     isUnsyncedView={isUnsyncedView}
+                    visibleColumns={visibleColumns}
                     onSelect={() => onSelectCall(call.recording_id)}
                     onCallClick={() => onCallClick(call)}
                     onFolder={onFolderCall ? () => onFolderCall(call.recording_id) : undefined}

@@ -90,7 +90,7 @@ export function TranscriptsTab() {
     duration: true,
     participants: true,
     tags: true,
-    status: true,
+    folders: true,
   });
 
   // Dialog state
@@ -670,6 +670,10 @@ export function TranscriptsTab() {
         open={smartExportOpen}
         onOpenChange={setSmartExportOpen}
         selectedCalls={calls.filter(c => selectedCalls.includes(c.recording_id))}
+        folderAssignments={folderAssignments}
+        folders={folders}
+        tagAssignments={tagAssignments}
+        tags={tags}
       />
 
       {/* Delete Confirm Dialog */}

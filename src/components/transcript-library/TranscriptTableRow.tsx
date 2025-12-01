@@ -30,6 +30,7 @@ interface TranscriptTableRowProps {
   folderAssignments?: string[];
   hostEmail?: string;
   isUnsyncedView?: boolean;
+  visibleColumns?: Record<string, boolean>;
   onSelect: () => void;
   onCallClick: () => void;
   onFolder?: () => void;
@@ -46,6 +47,7 @@ export function TranscriptTableRow({
   folderAssignments = [],
   hostEmail,
   isUnsyncedView = false,
+  visibleColumns = {},
   onSelect,
   onCallClick,
   onFolder,
@@ -111,21 +113,24 @@ export function TranscriptTableRow({
           </div>
         </div>
       </TableCell>
-      <TableCell className="py-0.5 whitespace-nowrap">
-        <div className="flex flex-col gap-0.5 w-[95px]">
-          {/* Top row: Day left, Date right - monospace for alignment */}
-          <div className="flex items-center justify-between text-xs font-medium">
-            <span className="text-left font-mono">{dayOfWeek}</span>
-            <span className="text-right font-mono tabular-nums">{dateWithoutYear}</span>
+      {visibleColumns.date !== false && (
+        <TableCell className="py-0.5 whitespace-nowrap">
+          <div className="flex flex-col gap-0.5 w-[95px]">
+            {/* Top row: Day left, Date right - monospace for alignment */}
+            <div className="flex items-center justify-between text-xs font-medium">
+              <span className="text-left font-mono">{dayOfWeek}</span>
+              <span className="text-right font-mono tabular-nums">{dateWithoutYear}</span>
+            </div>
+            {/* Bottom row: Time left, Year right */}
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground leading-tight">
+              <span className="text-left font-mono">{time}</span>
+              <span className="text-right font-mono text-muted-foreground/50">{yearOnly}</span>
+            </div>
           </div>
-          {/* Bottom row: Time left, Year right */}
-          <div className="flex items-center justify-between text-[10px] text-muted-foreground leading-tight">
-            <span className="text-left font-mono">{time}</span>
-            <span className="text-right font-mono text-muted-foreground/50">{yearOnly}</span>
-          </div>
-        </div>
-      </TableCell>
-      <TableCell className="whitespace-nowrap">
+        </TableCell>
+      )}
+      {visibleColumns.duration !== false && (
+        <TableCell className="hidden lg:table-cell whitespace-nowrap">
         <div className="flex items-center justify-between w-[80px] mx-auto">
           {/* Left-aligned clock icon */}
           <RiTimeLine className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
@@ -137,22 +142,26 @@ export function TranscriptTableRow({
             {duration && <span className="text-xs text-muted-foreground font-normal">m</span>}
           </div>
         </div>
-      </TableCell>
-      <TableCell className="whitespace-nowrap text-center">
-        <div className="flex justify-center w-full">
-          <div className="w-[70px]">
-            {call.calendar_invitees && call.calendar_invitees.length > 0 ? (
-              <InviteesPopover invitees={call.calendar_invitees} hostEmail={hostEmail} />
-            ) : (
-              <span className="text-muted-foreground text-[10px]">No participants</span>
-            )}
+        </TableCell>
+      )}
+      {visibleColumns.participants !== false && (
+        <TableCell className="hidden lg:table-cell whitespace-nowrap text-center">
+          <div className="flex justify-center w-full">
+            <div className="w-[70px]">
+              {call.calendar_invitees && call.calendar_invitees.length > 0 ? (
+                <InviteesPopover invitees={call.calendar_invitees} hostEmail={hostEmail} />
+              ) : (
+                <span className="text-muted-foreground text-[10px]">No participants</span>
+              )}
+            </div>
           </div>
-        </div>
-      </TableCell>
-      <TableCell className="text-center align-middle py-0.5 whitespace-nowrap">
+        </TableCell>
+      )}
+      <TableCell className="hidden xl:table-cell text-center align-middle py-0.5 whitespace-nowrap">
         <InviteesCountCircle invitees={call.calendar_invitees} />
       </TableCell>
-      <TableCell className="py-1.5 whitespace-nowrap">
+      {visibleColumns.tags !== false && (
+        <TableCell className="hidden xl:table-cell py-1.5 whitespace-nowrap">
         <div className="flex flex-col justify-center h-full gap-1 py-0.5">
           {/* Primary tag (or UNKNOWN default) */}
           {(() => {
@@ -184,37 +193,40 @@ export function TranscriptTableRow({
               {call.auto_tags && call.auto_tags.length > 0 ? call.auto_tags[0] : 'UNKNOWN'}
             </span>
           </Badge>
-        </div>
-      </TableCell>
+          </div>
+        </TableCell>
+      )}
       {/* Folders column */}
-      <TableCell className="hidden xl:table-cell py-1.5 whitespace-nowrap">
-        <div className="flex flex-col justify-center h-full gap-1 py-0.5">
-          {folderAssignments.length > 0 ? (
-            folderAssignments.slice(0, 2).map((folderId) => {
-              const folder = folders.find((f) => f.id === folderId);
-              if (!folder) return null;
-              return (
-                <Badge
-                  key={folderId}
-                  variant="outline"
-                  className="text-[10px] px-1.5 py-0 h-4 w-fit leading-none flex items-center gap-0.5"
-                  style={{ borderColor: folder.color }}
-                >
-                  <RiFolderLine className="h-3 w-3 mr-0.5 flex-shrink-0" style={{ color: folder.color }} />
-                  <span className="truncate max-w-[80px]">{folder.name}</span>
-                </Badge>
-              );
-            })
-          ) : (
-            <span className="text-[10px] text-muted-foreground">No folder</span>
-          )}
-          {folderAssignments.length > 2 && (
-            <span className="text-[10px] text-muted-foreground">
-              +{folderAssignments.length - 2} more
-            </span>
-          )}
-        </div>
-      </TableCell>
+      {visibleColumns.folders !== false && (
+        <TableCell className="hidden xl:table-cell py-1.5 whitespace-nowrap">
+          <div className="flex flex-col justify-center h-full gap-1 py-0.5">
+            {folderAssignments.length > 0 ? (
+              folderAssignments.slice(0, 2).map((folderId) => {
+                const folder = folders.find((f) => f.id === folderId);
+                if (!folder) return null;
+                return (
+                  <Badge
+                    key={folderId}
+                    variant="outline"
+                    className="text-[10px] px-1.5 py-0 h-4 w-fit leading-none flex items-center gap-0.5"
+                    style={{ borderColor: folder.color }}
+                  >
+                    <RiFolderLine className="h-3 w-3 mr-0.5 flex-shrink-0" style={{ color: folder.color }} />
+                    <span className="truncate max-w-[80px]">{folder.name}</span>
+                  </Badge>
+                );
+              })
+            ) : (
+              <span className="text-[10px] text-muted-foreground">No folder</span>
+            )}
+            {folderAssignments.length > 2 && (
+              <span className="text-[10px] text-muted-foreground">
+                +{folderAssignments.length - 2} more
+              </span>
+            )}
+          </div>
+        </TableCell>
+      )}
       <TableCell className="align-middle py-0.5">
         <div className="flex items-center justify-center gap-0.5 md:gap-1">
           <button
