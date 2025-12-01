@@ -1,16 +1,6 @@
-import { RiDownloadLine, RiEyeLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuCheckboxItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { FilterPill } from "./FilterPill";
 import { TagFilterPopover } from "./TagFilterPopover";
@@ -44,18 +34,7 @@ interface FilterBarProps {
   folders: Folder[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
-  visibleColumns: Record<string, boolean>;
-  onToggleColumn: (columnId: string) => void;
-  onExport: () => void;
 }
-
-const columnOptions = [
-  { id: "date", label: "Date" },
-  { id: "duration", label: "Duration" },
-  { id: "participants", label: "Participants" },
-  { id: "tags", label: "Tags" },
-  { id: "status", label: "Status" },
-];
 
 export function FilterBar({
   filters,
@@ -64,9 +43,6 @@ export function FilterBar({
   folders,
   searchQuery,
   onSearchChange,
-  visibleColumns,
-  onToggleColumn,
-  onExport,
 }: FilterBarProps) {
   const isMobile = useIsMobile();
   const [allParticipants, setAllParticipants] = useState<string[]>([]);
@@ -205,10 +181,9 @@ export function FilterBar({
         />
       </div>
 
-      {/* Actions - aligned right */}
-      <div className="flex items-center gap-2 ml-auto">
-        {/* Clear filters link */}
-        {hasActiveFilters && (
+      {/* Clear filters link - aligned right */}
+      {hasActiveFilters && (
+        <div className="flex items-center ml-auto">
           <Button
             variant="link"
             size="sm"
@@ -217,44 +192,8 @@ export function FilterBar({
           >
             Clear all
           </Button>
-        )}
-
-        {/* Column visibility */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="hollow" size="icon-sm" className="h-8 w-8">
-              <RiEyeLine className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {columnOptions.map((col) => (
-              <DropdownMenuCheckboxItem
-                key={col.id}
-                checked={visibleColumns[col.id]}
-                onCheckedChange={() => onToggleColumn(col.id)}
-              >
-                {col.label}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {/* Export */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="hollow" size="icon-sm" className="h-8 w-8">
-              <RiDownloadLine className="h-3.5 w-3.5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={onExport}>
-              Export visible calls
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+        </div>
+      )}
 
       {/* Active filter pills */}
       {hasActiveFilters && (

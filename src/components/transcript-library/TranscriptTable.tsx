@@ -1,6 +1,7 @@
 import React from "react";
-import { RiArrowUpDownLine } from "@remixicon/react";
+import { RiArrowUpDownLine, RiLayoutColumnLine, RiFileDownloadLine } from "@remixicon/react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -8,6 +9,21 @@ import {
   TableHeader,
   TableRow
 } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTableSort } from "@/hooks/useTableSort";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { TranscriptTableRow } from "./TranscriptTableRow";
@@ -19,6 +35,15 @@ interface Folder {
   color: string;
   icon: string;
 }
+
+// Column options for visibility toggle
+const columnOptions = [
+  { id: "date", label: "Date" },
+  { id: "duration", label: "Duration" },
+  { id: "participants", label: "Participants" },
+  { id: "tags", label: "Tags" },
+  { id: "folders", label: "Folders" },
+];
 
 interface TranscriptTableProps {
   calls: any[];
@@ -42,6 +67,10 @@ interface TranscriptTableProps {
   syncingMeetings?: Set<string>;
   loadingMeeting?: string | null;
   onCustomDownload?: (callId: number | string, title: string) => void;
+  // Column visibility and export
+  visibleColumns?: Record<string, boolean>;
+  onToggleColumn?: (columnId: string) => void;
+  onExport?: () => void;
 }
 
 
@@ -66,6 +95,9 @@ export const TranscriptTable = React.memo(({
   syncingMeetings: _syncingMeetings,
   loadingMeeting: _loadingMeeting,
   onCustomDownload,
+  visibleColumns = {},
+  onToggleColumn,
+  onExport,
 }: TranscriptTableProps) => {
   const { sortField, sortDirection: _sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
 
@@ -115,7 +147,67 @@ export const TranscriptTable = React.memo(({
                 <TableHead className="hidden xl:table-cell text-center w-20 h-12 whitespace-nowrap text-xs md:text-sm">COUNT</TableHead>
                 <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">TAGS</TableHead>
                 <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">FOLDERS</TableHead>
-                <TableHead className="text-center w-[80px] md:w-[120px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">ACTION</TableHead>
+                <TableHead className="w-[80px] md:w-[120px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
+                  <div className="flex items-center justify-end gap-1">
+                    {/* Column visibility toggle */}
+                    {onToggleColumn && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <DropdownMenu>
+                            <TooltipTrigger asChild>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <RiLayoutColumnLine className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                              <p>Toggle columns</p>
+                            </TooltipContent>
+                            <DropdownMenuContent align="end" className="w-48">
+                              <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {columnOptions.map((col) => (
+                                <DropdownMenuCheckboxItem
+                                  key={col.id}
+                                  checked={visibleColumns[col.id] !== false}
+                                  onCheckedChange={() => onToggleColumn(col.id)}
+                                >
+                                  {col.label}
+                                </DropdownMenuCheckboxItem>
+                              ))}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+
+                    {/* Export button */}
+                    {onExport && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <DropdownMenu>
+                            <TooltipTrigger asChild>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="icon" className="h-7 w-7">
+                                  <RiFileDownloadLine className="h-4 w-4 text-muted-foreground" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent side="bottom">
+                              <p>Export calls</p>
+                            </TooltipContent>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={onExport}>
+                                Export visible calls
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                  </div>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

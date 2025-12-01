@@ -516,11 +516,6 @@ export function TranscriptsTab() {
           folders={folders}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
-          visibleColumns={visibleColumns}
-          onToggleColumn={(columnId) =>
-            setVisibleColumns((prev) => ({ ...prev, [columnId]: !prev[columnId] }))
-          }
-          onExport={() => setSmartExportOpen(true)}
         />
 
         <Separator className="my-12" />
@@ -600,6 +595,11 @@ export function TranscriptsTab() {
                 onPageChange={setPage}
                 onPageSizeChange={setPageSize}
                 hostEmail={hostEmail}
+                visibleColumns={visibleColumns}
+                onToggleColumn={(columnId) =>
+                  setVisibleColumns((prev) => ({ ...prev, [columnId]: !prev[columnId] }))
+                }
+                onExport={() => setSmartExportOpen(true)}
               />
             </div>
           </>
