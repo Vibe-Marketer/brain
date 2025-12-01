@@ -8,9 +8,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface ChatMessage {
+// UIMessage format from AI SDK v5 frontend
+// The frontend sends full UIMessage[] via DefaultChatTransport
+interface UIMessagePart {
+  type: string;
+  text?: string;
+  [key: string]: unknown;
+}
+
+interface UIMessage {
+  id: string;
   role: 'user' | 'assistant' | 'system';
-  content: string;
+  content?: string;  // Legacy field, may be empty in v5
+  parts?: UIMessagePart[];  // AI SDK v5 uses parts
+  [key: string]: unknown;
 }
 
 interface SessionFilters {
@@ -251,13 +262,15 @@ Deno.serve(async (req) => {
     }
 
     const {
+      id: chatId,
       session_id,
       messages,
       filters,
       model: requestedModel,
     }: {
+      id?: string;
       session_id?: string;
-      messages: ChatMessage[];
+      messages: UIMessage[];
       filters?: SessionFilters;
       model?: string;
     } = await req.json();
@@ -279,7 +292,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Chat request for user ${user.id}, session ${session_id || 'new'}`);
+    console.log(`Chat request for user ${user.id}, chat ${chatId || session_id || 'new'}`);
 
     // Build filter context for the system prompt
     let filterContext = '';
