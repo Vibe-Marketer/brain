@@ -45,9 +45,9 @@ export function MacOSDock({ apps, onAppClick, openApps = [], className }: MacOSD
       onMouseLeave={handleMouseLeave}
       className={cn(
         "fixed bottom-4 left-1/2 -translate-x-1/2 z-50",
-        "flex items-end gap-2 px-3 py-2",
-        "bg-white/30 backdrop-blur-md",
-        "border border-border rounded-2xl shadow-2xl",
+        "flex items-end gap-3 px-4 py-3",
+        "bg-black/40 backdrop-blur-md",
+        "border border-white/20 rounded-2xl shadow-2xl",
         className,
       )}
     >

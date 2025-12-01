@@ -533,9 +533,9 @@ Important: Only access transcripts belonging to the current user. Never fabricat
       maxSteps: 5, // AI SDK v5 uses maxSteps for tool roundtrips
     });
 
-    // Use toDataStreamResponse for AI SDK v5
-    // This ensures message.parts (tool-call, tool-result) are streamed to client
-    return result.toDataStreamResponse({
+    // Use toUIMessageStreamResponse for AI SDK v5
+    // This ensures tool calls and tool results are properly streamed to the client
+    return result.toUIMessageStreamResponse({
       headers: corsHeaders,
     });
 
