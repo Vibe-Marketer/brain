@@ -484,37 +484,46 @@ You **MUST** use Vercel SDKs and related tools for **ALL** applicable features. 
 **Core Required Stack:**
 - **AI SDK** (`ai`) - **MANDATORY** for all LLM integration, streaming, and tool calling.
 - **AI SDK React** (`@ai-sdk/react`) - **MANDATORY** for all frontend chat/completion hooks.
-- **AI Gateway** - **MANDATORY** for managing AI model providers and observability. **ALL models route through Gateway.**
+- **OpenRouter** - **MANDATORY** for all LLM model routing. **ALL models route through OpenRouter.**
 - **Workflow DevKit** - **MANDATORY** for all orchestration, triggers, and multi-step agent flows.
 - **Flags SDK** - **MANDATORY** for all feature flagging and toggles.
 - **Streamdown AI** - **MANDATORY** pattern for streaming markdown content (maximize streaming capabilities).
 - **Prompt-Kit UI** - **MANDATORY** for all chat-related UI components (as per ADR-005).
 
-**Why?** We prioritize deep integration with the Vercel ecosystem to maximize performance, observability, and developer experience.
+**Why?** We prioritize deep integration with the Vercel AI SDK ecosystem for streaming/tools and OpenRouter for unified model access to 300+ models.
 
-### AI Gateway Configuration
+### OpenRouter Configuration
 
-**ALL AI models are routed through Vercel AI Gateway** - no direct provider calls.
+**ALL AI models are routed through OpenRouter** - this provides unified access to models from OpenAI, Anthropic, Google, xAI, Meta, Mistral, DeepSeek, and 300+ more.
+
+**Default Model:** `z-ai/glm-4.6` (Z.AI GLM-4.6)
 
 **Environment Variables:**
 ```bash
-# Primary - Vercel AI Gateway (REQUIRED)
-VERCEL_AI_GATEWAY_API_KEY=vck_xxx...  # Your AI Gateway key
+# Primary - OpenRouter (REQUIRED for LLM calls)
+OPENROUTER_API_KEY=sk-or-v1-xxx...    # Your OpenRouter API key
 
-# Provider keys (optional - Gateway can route without these)
-OPENAI_API_KEY=sk-xxx...              # For OpenAI models
-ANTHROPIC_API_KEY=sk-ant-xxx...       # For Claude models
-GOOGLE_AI_API_KEY=AIza...             # For Gemini models
+# OpenAI Direct (REQUIRED for embeddings only - OpenRouter doesn't support embeddings)
+OPENAI_API_KEY=sk-xxx...              # For text-embedding-3-small
 ```
 
-**Supported Providers via Gateway:**
-- **OpenAI**: gpt-4o, gpt-4o-mini, gpt-4-turbo
-- **Anthropic**: claude-sonnet-4, claude-3.5-sonnet, claude-3.5-haiku
-- **Google**: gemini-2.0-flash, gemini-1.5-pro
+**Model Format:** `provider/model-name` (e.g., `z-ai/glm-4.6`, `openai/gpt-4o`, `anthropic/claude-sonnet-4`)
+
+**Supported Providers via OpenRouter:**
+- **Z.AI**: glm-4.6 (default)
+- **OpenAI**: gpt-4o, gpt-4o-mini, o1, o3-mini
+- **Anthropic**: claude-opus-4, claude-sonnet-4, claude-3.5-sonnet, claude-3.5-haiku
+- **Google**: gemini-2.0-flash, gemini-2.5-pro, gemini-1.5-pro
+- **xAI**: grok-3-beta, grok-2
+- **Meta**: llama-3.3-70b, llama-3.1-405b
+- **DeepSeek**: deepseek-chat-v3, deepseek-r1
+- **Mistral**: mistral-large, codestral
+- **And 300+ more models**
 
 **Reference Documentation:**
 - [AI SDK Cookbook Examples](./docs/reference/ai-sdk-cookbook-examples) - Implementation patterns and use cases
-- [Vercel AI Gateway Docs](https://vercel.com/docs/ai-gateway)
+- [OpenRouter Docs](https://openrouter.ai/docs)
+- [OpenRouter Models](https://openrouter.ai/models)
 
 ### Implementation Examples
 
@@ -529,29 +538,51 @@ const transport = new DefaultChatTransport({
 
 const { messages, sendMessage, status } = useChat({ transport });
 
-// Backend: Multi-provider support via AI Gateway
+// Backend: Multi-provider support via OpenRouter (OpenAI-compatible)
 import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 
-const AI_GATEWAY_BASE_URL = 'https://gateway.ai.vercel.dev/v1';
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-const openai = createOpenAI({
-  baseURL: AI_GATEWAY_BASE_URL,
-  headers: { 'x-vercel-ai-provider': 'openai' },
-});
+// OpenRouter is OpenAI-compatible - use createOpenAI with custom baseURL
+function createOpenRouterProvider(apiKey: string) {
+  return createOpenAI({
+    apiKey,
+    baseURL: OPENROUTER_BASE_URL,
+    headers: {
+      'HTTP-Referer': 'https://conversion.brain',
+      'X-Title': 'Conversion Brain',
+    },
+  });
+}
+
+const openrouter = createOpenRouterProvider(process.env.OPENROUTER_API_KEY);
 
 const result = await streamText({
-  model: openai('gpt-4o'),
+  model: openrouter('z-ai/glm-4.6'),  // Default model
   messages,
+});
+
+// For embeddings - use OpenAI directly (OpenRouter doesn't support embeddings)
+const embeddingResponse = await fetch('https://api.openai.com/v1/embeddings', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    model: 'text-embedding-3-small',
+    input: text,
+  }),
 });
 ```
 
 ### Deviations
 
 **Deviations are generally NOT permitted.**
-If a Vercel SDK solution exists, it **must** be used.
-Only if a feature is *completely impossible* with the Vercel ecosystem may you consider alternatives, and this requires an **Explicit ADR** approval first.
+If a Vercel AI SDK solution exists for streaming/tools, it **must** be used.
+All LLM model routing **must** go through OpenRouter.
+Only if a feature is *completely impossible* with the current stack may you consider alternatives, and this requires an **Explicit ADR** approval first.
 
 ## Code Quality Standards
 

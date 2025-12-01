@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
           call.full_transcript ? `Transcript excerpt: ${call.full_transcript.substring(0, 2000)}` : '',
         ].filter(Boolean).join('\n\n');
 
-        // Generate improved title using Vercel AI SDK via AI Gateway
+        // Generate improved title using OpenRouter
         const result = await generateObject({
           model: openrouter('z-ai/glm-4.6'),
           schema: TitleSchema,

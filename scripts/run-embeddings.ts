@@ -147,18 +147,17 @@ function chunkTranscript(
   return chunks;
 }
 
-// Generate embeddings using OpenAI API
+// Generate embeddings using OpenAI API directly (OpenRouter doesn't support embeddings)
 async function generateEmbeddings(texts: string[]): Promise<number[][]> {
-    const response = await fetch("https://gateway.ai.vercel.dev/v1/embeddings", {
+    const response = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${openaiApiKey}`,
         "Content-Type": "application/json",
-        "x-vercel-ai-provider": "openai"
       },
       body: JSON.stringify({
         model: "text-embedding-3-small",
-        input: text,
+        input: texts,
       }),
     });
 
