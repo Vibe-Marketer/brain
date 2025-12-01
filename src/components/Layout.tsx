@@ -3,9 +3,20 @@ import { TopBar } from "@/components/ui/top-bar";
 import { useNavigate, useLocation } from "react-router-dom";
 import { RiHome4Fill, RiChat1Fill, RiPriceTag3Fill, RiSettings3Fill } from "@remixicon/react";
 
-// Consistent dock icon wrapper - white background with black icon
+// Glossy 3D dock icon wrapper - white version of primary button effect
 const DockIcon = ({ children }: { children: React.ReactNode }) => (
-  <div className="w-full h-full flex items-center justify-center rounded-xl bg-white border border-gray-200 shadow-sm">
+  <div
+    className="w-full h-full flex items-center justify-center rounded-xl"
+    style={{
+      background: 'linear-gradient(160deg, #FFFFFF 0%, #E8E8E8 100%)',
+      border: '1px solid rgba(200, 200, 200, 0.8)',
+      boxShadow: `
+        0 4px 6px rgba(255, 255, 255, 0.5) inset,
+        0 -4px 6px rgba(0, 0, 0, 0.08) inset,
+        0 10px 20px rgba(0, 0, 0, 0.08)
+      `,
+    }}
+  >
     {children}
   </div>
 );
