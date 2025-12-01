@@ -1,19 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1';
-import { generateObject } from 'https://esm.sh/ai@4';
-import { z } from 'https://esm.sh/zod@3';
+import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
+import { generateObject } from 'https://esm.sh/ai@5.0.102';
+import { z } from 'https://esm.sh/zod@3.23.8';
 
 // ============================================================================
 // OPENROUTER CONFIGURATION
 // All models routed through OpenRouter for unified access
+// Using official @openrouter/ai-sdk-provider for AI SDK v5 compatibility
 // ============================================================================
 
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-
 function createOpenRouterProvider(apiKey: string) {
-  return createOpenAI({
+  return createOpenRouter({
     apiKey,
-    baseURL: OPENROUTER_BASE_URL,
     headers: {
       'HTTP-Referer': 'https://conversion.brain',
       'X-Title': 'Conversion Brain',
@@ -153,7 +151,7 @@ Deno.serve(async (req) => {
       selectedModel = DEFAULT_MODEL;
     }
 
-    console.log(`Using model: ${selectedModel.provider}/${selectedModel.model}`);
+    console.log(`Using model: ${selectedModel.model}`);
 
     let chunksToProcess: Array<{ id: string; chunk_text: string; speaker_name: string | null }> = [];
 
@@ -314,11 +312,11 @@ Deno.serve(async (req) => {
 });
 
 /**
- * Extract metadata from a transcript chunk using any Vercel AI SDK model
- * Works with OpenAI, Anthropic, Google, and more - just pass the model instance!
+ * Extract metadata from a transcript chunk using OpenRouter via AI SDK v5
+ * All models routed through OpenRouter for unified access
  */
 async function extractMetadata(
-  model: ReturnType<ReturnType<typeof createOpenAI>>,  // Any AI SDK model instance
+  model: ReturnType<ReturnType<typeof createOpenRouter>>,  // OpenRouter AI SDK model instance
   temperature: number,
   chunkText: string,
   speakerName: string | null

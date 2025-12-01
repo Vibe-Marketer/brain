@@ -1,20 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1';
-import { generateObject } from 'https://esm.sh/ai@4';
-import { z } from 'https://esm.sh/zod@3';
+import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
+import { generateObject } from 'https://esm.sh/ai@5.0.102';
+import { z } from 'https://esm.sh/zod@3.23.8';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// OpenRouter configuration (OpenAI-compatible)
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-
+// OpenRouter configuration - using official AI SDK v5 provider
 function createOpenRouterProvider(apiKey: string) {
-  return createOpenAI({
+  return createOpenRouter({
     apiKey,
-    baseURL: OPENROUTER_BASE_URL,
     headers: {
       'HTTP-Referer': 'https://conversion.brain',
       'X-Title': 'Conversion Brain',

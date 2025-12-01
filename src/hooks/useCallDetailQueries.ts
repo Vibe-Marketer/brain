@@ -29,6 +29,9 @@ interface UseCallDetailQueriesResult {
 export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseCallDetailQueriesResult {
   const { call, userId, open } = options;
 
+  // Debug: Log when queries are executed
+  // logger.info("useCallDetailQueries called", { callId: call?.recording_id, userId, open });
+
   // Fetch user settings to get host email
   const { data: userSettings } = useQuery({
     queryKey: queryKeys.user.settings(userId!),
@@ -57,7 +60,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   const { data: allTranscripts } = useQuery({
     queryKey: queryKeys.calls.transcripts(call?.recording_id),
     queryFn: async () => {
-      if (!call) return [];
+      if (!call || !userId) return [];
 
       // If this is an unsynced meeting with provided transcripts, use those
       if (call.unsyncedTranscripts) {
@@ -65,10 +68,12 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       }
 
       // PRIMARY METHOD: Parse from full_transcript field (complete data, single query)
+      // Use composite key (recording_id, user_id) for lookup
       const { data: callData, error: callError } = await supabase
         .from("fathom_calls")
         .select("full_transcript")
         .eq("recording_id", call.recording_id)
+        .eq("user_id", userId)
         .single();
 
       if (callError) {
@@ -100,10 +105,12 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
         }
 
         // Fetch speaker email mapping from fathom_transcripts to restore email data
+        // Use composite key (recording_id, user_id) for lookup
         const { data: speakerData, error: speakerError } = await supabase
           .from("fathom_transcripts")
           .select("speaker_name, speaker_email")
-          .eq("recording_id", call.recording_id);
+          .eq("recording_id", call.recording_id)
+          .eq("user_id", userId);
 
         if (!speakerError && speakerData) {
           // Create speaker name -> email mapping (use first non-null email for each speaker)
@@ -138,10 +145,12 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       let hasMore = true;
 
       while (hasMore) {
+        // Use composite key (recording_id, user_id) for lookup
         const { data, error } = await supabase
           .from("fathom_transcripts")
           .select("*")
           .eq("recording_id", call.recording_id)
+          .eq("user_id", userId)
           .order("timestamp")
           .range(from, from + batchSize - 1);
 
@@ -159,7 +168,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       logger.info(`Fetched ${segments.length} segments via pagination`);
       return segments;
     },
-    enabled: open && !!call,
+    enabled: open && !!call && !!userId,
     refetchOnMount: "always",
     staleTime: 0,
   });
@@ -207,7 +216,8 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   const { data: callCategories } = useQuery({
     queryKey: queryKeys.calls.categories(call?.recording_id),
     queryFn: async () => {
-      if (!call) return [];
+      if (!call || !userId) return [];
+      // Use composite key (call_recording_id, user_id) for lookup
       const { data, error } = await supabase
         .from("call_tag_assignments")
         .select(`
@@ -218,18 +228,20 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
             color
           )
         `)
-        .eq("call_recording_id", call.recording_id);
+        .eq("call_recording_id", call.recording_id)
+        .eq("user_id", userId);
       if (error) throw error;
       return data?.map(d => d.call_tags).filter(Boolean) || [];
     },
-    enabled: open && !!call,
+    enabled: open && !!call && !!userId,
   });
 
   // Fetch tags for this call
   const { data: callTags } = useQuery({
     queryKey: queryKeys.calls.tags(call?.recording_id),
     queryFn: async () => {
-      if (!call) return [];
+      if (!call || !userId) return [];
+      // Use composite key (call_recording_id, user_id) for lookup
       const { data, error } = await supabase
         .from("transcript_tag_assignments")
         .select(`
@@ -240,22 +252,25 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
             color
           )
         `)
-        .eq("call_recording_id", call.recording_id);
+        .eq("call_recording_id", call.recording_id)
+        .eq("user_id", userId);
       if (error) throw error;
       return data?.map(d => d.transcript_tags).filter(Boolean) || [];
     },
-    enabled: open && !!call,
+    enabled: open && !!call && !!userId,
   });
 
   // Fetch unique speakers from transcripts and enrich with calendar invitee data
   const { data: callSpeakers } = useQuery({
     queryKey: queryKeys.calls.speakers(call?.recording_id),
     queryFn: async () => {
-      if (!call) return [];
+      if (!call || !userId) return [];
+      // Use composite key (recording_id, user_id) for lookup
       const { data: transcriptData, error } = await supabase
         .from("fathom_transcripts")
         .select("speaker_name, speaker_email")
-        .eq("recording_id", call.recording_id);
+        .eq("recording_id", call.recording_id)
+        .eq("user_id", userId);
 
       if (error) throw error;
 
@@ -289,7 +304,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
 
       return speakers;
     },
-    enabled: open && !!call,
+    enabled: open && !!call && !!userId,
   });
 
   return {
