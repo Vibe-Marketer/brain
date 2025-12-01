@@ -203,24 +203,24 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
     return { characters, tokens, words };
   }, [transcripts]);
 
-  // Fetch categories for this call
+  // Fetch tags for this call (system tags like TEAM, COACH, etc.)
   const { data: callCategories } = useQuery({
     queryKey: queryKeys.calls.categories(call?.recording_id),
     queryFn: async () => {
       if (!call) return [];
       const { data, error } = await supabase
-        .from("call_category_assignments")
+        .from("call_tag_assignments")
         .select(`
-          category_id,
-          call_categories (
+          tag_id,
+          call_tags (
             id,
             name,
-            icon
+            color
           )
         `)
         .eq("call_recording_id", call.recording_id);
       if (error) throw error;
-      return data?.map(d => d.call_categories).filter(Boolean) || [];
+      return data?.map(d => d.call_tags).filter(Boolean) || [];
     },
     enabled: open && !!call,
   });

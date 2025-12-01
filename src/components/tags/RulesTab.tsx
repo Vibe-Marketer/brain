@@ -47,7 +47,7 @@ interface Rule {
   description: string | null;
   rule_type: string;
   conditions: any;
-  category_id: string;
+  tag_id: string;
   priority: number;
   is_active: boolean | null;
   times_applied: number | null;
@@ -55,7 +55,7 @@ interface Rule {
   created_at: string | null;
 }
 
-interface Category {
+interface Tag {
   id: string;
   name: string;
   color: string | null;
@@ -81,17 +81,17 @@ export function RulesTab() {
     name: "",
     description: "",
     rule_type: "title_exact",
-    category_id: "",
+    tag_id: "",
     priority: 100,
     conditions: {} as any,
   });
 
   // Fetch rules
   const { data: rules, isLoading: rulesLoading } = useQuery({
-    queryKey: ["categorization-rules"],
+    queryKey: ["tag-rules"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("categorization_rules")
+        .from("tag_rules")
         .select("*")
         .order("priority");
 
@@ -100,17 +100,17 @@ export function RulesTab() {
     },
   });
 
-  // Fetch categories
-  const { data: categories } = useQuery({
-    queryKey: ["call-categories"],
+  // Fetch tags
+  const { data: tags } = useQuery({
+    queryKey: ["call-tags"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("call_categories")
+        .from("call_tags")
         .select("id, name, color")
         .order("name");
 
       if (error) throw error;
-      return data as Category[];
+      return data as Tag[];
     },
   });
 
@@ -118,14 +118,14 @@ export function RulesTab() {
   const toggleRuleMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
       const { error } = await supabase
-        .from("categorization_rules")
+        .from("tag_rules")
         .update({ is_active: isActive })
         .eq("id", id);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categorization-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
     },
     onError: (error) => {
       toast.error(`Failed to update rule: ${error.message}`);
@@ -140,12 +140,12 @@ export function RulesTab() {
 
       if (editingRule) {
         const { error } = await supabase
-          .from("categorization_rules")
+          .from("tag_rules")
           .update({
             name: data.name,
             description: data.description || null,
             rule_type: data.rule_type,
-            category_id: data.category_id,
+            tag_id: data.tag_id,
             priority: data.priority,
             conditions: data.conditions,
           })
@@ -153,12 +153,12 @@ export function RulesTab() {
 
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("categorization_rules").insert({
+        const { error } = await supabase.from("tag_rules").insert({
           user_id: userData.user.id,
           name: data.name,
           description: data.description || null,
           rule_type: data.rule_type,
-          category_id: data.category_id,
+          tag_id: data.tag_id,
           priority: data.priority,
           conditions: data.conditions,
           is_active: true,
@@ -169,7 +169,7 @@ export function RulesTab() {
     },
     onSuccess: () => {
       toast.success(editingRule ? "Rule updated" : "Rule created");
-      queryClient.invalidateQueries({ queryKey: ["categorization-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
       handleCloseDialog();
     },
     onError: (error) => {
@@ -181,7 +181,7 @@ export function RulesTab() {
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
-        .from("categorization_rules")
+        .from("tag_rules")
         .delete()
         .eq("id", id);
 
@@ -189,7 +189,7 @@ export function RulesTab() {
     },
     onSuccess: () => {
       toast.success("Rule deleted");
-      queryClient.invalidateQueries({ queryKey: ["categorization-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
       setDeleteConfirmOpen(false);
       setRuleToDelete(null);
     },
@@ -198,13 +198,13 @@ export function RulesTab() {
     },
   });
 
-  // Apply rules to uncategorized calls
+  // Apply rules to untagged calls
   const applyRulesMutation = useMutation({
     mutationFn: async () => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not authenticated");
 
-      const { data, error } = await supabase.rpc("apply_rules_to_uncategorized", {
+      const { data, error } = await supabase.rpc("apply_tag_rules_to_untagged", {
         p_user_id: userData.user.id,
         p_dry_run: false,
         p_limit: 100,
@@ -216,7 +216,7 @@ export function RulesTab() {
     onSuccess: (data) => {
       const count = Array.isArray(data) ? data.length : 0;
       toast.success(`Applied rules to ${count} calls`);
-      queryClient.invalidateQueries({ queryKey: ["categorization-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
     },
     onError: (error) => {
       toast.error(`Failed to apply rules: ${error.message}`);
@@ -229,7 +229,7 @@ export function RulesTab() {
       name: "",
       description: "",
       rule_type: "title_exact",
-      category_id: "",
+      tag_id: "",
       priority: 100,
       conditions: {},
     });
@@ -242,7 +242,7 @@ export function RulesTab() {
       name: rule.name,
       description: rule.description || "",
       rule_type: rule.rule_type,
-      category_id: rule.category_id,
+      tag_id: rule.tag_id,
       priority: rule.priority,
       conditions: rule.conditions || {},
     });
@@ -256,26 +256,26 @@ export function RulesTab() {
       name: "",
       description: "",
       rule_type: "title_exact",
-      category_id: "",
+      tag_id: "",
       priority: 100,
       conditions: {},
     });
   };
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.category_id) {
+    if (!formData.name || !formData.tag_id) {
       toast.error("Please fill in required fields");
       return;
     }
     saveMutation.mutate(formData);
   };
 
-  const getCategoryName = (categoryId: string) => {
-    return categories?.find((c) => c.id === categoryId)?.name || "Unknown";
+  const getTagName = (tagId: string) => {
+    return tags?.find((t) => t.id === tagId)?.name || "Unknown";
   };
 
-  const getCategoryColor = (categoryId: string) => {
-    return categories?.find((c) => c.id === categoryId)?.color || "#666";
+  const getTagColor = (tagId: string) => {
+    return tags?.find((t) => t.id === tagId)?.color || "#666";
   };
 
   const renderConditionEditor = () => {
@@ -450,7 +450,7 @@ export function RulesTab() {
                 Type
               </TableHead>
               <TableHead className="font-medium text-xs uppercase tracking-wider w-32">
-                Category
+                Tag
               </TableHead>
               <TableHead className="font-medium text-xs uppercase tracking-wider w-20 text-right">
                 Applied
@@ -495,9 +495,9 @@ export function RulesTab() {
                     <div className="flex items-center gap-2">
                       <div
                         className="w-3 h-3 rounded-sm"
-                        style={{ backgroundColor: getCategoryColor(rule.category_id) }}
+                        style={{ backgroundColor: getTagColor(rule.tag_id) }}
                       />
-                      {getCategoryName(rule.category_id)}
+                      {getTagName(rule.tag_id)}
                     </div>
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
@@ -533,7 +533,7 @@ export function RulesTab() {
           <DialogHeader>
             <DialogTitle>{editingRule ? "Edit Rule" : "Create Rule"}</DialogTitle>
             <DialogDescription>
-              Define conditions for automatically categorizing calls.
+              Define conditions for automatically tagging calls.
             </DialogDescription>
           </DialogHeader>
 
@@ -591,23 +591,23 @@ export function RulesTab() {
             </div>
 
             <div className="space-y-2">
-              <Label>Category *</Label>
+              <Label>Tag *</Label>
               <Select
-                value={formData.category_id}
-                onValueChange={(v) => setFormData({ ...formData, category_id: v })}
+                value={formData.tag_id}
+                onValueChange={(v) => setFormData({ ...formData, tag_id: v })}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder="Select tag" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories?.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
+                  {tags?.map((tag) => (
+                    <SelectItem key={tag.id} value={tag.id}>
                       <div className="flex items-center gap-2">
                         <div
                           className="w-3 h-3 rounded-sm"
-                          style={{ backgroundColor: cat.color || "#666" }}
+                          style={{ backgroundColor: tag.color || "#666" }}
                         />
-                        {cat.name}
+                        {tag.name}
                       </div>
                     </SelectItem>
                   ))}

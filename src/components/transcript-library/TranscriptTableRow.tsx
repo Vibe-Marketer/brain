@@ -3,30 +3,36 @@ import { toZonedTime } from "date-fns-tz";
 import {
   RiTimeLine,
   RiEyeLine,
-  RiFolderTransferLine,
-  RiFolderLine,
   RiCloseCircleLine,
   RiPriceTag3Line,
-  RiDownloadLine
+  RiDownloadLine,
+  RiFolderLine
 } from "@remixicon/react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { InviteesPopover } from "./InviteesPopover";
 import { InviteesCountCircle } from "./InviteesCountCircle";
+
+interface Folder {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
 
 interface TranscriptTableRowProps {
   call: any;
   isSelected: boolean;
-  categories: Array<{ id: string; name: string }>;
-  categoryAssignments: string[];
+  tags: Array<{ id: string; name: string }>;
+  tagAssignments: string[];
+  folders?: Folder[];
+  folderAssignments?: string[];
   hostEmail?: string;
   isUnsyncedView?: boolean;
   onSelect: () => void;
   onCallClick: () => void;
-  onCategorize: () => void;
-  onDirectCategorize?: (categoryId: string) => void;
+  onFolder?: () => void;
   onCustomDownload?: (callId: number | string, title: string) => void;
   DownloadComponent?: React.ComponentType<{ call: any }>;
 }
@@ -34,14 +40,15 @@ interface TranscriptTableRowProps {
 export function TranscriptTableRow({
   call,
   isSelected,
-  categories,
-  categoryAssignments,
+  tags,
+  tagAssignments,
+  folders = [],
+  folderAssignments = [],
   hostEmail,
   isUnsyncedView = false,
   onSelect,
   onCallClick,
-  onCategorize,
-  onDirectCategorize,
+  onFolder,
   onCustomDownload,
   DownloadComponent,
 }: TranscriptTableRowProps) {
@@ -147,13 +154,13 @@ export function TranscriptTableRow({
       </TableCell>
       <TableCell className="py-1.5 whitespace-nowrap">
         <div className="flex flex-col justify-center h-full gap-1 py-0.5">
-          {/* User-assigned folder (or MAIN default) */}
+          {/* Primary tag (or UNKNOWN default) */}
           {(() => {
-            const cat = categoryAssignments.length > 0
-              ? categories.find((c) => c.id === categoryAssignments[0])
+            const tag = tagAssignments.length > 0
+              ? tags.find((t) => t.id === tagAssignments[0])
               : null;
-            const isSkip = cat?.name === 'SKIP';
-            const Icon = isSkip ? RiCloseCircleLine : RiFolderLine;
+            const isSkip = tag?.name === 'SKIP';
+            const Icon = isSkip ? RiCloseCircleLine : RiPriceTag3Line;
             return (
               <Badge
                 variant={isSkip ? "destructive" : "outline"}
@@ -161,13 +168,13 @@ export function TranscriptTableRow({
               >
                 <Icon className="h-3 w-3 mr-0.5 flex-shrink-0" />
                 <span className="truncate max-w-[80px]">
-                  {cat ? cat.name : 'MAIN'}
+                  {tag ? tag.name : 'UNKNOWN'}
                 </span>
               </Badge>
             );
           })()}
 
-          {/* Auto-generated taxonomy tag */}
+          {/* Secondary tag from auto_tags (AI-generated hint) */}
           <Badge
             variant="outline"
             className="text-[10px] py-0 px-1.5 h-4 w-fit leading-none flex items-center gap-0.5"
@@ -177,6 +184,35 @@ export function TranscriptTableRow({
               {call.auto_tags && call.auto_tags.length > 0 ? call.auto_tags[0] : 'UNKNOWN'}
             </span>
           </Badge>
+        </div>
+      </TableCell>
+      {/* Folders column */}
+      <TableCell className="hidden xl:table-cell py-1.5 whitespace-nowrap">
+        <div className="flex flex-col justify-center h-full gap-1 py-0.5">
+          {folderAssignments.length > 0 ? (
+            folderAssignments.slice(0, 2).map((folderId) => {
+              const folder = folders.find((f) => f.id === folderId);
+              if (!folder) return null;
+              return (
+                <Badge
+                  key={folderId}
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 h-4 w-fit leading-none flex items-center gap-0.5"
+                  style={{ borderColor: folder.color }}
+                >
+                  <RiFolderLine className="h-3 w-3 mr-0.5 flex-shrink-0" style={{ color: folder.color }} />
+                  <span className="truncate max-w-[80px]">{folder.name}</span>
+                </Badge>
+              );
+            })
+          ) : (
+            <span className="text-[10px] text-muted-foreground">No folder</span>
+          )}
+          {folderAssignments.length > 2 && (
+            <span className="text-[10px] text-muted-foreground">
+              +{folderAssignments.length - 2} more
+            </span>
+          )}
         </div>
       </TableCell>
       <TableCell className="align-middle py-0.5">
@@ -189,37 +225,13 @@ export function TranscriptTableRow({
             <RiEyeLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
           </button>
 
-          {onDirectCategorize ? (
-            <Popover>
-              <PopoverTrigger asChild>
-                <button
-                  className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors"
-                  title="Quick categorize"
-                >
-                  <RiFolderTransferLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
-                </button>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-2" align="end">
-                <div className="space-y-1">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      className="w-full justify-start text-sm px-2 py-1.5 rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors text-left"
-                      onClick={() => onDirectCategorize(cat.id)}
-                    >
-                      {cat.name}
-                    </button>
-                  ))}
-                </div>
-              </PopoverContent>
-            </Popover>
-          ) : (
+          {onFolder && (
             <button
-              onClick={onCategorize}
+              onClick={onFolder}
               className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors"
-              title="Categorize"
+              title="Assign to folder"
             >
-              <RiFolderTransferLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
+              <RiFolderLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
             </button>
           )}
           {onCustomDownload ? (

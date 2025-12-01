@@ -5,7 +5,6 @@ import { RiCloseLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SyncTabDialogs } from "./SyncTabDialogs";
 import { UnsyncedMeetingsSection } from "./UnsyncedMeetingsSection";
@@ -25,17 +24,16 @@ export function SyncTab() {
   const [selectedExistingTranscripts, setSelectedExistingTranscripts] = useState<number[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
-  const [syncProgress] = useState({ current: 0, total: 0 });
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedCategory] = useState<string>("all");
-  const [categoryAssignments, setCategoryAssignments] = useState<Record<string, string[]>>({});
+  const [tagAssignments, setTagAssignments] = useState<Record<string, string[]>>({});
   const [searchQuery] = useState("");
   const [participantFilter] = useState("");
   const [categorizeDialogOpen, setCategorizeDialogOpen] = useState(false);
   const [categorizingCallId, setCategorizingCallId] = useState<string | null>(null);
   const [bulkCategorizingIds, setBulkCategorizingIds] = useState<string[]>([]);
   const [createCategoryDialogOpen, setCreateCategoryDialogOpen] = useState(false);
-  const [perMeetingCategories, setPerMeetingCategories] = useState<Record<string, string>>({});
+  const [perMeetingTags, setPerMeetingTags] = useState<Record<string, string>>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [hasFetchedResults, setHasFetchedResults] = useState(false);
 
@@ -147,21 +145,21 @@ export function SyncTab() {
 
       setExistingTotalCount(count || 0);
 
-      // Load category assignments
+      // Load tag assignments
       if (data && data.length > 0) {
         const recordingIds = data.map((t) => t.recording_id);
         const { data: assignments } = await supabase
-          .from("call_category_assignments")
-          .select("call_recording_id, category_id")
+          .from("call_tag_assignments")
+          .select("call_recording_id, tag_id")
           .in("call_recording_id", recordingIds);
 
         const assignmentMap: Record<string, string[]> = {};
         assignments?.forEach((a) => {
           const key = String(a.call_recording_id);
           if (!assignmentMap[key]) assignmentMap[key] = [];
-          assignmentMap[key].push(a.category_id);
+          assignmentMap[key].push(a.tag_id);
         });
-        setCategoryAssignments(assignmentMap);
+        setTagAssignments(assignmentMap);
       }
     } catch (error) {
       logger.error("Error loading existing transcripts", error);
@@ -275,23 +273,23 @@ export function SyncTab() {
     loadExistingTranscripts();
   }, [loadExistingTranscripts]);
 
-  const loadCategoryAssignments = async (recordingIds: string[]) => {
+  const loadTagAssignments = async (recordingIds: string[]) => {
     try {
       const { data } = await supabase
-        .from('call_category_assignments')
-        .select('call_recording_id, category_id')
+        .from('call_tag_assignments')
+        .select('call_recording_id, tag_id')
         .in('call_recording_id', recordingIds.map(id => parseInt(id)));
 
       const assignments: Record<string, string[]> = {};
       (data || []).forEach(assignment => {
         const id = assignment.call_recording_id.toString();
         if (!assignments[id]) assignments[id] = [];
-        assignments[id].push(assignment.category_id);
+        assignments[id].push(assignment.tag_id);
       });
 
-      setCategoryAssignments(assignments);
+      setTagAssignments(assignments);
     } catch (error) {
-      logger.error('Error loading category assignments', error);
+      logger.error('Error loading tag assignments', error);
     }
   };
 
@@ -330,7 +328,7 @@ export function SyncTab() {
 
         toast.success(`Found ${unsyncedMeetings.length} unsynced meetings`);
 
-        await loadCategoryAssignments(unsyncedMeetings.map((m: Meeting) => m.recording_id));
+        await loadTagAssignments(unsyncedMeetings.map((m: Meeting) => m.recording_id));
       } else {
         setMeetings([]);
         toast.success('No unsynced meetings found');
@@ -393,7 +391,7 @@ export function SyncTab() {
 
         // Clear selections
         setSelectedMeetings(new Set());
-        setPerMeetingCategories({});
+        setPerMeetingTags({});
 
         // Immediately check for the new sync job
         setTimeout(async () => {
@@ -446,7 +444,7 @@ export function SyncTab() {
 
   const filteredExistingTranscripts = existingTranscripts.filter(t => {
     // Category filter (date range and search are now applied at DB level)
-    if (selectedCategory !== "all" && !categoryAssignments[t.recording_id]?.includes(selectedCategory)) {
+    if (selectedCategory !== "all" && !tagAssignments[t.recording_id]?.includes(selectedCategory)) {
       return false;
     }
 
@@ -454,7 +452,7 @@ export function SyncTab() {
   });
 
   // Suppress unused variable warnings for state that may be used later
-  void perMeetingCategories;
+  void perMeetingTags;
   void selectedCallId;
 
   return (
@@ -488,30 +486,11 @@ export function SyncTab() {
         </div>
       </div>
 
-      {/* Active Sync Jobs Status */}
+      {/* Active Sync Jobs Status - Shows real-time progress */}
       <ActiveSyncJobsCard
         activeSyncJobs={activeSyncJobs}
         onCancelJob={cancelSyncJob}
       />
-
-
-      {/* Sync Progress */}
-      {syncing && (
-        <div className="p-4 border border-cb-gray-light dark:border-cb-gray-dark rounded-lg bg-white/50 dark:bg-card/50">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Syncing meetings...</span>
-              <span className="text-muted-foreground">
-                {syncProgress.current} / {syncProgress.total}
-              </span>
-            </div>
-            <Progress
-              value={(syncProgress.current / syncProgress.total) * 100}
-              className="h-2"
-            />
-          </div>
-        </div>
-      )}
 
       {/* Unsynced Meetings Section */}
       {hasFetchedResults && (
@@ -560,7 +539,7 @@ export function SyncTab() {
         existingPageSize={existingPageSize}
         existingTotalCount={existingTotalCount}
         categories={categories}
-        categoryAssignments={categoryAssignments}
+        categoryAssignments={tagAssignments}
         hostEmail={hostEmail}
         dateRange={dateRange}
         onSelectCall={(id) => {

@@ -48,7 +48,7 @@ export function useMeetingsSync() {
   const [syncingMeetings, setSyncingMeetings] = useState<Set<string>>(new Set());
   const [loadingUnsyncedMeeting, setLoadingUnsyncedMeeting] = useState<string | null>(null);
   const [hostEmail, setHostEmail] = useState("");
-  const [perMeetingCategories, setPerMeetingCategories] = useState<Record<string, string>>({});
+  const [perMeetingTags, setPerMeetingTags] = useState<Record<string, string>>({});
   
   const syncJobRef = useRef<SyncJob | null>(null);
 
@@ -104,7 +104,7 @@ export function useMeetingsSync() {
 
       if (unsyncedMeetings.length > 0) {
         const recordingIds = unsyncedMeetings.map((m: Meeting) => m.recording_id);
-        await loadCategoryAssignments(recordingIds);
+        await loadTagAssignments(recordingIds);
       }
 
       toast.success(`Found ${unsyncedMeetings.length} unsynced meetings`);
@@ -116,22 +116,22 @@ export function useMeetingsSync() {
     }
   }, []);
 
-  const loadCategoryAssignments = async (recordingIds: string[]) => {
+  const loadTagAssignments = async (recordingIds: string[]) => {
     try {
       const { data } = await supabase
-        .from('call_category_assignments')
-        .select('call_recording_id, category_id')
+        .from('call_tag_assignments')
+        .select('call_recording_id, tag_id')
         .in('call_recording_id', recordingIds.map(id => parseInt(id)));
 
       const assignments: Record<string, string> = {};
       (data || []).forEach(assignment => {
         const id = assignment.call_recording_id.toString();
-        assignments[id] = assignment.category_id;
+        assignments[id] = assignment.tag_id;
       });
 
-      setPerMeetingCategories(assignments);
+      setPerMeetingTags(assignments);
     } catch (error) {
-      logger.error('Error loading category assignments', error);
+      logger.error('Error loading tag assignments', error);
     }
   };
 
@@ -151,7 +151,7 @@ export function useMeetingsSync() {
     }
   }, []);
 
-  const syncMeetings = useCallback(async (selectedMeetings: Set<string>, preSyncCategoryId?: string) => {
+  const syncMeetings = useCallback(async (selectedMeetings: Set<string>, preSyncTagId?: string) => {
     if (selectedMeetings.size === 0) {
       toast.error("Please select at least one meeting to sync");
       return;
@@ -177,7 +177,7 @@ export function useMeetingsSync() {
           recordingIds,  // Changed from recording_ids (snake_case) to recordingIds (camelCase)
           createdAfter,  // Added date range parameters
           createdBefore, // Added date range parameters
-          category_id: preSyncCategoryId !== 'none' ? preSyncCategoryId : undefined
+          tag_id: preSyncTagId !== 'none' ? preSyncTagId : undefined
         }
       });
 
@@ -239,7 +239,7 @@ export function useMeetingsSync() {
     }
   }, [appliedDateRange, checkSyncStatus]);
 
-  const syncSingleMeeting = useCallback(async (recordingId: string, categoryId?: string) => {
+  const syncSingleMeeting = useCallback(async (recordingId: string, tagId?: string) => {
     setSyncingMeetings((prev) => new Set(prev).add(recordingId));
 
     try {
@@ -259,7 +259,7 @@ export function useMeetingsSync() {
 
       // Build full_transcript from transcript array
       const fullTranscript = meeting.transcript && Array.isArray(meeting.transcript)
-        ? meeting.transcript.map((t: any) => 
+        ? meeting.transcript.map((t: any) =>
             `[${t.timestamp}] ${t.speaker?.display_name || 'Unknown'}: ${t.text}`
           ).join('\n\n')
         : null;
@@ -299,10 +299,10 @@ export function useMeetingsSync() {
         await supabase.from('fathom_transcripts').insert(transcriptInserts);
       }
 
-      if (categoryId && categoryId !== 'none') {
-        await supabase.from('call_category_assignments').insert({
+      if (tagId && tagId !== 'none') {
+        await supabase.from('call_tag_assignments').insert({
           call_recording_id: meeting.recording_id,
-          category_id: categoryId,
+          tag_id: tagId,
           auto_assigned: false
         });
       }
@@ -407,8 +407,8 @@ export function useMeetingsSync() {
     syncingMeetings,
     loadingUnsyncedMeeting,
     hostEmail,
-    perMeetingCategories,
-    setPerMeetingCategories,
+    perMeetingTags,
+    setPerMeetingTags,
     fetchMeetings,
     syncMeetings,
     syncSingleMeeting,

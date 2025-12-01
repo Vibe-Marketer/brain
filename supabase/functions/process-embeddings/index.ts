@@ -312,11 +312,12 @@ async function processRecording(
     throw new Error(`Call ${recording_id} not found: ${callError?.message || 'Not found'}`);
   }
 
-  // Get transcript segments
+  // Get transcript segments (use composite key for user isolation)
   const { data: segments, error: segmentsError } = await supabase
     .from('fathom_transcripts')
     .select('*')
     .eq('recording_id', recording_id)
+    .eq('user_id', user_id)
     .eq('is_deleted', false)
     .order('timestamp', { ascending: true });
 
@@ -329,14 +330,14 @@ async function processRecording(
     return 0;
   }
 
-  // Get category for this call
-  const { data: categoryAssignment } = await supabase
-    .from('call_category_assignments')
-    .select('category_id, call_categories(name)')
+  // Get tag for this call
+  const { data: tagAssignment } = await supabase
+    .from('call_tag_assignments')
+    .select('tag_id, call_tags(name)')
     .eq('call_recording_id', recording_id)
     .maybeSingle();
 
-  const categoryName = (categoryAssignment?.call_categories as { name: string } | null)?.name || null;
+  const tagName = (tagAssignment?.call_tags as { name: string } | null)?.name || null;
 
   // Chunk the transcript
   const chunks = chunkTranscript(segments, 400, 100);
@@ -374,7 +375,7 @@ async function processRecording(
         timestamp_end: chunk.endTimestamp,
         call_date: call.created_at,
         call_title: call.title,
-        call_category: categoryName,
+        call_category: tagName,
         embedding: embeddings[j],
         embedded_at: new Date().toISOString(),
       });

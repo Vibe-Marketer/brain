@@ -121,27 +121,27 @@ export function useCallAnalytics(timeRange: string = '30d') {
 
       const participationRate = totalInvitees > 0 ? Math.round((totalSpeakers / totalInvitees) * 100) : 0;
 
-      // Query 5: Active folders
-      const { data: categoriesData } = await supabase
-        .from('call_category_assignments')
-        .select('category_id, call_categories!inner(user_id)')
-        .eq('call_categories.user_id', user.id);
+      // Query 5: Active tags (system tags like TEAM, COACH, etc.)
+      const { data: tagsData } = await supabase
+        .from('call_tag_assignments')
+        .select('tag_id, call_tags!inner(user_id)')
+        .eq('call_tags.user_id', user.id);
 
-      const activeFolders = new Set(categoriesData?.map(c => c.category_id) || []).size;
+      const activeFolders = new Set(tagsData?.map(c => c.tag_id) || []).size;
 
-      // Query 6: Calls by folder
-      const { data: callsByCategoryData } = await supabase
-        .from('call_category_assignments')
-        .select('category_id, call_categories!inner(name, user_id)')
-        .eq('call_categories.user_id', user.id);
+      // Query 6: Calls by tag
+      const { data: callsByTagAssignmentData } = await supabase
+        .from('call_tag_assignments')
+        .select('tag_id, call_tags!inner(name, user_id)')
+        .eq('call_tags.user_id', user.id);
 
-      const categoryGroups = (callsByCategoryData || []).reduce((acc, item) => {
-        const name = (item.call_categories as any).name;
+      const tagAssignmentGroups = (callsByTagAssignmentData || []).reduce((acc, item) => {
+        const name = (item.call_tags as any).name;
         acc[name] = (acc[name] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
-      const callsByFolder = Object.entries(categoryGroups)
+      const callsByFolder = Object.entries(tagAssignmentGroups)
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value)
         .slice(0, 5);

@@ -26,6 +26,10 @@ interface WebhookDelivery {
     recorded_by?: { email?: string };
     [key: string]: unknown;
   } | null;
+  payload: {
+    verification_results?: VerificationResults;
+    successful_method?: string;
+  } | null;
   signature_valid: boolean | null;
   created_at: string;
   user_id: string;
@@ -35,6 +39,12 @@ interface WebhookSecret {
   user_id: string;
   webhook_secret: string;
   host_email: string;
+}
+
+interface VerificationResults {
+  personal_by_email?: { available: boolean; verified: boolean; secret_preview?: string };
+  oauth_app_secret?: { available: boolean; verified: boolean; secret_preview?: string };
+  first_user_fallback?: { available: boolean; verified: boolean; secret_preview?: string };
 }
 
 export default function WebhookDeliveryViewer() {
@@ -296,40 +306,70 @@ export default function WebhookDeliveryViewer() {
           </div>
         )}
 
-        {/* Configured Secrets Section */}
-        {secrets.length > 0 && (
-          <Collapsible open={showDiagnostics} onOpenChange={setShowDiagnostics}>
-            <div className="border rounded-lg p-4 space-y-3">
-              <CollapsibleTrigger asChild>
-                <Button variant="hollow" className="w-full justify-between p-0 h-auto hover:bg-transparent">
-                  <h3 className="font-semibold text-sm">Configured Webhook Secrets ({secrets.length})</h3>
-                  {showDiagnostics ? <RiArrowUpSLine className="w-4 h-4" /> : <RiArrowDownSLine className="w-4 h-4" />}
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-2 pt-2">
-                {secrets.map((secret) => (
-                  <div key={secret.user_id} className="bg-muted/50 rounded p-3 space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">Host Email:</span>
-                      <code className="text-xs bg-background px-2 py-1 rounded">{secret.host_email}</code>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">Secret:</span>
-                      <code className="text-xs bg-background px-2 py-1 rounded">{maskSecret(secret.webhook_secret)}</code>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">User ID:</span>
-                      <code className="text-xs bg-background px-2 py-1 rounded">{secret.user_id}</code>
-                    </div>
-                  </div>
-                ))}
-                <p className="text-xs text-muted-foreground pt-2">
-                  💡 Each webhook from Fathom must use one of these secrets to authenticate successfully
+        {/* Webhook Secrets Configuration Section */}
+        <Collapsible open={showDiagnostics} onOpenChange={setShowDiagnostics}>
+          <div className="border rounded-lg p-4 space-y-3">
+            <CollapsibleTrigger asChild>
+              <Button variant="hollow" className="w-full justify-between p-0 h-auto hover:bg-transparent">
+                <h3 className="font-semibold text-sm">Webhook Secret Configuration</h3>
+                {showDiagnostics ? <RiArrowUpSLine className="w-4 h-4" /> : <RiArrowDownSLine className="w-4 h-4" />}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="space-y-4 pt-2">
+              {/* OAuth App Secret - This is the primary method for multi-user apps */}
+              <div className="bg-primary/5 border border-primary/20 rounded p-3 space-y-2">
+                <div className="flex items-center gap-2">
+                  <Badge variant="hollow" className="bg-primary/10 text-primary border-primary/30">
+                    OAuth App
+                  </Badge>
+                  <span className="text-xs text-muted-foreground">Primary - Used for ALL OAuth users</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-muted-foreground">Secret:</span>
+                  <code className="text-xs bg-background px-2 py-1 rounded">
+                    FATHOM_OAUTH_WEBHOOK_SECRET (configured in Supabase Edge Functions)
+                  </code>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  🔑 This secret is set in Fathom Developer Portal → Your OAuth App → Webhook Secret.
+                  All OAuth users share this ONE secret.
                 </p>
-              </CollapsibleContent>
-            </div>
-          </Collapsible>
-        )}
+              </div>
+
+              {/* Personal Webhook Secrets */}
+              {secrets.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Badge variant="hollow" className="bg-muted">
+                      Personal API
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">Fallback - {secrets.length} configured</span>
+                  </div>
+                  {secrets.map((secret) => (
+                    <div key={secret.user_id} className="bg-muted/50 rounded p-3 space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">Host Email:</span>
+                        <code className="text-xs bg-background px-2 py-1 rounded">{secret.host_email}</code>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">Secret:</span>
+                        <code className="text-xs bg-background px-2 py-1 rounded">{maskSecret(secret.webhook_secret)}</code>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="border-t pt-3 mt-3">
+                <p className="text-xs text-muted-foreground">
+                  <strong>How verification works:</strong> The webhook function tries BOTH secrets:
+                  <br />1️⃣ First tries OAuth App secret (for multi-user apps)
+                  <br />2️⃣ Falls back to Personal secret matched by <code>recorded_by.email</code>
+                </p>
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
 
         {/* Recent Deliveries Header */}
         <div className="border-t pt-4">
@@ -444,6 +484,87 @@ export default function WebhookDeliveryViewer() {
                           Invalid
                         </Badge>
                       )}
+                    </div>
+                  )}
+
+                  {/* Verification Results - Shows which secrets were tried and which passed */}
+                  {delivery.payload?.verification_results && (
+                    <div className="mt-2 pt-2 border-t border-dashed">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-medium text-muted-foreground">Verification Attempts:</span>
+                        {delivery.payload.successful_method && (
+                          <Badge variant="hollow" className="bg-green-500/10 text-green-700 dark:text-green-400 text-xs">
+                            Passed via: {delivery.payload.successful_method}
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        {/* OAuth App Secret */}
+                        {delivery.payload.verification_results.oauth_app_secret && (
+                          <div className={`text-xs p-2 rounded border ${
+                            delivery.payload.verification_results.oauth_app_secret.verified
+                              ? 'bg-green-500/5 border-green-500/20'
+                              : delivery.payload.verification_results.oauth_app_secret.available
+                                ? 'bg-red-500/5 border-red-500/20'
+                                : 'bg-muted/30 border-muted'
+                          }`}>
+                            <div className="font-medium mb-1">OAuth App</div>
+                            <div className="flex items-center gap-1">
+                              {delivery.payload.verification_results.oauth_app_secret.verified ? (
+                                <><RiCheckboxCircleLine className="w-3 h-3 text-green-600" /> Passed</>
+                              ) : delivery.payload.verification_results.oauth_app_secret.available ? (
+                                <><RiCloseCircleLine className="w-3 h-3 text-red-600" /> Failed</>
+                              ) : (
+                                <><RiAlertLine className="w-3 h-3 text-gray-400" /> Not configured</>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Personal by Email */}
+                        {delivery.payload.verification_results.personal_by_email && (
+                          <div className={`text-xs p-2 rounded border ${
+                            delivery.payload.verification_results.personal_by_email.verified
+                              ? 'bg-green-500/5 border-green-500/20'
+                              : delivery.payload.verification_results.personal_by_email.available
+                                ? 'bg-red-500/5 border-red-500/20'
+                                : 'bg-muted/30 border-muted'
+                          }`}>
+                            <div className="font-medium mb-1">Personal (by email)</div>
+                            <div className="flex items-center gap-1">
+                              {delivery.payload.verification_results.personal_by_email.verified ? (
+                                <><RiCheckboxCircleLine className="w-3 h-3 text-green-600" /> Passed</>
+                              ) : delivery.payload.verification_results.personal_by_email.available ? (
+                                <><RiCloseCircleLine className="w-3 h-3 text-red-600" /> Failed</>
+                              ) : (
+                                <><RiAlertLine className="w-3 h-3 text-gray-400" /> No match</>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* First User Fallback */}
+                        {delivery.payload.verification_results.first_user_fallback && (
+                          <div className={`text-xs p-2 rounded border ${
+                            delivery.payload.verification_results.first_user_fallback.verified
+                              ? 'bg-green-500/5 border-green-500/20'
+                              : delivery.payload.verification_results.first_user_fallback.available
+                                ? 'bg-red-500/5 border-red-500/20'
+                                : 'bg-muted/30 border-muted'
+                          }`}>
+                            <div className="font-medium mb-1">First User Fallback</div>
+                            <div className="flex items-center gap-1">
+                              {delivery.payload.verification_results.first_user_fallback.verified ? (
+                                <><RiCheckboxCircleLine className="w-3 h-3 text-green-600" /> Passed</>
+                              ) : delivery.payload.verification_results.first_user_fallback.available ? (
+                                <><RiCloseCircleLine className="w-3 h-3 text-red-600" /> Failed</>
+                              ) : (
+                                <><RiAlertLine className="w-3 h-3 text-gray-400" /> Not available</>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>

@@ -12,28 +12,28 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { categorySchema } from "@/lib/validations";
+import { tagSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
 
-interface QuickCreateCategoryDialogProps {
+interface QuickCreateTagDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCategoryCreated?: (categoryId: string) => void;
+  onTagCreated?: (tagId: string) => void;
 }
 
-export default function QuickCreateCategoryDialog({
+export default function QuickCreateTagDialog({
   open,
   onOpenChange,
-  onCategoryCreated,
-}: QuickCreateCategoryDialogProps) {
+  onTagCreated,
+}: QuickCreateTagDialogProps) {
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
   const handleCreate = async () => {
     // Validate input
-    const validation = categorySchema.safeParse({ name: name.trim() });
+    const validation = tagSchema.safeParse({ name: name.trim() });
     if (!validation.success) {
-      toast.error(validation.error.errors[0]?.message || "Invalid category name");
+      toast.error(validation.error.errors[0]?.message || "Invalid tag name");
       return;
     }
 
@@ -41,12 +41,12 @@ export default function QuickCreateCategoryDialog({
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error("You must be logged in to create categories");
+        toast.error("You must be logged in to create tags");
         return;
       }
 
       const { data, error } = await supabase
-        .from("call_categories")
+        .from("call_tags")
         .insert({
           name: validation.data.name,
           user_id: user.id,
@@ -56,13 +56,13 @@ export default function QuickCreateCategoryDialog({
 
       if (error) throw error;
 
-      toast.success("Category created successfully");
-      onCategoryCreated?.(data.id);
+      toast.success("Tag created successfully");
+      onTagCreated?.(data.id);
       onOpenChange(false);
       setName("");
     } catch (error) {
-      logger.error("Error creating category", error);
-      toast.error("Failed to create category");
+      logger.error("Error creating tag", error);
+      toast.error("Failed to create tag");
     } finally {
       setSaving(false);
     }
@@ -72,17 +72,17 @@ export default function QuickCreateCategoryDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Create New Category</DialogTitle>
+          <DialogTitle>Create New Tag</DialogTitle>
           <DialogDescription>
-            Add a new category to organize your meeting calls
+            Add a new tag to classify your meeting calls
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="category-name">Category Name</Label>
+            <Label htmlFor="tag-name">Tag Name</Label>
             <Input
-              id="category-name"
+              id="tag-name"
               placeholder="e.g., Team Calls, Client Meetings"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -101,7 +101,7 @@ export default function QuickCreateCategoryDialog({
             Cancel
           </Button>
           <Button onClick={handleCreate} disabled={saving || !name.trim()}>
-            {saving ? "Creating..." : "Create Category"}
+            {saving ? "Creating..." : "Create Tag"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -92,11 +92,12 @@ async function syncMeeting(
     // Extract summary
     const summary = meeting.default_summary?.markdown_formatted || null;
 
-    // Check if call exists and has user edits
+    // Check if call exists and has user edits (use composite key)
     const { data: existingCall } = await supabase
       .from('fathom_calls')
       .select('recording_id, title, summary, title_edited_by_user, summary_edited_by_user')
       .eq('recording_id', meeting.recording_id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     // Build upsert object, preserving user edits
@@ -131,11 +132,11 @@ async function syncMeeting(
       upsertData.summary_edited_by_user = true;
     }
 
-    // Upsert call details
+    // Upsert call details (use composite primary key)
     const { error: callError } = await supabase
       .from('fathom_calls')
       .upsert(upsertData, {
-        onConflict: 'recording_id'
+        onConflict: 'recording_id,user_id'
       });
 
     if (callError) {
@@ -143,12 +144,13 @@ async function syncMeeting(
       throw callError;
     }
 
-    // Delete existing transcripts and insert new ones
+    // Delete existing transcripts and insert new ones (use composite key for user isolation)
     if (meeting.transcript && meeting.transcript.length > 0) {
       const { error: deleteError } = await supabase
         .from('fathom_transcripts')
         .delete()
-        .eq('recording_id', recordingId);
+        .eq('recording_id', recordingId)
+        .eq('user_id', userId);
 
       if (deleteError) {
         console.error(`Error deleting old transcripts for ${recordingId}:`, deleteError);
@@ -156,9 +158,9 @@ async function syncMeeting(
 
       const transcriptRows = meeting.transcript.map((segment: TranscriptSegment) => {
         let speakerEmail = segment.speaker.matched_calendar_invitee_email;
-        
+
         if (!speakerEmail && meeting.calendar_invitees) {
-          const matchedInvitee = meeting.calendar_invitees.find((inv: any) => 
+          const matchedInvitee = meeting.calendar_invitees.find((inv: any) =>
             inv.matched_speaker_display_name === segment.speaker.display_name ||
             inv.name === segment.speaker.display_name
           );
@@ -166,9 +168,10 @@ async function syncMeeting(
             speakerEmail = matchedInvitee.email;
           }
         }
-        
+
         return {
           recording_id: meeting.recording_id,
+          user_id: userId, // Include user_id for composite foreign key
           speaker_name: segment.speaker.display_name,
           speaker_email: speakerEmail,
           text: segment.text,

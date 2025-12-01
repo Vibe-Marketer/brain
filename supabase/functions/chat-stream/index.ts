@@ -1,6 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@0.0.66';  // FIXED: Compatible with ai@3.4.33
-import { streamText, tool } from 'https://esm.sh/ai@3.4.33';
+import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1.3.22';
+import { createAnthropic } from 'https://esm.sh/@ai-sdk/anthropic@1.2.12';
+import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@1.2.14';
+import { streamText, tool } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 
 const corsHeaders = {
@@ -21,14 +23,75 @@ interface SessionFilters {
   recording_ids?: number[];
 }
 
-// Generate embedding for search query
-async function generateQueryEmbedding(text: string, openaiApiKey: string): Promise<number[]> {
-  const response = await fetch('https://gateway.ai.vercel.dev/v1/embeddings', {
+// ============================================
+// AI GATEWAY CONFIGURATION
+// ============================================
+
+/**
+ * Vercel AI Gateway Configuration
+ * All models are routed through AI Gateway for unified access and observability
+ *
+ * Provider SDKs are configured to route through AI Gateway base URL
+ * Models use format: 'creator/model-name' (e.g., 'openai/gpt-4o')
+ *
+ * Docs: https://vercel.com/docs/ai-gateway
+ */
+
+const AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh/v1';
+
+// Provider type from model ID
+type AIProvider = 'openai' | 'anthropic' | 'google' | 'groq' | 'xai' | 'mistral' | 'perplexity' | 'cohere' | 'deepseek';
+
+function getProviderFromModelId(modelId: string): AIProvider {
+  const provider = modelId.split('/')[0];
+  return (provider as AIProvider) || 'openai';
+}
+
+function getModelNameFromId(modelId: string): string {
+  const parts = modelId.split('/');
+  return parts.length > 1 ? parts[1] : modelId;
+}
+
+// Create provider instances configured for AI Gateway
+function createProviderInstance(provider: AIProvider, apiKey: string) {
+  const headers = {
+    'x-vercel-ai-gateway-api-key': apiKey,
+  };
+
+  switch (provider) {
+    case 'anthropic':
+      return createAnthropic({
+        apiKey,
+        baseURL: `${AI_GATEWAY_BASE_URL}`,
+        headers,
+      });
+    case 'google':
+      return createGoogleGenerativeAI({
+        apiKey,
+        baseURL: `${AI_GATEWAY_BASE_URL}`,
+        headers,
+      });
+    // OpenAI-compatible providers (groq, xai, mistral, perplexity, cohere, deepseek)
+    // All route through AI Gateway using OpenAI SDK with provider header
+    default:
+      return createOpenAI({
+        apiKey,
+        baseURL: `${AI_GATEWAY_BASE_URL}`,
+        headers: {
+          ...headers,
+          'x-vercel-ai-provider': provider,
+        },
+      });
+  }
+}
+
+// Generate embedding for search query (always uses OpenAI via Gateway)
+async function generateQueryEmbedding(text: string, aiGatewayApiKey: string): Promise<number[]> {
+  const response = await fetch(`${AI_GATEWAY_BASE_URL}/embeddings`, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
+      'Authorization': `Bearer ${aiGatewayApiKey}`,
       'Content-Type': 'application/json',
-      'x-vercel-ai-provider': 'openai',
     },
     body: JSON.stringify({
       model: 'text-embedding-3-small',
@@ -37,7 +100,7 @@ async function generateQueryEmbedding(text: string, openaiApiKey: string): Promi
   });
 
   if (!response.ok) {
-    throw new Error(`OpenAI embedding error: ${response.status}`);
+    throw new Error(`Embedding error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -188,20 +251,15 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
-    if (!openaiApiKey) {
-      throw new Error('OPENAI_API_KEY not configured');
+    // AI Gateway API Key - primary authentication for all providers
+    const aiGatewayApiKey = Deno.env.get('VERCEL_AI_GATEWAY_API_KEY') || Deno.env.get('AI_GATEWAY_API_KEY');
+
+    if (!aiGatewayApiKey) {
+      throw new Error('VERCEL_AI_GATEWAY_API_KEY or AI_GATEWAY_API_KEY must be configured');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const openai = createOpenAI({
-      apiKey: openaiApiKey,
-      baseURL: 'https://gateway.ai.vercel.dev/v1',
-      headers: {
-        'x-vercel-ai-provider': 'openai',
-      },
-    });
 
     // Get user ID from JWT
     const authHeader = req.headers.get('Authorization');
@@ -226,11 +284,23 @@ Deno.serve(async (req) => {
       session_id,
       messages,
       filters,
+      model: requestedModel,
     }: {
       session_id?: string;
       messages: ChatMessage[];
       filters?: SessionFilters;
+      model?: string;
     } = await req.json();
+
+    // Model format: 'creator/model-name' (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4')
+    // If model doesn't include '/', assume it's an OpenAI model and prefix it
+    let selectedModel = requestedModel || 'openai/gpt-4o';
+    if (!selectedModel.includes('/')) {
+      // Legacy format - add openai prefix for backwards compatibility
+      selectedModel = `openai/${selectedModel}`;
+    }
+
+    console.log(`Using model: ${selectedModel} via AI Gateway`);
 
     if (!messages || messages.length === 0) {
       return new Response(
@@ -277,8 +347,8 @@ Deno.serve(async (req) => {
         console.log(`Searching transcripts: "${query}" (limit: ${limit})`);
         const searchStartTime = Date.now();
 
-        // Generate query embedding
-        const queryEmbedding = await generateQueryEmbedding(query, openaiApiKey);
+        // Generate query embedding (always uses OpenAI via Gateway)
+        const queryEmbedding = await generateQueryEmbedding(query, aiGatewayApiKey);
 
         // Step 1: Get more candidates for re-ranking (3x the requested limit, max 30)
         const candidateCount = Math.min(limit * 3, 30);
@@ -357,11 +427,12 @@ Deno.serve(async (req) => {
           return { error: 'Call not found' };
         }
 
-        // Get speakers for this call
+        // Get speakers for this call (use composite key for user isolation)
         const { data: speakers } = await supabase
           .from('fathom_transcripts')
           .select('speaker_name, speaker_email')
           .eq('recording_id', recording_id)
+          .eq('user_id', user.id)
           .eq('is_deleted', false);
 
         const uniqueSpeakers = [...new Set(speakers?.map(s => s.speaker_name).filter(Boolean))];
@@ -470,9 +541,18 @@ ${filterContext}
 
 Important: Only access transcripts belonging to the current user. Never fabricate information - if you can't find relevant data, say so.`;
 
-    // Create streaming response
+    // Create streaming response with selected model using AI Gateway
+    // Model string format: 'creator/model-name' (e.g., 'openai/gpt-4o')
+    const provider = getProviderFromModelId(selectedModel);
+    const modelName = getModelNameFromId(selectedModel);
+
+    console.log(`Streaming with AI Gateway - Provider: ${provider}, Model: ${modelName}`);
+
+    // Create the provider instance configured for AI Gateway
+    const providerInstance = createProviderInstance(provider, aiGatewayApiKey);
+
     const result = await streamText({
-      model: openai('gpt-4o'),
+      model: providerInstance(modelName),
       system: systemPrompt,
       messages: messages.map(m => ({
         role: m.role,
@@ -483,11 +563,11 @@ Important: Only access transcripts belonging to the current user. Never fabricat
         getCallDetails: getCallDetailsTool,
         summarizeCalls: summarizeCallsTool,
       },
-      maxToolRoundtrips: 5, // v3.x uses maxToolRoundtrips instead of maxSteps
+      maxSteps: 5, // AI SDK v5 uses maxSteps for tool roundtrips
     });
 
-    // FIXED: Use toDataStreamResponse for AI SDK v3.x
-    // This ensures message.parts (tool-call, tool-result) are transmitted to client
+    // Use toDataStreamResponse for AI SDK v5
+    // This ensures message.parts (tool-call, tool-result) are streamed to client
     return result.toDataStreamResponse({
       headers: corsHeaders,
     });

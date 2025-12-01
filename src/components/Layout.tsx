@@ -24,7 +24,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     },
     {
       id: 'categorization',
-      name: 'Categories',
+      name: 'Tags',
       icon: <div className="w-full h-full flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/80 to-purple-600"><RiPriceTag3Fill className="w-7 h-7 text-white" /></div>,
       onClick: () => navigate('/categorization'),
     },

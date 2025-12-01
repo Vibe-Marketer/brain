@@ -56,7 +56,8 @@ export function useCallDetailMutations({
 
   const updateCall = useMutation({
     mutationFn: async ({ title, summary, originalTitle, originalSummary }: UpdateCallParams) => {
-      if (!call) return;
+      if (!call || !userId) return;
+      // Use composite key (recording_id, user_id) for update
       const { error } = await supabase
         .from("fathom_calls")
         .update({
@@ -65,7 +66,8 @@ export function useCallDetailMutations({
           title_edited_by_user: title !== originalTitle,
           summary_edited_by_user: summary !== (originalSummary || ""),
         })
-        .eq("recording_id", call.recording_id);
+        .eq("recording_id", call.recording_id)
+        .eq("user_id", userId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -193,18 +195,20 @@ export function useCallDetailMutations({
 
       const meeting = meetingData.meeting;
 
-      // Delete all existing transcripts for this recording
+      // Delete all existing transcripts for this recording (use composite key)
       const { error: deleteError } = await supabase
         .from('fathom_transcripts')
         .delete()
-        .eq('recording_id', call.recording_id);
+        .eq('recording_id', call.recording_id)
+        .eq('user_id', userId);
 
       if (deleteError) throw deleteError;
 
-      // Insert fresh transcripts from Fathom
+      // Insert fresh transcripts from Fathom (include user_id for composite FK)
       if (meeting.transcript && meeting.transcript.length > 0) {
         const transcripts = meeting.transcript.map((t: any) => ({
           recording_id: call.recording_id,
+          user_id: userId, // Include user_id for composite foreign key
           speaker_name: t.speaker.display_name,
           speaker_email: t.speaker.matched_calendar_invitee_email || null,
           text: t.text,
@@ -232,10 +236,12 @@ export function useCallDetailMutations({
         updateData.summary = meeting.default_summary.markdown_formatted;
       }
 
+      // Update call metadata (use composite key)
       const { error: updateError } = await supabase
         .from('fathom_calls')
         .update(updateData)
-        .eq('recording_id', call.recording_id);
+        .eq('recording_id', call.recording_id)
+        .eq('user_id', userId);
 
       if (updateError) throw updateError;
     },

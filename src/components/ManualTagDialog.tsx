@@ -13,30 +13,30 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 
-interface Category {
+interface Tag {
   id: string;
   name: string;
 }
 
-interface ManualCategorizeDialogProps {
+interface ManualTagDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   recordingId?: string | null;
   recordingIds?: string[];
   callTitle?: string;
-  onCategoriesUpdated?: () => void;
+  onTagsUpdated?: () => void;
 }
 
-export default function ManualCategorizeDialog({
+export default function ManualTagDialog({
   open,
   onOpenChange,
   recordingId,
   recordingIds,
   callTitle,
-  onCategoriesUpdated,
-}: ManualCategorizeDialogProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+  onTagsUpdated,
+}: ManualTagDialogProps) {
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -51,33 +51,33 @@ export default function ManualCategorizeDialog({
       const numericRecordingIds = targetRecordingIds.map(id => parseInt(id));
 
       const { data, error } = await supabase
-        .from("call_category_assignments")
-        .select("call_recording_id, category_id")
+        .from("call_tag_assignments")
+        .select("call_recording_id, tag_id")
         .in("call_recording_id", numericRecordingIds);
 
       if (error) throw error;
 
       if (isBulkMode) {
-        // For bulk mode, show categories that ALL selected calls have in common
-        const categoryCounts = new Map<string, number>();
+        // For bulk mode, show tags that ALL selected calls have in common
+        const tagCounts = new Map<string, number>();
         data?.forEach(assignment => {
-          const count = categoryCounts.get(assignment.category_id) || 0;
-          categoryCounts.set(assignment.category_id, count + 1);
+          const count = tagCounts.get(assignment.tag_id) || 0;
+          tagCounts.set(assignment.tag_id, count + 1);
         });
 
-        // Only pre-select categories that ALL calls have
-        const commonCategories = new Set<string>();
-        categoryCounts.forEach((count, categoryId) => {
+        // Only pre-select tags that ALL calls have
+        const commonTags = new Set<string>();
+        tagCounts.forEach((count, tagId) => {
           if (count === numericRecordingIds.length) {
-            commonCategories.add(categoryId);
+            commonTags.add(tagId);
           }
         });
 
-        setSelectedCategories(commonCategories);
+        setSelectedTags(commonTags);
       } else {
-        // For single mode, show all assigned categories
-        const assigned = new Set(data?.map(a => a.category_id) || []);
-        setSelectedCategories(assigned);
+        // For single mode, show all assigned tags
+        const assigned = new Set(data?.map(a => a.tag_id) || []);
+        setSelectedTags(assigned);
       }
     } catch (error) {
       logger.error("Error loading assignments", error);
@@ -88,113 +88,113 @@ export default function ManualCategorizeDialog({
 
   useEffect(() => {
     if (open && targetRecordingIds.length > 0) {
-      loadCategories();
+      loadTags();
       // Always load existing assignments to show what's currently assigned
       loadExistingAssignments();
     }
   }, [open, targetRecordingIds.length, loadExistingAssignments]);
 
-  const loadCategories = async () => {
+  const loadTags = async () => {
     try {
       const { data, error } = await supabase
-        .from("call_categories")
+        .from("call_tags")
         .select("id, name")
         .order("name");
 
       if (error) throw error;
-      setCategories(data || []);
+      setTags(data || []);
     } catch (error) {
-      logger.error("Error loading categories", error);
+      logger.error("Error loading tags", error);
     }
   };
 
-  const toggleCategory = (categoryId: string) => {
-    const newSelected = new Set(selectedCategories);
-    if (newSelected.has(categoryId)) {
-      newSelected.delete(categoryId);
+  const toggleTag = (tagId: string) => {
+    const newSelected = new Set(selectedTags);
+    if (newSelected.has(tagId)) {
+      newSelected.delete(tagId);
     } else {
-      newSelected.add(categoryId);
+      newSelected.add(tagId);
     }
-    setSelectedCategories(newSelected);
+    setSelectedTags(newSelected);
   };
 
   const handleSave = async () => {
     if (targetRecordingIds.length === 0) return;
-    
+
     setSaving(true);
     try {
       const numericRecordingIds = targetRecordingIds.map(id => parseInt(id));
-      
+
       // Get existing assignments for all selected recordings
       const { data: existingAssignments, error: fetchError } = await supabase
-        .from("call_category_assignments")
-        .select("call_recording_id, category_id")
+        .from("call_tag_assignments")
+        .select("call_recording_id, tag_id")
         .in("call_recording_id", numericRecordingIds);
-      
+
       if (fetchError) throw fetchError;
-      
+
       // Create a map of existing assignments by recording_id
       const existingByRecording = new Map<number, Set<string>>();
       existingAssignments?.forEach(assignment => {
         if (!existingByRecording.has(assignment.call_recording_id)) {
           existingByRecording.set(assignment.call_recording_id, new Set());
         }
-        existingByRecording.get(assignment.call_recording_id)!.add(assignment.category_id);
+        existingByRecording.get(assignment.call_recording_id)!.add(assignment.tag_id);
       });
-      
+
       // Determine which assignments to delete and which to add
-      const assignmentsToDelete: Array<{call_recording_id: number, category_id: string}> = [];
-      const assignmentsToAdd: Array<{call_recording_id: number, category_id: string, auto_assigned: boolean}> = [];
-      
+      const assignmentsToDelete: Array<{call_recording_id: number, tag_id: string}> = [];
+      const assignmentsToAdd: Array<{call_recording_id: number, tag_id: string, auto_assigned: boolean}> = [];
+
       numericRecordingIds.forEach(recordingId => {
         const existing = existingByRecording.get(recordingId) || new Set();
-        
-        // Find categories to delete (were selected before but not now)
-        existing.forEach(categoryId => {
-          if (!selectedCategories.has(categoryId)) {
-            assignmentsToDelete.push({ call_recording_id: recordingId, category_id: categoryId });
+
+        // Find tags to delete (were selected before but not now)
+        existing.forEach(tagId => {
+          if (!selectedTags.has(tagId)) {
+            assignmentsToDelete.push({ call_recording_id: recordingId, tag_id: tagId });
           }
         });
-        
-        // Find categories to add (selected now but weren't before)
-        selectedCategories.forEach(categoryId => {
-          if (!existing.has(categoryId)) {
+
+        // Find tags to add (selected now but weren't before)
+        selectedTags.forEach(tagId => {
+          if (!existing.has(tagId)) {
             assignmentsToAdd.push({
               call_recording_id: recordingId,
-              category_id: categoryId,
+              tag_id: tagId,
               auto_assigned: false,
             });
           }
         });
       });
-      
+
       // Delete removed assignments
       if (assignmentsToDelete.length > 0) {
         for (const assignment of assignmentsToDelete) {
           await supabase
-            .from("call_category_assignments")
+            .from("call_tag_assignments")
             .delete()
             .eq("call_recording_id", assignment.call_recording_id)
-            .eq("category_id", assignment.category_id);
+            .eq("tag_id", assignment.tag_id);
         }
       }
-      
+
       // Insert new assignments
       if (assignmentsToAdd.length > 0) {
         const { error } = await supabase
-          .from("call_category_assignments")
+          .from("call_tag_assignments")
           .insert(assignmentsToAdd);
 
         if (error) throw error;
       }
 
       const count = targetRecordingIds.length;
-      toast.success(`Categories updated for ${count} meeting${count > 1 ? 's' : ''}`);
-      onCategoriesUpdated?.();
+      toast.success(`Tags updated for ${count} meeting${count > 1 ? 's' : ''}`);
+      onTagsUpdated?.();
       onOpenChange(false);
     } catch (error) {
-      logger.error("Error saving categories", error);
-      toast.error("Failed to update categories");
+      logger.error("Error saving tags", error);
+      toast.error("Failed to update tags");
     } finally {
       setSaving(false);
     }
@@ -204,39 +204,39 @@ export default function ManualCategorizeDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Categorize {isBulkMode ? 'Meetings' : 'Call'}</DialogTitle>
+          <DialogTitle>Tag {isBulkMode ? 'Meetings' : 'Call'}</DialogTitle>
           <DialogDescription>
             {isBulkMode ? (
               <span className="block text-sm font-medium mt-1">
-                Applying categories to {targetRecordingIds.length} meetings
+                Applying tags to {targetRecordingIds.length} meetings
               </span>
             ) : (
               callTitle && <span className="block text-sm font-medium mt-1">{callTitle}</span>
             )}
-            Select the categories to apply
+            Select the tags to apply
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
           <div className="py-8 text-center text-muted-foreground">Loading...</div>
-        ) : categories.length === 0 ? (
+        ) : tags.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
-            No categories yet. Create categories first.
+            No tags yet. Create tags first.
           </div>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            {categories.map((category) => (
-              <div key={category.id} className="flex items-center space-x-2">
+            {tags.map((tag) => (
+              <div key={tag.id} className="flex items-center space-x-2">
                 <Checkbox
-                  id={category.id}
-                  checked={selectedCategories.has(category.id)}
-                  onCheckedChange={() => toggleCategory(category.id)}
+                  id={tag.id}
+                  checked={selectedTags.has(tag.id)}
+                  onCheckedChange={() => toggleTag(tag.id)}
                 />
                 <Label
-                  htmlFor={category.id}
+                  htmlFor={tag.id}
                   className="text-sm font-normal cursor-pointer flex-1"
                 >
-                  {category.name}
+                  {tag.name}
                 </Label>
               </div>
             ))}

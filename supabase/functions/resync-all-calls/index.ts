@@ -235,28 +235,29 @@ Deno.serve(async (req) => {
           upsertData.summary_edited_by_user = true;
         }
 
-        // Upsert call details
+        // Upsert call details (use composite primary key)
         const { error: callError } = await supabase
           .from('fathom_calls')
-          .upsert(upsertData, { onConflict: 'recording_id' });
+          .upsert(upsertData, { onConflict: 'recording_id,user_id' });
 
         if (callError) throw callError;
 
         // Update transcript segments
         if (meeting.transcript && Array.isArray(meeting.transcript)) {
-          // Delete existing transcripts
+          // Delete existing transcripts (use composite key for user isolation)
           await supabase
             .from('fathom_transcripts')
             .delete()
-            .eq('recording_id', meeting.recording_id);
+            .eq('recording_id', meeting.recording_id)
+            .eq('user_id', userId);
 
-          // Insert new transcripts
+          // Insert new transcripts (include user_id for composite FK)
           const transcriptRows = meeting.transcript.map((segment: TranscriptSegment) => {
             // Try to get email from transcript match first, then from calendar invitees
             let speakerEmail = segment.speaker.matched_calendar_invitee_email;
-            
+
             if (!speakerEmail && meeting.calendar_invitees) {
-              const matchedInvitee = meeting.calendar_invitees.find((inv: any) => 
+              const matchedInvitee = meeting.calendar_invitees.find((inv: any) =>
                 inv.matched_speaker_display_name === segment.speaker.display_name ||
                 inv.name === segment.speaker.display_name
               );
@@ -264,9 +265,10 @@ Deno.serve(async (req) => {
                 speakerEmail = matchedInvitee.email;
               }
             }
-            
+
             return {
               recording_id: meeting.recording_id,
+              user_id: userId, // Include user_id for composite foreign key
               speaker_name: segment.speaker.display_name,
               speaker_email: speakerEmail,
               text: segment.text,

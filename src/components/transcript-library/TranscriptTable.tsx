@@ -13,12 +13,20 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 import { TranscriptTableRow } from "./TranscriptTableRow";
 import { DownloadPopover } from "./DownloadPopover";
 
+interface Folder {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
 
 interface TranscriptTableProps {
   calls: any[];
   selectedCalls: (number | string)[]; // Support both number (synced) and string (unsynced)
-  categories: Array<{ id: string; name: string }>;
-  categoryAssignments: Record<string, string[]>;
+  tags: Array<{ id: string; name: string }>;
+  tagAssignments: Record<string, string[]>;
+  folders?: Folder[];
+  folderAssignments?: Record<string, string[]>;
   hostEmail?: string;
   totalCount?: number;
   page?: number;
@@ -26,8 +34,7 @@ interface TranscriptTableProps {
   onSelectCall: (id: number | string) => void;
   onSelectAll: () => void;
   onCallClick: (call: any) => void;
-  onCategorizeCall: (callId: number | string) => void;
-  onDirectCategorize?: (callId: number | string, categoryId: string) => void;
+  onFolderCall?: (callId: number | string) => void;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
   // Unsynced meeting support
@@ -41,8 +48,10 @@ interface TranscriptTableProps {
 export const TranscriptTable = React.memo(({
   calls,
   selectedCalls,
-  categories,
-  categoryAssignments,
+  tags,
+  tagAssignments,
+  folders = [],
+  folderAssignments = {},
   hostEmail,
   totalCount = 0,
   page = 1,
@@ -50,8 +59,7 @@ export const TranscriptTable = React.memo(({
   onSelectCall,
   onSelectAll,
   onCallClick,
-  onCategorizeCall,
-  onDirectCategorize,
+  onFolderCall,
   onPageChange,
   onPageSizeChange,
   isUnsyncedView = false,
@@ -105,7 +113,8 @@ export const TranscriptTable = React.memo(({
                   <SortButton field="participants">PARTICIPANTS</SortButton>
                 </TableHead>
                 <TableHead className="hidden xl:table-cell text-center w-20 h-12 whitespace-nowrap text-xs md:text-sm">COUNT</TableHead>
-                <TableHead className="hidden xl:table-cell min-w-[150px] h-12 whitespace-nowrap text-xs md:text-sm">FOLDERS</TableHead>
+                <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">TAGS</TableHead>
+                <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">FOLDERS</TableHead>
                 <TableHead className="text-center w-[80px] md:w-[120px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">ACTION</TableHead>
               </TableRow>
             </TableHeader>
@@ -119,14 +128,15 @@ export const TranscriptTable = React.memo(({
                     key={call.recording_id}
                     call={call}
                     isSelected={isSelected}
-                    categories={categories}
-                    categoryAssignments={categoryAssignments[call.recording_id] || []}
+                    tags={tags}
+                    tagAssignments={tagAssignments[call.recording_id] || []}
+                    folders={folders}
+                    folderAssignments={folderAssignments[call.recording_id] || []}
                     hostEmail={hostEmail}
                     isUnsyncedView={isUnsyncedView}
                     onSelect={() => onSelectCall(call.recording_id)}
                     onCallClick={() => onCallClick(call)}
-                    onCategorize={() => onCategorizeCall(call.recording_id)}
-                    onDirectCategorize={onDirectCategorize ? (categoryId) => onDirectCategorize(call.recording_id, categoryId) : undefined}
+                    onFolder={onFolderCall ? () => onFolderCall(call.recording_id) : undefined}
                     onCustomDownload={onCustomDownload}
                     DownloadComponent={!onCustomDownload ? DownloadPopover : undefined}
                   />

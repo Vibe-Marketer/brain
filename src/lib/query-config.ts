@@ -55,6 +55,14 @@ export const queryKeys = {
   config: {
     status: () => ['config-status'] as const,
   },
+
+  // Folders
+  folders: {
+    all: ['folders'] as const,
+    list: () => ['folders', 'list'] as const,
+    detail: (folderId: string) => ['folders', 'detail', folderId] as const,
+    assignments: () => ['folder-assignments'] as const,
+  },
 } as const;
 
 // Type helper for query keys

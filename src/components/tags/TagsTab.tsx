@@ -11,7 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
-interface Category {
+interface Tag {
   id: string;
   name: string;
   color: string | null;
@@ -19,35 +19,35 @@ interface Category {
   is_system: boolean | null;
 }
 
-export function CategoriesTab() {
-  // Fetch categories
-  const { data: categories, isLoading } = useQuery({
-    queryKey: ["call-categories"],
+export function TagsTab() {
+  // Fetch tags
+  const { data: tags, isLoading } = useQuery({
+    queryKey: ["call-tags"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("call_categories")
+        .from("call_tags")
         .select("id, name, color, description, is_system")
         .order("name");
 
       if (error) throw error;
-      return data as Category[];
+      return data as Tag[];
     },
   });
 
-  // Fetch category usage counts
-  const { data: categoryCounts } = useQuery({
-    queryKey: ["category-counts"],
+  // Fetch tag usage counts
+  const { data: tagCounts } = useQuery({
+    queryKey: ["tag-counts"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("call_category_assignments")
-        .select("category_id");
+        .from("call_tag_assignments")
+        .select("tag_id");
 
       if (error) throw error;
 
-      // Count by category
+      // Count by tag
       const counts: Record<string, number> = {};
       (data || []).forEach((assignment) => {
-        counts[assignment.category_id] = (counts[assignment.category_id] || 0) + 1;
+        counts[assignment.tag_id] = (counts[assignment.tag_id] || 0) + 1;
       });
       return counts;
     },
@@ -66,8 +66,8 @@ export function CategoriesTab() {
   return (
     <div className="space-y-4">
       <p className="text-sm text-cb-ink-muted">
-        These are the system-wide categories available for all calls. Categories are assigned via
-        rules or AI-generated suggestions.
+        These are the system-wide tags that classify calls by type. Tags control which AI prompts
+        and analysis run on each call.
       </p>
 
       <div className="border border-cb-border dark:border-cb-border-dark rounded-sm overflow-hidden">
@@ -92,25 +92,25 @@ export function CategoriesTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories?.map((category) => (
-              <TableRow key={category.id}>
+            {tags?.map((tag) => (
+              <TableRow key={tag.id}>
                 <TableCell>
                   <div
                     className="w-6 h-6 rounded-sm"
-                    style={{ backgroundColor: category.color || "#666" }}
+                    style={{ backgroundColor: tag.color || "#666" }}
                   />
                 </TableCell>
-                <TableCell className="font-medium">{category.name}</TableCell>
+                <TableCell className="font-medium">{tag.name}</TableCell>
                 <TableCell className="text-cb-ink-muted">
-                  {category.description || "-"}
+                  {tag.description || "-"}
                 </TableCell>
                 <TableCell>
-                  <Badge variant={category.is_system ? "secondary" : "outline"}>
-                    {category.is_system ? "System" : "Custom"}
+                  <Badge variant={tag.is_system ? "secondary" : "outline"}>
+                    {tag.is_system ? "System" : "Custom"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
-                  {categoryCounts?.[category.id] || 0}
+                  {tagCounts?.[tag.id] || 0}
                 </TableCell>
               </TableRow>
             ))}

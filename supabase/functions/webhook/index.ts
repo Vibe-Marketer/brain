@@ -145,25 +145,34 @@ async function verifyWebhookSignature(
   return false;
 }
 
-async function processMeetingWebhook(meeting: any, supabase: any) {
+async function processMeetingWebhook(meeting: any, supabase: any): Promise<string[]> {
   try {
     console.log(`Processing webhook for meeting: ${meeting.recording_id}`);
 
-    // Try to determine user_id by recorded_by_email matching user_settings.host_email
-    let userId = null;
-    
+    // Find ALL users with matching host_email to support team accounts
+    // A team leader's calls should sync to BOTH their account AND team members' accounts
+    const syncedUserIds: string[] = [];
+
     if (meeting.recorded_by?.email) {
-      const { data: userSettings } = await supabase
+      const { data: userSettings, error: lookupError } = await supabase
         .from('user_settings')
         .select('user_id')
-        .eq('host_email', meeting.recorded_by.email)
-        .maybeSingle();
-      
-      userId = userSettings?.user_id || null;
+        .eq('host_email', meeting.recorded_by.email);
+
+      if (lookupError) {
+        console.error('Error looking up users by host_email:', lookupError);
+      }
+
+      if (userSettings && userSettings.length > 0) {
+        console.log(`Found ${userSettings.length} user(s) with host_email "${meeting.recorded_by.email}"`);
+        for (const settings of userSettings) {
+          syncedUserIds.push(settings.user_id);
+        }
+      }
     }
 
-    // Reject webhook if user cannot be determined
-    if (!userId) {
+    // Reject webhook if no users found
+    if (syncedUserIds.length === 0) {
       const hostEmail = meeting.recorded_by?.email || 'unknown';
       console.error(
         `CRITICAL: Cannot determine user_id for meeting ${meeting.recording_id}. ` +
@@ -229,77 +238,92 @@ async function processMeetingWebhook(meeting: any, supabase: any) {
     // Extract summary
     const summary = meeting.default_summary?.markdown_formatted || null;
 
-    // Upsert call details with calendar invitees
-    const { error: callError } = await supabase
-      .from('fathom_calls')
-      .upsert({
-        recording_id: meeting.recording_id,
-        title: meeting.title,
-        created_at: meeting.created_at,
-        recording_start_time: meeting.recording_start_time,
-        recording_end_time: meeting.recording_end_time,
-        url: meeting.url,
-        share_url: meeting.share_url,
-        full_transcript: fullTranscript,
-        summary: summary,
-        recorded_by_name: meeting.recorded_by?.name || null,
-        recorded_by_email: meeting.recorded_by?.email || null,
-        calendar_invitees: meeting.calendar_invitees || null,
-        user_id: userId,
-        synced_at: new Date().toISOString(),
-      }, {
-        onConflict: 'recording_id'
-      });
+    // Sync the call to ALL matching users (team support)
+    // Schema has composite primary key (recording_id, user_id), so same recording can exist for multiple users
+    console.log(`📥 Syncing meeting ${meeting.recording_id} to ${syncedUserIds.length} user(s)...`);
 
-    if (callError) {
-      console.error('Error upserting call:', callError);
-      throw callError;
-    }
+    for (const userId of syncedUserIds) {
+      console.log(`   Syncing to user: ${userId}`);
 
-    // Insert transcript segments
-    if (meeting.transcript && meeting.transcript.length > 0) {
-      // Delete existing transcripts
-      await supabase
-        .from('fathom_transcripts')
-        .delete()
-        .eq('recording_id', meeting.recording_id);
-
-      const transcriptRows = meeting.transcript.map((segment: any) => {
-        // Try to get email from transcript match first, then from calendar invitees
-        let speakerEmail = segment.speaker.matched_calendar_invitee_email;
-        
-        if (!speakerEmail && meeting.calendar_invitees) {
-          const matchedInvitee = meeting.calendar_invitees.find((inv: any) => 
-            inv.matched_speaker_display_name === segment.speaker.display_name ||
-            inv.name === segment.speaker.display_name
-          );
-          if (matchedInvitee) {
-            speakerEmail = matchedInvitee.email;
-          }
-        }
-        
-        return {
+      // Upsert call for this user
+      const { error: callError } = await supabase
+        .from('fathom_calls')
+        .upsert({
           recording_id: meeting.recording_id,
-          speaker_name: segment.speaker.display_name,
-          speaker_email: speakerEmail,
-          text: segment.text,
-          timestamp: segment.timestamp,
-        };
-      });
+          user_id: userId,
+          title: meeting.title,
+          created_at: meeting.created_at,
+          recording_start_time: meeting.recording_start_time,
+          recording_end_time: meeting.recording_end_time,
+          url: meeting.url,
+          share_url: meeting.share_url,
+          full_transcript: fullTranscript,
+          summary: summary,
+          recorded_by_name: meeting.recorded_by?.name || null,
+          recorded_by_email: meeting.recorded_by?.email || null,
+          calendar_invitees: meeting.calendar_invitees || null,
+          synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'recording_id,user_id'  // Composite primary key
+        });
 
-      const { error: transcriptError } = await supabase
-        .from('fathom_transcripts')
-        .insert(transcriptRows);
-
-      if (transcriptError) {
-        console.error('Error inserting transcripts:', transcriptError);
-        throw transcriptError;
+      if (callError) {
+        console.error(`Error upserting call for user ${userId}:`, callError);
+        // Continue to other users even if one fails
+        continue;
       }
 
-      console.log(`✅ Successfully inserted ${transcriptRows.length} transcript segments into database`);
+      console.log(`   ✅ Synced call to user ${userId}`);
+
+      // Insert transcript segments for this user
+      if (meeting.transcript && meeting.transcript.length > 0) {
+        // Delete existing transcripts for this user's copy
+        await supabase
+          .from('fathom_transcripts')
+          .delete()
+          .eq('recording_id', meeting.recording_id)
+          .eq('user_id', userId);
+
+        const transcriptRows = meeting.transcript.map((segment: any) => {
+          // Try to get email from transcript match first, then from calendar invitees
+          let speakerEmail = segment.speaker.matched_calendar_invitee_email;
+
+          if (!speakerEmail && meeting.calendar_invitees) {
+            const matchedInvitee = meeting.calendar_invitees.find((inv: any) =>
+              inv.matched_speaker_display_name === segment.speaker.display_name ||
+              inv.name === segment.speaker.display_name
+            );
+            if (matchedInvitee) {
+              speakerEmail = matchedInvitee.email;
+            }
+          }
+
+          return {
+            recording_id: meeting.recording_id,
+            user_id: userId,  // Include user_id for composite FK
+            speaker_name: segment.speaker.display_name,
+            speaker_email: speakerEmail,
+            text: segment.text,
+            timestamp: segment.timestamp,
+          };
+        });
+
+        const { error: transcriptError } = await supabase
+          .from('fathom_transcripts')
+          .insert(transcriptRows);
+
+        if (transcriptError) {
+          console.error(`Error inserting transcripts for user ${userId}:`, transcriptError);
+          // Continue to other users even if transcripts fail
+          continue;
+        }
+
+        console.log(`   ✅ Inserted ${transcriptRows.length} transcript segments for user ${userId}`);
+      }
     }
 
-    console.log(`Successfully processed webhook for meeting: ${meeting.recording_id}`);
+    console.log(`✅ Successfully synced meeting ${meeting.recording_id} to ${syncedUserIds.length} user(s)`);
+    return syncedUserIds;
   } catch (error) {
     console.error('Error processing webhook:', error);
     throw error;
@@ -371,12 +395,26 @@ Deno.serve(async (req) => {
 
     console.log('🔍 Webhook received - recorded_by:', meeting.recorded_by?.email);
 
-    // Try to find a matching webhook secret
-    let webhookSecret = null;
-    let secretMatchMethod = 'none';
-    let matchedUserId = null;
+    // ==========================================================================
+    // PARALLEL VERIFICATION TEST - Try ALL methods and log results
+    // ==========================================================================
+    const verificationResults: Record<string, { available: boolean; verified: boolean; secret_preview?: string }> = {
+      personal_by_email: { available: false, verified: false },
+      oauth_app_secret: { available: false, verified: false },
+      first_user_fallback: { available: false, verified: false }
+    };
 
-    // 1. Try to match by recorded_by email to user_settings.host_email
+    let matchedUserId = null;
+    let successfulMethod: string | null = null;
+
+    // Get all potential secrets
+    const oauthAppSecret = Deno.env.get('FATHOM_OAUTH_WEBHOOK_SECRET');
+    let personalSecret: string | null = null;
+    let personalUserId: string | null = null;
+    let firstUserSecret: string | null = null;
+    let firstUserId: string | null = null;
+
+    // 1. Check personal secret by email match
     if (meeting.recorded_by?.email) {
       const { data: settings } = await supabase
         .from('user_settings')
@@ -385,73 +423,97 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (settings?.webhook_secret) {
-        webhookSecret = settings.webhook_secret;
-        matchedUserId = settings.user_id;
-        secretMatchMethod = 'email_match';
-        console.log('✅ Found secret via email match');
-        console.log('   - Matched User ID:', matchedUserId);
-        console.log('   - Secret (masked):', webhookSecret.substring(0, 15) + '...');
-      } else {
-        console.log('❌ No webhook secret found for email:', meeting.recorded_by.email);
+        personalSecret = settings.webhook_secret;
+        personalUserId = settings.user_id;
+        verificationResults.personal_by_email.available = true;
+        verificationResults.personal_by_email.secret_preview = personalSecret.substring(0, 15) + '...';
       }
     }
 
-    // 2. Fallback to OAuth app webhook secret
-    if (!webhookSecret) {
-      console.log('🔄 No user-specific secret found, trying OAuth app secret');
-      const oauthAppSecret = Deno.env.get('FATHOM_OAUTH_WEBHOOK_SECRET');
+    // 2. Check OAuth app secret
+    if (oauthAppSecret) {
+      verificationResults.oauth_app_secret.available = true;
+      verificationResults.oauth_app_secret.secret_preview = oauthAppSecret.substring(0, 15) + '...';
+    }
 
-      if (oauthAppSecret) {
-        webhookSecret = oauthAppSecret;
-        secretMatchMethod = 'oauth_app_secret';
-        console.log('✅ Using OAuth app webhook secret');
-        console.log('   - Secret (masked):', oauthAppSecret.substring(0, 15) + '...');
+    // 3. Check first user fallback
+    const { data: firstSettings } = await supabase
+      .from('user_settings')
+      .select('webhook_secret, user_id')
+      .limit(1)
+      .maybeSingle();
 
-        // For OAuth webhooks, try to find user by email for later processing
+    if (firstSettings?.webhook_secret) {
+      firstUserSecret = firstSettings.webhook_secret;
+      firstUserId = firstSettings.user_id;
+      verificationResults.first_user_fallback.available = true;
+      verificationResults.first_user_fallback.secret_preview = firstUserSecret.substring(0, 15) + '...';
+    }
+
+    console.log('📋 VERIFICATION TEST - Available secrets:');
+    console.log('   - Personal (email match):', verificationResults.personal_by_email.available ? `YES (${verificationResults.personal_by_email.secret_preview})` : 'NO');
+    console.log('   - OAuth app secret:', verificationResults.oauth_app_secret.available ? `YES (${verificationResults.oauth_app_secret.secret_preview})` : 'NO');
+    console.log('   - First user fallback:', verificationResults.first_user_fallback.available ? `YES (${verificationResults.first_user_fallback.secret_preview})` : 'NO');
+
+    // Now verify with EACH available secret
+    console.log('\n🔐 VERIFICATION TEST - Testing each secret:');
+
+    // Test 1: Personal secret by email
+    if (personalSecret) {
+      console.log('\n--- Testing PERSONAL secret (email match) ---');
+      const personalValid = await verifyWebhookSignature(personalSecret, req.headers, rawBody);
+      verificationResults.personal_by_email.verified = personalValid;
+      console.log(`   Result: ${personalValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      if (personalValid && !successfulMethod) {
+        successfulMethod = 'personal_by_email';
+        matchedUserId = personalUserId;
+      }
+    }
+
+    // Test 2: OAuth app secret
+    if (oauthAppSecret) {
+      console.log('\n--- Testing OAUTH APP secret ---');
+      const oauthValid = await verifyWebhookSignature(oauthAppSecret, req.headers, rawBody);
+      verificationResults.oauth_app_secret.verified = oauthValid;
+      console.log(`   Result: ${oauthValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      if (oauthValid && !successfulMethod) {
+        successfulMethod = 'oauth_app_secret';
+        // For OAuth, still need to find user by email
         if (meeting.recorded_by?.email) {
           const { data: userByEmail } = await supabase
             .from('user_settings')
             .select('user_id')
             .eq('host_email', meeting.recorded_by.email)
             .maybeSingle();
-
-          matchedUserId = userByEmail?.user_id || null;
+          matchedUserId = userByEmail?.user_id || firstUserId;
+        } else {
+          matchedUserId = firstUserId;
         }
       }
     }
 
-    // 3. Final fallback to first user's webhook secret
-    if (!webhookSecret) {
-      console.log('🔄 Falling back to first user\'s webhook secret');
-      const { data: firstSettings } = await supabase
-        .from('user_settings')
-        .select('webhook_secret, user_id')
-        .limit(1)
-        .maybeSingle();
-
-      if (firstSettings?.webhook_secret) {
-        webhookSecret = firstSettings.webhook_secret;
-        matchedUserId = firstSettings.user_id;
-        secretMatchMethod = 'first_user_fallback';
-        console.log('✅ Using first user\'s webhook secret');
-        console.log('   - Secret (masked):', webhookSecret.substring(0, 15) + '...');
+    // Test 3: First user fallback (only if different from personal)
+    if (firstUserSecret && firstUserSecret !== personalSecret) {
+      console.log('\n--- Testing FIRST USER FALLBACK secret ---');
+      const fallbackValid = await verifyWebhookSignature(firstUserSecret, req.headers, rawBody);
+      verificationResults.first_user_fallback.verified = fallbackValid;
+      console.log(`   Result: ${fallbackValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      if (fallbackValid && !successfulMethod) {
+        successfulMethod = 'first_user_fallback';
+        matchedUserId = firstUserId;
       }
+    } else if (firstUserSecret === personalSecret) {
+      // Same as personal, copy result
+      verificationResults.first_user_fallback.verified = verificationResults.personal_by_email.verified;
+      console.log('\n--- FIRST USER FALLBACK: Same as personal secret, skipping ---');
     }
 
-    if (!webhookSecret) {
-      console.error('❌ No webhook secret available (none in user_settings, no FATHOM_OAUTH_WEBHOOK_SECRET)');
-      return new Response(
-        JSON.stringify({ error: 'Webhook secret not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Summary
+    console.log('\n📊 VERIFICATION SUMMARY:');
+    console.log(JSON.stringify(verificationResults, null, 2));
+    console.log(`\n🎯 Successful method: ${successfulMethod || 'NONE'}`);
 
-    console.log('🔐 Verifying signature using method:', secretMatchMethod);
-
-    // Verify the webhook signature
-    const isValid = await verifyWebhookSignature(webhookSecret, req.headers, rawBody);
-
-    // Use the userId we already found during secret lookup
+    const isValid = successfulMethod !== null;
     userId = matchedUserId;
 
     // If still no userId, get first user for logging purposes
@@ -466,35 +528,38 @@ Deno.serve(async (req) => {
     }
 
     if (!isValid) {
-      console.error('❌ Webhook signature verification FAILED');
+      console.error('❌ Webhook signature verification FAILED - NO METHOD WORKED');
       console.error('   - Webhook ID:', req.headers.get('webhook-id'));
       console.error('   - Signature Header:', req.headers.get('webhook-signature'));
-      errorMessage = `Invalid webhook signature (method: ${secretMatchMethod})`;
+      errorMessage = `Invalid webhook signature - all methods failed. Results: ${JSON.stringify(verificationResults)}`;
 
-      // Log failed delivery
-      if (userId) {
+      // Log failed delivery WITH verification results
+      const logUserId = userId || firstUserId;
+      if (logUserId) {
         await supabase.from('webhook_deliveries').insert({
-          user_id: userId,
+          user_id: logUserId,
           webhook_id: req.headers.get('webhook-id') || req.headers.get('svix-id') || 'unknown',
           recording_id: meeting.recording_id,
           status: 'failed',
           error_message: errorMessage,
           request_headers: Object.fromEntries(req.headers.entries()),
           request_body: meeting,
-          signature_valid: false
+          signature_valid: false,
+          payload: { verification_results: verificationResults }
         });
       }
 
       return new Response(
         JSON.stringify({
           error: 'Invalid signature',
-          hint: 'Verify FATHOM_OAUTH_WEBHOOK_SECRET matches your OAuth app webhook secret in the Fathom Developer Portal'
+          verification_results: verificationResults,
+          hint: 'Check logs for which secrets were tested and their results'
         }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log('✅ Webhook signature verified successfully using OAuth app secret');
+    console.log(`✅ Webhook signature verified successfully using method: ${successfulMethod}`);
 
     const webhookId = req.headers.get('webhook-id');
     console.log('Webhook ID:', webhookId);
@@ -555,9 +620,9 @@ Deno.serve(async (req) => {
       try {
         console.log('🔄 Starting background processing for webhook:', webhookId);
         console.log('Meeting details:', { recording_id: meeting.recording_id, title: meeting.title });
-        
-        await processMeetingWebhook(meeting, supabase);
-        
+
+        const syncedUserIds = await processMeetingWebhook(meeting, supabase);
+
         // Mark webhook as processed
         await supabase
           .from('processed_webhooks')
@@ -566,10 +631,38 @@ Deno.serve(async (req) => {
             processed_at: new Date().toISOString(),
           });
 
-        // Note: AI title generation and auto-tagging edge functions were removed
-        // These features are now handled differently or deprecated
-        
-        // Log successful delivery
+        // Trigger embedding generation for the synced meeting
+        // This ensures webhook-synced calls also get embeddings like manually synced ones
+        console.log(`🧠 Triggering embedding generation for meeting ${meeting.recording_id}...`);
+        try {
+          const { error: embedError } = await supabase.functions.invoke('embed-chunks', {
+            body: { recording_ids: [meeting.recording_id] },
+          });
+          if (embedError) {
+            console.error('Embedding generation failed:', embedError);
+          } else {
+            console.log('✅ Embedding generation triggered successfully');
+          }
+        } catch (embedErr) {
+          console.error('Failed to invoke embed-chunks:', embedErr);
+        }
+
+        // Trigger AI title generation
+        console.log(`🏷️ Triggering AI title generation for meeting ${meeting.recording_id}...`);
+        try {
+          const { error: titleError } = await supabase.functions.invoke('generate-ai-titles', {
+            body: { recordingIds: [meeting.recording_id] },
+          });
+          if (titleError) {
+            console.error('AI title generation failed:', titleError);
+          } else {
+            console.log('✅ AI title generation triggered successfully');
+          }
+        } catch (titleErr) {
+          console.error('Failed to invoke generate-ai-titles:', titleErr);
+        }
+
+        // Log successful delivery WITH verification results
         if (userId) {
           await supabase.from('webhook_deliveries').insert({
             user_id: userId,
@@ -578,11 +671,17 @@ Deno.serve(async (req) => {
             status: 'success',
             request_headers: Object.fromEntries(req.headers.entries()),
             request_body: meeting,
-            signature_valid: true
+            signature_valid: true,
+            payload: {
+              verification_results: verificationResults,
+              successful_method: successfulMethod,
+              synced_user_ids: syncedUserIds,
+              synced_user_count: syncedUserIds.length
+            }
           });
         }
-        
-        console.log('✅ Webhook processing complete:', webhookId);
+
+        console.log(`✅ Webhook processing complete: ${webhookId} (synced to ${syncedUserIds.length} user(s))`);
       } catch (error) {
         console.error('❌ Background processing failed for webhook:', webhookId, error);
         const errorMsg = error instanceof Error ? error.message : 'Unknown error';

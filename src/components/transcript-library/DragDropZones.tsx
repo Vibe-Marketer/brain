@@ -3,40 +3,40 @@ import { RiFolderOpenLine, RiFolderReduceLine, RiFolderAddLine } from "@remixico
 import { cn } from "@/lib/utils";
 
 interface DragDropZonesProps {
-  categories: Array<{ id: string; name: string }>;
+  tags: Array<{ id: string; name: string }>;
   isDragging: boolean;
-  onDrop: (categoryId: string) => void;
-  onUncategorize: () => void;
+  onDrop: (tagId: string) => void;
+  onUntag: () => void;
   onCreateNew: () => void;
 }
 
-export function DragDropZones({ categories, isDragging, onUncategorize, onCreateNew }: DragDropZonesProps) {
+export function DragDropZones({ tags, isDragging, onUntag, onCreateNew }: DragDropZonesProps) {
   if (!isDragging) return null;
 
   return (
     <div className="fixed inset-y-0 left-0 right-0 pointer-events-none z-40">
       {/* Left side zones */}
       <div className="absolute left-4 top-1/2 -translate-y-1/2 space-y-3 pointer-events-auto">
-        {/* Uncategorize zone - always at top left */}
-        <UncategorizeZone onDrop={onUncategorize} />
-        
-        {/* Create New zone - right below uncategorize */}
+        {/* Untag zone - always at top left */}
+        <UntagZone onDrop={onUntag} />
+
+        {/* Create New zone - right below untag */}
         <CreateNewZone onDrop={onCreateNew} />
-        
-        {/* Regular categories */}
-        {categories.map((category) => (
-          <DropZone key={category.id} category={category} side="left" />
+
+        {/* Regular tags */}
+        {tags.map((tag) => (
+          <DropZone key={tag.id} tag={tag} side="left" />
         ))}
       </div>
     </div>
   );
 }
 
-function UncategorizeZone({ onDrop }: { onDrop: () => void }) {
+function UntagZone({ onDrop }: { onDrop: () => void }) {
   const { setNodeRef, isOver } = useDroppable({
-    id: "drop-zone-uncategorize",
+    id: "drop-zone-untag",
     data: {
-      type: "uncategorize-zone",
+      type: "untag-zone",
     },
   });
 
@@ -60,7 +60,7 @@ function UncategorizeZone({ onDrop }: { onDrop: () => void }) {
         <p className="text-sm font-medium truncate">
           Remove Folder
         </p>
-        <p className="text-xs text-muted-foreground">Drop to uncategorize</p>
+        <p className="text-xs text-muted-foreground">Drop to untag</p>
       </div>
     </div>
   );
@@ -100,12 +100,12 @@ function CreateNewZone({ onDrop }: { onDrop: () => void }) {
   );
 }
 
-function DropZone({ category, side: _side }: { category: { id: string; name: string }; side: "left" | "right" }) {
+function DropZone({ tag, side: _side }: { tag: { id: string; name: string }; side: "left" | "right" }) {
   const { setNodeRef, isOver } = useDroppable({
-    id: `drop-zone-${category.id}`,
+    id: `drop-zone-${tag.id}`,
     data: {
-      type: "category-zone",
-      categoryId: category.id,
+      type: "tag-zone",
+      tagId: tag.id,
     },
   });
 
@@ -126,9 +126,9 @@ function DropZone({ category, side: _side }: { category: { id: string; name: str
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">
-          {category.name}
+          {tag.name}
         </p>
-        <p className="text-xs text-muted-foreground">Drop to categorize</p>
+        <p className="text-xs text-muted-foreground">Drop to tag</p>
       </div>
     </div>
   );

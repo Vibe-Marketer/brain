@@ -16,11 +16,11 @@ interface GenerateTitlesRequest {
 
 const TitleSchema = z.object({
   title: z.string().describe('A concise, descriptive title for the call (3-8 words max)'),
-  category_hint: z.enum([
+  tag_hint: z.enum([
     'TEAM', 'COACH_GROUP', 'COACH_1ON1', 'WEBINAR', 'SALES',
     'EXTERNAL', 'DISCOVERY', 'ONBOARDING', 'REFUND', 'FREE',
     'EDUCATION', 'PRODUCT', 'SUPPORT', 'REVIEW', 'STRATEGY', 'SKIP'
-  ]).describe('Best-fit category for this call'),
+  ]).describe('Best-fit tag for this call (controls AI analysis)'),
   key_theme: z.string().describe('The single most important theme/topic (2-4 words)'),
   reasoning: z.string().describe('Brief explanation of why this title was chosen'),
 });
@@ -189,7 +189,7 @@ BAD EXAMPLES (too generic):
 - "Group Coaching" → Instead: "Objection Handling Workshop"
 - "Customer Call" → Instead: "Expansion Opportunity - Acme"
 
-CATEGORY GUIDANCE:
+TAG GUIDANCE (controls AI analysis):
 - TEAM: Internal meetings, founder syncs, team standups
 - COACH_GROUP: Paid group coaching/mastermind (2+ participants)
 - COACH_1ON1: One-on-one paid coaching
@@ -209,17 +209,18 @@ CATEGORY GUIDANCE:
 Generate the most descriptive, specific title possible.`,
         });
 
-        const { title: aiTitle, category_hint, key_theme, reasoning } = result.object;
-        console.log(`Generated for ${recordingId}: "${aiTitle}" | Category: ${category_hint} | Theme: ${key_theme}`);
+        const { title: aiTitle, tag_hint, key_theme, reasoning } = result.object;
+        console.log(`Generated for ${recordingId}: "${aiTitle}" | Tag: ${tag_hint} | Theme: ${key_theme}`);
 
-        // Update database with AI-generated title and timestamp
+        // Update database with AI-generated title and timestamp (use composite key)
         const { error: updateError } = await supabase
           .from('fathom_calls')
           .update({
             ai_generated_title: aiTitle,
             ai_title_generated_at: new Date().toISOString(),
           })
-          .eq('recording_id', recordingId);
+          .eq('recording_id', recordingId)
+          .eq('user_id', user.id);
 
         if (updateError) {
           console.error(`Error updating title for ${recordingId}:`, updateError);
@@ -229,31 +230,32 @@ Generate the most descriptive, specific title possible.`,
             error: updateError.message,
           });
         } else {
-          // Also apply category if we have a hint and no existing category
-          const { data: existingCategory } = await supabase
-            .from('call_category_assignments')
+          // Also apply tag if we have a hint and no existing tag
+          const { data: existingTag } = await supabase
+            .from('call_tag_assignments')
             .select('id')
             .eq('call_recording_id', recordingId)
             .maybeSingle();
 
-          if (!existingCategory && category_hint) {
-            // Look up category ID
-            const { data: category } = await supabase
-              .from('call_categories')
+          if (!existingTag && tag_hint) {
+            // Look up tag ID
+            const { data: tag } = await supabase
+              .from('call_tags')
               .select('id')
-              .eq('name', category_hint)
+              .eq('name', tag_hint)
               .maybeSingle();
 
-            if (category) {
+            if (tag) {
               await supabase
-                .from('call_category_assignments')
+                .from('call_tag_assignments')
                 .insert({
                   call_recording_id: recordingId,
-                  category_id: category.id,
+                  tag_id: tag.id,
                   user_id: user.id,
                   auto_assigned: true,
+                  is_primary: true,
                 })
-                .onConflict('call_recording_id,category_id')
+                .onConflict('call_recording_id,tag_id')
                 .ignore();
             }
           }
@@ -263,7 +265,7 @@ Generate the most descriptive, specific title possible.`,
             success: true,
             originalTitle: call.title,
             aiGeneratedTitle: aiTitle,
-            categoryHint: category_hint,
+            tagHint: tag_hint,
             keyTheme: key_theme,
             reasoning,
           });

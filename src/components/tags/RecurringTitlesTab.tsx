@@ -38,10 +38,10 @@ interface RecurringTitle {
   occurrence_count: number;
   last_occurrence: string;
   first_occurrence: string;
-  current_categories: string[] | null;
+  current_tags: string[] | null;
 }
 
-interface Category {
+interface Tag {
   id: string;
   name: string;
   color: string | null;
@@ -52,7 +52,7 @@ export function RecurringTitlesTab() {
   const queryClient = useQueryClient();
   const [createRuleDialogOpen, setCreateRuleDialogOpen] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>("");
+  const [selectedTagId, setSelectedTagId] = useState<string>("");
   const [ruleName, setRuleName] = useState("");
 
   // Fetch recurring titles
@@ -85,33 +85,33 @@ export function RecurringTitlesTab() {
           occurrence_count: data.count,
           last_occurrence: data.lastDate,
           first_occurrence: data.firstDate,
-          current_categories: null as string[] | null,
+          current_tags: null as string[] | null,
         }))
         .sort((a, b) => b.occurrence_count - a.occurrence_count)
         .slice(0, 50); // Top 50
     },
   });
 
-  // Fetch categories
-  const { data: categories, isLoading: categoriesLoading } = useQuery({
-    queryKey: ["call-categories"],
+  // Fetch tags
+  const { data: tags, isLoading: tagsLoading } = useQuery({
+    queryKey: ["call-tags"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("call_categories")
+        .from("call_tags")
         .select("id, name, color, description")
         .order("name");
 
       if (error) throw error;
-      return data as Category[];
+      return data as Tag[];
     },
   });
 
   // Fetch existing rules
   const { data: existingRules } = useQuery({
-    queryKey: ["categorization-rules"],
+    queryKey: ["tag-rules"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("categorization_rules")
+        .from("tag_rules")
         .select("*")
         .order("priority");
 
@@ -122,16 +122,16 @@ export function RecurringTitlesTab() {
 
   // Create rule mutation
   const createRuleMutation = useMutation({
-    mutationFn: async ({ title, categoryId, name }: { title: string; categoryId: string; name: string }) => {
+    mutationFn: async ({ title, tagId, name }: { title: string; tagId: string; name: string }) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not authenticated");
 
-      const { error } = await supabase.from("categorization_rules").insert({
+      const { error } = await supabase.from("tag_rules").insert({
         user_id: userData.user.id,
         name: name,
         rule_type: "title_exact",
         conditions: { title },
-        category_id: categoryId,
+        tag_id: tagId,
         priority: 100,
         is_active: true,
       });
@@ -139,11 +139,11 @@ export function RecurringTitlesTab() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Rule created successfully");
-      queryClient.invalidateQueries({ queryKey: ["categorization-rules"] });
+      toast.success("Tag rule created successfully");
+      queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
       setCreateRuleDialogOpen(false);
       setSelectedTitle(null);
-      setSelectedCategoryId("");
+      setSelectedTagId("");
       setRuleName("");
     },
     onError: (error) => {
@@ -158,13 +158,13 @@ export function RecurringTitlesTab() {
   };
 
   const handleSubmitRule = () => {
-    if (!selectedTitle || !selectedCategoryId || !ruleName) {
+    if (!selectedTitle || !selectedTagId || !ruleName) {
       toast.error("Please fill in all fields");
       return;
     }
     createRuleMutation.mutate({
       title: selectedTitle,
-      categoryId: selectedCategoryId,
+      tagId: selectedTagId,
       name: ruleName,
     });
   };
@@ -251,13 +251,13 @@ export function RecurringTitlesTab() {
         </Table>
       </div>
 
-      {/* Create Rule Dialog */}
+      {/* Create Tag Rule Dialog */}
       <Dialog open={createRuleDialogOpen} onOpenChange={setCreateRuleDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Categorization Rule</DialogTitle>
+            <DialogTitle>Create Tag Rule</DialogTitle>
             <DialogDescription>
-              Automatically categorize calls with this exact title.
+              Automatically tag calls with this exact title.
             </DialogDescription>
           </DialogHeader>
 
@@ -277,20 +277,20 @@ export function RecurringTitlesTab() {
             </div>
 
             <div className="space-y-2">
-              <Label>Category</Label>
-              <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+              <Label>Tag</Label>
+              <Select value={selectedTagId} onValueChange={setSelectedTagId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder="Select a tag" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories?.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
+                  {tags?.map((tag) => (
+                    <SelectItem key={tag.id} value={tag.id}>
                       <div className="flex items-center gap-2">
                         <div
                           className="w-3 h-3 rounded-sm"
-                          style={{ backgroundColor: cat.color || "#666" }}
+                          style={{ backgroundColor: tag.color || "#666" }}
                         />
-                        {cat.name}
+                        {tag.name}
                       </div>
                     </SelectItem>
                   ))}
@@ -305,7 +305,7 @@ export function RecurringTitlesTab() {
             </Button>
             <Button
               onClick={handleSubmitRule}
-              disabled={createRuleMutation.isPending || !selectedCategoryId || !ruleName}
+              disabled={createRuleMutation.isPending || !selectedTagId || !ruleName}
             >
               {createRuleMutation.isPending && (
                 <RiLoader2Line className="h-4 w-4 mr-2 animate-spin" />

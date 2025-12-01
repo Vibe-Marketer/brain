@@ -1,23 +1,23 @@
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { RecurringTitlesTab } from "@/components/categorization/RecurringTitlesTab";
-import { RulesTab } from "@/components/categorization/RulesTab";
-import { CategoriesTab } from "@/components/categorization/CategoriesTab";
+import { RecurringTitlesTab } from "@/components/tags/RecurringTitlesTab";
+import { RulesTab } from "@/components/tags/RulesTab";
+import { TagsTab } from "@/components/tags/TagsTab";
 
-type TabValue = "recurring" | "rules" | "categories";
+type TabValue = "recurring" | "rules" | "tags";
 
 const tabConfig = {
   recurring: {
     title: "RECURRING TITLES",
-    description: "View your most common call titles and assign categorization rules.",
+    description: "View your most common call titles and create tagging rules.",
   },
   rules: {
-    title: "RULES",
-    description: "Create and manage rules for automatic call categorization.",
+    title: "TAG RULES",
+    description: "Create and manage rules for automatic call tagging.",
   },
-  categories: {
-    title: "CATEGORIES",
-    description: "View and manage available call categories.",
+  tags: {
+    title: "TAGS",
+    description: "View available call tags. Tags classify calls and control AI behavior.",
   },
 };
 
@@ -32,7 +32,7 @@ export default function Categorization() {
           <TabsList>
             <TabsTrigger value="recurring">RECURRING</TabsTrigger>
             <TabsTrigger value="rules">RULES</TabsTrigger>
-            <TabsTrigger value="categories">CATEGORIES</TabsTrigger>
+            <TabsTrigger value="tags">TAGS</TabsTrigger>
           </TabsList>
         </div>
 
@@ -62,8 +62,8 @@ export default function Categorization() {
             <RulesTab />
           </TabsContent>
 
-          <TabsContent value="categories">
-            <CategoriesTab />
+          <TabsContent value="tags">
+            <TagsTab />
           </TabsContent>
         </div>
       </Tabs>

@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
     console.log(`Deleting all calls for user: ${userId}`);
 
     // Delete all fathom_calls for this user
-    // This will cascade delete fathom_transcripts, call_category_assignments, etc.
+    // This will cascade delete fathom_transcripts, call_tag_assignments, etc.
     const { error: deleteError, count } = await supabase
       .from('fathom_calls')
       .delete({ count: 'exact' })

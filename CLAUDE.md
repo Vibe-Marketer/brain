@@ -188,6 +188,40 @@ TodoWrite({
 
 **NEVER propose changes to code you haven't read.**
 
+### ⚠️ CRITICAL: Documentation-First Implementation
+
+**When implementing features using external libraries, SDKs, or APIs:**
+
+1. **STOP** - Do NOT start coding based on memory or assumptions
+2. **FETCH** - Use WebFetch/FirecrawlScrape to get official documentation
+3. **READ** - Carefully review the exact API patterns, parameters, and examples
+4. **VERIFY** - Confirm your implementation matches the docs exactly
+5. **CITE** - Reference the doc URL when implementing
+
+**Why this matters:**
+- APIs change between versions
+- Memory of past implementations may be outdated
+- Guessing leads to broken code and wasted time
+- Official docs are the source of truth
+
+**Examples of when to fetch docs FIRST:**
+- Implementing Vercel AI SDK features → Fetch ai-sdk.dev docs
+- Using Supabase features → Fetch supabase.com docs
+- Adding Stripe integration → Fetch stripe.com docs
+- Any npm package you haven't used recently → Fetch its docs
+
+**DO NOT:**
+- ❌ Assume you know the current API from past experience
+- ❌ Copy patterns from old code without verifying they're still valid
+- ❌ Start implementing based on partial knowledge
+- ❌ Guess parameter names or function signatures
+
+**ALWAYS:**
+- ✅ Fetch and read the official documentation first
+- ✅ Verify the exact import paths and function signatures
+- ✅ Check for version-specific changes
+- ✅ Follow the documented patterns exactly
+
 ### Research Workflow
 
 **Before implementing ANY feature:**
@@ -433,6 +467,16 @@ Before implementing ANY UI component or making design changes:
 
 ## AI/SDK Implementation Defaults
 
+### ⚠️ CRITICAL: VERCEL SDK FIRST - ALWAYS
+
+**This is the #1 rule for all AI/ML/LLM implementations in this project.**
+
+Before writing ANY code involving AI, chat, streaming, model selection, or similar features:
+1. **STOP** - Do not implement from scratch
+2. **CHECK** - Does Vercel have an SDK/tool for this?
+3. **USE IT** - If yes, use the Vercel solution exclusively
+4. **ASK** - If unsure, ask before implementing alternatives
+
 **MANDATORY: Vercel SDK Ecosystem**
 
 You **MUST** use Vercel SDKs and related tools for **ALL** applicable features. This is a strict mandate.
@@ -440,7 +484,7 @@ You **MUST** use Vercel SDKs and related tools for **ALL** applicable features. 
 **Core Required Stack:**
 - **AI SDK** (`ai`) - **MANDATORY** for all LLM integration, streaming, and tool calling.
 - **AI SDK React** (`@ai-sdk/react`) - **MANDATORY** for all frontend chat/completion hooks.
-- **AI Gateway** - **MANDATORY** for managing AI model providers and observability.
+- **AI Gateway** - **MANDATORY** for managing AI model providers and observability. **ALL models route through Gateway.**
 - **Workflow DevKit** - **MANDATORY** for all orchestration, triggers, and multi-step agent flows.
 - **Flags SDK** - **MANDATORY** for all feature flagging and toggles.
 - **Streamdown AI** - **MANDATORY** pattern for streaming markdown content (maximize streaming capabilities).
@@ -448,33 +492,56 @@ You **MUST** use Vercel SDKs and related tools for **ALL** applicable features. 
 
 **Why?** We prioritize deep integration with the Vercel ecosystem to maximize performance, observability, and developer experience.
 
+### AI Gateway Configuration
+
+**ALL AI models are routed through Vercel AI Gateway** - no direct provider calls.
+
+**Environment Variables:**
+```bash
+# Primary - Vercel AI Gateway (REQUIRED)
+VERCEL_AI_GATEWAY_API_KEY=vck_xxx...  # Your AI Gateway key
+
+# Provider keys (optional - Gateway can route without these)
+OPENAI_API_KEY=sk-xxx...              # For OpenAI models
+ANTHROPIC_API_KEY=sk-ant-xxx...       # For Claude models
+GOOGLE_AI_API_KEY=AIza...             # For Gemini models
+```
+
+**Supported Providers via Gateway:**
+- **OpenAI**: gpt-4o, gpt-4o-mini, gpt-4-turbo
+- **Anthropic**: claude-sonnet-4, claude-3.5-sonnet, claude-3.5-haiku
+- **Google**: gemini-2.0-flash, gemini-1.5-pro
+
 **Reference Documentation:**
 - [AI SDK Cookbook Examples](./docs/reference/ai-sdk-cookbook-examples) - Implementation patterns and use cases
+- [Vercel AI Gateway Docs](https://vercel.com/docs/ai-gateway)
 
 ### Implementation Examples
 
 ```typescript
-// Chat with streaming - use Vercel AI SDK
+// Frontend: Chat with streaming - AI SDK v5
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from 'ai';
 
-const { messages, input, handleSubmit } = useChat({
+const transport = new DefaultChatTransport({
   api: '/api/chat',
 });
 
-// LLM with tool calling
-import { generateText } from 'ai';
-import { openai } from '@ai-sdk/openai';
+const { messages, sendMessage, status } = useChat({ transport });
 
-const result = await generateText({
-  model: openai('gpt-4o'),
-  tools: { /* your tools */ },
-  prompt: 'Your prompt',
-});
-
-// Streaming responses
+// Backend: Multi-provider support via AI Gateway
+import { createOpenAI } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 
-const stream = await streamText({
+const AI_GATEWAY_BASE_URL = 'https://gateway.ai.vercel.dev/v1';
+
+const openai = createOpenAI({
+  baseURL: AI_GATEWAY_BASE_URL,
+  headers: { 'x-vercel-ai-provider': 'openai' },
+});
+
+const result = await streamText({
   model: openai('gpt-4o'),
   messages,
 });
@@ -482,7 +549,7 @@ const stream = await streamText({
 
 ### Deviations
 
-**Deviations are generally NOT permitted.** 
+**Deviations are generally NOT permitted.**
 If a Vercel SDK solution exists, it **must** be used.
 Only if a feature is *completely impossible* with the Vercel ecosystem may you consider alternatives, and this requires an **Explicit ADR** approval first.
 

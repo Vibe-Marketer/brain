@@ -265,14 +265,14 @@ async function runEmbeddings(userId: string) {
 
         console.log(`  Segments: ${segments.length}`);
 
-        // Get category for this call
-        const { data: categoryAssignment } = await supabase
-          .from('call_category_assignments')
-          .select('category_id, call_categories(name)')
+        // Get tag for this call
+        const { data: tagAssignment } = await supabase
+          .from('call_tag_assignments')
+          .select('tag_id, call_tags(name)')
           .eq('call_recording_id', recordingId)
           .maybeSingle();
 
-        const categoryName = (categoryAssignment?.call_categories as any)?.name || null;
+        const tagName = (tagAssignment?.call_tags as any)?.name || null;
 
         // Chunk the transcript
         const chunks = chunkTranscript(segments, 400, 100);
@@ -313,7 +313,7 @@ async function runEmbeddings(userId: string) {
               timestamp_end: chunk.endTimestamp,
               call_date: call.created_at,
               call_title: call.title,
-              call_category: categoryName,
+              call_tag: tagName,
               embedding: embeddings[j],
               embedded_at: new Date().toISOString(),
             });

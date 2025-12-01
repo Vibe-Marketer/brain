@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { RiDeleteBin6Line, RiCloseLine, RiShareForwardLine, RiPriceTag3Line, RiMagicLine } from "@remixicon/react";
+import { RiDeleteBin6Line, RiCloseLine, RiShareForwardLine, RiPriceTag3Line, RiMagicLine, RiFolderLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import SmartExportDialog from "@/components/SmartExportDialog";
 import { TagManagementDialog } from "./TagManagementDialog";
 import { ActionButton } from "./ActionButton";
-import { CategorizeDropdown } from "./CategorizeDropdown";
+import { TagDropdown } from "./TagDropdown";
 import { ExportDropdown } from "./ExportDropdown";
 import { exportToPDF, exportToDOCX, exportToTXT, exportToJSON, exportToZIP } from "@/lib/export-utils";
 import { autoTagCalls, generateAiTitles } from "@/lib/api-client";
@@ -16,23 +16,25 @@ import { logger } from "@/lib/logger";
 interface BulkActionToolbarEnhancedProps {
   selectedCount: number;
   selectedCalls: any[];
-  categories: Array<{ id: string; name: string }>;
+  tags: Array<{ id: string; name: string }>;
   onClearSelection: () => void;
   onDelete: () => void;
-  onCategorize?: (categoryId: string) => void;
-  onUncategorize?: () => void;
-  onCreateNewCategory?: () => void;
+  onTag?: (tagId: string) => void;
+  onRemoveTag?: () => void;
+  onCreateNewTag?: () => void;
+  onAssignFolder?: () => void;
 }
 
 export function BulkActionToolbarEnhanced({
   selectedCount,
   selectedCalls,
-  categories,
+  tags,
   onClearSelection,
   onDelete,
-  onCategorize,
-  onUncategorize,
-  onCreateNewCategory,
+  onTag,
+  onRemoveTag,
+  onCreateNewTag,
+  onAssignFolder,
 }: BulkActionToolbarEnhancedProps) {
   const [showSmartExport, setShowSmartExport] = useState(false);
   const [showTagDialog, setShowTagDialog] = useState(false);
@@ -166,11 +168,11 @@ export function BulkActionToolbarEnhanced({
             <RiCloseLine className="h-4 w-4" />
           </Button>
 
-          <CategorizeDropdown
-            categories={categories}
-            onCategorize={onCategorize}
-            onUncategorize={onUncategorize}
-            onCreateNewCategory={onCreateNewCategory}
+          <TagDropdown
+            tags={tags}
+            onTag={onTag}
+            onRemoveTag={onRemoveTag}
+            onCreateNewTag={onCreateNewTag}
           />
 
           <ExportDropdown
@@ -188,6 +190,13 @@ export function BulkActionToolbarEnhanced({
             icon={RiPriceTag3Line}
             label="Tag"
             onClick={handleTag}
+          />
+
+          <ActionButton
+            icon={RiFolderLine}
+            label="Folder"
+            onClick={onAssignFolder}
+            title="Assign selected calls to a folder"
           />
 
           <ActionButton

@@ -144,10 +144,12 @@ serve(async (req) => {
     console.log('Fetching meeting with recording_id:', recording_id);
 
     // First, check if we have the meeting date in our database for optimized search
+    // Use composite key (recording_id, user_id) for the lookup
     const { data: existingCall } = await supabaseClient
       .from('fathom_calls')
       .select('created_at')
       .eq('recording_id', recording_id)
+      .eq('user_id', user_id)
       .maybeSingle();
 
     // Use the specific recordings endpoint to get summary and transcript directly

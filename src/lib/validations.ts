@@ -1,11 +1,24 @@
 import { z } from 'zod';
 
-// Category validation
-export const categorySchema = z.object({
+// Tag validation
+export const tagSchema = z.object({
   name: z.string()
     .trim()
-    .min(1, 'Category name is required')
-    .max(100, 'Category name must be less than 100 characters'),
+    .min(1, 'Tag name is required')
+    .max(100, 'Tag name must be less than 100 characters'),
+  description: z.string()
+    .trim()
+    .max(500, 'Description must be less than 500 characters')
+    .optional()
+    .or(z.literal('')),
+});
+
+// Folder validation (for user-created organization folders)
+export const folderSchema = z.object({
+  name: z.string()
+    .trim()
+    .min(1, 'Folder name is required')
+    .max(100, 'Folder name must be less than 100 characters'),
   description: z.string()
     .trim()
     .max(500, 'Description must be less than 500 characters')

@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { FilterPill } from "./FilterPill";
-import { CategoryFilterPopover } from "./CategoryFilterPopover";
+import { TagFilterPopover } from "./TagFilterPopover";
+import { FolderFilterPopover } from "./FolderFilterPopover";
 import { ParticipantsFilterPopover } from "./ParticipantsFilterPopover";
 import { DurationFilterPopover } from "./DurationFilterPopover";
 import { format } from "date-fns";
@@ -22,6 +23,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 
+interface Folder {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
 interface FilterBarProps {
   filters: {
     dateFrom?: Date;
@@ -29,10 +36,12 @@ interface FilterBarProps {
     participants?: string[];
     durationMin?: number;
     durationMax?: number;
-    categories?: string[];
+    tags?: string[];
+    folders?: string[];
   };
   onFiltersChange: (filters: any) => void;
-  categories: any[];
+  tags: any[];
+  folders: Folder[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
   visibleColumns: Record<string, boolean>;
@@ -44,14 +53,15 @@ const columnOptions = [
   { id: "date", label: "Date" },
   { id: "duration", label: "Duration" },
   { id: "participants", label: "Participants" },
-  { id: "categories", label: "Folders" },
+  { id: "tags", label: "Tags" },
   { id: "status", label: "Status" },
 ];
 
 export function FilterBar({
   filters,
   onFiltersChange,
-  categories,
+  tags,
+  folders,
   searchQuery,
   onSearchChange,
   visibleColumns,
@@ -110,7 +120,8 @@ export function FilterBar({
   };
 
   const hasActiveFilters =
-    (filters.categories && filters.categories.length > 0) ||
+    (filters.tags && filters.tags.length > 0) ||
+    (filters.folders && filters.folders.length > 0) ||
     filters.dateFrom ||
     filters.dateTo ||
     (filters.participants && filters.participants.length > 0) ||
@@ -124,7 +135,8 @@ export function FilterBar({
       participants: [],
       durationMin: undefined,
       durationMax: undefined,
-      categories: [],
+      tags: [],
+      folders: [],
     });
   };
 
@@ -154,11 +166,18 @@ export function FilterBar({
           )}
         />
 
-        {/* Category Filter */}
-        <CategoryFilterPopover
-          selectedCategories={filters.categories}
-          categories={categories}
-          onCategoriesChange={(categories) => onFiltersChange({ ...filters, categories })}
+        {/* Tag Filter */}
+        <TagFilterPopover
+          selectedTags={filters.tags}
+          tags={tags}
+          onTagsChange={(tags) => onFiltersChange({ ...filters, tags })}
+        />
+
+        {/* Folder Filter */}
+        <FolderFilterPopover
+          selectedFolders={filters.folders}
+          folders={folders}
+          onFoldersChange={(folders) => onFiltersChange({ ...filters, folders })}
         />
 
         {/* Participants Filter */}
@@ -240,11 +259,18 @@ export function FilterBar({
       {/* Active filter pills */}
       {hasActiveFilters && (
         <div className="flex flex-wrap gap-1.5 w-full">
-          {filters.categories && filters.categories.length > 0 && (
+          {filters.tags && filters.tags.length > 0 && (
+            <FilterPill
+              label="Tags"
+              value={`${filters.tags.length} tag${filters.tags.length > 1 ? "s" : ""}`}
+              onRemove={() => onFiltersChange({ ...filters, tags: [] })}
+            />
+          )}
+          {filters.folders && filters.folders.length > 0 && (
             <FilterPill
               label="Folders"
-              value={`${filters.categories.length} folder${filters.categories.length > 1 ? "s" : ""}`}
-              onRemove={() => onFiltersChange({ ...filters, categories: [] })}
+              value={`${filters.folders.length} folder${filters.folders.length > 1 ? "s" : ""}`}
+              onRemove={() => onFiltersChange({ ...filters, folders: [] })}
             />
           )}
           {(filters.dateFrom || filters.dateTo) && (

@@ -1,4 +1,4 @@
-import { RiFolderAddLine, RiFolderReduceLine, RiFolderOpenLine } from "@remixicon/react";
+import { RiPriceTag3Line, RiPriceTagLine } from "@remixicon/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,75 +8,75 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ActionButton } from "./ActionButton";
 
-interface CategorizeDropdownProps {
-  categories: Array<{ id: string; name: string }>;
-  onCategorize?: (categoryId: string) => void;
-  onUncategorize?: () => void;
-  onCreateNewCategory?: () => void;
+interface TagDropdownProps {
+  tags: Array<{ id: string; name: string }>;
+  onTag?: (tagId: string) => void;
+  onRemoveTag?: () => void;
+  onCreateNewTag?: () => void;
 }
 
-export function CategorizeDropdown({
-  categories,
-  onCategorize,
-  onUncategorize,
-  onCreateNewCategory,
-}: CategorizeDropdownProps) {
-  if (!onCategorize) return null;
+export function TagDropdown({
+  tags,
+  onTag,
+  onRemoveTag,
+  onCreateNewTag,
+}: TagDropdownProps) {
+  if (!onTag) return null;
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <ActionButton icon={RiFolderAddLine} label="Categorize" />
+        <ActionButton icon={RiPriceTag3Line} label="Tag" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="center" className="bg-background border-border z-50 min-w-[200px]">
-        {onUncategorize && (
+        {onRemoveTag && (
           <>
             <DropdownMenuItem
-              onClick={onUncategorize}
+              onClick={onRemoveTag}
               className="gap-2 cursor-pointer hover:bg-destructive/10 focus:bg-destructive/10"
             >
               <div className="p-1.5 rounded-md bg-muted group-hover:bg-destructive group-hover:text-destructive-foreground transition-colors">
-                <RiFolderReduceLine className="h-3.5 w-3.5" />
+                <RiPriceTagLine className="h-3.5 w-3.5" />
               </div>
-              <span>Remove Folder</span>
+              <span>Remove Tag</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
           </>
         )}
 
-        {categories.length > 0 ? (
-          categories.map((category) => (
+        {tags.length > 0 ? (
+          tags.map((tag) => (
             <DropdownMenuItem
-              key={category.id}
-              onClick={() => onCategorize(category.id)}
+              key={tag.id}
+              onClick={() => onTag(tag.id)}
               className="gap-2 cursor-pointer hover:bg-primary/10 focus:bg-primary/10"
             >
               <div className="p-1.5 rounded-md bg-muted group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                <RiFolderOpenLine className="h-3.5 w-3.5" />
+                <RiPriceTag3Line className="h-3.5 w-3.5" />
               </div>
-              <span>{category.name}</span>
+              <span>{tag.name}</span>
             </DropdownMenuItem>
           ))
         ) : (
           <DropdownMenuItem disabled className="gap-2">
             <div className="p-1.5 rounded-md bg-muted">
-              <RiFolderOpenLine className="h-3.5 w-3.5" />
+              <RiPriceTag3Line className="h-3.5 w-3.5" />
             </div>
-            <span>No categories available</span>
+            <span>No tags available</span>
           </DropdownMenuItem>
         )}
 
-        {onCreateNewCategory && (
+        {onCreateNewTag && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={onCreateNewCategory}
+              onClick={onCreateNewTag}
               className="gap-2 cursor-pointer"
             >
               <div className="p-1.5 rounded-md bg-muted transition-colors">
-                <RiFolderAddLine className="h-3.5 w-3.5" />
+                <RiPriceTag3Line className="h-3.5 w-3.5" />
               </div>
-              <span>Create New Folder</span>
+              <span>Create New Tag</span>
             </DropdownMenuItem>
           </>
         )}
@@ -84,3 +84,6 @@ export function CategorizeDropdown({
     </DropdownMenu>
   );
 }
+
+// Keep backward-compatible export
+export const CategorizeDropdown = TagDropdown;

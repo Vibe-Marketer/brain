@@ -9,29 +9,29 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
-interface Category {
+interface Tag {
   id: string;
   name: string;
   description: string | null;
 }
 
-interface CategoryNavigationDropdownProps {
-  selectedCategory: string | null;
-  categories: Category[];
-  onCategorySelect: (id: string | null) => void;
-  onManageCategories: () => void;
+interface TagNavigationDropdownProps {
+  selectedTag: string | null;
+  tags: Tag[];
+  onTagSelect: (id: string | null) => void;
+  onManageTags: () => void;
   callCounts?: Record<string, number>;
 }
 
-export function CategoryNavigationDropdown({
-  selectedCategory,
-  categories,
-  onCategorySelect,
-  onManageCategories,
+export function TagNavigationDropdown({
+  selectedTag,
+  tags,
+  onTagSelect,
+  onManageTags,
   callCounts = {},
-}: CategoryNavigationDropdownProps) {
-  const currentCategory = selectedCategory
-    ? categories.find((c) => c.id === selectedCategory)
+}: TagNavigationDropdownProps) {
+  const currentTag = selectedTag
+    ? tags.find((t) => t.id === selectedTag)
     : null;
 
   return (
@@ -43,7 +43,7 @@ export function CategoryNavigationDropdown({
         >
           <RiFolderOpenLine className="h-4 w-4 text-muted-foreground" />
           <span className="font-medium">
-            {currentCategory?.name || "All Calls"}
+            {currentTag?.name || "All Calls"}
           </span>
           <RiArrowDownSLine className="h-3.5 w-3.5 text-muted-foreground" />
         </Button>
@@ -53,10 +53,10 @@ export function CategoryNavigationDropdown({
           <div className="space-y-1">
             {/* All Transcripts */}
             <button
-              onClick={() => onCategorySelect(null)}
+              onClick={() => onTagSelect(null)}
               className={cn(
                 "w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors",
-                selectedCategory === null
+                selectedTag === null
                   ? "bg-primary/10 text-primary font-medium"
                   : "hover:bg-accent"
               )}
@@ -73,55 +73,55 @@ export function CategoryNavigationDropdown({
             </button>
 
             {/* Separator */}
-            {categories.length > 0 && (
+            {tags.length > 0 && (
               <div className="my-2 border-t" />
             )}
 
-            {/* Categories */}
-            {categories.map((category) => {
-              const isSkipCategory = category.name === 'SKIP';
-              const CategoryIcon = isSkipCategory ? RiCloseCircleLine : RiFolderOpenLine;
-              const iconClasses = isSkipCategory 
-                ? "h-4 w-4 flex-shrink-0 text-destructive" 
+            {/* Tags */}
+            {tags.map((tag) => {
+              const isSkipTag = tag.name === 'SKIP';
+              const TagIcon = isSkipTag ? RiCloseCircleLine : RiFolderOpenLine;
+              const iconClasses = isSkipTag
+                ? "h-4 w-4 flex-shrink-0 text-destructive"
                 : "h-4 w-4 flex-shrink-0";
-              
+
               return (
                 <button
-                  key={category.id}
-                  onClick={() => onCategorySelect(category.id)}
+                  key={tag.id}
+                  onClick={() => onTagSelect(tag.id)}
                   className={cn(
                     "w-full flex items-center justify-between px-3 py-2 text-sm rounded-md transition-colors",
-                    selectedCategory === category.id
-                      ? isSkipCategory
+                    selectedTag === tag.id
+                      ? isSkipTag
                         ? "bg-destructive/10 text-destructive font-medium"
                         : "bg-primary/10 text-primary font-medium"
                       : "hover:bg-accent"
                   )}
                 >
                   <span className="flex items-center gap-2 truncate">
-                    <CategoryIcon className={iconClasses} />
-                    <span className="truncate">{category.name}</span>
+                    <TagIcon className={iconClasses} />
+                    <span className="truncate">{tag.name}</span>
                   </span>
-                  {callCounts[category.id] !== undefined && (
-                    <Badge 
-                      variant={isSkipCategory ? "destructive" : "secondary"} 
+                  {callCounts[tag.id] !== undefined && (
+                    <Badge
+                      variant={isSkipTag ? "destructive" : "secondary"}
                       className="h-5 px-2 text-xs ml-2"
                     >
-                      {callCounts[category.id]}
+                      {callCounts[tag.id]}
                     </Badge>
                   )}
                 </button>
               );
             })}
 
-            {/* Manage Categories Link */}
+            {/* Manage Tags Link */}
             <div className="mt-2 pt-2 border-t">
               <button
-                onClick={onManageCategories}
+                onClick={onManageTags}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent rounded-md transition-colors"
               >
                 <RiSettingsLine className="h-4 w-4" />
-                Manage Categories...
+                Manage Tags...
               </button>
             </div>
           </div>
@@ -130,3 +130,6 @@ export function CategoryNavigationDropdown({
     </Popover>
   );
 }
+
+// Backward compatibility export
+export const CategoryNavigationDropdown = TagNavigationDropdown;

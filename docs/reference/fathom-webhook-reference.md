@@ -218,19 +218,26 @@ curl https://[project].supabase.co/functions/v1/webhook
 ### Action Items to Verify
 
 1. **Check Fathom Developer Portal:**
-   - Is webhook URL correct? Should be: `https://pwscjdytgcyiavqiufqs.supabase.co/functions/v1/webhook`
+   - Is webhook URL correct? Should be: `https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/webhook`
    - Does webhook secret match `FATHOM_OAUTH_WEBHOOK_SECRET` env var?
 
 2. **Verify Personal Webhook Setup:**
    - In Fathom Settings > API Access, is webhook configured?
-   - Does webhook URL match the Supabase endpoint?
+   - Does webhook URL match: `https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/webhook`?
+
+### Supabase Project Reference
+
+| Environment | Project ID | Webhook Endpoint |
+|-------------|------------|------------------|
+| **CURRENT** | `vltmrnjsubfzrgrtdqey` | `https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/webhook` |
+| OLD (deprecated) | `pwscjdytgcyiavqiufqs` | Do NOT use |
 
 ### Secrets Reference
 
 | Secret | Purpose | Where Stored |
 |--------|---------|--------------|
-| `whsec_+m70jHFhSC0WTaNoV+7FC2gRorLMjYEi` | Personal API webhook | `user_settings.webhook_secret` |
-| `whsec_pr7SHWnVzm0zBBqWBbghv8913cUgSy+F` | OAuth app webhook | `FATHOM_OAUTH_WEBHOOK_SECRET` env |
+| Personal webhook secret | Personal API webhook | `user_settings.webhook_secret` |
+| OAuth app webhook secret | OAuth app webhook | `FATHOM_OAUTH_WEBHOOK_SECRET` env |
 
 **These are DIFFERENT secrets for DIFFERENT webhook types!**
 

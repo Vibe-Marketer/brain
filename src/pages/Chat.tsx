@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { RiSendPlaneFill, RiFilterLine, RiCalendarLine, RiUser3Line, RiFolder3Line, RiCloseLine, RiAddLine, RiMenuLine, RiAtLine, RiVideoLine } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
@@ -99,9 +100,61 @@ interface ToolCallPart {
   error?: string;
 }
 
-// Helper to create a fake change event for the AI SDK's handleInputChange
-// (Removed as we now use setInput directly)
+// Helper to extract text content from message parts
+function getMessageTextContent(message: UIMessage): string {
+  if (!message.parts) return '';
+  return message.parts
+    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .map(part => part.text)
+    .join('');
+}
 
+// Helper to extract tool invocations from message parts
+function getToolInvocations(message: UIMessage): ToolCallPart[] {
+  if (!message.parts) return [];
+
+  const toolParts: ToolCallPart[] = [];
+
+  for (const part of message.parts) {
+    // AI SDK v5 tool parts have type like 'tool-searchTranscripts', 'tool-getCallDetails', etc.
+    if (part.type.startsWith('tool-')) {
+      const toolPart = part as {
+        type: string;
+        toolCallId: string;
+        state: string;
+        input?: unknown;
+        output?: unknown;
+        errorText?: string;
+      };
+
+      // Extract tool name from type (e.g., 'tool-searchTranscripts' -> 'searchTranscripts')
+      const toolName = toolPart.type.replace('tool-', '');
+
+      let state: 'pending' | 'running' | 'success' | 'error' = 'pending';
+      if (toolPart.state === 'input-streaming' || toolPart.state === 'streaming') {
+        state = 'running';
+      } else if (toolPart.state === 'output' || toolPart.state === 'result') {
+        state = 'success';
+      } else if (toolPart.state === 'output-error') {
+        state = 'error';
+      }
+
+      toolParts.push({
+        type: (toolPart.state === 'output' || toolPart.state === 'result') ? 'tool-result' : 'tool-call',
+        toolName,
+        toolCallId: toolPart.toolCallId,
+        state,
+        args: toolPart.input as Record<string, unknown>,
+        result: (toolPart.state === 'output' || toolPart.state === 'result')
+          ? toolPart.output as Record<string, unknown>
+          : undefined,
+        error: toolPart.errorText,
+      });
+    }
+  }
+
+  return toolParts;
+}
 
 export default function Chat() {
   const { session } = useAuth();
@@ -120,7 +173,12 @@ export default function Chat() {
   const [showFilters, setShowFilters] = React.useState(false);
   const [showSidebar, setShowSidebar] = React.useState(false);
   const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(sessionId || null);
-  const [isLoadingSession, setIsLoadingSession] = React.useState(false);
+
+  // Input state - managed locally (AI SDK v5 doesn't manage input)
+  const [input, setInput] = React.useState('');
+
+  // Selected model state - format: 'creator/model-name' (e.g., 'openai/gpt-4o')
+  const [selectedModel, setSelectedModel] = React.useState<string>('openai/gpt-4o');
 
   // CallDetailDialog state for viewing sources
   const [selectedCall, setSelectedCall] = React.useState<Meeting | null>(null);
@@ -135,16 +193,12 @@ export default function Chat() {
     currentSessionIdRef.current = currentSessionId;
   }, [currentSessionId]);
 
-  // Ref to track messages for async callbacks (avoids stale closure in onFinish)
-  const messagesRef = React.useRef<typeof messages>([]);
-
   // Textarea ref for mentions
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
   // Chat session management
   const {
     sessions,
-    isLoadingSessions,
     fetchMessages,
     createSession,
     saveMessages,
@@ -152,6 +206,73 @@ export default function Chat() {
     togglePin,
     toggleArchive,
   } = useChatSession(session?.user?.id);
+
+  // Build filter object for API - memoized to avoid unnecessary transport recreation
+  const apiFilters = React.useMemo(() => ({
+    date_start: filters.dateStart?.toISOString(),
+    date_end: filters.dateEnd?.toISOString(),
+    speakers: filters.speakers.length > 0 ? filters.speakers : undefined,
+    categories: filters.categories.length > 0 ? filters.categories : undefined,
+    recording_ids: filters.recordingIds.length > 0 ? filters.recordingIds : undefined,
+  }), [filters]);
+
+  // Create transport instance - memoized to avoid recreation on every render
+  const transport = React.useMemo(() => {
+    return new DefaultChatTransport({
+      api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`,
+      headers: {
+        Authorization: `Bearer ${session?.access_token}`,
+      },
+      body: {
+        filters: apiFilters,
+        model: selectedModel,
+      },
+    });
+  }, [session?.access_token, apiFilters, selectedModel]);
+
+  // Use the AI SDK v5 chat hook
+  const {
+    messages,
+    sendMessage,
+    status,
+    error,
+    setMessages,
+  } = useChat({
+    transport,
+  });
+
+  // Ref to track messages for async callbacks
+  const messagesRef = React.useRef<typeof messages>([]);
+  React.useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Save messages when they change and status becomes ready
+  React.useEffect(() => {
+    async function saveCurrentMessages() {
+      const sessionIdToSave = currentSessionIdRef.current;
+      if (status === 'ready' && sessionIdToSave && session?.user?.id && messages.length > 0) {
+        try {
+          // Convert UIMessage to the format expected by saveMessages
+          const messagesToSave = messages.map(m => ({
+            id: m.id,
+            role: m.role as 'user' | 'assistant' | 'system',
+            content: getMessageTextContent(m),
+          }));
+
+          await saveMessages({
+            sessionId: sessionIdToSave,
+            messages: messagesToSave,
+            model: selectedModel,
+          });
+        } catch (err) {
+          console.error('Failed to save messages:', err);
+        }
+      }
+    }
+
+    saveCurrentMessages();
+  }, [status, messages, session?.user?.id, saveMessages, selectedModel]);
 
   // Fetch available filters on mount
   React.useEffect(() => {
@@ -183,8 +304,7 @@ export default function Chat() {
     fetchFilterOptions();
   }, [session]);
 
-  // Handle incoming location state for pre-filtering (e.g., from CallDetailDialog)
-  // This intentionally runs only once on mount to process initial navigation state
+  // Handle incoming location state for pre-filtering
   React.useEffect(() => {
     const state = location.state as ChatLocationState | undefined;
     if (state?.prefilter?.recordingIds?.length) {
@@ -192,73 +312,10 @@ export default function Chat() {
         ...prev,
         recordingIds: state.prefilter!.recordingIds!,
       }));
-      // Clear the location state to prevent re-applying on refresh
       navigate(location.pathname, { replace: true, state: {} });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Build filter object for API
-  const apiFilters = React.useMemo(() => ({
-    date_start: filters.dateStart?.toISOString(),
-    date_end: filters.dateEnd?.toISOString(),
-    speakers: filters.speakers.length > 0 ? filters.speakers : undefined,
-    categories: filters.categories.length > 0 ? filters.categories : undefined,
-    recording_ids: filters.recordingIds.length > 0 ? filters.recordingIds : undefined,
-  }), [filters]);
-
-  // Use the AI SDK chat hook
-  const {
-    messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
-    error,
-    setMessages,
-    setInput,
-  } = useChat({
-    streamProtocol: 'data',
-    api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`,
-    headers: {
-      Authorization: `Bearer ${session?.access_token}`,
-    },
-    body: {
-      filters: apiFilters,
-    },
-    onError: (error) => {
-      console.error('Chat error:', error);
-    },
-    onFinish: async (message) => {
-      // Save messages to database after AI response completes
-      // Use messagesRef to get current messages (avoids stale closure)
-      // Include the finished message in case ref is slightly behind
-      const sessionIdToSave = currentSessionIdRef.current;
-      if (sessionIdToSave && session?.user?.id) {
-        try {
-          // Get current messages from ref and ensure the finished message is included
-          const currentMessages = messagesRef.current;
-          const hasFinishedMessage = currentMessages.some(m => m.id === message.id);
-          const messagesToSave = hasFinishedMessage
-            ? currentMessages
-            : [...currentMessages, message];
-
-          await saveMessages({
-            sessionId: sessionIdToSave,
-            messages: messagesToSave,
-            model: 'gpt-4o',
-          });
-        } catch (err) {
-          console.error('Failed to save messages:', err);
-        }
-      }
-    },
-  });
-
-  // Keep messagesRef in sync with messages (for use in async callbacks)
-  React.useEffect(() => {
-    messagesRef.current = messages;
-  }, [messages]);
 
   // Load session messages when sessionId changes
   React.useEffect(() => {
@@ -270,24 +327,27 @@ export default function Chat() {
         return;
       }
 
-      setIsLoadingSession(true);
       try {
         const loadedMessages = await fetchMessages(sessionId);
         console.log(`Loaded ${loadedMessages.length} messages for session ${sessionId}`);
-        setMessages(loadedMessages);
+        // Convert loaded messages to UIMessage format
+        const uiMessages: UIMessage[] = loadedMessages.map(m => ({
+          id: m.id,
+          role: m.role as 'user' | 'assistant' | 'system',
+          parts: [{ type: 'text' as const, text: m.content || '' }],
+        }));
+        setMessages(uiMessages);
         setCurrentSessionId(sessionId);
         currentSessionIdRef.current = sessionId;
       } catch (err) {
         console.error('Failed to load session messages:', err);
-      } finally {
-        setIsLoadingSession(false);
       }
     }
 
     loadSessionMessages();
   }, [sessionId, fetchMessages, setMessages]);
 
-  // Create a new session with current filters (shared logic)
+  // Create a new session with current filters
   const createNewSession = React.useCallback(async () => {
     const newSession = await createSession({
       filter_date_start: filters.dateStart,
@@ -312,7 +372,7 @@ export default function Chat() {
   // Handle session selection
   const handleSessionSelect = React.useCallback((selectedSessionId: string) => {
     navigate(`/chat/${selectedSessionId}`);
-    setShowSidebar(false); // Close sidebar on mobile after selection
+    setShowSidebar(false);
   }, [navigate]);
 
   // Handle session deletion
@@ -345,38 +405,29 @@ export default function Chat() {
     }
   }, [toggleArchive]);
 
-  // Save user message to database after submission
+  // Handle chat submission
   const handleChatSubmit = React.useCallback(async (e?: React.FormEvent) => {
     e?.preventDefault();
 
-    // If there are context attachments, we need to update the input first
-    // Note: We use a local variable because state update might be async
     let inputToSubmit = input;
 
-    // If there are context attachments, add them as @mentions to the input
+    // If there are context attachments, add them as @mentions
     if (contextAttachments.length > 0) {
       const attachmentMentions = contextAttachments
         .map(a => `@[${a.title}](recording:${a.id})`)
         .join(' ');
-
-      // Prepend the attachments to the input as context
       inputToSubmit = `[Context: ${attachmentMentions}]\n\n${input}`;
-      setInput(inputToSubmit);
-      
-      // Clear attachments after adding to input
       setContextAttachments([]);
     }
 
-    // Don't submit if input is empty
     if (!inputToSubmit || !inputToSubmit.trim()) return;
 
-    // Create session if it doesn't exist BEFORE submitting
+    // Create session if it doesn't exist
     let sessionIdToUse = currentSessionId;
     if (!sessionIdToUse && session?.user?.id) {
       try {
         const newSession = await createNewSession();
         sessionIdToUse = newSession.id;
-        // Update both state and ref (ref is immediate, state is async)
         currentSessionIdRef.current = newSession.id;
         setCurrentSessionId(newSession.id);
         navigate(`/chat/${newSession.id}`, { replace: true });
@@ -386,36 +437,46 @@ export default function Chat() {
       }
     }
 
-    // Call handleSubmit from AI SDK
-    // Note: If we modified the input with contextAttachments, handleSubmit will use the current input state
-    // which might not be updated yet if we just called setInput.
-    // However, handleSubmit sends the request, and we can force it to use our modified input?
-    // No, handleSubmit uses the hook's internal state. 
-    // Actually, handleSubmit allows passing an event, but not the text directly.
-    // We rely on the setInput update being processed. 
-    // A safer way if we just changed input is to append the user message manually, but handleSubmit is convenient.
-    // Let's assume React batching or use append if this is flaky. 
-    // For now, let's just call handleSubmit which handles the submission of the current input value.
-    handleSubmit(e, { allowEmptySubmit: false });
-  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, handleSubmit, contextAttachments, setInput]);
+    // Send message using AI SDK v5
+    sendMessage({ text: inputToSubmit });
+    setInput(''); // Clear input after sending
+  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, sendMessage, contextAttachments]);
 
-  // Handle suggestion clicks - sets input AND submits
-  const handleSuggestionClick = React.useCallback((text: string) => {
-    setInput(text);
-    // Use requestAnimationFrame to ensure state update completes before submit
-    requestAnimationFrame(() => {
-      const formEvent = { preventDefault: () => {} } as React.FormEvent;
-      handleSubmit(formEvent, { allowEmptySubmit: false });
-    });
-  }, [setInput, handleSubmit]);
+  // Handle suggestion clicks
+  const handleSuggestionClick = React.useCallback(async (text: string) => {
+    // Create session if needed first
+    let sessionIdToUse = currentSessionId;
+    if (!sessionIdToUse && session?.user?.id) {
+      try {
+        const newSession = await createNewSession();
+        sessionIdToUse = newSession.id;
+        currentSessionIdRef.current = newSession.id;
+        setCurrentSessionId(newSession.id);
+        navigate(`/chat/${newSession.id}`, { replace: true });
+      } catch (err) {
+        console.error('Failed to create session:', err);
+        return;
+      }
+    }
+
+    // Send the suggestion directly
+    sendMessage({ text });
+  }, [currentSessionId, session?.user?.id, createNewSession, navigate, sendMessage]);
 
   // Handler to view a call from a source citation
   const handleViewCall = React.useCallback(async (recordingId: number) => {
+    if (!session?.user?.id) {
+      console.error('No user session');
+      return;
+    }
+
     try {
+      // Use composite key (recording_id, user_id) for the lookup
       const { data: callData, error } = await supabase
         .from('fathom_calls')
         .select('*')
         .eq('recording_id', recordingId)
+        .eq('user_id', session.user.id)
         .single();
 
       if (error) {
@@ -423,12 +484,12 @@ export default function Chat() {
         return;
       }
 
-      setSelectedCall(callData as Meeting);
+      setSelectedCall(callData as unknown as Meeting);
       setShowCallDialog(true);
     } catch (err) {
       console.error('Error fetching call:', err);
     }
-  }, []);
+  }, [session?.user?.id]);
 
   const hasActiveFilters = filters.dateStart || filters.dateEnd || filters.speakers.length > 0 || filters.categories.length > 0 || filters.recordingIds.length > 0;
 
@@ -467,7 +528,7 @@ export default function Chat() {
     }));
   }, []);
 
-  // Handle call selection from mentions (adds to filter)
+  // Handle call selection from mentions
   const handleMentionCallSelect = React.useCallback((recordingId: number) => {
     setFilters(prev => ({
       ...prev,
@@ -491,6 +552,9 @@ export default function Chat() {
     textareaRef,
   });
 
+  // Compute loading state from status
+  const isLoading = status === 'submitted' || status === 'streaming';
+
   return (
     <>
       {/* Mobile sidebar overlay backdrop */}
@@ -501,9 +565,9 @@ export default function Chat() {
         />
       )}
 
-      {/* BG-CARD-MAIN: Browser window container - directly on viewport */}
+      {/* BG-CARD-MAIN: Browser window container */}
       <ChatOuterCard>
-          {/* SIDEBAR (Chat Session Navigation) - inside BG-CARD-MAIN */}
+          {/* SIDEBAR */}
           <div
             className={`
               ${showSidebar ? 'fixed inset-y-0 left-0 z-50 shadow-2xl' : 'hidden'}
@@ -524,7 +588,7 @@ export default function Chat() {
 
           {/* BG-CARD-INNER: Chat interface */}
           <ChatInnerCard>
-            {/* Header - INSIDE BG-CARD-INNER */}
+            {/* Header */}
             <ChatInnerCardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 md:gap-3">
@@ -737,7 +801,7 @@ export default function Chat() {
             <ChatInnerCardContent>
             <ChatContainerRoot className="h-full">
               <ChatContainerContent className="px-4 py-0">
-                {/* Kortex-style Welcome/Empty State */}
+                {/* Welcome/Empty State */}
                 {messages.length === 0 && (
                   <ChatWelcome
                     userName={session?.user?.user_metadata?.full_name?.split(' ')[0]}
@@ -749,39 +813,19 @@ export default function Chat() {
                 {/* Messages */}
                 {messages.map((message) => {
                   if (message.role === 'user') {
+                    const textContent = getMessageTextContent(message);
                     return (
                       <UserMessage key={message.id}>
-                        {message.content}
+                        {textContent}
                       </UserMessage>
                     );
                   }
 
                   if (message.role === 'assistant') {
-                    // Convert AI SDK v3.x toolInvocations to our ToolCallPart format
-                    // v3.x uses toolInvocations with state: 'partial-call' | 'call' | 'result'
-                    const toolParts: ToolCallPart[] = (message.toolInvocations || []).map((invocation) => {
-                      // Map v3.x state to our component state
-                      let state: 'pending' | 'running' | 'success' | 'error' = 'pending';
-                      if (invocation.state === 'partial-call') {
-                        state = 'running';
-                      } else if (invocation.state === 'call') {
-                        state = 'running';
-                      } else if (invocation.state === 'result') {
-                        state = 'success';
-                      }
+                    const toolParts = getToolInvocations(message);
+                    const textContent = getMessageTextContent(message);
 
-                      return {
-                        type: invocation.state === 'result' ? 'tool-result' : 'tool-call',
-                        toolName: invocation.toolName,
-                        toolCallId: invocation.toolCallId,
-                        state,
-                        args: invocation.args as Record<string, unknown>,
-                        result: invocation.state === 'result' ? invocation.result as Record<string, unknown> : undefined,
-                      };
-                    });
-
-                    // Extract sources from tool results - handle both searchTranscripts (results array)
-                    // and getCallDetails (single call object with recording_id)
+                    // Extract sources from tool results
                     const sources: Array<{
                       recording_id: number;
                       text: string;
@@ -793,12 +837,9 @@ export default function Chat() {
 
                     toolParts.forEach((p) => {
                       if (p.type === 'tool-result' && p.result) {
-                        // Handle searchTranscripts results array
                         if (p.result.results && Array.isArray(p.result.results)) {
                           sources.push(...p.result.results);
-                        }
-                        // Handle getCallDetails single result (has recording_id and title at top level)
-                        else if (p.result.recording_id && p.result.title && !p.result.error) {
+                        } else if (p.result.recording_id && p.result.title && !p.result.error) {
                           sources.push({
                             recording_id: p.result.recording_id as number,
                             text: (p.result.summary as string) || '',
@@ -811,14 +852,11 @@ export default function Chat() {
                       }
                     });
 
-                    // Dedupe by recording_id and limit to 5
                     const uniqueSources = sources
                       .filter((s, i, arr) => arr.findIndex(x => x.recording_id === s.recording_id) === i)
                       .slice(0, 5);
 
-                    // Determine if we should show content or loading state
-                    // message.content can be string or array in AI SDK, so we need to check type
-                    const hasContent = typeof message.content === 'string' && message.content.trim().length > 0;
+                    const hasContent = textContent.trim().length > 0;
                     const isThinking = !hasContent && toolParts.length > 0;
 
                     return (
@@ -826,10 +864,12 @@ export default function Chat() {
                         {toolParts.length > 0 && <ToolCalls parts={toolParts} />}
                         {hasContent ? (
                           <AssistantMessage markdown>
-                            {message.content}
+                            {textContent}
                           </AssistantMessage>
                         ) : isThinking ? (
-                          <AssistantMessage isLoading />
+                          <AssistantMessage>
+                            <ThinkingLoader />
+                          </AssistantMessage>
                         ) : null}
                         {uniqueSources.length > 0 && (
                           <Sources
@@ -912,7 +952,7 @@ export default function Chat() {
                 onSubmit={() => handleChatSubmit()}
                 isLoading={isLoading}
               >
-                {/* Kortex-style Context Bar with call attachments */}
+                {/* Context Bar with call attachments */}
                 <PromptInputContextBar
                   attachments={contextAttachments}
                   onRemoveAttachment={(id) => {
@@ -940,15 +980,12 @@ export default function Chat() {
                   className="px-4 py-2"
                 />
 
-                {/* Kortex-style Footer with model selector and submit */}
+                {/* Footer with model selector and submit */}
                 <PromptInputFooter>
                   <PromptInputFooterLeft>
                     <ModelSelector
-                      value="gpt-4o"
-                      onValueChange={(modelId) => {
-                        // TODO: Handle model change
-                        console.log('Model changed:', modelId);
-                      }}
+                      value={selectedModel}
+                      onValueChange={setSelectedModel}
                     />
                   </PromptInputFooterLeft>
                   <PromptInputFooterRight>
@@ -975,7 +1012,7 @@ export default function Chat() {
           </ChatInnerCard>
         </ChatOuterCard>
 
-      {/* Call Detail Dialog for viewing source citations */}
+      {/* Call Detail Dialog */}
       <CallDetailDialog
         call={selectedCall}
         open={showCallDialog}

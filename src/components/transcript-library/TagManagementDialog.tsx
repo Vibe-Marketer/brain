@@ -1,186 +1,115 @@
-import { useState } from "react";
-import {
-  RiPriceTagLine,
-  RiAddLine,
-  RiCloseLine,
-} from "@remixicon/react";
+import { RiFolderOpenLine, RiAddLine, RiPencilLine } from "@remixicon/react";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+
+interface Tag {
+  id: string;
+  name: string;
+  description: string | null;
+  created_at: string;
+}
 
 interface TagManagementDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedCalls: any[];
-  onSaveTags: (tags: string[]) => void;
+  tags: Tag[];
+  onCreateTag: () => void;
+  onEditTag: (tag: Tag) => void;
+  callCounts?: Record<string, number>;
 }
 
 export function TagManagementDialog({
   open,
   onOpenChange,
-  selectedCalls,
-  onSaveTags,
+  tags,
+  onCreateTag,
+  onEditTag,
+  callCounts = {},
 }: TagManagementDialogProps) {
-  const [customTag, setCustomTag] = useState("");
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
-  // Get unique existing tags from selected calls
-  const existingTags = Array.from(
-    new Set(
-      selectedCalls
-        .flatMap((call) => call.auto_tags || [])
-        .filter((tag) => tag)
-    )
-  );
-
-  const handleAddCustomTag = () => {
-    const trimmed = customTag.trim().toUpperCase();
-    if (trimmed && !selectedTags.includes(trimmed)) {
-      setSelectedTags([...selectedTags, trimmed]);
-      setCustomTag("");
-    }
-  };
-
-  const handleRemoveTag = (tag: string) => {
-    setSelectedTags(selectedTags.filter((t) => t !== tag));
-  };
-
-  const handleToggleExistingTag = (tag: string) => {
-    if (selectedTags.includes(tag)) {
-      setSelectedTags(selectedTags.filter((t) => t !== tag));
-    } else {
-      setSelectedTags([...selectedTags, tag]);
-    }
-  };
-
-  const handleSave = () => {
-    onSaveTags(selectedTags);
-    setSelectedTags([]);
-    setCustomTag("");
-    onOpenChange(false);
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-2xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>Manage Tags</DialogTitle>
+          <DialogTitle>Manage Folders</DialogTitle>
           <DialogDescription>
-            Add or modify tags for {selectedCalls.length} selected call
-            {selectedCalls.length > 1 ? "s" : ""}
+            Create and organize your transcript folders
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Existing tags from selected calls */}
-          {existingTags.length > 0 && (
-            <div>
-              <Label className="text-sm font-medium mb-2 block">
-                Current Tags
-              </Label>
-              <div className="flex flex-wrap gap-2">
-                {existingTags.map((tag) => (
-                  <Badge
-                    key={tag}
-                    variant={selectedTags.includes(tag) ? "default" : "outline"}
-                    className="cursor-pointer h-6 px-2 text-xs"
-                    onClick={() => handleToggleExistingTag(tag)}
+        <div className="flex flex-col gap-4">
+          {/* New Folder Button */}
+          <Button
+            onClick={onCreateTag}
+            className="w-full gap-2"
+          >
+            <RiAddLine className="h-4 w-4" />
+            New Folder
+          </Button>
+
+          {/* Tags List */}
+          <ScrollArea className="flex-1 min-h-[300px] max-h-[500px] pr-4">
+            {tags.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <RiFolderOpenLine className="h-12 w-12 text-muted-foreground/50 mb-3" />
+                <p className="text-sm text-muted-foreground">
+                  No folders yet
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Create your first folder to get started
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {tags.map((tag) => (
+                  <div
+                    key={tag.id}
+                    className="group flex items-start gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
                   >
-                    <RiPriceTagLine className="h-2.5 w-2.5 mr-1" />
-                    {tag}
-                  </Badge>
+                    <RiFolderOpenLine className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-medium text-sm">{tag.name}</h4>
+                        {callCounts[tag.id] !== undefined && (
+                          <Badge variant="secondary" className="h-5 px-2 text-xs">
+                            {callCounts[tag.id]}
+                          </Badge>
+                        )}
+                      </div>
+                      {tag.description && (
+                        <p className="text-xs text-muted-foreground line-clamp-2">
+                          {tag.description}
+                        </p>
+                      )}
+                    </div>
+
+                    <Button
+                      variant="hollow"
+                      size="sm"
+                      onClick={() => onEditTag(tag)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 p-0"
+                    >
+                      <RiPencilLine className="h-3.5 w-3.5" />
+                      <span className="sr-only">Edit folder</span>
+                    </Button>
+                  </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Selected/New tags */}
-          {selectedTags.length > 0 && (
-            <div>
-              <Label className="text-sm font-medium mb-2 block">
-                Tags to Apply
-              </Label>
-              <ScrollArea className="max-h-[120px]">
-                <div className="flex flex-wrap gap-2">
-                  {selectedTags.map((tag) => (
-                    <Badge
-                      key={tag}
-                      variant="default"
-                      className="h-6 px-2 text-xs"
-                    >
-                      <RiPriceTagLine className="h-2.5 w-2.5 mr-1" />
-                      {tag}
-                      <Button
-                        variant="hollow"
-                        size="icon-sm"
-                        className="ml-1 h-4 w-4 p-0 hover:bg-transparent"
-                        onClick={() => handleRemoveTag(tag)}
-                      >
-                        <RiCloseLine className="h-2.5 w-2.5" />
-                      </Button>
-                    </Badge>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
-
-          {/* Add custom tag */}
-          <div>
-            <Label htmlFor="custom-tag" className="text-sm font-medium mb-2 block">
-              Add Custom Tag
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="custom-tag"
-                placeholder="Enter tag name..."
-                value={customTag}
-                onChange={(e) => setCustomTag(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddCustomTag();
-                  }
-                }}
-                className="flex-1"
-              />
-              <Button
-                onClick={handleAddCustomTag}
-                disabled={!customTag.trim()}
-                size="sm"
-              >
-                <RiAddLine className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+            )}
+          </ScrollArea>
         </div>
-
-        <DialogFooter>
-          <Button
-            variant="hollow"
-            onClick={() => {
-              setSelectedTags([]);
-              setCustomTag("");
-              onOpenChange(false);
-            }}
-          >
-            Cancel
-          </Button>
-          <Button onClick={handleSave}>
-            Apply Tags
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
+
+// Backward-compatible export
+export const CategoryManagementDialog = TagManagementDialog;

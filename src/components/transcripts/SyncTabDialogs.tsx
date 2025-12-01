@@ -1,6 +1,6 @@
 import { CallDetailDialog } from "@/components/CallDetailDialog";
-import ManualCategorizeDialog from "@/components/ManualCategorizeDialog";
-import QuickCreateCategoryDialog from "@/components/QuickCreateCategoryDialog";
+import ManualTagDialog from "@/components/ManualTagDialog";
+import QuickCreateTagDialog from "@/components/QuickCreateTagDialog";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,17 +14,17 @@ interface SyncTabDialogsProps {
   setViewingUnsyncedMeeting: (meeting: any | null) => void;
   loadExistingTranscripts: () => Promise<void>;
 
-  // ManualCategorizeDialog props
-  categorizeDialogOpen: boolean;
-  setCategorizeDialogOpen: (open: boolean) => void;
-  categorizingCallId: string | null;
-  bulkCategorizingIds: string[];
-  setCategorizingCallId: (id: string | null) => void;
-  setBulkCategorizingIds: (ids: string[]) => void;
+  // ManualTagDialog props
+  tagDialogOpen: boolean;
+  setTagDialogOpen: (open: boolean) => void;
+  taggingCallId: string | null;
+  bulkTaggingIds: string[];
+  setTaggingCallId: (id: string | null) => void;
+  setBulkTaggingIds: (ids: string[]) => void;
 
-  // QuickCreateCategoryDialog props
-  createCategoryDialogOpen: boolean;
-  setCreateCategoryDialogOpen: (open: boolean) => void;
+  // QuickCreateTagDialog props
+  createTagDialogOpen: boolean;
+  setCreateTagDialogOpen: (open: boolean) => void;
 
   // DeleteConfirmDialog props
   showDeleteDialog: boolean;
@@ -40,14 +40,14 @@ export function SyncTabDialogs({
   setSelectedCallId,
   setViewingUnsyncedMeeting,
   loadExistingTranscripts,
-  categorizeDialogOpen,
-  setCategorizeDialogOpen,
-  categorizingCallId,
-  bulkCategorizingIds,
-  setCategorizingCallId,
-  setBulkCategorizingIds,
-  createCategoryDialogOpen,
-  setCreateCategoryDialogOpen,
+  tagDialogOpen,
+  setTagDialogOpen,
+  taggingCallId,
+  bulkTaggingIds,
+  setTaggingCallId,
+  setBulkTaggingIds,
+  createTagDialogOpen,
+  setCreateTagDialogOpen,
   showDeleteDialog,
   setShowDeleteDialog,
   selectedExistingTranscripts,
@@ -71,23 +71,23 @@ export function SyncTabDialogs({
         />
       )}
 
-      {/* Manual Categorize Dialog - assign categories to calls */}
-      <ManualCategorizeDialog
-        open={categorizeDialogOpen}
-        onOpenChange={setCategorizeDialogOpen}
-        recordingId={categorizingCallId}
-        recordingIds={bulkCategorizingIds}
-        onCategoriesUpdated={() => {
+      {/* Manual Tag Dialog - assign tags to calls */}
+      <ManualTagDialog
+        open={tagDialogOpen}
+        onOpenChange={setTagDialogOpen}
+        recordingId={taggingCallId}
+        recordingIds={bulkTaggingIds}
+        onTagsUpdated={() => {
           loadExistingTranscripts();
-          setCategorizingCallId(null);
-          setBulkCategorizingIds([]);
+          setTaggingCallId(null);
+          setBulkTaggingIds([]);
         }}
       />
 
-      {/* Quick Create Category Dialog - create new categories */}
-      <QuickCreateCategoryDialog
-        open={createCategoryDialogOpen}
-        onOpenChange={setCreateCategoryDialogOpen}
+      {/* Quick Create Tag Dialog - create new tags */}
+      <QuickCreateTagDialog
+        open={createTagDialogOpen}
+        onOpenChange={setCreateTagDialogOpen}
       />
 
       {/* Delete Confirm Dialog - confirm bulk delete of transcripts */}

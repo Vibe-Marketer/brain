@@ -20,22 +20,26 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { categorySchema } from "@/lib/validations";
+import { tagSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
 
 import { TranscriptTable } from "@/components/transcript-library/TranscriptTable";
 import { CallDetailDialog } from "@/components/CallDetailDialog";
-import ManualCategorizeDialog from "@/components/ManualCategorizeDialog";
-import QuickCreateCategoryDialog from "@/components/QuickCreateCategoryDialog";
-import { CategoryNavigationDropdown } from "@/components/transcript-library/CategoryNavigationDropdown";
-import { CategoryManagementDialog } from "@/components/transcript-library/CategoryManagementDialog";
+import ManualTagDialog from "@/components/ManualTagDialog";
+import QuickCreateTagDialog from "@/components/QuickCreateTagDialog";
+import { TagNavigationDropdown } from "@/components/transcript-library/TagNavigationDropdown";
+import { TagManagementDialog } from "@/components/transcript-library/TagManagementDialog";
 import { FilterBar } from "@/components/transcript-library/FilterBar";
 import { BulkActionToolbarEnhanced } from "@/components/transcript-library/BulkActionToolbarEnhanced";
+import { useFolders, Folder } from "@/hooks/useFolders";
 import { DragDropZones } from "@/components/transcript-library/DragDropZones";
 import { EmptyState } from "@/components/transcript-library/EmptyStates";
 import { AIProcessingProgress } from "@/components/transcripts/AIProcessingProgress";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SmartExportDialog from "@/components/SmartExportDialog";
+import AssignFolderDialog from "@/components/AssignFolderDialog";
+import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
+import { FolderManagementDialog } from "@/components/transcript-library/FolderManagementDialog";
 import {
   FilterState,
   parseSearchSyntax,
@@ -44,7 +48,7 @@ import {
   urlParamsToFilters,
 } from "@/lib/filter-utils";
 
-interface Category {
+interface Tag {
   id: string;
   name: string;
   description: string | null;
@@ -85,21 +89,25 @@ export function TranscriptsTab() {
     date: true,
     duration: true,
     participants: true,
-    categories: true,
+    tags: true,
     status: true,
   });
 
   // Dialog state
-  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
-  const [categoryManagementOpen, setCategoryManagementOpen] = useState(false);
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
+  const [tagManagementOpen, setTagManagementOpen] = useState(false);
   const [smartExportOpen, setSmartExportOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [categorizingCallId, setCategorizingCallId] = useState<number | null>(null);
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [taggingCallId, setTaggingCallId] = useState<number | null>(null);
+  const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
   });
+  const [folderDialogOpen, setFolderDialogOpen] = useState(false);
+  const [quickCreateFolderOpen, setQuickCreateFolderOpen] = useState(false);
+  const [folderManagementOpen, setFolderManagementOpen] = useState(false);
+  const [folderingCallId, setFolderingCallId] = useState<number | null>(null);
 
   // Load host email
   useEffect(() => {
@@ -121,23 +129,26 @@ export function TranscriptsTab() {
     loadHostEmail();
   }, []);
 
-  // Fetch categories
-  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
-    queryKey: ["categories"],
+  // Fetch tags
+  const { data: tags = [], isLoading: tagsLoading } = useQuery({
+    queryKey: ["tags"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("call_categories")
+        .from("call_tags")
         .select("*")
         .order("name");
       if (error) throw error;
-      return data as Category[];
+      return data as Tag[];
     },
   });
+
+  // Fetch folders
+  const { folders, folderAssignments, deleteFolder } = useFolders();
 
   // Drag and drop helpers
   const dragHelpers = useDragAndDrop();
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
-  const [pendingCategoryTranscripts, setPendingCategoryTranscripts] = useState<number[]>([]);
+  const [pendingTagTranscripts, setPendingTagTranscripts] = useState<number[]>([]);
 
   // Update URL params when filters change
   useEffect(() => {
@@ -149,15 +160,15 @@ export function TranscriptsTab() {
 
   // Parse search syntax
   const syntax = useMemo(() => {
-    if (!searchQuery) return { 
-      plainText: "", 
-      filters: { 
-        participant: [], 
-        date: "", 
-        category: [], 
-        duration: "", 
-        status: [] 
-      } 
+    if (!searchQuery) return {
+      plainText: "",
+      filters: {
+        participant: [],
+        date: "",
+        tag: [],
+        duration: "",
+        status: []
+      }
     };
     return parseSearchSyntax(searchQuery);
   }, [searchQuery]);
@@ -170,7 +181,7 @@ export function TranscriptsTab() {
 
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading } = useQuery({
-    queryKey: ["category-calls", searchQuery, combinedFilters, page, pageSize],
+    queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize],
     queryFn: async () => {
       const offset = (page - 1) * pageSize;
       let query = supabase
@@ -179,12 +190,12 @@ export function TranscriptsTab() {
         .order("created_at", { ascending: false })
         .range(offset, offset + pageSize - 1);
 
-      // Category filter (multiple categories)
-      if (combinedFilters.categories && combinedFilters.categories.length > 0) {
+      // Tag filter (multiple tags)
+      if (combinedFilters.tags && combinedFilters.tags.length > 0) {
         const { data: assignments } = await supabase
-          .from("call_category_assignments")
+          .from("call_tag_assignments")
           .select("call_recording_id")
-          .in("category_id", combinedFilters.categories);
+          .in("tag_id", combinedFilters.tags);
 
         if (assignments && assignments.length > 0) {
           const recordingIds = assignments.map((a) => a.call_recording_id);
@@ -230,101 +241,101 @@ export function TranscriptsTab() {
     },
   });
 
-  // Fetch category assignments for displayed calls
-  const { data: categoryAssignments = {} } = useQuery({
-    queryKey: ["category-assignments", calls.map(c => c.recording_id)],
+  // Fetch tag assignments for displayed calls
+  const { data: tagAssignments = {} } = useQuery({
+    queryKey: ["tag-assignments", calls.map(c => c.recording_id)],
     queryFn: async () => {
       if (calls.length === 0) return {};
-      
+
       const { data, error } = await supabase
-        .from("call_category_assignments")
-        .select("call_recording_id, category_id")
+        .from("call_tag_assignments")
+        .select("call_recording_id, tag_id")
         .in("call_recording_id", calls.map(c => c.recording_id));
-      
+
       if (error) throw error;
-      
+
       const assignments: Record<string, string[]> = {};
       data?.forEach((assignment) => {
         if (!assignments[assignment.call_recording_id]) {
           assignments[assignment.call_recording_id] = [];
         }
-        assignments[assignment.call_recording_id].push(assignment.category_id);
+        assignments[assignment.call_recording_id].push(assignment.tag_id);
       });
-      
+
       return assignments;
     },
     enabled: calls.length > 0,
   });
 
-  // Bulk categorize mutation
-  const categorizeMutation = useMutation({
-    mutationFn: async ({ callIds, categoryId }: { callIds: number[]; categoryId: string }) => {
+  // Bulk tag mutation
+  const tagMutation = useMutation({
+    mutationFn: async ({ callIds, tagId }: { callIds: number[]; tagId: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
 
-      // Remove existing category assignments
+      // Remove existing tag assignments
       await supabase
-        .from("call_category_assignments")
+        .from("call_tag_assignments")
         .delete()
         .in("call_recording_id", callIds);
 
       // Create new assignments
       const assignments = callIds.map((callId) => ({
         call_recording_id: callId,
-        category_id: categoryId,
+        tag_id: tagId,
         auto_assigned: false,
       }));
 
       const { error } = await supabase
-        .from("call_category_assignments")
+        .from("call_tag_assignments")
         .insert(assignments);
       if (error) throw error;
     },
-    onMutate: ({ callIds, categoryId }) => {
-      const category = categories.find((c) => c.id === categoryId);
-      const categoryName = category?.name || "Uncategorized";
+    onMutate: ({ callIds, tagId }) => {
+      const tag = tags.find((t) => t.id === tagId);
+      const tagName = tag?.name || "Untagged";
       const count = callIds.length;
       const toastId = toast.loading(
-        `Moving ${count} transcript${count > 1 ? 's' : ''} to ${categoryName}...`
+        `Moving ${count} transcript${count > 1 ? 's' : ''} to ${tagName}...`
       );
       return { toastId };
     },
     onSuccess: (_data, variables, context) => {
-      queryClient.invalidateQueries({ queryKey: ["category-calls"] });
-      queryClient.invalidateQueries({ queryKey: ["category-assignments"] });
-      const category = categories.find((c) => c.id === variables.categoryId);
-      const categoryName = category?.name || "Uncategorized";
+      queryClient.invalidateQueries({ queryKey: ["tag-calls"] });
+      queryClient.invalidateQueries({ queryKey: ["tag-assignments"] });
+      const tag = tags.find((t) => t.id === variables.tagId);
+      const tagName = tag?.name || "Untagged";
       const count = variables.callIds.length;
-      toast.success(`${count} transcript${count > 1 ? "s" : ""} moved to ${categoryName}`, { 
-        id: context?.toastId 
+      toast.success(`${count} transcript${count > 1 ? "s" : ""} moved to ${tagName}`, {
+        id: context?.toastId
       });
       setSelectedCalls([]);
     },
     onError: (_error, _variables, context) => {
-      toast.error("Failed to categorize transcript(s)", { 
-        id: context?.toastId 
+      toast.error("Failed to tag transcript(s)", {
+        id: context?.toastId
       });
     },
   });
 
-  // Uncategorize mutation
-  const uncategorizeMutation = useMutation({
+  // Untag mutation
+  const untagMutation = useMutation({
     mutationFn: async ({ callIds }: { callIds: number[] }) => {
       const { error } = await supabase
-        .from("call_category_assignments")
+        .from("call_tag_assignments")
         .delete()
         .in("call_recording_id", callIds);
       if (error) throw error;
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["category-calls"] });
-      queryClient.invalidateQueries({ queryKey: ["category-assignments"] });
+      queryClient.invalidateQueries({ queryKey: ["tag-calls"] });
+      queryClient.invalidateQueries({ queryKey: ["tag-assignments"] });
       const count = variables.callIds.length;
-      toast.success(`${count} transcript${count > 1 ? "s" : ""} uncategorized`);
+      toast.success(`${count} transcript${count > 1 ? "s" : ""} untagged`);
       setSelectedCalls([]);
     },
     onError: () => {
-      toast.error("Failed to uncategorize transcript(s)");
+      toast.error("Failed to untag transcript(s)");
     },
   });
 
@@ -338,11 +349,11 @@ export function TranscriptsTab() {
 
       // Delete from all related tables first - throw errors to stop execution
       const { error: assignmentsError } = await supabase
-        .from("call_category_assignments")
+        .from("call_tag_assignments")
         .delete()
         .in("call_recording_id", ids);
       if (assignmentsError) {
-        logger.error("Error deleting category assignments", assignmentsError);
+        logger.error("Error deleting tag assignments", assignmentsError);
         throw assignmentsError;
       }
 
@@ -395,8 +406,8 @@ export function TranscriptsTab() {
     onSuccess: async (deletedCalls) => {
       logger.info("Delete mutation succeeded, refetching queries");
       // Force immediate refetch of all queries
-      await queryClient.invalidateQueries({ queryKey: ["category-calls"] });
-      await queryClient.invalidateQueries({ queryKey: ["category-assignments"] });
+      await queryClient.invalidateQueries({ queryKey: ["tag-calls"] });
+      await queryClient.invalidateQueries({ queryKey: ["tag-assignments"] });
       setSelectedCalls([]);
       setShowDeleteDialog(false);
       const count = deletedCalls?.length || 0;
@@ -420,33 +431,33 @@ export function TranscriptsTab() {
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { over } = event;
-    
+
     if (over) {
-      // Handle uncategorize
-      if (over.data?.current?.type === "uncategorize-zone") {
-        uncategorizeMutation.mutate({
+      // Handle untag
+      if (over.data?.current?.type === "untag-zone") {
+        untagMutation.mutate({
           callIds: dragHelpers.draggedItems,
         });
         setSelectedCalls([]);
       }
-      
-      // Handle create new category
+
+      // Handle create new tag
       if (over.data?.current?.type === "create-new-zone") {
         setIsQuickCreateOpen(true);
-        setPendingCategoryTranscripts(dragHelpers.draggedItems);
+        setPendingTagTranscripts(dragHelpers.draggedItems);
       }
-      
-      // Handle drop on category zones
-      if (over.data?.current?.type === "category-zone") {
-        const categoryId = over.data.current.categoryId;
-        categorizeMutation.mutate({
+
+      // Handle drop on tag zones
+      if (over.data?.current?.type === "tag-zone") {
+        const tagId = over.data.current.tagId;
+        tagMutation.mutate({
           callIds: dragHelpers.draggedItems,
-          categoryId,
+          tagId,
         });
         setSelectedCalls([]);
       }
     }
-    
+
     dragHelpers.handleDragEnd(event);
   };
 
@@ -473,22 +484,22 @@ export function TranscriptsTab() {
       {/* Drag Drop Zones - Shows when dragging */}
       {dragHelpers.activeDragId && (
         <DragDropZones
-          categories={categories}
+          tags={tags}
           isDragging={true}
-          onDrop={(categoryId) => {
-            categorizeMutation.mutate({
+          onDrop={(tagId) => {
+            tagMutation.mutate({
               callIds: dragHelpers.draggedItems,
-              categoryId,
+              tagId,
             });
           }}
-          onUncategorize={() => {
-            uncategorizeMutation.mutate({
+          onUntag={() => {
+            untagMutation.mutate({
               callIds: dragHelpers.draggedItems,
             });
           }}
           onCreateNew={() => {
             setIsQuickCreateOpen(true);
-            setPendingCategoryTranscripts(dragHelpers.draggedItems);
+            setPendingTagTranscripts(dragHelpers.draggedItems);
           }}
         />
       )}
@@ -501,7 +512,8 @@ export function TranscriptsTab() {
         <FilterBar
           filters={filters}
           onFiltersChange={setFilters}
-          categories={categories}
+          tags={tags}
+          folders={folders}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           visibleColumns={visibleColumns}
@@ -518,24 +530,25 @@ export function TranscriptsTab() {
           <BulkActionToolbarEnhanced
             selectedCount={selectedCalls.length}
             selectedCalls={calls.filter(c => selectedCalls.includes(c.recording_id))}
-            categories={categories}
-            onCategorize={(categoryId) => {
-              categorizeMutation.mutate({
+            tags={tags}
+            onTag={(tagId) => {
+              tagMutation.mutate({
                 callIds: selectedCalls,
-                categoryId,
+                tagId,
               });
             }}
-            onUncategorize={() => {
-              uncategorizeMutation.mutate({
+            onRemoveTag={() => {
+              untagMutation.mutate({
                 callIds: selectedCalls,
               });
             }}
             onClearSelection={() => setSelectedCalls([])}
             onDelete={handleDeleteCalls}
-            onCreateNewCategory={() => {
+            onCreateNewTag={() => {
               setIsQuickCreateOpen(true);
-              setPendingCategoryTranscripts(selectedCalls);
+              setPendingTagTranscripts(selectedCalls);
             }}
+            onAssignFolder={() => setFolderDialogOpen(true)}
           />
         )}
 
@@ -576,9 +589,11 @@ export function TranscriptsTab() {
                   }
                 }}
                 onCallClick={(call) => setSelectedCall(call)}
-                categories={categories}
-                categoryAssignments={categoryAssignments}
-                onCategorizeCall={(callId) => setCategorizingCallId(callId)}
+                tags={tags}
+                tagAssignments={tagAssignments}
+                folders={folders}
+                folderAssignments={folderAssignments}
+                onFolderCall={(callId) => setFolderingCallId(callId as number)}
                 totalCount={totalCount}
                 page={page}
                 pageSize={pageSize}
@@ -600,52 +615,52 @@ export function TranscriptsTab() {
         />
       )}
 
-      {categorizingCallId && (
-        <ManualCategorizeDialog
-          open={!!categorizingCallId}
-          onOpenChange={(open) => !open && setCategorizingCallId(null)}
-          recordingId={categorizingCallId.toString()}
-          onCategoriesUpdated={() => {
-            queryClient.invalidateQueries({ queryKey: ["category-calls"] });
-            queryClient.invalidateQueries({ queryKey: ["category-assignments"] });
-            setCategorizingCallId(null);
+      {taggingCallId && (
+        <ManualTagDialog
+          open={!!taggingCallId}
+          onOpenChange={(open) => !open && setTaggingCallId(null)}
+          recordingId={taggingCallId.toString()}
+          onTagsUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ["tag-calls"] });
+            queryClient.invalidateQueries({ queryKey: ["tag-assignments"] });
+            setTaggingCallId(null);
           }}
         />
       )}
 
       {isQuickCreateOpen && (
-        <QuickCreateCategoryDialog
+        <QuickCreateTagDialog
           open={isQuickCreateOpen}
           onOpenChange={setIsQuickCreateOpen}
-          onCategoryCreated={(categoryId) => {
-            if (pendingCategoryTranscripts.length > 0) {
-              categorizeMutation.mutate({
-                callIds: pendingCategoryTranscripts,
-                categoryId,
+          onTagCreated={(tagId) => {
+            if (pendingTagTranscripts.length > 0) {
+              tagMutation.mutate({
+                callIds: pendingTagTranscripts,
+                tagId,
               });
-              setPendingCategoryTranscripts([]);
+              setPendingTagTranscripts([]);
             }
           }}
         />
       )}
 
-      {categoryManagementOpen && (
-        <CategoryManagementDialog
-          open={categoryManagementOpen}
-          onOpenChange={setCategoryManagementOpen}
-          categories={categories}
-          onCreateCategory={() => {
-            setCategoryManagementOpen(false);
-            setCategoryDialogOpen(true);
+      {tagManagementOpen && (
+        <TagManagementDialog
+          open={tagManagementOpen}
+          onOpenChange={setTagManagementOpen}
+          tags={tags}
+          onCreateTag={() => {
+            setTagManagementOpen(false);
+            setTagDialogOpen(true);
           }}
-          onEditCategory={(category) => {
-            setEditingCategory(category);
+          onEditTag={(tag) => {
+            setEditingTag(tag);
             setFormData({
-              name: category.name,
-              description: category.description || "",
+              name: tag.name,
+              description: tag.description || "",
             });
-            setCategoryManagementOpen(false);
-            setCategoryDialogOpen(true);
+            setTagManagementOpen(false);
+            setTagDialogOpen(true);
           }}
         />
       )}
@@ -666,6 +681,61 @@ export function TranscriptsTab() {
         description="Are you sure you want to delete"
         itemCount={selectedCalls.length}
       />
+
+      {/* Folder Assignment Dialog (Bulk) */}
+      {folderDialogOpen && (
+        <AssignFolderDialog
+          open={folderDialogOpen}
+          onOpenChange={setFolderDialogOpen}
+          recordingIds={selectedCalls.map(id => String(id))}
+          onFoldersUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ["folders", "assignments"] });
+            setSelectedCalls([]);
+          }}
+        />
+      )}
+
+      {/* Folder Assignment Dialog (Single Row) */}
+      {folderingCallId && (
+        <AssignFolderDialog
+          open={!!folderingCallId}
+          onOpenChange={(open) => !open && setFolderingCallId(null)}
+          recordingId={String(folderingCallId)}
+          onFoldersUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ["folders", "assignments"] });
+            setFolderingCallId(null);
+          }}
+        />
+      )}
+
+      {/* Quick Create Folder Dialog */}
+      {quickCreateFolderOpen && (
+        <QuickCreateFolderDialog
+          open={quickCreateFolderOpen}
+          onOpenChange={setQuickCreateFolderOpen}
+          onFolderCreated={(folderId) => {
+            queryClient.invalidateQueries({ queryKey: ["folders"] });
+          }}
+        />
+      )}
+
+      {/* Folder Management Dialog */}
+      {folderManagementOpen && (
+        <FolderManagementDialog
+          open={folderManagementOpen}
+          onOpenChange={setFolderManagementOpen}
+          folders={folders}
+          onCreateFolder={() => {
+            setFolderManagementOpen(false);
+            setQuickCreateFolderOpen(true);
+          }}
+          onEditFolder={(folder) => {
+            // TODO: Implement edit folder dialog
+            console.log("Edit folder:", folder);
+          }}
+          onDeleteFolder={(folder) => deleteFolder(folder.id)}
+        />
+      )}
     </DndContext>
   );
 }
