@@ -1,86 +1,66 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1';
-import { createAnthropic } from 'https://esm.sh/@ai-sdk/anthropic@1';
-import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@1';
 import { generateObject } from 'https://esm.sh/ai@4';
 import { z } from 'https://esm.sh/zod@3';
 
 // ============================================================================
-// MULTI-MODEL CONFIGURATION
-// Vercel AI SDK makes switching between models dead simple!
+// OPENROUTER CONFIGURATION
+// All models routed through OpenRouter for unified access
 // ============================================================================
 
-type ModelProvider = 'openai' | 'anthropic' | 'google';
-type ModelId =
-  // OpenAI models
-  | 'gpt-5.1' | 'gpt-4o' | 'gpt-4o-mini' | 'gpt-4-turbo'
-  // Anthropic models
-  | 'claude-3-5-sonnet-20241022' | 'claude-3-haiku-20240307'
-  // Google models
-  | 'gemini-1.5-pro' | 'gemini-1.5-flash';
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+
+function createOpenRouterProvider(apiKey: string) {
+  return createOpenAI({
+    apiKey,
+    baseURL: OPENROUTER_BASE_URL,
+    headers: {
+      'HTTP-Referer': 'https://conversion.brain',
+      'X-Title': 'Conversion Brain',
+    },
+  });
+}
 
 interface ModelConfig {
-  provider: ModelProvider;
-  model: ModelId;
+  model: string; // OpenRouter format: 'provider/model-name'
   temperature?: number;
 }
 
-// Default model configuration - GPT-5.1 for best quality metadata extraction
+// Default model configuration - GLM-4.6 for best quality metadata extraction
 const DEFAULT_MODEL: ModelConfig = {
-  provider: 'openai',
-  model: 'gpt-5.1',
+  model: 'z-ai/glm-4.6',
   temperature: 0.3,
 };
 
-// Model presets for different use cases
+// Model presets for different use cases (OpenRouter format)
 const MODEL_PRESETS: Record<string, ModelConfig> = {
   // Fast & cheap (default)
-  'fast': { provider: 'openai', model: 'gpt-4o-mini', temperature: 0.3 },
-  'cheap': { provider: 'openai', model: 'gpt-4o-mini', temperature: 0.3 },
+  'fast': { model: 'openai/gpt-4o-mini', temperature: 0.3 },
+  'cheap': { model: 'openai/gpt-4o-mini', temperature: 0.3 },
 
   // High quality
-  'quality': { provider: 'openai', model: 'gpt-4o', temperature: 0.3 },
-  'best': { provider: 'anthropic', model: 'claude-3-5-sonnet-20241022', temperature: 0.3 },
+  'quality': { model: 'openai/gpt-4o', temperature: 0.3 },
+  'best': { model: 'anthropic/claude-3.5-sonnet', temperature: 0.3 },
 
   // Balanced
-  'balanced': { provider: 'google', model: 'gemini-1.5-flash', temperature: 0.3 },
+  'balanced': { model: 'google/gemini-1.5-flash', temperature: 0.3 },
 
   // Specific providers
-  'openai': { provider: 'openai', model: 'gpt-5.1', temperature: 0.3 },
-  'anthropic': { provider: 'anthropic', model: 'claude-3-haiku-20240307', temperature: 0.3 },
-  'google': { provider: 'google', model: 'gemini-1.5-flash', temperature: 0.3 },
+  'openai': { model: 'openai/gpt-4o', temperature: 0.3 },
+  'anthropic': { model: 'anthropic/claude-3.5-haiku', temperature: 0.3 },
+  'google': { model: 'google/gemini-1.5-flash', temperature: 0.3 },
 };
 
 /**
- * Get a model instance based on provider and model ID
- * Vercel AI SDK unified interface makes this trivial!
+ * Get a model instance via OpenRouter
  */
 function getModel(config: ModelConfig) {
-  const { provider, model } = config;
-
-  switch (provider) {
-    case 'openai': {
-      const apiKey = Deno.env.get('OPENAI_API_KEY');
-      if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
-      const openai = createOpenAI({ apiKey });
-      return openai(model);
-    }
-    case 'anthropic': {
-      const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
-      if (!apiKey) throw new Error('ANTHROPIC_API_KEY not configured');
-      const anthropic = createAnthropic({ apiKey });
-      return anthropic(model);
-    }
-    case 'google': {
-      const apiKey = Deno.env.get('GOOGLE_API_KEY');
-      if (!apiKey) throw new Error('GOOGLE_API_KEY not configured');
-      const google = createGoogleGenerativeAI({ apiKey });
-      return google(model);
-    }
-    default:
-      throw new Error(`Unknown provider: ${provider}`);
-  }
+  const apiKey = Deno.env.get('OPENROUTER_API_KEY');
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
+  const openrouter = createOpenRouterProvider(apiKey);
+  return openrouter(config.model);
 }
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',

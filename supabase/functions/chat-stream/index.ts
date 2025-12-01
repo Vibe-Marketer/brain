@@ -1,7 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1.3.22';
-import { createAnthropic } from 'https://esm.sh/@ai-sdk/anthropic@1.2.12';
-import { createGoogleGenerativeAI } from 'https://esm.sh/@ai-sdk/google@1.2.14';
 import { streamText, tool } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 
@@ -24,73 +22,40 @@ interface SessionFilters {
 }
 
 // ============================================
-// AI GATEWAY CONFIGURATION
+// OPENROUTER CONFIGURATION
 // ============================================
 
 /**
- * Vercel AI Gateway Configuration
- * All models are routed through AI Gateway for unified access and observability
+ * OpenRouter Configuration
+ * All models are routed through OpenRouter for unified access to 300+ models
  *
- * Provider SDKs are configured to route through AI Gateway base URL
- * Models use format: 'creator/model-name' (e.g., 'openai/gpt-4o')
+ * OpenRouter is OpenAI-compatible, so we use the OpenAI SDK with custom baseURL
+ * Models use format: 'provider/model-name' (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4')
  *
- * Docs: https://vercel.com/docs/ai-gateway
+ * Docs: https://openrouter.ai/docs
  */
 
-const AI_GATEWAY_BASE_URL = 'https://ai-gateway.vercel.sh/v1';
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 
-// Provider type from model ID
-type AIProvider = 'openai' | 'anthropic' | 'google' | 'groq' | 'xai' | 'mistral' | 'perplexity' | 'cohere' | 'deepseek';
-
-function getProviderFromModelId(modelId: string): AIProvider {
-  const provider = modelId.split('/')[0];
-  return (provider as AIProvider) || 'openai';
+// Create OpenRouter provider instance (OpenAI-compatible)
+function createOpenRouterProvider(apiKey: string) {
+  return createOpenAI({
+    apiKey,
+    baseURL: OPENROUTER_BASE_URL,
+    headers: {
+      'HTTP-Referer': 'https://conversion.brain', // Required by OpenRouter
+      'X-Title': 'Conversion Brain', // Optional - shows in OpenRouter dashboard
+    },
+  });
 }
 
-function getModelNameFromId(modelId: string): string {
-  const parts = modelId.split('/');
-  return parts.length > 1 ? parts[1] : modelId;
-}
-
-// Create provider instances configured for AI Gateway
-function createProviderInstance(provider: AIProvider, apiKey: string) {
-  const headers = {
-    'x-vercel-ai-gateway-api-key': apiKey,
-  };
-
-  switch (provider) {
-    case 'anthropic':
-      return createAnthropic({
-        apiKey,
-        baseURL: `${AI_GATEWAY_BASE_URL}`,
-        headers,
-      });
-    case 'google':
-      return createGoogleGenerativeAI({
-        apiKey,
-        baseURL: `${AI_GATEWAY_BASE_URL}`,
-        headers,
-      });
-    // OpenAI-compatible providers (groq, xai, mistral, perplexity, cohere, deepseek)
-    // All route through AI Gateway using OpenAI SDK with provider header
-    default:
-      return createOpenAI({
-        apiKey,
-        baseURL: `${AI_GATEWAY_BASE_URL}`,
-        headers: {
-          ...headers,
-          'x-vercel-ai-provider': provider,
-        },
-      });
-  }
-}
-
-// Generate embedding for search query (always uses OpenAI via Gateway)
-async function generateQueryEmbedding(text: string, aiGatewayApiKey: string): Promise<number[]> {
-  const response = await fetch(`${AI_GATEWAY_BASE_URL}/embeddings`, {
+// Generate embedding for search query
+// Note: OpenRouter doesn't support embeddings, so we use OpenAI directly
+async function generateQueryEmbedding(text: string, openaiApiKey: string): Promise<number[]> {
+  const response = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${aiGatewayApiKey}`,
+      'Authorization': `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
@@ -252,11 +217,17 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // AI Gateway API Key - primary authentication for all providers
-    const aiGatewayApiKey = Deno.env.get('VERCEL_AI_GATEWAY_API_KEY') || Deno.env.get('AI_GATEWAY_API_KEY');
+    // OpenRouter API Key - primary authentication for all LLM calls
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
+    // OpenAI API Key - for embeddings only (OpenRouter doesn't support embeddings)
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
-    if (!aiGatewayApiKey) {
-      throw new Error('VERCEL_AI_GATEWAY_API_KEY or AI_GATEWAY_API_KEY must be configured');
+    if (!openrouterApiKey) {
+      throw new Error('OPENROUTER_API_KEY must be configured');
+    }
+
+    if (!openaiApiKey) {
+      throw new Error('OPENAI_API_KEY must be configured for embeddings');
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
@@ -292,15 +263,15 @@ Deno.serve(async (req) => {
       model?: string;
     } = await req.json();
 
-    // Model format: 'creator/model-name' (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4')
-    // If model doesn't include '/', assume it's an OpenAI model and prefix it
-    let selectedModel = requestedModel || 'openai/gpt-4o';
+    // Model format: 'provider/model-name' (e.g., 'z-ai/glm-4.6', 'openai/gpt-4o')
+    // OpenRouter uses this format directly - no translation needed
+    let selectedModel = requestedModel || 'z-ai/glm-4.6';
     if (!selectedModel.includes('/')) {
       // Legacy format - add openai prefix for backwards compatibility
       selectedModel = `openai/${selectedModel}`;
     }
 
-    console.log(`Using model: ${selectedModel} via AI Gateway`);
+    console.log(`Using model: ${selectedModel} via OpenRouter`);
 
     if (!messages || messages.length === 0) {
       return new Response(
@@ -347,8 +318,8 @@ Deno.serve(async (req) => {
         console.log(`Searching transcripts: "${query}" (limit: ${limit})`);
         const searchStartTime = Date.now();
 
-        // Generate query embedding (always uses OpenAI via Gateway)
-        const queryEmbedding = await generateQueryEmbedding(query, aiGatewayApiKey);
+        // Generate query embedding (uses OpenAI directly - OpenRouter doesn't support embeddings)
+        const queryEmbedding = await generateQueryEmbedding(query, openaiApiKey);
 
         // Step 1: Get more candidates for re-ranking (3x the requested limit, max 30)
         const candidateCount = Math.min(limit * 3, 30);
@@ -541,18 +512,15 @@ ${filterContext}
 
 Important: Only access transcripts belonging to the current user. Never fabricate information - if you can't find relevant data, say so.`;
 
-    // Create streaming response with selected model using AI Gateway
-    // Model string format: 'creator/model-name' (e.g., 'openai/gpt-4o')
-    const provider = getProviderFromModelId(selectedModel);
-    const modelName = getModelNameFromId(selectedModel);
+    // Create streaming response with selected model using OpenRouter
+    // OpenRouter uses the full model string directly (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4')
+    console.log(`Streaming with OpenRouter - Model: ${selectedModel}`);
 
-    console.log(`Streaming with AI Gateway - Provider: ${provider}, Model: ${modelName}`);
-
-    // Create the provider instance configured for AI Gateway
-    const providerInstance = createProviderInstance(provider, aiGatewayApiKey);
+    // Create the OpenRouter provider instance (OpenAI-compatible)
+    const openrouter = createOpenRouterProvider(openrouterApiKey);
 
     const result = await streamText({
-      model: providerInstance(modelName),
+      model: openrouter(selectedModel),
       system: systemPrompt,
       messages: messages.map(m => ({
         role: m.role,

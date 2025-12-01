@@ -16,32 +16,38 @@ import { useAuth } from '@/contexts/AuthContext';
 // ============================================================================
 
 export interface AIModel {
-  id: string; // Format: 'creator/model-name' (e.g., 'openai/gpt-4o')
+  id: string; // Format: 'provider/model-name' (e.g., 'openai/gpt-4o')
   name: string;
   provider: string;
+  providerDisplayName?: string;
   description?: string;
+  contextLength?: number;
   pricing?: {
-    input?: number;
-    output?: number;
+    prompt?: number;
+    completion?: number;
   };
+  isFeatured?: boolean;
 }
 
 interface AvailableModelsResponse {
   models: AIModel[];
   providers: string[];
+  providerDisplayNames?: Record<string, string>;
   defaultModel: string | null;
-  hasGateway: boolean;
+  hasOpenRouter: boolean;
+  totalCount?: number;
   error?: string;
 }
 
 // ============================================================================
-// Hook to fetch available models from AI Gateway
+// Hook to fetch available models from OpenRouter
 // ============================================================================
 
 export function useAvailableModels() {
   const { session } = useAuth();
   const [models, setModels] = React.useState<AIModel[]>([]);
   const [providers, setProviders] = React.useState<string[]>([]);
+  const [providerDisplayNames, setProviderDisplayNames] = React.useState<Record<string, string>>({});
   const [defaultModel, setDefaultModel] = React.useState<string | null>(null);
   const [isLoading, setIsLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
@@ -74,6 +80,7 @@ export function useAvailableModels() {
         } else {
           setModels(data.models);
           setProviders(data.providers);
+          setProviderDisplayNames(data.providerDisplayNames || {});
           setDefaultModel(data.defaultModel);
           setError(null);
         }
@@ -82,10 +89,11 @@ export function useAvailableModels() {
         setError(err instanceof Error ? err.message : 'Failed to load models');
         // Set fallback models
         setModels([
+          { id: 'z-ai/glm-4.6', name: 'GLM-4.6', provider: 'z-ai', description: 'Default model' },
           { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai', description: 'Most capable' },
           { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', description: 'Fast' },
         ]);
-        setDefaultModel('openai/gpt-4o');
+        setDefaultModel('z-ai/glm-4.6');
       } finally {
         setIsLoading(false);
       }
@@ -94,7 +102,7 @@ export function useAvailableModels() {
     fetchModels();
   }, [session?.access_token]);
 
-  return { models, providers, defaultModel, isLoading, error };
+  return { models, providers, providerDisplayNames, defaultModel, isLoading, error };
 }
 
 // ============================================================================
@@ -102,16 +110,22 @@ export function useAvailableModels() {
 // ============================================================================
 
 const PROVIDER_COLORS: Record<string, string> = {
+  'z-ai': 'bg-violet-600',
   openai: 'bg-emerald-500',
   anthropic: 'bg-orange-500',
   google: 'bg-blue-500',
   groq: 'bg-amber-500',
   xai: 'bg-slate-700',
+  mistralai: 'bg-indigo-500',
   mistral: 'bg-indigo-500',
   perplexity: 'bg-teal-500',
+  'meta-llama': 'bg-blue-600',
   meta: 'bg-blue-600',
   cohere: 'bg-rose-500',
   deepseek: 'bg-cyan-500',
+  qwen: 'bg-purple-500',
+  nvidia: 'bg-lime-600',
+  microsoft: 'bg-sky-500',
   togetherai: 'bg-purple-500',
   fireworks: 'bg-red-500',
   default: 'bg-gray-500',
@@ -153,7 +167,7 @@ export function ModelSelector({
   disabled = false,
   className,
 }: ModelSelectorProps) {
-  const { models, providers, defaultModel, isLoading, error } = useAvailableModels();
+  const { models, providers, providerDisplayNames, defaultModel, isLoading, error } = useAvailableModels();
 
   // Find selected model or use default
   const selectedModel = React.useMemo(() => {
@@ -229,7 +243,7 @@ export function ModelSelector({
             {idx > 0 && <DropdownMenuSeparator />}
             <DropdownMenuLabel className="flex items-center gap-2 text-[10px] uppercase text-cb-ink-muted">
               <ProviderIcon provider={provider} className="h-3 w-3" />
-              {provider}
+              {providerDisplayNames[provider] || provider}
             </DropdownMenuLabel>
             {modelsByProvider[provider]?.map((model) => (
               <DropdownMenuItem

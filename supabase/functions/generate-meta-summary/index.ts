@@ -8,6 +8,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// OpenRouter configuration (OpenAI-compatible)
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+
+function createOpenRouterProvider(apiKey: string) {
+  return createOpenAI({
+    apiKey,
+    baseURL: OPENROUTER_BASE_URL,
+    headers: {
+      'HTTP-Referer': 'https://conversion.brain',
+      'X-Title': 'Conversion Brain',
+    },
+  });
+}
+
 interface MetaSummaryRequest {
   recording_ids: number[];
   include_transcripts?: boolean;
@@ -35,11 +49,11 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 
-    if (!openaiApiKey) {
+    if (!openrouterApiKey) {
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ error: 'OpenRouter API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -148,11 +162,11 @@ Deno.serve(async (req) => {
     const startDate = new Date(calls[0].created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
     const endDate = new Date(calls[calls.length - 1].created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
-    // Generate meta-summary using GPT-4o
-    const openai = createOpenAI({ apiKey: openaiApiKey });
+    // Generate meta-summary using OpenRouter (GLM-4.6 via OpenRouter)
+    const openrouter = createOpenRouterProvider(openrouterApiKey);
 
     const result = await generateObject({
-      model: openai('gpt-4o'),
+      model: openrouter('z-ai/glm-4.6'),
       schema: MetaSummarySchema,
       prompt: `Analyze these ${calls.length} meeting summaries and create a comprehensive meta-summary.
 

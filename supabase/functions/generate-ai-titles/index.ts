@@ -8,6 +8,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// OpenRouter configuration
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+
+function createOpenRouterProvider(apiKey: string) {
+  return createOpenAI({
+    apiKey,
+    baseURL: OPENROUTER_BASE_URL,
+    headers: {
+      'HTTP-Referer': 'https://conversion.brain',
+      'X-Title': 'Conversion Brain',
+    },
+  });
+}
+
 interface GenerateTitlesRequest {
   recordingIds?: number[];
   auto_discover?: boolean;  // Find all calls without AI titles
@@ -33,11 +47,11 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 
-    if (!openaiApiKey) {
+    if (!openrouterApiKey) {
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ error: 'OpenRouter API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -109,14 +123,8 @@ Deno.serve(async (req) => {
     console.log(`Generating AI titles for ${idsToProcess.length} calls for user ${user.id}`);
 
     const results = [];
-    // Use Vercel AI Gateway for observability and provider management
-    const openai = createOpenAI({
-      apiKey: openaiApiKey,
-      baseURL: 'https://gateway.ai.vercel.dev/v1',
-      headers: {
-        'x-vercel-ai-provider': 'openai',
-      },
-    });
+    // Use OpenRouter for model access
+    const openrouter = createOpenRouterProvider(openrouterApiKey);
 
     for (const recordingId of idsToProcess) {
       try {
@@ -158,7 +166,7 @@ Deno.serve(async (req) => {
 
         // Generate improved title using Vercel AI SDK via AI Gateway
         const result = await generateObject({
-          model: openai('gpt-4o-mini'),
+          model: openrouter('z-ai/glm-4.6'),
           schema: TitleSchema,
           prompt: `You are an expert at analyzing sales calls, coaching sessions, and business meetings to extract the CORE PURPOSE and PRIMARY OUTCOME.
 

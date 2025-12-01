@@ -8,6 +8,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// OpenRouter configuration
+const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
+
+function createOpenRouterProvider(apiKey: string) {
+  return createOpenAI({
+    apiKey,
+    baseURL: OPENROUTER_BASE_URL,
+    headers: {
+      'HTTP-Referer': 'https://conversion.brain',
+      'X-Title': 'Conversion Brain',
+    },
+  });
+}
+
 interface AutoTagRequest {
   recordingIds: number[];
 }
@@ -193,11 +207,11 @@ Deno.serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
 
-    if (!openaiApiKey) {
+    if (!openrouterApiKey) {
       return new Response(
-        JSON.stringify({ error: 'OpenAI API key not configured' }),
+        JSON.stringify({ error: 'OpenRouter API key not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -244,7 +258,7 @@ Deno.serve(async (req) => {
     const historicalContext = buildHistoricalContext(historicalPatterns);
 
     const results = [];
-    const openai = createOpenAI({ apiKey: openaiApiKey });
+    const openrouter = createOpenRouterProvider(openrouterApiKey);
 
     for (const recordingId of recordingIds) {
       try {
@@ -291,9 +305,9 @@ Deno.serve(async (req) => {
           call.full_transcript ? `Transcript excerpt: ${call.full_transcript.substring(0, 2000)}` : '',
         ].filter(Boolean).join('\n\n');
 
-        // Generate tag using Vercel AI SDK with preferences and history
+        // Generate tag using OpenRouter via AI SDK with preferences and history
         const result = await generateObject({
-          model: openai('gpt-4o-mini'),
+          model: openrouter('z-ai/glm-4.6'),
           schema: TagSchema,
           prompt: `Analyze this meeting call and assign the SINGLE most appropriate tag.
 
