@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
-import { streamText, tool, convertToModelMessages } from 'https://esm.sh/ai@5.0.102';
+import { streamText, tool, convertToModelMessages, stepCountIs } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 
 const corsHeaders = {
@@ -277,7 +277,8 @@ Deno.serve(async (req) => {
 
     // Model format: 'provider/model-name' (e.g., 'z-ai/glm-4.6', 'openai/gpt-4o')
     // OpenRouter uses this format directly - no translation needed
-    let selectedModel = requestedModel || 'z-ai/glm-4.6';
+    // Default: GPT-4.1-nano - fastest/cheapest with 1M context and good tool calling
+    let selectedModel = requestedModel || 'openai/gpt-4.1-nano';
     if (!selectedModel.includes('/')) {
       // Legacy format - add openai prefix for backwards compatibility
       selectedModel = `openai/${selectedModel}`;
@@ -544,13 +545,31 @@ Important: Only access transcripts belonging to the current user. Never fabricat
         getCallDetails: getCallDetailsTool,
         summarizeCalls: summarizeCallsTool,
       },
-      maxSteps: 5, // AI SDK v5 uses maxSteps for tool roundtrips
+      // AI SDK v5: Use stopWhen instead of maxSteps
+      // stopWhen is evaluated after steps with tool results
+      // This allows up to 5 tool-calling steps before forcing stop
+      stopWhen: stepCountIs(5),
+      // Debug: Log each step to understand what's happening
+      onStepFinish: ({ stepType, finishReason, toolCalls, toolResults }) => {
+        console.log(`Step finished - Type: ${stepType}, Finish: ${finishReason}`);
+        if (toolCalls?.length) {
+          console.log(`Tool calls: ${toolCalls.map(tc => tc.toolName).join(', ')}`);
+        }
+        if (toolResults?.length) {
+          console.log(`Tool results received: ${toolResults.length}`);
+        }
+      },
     });
 
     // Use toUIMessageStreamResponse for AI SDK v5
     // This ensures tool calls and tool results are properly streamed to the client
     return result.toUIMessageStreamResponse({
       headers: corsHeaders,
+      // Handle errors gracefully
+      onError: (error) => {
+        console.error('Stream error:', error);
+        return { message: error instanceof Error ? error.message : 'Unknown streaming error' };
+      },
     });
 
   } catch (error) {

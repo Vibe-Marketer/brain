@@ -42,11 +42,11 @@ const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
 
 // Provider order for display (preferred providers first)
 const PROVIDER_ORDER = [
-  'z-ai',
-  'openai',
+  'openai',     // OpenAI first - GPT-4.1 series is default
   'anthropic',
   'google',
   'xai',
+  'z-ai',
   'meta-llama',
   'mistralai',
   'deepseek',
@@ -59,10 +59,10 @@ const PROVIDER_ORDER = [
 
 // Featured models to prioritize (show at top of each provider section)
 const FEATURED_MODELS = new Set([
-  // Z.AI (default)
-  'z-ai/glm-4.6',
-  // OpenAI
-  'openai/gpt-4.1',
+  // OpenAI GPT-4.1 series (newest, most economical)
+  'openai/gpt-4.1-nano',  // Fastest/cheapest - default for chat
+  'openai/gpt-4.1-mini',  // Mid-tier, great performance
+  'openai/gpt-4.1',       // Full GPT-4.1
   'openai/gpt-4o',
   'openai/gpt-4o-mini',
   'openai/o1',
@@ -81,6 +81,8 @@ const FEATURED_MODELS = new Set([
   // xAI
   'xai/grok-3-beta',
   'xai/grok-2-1212',
+  // Z.AI
+  'z-ai/glm-4.6',
   // Meta
   'meta-llama/llama-3.3-70b-instruct',
   'meta-llama/llama-3.1-405b-instruct',
@@ -206,8 +208,10 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Default to z-ai/glm-4.6 if available, otherwise first featured model
-    const defaultModel = languageModels.find((m) => m.id === 'z-ai/glm-4.6')?.id
+    // Default to GPT-4.1-nano (fastest/cheapest) if available, otherwise first featured model
+    const defaultModel = languageModels.find((m) => m.id === 'openai/gpt-4.1-nano')?.id
+      || languageModels.find((m) => m.id === 'openai/gpt-4.1-mini')?.id
+      || languageModels.find((m) => m.id === 'openai/gpt-4o-mini')?.id
       || languageModels.find((m) => m.isFeatured)?.id
       || languageModels[0]?.id
       || null;
@@ -233,21 +237,23 @@ Deno.serve(async (req) => {
 
     // Return fallback models if OpenRouter fails
     const fallbackModels = [
-      { id: 'z-ai/glm-4.6', name: 'GLM-4.6', provider: 'z-ai', providerDisplayName: 'Z.AI', isFeatured: true },
+      { id: 'openai/gpt-4.1-nano', name: 'GPT-4.1 Nano', provider: 'openai', providerDisplayName: 'OpenAI', isFeatured: true },
+      { id: 'openai/gpt-4.1-mini', name: 'GPT-4.1 Mini', provider: 'openai', providerDisplayName: 'OpenAI', isFeatured: true },
       { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai', providerDisplayName: 'OpenAI', isFeatured: true },
       { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', providerDisplayName: 'OpenAI', isFeatured: true },
       { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', provider: 'anthropic', providerDisplayName: 'Anthropic', isFeatured: true },
       { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'anthropic', providerDisplayName: 'Anthropic', isFeatured: true },
       { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'google', providerDisplayName: 'Google', isFeatured: true },
       { id: 'xai/grok-3-beta', name: 'Grok 3', provider: 'xai', providerDisplayName: 'xAI', isFeatured: true },
+      { id: 'z-ai/glm-4.6', name: 'GLM-4.6', provider: 'z-ai', providerDisplayName: 'Z.AI', isFeatured: true },
     ];
 
     return new Response(
       JSON.stringify({
         models: fallbackModels,
-        providers: ['z-ai', 'openai', 'anthropic', 'google', 'xai'],
+        providers: ['openai', 'anthropic', 'google', 'xai', 'z-ai'],
         providerDisplayNames: PROVIDER_DISPLAY_NAMES,
-        defaultModel: 'z-ai/glm-4.6',
+        defaultModel: 'openai/gpt-4.1-nano',
         hasOpenRouter: false,
         error: error instanceof Error ? error.message : 'Failed to fetch models from OpenRouter',
       }),

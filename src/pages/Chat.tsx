@@ -177,9 +177,9 @@ export default function Chat() {
   // Input state - managed locally (AI SDK v5 doesn't manage input)
   const [input, setInput] = React.useState('');
 
-  // Selected model state - format: 'creator/model-name' (e.g., 'z-ai/glm-4.6')
-  // Default to GLM-4.6 as the primary model (via OpenRouter)
-  const [selectedModel, setSelectedModel] = React.useState<string>('z-ai/glm-4.6');
+  // Selected model state - format: 'provider/model-name' (e.g., 'openai/gpt-4.1-nano')
+  // Default to GPT-4.1 Nano - fastest/cheapest model with good tool calling (via OpenRouter)
+  const [selectedModel, setSelectedModel] = React.useState<string>('openai/gpt-4.1-nano');
 
   // CallDetailDialog state for viewing sources
   const [selectedCall, setSelectedCall] = React.useState<Meeting | null>(null);
