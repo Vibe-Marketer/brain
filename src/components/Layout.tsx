@@ -1,9 +1,14 @@
 import { MacOSDock, DockApp } from "@/components/ui/mac-os-dock";
 import { TopBar } from "@/components/ui/top-bar";
 import { useNavigate, useLocation } from "react-router-dom";
-import { RiChat1Fill, RiPriceTag3Fill } from "@remixicon/react";
-import homeIcon from '@/assets/icons/home.svg';
-import settingsIcon from '@/assets/icons/settings.svg';
+import { RiHome4Fill, RiChat1Fill, RiPriceTag3Fill, RiSettings3Fill } from "@remixicon/react";
+
+// Consistent dock icon wrapper - white background with black icon
+const DockIcon = ({ children }: { children: React.ReactNode }) => (
+  <div className="w-full h-full flex items-center justify-center rounded-xl bg-white border border-gray-200 shadow-sm">
+    {children}
+  </div>
+);
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -13,25 +18,25 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     {
       id: 'home',
       name: 'Home',
-      icon: <img src={homeIcon} alt="Home" className="w-full h-full object-cover rounded-xl" />,
+      icon: <DockIcon><RiHome4Fill className="w-6 h-6 text-cb-black" /></DockIcon>,
       onClick: () => navigate('/'),
     },
     {
       id: 'chat',
       name: 'AI Chat',
-      icon: <div className="w-full h-full flex items-center justify-center rounded-xl bg-gradient-to-br from-cb-vibe-green/80 to-cb-vibe-green"><RiChat1Fill className="w-7 h-7 text-cb-ink-primary" /></div>,
+      icon: <DockIcon><RiChat1Fill className="w-6 h-6 text-cb-black" /></DockIcon>,
       onClick: () => navigate('/chat'),
     },
     {
       id: 'categorization',
       name: 'Tags',
-      icon: <div className="w-full h-full flex items-center justify-center rounded-xl bg-gradient-to-br from-violet-500/80 to-purple-600"><RiPriceTag3Fill className="w-7 h-7 text-white" /></div>,
+      icon: <DockIcon><RiPriceTag3Fill className="w-6 h-6 text-cb-black" /></DockIcon>,
       onClick: () => navigate('/categorization'),
     },
     {
       id: 'settings',
       name: 'Settings',
-      icon: <img src={settingsIcon} alt="Settings" className="w-full h-full object-cover rounded-xl" />,
+      icon: <DockIcon><RiSettings3Fill className="w-6 h-6 text-cb-black" /></DockIcon>,
       onClick: () => navigate('/settings'),
     },
   ];
