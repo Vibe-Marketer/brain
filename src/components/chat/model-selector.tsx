@@ -89,9 +89,9 @@ export function useAvailableModels() {
         setError(err instanceof Error ? err.message : 'Failed to load models');
         // Set fallback models
         setModels([
-          { id: 'z-ai/glm-4.6', name: 'GLM-4.6', provider: 'z-ai', description: 'Default model' },
-          { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai', description: 'Most capable' },
-          { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', description: 'Fast' },
+          { id: 'z-ai/glm-4.6', name: 'GLM-4.6', provider: 'z-ai' },
+          { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai' },
+          { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai' },
         ]);
         setDefaultModel('z-ai/glm-4.6');
       } finally {
@@ -250,16 +250,11 @@ export function ModelSelector({
                 key={model.id}
                 onClick={() => onValueChange?.(model.id)}
                 className={cn(
-                  'flex items-center gap-2 cursor-pointer ml-2',
+                  'flex items-center justify-between gap-2 cursor-pointer ml-2',
                   model.id === selectedModel.id && 'bg-cb-hover'
                 )}
               >
-                <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-                  <span className="text-sm font-medium truncate">{model.name}</span>
-                  {model.description && (
-                    <span className="text-[10px] text-cb-ink-muted">{model.description}</span>
-                  )}
-                </div>
+                <span className="text-sm font-medium truncate">{model.name}</span>
                 {model.id === selectedModel.id && (
                   <span className="h-1.5 w-1.5 rounded-full bg-vibe-green flex-shrink-0" />
                 )}

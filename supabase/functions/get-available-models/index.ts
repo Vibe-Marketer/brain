@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
           name: m.name || m.id.split('/')[1] || m.id,
           provider: provider,
           providerDisplayName: PROVIDER_DISPLAY_NAMES[provider] || provider,
-          description: m.description || '',
+          // Don't send long descriptions - just use model name in dropdown
           contextLength: m.context_length,
           pricing: {
             prompt: promptPrice,
@@ -233,13 +233,13 @@ Deno.serve(async (req) => {
 
     // Return fallback models if OpenRouter fails
     const fallbackModels = [
-      { id: 'z-ai/glm-4.6', name: 'GLM-4.6', provider: 'z-ai', providerDisplayName: 'Z.AI', description: 'Default model', isFeatured: true },
-      { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai', providerDisplayName: 'OpenAI', description: 'Most capable, multimodal', isFeatured: true },
-      { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', providerDisplayName: 'OpenAI', description: 'Fast and efficient', isFeatured: true },
-      { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', provider: 'anthropic', providerDisplayName: 'Anthropic', description: 'Latest Claude model', isFeatured: true },
-      { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'anthropic', providerDisplayName: 'Anthropic', description: 'Balanced quality & speed', isFeatured: true },
-      { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'google', providerDisplayName: 'Google', description: 'Fast multimodal', isFeatured: true },
-      { id: 'xai/grok-3-beta', name: 'Grok 3', provider: 'xai', providerDisplayName: 'xAI', description: 'Latest xAI model', isFeatured: true },
+      { id: 'z-ai/glm-4.6', name: 'GLM-4.6', provider: 'z-ai', providerDisplayName: 'Z.AI', isFeatured: true },
+      { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai', providerDisplayName: 'OpenAI', isFeatured: true },
+      { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', providerDisplayName: 'OpenAI', isFeatured: true },
+      { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', provider: 'anthropic', providerDisplayName: 'Anthropic', isFeatured: true },
+      { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'anthropic', providerDisplayName: 'Anthropic', isFeatured: true },
+      { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'google', providerDisplayName: 'Google', isFeatured: true },
+      { id: 'xai/grok-3-beta', name: 'Grok 3', provider: 'xai', providerDisplayName: 'xAI', isFeatured: true },
     ];
 
     return new Response(
