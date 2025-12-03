@@ -104,15 +104,14 @@ export function CallDetailDialog({
     onDataChange,
   });
 
-  // Update local state when call changes
+  // Update local state when call changes or dialog opens
   useEffect(() => {
-    if (call?.title) {
-      setEditedTitle(call.title);
+    if (open && call) {
+      setEditedTitle(call.title || "");
+      setEditedSummary(call.summary || "");
+      setIsEditing(false); // Reset editing state when opening
     }
-    if (call?.summary) {
-      setEditedSummary(call.summary);
-    }
-  }, [call]);
+  }, [call, open]);
 
   // Persist timestamps preference
   useEffect(() => {

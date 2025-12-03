@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { tagSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
+import { Meeting } from "@/types/meetings";
 
 import { TranscriptTable } from "@/components/transcript-library/TranscriptTable";
 import { CallDetailDialog } from "@/components/CallDetailDialog";
@@ -70,7 +71,7 @@ export function TranscriptsTab() {
 
   // Selection & interaction state
   const [selectedCalls, setSelectedCalls] = useState<number[]>([]);
-  const [selectedCall, setSelectedCall] = useState<any>(null);
+  const [selectedCall, setSelectedCall] = useState<Meeting | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [hostEmail, setHostEmail] = useState<string>("");
 
@@ -611,7 +612,11 @@ export function TranscriptsTab() {
         <CallDetailDialog
           call={selectedCall}
           open={!!selectedCall}
-          onOpenChange={(open) => !open && setSelectedCall(null)}
+          onOpenChange={(open) => {
+            if (!open) {
+              setSelectedCall(null);
+            }
+          }}
         />
       )}
 

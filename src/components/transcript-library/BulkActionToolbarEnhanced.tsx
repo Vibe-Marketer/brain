@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import SmartExportDialog from "@/components/SmartExportDialog";
-import { TagManagementDialog } from "./TagManagementDialog";
+import ManualTagDialog from "@/components/ManualTagDialog";
 import { ActionButton } from "./ActionButton";
 import { TagDropdown } from "./TagDropdown";
 import { ExportDropdown } from "./ExportDropdown";
@@ -37,7 +37,7 @@ export function BulkActionToolbarEnhanced({
   onAssignFolder,
 }: BulkActionToolbarEnhancedProps) {
   const [showSmartExport, setShowSmartExport] = useState(false);
-  const [showTagDialog, setShowTagDialog] = useState(false);
+  const [showManualTagDialog, setShowManualTagDialog] = useState(false);
 
   if (selectedCount === 0) return null;
 
@@ -71,33 +71,6 @@ export function BulkActionToolbarEnhanced({
 
   const handleShare = () => {
     toast.info("Share feature coming soon");
-  };
-
-  const handleTag = () => {
-    setShowTagDialog(true);
-  };
-
-  const handleSaveTags = async (tags: string[]) => {
-    try {
-      const recordingIds = selectedCalls.map(c => c.recording_id);
-      
-      // Update tags for all selected calls
-      const { error } = await supabase
-        .from('fathom_calls')
-        .update({ 
-          auto_tags: tags,
-          auto_tags_generated_at: new Date().toISOString()
-        })
-        .in('recording_id', recordingIds);
-
-      if (error) throw error;
-
-      toast.success(`Updated tags for ${selectedCount} call${selectedCount > 1 ? 's' : ''}`);
-      onClearSelection();
-    } catch (error) {
-      logger.error('Error updating tags', error);
-      toast.error('Failed to update tags');
-    }
   };
 
   const handleGenerateAITitles = async () => {
@@ -188,8 +161,9 @@ export function BulkActionToolbarEnhanced({
 
           <ActionButton
             icon={RiPriceTag3Line}
-            label="Tag"
-            onClick={handleTag}
+            label="Manage Tags"
+            onClick={() => setShowManualTagDialog(true)}
+            title="Manually assign tags to selected transcripts"
           />
 
           <ActionButton
@@ -242,11 +216,14 @@ export function BulkActionToolbarEnhanced({
         selectedCalls={selectedCalls}
       />
 
-      <TagManagementDialog
-        open={showTagDialog}
-        onOpenChange={setShowTagDialog}
-        selectedCalls={selectedCalls}
-        onSaveTags={handleSaveTags}
+      <ManualTagDialog
+        open={showManualTagDialog}
+        onOpenChange={setShowManualTagDialog}
+        recordingIds={selectedCalls.map(c => String(c.recording_id))}
+        onTagsUpdated={() => {
+          setShowManualTagDialog(false);
+          onClearSelection();
+        }}
       />
     </div>
   );

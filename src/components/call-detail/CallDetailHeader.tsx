@@ -32,6 +32,11 @@ export function CallDetailHeader({
   isSaving,
   onChatWithAI,
 }: CallDetailHeaderProps) {
+  // Defensive null check
+  if (!call) {
+    return null;
+  }
+
   return (
     <DialogHeader className="flex-shrink-0">
       <span id="call-detail-description" className="sr-only">
@@ -64,12 +69,12 @@ export function CallDetailHeader({
           </div>
         </DialogTitle>
         <div className="flex gap-2">
-          {call.share_url && (
+          {call?.share_url && (
             <>
               <Button
                 variant="hollow"
                 size="sm"
-                onClick={() => window.open(call.share_url, "_blank")}
+                onClick={() => call?.share_url && window.open(call.share_url, "_blank")}
               >
                 <RiVidiconLine className="h-4 w-4 mr-2" />
                 VIEW
@@ -78,8 +83,10 @@ export function CallDetailHeader({
                 variant="hollow"
                 size="sm"
                 onClick={() => {
-                  navigator.clipboard.writeText(call.share_url);
-                  toast.success("Link copied to clipboard");
+                  if (call?.share_url) {
+                    navigator.clipboard.writeText(call.share_url);
+                    toast.success("Link copied to clipboard");
+                  }
                 }}
               >
                 <RiFileCopyLine className="h-4 w-4 mr-2" />
@@ -94,8 +101,8 @@ export function CallDetailHeader({
                 size="sm"
                 onClick={() => {
                   setIsEditing(false);
-                  setEditedTitle(call.title);
-                  setEditedSummary(call.summary || "");
+                  setEditedTitle(call?.title || "");
+                  setEditedSummary(call?.summary || "");
                 }}
               >
                 <RiCloseLine className="h-4 w-4 mr-2" />
