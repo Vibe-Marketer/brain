@@ -77,7 +77,7 @@ export function BulkActionToolbarEnhanced({
     const loadingToast = toast.loading(`Generating AI titles for ${selectedCount} call${selectedCount > 1 ? 's' : ''}...`);
 
     try {
-      const recordingIds = selectedCalls.map(c => c.recording_id);
+      const recordingIds = selectedCalls.map(c => Number(c.recording_id));
       const { data, error } = await generateAiTitles(recordingIds);
 
       if (error) {
@@ -99,7 +99,7 @@ export function BulkActionToolbarEnhanced({
     const loadingToast = toast.loading(`AI tagging ${selectedCount} call${selectedCount > 1 ? 's' : ''}...`);
 
     try {
-      const recordingIds = selectedCalls.map(c => c.recording_id);
+      const recordingIds = selectedCalls.map(c => Number(c.recording_id));
       const { data, error } = await autoTagCalls(recordingIds);
 
       if (error) {
