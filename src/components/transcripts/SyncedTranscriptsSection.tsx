@@ -83,8 +83,8 @@ export function SyncedTranscriptsSection({
       <TranscriptTable
         calls={filteredExistingTranscripts}
         selectedCalls={selectedExistingTranscripts}
-        categories={categories}
-        categoryAssignments={categoryAssignments}
+        tags={categories}
+        tagAssignments={categoryAssignments}
         hostEmail={hostEmail}
         totalCount={existingTotalCount}
         page={existingPage}

@@ -97,8 +97,8 @@ export function UnsyncedMeetingsSection({
           summary: null,
         }))}
         selectedCalls={Array.from(selectedMeetings)} // Keep as string[] - no conversion
-        categories={categories}
-        categoryAssignments={{}}
+        tags={categories}
+        tagAssignments={{}}
         hostEmail={hostEmail}
         totalCount={meetings.length}
         page={1}
