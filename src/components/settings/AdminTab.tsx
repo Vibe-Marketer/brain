@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { UserTable } from "@/components/settings/UserTable";
 import { exportDatabaseDirect } from "@/lib/api-client";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserProfile {
   user_id: string;
@@ -74,8 +75,6 @@ export default function AdminTab() {
 
   const loadSystemData = async () => {
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-
       // Fetch all user profiles with emails (ADMIN can see all via RLS policy)
       const { data: profiles, error } = await supabase
         .from("user_profiles")
@@ -147,7 +146,6 @@ export default function AdminTab() {
   const handleRoleChange = async (userId: string, newRole: "FREE" | "PRO" | "TEAM" | "ADMIN") => {
     try {
       setUpdatingUserId(userId);
-      const { supabase } = await import("@/integrations/supabase/client");
 
       // Delete old role
       await supabase

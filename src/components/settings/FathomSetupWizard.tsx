@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl } from "@/lib/api-client";
+import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,7 +114,6 @@ export default function FathomSetupWizard({ open, onComplete: _onComplete, onDis
   const saveCredentials = async () => {
     try {
       setSaving(true);
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {

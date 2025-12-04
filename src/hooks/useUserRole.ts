@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { supabase } from "@/integrations/supabase/client";
 
 type UserRole = "FREE" | "PRO" | "TEAM" | "ADMIN";
 
@@ -25,8 +26,6 @@ export function useUserRole(): UserRoleData {
   useEffect(() => {
     async function fetchUserRole() {
       try {
-        const { supabase } = await import("@/integrations/supabase/client");
-
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
           logger.warn("No authenticated user found");

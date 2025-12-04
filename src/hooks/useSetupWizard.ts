@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SetupWizardData {
   wizardCompleted: boolean;
@@ -19,8 +20,6 @@ export function useSetupWizard(): SetupWizardData {
 
   const checkWizardStatus = useCallback(async () => {
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         // Expected on login page - not an error condition
@@ -90,8 +89,6 @@ export function useSetupWizard(): SetupWizardData {
 
   const markWizardComplete = useCallback(async () => {
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
-
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         logger.error("Cannot mark wizard complete: no authenticated user");

@@ -13,6 +13,7 @@ import {
 import { RiEditLine, RiCheckboxCircleLine, RiCloseCircleLine, RiLoader2Line, RiEyeLine, RiEyeOffLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { supabase } from "@/integrations/supabase/client";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -59,7 +60,6 @@ export default function AccountTab() {
 
   const loadProfileData = async () => {
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data: { user } } = await supabase.auth.getUser();
 
       if (user) {
@@ -93,7 +93,6 @@ export default function AccountTab() {
   const saveProfile = async () => {
     try {
       setProfileSaving(true);
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) return;
@@ -119,7 +118,6 @@ export default function AccountTab() {
   const saveTimezone = async () => {
     try {
       setTimezoneSaving(true);
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) return;
@@ -139,7 +137,6 @@ export default function AccountTab() {
   const saveHostEmail = async () => {
     try {
       setHostEmailSaving(true);
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) return;
@@ -175,7 +172,6 @@ export default function AccountTab() {
 
     try {
       setChangingPassword(true);
-      const { supabase } = await import("@/integrations/supabase/client");
 
       const { error } = await supabase.auth.updateUser({
         password: newPassword,

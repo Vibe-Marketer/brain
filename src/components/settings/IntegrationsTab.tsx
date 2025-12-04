@@ -108,7 +108,6 @@ export default function IntegrationsTab() {
 
   const loadIntegrationStatus = async () => {
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) return;
@@ -160,7 +159,6 @@ export default function IntegrationsTab() {
   const handleSaveCredentials = async () => {
     try {
       setSavingCredentials(true);
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {

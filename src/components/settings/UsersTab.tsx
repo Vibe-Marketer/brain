@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { useUserRole } from "@/hooks/useUserRole";
 import { UserTable } from "@/components/settings/UserTable";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserProfile {
   user_id: string;
@@ -29,7 +30,6 @@ export default function UsersTab() {
 
   const loadUsers = async () => {
     try {
-      const { supabase } = await import("@/integrations/supabase/client");
       const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) return;
@@ -87,7 +87,6 @@ export default function UsersTab() {
 
     try {
       setUpdatingUserId(userId);
-      const { supabase } = await import("@/integrations/supabase/client");
 
       // Delete old role
       await supabase

@@ -15,9 +15,10 @@ export function initSentry() {
     // Send default PII data (IP address, etc.)
     sendDefaultPii: true,
 
-    // Enable logs to be sent to Sentry
+    // Enable experimental features
     _experiments: {
       enableLogs: true,
+      metricsAggregator: true, // Enable metrics aggregation
     },
 
     integrations: [
@@ -30,8 +31,8 @@ export function initSentry() {
       }),
     ],
 
-    // Tracing - capture 100% in dev, 10% in production
-    tracesSampleRate: import.meta.env.DEV ? 1.0 : 0.1,
+    // Capture 100% of transactions for full visibility
+    tracesSampleRate: 1.0,
 
     // Control distributed tracing targets
     tracePropagationTargets: [
@@ -40,23 +41,14 @@ export function initSentry() {
       /^https:\/\/.*\.supabase\.co/,
     ],
 
-    // Session Replay
-    replaysSessionSampleRate: import.meta.env.DEV ? 1.0 : 0.1, // 100% in dev, 10% in prod
-    replaysOnErrorSampleRate: 1.0, // Always capture replays when errors occur
+    // Session Replay - capture 100% for full debugging
+    replaysSessionSampleRate: 1.0,
+    replaysOnErrorSampleRate: 1.0,
 
-    // Filter out noisy errors
+    // Only filter browser extension errors (not actionable)
     ignoreErrors: [
-      // Browser extensions
       /^chrome-extension:\/\//,
       /^moz-extension:\/\//,
-      // Network errors that aren't actionable
-      "Network Error",
-      "Failed to fetch",
-      "Load failed",
-      // User-initiated navigation
-      "AbortError",
-      // Resize observer (browser bug, not actionable)
-      "ResizeObserver loop",
     ],
 
     // Add context to errors
@@ -75,3 +67,19 @@ export { Sentry };
 
 // Export logger for structured logging
 export const logger = Sentry.logger;
+
+// Export metrics helpers for easy usage
+export const metrics = {
+  count: (name: string, value: number = 1, tags?: Record<string, string>) => {
+    Sentry.metrics.increment(name, value, { tags });
+  },
+  gauge: (name: string, value: number, tags?: Record<string, string>) => {
+    Sentry.metrics.gauge(name, value, { tags });
+  },
+  distribution: (name: string, value: number, tags?: Record<string, string>) => {
+    Sentry.metrics.distribution(name, value, { tags });
+  },
+  set: (name: string, value: string | number, tags?: Record<string, string>) => {
+    Sentry.metrics.set(name, value, { tags });
+  },
+};
