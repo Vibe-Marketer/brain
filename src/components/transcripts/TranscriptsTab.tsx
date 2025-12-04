@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import { tagSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
 import { Meeting } from "@/types/meetings";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 import { TranscriptTable } from "@/components/transcript-library/TranscriptTable";
 import { CallDetailDialog } from "@/components/CallDetailDialog";
@@ -523,29 +524,31 @@ export function TranscriptsTab() {
 
         {/* Bulk Actions Toolbar */}
         {selectedCalls.length > 0 && (
-          <BulkActionToolbarEnhanced
-            selectedCount={selectedCalls.length}
-            selectedCalls={calls.filter(c => c && c.recording_id && selectedCalls.includes(c.recording_id))}
-            tags={tags}
-            onTag={(tagId) => {
-              tagMutation.mutate({
-                callIds: selectedCalls,
-                tagId,
-              });
-            }}
-            onRemoveTag={() => {
-              untagMutation.mutate({
-                callIds: selectedCalls,
-              });
-            }}
-            onClearSelection={() => setSelectedCalls([])}
-            onDelete={handleDeleteCalls}
-            onCreateNewTag={() => {
-              setIsQuickCreateOpen(true);
-              setPendingTagTranscripts(selectedCalls);
-            }}
-            onAssignFolder={() => setFolderDialogOpen(true)}
-          />
+          <ErrorBoundary>
+            <BulkActionToolbarEnhanced
+              selectedCount={selectedCalls.length}
+              selectedCalls={calls.filter(c => c && c.recording_id && selectedCalls.includes(c.recording_id))}
+              tags={tags}
+              onTag={(tagId) => {
+                tagMutation.mutate({
+                  callIds: selectedCalls,
+                  tagId,
+                });
+              }}
+              onRemoveTag={() => {
+                untagMutation.mutate({
+                  callIds: selectedCalls,
+                });
+              }}
+              onClearSelection={() => setSelectedCalls([])}
+              onDelete={handleDeleteCalls}
+              onCreateNewTag={() => {
+                setIsQuickCreateOpen(true);
+                setPendingTagTranscripts(selectedCalls);
+              }}
+              onAssignFolder={() => setFolderDialogOpen(true)}
+            />
+          </ErrorBoundary>
         )}
 
         {selectedCalls.length > 0 && <Separator className="my-12" />}
@@ -565,44 +568,46 @@ export function TranscriptsTab() {
           <>
             {/* AI Processing Progress */}
             <AIProcessingProgress onJobsComplete={() => queryClient.invalidateQueries({ queryKey: ["transcript-calls"] })} />
-            
-            <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
-              <TranscriptTable
-                calls={calls}
-                selectedCalls={selectedCalls}
-                onSelectCall={(callId) => {
-                  if (selectedCalls.includes(callId)) {
-                    setSelectedCalls(selectedCalls.filter(id => id !== callId));
-                  } else {
-                    setSelectedCalls([...selectedCalls, callId]);
+
+            <ErrorBoundary>
+              <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
+                <TranscriptTable
+                  calls={calls}
+                  selectedCalls={selectedCalls}
+                  onSelectCall={(callId) => {
+                    if (selectedCalls.includes(callId)) {
+                      setSelectedCalls(selectedCalls.filter(id => id !== callId));
+                    } else {
+                      setSelectedCalls([...selectedCalls, callId]);
+                    }
+                  }}
+                  onSelectAll={() => {
+                    if (selectedCalls.length === calls.length) {
+                      setSelectedCalls([]);
+                    } else {
+                      setSelectedCalls(calls.filter(c => c && c.recording_id).map(c => c.recording_id));
+                    }
+                  }}
+                  onCallClick={(call) => setSelectedCall(call)}
+                  tags={tags}
+                  tagAssignments={tagAssignments}
+                  folders={folders}
+                  folderAssignments={folderAssignments}
+                  onFolderCall={(callId) => setFolderingCallId(callId as number)}
+                  totalCount={totalCount}
+                  page={page}
+                  pageSize={pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                  hostEmail={hostEmail}
+                  visibleColumns={visibleColumns}
+                  onToggleColumn={(columnId) =>
+                    setVisibleColumns((prev) => ({ ...prev, [columnId]: !prev[columnId] }))
                   }
-                }}
-                onSelectAll={() => {
-                  if (selectedCalls.length === calls.length) {
-                    setSelectedCalls([]);
-                  } else {
-                    setSelectedCalls(calls.filter(c => c && c.recording_id).map(c => c.recording_id));
-                  }
-                }}
-                onCallClick={(call) => setSelectedCall(call)}
-                tags={tags}
-                tagAssignments={tagAssignments}
-                folders={folders}
-                folderAssignments={folderAssignments}
-                onFolderCall={(callId) => setFolderingCallId(callId as number)}
-                totalCount={totalCount}
-                page={page}
-                pageSize={pageSize}
-                onPageChange={setPage}
-                onPageSizeChange={setPageSize}
-                hostEmail={hostEmail}
-                visibleColumns={visibleColumns}
-                onToggleColumn={(columnId) =>
-                  setVisibleColumns((prev) => ({ ...prev, [columnId]: !prev[columnId] }))
-                }
-                onExport={() => setSmartExportOpen(true)}
-              />
-            </div>
+                  onExport={() => setSmartExportOpen(true)}
+                />
+              </div>
+            </ErrorBoundary>
           </>
         )}
       </div>
