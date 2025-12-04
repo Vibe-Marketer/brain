@@ -553,6 +553,7 @@ export default function IntegrationsTab() {
         <FathomSetupWizard
           open={showWizard}
           onComplete={handleWizardComplete}
+          onDismiss={() => setShowWizard(false)}
         />
       )}
 

@@ -61,9 +61,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
   }
 
   // If wizard completed but no transcripts synced, redirect to sync tab
-  // (unless already on home page or settings page)
+  // (unless already on home page, settings page, or chat page)
   if (wizardCompleted && hasTranscripts === false &&
-      location.pathname !== '/' && location.pathname !== '/settings') {
+      location.pathname !== '/' && location.pathname !== '/settings' && !location.pathname.startsWith('/chat')) {
     return <Navigate to="/?tab=sync" replace />;
   }
 

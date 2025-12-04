@@ -244,15 +244,17 @@ export function TranscriptsTab() {
   });
 
   // Fetch tag assignments for displayed calls
+  // Filter out any undefined/null entries to prevent "Cannot read properties of undefined" errors
+  const validCalls = calls.filter(c => c && c.recording_id != null);
   const { data: tagAssignments = {} } = useQuery({
-    queryKey: ["tag-assignments", calls.map(c => c.recording_id)],
+    queryKey: ["tag-assignments", validCalls.map(c => c.recording_id)],
     queryFn: async () => {
-      if (calls.length === 0) return {};
+      if (validCalls.length === 0) return {};
 
       const { data, error } = await supabase
         .from("call_tag_assignments")
         .select("call_recording_id, tag_id")
-        .in("call_recording_id", calls.map(c => c.recording_id));
+        .in("call_recording_id", validCalls.map(c => c.recording_id));
 
       if (error) throw error;
 
@@ -466,7 +468,7 @@ export function TranscriptsTab() {
   // Extract unique participants from all calls
   const allParticipants = useMemo(() => {
     const participants = new Set<string>();
-    calls.forEach((call) => {
+    validCalls.forEach((call) => {
       const invitees = call.calendar_invitees as any[];
       if (invitees) {
         invitees.forEach((inv) => {
@@ -475,7 +477,7 @@ export function TranscriptsTab() {
       }
     });
     return Array.from(participants).sort();
-  }, [calls]);
+  }, [validCalls]);
 
   return (
     <DndContext
@@ -527,7 +529,7 @@ export function TranscriptsTab() {
           <ErrorBoundary>
             <BulkActionToolbarEnhanced
               selectedCount={selectedCalls.length}
-              selectedCalls={calls.filter(c => c && c.recording_id && selectedCalls.includes(c.recording_id))}
+              selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
               tags={tags}
               onTag={(tagId) => {
                 tagMutation.mutate({
@@ -556,7 +558,7 @@ export function TranscriptsTab() {
         {/* Content Area */}
         {callsLoading ? (
           <TranscriptTableSkeleton />
-        ) : calls.length === 0 ? (
+        ) : validCalls.length === 0 ? (
           <EmptyState
             type={searchQuery || Object.keys(combinedFilters).length > 0 ? "no-results" : "no-transcripts"}
             onAction={() => {
@@ -572,7 +574,7 @@ export function TranscriptsTab() {
             <ErrorBoundary>
               <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
                 <TranscriptTable
-                  calls={calls}
+                  calls={validCalls}
                   selectedCalls={selectedCalls}
                   onSelectCall={(callId) => {
                     if (selectedCalls.includes(callId)) {
@@ -582,10 +584,10 @@ export function TranscriptsTab() {
                     }
                   }}
                   onSelectAll={() => {
-                    if (selectedCalls.length === calls.length) {
+                    if (selectedCalls.length === validCalls.length) {
                       setSelectedCalls([]);
                     } else {
-                      setSelectedCalls(calls.filter(c => c && c.recording_id).map(c => c.recording_id));
+                      setSelectedCalls(validCalls.map(c => c.recording_id));
                     }
                   }}
                   onCallClick={(call) => setSelectedCall(call)}
@@ -679,7 +681,7 @@ export function TranscriptsTab() {
       <SmartExportDialog
         open={smartExportOpen}
         onOpenChange={setSmartExportOpen}
-        selectedCalls={calls.filter(c => c && c.recording_id && selectedCalls.includes(c.recording_id))}
+        selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
         folderAssignments={folderAssignments}
         folders={folders}
         tagAssignments={tagAssignments}

@@ -37,9 +37,10 @@ import { OAuthStep } from "./wizard/OAuthStep";
 interface FathomSetupWizardProps {
   open: boolean;
   onComplete: () => void;
+  onDismiss?: () => void;  // Allow temporary dismissal
 }
 
-export default function FathomSetupWizard({ open, onComplete: _onComplete }: FathomSetupWizardProps) {
+export default function FathomSetupWizard({ open, onComplete: _onComplete, onDismiss }: FathomSetupWizardProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [apiKey, setApiKey] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
@@ -274,8 +275,8 @@ export default function FathomSetupWizard({ open, onComplete: _onComplete }: Fat
 
   return (
     <>
-      <Dialog open={open} onOpenChange={() => {}} modal>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto [&>button]:hidden">
+      <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onDismiss?.()} modal>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center gap-4 mb-4">
               {currentStepData.icon}

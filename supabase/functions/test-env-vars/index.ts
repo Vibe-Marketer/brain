@@ -17,6 +17,8 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
     const dbUrl = Deno.env.get('SUPABASE_DB_URL');
+    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
+    const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
     // Check if this is an export request
     const url = new URL(req.url);
@@ -176,6 +178,8 @@ serve(async (req) => {
         SUPABASE_URL: supabaseUrl,
         SUPABASE_SERVICE_ROLE_KEY: serviceRoleKey,
         SUPABASE_DB_URL: dbUrl,
+        OPENROUTER_API_KEY_FIRST_10: openrouterApiKey ? openrouterApiKey.substring(0, 10) + '...' : 'NOT SET',
+        OPENAI_API_KEY_FIRST_10: openaiApiKey ? openaiApiKey.substring(0, 10) + '...' : 'NOT SET',
       },
       exportUrl: `${req.url}?action=export`,
       message: '✅ Credentials retrieved! Use SUPABASE_DB_URL for direct database export.',

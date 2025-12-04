@@ -71,8 +71,22 @@ All required for chat-stream function:
 4. Verify tool states display correctly (running → success)
 5. Verify tool results extracted for source display
 
+## Additional Fixes (2025-12-04)
+
+### 5. Extra Row Visual Issue in Transcripts Table ✅
+- **Location**: `src/components/transcripts/TranscriptsTab.tsx`
+- **Root Cause**: Separator components had `my-12` class (48px margins) creating visual appearance of extra row above table header
+- **Fix**: Changed margins from `my-12` to `my-6` (24px) on lines 511, 523, 554
+- **Status**: Fixed and deployed
+
+### 6. Git Divergence Resolution ✅
+- Local branch had 1 commit, remote had 15 commits (from another machine)
+- Resolved via rebase: `git rebase origin/main`
+- Minor conflict in CallDetailHeader.tsx (comment difference) - resolved
+- Successfully pushed rebased branch
+
 ## Session Metadata
-- Date: 2025-12-03
-- Duration: ~45 minutes
+- Date: 2025-12-03 (continued 2025-12-04)
+- Duration: ~60 minutes total
 - Parallel agents used: 4 (AI chat, white screen, embeddings, sync jobs)
 - Dev server: Port 8081

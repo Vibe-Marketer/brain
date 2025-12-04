@@ -119,6 +119,7 @@ export default function Settings() {
         <FathomSetupWizard
           open={showWizard}
           onComplete={handleWizardComplete}
+          onDismiss={() => setShowWizard(false)}
         />
       )}
     </>

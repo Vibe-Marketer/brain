@@ -1,8 +1,13 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
-import { streamText, tool, convertToModelMessages, stepCountIs } from 'https://esm.sh/ai@5.0.102';
-import { z } from 'https://esm.sh/zod@3.23.8';
+// Use OpenAI provider directly for reliable tool calling
+// OpenRouter provider has known issues with tool calling, so we use OpenAI directly
+// Must use v2.x of @ai-sdk/openai for AI SDK v5 compatibility (v2 spec)
+// Important: Pin all ai-sdk packages to compatible versions
+import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@2.0.77';
+import { streamText, tool, convertToModelMessages } from 'https://esm.sh/ai@5.0.21';
+import { z } from 'https://esm.sh/zod@3.24.4';
 
+// CORS headers for API responses
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -33,29 +38,23 @@ interface SessionFilters {
 }
 
 // ============================================
-// OPENROUTER CONFIGURATION
+// OPENAI CONFIGURATION (Direct API for Tool Calling)
 // ============================================
 
 /**
- * OpenRouter Configuration
- * All models are routed through OpenRouter for unified access to 300+ models
- * Using the official @openrouter/ai-sdk-provider for AI SDK v5 compatibility
+ * OpenAI Configuration
+ * Using OpenAI directly for reliable tool calling support
+ * Note: OpenRouter provider (@openrouter/ai-sdk-provider) has known issues with tool calling
+ * so we bypass it and use OpenAI directly for chat with tools
  *
- * Models use format: 'provider/model-name' (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4')
- *
- * Docs: https://openrouter.ai/docs
- * Provider: https://ai-sdk.dev/providers/community-providers/openrouter
+ * Docs: https://ai-sdk.dev/providers/ai-sdk-providers/openai
  */
 
-// Create OpenRouter provider instance
-function createOpenRouterProvider(apiKey: string) {
-  return createOpenRouter({
+// Create OpenAI provider instance
+function createOpenAIProvider(apiKey: string) {
+  return createOpenAI({
     apiKey,
-    // Optional headers for OpenRouter dashboard tracking
-    headers: {
-      'HTTP-Referer': 'https://conversion.brain',
-      'X-Title': 'Conversion Brain',
-    },
+    compatibility: 'strict', // Use strict OpenAI compatibility mode
   });
 }
 
@@ -236,6 +235,9 @@ Deno.serve(async (req) => {
       throw new Error('OPENROUTER_API_KEY must be configured');
     }
 
+    // Debug: Log first 10 chars of API key to verify it's the right one
+    console.log(`OpenRouter API key starts with: ${openrouterApiKey.substring(0, 10)}...`);
+
     if (!openaiApiKey) {
       throw new Error('OPENAI_API_KEY must be configured for embeddings');
     }
@@ -275,16 +277,24 @@ Deno.serve(async (req) => {
       model?: string;
     } = await req.json();
 
-    // Model format: 'provider/model-name' (e.g., 'openai/gpt-4o-mini', 'openai/gpt-4o')
-    // OpenRouter uses this format directly - no translation needed
-    // Default: GPT-4o-mini - reliable, fast, economical with excellent tool calling
-    let selectedModel = requestedModel || 'openai/gpt-4o-mini';
-    if (!selectedModel.includes('/')) {
-      // Legacy format - add openai prefix for backwards compatibility
-      selectedModel = `openai/${selectedModel}`;
+    // Using OpenAI directly for reliable tool calling
+    // Extract model name from 'provider/model-name' format if needed
+    let selectedModel = requestedModel || 'gpt-4o-mini';
+    if (selectedModel.includes('/')) {
+      // Extract just the model name from 'provider/model-name' format
+      selectedModel = selectedModel.split('/')[1];
     }
 
-    console.log(`Using model: ${selectedModel} via OpenRouter`);
+    // Map to valid OpenAI model names
+    const modelMap: Record<string, string> = {
+      'gpt-4o-mini': 'gpt-4o-mini',
+      'gpt-4o': 'gpt-4o',
+      'gpt-4-turbo': 'gpt-4-turbo',
+      'gpt-3.5-turbo': 'gpt-3.5-turbo',
+    };
+    selectedModel = modelMap[selectedModel] || 'gpt-4o-mini';
+
+    console.log(`Using model: ${selectedModel} via OpenAI direct`);
 
     if (!messages || messages.length === 0) {
       return new Response(
@@ -525,50 +535,77 @@ ${filterContext}
 
 Important: Only access transcripts belonging to the current user. Never fabricate information - if you can't find relevant data, say so.`;
 
-    // Create streaming response with selected model using OpenRouter
-    // OpenRouter uses the full model string directly (e.g., 'openai/gpt-4o', 'anthropic/claude-sonnet-4')
-    console.log(`Streaming with OpenRouter - Model: ${selectedModel}`);
+    // Create streaming response with OpenAI directly for reliable tool calling
+    console.log(`Streaming with OpenAI - Model: ${selectedModel}`);
 
-    // Create the OpenRouter provider instance using official AI SDK provider
-    const openrouter = createOpenRouterProvider(openrouterApiKey);
+    // Create the OpenAI provider instance
+    const openai = createOpenAIProvider(openaiApiKey);
+
+    // Normalize messages to UIMessage format for AI SDK v5
+    // Handle both legacy (content-only) and v5 (parts-based) formats
+    const normalizedMessages = messages.map((msg: UIMessage) => {
+      // If message already has parts array, use as-is
+      if (msg.parts && Array.isArray(msg.parts)) {
+        return msg;
+      }
+      // Convert legacy content-only format to parts format
+      if (msg.content) {
+        return {
+          ...msg,
+          parts: [{ type: 'text', text: msg.content }],
+        };
+      }
+      // Return as-is if neither (shouldn't happen)
+      return msg;
+    });
 
     // Convert UI messages to model messages for AI SDK v5
     // The frontend sends UIMessage[] format, but streamText expects ModelMessage[]
-    const modelMessages = convertToModelMessages(messages);
+    const modelMessages = convertToModelMessages(normalizedMessages);
 
-    const result = await streamText({
-      model: openrouter.chat(selectedModel),
-      system: systemPrompt,
-      messages: modelMessages,
-      tools: {
-        searchTranscripts: searchTranscriptsTool,
-        getCallDetails: getCallDetailsTool,
-        summarizeCalls: summarizeCallsTool,
-      },
-      // AI SDK v5: Use stopWhen instead of maxSteps
-      // stopWhen is evaluated after steps with tool results
-      // This allows up to 5 tool-calling steps before forcing stop
-      stopWhen: stepCountIs(5),
-      // Debug: Log each step to understand what's happening
-      onStepFinish: ({ stepType, finishReason, toolCalls, toolResults }) => {
-        console.log(`Step finished - Type: ${stepType}, Finish: ${finishReason}`);
-        if (toolCalls?.length) {
-          console.log(`Tool calls: ${toolCalls.map(tc => tc.toolName).join(', ')}`);
-        }
-        if (toolResults?.length) {
-          console.log(`Tool results received: ${toolResults.length}`);
-        }
-      },
-    });
+    console.log('Creating streamText with model:', selectedModel);
+    console.log('Message count:', modelMessages.length);
+
+    // Using OpenAI directly with tools
+    console.log('Starting streamText WITH tools via OpenAI...');
+
+    let result;
+    try {
+      result = await streamText({
+        model: openai(selectedModel),
+        system: systemPrompt,
+        messages: modelMessages,
+        tools: {
+          searchTranscripts: searchTranscriptsTool,
+          getCallDetails: getCallDetailsTool,
+          summarizeCalls: summarizeCallsTool,
+        },
+        maxSteps: 5,
+      });
+      console.log('streamText with tools initiated successfully');
+    } catch (streamError) {
+      console.error('streamText with tools failed:', streamError);
+      if (streamError instanceof Error) {
+        console.error('Error name:', streamError.name);
+        console.error('Error message:', streamError.message);
+        console.error('Error stack:', streamError.stack);
+      }
+      throw streamError;
+    }
 
     // Use toUIMessageStreamResponse for AI SDK v5
     // This ensures tool calls and tool results are properly streamed to the client
     return result.toUIMessageStreamResponse({
       headers: corsHeaders,
-      // Handle errors gracefully
+      // Handle errors gracefully - must return a string, not an object
       onError: (error) => {
         console.error('Stream error:', error);
-        return { message: error instanceof Error ? error.message : 'Unknown streaming error' };
+        // Log the full error object for debugging
+        if (error && typeof error === 'object') {
+          console.error('Full error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+        }
+        // Return a plain string as per AI SDK v5 spec
+        return error instanceof Error ? error.message : 'Unknown streaming error';
       },
     });
 
