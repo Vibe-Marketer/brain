@@ -525,7 +525,7 @@ export function TranscriptsTab() {
         {selectedCalls.length > 0 && (
           <BulkActionToolbarEnhanced
             selectedCount={selectedCalls.length}
-            selectedCalls={calls.filter(c => selectedCalls.includes(c.recording_id))}
+            selectedCalls={calls.filter(c => c && c.recording_id && selectedCalls.includes(c.recording_id))}
             tags={tags}
             onTag={(tagId) => {
               tagMutation.mutate({
@@ -581,7 +581,7 @@ export function TranscriptsTab() {
                   if (selectedCalls.length === calls.length) {
                     setSelectedCalls([]);
                   } else {
-                    setSelectedCalls(calls.map(c => c.recording_id));
+                    setSelectedCalls(calls.filter(c => c && c.recording_id).map(c => c.recording_id));
                   }
                 }}
                 onCallClick={(call) => setSelectedCall(call)}
@@ -674,7 +674,7 @@ export function TranscriptsTab() {
       <SmartExportDialog
         open={smartExportOpen}
         onOpenChange={setSmartExportOpen}
-        selectedCalls={calls.filter(c => selectedCalls.includes(c.recording_id))}
+        selectedCalls={calls.filter(c => c && c.recording_id && selectedCalls.includes(c.recording_id))}
         folderAssignments={folderAssignments}
         folders={folders}
         tagAssignments={tagAssignments}
