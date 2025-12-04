@@ -8,6 +8,26 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- DEBUG OVERLAY - Remove after testing -->
+    <div id="debug-overlay" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(255, 0, 255, 0.3); z-index: 999999; pointer-events: none; display: none; align-items: center; justify-content: center;">
+      <div style="background: yellow; padding: 50px; font-size: 48px; font-weight: bold; color: black; border: 10px solid red;">
+        WHITE SCREEN BUG!
+      </div>
+    </div>
+    <script>
+      // Show debug overlay when white screen occurs
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('DEBUG: Page loaded');
+        // Show overlay after 2 seconds if it's still visible
+        setTimeout(() => {
+          const overlay = document.getElementById('debug-overlay');
+          if (overlay) {
+            overlay.style.display = 'flex';
+            console.log('DEBUG: Overlay should be visible now');
+          }
+        }, 2000);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
