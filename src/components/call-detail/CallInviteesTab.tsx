@@ -38,7 +38,7 @@ export function CallInviteesTab({ calendarInvitees }: CallInviteesTabProps) {
                     />
                     <Avatar className="ml-3">
                       <AvatarFallback>
-                        {invitee.name.split(' ').map((n) => n[0]).join('').toUpperCase()}
+                        {invitee.name?.split(' ').map((n) => n[0]).join('').toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">

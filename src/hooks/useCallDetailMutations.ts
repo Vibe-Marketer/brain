@@ -209,8 +209,8 @@ export function useCallDetailMutations({
         const transcripts = meeting.transcript.map((t: any) => ({
           recording_id: call.recording_id,
           user_id: userId, // Include user_id for composite foreign key
-          speaker_name: t.speaker.display_name,
-          speaker_email: t.speaker.matched_calendar_invitee_email || null,
+          speaker_name: t.speaker?.display_name || 'Unknown',
+          speaker_email: t.speaker?.matched_calendar_invitee_email || null,
           text: t.text,
           timestamp: t.timestamp,
         }));

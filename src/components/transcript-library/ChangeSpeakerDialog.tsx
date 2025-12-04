@@ -61,7 +61,7 @@ export function ChangeSpeakerDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {availableSpeakers.map((speaker) => (
+                {(availableSpeakers || []).map((speaker) => (
                   <SelectItem key={speaker.name} value={speaker.name}>
                     {speaker.name}
                     {speaker.email && (

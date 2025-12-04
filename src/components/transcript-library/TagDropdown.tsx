@@ -44,7 +44,7 @@ export function TagDropdown({
           </>
         )}
 
-        {tags.length > 0 ? (
+        {tags && tags.length > 0 ? (
           tags.map((tag) => (
             <DropdownMenuItem
               key={tag.id}

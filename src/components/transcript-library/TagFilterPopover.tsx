@@ -65,7 +65,7 @@ export function TagFilterPopover({
             <div className="text-sm font-medium">Select Tags</div>
           </div>
           <div className="max-h-[300px] overflow-y-auto px-2 pb-2">
-            {tags.length === 0 ? (
+            {!tags || tags.length === 0 ? (
               <div className="text-sm text-muted-foreground py-4 text-center px-2">
                 No tags yet. Add one below.
               </div>

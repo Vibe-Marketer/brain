@@ -24,7 +24,7 @@ export function DragDropZones({ tags, isDragging, onUntag, onCreateNew }: DragDr
         <CreateNewZone onDrop={onCreateNew} />
 
         {/* Regular tags */}
-        {tags.map((tag) => (
+        {(tags || []).map((tag) => (
           <DropZone key={tag.id} tag={tag} side="left" />
         ))}
       </div>
