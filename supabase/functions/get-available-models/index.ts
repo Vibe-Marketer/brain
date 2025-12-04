@@ -208,10 +208,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Default to GPT-4.1-nano (fastest/cheapest) if available, otherwise first featured model
-    const defaultModel = languageModels.find((m) => m.id === 'openai/gpt-4.1-nano')?.id
-      || languageModels.find((m) => m.id === 'openai/gpt-4.1-mini')?.id
-      || languageModels.find((m) => m.id === 'openai/gpt-4o-mini')?.id
+    // Default to GPT-4o-mini - reliable, fast, economical
+    const defaultModel = languageModels.find((m) => m.id === 'openai/gpt-4o-mini')?.id
+      || languageModels.find((m) => m.id === 'openai/gpt-4o')?.id
       || languageModels.find((m) => m.isFeatured)?.id
       || languageModels[0]?.id
       || null;
@@ -253,7 +252,7 @@ Deno.serve(async (req) => {
         models: fallbackModels,
         providers: ['openai', 'anthropic', 'google', 'xai', 'z-ai'],
         providerDisplayNames: PROVIDER_DISPLAY_NAMES,
-        defaultModel: 'openai/gpt-4.1-nano',
+        defaultModel: 'openai/gpt-4o-mini',
         hasOpenRouter: false,
         error: error instanceof Error ? error.message : 'Failed to fetch models from OpenRouter',
       }),

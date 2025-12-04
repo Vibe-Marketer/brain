@@ -275,10 +275,10 @@ Deno.serve(async (req) => {
       model?: string;
     } = await req.json();
 
-    // Model format: 'provider/model-name' (e.g., 'z-ai/glm-4.6', 'openai/gpt-4o')
+    // Model format: 'provider/model-name' (e.g., 'openai/gpt-4o-mini', 'openai/gpt-4o')
     // OpenRouter uses this format directly - no translation needed
-    // Default: GPT-4.1-nano - fastest/cheapest with 1M context and good tool calling
-    let selectedModel = requestedModel || 'openai/gpt-4.1-nano';
+    // Default: GPT-4o-mini - reliable, fast, economical with excellent tool calling
+    let selectedModel = requestedModel || 'openai/gpt-4o-mini';
     if (!selectedModel.includes('/')) {
       // Legacy format - add openai prefix for backwards compatibility
       selectedModel = `openai/${selectedModel}`;

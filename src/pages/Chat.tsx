@@ -110,6 +110,7 @@ function getMessageTextContent(message: UIMessage): string {
 }
 
 // Helper to extract tool invocations from message parts
+// AI SDK v5 states: 'input-streaming', 'input-available', 'output-available', 'output-error'
 function getToolInvocations(message: UIMessage): ToolCallPart[] {
   if (!message.parts) return [];
 
@@ -117,10 +118,12 @@ function getToolInvocations(message: UIMessage): ToolCallPart[] {
 
   for (const part of message.parts) {
     // AI SDK v5 tool parts have type like 'tool-searchTranscripts', 'tool-getCallDetails', etc.
-    if (part.type.startsWith('tool-')) {
+    // Also handle 'dynamic-tool' for dynamic tools
+    if (part.type.startsWith('tool-') || part.type === 'dynamic-tool') {
       const toolPart = part as {
         type: string;
         toolCallId: string;
+        toolName?: string; // Present for dynamic-tool type
         state: string;
         input?: unknown;
         output?: unknown;
@@ -128,24 +131,31 @@ function getToolInvocations(message: UIMessage): ToolCallPart[] {
       };
 
       // Extract tool name from type (e.g., 'tool-searchTranscripts' -> 'searchTranscripts')
-      const toolName = toolPart.type.replace('tool-', '');
+      // For dynamic-tool, use the toolName property
+      const toolName = part.type === 'dynamic-tool'
+        ? toolPart.toolName || 'unknown'
+        : toolPart.type.replace('tool-', '');
 
+      // Map AI SDK v5 states to our UI states
+      // AI SDK v5 states: 'input-streaming', 'input-available', 'output-available', 'output-error'
       let state: 'pending' | 'running' | 'success' | 'error' = 'pending';
-      if (toolPart.state === 'input-streaming' || toolPart.state === 'streaming') {
+      if (toolPart.state === 'input-streaming') {
         state = 'running';
-      } else if (toolPart.state === 'output' || toolPart.state === 'result') {
+      } else if (toolPart.state === 'input-available') {
+        state = 'running'; // Still running, waiting for output
+      } else if (toolPart.state === 'output-available') {
         state = 'success';
       } else if (toolPart.state === 'output-error') {
         state = 'error';
       }
 
       toolParts.push({
-        type: (toolPart.state === 'output' || toolPart.state === 'result') ? 'tool-result' : 'tool-call',
+        type: toolPart.state === 'output-available' ? 'tool-result' : 'tool-call',
         toolName,
         toolCallId: toolPart.toolCallId,
         state,
         args: toolPart.input as Record<string, unknown>,
-        result: (toolPart.state === 'output' || toolPart.state === 'result')
+        result: toolPart.state === 'output-available'
           ? toolPart.output as Record<string, unknown>
           : undefined,
         error: toolPart.errorText,
@@ -177,9 +187,9 @@ export default function Chat() {
   // Input state - managed locally (AI SDK v5 doesn't manage input)
   const [input, setInput] = React.useState('');
 
-  // Selected model state - format: 'provider/model-name' (e.g., 'openai/gpt-4.1-nano')
-  // Default to GPT-4.1 Nano - fastest/cheapest model with good tool calling (via OpenRouter)
-  const [selectedModel, setSelectedModel] = React.useState<string>('openai/gpt-4.1-nano');
+  // Selected model state - format: 'provider/model-name' (e.g., 'openai/gpt-4o-mini')
+  // Default to GPT-4o-mini - reliable, fast, economical with excellent tool calling
+  const [selectedModel, setSelectedModel] = React.useState<string>('openai/gpt-4o-mini');
 
   // CallDetailDialog state for viewing sources
   const [selectedCall, setSelectedCall] = React.useState<Meeting | null>(null);

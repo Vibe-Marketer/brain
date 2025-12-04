@@ -32,7 +32,7 @@ export function CallDetailHeader({
   isSaving,
   onChatWithAI,
 }: CallDetailHeaderProps) {
-  // Defensive null check
+  // Early return if call is null to prevent white screen crashes
   if (!call) {
     return null;
   }
