@@ -28,8 +28,6 @@ export function initSentry() {
         maskAllText: false,
         blockAllMedia: false,
       }),
-      // Console logging integration - capture console.error automatically
-      Sentry.consoleIntegration({ levels: ["error"] }),
     ],
 
     // Tracing - capture 100% in dev, 10% in production
