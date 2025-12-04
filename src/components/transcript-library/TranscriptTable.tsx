@@ -249,7 +249,7 @@ export const TranscriptTable = React.memo(({
           </Table>
         </div>
       </div>
-      
+
       {onPageChange && onPageSizeChange && (
         <PaginationControls
           page={page}

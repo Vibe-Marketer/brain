@@ -508,7 +508,7 @@ export function TranscriptsTab() {
 
       <div>
         {/* Top separator for breathing room */}
-        <Separator className="mb-12" />
+        <Separator className="mb-4" />
 
         {/* Filter bar */}
         <FilterBar
@@ -520,7 +520,7 @@ export function TranscriptsTab() {
           onSearchChange={setSearchQuery}
         />
 
-        <Separator className="my-12" />
+        <Separator className="my-4" />
 
         {/* Bulk Actions Toolbar */}
         {selectedCalls.length > 0 && (
@@ -551,7 +551,7 @@ export function TranscriptsTab() {
           </ErrorBoundary>
         )}
 
-        {selectedCalls.length > 0 && <Separator className="my-12" />}
+        {selectedCalls.length > 0 && <Separator className="my-4" />}
 
         {/* Content Area */}
         {callsLoading ? (
