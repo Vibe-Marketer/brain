@@ -11,11 +11,11 @@ interface InviteesPopoverProps {
 }
 
 export function InviteesPopover({ invitees, hostEmail }: InviteesPopoverProps) {
-  if (!invitees || invitees.length === 0) {
+  if (!invitees || !Array.isArray(invitees) || invitees.length === 0) {
     return <span className="text-muted-foreground text-xs">No invitees</span>;
   }
 
-  const externalCount = invitees.filter(i => i.is_external).length;
+  const externalCount = invitees.filter(i => i?.is_external).length;
   const internalCount = invitees.length - externalCount;
 
   // Filter out host and get display participants

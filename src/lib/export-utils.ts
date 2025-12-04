@@ -353,9 +353,9 @@ function getParticipantNames(call: Call): string[] {
   if (call.recorded_by_name) {
     participants.push(call.recorded_by_name);
   }
-  if ((call as any).calendar_invitees) {
+  if ((call as any).calendar_invitees && Array.isArray((call as any).calendar_invitees)) {
     (call as any).calendar_invitees.forEach((inv: any) => {
-      if (inv.name && !participants.includes(inv.name)) {
+      if (inv?.name && !participants.includes(inv.name)) {
         participants.push(inv.name);
       }
     });

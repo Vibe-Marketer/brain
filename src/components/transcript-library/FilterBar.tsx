@@ -62,9 +62,9 @@ export function FilterBar({
         if (data) {
           const participantsSet = new Set<string>();
           data.forEach((call: any) => {
-            if (call.calendar_invitees) {
+            if (call.calendar_invitees && Array.isArray(call.calendar_invitees)) {
               call.calendar_invitees.forEach((invitee: any) => {
-                if (invitee.email) participantsSet.add(invitee.email);
+                if (invitee?.email) participantsSet.add(invitee.email);
               });
             }
           });

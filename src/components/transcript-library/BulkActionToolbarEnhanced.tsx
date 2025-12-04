@@ -77,7 +77,15 @@ export function BulkActionToolbarEnhanced({
     const loadingToast = toast.loading(`Generating AI titles for ${selectedCount} call${selectedCount > 1 ? 's' : ''}...`);
 
     try {
-      const recordingIds = selectedCalls.map(c => Number(c.recording_id));
+      const recordingIds = selectedCalls
+        .filter(c => c?.recording_id != null)
+        .map(c => Number(c.recording_id));
+
+      if (recordingIds.length === 0) {
+        toast.error('Invalid selection: no valid recording IDs', { id: loadingToast });
+        return;
+      }
+
       const { data, error } = await generateAiTitles(recordingIds);
 
       if (error) {
@@ -99,7 +107,15 @@ export function BulkActionToolbarEnhanced({
     const loadingToast = toast.loading(`AI tagging ${selectedCount} call${selectedCount > 1 ? 's' : ''}...`);
 
     try {
-      const recordingIds = selectedCalls.map(c => Number(c.recording_id));
+      const recordingIds = selectedCalls
+        .filter(c => c?.recording_id != null)
+        .map(c => Number(c.recording_id));
+
+      if (recordingIds.length === 0) {
+        toast.error('Invalid selection: no valid recording IDs', { id: loadingToast });
+        return;
+      }
+
       const { data, error } = await autoTagCalls(recordingIds);
 
       if (error) {
@@ -219,7 +235,9 @@ export function BulkActionToolbarEnhanced({
       <ManualTagDialog
         open={showManualTagDialog}
         onOpenChange={setShowManualTagDialog}
-        recordingIds={selectedCalls.map(c => String(c.recording_id))}
+        recordingIds={selectedCalls
+          .filter(c => c?.recording_id != null)
+          .map(c => String(c.recording_id))}
         onTagsUpdated={() => {
           setShowManualTagDialog(false);
           onClearSelection();

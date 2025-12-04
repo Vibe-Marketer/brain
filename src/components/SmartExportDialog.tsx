@@ -96,9 +96,9 @@ export default function SmartExportDialog({
     const allParticipants = new Set<string>();
     selectedCalls.forEach((call) => {
       if (call.recorded_by_name) allParticipants.add(call.recorded_by_name);
-      if (call.calendar_invitees) {
+      if (call.calendar_invitees && Array.isArray(call.calendar_invitees)) {
         call.calendar_invitees.forEach((inv: any) => {
-          if (inv.name) allParticipants.add(inv.name);
+          if (inv?.name) allParticipants.add(inv.name);
         });
       }
     });

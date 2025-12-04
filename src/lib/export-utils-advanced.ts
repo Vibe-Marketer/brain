@@ -216,13 +216,13 @@ export function exportAsLLMContext(calls: Call[], includeOptions?: { metadata?: 
           }
           return speaker.name;
         }).join(', ')}\n`;
-      } else if (call.calendar_invitees && call.calendar_invitees.length > 0) {
+      } else if (call.calendar_invitees && Array.isArray(call.calendar_invitees) && call.calendar_invitees.length > 0) {
         // Fallback to invitees if no speakers found
         content += `Invitees: ${call.calendar_invitees.map(inv => {
-          if (includeOptions?.metadata !== false && inv.email) {
+          if (includeOptions?.metadata !== false && inv?.email) {
             return `${inv.name} (${inv.email})`;
           }
-          return inv.name;
+          return inv?.name || 'Unknown';
         }).join(', ')}\n`;
       }
       content += '\n';
