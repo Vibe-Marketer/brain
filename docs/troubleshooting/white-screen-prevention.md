@@ -1,26 +1,36 @@
 # White Screen Prevention - Comprehensive Fix Documentation
 
-**Last Updated:** 2025-12-04
-**Status:** All known white screen issues resolved
-**Commits:** cdf90a8, 9dbb3e1, 31cafce, ad19a27
+**Last Updated:** 2025-12-04 (Updated with Error Boundary)
+**Status:** Defensive fixes applied + Error Boundary added for diagnosis
+**Commits:** cdf90a8, 9dbb3e1, 31cafce, ad19a27, 9f9f609, 0c301f9, 1315bdc, 4ec18a0, fa6f9b7
 
 ---
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Root Cause Analysis](#root-cause-analysis)
-3. [Defensive Patterns Established](#defensive-patterns-established)
-4. [All Fixed Components](#all-fixed-components)
-5. [How to Identify White Screen Issues](#how-to-identify-white-screen-issues)
-6. [Testing Checklist](#testing-checklist)
-7. [Future Prevention Guidelines](#future-prevention-guidelines)
+2. [Error Boundary Implementation](#error-boundary-implementation)
+3. [Root Cause Analysis](#root-cause-analysis)
+4. [Defensive Patterns Established](#defensive-patterns-established)
+5. [All Fixed Components](#all-fixed-components)
+6. [How to Identify White Screen Issues](#how-to-identify-white-screen-issues)
+7. [Testing Checklist](#testing-checklist)
+8. [Future Prevention Guidelines](#future-prevention-guidelines)
 
 ---
 
 ## Overview
 
-Between commits `cdf90a8` and `ad19a27`, we systematically identified and fixed **15+ components** that could cause white screen crashes (React error boundary failures). The primary issue was discovered in `BulkActionToolbarEnhanced.tsx`, but comprehensive investigation revealed multiple related issues across the codebase.
+Between commits `cdf90a8` and `fa6f9b7`, we systematically identified and fixed **15+ components** that could cause white screen crashes (React error boundary failures). The primary issue was discovered in `BulkActionToolbarEnhanced.tsx`, but comprehensive investigation revealed multiple related issues across the codebase.
+
+**UPDATE (2025-12-04):** Added comprehensive error boundary to catch and display all React errors instead of white screen. This provides detailed error messages for debugging remaining issues.
+
+### Current Status
+
+✅ **Defensive fixes applied:** 15+ components hardened with null checks and array validation
+✅ **Error boundary added:** Root-level error boundary catches ALL React errors
+⚠️ **User still experiencing white screen:** Waiting for error details from error boundary display
+🔍 **Next step:** User needs to report exact error message shown in error boundary
 
 ### What is a "White Screen"?
 
@@ -36,6 +46,94 @@ We used **parallel agent spawning** to systematically search for issues:
 1. **Agent 1:** Searched for prop mismatches in Dialog components
 2. **Agent 2:** Searched for unsafe `.map()` calls across codebase
 3. **Agent 3:** Verified selection-dependent components
+
+---
+
+## Error Boundary Implementation
+
+**Commits:** 1315bdc, 4ec18a0, fa6f9b7
+
+To help diagnose the ongoing white screen issue, we implemented a comprehensive error boundary system that catches React errors and displays detailed debugging information.
+
+### What Was Added
+
+**1. ErrorBoundary Component** (`src/components/ErrorBoundary.tsx`)
+- React Error Boundary class component
+- Catches all unhandled React errors in component tree
+- Displays user-friendly error UI with details
+- Logs full error information to console
+- Mobile-responsive design
+
+**2. Root-Level Integration** (`src/main.tsx`)
+```typescript
+// Wraps entire app to catch ALL errors
+createRoot(document.getElementById("root")!).render(
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>
+);
+```
+
+**3. Component-Level Boundaries**
+- `TranscriptsTab.tsx`: Wraps BulkActionToolbarEnhanced
+- `TranscriptsTab.tsx`: Wraps TranscriptTable
+
+### What Users See Now
+
+Instead of a white screen, users see:
+
+```
+┌────────────────────────────────────────┐
+│ ⚠️ Something went wrong                │
+│                                         │
+│ ▼ 📋 Error details (tap to expand)     │
+│                                         │
+│   Error: Cannot read property 'map'    │
+│   of undefined                          │
+│                                         │
+│   Stack:                                │
+│   at ComponentName (file.tsx:123)      │
+│   at ParentComponent (file.tsx:456)    │
+│   ...                                   │
+│                                         │
+│   Component Stack:                      │
+│   at ComponentName                      │
+│   at ParentComponent                    │
+│   ...                                   │
+│                                         │
+│ ┌──────────────────────────────────┐   │
+│ │   🔄 Reload Page                 │   │
+│ └──────────────────────────────────┘   │
+└────────────────────────────────────────┘
+```
+
+### Mobile Optimizations
+
+- Responsive text sizes: `text-xs md:text-sm`
+- Full-width button on mobile for easy tapping
+- Break-words for long error messages
+- Overflow scrolling for long stacks
+- Larger tap targets (py-3)
+- Emojis for visual clarity
+
+### How to Use Error Information
+
+When a user reports a white screen issue:
+
+1. **Ask them to refresh the page** (hard refresh)
+2. **Reproduce the issue** (click checkbox, date picker, etc.)
+3. **Tap "📋 Error details"** to expand
+4. **Screenshot or copy** the error message
+5. **Share the error with developers**
+
+The error will show:
+- **Error message**: What went wrong
+- **Stack trace**: Where in the code
+- **Component stack**: Which React components
+
+### Known Limitation
+
+If the error occurs BEFORE React initializes (e.g., JavaScript syntax error, module loading failure), the error boundary won't catch it. In that case, check the browser's JavaScript console.
 
 ---
 
@@ -660,18 +758,32 @@ grep -rn ": any" src/ --include="*.tsx" --include="*.ts"
 ## Summary
 
 **What was fixed:** 15+ components with unsafe array/null handling
-**Root cause:** Incorrect component prop usage in BulkActionToolbarEnhanced
+**Error boundary added:** Root-level error boundary to catch and display all React errors
 **Patterns established:** 5 defensive coding patterns for array/null safety
-**Testing:** All manual testing passed, TypeScript compilation clean
+**Testing:** TypeScript compilation clean, waiting for user error report
 **Prevention:** Guidelines established for future development
 
-**If white screens occur again:**
-1. Check browser console for error
-2. Identify component from stack trace
-3. Search for unsafe patterns (see "Debugging Steps")
-4. Apply appropriate defensive pattern (see "Defensive Patterns")
-5. Test thoroughly
-6. Update this document if new patterns emerge
+**Current status (2025-12-04):**
+- ✅ Defensive null checks applied to 15+ components
+- ✅ Error boundary implemented at root level
+- ✅ Mobile-optimized error display added
+- ⚠️ User still experiencing white screen (error boundary should now catch it)
+- 🔍 Waiting for user to report exact error from error boundary display
+
+**If white screens occur with error boundary:**
+1. **Refresh page** (hard refresh to load new error boundary code)
+2. **Reproduce the issue** (click checkbox, date picker, etc.)
+3. **Tap "📋 Error details"** to expand error information
+4. **Screenshot or copy** the complete error message
+5. **Report the error** with exact message, stack trace, and component stack
+6. **Developer fixes** the specific component/line causing the error
+7. **Update this document** with the actual root cause once identified
+
+**If white screen still occurs WITHOUT error boundary showing:**
+- Error is happening before React initialization
+- Check browser JavaScript console (even on mobile)
+- Possible module loading or syntax error
+- Check network tab for failed module loads
 
 ---
 
