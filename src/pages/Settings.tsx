@@ -14,14 +14,18 @@ import * as Sentry from "@sentry/react";
 
 // TEMPORARY: Sentry test button - remove after first error is captured
 function SentryTestButton() {
+  const handleClick = () => {
+    try {
+      throw new Error("This is your first Sentry error!");
+    } catch (error) {
+      Sentry.captureException(error);
+      alert("Error sent to Sentry! Check your dashboard.");
+    }
+  };
+
   return (
     <button
-      onClick={() => {
-        Sentry.logger.info("User triggered test error", {
-          action: "test_error_button_click",
-        });
-        throw new Error("This is your first Sentry error!");
-      }}
+      onClick={handleClick}
       className="fixed bottom-4 right-4 z-50 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow-lg font-medium"
     >
       🐛 Test Sentry Error
