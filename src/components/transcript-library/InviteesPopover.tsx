@@ -15,11 +15,11 @@ export function InviteesPopover({ invitees, hostEmail }: InviteesPopoverProps) {
     return <span className="text-muted-foreground text-xs">No invitees</span>;
   }
 
-  const externalCount = invitees.filter(i => i?.is_external).length;
+  const externalCount = invitees.filter(i => i && i.is_external).length;
   const internalCount = invitees.length - externalCount;
 
   // Filter out host and get display participants
-  const displayParticipants = invitees.filter(inv => inv.email !== hostEmail);
+  const displayParticipants = invitees.filter(inv => inv && inv.email !== hostEmail);
 
   return (
     <Popover>
@@ -43,7 +43,7 @@ export function InviteesPopover({ invitees, hostEmail }: InviteesPopoverProps) {
           </div>
           <ScrollArea className="h-64">
             <div className="space-y-2">
-              {invitees.map((invitee, idx) => (
+              {invitees.filter(inv => inv).map((invitee, idx) => (
                 <div
                   key={idx}
                   className={cn(
@@ -57,8 +57,8 @@ export function InviteesPopover({ invitees, hostEmail }: InviteesPopoverProps) {
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{invitee.name}</p>
-                    <p className="text-xs text-muted-foreground truncate">{invitee.email}</p>
+                    <p className="text-sm font-medium truncate">{invitee.name || 'Unknown'}</p>
+                    <p className="text-xs text-muted-foreground truncate">{invitee.email || ''}</p>
                   </div>
                 </div>
               ))}

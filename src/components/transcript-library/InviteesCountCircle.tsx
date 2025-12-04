@@ -8,7 +8,7 @@ export function InviteesCountCircle({ invitees }: InviteesCountCircleProps) {
   }
 
   // Count how many have matched_speaker_display_name (these are participants who actually joined)
-  const joinedCount = invitees.filter(inv => inv.matched_speaker_display_name).length;
+  const joinedCount = invitees.filter(inv => inv && inv.matched_speaker_display_name).length;
   const invitedCount = invitees.length;
   const percentage = invitedCount > 0 ? Math.round((joinedCount / invitedCount) * 100) : 0;
 
