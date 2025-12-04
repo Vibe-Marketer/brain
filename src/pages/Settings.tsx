@@ -10,28 +10,6 @@ import UsersTab from "@/components/settings/UsersTab";
 import AdminTab from "@/components/settings/AdminTab";
 import AITab from "@/components/settings/AITab";
 import FathomSetupWizard from "@/components/settings/FathomSetupWizard";
-import * as Sentry from "@sentry/react";
-
-// TEMPORARY: Sentry test button - remove after first error is captured
-function SentryTestButton() {
-  const handleClick = () => {
-    try {
-      throw new Error("This is your first Sentry error!");
-    } catch (error) {
-      Sentry.captureException(error);
-      alert("Error sent to Sentry! Check your dashboard.");
-    }
-  };
-
-  return (
-    <button
-      onClick={handleClick}
-      className="fixed bottom-4 right-4 z-50 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow-lg font-medium"
-    >
-      🐛 Test Sentry Error
-    </button>
-  );
-}
 
 export default function Settings() {
   const { role, loading: roleLoading, isAdmin, isTeam } = useUserRole();
@@ -145,8 +123,6 @@ export default function Settings() {
         />
       )}
 
-      {/* TEMPORARY: Sentry test button - remove after first error is captured */}
-      <SentryTestButton />
     </>
   );
 }
