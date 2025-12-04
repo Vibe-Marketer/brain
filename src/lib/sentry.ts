@@ -12,22 +12,39 @@ export function initSentry() {
     dsn: SENTRY_DSN,
     environment: import.meta.env.MODE,
 
-    // Performance Monitoring
-    tracesSampleRate: 0.1, // 10% of transactions for performance monitoring
+    // Send default PII data (IP address, etc.)
+    sendDefaultPii: true,
 
-    // Session Replay - captures what user did before crash
-    replaysSessionSampleRate: 0.1, // 10% of sessions
-    replaysOnErrorSampleRate: 1.0, // 100% of sessions with errors
+    // Enable logs to be sent to Sentry
+    _experiments: {
+      enableLogs: true,
+    },
 
     integrations: [
       // Browser tracing for performance
       Sentry.browserTracingIntegration(),
       // Session replay for debugging
       Sentry.replayIntegration({
-        maskAllText: false, // Set to true if you have sensitive data
+        maskAllText: false,
         blockAllMedia: false,
       }),
+      // Console logging integration - capture console.error automatically
+      Sentry.consoleIntegration({ levels: ["error"] }),
     ],
+
+    // Tracing - capture 100% in dev, 10% in production
+    tracesSampleRate: import.meta.env.DEV ? 1.0 : 0.1,
+
+    // Control distributed tracing targets
+    tracePropagationTargets: [
+      "localhost",
+      /^https:\/\/transcriptsos\.com/,
+      /^https:\/\/.*\.supabase\.co/,
+    ],
+
+    // Session Replay
+    replaysSessionSampleRate: import.meta.env.DEV ? 1.0 : 0.1, // 100% in dev, 10% in prod
+    replaysOnErrorSampleRate: 1.0, // Always capture replays when errors occur
 
     // Filter out noisy errors
     ignoreErrors: [
@@ -57,3 +74,6 @@ export function initSentry() {
 
 // Re-export Sentry for use in components
 export { Sentry };
+
+// Export logger for structured logging
+export const logger = Sentry.logger;
