@@ -50,8 +50,8 @@ export default function BillingTab() {
         </div>
         <div className="lg:col-span-2">
           <div className="flex items-start gap-4">
-            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-vibe-green/20 to-vibe-green/10 flex items-center justify-center">
-              <RiSparkling2Line className="h-6 w-6 text-vibe-green" />
+            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-vibe-orange/20 to-vibe-orange/10 flex items-center justify-center">
+              <RiSparkling2Line className="h-6 w-6 text-vibe-orange" />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">

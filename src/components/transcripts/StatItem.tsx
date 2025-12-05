@@ -7,9 +7,9 @@ interface StatItemProps {
 export function StatItem({ label, value, current }: StatItemProps) {
   return (
     <div className="relative py-2 px-4 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
-      {/* Vibe green wedge accent - trapezoid shape */}
+      {/* Vibe orange wedge accent - trapezoid shape */}
       <div
-        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-green"
+        className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange"
         style={{
           clipPath: 'polygon(0 0, 100% 20%, 100% 80%, 0 100%)'
         }}

@@ -15,9 +15,10 @@
  * API Reference: https://openrouter.ai/docs/api-reference/models/get-models
  */
 
+// Note: sentry-trace and baggage are needed for Sentry distributed tracing
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 };
 
 // OpenRouter API endpoint

@@ -5,9 +5,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // when tool calls are returned. We bypass the AI SDK entirely and use native fetch with OpenAI API.
 
 // CORS headers for API responses
+// Note: sentry-trace and baggage are needed for Sentry distributed tracing
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 };
 
 // UIMessage format from AI SDK v5 frontend
@@ -490,7 +491,7 @@ async function* streamOpenRouterChat(
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'https://conversionbrain.ai',
-      'X-Title': 'Conversion Brain',
+      'X-Title': 'CallVault',
     },
     body: JSON.stringify({
       model,
@@ -713,7 +714,7 @@ Deno.serve(async (req: Request) => {
       if (parts.length > 0) filterContext = `\n\nActive filters:\n${parts.join('\n')}`;
     }
 
-    const systemPrompt = `You are an intelligent assistant for Conversion Brain, helping users analyze their meeting transcripts and extract insights.
+    const systemPrompt = `You are an intelligent assistant for CallVault™, helping users analyze their meeting transcripts and extract insights.
 
 Your capabilities:
 - Search through meeting transcripts to find relevant information

@@ -423,7 +423,7 @@ export default function IntegrationsTab() {
               <div className="rounded-lg border border-cb-border-primary bg-card p-6 space-y-6">
                 {/* Status */}
                 <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cb-vibe-green/10">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-vibe-orange/10">
                     <RiBrainLine className="h-5 w-5 text-cb-ink-primary" />
                   </div>
                   <div className="flex-1">

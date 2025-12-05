@@ -86,7 +86,7 @@ export function CodeBlockCode({
         className="absolute right-2 top-2 h-8 w-8 p-0 opacity-0 transition-opacity hover:opacity-100 group-hover:opacity-100 focus:opacity-100"
       >
         {copied ? (
-          <RiCheckLine className="h-4 w-4 text-cb-vibe-green" />
+          <RiCheckLine className="h-4 w-4 text-vibe-orange" />
         ) : (
           <RiFileCopyLine className="h-4 w-4 text-cb-ink-muted" />
         )}

@@ -8,9 +8,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { useTheme } from '@/contexts/ThemeContext';
-import LogoLight from '@/assets/conversion-brain-logo-light.svg';
-import LogoDark from '@/assets/conversion-brain-logo-dark.svg';
 
 const authSchema = z.object({
   email: z.string().email('Invalid email address').max(255),
@@ -19,8 +16,6 @@ const authSchema = z.object({
 
 export default function Login() {
   const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -114,9 +109,9 @@ export default function Login() {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-4">
           <div className="flex justify-center">
-            <img src={isDark ? LogoDark : LogoLight} alt="Conversion Brain" className="h-16 w-16" />
+            <img src="/cv-play-button.svg" alt="CallVault™" className="h-16 w-auto" />
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Welcome to Conversion Brain™</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Welcome to CallVault™</CardTitle>
           <CardDescription className="text-center">Sign in to access your customer intelligence</CardDescription>
         </CardHeader>
         <CardContent>

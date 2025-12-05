@@ -196,7 +196,7 @@ export default function AdminTab() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
             <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
               <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
                   clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
                 }}
@@ -209,7 +209,7 @@ export default function AdminTab() {
             </div>
             <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
               <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
                   clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
                 }}
@@ -222,7 +222,7 @@ export default function AdminTab() {
             </div>
             <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
               <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
                   clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
                 }}
@@ -235,7 +235,7 @@ export default function AdminTab() {
             </div>
             <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
               <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
                   clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
                 }}
@@ -248,7 +248,7 @@ export default function AdminTab() {
             </div>
             <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
               <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
                   clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
                 }}
@@ -261,7 +261,7 @@ export default function AdminTab() {
             </div>
             <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
               <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
                   clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
                 }}
@@ -274,7 +274,7 @@ export default function AdminTab() {
             </div>
             <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
               <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
                   clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
                 }}

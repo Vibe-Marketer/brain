@@ -14,7 +14,7 @@ function createOpenRouterProvider(apiKey: string) {
     apiKey,
     headers: {
       'HTTP-Referer': 'https://conversion.brain',
-      'X-Title': 'Conversion Brain',
+      'X-Title': 'CallVault',
     },
   });
 }

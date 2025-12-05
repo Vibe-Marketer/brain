@@ -1,7 +1,7 @@
-# Conversion Brain - Project Overview
+# CallVault - Project Overview
 
 ## Purpose
-Conversion Brain is a meeting intelligence and transcript management application. It integrates with Fathom to sync, process, and analyze meeting recordings and transcripts. Features include:
+CallVault is a meeting intelligence and transcript management application. It integrates with Fathom to sync, process, and analyze meeting recordings and transcripts. Features include:
 - Meeting sync and transcript management
 - AI-powered transcript analysis and tagging
 - RAG-based chat with meeting content
@@ -49,6 +49,6 @@ docs/
 
 ## Important Documentation
 - `CLAUDE.md` - Development instructions and conventions
-- `docs/design/brand-guidelines-v3.3.md` - UI/design system (MUST READ before UI work)
+- `docs/design/brand-guidelines-v3.4.md` - UI/design system (MUST READ before UI work)
 - `docs/architecture/api-naming-conventions.md` - Naming conventions
 - `docs/adr/` - Architecture Decision Records

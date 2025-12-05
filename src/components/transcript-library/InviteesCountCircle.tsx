@@ -31,7 +31,7 @@ export function InviteesCountCircle({ invitees }: InviteesCountCircleProps) {
             cy="18"
             r="16"
             fill="none"
-            className="stroke-vibe-green"
+            className="stroke-vibe-orange"
             strokeWidth="3"
             strokeDasharray={`${percentage} 100`}
             strokeLinecap="round"

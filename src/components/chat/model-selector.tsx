@@ -227,7 +227,7 @@ export function ModelSelector({
             'bg-transparent hover:bg-cb-hover',
             'text-xs text-cb-ink-soft hover:text-cb-ink',
             'transition-all duration-150 cursor-pointer select-none',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-1',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-1',
             'disabled:cursor-not-allowed disabled:opacity-50',
             className
           )}
@@ -256,7 +256,7 @@ export function ModelSelector({
               >
                 <span className="text-sm font-medium truncate">{model.name}</span>
                 {model.id === selectedModel.id && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-vibe-green flex-shrink-0" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-vibe-orange flex-shrink-0" />
                 )}
               </DropdownMenuItem>
             ))}

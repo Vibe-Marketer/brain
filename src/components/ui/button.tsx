@@ -112,7 +112,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               'bg-white dark:bg-card',
               'text-cb-ink dark:text-white',
               'hover:bg-cb-hover dark:hover:bg-cb-panel-dark',
-              'ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
+              'ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
               'disabled:pointer-events-none disabled:opacity-50',
               '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
               className
@@ -135,7 +135,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               'text-cb-ink-soft dark:text-cb-text-dark-secondary',
               'hover:bg-cb-hover hover:text-cb-ink hover:border-cb-border',
               'dark:hover:bg-cb-panel-dark dark:hover:text-white',
-              'ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
+              'ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
               'disabled:pointer-events-none disabled:opacity-50',
               '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
               className
@@ -156,7 +156,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'text-cb-ink-muted dark:text-cb-text-dark-secondary',
             'hover:bg-cb-hover hover:text-cb-ink',
             'dark:hover:bg-cb-panel-dark dark:hover:text-white',
-            'ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
+            'ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
             'disabled:pointer-events-none disabled:opacity-50',
             '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
             className
@@ -198,7 +198,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'text-cb-ink dark:text-white',
             'border-cb-border dark:border-cb-border-dark',
             'hover:bg-cb-hover dark:hover:bg-cb-panel-dark',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
             'disabled:pointer-events-none disabled:opacity-50',
             '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
             size === 'sm' && 'h-9 px-5 text-[13px] rounded-xl',      // 12px to match glossy
@@ -224,7 +224,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'border-cb-border-soft dark:border-cb-border-dark',
             'hover:bg-cb-hover hover:text-cb-ink hover:border-cb-border',
             'dark:hover:bg-cb-panel-dark dark:hover:text-white dark:hover:border-cb-border-dark',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
             'disabled:pointer-events-none disabled:opacity-50',
             '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
             size === 'sm' && 'h-8 px-3 text-xs rounded-lg',
@@ -249,7 +249,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'text-cb-ink-muted dark:text-cb-text-dark-secondary',
             'hover:bg-cb-hover hover:text-cb-ink',
             'dark:hover:bg-cb-panel-dark dark:hover:text-white',
-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
+            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
             'disabled:pointer-events-none disabled:opacity-50',
             '[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0',
             size === 'sm' && 'h-8 px-3 text-xs rounded-lg',
@@ -316,7 +316,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           
           .glossy-button.glossy-variant-default:active,
           .glossy-button.glossy-variant-destructive:active {
-            outline: 2px solid #a5d96a !important;
+            outline: 2px solid hsl(32 100% 50%) !important;
             outline-offset: 2px;
           }
         `}</style>

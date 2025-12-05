@@ -96,7 +96,7 @@ export function Loader({ variant = 'dots', size = 'md', text, className }: Loade
         <div className={cn('flex items-center gap-2', className)}>
           <span
             className={cn(
-              'rounded-full bg-cb-vibe-green',
+              'rounded-full bg-vibe-orange',
               sizes.dot
             )}
             style={{

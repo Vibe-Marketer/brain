@@ -146,19 +146,25 @@ export default {
           "neutral-text": "hsl(var(--cb-neutral-text))",
           "neutral-border": "hsl(var(--cb-neutral-border))",
         },
-        "vibe-green": {
-          DEFAULT: "hsl(var(--vibe-green))",
-          light: "hsl(var(--vibe-green-light))",
-          dark: "hsl(var(--vibe-green-dark))",
+        "vibe-orange": {
+          DEFAULT: "hsl(var(--vibe-orange))",
+          light: "hsl(var(--vibe-orange-light))",
+          dark: "hsl(var(--vibe-orange-dark))",
         },
-        // Tremor Color System (customized for CB - Vibe Green)
+        // Legacy alias - will be removed
+        "vibe-green": {
+          DEFAULT: "hsl(var(--vibe-orange))",
+          light: "hsl(var(--vibe-orange-light))",
+          dark: "hsl(var(--vibe-orange-dark))",
+        },
+        // Tremor Color System (customized for CV - Vibe Orange)
         tremor: {
           brand: {
-            faint: "hsl(72, 96%, 95%)",      // Very light vibe green
-            muted: "hsl(72, 96%, 85%)",      // Light vibe green
-            subtle: "hsl(72, 96%, 75%)",     // Medium vibe green
-            DEFAULT: "hsl(72, 96%, 70%)",    // #D9FC67 - Vibe green
-            emphasis: "hsl(72, 77%, 60%)",   // Dark vibe green
+            faint: "hsl(32, 100%, 95%)",      // Very light vibe orange
+            muted: "hsl(32, 100%, 85%)",      // Light vibe orange
+            subtle: "hsl(32, 100%, 70%)",     // Medium vibe orange
+            DEFAULT: "hsl(32, 100%, 50%)",    // #FF8800 - Vibe orange
+            emphasis: "hsl(14, 100%, 50%)",   // Dark vibe orange
             inverted: colors.white,
           },
           background: {
@@ -183,12 +189,12 @@ export default {
         },
         "dark-tremor": {
           brand: {
-            faint: "hsl(72, 50%, 15%)",      // Very dark vibe green
-            muted: "hsl(72, 60%, 25%)",      // Dark vibe green
-            subtle: "hsl(72, 70%, 50%)",     // Medium vibe green
-            DEFAULT: "hsl(72, 96%, 70%)",    // #D9FC67 - Vibe green
-            emphasis: "hsl(72, 100%, 77%)",  // Light vibe green
-            inverted: "hsl(72, 50%, 15%)",
+            faint: "hsl(32, 50%, 15%)",      // Very dark vibe orange
+            muted: "hsl(32, 60%, 25%)",      // Dark vibe orange
+            subtle: "hsl(32, 70%, 50%)",     // Medium vibe orange
+            DEFAULT: "hsl(32, 100%, 50%)",   // #FF8800 - Vibe orange
+            emphasis: "hsl(55, 100%, 50%)",  // Light vibe orange
+            inverted: "hsl(32, 50%, 15%)",
           },
           background: {
             muted: "hsl(0, 0%, 9%)",         // #161616 - CB viewport-dark
@@ -210,36 +216,23 @@ export default {
             inverted: "hsl(0, 0%, 9%)",      // Dark bg
           },
         },
-        // Override Tremor's default color palette with vibe green
+        // Override Tremor's default color palette with vibe orange
         colors: {
           // Use Tailwind's colors but drop deprecated palettes (lightBlue, warmGray, trueGray, coolGray, blueGray)
           ...tailwindColors,
-          // Override Tremor's green to use vibe green
-          green: {
-            50: '#f7fee7',
-            100: '#ecfccb',
-            200: '#d9f99d',
-            300: '#E5FD9E',  // vibe-green-light
-            400: '#D9FC67',  // vibe-green DEFAULT
-            500: '#D9FC67',  // vibe-green DEFAULT
-            600: '#C9E855',  // vibe-green-dark
-            700: '#a3b845',
-            800: '#7a8733',
-            900: '#5a6527',
-            950: '#3a4318',
-          },
-          emerald: {
-            50: '#f7fee7',
-            100: '#ecfccb',
-            200: '#d9f99d',
-            300: '#E5FD9E',
-            400: '#D9FC67',
-            500: '#D9FC67',
-            600: '#C9E855',
-            700: '#a3b845',
-            800: '#7a8733',
-            900: '#5a6527',
-            950: '#3a4318',
+          // Override Tremor's orange to use vibe orange
+          orange: {
+            50: '#fff7ed',
+            100: '#ffedd5',
+            200: '#fed7aa',
+            300: '#FFEB00',  // vibe-orange-light (yellow)
+            400: '#FF8800',  // vibe-orange DEFAULT
+            500: '#FF8800',  // vibe-orange DEFAULT
+            600: '#FF3D00',  // vibe-orange-dark
+            700: '#c2410c',
+            800: '#9a3412',
+            900: '#7c2d12',
+            950: '#431407',
           },
         },
       },

@@ -6,8 +6,6 @@ import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
-import { useTheme } from '@/contexts/ThemeContext';
-import brainLogo from '@/assets/conversion-brain-logo.svg';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,8 +29,7 @@ export function TopBar({
 }: TopBarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { theme } = useTheme();
-  
+
   const getInitials = (email?: string) => {
     if (!email) return 'U';
     return email.charAt(0).toUpperCase();
@@ -43,31 +40,31 @@ export function TopBar({
     navigate('/login');
   };
   
-  return <header className={cn("h-[52px] fixed top-0 left-0 right-0 z-40", "flex items-center justify-between px-3 md:px-6", "bg-[#FCFCFC] dark:bg-[#161616]", className)}>
-      {/* Left: Logo/Branding */}
-      <button onClick={() => navigate('/')} className="flex items-center gap-2 md:gap-3 hover:opacity-80 transition-opacity">
-        <div
-          className="w-8 h-8 md:w-10 md:h-10 rounded-xl flex items-center justify-center p-1.5"
-          style={{
-            background: 'linear-gradient(160deg, #627285 0%, #394655 100%)',
-            border: '1px solid rgba(57, 70, 85, 0.8)',
-            boxShadow: `
-              0 4px 6px rgba(255, 255, 255, 0.25) inset,
-              0 -4px 6px rgba(0, 0, 0, 0.35) inset,
-              0 10px 20px rgba(61, 74, 91, 0.2)
-            `,
-          }}
-        >
-          <img src={brainLogo} alt="Conversion Brain" className="h-full w-full object-contain" />
-        </div>
-        <span className="text-sm md:text-[15px] font-semibold tracking-tight hidden sm:inline">
-          Conversion Brain
-        </span>
+  return <header
+      className={cn("h-[52px] fixed top-0 left-0 right-0 z-40", "flex items-center justify-between px-3 md:px-6", className)}
+      style={{
+        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 160, 64, 0.08) 50%, rgba(255, 100, 0, 0.05) 100%), var(--tw-gradient-stops, hsl(var(--viewport)))'
+      }}
+    >
+      {/* Left: Logo/Branding - CallVault™ wordmark */}
+      <button onClick={() => navigate('/')} className="flex items-center hover:opacity-80 transition-opacity">
+        {/* Light mode: use mix-blend-multiply to hide white background */}
+        <img
+          src="/cv-wordmark.svg"
+          alt="CallVault™"
+          className="h-8 md:h-10 w-auto object-contain mix-blend-multiply dark:hidden"
+        />
+        {/* Dark mode: use difference blend mode to invert colors on dark bg */}
+        <img
+          src="/cv-wordmark.svg"
+          alt="CallVault™"
+          className="h-8 md:h-10 w-auto object-contain hidden dark:block dark:mix-blend-difference"
+        />
       </button>
 
-      {/* Center: Page Label */}
+      {/* Center: Page Label - Vibe Orange */}
       <div className="absolute left-1/2 -translate-x-1/2">
-        <span className="font-display uppercase tracking-[0.06em] text-foreground font-extrabold text-sm md:text-lg">
+        <span className="font-display uppercase tracking-[0.06em] text-vibe-orange font-extrabold text-sm md:text-lg">
           {pageLabel}
         </span>
       </div>

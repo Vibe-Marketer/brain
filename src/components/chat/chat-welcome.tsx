@@ -191,11 +191,11 @@ function SuggestedPromptItem({ suggestion, onClick }: SuggestedPromptItemProps) 
         // Kortex-style hover effect
         'transition-all duration-150 ease-out',
         'hover:bg-cb-hover dark:hover:bg-cb-border-dark',
-        'hover:border-l-vibe-green',
+        'hover:border-l-vibe-orange',
         'hover:text-cb-ink dark:hover:text-white',
         'hover:pl-5', // Subtle shift on hover
         // Focus
-        'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
         // Cursor
         'cursor-pointer'
       )}

@@ -23,7 +23,7 @@ export function DonutChartMetric({ title, value, percentage, category }: DonutCh
           data={data}
           category="value"
           index="name"
-          colors={["#D9FC67", "#64748b"]}
+          colors={["#FF8800", "#64748b"]}
           className="h-[200px]"
           showLabel={false}
           showAnimation={true}

@@ -1,6 +1,6 @@
-# CONVERSION BRAIN - CLAUDE INSTRUCTIONS
+# CALLVAULT - CLAUDE INSTRUCTIONS
 
-**Last Updated:** 2025-11-20
+**Last Updated:** 2025-12-05
 **Status:** Complete Development Guide
 
 ---
@@ -256,7 +256,7 @@ TodoWrite({
 - "Where are errors from the client handled?"
 - "What is the codebase structure?"
 - "How does authentication work?"
-- "Find all uses of vibe green color"
+- "Find all uses of vibe orange color"
 
 **Library Research (use library-researcher):**
 - External library documentation needed
@@ -282,13 +282,13 @@ Before writing code, answer:
 
 # BRAND GUIDELINES ENFORCEMENT
 
-**CRITICAL: The authoritative design system is [brand-guidelines-v3.3.md](./docs/design/brand-guidelines-v3.3.md).**
+**CRITICAL: The authoritative design system is [brand-guidelines-v3.4.md](./docs/design/brand-guidelines-v3.4.md).**
 
 ## Mandatory UI Change Protocol
 
 **Before ANY UI/design work, you MUST:**
 
-1. **READ** the relevant section of docs/design/brand-guidelines-v3.3.md
+1. **READ** the relevant section of docs/design/brand-guidelines-v3.4.md
 2. **VERIFY** your planned implementation aligns with documented patterns
 3. **ASK USER** before proceeding if:
    - The requested change conflicts with brand guidelines
@@ -305,7 +305,7 @@ Before writing code, answer:
 ### Examples of When to Ask
 
 - User requests rounded corners on tab underlines (guidelines say angular)
-- User requests vibe green button background (guidelines prohibit this)
+- User requests vibe orange button background (guidelines prohibit this)
 - User requests centered tabs (guidelines enforce left-justified)
 - Any color, spacing, or typography not in the documented system
 
@@ -313,7 +313,7 @@ Before writing code, answer:
 
 ### Color Usage Rules
 
-**Vibe Green (#D9FC67)** - ONLY for 9 specific uses:
+**Vibe Orange (#FF8800)** - ONLY for 9 specific uses:
 1. Active tab underlines (6px angular)
 2. Left-edge indicators on metric cards (6px × 56px angular)
 3. Individual table column headers (3px underline on sortable columns only)
@@ -324,7 +324,7 @@ Before writing code, answer:
 8. Section dividers (onboarding/instructional only)
 9. Contextual info banners (as subtle accent only)
 
-**NEVER use vibe green for:**
+**NEVER use vibe orange for:**
 - Text (fails WCAG contrast)
 - Button backgrounds
 - Card backgrounds
@@ -363,13 +363,13 @@ Before writing code, answer:
 
 **DO NOT:**
 - Mix icon libraries (no Lucide, Font Awesome, etc.)
-- Change icon colors to vibe green
+- Change icon colors to vibe orange
 - Use custom SVGs when Remix Icon equivalent exists
 
 ### Table Design
 
 - Header background: White (#FFFFFF light, #202020 dark)
-- 3px vibe green underline ONLY on individual sortable columns (not entire header)
+- 3px vibe orange underline ONLY on individual sortable columns (not entire header)
 - 1px horizontal borders only (no vertical borders)
 - Row heights: 30px (single-line) or 52-56px (two-line)
 - Numbers: Right-aligned with tabular figures
@@ -385,7 +385,7 @@ Before writing code, answer:
 
 ### Tab Navigation
 
-- Active underline: 6px height, vibe green (#D9FC67)
+- Active underline: 6px height, vibe orange (#FF8800)
 - Shape: Angular/parallelogram using clip-path (NOT rounded)
 - Position: Bottom of tab, full width
 - Full-width black underline on TabsList wrapper
@@ -395,7 +395,7 @@ Before writing code, answer:
 
 Before implementing ANY UI component or making design changes:
 
-- [ ] Read relevant section of docs/design/brand-guidelines-v3.3.md
+- [ ] Read relevant section of docs/design/brand-guidelines-v3.4.md
 - [ ] Verify color usage matches approved patterns
 - [ ] Confirm button variant is correct for use case
 - [ ] Check typography follows Montserrat/Inter rules
@@ -405,7 +405,7 @@ Before implementing ANY UI component or making design changes:
 
 ## Versioning Requirement
 
-**When editing brand-guidelines-v3.3.md, you MUST:**
+**When editing brand-guidelines-v3.4.md, you MUST:**
 1. Increment version in **3 places:**
    - Title (line 1)
    - DOCUMENT VERSION section
@@ -423,7 +423,7 @@ Before implementing ANY UI component or making design changes:
 
 ## When in Doubt
 
-1. **Check docs/design/brand-guidelines-v3.3.md first**
+1. **Check docs/design/brand-guidelines-v3.4.md first**
 2. Search for similar existing components
 3. Ask user for clarification if guidelines unclear
 4. NEVER guess or improvise design patterns
@@ -720,7 +720,7 @@ Requires access to live preview environment, uses Playwright for automated testi
 ## Design Principles
 
 - Comprehensive design checklist in `/docs/design/design-principles-conversion-brain.md`
-- Brand style guide in `/docs/design/brand-guidelines-v3.3.md`
+- Brand style guide in `/docs/design/brand-guidelines-v3.4.md`
 - When making visual (front-end, UI/UX) changes, always refer to these files for guidance
 
 ## Quick Visual Check
@@ -730,7 +730,7 @@ Requires access to live preview environment, uses Playwright for automated testi
 1. **Identify what changed** - Review the modified components/pages
 2. **Check dev server URL** - Read `vite.config.ts` for the server port (default: http://localhost:8080)
 3. **Navigate to affected pages** - Use `mcp__playwright__browser_navigate` to visit each changed view at the correct URL
-4. **Verify design compliance** - Compare against `/docs/design/design-principles-conversion-brain.md` and `/docs/design/brand-guidelines-v3.3.md`
+4. **Verify design compliance** - Compare against `/docs/design/design-principles-conversion-brain.md` and `/docs/design/brand-guidelines-v3.4.md`
 5. **Validate feature implementation** - Ensure the change fulfills the user's specific request
 6. **Check acceptance criteria** - Review any provided context files or requirements
 7. **Capture evidence** - Take full page screenshot at desktop viewport (1440px) of each changed view
@@ -759,7 +759,7 @@ Invoke the `/design-review` command or Task(subagent_type="design-review") for t
 
 ## Design & UI
 
-1. **Read guidelines first** - Always check brand-guidelines-v3.3.md before UI work
+1. **Read guidelines first** - Always check brand-guidelines-v3.4.md before UI work
 2. **Ask before deviating** - Never assume deviations are acceptable
 3. **Follow conventions** - Use established patterns for colors, typography, components
 4. **Verify immediately** - Visual check after every front-end change
@@ -802,7 +802,7 @@ TodoWrite({
 });
 
 // 2. Execute research
-Read("docs/design/brand-guidelines-v3.3.md") // Find metric card section
+Read("docs/design/brand-guidelines-v3.4.md") // Find metric card section
 Grep("metric", "**/*.tsx") // Find existing implementations
 // Mark first task completed, mark second in_progress
 
@@ -905,4 +905,4 @@ Task({
 
 **END OF CLAUDE INSTRUCTIONS**
 
-This document represents the complete development guide for Conversion Brain. All implementations must follow these standards exactly.
+This document represents the complete development guide for CallVault. All implementations must follow these standards exactly.

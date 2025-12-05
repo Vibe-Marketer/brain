@@ -723,7 +723,7 @@ export default function Chat() {
                                 onClick={() => toggleSpeaker(speaker.speaker_name)}
                                 className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors ${
                                   filters.speakers.includes(speaker.speaker_name)
-                                    ? 'bg-vibe-green/10 text-cb-ink'
+                                    ? 'bg-vibe-orange/10 text-cb-ink'
                                     : 'hover:bg-cb-hover text-cb-ink-soft'
                                 }`}
                               >

@@ -303,7 +303,7 @@ export function PromptInputContextBar({
                     'w-full pl-8 pr-3 py-2 rounded-lg',
                     'border border-cb-border bg-card',
                     'text-sm text-cb-ink placeholder:text-cb-ink-muted',
-                    'focus:outline-none focus:ring-2 focus:ring-cb-vibe-green/50 focus:border-transparent',
+                    'focus:outline-none focus:ring-2 focus:ring-vibe-orange/50 focus:border-transparent',
                     'transition-all duration-150'
                   )}
                   autoFocus

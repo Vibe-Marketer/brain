@@ -45,12 +45,12 @@ const TabsTrigger = React.forwardRef<
       "data-[state=active]:after:left-0",
       "data-[state=active]:after:right-0",
       "data-[state=active]:after:h-[6px]",
-      "data-[state=active]:after:bg-vibe-green",
+      "data-[state=active]:after:bg-vibe-orange",
       "data-[state=active]:after:content-['']",
       // Hover state
       "hover:text-cb-ink dark:hover:text-white",
       // Focus state
-      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-green focus-visible:ring-offset-2",
+      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
       "disabled:pointer-events-none disabled:opacity-50",
       className,
       // ENFORCED: No horizontal padding, only bottom padding for underline space

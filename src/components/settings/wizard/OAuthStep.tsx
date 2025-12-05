@@ -56,7 +56,7 @@ export function OAuthStep({ oauthConnecting, onOAuthConnect }: OAuthStepProps) {
       </div>
 
       <p className="text-sm text-muted-foreground text-center">
-        You'll sign into Fathom, authorize Conversion Brain, then land back here.
+        You'll sign into Fathom, authorize CallVault™, then land back here.
       </p>
     </div>
   );

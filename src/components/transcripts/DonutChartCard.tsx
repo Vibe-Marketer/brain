@@ -7,8 +7,10 @@ interface DonutChartCardProps {
 }
 
 const COLOR_MAP: Record<string, string> = {
-  'green': '#D9FC67',      // Vibe green
-  'emerald': '#E5FD9E',    // Vibe green light
+  'orange': '#FF8800',     // Vibe orange
+  'amber': '#FFEB00',      // Vibe orange light
+  'green': '#FF8800',      // Legacy alias → vibe orange
+  'emerald': '#FFEB00',    // Legacy alias → vibe orange light
   'lime': '#FFFFFF',       // White
   'teal': '#9ca3af',       // Gray
   'slate': '#64748b',      // Slate gray

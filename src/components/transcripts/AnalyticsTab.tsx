@@ -23,7 +23,7 @@ export function AnalyticsTab() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <RiLoader2Line className="w-8 h-8 animate-spin text-cb-vibe-green" />
+        <RiLoader2Line className="w-8 h-8 animate-spin text-vibe-orange" />
       </div>
     );
   }

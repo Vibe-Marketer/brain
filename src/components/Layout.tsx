@@ -73,7 +73,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const isChatPage = location.pathname.startsWith('/chat');
 
   return (
-    <div className="min-h-screen w-full bg-viewport relative">
+    <div
+      className="min-h-screen w-full relative"
+      style={{
+        background: 'linear-gradient(135deg, rgba(255, 235, 0, 0.12) 0%, rgba(255, 136, 0, 0.08) 50%, rgba(255, 61, 0, 0.05) 100%), hsl(var(--viewport))'
+      }}
+    >
       <TopBar pageLabel={getPageLabel()} />
       <main className="fixed inset-2 top-[52px]">
         {isChatPage ? (

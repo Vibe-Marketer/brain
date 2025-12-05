@@ -397,7 +397,7 @@ export default function AITab() {
         {/* Model Selection Card */}
         <div className="relative py-6 px-6 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
           <div
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-green"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-orange"
             style={{
               clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
             }}
@@ -488,7 +488,7 @@ export default function AITab() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
             <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
               style={{
                 clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
               }}
@@ -502,7 +502,7 @@ export default function AITab() {
 
           <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
             <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
               style={{
                 clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
               }}
@@ -518,7 +518,7 @@ export default function AITab() {
 
           <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
             <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
               style={{
                 clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
               }}
@@ -532,7 +532,7 @@ export default function AITab() {
 
           <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
             <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-green"
+              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
               style={{
                 clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
               }}
@@ -550,7 +550,7 @@ export default function AITab() {
         {/* Indexing Action Card */}
         <div className="relative py-6 px-6 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
           <div
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-green"
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-orange"
             style={{
               clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
             }}
@@ -571,7 +571,7 @@ export default function AITab() {
                   embeddings for AI-powered semantic search and chat capabilities.
                 </p>
                 {stats.unindexedRecordings > 0 && (
-                  <p className="mt-2 text-sm font-medium text-vibe-green">
+                  <p className="mt-2 text-sm font-medium text-vibe-orange">
                     {stats.unindexedRecordings} transcript{stats.unindexedRecordings !== 1 ? "s" : ""} ready to index
                   </p>
                 )}
@@ -593,7 +593,7 @@ export default function AITab() {
                   </div>
                   <div className="w-full bg-cb-border dark:bg-cb-border-dark rounded-full h-2">
                     <div
-                      className="bg-vibe-green h-2 rounded-full transition-all duration-300"
+                      className="bg-vibe-orange h-2 rounded-full transition-all duration-300"
                       style={{ width: `${getProgressPercentage()}%` }}
                     />
                   </div>

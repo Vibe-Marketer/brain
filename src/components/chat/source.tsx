@@ -101,8 +101,8 @@ export function CallSourceTrigger({
         )}
       >
         {showIcon && (
-          <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-vibe-green/20">
-            <RiMicLine className="h-2.5 w-2.5 text-vibe-green" />
+          <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-vibe-orange/20">
+            <RiMicLine className="h-2.5 w-2.5 text-vibe-orange" />
           </span>
         )}
         <span className="truncate tabular-nums text-center font-normal">
@@ -150,8 +150,8 @@ export function CallSourceContent({ source, className }: CallSourceContentProps)
       >
         {/* Header with icon and title */}
         <div className="flex items-center gap-2">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-vibe-green/20 flex-shrink-0">
-            <RiMicLine className="h-3 w-3 text-vibe-green" />
+          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-vibe-orange/20 flex-shrink-0">
+            <RiMicLine className="h-3 w-3 text-vibe-orange" />
           </span>
           <span className="text-sm font-medium text-foreground truncate flex-1">
             {source.call_title || 'Transcript'}

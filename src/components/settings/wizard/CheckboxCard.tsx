@@ -21,7 +21,7 @@ export function CheckboxCard({
 }: CheckboxCardProps) {
   const badgeStyles = {
     required: "text-destructive",
-    recommended: "text-vibe-green dark:text-vibe-green",
+    recommended: "text-vibe-orange dark:text-vibe-orange",
     "coming-soon": "text-muted-foreground",
   };
 
@@ -30,7 +30,7 @@ export function CheckboxCard({
       <div
         className={cn(
           "absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6",
-          checked ? "bg-vibe-green" : "bg-red-500"
+          checked ? "bg-vibe-orange" : "bg-red-500"
         )}
         style={{
           clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",

@@ -1,62 +1,124 @@
-# Session Checkpoint - 2025-12-04
+# Session Checkpoint - 2025-12-04 (Final Update)
 
 ## Session Summary
-Successfully migrated AI Chat from OpenAI-only to OpenRouter as the primary provider.
 
-## Completed Tasks
+This session covered UI refinements, research, bug fixes, and focus state color updates.
 
-### OpenRouter Integration (Primary Provider)
-- ✅ Updated `supabase/functions/chat-stream/index.ts`:
-  - Changed API endpoint from OpenAI to OpenRouter (`https://openrouter.ai/api/v1/chat/completions`)
-  - Added OpenRouter-specific headers (`HTTP-Referer`, `X-Title`)
-  - Switched from `OPENAI_API_KEY` to `OPENROUTER_API_KEY` for chat
-  - Model format now uses OpenRouter format directly (e.g., `anthropic/claude-sonnet-4`)
-  
-- ✅ Verified working:
-  - Basic streaming with OpenRouter
-  - Tool calling (searchTranscripts) through OpenRouter
-  - Model selector displays 300+ models from all providers
-  - Model selection properly updates and sends to backend
+---
 
-### Architecture Decisions
-- **OpenRouter**: Primary for all LLM chat/completions (300+ models)
-- **OpenAI Direct**: Used only for embeddings (`text-embedding-3-small`)
-- **AI SDK Bypass**: Backend uses direct OpenRouter API due to zod bundling issues with esm.sh/Deno
+## 1. MacOS Dock Styling Improvements
 
-## Key Technical Notes
+### Changes Made
+- **File**: `src/components/Layout.tsx`
+  - Created `DockIcon` wrapper component with glossy 3D effect (white theme)
+  - Uses gradient background, inset shadows, and drop shadow matching primary button style
+  - All icons now use Remix Icons: `RiHome4Fill`, `RiChat1Fill`, `RiPriceTag3Fill`, `RiSettings3Fill`
+  - Icons styled with `w-6 h-6 text-cb-black`
 
-### Why Direct API Instead of AI SDK on Backend
-The AI SDK has zod bundling issues with esm.sh in Deno runtime:
-- Error: "safeParseAsync is not a function" when tool calls are returned
-- Solution: Bypass AI SDK entirely, use native fetch with OpenRouter API
-- Frontend AI SDK works fine (bundled by Vite)
+- **File**: `src/components/ui/mac-os-dock.tsx`
+  - Updated dock background: `bg-[#323232]/40` (darker, semi-transparent)
+  - Increased padding: `px-4 py-3` (was `px-3 py-2`)
+  - Increased gap: `gap-3` (was `gap-2`)
+  - Border: `border-white/20` for frosted glass effect
 
-### Model Format
-OpenRouter uses `provider/model-name` format:
-- `openai/gpt-4o-mini` (default)
-- `anthropic/claude-sonnet-4`
-- `google/gemini-2.0-flash`
-- etc.
+---
 
-### Environment Variables Required
-```
-OPENROUTER_API_KEY=sk-or-v1-xxx  # For all LLM calls
-OPENAI_API_KEY=sk-xxx            # For embeddings only
-```
+## 2. Button Focus State Color Change
+
+### Change Made
+- **File**: `src/components/ui/button.tsx`
+- **Change**: Focus ring color changed from `vibe-green` to `vibe-orange`
+- **Affected variants**: hollow, outline, ghost (both icon and regular sizes)
+- **Pattern**: `focus-visible:ring-vibe-orange` (was `focus-visible:ring-vibe-green`)
+- **Active state**: Changed to `outline: 2px solid hsl(32 100% 50%)` (orange)
+
+### Locations Updated
+- Line 115: hollow icon button
+- Line 138: outline icon button  
+- Line 159: ghost icon button
+- Line 201: hollow button
+- Line 227: outline button
+- Line 252: ghost button
+- Line 319: glossy button active state
+
+---
+
+## 3. Multi-Source Transcript Integration Research
+
+### Research Document Created
+**Location**: `claudedocs/research_multi_source_transcript_integration_2025-12-04.md`
+
+### Key Findings
+
+#### PLAUD Integration
+- Full Developer Platform available at https://docs.plaud.ai/
+- SDK for device binding, API for recordings/transcripts
+- Webhooks for automatic sync
+- JSON output with speaker diarization, 112+ languages
+- **Action Required**: Submit API access request
+
+#### Integration Priority (Recommended)
+1. **Custom Upload** (2-2.5 weeks) - Covers Voice Memos + any audio/video
+2. **PLAUD API** (2-3 weeks) - Full API available
+3. **YouTube** (1 week) - Easy transcript extraction
+4. **Zoom** (1.5-2 weeks) - OAuth + VTT download
+
+---
+
+## 4. Bug Fixes
+
+### Corrupted diagnose-rag-pipeline.ts
+- **File**: `scripts/diagnose-rag-pipeline.ts`
+- **Issue**: Malformed string literal in `testReranking()` catch block
+- **Fix**: Replaced corrupted catch block with proper `${error}` template literal
+- **Also fixed**: TypeScript error on line 257 (`testUserId!` non-null assertion)
+
+### Sentry Error: Badge Not Defined
+- **File**: `src/components/settings/UsersTab.tsx`
+- **Status**: Already fixed in current codebase (Badge import present on line 3)
+
+---
+
+## 5. Brand Guidelines
+
+**Current Version**: v3.3.9
+**Location**: `docs/design/brand-guidelines-v3.3.md`
+**Last Updated**: November 26, 2025
+
+---
+
+## 6. AI SDK Integration
+
+### OpenRouter Provider
+- Using `@openrouter/ai-sdk-provider@1.2.8`
+- Method: `openrouter.chat(model)` 
+- Default model: `z-ai/glm-4.6`
+
+---
 
 ## Files Modified This Session
-1. `supabase/functions/chat-stream/index.ts` - OpenRouter integration
 
-## Test Results
-- Basic chat: ✅ "2+2 equals 4" response streamed correctly
-- Tool calling: ✅ searchTranscripts found pricing discussions
-- Model switching: ✅ Claude Sonnet 4 selected and responded
+| File | Changes |
+|------|---------|
+| `src/components/Layout.tsx` | DockIcon component with glossy effect |
+| `src/components/ui/mac-os-dock.tsx` | Darker bg, more padding |
+| `src/components/ui/button.tsx` | Focus ring: green → orange |
+| `scripts/diagnose-rag-pipeline.ts` | Fixed corrupted catch block |
 
-## Next Steps / Future Considerations
-- Consider adding model-specific system prompts if needed
-- Monitor OpenRouter API performance and costs
-- Evaluate if AI SDK backend support improves for Deno
+## Files Created This Session
 
-## Related Memories
-- `ai-sdk-patterns` - Updated with current architecture
-- `project-overview` - Contains overall project context
+| File | Description |
+|------|-------------|
+| `claudedocs/research_multi_source_transcript_integration_2025-12-04.md` | Multi-source integration research |
+
+---
+
+## Pending Items
+
+1. **PLAUD API Access**: Submit request at developer portal
+2. **Re-ranking Implementation**: Not currently integrated in chat-stream
+3. **Deploy latest changes**: Dock styling, button focus colors, script fix
+
+---
+
+*Last updated: 2025-12-04 (evening)*

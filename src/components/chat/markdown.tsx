@@ -97,7 +97,7 @@ const INITIAL_COMPONENTS: Partial<Components> = {
   // Blockquotes
   blockquote: ({ children, ...props }) => (
     <blockquote
-      className="my-4 border-l-4 border-cb-vibe-green pl-4 italic text-cb-ink-muted"
+      className="my-4 border-l-4 border-vibe-orange pl-4 italic text-cb-ink-muted"
       {...props}
     >
       {children}
