@@ -41,25 +41,29 @@ export function TopBar({
   };
   
   return <header
-      className={cn("h-[52px] fixed top-0 left-0 right-0 z-40", "flex items-center justify-between px-3 md:px-6", className)}
-      style={{
-        background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 160, 64, 0.08) 50%, rgba(255, 100, 0, 0.05) 100%), var(--tw-gradient-stops, hsl(var(--viewport)))'
-      }}
+      className={cn(
+        "h-[52px] fixed top-0 left-0 right-0 z-40",
+        "flex items-center justify-between px-3 md:px-6",
+        "bg-viewport",
+        className
+      )}
     >
       {/* Left: Logo/Branding - CallVault™ wordmark */}
       <button onClick={() => navigate('/')} className="flex items-center hover:opacity-80 transition-opacity">
-        {/* Light mode: use mix-blend-multiply to hide white background */}
+        {/* Light mode: mix-blend-multiply hides white background */}
         <img
           src="/cv-wordmark.svg"
           alt="CallVault™"
           className="h-8 md:h-10 w-auto object-contain mix-blend-multiply dark:hidden"
         />
-        {/* Dark mode: use difference blend mode to invert colors on dark bg */}
-        <img
-          src="/cv-wordmark.svg"
-          alt="CallVault™"
-          className="h-8 md:h-10 w-auto object-contain hidden dark:block dark:mix-blend-difference"
-        />
+        {/* Dark mode: show in a subtle rounded container since SVG has embedded white bg */}
+        <div className="hidden dark:flex items-center justify-center bg-white/90 rounded-md px-1">
+          <img
+            src="/cv-wordmark.svg"
+            alt="CallVault™"
+            className="h-7 md:h-9 w-auto object-contain"
+          />
+        </div>
       </button>
 
       {/* Center: Page Label - Vibe Orange */}
