@@ -65,6 +65,29 @@ export default function AdminTab() {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
 
+  // Define applyFilters BEFORE the useEffect that uses it to avoid TDZ errors
+  const applyFilters = useCallback(() => {
+    let filtered = [...users];
+
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (user) =>
+          user.email.toLowerCase().includes(query) ||
+          user.display_name?.toLowerCase().includes(query) ||
+          user.user_id.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply role filter
+    if (roleFilter !== "all") {
+      filtered = filtered.filter((user) => user.role === roleFilter);
+    }
+
+    setFilteredUsers(filtered);
+  }, [users, searchQuery, roleFilter]);
+
   useEffect(() => {
     loadSystemData();
   }, []);
@@ -120,28 +143,6 @@ export default function AdminTab() {
       setLoading(false);
     }
   };
-
-  const applyFilters = useCallback(() => {
-    let filtered = [...users];
-
-    // Apply search filter
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(
-        (user) =>
-          user.email.toLowerCase().includes(query) ||
-          user.display_name?.toLowerCase().includes(query) ||
-          user.user_id.toLowerCase().includes(query)
-      );
-    }
-
-    // Apply role filter
-    if (roleFilter !== "all") {
-      filtered = filtered.filter((user) => user.role === roleFilter);
-    }
-
-    setFilteredUsers(filtered);
-  }, [users, searchQuery, roleFilter]);
 
   const handleRoleChange = async (userId: string, newRole: "FREE" | "PRO" | "TEAM" | "ADMIN") => {
     try {

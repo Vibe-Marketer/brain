@@ -254,7 +254,7 @@ async function testVectorStore(userId?: string): Promise<{ userId: string; chunk
       });
     }
 
-    return { userId: testUserId, chunkCount: userCount || 0 };
+    return { userId: testUserId!, chunkCount: userCount || 0 };
 
   } catch (error) {
     log('FAIL', 'VectorStore', `Exception during vector store test: ${error}`);
@@ -384,37 +384,7 @@ async function testReranking(): Promise<void> {
     }
 
   } catch (error) {
-    log('FAIL', 'Reranking', `Error reading edge function: $Failed to edit, 0 occurrences found for old_string (// =============================================
-// TEST 4: RE-RANKING SERVICE TEST
-// =============================================
-
-async function testReranking(): Promise<void> {
-  console.log('\n' + '═'.repeat(70));
-  console.log('4. RE-RANKING SERVICE TEST');
-  console.log('═'.repeat(70));
-
-  // Note: Re-ranking requires HUGGINGFACE_API_KEY which may not be available locally
-  // This test checks if the service is configured and callable
-
-  log('WARN', 'Reranking', 'Re-ranking function (rerank-results) exists but is NOT integrated into chat-stream');
-  log('INFO', 'Reranking', 'The chat-stream function directly uses hybrid_search_transcripts without re-ranking');
-  log('INFO', 'Reranking', 'Recommendation: Consider integrating cross-encoder re-ranking for improved relevance');
-}). Original old_string was (// =============================================
-// TEST 4: RE-RANKING SERVICE TEST
-// =============================================
-
-async function testReranking(): Promise<void> {
-  console.log('\n' + '═'.repeat(70));
-  console.log('4. RE-RANKING SERVICE TEST');
-  console.log('═'.repeat(70));
-
-  // Note: Re-ranking requires HUGGINGFACE_API_KEY which may not be available locally
-  // This test checks if the service is configured and callable
-
-  log('WARN', 'Reranking', 'Re-ranking function (rerank-results) exists but is NOT integrated into chat-stream');
-  log('INFO', 'Reranking', 'The chat-stream function directly uses hybrid_search_transcripts without re-ranking');
-  log('INFO', 'Reranking', 'Recommendation: Consider integrating cross-encoder re-ranking for improved relevance');
-}) in /Users/Naegele/dev/brain/scripts/diagnose-rag-pipeline.ts. No edits made. The exact text in old_string was not found. Ensure you're not escaping content incorrectly and check whitespace, indentation, and context. Use read_file tool to verify.`);
+    log('FAIL', 'Reranking', `Error reading edge function: ${error}`);
   }
 }
 
