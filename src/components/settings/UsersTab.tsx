@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import { RiLoader2Line, RiGroupLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
