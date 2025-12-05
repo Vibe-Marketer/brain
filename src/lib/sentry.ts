@@ -69,17 +69,15 @@ export { Sentry };
 export const logger = Sentry.logger;
 
 // Export metrics helpers for easy usage
+// Uses new Sentry SDK v10.25+ metrics API with 'attributes' instead of 'tags'
 export const metrics = {
-  count: (name: string, value: number = 1, tags?: Record<string, string>) => {
-    Sentry.metrics.increment(name, value, { tags });
+  count: (name: string, value: number = 1, attributes?: Record<string, string>) => {
+    Sentry.metrics.count(name, value, { attributes });
   },
-  gauge: (name: string, value: number, tags?: Record<string, string>) => {
-    Sentry.metrics.gauge(name, value, { tags });
+  gauge: (name: string, value: number, attributes?: Record<string, string>) => {
+    Sentry.metrics.gauge(name, value, { attributes });
   },
-  distribution: (name: string, value: number, tags?: Record<string, string>) => {
-    Sentry.metrics.distribution(name, value, { tags });
-  },
-  set: (name: string, value: string | number, tags?: Record<string, string>) => {
-    Sentry.metrics.set(name, value, { tags });
+  distribution: (name: string, value: number, attributes?: Record<string, string>) => {
+    Sentry.metrics.distribution(name, value, { attributes });
   },
 };
