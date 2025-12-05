@@ -167,33 +167,6 @@ export async function createFathomWebhook() {
   return callEdgeFunction('create-fathom-webhook', undefined, { retry: false });
 }
 
-/**
- * Export complete database (all tables and data)
- * Used for migrating from Lovable to independent Supabase project
- * Returns JSON export that can be downloaded and imported into new project
- */
-export async function exportFullDatabase() {
-  return callEdgeFunction('export-full-database', undefined, { retry: false });
-}
-
-/**
- * Export database using direct PostgreSQL connection
- * Bypasses PostgREST API to avoid schema cache issues
- * Uses PostgreSQL Pool with SUPABASE_DB_URL for complete export
- */
-export async function exportDatabaseDirect() {
-  return callEdgeFunction('export-database-direct', undefined, { retry: false });
-}
-
-/**
- * Get Supabase credentials (URL and service role key)
- * Used to retrieve credentials for local export script
- * WARNING: Returns sensitive credentials - use with caution!
- */
-export async function getCredentials() {
-  return callEdgeFunction('get-credentials', undefined, { retry: false });
-}
-
 // =============================================
 // AI CHAT & RAG FUNCTIONS
 // =============================================

@@ -17,13 +17,10 @@ import {
   RiSearchLine,
   RiShieldLine,
   RiPulseLine,
-  RiDownloadLine,
-  RiDatabaseLine,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { UserTable } from "@/components/settings/UserTable";
-import { exportDatabaseDirect } from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
 
 interface UserProfile {
@@ -63,7 +60,6 @@ export default function AdminTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-  const [exporting, setExporting] = useState(false);
 
   // Define applyFilters BEFORE the useEffect that uses it to avoid TDZ errors
   const applyFilters = useCallback(() => {
@@ -171,44 +167,6 @@ export default function AdminTab() {
       toast.error("Failed to update user role");
     } finally {
       setUpdatingUserId(null);
-    }
-  };
-
-  const handleDatabaseExport = async () => {
-    setExporting(true);
-    try {
-      logger.info("Starting direct PostgreSQL database export...");
-      toast.info("Exporting database via direct PostgreSQL connection... This may take 1-2 minutes");
-
-      const response = await exportDatabaseDirect();
-
-      if (response.error) {
-        logger.error("Export failed", response.error);
-        toast.error(`Export failed: ${response.error}`);
-        return;
-      }
-
-      // Download the export as JSON file
-      const blob = new Blob([JSON.stringify(response.data, null, 2)], {
-        type: "application/json",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `database-export-${new Date().toISOString().split("T")[0]}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-
-      const summary = response.data?.summary;
-      logger.info("Export complete", summary);
-      toast.success(
-        `Export complete! ${summary?.totalRows?.toLocaleString() || 0} rows from ${summary?.successfulTables || 0} tables exported.`
-      );
-    } catch (error) {
-      logger.error("Export error", error);
-      toast.error("Export failed: " + (error instanceof Error ? error.message : "Unknown error"));
-    } finally {
-      setExporting(false);
     }
   };
 
@@ -404,98 +362,6 @@ export default function AdminTab() {
             <p className="text-xs">
               Results update in real-time
             </p>
-          </div>
-        </div>
-      </div>
-
-      <Separator className="my-16" />
-
-      {/* Database Migration Section */}
-      <div className="space-y-4">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-            Database Migration
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Export complete database to migrate from Lovable to independent Supabase
-          </p>
-        </div>
-
-        <div className="relative py-6 px-6 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
-          <div
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-green"
-            style={{
-              clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-            }}
-          />
-
-          <div className="flex items-start gap-4">
-            <div className="flex-shrink-0 mt-1">
-              <RiDatabaseLine className="h-6 w-6 text-cb-ink-muted" />
-            </div>
-
-            <div className="flex-1 space-y-4">
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-50">
-                  Export Complete Database
-                </h3>
-                <p className="mt-2 text-sm text-gray-500 dark:text-gray-500">
-                  Uses direct PostgreSQL connection to export all database tables with complete data.
-                  Bypasses API layer to ensure all 64 tables are exported successfully. Downloads as JSON file.
-                </p>
-                <ul className="mt-3 text-sm text-gray-500 dark:text-gray-500 space-y-1">
-                  <li className="flex items-center gap-2">
-                    <RiCheckboxCircleLine className="h-4 w-4 text-vibe-green" />
-                    <span>Direct PostgreSQL access via SUPABASE_DB_URL</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <RiCheckboxCircleLine className="h-4 w-4 text-vibe-green" />
-                    <span>All tables and data (bypasses schema cache limitations)</span>
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <RiCheckboxCircleLine className="h-4 w-4 text-vibe-green" />
-                    <span>Export takes 1-2 minutes • Safe read-only operation</span>
-                  </li>
-                </ul>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Button
-                  onClick={handleDatabaseExport}
-                  disabled={exporting}
-                  variant="destructive"
-                  className="gap-2"
-                >
-                  {exporting ? (
-                    <>
-                      <RiLoader2Line className="h-4 w-4 animate-spin" />
-                      Exporting Database...
-                    </>
-                  ) : (
-                    <>
-                      <RiDownloadLine className="h-4 w-4" />
-                      Export Complete Database
-                    </>
-                  )}
-                </Button>
-
-                {exporting && (
-                  <p className="text-sm text-muted-foreground">
-                    Exporting all tables... Check console for progress
-                  </p>
-                )}
-              </div>
-
-              <div className="pt-3 border-t border-cb-border dark:border-cb-border-dark">
-                <p className="text-xs text-muted-foreground">
-                  <strong>Next steps after export:</strong> Follow the migration guide at{" "}
-                  <code className="text-xs bg-muted px-1 py-0.5 rounded">
-                    docs/MIGRATION-FROM-LOVABLE.md
-                  </code>{" "}
-                  to set up your independent Supabase project.
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       </div>
