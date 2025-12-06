@@ -170,15 +170,21 @@ export function useChatSession(userId: string | undefined) {
         .select('content, role, created_at')
         .eq('session_id', sessionId);
 
-      // Create a Set of content+role combos to detect duplicates
-      const existingContentKeys = new Set(
-        existingMessages?.map((m) => `${m.role}:${m.content}`) || []
-      );
+      // Build occurrence counts so we allow legitimate repeated messages
+      const existingCounts = new Map<string, number>();
+      existingMessages?.forEach((m) => {
+        const key = `${m.role}:${m.content ?? ''}`;
+        existingCounts.set(key, (existingCounts.get(key) ?? 0) + 1);
+      });
 
-      // Filter out messages that already exist (by content+role)
-      const newMessages = messages.filter(
-        (msg) => !existingContentKeys.has(`${msg.role}:${msg.content}`)
-      );
+      const seenCounts = new Map<string, number>();
+      const newMessages = messages.filter((msg) => {
+        const key = `${msg.role}:${typeof msg.content === 'string' ? msg.content : ''}`;
+        const nextCount = (seenCounts.get(key) ?? 0) + 1;
+        seenCounts.set(key, nextCount);
+        const existingCount = existingCounts.get(key) ?? 0;
+        return nextCount > existingCount;
+      });
 
       if (newMessages.length === 0) return;
 

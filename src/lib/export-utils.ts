@@ -16,7 +16,7 @@ interface Call {
   url?: string;
 }
 
-interface TranscriptSegment {
+interface _TranscriptSegment {
   speaker_name?: string;
   speaker_email?: string;
   text: string;
@@ -570,7 +570,7 @@ export async function exportByWeek(calls: Call[], format: 'md' | 'txt' = 'md') {
   const weekGroups = new Map<string, Call[]>();
 
   sortedCalls.forEach(call => {
-    const { week, year, weekStart, weekEnd } = getWeekInfo(call.created_at);
+    const { week, year, weekStart: _weekStart, weekEnd: _weekEnd } = getWeekInfo(call.created_at);
     const weekKey = `${year}-W${String(week).padStart(2, '0')}`;
     if (!weekGroups.has(weekKey)) {
       weekGroups.set(weekKey, []);

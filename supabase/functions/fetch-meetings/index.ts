@@ -5,32 +5,98 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Rate limiter to prevent exceeding Fathom's 60 requests/60 seconds limit
-class RateLimiter {
-  private requestCount = 0;
-  private windowStart = Date.now();
-  private readonly maxRequests = 55; // Leave some buffer
-  private readonly windowMs = 60000;
+/**
+ * RATE LIMITING CONFIGURATION
+ *
+ * Fathom API limits: 60 requests/minute per API key
+ * Our conservative limit: 55 requests/minute (provides safety buffer)
+ * Window: 60 seconds (60000ms)
+ * Jitter: 0-200ms random delay to prevent thundering herd
+ */
+const RATE_WINDOW_MS = 60000;
+const RATE_MAX_REQUESTS = 55; // Leave some buffer under 60/min
+const RATE_JITTER_MS = 200;
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  async throttle(): Promise<void> {
-    const now = Date.now();
-    const elapsed = now - this.windowStart;
+type RateWindow = { windowStart: number; count: number };
+type RateLimiterState = { windows: Map<string, RateWindow> };
 
-    if (elapsed >= this.windowMs) {
-      this.requestCount = 0;
-      this.windowStart = now;
-    }
+/**
+ * GLOBAL RATE LIMITER STATE
+ *
+ * DEPLOYMENT MODEL ASSUMPTIONS:
+ * - Supabase Edge Functions use Deno Deploy architecture
+ * - Each deployment runs in its own V8 isolate within a runner process
+ * - Isolates can be reused for subsequent requests (warm starts)
+ * - globalThis persists within a single isolate instance
+ * - Multiple isolates may run concurrently across edge locations
+ *
+ * SCALABILITY CONSIDERATIONS:
+ * - This in-memory rate limiter is per-isolate, NOT globally shared
+ * - In multi-instance deployments, each isolate has independent state
+ * - For true global rate limiting, a database-backed solution is required
+ * - Current implementation prevents rate limit violations from a single isolate
+ * - For production with high concurrency, consider Redis-backed rate limiting
+ *
+ * MEMORY LEAK PREVENTION:
+ * - Cleanup logic runs in throttleShared() to remove expired entries
+ * - Windows older than 2x the rate window are automatically deleted
+ */
+const globalRateLimiterState = (globalThis as unknown as { __fathomRateLimiter?: RateLimiterState }).__fathomRateLimiter
+  ?? { windows: new Map<string, RateWindow>() };
+(globalThis as unknown as { __fathomRateLimiter?: RateLimiterState }).__fathomRateLimiter = globalRateLimiterState;
 
-    if (this.requestCount >= this.maxRequests) {
-      const waitTime = this.windowMs - elapsed;
-      console.log(`Rate limit prevention: waiting ${waitTime}ms...`);
-      await new Promise(resolve => setTimeout(resolve, waitTime));
-      this.requestCount = 0;
-      this.windowStart = Date.now();
-    }
+/**
+ * Sliding window rate limiter with automatic cleanup
+ *
+ * ALGORITHM:
+ * 1. Check if current window has expired (elapsed >= windowMs)
+ * 2. If expired, reset window start time and request count
+ * 3. If at rate limit, calculate wait time with jitter and recursively retry
+ * 4. Otherwise, increment count and allow request through
+ * 5. Periodically clean up stale entries to prevent memory leak
+ *
+ * MEMORY CLEANUP:
+ * - Every request checks if its window is stale (> 2x windowMs old)
+ * - Stale windows are deleted from the Map to prevent unbounded growth
+ * - This prevents memory accumulation over time
+ *
+ * @param scope - Rate limit scope (e.g., 'global', 'user:123')
+ * @param maxRequests - Maximum requests allowed per window
+ * @param windowMs - Time window in milliseconds
+ */
+async function throttleShared(scope: string, maxRequests: number = RATE_MAX_REQUESTS, windowMs: number = RATE_WINDOW_MS): Promise<void> {
+  const now = Date.now();
+  const existing = globalRateLimiterState.windows.get(scope) ?? { windowStart: now, count: 0 };
+  const elapsed = now - existing.windowStart;
 
-    this.requestCount++;
+  // MEMORY LEAK FIX: Clean up expired window entries
+  // If window is more than 2x the window duration old, it's stale - delete and restart
+  if (elapsed > windowMs * 2) {
+    globalRateLimiterState.windows.delete(scope);
+    // Recursively call with fresh state
+    return throttleShared(scope, maxRequests, windowMs);
   }
+
+  // Reset window if current window has expired
+  if (elapsed >= windowMs) {
+    existing.windowStart = now;
+    existing.count = 0;
+  }
+
+  // Rate limit reached - wait with jittered backoff
+  if (existing.count >= maxRequests) {
+    // Calculate wait time: time remaining in window + random jitter
+    const waitTime = windowMs - elapsed + Math.floor(Math.random() * RATE_JITTER_MS);
+    console.log(`Rate limit prevention for ${scope}: waiting ${waitTime}ms...`);
+    await sleep(waitTime);
+    // Recursively retry after waiting
+    return throttleShared(scope, maxRequests, windowMs);
+  }
+
+  // Allow request through and increment counter
+  existing.count += 1;
+  globalRateLimiterState.windows.set(scope, existing);
 }
 
 interface FathomMeeting {
@@ -185,9 +251,6 @@ Deno.serve(async (req) => {
     let cursor: string | null = null;
     let hasMore = true;
     const maxRetries = 3;
-    const rateLimiter = new RateLimiter();
-
-    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
     while (hasMore) {
       if (cursor) {
@@ -199,8 +262,9 @@ Deno.serve(async (req) => {
 
       while (!success && retryCount < maxRetries) {
         try {
-          // Apply rate limiting
-          await rateLimiter.throttle();
+          // Apply shared rate limiting (global + per-user)
+          await throttleShared('global');
+          await throttleShared(`user:${user.id}`);
 
           const response = await fetch(
             `https://api.fathom.ai/external/v1/meetings?${params.toString()}`,

@@ -1,6 +1,50 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "callvaultai.com" }],
+      "destination": "https://app.callvaultai.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.callvaultai.com" }],
+      "destination": "https://app.callvaultai.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "aicallvault.com" }],
+      "destination": "https://app.callvaultai.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.aicallvault.com" }],
+      "destination": "https://app.callvaultai.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "transcriptsos.com" }],
+      "destination": "https://app.callvaultai.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.transcriptsos.com" }],
+      "destination": "https://app.callvaultai.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "brain.transcriptsos.com" }],
+      "destination": "https://app.callvaultai.com/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
       "source": "/(.*)",

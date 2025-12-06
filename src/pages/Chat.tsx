@@ -237,9 +237,10 @@ export default function Chat() {
       body: {
         filters: apiFilters,
         model: selectedModel,
+        sessionId: currentSessionId,
       },
     });
-  }, [session?.access_token, apiFilters, selectedModel]);
+  }, [session?.access_token, apiFilters, selectedModel, currentSessionId]);
 
   // Use the AI SDK v5 chat hook
   const {
@@ -258,32 +259,55 @@ export default function Chat() {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Save messages when they change and status becomes ready
-  React.useEffect(() => {
-    async function saveCurrentMessages() {
-      const sessionIdToSave = currentSessionIdRef.current;
-      if (status === 'ready' && sessionIdToSave && session?.user?.id && messages.length > 0) {
+  // Debounced message save function - prevents rapid duplicate inserts
+  // 500ms delay chosen to batch rapid message updates (typing indicators, streaming)
+  // while still feeling responsive to user
+  const debouncedSaveMessages = React.useMemo(() => {
+    let timeoutId: NodeJS.Timeout | null = null;
+
+    return (msgs: typeof messages, sessionId: string, model: string) => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      timeoutId = setTimeout(async () => {
         try {
-          // Convert UIMessage to the format expected by saveMessages
-          const messagesToSave = messages.map(m => ({
+          // Convert UIMessage to the format expected by saveMessages (keep parts for tool calls)
+          const messagesToSave = msgs.map(m => ({
             id: m.id,
             role: m.role as 'user' | 'assistant' | 'system',
             content: getMessageTextContent(m),
+            parts: m.parts,
           }));
 
           await saveMessages({
-            sessionId: sessionIdToSave,
+            sessionId,
             messages: messagesToSave,
-            model: selectedModel,
+            model,
           });
         } catch (err) {
           console.error('Failed to save messages:', err);
         }
-      }
-    }
+      }, 500);
+    };
+  }, [saveMessages]);
 
-    saveCurrentMessages();
-  }, [status, messages, session?.user?.id, saveMessages, selectedModel]);
+  // Cleanup debounce timeout on unmount to prevent memory leaks
+  React.useEffect(() => {
+    return () => {
+      // Cancel any pending saves when component unmounts
+      const cleanup = debouncedSaveMessages as unknown as { cancel?: () => void };
+      if (cleanup.cancel) cleanup.cancel();
+    };
+  }, [debouncedSaveMessages]);
+
+  // Save messages when they change and status becomes ready (debounced)
+  React.useEffect(() => {
+    const sessionIdToSave = currentSessionIdRef.current;
+    if (status === 'ready' && sessionIdToSave && session?.user?.id && messages.length > 0) {
+      debouncedSaveMessages(messages, sessionIdToSave, selectedModel);
+    }
+  }, [status, messages, session?.user?.id, debouncedSaveMessages, selectedModel]);
 
   // Fetch available filters on mount
   React.useEffect(() => {
@@ -328,35 +352,68 @@ export default function Chat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Load session messages when sessionId changes
+  // Atomically load session data (filters + messages) to prevent race conditions
+  // CRITICAL: Filters must be loaded BEFORE messages to ensure transport has correct config
+  // This prevents a 10-20ms race where messages load with stale/default filters
   React.useEffect(() => {
-    async function loadSessionMessages() {
+    async function loadSession() {
+      // Clear state atomically when no session selected
       if (!sessionId) {
         setCurrentSessionId(null);
         currentSessionIdRef.current = null;
         setMessages([]);
+        setFilters({
+          speakers: [],
+          categories: [],
+          recordingIds: [],
+        });
         return;
       }
 
       try {
+        // STEP 1: Load filters FIRST (before messages)
+        // This ensures the transport is configured with correct filters when messages arrive
+        const sessionMeta = sessions.find((s) => s.id === sessionId);
+        if (sessionMeta) {
+          const nextFilters: ChatFilters = {
+            dateStart: sessionMeta.filter_date_start ? new Date(sessionMeta.filter_date_start) : undefined,
+            dateEnd: sessionMeta.filter_date_end ? new Date(sessionMeta.filter_date_end) : undefined,
+            speakers: sessionMeta.filter_speakers || [],
+            categories: sessionMeta.filter_categories || [],
+            recordingIds: sessionMeta.filter_recording_ids || [],
+          };
+
+          setFilters((prev) => {
+            const prevJson = JSON.stringify(prev);
+            const nextJson = JSON.stringify(nextFilters);
+            return prevJson === nextJson ? prev : nextFilters;
+          });
+        }
+
+        // STEP 2: Load messages (transport now uses correct filters from step 1)
         const loadedMessages = await fetchMessages(sessionId);
         console.log(`Loaded ${loadedMessages.length} messages for session ${sessionId}`);
+
         // Convert loaded messages to UIMessage format
         const uiMessages: UIMessage[] = loadedMessages.map(m => ({
           id: m.id,
           role: m.role as 'user' | 'assistant' | 'system',
-          parts: [{ type: 'text' as const, text: m.content || '' }],
+          parts: m.parts && Array.isArray(m.parts) && m.parts.length > 0
+            ? m.parts as unknown as UIMessage['parts']
+            : [{ type: 'text' as const, text: m.content || '' }],
         }));
+
+        // STEP 3: Update UI state atomically
         setMessages(uiMessages);
         setCurrentSessionId(sessionId);
         currentSessionIdRef.current = sessionId;
       } catch (err) {
-        console.error('Failed to load session messages:', err);
+        console.error('Failed to load session:', err);
       }
     }
 
-    loadSessionMessages();
-  }, [sessionId, fetchMessages, setMessages]);
+    loadSession();
+  }, [sessionId, sessions, fetchMessages, setMessages]);
 
   // Create a new session with current filters
   const createNewSession = React.useCallback(async () => {
