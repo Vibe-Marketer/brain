@@ -30,6 +30,7 @@ supabase secrets set YOUTUBE_DATA_API_KEY=AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75
 ```
 
 **Expected Output:**
+
 ```
 Finished supabase secrets set.
 ```
@@ -41,6 +42,7 @@ supabase secrets set TRANSCRIPT_API_KEY=sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHi
 ```
 
 **Expected Output:**
+
 ```
 Finished supabase secrets set.
 ```
@@ -52,6 +54,7 @@ supabase secrets list
 ```
 
 **Expected Output:**
+
 ```
 NAME                       VALUE
 YOUTUBE_DATA_API_KEY       AIzaSyB***q75E
@@ -75,7 +78,7 @@ supabase functions invoke test-secrets
 
 If CLI is not available, you can set secrets via the web dashboard:
 
-1. Go to: https://supabase.com/dashboard/project/vltmrnjsubfzrgrtdqey/settings/functions
+1. Go to: <https://supabase.com/dashboard/project/vltmrnjsubfzrgrtdqey/settings/functions>
 2. Click "Edge Functions" → "Secrets"
 3. Add new secrets:
    - Name: `YOUTUBE_DATA_API_KEY`
@@ -152,8 +155,9 @@ After setting secrets:
 ---
 
 **Related Documentation:**
+
 - Main YouTube API Guide: `docs/youtube-api-setup.md`
 - Edge Functions: `supabase/functions/`
-- Supabase Docs: https://supabase.com/docs/guides/functions/secrets
+- Supabase Docs: <https://supabase.com/docs/guides/functions/secrets>
 
 **Status:** Commands ready to execute when needed

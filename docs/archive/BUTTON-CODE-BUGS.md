@@ -11,7 +11,8 @@
 **Lines:** 93-109
 **Severity:** CRITICAL - Bad UX
 
-### Current Code (WRONG):
+### Current Code (WRONG)
+
 ```typescript
 if (size === 'icon' || size === 'icon-sm') {
   return (
@@ -29,15 +30,18 @@ if (size === 'icon' || size === 'icon-sm') {
 }
 ```
 
-### Problem:
+### Problem
+
 - `hover:bg-cb-ink` = `#111111` (BLACK)
 - In light mode, hovering icon button turns solid black
 - Users expect light gray hover like the working table icon buttons
 
-### What It Should Be:
+### What It Should Be
+
 Light gray hover: `rgba(0, 0, 0, 0.05)` or `#F8F8F8`
 
-### Affected Components:
+### Affected Components
+
 - Pagination arrows (< >)
 - Search icon button
 - Any button using `size="icon"` or `size="icon-sm"` currently
@@ -50,7 +54,8 @@ Light gray hover: `rgba(0, 0, 0, 0.05)` or `#F8F8F8`
 **Lines:** 93-109
 **Severity:** HIGH - Inconsistent styling
 
-### Current Code (WRONG):
+### Current Code (WRONG)
+
 ```typescript
 if (size === 'icon' || size === 'icon-sm') {
   return (
@@ -65,29 +70,34 @@ if (size === 'icon' || size === 'icon-sm') {
 }
 ```
 
-### Problem:
+### Problem
+
 - Pagination buttons SHOULD have borders (to match table badge buttons)
 - Search button SHOULD have border
 - Currently NO border at all
 
-### What It Should Be:
+### What It Should Be
+
 ```typescript
 'border border-cb-border dark:border-cb-border-dark'
 ```
 
-### But Wait... There's a Conflict:
+### But Wait... There's a Conflict
 
 **Some icon buttons SHOULD have borders:**
+
 - ✅ Pagination arrows (< >)
 - ✅ Search button
 - ✅ Navigation controls
 
 **Some icon buttons should NOT have borders:**
+
 - ❌ Table row actions (View/Edit/Download)
 - ❌ Close X button
 - ❌ Toolbar icons
 
 **This is why we need TWO variants:**
+
 1. `variant="ghost" size="icon"` - NO border (transparent)
 2. `variant="hollow" size="icon"` - WITH border (white bg)
 
@@ -99,18 +109,21 @@ if (size === 'icon' || size === 'icon-sm') {
 **Line:** 88-89
 **Severity:** MEDIUM - Causes form submission issues
 
-### Current Code (WRONG):
+### Current Code (WRONG)
+
 ```typescript
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", asChild = false, ...props }, ref) => {
     // No type="button" default
 ```
 
-### Problem:
+### Problem
+
 - Buttons inside forms submit the form by default (HTML standard)
 - Causes unexpected form submissions when clicking buttons
 
-### Fix:
+### Fix
+
 ```typescript
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", asChild = false, type = "button", ...props }, ref) => {
@@ -125,19 +138,22 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 **Line:** 9
 **Severity:** MEDIUM - Allows violations
 
-### Current Code (WRONG):
+### Current Code (WRONG)
+
 ```typescript
 variant?: "default" | "destructive" | "hollow" | "link" | "outline" | "secondary";
 //                                                        ^^^^^^^^   ^^^^^^^^^^^
 //                                                        NOT IN BRAND GUIDELINES
 ```
 
-### Problem:
+### Problem
+
 - `outline` and `secondary` are not in brand guidelines
 - Their existence allows developers to use them
 - 22 instances found across codebase
 
-### Fix:
+### Fix
+
 ```typescript
 variant?: "default" | "destructive" | "hollow" | "link" | "ghost";
 //                                                        ^^^^^^
@@ -151,6 +167,7 @@ variant?: "default" | "destructive" | "hollow" | "link" | "ghost";
 ### Step 1: Update Type Definition
 
 **Line 9, change:**
+
 ```typescript
 // FROM:
 variant?: "default" | "destructive" | "hollow" | "link" | "outline" | "secondary";
@@ -162,6 +179,7 @@ variant?: "default" | "destructive" | "hollow" | "link" | "ghost";
 ### Step 2: Update forwardRef Signature
 
 **Line 88-89, change:**
+
 ```typescript
 // FROM:
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -293,7 +311,7 @@ if (variant === 'ghost') {
 
 ## 📊 BEFORE/AFTER COMPARISON
 
-### Before (Current - BUGGY):
+### Before (Current - BUGGY)
 
 | Button Type | Current Hover | Should Be | Has Border? | Should Have? |
 |-------------|---------------|-----------|-------------|--------------|
@@ -303,7 +321,7 @@ if (variant === 'ghost') {
 | Table Edit icon | Custom (works) | Light gray ✅ | ❌ No | ❌ No |
 | Close X | BLACK | Light gray | ❌ No | ❌ No |
 
-### After (Fixed):
+### After (Fixed)
 
 | Button Type | Variant | Size | Hover | Border |
 |-------------|---------|------|-------|--------|
@@ -333,7 +351,8 @@ if (variant === 'ghost') {
 
 ### Phase 2: Update Usage (1-2 hours)
 
-3. **Fix pagination buttons** (quick wins)
+1. **Fix pagination buttons** (quick wins)
+
    ```tsx
    // FROM:
    <Button size="icon"><ChevronRight /></Button>
@@ -342,7 +361,8 @@ if (variant === 'ghost') {
    <Button variant="hollow" size="icon"><ChevronRight /></Button>
    ```
 
-4. **Fix search button**
+2. **Fix search button**
+
    ```tsx
    // FROM:
    <Button size="icon"><Search /></Button>
@@ -351,7 +371,8 @@ if (variant === 'ghost') {
    <Button variant="hollow" size="icon"><Search /></Button>
    ```
 
-5. **Replace custom icon buttons in tables**
+3. **Replace custom icon buttons in tables**
+
    ```tsx
    // FROM:
    <button className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex...">
@@ -366,7 +387,7 @@ if (variant === 'ghost') {
 
 ### Phase 3: Update Guidelines (30 minutes)
 
-6. **Update brand-guidelines-v3.3.md**
+1. **Update brand-guidelines-v3.3.md**
    - [ ] Add ghost variant specification
    - [ ] Document icon-sm size
    - [ ] Add button decision matrix
@@ -379,19 +400,22 @@ if (variant === 'ghost') {
 
 After applying fixes, verify:
 
-### Light Mode:
+### Light Mode
+
 - [ ] Pagination buttons: white bg, border visible, LIGHT GRAY hover (not black)
 - [ ] Search button: white bg, border visible, LIGHT GRAY hover (not black)
 - [ ] Table view/edit icons: transparent bg, NO border, light gray hover
 - [ ] Close X: transparent bg, NO border, light gray hover
 
-### Dark Mode:
+### Dark Mode
+
 - [ ] Pagination buttons: #202020 bg, border visible, light gray hover
 - [ ] Search button: #202020 bg, border visible, light gray hover
 - [ ] Table icons: transparent, light gray hover
 - [ ] Close X: transparent, light gray hover
 
-### Forms:
+### Forms
+
 - [ ] Buttons inside forms don't submit unexpectedly
 - [ ] Only submit buttons with `type="submit"` actually submit
 
@@ -411,6 +435,7 @@ After applying fixes, verify:
 Want me to generate the actual fixed button.tsx file you can copy-paste?
 
 Say "yes" and I'll create:
+
 1. Complete fixed button.tsx
 2. Before/after visual comparison
 3. Test checklist

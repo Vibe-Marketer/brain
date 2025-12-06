@@ -163,6 +163,4 @@ try {
 
 Above are a small subset of the speech models supported by the AI SDK providers. For more, see the respective provider documentation.
 
----
-title: Language Model Middleware
-description: Learn how to use middleware to enhance the behavior of language models
+<!-- Concatenated content - Language Model Middleware section -->

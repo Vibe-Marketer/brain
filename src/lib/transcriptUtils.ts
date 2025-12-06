@@ -5,7 +5,6 @@
 interface TranscriptSegment {
   speaker_name: string;
   speaker_email: string | null;
-  [key: string]: any;
 }
 
 interface SpeakerGroup {

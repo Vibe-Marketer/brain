@@ -206,7 +206,7 @@ export function useCallDetailMutations({
 
       // Insert fresh transcripts from Fathom (include user_id for composite FK)
       if (meeting.transcript && meeting.transcript.length > 0) {
-        const transcripts = meeting.transcript.map((t: any) => ({
+        const transcripts = meeting.transcript.map((t: { speaker?: { display_name?: string; matched_calendar_invitee_email?: string }; text: string; timestamp: string }) => ({
           recording_id: call.recording_id,
           user_id: userId, // Include user_id for composite foreign key
           speaker_name: t.speaker?.display_name || 'Unknown',
@@ -223,7 +223,12 @@ export function useCallDetailMutations({
       }
 
       // Update call metadata if not user-edited
-      const updateData: any = {
+      const updateData: {
+        synced_at: string;
+        calendar_invitees: unknown;
+        title?: string;
+        summary?: string;
+      } = {
         synced_at: new Date().toISOString(),
         calendar_invitees: meeting.calendar_invitees || null,
       };
@@ -250,7 +255,7 @@ export function useCallDetailMutations({
       queryClient.invalidateQueries({ queryKey: queryKeys.calls.list() });
       toast.success("Call resynced from Fathom");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       logger.error("Resync error", error);
       toast.error("Failed to resync call: " + (error.message || "Unknown error"));
     }

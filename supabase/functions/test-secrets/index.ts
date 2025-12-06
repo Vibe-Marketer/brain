@@ -104,7 +104,7 @@ Deno.serve(async (req) => {
     // Test database connection
     let dbConnectionTest = { success: false, error: '' };
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('user_settings')
         .select('user_id')
         .limit(1);

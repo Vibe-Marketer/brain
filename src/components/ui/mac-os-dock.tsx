@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 export interface DockApp {
@@ -20,13 +20,9 @@ interface MacOSDockProps {
 export function MacOSDock({ apps, onAppClick, openApps = [], className }: MacOSDockProps) {
   const dockRef = useRef<HTMLDivElement>(null);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-  const [mouseX, setMouseX] = useState<number>(0);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (dockRef.current) {
-      const rect = dockRef.current.getBoundingClientRect();
-      setMouseX(e.clientX - rect.left);
-    }
+  const handleMouseMove = () => {
+    // Mouse position tracking removed - not used
   };
 
   const handleMouseLeave = () => {

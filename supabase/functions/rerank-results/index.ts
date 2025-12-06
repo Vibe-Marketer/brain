@@ -104,7 +104,7 @@ async function scorePairWithCrossEncoder(
  * Extract relevance score from HuggingFace response
  * Cross-encoder models output classification scores - we want the "positive" relevance score
  */
-function extractRelevanceScore(data: any): number {
+function extractRelevanceScore(data: unknown): number {
   // Response format: [[{label: "LABEL_0", score: 0.2}, {label: "LABEL_1", score: 0.8}]]
   // or: [{label: "LABEL_0", score: 0.2}, {label: "LABEL_1", score: 0.8}]
 
@@ -121,7 +121,7 @@ function extractRelevanceScore(data: any): number {
       return match ? parseInt(match[0], 10) : 0;
     };
 
-    const sorted = [...results].sort((a: any, b: any) => {
+    const sorted = [...results].sort((a: {label?: string; score?: number}, b: {label?: string; score?: number}) => {
       const labelA = extractLabelNumber(a?.label);
       const labelB = extractLabelNumber(b?.label);
       return labelB - labelA;
@@ -222,10 +222,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { query, chunks, top_k = 5, batch_size: rawBatchSize = 5 } = await req.json();
-
-    // Validate batch_size parameter
-    const batch_size = Math.max(1, Math.min(100, Math.floor(Number(rawBatchSize) || 5)));
+    const { query, chunks, top_k = 5, batch_size = 5 } = await req.json();
 
     if (!query || !chunks || !Array.isArray(chunks)) {
       return new Response(

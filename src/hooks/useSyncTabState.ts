@@ -19,7 +19,7 @@ interface SyncJob {
 }
 
 interface UseSyncTabStateProps {
-  meetings: any[];
+  meetings: Array<{ recording_id: string }>;
   loadExistingTranscripts: () => Promise<void>;
   checkSyncStatus: (recordingIds: string[]) => Promise<void>;
 }

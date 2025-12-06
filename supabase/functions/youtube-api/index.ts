@@ -57,6 +57,7 @@ async function searchVideos(query: string, maxResults: number = 10, apiKey: stri
   const data = await response.json();
 
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     videos: data.items.map((item: any) => ({
       videoId: item.id.videoId,
       title: item.snippet.title,
@@ -93,6 +94,7 @@ async function getChannelVideos(channelId: string, maxResults: number = 25, apiK
   const data = await response.json();
 
   return {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     videos: data.items.map((item: any) => ({
       videoId: item.id.videoId,
       title: item.snippet.title,

@@ -7,8 +7,10 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.3.9 (November 26, 2025)
+
 **Git Commit:** pending
 **Summary:** Button System expansion from 4 to 6 variants
+
 - **ADDED:** `variant="outline"` - Subtle bordered button for toggleable/selectable items
   - Designed to pair with `default` for selected state toggle pattern
   - Use case: Filter toggles, tag selection, suggestion chips, date presets
@@ -26,8 +28,10 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.3.8 (November 21, 2025)
+
 **Git Commit:** pending
 **Summary:** Vibe Green status indicator + Icon library enforcement
+
 - **ADDED:** 10th approved use of vibe green: Top Status Indicator Bar
   - Full-width horizontal bar at top of page/section for system-wide states
   - Height: 1-2px maximum
@@ -41,8 +45,10 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.3.7 (November 19, 2025)
+
 **Git Commit:** pending
 **Summary:** Major guidelines expansion - Card usage, Typography, Vibe Green, Microcopy
+
 - **EXPANDED:** THE 10% Approved Card Usage with 3 new permitted uses:
   - Onboarding tips
   - Task/status banners
@@ -65,8 +71,10 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.3.6 (November 19, 2025)
+
 **Git Commit:** pending
 **Summary:** Icon System standardization
+
 - **ADDED:** New Icon System section (section 5 in TOC)
 - **SPECIFIED:** Remix Icon as the official icon library (`@remixicon/react`)
 - **ADDED:** Installation instructions and naming conventions
@@ -78,8 +86,10 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.3.5 (November 18, 2025, 11:55 PM)
+
 **Git Commit:** dac15da
 **Summary:** Versioning process fixes
+
 - **FIXED:** END OF BRAND GUIDELINES version mismatch (was v3.3.1, now matches title)
 - **CLARIFIED:** Version must be updated in 3 places (title, DOCUMENT VERSION, END)
 - **UPDATED:** Critical notice and CLAUDE.md with 3-place rule
@@ -87,8 +97,10 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.3.4 (November 18, 2025, 11:45 PM)
+
 **Git Commit:** 15be2bc
 **Summary:** Changelog extraction and tracking improvements
+
 - **MOVED:** VERSION HISTORY to separate brand-guidelines-changelog.md
 - **ADDED:** Time tracking for all changes
 - **ADDED:** Git commit hash tracking
@@ -97,7 +109,9 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.3.3 (November 18, 2025)
+
 **Summary:** Versioning rules clarification
+
 - **UPDATED:** Versioning guidelines with clear Claude vs user responsibilities
 - **CLARIFIED:** Patch/minor/major version decision authority
 - **CLARIFIED:** Initial versions use two digits (v3.3 not v3.3.0)
@@ -105,7 +119,9 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.3.2 (November 18, 2025)
+
 **Summary:** Tab styles enforcement
+
 - **UPDATED:** Tab styles now ENFORCED (justify-start, gap-6, px-0 m-0 cannot be overridden)
 - **UPDATED:** Code example shows enforced pattern (critical classes after className)
 - **ADDED:** Prohibitions for grid layouts and padding/margin overrides on tabs
@@ -115,7 +131,9 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.3.1 (November 18, 2025)
+
 **Summary:** Tab component standardization
+
 - **UPDATED:** `tabs.tsx` component to match brand guidelines exactly
 - **ADDED:** Exact component implementation code to Tab Navigation section
 - **CLARIFIED:** Tabs are left-justified by default, same component for pages and modals
@@ -126,14 +144,18 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.3 (November 18, 2025)
+
 **Summary:** Tab typography specifications
+
 - **ADDED:** Tab typography table (inactive vs active weight/color)
 - **ADDED:** Component reference and purpose to Tab Navigation
 
 ---
 
 ## v3.2 (November 18, 2025)
+
 **Summary:** Comprehensive update
+
 - **ADDED:** 10 Percent Approved Card Usage section
 - **ADDED:** Conversation Dialogue UI Rule Exception
 - **ADDED:** Metric card standardized dimensions
@@ -142,7 +164,9 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.1 (November 18, 2025)
+
 **Summary:** Critical corrections applied
+
 - **FIXED:** Layout diagram measurements (8px gutters, not 48px)
 - **ADDED:** Tab Navigation section with angular underline specifications
 - **ADDED:** Content Padding Rules (scrollable vs static pages)
@@ -157,7 +181,9 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v3.0 (November 17, 2025)
+
 **Summary:** Complete rewrite
+
 - Added background hierarchy (viewport vs. content)
 - Standardized button system (4 variants)
 - Removed incorrect theme inversion rules
@@ -168,7 +194,9 @@ This file tracks all changes to `brand-guidelines-v3.3.md`.
 ---
 
 ## v2.2 (Previous)
+
 **Summary:** Original brand guidelines
+
 - Had incomplete button specifications
 - Missing layout architecture
 - Incorrect dark mode behavior for buttons

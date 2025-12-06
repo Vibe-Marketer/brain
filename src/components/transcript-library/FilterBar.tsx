@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import type { CalendarInvitee } from "@/types";
 
 interface Folder {
   id: string;
@@ -29,8 +30,8 @@ interface FilterBarProps {
     tags?: string[];
     folders?: string[];
   };
-  onFiltersChange: (filters: any) => void;
-  tags: any[];
+  onFiltersChange: (filters: FilterBarProps['filters']) => void;
+  tags: Array<{ id: string; name: string; description?: string | null }>;
   folders: Folder[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
@@ -61,9 +62,9 @@ export function FilterBar({
 
         if (data) {
           const participantsSet = new Set<string>();
-          data.forEach((call: any) => {
+          data.forEach((call: { calendar_invitees?: CalendarInvitee[] | null }) => {
             if (call.calendar_invitees && Array.isArray(call.calendar_invitees)) {
-              call.calendar_invitees.forEach((invitee: any) => {
+              call.calendar_invitees.forEach((invitee) => {
                 if (invitee?.email) participantsSet.add(invitee.email);
               });
             }

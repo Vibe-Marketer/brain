@@ -1,31 +1,22 @@
----
+# AI_DownloadError
 
-# AI_APICallError
-
-This error occurs when an API call fails.
+This error occurs when a download fails.
 
 ## Properties
 
-- `url`: The URL of the API request that failed
-- `requestBodyValues`: The request body values sent to the API
-- `statusCode`: The HTTP status code returned by the API
-- `responseHeaders`: The response headers returned by the API
-- `responseBody`: The response body returned by the API
-- `isRetryable`: Whether the request can be retried based on the status code
-- `data`: Any additional data associated with the error
+- `url`: The URL that failed to download
+- `statusCode`: The HTTP status code returned by the server
+- `statusText`: The HTTP status text returned by the server
+- `message`: The error message containing details about the download failure
 
 ## Checking for this Error
 
-You can check if an error is an instance of `AI_APICallError` using:
+You can check if an error is an instance of `AI_DownloadError` using:
 
 ```typescript
-import { APICallError } from 'ai';
+import { DownloadError } from 'ai';
 
-if (APICallError.isInstance(error)) {
+if (DownloadError.isInstance(error)) {
   // Handle the error
 }
 ```
-
----
-title: AI_DownloadError
-description: Learn how to fix AI_DownloadError

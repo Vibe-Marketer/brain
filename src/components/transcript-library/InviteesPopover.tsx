@@ -4,9 +4,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
+import type { CalendarInvitee } from "@/types";
 
 interface InviteesPopoverProps {
-  invitees?: any[];
+  invitees?: CalendarInvitee[];
   hostEmail?: string;
 }
 

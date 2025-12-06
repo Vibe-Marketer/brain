@@ -174,6 +174,7 @@ Deno.serve(async (req) => {
         console.log(`Re-syncing: ${meeting.title} (${meeting.recording_id})`);
 
         // Build upsert object, preserving user edits
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const upsertData: any = {
           recording_id: meeting.recording_id,
           user_id: userId,
@@ -252,11 +253,13 @@ Deno.serve(async (req) => {
             .eq('user_id', userId);
 
           // Insert new transcripts (include user_id for composite FK)
-          const transcriptRows = meeting.transcript.map((segment: TranscriptSegment) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const transcriptRows = meeting.transcript.map((segment: any) => {
             // Try to get email from transcript match first, then from calendar invitees
             let speakerEmail = segment.speaker.matched_calendar_invitee_email;
 
             if (!speakerEmail && meeting.calendar_invitees) {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const matchedInvitee = meeting.calendar_invitees.find((inv: any) =>
                 inv.matched_speaker_display_name === segment.speaker.display_name ||
                 inv.name === segment.speaker.display_name
@@ -308,10 +311,10 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Re-sync error:', error);
     return new Response(
-      JSON.stringify({ error: error?.message || 'Internal server error' }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

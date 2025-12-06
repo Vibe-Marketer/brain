@@ -33,6 +33,7 @@ npx tsx scripts/test-rag-retrieval.ts <user_id>
 ```
 
 Example:
+
 ```bash
 npx tsx scripts/test-rag-retrieval.ts 550e8400-e29b-41d4-a716-446655440000
 ```
@@ -44,6 +45,7 @@ npm run test:rag <user_id>
 ```
 
 Example:
+
 ```bash
 npm run test:rag 550e8400-e29b-41d4-a716-446655440000
 ```
@@ -62,20 +64,24 @@ npm run test:rag
 You can find your user ID in several ways:
 
 ### Option 1: From Supabase Dashboard
+
 1. Go to your Supabase project
 2. Navigate to Authentication > Users
 3. Find your user and copy the UUID
 
 ### Option 2: From Browser Console
+
 1. Open your Conversion Brain app
 2. Open browser DevTools (F12)
 3. Run in console:
+
 ```javascript
 const { data } = await supabase.auth.getUser();
 console.log(data.user.id);
 ```
 
 ### Option 3: Using SQL
+
 ```sql
 SELECT id, email FROM auth.users WHERE email = 'your-email@example.com';
 ```
@@ -89,12 +95,14 @@ SELECT id, email FROM auth.users WHERE email = 'your-email@example.com';
 **Formula:** `1 / rank_of_first_relevant_result`
 
 **Example:**
+
 - First result is relevant: MRR = 1.0
 - Second result is relevant: MRR = 0.5
 - Third result is relevant: MRR = 0.333
 - No relevant results: MRR = 0.0
 
 **Interpretation:**
+
 - **MRR > 0.8** = Excellent (first relevant result in top 1-2)
 - **MRR > 0.5** = Good (first relevant result in top 2-3)
 - **MRR > 0.3** = Fair (first relevant result in top 3-4)
@@ -107,11 +115,13 @@ SELECT id, email FROM auth.users WHERE email = 'your-email@example.com';
 **Formula:** `relevant_in_top_k / k`
 
 **Example (Precision@5):**
+
 - 4 out of top 5 are relevant: P@5 = 0.8
 - 3 out of top 5 are relevant: P@5 = 0.6
 - 1 out of top 5 is relevant: P@5 = 0.2
 
 **Interpretation:**
+
 - **P@5 > 0.8** = Excellent quality (80%+ of top 5 relevant)
 - **P@5 > 0.6** = Good quality (60%+ of top 5 relevant)
 - **P@5 > 0.4** = Fair quality (40%+ of top 5 relevant)
@@ -154,6 +164,7 @@ const TEST_QUERIES: TestQuery[] = [
 ### Console Output
 
 The script prints:
+
 1. Database connection verification
 2. Progress for each test query
 3. Summary with average metrics
@@ -162,6 +173,7 @@ The script prints:
 ### JSON Report
 
 A detailed JSON report is saved to `test-results/rag-test-{timestamp}.json` with:
+
 - All query results
 - Top 5 results per query with relevance flags
 - Full metrics breakdown
@@ -169,7 +181,7 @@ A detailed JSON report is saved to `test-results/rag-test-{timestamp}.json` with
 
 ## Example Output
 
-```
+```text
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║         RAG RETRIEVAL QUALITY TEST SUITE                                     ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -220,11 +232,13 @@ Full report saved to: test-results/rag-test-2025-11-26T01-23-45.json
 ### Creating a Baseline
 
 1. Run the test before making any RAG enhancements:
+
 ```bash
 npm run test:rag <user_id> > baseline-results.txt
 ```
 
-2. Save the JSON report:
+1. Save the JSON report:
+
 ```bash
 cp test-results/rag-test-*.json test-results/baseline.json
 ```
@@ -234,11 +248,13 @@ cp test-results/rag-test-*.json test-results/baseline.json
 After making enhancements (e.g., query expansion, metadata filtering):
 
 1. Run the test again:
+
 ```bash
 npm run test:rag <user_id> > enhanced-results.txt
 ```
 
-2. Compare metrics:
+1. Compare metrics:
+
 ```bash
 # View baseline
 cat baseline-results.txt | grep "Average"
@@ -260,6 +276,7 @@ With query expansion and metadata filtering, you should see:
 ### "No transcript chunks found"
 
 You need to create embeddings first:
+
 1. Use the embedding Edge Function to process transcripts
 2. Verify chunks exist: `SELECT COUNT(*) FROM transcript_chunks WHERE user_id = 'your-id';`
 
@@ -278,6 +295,7 @@ You need to create embeddings first:
 ### "All queries returning MRR = 0"
 
 This means no relevant results are being found. Possible causes:
+
 1. Test queries don't match your data (customize `TEST_QUERIES`)
 2. Metadata (topics, intents) not yet extracted
 3. Embeddings not generated yet

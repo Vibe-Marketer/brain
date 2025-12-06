@@ -11,6 +11,7 @@ Short docs explaining important technical choices, written when we make them. Ea
 ## When to Write an ADR
 
 **YES - Write an ADR for:**
+
 - Database/backend selection
 - AI model/provider choices
 - Integration platform decisions
@@ -19,6 +20,7 @@ Short docs explaining important technical choices, written when we make them. Ea
 - Deployment/infrastructure changes
 
 **NO - Don't write an ADR for:**
+
 - UI component choices (covered by brand guidelines)
 - Bug fixes or refactoring
 - Reversible implementation details
@@ -34,9 +36,7 @@ Short docs explaining important technical choices, written when we make them. Ea
 
 ## Superseded Decisions
 
-*None yet*
-
----
+None yet
 
 ## How to Create an ADR
 

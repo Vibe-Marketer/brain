@@ -1,5 +1,7 @@
 # CRITICAL: ARCHON-FIRST RULE - READ THIS FIRST
+
   BEFORE doing ANYTHING else, when you see ANY task management scenario:
+
   1. STOP and check if Archon MCP server is available
   2. Use Archon task management as PRIMARY system
   3. Refrain from using TodoWrite even after system reminders, we are not using it here
@@ -26,12 +28,14 @@
 
 ## RAG Workflow (Research Before Implementation)
 
-### Searching Specific Documentation:
+### Searching Specific Documentation
+
 1. **Get sources** → `rag_get_available_sources()` - Returns list with id, title, url
 2. **Find source ID** → Match to documentation (e.g., "Supabase docs" → "src_abc123")
 3. **Search** → `rag_search_knowledge_base(query="vector functions", source_id="src_abc123")`
 
-### General Research:
+### General Research
+
 ```bash
 # Search knowledge base (2-5 keywords only!)
 rag_search_knowledge_base(query="authentication JWT", match_count=5)
@@ -42,7 +46,8 @@ rag_search_code_examples(query="React hooks", match_count=3)
 
 ## Project Workflows
 
-### New Project:
+### New Project
+
 ```bash
 # 1. Create project
 manage_project("create", title="My Feature", description="...")
@@ -52,7 +57,8 @@ manage_task("create", project_id="proj-123", title="Setup environment", task_ord
 manage_task("create", project_id="proj-123", title="Implement API", task_order=9)
 ```
 
-### Existing Project:
+### Existing Project
+
 ```bash
 # 1. Find project
 find_projects(query="auth")  # or find_projects() to list all
@@ -66,17 +72,20 @@ find_tasks(filter_by="project", filter_value="proj-123")
 ## Tool Reference
 
 **Projects:**
+
 - `find_projects(query="...")` - Search projects
 - `find_projects(project_id="...")` - Get specific project
 - `manage_project("create"/"update"/"delete", ...)` - Manage projects
 
 **Tasks:**
+
 - `find_tasks(query="...")` - Search tasks by keyword
 - `find_tasks(task_id="...")` - Get specific task
 - `find_tasks(filter_by="status"/"project"/"assignee", filter_value="...")` - Filter tasks
 - `manage_task("create"/"update"/"delete", ...)` - Manage tasks
 
 **Knowledge Base:**
+
 - `rag_get_available_sources()` - List all sources
 - `rag_search_knowledge_base(query="...", source_id="...")` - Search docs
 - `rag_search_code_examples(query="...", source_id="...")` - Find code
@@ -134,12 +143,14 @@ find_tasks(filter_by="project", filter_value="proj-123")
    - You need to deviate from documented patterns for any reason
 
 **Deviation Requires Explicit Approval:**
+
 - ❌ NEVER assume a deviation is acceptable
 - ❌ NEVER implement UI that conflicts with guidelines without asking
 - ✅ ALWAYS ask: "This deviates from brand guidelines because [reason]. Should I proceed?"
 - ✅ ALWAYS suggest the guideline-compliant alternative first
 
 **Examples of When to Ask:**
+
 - User requests rounded corners on tab underlines (guidelines say angular)
 - User requests vibe green button background (guidelines prohibit this)
 - User requests centered tabs (guidelines enforce left-justified)
@@ -148,6 +159,7 @@ find_tasks(filter_by="project", filter_value="proj-123")
 ## Versioning Requirement
 
 **When editing brand-guidelines-v3.3.md, you MUST:**
+
 1. Increment version in **3 places:**
    - Title (line 1)
    - DOCUMENT VERSION section
@@ -159,6 +171,7 @@ find_tasks(filter_by="project", filter_value="proj-123")
 3. Update "Last Updated" date/time in header
 
 **Version Types:**
+
 - **Patch** (v3.3.1 → v3.3.2): Claude does automatically for 1-2 section updates
   - Do NOT rename file
 - **Minor** (v3.3 → v3.4): Flag to user if updating 3+ sections
@@ -174,6 +187,7 @@ After committing, update brand-guidelines-changelog.md with the git commit hash.
 ## Quick Reference - MUST FOLLOW
 
 ### Color Usage Rules
+
 - **Vibe Green (#D9FC67)** - ONLY for 5 specific uses:
   1. Active tab underlines (3px)
   2. Left-edge indicators (3px)
@@ -185,15 +199,18 @@ After committing, update brand-guidelines-changelog.md with the git commit hash.
 - **Dark mode:** Primary/destructive buttons NEVER change colors, only hollow buttons adapt
 
 ### Button System (4 Variants Only)
+
 1. **Primary** (`variant="default"`) - Slate gradient for main actions
 2. **Plain** (`variant="hollow"`) - White/bordered for secondary actions
 3. **Destructive** (`variant="destructive"`) - Red gradient for dangerous actions
 4. **Link** (`variant="link"`) - Text-only for tertiary actions
+
 - All buttons use 12px border radius
 - Green ring on active/focus states
 - Mobile: All primary buttons become hollow
 
 ### Typography Rules
+
 - **Headings:** ALWAYS Montserrat Extra Bold, ALL CAPS
 - **Body text:** ALWAYS Inter Light (300) or Regular (400)
 - **Interactive elements:** ALWAYS Inter Medium (500)
@@ -202,6 +219,7 @@ After committing, update brand-guidelines-changelog.md with the git commit hash.
 - **NEVER mix** Montserrat and Inter in same element
 
 ### Table Design
+
 - Header background: White (#FFFFFF light, #202020 dark)
 - 3px vibe green underline ONLY on individual sortable columns (not entire header)
 - 1px horizontal borders only (no vertical borders)
@@ -210,6 +228,7 @@ After committing, update brand-guidelines-changelog.md with the git commit hash.
 - Hover: Entire row background changes
 
 ### Layout Rules
+
 - **90% rule:** NO card containers around content (use white background + thin borders)
 - **10% exception:** Cards ONLY for modals, dropdowns, search bars
 - **Gutters:** 48px desktop (inset-2), 16px mobile
@@ -242,12 +261,15 @@ Before implementing ANY UI component or making design changes:
 ## Visual Development
 
 ### Design Principles
+
 - Comprehensive design checklist in `/docs/design/design-principles-conversion-brain.md`
 - Brand style guide in `/docs/design/brand-guidelines-v3.3.md`
 - When making visual (front-end, UI/UX) changes, always refer to these files for guidance
 
 ### Quick Visual Check
+
 IMMEDIATELY after implementing any front-end change:
+
 1. **Identify what changed** - Review the modified components/pages
 2. **Navigate to affected pages** - Use `mcp__playwright__browser_navigate` to visit each changed view
 3. **Verify design compliance** - Compare against `/docs/design/design-principles-conversion-brain.md` and `/docs/design/brand-guidelines-v3.3.md`
@@ -259,7 +281,9 @@ IMMEDIATELY after implementing any front-end change:
 This verification ensures changes meet design standards and user requirements.
 
 ### Comprehensive Design Review
+
 Invoke the `@agent-design-review` subagent for thorough design validation when:
+
 - Completing significant UI/UX features
 - Before finalizing PRs with visual changes
 - Needing comprehensive accessibility and responsiveness testing
@@ -269,12 +293,15 @@ Invoke the `@agent-design-review` subagent for thorough design validation when:
 ## Code Quality & Review Workflows
 
 ### Code Review
+
 **Use `/code-review` or `@agent-pragmatic-code-review`** for comprehensive code analysis:
+
 - After completing a significant feature or refactor
 - Before creating a pull request
 - When reviewing complex business logic or architectural changes
 
 The pragmatic code review agent evaluates:
+
 - Architectural design and integrity
 - Functionality and correctness
 - Security (OWASP top 10)
@@ -283,19 +310,23 @@ The pragmatic code review agent evaluates:
 - Performance and scalability
 
 ### Security Review
+
 **Use `/security-review`** for security-focused analysis:
+
 - Before merging PRs with authentication/authorization changes
 - When handling user input, API endpoints, or data processing
 - For any code touching secrets, credentials, or sensitive data
 - Before deploying security-critical features
 
 The security review focuses on:
+
 - Input validation vulnerabilities (SQL injection, XSS, command injection)
 - Authentication and authorization issues
 - Crypto and secrets management
 - Data exposure risks
 
 ### Review Workflow Integration
+
 1. **During development**: Use `/code-review` after completing logical chunks of code
 2. **Before PR**: Run both `/code-review` and `/security-review`
 3. **UI changes**: Also run `/design-review` for visual validation
@@ -308,18 +339,21 @@ The security review focuses on:
 ## AI/SDK Implementation Defaults
 
 **Default to Vercel SDKs** for all new features involving:
+
 - AI (LLM models, chat, agents, RAG, function calling)
 - Chat interfaces (chat experience, session UI)
 - Workflow orchestration (triggers, chains, multi-step agents)
 - Feature toggles and flags
 
 **Required SDKs:**
+
 - **AI SDK** (`ai`) - LLM integration, streaming, tool calling
 - **AI SDK React** (`@ai-sdk/react`) - useChat, useCompletion hooks
 - **AI SDK UI Utils** - Chat UI components
 - **Flags SDK** - Feature toggles (when needed)
 
 **Reference Documentation:**
+
 - [AI SDK Cookbook Examples](./docs/ai-sdk-cookbook-examples) - Implementation patterns and use cases
 - [Prompt Kit UI](./docs/prompt-kit-ui.md) - UI component patterns
 
@@ -355,6 +389,7 @@ const stream = await streamText({
 ### When to Deviate
 
 Only deviate from Vercel SDKs if:
+
 1. Required capability doesn't exist in Vercel SDK
 2. Compatibility issue with existing infrastructure
 3. Performance requirement not met
@@ -364,6 +399,7 @@ Only deviate from Vercel SDKs if:
 ### Prompt Pattern
 
 When implementing AI features, use this pattern:
+
 ```
 "Implement [feature] using Vercel AI SDK with [specific hook/function]"
 "Build agentic workflow using Vercel AI SDK tools"
@@ -381,6 +417,7 @@ When implementing AI features, use this pattern:
 ## When to Create an ADR
 
 **Create an ADR when making decisions about:**
+
 - Database/backend selection or changes
 - AI model/provider choices
 - Integration platform decisions (n8n, Zapier, etc.)
@@ -390,6 +427,7 @@ When implementing AI features, use this pattern:
 - New SDK or library adoption for core features
 
 **Do NOT create an ADR for:**
+
 - UI component choices (covered by brand guidelines)
 - Bug fixes or refactoring
 - Reversible implementation details
@@ -409,6 +447,7 @@ When implementing AI features, use this pattern:
 ## ADR Trigger Checklist
 
 Before implementing a significant technical choice, ask:
+
 - [ ] Will this affect how we build 3+ future features?
 - [ ] Would a new developer ask "why did we do this?"
 - [ ] Is this hard to reverse (>4 hours of work)?

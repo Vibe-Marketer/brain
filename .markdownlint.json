@@ -1,0 +1,46 @@
+{
+  "default": true,
+  "MD013": false,
+  "MD024": false,
+  "MD025": false,
+  "MD033": {
+    "allowed_elements": [
+      "br",
+      "details",
+      "summary",
+      "kbd",
+      "sub",
+      "sup",
+      "main",
+      "div",
+      "h1",
+      "h2",
+      "h3",
+      "path",
+      "svg",
+      "img",
+      "table",
+      "tbody",
+      "thead",
+      "tr",
+      "td",
+      "th",
+      "Note",
+      "Tab",
+      "Tabs",
+      "Snippet",
+      "Check",
+      "Cross",
+      "video",
+      "MDXImage"
+    ]
+  },
+  "MD035": {
+    "style": "consistent"
+  },
+  "MD036": false,
+  "MD040": false,
+  "MD046": false,
+  "MD051": false,
+  "MD060": false
+}

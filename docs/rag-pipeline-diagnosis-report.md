@@ -18,7 +18,7 @@ A comprehensive end-to-end diagnosis of the Agentic RAG System has been complete
 
 ## System Architecture Overview
 
-```
+```text
 User Query
     ↓
 [Chat.tsx] useChat hook (@ai-sdk/react)
@@ -46,6 +46,7 @@ streamText() → toAIStreamResponse()
 **Location:** `supabase/functions/chat-stream/index.ts` (lines 1-4)
 
 **Problem:**
+
 ```typescript
 // Edge Function imports (OUTDATED)
 import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1.0.0';  // ❌ v1.0.0
@@ -57,11 +58,13 @@ import { streamText, tool } from 'https://esm.sh/ai@3.4.33';
 ```
 
 **Impact:**
+
 - Protocol incompatibility between Edge Function and Frontend
 - Tool call parts may not be serialized correctly in the stream
 - The `toAIStreamResponse()` method behavior differs between versions
 
 **Evidence:**
+
 - Debug logging added in recent commit: `console.log('onFinish message.parts:', message.parts);`
 - Citation pills not appearing despite tool calls executing
 - `message.parts` is undefined during render (Chat.tsx:808)
@@ -73,6 +76,7 @@ import { streamText, tool } from 'https://esm.sh/ai@3.4.33';
 **Location:** `supabase/functions/chat-stream/index.ts` (line 330)
 
 **Problem:**
+
 ```typescript
 // Current implementation
 return result.toAIStreamResponse({
@@ -81,12 +85,15 @@ return result.toAIStreamResponse({
 ```
 
 **Issue:**
+
 The `toAIStreamResponse()` method in AI SDK v3.x uses the "AI Stream" protocol which may not properly stream tool call parts back to the client. The newer `toDataStreamResponse()` method uses the "Data Stream" protocol which properly includes:
+
 - Tool call initiations
 - Tool call results
 - Message parts with structured data
 
 **Evidence from Chat.tsx:**
+
 ```typescript
 // Lines 810-812 - Parts extraction expects tool-call and tool-result parts
 const toolParts = (message.parts as ToolCallPart[] | undefined)
@@ -100,23 +107,28 @@ When `message.parts` is undefined, no sources are extracted.
 ### ROOT CAUSE 3: Re-ranking Not Integrated (MODERATE)
 
 **Location:**
+
 - Exists: `supabase/functions/rerank-results/index.ts`
 - Not used in: `supabase/functions/chat-stream/index.ts`
 
 **Problem:**
+
 The `rerank-results` Edge Function implements cross-encoder re-ranking using HuggingFace's `cross-encoder/ms-marco-MiniLM-L-12-v2` model, but it is **never called** from the chat-stream function.
 
 **Current Flow:**
-```
+
+```text
 User Query → hybrid_search_transcripts() → Raw RRF results → LLM
 ```
 
 **Intended Flow:**
-```
+
+```text
 User Query → hybrid_search_transcripts() → rerank-results() → diversity_filter() → LLM
 ```
 
 **Impact:**
+
 - Search results may not be optimally ranked for the query
 - More relevant results may be buried below less relevant ones
 - The query "What are the two pillars on the roadmap..." may return generic results instead of specific matches
@@ -130,6 +142,7 @@ User Query → hybrid_search_transcripts() → rerank-results() → diversity_fi
 **Location:** `supabase/functions/_shared/diversity-filter.ts`
 
 The diversity filter exists to:
+
 - Limit chunks per recording (default: 2)
 - Ensure semantic diversity (min distance: 0.3)
 - Target diverse result count (default: 5)
@@ -254,6 +267,7 @@ const formatResults = (results) => results.map(r => ({
 #### 6. Add Observability Logging
 
 Add structured logging throughout the RAG pipeline:
+
 - Query embedding generation time
 - Hybrid search execution time
 - Number of results at each stage
@@ -267,11 +281,13 @@ Add structured logging throughout the RAG pipeline:
 ### Test Script Created
 
 A comprehensive diagnostic script has been created at:
-```
+
+```text
 scripts/diagnose-rag-pipeline.ts
 ```
 
 Run with:
+
 ```bash
 npm install
 npx tsx scripts/diagnose-rag-pipeline.ts [user_id]
@@ -282,6 +298,7 @@ npx tsx scripts/diagnose-rag-pipeline.ts [user_id]
 1. **Check browser console** for `message.parts` logs
 2. **Check network tab** for stream response format
 3. **Query database** for saved message parts:
+
    ```sql
    SELECT id, role, parts
    FROM chat_messages

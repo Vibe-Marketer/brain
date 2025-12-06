@@ -38,6 +38,7 @@ There are **two ways** meetings get into CallVault:
 | **API Key** | `X-Api-Key: {key}` | `user_settings.fathom_api_key` | Personal/backup |
 
 **Priority:** OAuth is preferred. If OAuth token is expired, the system will:
+
 1. Attempt to refresh using `oauth_refresh_token`
 2. Fall back to API key if refresh fails
 
@@ -156,11 +157,13 @@ When Fathom automatically notifies us about new/updated calls.
 ### Webhook Configuration
 
 **Your OAuth App Webhook Endpoint:**
+
 ```
 https://[project-ref].supabase.co/functions/v1/webhook
 ```
 
 **Webhook Secret Location:**
+
 - Set in Fathom Developer Portal when you registered your OAuth app
 - Must be stored as `FATHOM_OAUTH_WEBHOOK_SECRET` in Supabase secrets
 - Format: `whsec_XXXXXXXXXXXXX`
@@ -173,6 +176,7 @@ https://[project-ref].supabase.co/functions/v1/webhook
    - Note the webhook signing secret
 
 2. **Supabase Secrets:**
+
    ```bash
    npx supabase secrets set FATHOM_OAUTH_WEBHOOK_SECRET='whsec_YOUR_SECRET_HERE'
    ```
@@ -244,6 +248,7 @@ https://[project-ref].supabase.co/functions/v1/webhook
 ### Checking Webhook Status
 
 Query `webhook_deliveries` table:
+
 ```sql
 SELECT * FROM webhook_deliveries
 ORDER BY created_at DESC
@@ -251,6 +256,7 @@ LIMIT 10;
 ```
 
 Fields:
+
 - `status`: 'success', 'failed', 'duplicate'
 - `error_message`: Details if failed
 - `signature_valid`: Whether signature verification passed

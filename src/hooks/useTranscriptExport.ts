@@ -6,8 +6,17 @@ import { groupTranscriptsBySpeaker, formatSimpleTimestamp } from "@/lib/transcri
 import { logger } from "@/lib/logger";
 
 interface UseTranscriptExportProps {
-  call: any;
-  transcripts: any[];
+  call: {
+    recording_id: string | number;
+    title: string;
+    created_at: string;
+    share_url?: string | null;
+  };
+  transcripts: Array<{
+    timestamp?: string;
+    display_text: string;
+    display_speaker_name?: string;
+  }>;
   duration: number | null;
   includeTimestamps: boolean;
 }
@@ -138,7 +147,7 @@ export function useTranscriptExport({
         ];
 
         let currentSpeaker = "";
-        transcripts.forEach((t: any, index: number) => {
+        transcripts.forEach((t, index: number) => {
           const speakerName = t.display_speaker_name || "Unknown";
 
           // Add speaker header when speaker changes

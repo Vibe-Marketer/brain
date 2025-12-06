@@ -1,5 +1,3 @@
----
-
 # AI_InvalidPromptError
 
 This error occurs when the prompt provided is invalid.
@@ -21,7 +19,3 @@ if (InvalidPromptError.isInstance(error)) {
   // Handle the error
 }
 ```
-
----
-title: AI_InvalidResponseDataError
-description: Learn how to fix AI_InvalidResponseDataError

@@ -85,7 +85,7 @@ export function useSetupWizard(): SetupWizardData {
       setWizardCompleted(true);
       setLoading(false);
     }
-  }, []);
+  }, [markWizardComplete]);
 
   const markWizardComplete = useCallback(async () => {
     try {

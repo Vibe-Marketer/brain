@@ -16,7 +16,8 @@ Copy-paste these exact implementations. Always reference this file when creating
 <Button variant="default" size="lg">Get Started</Button>
 ```
 
-**Properties:**
+**Properties**
+
 - Variant: `default`
 - Sizes: `sm` | `default` | `lg`
 - Border: Yes (slate)
@@ -36,7 +37,8 @@ Copy-paste these exact implementations. Always reference this file when creating
 <Button variant="hollow" size="sm">Back</Button>
 ```
 
-**Properties:**
+**Properties**
+
 - Variant: `hollow`
 - Sizes: `sm` | `default` | `lg`
 - Border: Yes (cb-border)
@@ -55,7 +57,8 @@ Copy-paste these exact implementations. Always reference this file when creating
 <Button variant="destructive" size="sm">Remove</Button>
 ```
 
-**Properties:**
+**Properties**
+
 - Variant: `destructive`
 - Sizes: `sm` | `default` | `lg`
 - Border: Yes (red)
@@ -75,7 +78,8 @@ Copy-paste these exact implementations. Always reference this file when creating
 <Button variant="link">View details</Button>
 ```
 
-**Properties:**
+**Properties**
+
 - Variant: `link`
 - No border
 - Background: Transparent
@@ -108,7 +112,8 @@ Copy-paste these exact implementations. Always reference this file when creating
 </Button>
 ```
 
-**Properties:**
+**Properties**
+
 - Variant: `ghost`
 - Sizes: `icon-sm` (20-24px responsive) | `icon` (32px)
 - No border
@@ -138,7 +143,8 @@ Copy-paste these exact implementations. Always reference this file when creating
 </Button>
 ```
 
-**Properties:**
+**Properties**
+
 - Variant: `hollow` (gets border automatically)
 - Size: `sm` (as base)
 - Override with className: `h-auto py-1 px-2 gap-1.5 text-xs`
@@ -170,7 +176,8 @@ Copy-paste these exact implementations. Always reference this file when creating
 </Button>
 ```
 
-**Properties:**
+**Properties**
+
 - Variant: `hollow` (gets border automatically)
 - Size: `icon` (32x32px)
 - Border: Yes (visible)
@@ -220,7 +227,8 @@ Is this a SECONDARY action? (Cancel, Close, Back)
 
 ## COMMON MISTAKES TO AVOID
 
-### ❌ DON'T:
+### ❌ DON'T
+
 ```tsx
 // DON'T use custom button with inline classes
 <button className="h-5 w-5 p-0 inline-flex...">
@@ -235,7 +243,8 @@ Is this a SECONDARY action? (Cancel, Close, Back)
 className="hover:bg-cb-ink" // ← Turns BLACK (wrong)
 ```
 
-### ✅ DO:
+### ✅ DO
+
 ```tsx
 // DO use Button component with variant
 <Button variant="ghost" size="icon-sm">
@@ -263,22 +272,27 @@ import { Eye, Pencil, Download, X, ChevronLeft, ChevronRight, Search, Users } fr
 
 ## TROUBLESHOOTING
 
-**Button turns black on hover?**
+**Button turns black on hover**
+
 - You're using `size="icon"` with old hover state
 - Fix: Use `variant="ghost"` for transparent OR `variant="hollow"` for bordered
 
-**Button submitting form unexpectedly?**
+**Button submitting form unexpectedly**
+
 - Button component now defaults `type="button"`
 - If you WANT to submit, explicitly use `type="submit"`
 
-**Icon too big/small?**
+**Icon too big/small**
+
 - `icon-sm`: Use h-3 w-3 (mobile) md:h-3.5 md:w-3.5 (desktop)
 - `icon`: Use h-4 w-4
 
-**Border not showing on pagination buttons?**
+**Border not showing on pagination buttons**
+
 - Use `variant="hollow" size="icon"` NOT `variant="ghost"`
 
-**Table badge looks wrong?**
+**Table badge looks wrong**
+
 - Must use `variant="hollow" size="sm" className="h-auto py-1 px-2 gap-1.5 text-xs"`
 - Don't forget `tabular-nums` on count span
 

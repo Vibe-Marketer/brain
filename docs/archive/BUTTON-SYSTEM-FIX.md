@@ -16,6 +16,7 @@ Your brand guidelines are **incomplete** - they don't account for all the button
 These buttons are styled EXACTLY how you want them:
 
 #### 1. Icon-Only Buttons (View/Edit/Download - Lines 385-430)
+
 ```tsx
 <button
   type="button" // ← ADD THIS
@@ -25,16 +26,20 @@ These buttons are styled EXACTLY how you want them:
   <Eye className="h-3 w-3 md:h-3.5 md:w-3.5" />
 </button>
 ```
+
 **What's Right:**
+
 - ✅ No border (transparent background)
 - ✅ Light gray hover (`hover:bg-muted/50`) NOT black
 - ✅ Proper sizing (h-5 w-5, responsive to md:h-6 md:w-6)
 - ✅ Icon sizing (h-3 w-3, responsive to md:h-3.5 md:w-3.5)
 
 **What's Missing:**
+
 - ❌ No `type="button"` (causes form submission issues)
 
 #### 2. Table Badge Button (Participant Count - Line 78)
+
 ```tsx
 <Button
   variant="hollow"
@@ -46,7 +51,9 @@ These buttons are styled EXACTLY how you want them:
   <span className="text-xs font-medium min-w-[20px] text-center tabular-nums">{count}</span>
 </Button>
 ```
+
 **What's Right:**
+
 - ✅ Uses `variant="hollow"` (approved variant with border)
 - ✅ Overrides sizing with className for table context
 - ✅ Border visible
@@ -62,16 +69,19 @@ These buttons are styled EXACTLY how you want them:
 **File:** `src/components/ui/button.tsx` Line 100
 
 **Current (WRONG):**
+
 ```tsx
 'hover:bg-cb-ink' // ← This makes it turn BLACK on hover
 ```
 
 **Should Be:**
+
 ```tsx
 'hover:bg-muted/50' // ← Light gray hover like the working icon buttons
 ```
 
 **Files Affected:**
+
 - Pagination buttons (< > arrows)
 - Search icon button
 - Any button using `size="icon"` or `size="icon-sm"`
@@ -79,12 +89,14 @@ These buttons are styled EXACTLY how you want them:
 ### Problem 2: Missing Variants in Brand Guidelines
 
 Your brand guidelines document 4 variants:
+
 1. Primary (`default`)
 2. Plain (`hollow`)
 3. Destructive
 4. Link
 
 **But your code has 6 variants:**
+
 1. `default` ✅ Documented
 2. `hollow` ✅ Documented
 3. `destructive` ✅ Documented
@@ -98,6 +110,7 @@ Your brand guidelines document 4 variants:
 ### Problem 3: Icon Buttons Not Using Button Component
 
 The working icon buttons in TranscriptTable aren't using the `<Button>` component - they're using custom `<button>` with inline classes. This is WHY they work correctly, but it means:
+
 - ❌ Duplicated code
 - ❌ No type="button" consistency
 - ❌ Hard to maintain
@@ -112,12 +125,14 @@ The working icon buttons in TranscriptTable aren't using the `<Button>` componen
 **File:** `src/components/ui/button.tsx`
 
 **Line 9 - Update type:**
+
 ```typescript
 variant?: "default" | "destructive" | "hollow" | "link" | "ghost";
 // Remove: "outline" | "secondary" (these are not in brand guidelines)
 ```
 
 **After line 154, add ghost variant:**
+
 ```typescript
 // Special case: ghost variant (transparent icon-only buttons)
 if (variant === 'ghost') {
@@ -144,6 +159,7 @@ if (variant === 'ghost') {
 ### Step 2: Fix Icon Size Variant Hover State
 
 **Line 100 - Change:**
+
 ```typescript
 // FROM:
 'hover:bg-cb-ink dark:bg-cb-black dark:text-cb-white dark:hover:bg-cb-border',
@@ -153,6 +169,7 @@ if (variant === 'ghost') {
 ```
 
 **Also add border for pagination context:**
+
 ```typescript
 // Line 98-104, replace entire icon section with:
 if (size === 'icon' || size === 'icon-sm') {
@@ -183,6 +200,7 @@ if (size === 'icon' || size === 'icon-sm') {
 ### Step 3: Add type="button" Default
 
 **Line 89 - Update:**
+
 ```typescript
 // FROM:
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -194,6 +212,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 ```
 
 Then pass `type` to all `<Comp>` renders:
+
 ```typescript
 <Comp
   ref={ref}
@@ -204,11 +223,13 @@ Then pass `type` to all `<Comp>` renders:
 ### Step 4: Replace Icon Buttons Throughout Codebase
 
 **Find all instances of:**
+
 ```tsx
 <button className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted/50 transition-colors">
 ```
 
 **Replace with:**
+
 ```tsx
 <Button variant="ghost" size="icon-sm">
 ```
@@ -263,6 +284,7 @@ Is this a TEXT-ONLY link?
 ### Specific Use Cases
 
 #### Table Row Actions (View/Edit/Download)
+
 ```tsx
 <Button variant="ghost" size="icon-sm" title="View details">
   <Eye className="h-3 w-3 md:h-3.5 md:w-3.5" />
@@ -270,6 +292,7 @@ Is this a TEXT-ONLY link?
 ```
 
 #### Table Badge (Participant Count)
+
 ```tsx
 <Button
   variant="hollow"
@@ -282,6 +305,7 @@ Is this a TEXT-ONLY link?
 ```
 
 #### Pagination/Navigation
+
 ```tsx
 <Button variant="hollow" size="icon">
   <ChevronRight className="h-4 w-4" />
@@ -289,6 +313,7 @@ Is this a TEXT-ONLY link?
 ```
 
 #### Close Dialog X
+
 ```tsx
 <Button variant="ghost" size="icon-sm">
   <X className="h-4 w-4" />
@@ -296,6 +321,7 @@ Is this a TEXT-ONLY link?
 ```
 
 #### Search Icon Button
+
 ```tsx
 <Button variant="hollow" size="icon">
   <Search className="h-4 w-4" />
@@ -340,6 +366,7 @@ colors: {
 ## IMPLEMENTATION CHECKLIST
 
 ### Phase 1: Fix Button Component (30 minutes)
+
 - [ ] Add `ghost` variant
 - [ ] Fix `icon` size hover state (black → light gray)
 - [ ] Add `type="button"` as default
@@ -347,22 +374,26 @@ colors: {
 - [ ] Update icon size to have optional border
 
 ### Phase 2: Replace Icon Buttons (2 hours)
+
 - [ ] Find all custom icon buttons in TranscriptTable
 - [ ] Replace with `<Button variant="ghost" size="icon-sm">`
 - [ ] Test hover states
 - [ ] Verify no form submission issues
 
 ### Phase 3: Fix Pagination Buttons (30 minutes)
+
 - [ ] Change pagination from `size="icon"` to `variant="hollow" size="icon"`
 - [ ] Verify border appears
 - [ ] Verify light gray hover (not black)
 
 ### Phase 4: Replace Unauthorized Variants (1 hour)
+
 - [ ] Find all `variant="outline"` → replace with `variant="hollow"`
 - [ ] Find all `variant="secondary"` → replace with `variant="hollow"`
 - [ ] Test affected components
 
 ### Phase 5: Update Brand Guidelines (1 hour)
+
 - [ ] Add `ghost` variant documentation
 - [ ] Add `icon-sm` size documentation
 - [ ] Add button decision matrix
@@ -370,6 +401,7 @@ colors: {
 - [ ] Document CSS variables
 
 ### Phase 6: Create Reference File (30 minutes)
+
 - [ ] Create `BUTTON_VARIANTS.md` in project root
 - [ ] Include copy-paste examples for each variant
 - [ ] Add to CLAUDE.md references
@@ -412,6 +444,7 @@ After implementation, verify:
 **You were 100% correct** - the issue isn't "violations," it's **incomplete guidelines**.
 
 **Root Causes:**
+
 1. Brand guidelines missing `ghost` variant specification
 2. Brand guidelines don't document `icon-sm` size
 3. `icon` size variant has wrong hover state (black instead of light gray)
@@ -419,6 +452,7 @@ After implementation, verify:
 5. Working buttons bypass Button component (duplicated code)
 
 **The Fix:**
+
 1. Add `ghost` variant for transparent icon-only buttons
 2. Fix `icon` size hover to be light gray with optional border
 3. Add `type="button"` as default
@@ -429,6 +463,7 @@ After implementation, verify:
 **Total Time:** ~5-6 hours to implement completely
 
 **Result:**
+
 - ✅ Consistent button system
 - ✅ Single source of truth
 - ✅ Easy to maintain

@@ -7,16 +7,19 @@ This directory contains utility scripts for the CallVault project.
 ### Quick Start
 
 1. **Get your user ID:**
+
    ```bash
    npx tsx scripts/get-user-id.ts your-email@example.com
    ```
 
 2. **Check if embeddings exist:**
+
    ```bash
    npx tsx scripts/check-embeddings.ts <user_id>
    ```
 
 3. **Run RAG quality tests:**
+
    ```bash
    npm run test:rag <user_id>
    ```
@@ -32,6 +35,7 @@ This directory contains utility scripts for the CallVault project.
 ### Detailed Documentation
 
 See [RAG_TESTING_GUIDE.md](./RAG_TESTING_GUIDE.md) for:
+
 - Detailed usage instructions
 - Metric explanations (MRR, Precision@K)
 - How to customize test queries
@@ -77,6 +81,7 @@ See [RAG_TESTING_GUIDE.md](./RAG_TESTING_GUIDE.md) for:
 ### For RAG Testing Scripts
 
 Required in `.env`:
+
 ```bash
 SUPABASE_URL=https://your-project-id.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key

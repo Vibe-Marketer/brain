@@ -8,6 +8,7 @@
 
 > **CRITICAL: VERSIONING REQUIREMENT**
 > When editing this document, you MUST:
+>
 > 1. Increment version in **3 places:**
 >    - Title (line 1)
 >    - DOCUMENT VERSION section

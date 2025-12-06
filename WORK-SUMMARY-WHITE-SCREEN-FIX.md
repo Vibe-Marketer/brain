@@ -9,9 +9,11 @@
 ## What Was Done
 
 ### Problem Statement
+
 User reported that selecting a transcript from the transcripts tab caused the entire application to go white (React crash). Investigation revealed this was the tip of the iceberg - there were **15+ components** across the codebase with unsafe array/null handling that could cause similar crashes.
 
 ### Solution Approach
+
 1. **Identified root cause** in BulkActionToolbarEnhanced.tsx (incorrect dialog component usage)
 2. **Spawned parallel agents** to systematically find ALL similar issues
 3. **Fixed systematically** using defensive coding patterns
@@ -22,7 +24,9 @@ User reported that selecting a transcript from the transcripts tab caused the en
 ## Commits Made
 
 ### 1. [cdf90a8] - fix: resolve white screen crash when selecting transcripts
+
 **Fixed:**
+
 - BulkActionToolbarEnhanced.tsx - Replaced TagManagementDialog with ManualTagDialog
 - TranscriptsTab.tsx - Changed selectedCall type from `any` to `Meeting | null`
 - CallDetailDialog.tsx - Fixed state initialization timing bug
@@ -33,7 +37,9 @@ User reported that selecting a transcript from the transcripts tab caused the en
 ---
 
 ### 2. [9dbb3e1] - fix: ensure recording_id is converted to number for API calls
+
 **Fixed:**
+
 - BulkActionToolbarEnhanced.tsx - Added validation to filter out invalid recording_ids before API calls
 
 **Impact:** Prevents NaN values from being passed to AI operations
@@ -41,7 +47,9 @@ User reported that selecting a transcript from the transcripts tab caused the en
 ---
 
 ### 3. [31cafce] - fix: prevent multiple white screen crashes across components
+
 **Fixed:**
+
 - ChangeSpeakerDialog.tsx - Added `(availableSpeakers || []).map()`
 - DragDropZones.tsx - Added `(tags || []).map()`
 - TagDropdown.tsx - Added `tags && tags.length > 0`
@@ -54,7 +62,9 @@ User reported that selecting a transcript from the transcripts tab caused the en
 ---
 
 ### 4. [ad19a27] - fix: comprehensive array validation to prevent crashes
+
 **Fixed:**
+
 - BulkActionToolbarEnhanced.tsx - Added recording_id validation
 - SmartExportDialog.tsx - Added `Array.isArray(calendar_invitees)`
 - export-utils.ts - Added `Array.isArray()` validation
@@ -67,7 +77,9 @@ User reported that selecting a transcript from the transcripts tab caused the en
 ---
 
 ### 5. [61516e7] - docs: add comprehensive white screen prevention documentation
+
 **Created:**
+
 - docs/troubleshooting/white-screen-prevention.md (comprehensive guide)
 - docs/troubleshooting/white-screen-fixes-quick-ref.md (quick lookup)
 - docs/troubleshooting/README.md (troubleshooting index)
@@ -79,6 +91,7 @@ User reported that selecting a transcript from the transcripts tab caused the en
 ## Files Modified (Total: 15 components + 3 docs)
 
 ### Components
+
 1. src/components/transcript-library/BulkActionToolbarEnhanced.tsx
 2. src/components/transcripts/TranscriptsTab.tsx
 3. src/components/CallDetailDialog.tsx
@@ -96,6 +109,7 @@ User reported that selecting a transcript from the transcripts tab caused the en
 15. src/components/transcript-library/InviteesPopover.tsx
 
 ### Documentation
+
 1. docs/troubleshooting/white-screen-prevention.md
 2. docs/troubleshooting/white-screen-fixes-quick-ref.md
 3. docs/troubleshooting/README.md
@@ -105,16 +119,19 @@ User reported that selecting a transcript from the transcripts tab caused the en
 ## Defensive Patterns Established
 
 ### Pattern 1: Default to Empty Array
+
 ```typescript
 {(array || []).map((item) => ...)}
 ```
 
 ### Pattern 2: Null Check Before Length
+
 ```typescript
 {array && array.length > 0 ? ... : ...}
 ```
 
 ### Pattern 3: Array.isArray() Validation
+
 ```typescript
 if (data && Array.isArray(data)) {
   data.forEach((item) => {
@@ -124,11 +141,13 @@ if (data && Array.isArray(data)) {
 ```
 
 ### Pattern 4: Optional Chaining
+
 ```typescript
 {object?.property?.method() || fallback}
 ```
 
 ### Pattern 5: Type Validation Before API
+
 ```typescript
 const ids = items
   .filter(i => i?.id != null)
@@ -145,6 +164,7 @@ if (ids.length === 0) {
 ## Testing Performed
 
 ### Manual Testing
+
 ✅ Select single transcript → CallDetailDialog opens
 ✅ Select multiple transcripts → BulkActionToolbar appears
 ✅ Click "Manage Tags" → ManualTagDialog opens
@@ -156,6 +176,7 @@ if (ids.length === 0) {
 ✅ View speakers tab → ChangeSpeakerDialog works
 
 ### Automated Testing
+
 ✅ TypeScript compilation passes (`npm run type-check`)
 ✅ Dev server runs without errors (port 8080)
 ✅ No console errors during testing
@@ -165,12 +186,15 @@ if (ids.length === 0) {
 ## Key Insights for Future Work
 
 ### Root Cause Was Component Mismatch
+
 The primary issue wasn't just null/undefined handling - it was using **the wrong component** with incompatible props. `TagManagementDialog` expected `tags` array but received `selectedCalls` array.
 
 **Lesson:** Always verify component interfaces before usage.
 
 ### calendar_invitees is Frequently Problematic
+
 Multiple components had issues with `calendar_invitees` because:
+
 - Database can return non-array values
 - Field might be null/undefined
 - Individual items might have missing properties
@@ -178,6 +202,7 @@ Multiple components had issues with `calendar_invitees` because:
 **Lesson:** Always use `Array.isArray()` for database data.
 
 ### Type 'any' Hides Problems
+
 `TranscriptsTab.tsx` had `selectedCall: any` which allowed invalid values to propagate.
 
 **Lesson:** Avoid `any`, use proper types or unions like `Meeting | null`.
@@ -226,16 +251,19 @@ grep -rn ": any" src/ --include="*.tsx" --include="*.ts"
 ## Current State
 
 ### Branch
+
 - **Current branch:** main
 - **Ahead of origin:** 5 commits (ready to push)
 - **Working tree:** Clean
 
 ### Dev Server
+
 - **Status:** Running on port 8080
 - **No errors:** Console clean
 - **Hot reload:** Working
 
 ### TypeScript
+
 - **Compilation:** ✅ Passing
 - **Strict mode:** Enabled
 - **No errors:** Clean type check

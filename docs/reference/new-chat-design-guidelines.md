@@ -5,10 +5,12 @@
 This document provides a **pixel-perfect implementation guide** for the CallVault chat interface that mirrors how desktop applications work: a main viewport (like your screen) contains an application window (like opening Kortex in a browser).
 
 **The Two-Card System:**
+
 - **BG-CARD-MAIN**: The "browser window" - the outermost application container
 - **BG-CARD-INNER**: The "web app content" - contains chat messages and input
 
 **Critical Principle:** Both cards use **identical styling rules**. The only difference is their **navigation pattern**:
+
 - BG-CARD-MAIN has NO navigation (it's just the container frame)
 - BG-CARD-INNER has a **sidebar** for chat session navigation
 
@@ -75,7 +77,8 @@ Think of it like this: BG-CARD-MAIN is your browser window, BG-CARD-INNER is the
 
 **What it is:** The outermost application container, like a browser window (Chrome, Arc, Comet).
 
-**What it does:** 
+**What it does:**
+
 - Provides a rounded, elevated surface for the entire application
 - Creates the "frame" with padding (gutters) around the content
 - Has NO navigation of its own - it's just a container
@@ -96,6 +99,7 @@ className="bg-card rounded-2xl shadow-lg border border-border px-10 overflow-hid
 | `overflow-hidden` | Clips children | Prevents content overflow |
 
 **What goes inside:**
+
 ```tsx
 <div className="bg-card rounded-2xl shadow-lg border border-border px-10 overflow-hidden h-full">
   <div className="flex gap-4 h-full py-4">
@@ -114,6 +118,7 @@ className="bg-card rounded-2xl shadow-lg border border-border px-10 overflow-hid
 **What it is:** The nested card containing the actual chat interface, like a website loaded in the browser window.
 
 **What it does:**
+
 - Contains the chat header ("AI Chat" title + buttons)
 - Contains the messages area (scrollable)
 - Contains the input area (fixed at bottom)
@@ -135,6 +140,7 @@ className="flex-1 bg-card rounded-2xl shadow-lg border border-border overflow-hi
 | `flex flex-col` | Vertical stacking | Header → Messages → Input |
 
 **What goes inside:**
+
 ```tsx
 <div className="flex-1 bg-card rounded-2xl shadow-lg border border-border overflow-hidden flex flex-col">
   <Header />          {/* "AI Chat" + New Chat/Filters buttons */}
@@ -280,6 +286,7 @@ Since both cards use the **same background color**, depth is achieved through:
 **What it represents:** Navigation for chat sessions (like a file explorer sidebar).
 
 **Contains:**
+
 - Header with "Chat History" title + collapse toggle
 - Pinned sessions (scrollable, max 200px)
 - Recent sessions (scrollable, fills remaining space)
@@ -311,6 +318,7 @@ Since both cards use the **same background color**, depth is achieved through:
 **What it represents:** The actual chat interface (like the Kortex web app content).
 
 **Contains:**
+
 - Header ("AI Chat" title + action buttons)
 - Messages area (scrollable)
 - Input area (fixed at bottom)
@@ -390,19 +398,22 @@ Since both cards use the **same background color**, depth is achieved through:
 
 **BG-CARD-MAIN** and **BG-CARD-INNER** are **mirrors** of each other with ONE difference:
 
-### What's the SAME:
+### What's the SAME
+
 - ✅ Background color (`bg-card`)
 - ✅ Border radius (`rounded-2xl` = 16px)
 - ✅ Shadow (`shadow-lg`)
 - ✅ Border (`border border-border`)
 - ✅ Overflow handling (`overflow-hidden`)
 
-### What's DIFFERENT:
+### What's DIFFERENT
+
 - ❌ **Navigation pattern only**
   - BG-CARD-MAIN: NO navigation (just a container)
   - BG-CARD-INNER: Has header with title + action buttons
 
 **Think of it like:**
+
 - **BG-CARD-MAIN** = Browser window (no navigation inside the window frame)
 - **BG-CARD-INNER** = Website (has its own navigation/header)
 
@@ -575,11 +586,11 @@ export default function Chat() {
 
 **Think:** Browser window (BG-CARD-MAIN) → Sidebar (navigation) → Website (BG-CARD-INNER)
 
-
 # A LOT OF THIS HAD TO BE UPDATED AND CHANGED BECAUSE IT WAS INCORRECT AND NOT ACCURATE BASED ON WHAT I ACTUALLY WANTED.. SO HERE'S THE CLOSER VERSION TO WHAT I WAS ACTUALLY LOOKING FOR
 
 HERE'S SOME OF THE THE CHANGES I MADE:
 
+```html
 <main class="fixed inset-2 top-[52px]">
   <div
     class="bg-card rounded-2xl shadow-lg border border-border px-2 overflow-hidden h-full"
@@ -1246,14 +1257,15 @@ FDS
     </div>
   </div>
 </main>
+```
 
-## THE EXACT DIFFERENCES ARE OUTLINED HERE:
+## THE EXACT DIFFERENCES ARE OUTLINED HERE
 
 Here is a line-by-line outline of every single change made from the **OLD** HTML structure to the **NEW** one, focusing on class changes, deletions, and additions.
 
 The changes primarily reflect a compaction of padding, margins, and border radii, most likely in pursuit of the **ultra premium, clean, precise, Apple aesthetic** you mentioned, particularly noticeable in the outer container and the inner chat area. The sidebar was also structurally simplified.
 
----
+***
 
 ## 🎨 Layout and Structural Changes
 
@@ -1265,7 +1277,7 @@ The changes primarily reflect a compaction of padding, margins, and border radii
 | **6** | `<div class="bg-card rounded-2xl shadow-lg border border-border px-10 overflow-hidden h-full" data-component="BG-CARD-MAIN">` | *Moved/Consolidated* | **Element Consolidation:** The classes/attributes from this element were largely moved/consolidated into the new line 3 container, and the element itself was removed. |
 | **7** | `<div class="flex gap-4 h-full py-4">` | `<div class="flex gap-2 h-full py-2">` | **Spacing Reduction:** `gap-4` changed to **`gap-2`**. `py-4` changed to **`py-2`**. |
 
----
+***
 
 ## 💻 Sidebar Changes
 
@@ -1278,7 +1290,7 @@ The changes primarily reflect a compaction of padding, margins, and border radii
 | **20** | `<div style="min-width: 100%; display: table;">` | `<div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">` | **Style Overhaul:** Replaced table-based layout styles with overflow-related styles for better text handling, forcing content onto one line with ellipsis for overflow. |
 | **21** | `<div class="p-2 space-y-0.5 overflow-hidden">` | `<div class="p-2 space-y-0.5">` | **Class Deletion:** `overflow-hidden` was removed. |
 
----
+***
 
 ## 💬 Main Chat Area & Input Changes
 
@@ -1295,8 +1307,7 @@ The changes primarily reflect a compaction of padding, margins, and border radii
 
 In summary, the most significant changes involve **reducing padding** (`px-6` to `px-2/4`, `py-4` to `py-0/2`), **removing border separators** (e.g., `border-b` in the header, `border-t` in the footer), and **simplifying the sidebar's visual container** by removing explicit `bg-card`, `border`, and `rounded-lg` classes, and moving the primary title. This aligns with your stated preference for a **clean, precise, Apple aesthetic** by reducing visual clutter and maximizing content space.
 
-
-# SUMMARY OF UPDATES:
+# SUMMARY OF UPDATES
 
 You’re now going for a tighter, more compact, “native app” feel with a **single primary card**, slightly reduced padding, and a **lighter sidebar** that feels integrated instead of like a third card. The outline below rewrites the spec to match what you actually implemented and want, not what the original doc said.[1]
 
@@ -1439,7 +1450,7 @@ Differences vs original doc:
 </div>
 ```
 
-### Changes vs original spec:
+### Changes vs original spec
 
 - Removed `bg-card`, `border`, `rounded-lg`, and `overflow-hidden` from the sidebar container; sidebar is now **visually lighter** and reads as part of the main window chrome.[1]
 - Header lost its border and padding: no `border-b border-border px-4 py-3`—it’s a clean, minimal row.[1]

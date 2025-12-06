@@ -95,13 +95,13 @@ export const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, PromptI
 
   // Auto-resize textarea
   React.useEffect(() => {
-    if (disableAutosize || !textareaRef.current) return;
+    const textarea = typeof textareaRef === 'object' && textareaRef?.current ? textareaRef.current : null;
+    if (disableAutosize || !textarea) return;
 
-    const textarea = textareaRef.current;
     textarea.style.height = 'auto';
     const maxHeightPx = typeof maxHeight === 'number' ? maxHeight : parseInt(maxHeight, 10);
     textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeightPx)}px`;
-  }, [value, maxHeight, disableAutosize]);
+  }, [value, maxHeight, disableAutosize, textareaRef]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     // Submit on Enter (without shift)

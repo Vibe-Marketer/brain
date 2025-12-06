@@ -17,7 +17,7 @@ function formatDateFathom(timestamp: string): string {
 // Convert [HH:MM:SS] timestamp to smart digit format
 function formatTimestampSmart(timestamp: string): string {
   // Remove brackets if present
-  const cleaned = timestamp.replace(/[\[\]]/g, '');
+  const cleaned = timestamp.replace(/[[\]]/g, '');
   const parts = cleaned.split(':');
   
   if (parts.length !== 3) return timestamp;
@@ -120,11 +120,16 @@ function reformatTranscriptToFathom(transcript: string, includeTimestamps: boole
 }
 
 // Calculate duration between two timestamps
-function calculateDuration(start: string, end: string): string {
+function _calculateDuration(start: string, end: string): string {
   const startDate = new Date(start);
   const endDate = new Date(end);
   const minutes = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60));
   return `${minutes} min`;
+}
+
+interface CalendarInvitee {
+  name?: string;
+  email?: string;
 }
 
 interface Call {
@@ -136,7 +141,7 @@ interface Call {
   summary?: string;
   full_transcript?: string;
   url?: string;
-  calendar_invitees?: any[];
+  calendar_invitees?: CalendarInvitee[];
   recorded_by_name?: string;
   recorded_by_email?: string;
 }

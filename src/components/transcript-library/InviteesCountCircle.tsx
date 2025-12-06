@@ -1,5 +1,7 @@
+import type { CalendarInvitee } from "@/types";
+
 interface InviteesCountCircleProps {
-  invitees?: any[];
+  invitees?: CalendarInvitee[];
 }
 
 export function InviteesCountCircle({ invitees }: InviteesCountCircleProps) {

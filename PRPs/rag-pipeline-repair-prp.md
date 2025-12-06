@@ -252,6 +252,7 @@ User Query
 **Lines:** 1-4
 
 **Current Code:**
+
 ```typescript
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1.0.0';  // ❌ OUTDATED
@@ -260,6 +261,7 @@ import { z } from 'https://esm.sh/zod@3.23.8';
 ```
 
 **Frontend package.json:**
+
 ```json
 {
   "@ai-sdk/openai": "^2.0.72",  // ✅ Current
@@ -268,11 +270,13 @@ import { z } from 'https://esm.sh/zod@3.23.8';
 ```
 
 **Why This Breaks:**
+
 - The `@ai-sdk/openai` package v1.x uses different internal structures than v2.x
 - Stream formatting differs between versions
 - Tool call serialization format may be incompatible
 
 **Evidence:**
+
 - Debug logging shows `message.parts: undefined`
 - Recent commit added: `console.log('onFinish message.parts:', message.parts);`
 
@@ -285,6 +289,7 @@ import { z } from 'https://esm.sh/zod@3.23.8';
 **Line:** 330
 
 **Current Code:**
+
 ```typescript
 return result.toAIStreamResponse({
   headers: corsHeaders,
@@ -301,11 +306,13 @@ The AI SDK v3.x provides two streaming protocols:
 | Data Stream | `toDataStreamResponse()` | Full | Tool calls, structured data |
 
 `toAIStreamResponse()` streams text content but may not properly serialize:
+
 - Tool call initiations (`tool-call` parts)
 - Tool call results (`tool-result` parts)
 - Structured message parts
 
 **Evidence:**
+
 - Frontend expects `message.parts` array with `type: 'tool-call'` and `type: 'tool-result'`
 - These parts are never received
 - Citations depend on extracting sources from `tool-result` parts
@@ -319,16 +326,19 @@ The AI SDK v3.x provides two streaming protocols:
 **Affected Lines:** 133-178 (searchTranscripts tool)
 
 **Current Flow:**
+
 ```
 Query → hybrid_search_transcripts(match_count=10) → Return raw results
 ```
 
 **Ideal Flow:**
+
 ```
 Query → hybrid_search_transcripts(match_count=30) → Re-rank → Diversity filter → Return top results
 ```
 
 **Why This Matters:**
+
 - Hybrid search returns results based on RRF scoring
 - RRF is good but not optimal for complex queries
 - Cross-encoder re-ranking compares query directly with each document
@@ -338,6 +348,7 @@ Query → hybrid_search_transcripts(match_count=30) → Re-rank → Diversity fi
 > "What are the two pillars on the roadmap for the business that focuses on the offer playbook?"
 
 This multi-faceted query requires:
+
 1. Understanding "two pillars" concept
 2. Understanding "roadmap" context
 3. Understanding "offer playbook" focus
@@ -352,6 +363,7 @@ Without re-ranking, generic matches may outrank specific relevant content.
 **Component:** `supabase/functions/_shared/diversity-filter.ts`
 
 **File Exists But Unused:**
+
 ```typescript
 export function diversityFilter<T extends ChunkWithEmbedding>(
   chunks: T[],
@@ -367,6 +379,7 @@ export function diversityFilter<T extends ChunkWithEmbedding>(
 ```
 
 **Why This Matters:**
+
 - Without diversity filtering, results may cluster from one recording
 - User sees redundant information
 - Token budget wasted on similar content
@@ -380,6 +393,7 @@ export function diversityFilter<T extends ChunkWithEmbedding>(
 **Lines:** 187-196, 216
 
 **Current Code:**
+
 ```typescript
 const sanitizeParts = (parts: unknown): unknown => {
   if (!parts) return null;  // ← Returns null when parts undefined
@@ -395,6 +409,7 @@ parts: sanitizeParts(msg.parts),  // ← msg.parts is undefined, so null saved
 ```
 
 **Why This Breaks:**
+
 - If parts are undefined when `onFinish` fires, null is saved
 - When user reloads chat, no citations appear
 - Historical conversations lose their sources
@@ -443,6 +458,7 @@ This is a downstream effect of Root Causes 1 & 2. Once streaming is fixed, parts
 **File:** `supabase/functions/chat-stream/index.ts`
 
 **Change:**
+
 ```typescript
 // Before (line 2):
 import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@1.0.0';
@@ -452,6 +468,7 @@ import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@2.0.72';
 ```
 
 **Verification:**
+
 - Deploy Edge Function
 - Check Supabase Function logs for import errors
 - Verify function starts without errors
@@ -461,6 +478,7 @@ import { createOpenAI } from 'https://esm.sh/@ai-sdk/openai@2.0.72';
 **File:** `supabase/functions/chat-stream/index.ts`
 
 **Change:**
+
 ```typescript
 // Before (line 330):
 return result.toAIStreamResponse({
@@ -474,6 +492,7 @@ return result.toDataStreamResponse({
 ```
 
 **Verification:**
+
 - Send test query from frontend
 - Check browser DevTools Network tab for stream format
 - Verify `message.parts` populated in console logs
@@ -512,6 +531,7 @@ Rather than calling a separate Edge Function (which adds latency), implement re-
 **File:** `supabase/functions/chat-stream/index.ts`
 
 **Add Function:**
+
 ```typescript
 // Add after line 44 (after generateQueryEmbedding function)
 
@@ -604,6 +624,7 @@ function extractScore(data: unknown): number {
 **File:** `supabase/functions/chat-stream/index.ts`
 
 **Add Function:**
+
 ```typescript
 // Add after rerankResults function
 
@@ -749,6 +770,7 @@ supabase functions list
 **File:** `supabase/functions/chat-stream/index.ts`
 
 Add timing logs:
+
 ```typescript
 const startTime = Date.now();
 // ... operation ...
@@ -758,6 +780,7 @@ console.log(`Operation completed in ${Date.now() - startTime}ms`);
 #### Step 4.2: Monitor Performance
 
 Key metrics to track:
+
 - End-to-end latency
 - Re-ranking latency
 - Cache hit rates (if implemented)
@@ -1271,6 +1294,7 @@ Important: Only access transcripts belonging to the current user. Never fabricat
 ### 8.1 Unit Tests
 
 #### Test: Embedding Generation
+
 ```bash
 # Verify embedding API works
 curl -X POST "https://api.openai.com/v1/embeddings" \
@@ -1280,6 +1304,7 @@ curl -X POST "https://api.openai.com/v1/embeddings" \
 ```
 
 #### Test: Hybrid Search
+
 ```sql
 -- In Supabase SQL Editor
 SELECT * FROM hybrid_search_transcripts(
@@ -1301,20 +1326,25 @@ SELECT * FROM hybrid_search_transcripts(
 ### 8.2 Integration Tests
 
 #### Test: Full Chat Flow
+
 1. Open browser DevTools → Console
 2. Navigate to `/chat`
 3. Enter query: "What objections came up in sales calls?"
 4. Expected console output:
+
    ```
    onFinish message: {..., parts: [{type: 'tool-call', ...}, {type: 'tool-result', ...}]}
    onFinish message.parts: [{type: 'tool-call', ...}, {type: 'tool-result', ...}]
    Render assistant message: msg-xxx parts: [{type: 'tool-call', ...}]
    ```
+
 5. Expected UI: Citation pills appear below response
 
 #### Test: Re-ranking Quality
+
 1. Query: "What are the two pillars on the roadmap for offer playbook?"
 2. Check Edge Function logs:
+
    ```
    Hybrid search returned 30 candidates in 245ms
    Re-ranking completed in 1823ms
@@ -1395,6 +1425,7 @@ supabase functions deploy chat-stream
 ### Monitoring Dashboard
 
 Track in Supabase Edge Function logs:
+
 - `Hybrid search returned X candidates in Yms`
 - `Re-ranking completed in Zms`
 - `Search pipeline complete: A → B → C results`

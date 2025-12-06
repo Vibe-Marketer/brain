@@ -9,10 +9,12 @@
 ## 🎯 THE ROOT CAUSE
 
 **You already HAVE a token system defined:**
+
 - ✅ `src/index.css` defines CSS variables
 - ✅ `tailwind.config.ts` maps them to Tailwind
 
 **But developers are NOT using it:**
+
 - ❌ Using `#111111` inline instead of `bg-cb-ink`
 - ❌ Using `#F8F8F8` inline instead of `bg-cb-hover`
 - ❌ Using `#202020` inline instead of `dark:bg-[#202020]` (should be `dark:bg-card`)
@@ -24,7 +26,7 @@
 
 ## 📋 CURRENT TOKEN SYSTEM (Already Defined)
 
-### From `src/index.css`:
+### From `src/index.css`
 
 ```css
 :root {
@@ -48,7 +50,7 @@
 }
 ```
 
-### Mapped to Tailwind (from `tailwind.config.ts`):
+### Mapped to Tailwind (from `tailwind.config.ts`)
 
 ```typescript
 cb: {
@@ -64,7 +66,7 @@ cb: {
 
 ## 🐛 THE PROBLEM: Inline Usage Everywhere
 
-### Bad Examples (Current Code):
+### Bad Examples (Current Code)
 
 ```tsx
 // ❌ BAD: Inline hex color
@@ -80,7 +82,7 @@ style={{ background: '#111111' }}
 className="bg-cb-ink"  // ← This is BLACK, not white!
 ```
 
-### Good Examples (What It Should Be):
+### Good Examples (What It Should Be)
 
 ```tsx
 // ✅ GOOD: Using hover token
@@ -102,7 +104,7 @@ className="border border-cb-border dark:border-cb-border-dark"
 
 ### Step 1: Add Missing Button Tokens
 
-**Add to `src/index.css` after line 37:**
+**Add to `src/index.css` after line 37**
 
 ```css
 /* ============================================
@@ -139,7 +141,7 @@ className="border border-cb-border dark:border-cb-border-dark"
 
 ### Step 2: Map to Tailwind
 
-**Add to `tailwind.config.ts` in `colors` section (around line 135):**
+**Add to `tailwind.config.ts` in `colors` section (around line 135)**
 
 ```typescript
 button: {
@@ -184,7 +186,7 @@ button: {
 
 ### Step 3: Create Utility Classes
 
-**Add to `src/index.css` at bottom:**
+**Add to `src/index.css` at bottom**
 
 ```css
 @layer components {
@@ -235,7 +237,7 @@ button: {
 
 ### Step 4: ESLint Rule to Ban Inline Colors
 
-**Create `.eslintrc-custom-rules.js`:**
+**Create `.eslintrc-custom-rules.js`**
 
 ```javascript
 module.exports = {
@@ -287,7 +289,7 @@ module.exports = {
 };
 ```
 
-**Add to `.eslintrc.cjs`:**
+**Add to `.eslintrc.cjs`**
 
 ```javascript
 module.exports = {
@@ -301,7 +303,7 @@ module.exports = {
 
 ### Step 5: Type-Safe Token System (Optional)
 
-**Create `src/lib/design-tokens.ts`:**
+**Create `src/lib/design-tokens.ts`**
 
 ```typescript
 /**
@@ -359,7 +361,7 @@ export const BUTTON_CLASSES = {
 
 ### Phase 2: Fix Button Component (30 min)
 
-**Update `src/components/ui/button.tsx` to use ONLY tokens:**
+**Update `src/components/ui/button.tsx` to use ONLY tokens**
 
 ```typescript
 // ❌ BEFORE (inline):
@@ -373,7 +375,7 @@ export const BUTTON_CLASSES = {
 
 ### Phase 3: Create Find-Replace Script (30 min)
 
-**Create `scripts/migrate-to-tokens.sh`:**
+**Create `scripts/migrate-to-tokens.sh`**
 
 ```bash
 #!/bin/bash
@@ -465,7 +467,8 @@ grep -r "dark:bg-card" src/
 
 ## 🎯 THE FIX
 
-**Current Problem:**
+**Current Problem**
+
 ```tsx
 // 50 different implementations:
 className="hover:bg-cb-ink"           // Component A (BLACK)
@@ -474,7 +477,8 @@ style={{ background: '#F8F8F8' }}     // Component C (inline style)
 className="dark:bg-[#202020]"         // Component D (inline)
 ```
 
-**After Token System:**
+**After Token System**
+
 ```tsx
 // ONE token, 50 components:
 className="hover:bg-cb-hover dark:hover:bg-cb-panel-dark"
@@ -498,6 +502,7 @@ className="hover:bg-cb-hover dark:hover:bg-cb-panel-dark"
 ---
 
 **Summary:** The token system EXISTS, but isn't being used. The fix is to:
+
 1. Complete the token definitions
 2. Migrate inline colors to tokens
 3. Enforce with ESLint

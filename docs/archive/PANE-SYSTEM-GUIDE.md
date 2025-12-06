@@ -36,6 +36,7 @@ PANE_SYSTEM = {
 **Use Case**: Detail views, filters, properties panels
 
 **Layout Behavior**:
+
 - Initial: Main content spans full width (`1fr`)
 - With right pane: `1fr 380px` (main shrinks to accommodate pane)
 
@@ -77,6 +78,7 @@ function CallsPage() {
 ```
 
 **Visual Flow**:
+
 ```
 ┌─────────────────────────────────────┐
 │                                     │
@@ -100,6 +102,7 @@ function CallsPage() {
 **Use Case**: Navigation trees, filters sidebar
 
 **Layout Behavior**:
+
 - Initial: Main content spans full width (`1fr`)
 - With left pane: `380px 1fr` (main shifts right)
 
@@ -139,6 +142,7 @@ function AgentBuilder() {
 **Use Case**: Advanced workflows, multi-context views
 
 **Layout Behavior**:
+
 - Initial: Main content spans full width (`1fr`)
 - Left only: `380px 1fr`
 - Right only: `1fr 380px`
@@ -201,6 +205,7 @@ function IntelWorkspace() {
 ```
 
 **Visual Flow**:
+
 ```
 ┌─────────────────────────────────────┐
 │                                     │
@@ -395,15 +400,19 @@ Toggle-able tool panels:
 ## Troubleshooting
 
 **Issue**: Pane content jumps or flickers during transition
+
 - **Solution**: Ensure pane content has consistent dimensions and avoid layout shifts
 
 **Issue**: Main content text reflows awkwardly
+
 - **Solution**: Use `min-width: 0` on flex/grid children to prevent overflow
 
 **Issue**: Panes don't close properly
+
 - **Solution**: Always tie pane state to data presence: `rightPaneOpen={!!selectedItem}`
 
 **Issue**: Scrolling feels sluggish
+
 - **Solution**: Use `overflow-auto` instead of `overflow-scroll` and ensure GPU acceleration with `will-change: transform` during animations
 
 ---

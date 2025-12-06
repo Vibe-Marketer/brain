@@ -28,6 +28,7 @@ import { useTableSort } from "@/hooks/useTableSort";
 import { PaginationControls } from "@/components/ui/pagination-controls";
 import { TranscriptTableRow } from "./TranscriptTableRow";
 import { DownloadPopover } from "./DownloadPopover";
+import type { Meeting } from "@/types";
 
 interface Folder {
   id: string;
@@ -46,7 +47,7 @@ const columnOptions = [
 ];
 
 interface TranscriptTableProps {
-  calls: any[];
+  calls: Meeting[];
   selectedCalls: (number | string)[]; // Support both number (synced) and string (unsynced)
   tags: Array<{ id: string; name: string }>;
   tagAssignments: Record<string, string[]>;
@@ -58,7 +59,7 @@ interface TranscriptTableProps {
   pageSize?: number;
   onSelectCall: (id: number | string) => void;
   onSelectAll: () => void;
-  onCallClick: (call: any) => void;
+  onCallClick: (call: Meeting) => void;
   onFolderCall?: (callId: number | string) => void;
   onPageChange?: (page: number) => void;
   onPageSizeChange?: (pageSize: number) => void;
@@ -101,7 +102,7 @@ export const TranscriptTable = React.memo(({
 }: TranscriptTableProps) => {
   const { sortField, sortDirection: _sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
 
-  const SortButton = ({ field, children }: { field: any; children: React.ReactNode }) => (
+  const SortButton = ({ field, children }: { field: string; children: React.ReactNode }) => (
     <button
       onClick={() => handleSort(field)}
       className="h-8 px-2 inline-flex items-center justify-center gap-2 hover:bg-muted/50 font-medium text-sm rounded-md transition-colors cursor-pointer"

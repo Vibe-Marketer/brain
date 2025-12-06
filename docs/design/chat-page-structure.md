@@ -9,6 +9,7 @@ The Chat Page requires a Kortex-style two-column responsive layout that fits WIT
 ## CRITICAL REQUIREMENTS - WHAT STAYS THE SAME
 
 ### 1. APP SHELL (DO NOT MODIFY)
+
 The outer application structure remains **100% UNCHANGED**:
 
 | Component | Description | Keep Exactly As-Is |
@@ -20,6 +21,7 @@ The outer application structure remains **100% UNCHANGED**:
 | Bottom Navigation Dock | Home, AI Chat, Settings buttons (floating bottom dock) | ✅ YES |
 
 ### 2. MAIN BG-CARD OUTER CONTAINER
+
 The main card container that currently holds the chat page content remains structurally identical:
 
 ```html
@@ -100,7 +102,8 @@ The INTERIOR of the Main BG-CARD transforms from a single content area to a two-
 | Display | Flex, space-between, items-center | `flex justify-between items-center` |
 | Border Bottom | 1px solid border color | `border-b border-cb-border dark:border-cb-border-dark` |
 
-#### Header Content (Expanded State):
+#### Header Content (Expanded State)
+
 ```html
 <div className="h-14 px-4 flex justify-between items-center border-b border-cb-border dark:border-cb-border-dark">
   <!-- Title - visible when expanded -->
@@ -119,13 +122,14 @@ The INTERIOR of the Main BG-CARD transforms from a single content area to a two-
 </div>
 ```
 
-#### Header Content (Collapsed State):
+#### Header Content (Collapsed State)
+
 - Title fades out (`opacity-0`)
 - - Only "+" icon button visible
   - - Icon button centered in 56px width
-   
+
     - ### 1.3 Collapse/Expand Toggle Button
-   
+
     - | Property | Value | Notes |
     - |----------|-------|-------|
     - | Position | Absolute, right edge of sidebar | Overlaps border |
@@ -138,7 +142,7 @@ The INTERIOR of the Main BG-CARD transforms from a single content area to a two-
     - | Icon | Chevron left (expanded) / Chevron right (collapsed) | `RiArrowLeftSLine` / `RiArrowRightSLine` |
     - | Z-Index | 10 | Sits above content |
     - | Hover | Background brightens | `hover:bg-cb-hover` |
-   
+
     - ```html
       <button
         onClick={toggleSidebar}
@@ -180,7 +184,7 @@ The INTERIOR of the Main BG-CARD transforms from a single content area to a two-
 
       ### 1.5 Conversation Item
 
-      #### Expanded State:
+      #### Expanded State
 
       | Property | Value | CSS/Tailwind |
       |----------|-------|--------------|
@@ -195,19 +199,21 @@ The INTERIOR of the Main BG-CARD transforms from a single content area to a two-
       | Transition | 150ms | `transition-colors duration-150` |
       | Cursor | Pointer | `cursor-pointer` |
 
-      #### Active/Selected State:
+      #### Active/Selected State
+
       ```css
       /* Selected conversation indicator */
       background-color: rgba(217, 252, 103, 0.08); /* Very subtle vibe green tint */
       border-left: 3px solid #D9FC67; /* Vibe green left indicator */
       ```
 
-      #### Collapsed State:
+      #### Collapsed State
+
       - Show only first letter or chat icon
       - - Tooltip on hover showing full title
         - - Width: 40px, Height: 40px
           - - Centered in 56px sidebar width
-           
+
             - ```html
               <!-- Expanded conversation item -->
               <div className={cn(
@@ -338,7 +344,7 @@ The INTERIOR of the Main BG-CARD transforms from a single content area to a two-
 
               ### 2.4 Message Bubble Specifications
 
-              #### User/Host Messages:
+              #### User/Host Messages
 
               | Property | Value | CSS/Tailwind |
               |----------|-------|--------------|
@@ -358,7 +364,7 @@ The INTERIOR of the Main BG-CARD transforms from a single content area to a two-
               </div>
               ```
 
-              #### AI/Assistant Messages:
+              #### AI/Assistant Messages
 
               | Property | Value | CSS/Tailwind |
               |----------|-------|--------------|
@@ -738,62 +744,65 @@ The INTERIOR of the Main BG-CARD transforms from a single content area to a two-
               ## 5. RESPONSIVE BEHAVIOR
 
               ### Desktop (≥1024px)
+
               - Sidebar expanded by default (280px)
               - - User can toggle collapse/expand
                 - - Full two-column layout
-                 
+
                   - ### Tablet (768px - 1023px)
+
                   - - Sidebar collapsed by default (56px)
                     - - Tap toggle to expand (with overlay)
                       - - When expanded, slight backdrop blur on chat area
-                       
+
                         - ### Mobile (<768px)
+
                         - - Sidebar completely hidden by default
                           - - Hamburger menu or slide-out drawer pattern
                             - - Full-width chat area
                               - - Floating action button for new chat
-                               
-                                - ---
 
-                                ## 6. ANIMATION SPECIFICATIONS
+---
 
-                                | Element | Animation | Duration | Easing |
-                                |---------|-----------|----------|--------|
-                                | Sidebar width | Width transition | 300ms | `ease-in-out` |
-                                | Sidebar labels | Opacity fade | 200ms | `ease` (100ms delay on expand) |
-                                | Toggle button icon | None (instant) | 0ms | - |
-                                | Conversation hover | Background color | 150ms | `ease-out` |
-                                | Message appear | Fade + slide up | 200ms | `cubic-bezier(0.2, 0.8, 0.2, 1)` |
-                                | Input focus | Border color | 100ms | `ease` |
-                                | Button hover | Background | 150ms | `ease-out` |
+## 6. ANIMATION SPECIFICATIONS
 
-                                ---
+| Element | Animation | Duration | Easing |
+|---------|-----------|----------|--------|
+| Sidebar width | Width transition | 300ms | `ease-in-out` |
+| Sidebar labels | Opacity fade | 200ms | `ease` (100ms delay on expand) |
+| Toggle button icon | None (instant) | 0ms | - |
+| Conversation hover | Background color | 150ms | `ease-out` |
+| Message appear | Fade + slide up | 200ms | `cubic-bezier(0.2, 0.8, 0.2, 1)` |
+| Input focus | Border color | 100ms | `ease` |
+| Button hover | Background | 150ms | `ease-out` |
 
-                                ## 7. COLOR REFERENCE (FROM BRAND GUIDELINES)
+---
 
-                                | Element | Light Mode | Dark Mode |
-                                |---------|------------|-----------|
-                                | Viewport BG | #FCFCFC | #161616 |
-                                | Card BG | #FFFFFF | #202020 |
-                                | Inner Input BG | #FAFAFA | #1A1A1A |
-                                | Panel/Hover BG | #F8F8F8 | #2A2A2A |
-                                | Primary Text | #111111 | #FFFFFF |
-                                | Secondary Text | #444444 | #B0B0B0 |
-                                | Muted Text | #7A7A7A | #6B6B6B |
-                                | Border | #E5E5E5 | #3A3A3A |
-                                | Border Soft | #F2F2F2 | #2A2A2A |
-                                | Vibe Green | #D9FC67 | #D9FC67 |
-                                | User Message | #007AFF | #0A84FF |
+## 7. COLOR REFERENCE (FROM BRAND GUIDELINES)
 
-                                ---
+| Element | Light Mode | Dark Mode |
+|---------|------------|-----------|
+| Viewport BG | #FCFCFC | #161616 |
+| Card BG | #FFFFFF | #202020 |
+| Inner Input BG | #FAFAFA | #1A1A1A |
+| Panel/Hover BG | #F8F8F8 | #2A2A2A |
+| Primary Text | #111111 | #FFFFFF |
+| Secondary Text | #444444 | #B0B0B0 |
+| Muted Text | #7A7A7A | #6B6B6B |
+| Border | #E5E5E5 | #3A3A3A |
+| Border Soft | #F2F2F2 | #2A2A2A |
+| Vibe Green | #D9FC67 | #D9FC67 |
+| User Message | #007AFF | #0A84FF |
 
-                                ## 8. DOCUMENT VERSION
+---
 
-                                **Version:** 1.0.0
-                                **Last Updated:** November 27, 2025
-                                **Status:** Complete & Ready for Implementation
-                                **Purpose:** Single source of truth for Chat Page structural implementation
+## 8. DOCUMENT VERSION
 
-                                ---
+**Version:** 1.0.0
+**Last Updated:** November 27, 2025
+**Status:** Complete & Ready for Implementation
+**Purpose:** Single source of truth for Chat Page structural implementation
 
-                                ## END OF CHAT PAGE STRUCTURE DOCUMENTATION v1.0.0
+---
+
+## END OF CHAT PAGE STRUCTURE DOCUMENTATION v1.0.0

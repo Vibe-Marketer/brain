@@ -30,13 +30,13 @@ You can install it with
 heroku create
 ```
 
-2. Inference using claude-3-5-haiku:
+1. Inference using claude-3-5-haiku:
 
 ```bash
 heroku ai:models:create -a $APP_NAME claude-3-5-haiku
 ```
 
-3. Export Variables:
+1. Export Variables:
 
 ```bash
 export INFERENCE_KEY=$(heroku config:get INFERENCE_KEY -a $APP_NAME)
@@ -115,6 +115,4 @@ for await (const message of result.textStream) {
 
 Heroku language models can also be used in the `generateObject`, and `streamObject` functions.
 
----
-title: OpenAI Compatible Providers
-description: Use OpenAI compatible providers with the AI SDK.
+<!-- Concatenated content - OpenAI Compatible Providers section -->

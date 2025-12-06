@@ -1,4 +1,5 @@
 # BRAND GUIDELINES VIOLATIONS REPORT
+
 **Generated:** 2025-11-20
 **Audit Scope:** Full codebase UI components
 **Brand Guidelines Version:** v3.3.7
@@ -11,12 +12,14 @@
 The Conversion Brain codebase contains **significant violations** of the brand guidelines v3.3.7, affecting consistency, maintainability, and visual coherence. This report identifies violations categorized by severity.
 
 ### Quick Stats
+
 - 🔴 **Critical Issues:** 3 (must fix immediately)
 - 🟡 **High Priority:** 5 (should fix this sprint)
 - 🟢 **Medium Priority:** 3 (fix next sprint)
 - ⚪ **Low Priority:** 2 (nice to have)
 
 ### Impact Assessment
+
 - **Visual Consistency:** Severely impacted by mixed icon libraries and unauthorized variants
 - **Bundle Size:** Increased by ~15-20KB due to duplicate icon libraries
 - **Maintenance:** Harder to maintain with unauthorized component variants
@@ -27,6 +30,7 @@ The Conversion Brain codebase contains **significant violations** of the brand g
 ## 🔴 CRITICAL ISSUES (Must Fix Immediately)
 
 ### 1. Unauthorized Button Variants in Component Library
+
 **Severity:** 🔴 Critical/Blocker
 **File:** `src/components/ui/button.tsx`
 **Lines:** 9, 77-85
@@ -36,17 +40,20 @@ Button component includes `outline` and `secondary` variants that are NOT part o
 
 **Brand Guideline:**
 > **4 standardized variants only:**
+>
 > 1. Primary (default) - Glossy slate gradient for main actions
 > 2. Plain (hollow) - Simple border for secondary actions
 > 3. Destructive - Red for dangerous actions
 > 4. Link - Text-only for tertiary actions
 
 **Impact:**
+
 - 22 instances of `variant="outline"` or `variant="secondary"` used across 11 files
 - Creates inconsistent UI patterns
 - Violates single source of truth principle
 
 **Files Using Unauthorized Variants:**
+
 ```
 Settings.tsx: 7 occurrences
 CallDetailDialog.tsx: 5 occurrences
@@ -62,6 +69,7 @@ SyncTab.tsx: 1 occurrence
 ```
 
 **Recommended Fix:**
+
 ```typescript
 // Remove these variants from button.tsx:
 // - "outline" variant (lines 77-85)
@@ -75,6 +83,7 @@ variant="secondary" → variant="hollow"
 ---
 
 ### 2. Widespread Icon Library Fragmentation
+
 **Severity:** 🔴 Critical/Blocker
 **Pattern:** Using `lucide-react` instead of required Remix Icon
 **Files Affected:** 48 files
@@ -87,12 +96,14 @@ Entire codebase uses `lucide-react` icons, violating brand guideline requirement
 > **DO NOT:** Mix icon libraries (no Lucide, Font Awesome, etc.)
 
 **Impact:**
+
 - Visual inconsistency (different icon styles)
 - Increased bundle size (~15KB+ additional payload)
 - Maintenance complexity
 - Brand identity dilution
 
 **Most Critical Files:**
+
 ```
 src/components/ui/top-bar.tsx: ChevronRight, Search, Bell, Settings, LogOut
 src/pages/Settings.tsx: Multiple icons throughout
@@ -101,13 +112,16 @@ src/components/CallDetailDialog.tsx: Multiple icons
 ```
 
 **Only 1 file** correctly uses Remix Icon:
+
 ```
 src/components/transcript-library/TremorFilterBar.tsx ✅
 ```
 
 **Recommended Fix:**
+
 1. Install Remix Icon if not present: `npm install @remixicon/react`
 2. Create migration mapping (lucide → remix):
+
    ```
    ChevronRight → RiArrowRightSLine
    Search → RiSearchLine
@@ -115,12 +129,14 @@ src/components/transcript-library/TremorFilterBar.tsx ✅
    Settings → RiSettingsLine
    LogOut → RiLogoutBoxLine
    ```
+
 3. Systematic find-replace across all 48 files
 4. Remove lucide-react dependency
 
 ---
 
 ### 3. Unauthorized Badge Variants
+
 **Severity:** 🔴 Critical/Blocker
 **File:** `src/components/ui/badge.tsx`
 **Lines:** 12-14
@@ -132,6 +148,7 @@ Badge component includes `secondary` and `outline` variants used throughout code
 Badge should follow button variant pattern (only hollow for secondary styles).
 
 **Impact:**
+
 - Creates inconsistent badge styling
 - Doesn't align with approved design system
 
@@ -143,6 +160,7 @@ Remove unauthorized variants, standardize on approved pattern.
 ## 🟡 HIGH PRIORITY (Should Fix This Sprint)
 
 ### 4. Typography Violations - Missing Montserrat for Headers
+
 **Severity:** 🟡 High
 **Pattern:** Headers not using Montserrat Extra Bold (800) with ALL CAPS
 **Files:** Multiple
@@ -154,6 +172,7 @@ Headers use `font-semibold`, `font-bold` instead of required `font-extrabold` (M
 > **Headings:** ALWAYS Montserrat Extra Bold, ALL CAPS
 
 **Examples:**
+
 ```
 src/components/ui/card.tsx line 19:
   Current: font-semibold
@@ -161,12 +180,14 @@ src/components/ui/card.tsx line 19:
 ```
 
 **Impact:**
+
 - Visual hierarchy inconsistency
 - Brand identity dilution
 - User confusion about information hierarchy
 
 **Recommended Fix:**
 Create a heading component that enforces correct typography:
+
 ```typescript
 export const Heading = ({ level = 1, children, className }: HeadingProps) => {
   const Tag = `h${level}` as keyof JSX.IntrinsicElements;
@@ -184,6 +205,7 @@ export const Heading = ({ level = 1, children, className }: HeadingProps) => {
 ---
 
 ### 5. Card Overuse Violating 90% Rule
+
 **Severity:** 🟡 High
 **File:** `src/pages/Settings.tsx` (primary offender)
 **Lines:** 522-960
@@ -196,11 +218,13 @@ Settings page extensively uses `<Card>` components for content sections, violati
 > **10% exception:** Cards ONLY for modals, dropdowns, search bars, metric cards
 
 **Impact:**
+
 - Visual clutter
 - Inconsistent with design philosophy ("content on white")
 - Reduced content density
 
 **Recommended Fix:**
+
 ```tsx
 // Current (WRONG):
 <Card>
@@ -222,22 +246,26 @@ Settings page extensively uses `<Card>` components for content sections, violati
 ---
 
 ### 6. Table Component Missing Brand Styling
+
 **Severity:** 🟡 High
 **File:** `src/components/ui/table.tsx`
 
 **Problem:**
 Table component lacks several brand-specified features:
+
 - Missing white (#FFFFFF) background for header
 - Missing 3px vibe green underline for sortable columns
 - No proper row hover behavior
 
 **Brand Guideline:**
+>
 > - Header background: White (#FFFFFF light, #202020 dark)
 > - 3px vibe green underline ONLY on individual sortable columns
 > - Hover: Entire row background changes
 
 **Recommended Fix:**
 Update TableHead component to include:
+
 ```tsx
 className="bg-white dark:bg-[#202020] hover:bg-cb-hover"
 // For sortable columns:
@@ -247,6 +275,7 @@ className="border-b-3 border-vibe-green"
 ---
 
 ### 7. Vibe Green Misuse in Charts
+
 **Severity:** 🟡 High
 **Files:** Chart components in `src/components/transcripts/`
 
@@ -254,6 +283,7 @@ className="border-b-3 border-vibe-green"
 Chart components use vibe green (#D9FC67) for data visualization, which is not an approved context.
 
 **Files:**
+
 ```
 StatItem.tsx line 14: backgroundColor uses vibe green
 DonutChartMetric.tsx line 26: chart colors include vibe green
@@ -262,6 +292,7 @@ DonutChartCard.tsx line 10: defines vibe green for chart
 
 **Brand Guideline:**
 > Vibe green (#D9FC67) - ONLY for 9 specific uses:
+>
 > 1. Active tab underlines
 > 2. Left-edge indicators on metric cards
 > 3. Table column headers (sortable only)
@@ -273,12 +304,14 @@ DonutChartCard.tsx line 10: defines vibe green for chart
 
 **Recommended Fix:**
 Either:
+
 1. Use approved accent colors for charts (semantic colors)
 2. Request addition to brand guidelines if intentional design choice
 
 ---
 
 ### 8. Input Component Missing Vibe Green Focus State
+
 **Severity:** 🟡 High
 **File:** `src/components/ui/input.tsx`
 **Line:** 11
@@ -290,11 +323,13 @@ Uses generic `ring` color for focus instead of required vibe green.
 > Focus states: 3px left border on inputs (vibe green)
 
 **Current:**
+
 ```tsx
 focus-visible:ring-2 focus-visible:ring-ring
 ```
 
 **Should be:**
+
 ```tsx
 focus:border-l-3 focus:border-l-vibe-green focus-visible:ring-2 focus-visible:ring-vibe-green
 ```
@@ -304,6 +339,7 @@ focus:border-l-3 focus:border-l-vibe-green focus-visible:ring-2 focus-visible:ri
 ## 🟢 MEDIUM PRIORITY (Fix Next Sprint)
 
 ### 9. Button Border Radius Comment Mismatch
+
 **Severity:** 🟢 Medium/Nitpick
 **File:** `src/components/ui/button.tsx`
 **Lines:** 19, 27, 35
@@ -314,6 +350,7 @@ Comments mention "rounded-xl" but don't add value, consider removing.
 ---
 
 ### 10. TopBar Typography Weight
+
 **Severity:** 🟢 Medium/Nitpick
 **File:** `src/components/ui/top-bar.tsx`
 **Line:** 52
@@ -326,6 +363,7 @@ Logo text uses `font-semibold`, should use `font-medium` (Inter Medium 500) for 
 ## ⚪ LOW PRIORITY (Nice to Have)
 
 ### 11. Inline Style Tag in Button Component
+
 **Severity:** ⚪ Low/Nitpick
 **File:** `src/components/ui/button.tsx`
 **Lines:** 191-213
@@ -341,11 +379,13 @@ Move styles to `src/index.css` or convert to Tailwind utilities.
 ## SECURITY & PERFORMANCE NOTES
 
 ### Security
+
 ✅ No critical security vulnerabilities identified in UI components
 ✅ Components properly sanitize props
 ✅ React's built-in XSS protection functioning correctly
 
 ### Performance
+
 ⚠️ Icon library fragmentation increases bundle size by ~15-20KB
 ⚠️ Loading two icon libraries (lucide-react + potential remix-icon) impacts initial load time
 
@@ -354,6 +394,7 @@ Move styles to `src/index.css` or convert to Tailwind utilities.
 ## RECOMMENDED ACTION PLAN
 
 ### Phase 1: Critical Fixes (This Week)
+
 **Estimated Time:** 8-12 hours
 
 1. **Fix Button Component** (2 hours)
@@ -378,44 +419,47 @@ Move styles to `src/index.css` or convert to Tailwind utilities.
    - Test affected components
 
 ### Phase 2: High Priority (This Sprint)
+
 **Estimated Time:** 12-16 hours
 
-5. **Typography Standardization** (4 hours)
+1. **Typography Standardization** (4 hours)
    - Create Heading component
    - Replace all header instances
    - Ensure Montserrat 800 + ALL CAPS
 
-6. **Settings Page Refactor** (4 hours)
+2. **Settings Page Refactor** (4 hours)
    - Remove Card overuse
    - Use borders and spacing
    - Follow 90% rule
 
-7. **Table Component Update** (2 hours)
+3. **Table Component Update** (2 hours)
    - Add white header background
    - Implement vibe green underlines for sortable
    - Add hover states
 
-8. **Chart Vibe Green Audit** (2 hours)
+4. **Chart Vibe Green Audit** (2 hours)
    - Review all chart usage
    - Replace with approved colors OR
    - Document exception request
 
-9. **Input Focus States** (1 hour)
+5. **Input Focus States** (1 hour)
    - Update input.tsx
    - Add vibe green focus
 
 ### Phase 3: Medium Priority (Next Sprint)
+
 **Estimated Time:** 2-3 hours
 
-10. **Code Cleanup** (2-3 hours)
+1. **Code Cleanup** (2-3 hours)
     - Remove misleading comments
     - Update typography weights
     - Move inline styles to CSS
 
 ### Phase 4: Validation (After All Fixes)
+
 **Estimated Time:** 2 hours
 
-11. **Design System Audit** (2 hours)
+1. **Design System Audit** (2 hours)
     - Run visual regression tests
     - Verify all guidelines met
     - Create validation checklist
@@ -444,6 +488,7 @@ After implementing fixes, verify:
 The codebase requires **significant refactoring** to align with brand guidelines v3.3.7. The most critical issues are at the **component library level**, where unauthorized variants enable inconsistent UI patterns throughout the application.
 
 **Priority order:**
+
 1. Fix component library (button, badge) - **blocks consistency**
 2. Migrate to Remix Icon - **blocks visual identity**
 3. Typography standardization - **blocks hierarchy**
@@ -452,6 +497,7 @@ The codebase requires **significant refactoring** to align with brand guidelines
 **Total estimated effort:** 24-33 hours across 3 sprints
 
 Implementing these fixes will result in:
+
 - ✅ Consistent visual identity
 - ✅ Smaller bundle size (~15KB reduction)
 - ✅ Easier maintenance

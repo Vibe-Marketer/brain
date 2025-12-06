@@ -1,54 +1,52 @@
 ---
+title: DeepInfra
+description: Learn how to use DeepInfra's models with the AI SDK.
+---
 
-# AssemblyAI Provider
+# DeepInfra Provider
 
-The [AssemblyAI](https://assemblyai.com/) provider contains language model support for the AssemblyAI transcription API.
+The [DeepInfra](https://deepinfra.com) provider contains support for state-of-the-art models through the DeepInfra API, including Llama 3, Mixtral, Qwen, and many other popular open-source models.
 
 ## Setup
 
-The AssemblyAI provider is available in the `@ai-sdk/assemblyai` module. You can install it with
+The DeepInfra provider is available via the `@ai-sdk/deepinfra` module. You can install it with:
 
-<Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
-  <Tab>
-    <Snippet text="pnpm add @ai-sdk/assemblyai" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="npm install @ai-sdk/assemblyai" dark />
-  </Tab>
-  <Tab>
-    <Snippet text="yarn add @ai-sdk/assemblyai" dark />
-  </Tab>
-
-  <Tab>
-    <Snippet text="bun add @ai-sdk/assemblyai" dark />
-  </Tab>
-</Tabs>
+```bash
+npm install @ai-sdk/deepinfra
+```
 
 ## Provider Instance
 
-You can import the default provider instance `assemblyai` from `@ai-sdk/assemblyai`:
+You can import the default provider instance `deepinfra` from `@ai-sdk/deepinfra`:
 
-```ts
-import { assemblyai } from '@ai-sdk/assemblyai';
+```typescript
+import { deepinfra } from '@ai-sdk/deepinfra';
 ```
 
-If you need a customized setup, you can import `createAssemblyAI` from `@ai-sdk/assemblyai` and create a provider instance with your settings:
+If you need a customized setup, you can import `createDeepInfra` from `@ai-sdk/deepinfra` and create a provider instance with your settings:
 
-```ts
-import { createAssemblyAI } from '@ai-sdk/assemblyai';
+```typescript
+import { createDeepInfra } from '@ai-sdk/deepinfra';
 
-const assemblyai = createAssemblyAI({
-  // custom settings, e.g.
-  fetch: customFetch,
+const deepinfra = createDeepInfra({
+  apiKey: process.env.DEEPINFRA_API_KEY ?? '',
 });
 ```
 
-You can use the following optional settings to customize the AssemblyAI provider instance:
+You can use the following optional settings to customize the DeepInfra provider instance:
+
+- **baseURL** _string_
+
+  Use a different URL prefix for API calls, e.g. to use proxy servers.
+  The default prefix is `https://api.deepinfra.com/v1`.
+
+  Note: Language models and embeddings use OpenAI-compatible endpoints at `{baseURL}/openai`,
+  while image models use `{baseURL}/inference`.
 
 - **apiKey** _string_
 
-  API key that is being sent using the `Authorization` header.
-  It defaults to the `ASSEMBLYAI_API_KEY` environment variable.
+  API key that is being sent using the `Authorization` header. It defaults to
+  the `DEEPINFRA_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -61,223 +59,148 @@ You can use the following optional settings to customize the AssemblyAI provider
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
-## Transcription Models
+## Language Models
 
-You can create models that call the [AssemblyAI transcription API](https://www.assemblyai.com/docs/getting-started/transcribe-an-audio-file/typescript)
-using the `.transcription()` factory method.
+You can create language models using a provider instance. The first argument is the model ID, for example:
 
-The first argument is the model id e.g. `best`.
+```typescript
+import { deepinfra } from '@ai-sdk/deepinfra';
+import { generateText } from 'ai';
 
-```ts
-const model = assemblyai.transcription('best');
-```
-
-You can also pass additional provider-specific options using the `providerOptions` argument. For example, supplying the `contentSafety` option will enable content safety filtering.
-
-```ts highlight="6"
-import { experimental_transcribe as transcribe } from 'ai';
-import { assemblyai } from '@ai-sdk/assemblyai';
-import { readFile } from 'fs/promises';
-
-const result = await transcribe({
-  model: assemblyai.transcription('best'),
-  audio: await readFile('audio.mp3'),
-  providerOptions: { assemblyai: { contentSafety: true } },
+const { text } = await generateText({
+  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
+  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
 });
 ```
 
-The following provider options are available:
-
-- **audioEndAt** _number_
-
-  End time of the audio in milliseconds.
-  Optional.
-
-- **audioStartFrom** _number_
-
-  Start time of the audio in milliseconds.
-  Optional.
-
-- **autoChapters** _boolean_
-
-  Whether to automatically generate chapters for the transcription.
-  Optional.
-
-- **autoHighlights** _boolean_
-
-  Whether to automatically generate highlights for the transcription.
-  Optional.
-
-- **boostParam** _enum_
-
-  Boost parameter for the transcription.
-  Allowed values: `'low'`, `'default'`, `'high'`.
-  Optional.
-
-- **contentSafety** _boolean_
-
-  Whether to enable content safety filtering.
-  Optional.
-
-- **contentSafetyConfidence** _number_
-
-  Confidence threshold for content safety filtering (25-100).
-  Optional.
-
-- **customSpelling** _array of objects_
-
-  Custom spelling rules for the transcription.
-  Each object has `from` (array of strings) and `to` (string) properties.
-  Optional.
-
-- **disfluencies** _boolean_
-
-  Whether to include disfluencies (um, uh, etc.) in the transcription.
-  Optional.
-
-- **entityDetection** _boolean_
-
-  Whether to detect entities in the transcription.
-  Optional.
-
-- **filterProfanity** _boolean_
-
-  Whether to filter profanity in the transcription.
-  Optional.
-
-- **formatText** _boolean_
-
-  Whether to format the text in the transcription.
-  Optional.
-
-- **iabCategories** _boolean_
-
-  Whether to include IAB categories in the transcription.
-  Optional.
-
-- **languageCode** _string_
-
-  Language code for the audio.
-  Supports numerous ISO-639-1 and ISO-639-3 language codes.
-  Optional.
-
-- **languageConfidenceThreshold** _number_
-
-  Confidence threshold for language detection.
-  Optional.
-
-- **languageDetection** _boolean_
-
-  Whether to enable language detection.
-  Optional.
-
-- **multichannel** _boolean_
-
-  Whether to process multiple audio channels separately.
-  Optional.
-
-- **punctuate** _boolean_
-
-  Whether to add punctuation to the transcription.
-  Optional.
-
-- **redactPii** _boolean_
-
-  Whether to redact personally identifiable information.
-  Optional.
-
-- **redactPiiAudio** _boolean_
-
-  Whether to redact PII in the audio file.
-  Optional.
-
-- **redactPiiAudioQuality** _enum_
-
-  Quality of the redacted audio file.
-  Allowed values: `'mp3'`, `'wav'`.
-  Optional.
-
-- **redactPiiPolicies** _array of enums_
-
-  Policies for PII redaction, specifying which types of information to redact.
-  Supports numerous types like `'person_name'`, `'phone_number'`, etc.
-  Optional.
-
-- **redactPiiSub** _enum_
-
-  Substitution method for redacted PII.
-  Allowed values: `'entity_name'`, `'hash'`.
-  Optional.
-
-- **sentimentAnalysis** _boolean_
-
-  Whether to perform sentiment analysis on the transcription.
-  Optional.
-
-- **speakerLabels** _boolean_
-
-  Whether to label different speakers in the transcription.
-  Optional.
-
-- **speakersExpected** _number_
-
-  Expected number of speakers in the audio.
-  Optional.
-
-- **speechThreshold** _number_
-
-  Threshold for speech detection (0-1).
-  Optional.
-
-- **summarization** _boolean_
-
-  Whether to generate a summary of the transcription.
-  Optional.
-
-- **summaryModel** _enum_
-
-  Model to use for summarization.
-  Allowed values: `'informative'`, `'conversational'`, `'catchy'`.
-  Optional.
-
-- **summaryType** _enum_
-
-  Type of summary to generate.
-  Allowed values: `'bullets'`, `'bullets_verbose'`, `'gist'`, `'headline'`, `'paragraph'`.
-  Optional.
-
-- **topics** _array of strings_
-
-  List of topics to detect in the transcription.
-  Optional.
-
-- **webhookAuthHeaderName** _string_
-
-  Name of the authentication header for webhook requests.
-  Optional.
-
-- **webhookAuthHeaderValue** _string_
-
-  Value of the authentication header for webhook requests.
-  Optional.
-
-- **webhookUrl** _string_
-
-  URL to send webhook notifications to.
-  Optional.
-
-- **wordBoost** _array of strings_
-
-  List of words to boost in the transcription.
-  Optional.
+DeepInfra language models can also be used in the `streamText` function (see [AI SDK Core](/docs/ai-sdk-core)).
+
+## Model Capabilities
+
+| Model                                               | Image Input | Object Generation | Tool Usage | Tool Streaming |
+| --------------------------------------------------- | ----------- | ----------------- | ---------- | -------------- |
+| `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | ✓           | ✗                 | ✗          | ✗              |
+| `meta-llama/Llama-4-Scout-17B-16E-Instruct`         | ✓           | ✗                 | ✗          | ✗              |
+| `meta-llama/Llama-3.3-70B-Instruct-Turbo`           | ✗           | ✓                 | ✓          | ✓              |
+| `meta-llama/Llama-3.3-70B-Instruct`                 | ✗           | ✓                 | ✓          | ✓              |
+| `meta-llama/Meta-Llama-3.1-405B-Instruct`           | ✗           | ✓                 | ✓          | ✓              |
+| `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo`      | ✗           | ✓                 | ✓          | ✓              |
+| `meta-llama/Meta-Llama-3.1-70B-Instruct`            | ✗           | ✓                 | ✓          | ✓              |
+| `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`       | ✗           | ✓                 | ✓          | ✗              |
+| `meta-llama/Meta-Llama-3.1-8B-Instruct`             | ✗           | ✓                 | ✓          | ✓              |
+| `meta-llama/Llama-3.2-11B-Vision-Instruct`          | ✓           | ✓                 | ✗          | ✗              |
+| `meta-llama/Llama-3.2-90B-Vision-Instruct`          | ✓           | ✓                 | ✗          | ✗              |
+| `mistralai/Mixtral-8x7B-Instruct-v0.1`              | ✗           | ✓                 | ✓          | ✗              |
+| `deepseek-ai/DeepSeek-V3`                           | ✗           | ✓                 | ✓          | ✓              |
+| `deepseek-ai/DeepSeek-R1`                           | ✗           | ✗                 | ✗          | ✗              |
+| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`         | ✗           | ✗                 | ✗          | ✗              |
+| `deepseek-ai/DeepSeek-R1-Turbo`                     | ✗           | ✗                 | ✗          | ✗              |
+| `nvidia/Llama-3.1-Nemotron-70B-Instruct`            | ✗           | ✓                 | ✓          | ✗              |
+| `Qwen/Qwen2-7B-Instruct`                            | ✗           | ✓                 | ✗          | ✗              |
+| `Qwen/Qwen2.5-72B-Instruct`                         | ✗           | ✓                 | ✓          | ✓              |
+| `Qwen/Qwen2.5-Coder-32B-Instruct`                   | ✗           | ✓                 | ✗          | ✗              |
+| `Qwen/QwQ-32B-Preview`                              | ✗           | ✓                 | ✗          | ✗              |
+| `google/codegemma-7b-it`                            | ✗           | ✗                 | ✗          | ✗              |
+| `google/gemma-2-9b-it`                              | ✗           | ✗                 | ✗          | ✗              |
+| `microsoft/WizardLM-2-8x22B`                        | ✗           | ✗                 | ✗          | ✗              |
+
+Please see the [DeepInfra docs](https://deepinfra.com) for a full list of available models. You can also pass any available provider model ID as a string if needed.
+
+## Image Models
+
+You can create DeepInfra image models using the `.image()` factory method.
+For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+
+```typescript
+import { deepinfra } from '@ai-sdk/deepinfra';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: deepinfra.image('stabilityai/sd3.5'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
+});
+```
+
+Model support for `size` and `aspectRatio` parameters varies by model. Please check the individual model documentation on [DeepInfra's models page](https://deepinfra.com/models/text-to-image) for supported options and additional parameters.
+
+### Model-specific options
+
+You can pass model-specific parameters using the `providerOptions.deepinfra` field:
+
+```typescript
+import { deepinfra } from '@ai-sdk/deepinfra';
+import { experimental_generateImage as generateImage } from 'ai';
+
+const { image } = await generateImage({
+  model: deepinfra.image('stabilityai/sd3.5'),
+  prompt: 'A futuristic cityscape at sunset',
+  aspectRatio: '16:9',
+  providerOptions: {
+    deepinfra: {
+      num_inference_steps: 30, // Control the number of denoising steps (1-50)
+    },
+  },
+});
+```
 
 ### Model Capabilities
 
-| Model  | Transcription       | Duration            | Segments            | Language            |
-| ------ | ------------------- | ------------------- | ------------------- | ------------------- |
-| `best` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `nano` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+For models supporting aspect ratios, the following ratios are typically supported:
+`1:1 (default), 16:9, 1:9, 3:2, 2:3, 4:5, 5:4, 9:16, 9:21`
 
----
-title: DeepInfra
-description: Learn how to use DeepInfra's models with the AI SDK.
+For models supporting size parameters, dimensions must typically be:
+
+- Multiples of 32
+- Width and height between 256 and 1440 pixels
+- Default size is 1024x1024
+
+| Model                              | Dimensions Specification | Notes                                                    |
+| ---------------------------------- | ------------------------ | -------------------------------------------------------- |
+| `stabilityai/sd3.5`                | Aspect Ratio             | Premium quality base model, 8B parameters                |
+| `black-forest-labs/FLUX-1.1-pro`   | Size                     | Latest state-of-art model with superior prompt following |
+| `black-forest-labs/FLUX-1-schnell` | Size                     | Fast generation in 1-4 steps                             |
+| `black-forest-labs/FLUX-1-dev`     | Size                     | Optimized for anatomical accuracy                        |
+| `black-forest-labs/FLUX-pro`       | Size                     | Flagship Flux model                                      |
+| `stabilityai/sd3.5-medium`         | Aspect Ratio             | Balanced 2.5B parameter model                            |
+| `stabilityai/sdxl-turbo`           | Aspect Ratio             | Optimized for fast generation                            |
+
+For more details and pricing information, see the [DeepInfra text-to-image models page](https://deepinfra.com/models/text-to-image).
+
+## Embedding Models
+
+You can create DeepInfra embedding models using the `.textEmbedding()` factory method.
+For more on embedding models with the AI SDK see [embed()](/docs/reference/ai-sdk-core/embed).
+
+```typescript
+import { deepinfra } from '@ai-sdk/deepinfra';
+import { embed } from 'ai';
+
+const { embedding } = await embed({
+  model: deepinfra.textEmbedding('BAAI/bge-large-en-v1.5'),
+  value: 'sunny day at the beach',
+});
+```
+
+### Model Capabilities
+
+| Model                                                 | Dimensions | Max Tokens |
+| ----------------------------------------------------- | ---------- | ---------- |
+| `BAAI/bge-base-en-v1.5`                               | 768        | 512        |
+| `BAAI/bge-large-en-v1.5`                              | 1024       | 512        |
+| `BAAI/bge-m3`                                         | 1024       | 8192       |
+| `intfloat/e5-base-v2`                                 | 768        | 512        |
+| `intfloat/e5-large-v2`                                | 1024       | 512        |
+| `intfloat/multilingual-e5-large`                      | 1024       | 512        |
+| `sentence-transformers/all-MiniLM-L12-v2`             | 384        | 256        |
+| `sentence-transformers/all-MiniLM-L6-v2`              | 384        | 256        |
+| `sentence-transformers/all-mpnet-base-v2`             | 768        | 384        |
+| `sentence-transformers/clip-ViT-B-32`                 | 512        | 77         |
+| `sentence-transformers/clip-ViT-B-32-multilingual-v1` | 512        | 77         |
+| `sentence-transformers/multi-qa-mpnet-base-dot-v1`    | 768        | 512        |
+| `sentence-transformers/paraphrase-MiniLM-L6-v2`       | 384        | 128        |
+| `shibing624/text2vec-base-chinese`                    | 768        | 512        |
+| `thenlper/gte-base`                                   | 768        | 512        |
+| `thenlper/gte-large`                                  | 1024       | 512        |
+
+For a complete list of available embedding models, see the [DeepInfra embeddings page](https://deepinfra.com/models/embeddings).

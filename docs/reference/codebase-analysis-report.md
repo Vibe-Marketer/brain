@@ -1,9 +1,11 @@
 # Codebase Analysis Report
+
 *Generated: 2025-01-17*
 
 ## Executive Summary
 
 This report analyzes the src/pages and src/components directories for:
+
 - Large files requiring refactoring (>500 lines)
 - Component organization improvements
 - Technical debt markers
@@ -16,15 +18,18 @@ This report analyzes the src/pages and src/components directories for:
 ### 🔴 Critical - Immediate Refactoring Needed
 
 #### **Settings.tsx** - 1,600 lines
+
 **Current State:** Monolithic settings page with multiple responsibilities
 
 **Issues:**
+
 - Handles account management, OAuth, webhooks, preferences, and data management all in one file
 - 35+ state variables in a single component
 - Multiple distinct feature areas mixed together
 - Difficult to test and maintain
 
 **Recommended Refactoring:**
+
 ```
 src/pages/Settings.tsx (orchestrator - 100 lines)
 ├── src/features/settings/
@@ -43,6 +48,7 @@ src/pages/Settings.tsx (orchestrator - 100 lines)
 ```
 
 **Benefits:**
+
 - Each component has single responsibility
 - Easier to test individual features
 - Better code reuse
@@ -51,15 +57,18 @@ src/pages/Settings.tsx (orchestrator - 100 lines)
 ---
 
 #### **SyncTab.tsx** - 1,279 lines
+
 **Current State:** Complex sync interface with multiple responsibilities
 
 **Issues:**
+
 - Handles meeting fetching, syncing, categorization, filtering, and UI rendering
 - 40+ state variables
 - Complex sync logic mixed with UI logic
 - Difficult to debug sync issues
 
 **Recommended Refactoring:**
+
 ```
 src/components/transcripts/SyncTab.tsx (orchestrator - 150 lines)
 ├── src/features/sync/
@@ -80,6 +89,7 @@ src/components/transcripts/SyncTab.tsx (orchestrator - 150 lines)
 ```
 
 **Benefits:**
+
 - Separate sync logic from UI
 - Reusable hooks for other features
 - Easier to add new sync sources
@@ -90,9 +100,11 @@ src/components/transcripts/SyncTab.tsx (orchestrator - 150 lines)
 ### 🟡 Medium Priority - Consider Refactoring
 
 #### **Agents.tsx** - 565 lines
+
 **Current State:** Agent management page with starter templates
 
 **Suggested Refactoring:**
+
 ```
 src/pages/Agents.tsx (orchestrator - 150 lines)
 ├── src/features/agents/
@@ -111,6 +123,7 @@ src/pages/Agents.tsx (orchestrator - 150 lines)
 ## 2. Component Organization Analysis
 
 ### Current Structure
+
 ```
 src/components/
 ├── crm/                      # Well organized ✅
@@ -123,6 +136,7 @@ src/components/
 ```
 
 ### Issues with Current Structure
+
 1. **15 loose dialog components** in root making it hard to find related functionality
 2. **Inconsistent naming:** Some use "Dialog" suffix, others don't
 3. **No clear feature grouping** for cross-cutting concerns
@@ -131,6 +145,7 @@ src/components/
 ### Recommended Organization
 
 #### Option A: Feature-Based (Recommended)
+
 ```
 src/features/
 ├── library/
@@ -202,6 +217,7 @@ src/components/ui-new/      # Keep as new UI system
 ```
 
 **Benefits:**
+
 - Clear feature boundaries
 - Easy to find related components
 - Easier to enforce feature independence
@@ -209,6 +225,7 @@ src/components/ui-new/      # Keep as new UI system
 - Scalable as app grows
 
 #### Option B: Hybrid (Component Type + Feature)
+
 ```
 src/components/
 ├── features/
@@ -227,11 +244,13 @@ src/components/
 ## 3. Technical Debt Analysis
 
 ### Good News! 🎉
+
 - **Zero TODO/FIXME/HACK comments found** in the codebase
 - This indicates good code hygiene
 - No obvious markers of rushed or temporary solutions
 
 ### Areas of Concern
+
 1. **Duplicate logic** between SyncTab and the old Dashboard (now deleted)
 2. **Export utilities split** into two files (export-utils.ts and export-utils-advanced.ts)
 3. **Two UI systems** (ui/ and ui-new/) indicating migration in progress
@@ -243,7 +262,9 @@ src/components/
 ### Potential Issues Found
 
 #### Unused Dependencies (Need Manual Review)
+
 These packages may have unused imports across files:
+
 - `@headlessui/react` - Check if all imports are used
 - `@headlessui/tailwindcss` - Verify usage
 - `docx` - Only used in export-utils.ts
@@ -251,11 +272,13 @@ These packages may have unused imports across files:
 - `jszip` - Only used in export-utils.ts
 - `file-saver` - Only used in export-utils.ts
 
-**Recommendation:** 
+**Recommendation:**
+
 - Move export-related packages to dynamic imports to reduce main bundle size
 - Consider lazy loading export functionality
 
-#### Example Optimization for Export Utils:
+#### Example Optimization for Export Utils
+
 ```typescript
 // Instead of top-level imports
 import { saveAs } from 'file-saver';
@@ -298,25 +321,25 @@ export async function exportToPDF(calls: Call[]) {
 
 ### 🟡 Medium Priority
 
-4. **Optimize Export Utilities**
+1. **Optimize Export Utilities**
    - Add dynamic imports for export libraries
    - Reduce main bundle size
    - Estimated effort: 2-3 hours
 
-5. **Refactor Agents.tsx** (565 lines → ~400 lines)
+2. **Refactor Agents.tsx** (565 lines → ~400 lines)
    - Extract starter templates grid
    - Extract schedule dialog
    - Estimated effort: 4-6 hours
 
 ### 🟢 Low Priority
 
-6. **Consolidate UI Systems**
+1. **Consolidate UI Systems**
    - Decide on ui/ vs ui-new/
    - Migrate all components to chosen system
    - Remove unused system
    - Estimated effort: 1-2 days (when ready)
 
-7. **Review and Remove Unused Dependencies**
+2. **Review and Remove Unused Dependencies**
    - Audit all package usage
    - Remove truly unused packages
    - Estimated effort: 2-3 hours
@@ -326,6 +349,7 @@ export async function exportToPDF(calls: Call[]) {
 ## 6. Code Quality Metrics
 
 ### Current State
+
 - **Average component size:** ~250 lines (good)
 - **Largest component:** 1,600 lines (Settings.tsx - needs attention)
 - **Total components:** 70+
@@ -333,6 +357,7 @@ export async function exportToPDF(calls: Call[]) {
 - **Technical debt markers:** 0 (excellent!)
 
 ### Target State After Refactoring
+
 - **Average component size:** ~200 lines
 - **Largest component:** <500 lines
 - **Total components:** 90+ (more but smaller)
@@ -344,17 +369,20 @@ export async function exportToPDF(calls: Call[]) {
 ## 7. Implementation Plan
 
 ### Week 1: Critical Refactoring
+
 - Day 1-2: Refactor Settings.tsx
 - Day 3-4: Refactor SyncTab.tsx
 - Day 5: Testing and bug fixes
 
 ### Week 2: Organization & Optimization
+
 - Day 1-2: Reorganize component structure
 - Day 3: Optimize export utilities
 - Day 4: Refactor Agents.tsx
 - Day 5: Testing and documentation
 
 ### Week 3: Polish & Cleanup
+
 - Day 1-2: Review unused dependencies
 - Day 3: Bundle size optimization
 - Day 4-5: Final testing and deployment
@@ -364,6 +392,7 @@ export async function exportToPDF(calls: Call[]) {
 ## 8. Success Metrics
 
 After completing these refactorings, measure:
+
 1. **Bundle size reduction** (target: 15-20%)
 2. **Time to find components** (should be faster)
 3. **Test coverage increase** (smaller components = easier to test)

@@ -1,5 +1,3 @@
----
-
 # Announcing AI SDK 6 Beta
 
 <Note type="warning">
@@ -482,7 +480,3 @@ AI SDK 6 is expected to have minimal breaking changes. The version bump is due t
 **AI SDK 6 Beta**: Available now
 
 **Stable Release**: End of 2025
-
----
-title: Agents
-description: Learn how to build agents with the AI SDK.

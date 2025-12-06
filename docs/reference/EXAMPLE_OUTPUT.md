@@ -5,7 +5,7 @@ This shows what you'll see when running the RAG retrieval tests.
 ## Running the Test
 
 ```bash
-$ npm run test:rag 550e8400-e29b-41d4-a716-446655440000
+npm run test:rag 550e8400-e29b-41d4-a716-446655440000
 ```
 
 ## Console Output
@@ -121,11 +121,13 @@ Full report saved to: test-results/rag-test-2025-11-26T01-23-45.json
 ## Analysis of Results
 
 ### Overall Performance
+
 - **MRR: 0.717** - Good! First relevant result typically in top 2-3
 - **P@5: 0.680** - Good! About 68% of top 5 results are relevant
 - **P@10: 0.620** - Good! About 62% of top 10 results are relevant
 
 ### Strong Areas
+
 1. **Feature requests** (MRR: 1.000, P@5: 1.000) - Excellent!
 2. **Integration questions** (MRR: 1.000, P@5: 0.800) - Excellent!
 3. **API questions** (MRR: 1.000, P@5: 0.800) - Excellent!
@@ -133,6 +135,7 @@ Full report saved to: test-results/rag-test-2025-11-26T01-23-45.json
 5. **Pricing objections** (MRR: 1.000, P@5: 0.800) - Excellent!
 
 ### Areas for Improvement
+
 1. **Competitor mentions** (MRR: 0.500, P@5: 0.400) - Fair, could use query expansion
 2. **Security concerns** (MRR: 0.333, P@5: 0.400) - Fair, needs better semantic matching
 3. **Timeline concerns** (MRR: 0.333, P@5: 0.600) - Fair MRR but decent P@5
@@ -140,7 +143,9 @@ Full report saved to: test-results/rag-test-2025-11-26T01-23-45.json
 ### Improvement Opportunities
 
 #### Week 2: Query Expansion
+
 Focus on queries with low MRR:
+
 - Expand "competitor" → ["alternative", "vs", "compared to"]
 - Expand "security" → ["privacy", "compliance", "GDPR", "encryption"]
 - Expand "timeline" → ["schedule", "when", "how long", "deadline"]
@@ -148,7 +153,9 @@ Focus on queries with low MRR:
 Expected improvement: +15-20% MRR on these queries
 
 #### Week 3: Re-ranking
+
 Boost precision for all queries:
+
 - Use cross-encoder re-ranking for top 20 results
 - Apply metadata boosting (intent_signals weight)
 - Recency weighting for time-sensitive queries
@@ -233,6 +240,7 @@ The JSON report (`test-results/rag-test-2025-11-26T01-23-45.json`) contains:
 ## What to Do Next
 
 ### 1. Create Baseline
+
 ```bash
 # Save this as your baseline before any enhancements
 npm run test:rag <user_id> > baseline-2025-11-26.txt
@@ -240,22 +248,26 @@ cp test-results/rag-test-*.json test-results/baseline-2025-11-26.json
 ```
 
 ### 2. Implement Week 2 Enhancements
+
 - Query expansion for low MRR queries
 - Synonym mapping for domain terms
 - User vocabulary adaptation
 
 ### 3. Re-test and Compare
+
 ```bash
 npm run test:rag <user_id> > enhanced-week2.txt
 diff baseline-2025-11-26.txt enhanced-week2.txt
 ```
 
 ### 4. Implement Week 3 Enhancements
+
 - Cross-encoder re-ranking
 - Metadata boosting
 - Recency weighting
 
 ### 5. Final Measurement
+
 ```bash
 npm run test:rag <user_id> > enhanced-final.txt
 

@@ -115,7 +115,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
         if (!speakerError && speakerData) {
           // Create speaker name -> email mapping (use first non-null email for each speaker)
           const speakerEmailMap = new Map<string, string>();
-          speakerData.forEach((row: any) => {
+          speakerData.forEach((row: { speaker_name: string; speaker_email: string | null }) => {
             if (row.speaker_email && !speakerEmailMap.has(row.speaker_name)) {
               speakerEmailMap.set(row.speaker_name, row.speaker_email);
             }
@@ -174,16 +174,18 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   });
 
   // Process transcripts to use edited values when available and filter deleted
-  const transcripts = allTranscripts?.filter((t: any) => !t.is_deleted).map((t: any) => ({
-    ...t,
-    display_text: t.edited_text || t.text,
-    display_speaker_name: t.edited_speaker_name || t.speaker_name,
-    display_speaker_email: t.edited_speaker_email || t.speaker_email,
-    has_edits: !!(t.edited_text || t.edited_speaker_name)
-  })) || [];
+  const transcripts = useMemo(() => {
+    return allTranscripts?.filter((t) => !t.is_deleted).map((t): TranscriptSegmentDisplay => ({
+      ...t,
+      display_text: t.edited_text || t.text,
+      display_speaker_name: t.edited_speaker_name || t.speaker_name,
+      display_speaker_email: t.edited_speaker_email || t.speaker_email,
+      has_edits: !!(t.edited_text || t.edited_speaker_name)
+    })) || [];
+  }, [allTranscripts]);
 
-  const editedCount = allTranscripts?.filter((t: any) => t.edited_text || t.edited_speaker_name).length || 0;
-  const deletedCount = allTranscripts?.filter((t: any) => t.is_deleted).length || 0;
+  const editedCount = allTranscripts?.filter((t) => t.edited_text || t.edited_speaker_name).length || 0;
+  const deletedCount = allTranscripts?.filter((t) => t.is_deleted).length || 0;
   const hasTranscriptChanges = editedCount > 0 || deletedCount > 0;
 
   // Calculate character and token counts for the entire transcript
@@ -286,19 +288,20 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
 
       // Enrich with calendar invitee data if email is missing
       const speakers = Array.from(speakerMap.entries()).map(([name, email]) => {
+        let finalEmail = email;
         // If we don't have an email from transcript, try to match with calendar invitees
-        if (!email && call.calendar_invitees) {
-          const matchedInvitee = call.calendar_invitees.find((inv: any) =>
+        if (!finalEmail && call.calendar_invitees) {
+          const matchedInvitee = call.calendar_invitees.find((inv) =>
             inv.matched_speaker_display_name === name ||
             inv.name === name
           );
           if (matchedInvitee) {
-            email = matchedInvitee.email;
+            finalEmail = matchedInvitee.email;
           }
         }
         return {
           speaker_name: name,
-          speaker_email: email
+          speaker_email: finalEmail
         };
       });
 

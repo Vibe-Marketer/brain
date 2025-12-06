@@ -1,5 +1,3 @@
----
-
 # AI_InvalidDataContent
 
 This error occurs when invalid data content is provided.
@@ -21,7 +19,3 @@ if (InvalidDataContent.isInstance(error)) {
   // Handle the error
 }
 ```
-
----
-title: AI_InvalidMessageRoleError
-description: Learn how to fix AI_InvalidMessageRoleError

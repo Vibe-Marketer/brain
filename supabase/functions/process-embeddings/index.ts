@@ -34,6 +34,7 @@ interface TranscriptSegment {
   timestamp: string | null;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface FathomCall {
   recording_id: number;
   title: string;
@@ -336,7 +337,7 @@ async function processRecording(
     .eq('call_recording_id', recording_id)
     .maybeSingle();
 
-  const tagName = (tagAssignment?.call_tags as { name: string } | null)?.name || null;
+  const tagName = (tagAssignment?.call_tags as {name: string} | null)?.name || null;
 
   // Chunk the transcript
   const chunks = chunkTranscript(segments, 400, 100);

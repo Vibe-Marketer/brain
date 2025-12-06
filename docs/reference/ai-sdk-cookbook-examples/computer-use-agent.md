@@ -64,7 +64,7 @@ Computer Use tools in the AI SDK are predefined interfaces that require your own
 3. Handle screenshot capture and processing
 4. Set up rules and limits for how Claude can interact with your system
 
-The recommended approach is to start with [ Anthropic's reference implementation ](https://github.com/anthropics/anthropic-quickstarts/tree/main/computer-use-demo), which provides:
+The recommended approach is to start with [Anthropic's reference implementation](https://github.com/anthropics/anthropic-quickstarts/tree/main/computer-use-demo), which provides:
 
 - A containerized environment configured for safe Computer Use
 - Ready-to-use (Python) implementations of Computer Use tools
@@ -250,4 +250,3 @@ Remember, Computer Use is a beta feature. Please be aware that it poses unique r
 2. Avoid giving the model access to sensitive data, such as account login information, to prevent information theft.
 3. Limit internet access to an allowlist of domains to reduce exposure to malicious content.
 4. Ask a human to confirm decisions that may result in meaningful real-world consequences as well as any tasks requiring affirmative consent, such as accepting cookies, executing financial transactions, or agreeing to terms of service.
-

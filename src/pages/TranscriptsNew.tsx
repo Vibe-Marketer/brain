@@ -42,7 +42,7 @@ const TranscriptsNew = () => {
     if (tabFromUrl && tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
-  }, [searchParams]);
+  }, [searchParams, activeTab]);
 
   const currentConfig = tabConfig[activeTab];
 

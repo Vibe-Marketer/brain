@@ -1,5 +1,3 @@
----
-
 # AI_InvalidMessageRoleError
 
 This error occurs when an invalid message role is provided.
@@ -20,7 +18,3 @@ if (InvalidMessageRoleError.isInstance(error)) {
   // Handle the error
 }
 ```
-
----
-title: AI_InvalidPromptError
-description: Learn how to fix AI_InvalidPromptError

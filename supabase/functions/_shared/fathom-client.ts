@@ -15,7 +15,7 @@ export class FathomClient {
       ...fetchOptions
     } = options;
 
-    let lastError: any;
+    let lastError: unknown;
     let response: Response | null = null;
 
     for (let attempt = 0; attempt <= maxRetries; attempt++) {

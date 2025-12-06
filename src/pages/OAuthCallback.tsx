@@ -46,10 +46,11 @@ export default function OAuthCallback() {
         setTimeout(() => {
           navigate('/settings');
         }, 2000);
-      } catch (error: any) {
+      } catch (error: unknown) {
         logger.error('OAuth callback error', error);
         setStatus('error');
-        setErrorMessage(error?.message || 'Failed to complete OAuth authorization');
+        const message = error instanceof Error ? error.message : 'Failed to complete OAuth authorization';
+        setErrorMessage(message);
         toast.error('Failed to connect to Fathom');
       }
     };

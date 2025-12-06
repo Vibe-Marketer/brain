@@ -10,12 +10,12 @@ import { TagDropdown } from "./TagDropdown";
 import { ExportDropdown } from "./ExportDropdown";
 import { exportToPDF, exportToDOCX, exportToTXT, exportToJSON, exportToZIP } from "@/lib/export-utils";
 import { autoTagCalls, generateAiTitles } from "@/lib/api-client";
-import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import type { Meeting } from "@/types";
 
 interface BulkActionToolbarEnhancedProps {
   selectedCount: number;
-  selectedCalls: any[];
+  selectedCalls: Meeting[];
   tags: Array<{ id: string; name: string }>;
   onClearSelection: () => void;
   onDelete: () => void;

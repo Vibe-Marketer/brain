@@ -54,7 +54,7 @@ serve(async (req) => {
               supabaseUrl,
               exportMethod: 'edge-function-fallback',
             },
-            tables: {} as Record<string, any>
+            tables: {} as Record<string, unknown>
           },
           summary: {
             exportDate: new Date().toISOString(),
@@ -95,7 +95,7 @@ serve(async (req) => {
           supabaseUrl,
           exportMethod: 'edge-function',
         },
-        tables: {} as Record<string, any>,
+        tables: {} as Record<string, unknown>,
       };
 
       let totalRows = 0;

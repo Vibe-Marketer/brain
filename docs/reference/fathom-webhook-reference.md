@@ -1,7 +1,7 @@
 # Fathom Webhook Technical Reference
 
 **Last Updated:** 2025-11-29
-**Source:** https://developers.fathom.ai/webhooks
+**Source:** <https://developers.fathom.ai/webhooks>
 
 ---
 
@@ -41,7 +41,7 @@ All webhooks include these headers:
 
 ### Fathom's Documented Verification Method
 
-From https://developers.fathom.ai/webhooks#verifying-webhooks:
+From <https://developers.fathom.ai/webhooks#verifying-webhooks>:
 
 ```javascript
 const crypto = require('crypto')
@@ -59,13 +59,14 @@ function verifyWebhook(secret, headers, rawBody) {
 ```
 
 **Key points:**
+
 - Use secret DIRECTLY (no base64 decoding)
 - Hash the raw body ONLY (NOT id.timestamp.body)
 - Multiple signatures may be space-delimited
 
 ### Svix Verification Method (What Fathom Actually Uses)
 
-Fathom uses **Svix** (https://www.svix.com) for webhook delivery. User-Agent: `Svix-Webhooks/1.81.0`
+Fathom uses **Svix** (<https://www.svix.com>) for webhook delivery. User-Agent: `Svix-Webhooks/1.81.0`
 
 Svix uses a DIFFERENT signature format:
 
@@ -80,6 +81,7 @@ const expected = crypto
 ```
 
 **Key differences from Fathom docs:**
+
 1. Signs `id.timestamp.body` concatenated (not just body)
 2. Secret has `whsec_` prefix, remainder is base64-encoded
 3. Must base64-decode the secret before using
@@ -87,6 +89,7 @@ const expected = crypto
 ### Which Method to Use?
 
 **Our implementation supports BOTH** methods and tries them in order:
+
 1. Fathom native (x-signature header, simple body hash)
 2. Svix (webhook-signature header, id.timestamp.body hash)
 
@@ -94,7 +97,7 @@ const expected = crypto
 
 ## Webhook Payload Structure
 
-From https://developers.fathom.ai/api-reference/webhook-payloads/new-meeting-content-ready
+From <https://developers.fathom.ai/api-reference/webhook-payloads/new-meeting-content-ready>
 
 ```json
 {
@@ -149,11 +152,13 @@ Location: `supabase/functions/webhook/index.ts`
 ### "Invalid webhook signature"
 
 **Causes:**
+
 1. Wrong secret being used (personal vs OAuth mismatch)
 2. `FATHOM_OAUTH_WEBHOOK_SECRET` doesn't match Developer Portal
 3. Body was modified before verification (JSON parsed then stringified)
 
 **Debug steps:**
+
 1. Check `webhook_deliveries` table for the failed webhook
 2. Look at `request_headers` to see which signature format was used
 3. Verify secret matches source (Settings for personal, Developer Portal for OAuth)
@@ -161,6 +166,7 @@ Location: `supabase/functions/webhook/index.ts`
 ### Webhook not received at all
 
 **Causes:**
+
 1. Webhook not configured in Fathom
 2. Endpoint URL incorrect in Fathom settings
 3. User didn't authorize the OAuth app (for OAuth webhooks)
@@ -181,11 +187,13 @@ Location: `supabase/functions/webhook/index.ts`
 ## Testing Webhooks
 
 ### Manual Test
+
 1. Record a 2-minute test call in Fathom
 2. Wait ~2-10 minutes for processing
 3. Check `webhook_deliveries` table for the result
 
 ### Verify Endpoint
+
 ```bash
 curl https://[project].supabase.co/functions/v1/webhook
 # Should return: {"status":"online","message":"Webhook endpoint is ready",...}
@@ -245,7 +253,7 @@ curl https://[project].supabase.co/functions/v1/webhook
 
 ## References
 
-- Fathom Webhooks Guide: https://developers.fathom.ai/webhooks
-- Fathom Webhook Payload: https://developers.fathom.ai/api-reference/webhook-payloads/new-meeting-content-ready
-- Fathom OAuth Guide: https://developers.fathom.ai/oauth
-- Svix Webhook Verification: https://docs.svix.com/receiving/verifying-payloads/how
+- Fathom Webhooks Guide: <https://developers.fathom.ai/webhooks>
+- Fathom Webhook Payload: <https://developers.fathom.ai/api-reference/webhook-payloads/new-meeting-content-ready>
+- Fathom OAuth Guide: <https://developers.fathom.ai/oauth>
+- Svix Webhook Verification: <https://docs.svix.com/receiving/verifying-payloads/how>

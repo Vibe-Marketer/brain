@@ -7,6 +7,7 @@ CallVault is a meeting intelligence platform that syncs with Fathom to process c
 ## Tech Stack
 
 ### Frontend
+
 - **React** 18.3.1 - UI framework
 - **TypeScript** 5.8.3 - Type safety
 - **Vite** 5.4.19 - Build tool and dev server
@@ -20,18 +21,21 @@ CallVault is a meeting intelligence platform that syncs with Fathom to process c
 - **React Hook Form** 7.61.1 - Form handling
 
 ### Backend
+
 - **Supabase Edge Functions** - Serverless Deno runtime
 - **Supabase Database** - PostgreSQL
 - **Supabase Auth** - Authentication
 
 ### External Integrations
+
 - **Fathom API** - Meeting data source
 - **OpenAI API** - AI processing for transcripts
 
 ## Directory Structure
 
 ### Top-Level Layout
-```
+
+```text
 conversion-brain/
 ├── src/                    # Frontend React application
 ├── supabase/              # Backend Edge Functions
@@ -48,8 +52,9 @@ conversion-brain/
 └── PRPs/                 # Product Requirements Proposals
 ```
 
-### Frontend Structure (`src/`)
-```
+### Frontend Structure (src/)
+
+```text
 src/
 ├── App.tsx               # Root component with routing
 ├── main.tsx              # Entry point
@@ -119,8 +124,9 @@ src/
     └── icons/           # SVG icons
 ```
 
-### Backend Structure (`supabase/functions/`)
-```
+### Backend Structure (supabase/functions/)
+
+```text
 supabase/functions/
 ├── _shared/             # Shared utilities across functions
 │
@@ -175,7 +181,7 @@ supabase/functions/
 
 ### Data Flow
 
-```
+```text
 ┌─────────────┐     ┌──────────────┐     ┌─────────────────┐     ┌──────────┐
 │   React UI  │ ──▶ │ TanStack     │ ──▶ │ Supabase Edge   │ ──▶ │ Supabase │
 │  Component  │     │ Query Hook   │     │ Function        │     │ Database │
@@ -200,6 +206,7 @@ supabase/functions/
 - **Theme State**: `ThemeContext` with next-themes
 
 ### Query Configuration
+
 **Reference**: `src/lib/query-config.ts`
 
 ```typescript
@@ -222,6 +229,7 @@ export const queryDefaults = {
 ```
 
 ### API Client Pattern
+
 **Reference**: `src/lib/api-client.ts`
 
 ```typescript
@@ -242,6 +250,7 @@ export async function fetchMeetings(params) {
 ```
 
 ### Edge Function Pattern
+
 **Reference**: `supabase/functions/*/index.ts`
 
 ```typescript
@@ -280,16 +289,19 @@ Deno.serve(async (req) => {
 ### Folder Separation Logic
 
 **`src/components/transcripts/`** - Tab-level page components
+
 - Complete tab views (TranscriptsTab, SyncTab, AnalyticsTab)
 - Tab-specific child components (StatItem, DonutChartCard)
 - Direct children of the main page
 
 **`src/components/transcript-library/`** - Reusable components
+
 - Shared across multiple tabs (TranscriptTable, BulkActionToolbarEnhanced)
 - Dialogs (CategoryManagementDialog, ResyncConfirmDialog)
 - Filter components (TremorFilterBar, FilterPill)
 
 **`src/components/ui/`** - Base UI primitives
+
 - Radix-based components (dialog, dropdown-menu)
 - Custom styled components (button, badge)
 - shadcn/ui pattern
@@ -299,6 +311,7 @@ Deno.serve(async (req) => {
 ### Environment Variables
 
 **Client-side (VITE_)**:
+
 ```env
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
@@ -306,6 +319,7 @@ VITE_SUPABASE_PROJECT_ID=your_project_id
 ```
 
 **Server-side (Edge Functions)**:
+
 ```env
 SUPABASE_URL=...
 SUPABASE_SERVICE_ROLE_KEY=...
@@ -313,6 +327,7 @@ OPENAI_API_KEY=...
 ```
 
 **User-configured (stored in database)**:
+
 - Fathom API Key (user_settings table)
 - Webhook Secret (app_config table)
 - Host Email (app_config table)
@@ -320,14 +335,17 @@ OPENAI_API_KEY=...
 ### Build Configuration
 
 **Vite** (`vite.config.ts`):
+
 - React SWC plugin for fast builds
 - Path alias `@/` → `src/`
 
 **TypeScript** (`tsconfig.app.json`):
+
 - Strict mode enabled
 - Path mapping for `@/`
 
 **Tailwind** (`tailwind.config.ts`):
+
 - Custom design tokens
 - Tremor integration
 - Dark mode support
@@ -335,17 +353,20 @@ OPENAI_API_KEY=...
 ## Testing
 
 ### Test Location
-```
+
+```text
 src/lib/__tests__/
 ├── filter-utils.test.ts
 └── ai-agent-system.test.ts
 ```
 
 ### Test Framework
+
 - **Vitest** - Test runner (configured in `vitest.config.ts`)
 - Tests co-located with code in `__tests__` folders
 
 ### Running Tests
+
 ```bash
 npm run test
 ```
@@ -353,19 +374,23 @@ npm run test
 ## Architecture Decision Records
 
 ### Location
+
 `docs/adr/`
 
 ### Current ADRs
+
 - `adr-001-vercel-ai-sdk.md` - AI SDK choice
 - `adr-002-remix-icon.md` - Icon system choice
 
 ### When to Create ADR
+
 - Database schema changes
 - Major dependency changes
 - Architecture pattern decisions
 - Integration choices
 
 ### ADR Process
+
 1. Copy `docs/adr/adr-template.md`
 2. Fill in Context, Decision, Consequences
 3. Save as `adr-XXX-title.md`
@@ -374,27 +399,34 @@ npm run test
 ## Key Architectural Decisions
 
 ### No WebSockets
+
 HTTP polling with TanStack Query's `refetchInterval` instead of real-time subscriptions. Simpler architecture, sufficient for current needs.
 
 ### Query-First State
+
 TanStack Query is the single source of truth for server state. No separate state management library needed.
 
 ### Direct Database Values
+
 No translation layers. Database values (e.g., `"todo"`, `"doing"`) used directly in UI.
 
 ### Supabase Edge Functions
+
 All backend logic in Deno-based Edge Functions. No traditional server. Benefits:
+
 - Auto-scaling
 - No infrastructure management
 - TypeScript/Deno runtime
 - Built-in Supabase client
 
 ### Component Library
+
 Radix UI primitives + custom styling (shadcn pattern). Not using a full component library like Material UI.
 
 ## Deployment
 
 ### Development
+
 ```bash
 # Frontend
 npm run dev
@@ -404,6 +436,7 @@ supabase functions serve
 ```
 
 ### Production
+
 - Frontend: Lovable cloud deployment
 - Backend: Supabase managed Edge Functions
 - Database: Supabase managed PostgreSQL
@@ -411,30 +444,37 @@ supabase functions serve
 ## Performance Optimizations
 
 ### Query Deduplication
+
 Same query key = single request. TanStack Query handles automatically.
 
 ### Smart Caching
+
 Different stale times per data type:
+
 - Static data (categories): 5 minutes
 - Dynamic data (meetings): 30 seconds
 - Real-time data (sync jobs): 0 (always fresh)
 
 ### Retry Logic
+
 Exponential backoff in api-client with configurable max retries.
 
 ## Security
 
 ### Authentication
+
 - Supabase Auth with email/password
 - Protected routes via `ProtectedRoute` component
 - Session management in `AuthContext`
 
 ### API Security
+
 - Row Level Security (RLS) in Supabase
 - Service role key only in Edge Functions
 - Publishable key in client (safe)
 
 ### Secrets
+
 - Never commit `.env` files
 - User secrets stored in database
 - Server secrets in Supabase dashboard
@@ -442,15 +482,18 @@ Exponential backoff in api-client with configurable max retries.
 ## Code Quality
 
 ### Linting
+
 - ESLint with React hooks plugin
 - TypeScript strict mode
 
 ### Code Review Workflows
+
 - `/code-review` - Comprehensive review
 - `/security-review` - Security analysis
 - `/design-review` - UI/UX validation
 
 ### Documentation
+
 - `CLAUDE.md` - AI agent instructions
 - `docs/architecture/` - Codebase conventions
 - `docs/` - Design guidelines
@@ -494,14 +537,17 @@ Exponential backoff in api-client with configurable max retries.
 ## Known Patterns and Conventions
 
 ### Naming
+
 - See `docs/architecture/api-naming-conventions.md` for complete reference
 
 ### Component Patterns
+
 - Functional components only
 - Custom hooks for reusable logic
 - Props destructuring with TypeScript interfaces
 
 ### Import Patterns
+
 ```typescript
 // Use @ alias
 import { Button } from "@/components/ui/button";

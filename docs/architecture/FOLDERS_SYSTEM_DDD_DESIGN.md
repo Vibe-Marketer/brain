@@ -711,6 +711,7 @@ LEFT JOIN call_folders cf ON cfa.folder_id = cf.id;
 ### Default "Unfiled" Handling
 
 Calls without folder assignment are considered "Unfiled":
+
 - No need for a special "Unfiled" folder record
 - Query: `WHERE folder_id IS NULL`
 - UI shows "Unfiled" as a virtual folder at top of tree
@@ -723,12 +724,10 @@ Calls without folder assignment are considered "Unfiled":
    - Folder CRUD operations
    - Depth validation (max 3 levels)
    - Rule matching logic
-
 2. **Integration Tests**
    - Folder assignment on call sync
    - Rule application priority
    - Moving calls between folders
-
 3. **E2E Tests**
    - Create folder hierarchy
    - Assign calls via drag-drop

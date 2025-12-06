@@ -120,7 +120,7 @@ Deno.serve(async (req) => {
         day: 'numeric'
       });
 
-      const participants = call.calendar_invitees?.map((inv: any) => inv.name).filter(Boolean) || [];
+      const participants = call.calendar_invitees?.map((inv: {name?: string}) => inv.name).filter(Boolean) || [];
       const duration = call.recording_start_time && call.recording_end_time
         ? Math.round((new Date(call.recording_end_time).getTime() - new Date(call.recording_start_time).getTime()) / (1000 * 60))
         : null;

@@ -1,5 +1,3 @@
----
-
 # AI_InvalidToolInputError
 
 This error occurs when invalid tool input was provided.
@@ -22,7 +20,3 @@ if (InvalidToolInputError.isInstance(error)) {
   // Handle the error
 }
 ```
-
----
-title: AI_JSONParseError
-description: Learn how to fix AI_JSONParseError

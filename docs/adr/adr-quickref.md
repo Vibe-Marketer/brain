@@ -1,6 +1,6 @@
 # ADR Quick Reference
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │         VIBEY ADR QUICK REF            │
 ├─────────────────────────────────────────┤
@@ -38,7 +38,7 @@
 
 If you get stuck, paste this to your AI:
 
-```
+```text
 I'm documenting this technical decision for my SaaS:
 
 Decision: [what you decided]

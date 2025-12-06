@@ -79,7 +79,7 @@ interface CallRecord {
 
 **PLAUD** (plaud.ai) is the #1 AI voice recorder brand with 1M+ users. They have a **full Developer Platform** with SDK and API.
 
-**API Documentation:** https://docs.plaud.ai/
+**API Documentation:** <https://docs.plaud.ai/>
 
 ### Integration Approach
 
@@ -96,6 +96,7 @@ PLAUD offers:
 | **Custom Schemas** | Define extraction templates for specific use cases |
 
 **Key API Capabilities:**
+
 - Device management and binding
 - File & recording management
 - AI Summary extraction
@@ -108,6 +109,7 @@ PLAUD offers:
 #### Data Structure (JSON)
 
 PLAUD provides structured JSON output with:
+
 - Transcription text
 - Speaker labels (automatic diarization)
 - Timestamps
@@ -115,7 +117,7 @@ PLAUD provides structured JSON output with:
 
 #### Integration Steps
 
-1. **Request API Access**: Submit form at https://docs.google.com/forms/d/e/1FAIpQLSeMr2cRAjrWK79k6HuPOjeOoU7bqHDbk1ZQTsH3RZ8rhJPwAg/viewform
+1. **Request API Access**: Submit form at <https://docs.google.com/forms/d/e/1FAIpQLSeMr2cRAjrWK79k6HuPOjeOoU7bqHDbk1ZQTsH3RZ8rhJPwAg/viewform>
 2. **Create Edge Functions**:
    - `plaud-oauth-callback`
    - `fetch-plaud-recordings`
@@ -127,15 +129,17 @@ PLAUD provides structured JSON output with:
 #### Option B: Zapier Integration (Quick Start)
 
 PLAUD now has Zapier integration (beta). Could be used for quick prototyping:
+
 - Trigger: New PLAUD recording
 - Action: Send to webhook → Process in Conversion Brain
 
 #### Export Formats (Manual Fallback)
 
 If API access is delayed, PLAUD supports manual export:
+
 - **Audio**: MP3, WAV
 - **Transcripts**: Text export (separate from audio)
-- **Web app**: https://app.plaud.ai with export options
+- **Web app**: <https://app.plaud.ai> with export options
 
 ### Effort Estimate
 
@@ -158,7 +162,7 @@ If API access is delayed, PLAUD supports manual export:
 Zoom has a comprehensive API for cloud recordings and transcripts.
 
 **API Base URL:** `https://api.zoom.us/v2/`
-**Documentation:** https://developers.zoom.us/docs/api/
+**Documentation:** <https://developers.zoom.us/docs/api/>
 
 ### Authentication
 
@@ -169,7 +173,7 @@ Zoom has a comprehensive API for cloud recordings and transcripts.
 
 ### Key API Endpoints
 
-```
+```text
 GET /users/{userId}/recordings
 GET /meetings/{meetingId}/recordings
 GET /recording/download/{downloadToken}  # For VTT transcript files
@@ -194,7 +198,7 @@ Zoom provides transcripts in **VTT format** (WebVTT). Steps to retrieve:
 
 ### Integration Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    ZOOM INTEGRATION                          │
 ├─────────────────────────────────────────────────────────────┤
@@ -255,6 +259,7 @@ Users export Voice Memos and upload to Conversion Brain:
 #### Option B: iOS Shortcuts Automation
 
 Create iOS Shortcut that:
+
 1. Triggers after Voice Memo recording
 2. Uploads to CB webhook endpoint
 3. Auto-transcribes and inserts
@@ -278,6 +283,7 @@ Since Voice Memos are raw audio, need ASR:
 ### Recommendation
 
 **Implement generic audio upload flow** that:
+
 1. Accepts M4A, MP3, WAV, WEBM
 2. Sends to Whisper API for transcription
 3. Stores with `source: 'voice_memo'` or `source: 'upload'`
@@ -313,6 +319,7 @@ transcript = YouTubeTranscriptApi.get_transcript(video_id)
 ```
 
 **Limitations:**
+
 - Videos must have captions enabled
 - Some videos may block transcript access
 - Language-specific (can specify preferred language)
@@ -321,12 +328,13 @@ transcript = YouTubeTranscriptApi.get_transcript(video_id)
 
 Official Google API for captions:
 
-```
+```text
 GET /youtube/v3/captions?videoId={id}
 GET /youtube/v3/captions/{captionId}
 ```
 
 **Requirements:**
+
 - API key or OAuth
 - Quota limits apply
 - Caption download requires OAuth for some content
@@ -339,7 +347,7 @@ GET /youtube/v3/captions/{captionId}
 
 ### Integration Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                  YOUTUBE INTEGRATION                         │
 ├─────────────────────────────────────────────────────────────┤
@@ -394,7 +402,7 @@ Generic upload capability for any video/audio file the user wants to add as know
 
 ### Processing Pipeline
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                  UPLOAD PIPELINE                             │
 ├─────────────────────────────────────────────────────────────┤
@@ -527,7 +535,7 @@ class UploadProvider implements ContentProvider { ... }
 
 ### Settings UI Structure
 
-```
+```text
 Settings
 ├── Integrations Tab
 │   ├── Fathom (existing)
@@ -616,23 +624,23 @@ Settings
 
 | Provider | Documentation |
 |----------|---------------|
-| PLAUD | https://docs.plaud.ai/ |
-| Zoom | https://developers.zoom.us/docs/api/ |
-| YouTube Data API | https://developers.google.com/youtube/v3/docs/ |
-| youtube-transcript-api | https://pypi.org/project/youtube-transcript-api/ |
-| OpenAI Whisper | https://platform.openai.com/docs/guides/speech-to-text |
-| AssemblyAI | https://www.assemblyai.com/docs |
-| Deepgram | https://developers.deepgram.com/docs |
+| PLAUD | <https://docs.plaud.ai/> |
+| Zoom | <https://developers.zoom.us/docs/api/> |
+| YouTube Data API | <https://developers.google.com/youtube/v3/docs/> |
+| youtube-transcript-api | <https://pypi.org/project/youtube-transcript-api/> |
+| OpenAI Whisper | <https://platform.openai.com/docs/guides/speech-to-text> |
+| AssemblyAI | <https://www.assemblyai.com/docs> |
+| Deepgram | <https://developers.deepgram.com/docs> |
 
 ---
 
 ## Appendix B: PLAUD API Request Form
 
 **Submit access request at:**
-https://docs.google.com/forms/d/e/1FAIpQLSeMr2cRAjrWK79k6HuPOjeOoU7bqHDbk1ZQTsH3RZ8rhJPwAg/viewform
+<https://docs.google.com/forms/d/e/1FAIpQLSeMr2cRAjrWK79k6HuPOjeOoU7bqHDbk1ZQTsH3RZ8rhJPwAg/viewform>
 
 **Alternative contact for enterprise:**
-https://www.plaud.ai/pages/contact-sales
+<https://www.plaud.ai/pages/contact-sales>
 
 ---
 

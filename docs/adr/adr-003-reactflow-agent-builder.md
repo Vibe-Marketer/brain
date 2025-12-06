@@ -1,10 +1,10 @@
 # ADR-003: ReactFlow for Visual Agent Builder
 
 **Status:** Accepted
-**Date:** 2025-01-23
-**Context:** AI Chat Agent System Implementation
 
----
+**Date:** 2025-01-23
+
+**Context:** AI Chat Agent System Implementation
 
 ## Context
 
@@ -17,6 +17,7 @@ The AI Chat Agent System requires a visual workflow builder that allows users to
 - Save and load workflow definitions
 
 Key requirements:
+
 - React-first architecture (matches our stack)
 - TypeScript support
 - Customizable nodes and edges
@@ -28,6 +29,7 @@ Key requirements:
 We will use **ReactFlow 12.x** as the visual workflow builder library.
 
 ReactFlow provides:
+
 - Built-in features: zoom, pan, minimap, controls
 - Custom node/edge support with full React components
 - State management via hooks (`useNodesState`, `useEdgesState`)
@@ -39,32 +41,41 @@ ReactFlow provides:
 ## Alternatives Considered
 
 ### 1. Rete.js
+
 **Pros:**
+
 - Specifically designed for node editors
 - Plugin architecture
 
 **Cons:**
+
 - Less React-native integration
 - Smaller community (89k weekly downloads)
 - More complex setup
 
 ### 2. Custom Canvas Implementation
+
 **Pros:**
+
 - Full control over features
 - No external dependencies
 
 **Cons:**
+
 - Estimated 4-6 weeks development time
 - Need to implement: zoom, pan, snap-to-grid, minimap, etc.
 - High maintenance burden
 - Risk of bugs and edge cases
 
 ### 3. GoJS
+
 **Pros:**
+
 - Very mature library
 - Rich feature set
 
 **Cons:**
+
 - Commercial license required ($2,500+)
 - Not React-first
 - Heavier bundle size
@@ -179,7 +190,6 @@ Workflow definitions will be stored as JSON in the `ai_agents.workflow_definitio
 - [ReactFlow GitHub](https://github.com/xyflow/xyflow)
 - [LangGraph GUI ReactFlow Example](https://creati.ai/ai-tools/langgraph-gui-reactflow/)
 
----
-
 **Approved by:** Claude
+
 **Review Date:** 2025-01-23

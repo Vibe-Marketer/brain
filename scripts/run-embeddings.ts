@@ -271,7 +271,7 @@ async function runEmbeddings(userId: string) {
           .eq('call_recording_id', recordingId)
           .maybeSingle();
 
-        const tagName = (tagAssignment?.call_tags as any)?.name || null;
+        const tagName = (tagAssignment?.call_tags as unknown as { name: string } | null)?.name || null;
 
         // Chunk the transcript
         const chunks = chunkTranscript(segments, 400, 100);
@@ -281,7 +281,7 @@ async function runEmbeddings(userId: string) {
 
         // Generate embeddings in batches of 100
         const batchSize = 100;
-        const allChunksToInsert: any[] = [];
+        const allChunksToInsert: unknown[] = [];
 
         for (let batchStart = 0; batchStart < chunks.length; batchStart += batchSize) {
           const batchEnd = Math.min(batchStart + batchSize, chunks.length);

@@ -1,19 +1,3 @@
----
-title: RAG Agent
-description: Learn how to build a RAG Agent with the AI SDK and Next.js
-tags:
-  [
-    'rag',
-    'chatbot',
-    'next',
-    'embeddings',
-    'database',
-    'retrieval',
-    'memory',
-    'agent',
-  ]
----
-
 # RAG Agent Guide
 
 In this guide, you will learn how to build a retrieval-augmented generation (RAG) agent.
@@ -29,13 +13,13 @@ In this guide, you will learn how to build a retrieval-augmented generation (RAG
 
 Before we dive in, let's look at what RAG is, and why we would want to use it.
 
-### What is RAG?
+## What is RAG?
 
 RAG stands for retrieval augmented generation. In simple terms, RAG is the process of providing a Large Language Model (LLM) with specific information relevant to the prompt.
 
-### Why is RAG important?
+## Why is RAG important?
 
-While LLMs are powerful, the information they can reason on is restricted to the data they were trained on. This problem becomes apparent when asking an LLM for information outside of their training data, like proprietary data or common knowledge that has occurred after the model’s training cutoff. RAG solves this problem by fetching information relevant to the prompt and then passing that to the model as context.
+While LLMs are powerful, the information they can reason on is restricted to the data they were trained on. This problem becomes apparent when asking an LLM for information outside of their training data, like proprietary data or common knowledge that has occurred after the model's training cutoff. RAG solves this problem by fetching information relevant to the prompt and then passing that to the model as context.
 
 To illustrate with a basic example, imagine asking the model for your favorite food:
 
@@ -48,7 +32,7 @@ I don't have access to personal information about individuals, including their
 favorite foods.
 ```
 
-Not surprisingly, the model doesn’t know. But imagine, alongside your prompt, the model received some extra context:
+Not surprisingly, the model doesn't know. But imagine, alongside your prompt, the model received some extra context:
 
 ```txt
 **input**
@@ -60,7 +44,7 @@ context: user loves chicken nuggets
 Your favorite food is chicken nuggets!
 ```
 
-Just like that, you have augmented the model’s generation by providing relevant information to the query. Assuming the model has the appropriate information, it is now highly likely to return an accurate response to the users query. But how does it retrieve the relevant information? The answer relies on a concept called embedding.
+Just like that, you have augmented the model's generation by providing relevant information to the query. Assuming the model has the appropriate information, it is now highly likely to return an accurate response to the users query. But how does it retrieve the relevant information? The answer relies on a concept called embedding.
 
 <Note>
   You could fetch any context for your RAG application (eg. Google search).
@@ -68,23 +52,23 @@ Just like that, you have augmented the model’s generation by providing relevan
   achieve semantic search.
 </Note>
 
-### Embedding
+## Embedding
 
 [Embeddings](/docs/ai-sdk-core/embeddings) are a way to represent words, phrases, or images as vectors in a high-dimensional space. In this space, similar words are close to each other, and the distance between words can be used to measure their similarity.
 
-In practice, this means that if you embedded the words `cat` and `dog`, you would expect them to be plotted close to each other in vector space. The process of calculating the similarity between two vectors is called ‘cosine similarity’ where a value of 1 would indicate high similarity and a value of -1 would indicate high opposition.
+In practice, this means that if you embedded the words `cat` and `dog`, you would expect them to be plotted close to each other in vector space. The process of calculating the similarity between two vectors is called 'cosine similarity' where a value of 1 would indicate high similarity and a value of -1 would indicate high opposition.
 
 <Note>
-  Don’t worry if this seems complicated. a high level understanding is all you
+  Don't worry if this seems complicated. a high level understanding is all you
   need to get started! For a more in-depth introduction to embeddings, check out
   [this guide](https://jalammar.github.io/illustrated-word2vec/).
 </Note>
 
 As mentioned above, embeddings are a way to represent the semantic meaning of **words and phrases**. The implication here is that the larger the input to your embedding, the lower quality the embedding will be. So how would you approach embedding content longer than a simple phrase?
 
-### Chunking
+## Chunking
 
-Chunking refers to the process of breaking down a particular source material into smaller pieces. There are many different approaches to chunking and it’s worth experimenting as the most effective approach can differ by use case. A simple and common approach to chunking (and what you will be using in this guide) is separating written content by sentences.
+Chunking refers to the process of breaking down a particular source material into smaller pieces. There are many different approaches to chunking and it's worth experimenting as the most effective approach can differ by use case. A simple and common approach to chunking (and what you will be using in this guide) is separating written content by sentences.
 
 Once your source material is appropriately chunked, you can embed each one and then store the embedding and the chunk together in a database. Embeddings can be stored in any database that supports vectors. For this tutorial, you will be using [Postgres](https://www.postgresql.org/) alongside the [pgvector](https://github.com/pgvector/pgvector) plugin.
 
@@ -95,9 +79,9 @@ Once your source material is appropriately chunked, you can embed each one and t
   height={800}
 />
 
-### All Together Now
+## All Together Now
 
-Combining all of this together, RAG is the process of enabling the model to respond with information outside of it’s training data by embedding a users query, retrieving the relevant source material (chunks) with the highest semantic similarity, and then passing them alongside the initial query as context. Going back to the example where you ask the model for your favorite food, the prompt preparation process would look like this.
+Combining all of this together, RAG is the process of enabling the model to respond with information outside of it's training data by embedding a users query, retrieving the relevant source material (chunks) with the highest semantic similarity, and then passing them alongside the initial query as context. Going back to the example where you ask the model for your favorite food, the prompt preparation process would look like this.
 
 <MDXImage
   srcLight="/images/rag-guide-2.png"
@@ -106,7 +90,7 @@ Combining all of this together, RAG is the process of enabling the model to resp
   height={800}
 />
 
-By passing the appropriate context and refining the model’s objective, you are able to fully leverage its strengths as a reasoning machine.
+By passing the appropriate context and refining the model's objective, you are able to fully leverage its strengths as a reasoning machine.
 
 Onto the project!
 
@@ -117,11 +101,11 @@ In this project, you will build a agent that will only respond with information 
 This project will use the following stack:
 
 - [Next.js](https://nextjs.org) 14 (App Router)
-- [ AI SDK ](/docs)
+- [AI SDK](/docs)
 - [OpenAI](https://openai.com)
-- [ Drizzle ORM ](https://orm.drizzle.team)
-- [ Postgres ](https://www.postgresql.org/) with [ pgvector ](https://github.com/pgvector/pgvector)
-- [ shadcn-ui ](https://ui.shadcn.com) and [ TailwindCSS ](https://tailwindcss.com) for styling
+- [Drizzle ORM](https://orm.drizzle.team)
+- [Postgres](https://www.postgresql.org/) with [pgvector](https://github.com/pgvector/pgvector)
+- [shadcn-ui](https://ui.shadcn.com) and [TailwindCSS](https://tailwindcss.com) for styling
 
 ### Clone Repo
 
@@ -140,7 +124,7 @@ To get started, clone the starter repository with the following command:
   ]}
 />
 
-First things first, run the following command to install the project’s dependencies:
+First things first, run the following command to install the project's dependencies:
 
 <Snippet text="pnpm install" />
 
@@ -202,20 +186,20 @@ Once you have your API key, paste it into your `.env` file (`OPENAI_API_KEY`).
 
 ## Build
 
-Let’s build a quick task list of what needs to be done:
+Let's build a quick task list of what needs to be done:
 
 1. Create a table in your database to store embeddings
 2. Add logic to chunk and create embeddings when creating resources
 3. Create an agent
-4. Give the agent tools to query / create resources for it’s knowledge base
+4. Give the agent tools to query / create resources for it's knowledge base
 
 ### Create Embeddings Table
 
-Currently, your application has one table (`resources`) which has a column (`content`) for storing content. Remember, each `resource` (source material) will have to be chunked, embedded, and then stored. Let’s create a table called `embeddings` to store these chunks.
+Currently, your application has one table (`resources`) which has a column (`content`) for storing content. Remember, each `resource` (source material) will have to be chunked, embedded, and then stored. Let's create a table called `embeddings` to store these chunks.
 
 Create a new file (`lib/db/schema/embeddings.ts`) and add the following code:
 
-```tsx filename="lib/db/schema/embeddings.ts"
+```typescript
 import { nanoid } from '@/lib/utils';
 import { index, pgTable, text, varchar, vector } from 'drizzle-orm/pg-core';
 import { resources } from './resources';
@@ -257,7 +241,7 @@ To push this change to the database, run the following command:
 
 ### Add Embedding Logic
 
-Now that you have a table to store embeddings, it’s time to write the logic to create the embeddings.
+Now that you have a table to store embeddings, it's time to write the logic to create the embeddings.
 
 Create a file with the following command:
 
@@ -265,9 +249,9 @@ Create a file with the following command:
 
 ### Generate Chunks
 
-Remember, to create an embedding, you will start with a piece of source material (unknown length), break it down into smaller chunks, embed each chunk, and then save the chunk to the database. Let’s start by creating a function to break the source material into small chunks.
+Remember, to create an embedding, you will start with a piece of source material (unknown length), break it down into smaller chunks, embed each chunk, and then save the chunk to the database. Let's start by creating a function to break the source material into small chunks.
 
-```tsx filename="lib/ai/embedding.ts"
+```typescript
 const generateChunks = (input: string): string[] => {
   return input
     .trim()
@@ -296,9 +280,9 @@ This will install the [AI SDK](/docs), AI SDK's React hooks, and AI SDK's [OpenA
 
 ### Generate Embeddings
 
-Let’s add a function to generate embeddings. Copy the following code into your `lib/ai/embedding.ts` file.
+Let's add a function to generate embeddings. Copy the following code into your `lib/ai/embedding.ts` file.
 
-```tsx filename="lib/ai/embedding.ts" highlight="1-2,4,13-22"
+```typescript
 import { embedMany } from 'ai';
 import { openai } from '@ai-sdk/openai';
 
@@ -323,7 +307,7 @@ export const generateEmbeddings = async (
 };
 ```
 
-In this code, you first define the model you want to use for the embeddings. In this example, you are using OpenAI’s `text-embedding-ada-002` embedding model.
+In this code, you first define the model you want to use for the embeddings. In this example, you are using OpenAI's `text-embedding-ada-002` embedding model.
 
 Next, you create an asynchronous function called `generateEmbeddings`. This function will take in the source material (`value`) as an input and return a promise of an array of objects, each containing an embedding and content. Within the function, you first generate chunks for the input. Then, you pass those chunks to the [`embedMany`](/docs/reference/ai-sdk-core/embed-many) function imported from the AI SDK which will return embeddings of the chunks you passed in. Finally, you map over and return the embeddings in a format that is ready to save in the database.
 
@@ -331,7 +315,7 @@ Next, you create an asynchronous function called `generateEmbeddings`. This func
 
 Open the file at `lib/actions/resources.ts`. This file has one function, `createResource`, which, as the name implies, allows you to create a resource.
 
-```tsx filename="lib/actions/resources.ts"
+```typescript
 'use server';
 
 import {
@@ -358,11 +342,11 @@ export const createResource = async (input: NewResourceParams) => {
 };
 ```
 
-This function is a [Server Action](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations#with-client-components), as denoted by the `“use server”;` directive at the top of the file. This means that it can be called anywhere in your Next.js application. This function will take an input, run it through a [Zod](https://zod.dev) schema to ensure it adheres to the correct schema, and then creates a new resource in the database. This is the ideal location to generate and store embeddings of the newly created resources.
+This function is a [Server Action](https://nextjs.org/docs/app/building-your-application/data-fetching/server-actions-and-mutations#with-client-components), as denoted by the `"use server";` directive at the top of the file. This means that it can be called anywhere in your Next.js application. This function will take an input, run it through a [Zod](https://zod.dev) schema to ensure it adheres to the correct schema, and then creates a new resource in the database. This is the ideal location to generate and store embeddings of the newly created resources.
 
 Update the file with the following code:
 
-```tsx filename="lib/actions/resources.ts" highlight="9-10,21-27,29"
+```typescript
 'use server';
 
 import {
@@ -404,11 +388,11 @@ First, you call the `generateEmbeddings` function created in the previous step, 
 
 ### Create Root Page
 
-Great! Let's build the frontend. The AI SDK’s [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook allows you to easily create a conversational user interface for your agent.
+Great! Let's build the frontend. The AI SDK's [`useChat`](/docs/reference/ai-sdk-ui/use-chat) hook allows you to easily create a conversational user interface for your agent.
 
 Replace your root page (`app/page.tsx`) with the following code.
 
-```tsx filename="app/page.tsx"
+```typescript
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -460,7 +444,7 @@ Run the following command to start the Next.js dev server:
 
 <Snippet text="pnpm run dev" />
 
-Head to [http://localhost:3000](http://localhost:3000/). You should see an empty screen with an input bar floating at the bottom. Try to send a message. The message shows up in the UI for a fraction of a second and then disappears. This is because you haven’t set up the corresponding API route to call the model! By default, `useChat` will send a POST request to the `/api/chat` endpoint with the `messages` as the request body.
+Head to [http://localhost:3000](http://localhost:3000/). You should see an empty screen with an input bar floating at the bottom. Try to send a message. The message shows up in the UI for a fraction of a second and then disappears. This is because you haven't set up the corresponding API route to call the model! By default, `useChat` will send a POST request to the `/api/chat` endpoint with the `messages` as the request body.
 
 <Note>You can customize the endpoint in the useChat configuration object</Note>
 
@@ -474,7 +458,7 @@ Create a file at `app/api/chat/route.ts` by running the following command:
 
 Open the file and add the following code:
 
-```tsx filename="app/api/chat/route.ts"
+```typescript
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
@@ -493,7 +477,7 @@ export async function POST(req: Request) {
 }
 ```
 
-In this code, you declare and export an asynchronous function called POST. You retrieve the `messages` from the request body and then pass them to the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function imported from the AI SDK, alongside the model you would like to use. Finally, you return the model’s response in `UIMessageStreamResponse` format.
+In this code, you declare and export an asynchronous function called POST. You retrieve the `messages` from the request body and then pass them to the [`streamText`](/docs/reference/ai-sdk-core/stream-text) function imported from the AI SDK, alongside the model you would like to use. Finally, you return the model's response in `UIMessageStreamResponse` format.
 
 Head back to the browser and try to send a message again. You should see a response from the model streamed directly in!
 
@@ -501,9 +485,9 @@ Head back to the browser and try to send a message again. You should see a respo
 
 While you now have a working agent, it isn't doing anything special.
 
-Let’s add system instructions to refine and restrict the model’s behavior. In this case, you want the model to only use information it has retrieved to generate responses. Update your route handler with the following code:
+Let's add system instructions to refine and restrict the model's behavior. In this case, you want the model to only use information it has retrieved to generate responses. Update your route handler with the following code:
 
-```tsx filename="app/api/chat/route.ts" highlight="12-14"
+```typescript
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, UIMessage } from 'ai';
 
@@ -525,7 +509,7 @@ export async function POST(req: Request) {
 }
 ```
 
-Head back to the browser and try to ask the model what your favorite food is. The model should now respond exactly as you instructed above (“Sorry, I don’t know”) given it doesn’t have any relevant information.
+Head back to the browser and try to ask the model what your favorite food is. The model should now respond exactly as you instructed above ("Sorry, I don't know") given it doesn't have any relevant information.
 
 In its current form, your agent is now, well, useless. How do you give the model the ability to add and query information?
 
@@ -533,13 +517,13 @@ In its current form, your agent is now, well, useless. How do you give the model
 
 A [tool](/docs/foundations/tools) is a function that can be called by the model to perform a specific task. You can think of a tool like a program you give to the model that it can run as and when it deems necessary.
 
-Let’s see how you can create a tool to give the model the ability to create, embed and save a resource to your agents’ knowledge base.
+Let's see how you can create a tool to give the model the ability to create, embed and save a resource to your agents' knowledge base.
 
 ### Add Resource Tool
 
 Update your route handler with the following code:
 
-```tsx filename="app/api/chat/route.ts" highlight="18-29"
+```typescript
 import { createResource } from '@/lib/actions/resources';
 import { openai } from '@ai-sdk/openai';
 import { convertToModelMessages, streamText, tool, UIMessage } from 'ai';
@@ -583,15 +567,15 @@ In this code, you define a tool called `addResource`. This tool has three elemen
 
 In simple terms, on each generation, the model will decide whether it should call the tool. If it deems it should call the tool, it will extract the input and then append a new `message` to the `messages` array of type `tool-call`. The AI SDK will then run the `execute` function with the parameters provided by the `tool-call` message.
 
-Head back to the browser and tell the model your favorite food. You should see an empty response in the UI. Did anything happen? Let’s see. Run the following command in a new terminal window.
+Head back to the browser and tell the model your favorite food. You should see an empty response in the UI. Did anything happen? Let's see. Run the following command in a new terminal window.
 
 <Snippet text="pnpm db:studio" />
 
 This will start Drizzle Studio where we can view the rows in our database. You should see a new row in both the `embeddings` and `resources` table with your favorite food!
 
-Let’s make a few changes in the UI to communicate to the user when a tool has been called. Head back to your root page (`app/page.tsx`) and add the following code:
+Let's make a few changes in the UI to communicate to the user when a tool has been called. Head back to your root page (`app/page.tsx`) and add the following code:
 
-```tsx filename="app/page.tsx" highlight="14-32"
+```typescript
 'use client';
 
 import { useChat } from '@ai-sdk/react';
@@ -648,7 +632,7 @@ export default function Chat() {
 }
 ```
 
-With this change, you now conditionally render the tool that has been called directly in the UI. Save the file and head back to browser. Tell the model your favorite movie. You should see which tool is called in place of the model’s typical text response.
+With this change, you now conditionally render the tool that has been called directly in the UI. Save the file and head back to browser. Tell the model your favorite movie. You should see which tool is called in place of the model's typical text response.
 
 <Note>
   Don't worry about the `tool-getInformation` tool case in the switch statement
@@ -657,13 +641,13 @@ With this change, you now conditionally render the tool that has been called dir
 
 ### Improving UX with Multi-Step Calls
 
-It would be nice if the model could summarize the action too. However, technically, once the model calls a tool, it has completed its generation as it ‘generated’ a tool call. How could you achieve this desired behaviour?
+It would be nice if the model could summarize the action too. However, technically, once the model calls a tool, it has completed its generation as it 'generated' a tool call. How could you achieve this desired behaviour?
 
 The AI SDK has a feature called [`stopWhen`](/docs/ai-sdk-core/tools-and-tool-calling#multi-step-calls) which allows stopping conditions when the model generates a tool call. If those stopping conditions haven't been hit, the AI SDK will automatically send tool call results back to the model!
 
 Open your root page (`api/chat/route.ts`) and add the following key to the `streamText` configuration object:
 
-```tsx filename="api/chat/route.ts" highlight="8,24"
+```typescript
 import { createResource } from '@/lib/actions/resources';
 import { openai } from '@ai-sdk/openai';
 import {
@@ -710,11 +694,11 @@ Head back to the browser and tell the model your favorite pizza topping (note: p
 
 ### Retrieve Resource Tool
 
-The model can now add and embed arbitrary information to your knowledge base. However, it still isn’t able to query it. Let’s create a new tool to allow the model to answer questions by finding relevant information in your knowledge base.
+The model can now add and embed arbitrary information to your knowledge base. However, it still isn't able to query it. Let's create a new tool to allow the model to answer questions by finding relevant information in your knowledge base.
 
-To find similar content, you will need to embed the users query, search the database for semantic similarities, then pass those items to the model as context alongside the query. To achieve this, let’s update your embedding logic file (`lib/ai/embedding.ts`):
+To find similar content, you will need to embed the users query, search the database for semantic similarities, then pass those items to the model as context alongside the query. To achieve this, let's update your embedding logic file (`lib/ai/embedding.ts`):
 
-```tsx filename="lib/ai/embedding.ts" highlight="1,3-5,27-34,36-49"
+```typescript
 import { embed, embedMany } from 'ai';
 import { openai } from '@ai-sdk/openai';
 import { db } from '../db';
@@ -769,13 +753,13 @@ export const findRelevantContent = async (userQuery: string) => {
 In this code, you add two functions:
 
 - `generateEmbedding`: generate a single embedding from an input string
-- `findRelevantContent`: embeds the user’s query, searches the database for similar items, then returns relevant items
+- `findRelevantContent`: embeds the user's query, searches the database for similar items, then returns relevant items
 
-With that done, it’s onto the final step: creating the tool.
+With that done, it's onto the final step: creating the tool.
 
 Go back to your route handler (`api/chat/route.ts`) and add a new tool called `getInformation`:
 
-```ts filename="api/chat/route.ts" highlight="11,37-43"
+```typescript
 import { createResource } from '@/lib/actions/resources';
 import { openai } from '@ai-sdk/openai';
 import {
@@ -842,4 +826,3 @@ If you're using the Vercel setup above, you can run the command directly by eith
 - Going back to the Vercel platform, navigating to the Quick Start section of your database, and finding the PSQL connection command (second tab). This will connect to your instance in the terminal where you can run the command directly.
 
 [More info](https://github.com/vercel/ai-sdk-rag-starter/issues/1).
-

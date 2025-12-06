@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RiLoader2Line } from "@remixicon/react";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -12,20 +12,11 @@ import AITab from "@/components/settings/AITab";
 import FathomSetupWizard from "@/components/settings/FathomSetupWizard";
 
 export default function Settings() {
-  const { role, loading: roleLoading, isAdmin, isTeam } = useUserRole();
+  const { loading: roleLoading, isAdmin, isTeam } = useUserRole();
   const { wizardCompleted, loading: wizardLoading, markWizardComplete } = useSetupWizard();
-  const [showWizard, setShowWizard] = useState(false);
-
-  useEffect(() => {
-    // Show wizard if not completed (blocking mode handled in redirect logic)
-    if (!wizardLoading && !wizardCompleted) {
-      setShowWizard(true);
-    }
-  }, [wizardLoading, wizardCompleted]);
 
   const handleWizardComplete = async () => {
     await markWizardComplete();
-    setShowWizard(false);
   };
 
   if (roleLoading || wizardLoading) {
@@ -115,11 +106,11 @@ export default function Settings() {
       </Tabs>
 
       {/* Fathom Setup Wizard */}
-      {showWizard && (
+      {!wizardCompleted && (
         <FathomSetupWizard
-          open={showWizard}
+          open={!wizardCompleted}
           onComplete={handleWizardComplete}
-          onDismiss={() => setShowWizard(false)}
+          onDismiss={handleWizardComplete}
         />
       )}
 

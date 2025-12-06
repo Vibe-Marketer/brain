@@ -44,9 +44,11 @@ interface TranscriptSegment {
 }
 
 async function syncMeeting(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   userId: string,
   recordingId: number,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   meeting: any
 ): Promise<boolean> {
   try {
@@ -101,6 +103,7 @@ async function syncMeeting(
       .maybeSingle();
 
     // Build upsert object, preserving user edits
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const upsertData: any = {
       recording_id: meeting.recording_id,
       user_id: userId,
@@ -160,6 +163,7 @@ async function syncMeeting(
         let speakerEmail = segment.speaker.matched_calendar_invitee_email;
 
         if (!speakerEmail && meeting.calendar_invitees) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const matchedInvitee = meeting.calendar_invitees.find((inv: any) =>
             inv.matched_speaker_display_name === segment.speaker.display_name ||
             inv.name === segment.speaker.display_name
@@ -351,6 +355,7 @@ Deno.serve(async (req) => {
     console.log(`Created sync job ${jobId} for ${recordingIds.length} meetings`);
 
     // Helper function to fetch meeting metadata from paginated list
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fetchMeetingMetadata = async (targetRecordingId: number): Promise<any | null> => {
       let cursor: string | undefined = undefined;
       const maxPages = 100; // Increase max pages for old meetings
@@ -382,7 +387,7 @@ Deno.serve(async (req) => {
         }
 
         const data = await response.json();
-        const found = data.items?.find((m: any) => m.recording_id === targetRecordingId);
+        const found = data.items?.find((m: {recording_id: number}) => m.recording_id === targetRecordingId);
 
         if (found) {
           return found;
@@ -399,6 +404,7 @@ Deno.serve(async (req) => {
     };
 
     // Helper function to fetch transcript and summary separately (like fetch-single-meeting)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const fetchMeetingData = async (recordingId: number): Promise<any | null> => {
       try {
         // Fetch summary and transcript separately by recording_id
@@ -597,7 +603,7 @@ Deno.serve(async (req) => {
     };
 
     // Start background processing
-    // @ts-ignore - EdgeRuntime is available in Deno Deploy
+    // @ts-expect-error - EdgeRuntime is available in Deno Deploy
     EdgeRuntime.waitUntil(processSyncJob());
 
     // Return immediately with job ID

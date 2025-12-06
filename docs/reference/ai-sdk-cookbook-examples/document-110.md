@@ -366,7 +366,7 @@ console.log(text);`,
       yarn: 'yarn add @parallel-web/ai-sdk-tools',
       bun: 'bun add @parallel-web/ai-sdk-tools',
     },
-    codeExample: `import { generateText, stepCountIs } from 'ai';
+    codeExample:`import { generateText, stepCountIs } from 'ai';
 import { searchTool, extractTool } from '@parallel-web/ai-sdk-tools';
 import { openai } from '@ai-sdk/openai';
 
@@ -381,8 +381,8 @@ const { text } = await generateText({
 });
 
 console.log(text);`,
-    apiKeyUrl: 'https://platform.parallel.ai',
-    websiteUrl: 'https://parallel.ai',
-    npmUrl: 'https://www.npmjs.com/package/@parallel-web/ai-sdk-tools',
+    apiKeyUrl: '<https://platform.parallel.ai>',
+    websiteUrl: '<https://parallel.ai>',
+    npmUrl: '<https://www.npmjs.com/package/@parallel-web/ai-sdk-tools>',
   },
 ];

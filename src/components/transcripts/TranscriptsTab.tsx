@@ -2,25 +2,11 @@ import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
+import { useSearchParams } from "react-router-dom";
 import { Separator } from "@/components/ui/separator";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { TranscriptTableSkeleton } from "@/components/ui/transcript-table-skeleton";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { tagSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
 import { Meeting } from "@/types/meetings";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -29,11 +15,10 @@ import { TranscriptTable } from "@/components/transcript-library/TranscriptTable
 import { CallDetailDialog } from "@/components/CallDetailDialog";
 import ManualTagDialog from "@/components/ManualTagDialog";
 import QuickCreateTagDialog from "@/components/QuickCreateTagDialog";
-import { TagNavigationDropdown } from "@/components/transcript-library/TagNavigationDropdown";
 import { TagManagementDialog } from "@/components/transcript-library/TagManagementDialog";
 import { FilterBar } from "@/components/transcript-library/FilterBar";
 import { BulkActionToolbarEnhanced } from "@/components/transcript-library/BulkActionToolbarEnhanced";
-import { useFolders, Folder } from "@/hooks/useFolders";
+import { useFolders } from "@/hooks/useFolders";
 import { DragDropZones } from "@/components/transcript-library/DragDropZones";
 import { EmptyState } from "@/components/transcript-library/EmptyStates";
 import { AIProcessingProgress } from "@/components/transcripts/AIProcessingProgress";
@@ -64,7 +49,6 @@ interface Tag {
  * Contains all transcript management functionality without page header.
  */
 export function TranscriptsTab() {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -96,16 +80,10 @@ export function TranscriptsTab() {
   });
 
   // Dialog state
-  const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
   const [smartExportOpen, setSmartExportOpen] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [taggingCallId, setTaggingCallId] = useState<number | null>(null);
-  const [editingTag, setEditingTag] = useState<Tag | null>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-  });
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [quickCreateFolderOpen, setQuickCreateFolderOpen] = useState(false);
   const [folderManagementOpen, setFolderManagementOpen] = useState(false);
@@ -132,7 +110,7 @@ export function TranscriptsTab() {
   }, []);
 
   // Fetch tags
-  const { data: tags = [], isLoading: tagsLoading } = useQuery({
+  const { data: tags = [] } = useQuery({
     queryKey: ["tags"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -158,7 +136,7 @@ export function TranscriptsTab() {
     if (params.toString() !== searchParams.toString()) {
       setSearchParams(params, { replace: true });
     }
-  }, [filters]);
+  }, [filters, searchParams, setSearchParams]);
 
   // Parse search syntax
   const syntax = useMemo(() => {
@@ -231,7 +209,7 @@ export function TranscriptsTab() {
       // Filter by participants
       if (combinedFilters.participants && combinedFilters.participants.length > 0) {
         filteredData = filteredData.filter((call) => {
-          const invitees = call.calendar_invitees as any[];
+          const invitees = call.calendar_invitees as Array<{ name?: string; email?: string }>;
           if (!invitees) return false;
           return combinedFilters.participants!.some((p) =>
             invitees.some((inv) => inv.name?.toLowerCase().includes(p.toLowerCase()) || inv.email?.toLowerCase().includes(p.toLowerCase()))
@@ -417,7 +395,7 @@ export function TranscriptsTab() {
       const count = deletedCalls?.length || 0;
       toast.success(`${count} transcript${count > 1 ? "s" : ""} deleted successfully`);
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       setShowDeleteDialog(false);
       logger.error("Delete mutation failed", error);
       toast.error(`Failed to delete transcript(s): ${error.message || "Unknown error"}`);
@@ -465,19 +443,6 @@ export function TranscriptsTab() {
     dragHelpers.handleDragEnd(event);
   };
 
-  // Extract unique participants from all calls
-  const allParticipants = useMemo(() => {
-    const participants = new Set<string>();
-    validCalls.forEach((call) => {
-      const invitees = call.calendar_invitees as any[];
-      if (invitees) {
-        invitees.forEach((inv) => {
-          if (inv.name) participants.add(inv.name);
-        });
-      }
-    });
-    return Array.from(participants).sort();
-  }, [validCalls]);
 
   return (
     <DndContext
@@ -663,16 +628,9 @@ export function TranscriptsTab() {
           tags={tags}
           onCreateTag={() => {
             setTagManagementOpen(false);
-            setTagDialogOpen(true);
           }}
-          onEditTag={(tag) => {
-            setEditingTag(tag);
-            setFormData({
-              name: tag.name,
-              description: tag.description || "",
-            });
+          onEditTag={() => {
             setTagManagementOpen(false);
-            setTagDialogOpen(true);
           }}
         />
       )}
@@ -729,7 +687,7 @@ export function TranscriptsTab() {
         <QuickCreateFolderDialog
           open={quickCreateFolderOpen}
           onOpenChange={setQuickCreateFolderOpen}
-          onFolderCreated={(folderId) => {
+          onFolderCreated={() => {
             queryClient.invalidateQueries({ queryKey: ["folders"] });
           }}
         />

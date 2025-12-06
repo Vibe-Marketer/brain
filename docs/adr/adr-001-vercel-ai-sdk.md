@@ -6,17 +6,17 @@
 
 **Author**: AI-assisted with Claude
 
----
-
 ## Context
 
 We're building chat, RAG, and agent features into CallVault. We need to choose an SDK that:
+
 - Supports multiple AI providers (OpenAI, Anthropic, Google)
 - Has built-in streaming and tool calling
 - Works well with our React/TypeScript/Supabase stack
 - Allows swapping models without major refactoring
 
 Options considered:
+
 1. **OpenAI SDK directly** - Vendor lock-in, no provider switching
 2. **Langchain** - Too heavy, Python-focused, complex for our needs
 3. **Vercel AI SDK** - Provider-agnostic, React-native, TypeScript-first
@@ -32,6 +32,7 @@ This provides unified interfaces across providers, excellent TypeScript support,
 ## Consequences
 
 ### Positive
+
 - Switch AI providers in ~5 lines of code (OpenAI → Anthropic → Google)
 - Built-in streaming, tool calling, and structured output patterns
 - Excellent docs with cookbook examples for common patterns
@@ -39,16 +40,16 @@ This provides unified interfaces across providers, excellent TypeScript support,
 - Active community and rapid updates as AI landscape evolves
 
 ### Negative
+
 - Another dependency in the stack (though lightweight ~50KB)
 - Some advanced features optimized for Vercel hosting
 - Learning curve for team members unfamiliar with SDK patterns
 - May need custom wrappers for very specialized use cases
 
 ### Neutral
+
 - Need to keep SDK updated as new AI capabilities emerge
 - Changes how we structure agent code (more hooks-based)
 - Reference documentation added to context folder for AI assistants
-
----
 
 **Related**: Informs future ADRs on agent architecture and RAG implementation

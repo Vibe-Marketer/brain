@@ -5,7 +5,9 @@ This directory contains the complete design system documentation for CallVault.
 ## Core Documents
 
 ### **[brand-guidelines-v3.3.md](brand-guidelines-v3.3.md)** ⭐ PRIMARY REFERENCE
+
 The authoritative design system documentation. **Read this first** before making any UI changes.
+
 - Color system and usage rules
 - Typography standards (Montserrat + Inter)
 - Button variants and specifications
@@ -15,14 +17,18 @@ The authoritative design system documentation. **Read this first** before making
 - Dark mode implementation
 
 ### **[DESIGN-TOKEN-SYSTEM.md](DESIGN-TOKEN-SYSTEM.md)**
+
 Architecture guide for the design token system.
+
 - Why we use tokens instead of inline colors
 - Complete token reference
 - Migration guide
 - Developer cheat sheet
 
 ### **[BUTTON_VARIANTS.md](BUTTON_VARIANTS.md)**
+
 Quick reference for button implementation.
+
 - When to use each variant (PRIMARY, hollow, ghost, link)
 - Copy-paste examples
 - Decision tree
@@ -35,6 +41,7 @@ See [brand-guidelines-changelog.md](brand-guidelines-changelog.md) for version h
 ## Enforcement
 
 The design system is enforced via:
+
 1. **ESLint** - Custom rule blocks inline colors (`eslint-plugin-design-tokens.js`)
 2. **Code review** - Use `/design-review` command
 3. **Documentation** - All patterns documented here
@@ -52,14 +59,16 @@ The design system is enforced via:
 
 ## Quick Rules
 
-❌ **NEVER:**
+❌ **NEVER**
+
 - Use inline hex colors (`bg-[#111111]`)
 - Use `hover:bg-cb-ink` (creates BLACK hover, use `hover:bg-cb-hover`)
 - Mix Montserrat and Inter in same element
 - Use vibe green for backgrounds or large areas
 - Create card containers for main content (90% rule)
 
-✅ **ALWAYS:**
+✅ **ALWAYS**
+
 - Use design tokens from `src/index.css`
 - Check brand guidelines before UI changes
 - Use proper button variants

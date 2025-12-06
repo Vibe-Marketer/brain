@@ -53,8 +53,9 @@ export default function Login() {
           setPassword('');
         }
       }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign up');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to sign up';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -80,8 +81,9 @@ export default function Login() {
 
       toast.success('Signed in successfully!');
       navigate('/');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -98,8 +100,9 @@ export default function Login() {
       });
 
       if (error) throw error;
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to sign in with Google');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Failed to sign in with Google';
+      toast.error(message);
       setLoading(false);
     }
   };

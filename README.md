@@ -29,21 +29,27 @@ Every meeting is analyzed to extract the most valuable insights:
 ## Key Features
 
 ### 🎯 Smart Meeting Classification
+
 Automatically detects meeting types (sales, coaching, demo, community, support) using AI and contextual cues.
 
 ### 💡 Intelligent Extraction
+
 Identifies and scores key quotes, pain points, goals, objections, and success stories from every conversation.
 
 ### 📧 Automated Follow-Ups
+
 Generates context-aware, personalized follow-up emails ready to send after every meeting.
 
 ### 📱 Content Generation
+
 Creates social media posts, blog outlines, testimonials, and marketing content in your brand voice.
 
 ### 📊 Client Intelligence
+
 Tracks sentiment, engagement levels, and health scores to alert you about at-risk clients or testimonial opportunities.
 
 ### 🔍 Searchable Library
+
 All transcripts, quotes, and insights are organized, tagged, and searchable in one centralized dashboard.
 
 ## Technology Stack
@@ -87,12 +93,14 @@ npm run dev
 ### Environment Variables
 
 **Frontend** (Vite):
+
 ```bash
 VITE_SUPABASE_URL=your_supabase_project_url
 VITE_SUPABASE_PUBLISHABLE_KEY=your_supabase_anon_key
 ```
 
 **Edge Functions** (Deno):
+
 ```bash
 SUPABASE_URL=your_supabase_project_url
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
@@ -159,28 +167,34 @@ brain/
 ## Architecture
 
 ### API Communication Flow
+
 ```
 Frontend → API Client (src/lib/api-client.ts) → Edge Function → Supabase Database
 ```
 
 The centralized API client provides:
+
 - Automatic retry logic with exponential backoff
 - Consistent error handling
 - Type-safe responses via `ApiResponse<T>`
 
 ### Authentication
+
 - Supabase Auth with email/password or OAuth (Fathom)
 - `AuthContext` manages authentication state
 - `ProtectedRoute` guards authenticated routes
 - Session persistence via browser `localStorage`
 
 ### State Management
+
 - **React Query** for server state (1min stale time, 5min garbage collection)
 - Custom hooks encapsulate query logic
 - React Context for global UI state (theme, auth)
 
 ### Webhook Processing
+
 The `webhook/` Edge Function:
+
 - Verifies signatures for security
 - Checks idempotency via `processed_webhooks` table
 - Processes asynchronously (returns early)
@@ -189,9 +203,11 @@ The `webhook/` Edge Function:
 ## Design System
 
 ### Brand Guidelines
+
 **Before any UI work, read**: `docs/design/brand-guidelines-v3.3.md`
 
 Key rules:
+
 - **Vibe Green (#D9FC67)**: Only for tab underlines, indicators, focus states, progress bars
 - **4 Button Variants**: default (slate gradient), hollow (bordered), destructive (red), link (text-only)
 - **Typography**: Montserrat Extra Bold ALL CAPS for headings, Inter for body text
@@ -199,6 +215,7 @@ Key rules:
 - **Layout**: 90% rule - no card containers, use white background + thin borders
 
 ### API Naming Conventions
+
 | Pattern | Convention | Example |
 |---------|------------|----------|
 | Edge Functions | kebab-case | `fetch-meetings/` |
@@ -211,12 +228,15 @@ Key rules:
 ## Code Quality
 
 ### Available Review Commands
+
 When working with Claude:
+
 - `/code-review` - Comprehensive code review before PRs
 - `/security-review` - Security-focused analysis
 - `/design-review` - UI/UX validation with Playwright
 
 ### Recommended Workflow
+
 1. After completing code → `/code-review`
 2. Before PR → `/security-review`
 3. UI changes → `/design-review`
@@ -233,11 +253,13 @@ When working with Claude:
 ## Contributing
 
 ### Before Starting
+
 1. Read `WARP.md` for development setup
 2. Review `docs/design/brand-guidelines-v3.3.md` for UI work
 3. Check `docs/architecture/api-naming-conventions.md` for naming standards
 
 ### Development Workflow
+
 1. Create feature branch from `main`
 2. Follow brand guidelines and naming conventions
 3. Write tests for new functionality
@@ -245,7 +267,9 @@ When working with Claude:
 5. Update documentation as needed
 
 ### Architecture Decision Records
+
 For significant technical decisions:
+
 1. Copy `docs/adr/adr-template.md`
 2. Fill in Context, Decision, Consequences
 3. Save as `docs/adr/adr-XXX-short-title.md`
@@ -254,6 +278,7 @@ For significant technical decisions:
 ## Deployment
 
 This project can be deployed via:
+
 - **Vercel** (Recommended): Connect your Git repository for automatic deployments with edge functions
 - **Netlify**: Connect your Git repository for automatic deployments
 - **Custom**: Build with `npm run build` and serve the `dist/` directory
@@ -261,6 +286,7 @@ This project can be deployed via:
 ## Support
 
 For detailed development guidance:
+
 - Read `WARP.md` for AI assistant instructions
 - Check `CLAUDE.md` for comprehensive development standards
 - Review documentation in `docs/` directory

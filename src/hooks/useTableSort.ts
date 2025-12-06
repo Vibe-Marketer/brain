@@ -16,8 +16,9 @@ export function useTableSort<T>(data: T[], initialField: string = "date") {
   };
 
   const sortedData = useMemo(() => {
-    return [...data].sort((a: any, b: any) => {
-      let aVal, bVal;
+    return [...data].sort((a, b) => {
+      let aVal: string | number;
+      let bVal: string | number;
 
       // Handle common field patterns
       if (sortField === "title" || sortField === "display_name") {

@@ -6,8 +6,6 @@
 
 **Author**: [Your name or "AI-assisted"]
 
----
-
 ## Context
 
 [2-4 sentences describing the problem or question]
@@ -25,17 +23,18 @@ We will [specific action in active voice].
 ## Consequences
 
 ### Positive
+
 - [Specific benefit or capability unlocked]
 - [Another benefit]
 
 ### Negative
+
 - [Specific tradeoff or limitation accepted]
 - [Another cost or complexity]
 
 ### Neutral
+
 - [Side effects to monitor]
 - [Changes in workflow or process]
-
----
 
 **Related**: [Link to related ADRs if applicable]

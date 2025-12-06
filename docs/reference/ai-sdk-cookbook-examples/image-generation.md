@@ -212,6 +212,4 @@ Several providers offer embedding models:
 | [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock#embedding-models)             | `amazon.titan-embed-text-v1`    | 1536                 |
 | [Amazon Bedrock](/providers/ai-sdk-providers/amazon-bedrock#embedding-models)             | `amazon.titan-embed-text-v2:0`  | 1024                 |
 
----
-title: Image Generation
-description: Learn how to generate images with the AI SDK.
+<!-- Concatenated content - Image Generation section -->

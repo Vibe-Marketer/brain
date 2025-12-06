@@ -22,20 +22,23 @@ Your RAG system has **excellent infrastructure** but **underutilized metadata**.
 ## AI Automators Top 10 Videos (Learning Path)
 
 ### Must-Watch (Start Here)
+
 1. **[n8n RAG Masterclass - 2h 21m](https://www.youtube.com/watch?v=75lwkzFxyLs)** - Complete foundation
 2. **[This Hybrid RAG Trick - 30m](https://www.youtube.com/watch?v=2-6ckhW3Hmo)** - Dense + sparse fusion
 3. **[Contextual Retrieval & Late Chunking - 25m](https://www.youtube.com/watch?v=61dvzowuIlA)** - Advanced chunking
 
 ### Deep Dives
-4. **[GraphRAG - 35m](https://www.youtube.com/watch?v=EUG65dIY-2k)** - Graph-based retrieval
-5. **[Metadata-Enhanced RAG - 23m](https://www.youtube.com/watch?v=WcdBSOigrT8)** - Exact use case
-6. **[Context Expansion - 34m](https://www.youtube.com/watch?v=y72TrpffdSk)** - Better retrieval
+
+1. **[GraphRAG - 35m](https://www.youtube.com/watch?v=EUG65dIY-2k)** - Graph-based retrieval
+2. **[Metadata-Enhanced RAG - 23m](https://www.youtube.com/watch?v=WcdBSOigrT8)** - Exact use case
+3. **[Context Expansion - 34m](https://www.youtube.com/watch?v=y72TrpffdSk)** - Better retrieval
 
 ### Advanced
-7. **[Hybrid Search Engine - 28m](https://www.youtube.com/watch?v=FgUJ2kzhmKQ)** - Engine architecture
-8. **[RAG + DeepEval - 29m](https://www.youtube.com/watch?v=eNkEA7Lqm_s)** - Testing & evaluation
-9. **[800+ Hours Condensed - 42m](https://www.youtube.com/watch?v=HAFqyN7RExc)** - Design patterns
-10. **[Import Everything - 31m](https://www.youtube.com/watch?v=eHw_6jhK8AM)** - Document parsing
+
+1. **[Hybrid Search Engine - 28m](https://www.youtube.com/watch?v=FgUJ2kzhmKQ)** - Engine architecture
+2. **[RAG + DeepEval - 29m](https://www.youtube.com/watch?v=eNkEA7Lqm_s)** - Testing & evaluation
+3. **[800+ Hours Condensed - 42m](https://www.youtube.com/watch?v=HAFqyN7RExc)** - Design patterns
+4. **[Import Everything - 31m](https://www.youtube.com/watch?v=eHw_6jhK8AM)** - Document parsing
 
 **Total:** ~8h 20m of expert training (all from Daniel & Alan Walsh - AI Automators)
 
@@ -44,6 +47,7 @@ Your RAG system has **excellent infrastructure** but **underutilized metadata**.
 ## Current Implementation Analysis
 
 ### What's Working ✅
+
 - **Hybrid search:** Vector (pgvector) + Full-text (tsvector) + RRF fusion
 - **Proper indexes:** HNSW for vectors, GIN for full-text
 - **Metadata schema:** Fields defined for topics, sentiment, entities, intent
@@ -51,6 +55,7 @@ Your RAG system has **excellent infrastructure** but **underutilized metadata**.
 - **Vercel AI SDK:** Streaming chat with tool calling
 
 ### Critical Gaps ❌
+
 1. **Metadata fields are EMPTY** - topics, sentiment, entities, intent_signals all NULL
 2. **No chunk overlap** - Hard 500-token boundaries, risks splitting context
 3. **No re-ranking** - RRF fusion → LLM directly (no refinement)
@@ -60,6 +65,7 @@ Your RAG system has **excellent infrastructure** but **underutilized metadata**.
 ### Schema Details (from `20251125000001_ai_chat_infrastructure.sql`)
 
 **`transcript_chunks` table:**
+
 ```sql
 -- POPULATED FIELDS:
 chunk_text TEXT                -- ✅ The transcript chunk
@@ -87,6 +93,7 @@ CREATE INDEX idx_transcript_chunks_intent ON transcript_chunks USING GIN (intent
 ```
 
 **Hybrid search function:**
+
 ```sql
 hybrid_search_transcripts(
   query_text TEXT,
@@ -110,9 +117,11 @@ hybrid_search_transcripts(
 ## Recommended Approach for Meeting Transcripts
 
 ### Chunk Size for Conversations
+
 **Recommendation: 5-7 conversation turns or 200-400 tokens with 20-30% overlap**
 
 **Rationale:**
+
 - Conversations have natural turn-taking boundaries
 - Preserves Q&A context (question + answer together)
 - Overlap ensures related context isn't split
@@ -124,6 +133,7 @@ hybrid_search_transcripts(
 ### Metadata Strategy for Your Use Case
 
 #### Priority 1: Topics (populate `topics` field)
+
 **Extract:** 1-5 topics per chunk
 **Method:** GPT-4o-mini with structured output
 **Use case:** "Find all chunks about pricing"
@@ -134,6 +144,7 @@ topics: ["pricing", "enterprise_features", "onboarding"]
 ```
 
 #### Priority 2: Intent Signals (populate `intent_signals` field)
+
 **Extract:** Conversation intent markers
 **Method:** Pattern matching + LLM classification
 **Use case:** "Find buying signals" or "Find objections"
@@ -144,6 +155,7 @@ intent_signals: ["buying_signal", "pricing_question"]
 ```
 
 #### Priority 3: Sentiment (populate `sentiment` field)
+
 **Extract:** Speaker emotion
 **Method:** Simple sentiment classifier
 **Use case:** Filter positive testimonials vs. negative feedback
@@ -154,6 +166,7 @@ sentiment: "positive" | "negative" | "neutral" | "mixed"
 ```
 
 #### Priority 4: Named Entities (populate `entities` field)
+
 **Extract:** Companies, people, products mentioned
 **Method:** spaCy or Hugging Face NER
 **Use case:** "All mentions of Stripe" or "Conversations with John"
@@ -169,6 +182,7 @@ sentiment: "positive" | "negative" | "neutral" | "mixed"
 ```
 
 #### Optional (Future): Additional Fields
+
 ```sql
 ALTER TABLE transcript_chunks ADD COLUMN:
 - speaker_role TEXT                -- 'host', 'customer', 'prospect'
@@ -185,6 +199,7 @@ ALTER TABLE transcript_chunks ADD COLUMN:
 ### Week 1: Quick Wins
 
 #### Task 1.1: Fix Token Counting (2 hours)
+
 ```typescript
 // Current (embed-chunks/index.ts)
 const estimatedTokens = chunk.length / 4; // ❌ Inaccurate
@@ -201,6 +216,7 @@ const tokenCount = tokens.length; // ✅ Accurate
 **Effort:** 2 hours
 
 #### Task 1.2: Add Chunk Overlap (3 hours)
+
 ```typescript
 // Current: Hard boundaries
 chunks = chunkAtBoundaries(segments, 500);
@@ -228,6 +244,7 @@ function chunksWithOverlap(segments, maxTokens = 400, overlap = 100) {
 **Effort:** 3 hours
 
 #### Task 1.3: Expose Metadata Filters (2 hours)
+
 ```sql
 -- Add to hybrid_search_transcripts function
 filter_topics TEXT[],
@@ -583,11 +600,13 @@ function detectConversationStructure(segments) {
 ### One-Time Costs (Metadata Extraction)
 
 **Backfill existing chunks:**
+
 - Assumption: 1,000 calls × 10 chunks = 10,000 chunks
 - GPT-4o-mini: 10,000 chunks × 500 tokens = 5M tokens
 - Cost: $0.15/1M input tokens = **$0.75**
 
 **Ongoing costs per 100 new calls:**
+
 - 100 calls × 10 chunks = 1,000 chunks
 - GPT-4o-mini: 1,000 chunks × 500 tokens = 500K tokens
 - Cost: **$0.075 per 100 calls**
@@ -595,6 +614,7 @@ function detectConversationStructure(segments) {
 ### Re-Ranking Costs
 
 **Cross-encoder (Hugging Face Inference API):**
+
 - Free tier: 1,000 requests/month
 - Paid: $0.00006 per request
 - Cost: 100 queries × 20 chunks = **$0.12 per 100 queries**
@@ -613,11 +633,13 @@ function detectConversationStructure(segments) {
 ### Retrieval Quality Metrics
 
 **Before enhancements:**
+
 - Baseline MRR (Mean Reciprocal Rank)
 - Baseline Precision@5
 - User satisfaction (thumbs up/down)
 
 **After each enhancement:**
+
 - Track MRR improvement
 - Track Precision@5 improvement
 - Monitor user feedback
@@ -625,6 +647,7 @@ function detectConversationStructure(segments) {
 ### Test Queries
 
 Create test set of 20-30 queries:
+
 - "What pricing objections did customers mention?"
 - "Find positive feedback about onboarding"
 - "What questions did John ask about integrations?"
@@ -672,12 +695,14 @@ async function evaluateRetrieval(testQueries: Array<{ query: string, expectedChu
 ### Avoid Over-Engineering
 
 **Don't implement (unless needed):**
+
 - GraphRAG - Overkill for meeting transcripts
 - Multi-vector embeddings - Diminishing returns
 - Semantic chunking - Fixed-size with overlap works well enough
 - LLM re-ranking - Cross-encoder is cheaper and faster
 
 **Do implement:**
+
 - ✅ Metadata enrichment (huge ROI)
 - ✅ Chunk overlap (prevents context splits)
 - ✅ Re-ranking (accuracy boost)
@@ -686,6 +711,7 @@ async function evaluateRetrieval(testQueries: Array<{ query: string, expectedChu
 ### Success Criteria
 
 **After 4 weeks:**
+
 - All metadata fields populated (topics, sentiment, entities, intent)
 - 20% chunk overlap implemented
 - Re-ranking pipeline active
@@ -698,17 +724,20 @@ async function evaluateRetrieval(testQueries: Array<{ query: string, expectedChu
 ## Resources
 
 ### AI Automators Videos (Transcripts Available)
+
 - Use `/youtube` to fetch transcripts
 - Use `fabric -p youtube_extract_wisdom` to extract insights
 - Save key patterns to `PRPs/ai_docs/`
 
 ### Implementation References
+
 - Pinecone hybrid search docs
 - Vercel AI SDK RAG guide
 - LangChain conversational retrieval
 - Haystack metadata enrichment cookbook
 
 ### Tools
+
 - tiktoken - Accurate token counting
 - spaCy - Named entity recognition
 - Hugging Face Inference API - Cross-encoder re-ranking
@@ -717,6 +746,7 @@ async function evaluateRetrieval(testQueries: Array<{ query: string, expectedChu
 ---
 
 **Next Steps:**
+
 1. Review this plan with stakeholders
 2. Start Week 1 quick wins (token counting + overlap)
 3. Build metadata extraction Edge Function (Week 2)

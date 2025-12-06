@@ -1,4 +1,5 @@
 # FOLDERS VS TAGS
+
 ## The Core Distinction
 
 ---
@@ -27,9 +28,11 @@
 ## FOLDERS
 
 ### What They Do
+
 Folders are filing cabinets. They control where calls appear when you browse. Nothing else.
 
 ### Example Structure
+
 ```
 📁 Clients
    └── 📁 Acme Corp
@@ -41,12 +44,14 @@ Folders are filing cabinets. They control where calls appear when you browse. No
 ```
 
 ### Rules
+
 - One call = one folder
 - Nesting allowed (3 levels max)
 - Moving calls between folders changes nothing except location
 - Deleting a folder doesn't delete calls (they move to Unfiled)
 
 ### What Folders DON'T Control
+
 - ❌ AI analysis
 - ❌ Prompt selection
 - ❌ Reports and dashboards
@@ -57,6 +62,7 @@ Folders are filing cabinets. They control where calls appear when you browse. No
 ## TAGS (CALL TYPES)
 
 ### What They Do
+
 Tags tell the system what type of call this is. **All AI behavior routes through tags.** Wrong tag = wrong analysis (or no analysis).
 
 ### The 15 Call Types
@@ -80,11 +86,13 @@ Tags tell the system what type of call this is. **All AI behavior routes through
 | **STRATEGY** | Internal mission, vision, strategy |
 
 ### Rules
+
 - One call = one primary tag
 - Tags control which AI prompts/analysis run
 - Changing a tag changes what intelligence gets extracted
 
 ### What Tags CONTROL
+
 - ✅ Which AI prompts execute
 - ✅ What analysis gets generated
 - ✅ What shows up in reports/dashboards
@@ -97,6 +105,7 @@ Tags tell the system what type of call this is. **All AI behavior routes through
 Both folders AND tags can be auto-assigned based on rules. The difference is what happens after.
 
 ### Folder Automation
+
 Auto-sorts calls into the right place. **No AI impact.**
 
 ```
@@ -105,6 +114,7 @@ THEN folder = /Clients/Acme Corp
 ```
 
 ### Tag Automation
+
 Auto-classifies calls so the right AI runs. **Controls everything.**
 
 ```

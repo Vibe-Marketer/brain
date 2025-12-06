@@ -99,6 +99,4 @@ The following provider options are available:
 | --------- | ------------------- |
 | `default` | <Check size={18} /> |
 
----
-title: Google Vertex AI
-description: Learn how to use the Google Vertex AI provider.
+<!-- Concatenated content - Google Vertex AI section -->

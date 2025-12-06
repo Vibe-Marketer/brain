@@ -1,5 +1,3 @@
----
-
 # AI_LoadAPIKeyError
 
 This error occurs when API key is not loaded successfully.
@@ -19,7 +17,3 @@ if (LoadAPIKeyError.isInstance(error)) {
   // Handle the error
 }
 ```
-
----
-title: AI_LoadSettingError
-description: Learn how to fix AI_LoadSettingError

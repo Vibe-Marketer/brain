@@ -1,6 +1,7 @@
 # Diversity Filter Integration Example
 
 ## Overview
+
 The diversity filter ensures search results come from different recordings and cover different semantic topics, preventing redundant chunks from dominating the LLM context.
 
 ## Integration in Edge Functions
@@ -48,13 +49,15 @@ const diverseResults = simpleDiversityFilter(searchResults, 2, 5);
 
 ## When to Use
 
-### Use `diversityFilter()` when:
+### Use `diversityFilter()` when
+
 - You have embeddings available in your results
 - You want both recording diversity AND semantic diversity
 - You're building a chat/RAG system where repetition is problematic
 - Results come from hybrid search with embeddings
 
-### Use `simpleDiversityFilter()` when:
+### Use `simpleDiversityFilter()` when
+
 - Embeddings aren't available in results
 - You only care about recording diversity (not semantic similarity)
 - Performance is critical (semantic similarity is more expensive)
@@ -63,17 +66,20 @@ const diverseResults = simpleDiversityFilter(searchResults, 2, 5);
 ## Configuration Options
 
 ### `maxPerRecording` (default: 2)
+
 - Controls how many chunks can come from the same recording
 - Lower = more diverse across calls
 - Higher = allows deeper exploration of relevant calls
 
 ### `minSemanticDistance` (default: 0.3)
+
 - Cosine distance threshold for semantic similarity
 - 0.0 = identical chunks
 - 1.0 = completely different chunks
 - 0.3 = moderately different (recommended)
 
 ### `targetCount` (default: 5)
+
 - How many diverse results to return
 - Should match your LLM context window needs
 - Typical range: 3-10 chunks
@@ -88,14 +94,16 @@ const diverseResults = simpleDiversityFilter(searchResults, 2, 5);
 ## Expected Behavior
 
 ### Input: 20 search results
-```
+
+```text
 Recording 123: chunk A, chunk B, chunk C (all similar)
 Recording 456: chunk D, chunk E
 Recording 789: chunk F (very similar to chunk A)
 ```
 
 ### Output: 5 diverse results
-```
+
+```text
 Recording 123: chunk A, chunk B (limited to 2 per recording)
 Recording 456: chunk D, chunk E
 Recording 789: (skipped - chunk F too similar to chunk A)
@@ -115,6 +123,7 @@ Recording 789: (skipped - chunk F too similar to chunk A)
 ## Future Enhancements
 
 Potential improvements:
+
 - Add time-based diversity (limit chunks from same time period)
 - Add speaker diversity (ensure multiple speakers represented)
 - Add topic diversity (using enriched metadata)

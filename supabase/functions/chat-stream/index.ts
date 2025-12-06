@@ -100,8 +100,7 @@ interface RerankCandidate {
 function extractScore(data: unknown): number {
   if (Array.isArray(data) && data.length > 0) {
     const results = Array.isArray(data[0]) ? data[0] : data;
-    // deno-lint-ignore no-explicit-any
-    const sorted = [...results].sort((a: any, b: any) => {
+    const sorted = [...results].sort((a: {label?: string; score?: number}, b: {label?: string; score?: number}) => {
       const labelA = parseInt(a?.label?.match(/\d+/)?.[0] || '0', 10);
       const labelB = parseInt(b?.label?.match(/\d+/)?.[0] || '0', 10);
       return labelB - labelA;
@@ -282,10 +281,11 @@ const tools: OpenAITool[] = [
 // TOOL EXECUTION
 // ============================================
 
-// deno-lint-ignore no-explicit-any
-type SupabaseClient = any;
-// deno-lint-ignore no-explicit-any
-type User = any;
+type SupabaseClient = ReturnType<typeof createClient>;
+interface User {
+  id: string;
+  [key: string]: unknown;
+}
 
 async function executeSearchTranscripts(
   args: { query: string; limit?: number },
@@ -377,7 +377,7 @@ async function executeGetCallDetails(
     .eq('user_id', user.id)
     .eq('is_deleted', false);
 
-  const uniqueSpeakers = [...new Set(speakers?.map((s: { speaker_name: string }) => s.speaker_name).filter(Boolean))];
+  const uniqueSpeakers = [...new Set(speakers?.map((s: {speaker_name: string | null}) => s.speaker_name).filter(Boolean))];
 
   return {
     recording_id: call.recording_id,
@@ -426,7 +426,7 @@ async function executeSummarizeCalls(
 
   return {
     total_calls: calls.length,
-    calls: calls.map((c: { recording_id: number; title: string; created_at: string; recorded_by_name: string; summary: string | null }) => ({
+    calls: calls.map((c: {recording_id: number; title: string; created_at: string; recorded_by_name: string; summary: string | null}) => ({
       recording_id: c.recording_id,
       title: c.title,
       date: c.created_at,
@@ -746,7 +746,7 @@ ${filterContext}
 Important: Only access transcripts belonging to the current user. Never fabricate information - if you can't find relevant data, say so.`;
 
     // Convert UI messages to OpenAI format
-    let openaiMessages = convertUIMessagesToOpenAI(messages);
+    const openaiMessages = convertUIMessagesToOpenAI(messages);
 
     // Setup streaming response
     const encoder = new TextEncoder();

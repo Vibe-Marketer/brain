@@ -152,6 +152,4 @@ const blackForestLabs = createBlackForestLabs({
 });
 ```
 
----
-title: Gladia
-description: Learn how to use the Gladia provider for the AI SDK.
+<!-- Concatenated content - Gladia section -->

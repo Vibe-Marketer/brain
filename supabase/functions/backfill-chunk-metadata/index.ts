@@ -48,7 +48,7 @@ serve(async (req) => {
 
     // Find un-enriched chunks for this user
     // Chunks are considered un-enriched if topics is NULL
-    const { data: unprocessed, error: countError, count } = await supabase
+    const { data: unprocessed, error: countError } = await supabase
       .from('transcript_chunks')
       .select('id', { count: 'exact' })
       .eq('user_id', user.id)

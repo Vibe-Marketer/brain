@@ -40,6 +40,7 @@ The Conversion Brain project has integrated YouTube API capabilities for video r
 API keys are stored in multiple secure locations:
 
 1. **Local Development** (`/Users/Naegele/dev/brain/.env.local`):
+
    ```bash
    YOUTUBE_DATA_API_KEY="AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E"
    TRANSCRIPT_API_KEY="sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0"
@@ -49,6 +50,7 @@ API keys are stored in multiple secure locations:
    - Same keys as above for development environment
 
 3. **Supabase Secrets** (for Edge Functions):
+
    ```bash
    # Set these in Supabase project settings or via CLI:
    supabase secrets set YOUTUBE_DATA_API_KEY=AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E
@@ -77,13 +79,14 @@ API keys are stored in multiple secure locations:
 **Base URL:** `https://www.googleapis.com/youtube/v3/`
 
 **Capabilities:**
+
 - Search videos, channels, playlists
 - Fetch video details (title, description, statistics, duration)
 - Get channel information and metadata
 - List channel videos with filtering/sorting
 - Retrieve video statistics (views, likes, comments)
 
-**Documentation:** https://developers.google.com/youtube/v3/docs
+**Documentation:** <https://developers.google.com/youtube/v3/docs>
 
 ### 2. Transcript API
 
@@ -92,13 +95,14 @@ API keys are stored in multiple secure locations:
 **Base URL:** `https://transcriptapi.com/api/v2/youtube/transcript`
 
 **Capabilities:**
+
 - Extract full transcripts from YouTube videos
 - Optional timestamps for each segment
 - Multiple format options (text, JSON, SRT)
 - Metadata about transcript availability
 - Language detection and translation support
 
-**Documentation:** https://transcriptapi.com/docs
+**Documentation:** <https://transcriptapi.com/docs>
 
 ---
 
@@ -118,12 +122,14 @@ The fastest way to use YouTube APIs directly from Claude Code.
 ```
 
 Then provide your request:
+
 - "Get the latest 5 videos from Alex Hormozi's channel"
-- "Fetch transcript for https://youtube.com/watch?v=VIDEO_ID"
+- "Fetch transcript for <https://youtube.com/watch?v=VIDEO_ID>"
 - "Search for videos about sales objections and summarize the top 3"
 - "Get transcripts from these 5 videos and extract key insights"
 
 **Features:**
+
 - Automatic video ID extraction from URLs
 - Channel discovery and video listing
 - Parallel transcript fetching for batch operations
@@ -131,6 +137,7 @@ Then provide your request:
 - Formatted output with metadata
 
 **Example Workflow:**
+
 ```
 User: /youtube Get transcripts from the top 3 videos about "cold email strategies"
 
@@ -190,6 +197,7 @@ send_metadata=true" \
 ```
 
 **With timestamps:**
+
 ```bash
 curl -s "https://transcriptapi.com/api/v2/youtube/transcript?\
 video_url=VIDEO_ID&\
@@ -247,6 +255,7 @@ const { data, error } = await supabase.functions.invoke('fetch-youtube-transcrip
 Pipe YouTube transcripts through Fabric for structured analysis.
 
 **Common Patterns:**
+
 - `extract_wisdom` - Extract key insights, quotes, ideas
 - `summarize` - Create concise summaries
 - `extract_insights` - Pull actionable insights
@@ -294,6 +303,7 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 ### YouTube Data API v3
 
 **Free Tier:**
+
 - **10,000 quota units per day** (per project)
 - Most operations cost 1-100 units
 - Search: 100 units per request
@@ -301,16 +311,19 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 - Channel list: 1 unit per request
 
 **Cost Breakdown:**
+
 - Search for 10 videos: 100 units (100 searches/day max)
 - Get 100 video details: 100 units
 - **Daily limit:** ~100 searches OR ~10,000 video detail fetches
 
 **Exceeding Limits:**
+
 - Free tier limits are daily quotas
 - Paid tier: $0.20 per 10,000 additional quota units
 - Typical monthly cost: $0-5 for moderate usage
 
 **Best Practices:**
+
 - Cache video metadata to reduce API calls
 - Batch requests where possible
 - Use `maxResults` parameter efficiently
@@ -324,21 +337,25 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 **Tier:** Likely Pro/Enterprise (based on key format)
 
 **Estimated Limits:**
+
 - Pro Plan: ~1,000-5,000 transcripts/month
 - Enterprise: 10,000+ transcripts/month
 - Rate limiting: ~10-30 requests/minute
 
 **Cost:**
+
 - Pro: $29-99/month (estimated)
 - Enterprise: Custom pricing
 - Overage: $0.01-0.05 per transcript
 
 **Response Times:**
+
 - Typical: 1-3 seconds per transcript
 - Long videos (>2 hours): 5-10 seconds
 - Cached transcripts: <1 second
 
 **Best Practices:**
+
 - Check transcript availability before fetching (metadata endpoint)
 - Cache transcripts locally to avoid refetching
 - Respect rate limits (implement exponential backoff)
@@ -353,6 +370,7 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 **Goal:** Analyze top 10 sales training videos for common techniques
 
 **Workflow:**
+
 1. Search YouTube for "B2B sales objection handling"
 2. Fetch top 10 video transcripts
 3. Run through `fabric --pattern sales`
@@ -370,6 +388,7 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 **Goal:** Audit all videos from a competitor's channel
 
 **Workflow:**
+
 1. Get channel ID from channel URL
 2. Fetch all videos (paginated)
 3. Extract transcripts for each
@@ -387,6 +406,7 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 **Goal:** Understand what customers are saying about your product
 
 **Workflow:**
+
 1. Search for "[Product Name] review"
 2. Fetch transcripts from review videos
 3. Analyze sentiment and common themes
@@ -403,6 +423,7 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 **Goal:** Identify trending topics in your niche
 
 **Workflow:**
+
 1. Search multiple keywords related to niche
 2. Analyze view counts, engagement metrics
 3. Fetch transcripts from high-performing videos
@@ -419,6 +440,7 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 **Goal:** Create training docs from expert videos
 
 **Workflow:**
+
 1. Curate list of expert videos
 2. Fetch transcripts with timestamps
 3. Extract key concepts using Fabric `extract_wisdom`
@@ -436,6 +458,7 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 **Goal:** Daily digest of new videos from favorite channels
 
 **Workflow:**
+
 1. Schedule n8n workflow to run daily
 2. Check subscribed channels for new videos (last 24h)
 3. Fetch transcripts for new uploads
@@ -477,6 +500,7 @@ supabase secrets list
 ```
 
 **Expected Output:**
+
 ```
 NAME                       VALUE
 YOUTUBE_DATA_API_KEY       AIzaSyB***q75E
@@ -578,12 +602,14 @@ const { data: metadata } = await supabase.functions.invoke('fetch-youtube-data',
 #### 1. "API key not valid" Error
 
 **YouTube Data API:**
+
 - Verify key is correct in `.env` or `.env.local`
 - Check that API is enabled in Google Cloud Console
 - Ensure billing is enabled (even for free tier)
 - Confirm no IP restrictions on API key
 
 **Transcript API:**
+
 - Verify Bearer token format: `Bearer sk_...`
 - Check subscription status at transcriptapi.com
 - Ensure key hasn't expired
@@ -591,12 +617,14 @@ const { data: metadata } = await supabase.functions.invoke('fetch-youtube-data',
 #### 2. "Quota exceeded" Error
 
 **YouTube Data API:**
+
 - Check daily quota usage in Google Cloud Console
 - Wait until midnight PST for quota reset
 - Optimize queries to use fewer quota units
 - Consider upgrading to paid tier
 
 **Transcript API:**
+
 - Check monthly usage on account dashboard
 - Wait for monthly reset or upgrade plan
 - Implement caching to reduce API calls
@@ -604,12 +632,14 @@ const { data: metadata } = await supabase.functions.invoke('fetch-youtube-data',
 #### 3. "Transcript not available" Error
 
 **Causes:**
+
 - Video doesn't have captions/transcripts
 - Video is private or deleted
 - Language not supported
 - Recent upload (transcripts may take time)
 
 **Solutions:**
+
 - Check `send_metadata=true` to verify availability
 - Try different video from same channel
 - Wait 24 hours for recent uploads
@@ -617,12 +647,14 @@ const { data: metadata } = await supabase.functions.invoke('fetch-youtube-data',
 #### 4. Rate Limiting (429 Error)
 
 **Transcript API:**
+
 - Implement exponential backoff
 - Add delays between requests (100-500ms)
 - Batch requests with proper spacing
 - Check rate limits in API docs
 
 **YouTube Data API:**
+
 - Less common, usually quota issue
 - Reduce request frequency
 - Use `maxResults` parameter efficiently
@@ -630,11 +662,13 @@ const { data: metadata } = await supabase.functions.invoke('fetch-youtube-data',
 #### 5. CORS Errors (in browser)
 
 **Edge Function:**
+
 - Ensure CORS headers are set correctly
 - Handle OPTIONS preflight requests
 - Check Supabase function CORS config
 
 **Direct API calls:**
+
 - Use Edge Function as proxy
 - Don't call APIs directly from browser
 - YouTube Data API supports CORS, Transcript API may not
@@ -665,6 +699,7 @@ supabase secrets list
 ```
 
 **Monitor quota usage:**
+
 - Google Cloud Console → APIs & Services → Quotas
 - YouTube Data API v3 → Queries per day
 
@@ -686,20 +721,23 @@ echo $VIDEO_ID  # Should output: dQw4w9WgXcQ
 ## Additional Resources
 
 ### Documentation
+
 - [YouTube Data API v3 Reference](https://developers.google.com/youtube/v3/docs)
 - [Transcript API Documentation](https://transcriptapi.com/docs)
 - [Supabase Edge Functions Guide](https://supabase.com/docs/guides/functions)
 - [Fabric Patterns Repository](https://github.com/danielmiessler/fabric)
 
 ### Related Files
+
 - Slash command: `.claude/commands/youtube.md`
 - Environment config: `.env`, `.env.local`
 - Supabase functions: `supabase/functions/`
 - API client: `src/lib/api-client.ts`
 
 ### Support
+
 - YouTube API Quota Issues: Google Cloud Support
-- Transcript API Issues: support@transcriptapi.com
+- Transcript API Issues: <support@transcriptapi.com>
 - Edge Function Issues: Supabase Discord/Support
 
 ---

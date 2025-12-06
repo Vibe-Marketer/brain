@@ -7,11 +7,11 @@ import { toast } from "sonner";
 
 interface SyncTabDialogsProps {
   // CallDetailDialog props
-  viewingUnsyncedMeeting: any | null;
+  viewingUnsyncedMeeting: unknown;
   dialogOpen: boolean;
   setDialogOpen: (open: boolean) => void;
   setSelectedCallId: (id: string | null) => void;
-  setViewingUnsyncedMeeting: (meeting: any | null) => void;
+  setViewingUnsyncedMeeting: (meeting: unknown) => void;
   loadExistingTranscripts: () => Promise<void>;
 
   // ManualTagDialog props

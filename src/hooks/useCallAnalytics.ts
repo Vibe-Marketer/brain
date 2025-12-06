@@ -107,7 +107,7 @@ export function useCallAnalytics(timeRange: string = '30d') {
       let totalSpeakers = 0;
       if (callsWithInvitees) {
         totalInvitees = callsWithInvitees.reduce((sum, call) => {
-          const invitees = call.calendar_invitees as any[];
+          const invitees = call.calendar_invitees as Array<{ email: string; name?: string }> | null;
           return sum + (invitees?.length || 0);
         }, 0);
 
@@ -136,7 +136,7 @@ export function useCallAnalytics(timeRange: string = '30d') {
         .eq('call_tags.user_id', user.id);
 
       const tagAssignmentGroups = (callsByTagAssignmentData || []).reduce((acc, item) => {
-        const name = (item.call_tags as any).name;
+        const name = (item.call_tags as { name: string }).name;
         acc[name] = (acc[name] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
@@ -153,7 +153,7 @@ export function useCallAnalytics(timeRange: string = '30d') {
         .eq('transcript_tags.user_id', user.id);
 
       const tagGroups = (callsByTagData || []).reduce((acc, item) => {
-        const name = (item.transcript_tags as any).name;
+        const name = (item.transcript_tags as { name: string }).name;
         acc[name] = (acc[name] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
@@ -177,10 +177,10 @@ export function useCallAnalytics(timeRange: string = '30d') {
 
       const typeGroups = { External: 0, Internal: 0, Mixed: 0 };
       (callTypeData || []).forEach(call => {
-        const invitees = (call.calendar_invitees as any[]) || [];
-        const hasExternal = invitees.some((inv: any) => inv.external === true);
-        const hasInternal = invitees.some((inv: any) => inv.external === false);
-        
+        const invitees = (call.calendar_invitees as Array<{ external?: boolean }> | null) || [];
+        const hasExternal = invitees.some((inv) => inv.external === true);
+        const hasInternal = invitees.some((inv) => inv.external === false);
+
         if (hasExternal && hasInternal) typeGroups.Mixed++;
         else if (hasExternal) typeGroups.External++;
         else typeGroups.Internal++;

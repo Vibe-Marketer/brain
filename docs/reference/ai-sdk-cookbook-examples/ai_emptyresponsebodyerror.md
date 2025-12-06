@@ -1,28 +1,19 @@
----
+# AI_EmptyResponseBodyError
 
-# AI_DownloadError
-
-This error occurs when a download fails.
+This error occurs when an API returns an empty response body.
 
 ## Properties
 
-- `url`: The URL that failed to download
-- `statusCode`: The HTTP status code returned by the server
-- `statusText`: The HTTP status text returned by the server
-- `message`: The error message containing details about the download failure
+- `message`: Error message describing the empty response
 
 ## Checking for this Error
 
-You can check if an error is an instance of `AI_DownloadError` using:
+You can check if an error is an instance of `AI_EmptyResponseBodyError` using:
 
 ```typescript
-import { DownloadError } from 'ai';
+import { EmptyResponseBodyError } from 'ai';
 
-if (DownloadError.isInstance(error)) {
+if (EmptyResponseBodyError.isInstance(error)) {
   // Handle the error
 }
 ```
-
----
-title: AI_EmptyResponseBodyError
-description: Learn how to fix AI_EmptyResponseBodyError

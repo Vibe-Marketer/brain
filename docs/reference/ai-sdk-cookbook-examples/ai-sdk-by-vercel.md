@@ -1,9 +1,4 @@
----
-title: AI SDK by Vercel
-description: The AI SDK is the TypeScript toolkit for building AI applications and agents with React, Next.js, Vue, Svelte, Node.js, and more.
----
-
-# AI SDK
+# AI SDK by Vercel
 
 The AI SDK is the TypeScript toolkit designed to help developers build AI-powered applications and agents with React, Next.js, Vue, Svelte, Node.js, and more.
 
@@ -13,7 +8,7 @@ Integrating large language models (LLMs) into applications is complicated and he
 
 The AI SDK standardizes integrating artificial intelligence (AI) models across [supported providers](/docs/foundations/providers-and-models). This enables developers to focus on building great AI applications, not waste time on technical details.
 
-For example, here’s how you can generate text with various models using the AI SDK:
+For example, here's how you can generate text with various models using the AI SDK:
 
 <PreviewSwitchProviders />
 
@@ -67,6 +62,10 @@ For instance, to prompt an LLM with questions about the AI SDK:
 1. Copy the documentation contents from [ai-sdk.dev/llms.txt](/llms.txt)
 2. Use the following prompt format:
 
-```prompt
+```text
 Documentation:
 {paste documentation here}
+
+Question:
+{your question here}
+```

@@ -9,7 +9,7 @@ import { logger } from "@/lib/logger";
 
 interface TagFilterPopoverProps {
   selectedTags?: string[];
-  tags: any[];
+  tags: Array<{ id: string; name: string; description?: string | null }>;
   onTagsChange: (tags: string[]) => void;
 }
 

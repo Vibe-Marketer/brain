@@ -108,9 +108,10 @@ export function useMeetingsSync() {
       }
 
       toast.success(`Found ${unsyncedMeetings.length} unsynced meetings`);
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Error fetching meetings", error);
-      toast.error(error.message || "Failed to fetch meetings");
+      const errorMessage = error instanceof Error ? error.message : "Failed to fetch meetings";
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -232,9 +233,10 @@ export function useMeetingsSync() {
           }
         }
       }, 1000);
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Error syncing meetings", error);
-      toast.error(error.message || "Failed to sync meetings");
+      const errorMessage = error instanceof Error ? error.message : "Failed to sync meetings";
+      toast.error(errorMessage);
       setSyncing(false);
     }
   }, [appliedDateRange, checkSyncStatus]);
@@ -259,7 +261,7 @@ export function useMeetingsSync() {
 
       // Build full_transcript from transcript array
       const fullTranscript = meeting.transcript && Array.isArray(meeting.transcript)
-        ? meeting.transcript.map((t: any) =>
+        ? meeting.transcript.map((t: { timestamp: string; speaker?: { display_name?: string }; text: string }) =>
             `[${t.timestamp}] ${t.speaker?.display_name || 'Unknown'}: ${t.text}`
           ).join('\n\n')
         : null;
@@ -288,7 +290,7 @@ export function useMeetingsSync() {
 
       // Insert transcript segments
       if (meeting.transcript && Array.isArray(meeting.transcript)) {
-        const transcriptInserts = meeting.transcript.map((t: any) => ({
+        const transcriptInserts = meeting.transcript.map((t: { speaker?: { display_name?: string; matched_calendar_invitee_email?: string }; text: string; timestamp: string }) => ({
           recording_id: meeting.recording_id,
           speaker_name: t.speaker?.display_name,
           speaker_email: t.speaker?.matched_calendar_invitee_email,
@@ -309,9 +311,10 @@ export function useMeetingsSync() {
 
       toast.success("Meeting synced successfully");
       setMeetings((prev) => prev.filter((m) => m.recording_id !== recordingId));
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Error syncing meeting", error);
-      toast.error(error.message || "Failed to sync meeting");
+      const errorMessage = error instanceof Error ? error.message : "Failed to sync meeting";
+      toast.error(errorMessage);
     } finally {
       setSyncingMeetings((prev) => {
         const next = new Set(prev);
@@ -336,9 +339,10 @@ export function useMeetingsSync() {
       if (data?.error) throw new Error(data.error);
 
       onOpen(recordingId);
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Error loading meeting", error);
-      toast.error(error.message || "Failed to load meeting details");
+      const errorMessage = error instanceof Error ? error.message : "Failed to load meeting details";
+      toast.error(errorMessage);
     } finally {
       setLoadingUnsyncedMeeting(null);
     }
@@ -366,11 +370,11 @@ export function useMeetingsSync() {
       formattedTranscript += `---\n\n`;
       
       if (meeting.transcript && Array.isArray(meeting.transcript)) {
-        meeting.transcript.forEach((segment: any) => {
+        meeting.transcript.forEach((segment: { timestamp?: string; speaker?: { display_name?: string }; text?: string }) => {
           const timestamp = segment.timestamp || "00:00:00";
           const speaker = segment.speaker?.display_name || "Unknown";
           const text = segment.text || "";
-          
+
           formattedTranscript += `${timestamp} - ${speaker}\n`;
           formattedTranscript += `  ${text}\n\n`;
         });
@@ -389,9 +393,10 @@ export function useMeetingsSync() {
       URL.revokeObjectURL(url);
 
       toast.success("Transcript downloaded");
-    } catch (error: any) {
+    } catch (error) {
       logger.error("Error downloading transcript", error);
-      toast.error(error.message || "Failed to download transcript");
+      const errorMessage = error instanceof Error ? error.message : "Failed to download transcript";
+      toast.error(errorMessage);
     } finally {
       setLoadingUnsyncedMeeting(null);
     }

@@ -46,7 +46,7 @@ Navigate to the newly created directory:
 
 ### Install dependencies
 
-Install `ai` and `@ai-sdk/openai`, the AI SDK package and the AI SDK's [ OpenAI provider ](/providers/ai-sdk-providers/openai) respectively.
+Install `ai` and `@ai-sdk/openai`, the AI SDK package and the AI SDK's [OpenAI provider](/providers/ai-sdk-providers/openai) respectively.
 
 <Note>
   The AI SDK is designed to be a unified interface to interact with any large
@@ -129,14 +129,14 @@ Let's take a look at what is happening in this code:
 1. Define an asynchronous `POST` request handler and extract `messages` from the body of the request. The `messages` variable contains a history of the conversation between you and the agent and provides the agent with the necessary context to make the next generation.
 2. Convert the UI messages to model messages using `convertToModelMessages`, which transforms the UI-focused message format to the format expected by the language model.
 3. Call [`streamText`](/docs/reference/ai-sdk-core/stream-text), which is imported from the `ai` package. This function accepts a configuration object that contains a `model` provider (imported from `@ai-sdk/openai`) and `messages` (converted in step 2). You can pass additional [settings](/docs/ai-sdk-core/settings) to further customise the model's behaviour.
-4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [ `toUIMessageStreamResponse` ](/docs/reference/ai-sdk-core/stream-text#to-ui-message-stream-response) function which converts the result to a streamed response object.
+4. The `streamText` function returns a [`StreamTextResult`](/docs/reference/ai-sdk-core/stream-text#result-object). This result object contains the [`toUIMessageStreamResponse`](/docs/reference/ai-sdk-core/stream-text#to-ui-message-stream-response) function which converts the result to a streamed response object.
 5. Finally, return the result to the client to stream the response.
 
 This Route Handler creates a POST request endpoint at `/api/chat`.
 
 ## Wire up the UI
 
-Now that you have a Route Handler that can query a large language model (LLM), it's time to setup your frontend. [ AI SDK UI ](/docs/ai-sdk-ui) abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
+Now that you have a Route Handler that can query a large language model (LLM), it's time to setup your frontend. [AI SDK UI](/docs/ai-sdk-ui) abstracts the complexity of a chat interface into one hook, [`useChat`](/docs/reference/ai-sdk-ui/use-chat).
 
 Update your root page (`app/page.tsx`) with the following code to show a list of chat messages and provide a user message input:
 
@@ -352,7 +352,7 @@ With that, you have built everything you need for your multi-modal agent! To sta
 
 <Snippet text="pnpm run dev" />
 
-Head to your browser and open http://localhost:3000. You should see an input field and a button to upload files.
+Head to your browser and open <http://localhost:3000>. You should see an input field and a button to upload files.
 
 Try uploading an image or PDF and asking the model questions about it. Watch as the model's response is streamed back to you!
 
@@ -387,4 +387,3 @@ Install the provider package (`@ai-sdk/anthropic` or `@ai-sdk/google`) and updat
 ## Where to Next?
 
 You've built a multi-modal AI agent using the AI SDK! Experiment and extend the functionality of this application further by exploring [tool calling](/docs/ai-sdk-core/tools-and-tool-calling).
-

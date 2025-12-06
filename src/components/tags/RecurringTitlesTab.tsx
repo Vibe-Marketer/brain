@@ -33,20 +33,24 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RiAddLine, RiCheckLine, RiLoader2Line } from "@remixicon/react";
 import { format } from "date-fns";
 
-interface RecurringTitle {
-  title: string;
-  occurrence_count: number;
-  last_occurrence: string;
-  first_occurrence: string;
-  current_tags: string[] | null;
-}
-
 interface Tag {
   id: string;
   name: string;
   color: string | null;
   description: string | null;
 }
+
+interface CallData {
+  title: string;
+  created_at: string;
+}
+
+interface TitleCountData {
+  count: number;
+  lastDate: string;
+  firstDate: string;
+}
+
 
 export function RecurringTitlesTab() {
   const queryClient = useQueryClient();
@@ -69,7 +73,7 @@ export function RecurringTitlesTab() {
       if (error) throw error;
 
       // Group and count titles
-      const titleCounts = (data || []).reduce((acc: Record<string, { count: number; lastDate: string; firstDate: string }>, call: any) => {
+      const titleCounts = (data || []).reduce((acc: Record<string, TitleCountData>, call: CallData) => {
         const title = call.title;
         if (!acc[title]) {
           acc[title] = { count: 0, lastDate: call.created_at, firstDate: call.created_at };
@@ -93,7 +97,7 @@ export function RecurringTitlesTab() {
   });
 
   // Fetch tags
-  const { data: tags, isLoading: tagsLoading } = useQuery({
+  const { data: tags } = useQuery({
     queryKey: ["call-tags"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -172,7 +176,11 @@ export function RecurringTitlesTab() {
   // Check if a rule already exists for a title
   const hasRuleForTitle = (title: string) => {
     return existingRules?.some(
-      (rule) => rule.rule_type === "title_exact" && (rule.conditions as any)?.title === title
+      (rule) => rule.rule_type === "title_exact" &&
+        typeof rule.conditions === 'object' &&
+        rule.conditions !== null &&
+        'title' in rule.conditions &&
+        rule.conditions.title === title
     );
   };
 

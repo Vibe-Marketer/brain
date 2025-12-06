@@ -1,5 +1,3 @@
----
-
 # AI_InvalidResponseDataError
 
 This error occurs when the server returns a response with invalid data content.
@@ -20,7 +18,3 @@ if (InvalidResponseDataError.isInstance(error)) {
   // Handle the error
 }
 ```
-
----
-title: AI_InvalidToolInputError
-description: Learn how to fix AI_InvalidToolInputError

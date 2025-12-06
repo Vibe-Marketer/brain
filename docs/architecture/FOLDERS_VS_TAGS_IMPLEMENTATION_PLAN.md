@@ -8,6 +8,7 @@
 ## Executive Summary
 
 The current system conflates two distinct concepts under "categories":
+
 1. **Organizational grouping** (where you find calls)
 2. **Call type classification** (what kind of call it is, controls AI behavior)
 
@@ -42,12 +43,10 @@ ONBOARDING, REFUND, FREE, EDUCATION, PRODUCT, SUPPORT, REVIEW, STRATEGY, SKIP
 1. **`generate-ai-titles/index.ts`** - Uses `category_hint` in the AI prompt
    - Currently assigns to `call_category_assignments` when generating titles
    - This is correct behavior but wrong naming
-
 2. **`Categorization.tsx`** page with 3 tabs:
    - RecurringTitlesTab - Shows recurring titles for rule creation
    - RulesTab - CRUD for categorization rules
    - CategoriesTab - Displays the 16 system categories
-
 3. **Multiple UI components** reference categories for:
    - Filtering calls
    - Displaying category badges
@@ -157,21 +156,19 @@ ALTER TABLE call_tag_assignments ADD COLUMN is_primary BOOLEAN DEFAULT true;
    - Rename `categorization_rules` → `tag_rules`
    - Update RLS policies
    - Update function references
-
 2. **Backend Code**
    - Update `generate-ai-titles/index.ts`: `category_hint` → `tag_hint`
    - Update all Edge Functions that reference categories
-
 3. **Frontend Code**
    - Global search/replace in components
    - Update query keys from `call-categories` to `call-tags`
    - Update UI labels: "Category" → "Tag"
-
 4. **UI/Navigation**
    - Rename `/categorization` page to `/tags` or keep as-is but update labels
    - Update dock icon label if needed
 
 **Files to Update:**
+
 - `supabase/migrations/` - New migration
 - `supabase/functions/generate-ai-titles/index.ts`
 - `src/pages/Categorization.tsx`
@@ -194,24 +191,20 @@ ALTER TABLE call_tag_assignments ADD COLUMN is_primary BOOLEAN DEFAULT true;
    - Create `folder_rules` table
    - Add RLS policies
    - Add indexes
-
 2. **Backend**
    - Create Edge Function: `manage-folders`
    - Create Edge Function: `apply-folder-rules`
    - Update `sync-meetings` to apply folder rules on sync
-
 3. **Frontend - Folder Management**
    - Create `/folders` page (or add tab to existing page)
    - Folder tree view component
    - Create/edit/delete folder dialogs
    - Drag-drop reordering
-
 4. **Frontend - Call Assignment**
    - Add folder picker to call detail view
    - Add folder column to transcript table
    - Add folder filter to FilterBar
    - Update bulk actions for folder assignment
-
 5. **Folder Rules UI**
    - Rules tab for folder auto-assignment
    - Similar to existing tag rules UI
@@ -223,7 +216,6 @@ ALTER TABLE call_tag_assignments ADD COLUMN is_primary BOOLEAN DEFAULT true;
 1. **Database Migration**
    - Add `is_primary` column to `call_tag_assignments`
    - Update trigger to enforce: max 1 primary + 1 secondary
-
 2. **Frontend**
    - Update tag assignment UI to show primary/secondary
    - Allow swapping primary/secondary
@@ -235,7 +227,6 @@ ALTER TABLE call_tag_assignments ADD COLUMN is_primary BOOLEAN DEFAULT true;
 1. **Create tag-specific prompt templates**
    - Store in database or config
    - Each tag type gets its own analysis prompt
-
 2. **Update AI analysis functions**
    - Route to correct prompt based on tag
    - Different extraction schemas per tag type
@@ -253,6 +244,7 @@ ALTER TABLE call_tag_assignments ADD COLUMN is_primary BOOLEAN DEFAULT true;
 ### Data Migration
 
 No data loss - just table renames:
+
 ```sql
 -- Phase 1: Rename tables (data preserved)
 ALTER TABLE call_categories RENAME TO call_tags;
@@ -269,6 +261,7 @@ ALTER TABLE call_tag_assignments RENAME COLUMN category_id TO tag_id;
 ### Rollback Plan
 
 Each phase is independently rollable:
+
 - Phase 1: Rename tables back
 - Phase 2: Drop new folder tables
 - Phase 3: Remove is_primary column
@@ -280,9 +273,11 @@ Each phase is independently rollable:
 ### Navigation
 
 **Current:**
+
 - Dock has "Categories" icon → /categorization page
 
 **Proposed:**
+
 ```
 Option A: Separate Pages
 - /tags → Tag management (existing, renamed)
@@ -301,6 +296,7 @@ Option B: Combined Page with Tabs
 **Current columns:** Title, Date, Duration, Category, ...
 
 **Proposed columns:**
+
 - Keep tag display (was category)
 - Add folder path column (e.g., "Clients / Acme Corp")
 - Add folder filter in FilterBar
@@ -308,6 +304,7 @@ Option B: Combined Page with Tabs
 ### Call Detail View
 
 **Add:**
+
 - Folder picker dropdown
 - Clear distinction between "Tag (what type)" and "Folder (where filed)"
 
@@ -362,15 +359,12 @@ Option B: Combined Page with Tabs
 
 1. **Should there be a "Unfiled" system folder?**
    - Probably yes - calls without folder assignment go here
-
 2. **Can users create custom tags?**
    - Spec says no - tags are system-defined 16 types
    - But should there be a way to request new tags?
-
 3. **Should existing "SKIP" tag become special?**
    - Currently auto-assigned for short/empty transcripts
    - Keep as a tag or move to a separate "status" concept?
-
 4. **How to handle existing category assignments?**
    - They become tag assignments - data preserved
    - No migration of assignments needed

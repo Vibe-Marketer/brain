@@ -39,14 +39,23 @@ import {
   RiLoader2Line,
   RiPlayLine,
 } from "@remixicon/react";
-import { format } from "date-fns";
+
+interface RuleConditions {
+  title?: string;
+  contains?: string;
+  pattern?: string;
+  keywords?: string[];
+  search_chars?: number;
+  day_of_week?: number;
+  hour?: number;
+}
 
 interface Rule {
   id: string;
   name: string;
   description: string | null;
   rule_type: string;
-  conditions: any;
+  conditions: RuleConditions;
   tag_id: string;
   priority: number;
   is_active: boolean | null;
@@ -83,7 +92,7 @@ export function RulesTab() {
     rule_type: "title_exact",
     tag_id: "",
     priority: 100,
-    conditions: {} as any,
+    conditions: {} as RuleConditions,
   });
 
   // Fetch rules
@@ -280,7 +289,7 @@ export function RulesTab() {
 
   const renderConditionEditor = () => {
     switch (formData.rule_type) {
-      case "title_exact":
+      case "title_exact": {
         return (
           <div className="space-y-2">
             <Label>Exact Title</Label>
@@ -296,8 +305,9 @@ export function RulesTab() {
             />
           </div>
         );
+      }
 
-      case "title_contains":
+      case "title_contains": {
         return (
           <div className="space-y-2">
             <Label>Contains Text</Label>
@@ -313,8 +323,9 @@ export function RulesTab() {
             />
           </div>
         );
+      }
 
-      case "title_regex":
+      case "title_regex": {
         return (
           <div className="space-y-2">
             <Label>Regex Pattern</Label>
@@ -330,8 +341,9 @@ export function RulesTab() {
             />
           </div>
         );
+      }
 
-      case "transcript_keyword":
+      case "transcript_keyword": {
         return (
           <div className="space-y-2">
             <Label>Keywords (comma-separated)</Label>
@@ -350,8 +362,9 @@ export function RulesTab() {
             />
           </div>
         );
+      }
 
-      case "day_time":
+      case "day_time": {
         return (
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -397,6 +410,7 @@ export function RulesTab() {
             </div>
           </div>
         );
+      }
 
       default:
         return null;

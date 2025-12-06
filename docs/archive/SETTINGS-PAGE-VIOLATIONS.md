@@ -72,6 +72,7 @@
 ### 4. REDUNDANT BACKGROUND COLORS
 
 **Lines with `bg-card` inside cards:**
+
 - 636: `border bg-card` (inside Card already)
 - 666: `border bg-card` (inside Card already)
 - 1234: `border bg-card` (inside Card already)
@@ -93,10 +94,12 @@
 ## 📋 FIX CHECKLIST
 
 ### Phase 1: Typography (Quick Fix)
+
 - [ ] Line 503: Page title → Montserrat Extra Bold ALL CAPS
 - [ ] Lines 525, 620, 718, 1218, 1317, 1345, 1404, 1489: All CardTitle → Montserrat Extra Bold ALL CAPS
 
 ### Phase 2: Remove Card Wrappers (90% Rule)
+
 - [ ] Lines 521-614: Setup Progress - Remove Card, use `<div className="border rounded-lg p-6 bg-white dark:bg-card">`
 - [ ] Lines 618-713: Connection Status - Remove Card wrapper
 - [ ] Lines 716-960: Profile & Preferences - Remove Card wrapper
@@ -108,12 +111,15 @@
 - [ ] Lines 1487-1521: Delete Account - KEEP Card (danger zone)
 
 ### Phase 3: Fix Layout/Spacing
+
 - [ ] Line 501: Change `container max-w-6xl py-10 px-6` → `max-w-6xl mx-auto py-10 px-4 md:px-12`
 
 ### Phase 4: Remove Redundant Backgrounds
+
 - [ ] Lines 636, 666, 1234, 1264: Remove `bg-card` from inner divs
 
 ### Phase 5: Verify Tabs
+
 - [ ] Check if Tabs component has vibe green underline on active state
 
 ---
@@ -132,6 +138,7 @@
 ## 📐 REFERENCE
 
 See **docs/design/brand-guidelines-v3.3.md** for complete specifications:
+
 - Section 3: Layout Architecture
 - Section 4: Button System
 - Section 7: Typography

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -42,7 +42,12 @@ export default function AssignFolderDialog({
   const [saving, setSaving] = useState(false);
 
   const isBulkMode = recordingIds && recordingIds.length > 1;
-  const targetRecordingIds = recordingIds || (recordingId ? [recordingId] : []);
+
+  // Wrap in useMemo to prevent re-creation on every render
+  const targetRecordingIds = useMemo(() =>
+    recordingIds || (recordingId ? [recordingId] : []),
+    [recordingIds, recordingId]
+  );
 
   const loadExistingAssignments = useCallback(async () => {
     if (targetRecordingIds.length === 0) return;
@@ -87,14 +92,7 @@ export default function AssignFolderDialog({
     }
   }, [targetRecordingIds, isBulkMode]);
 
-  useEffect(() => {
-    if (open && targetRecordingIds.length > 0) {
-      loadFolders();
-      loadExistingAssignments();
-    }
-  }, [open, targetRecordingIds.length, loadExistingAssignments]);
-
-  const loadFolders = async () => {
+  const loadFolders = useCallback(async () => {
     try {
       const { data, error } = await supabase
         .from("folders")
@@ -109,7 +107,14 @@ export default function AssignFolderDialog({
     } catch (error) {
       logger.error("Error loading folders", error);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (open && targetRecordingIds.length > 0) {
+      loadFolders();
+      loadExistingAssignments();
+    }
+  }, [open, targetRecordingIds.length, loadExistingAssignments, loadFolders]);
 
   const sortFoldersHierarchically = (folders: Folder[]): Folder[] => {
     // Build a map of parent_id -> children

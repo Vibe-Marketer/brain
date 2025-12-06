@@ -276,10 +276,12 @@ components/
 ### Key Components
 
 #### 1. TranscriptsTab (670 lines)
+
 **Location:** `src/components/transcripts/TranscriptsTab.tsx`
 **Purpose:** Main transcript library interface with filtering, sorting, bulk actions
 
 **Features:**
+
 - Search and filter transcripts
 - Bulk selection and actions
 - Category management
@@ -287,10 +289,12 @@ components/
 - Integration with SyncTab
 
 #### 2. CallDetailDialog (800 lines)
+
 **Location:** `src/components/CallDetailDialog.tsx`
 **Purpose:** Comprehensive call detail view with transcript editing
 
 **Features:**
+
 - Full transcript display with timestamps
 - Speaker editing and attribution
 - Transcript trimming/deletion
@@ -298,10 +302,12 @@ components/
 - Export to multiple formats (TXT, MD, PDF, DOCX)
 
 #### 3. SyncTab (728 lines)
+
 **Location:** `src/components/transcripts/SyncTab.tsx`
 **Purpose:** Meeting sync interface with Fathom integration
 
 **Features:**
+
 - Fetch meetings from Fathom
 - Bulk sync with category pre-assignment
 - Date range filtering
@@ -311,6 +317,7 @@ components/
 ### Component Patterns
 
 #### 1. Container/Presenter Pattern
+
 ```typescript
 // Container (logic)
 export function TranscriptsTab() {
@@ -327,6 +334,7 @@ export function TranscriptsView({ data, onAction }) {
 ```
 
 #### 2. Custom Hooks for Logic
+
 ```typescript
 // hooks/useMeetingsSync.ts
 export function useMeetingsSync() {
@@ -338,6 +346,7 @@ export function useMeetingsSync() {
 ```
 
 #### 3. Context for Global State
+
 ```typescript
 // contexts/AuthContext.tsx
 export const AuthContext = createContext<AuthState>({
@@ -407,6 +416,7 @@ export const completeFathomOAuth = async (code: string, state: string): Promise<
 ```
 
 #### API Response Type
+
 ```typescript
 interface ApiResponse<T> {
   data?: T;
@@ -432,6 +442,7 @@ interface ApiResponse<T> {
 ### Core Tables
 
 #### `fathom_calls`
+
 Stores meeting metadata from Fathom
 
 ```sql
@@ -456,6 +467,7 @@ CREATE TABLE fathom_calls (
 ```
 
 #### `fathom_transcripts`
+
 Stores individual transcript segments
 
 ```sql
@@ -477,6 +489,7 @@ CREATE TABLE fathom_transcripts (
 ```
 
 #### `user_settings`
+
 User-specific configuration
 
 ```sql
@@ -496,6 +509,7 @@ CREATE TABLE user_settings (
 ```
 
 #### `call_categories`
+
 User-defined meeting categories
 
 ```sql
@@ -509,6 +523,7 @@ CREATE TABLE call_categories (
 ```
 
 #### `call_category_assignments`
+
 Many-to-many relationship between calls and categories
 
 ```sql
@@ -524,6 +539,7 @@ CREATE TABLE call_category_assignments (
 ### Webhook & Sync Tables
 
 #### `webhook_deliveries`
+
 Tracks incoming webhook deliveries
 
 ```sql
@@ -540,6 +556,7 @@ CREATE TABLE webhook_deliveries (
 ```
 
 #### `sync_jobs`
+
 Tracks bulk sync operations
 
 ```sql
@@ -623,11 +640,13 @@ npx vitest --watch         # Run tests in watch mode
 ### Development Workflow
 
 #### 1. Before Starting
+
 - Read `CLAUDE.md` for comprehensive development standards
 - Review `docs/design/brand-guidelines-v3.3.md` for UI work
 - Check `docs/architecture/api-naming-conventions.md` for naming
 
 #### 2. Creating Features
+
 ```bash
 # 1. Create feature branch
 git checkout -b feature/your-feature-name
@@ -646,6 +665,7 @@ git commit -m "feat: add [feature] with [details]"
 ```
 
 #### 3. Before PR
+
 ```bash
 # Run code review
 /code-review
@@ -660,6 +680,7 @@ git commit -m "feat: add [feature] with [details]"
 ### Key Development Patterns
 
 #### 1. Using React Query
+
 ```typescript
 // Fetch data with caching
 const { data, isLoading, error } = useQuery({
@@ -697,6 +718,7 @@ const mutation = useMutation({
 ```
 
 #### 2. Using Logger Utility
+
 ```typescript
 import { logger } from '@/lib/logger';
 
@@ -708,6 +730,7 @@ logger.error('API call failed', error);
 ```
 
 #### 3. API Client Usage
+
 ```typescript
 import { fetchMeetings } from '@/lib/api-client';
 
@@ -729,12 +752,14 @@ setMeetings(data);
 ### Environment Variables
 
 #### Frontend (.env)
+
 ```bash
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=your_anon_key
 ```
 
 #### Edge Functions (Supabase Dashboard → Edge Functions → Secrets)
+
 ```bash
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
@@ -801,12 +826,14 @@ When working with Claude, use these commands:
 ### Code Standards
 
 #### 1. TypeScript
+
 - **Strict mode enabled**
 - Use explicit types, avoid `any`
 - Prefer interfaces over types for objects
 - Use `const` assertions for literal types
 
 #### 2. React
+
 - **Functional components only** (no class components)
 - Use hooks for state and side effects
 - Memoize expensive computations with `useMemo`
@@ -814,6 +841,7 @@ When working with Claude, use these commands:
 - Extract complex logic into custom hooks
 
 #### 3. Naming Conventions
+
 ```typescript
 // Components: PascalCase
 export function TranscriptsTab() {}
@@ -836,6 +864,7 @@ export const MAX_RETRIES = 3;
 ```
 
 #### 4. File Organization
+
 ```typescript
 // 1. Imports (grouped)
 import { useState } from 'react';  // External
@@ -923,6 +952,7 @@ describe('fetchMeetings', () => {
 ## Change Log
 
 ### 2025-11-24 - v1.0.0
+
 - Initial comprehensive documentation created
 - Cleanup: Replaced 43 console statements with logger utility
 - Cleanup: Removed unused `@radix-ui/react-menubar` dependency

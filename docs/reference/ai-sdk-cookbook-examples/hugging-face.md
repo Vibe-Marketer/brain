@@ -244,6 +244,4 @@ try {
   [Baseten documentation](https://docs.baseten.co/).
 </Note>
 
----
-title: Hugging Face
-description: Learn how to use Hugging Face Provider.
+<!-- Concatenated content - Hugging Face section -->

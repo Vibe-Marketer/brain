@@ -24,7 +24,7 @@ This project uses the following stack:
 - [AI SDK](/docs)
 - [OpenAI](https://openai.com)
 - [Zod](https://zod.dev)
-- [Postgres](https://www.postgresql.org/) with [ Vercel Postgres ](https://vercel.com/postgres)
+- [Postgres](https://www.postgresql.org/) with [Vercel Postgres](https://vercel.com/postgres)
 - [shadcn-ui](https://ui.shadcn.com) and [TailwindCSS](https://tailwindcss.com) for styling
 - [Recharts](https://recharts.org) for data visualization
 
@@ -50,11 +50,11 @@ Let's set up the project and seed the database with the dataset:
 
 <Snippet text={['pnpm install']} />
 
-2. Copy the example environment variables file:
+1. Copy the example environment variables file:
 
 <Snippet text={['cp .env.example .env']} />
 
-3. Add your environment variables to `.env`:
+1. Add your environment variables to `.env`:
 
 ```bash filename=".env"
 OPENAI_API_KEY="your_api_key_here"
@@ -68,7 +68,7 @@ POSTGRES_PASSWORD="..."
 POSTGRES_DATABASE="..."
 ```
 
-4. This project uses CB Insights' Unicorn Companies dataset. You can download the dataset by following these instructions:
+1. This project uses CB Insights' Unicorn Companies dataset. You can download the dataset by following these instructions:
    - Navigate to [CB Insights Unicorn Companies](https://www.cbinsights.com/research-unicorn-companies)
    - Enter in your email. You will receive a link to download the dataset.
    - Save it as `unicorns.csv` in your project root
@@ -117,7 +117,7 @@ The Unicorn List dataset contains the following information about unicorn startu
 
 This dataset contains over 1000 rows of data over 7 columns, giving us plenty of structured data to analyze. This makes it perfect for exploring various SQL queries that can reveal interesting insights about the unicorn startup ecosystem.
 
-5. Now that you have the dataset downloaded and added to your project, you can initialize the database with the following command:
+1. Now that you have the dataset downloaded and added to your project, you can initialize the database with the following command:
 
 <Snippet text={['pnpm run seed']} />
 
@@ -128,7 +128,7 @@ Note: this step can take a little while. You should see a message indicating the
   your project.
 </Note>
 
-6. Start the development server:
+1. Start the development server:
 
 <Snippet text={['pnpm run dev']} />
 
@@ -173,7 +173,7 @@ As a reminder, this application will have three main features:
 2. Create a chart from the query results
 3. Explain SQL queries in plain English
 
-For each of these features, you'll use the AI SDK via [ Server Actions ](https://react.dev/reference/rsc/server-actions) to interact with OpenAI's GPT-4o and GPT-4o-mini models. Server Actions are a powerful React Server Component feature that allows you to call server-side functions directly from your frontend code.
+For each of these features, you'll use the AI SDK via [Server Actions](https://react.dev/reference/rsc/server-actions) to interact with OpenAI's GPT-4o and GPT-4o-mini models. Server Actions are a powerful React Server Component feature that allows you to call server-side functions directly from your frontend code.
 
 Let's start with generating a SQL query from natural language.
 
@@ -699,4 +699,3 @@ Head back to the browser and test the application with a few queries. You should
 You've built an AI-powered SQL analysis tool that can convert natural language to SQL queries, visualize query results, and explain SQL queries in plain English.
 
 You could, for example, extend the application to use your own data sources or add more advanced features like customizing the chart configuration schema to support more chart types and options. You could also add more complex SQL query generation capabilities.
-

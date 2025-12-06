@@ -13,6 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { InviteesPopover } from "./InviteesPopover";
 import { InviteesCountCircle } from "./InviteesCountCircle";
+import type { Meeting } from "@/types";
 
 interface Folder {
   id: string;
@@ -22,7 +23,7 @@ interface Folder {
 }
 
 interface TranscriptTableRowProps {
-  call: any;
+  call: Meeting;
   isSelected: boolean;
   tags: Array<{ id: string; name: string }>;
   tagAssignments: string[];
@@ -35,7 +36,7 @@ interface TranscriptTableRowProps {
   onCallClick: () => void;
   onFolder?: () => void;
   onCustomDownload?: (callId: number | string, title: string) => void;
-  DownloadComponent?: React.ComponentType<{ call: any }>;
+  DownloadComponent?: React.ComponentType<{ call: Meeting }>;
 }
 
 export function TranscriptTableRow({

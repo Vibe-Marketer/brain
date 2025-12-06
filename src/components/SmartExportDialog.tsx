@@ -44,10 +44,24 @@ import { exportAsLLMContext, estimateTokens } from "@/lib/export-utils-advanced"
 import { generateMetaSummary } from "@/lib/api-client";
 import { saveAs } from "file-saver";
 
+interface Call {
+  recording_id: number;
+  title?: string;
+  summary?: string;
+  full_transcript?: string;
+  calendar_invitees?: unknown[];
+  recorded_by_name?: string;
+  recorded_by_email?: string;
+  url?: string;
+  recording_start_time?: string;
+  recording_end_time?: string;
+  created_at: string;
+}
+
 interface SmartExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedCalls: any[];
+  selectedCalls: Call[];
   // Optional: for folder/tag grouping
   folderAssignments?: Record<string, string[]>;
   folders?: Array<{ id: string; name: string; color: string }>;
@@ -97,8 +111,10 @@ export default function SmartExportDialog({
     selectedCalls.forEach((call) => {
       if (call.recorded_by_name) allParticipants.add(call.recorded_by_name);
       if (call.calendar_invitees && Array.isArray(call.calendar_invitees)) {
-        call.calendar_invitees.forEach((inv: any) => {
-          if (inv?.name) allParticipants.add(inv.name);
+        call.calendar_invitees.forEach((inv: unknown) => {
+          if (inv && typeof inv === 'object' && 'name' in inv && typeof inv.name === 'string') {
+            allParticipants.add(inv.name);
+          }
         });
       }
     });
@@ -319,17 +335,17 @@ export default function SmartExportDialog({
     }
   };
 
-  const formatButtons: { format: ExportFormat; label: string; icon: React.ReactNode }[] = [
-    { format: "md", label: "Markdown", icon: <RiMarkdownLine className="h-3.5 w-3.5" /> },
-    { format: "txt", label: "Text", icon: <RiFileTextLine className="h-3.5 w-3.5" /> },
-    { format: "pdf", label: "PDF", icon: <RiFileTextLine className="h-3.5 w-3.5" /> },
-    { format: "docx", label: "Word", icon: <RiFileTextLine className="h-3.5 w-3.5" /> },
-    { format: "json", label: "JSON", icon: <RiFileTextLine className="h-3.5 w-3.5" /> },
-    { format: "csv", label: "CSV", icon: <RiTableLine className="h-3.5 w-3.5" /> },
-  ];
-
   // Filter formats based on organization type
   const availableFormats = useMemo(() => {
+    const formatButtons: { format: ExportFormat; label: string; icon: React.ReactNode }[] = [
+      { format: "md", label: "Markdown", icon: <RiMarkdownLine className="h-3.5 w-3.5" /> },
+      { format: "txt", label: "Text", icon: <RiFileTextLine className="h-3.5 w-3.5" /> },
+      { format: "pdf", label: "PDF", icon: <RiFileTextLine className="h-3.5 w-3.5" /> },
+      { format: "docx", label: "Word", icon: <RiFileTextLine className="h-3.5 w-3.5" /> },
+      { format: "json", label: "JSON", icon: <RiFileTextLine className="h-3.5 w-3.5" /> },
+      { format: "csv", label: "CSV", icon: <RiTableLine className="h-3.5 w-3.5" /> },
+    ];
+
     if (organizationType === "single") {
       return formatButtons;
     } else if (organizationType === "weekly" || organizationType === "by-folder" || organizationType === "by-tag") {

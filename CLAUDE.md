@@ -27,6 +27,7 @@
 ### When to Use TodoWrite
 
 **✅ ALWAYS use for:**
+
 - Complex multi-step tasks (3+ distinct steps)
 - Features requiring research or exploration
 - Tasks with multiple file changes
@@ -36,6 +37,7 @@
 - After receiving new instructions
 
 **❌ DON'T use for:**
+
 - Single, straightforward edits
 - Trivial tasks (<3 steps)
 - Pure informational queries
@@ -44,21 +46,25 @@
 ### Task-Driven Development Workflow
 
 **1. PLAN (before any code)**
+
 ```
 User Request → Analyze Scope → Break Down Steps → Create Todos
 ```
 
 **2. RESEARCH (gather context)**
+
 ```
 Read existing code → Search patterns → Check docs → Understand architecture
 ```
 
 **3. IMPLEMENT (execute systematically)**
+
 ```
 Mark task in_progress → Write code → Test → Mark completed → Next task
 ```
 
 **4. VERIFY (ensure quality)**
+
 ```
 Run tests → Check design compliance → Review code → Validate against requirements
 ```
@@ -66,6 +72,7 @@ Run tests → Check design compliance → Review code → Validate against requi
 ### Task Breakdown Best Practices
 
 **Good Task Structure:**
+
 ```typescript
 [
   {
@@ -97,6 +104,7 @@ Run tests → Check design compliance → Review code → Validate against requi
 ```
 
 **Task Granularity Rules:**
+
 - Each task = 30 min - 4 hours of work
 - Break large tasks into smaller sub-tasks
 - Keep tasks focused and specific
@@ -105,11 +113,13 @@ Run tests → Check design compliance → Review code → Validate against requi
 ### Todo Status Management
 
 **Status Flow:**
+
 ```
 pending → in_progress → completed
 ```
 
 **CRITICAL RULES:**
+
 1. **ONE task in_progress at a time** (not less, not more)
 2. Mark completed **IMMEDIATELY** after finishing (don't batch)
 3. Update status in **real-time** as you work
@@ -119,6 +129,7 @@ pending → in_progress → completed
 **Task Completion Requirements:**
 
 **ONLY mark completed when:**
+
 - ✅ All code written and tested
 - ✅ No unresolved errors
 - ✅ Tests passing (if applicable)
@@ -126,6 +137,7 @@ pending → in_progress → completed
 - ✅ User requirements fully met
 
 **Keep in_progress if:**
+
 - ❌ Tests are failing
 - ❌ Implementation is partial
 - ❌ Encountered blockers
@@ -199,24 +211,28 @@ TodoWrite({
 5. **CITE** - Reference the doc URL when implementing
 
 **Why this matters:**
+
 - APIs change between versions
 - Memory of past implementations may be outdated
 - Guessing leads to broken code and wasted time
 - Official docs are the source of truth
 
 **Examples of when to fetch docs FIRST:**
+
 - Implementing Vercel AI SDK features → Fetch ai-sdk.dev docs
 - Using Supabase features → Fetch supabase.com docs
 - Adding Stripe integration → Fetch stripe.com docs
 - Any npm package you haven't used recently → Fetch its docs
 
 **DO NOT:**
+
 - ❌ Assume you know the current API from past experience
 - ❌ Copy patterns from old code without verifying they're still valid
 - ❌ Start implementing based on partial knowledge
 - ❌ Guess parameter names or function signatures
 
 **ALWAYS:**
+
 - ✅ Fetch and read the official documentation first
 - ✅ Verify the exact import paths and function signatures
 - ✅ Check for version-specific changes
@@ -227,23 +243,27 @@ TodoWrite({
 **Before implementing ANY feature:**
 
 1. **Use Task/Explore agents for codebase exploration**
+
    ```
    GOOD: Use Task tool with subagent_type=Explore to find patterns
    BAD:  Running Grep/Glob commands directly for exploration
    ```
 
 2. **Read existing implementations**
+
    ```typescript
    // Find similar features first
    Read existing components → Understand patterns → Follow conventions
    ```
 
 3. **Check documentation**
+
    ```
    Brand guidelines → API conventions → Design principles → ADRs
    ```
 
 4. **Search for patterns**
+
    ```typescript
    // Use specialized agents for pattern discovery
    Task(subagent_type="Explore", thoroughness="medium")
@@ -253,17 +273,20 @@ TodoWrite({
 ### When to Use Specialized Agents
 
 **Exploration Tasks (use Task tool with Explore):**
+
 - "Where are errors from the client handled?"
 - "What is the codebase structure?"
 - "How does authentication work?"
 - "Find all uses of vibe orange color"
 
 **Library Research (use library-researcher):**
+
 - External library documentation needed
 - Implementation-critical info from docs
 - API reference lookup
 
 **Codebase Analysis (use codebase-analyst):**
+
 - Find patterns across codebase
 - Discover coding conventions
 - Identify architectural patterns
@@ -271,6 +294,7 @@ TodoWrite({
 ### Research Checklist
 
 Before writing code, answer:
+
 - [ ] Have I read similar existing implementations?
 - [ ] Do I understand the current patterns?
 - [ ] Have I checked brand guidelines (for UI)?
@@ -314,6 +338,7 @@ Before writing code, answer:
 ### Color Usage Rules
 
 **Vibe Orange (#FF8800)** - ONLY for 9 specific uses:
+
 1. Active tab underlines (6px angular)
 2. Left-edge indicators on metric cards (6px × 56px angular)
 3. Individual table column headers (3px underline on sortable columns only)
@@ -325,6 +350,7 @@ Before writing code, answer:
 9. Contextual info banners (as subtle accent only)
 
 **NEVER use vibe orange for:**
+
 - Text (fails WCAG contrast)
 - Button backgrounds
 - Card backgrounds
@@ -332,6 +358,7 @@ Before writing code, answer:
 - Large filled areas
 
 **Background hierarchy:**
+
 - Always use `bg-viewport` for body (#FCFCFC light, #161616 dark)
 - Always use `bg-card` for content cards (#FFFFFF light, #202020 dark)
 
@@ -356,12 +383,14 @@ Before writing code, answer:
 ### Icon System
 
 **Library:** Remix Icon (`@remixicon/react`)
+
 - 3,100+ icons, neutral professional style
 - Use `-line` (outlined) for consistency
 - Color: `text-cb-ink-muted` (#7A7A7A light / #6B6B6B dark)
 - Size: 16px (`h-4 w-4`) for inline/buttons
 
 **DO NOT:**
+
 - Mix icon libraries (no Lucide, Font Awesome, etc.)
 - Change icon colors to vibe orange
 - Use custom SVGs when Remix Icon equivalent exists
@@ -406,17 +435,20 @@ Before implementing ANY UI component or making design changes:
 ## Versioning Requirement
 
 **When editing brand-guidelines-v3.4.md, you MUST:**
+
 1. Increment version in **3 places:**
    - Title (line 1)
    - DOCUMENT VERSION section
    - END OF BRAND GUIDELINES (last line)
 2. Add entry to **docs/brand-guidelines-changelog.md** with:
+
    - Date and TIME
    - Git commit hash (add after commit)
    - Summary of changes
 3. Update "Last Updated" date/time in header
 
 **Version Types:**
+
 - **Patch** (v3.3.1 → v3.3.2): Claude does automatically for 1-2 section updates (do NOT rename file)
 - **Minor** (v3.3 → v3.4): Flag to user if updating 3+ sections (RENAME file)
 - **Major** (v3.x → v4.0): **NEVER** - only user decides
@@ -472,6 +504,7 @@ Before implementing ANY UI component or making design changes:
 **This is the #1 rule for all AI/ML/LLM implementations in this project.**
 
 Before writing ANY code involving AI, chat, streaming, model selection, or similar features:
+
 1. **STOP** - Do not implement from scratch
 2. **CHECK** - Does Vercel have an SDK/tool for this?
 3. **USE IT** - If yes, use the Vercel solution exclusively
@@ -482,6 +515,7 @@ Before writing ANY code involving AI, chat, streaming, model selection, or simil
 You **MUST** use Vercel SDKs and related tools for **ALL** applicable features. This is a strict mandate.
 
 **Core Required Stack:**
+
 - **AI SDK** (`ai`) - **MANDATORY** for all LLM integration, streaming, and tool calling.
 - **AI SDK React** (`@ai-sdk/react`) - **MANDATORY** for all frontend chat/completion hooks.
 - **OpenRouter** - **MANDATORY** for all LLM model routing. **ALL models route through OpenRouter.**
@@ -499,6 +533,7 @@ You **MUST** use Vercel SDKs and related tools for **ALL** applicable features. 
 **Default Model:** `z-ai/glm-4.6` (Z.AI GLM-4.6)
 
 **Environment Variables:**
+
 ```bash
 # Primary - OpenRouter (REQUIRED for LLM calls)
 OPENROUTER_API_KEY=sk-or-v1-xxx...    # Your OpenRouter API key
@@ -510,6 +545,7 @@ OPENAI_API_KEY=sk-xxx...              # For text-embedding-3-small
 **Model Format:** `provider/model-name` (e.g., `z-ai/glm-4.6`, `openai/gpt-4o`, `anthropic/claude-sonnet-4`)
 
 **Supported Providers via OpenRouter:**
+
 - **Z.AI**: glm-4.6 (default)
 - **OpenAI**: gpt-4o, gpt-4o-mini, o1, o3-mini
 - **Anthropic**: claude-opus-4, claude-sonnet-4, claude-3.5-sonnet, claude-3.5-haiku
@@ -521,6 +557,7 @@ OPENAI_API_KEY=sk-xxx...              # For text-embedding-3-small
 - **And 300+ more models**
 
 **Reference Documentation:**
+
 - [AI SDK Cookbook Examples](./docs/reference/ai-sdk-cookbook-examples) - Implementation patterns and use cases
 - [OpenRouter Docs](https://openrouter.ai/docs)
 - [OpenRouter Models](https://openrouter.ai/models)
@@ -597,6 +634,7 @@ Only if a feature is *completely impossible* with the current stack may you cons
 ### Avoid Over-Engineering
 
 **Keep solutions simple and focused:**
+
 - Only make changes directly requested or clearly necessary
 - Don't add features, refactor code, or make "improvements" beyond what was asked
 - Don't add docstrings, comments, or type annotations to code you didn't change
@@ -621,6 +659,7 @@ Only if a feature is *completely impossible* with the current stack may you cons
 ## When to Create an ADR
 
 **Create an ADR when making decisions about:**
+
 - Database/backend selection or changes
 - AI model/provider choices
 - Integration platform decisions (n8n, Zapier, etc.)
@@ -630,6 +669,7 @@ Only if a feature is *completely impossible* with the current stack may you cons
 - New SDK or library adoption for core features
 
 **Do NOT create an ADR for:**
+
 - UI component choices (covered by brand guidelines)
 - Bug fixes or refactoring
 - Reversible implementation details
@@ -649,6 +689,7 @@ Only if a feature is *completely impossible* with the current stack may you cons
 ## ADR Trigger Checklist
 
 Before implementing a significant technical choice, ask:
+
 - [ ] Will this affect how we build 3+ future features?
 - [ ] Would a new developer ask "why did we do this?"
 - [ ] Is this hard to reverse (>4 hours of work)?
@@ -671,11 +712,13 @@ If YES to 2+ questions → write an ADR
 ## Code Review
 
 **Use `/code-review` or Task(subagent_type="pragmatic-code-review")** for comprehensive code analysis:
+
 - After completing a significant feature or refactor
 - Before creating a pull request
 - When reviewing complex business logic or architectural changes
 
 The pragmatic code review agent evaluates:
+
 - Architectural design and integrity
 - Functionality and correctness
 - Security (OWASP top 10)
@@ -686,12 +729,14 @@ The pragmatic code review agent evaluates:
 ## Security Review
 
 **Use `/security-review`** for security-focused analysis:
+
 - Before merging PRs with authentication/authorization changes
 - When handling user input, API endpoints, or data processing
 - For any code touching secrets, credentials, or sensitive data
 - Before deploying security-critical features
 
 The security review focuses on:
+
 - Input validation vulnerabilities (SQL injection, XSS, command injection)
 - Authentication and authorization issues
 - Crypto and secrets management
@@ -700,6 +745,7 @@ The security review focuses on:
 ## Design Review
 
 **Use `/design-review` or Task(subagent_type="design-review")** for UI validation:
+
 - Completing significant UI/UX features
 - Before finalizing PRs with visual changes
 - Needing comprehensive accessibility and responsiveness testing
@@ -728,7 +774,7 @@ Requires access to live preview environment, uses Playwright for automated testi
 **IMMEDIATELY after implementing any front-end change:**
 
 1. **Identify what changed** - Review the modified components/pages
-2. **Check dev server URL** - Read `vite.config.ts` for the server port (default: http://localhost:8080)
+2. **Check dev server URL** - Read `vite.config.ts` for the server port (default: <http://localhost:8080>)
 3. **Navigate to affected pages** - Use `mcp__playwright__browser_navigate` to visit each changed view at the correct URL
 4. **Verify design compliance** - Compare against `/docs/design/design-principles-callvault.md` and `/docs/design/brand-guidelines-v3.4.md`
 5. **Validate feature implementation** - Ensure the change fulfills the user's specific request
@@ -741,6 +787,7 @@ This verification ensures changes meet design standards and user requirements.
 ## Comprehensive Design Review
 
 Invoke the `/design-review` command or Task(subagent_type="design-review") for thorough design validation when:
+
 - Completing significant UI/UX features
 - Before finalizing PRs with visual changes
 - Needing comprehensive accessibility and responsiveness testing

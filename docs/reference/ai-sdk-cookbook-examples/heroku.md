@@ -121,6 +121,4 @@ NIM language models can also be used with other AI SDK functions like `generateO
   documentation on NVIDIA Build for specific supported features.
 </Note>
 
----
-title: Heroku
-description: Use a Heroku OpenAI compatible API with the AI SDK.
+<!-- Concatenated content - Heroku section -->

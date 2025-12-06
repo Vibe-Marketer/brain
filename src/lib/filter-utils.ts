@@ -124,7 +124,7 @@ export function syntaxToFilters(syntax: SearchSyntax): Partial<FilterState> {
           filters.dateFrom = new Date(parsed.setHours(0, 0, 0, 0));
           filters.dateTo = new Date(parsed.setHours(23, 59, 59, 999));
         }
-      } catch (e) {
+      } catch {
         // Invalid date, ignore
       }
     }

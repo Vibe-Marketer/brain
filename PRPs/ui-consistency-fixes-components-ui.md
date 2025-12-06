@@ -1,4 +1,5 @@
 # PRP: UI Consistency Fixes - Component Library
+
 **Project Requirements Plan v1.0 - Refactoring**
 
 ---
@@ -8,12 +9,14 @@
 **Feature Goal**: Resolve all UI consistency violations identified in audit to achieve 100% compliance with UI_STANDARDS.md and brand-guidelines-v3.3.md
 
 **Deliverable**:
+
 - 2 immediate fixes (dark mode variant, responsive grid)
 - 9 high-priority layout fixes (flex-1 + min-w-0)
 - 10 medium-priority refactors (long className split)
 - 1 enhancement (Button type="button" default)
 
 **Success Definition**:
+
 - All automated scans from UI_STANDARDS.md return zero violations
 - Components pass design-review agent validation
 - Grade improves from A- (8.5/10) to A+ (10/10)
@@ -27,6 +30,7 @@
 - **Standards Compliance**: UI_STANDARDS.md violations accumulate technical debt
 
 **Business Impact**:
+
 - Dark mode users see broken mac-os-dock component
 - Mobile users see broken date-picker grid layout
 - Developers struggle with 536-character className strings
@@ -35,11 +39,13 @@
 ## What
 
 User-visible behavior changes:
+
 - mac-os-dock displays correctly in dark mode
 - date-range-picker quick select buttons stack properly on mobile
 - No visual changes to other components (internal refactoring only)
 
 Technical requirements:
+
 - Add dark mode variant to 1 component
 - Add responsive breakpoints to 1 grid
 - Add min-w-0 constraint to 9 flex containers
@@ -631,26 +637,32 @@ kill $SERVER_PID
 ## Anti-Patterns to Avoid
 
 ### ❌ DON'T: Add min-w-0 to every flex-1
+
 **WHY**: Only needed when parent contains overflow-x-auto descendants
 **DO**: Use decision tree - verify overflow risk before adding
 
 ### ❌ DON'T: Split className just to hit 120 char limit
+
 **WHY**: Over 150+ chars benefits from splitting, not 121 chars
 **DO**: Split when truly unreadable (200+ chars) or semantically groupable
 
 ### ❌ DON'T: Change visual behavior during refactoring
+
 **WHY**: This is code cleanup, not redesign
 **DO**: Verify compiled output and visual appearance unchanged
 
 ### ❌ DON'T: Skip validation between phases
+
 **WHY**: Catch regressions early, don't compound errors
 **DO**: Run automated scans after every phase completion
 
 ### ❌ DON'T: Add dark mode variants to overlays (bg-black/80)
+
 **WHY**: Overlays intentionally use black for dimming effect
 **DO**: Only add dark variants to component backgrounds, not overlay dims
 
 ### ❌ DON'T: Remove type="button" from existing submit buttons
+
 **WHY**: Breaking change for form submissions
 **DO**: Only add type="button" as default, allow type="submit" override
 
@@ -659,6 +671,7 @@ kill $SERVER_PID
 ## Confidence Score: 9.5/10
 
 **Why High Confidence:**
+
 - ✅ Exact file locations and line numbers provided
 - ✅ Before/after code for every change
 - ✅ Comprehensive validation commands
@@ -668,6 +681,7 @@ kill $SERVER_PID
 - ✅ Extensive documentation and standards reference
 
 **Why Not 10/10:**
+
 - ⚠️ Visual regression testing requires manual review
 - ⚠️ flex-1 + min-w-0 decision requires judgment (provided decision tree)
 - ⚠️ Button type="button" could break edge cases (validated via testing)

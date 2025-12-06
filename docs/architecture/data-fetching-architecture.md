@@ -7,6 +7,7 @@ CallVault uses **TanStack Query v5** as the primary data fetching and caching la
 ## Core Components
 
 ### 1. Query Client Configuration
+
 **Location**: `src/App.tsx`
 
 ```typescript
@@ -72,6 +73,7 @@ queryClient.invalidateQueries({ queryKey: ["call-transcripts", recordingId] });
 ### 3. Caching Behavior
 
 All queries use the **QueryClient defaults** configured in `src/App.tsx`:
+
 - **staleTime**: 1 minute
 - **gcTime**: 5 minutes
 - **refetchOnWindowFocus**: disabled
@@ -90,6 +92,7 @@ Override these in individual queries only when specific behavior is needed (e.g.
 ## API Client Pattern
 
 ### Centralized Edge Function Caller
+
 **Location**: `src/lib/api-client.ts`
 
 ```typescript
@@ -131,6 +134,7 @@ export async function callEdgeFunction<T = any>(
 ```
 
 ### Available API Functions
+
 **Location**: `src/lib/api-client.ts`
 
 | Function | Edge Function | Purpose |
@@ -153,6 +157,7 @@ export async function callEdgeFunction<T = any>(
 ## Query Patterns
 
 ### Basic Query Pattern
+
 **Example**: `src/components/transcripts/TranscriptsTab.tsx`
 
 ```typescript
@@ -175,6 +180,7 @@ const { data: categories = [], isLoading: categoriesLoading } = useQuery({
 ```
 
 ### Dependent Query Pattern
+
 **Example**: `src/components/transcripts/TranscriptsTab.tsx`
 
 ```typescript
@@ -200,6 +206,7 @@ const { data: categoryAssignments = {} } = useQuery({
 ```
 
 ### Analytics Query Pattern
+
 **Example**: `src/hooks/useCallAnalytics.ts`
 
 ```typescript
@@ -220,6 +227,7 @@ export function useCallAnalytics(timeRange: string = '30d') {
 ## Mutation Patterns
 
 ### Standard Mutation with Cache Invalidation
+
 **Example**: `src/components/transcripts/TranscriptsTab.tsx`
 
 ```typescript
@@ -261,6 +269,7 @@ const categorizeMutation = useMutation({
 ```
 
 ### Delete Mutation with Multiple Table Cleanup
+
 **Example**: `src/components/transcripts/TranscriptsTab.tsx`
 
 ```typescript
@@ -342,6 +351,7 @@ onError: (error: any) => {
 ### Query Error Handling
 
 Errors are handled through TanStack Query's built-in error states:
+
 - `isError` flag for conditional rendering
 - `error` object for error details
 - Retry logic configured in QueryClient
@@ -434,31 +444,37 @@ const mutation = useMutation({
 ## Automated Scans
 
 ### Find All TanStack Query Usage
+
 ```bash
 grep -rn "useQuery\|useMutation\|useQueryClient" src/ --include="*.ts" --include="*.tsx"
 ```
 
 ### Find All Query Keys
+
 ```bash
 grep -rn "queryKey:" src/ --include="*.ts" --include="*.tsx"
 ```
 
 ### Find All Cache Invalidations
+
 ```bash
 grep -rn "invalidateQueries" src/ --include="*.ts" --include="*.tsx"
 ```
 
 ### Find Direct Supabase Queries (Outside TanStack Query)
+
 ```bash
 grep -rn "supabase.from" src/ --include="*.ts" --include="*.tsx" | grep -v "useQuery\|useMutation"
 ```
 
 ### Find Manual Fetch Calls (Potential Anti-Pattern)
+
 ```bash
 grep -rn "fetch(" src/ --include="*.ts" --include="*.tsx" | grep -v node_modules
 ```
 
 ### Find Stale Time Settings
+
 ```bash
 grep -rn "staleTime" src/ --include="*.ts" --include="*.tsx"
 ```
@@ -485,12 +501,12 @@ grep -rn "staleTime" src/ --include="*.ts" --include="*.tsx"
 6. **Don't create duplicate queries** for same data
 7. **Don't poll without good reason** - Use refetchInterval sparingly
 
-
 ## Migration Notes
 
 ### Deprecated Patterns (Removed)
 
 The codebase has been cleaned of legacy patterns:
+
 - No manual polling hooks (`usePolling`)
 - No custom ETag caching layer
 - No Socket.IO connections
@@ -506,15 +522,19 @@ The codebase has been cleaned of legacy patterns:
 ## Performance Optimizations
 
 ### Query Deduplication
+
 TanStack Query automatically deduplicates requests with the same query key.
 
 ### Stale-While-Revalidate
+
 Default behavior: serve stale data while fetching fresh data in background.
 
 ### Garbage Collection
+
 Unused queries are removed after gcTime (default: 5 minutes).
 
 ### Retry Logic
+
 Failed queries retry once with exponential backoff (max 30 seconds).
 
 ## Future Considerations

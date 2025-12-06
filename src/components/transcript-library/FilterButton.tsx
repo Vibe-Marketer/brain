@@ -32,7 +32,7 @@ export const FilterButton = forwardRef<HTMLButtonElement, FilterButtonProps>(
     return (
       <Button
         ref={ref}
-        variant={undefined as any}
+        variant="hollow"
         size="sm"
         className={cn(
           "h-8 gap-1.5 text-xs bg-cb-black dark:bg-white text-white dark:text-cb-black hover:bg-cb-hover dark:hover:bg-gray-100 border-none",

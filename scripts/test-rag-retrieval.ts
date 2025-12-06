@@ -237,12 +237,12 @@ function calculatePrecisionAtK(results: RetrievalResult[], testQuery: TestQuery,
 /**
  * Generate embedding using OpenAI text-embedding-3-small
  */
-async function generateQueryEmbedding(text: string, apiKey: string): Promise<number[]> {
+async function generateEmbedding(text: string): Promise<number[]> {
   // Use OpenAI directly for embeddings (OpenRouter doesn't support embeddings)
   const response = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${apiKey}`,
+      'Authorization': `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({

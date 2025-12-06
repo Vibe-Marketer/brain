@@ -63,8 +63,7 @@ This bar, located beneath the editor, contains the key controls for the AI model
 | **Voice Input Button** | An icon-only button with a microphone SVG, used to initiate voice recording or speech-to-text input. | `<div class="px-2 pb-2 cursor-pointer text-body-3 hover:text-heading" data-state="closed" style="opacity: 1; transform: none;">...</div>` |
 | **Kortex AI Hint Bar** | A small, subtle hint bar below the main input box, indicating a keyboard shortcut (`TAB`) to toggle a feature named "Kortex AI". | `<div class="text-dim text-[11px] flex w-full items-center select-none pt-0.5 px-1"><div class="flex w-full items-center select-none transition-opacity duration-200 ease-in-out justify-between"><span>Toggle Kortex AI with <kbd class="px-1 py-0.5 text-[9px] bg-quaternary rounded-md border-thin">TAB</kbd></span></div></div>` |
 
-
-# COMPONENT LEVEL BREAKDOWN AND ACCESS TO REUSABLE PARTS OF THE UI 
+# COMPONENT LEVEL BREAKDOWN AND ACCESS TO REUSABLE PARTS OF THE UI
 
 ***
 
@@ -82,11 +81,13 @@ Here is a comprehensive breakdown of the main parts/components in your "discover
 Floating toolbar appears when you select items, offering bulk actions.
 
 **Features:**  
+
 - Selection counter ("0 selected")
 - Copy, Move, and Delete buttons (SVG icons)
 - "Done" button to exit selection mode
 
 **HTML Block:**  
+
 ```html
 <div class="absolute bottom-0 left-0 flex ... opacity-0 pointer-events-none">
   <div class="...">
@@ -111,11 +112,13 @@ Floating toolbar appears when you select items, offering bulk actions.
 Primary wrapper for everything below, with max width and centering.
 
 **Features:**  
+
 - Responsive width (max 800px)
 - Centered and rounded with a shadow
 - Custom background
 
 **HTML Block:**  
+
 ```html
 <div class="w-full md:max-w-[800px] mx-auto h-full px-4 pb-3 ...">
   <div class="w-full h-full relative">
@@ -132,11 +135,13 @@ Primary wrapper for everything below, with max width and centering.
 Button at the top for adding context or attachments.
 
 **Features:**  
+
 - Plus SVG icon
 - "Add context" label
 - Group/hover visual feedback
 
 **HTML Block:**  
+
 ```html
 <div class="w-full h-full p-2">
   <div class="flex flex-row ...">
@@ -156,12 +161,14 @@ Button at the top for adding context or attachments.
 The main message input area with rich text and mentions.
 
 **Features:**  
+
 - Contenteditable ProseMirror div (`tiptap ProseMirror`)
 - Placeholder: "Ask AI anything, @ to mention"
 - Scrollable with min/max height constraints
 - Spellcheck and empty-state styling
 
 **HTML Block:**  
+
 ```html
 <div class="p-2 w-full h-full min-h-[40px] max-h-[320px] ...">
   <div id="chat-input-editor">
@@ -191,6 +198,7 @@ Bar with action buttons below the editor.
 
 - **kAI Feature Toggle:**  
   Accent button ("kAI" + sparkle icon)  
+
   ```html
   <button ...>
     <div ...>
@@ -202,6 +210,7 @@ Bar with action buttons below the editor.
 
 - **AI Model Selector:**  
   Dropdown for model switching ("Gemini 2 Flash").  
+
   ```html
   <div class="relative flex ...">
     <div ... role="combobox">
@@ -216,6 +225,7 @@ Bar with action buttons below the editor.
 
 - **Web Search Toggle:**  
   Toggle button with globe SVG.  
+
   ```html
   <div class="...">
     <svg><!-- Globe Icon --></svg>
@@ -224,6 +234,7 @@ Bar with action buttons below the editor.
 
 - **Voice Input Button:**  
   Microphone SVG icon, far right.  
+
   ```html
   <div class="flex items-center ...">
     <div ...>
@@ -240,10 +251,12 @@ Bar with action buttons below the editor.
 A footer line showing the keyboard shortcut ("TAB") for toggling Kortex AI.
 
 **Features:**  
+
 - 11px font, dim color
 - Stylized <kbd> for the key
 
 **HTML Block:**  
+
 ```html
 <div class="text-dim text-[11px] flex w-full items-center select-none pt-0.5 px-1">
   <div class="flex w-full ...">

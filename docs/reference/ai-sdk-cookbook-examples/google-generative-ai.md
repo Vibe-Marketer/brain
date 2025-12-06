@@ -136,6 +136,4 @@ The LMNT provider accepts the following options:
 | `aurora`   | <Check size={18} /> |
 | `blizzard` | <Check size={18} /> |
 
----
-title: Google Generative AI
-description: Learn how to use Google Generative AI Provider.
+<!-- Concatenated content - Google Generative AI section -->

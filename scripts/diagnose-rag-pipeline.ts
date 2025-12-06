@@ -322,27 +322,31 @@ async function testHybridSearch(userId: string): Promise<void> {
     log('PASS', 'HybridSearch', `Returned ${results.length} results`);
 
     // Analyze score distribution
-    const scores = results.map((r: any) => ({
-      rrf: r.rrf_score,
-      semantic: r.similarity_score,
-      fts: r.fts_rank,
-    }));
+    const scores = results.map((r: unknown) => {
+      const result = r as Record<string, unknown>;
+      return {
+        rrf: result.rrf_score as number,
+        semantic: result.similarity_score as number,
+        fts: result.fts_rank as number,
+      };
+    });
 
     log('INFO', 'HybridSearch', 'Score distribution:', {
-      rrf_range: [Math.min(...scores.map((s: any) => s.rrf)), Math.max(...scores.map((s: any) => s.rrf))],
-      semantic_range: [Math.min(...scores.map((s: any) => s.semantic)), Math.max(...scores.map((s: any) => s.semantic))],
+      rrf_range: [Math.min(...scores.map(s => s.rrf)), Math.max(...scores.map(s => s.rrf))],
+      semantic_range: [Math.min(...scores.map(s => s.semantic)), Math.max(...scores.map(s => s.semantic))],
     });
 
     // Log top 3 results for inspection
     console.log('\n  Top 3 Results:');
-    results.slice(0, 3).forEach((r: any, i: number) => {
-      console.log(`  ${i + 1}. [RRF: ${r.rrf_score?.toFixed(4)}] "${r.call_title}" - ${r.chunk_text?.substring(0, 100)}...`);
-      console.log(`     Topics: ${r.topics?.join(', ') || 'none'} | Sentiment: ${r.sentiment || 'none'}`);
+    results.slice(0, 3).forEach((r: unknown, i: number) => {
+      const result = r as Record<string, unknown>;
+      console.log(`  ${i + 1}. [RRF: ${(result.rrf_score as number)?.toFixed(4)}] "${result.call_title}" - ${(result.chunk_text as string)?.substring(0, 100)}...`);
+      console.log(`     Topics: ${(result.topics as string[])?.join(', ') || 'none'} | Sentiment: ${result.sentiment || 'none'}`);
     });
 
     // Check if semantic and FTS both contributed
-    const hasSemanticScores = results.some((r: any) => r.similarity_score > 0);
-    const hasFTSScores = results.some((r: any) => r.fts_rank > 0);
+    const hasSemanticScores = results.some((r: unknown) => (r as Record<string, unknown>).similarity_score as number > 0);
+    const hasFTSScores = results.some((r: unknown) => (r as Record<string, unknown>).fts_rank as number > 0);
 
     if (hasSemanticScores && hasFTSScores) {
       log('PASS', 'HybridSearch', 'Both semantic and full-text search contributed to results');
@@ -444,7 +448,7 @@ async function testChatPersistence(userId: string): Promise<void> {
         const sample = messagesWithParts[0];
         log('INFO', 'ChatPersistence', 'Sample message parts structure:', {
           partsCount: Array.isArray(sample.parts) ? sample.parts.length : 'not array',
-          partTypes: Array.isArray(sample.parts) ? sample.parts.map((p: any) => p.type) : [],
+          partTypes: Array.isArray(sample.parts) ? (sample.parts as unknown[]).map((p: unknown) => (p as Record<string, unknown>).type) : [],
         });
       }
     }

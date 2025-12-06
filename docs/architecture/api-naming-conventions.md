@@ -7,6 +7,7 @@ This document describes the actual naming conventions used throughout CallVault'
 ## Backend: Supabase Edge Functions
 
 ### Function Folder Naming
+
 **Reference**: `supabase/functions/*/index.ts`
 
 All Edge Functions use **kebab-case** for folder names:
@@ -14,6 +15,7 @@ All Edge Functions use **kebab-case** for folder names:
 **Current Functions (32 total)**:
 
 **Core Meeting Operations**:
+
 - `fetch-meetings` - Fetch meetings from Fathom
 - `fetch-single-meeting` - Fetch single meeting details
 - `sync-meetings` - Sync meetings to database
@@ -22,6 +24,7 @@ All Edge Functions use **kebab-case** for folder names:
 - `delete-all-calls` - Delete all synced calls
 
 **AI Processing**:
+
 - `process-call-ai` - AI processing for calls
 - `process-ai-jobs` - Process queued AI jobs
 - `ai-analyze-transcripts` - Analyze transcripts with AI
@@ -29,11 +32,13 @@ All Edge Functions use **kebab-case** for folder names:
 - `generate-call-title` - Generate titles with AI
 
 **OAuth/Auth**:
+
 - `fathom-oauth-url` - Get OAuth URL
 - `fathom-oauth-callback` - Handle OAuth callback
 - `fathom-oauth-refresh` - Refresh OAuth tokens
 
 **Configuration**:
+
 - `get-config-status` - Get configuration status
 - `save-fathom-key` - Save API key
 - `save-host-email` - Save host email
@@ -41,6 +46,7 @@ All Edge Functions use **kebab-case** for folder names:
 - `create-fathom-webhook` - Create webhook via OAuth
 
 **Testing**:
+
 - `test-fathom-connection` - Test API connection
 - `test-oauth-connection` - Test OAuth connection
 - `test-webhook` - Test webhook
@@ -50,19 +56,23 @@ All Edge Functions use **kebab-case** for folder names:
 - `test-env-vars` - Test environment variables
 
 **Data Operations**:
+
 - `delete-account` - Delete user account
 - `enrich-speaker-emails` - Enrich email data
 
 **Delivery/Sharing**:
+
 - `deliver-via-email` - Email delivery
 - `deliver-to-slack` - Slack delivery
 - `create-share-link` - Create sharing links
 - `upload-knowledge-file` - Upload files
 
 ### Handler Pattern
+
 **Reference**: `supabase/functions/webhook/index.ts`
 
 All Edge Functions use the standard Deno handler pattern:
+
 ```typescript
 Deno.serve(async (req) => {
   // CORS handling
@@ -85,9 +95,11 @@ Deno.serve(async (req) => {
 ```
 
 ### Internal Function Naming
+
 **Reference**: `supabase/functions/webhook/index.ts`
 
 Internal functions within Edge Functions use **camelCase**:
+
 - `processMeetingWebhook()` - Main processing logic
 - `verifyWebhookSignature()` - Signature verification
 - `handleRecordingCompleted()` - Event handlers
@@ -97,6 +109,7 @@ Internal functions within Edge Functions use **camelCase**:
 ## Frontend API Client
 
 ### Service Function Pattern
+
 **Reference**: `src/lib/api-client.ts`
 
 The API client exports individual functions (not a service object) using **camelCase**:
@@ -108,41 +121,52 @@ export async function functionName(params): Promise<ApiResponse<T>> {
 ```
 
 ### Standard Function Names
+
 **Reference**: `src/lib/api-client.ts`
 
 **Fetch Operations** (retrieve data):
+
 - `fetchMeetings(params)` - Get meetings list
 - `fetchSingleMeeting(recordingId)` - Get single meeting
 
 **Sync Operations** (synchronize data):
+
 - `syncMeetings(recordingIds)` - Sync meetings to database
 
 **Test Operations** (verify connections):
+
 - `testFathomConnection()` - Test API connection
 
 **Save Operations** (persist settings):
+
 - `saveFathomKey(apiKey)` - Save API key
 - `saveWebhookSecret(secret)` - Save webhook secret
 - `saveHostEmail(email)` - Save host email
 
 **Get Operations** (retrieve config/status):
+
 - `getConfigStatus()` - Get configuration status
 - `getFathomOAuthUrl()` - Get OAuth URL
 
 **OAuth Operations**:
+
 - `completeFathomOAuth(code, state)` - Complete OAuth flow
 - `refreshFathomOAuth()` - Refresh tokens
 
 **Create Operations**:
+
 - `createFathomWebhook()` - Create webhook
 
 **Delete Operations**:
+
 - `deleteAllCalls()` - Delete all calls
 
 **Resync Operations**:
+
 - `resyncAllCalls()` - Re-sync all calls
 
 ### Response Type Pattern
+
 **Reference**: `src/lib/api-client.ts`
 
 ```typescript
@@ -155,9 +179,11 @@ export interface ApiResponse<T = any> {
 ## React Hook Naming
 
 ### Custom Hook Files
+
 **Reference**: `src/hooks/`
 
 Hook files use **camelCase** with `use` prefix (7 hooks total):
+
 - `useMeetingsSync.ts` - Meeting sync functionality
 - `useCallAnalytics.ts` - Call analytics queries
 - `useCategorySync.ts` - Category synchronization
@@ -168,9 +194,11 @@ Hook files use **camelCase** with `use` prefix (7 hooks total):
 **Exception**: `use-toast.ts` uses kebab-case (shadcn pattern)
 
 ### Hook Function Patterns
+
 **Reference**: `src/hooks/useMeetingsSync.ts`
 
 Hooks use **camelCase** function names with `use` prefix:
+
 ```typescript
 export function useMeetingsSync() {
   // State and logic
@@ -181,6 +209,7 @@ export function useMeetingsSync() {
 ```
 
 **React Query Hooks**:
+
 ```typescript
 export function useCallAnalytics(timeRange: string = '30d') {
   return useQuery({
@@ -193,9 +222,11 @@ export function useCallAnalytics(timeRange: string = '30d') {
 ```
 
 ### Internal Functions in Hooks
+
 **Reference**: `src/hooks/useMeetingsSync.ts`
 
 Internal functions within hooks use **camelCase**:
+
 - `loadHostEmail()` - Load data
 - `loadCategoryAssignments()` - Load assignments
 - `checkSyncStatus()` - Check status
@@ -205,28 +236,34 @@ Internal functions within hooks use **camelCase**:
 - `downloadUnsyncedTranscript()` - Download action
 
 ### State Variable Naming
+
 **Reference**: `src/hooks/useMeetingsSync.ts`
 
 State variables follow patterns:
 
 **Boolean States**:
+
 - `loading` / `isLoading` - Generic loading
 - `syncing` / `isSyncing` - Specific operation
 
 **Data States**:
+
 - `meetings` - Entity plural
 - `hostEmail` - Specific value
 - `syncProgress` - Progress object
 
 **Set States** (for tracking multiple items):
+
 - `syncingMeetings` - `Set<string>`
 
 **Record States** (for mappings):
+
 - `perMeetingCategories` - `Record<string, string>`
 
 ## Query Key Conventions
 
 ### String Array Pattern
+
 **Reference**: `src/components/transcripts/TranscriptsTab.tsx`, `src/components/CallDetailDialog.tsx`
 
 Query keys use **descriptive string arrays** defined inline:
@@ -260,9 +297,11 @@ queryKey: ["call-analytics", timeRange]
 ## Type Naming Conventions
 
 ### Interface Patterns
+
 **Reference**: `src/hooks/useMeetingsSync.ts`, `src/hooks/useCallAnalytics.ts`
 
 **Entity Types** (PascalCase):
+
 ```typescript
 export interface Meeting {
   recording_id: string;
@@ -295,6 +334,7 @@ interface CallAnalytics {
 ```
 
 **Response Types**:
+
 ```typescript
 export interface ApiResponse<T = any> {
   data?: T;
@@ -303,9 +343,11 @@ export interface ApiResponse<T = any> {
 ```
 
 ### Property Naming
+
 Database fields use **snake_case**, JavaScript properties use **camelCase**:
 
 **Database Fields** (snake_case):
+
 - `recording_id`
 - `created_at`
 - `recording_start_time`
@@ -314,6 +356,7 @@ Database fields use **snake_case**, JavaScript properties use **camelCase**:
 - `user_id`
 
 **Computed Properties** (camelCase):
+
 - `totalCalls`
 - `participationRate`
 - `avgDuration`
@@ -322,9 +365,11 @@ Database fields use **snake_case**, JavaScript properties use **camelCase**:
 ## Page Component Naming
 
 ### Page Files
+
 **Reference**: `src/pages/`
 
 Page components use **PascalCase** (5 pages total):
+
 - `Login.tsx` - Login page
 - `Settings.tsx` - Settings page
 - `TranscriptsNew.tsx` - New transcripts view
@@ -334,6 +379,7 @@ Page components use **PascalCase** (5 pages total):
 ## Integration Patterns
 
 ### Supabase Client
+
 **Reference**: `src/integrations/supabase/client.ts`
 
 ```typescript
@@ -347,6 +393,7 @@ export const supabase = createClient<Database>(
 ```
 
 ### Import Pattern
+
 ```typescript
 import { supabase } from "@/integrations/supabase/client";
 ```
@@ -354,9 +401,11 @@ import { supabase } from "@/integrations/supabase/client";
 ## Utility Library Naming
 
 ### Library Files
+
 **Reference**: `src/lib/`
 
 Utility files use **kebab-case** or **camelCase** (11 files total):
+
 - `api-client.ts` - API client functions
 - `fathom.ts` - Fathom API utilities
 - `logger.ts` - Logging utilities
@@ -369,9 +418,11 @@ Utility files use **kebab-case** or **camelCase** (11 files total):
 - `utils.ts` - General utilities
 
 ### Utility Function Patterns
+
 **Reference**: `src/lib/fathom.ts`
 
 Export individual functions:
+
 ```typescript
 export function retryWithBackoff<T>(fn: () => Promise<T>, maxRetries: number): Promise<T>
 export function getErrorMessage(error: any): string
@@ -380,9 +431,11 @@ export function getErrorMessage(error: any): string
 ## File Organization
 
 ### Test Files
+
 **Location**: `src/lib/__tests__/`
 
 Test files use pattern: `{filename}.test.ts`
+
 - `filter-utils.test.ts`
 - `ai-agent-system.test.ts`
 
@@ -430,6 +483,7 @@ Test files use pattern: `{filename}.test.ts`
 ## Best Practices
 
 ### Do Follow
+
 - Use kebab-case for all Edge Function folder names
 - Use camelCase for all JavaScript/TypeScript functions
 - Use PascalCase for types, interfaces, and React components
@@ -438,6 +492,7 @@ Test files use pattern: `{filename}.test.ts`
 - Export individual functions from utility modules
 
 ### Don't Do
+
 - Don't use PascalCase for function or file names (except React components or exported types)
 - Don't mix casing conventions within the same pattern
 - Don't use abbreviations unless universally understood
@@ -452,27 +507,35 @@ Test files use pattern: `{filename}.test.ts`
 ### Naming Pattern Regexes
 
 **Edge Function folders** (must match):
+
 ```regex
 ^[a-z0-9]+(-[a-z0-9]+)*$
 ```
+
 All lowercase, kebab-case, no spaces or capitals.
 
 **Frontend utility files** (must match):
+
 ```regex
 ^[a-z][a-zA-Z0-9]*\.ts$|^[a-z]+-[a-z]+(-[a-z]+)*\.ts$
 ```
+
 Either camelCase or kebab-case with `.ts` extension.
 
 **React components** (must match):
+
 ```regex
 ^[A-Z][a-zA-Z0-9]*\.tsx$
 ```
+
 PascalCase with `.tsx` extension.
 
 **Hook files** (must match):
+
 ```regex
 ^use[A-Z][a-zA-Z0-9]*\.ts$|^use-[a-z]+(-[a-z]+)*\.ts$
 ```
+
 Either `useCamelCase.ts` or `use-kebab-case.ts`.
 
 ### ESLint Integration
@@ -482,6 +545,7 @@ Use consistent query key patterns. Follow existing conventions in `TranscriptsTa
 ## Common Patterns Reference
 
 For implementation examples, see:
+
 - **Edge Functions**: `supabase/functions/*/index.ts`
 - **API Client**: `src/lib/api-client.ts`
 - **Hooks**: `src/hooks/useMeetingsSync.ts`
@@ -490,6 +554,7 @@ For implementation examples, see:
 ## See Also
 
 Related documentation for complete pattern enforcement:
+
 - **Brand Guidelines**: `BRAND_GUIDELINES.md` - Visual and UI naming conventions
 - **Design Principles**: `docs/design/design-principles-conversion-brain.md` - Component design patterns
 - **Supabase Types**: `src/integrations/supabase/types.ts` - Database type definitions

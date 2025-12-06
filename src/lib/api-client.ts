@@ -59,7 +59,7 @@ export async function callEdgeFunction<T = unknown>(
       const data = await makeRequest();
       return { data };
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     const errorMessage = getErrorMessage(error);
     logger.error(`Failed to call ${functionName}`, error);
     return { error: errorMessage };

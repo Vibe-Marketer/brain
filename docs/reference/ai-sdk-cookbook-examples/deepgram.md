@@ -1,61 +1,56 @@
 ---
+title: Deepgram
+description: Learn how to use the Deepgram provider for the AI SDK.
+---
 
-# DeepInfra Provider
+# Deepgram Provider
 
-The [DeepInfra](https://deepinfra.com) provider contains support for state-of-the-art models through the DeepInfra API, including Llama 3, Mixtral, Qwen, and many other popular open-source models.
+[Deepgram](https://deepgram.com/) is a powerful speech recognition platform that offers state-of-the-art transcription capabilities through its API.
 
 ## Setup
 
-The DeepInfra provider is available via the `@ai-sdk/deepinfra` module. You can install it with:
+The Deepgram provider is available via the `@ai-sdk/deepgram` module. You can install it with:
 
 <Tabs items={['pnpm', 'npm', 'yarn', 'bun']}>
   <Tab>
-    <Snippet text="pnpm add @ai-sdk/deepinfra" dark />
+    <Snippet text="pnpm add @ai-sdk/deepgram" dark />
   </Tab>
   <Tab>
-    <Snippet text="npm install @ai-sdk/deepinfra" dark />
+    <Snippet text="npm install @ai-sdk/deepgram" dark />
   </Tab>
   <Tab>
-    <Snippet text="yarn add @ai-sdk/deepinfra" dark />
+    <Snippet text="yarn add @ai-sdk/deepgram" dark />
   </Tab>
-
   <Tab>
-    <Snippet text="bun add @ai-sdk/deepinfra" dark />
+    <Snippet text="bun add @ai-sdk/deepgram" dark />
   </Tab>
 </Tabs>
 
 ## Provider Instance
 
-You can import the default provider instance `deepinfra` from `@ai-sdk/deepinfra`:
+You can import the default provider instance `deepgram` from `@ai-sdk/deepgram`:
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
+import { deepgram } from '@ai-sdk/deepgram';
 ```
 
-If you need a customized setup, you can import `createDeepInfra` from `@ai-sdk/deepinfra` and create a provider instance with your settings:
+If you need a customized setup, you can import `createDeepgram` from `@ai-sdk/deepgram` and create a provider instance with your settings:
 
 ```ts
-import { createDeepInfra } from '@ai-sdk/deepinfra';
+import { createDeepgram } from '@ai-sdk/deepgram';
 
-const deepinfra = createDeepInfra({
-  apiKey: process.env.DEEPINFRA_API_KEY ?? '',
+const deepgram = createDeepgram({
+  // custom settings, e.g.
+  fetch: customFetch,
 });
 ```
 
-You can use the following optional settings to customize the DeepInfra provider instance:
-
-- **baseURL** _string_
-
-  Use a different URL prefix for API calls, e.g. to use proxy servers.
-  The default prefix is `https://api.deepinfra.com/v1`.
-
-  Note: Language models and embeddings use OpenAI-compatible endpoints at `{baseURL}/openai`,
-  while image models use `{baseURL}/inference`.
+You can use the following optional settings to customize the Deepgram provider instance:
 
 - **apiKey** _string_
 
-  API key that is being sent using the `Authorization` header. It defaults to
-  the `DEEPINFRA_API_KEY` environment variable.
+  API key that is being sent using the `Authorization` header.
+  It defaults to the `DEEPGRAM_API_KEY` environment variable.
 
 - **headers** _Record&lt;string,string&gt;_
 
@@ -68,164 +63,97 @@ You can use the following optional settings to customize the DeepInfra provider 
   You can use it as a middleware to intercept requests,
   or to provide a custom fetch implementation for e.g. testing.
 
-## Language Models
+## Transcription Models
 
-You can create language models using a provider instance. The first argument is the model ID, for example:
+You can create models that call the [Deepgram transcription API](https://developers.deepgram.com/docs/getting-started-with-pre-recorded-audio)
+using the `.transcription()` factory method.
+
+The first argument is the model id e.g. `nova-2`.
 
 ```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
-import { generateText } from 'ai';
+const model = deepgram.transcription('nova-2');
+```
 
-const { text } = await generateText({
-  model: deepinfra('meta-llama/Meta-Llama-3.1-70B-Instruct'),
-  prompt: 'Write a vegetarian lasagna recipe for 4 people.',
+You can also pass additional provider-specific options using the `providerOptions` argument.
+
+```ts
+import { experimental_transcribe as transcribe } from 'ai';
+import { deepgram } from '@ai-sdk/deepgram';
+import { readFile } from 'fs/promises';
+
+const result = await transcribe({
+  model: deepgram.transcription('nova-2'),
+  audio: await readFile('audio.mp3'),
+  providerOptions: { deepgram: { language: 'en' } },
 });
 ```
 
-DeepInfra language models can also be used in the `streamText` function (see [AI SDK Core](/docs/ai-sdk-core)).
+The following provider options are available:
 
-## Model Capabilities
+- **audioStartAt** _number_
 
-| Model                                               | Image Input         | Object Generation   | Tool Usage          | Tool Streaming      |
-| --------------------------------------------------- | ------------------- | ------------------- | ------------------- | ------------------- |
-| `meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8` | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta-llama/Llama-4-Scout-17B-16E-Instruct`         | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta-llama/Llama-3.3-70B-Instruct-Turbo`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Llama-3.3-70B-Instruct`                 | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Meta-Llama-3.1-405B-Instruct`           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Meta-Llama-3.1-70B-Instruct-Turbo`      | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Meta-Llama-3.1-70B-Instruct`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo`       | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `meta-llama/Meta-Llama-3.1-8B-Instruct`             | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `meta-llama/Llama-3.2-11B-Vision-Instruct`          | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `meta-llama/Llama-3.2-90B-Vision-Instruct`          | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `mistralai/Mixtral-8x7B-Instruct-v0.1`              | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `deepseek-ai/DeepSeek-V3`                           | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `deepseek-ai/DeepSeek-R1`                           | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `deepseek-ai/DeepSeek-R1-Distill-Llama-70B`         | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `deepseek-ai/DeepSeek-R1-Turbo`                     | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `nvidia/Llama-3.1-Nemotron-70B-Instruct`            | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Cross size={18} /> |
-| `Qwen/Qwen2-7B-Instruct`                            | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `Qwen/Qwen2.5-72B-Instruct`                         | <Cross size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
-| `Qwen/Qwen2.5-Coder-32B-Instruct`                   | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `Qwen/QwQ-32B-Preview`                              | <Cross size={18} /> | <Check size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `google/codegemma-7b-it`                            | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `google/gemma-2-9b-it`                              | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
-| `microsoft/WizardLM-2-8x22B`                        | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> | <Cross size={18} /> |
+  Start time of the audio in milliseconds.
+  Optional.
 
-<Note>
-  The table above lists popular models. Please see the [DeepInfra
-  docs](https://deepinfra.com) for a full list of available models. You can also
-  pass any available provider model ID as a string if needed.
-</Note>
+- **audioEndAt** _number_
 
-## Image Models
+  End time of the audio in milliseconds.
+  Optional.
 
-You can create DeepInfra image models using the `.image()` factory method.
-For more on image generation with the AI SDK see [generateImage()](/docs/reference/ai-sdk-core/generate-image).
+- **language** _string_
 
-```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
-import { experimental_generateImage as generateImage } from 'ai';
+  BCP-47 language tag that hints at the primary spoken language.
+  Optional.
 
-const { image } = await generateImage({
-  model: deepinfra.image('stabilityai/sd3.5'),
-  prompt: 'A futuristic cityscape at sunset',
-  aspectRatio: '16:9',
-});
-```
+- **smart_format** _boolean_
 
-<Note>
-  Model support for `size` and `aspectRatio` parameters varies by model. Please
-  check the individual model documentation on [DeepInfra's models
-  page](https://deepinfra.com/models/text-to-image) for supported options and
-  additional parameters.
-</Note>
+  Whether to apply additional formatting to improve readability.
+  Optional.
 
-### Model-specific options
+- **punctuate** _boolean_
 
-You can pass model-specific parameters using the `providerOptions.deepinfra` field:
+  Whether to add punctuation to the transcript.
+  Optional.
 
-```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
-import { experimental_generateImage as generateImage } from 'ai';
+- **diarize** _boolean_
 
-const { image } = await generateImage({
-  model: deepinfra.image('stabilityai/sd3.5'),
-  prompt: 'A futuristic cityscape at sunset',
-  aspectRatio: '16:9',
-  providerOptions: {
-    deepinfra: {
-      num_inference_steps: 30, // Control the number of denoising steps (1-50)
-    },
-  },
-});
-```
+  Whether to identify different speakers in the audio.
+  Optional.
+
+- **paragraphs** _boolean_
+
+  Whether to split the transcript into paragraphs.
+  Optional.
+
+- **utterances** _boolean_
+
+  Whether to split the transcript into utterances.
+  Optional.
+
+- **detect_topics** _boolean_
+
+  Whether to detect topics in the transcript.
+  Optional.
+
+- **detect_entities** _boolean_
+
+  Whether to detect entities in the transcript.
+  Optional.
+
+- **summarize** _boolean or string_
+
+  Whether to generate a summary. Can be `true` or a string like 'v2'.
+  Optional.
 
 ### Model Capabilities
 
-For models supporting aspect ratios, the following ratios are typically supported:
-`1:1 (default), 16:9, 1:9, 3:2, 2:3, 4:5, 5:4, 9:16, 9:21`
-
-For models supporting size parameters, dimensions must typically be:
-
-- Multiples of 32
-- Width and height between 256 and 1440 pixels
-- Default size is 1024x1024
-
-| Model                              | Dimensions Specification | Notes                                                    |
-| ---------------------------------- | ------------------------ | -------------------------------------------------------- |
-| `stabilityai/sd3.5`                | Aspect Ratio             | Premium quality base model, 8B parameters                |
-| `black-forest-labs/FLUX-1.1-pro`   | Size                     | Latest state-of-art model with superior prompt following |
-| `black-forest-labs/FLUX-1-schnell` | Size                     | Fast generation in 1-4 steps                             |
-| `black-forest-labs/FLUX-1-dev`     | Size                     | Optimized for anatomical accuracy                        |
-| `black-forest-labs/FLUX-pro`       | Size                     | Flagship Flux model                                      |
-| `stabilityai/sd3.5-medium`         | Aspect Ratio             | Balanced 2.5B parameter model                            |
-| `stabilityai/sdxl-turbo`           | Aspect Ratio             | Optimized for fast generation                            |
-
-For more details and pricing information, see the [DeepInfra text-to-image models page](https://deepinfra.com/models/text-to-image).
-
-## Embedding Models
-
-You can create DeepInfra embedding models using the `.textEmbedding()` factory method.
-For more on embedding models with the AI SDK see [embed()](/docs/reference/ai-sdk-core/embed).
-
-```ts
-import { deepinfra } from '@ai-sdk/deepinfra';
-import { embed } from 'ai';
-
-const { embedding } = await embed({
-  model: deepinfra.textEmbedding('BAAI/bge-large-en-v1.5'),
-  value: 'sunny day at the beach',
-});
-```
-
-### Model Capabilities
-
-| Model                                                 | Dimensions | Max Tokens |
-| ----------------------------------------------------- | ---------- | ---------- |
-| `BAAI/bge-base-en-v1.5`                               | 768        | 512        |
-| `BAAI/bge-large-en-v1.5`                              | 1024       | 512        |
-| `BAAI/bge-m3`                                         | 1024       | 8192       |
-| `intfloat/e5-base-v2`                                 | 768        | 512        |
-| `intfloat/e5-large-v2`                                | 1024       | 512        |
-| `intfloat/multilingual-e5-large`                      | 1024       | 512        |
-| `sentence-transformers/all-MiniLM-L12-v2`             | 384        | 256        |
-| `sentence-transformers/all-MiniLM-L6-v2`              | 384        | 256        |
-| `sentence-transformers/all-mpnet-base-v2`             | 768        | 384        |
-| `sentence-transformers/clip-ViT-B-32`                 | 512        | 77         |
-| `sentence-transformers/clip-ViT-B-32-multilingual-v1` | 512        | 77         |
-| `sentence-transformers/multi-qa-mpnet-base-dot-v1`    | 768        | 512        |
-| `sentence-transformers/paraphrase-MiniLM-L6-v2`       | 384        | 128        |
-| `shibing624/text2vec-base-chinese`                    | 768        | 512        |
-| `thenlper/gte-base`                                   | 768        | 512        |
-| `thenlper/gte-large`                                  | 1024       | 512        |
+| Model    | Transcription       | Duration            | Segments            | Language            |
+| -------- | ------------------- | ------------------- | ------------------- | ------------------- |
+| `nova-2` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `nova`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
+| `base`   | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
 <Note>
-  For a complete list of available embedding models, see the [DeepInfra
-  embeddings page](https://deepinfra.com/models/embeddings).
+  For a complete list of available models, see the [Deepgram
+  models page](https://developers.deepgram.com/docs/model).
 </Note>
-
----
-title: Deepgram
-description: Learn how to use the Deepgram provider for the AI SDK.

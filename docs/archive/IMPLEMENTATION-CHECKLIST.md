@@ -15,16 +15,21 @@ This checklist guides you through implementing the complete design token system 
 ## ✅ PHASE 1: Setup Token System (30 minutes)
 
 ### Step 1.1: Backup Current File
+
 ```bash
 cp src/index.css src/index-BACKUP.css
 ```
+
 **Status:** [ ] Complete
 
 ### Step 1.2: Replace index.css
+
 ```bash
 mv src/index-UPDATED.css src/index.css
 ```
+
 **What this does:**
+
 - Adds button token system (--btn-bg-hollow-light, --btn-hover-hollow-light, etc.)
 - Adds utility classes (.btn-hollow, .btn-ghost, .btn-icon-sm, etc.)
 - Organizes all tokens in single source of truth
@@ -32,16 +37,20 @@ mv src/index-UPDATED.css src/index.css
 **Status:** [ ] Complete
 
 ### Step 1.3: Restart Dev Server
+
 ```bash
 # Stop current server (Ctrl+C)
 npm run dev
 ```
+
 **Why:** Tailwind needs to reprocess the new CSS variables
 
 **Status:** [ ] Complete
 
 ### Step 1.4: Verify Tokens Loaded
+
 Open browser console and check:
+
 ```javascript
 getComputedStyle(document.documentElement).getPropertyValue('--btn-hover-hollow-light')
 // Should return: " 0 0% 97%"
@@ -54,17 +63,21 @@ getComputedStyle(document.documentElement).getPropertyValue('--btn-hover-hollow-
 ## ✅ PHASE 2: Run Migration Script (15 minutes)
 
 ### Step 2.1: Make Script Executable
+
 ```bash
 chmod +x scripts/migrate-to-tokens.sh
 ```
+
 **Status:** [ ] Complete
 
 ### Step 2.2: Run Migration
+
 ```bash
 ./scripts/migrate-to-tokens.sh
 ```
 
 **What it does:**
+
 - Replaces `hover:bg-cb-ink` → `hover:bg-cb-hover` (fixes BLACK hover)
 - Replaces `#111111` → `bg-cb-ink` or `text-cb-ink`
 - Replaces `#F8F8F8` → `bg-cb-hover`
@@ -76,11 +89,13 @@ chmod +x scripts/migrate-to-tokens.sh
 **Status:** [ ] Complete
 
 ### Step 2.3: Review Changes
+
 ```bash
 git diff src/
 ```
 
 **Check for:**
+
 - [ ] No `hover:bg-cb-ink` remains (BLACK → light gray)
 - [ ] Reduced inline hex colors
 - [ ] No breaking changes to class names
@@ -92,27 +107,33 @@ git diff src/
 ## ✅ PHASE 3: Visual Testing (30 minutes)
 
 ### Step 3.1: Test Pagination Buttons
-**URL:** http://localhost:5173/library (or your transcripts page)
+
+**URL:** <http://localhost:5173/library> (or your transcripts page)
 
 **Test:**
+
 - [ ] Pagination arrows (< >) have visible border
 - [ ] Hover state is LIGHT GRAY (not black)
 - [ ] Dark mode: border visible, light gray hover
 - [ ] Focus state: vibe green outline
 
 ### Step 3.2: Test Table Icon Buttons
+
 **Same URL**
 
 **Test:**
+
 - [ ] View/Edit/Download icons have NO border
 - [ ] Hover state is light gray (transparent → light gray)
 - [ ] Icons are properly sized (responsive)
 - [ ] Dark mode works correctly
 
 ### Step 3.3: Test Table Badge Buttons
+
 **Same URL**
 
 **Test:**
+
 - [ ] Participant count button has border
 - [ ] White background in light mode
 - [ ] Icon + number display together
@@ -120,18 +141,22 @@ git diff src/
 - [ ] Dark mode: #202020 background, border visible
 
 ### Step 3.4: Test Search Button
+
 **Check any page with search**
 
 **Test:**
+
 - [ ] Search icon button has border
 - [ ] White background
 - [ ] Light gray hover (not black)
 - [ ] Dark mode works
 
 ### Step 3.5: Test Primary/Secondary Buttons
+
 **Check Settings page or any modals**
 
 **Test:**
+
 - [ ] Primary buttons (Save/Submit) have slate gradient
 - [ ] Secondary buttons (Cancel) have border + white bg
 - [ ] Destructive buttons (Delete) have red gradient
@@ -197,6 +222,7 @@ variant?: "default" | "destructive" | "hollow" | "link" | "ghost";
 Replace the entire icon section with the code from `BUTTON-CODE-BUGS.md` (Step 3)
 
 **Key change:**
+
 ```typescript
 // FROM:
 'hover:bg-cb-ink'  // BLACK
@@ -227,11 +253,13 @@ See `BUTTON-CODE-BUGS.md` for complete ghost variant code.
 **File:** `src/components/transcript-library/TranscriptTable.tsx`
 
 Find all instances of:
+
 ```tsx
 <button className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex...">
 ```
 
 Replace with:
+
 ```tsx
 <Button variant="ghost" size="icon-sm">
 ```
@@ -291,6 +319,7 @@ find src -name "*.tsx" -type f -exec sed -i '' 's/variant="secondary"/variant="h
 ### Step 6.2: Update .eslintrc.cjs
 
 Add at the end:
+
 ```javascript
 module.exports = {
   // ... existing config
@@ -332,6 +361,7 @@ grep -r "bg-\[#" src/
 ### Step 7.2: Full Browser Test
 
 Test all pages:
+
 - [ ] /library (transcripts page)
 - [ ] /settings
 - [ ] Any modals/dialogs
@@ -342,6 +372,7 @@ Test all pages:
 ### Step 7.3: Check Console for Errors
 
 Open browser console:
+
 - [ ] No errors
 - [ ] No warnings about unknown classes
 
@@ -396,6 +427,7 @@ git push origin main
 After implementation, verify:
 
 ### Visual
+
 - [ ] No buttons turn BLACK on hover
 - [ ] Pagination buttons have borders
 - [ ] Table icon buttons have NO borders
@@ -403,12 +435,14 @@ After implementation, verify:
 - [ ] Dark mode works correctly throughout
 
 ### Code
+
 - [ ] Zero `hover:bg-cb-ink` in codebase
 - [ ] Zero or minimal inline hex colors
 - [ ] All buttons use token classes
 - [ ] ESLint passes (no inline color warnings)
 
 ### Architecture
+
 - [ ] All colors defined in `index.css`
 - [ ] Changes to colors happen in ONE place
 - [ ] No more unique inline implementations per component

@@ -1,4 +1,5 @@
 # PRP: AI Chat & Semantic Search System
+
 **Enhanced Product Requirements Plan v2.2 - Self-Contained with Vercel AI SDK**
 
 ---
@@ -8,6 +9,7 @@
 **Feature Goal**: Build a production-ready ChatGPT/Kortex-style AI chat interface at `/chat` route that enables users to have intelligent conversations about their meeting transcripts using RAG (Retrieval-Augmented Generation) with semantic search, real-time streaming responses, and inline citations.
 
 **Deliverable**: Full-stack chat application with:
+
 - React-based chat UI with conversation persistence
 - Supabase Edge Functions for streaming AI responses
 - PostgreSQL pgvector for semantic search
@@ -15,6 +17,7 @@
 - File attachment system (transcripts + external files)
 
 **Success Definition**:
+
 - Users can chat with AI about their entire transcript library
 - Responses stream token-by-token with <1s first-token latency
 - Semantic search retrieves relevant excerpts with >80% accuracy
@@ -29,6 +32,7 @@
 **Target User**: Product Manager / Sales Leader using Conversion Brain
 
 **Demographics**:
+
 - Role: Product Manager, Sales Director, Customer Success Lead
 - Tech Savviness: Medium (comfortable with ChatGPT, not a developer)
 - Current Pain: Manually searching through 50+ meeting transcripts to find specific customer feedback or pricing discussions
@@ -37,6 +41,7 @@
 "I need to find all mentions of 'pricing objections' across my last 3 months of customer calls to prepare for next quarter's pricing review. Currently, I have to manually skim through dozens of transcripts."
 
 **User Journey**:
+
 1. Navigate to `/chat` from main dashboard
 2. Click "Ask AI" or start typing "Show me all pricing objections from Q4"
 3. See AI streaming response with citations
@@ -45,6 +50,7 @@
 6. Export conversation for sharing with team
 
 **Pain Points Addressed**:
+
 - **Manual search inefficiency**: AI semantic search vs. keyword-only
 - **Context switching**: Chat + citations in same view
 - **Knowledge fragmentation**: AI synthesizes across 100+ transcripts
@@ -69,6 +75,7 @@
 ### User-Visible Behavior
 
 **Chat Interface**:
+
 - Full-page chat layout at `/chat` route with sidebar conversation history
 - Real-time streaming responses (token-by-token) with thinking indicators
 - User messages: right-aligned, vibe-green background
@@ -76,6 +83,7 @@
 - Model selector dropdown (Gemini Pro/Flash, GPT-5)
 
 **Semantic Search**:
+
 - AI automatically searches relevant transcript excerpts when user asks question
 - Citations appear inline as `[1]`, `[2]` with clickable cards showing:
   - Transcript title
@@ -84,12 +92,14 @@
   - Link to full transcript
 
 **File Attachments**:
+
 - "Attach from Library" button → modal with transcript selector (multi-select)
 - "Upload File" button → supports PDF, TXT, DOCX, MD (session-scoped, 24h expiration)
 - Attachment pills below input showing file names with remove buttons
 - Context scope selector: "All Transcripts" | "Folder: X" | "Date Range" | "Attached Files Only"
 
 **Enhanced Keyword Search** (TranscriptsTab integration):
+
 - Field-specific operators: `title:`, `transcript:`, `participant:`, `folder:`, `date:`
 - Visual scope selector for casual users (checkboxes instead of operators)
 - "Ask AI" bulk action button when transcripts selected
@@ -97,18 +107,21 @@
 ### Technical Requirements
 
 **Performance**:
+
 - Chat page loads in <2 seconds
 - First token streams in <1 second
 - Semantic search completes in <1 second
 - Support 100+ concurrent chat sessions
 
 **Security**:
+
 - RLS policies enforce user-scoped data access
 - File uploads validated (<10MB, whitelist types only)
 - Rate limiting: 60 requests/minute per user
 - OPENAI_API_KEY or ANTHROPIC_API_KEY stored as Supabase secret (never exposed to client)
 
 **Scalability**:
+
 - Handle 10,000+ transcript embeddings per user
 - Background embedding generation (10 transcripts/batch)
 - Automatic cleanup of expired file uploads (daily cron)
@@ -2010,6 +2023,7 @@ export function CitationCard({ index, citation }: CitationCardProps) {
 Due to length constraints, Phases 3-6 follow the same detailed pattern as Phase 1-2. Key tasks include:
 
 **PHASE 3: File Attachments (Week 5-6)**
+
 - Task 3.1: CREATE migration for chat_file_uploads table
 - Task 3.2: CREATE parse-uploaded-file edge function (PDF/DOCX/TXT parsing)
 - Task 3.3: CREATE AttachmentButton, TranscriptSelectorModal components
@@ -2017,18 +2031,21 @@ Due to length constraints, Phases 3-6 follow the same detailed pattern as Phase 
 - Task 3.5: UPDATE ChatInput to show attachment pills
 
 **PHASE 4: Enhanced Keyword Search (Week 7)**
+
 - Task 4.1: CREATE search-engine.ts with query parser
 - Task 4.2: CREATE SearchScopeSelector visual filter UI
 - Task 4.3: CREATE SearchSyntaxHelper tooltip
 - Task 4.4: UPDATE TranscriptsTab with search operators
 
 **PHASE 5: Transcript Library Integration (Week 8)**
+
 - Task 5.1: UPDATE TranscriptsTab - add "Ask AI" bulk action button
 - Task 5.2: UPDATE CallDetailDialog - add "Attach to Chat" button
 - Task 5.3: UPDATE Chat page - handle pre-attached transcripts from query params
 - Task 5.4: CREATE conversation search in ChatSidebar
 
 **PHASE 6: Polish & Optimization (Week 9-10)**
+
 - Task 6.1: Implement virtual scrolling, lazy loading, caching
 - Task 6.2: Add comprehensive error handling
 - Task 6.3: Create loading states & skeleton screens
@@ -2186,12 +2203,14 @@ npx axe http://localhost:5173/chat
 ## Anti-Patterns to Avoid
 
 ### General
+
 - ❌ Don't create new patterns when existing ones work
 - ❌ Don't skip validation because "it should work"
 - ❌ Don't ignore failing tests - fix them immediately
 - ❌ Don't hardcode values that should be config/env vars
 
 ### This Codebase Specifically
+
 - ❌ Don't use queryKeys factory (removed - use hardcoded string arrays)
 - ❌ Don't create new Supabase client instances (use singleton from lib/supabase.ts)
 - ❌ Don't forget CORS headers in edge functions (always import from _shared/cors.ts)
@@ -2201,6 +2220,7 @@ npx axe http://localhost:5173/chat
 - ❌ Don't catch all exceptions - be specific (catch (error: PostgrestError))
 
 ### AI/RAG Specific
+
 - ❌ Don't compare embeddings in application code (always use database vector ops)
 - ❌ Don't regenerate embeddings for existing transcripts (cache forever)
 - ❌ Don't hallucinate - if not in context, say "I don't have information about that"
@@ -2217,6 +2237,7 @@ npx axe http://localhost:5173/chat
 **Author**: AI Implementation Team
 
 **Changelog**:
+
 - v2.2 (Nov 20, 2025) - Added prominent local context file references
   - Added "Local Context Files - READ FIRST" section to Documentation & References
   - Prominently references `docs/reference/prompt-kit-ui.md`
@@ -2246,6 +2267,7 @@ npx axe http://localhost:5173/chat
   - Complete database schema, edge functions, components
 
 **Related Documents**:
+
 - `BRAND_GUIDELINES.md` - VibeOS design system
 - `docs/architecture/api-naming-conventions.md` - Naming standards
 - `docs/architecture/data-fetching-architecture.md` - TanStack Query patterns

@@ -5,18 +5,16 @@
 - [null](https://developers.fathom.ai/api-overview.md)
 - [List meetings](https://developers.fathom.ai/api-reference/meetings/list-meetings.md)
 - [Get summary](https://developers.fathom.ai/api-reference/recordings/get-summary.md): This endpoint has two behaviors depending on your request payload:
-- If you send `destination_url`, the endpoint will behave in an asynchronous manner.
-- If you do not send `destination_url`, the endpoint will return the data directly.
-
+  - If you send `destination_url`, the endpoint will behave in an asynchronous manner.
+  - If you do not send `destination_url`, the endpoint will return the data directly.
 - [Get transcript](https://developers.fathom.ai/api-reference/recordings/get-transcript.md): This endpoint has two behaviors depending on your request payload:
-- If you send `destination_url`, the endpoint will behave in an asynchronous manner.
-- If you do not send `destination_url`, the endpoint will return the data directly.
+  - If you send `destination_url`, the endpoint will behave in an asynchronous manner.
+  - If you do not send `destination_url`, the endpoint will return the data directly.
 
 - [List team members](https://developers.fathom.ai/api-reference/team-members/list-team-members.md)
 - [List teams](https://developers.fathom.ai/api-reference/teams/list-teams.md)
 - [New meeting content ready](https://developers.fathom.ai/api-reference/webhook-payloads/new-meeting-content-ready.md): Webhook sent to the URL you register in Fathom settings.
-- [Create a webhook](https://developers.fathom.ai/api-reference/webhooks/create-a-webhook.md): Create a webhook to receive new meeting content.
-At least one of `include_transcript`, `include_crm_matches`, `include_summary`, or `include_action_items` must be true.
+- [Create a webhook](https://developers.fathom.ai/api-reference/webhooks/create-a-webhook.md): Create a webhook to receive new meeting content. At least one of `include_transcript`, `include_crm_matches`, `include_summary`, or `include_action_items` must be true.
 
 - [Delete a webhook](https://developers.fathom.ai/api-reference/webhooks/delete-a-webhook.md): Delete a webhook.
 - [Introduction](https://developers.fathom.ai/index.md): Welcome to Fathom's API! 🚀
@@ -39,4 +37,3 @@ At least one of `include_transcript`, `include_crm_matches`, `include_summary`, 
 - [Python Installation](https://developers.fathom.ai/sdks/python-installation.md): Install the Fathom Python SDK
 - [TypeScript Installation](https://developers.fathom.ai/sdks/typescript-installation.md): Install the Fathom TypeScript SDK
 - [Webhooks](https://developers.fathom.ai/webhooks.md): Automatically trigger webhook events after your meetings
-- 

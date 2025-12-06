@@ -204,8 +204,8 @@ export default function QuickCreateFolderDialog({
   };
 
   // Get icon component dynamically
-  const getIconComponent = (iconName: string) => {
-    const iconMap: Record<string, any> = {
+  const getIconComponent = (iconName: string): React.ComponentType<{ className?: string }> => {
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
       'folder': RemixIcon.RiFolderLine,
       'folder-2': RemixIcon.RiFolder2Line,
       'folder-3': RemixIcon.RiFolder3Line,

@@ -1,5 +1,3 @@
----
-
 # AI_EmptyResponseBodyError
 
 This error occurs when the server returns an empty response body.
@@ -19,7 +17,3 @@ if (EmptyResponseBodyError.isInstance(error)) {
   // Handle the error
 }
 ```
-
----
-title: AI_InvalidArgumentError
-description: Learn how to fix AI_InvalidArgumentError

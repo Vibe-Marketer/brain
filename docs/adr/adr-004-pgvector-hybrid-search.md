@@ -1,10 +1,10 @@
 # ADR-004: pgvector + RRF Hybrid Search for Knowledge Base
 
 **Status:** Accepted
-**Date:** 2025-01-23
-**Context:** AI Chat Agent System Implementation
 
----
+**Date:** 2025-01-23
+
+**Context:** AI Chat Agent System Implementation
 
 ## Context
 
@@ -17,6 +17,7 @@ The AI Chat Agent System needs to search across meeting transcripts using natura
 - Get results in < 200ms
 
 The knowledge base will contain:
+
 - 10,000+ transcript chunks per user (typical)
 - 100,000+ chunks for power users
 - 1536-dimension vector embeddings
@@ -24,6 +25,7 @@ The knowledge base will contain:
 - Rich metadata (speaker, date, category, etc.)
 
 We need a solution that:
+
 - Combines semantic and keyword search
 - Runs entirely in our existing Supabase PostgreSQL database
 - Doesn't require external services
@@ -71,12 +73,15 @@ Results are sorted by RRF score descending.
 ## Alternatives Considered
 
 ### 1. Pinecone / Weaviate (Managed Vector DBs)
+
 **Pros:**
+
 - Purpose-built for vector search
 - Advanced features (metadata filtering, hybrid search)
 - Managed service
 
 **Cons:**
+
 - **Cost:** ~$70/month for 100K vectors + $0.40/1M queries
 - External service dependency
 - Data duplication (need to sync with PostgreSQL)
@@ -84,33 +89,42 @@ Results are sorted by RRF score descending.
 - Vendor lock-in
 
 ### 2. Elasticsearch
+
 **Pros:**
+
 - Excellent full-text search
 - Hybrid search capabilities
 - Mature ecosystem
 
 **Cons:**
+
 - Separate infrastructure to manage
 - Additional cost (~$50-200/month)
 - Data duplication and sync complexity
 - Learning curve for team
 
 ### 3. Pure Vector Search (pgvector only)
+
 **Pros:**
+
 - Simple implementation
 - No additional indexes
 
 **Cons:**
+
 - **Misses exact keyword matches** (e.g., "pricing" in "What did they say about pricing?")
 - Poor for acronyms, names, specific terms
 - Users would complain about missing results
 
 ### 4. Pure Keyword Search (tsvector only)
+
 **Pros:**
+
 - Fast, reliable
 - Works for exact terms
 
 **Cons:**
+
 - **No semantic understanding** (e.g., "cost" wouldn't match "pricing")
 - Doesn't handle synonyms, paraphrases
 - Fails for conceptual queries
@@ -173,7 +187,9 @@ const { embeddings } = await embed({
 ```
 
 **Cost:** ~$0.02 per 1M tokens
+
 **Typical transcript:** 10,000 tokens = $0.0002
+
 **100 transcripts:** $0.02/month
 
 ### Query Pattern
@@ -201,6 +217,7 @@ const results = await supabase.rpc('hybrid_search_transcripts', {
 ## Migration Path
 
 ### Phase 1: Backfill Existing Transcripts
+
 ```sql
 -- Create Edge Function to chunk and embed
 -- Process in batches of 10 recordings
@@ -208,6 +225,7 @@ const results = await supabase.rpc('hybrid_search_transcripts', {
 ```
 
 ### Phase 2: Automatic Indexing
+
 ```sql
 -- Trigger on fathom_calls insert
 -- Queue for async processing
@@ -215,6 +233,7 @@ const results = await supabase.rpc('hybrid_search_transcripts', {
 ```
 
 ### Phase 3: Optimization
+
 ```sql
 -- Monitor query performance
 -- Tune HNSW parameters (m, ef_construction)
@@ -229,6 +248,7 @@ const results = await supabase.rpc('hybrid_search_transcripts', {
 ## Monitoring
 
 Track these metrics:
+
 - Query latency (p50, p95, p99)
 - Result relevance (user feedback)
 - Embedding generation cost
@@ -240,7 +260,6 @@ Track these metrics:
 - [pgvector Documentation](https://github.com/pgvector/pgvector)
 - [RRF Research Paper](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf)
 
----
-
 **Approved by:** Claude
+
 **Review Date:** 2025-01-23

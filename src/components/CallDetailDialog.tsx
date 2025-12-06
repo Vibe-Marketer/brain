@@ -195,9 +195,9 @@ export function CallDetailDialog({
       trimSegmentMutation.mutate({ segmentIds: [trimDialog.segmentId] });
     } else {
       // Find the index in VISIBLE transcripts (excluding deleted)
-      const segmentIndex = transcripts.findIndex((t: any) => t.id === trimDialog.segmentId);
+      const segmentIndex = transcripts.findIndex((t: { id: string }) => t.id === trimDialog.segmentId);
       // Get all VISIBLE segments before it
-      const segmentIds = transcripts.slice(0, segmentIndex).map((t: any) => t.id);
+      const segmentIds = transcripts.slice(0, segmentIndex).map((t: { id: string }) => t.id);
       logger.info("Trimming segments", segmentIds);
       trimSegmentMutation.mutate({ segmentIds });
     }
@@ -368,7 +368,7 @@ export function CallDetailDialog({
         onOpenChange={(open) => setChangeSpeakerDialog({ ...changeSpeakerDialog, open })}
         currentSpeaker={changeSpeakerDialog.currentSpeaker}
         currentEmail={changeSpeakerDialog.currentEmail}
-        availableSpeakers={callSpeakers?.map((s: any) => ({
+        availableSpeakers={callSpeakers?.map((s: { speaker_name: string; speaker_email?: string }) => ({
           name: s.speaker_name,
           email: s.speaker_email
         })) || []}

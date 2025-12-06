@@ -1,7 +1,7 @@
 # prompt-kit
 
 > prompt-kit is a library of customizable, high-quality UI components for AI applications. It provides ready-to-use components for building chat experiences, AI agents, autonomous assistants, and more, with a focus on rapid development and beautiful design.
-prompt-kit is a library of customizable, high-quality UI components for AI applications. It provides ready-to-use components for building chat experiences, AI agents, autonomous assistants, and more, with a focus on rapid development and beautiful design.
+
 prompt-kit is built on top of shadcn/ui and extends it with specialized components for AI interfaces. It uses Next.js, React 19, and Tailwind CSS. The components are designed to be easily customizable and can be installed individually using the shadcn CLI.
 
 ## Table of Contents
@@ -27,14 +27,7 @@ prompt-kit is built on top of shadcn/ui and extends it with specialized componen
 - [Primitives](#primitives)
 - [Showcase](#showcase)
 
-## Components
-
-import { generateMetadata } from "../utils/metadata"
-
-export const metadata = generateMetadata(
-  "Introduction",
-  "Introduction to prompt-kit."
-)
+## Introduction
 
 **prompt-kit** is a set of customizable, high-quality components built for AI applications, making it easy to design chat experiences, AI agents, autonomous assistants, and more, quickly and beautifully.
 
@@ -44,117 +37,60 @@ This project is a work in progress, and we're continuously improving and expandi
 
 prompt-kit is open source. Check out the code and contribute on [GitHub](https://github.com/ibelick/prompt-kit).
 
+## Installation
 
-import { generateMetadata } from "../utils/metadata"
-
-export const metadata = generateMetadata(
-  "Installation",
-  "Installation guide for prompt-kit."
-)
-
-# Installation
-
-## Prerequisites
+### Prerequisites
 
 Before installing, ensure you have the following:
 
 - [Node.js](https://nodejs.org/en/download/) version **18** or later
 - [React](https://react.dev/) version **19** or later
 
-## Install shadcn/ui
+### Install shadcn/ui
 
 First, you'll need to install and configure shadcn/ui in your project. Follow the installation guide at [shadcn/ui documentation](https://ui.shadcn.com/docs/installation).
 
 Once shadcn/ui is set up, you can install **prompt-kit** components using the **shadcn CLI**.
 
-## Using the shadcn CLI
+### Using the shadcn CLI
 
-<CodeBlock
-  language="bash"
-  code={`npx shadcn@latest add "https://prompt-kit.com/c/[COMPONENT].json"`}
-/>
+```bash
+npx shadcn@latest add "https://prompt-kit.com/c/[COMPONENT].json"
+```
 
-## Usage
+### Usage
 
 After installation, import and start using the components in your project:
 
-<CodeBlock
-  language="tsx"
-  code={`import { PromptInput } from "@/components/ui/prompt-input";`}
-/>
+```tsx
+import { PromptInput } from "@/components/ui/prompt-input";
+```
 
+## Components
 
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { PromptInputBasic } from "./prompt-input-basic"
-import { PromptInputWithActions } from "./prompt-input-with-actions"
-
-export const metadata = generateMetadata(
-  "Prompt Input",
-  "An AI Input that allows users to enter and submit text to an AI model."
-)
-
-# Prompt Input
+### Prompt Input
 
 An AI Input that allows users to enter and submit text to an AI model.
 
-## Examples
+#### Examples
 
-### Prompt Input basic
+##### Prompt Input basic
 
-<ComponentCodePreview
-  component={<PromptInputBasic />}
-  filePath="app/docs/prompt-input/prompt-input-basic.tsx"
-  classNameComponentContainer="p-8"
-/>
+A basic implementation of the prompt input component.
 
-### Prompt Input with actions
+##### Prompt Input with actions
 
 You can use `PromptInputActions` to add actions with tooltips to the `PromptInput`.
 
-<ComponentCodePreview
-  component={<PromptInputWithActions />}
-  filePath="app/docs/prompt-input/prompt-input-with-actions.tsx"
-  classNameComponentContainer="p-8"
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/prompt-input.json"
+```
 
-<Tabs defaultValue="cli">
+#### Component API
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/prompt-input.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/prompt-input.tsx" language="tsx" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### PromptInput
+##### PromptInput
 
 | Prop          | Type                    | Default | Description                                     |
 | :------------ | :---------------------- | :------ | :---------------------------------------------- |
@@ -166,7 +102,7 @@ You can use `PromptInputActions` to add actions with tooltips to the `PromptInpu
 | children      | React.ReactNode         |         | Child components to render                      |
 | className     | string                  |         | Additional CSS classes                          |
 
-### PromptInputTextarea
+##### PromptInputTextarea
 
 | Prop            | Type                               | Default | Description                            |
 | :-------------- | :--------------------------------- | :------ | :------------------------------------- |
@@ -176,7 +112,7 @@ You can use `PromptInputActions` to add actions with tooltips to the `PromptInpu
 | disabled        | boolean                            | false   | Disable the textarea input             |
 | ...props        | `React.ComponentProps<"textarea">` |         | All other textarea props are supported |
 
-### PromptInputActions
+##### PromptInputActions
 
 | Prop      | Type                                   | Default | Description                       |
 | :-------- | :------------------------------------- | :------ | :-------------------------------- |
@@ -184,7 +120,7 @@ You can use `PromptInputActions` to add actions with tooltips to the `PromptInpu
 | className | string                                 |         | Additional CSS classes            |
 | ...props  | `React.HTMLAttributes<HTMLDivElement>` |         | All other div props are supported |
 
-### PromptInputAction
+##### PromptInputAction
 
 | Prop      | Type                                   | Default | Description                                     |
 | :-------- | :------------------------------------- | :------ | :---------------------------------------------- |
@@ -195,126 +131,53 @@ You can use `PromptInputActions` to add actions with tooltips to the `PromptInpu
 | disabled  | boolean                                | false   | Disable the tooltip trigger                     |
 | ...props  | `React.ComponentProps<typeof Tooltip>` |         | All other Tooltip component props are supported |
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { CodeBlockBasic } from "./code-block-basic"
-import { CodeBlockCSS } from "./code-block-css"
-import { CodeBlockNord } from "./code-block-nord"
-import { CodeBlockPython } from "./code-block-python"
-import { CodeBlockThemed } from "./code-block-themed"
-import { CodeBlockWithHeader } from "./code-block-with-header"
-
-export const metadata = generateMetadata(
-  "Code Block",
-  "A component for displaying code snippets with syntax highlighting and customizable styling."
-)
-
-# Code Block
+### Code Block
 
 A component for displaying code snippets with syntax highlighting and customizable styling.
 
-## Examples
+#### Examples
 
-### Basic Code Block
+##### Basic Code Block
 
-<ComponentCodePreview
-  component={<CodeBlockBasic />}
-  filePath="app/docs/code-block/code-block-basic.tsx"
-  classNameComponentContainer="p-8"
-/>
+A simple code block with syntax highlighting.
 
-### Code Block with Header
+##### Code Block with Header
 
 You can use `CodeBlockGroup` to add a header with metadata and actions to your code blocks.
 
-<ComponentCodePreview
-  component={<CodeBlockWithHeader />}
-  filePath="app/docs/code-block/code-block-with-header.tsx"
-  classNameComponentContainer="p-8"
-/>
-
-### Different Languages
+##### Different Languages
 
 You can highlight code in various languages by changing the `language` prop.
 
-#### Python Example
+###### Python Example
 
-<ComponentCodePreview
-  component={<CodeBlockPython />}
-  filePath="app/docs/code-block/code-block-python.tsx"
-  classNameComponentContainer="p-8"
-/>
+Example of Python code highlighting.
 
-#### CSS Example
+###### CSS Example
 
-<ComponentCodePreview
-  component={<CodeBlockCSS />}
-  filePath="app/docs/code-block/code-block-css.tsx"
-  classNameComponentContainer="p-8"
-/>
+Example of CSS code highlighting.
 
-### Different Themes
+##### Different Themes
 
 Shiki supports many popular themes. Here are some examples:
 
-#### GitHub Dark Theme
+###### GitHub Dark Theme
 
-<ComponentCodePreview
-  component={<CodeBlockThemed />}
-  filePath="app/docs/code-block/code-block-themed.tsx"
-  classNameComponentContainer="p-8"
-/>
+Example using the GitHub Dark theme.
 
-#### Nord Theme
+###### Nord Theme
 
-<ComponentCodePreview
-  component={<CodeBlockNord />}
-  filePath="app/docs/code-block/code-block-nord.tsx"
-  classNameComponentContainer="p-8"
-/>
+Example using the Nord theme.
 
-## Installation
+#### Installation
 
-<Tabs defaultValue="cli">
+```bash
+npx shadcn add "https://prompt-kit.com/c/code-block.json"
+```
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
+#### Component API
 
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/code-block.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/code-block.tsx" language="tsx" />
-
-<Step>Install the required dependencies.</Step>
-
-<CodeBlock code={`npm install shiki`} language="bash" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### CodeBlock
+##### CodeBlock
 
 | Prop      | Type                              | Default | Description                |
 | :-------- | :-------------------------------- | :------ | :------------------------- |
@@ -322,7 +185,7 @@ Shiki supports many popular themes. Here are some examples:
 | className | string                            |         | Additional CSS classes     |
 | ...props  | `React.HTMLProps<HTMLDivElement>` |         | All other div props        |
 
-### CodeBlockCode
+##### CodeBlockCode
 
 | Prop      | Type                              | Default        | Description                          |
 | :-------- | :-------------------------------- | :------------- | :----------------------------------- |
@@ -332,7 +195,7 @@ Shiki supports many popular themes. Here are some examples:
 | className | string                            |                | Additional CSS classes               |
 | ...props  | `React.HTMLProps<HTMLDivElement>` |                | All other div props                  |
 
-### CodeBlockGroup
+##### CodeBlockGroup
 
 | Prop      | Type                                   | Default | Description                |
 | :-------- | :------------------------------------- | :------ | :------------------------- |
@@ -340,49 +203,46 @@ Shiki supports many popular themes. Here are some examples:
 | className | string                                 |         | Additional CSS classes     |
 | ...props  | `React.HTMLAttributes<HTMLDivElement>` |         | All other div props        |
 
-## Usage with Markdown
+#### Usage with Markdown
 
 The `CodeBlock` component is used internally by the `Markdown` component to render code blocks in markdown content. When used within the `Markdown` component, code blocks are automatically wrapped with the `not-prose` class to prevent conflicts with prose styling.
 
-<CodeBlock
-  code={`import { Markdown } from "@/components/prompt-kit/markdown"
+```tsx
+import { Markdown } from "@/components/prompt-kit/markdown"
 
 function MyComponent() {
-const markdownContent = \` # Example
+  const markdownContent = `# Example
 
-    \\\`\\\`\\\`javascript
+    \`\`\`javascript
     function greet(name) {
-
-    return \`Hello, \\\${name}!\\\`;
+      return \`Hello, \${name}!\`;
     }
-    \\\`\\\`\\\`
+    \`\`\`
+  `;
 
-    return <Markdown className="prose">{markdownContent}</Markdown>
+  return <Markdown className="prose">{markdownContent}</Markdown>
+}
+```
 
-}`}
-language="tsx"
-/>
-
-## Tailwind Typography and not-prose
+#### Tailwind Typography and not-prose
 
 The `CodeBlock` component includes the `not-prose` class by default to prevent Tailwind Typography's prose styling from affecting code blocks. This is important when using the [@tailwindcss/typography](https://github.com/tailwindlabs/tailwindcss-typography) plugin, which provides beautiful typography defaults but can interfere with code block styling.
 
 Since code blocks are styled with Shiki for syntax highlighting, they should not inherit Tailwind Typography styles. The `not-prose` class ensures that code blocks maintain their intended appearance regardless of the surrounding typography context.
 
-<CodeBlock
-  code={`<article className="prose">
+```tsx
+<article className="prose">
   <h1>My Content</h1>
   <p>This content has prose styling applied.</p>
-  
+
   {/* The CodeBlock has not-prose to prevent prose styling */}
   <CodeBlock>
     <CodeBlockCode code={code} language="javascript" />
   </CodeBlock>
-</article>`}
-  language="tsx"
-/>
+</article>
+```
 
-## Customizing Syntax Highlighting
+#### Customizing Syntax Highlighting
 
 The `CodeBlockCode` component uses [Shiki](https://shiki.matsu.io/) for syntax highlighting. You can customize the theme by passing a different theme name to the `theme` prop.
 
@@ -396,88 +256,35 @@ Shiki supports many popular themes including:
 
 For a complete list of supported themes, refer to the [Shiki documentation](https://github.com/shikijs/shiki/blob/main/docs/themes.md).
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { MarkdownBasic } from "./markdown-basic"
-import { MarkdownCustomComponents } from "./markdown-custom-components"
-
-export const metadata = generateMetadata(
-  "Markdown",
-  "A component for rendering Markdown content with support for GitHub Flavored Markdown (GFM) and custom component styling."
-)
-
-# Markdown
+### Markdown
 
 A component for rendering Markdown content with support for GitHub Flavored Markdown (GFM) and custom component styling.
 
-## Examples
+#### Examples
 
-### Basic Markdown
+##### Basic Markdown
 
 Render basic Markdown with support for bold, italics, lists, code blocks and more.
 
-<ComponentCodePreview
-  component={<MarkdownBasic />}
-  filePath="app/docs/markdown/markdown-basic.tsx"
-  classNameComponentContainer="p-8"
-  disableNotProse
-/>
-
-### Markdown with Custom Components
+##### Markdown with Custom Components
 
 You can customize how different Markdown elements are rendered by providing custom components.
 
-<ComponentCodePreview
-  component={<MarkdownCustomComponents />}
-  filePath="app/docs/markdown/markdown-custom-components.tsx"
-  classNameComponentContainer="p-8"
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/markdown.json"
+```
 
-<Tabs defaultValue="cli">
+Manual installation:
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
+```bash
+npm install react-markdown remark-gfm remark-breaks
+```
 
-<TabsContent value="cli">
+#### Component API
 
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/markdown.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/markdown.tsx" language="tsx" />
-
-<Step>Install the required dependencies.</Step>
-
-<CodeBlock
-  code={`npm install react-markdown remark-gfm remark-breaks`}
-  language="bash"
-/>
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### Markdown
+##### Markdown
 
 | Prop       | Type                                         | Default            | Description                                     |
 | :--------- | :------------------------------------------- | :----------------- | :---------------------------------------------- |
@@ -486,11 +293,11 @@ You can customize how different Markdown elements are rendered by providing cust
 | components | `Partial<Components>`                        | INITIAL_COMPONENTS | Custom components to override default rendering |
 | ...props   | `React.ComponentProps<typeof ReactMarkdown>` |                    | All other ReactMarkdown props                   |
 
-## Performance Optimization
+#### Performance Optimization
 
 The Markdown component employs advanced memoization techniques to optimize rendering performance, especially in streaming AI response scenarios. This approach is crucial when rendering chat interfaces where new tokens are continuously streamed.
 
-### How Memoization Works
+##### How Memoization Works
 
 Our implementation:
 
@@ -503,27 +310,27 @@ This pattern significantly improves performance in chat applications by preventi
 
 For AI chat interfaces using streaming responses, always provide a unique `id` prop (typically the message ID) to ensure proper block caching:
 
-<CodeBlock
-  code={`<Markdown id={message.id}>{message.content}</Markdown>`}
-  language="tsx"
-/>
+```tsx
+<Markdown id={message.id}>{message.content}</Markdown>
+```
 
 This memoization implementation is based on the [Vercel AI SDK Cookbook](https://sdk.vercel.ai/cookbook/next/markdown-chatbot-with-memoization) with enhancements for better React integration.
 
-## Customizing Components
+#### Customizing Components
 
 You can customize how different Markdown elements are rendered by providing a `components` prop. This is an object where keys are HTML element names and values are React components.
 
-<CodeBlock code={`const customComponents = {
-    h1: ({ children }) => <h1 className="text-2xl font-bold text-blue-500">{children}</h1>,
-    a: ({ href, children }) => <a href={href} className="text-purple-500 underline">{children}</a>,
-    // ... other components
+```tsx
+const customComponents = {
+  h1: ({ children }) => <h1 className="text-2xl font-bold text-blue-500">{children}</h1>,
+  a: ({ href, children }) => <a href={href} className="text-purple-500 underline">{children}</a>,
+  // ... other components
 }
 
 <Markdown components={customComponents}>{markdownContent}</Markdown>
-`} language="tsx" />
+```
 
-## Supported Markdown Features
+#### Supported Markdown Features
 
 The Markdown component uses [react-markdown](https://github.com/remarkjs/react-markdown) with [remark-gfm](https://github.com/remarkjs/remark-gfm) to support GitHub Flavored Markdown, which includes:
 
@@ -535,118 +342,62 @@ The Markdown component uses [react-markdown](https://github.com/remarkjs/react-m
 
 Additionally, the component includes built-in code block highlighting through the `CodeBlock` component.
 
-## Styling with Tailwind Typography
+#### Styling with Tailwind Typography
 
 For the best typography styling experience, we recommend using the [@tailwindcss/typography](https://github.com/tailwindlabs/tailwindcss-typography) plugin. This plugin provides a set of `prose` classes that add beautiful typographic defaults to your markdown content.
 
-<CodeBlock code={`npm install -D @tailwindcss/typography`} language="bash" />
+```bash
+npm install -D @tailwindcss/typography
+```
 
 When using the Markdown component with Tailwind Typography, you can apply the `prose` class:
 
-<CodeBlock
-  code={`<Markdown className="prose dark:prose-invert">{markdownContent}</Markdown>`}
-  language="tsx"
-/>
+```tsx
+<Markdown className="prose dark:prose-invert">{markdownContent}</Markdown>
+```
 
-### Handling Code Blocks
+##### Handling Code Blocks
 
 As you've seen in our examples, code blocks within prose content can sometimes cause styling conflicts. The Tailwind Typography plugin provides a `not-prose` class to exclude elements from prose styling:
 
-<CodeBlock code={`<article className="prose">
-    <h1>My Content</h1>
-    <p>Regular content with prose styling...</p>
+```tsx
+<article className="prose">
+  <h1>My Content</h1>
+  <p>Regular content with prose styling...</p>
 
-    <div className="not-prose">
-      <!-- Code blocks or other elements that shouldn't inherit prose styles -->
-    </div>
-
+  <div className="not-prose">
+    <!-- Code blocks or other elements that shouldn't inherit prose styles -->
+  </div>
 </article>
-`} language="tsx" />
+```
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { MessageBasic } from "./message-basic"
-import { MessageWithActions } from "./message-with-actions"
-import { MessageWithMarkdown } from "./message-with-markdown"
-
-export const metadata = generateMetadata(
-  "Message",
-  "A component for displaying messages in a conversation interface, with support for avatars, markdown content, and interactive actions."
-)
-
-# Message
+### Message
 
 A component for displaying messages in a conversation interface, with support for avatars, markdown content, and interactive actions.
 
-## Examples
+#### Examples
 
-### Basic Message
+##### Basic Message
 
-<ComponentCodePreview
-  component={<MessageBasic />}
-  filePath="app/docs/message/message-basic.tsx"
-  classNameComponentContainer="p-8"
-/>
+A simple message component.
 
-### Message with Markdown
+##### Message with Markdown
 
 The `markdown` prop enables rendering content as [Markdown](/docs/markdown), perfect for rich text formatting in messages.
 
-<ComponentCodePreview
-  component={<MessageWithMarkdown />}
-  filePath="app/docs/message/message-with-markdown.tsx"
-  classNameComponentContainer="p-8"
-  disableNotProse
-/>
-
-### Message with Actions
+##### Message with Actions
 
 You can use `MessageActions` and `MessageAction` to add interactive elements to your messages.
 
-<ComponentCodePreview
-  component={<MessageWithActions />}
-  filePath="app/docs/message/message-with-actions.tsx"
-  classNameComponentContainer="p-8"
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/message.json"
+```
 
-<Tabs defaultValue="cli">
+#### Component API
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/message.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/message.tsx" language="tsx" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### Message
+##### Message
 
 | Prop      | Type                              | Default | Description                |
 | :-------- | :-------------------------------- | :------ | :------------------------- |
@@ -654,7 +405,7 @@ You can use `MessageActions` and `MessageAction` to add interactive elements to 
 | className | string                            |         | Additional CSS classes     |
 | ...props  | `React.HTMLProps<HTMLDivElement>` |         | All other div props        |
 
-### MessageAvatar
+##### MessageAvatar
 
 | Prop      | Type   | Default | Description                            |
 | :-------- | :----- | :------ | :------------------------------------- |
@@ -664,7 +415,7 @@ You can use `MessageActions` and `MessageAction` to add interactive elements to 
 | delayMs   | number |         | Delay before showing fallback (in ms)  |
 | className | string |         | Additional CSS classes                 |
 
-### MessageContent
+##### MessageContent
 
 | Prop      | Type                              | Default | Description                           |
 | :-------- | :-------------------------------- | :------ | :------------------------------------ |
@@ -673,7 +424,7 @@ You can use `MessageActions` and `MessageAction` to add interactive elements to 
 | className | string                            |         | Additional CSS classes                |
 | ...props  | `React.HTMLProps<HTMLDivElement>` |         | All other div props                   |
 
-### MessageActions
+##### MessageActions
 
 | Prop      | Type                              | Default | Description                |
 | :-------- | :-------------------------------- | :------ | :------------------------- |
@@ -681,7 +432,7 @@ You can use `MessageActions` and `MessageAction` to add interactive elements to 
 | className | string                            |         | Additional CSS classes     |
 | ...props  | `React.HTMLProps<HTMLDivElement>` |         | All other div props        |
 
-### MessageAction
+##### MessageAction
 
 | Prop      | Type                                   | Default | Description                                     |
 | :-------- | :------------------------------------- | :------ | :---------------------------------------------- |
@@ -691,80 +442,31 @@ You can use `MessageActions` and `MessageAction` to add interactive elements to 
 | side      | "top" \| "bottom" \| "left" \| "right" | "top"   | Position of the tooltip relative to the trigger |
 | ...props  | `React.ComponentProps<typeof Tooltip>` |         | All other Tooltip component props               |
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { ChatBasic } from "./chat-basic"
-import { ChatWithCustomScroll } from "./chat-with-custom-scroll"
-
-export const metadata = generateMetadata(
-  "Chat Container",
-  "A component for creating chat interfaces with intelligent auto-scrolling behavior, designed to provide a smooth experience in conversation interfaces."
-)
-
-# Chat Container
+### Chat Container
 
 A component for creating chat interfaces with intelligent auto-scrolling behavior, designed to provide a smooth experience in conversation interfaces.
 
-## Examples
+#### Examples
 
-### Chat container basic
+##### Chat container basic
 
-<ComponentCodePreview
-  component={<ChatWithCustomScroll />}
-  filePath="app/docs/chat-container/chat-with-custom-scroll.tsx"
-  classNameComponentContainer="p-0"
-/>
+Basic chat container with auto-scrolling.
 
-### Streaming Text Example
+##### Streaming Text Example
 
 A chat container that demonstrates text streaming with automatic scrolling. Click the "Show Streaming" button to see a simulated streaming response with the smart auto-scroll behavior in action.
 
-<ComponentCodePreview
-  component={<ChatBasic />}
-  filePath="app/docs/chat-container/chat-basic.tsx"
-  classNameComponentContainer="p-0"
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/chat-container.json"
+```
 
-<Tabs defaultValue="cli">
-
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/chat-container.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/chat-container.tsx" language="tsx" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
+#### Component API
 
 The ChatContainer is built using three separate components that work together:
 
-### ChatContainerRoot
+##### ChatContainerRoot
 
 The main container that provides auto-scrolling functionality using the `use-stick-to-bottom` library.
 
@@ -774,7 +476,7 @@ The main container that provides auto-scrolling functionality using the `use-sti
 | className | string                                 |         | Additional CSS classes                          |
 | ...props  | React.HTMLAttributes\<HTMLDivElement\> |         | All other div props                             |
 
-### ChatContainerContent
+##### ChatContainerContent
 
 The content wrapper that should contain your messages.
 
@@ -784,7 +486,7 @@ The content wrapper that should contain your messages.
 | className | string                                 |         | Additional CSS classes                                  |
 | ...props  | React.HTMLAttributes\<HTMLDivElement\> |         | All other div props                                     |
 
-### ChatContainerScrollAnchor
+##### ChatContainerScrollAnchor
 
 An optional scroll anchor element that can be used for scroll targeting.
 
@@ -794,7 +496,7 @@ An optional scroll anchor element that can be used for scroll targeting.
 | ref       | React.RefObject\<HTMLDivElement\>      |         | Optional ref for the scroll anchor element |
 | ...props  | React.HTMLAttributes\<HTMLDivElement\> |         | All other div props                        |
 
-## Auto-Scroll Behavior
+#### Auto-Scroll Behavior
 
 The component uses the `use-stick-to-bottom` library to provide sophisticated auto-scrolling:
 
@@ -812,124 +514,66 @@ Key behaviors:
 - **Cancel on Scroll**: User can scroll up to cancel auto-scrolling behavior
 - **Resume Auto-Scroll**: Returns to auto-scrolling when user scrolls back to bottom
 
-## Using with ScrollButton
+#### Using with ScrollButton
 
 The ChatContainer pairs perfectly with the ScrollButton component. The ScrollButton automatically appears when the user scrolls up and disappears when at the bottom:
 
-<CodeBlock
-  code={`import { ChatContainerRoot, ChatContainerContent, 
-ChatContainerScrollAnchor } from "@/components/prompt-kit/chat-container"
+```tsx
+import { ChatContainerRoot, ChatContainerContent, ChatContainerScrollAnchor } from "@/components/prompt-kit/chat-container"
 import { ScrollButton } from "@/components/prompt-kit/scroll-button"
 
 function ChatInterface() {
-return (
-
-<div className="relative h-[500px]">
-  <ChatContainerRoot className="h-full">
-    <ChatContainerContent className="space-y-4">
-      {/* Your chat messages here */}
-      <div>Message 1</div>
-      <div>Message 2</div>
-      <div>Message 3</div>
-    </ChatContainerContent>
-    <ChatContainerScrollAnchor />
-    <div className="absolute right-4 bottom-4">
-      <ScrollButton className="shadow-sm" />
+  return (
+    <div className="relative h-[500px]">
+      <ChatContainerRoot className="h-full">
+        <ChatContainerContent className="space-y-4">
+          {/* Your chat messages here */}
+          <div>Message 1</div>
+          <div>Message 2</div>
+          <div>Message 3</div>
+        </ChatContainerContent>
+        <ChatContainerScrollAnchor />
+        <div className="absolute right-4 bottom-4">
+          <ScrollButton className="shadow-sm" />
+        </div>
+      </ChatContainerRoot>
     </div>
-  </ChatContainerRoot>
-</div>
-) } `} language="tsx" />
+  )
+}
+```
 
+### Scroll Button
 
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { ScrollButtonBasic } from "./scroll-button-basic"
-import { ScrollButtonCustom } from "./scroll-button-custom"
-import { ScrollButtonWithChat } from "./scroll-button-with-chat"
+A floating button that appears when the user scrolls up and lets them return to the bottom of the chat.
 
-export const metadata = generateMetadata(
-  "Scroll Button",
-  "A floating button that appears when the user scrolls up and lets them return to the bottom of the chat."
-)
+#### Usage
 
-# Scroll Button
-
-A minimal floating button that appears when the user scrolls up, allowing them to jump back to the bottom of the chat.
-
-## Usage
-
-The `ScrollButton` only works inside `ChatContainerRoot`, which uses `use-stick-to-bottom` under the hood.  
+The `ScrollButton` only works inside `ChatContainerRoot`, which uses `use-stick-to-bottom` under the hood.
 It **will not work** with a plain `div` or custom scroll container.
 
-## Examples
+#### Examples
 
-### Basic Scroll Button
+##### Basic Scroll Button
 
 A simple implementation of the scroll button that appears when scrolling up and disappears when at the bottom of the container.
 
-<ComponentCodePreview
-  component={<ScrollButtonBasic />}
-  filePath="app/docs/scroll-button/scroll-button-basic.tsx"
-  classNameComponentContainer="p-0"
-/>
-
-### Custom Scroll Button
+##### Custom Scroll Button
 
 Customize the appearance and behavior of the scroll button with different variants, sizes, and threshold values.
 
-<ComponentCodePreview
-  component={<ScrollButtonCustom />}
-  filePath="app/docs/scroll-button/scroll-button-custom.tsx"
-  classNameComponentContainer="p-0"
-/>
-
-### With Chat Container
+##### With Chat Container
 
 The ScrollButton works perfectly with ChatContainer for chat interfaces, providing an easy way for users to navigate long conversations.
 
-<ComponentCodePreview
-  component={<ScrollButtonWithChat />}
-  filePath="app/docs/scroll-button/scroll-button-with-chat.tsx"
-  classNameComponentContainer="p-0"
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/scroll-button.json"
+```
 
-<Tabs defaultValue="cli">
+#### Component API
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/scroll-button.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/scroll-button.tsx" language="tsx" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### ScrollButton
+##### ScrollButton
 
 | Prop         | Type                                            | Default   | Description                                          |
 | :----------- | :---------------------------------------------- | :-------- | :--------------------------------------------------- |
@@ -941,81 +585,36 @@ The ScrollButton works perfectly with ChatContainer for chat interfaces, providi
 | size         | "default" \| "sm" \| "lg" \| etc.               | "sm"      | Button size from your UI button component            |
 | ...props     | React.ButtonHTMLAttributes\<HTMLButtonElement\> |           | All other button props                               |
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { LoaderBasic } from "./loader-basic"
-import { LoaderSizes } from "./loader-sizes"
-import { LoaderWithText } from "./loader-with-text"
-
-export const metadata = generateMetadata(
-  "Loader",
-  "A loading component with multiple variants to indicate processing states and provide visual feedback to users during wait times."
-)
-
-# Loader
+### Loader
 
 A loading component with multiple variants to indicate processing states and provide visual feedback to users during wait times.
 
-## Examples
+#### Examples
 
-### Basic Loader
+##### Basic Loader
 
 Showcasing all available loader variants with default settings.
 
-<ComponentCodePreview
-  component={<LoaderBasic />}
-  filePath="app/docs/loader/loader-basic.tsx"
-  classNameComponentContainer="p-0"
-/>
-
-### Loader Sizes
+##### Loader Sizes
 
 Customize the size of any loader variant with predefined size options.
 
-<ComponentCodePreview
-  component={<LoaderSizes />}
-  filePath="app/docs/loader/loader-sizes.tsx"
-  classNameComponentContainer="p-0"
-/>
-
-### Loader With Text
+##### Loader With Text
 
 Some loader variants support displaying custom text while loading.
 
-<ComponentCodePreview
-  component={<LoaderWithText />}
-  filePath="app/docs/loader/loader-with-text.tsx"
-  classNameComponentContainer="p-0 min-h-auto items-start"
-/>
+#### Installation
 
-## Installation
-
-<Tabs defaultValue="cli">
-
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/loader.json"`}
-  language="bash"
-/>
+```bash
+npx shadcn add "https://prompt-kit.com/c/loader.json"
+```
 
 _Note: If you are using Tailwind CSS v4, you may have to grab the keyframes and add them to your global.css file manually. Check manual installation for more details._
 
-</TabsContent>
+Manual installation CSS (add to global.css):
 
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following into your global.css file.</Step>
-
-<CodeBlock language="css" code={`@keyframes typing {
+```css
+@keyframes typing {
   0%,
   100% {
     transform: translateY(0);
@@ -1028,135 +627,124 @@ _Note: If you are using Tailwind CSS v4, you may have to grab the keyframes and 
 }
 
 @keyframes loading-dots {
-0%,
-100% {
-opacity: 0;
-}
-50% {
-opacity: 1;
-}
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
 }
 
 @keyframes wave {
-0%,
-100% {
-transform: scaleY(1);
-}
-50% {
-transform: scaleY(0.6);
-}
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.6);
+  }
 }
 
 @keyframes blink {
-0%,
-100% {
-opacity: 1;
-}
-50% {
-opacity: 0;
-}
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 @keyframes text-blink {
-0%,
-100% {
-color: var(--primary);
-}
-50% {
-color: var(--muted-foreground);
-}
+  0%,
+  100% {
+    color: var(--primary);
+  }
+  50% {
+    color: var(--muted-foreground);
+  }
 }
 
 @keyframes bounce-dots {
-0%,
-100% {
-transform: scale(0.8);
-opacity: 0.5;
-}
-50% {
-transform: scale(1.2);
-opacity: 1;
-}
+  0%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 1;
+  }
 }
 
 @keyframes thin-pulse {
-0%,
-100% {
-transform: scale(0.95);
-opacity: 0.8;
-}
-50% {
-transform: scale(1.05);
-opacity: 0.4;
-}
+  0%,
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.4;
+  }
 }
 
 @keyframes pulse-dot {
-0%,
-100% {
-transform: scale(1);
-opacity: 0.8;
-}
-50% {
-transform: scale(1.5);
-opacity: 1;
-}
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.5);
+    opacity: 1;
+  }
 }
 
 @keyframes shimmer-text {
-0% {
-background-position: 150% center;
-}
-100% {
-background-position: -150% center;
-}
+  0% {
+    background-position: 150% center;
+  }
+  100% {
+    background-position: -150% center;
+  }
 }
 
 @keyframes wave-bars {
-0%,
-100% {
-transform: scaleY(1);
-opacity: 0.5;
-}
-50% {
-transform: scaleY(0.6);
-opacity: 1;
-}
+  0%,
+  100% {
+    transform: scaleY(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(0.6);
+    opacity: 1;
+  }
 }
 
 @keyframes shimmer {
-0% {
-background-position: 200% 50%;
-}
-100% {
-background-position: -200% 50%;
-}
+  0% {
+    background-position: 200% 50%;
+  }
+  100% {
+    background-position: -200% 50%;
+  }
 }
 
 @keyframes spinner-fade {
-0% {
-opacity: 0;
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
 }
-100% {
-opacity: 1;
-}
-}`} />
+```
 
-<Step>Copy and paste the following code into your project.</Step>
+#### Component API
 
-<CodeBlock filePath="components/prompt-kit/loader.tsx" language="tsx" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### Loader
+##### Loader
 
 | Prop      | Type                                                                                                                                                          | Default    | Description                              |
 | :-------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------- | :--------------------------------------- |
@@ -1165,97 +753,36 @@ opacity: 1;
 | text      | string                                                                                                                                                        |            | Text to display (for supported variants) |
 | className | string                                                                                                                                                        |            | Additional CSS classes                   |
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { PromptSuggestionBasic } from "./prompt-suggestion-basic"
-import { PromptSuggestionHighlight } from "./prompt-suggestion-highlight"
-import { PromptSuggestionVariants } from "./prompt-suggestion-variants"
-
-export const metadata = generateMetadata(
-  "Prompt Suggestion",
-  "A component for implementing interactive prompt suggestions in AI interfaces. The PromptSuggestion component offers two distinct modes: Normal Mode and Highlight Mode."
-)
-
-# Prompt Suggestion
+### Prompt Suggestion
 
 A component for implementing interactive prompt suggestions in AI interfaces. The PromptSuggestion component offers two distinct modes:
 
 - **Normal Mode**: Renders clickable, pill-shaped buttons ideal for suggesting quick prompts in chat interfaces
 - **Highlight Mode**: Provides text highlighting to highlight a part of the suggestion
 
-## Examples
+#### Examples
 
-### Basic Usage
+##### Basic Usage
 
 Display clickable prompt suggestions that users can select to populate an input field. You can easily use it with the [PromptInput](/docs/prompt-input) component.
 
-<ComponentCodePreview
-  component={<PromptSuggestionBasic />}
-  filePath="app/docs/prompt-suggestion/prompt-suggestion-basic.tsx"
-  classNameComponentContainer="p-8"
-/>
-
-### Highlighted Prompt Suggestions
+##### Highlighted Prompt Suggestions
 
 Implement prompt suggestions with search term highlighting. It's perfect to showcase a list of related prompts.
 
-<ComponentCodePreview
-  component={<PromptSuggestionHighlight />}
-  filePath="app/docs/prompt-suggestion/prompt-suggestion-highlight.tsx"
-  classNameComponentContainer="p-8"
-/>
-
-### Complete Chat Interface
+##### Complete Chat Interface
 
 Build a full-featured chat interface with dynamic prompt suggestions that switch between both modes.
 
-<ComponentCodePreview
-  component={<PromptSuggestionVariants />}
-  filePath="app/docs/prompt-suggestion/prompt-suggestion-variants.tsx"
-  classNameComponentContainer="p-8 h-[500px]"
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/prompt-suggestion.json"
+```
 
-<Tabs defaultValue="cli">
+#### Component API
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/prompt-suggestion.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock
-  filePath="components/prompt-kit/prompt-suggestion.tsx"
-  language="tsx"
-/>
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### PromptSuggestion
+##### PromptSuggestion
 
 | Prop      | Type                                               | Default   | Description                                                                    |
 | :-------- | :------------------------------------------------- | :-------- | :----------------------------------------------------------------------------- |
@@ -1266,115 +793,42 @@ Build a full-featured chat interface with dynamic prompt suggestions that switch
 | className | string                                             |           | Additional CSS classes                                                         |
 | ...props  | ButtonHTMLAttributes                               |           | All other button HTML attributes (including onClick)                           |
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { ResponseStreamFade } from "./response-stream-fade"
-import { ResponseStreamTypewriter } from "./response-stream-typewriter"
-import { ResponseStreamWithMarkdown } from "./response-stream-with-markdown"
-import { UseTextStreamExample } from "./use-text-stream-example"
-
-export const metadata = generateMetadata(
-  "Response Stream",
-  "A component to simulate streaming text on the client side, perfect for fake responses, or any controlled progressive text display."
-)
-
-# Response Stream (experimental)
+### Response Stream (experimental)
 
 A component to simulate streaming text on the client side, perfect for fake responses, or any controlled progressive text display.
 
 **We don't recommend to use it for LLM output.**
 
-## Examples
+#### Examples
 
-### Typewriter Mode
+##### Typewriter Mode
 
 The default mode that types out text character by character, simulating a typing effect.
 
-<ComponentCodePreview
-  component={<ResponseStreamTypewriter />}
-  filePath="app/docs/response-stream/response-stream-typewriter.tsx"
-  classNameComponentContainer="p-8 justify-start items-start min-h-[150px]"
-  hasReTrigger
-/>
-
-### Fade Mode
+##### Fade Mode
 
 The fade mode reveals text word by word with a smooth fade-in animation.
 
-<ComponentCodePreview
-  component={<ResponseStreamFade />}
-  filePath="app/docs/response-stream/response-stream-fade.tsx"
-  classNameComponentContainer="p-8 justify-start items-start min-h-[150px]"
-  hasReTrigger
-/>
-
-### With Markdown
+##### With Markdown
 
 ResponseStream can be combined with the Markdown component to create rich, animated content, for that you need to use the `useTextStream` hook directly.
 
 Note: If you want to use mode="fade", you need to manually render the segments with appropriate CSS animations.
 It can be hard to get it done with markdown, the way is to write a custom `remarkPlugins`. We have a demo but it's a bit too experimental to be included here, happy to receive a PR if you have a good solution.
 
-<ComponentCodePreview
-  component={<ResponseStreamWithMarkdown />}
-  filePath="app/docs/response-stream/response-stream-with-markdown.tsx"
-  classNameComponentContainer="p-8 justify-start items-start min-h-[400px]"
-  disableNotProse
-  hasReTrigger
-/>
-
-### Using the useTextStream Hook with fade mode
+##### Using the useTextStream Hook with fade mode
 
 When using the useTextStream hook with `fade` mode, you need to manually render the segments with appropriate CSS animations.
 
-<ComponentCodePreview
-  component={<UseTextStreamExample />}
-  filePath="app/docs/response-stream/use-text-stream-example.tsx"
-  classNameComponentContainer="p-8 justify-start items-start min-h-[200px]"
-  hasReTrigger
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/response-stream.json"
+```
 
-<Tabs defaultValue="cli">
+#### Component API
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/response-stream.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock
-  filePath="components/prompt-kit/response-stream.tsx"
-  language="tsx"
-/>
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### ResponseStream
+##### ResponseStream
 
 | Prop               | Type                              | Default      | Description                                                  |
 | :----------------- | :-------------------------------- | :----------- | :----------------------------------------------------------- |
@@ -1388,9 +842,9 @@ When using the useTextStream hook with `fade` mode, you need to manually render 
 | segmentDelay       | number                            |              | Custom delay between segments in ms (overrides speed)        |
 | characterChunkSize | number                            |              | Custom characters per frame for typewriter (overrides speed) |
 
-### useTextStream Hook
+##### useTextStream Hook
 
-#### Parameters
+###### Parameters
 
 | Parameter          | Type                              | Default      | Description                                                  |
 | :----------------- | :-------------------------------- | :----------- | :----------------------------------------------------------- |
@@ -1403,7 +857,7 @@ When using the useTextStream hook with `fade` mode, you need to manually render 
 | characterChunkSize | number                            |              | Custom characters per frame for typewriter (overrides speed) |
 | onError            | (error: unknown) => void          |              | Callback function when an error occurs                       |
 
-#### Return Value
+###### Return Value
 
 | Property        | Type                                | Description                               |
 | :-------------- | :---------------------------------- | :---------------------------------------- |
@@ -1417,82 +871,29 @@ When using the useTextStream hook with `fade` mode, you need to manually render 
 | pause           | () => void                          | Function to pause streaming               |
 | resume          | () => void                          | Function to resume streaming              |
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { ReasoningBasic } from "./reasoning-basic"
-import { ReasoningMarkdown } from "./reasoning-markdown"
-
-export const metadata = generateMetadata(
-  "Reasoning",
-  "A collapsible component for showing AI reasoning, explanations, or logic. You can control it manually or let it auto-close when the stream ends. Markdown is supported."
-)
-
-# Reasoning
+### Reasoning
 
 A collapsible component for showing AI reasoning, explanations, or logic. You can control it manually or let it auto-close when the stream ends. Markdown is supported.
 
-## Examples
+#### Examples
 
-### Basic Usage
+##### Basic Usage
 
 The most basic implementation of the Reasoning component with auto-close functionality when streaming ends.
 
-<ComponentCodePreview
-  component={<ReasoningBasic />}
-  filePath="app/docs/reasoning/reasoning-basic.tsx"
-  classNameComponentContainer="p-8 justify-start items-start min-h-[300px]"
-  hasReTrigger
-/>
-
-### With Markdown
+##### With Markdown
 
 Show rich formatting with markdown support for better structured reasoning content.
 
-<ComponentCodePreview
-  component={<ReasoningMarkdown />}
-  filePath="app/docs/reasoning/reasoning-markdown.tsx"
-  classNameComponentContainer="p-8 justify-start items-start min-h-[400px]"
-  hasReTrigger
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/reasoning.json"
+```
 
-<Tabs defaultValue="cli">
+#### Component API
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/reasoning.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/reasoning.tsx" language="tsx" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### Reasoning
+##### Reasoning
 
 | Prop         | Type                    | Default | Description                                                 |
 | :----------- | :---------------------- | :------ | :---------------------------------------------------------- |
@@ -1502,7 +903,7 @@ Show rich formatting with markdown support for better structured reasoning conte
 | onOpenChange | (open: boolean) => void |         | Callback when open state changes                            |
 | isStreaming  | boolean                 |         | When false, automatically closes the reasoning (auto-close) |
 
-### ReasoningTrigger
+##### ReasoningTrigger
 
 | Prop      | Type            | Default | Description                  |
 | :-------- | :-------------- | :------ | :--------------------------- |
@@ -1510,7 +911,7 @@ Show rich formatting with markdown support for better structured reasoning conte
 | className | string          |         | Additional CSS classes       |
 | ...props  | HTMLAttributes  |         | Additional HTML button props |
 
-### ReasoningContent
+##### ReasoningContent
 
 | Prop             | Type            | Default | Description                               |
 | :--------------- | :-------------- | :------ | :---------------------------------------- |
@@ -1520,69 +921,25 @@ Show rich formatting with markdown support for better structured reasoning conte
 | markdown         | boolean         | false   | Enable markdown rendering for the content |
 | ...props         | HTMLAttributes  |         | Additional HTML div props                 |
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { CustomFileUpload } from "./custom-file-upload"
-
-export const metadata = generateMetadata(
-  "File Upload",
-  "A component for creating drag-and-drop file upload interfaces with support for single or multiple files, custom triggers, and visual feedback during file dragging operations."
-)
-
-# File Upload
+### File Upload
 
 A component for creating drag-and-drop file upload interfaces with support for single or multiple files, custom triggers, and visual feedback during file dragging operations.
 
-## Examples
+#### Examples
 
-### File Upload with Prompt Input
+##### File Upload with Prompt Input
 
 You can combine the file upload component with the [Prompt Input](/docs/prompt-input) component to create a full-featured input component with file upload support. You can try to drop a file to see the visual feedback.
 
-<ComponentCodePreview
-  component={<CustomFileUpload />}
-  filePath="app/docs/file-upload/custom-file-upload.tsx"
-  classNameComponentContainer="p-8"
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/file-upload.json"
+```
 
-<Tabs defaultValue="cli">
+#### Component API
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/file-upload.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/file-upload.tsx" language="tsx" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### FileUpload
+##### FileUpload
 
 | Prop         | Type                    | Default | Description                              |
 | :----------- | :---------------------- | :------ | :--------------------------------------- |
@@ -1591,7 +948,7 @@ You can combine the file upload component with the [Prompt Input](/docs/prompt-i
 | multiple     | boolean                 | true    | Allow selection of multiple files        |
 | accept       | string                  |         | File types to accept (e.g., ".jpg,.png") |
 
-### FileUploadTrigger
+##### FileUploadTrigger
 
 | Prop      | Type                                       | Default | Description                      |
 | :-------- | :----------------------------------------- | :------ | :------------------------------- |
@@ -1600,88 +957,36 @@ You can combine the file upload component with the [Prompt Input](/docs/prompt-i
 | children  | React.ReactNode                            |         | Child components                 |
 | ...props  | `React.ComponentPropsWithoutRef<"button">` |         | All other button props           |
 
-### FileUploadContent
+##### FileUploadContent
 
 | Prop      | Type                                   | Default | Description            |
 | :-------- | :------------------------------------- | :------ | :--------------------- |
 | className | string                                 |         | Additional CSS classes |
 | ...props  | `React.HTMLAttributes<HTMLDivElement>` |         | All other div props    |
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { JSXPreviewBasic } from "./jsx-preview-basic"
-import { JSXPreviewStreaming } from "./jsx-preview-streaming"
-
-export const metadata = generateMetadata(
-  "JSX Preview",
-  "A component for rendering JSX strings as React components, with support for streaming content and automatic tag completion."
-)
-
-# JSX Preview (experimental)
+### JSX Preview (experimental)
 
 A component for rendering JSX strings as React components, with support for streaming content and automatic tag completion.
 
-## Examples
+#### Examples
 
-### Basic JSX Preview
+##### Basic JSX Preview
 
 The `JSXPreview` component can render JSX strings directly into React components.
 
-<ComponentCodePreview
-  component={<JSXPreviewBasic />}
-  filePath="app/docs/jsx-preview/jsx-preview-basic.tsx"
-  classNameComponentContainer="p-8"
-/>
-
-### Streaming JSX Preview
+##### Streaming JSX Preview
 
 The `isStreaming` prop enables real-time rendering of JSX as it's being streamed, with automatic tag completion.
 
-<ComponentCodePreview
-  component={<JSXPreviewStreaming />}
-  filePath="app/docs/jsx-preview/jsx-preview-streaming.tsx"
-  classNameComponentContainer="p-8"
-  hasReTrigger
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/jsx-preview.json"
+```
 
-<Tabs defaultValue="cli">
+#### Component API
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/jsx-preview.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/jsx-preview.tsx" language="tsx" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### JSXPreview
+##### JSXPreview
 
 | Prop        | Type             | Default | Description                                                          |
 | :---------- | :--------------- | :------ | :------------------------------------------------------------------- |
@@ -1690,78 +995,29 @@ The `isStreaming` prop enables real-time rendering of JSX as it's being streamed
 | className   | string           |         | Additional CSS classes                                               |
 | ...props    | `JsxParserProps` |         | All other props from `react-jsx-parser`                              |
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { ToolBasic } from "./tool-basic"
-import { ToolStates } from "./tool-states"
-
-export const metadata = generateMetadata(
-  "Tool",
-  "Displays tool call details including input, output, status, and errors. Ideal for visualizing AI tool usage in chat UIs."
-)
-
-# Tool
+### Tool
 
 Displays tool call details including input, output, status, and errors. Ideal for visualizing AI tool usage in chat UIs. **Compatible with AI SDK v5** architecture.
 
-## Examples
+#### Examples
 
-### Basic Tool
+##### Basic Tool
 
-<ComponentCodePreview
-  component={<ToolBasic />}
-  filePath="app/docs/tool/tool-basic.tsx"
-  classNameComponentContainer="p-8"
-/>
+A basic tool component showing tool call details.
 
-### Tool States
+##### Tool States
 
 Show different states of tool execution: pending, running, completed, and error.
 
-<ComponentCodePreview
-  component={<ToolStates />}
-  filePath="app/docs/tool/tool-states.tsx"
-  classNameComponentContainer="p-8"
-/>
+#### Installation
 
-## Installation
+```bash
+npx shadcn add "https://prompt-kit.com/c/tool.json"
+```
 
-<Tabs defaultValue="cli">
+#### Component API
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
-
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/tool.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/tool.tsx" language="tsx" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### Tool
+##### Tool
 
 | Prop        | Type     | Default | Description                                      |
 | :---------- | :------- | :------ | :----------------------------------------------- |
@@ -1769,7 +1025,7 @@ Show different states of tool execution: pending, running, completed, and error.
 | defaultOpen | boolean  | false   | Whether the tool details are expanded by default |
 | className   | string   |         | Additional CSS classes                           |
 
-### ToolPart
+##### ToolPart
 
 | Prop       | Type                      | Default | Description                                  |
 | :--------- | :------------------------ | :------ | :------------------------------------------- |
@@ -1780,83 +1036,36 @@ Show different states of tool execution: pending, running, completed, and error.
 | toolCallId | string                    |         | The tool call identifier                     |
 | errorText  | string                    |         | The error text if the tool failed to execute |
 
-
-import ComponentCodePreview from "@/components/app/component-code-preview"
-import { generateMetadata } from "../utils/metadata"
-import { SourceBasic } from "./source-basic"
-import { SourceCustom } from "./source-custom"
-
-export const metadata = generateMetadata(
-  "Source",
-  "Displays website sources used by AI-generated content, showing URL details, titles, and descriptions on hover."
-)
-
-# Source
+### Source
 
 Displays website sources used by AI-generated content, showing URL details, titles, and descriptions on hover.
 
-## Examples
+#### Examples
 
-### Basic Source
+##### Basic Source
 
-<ComponentCodePreview
-  component={<SourceBasic />}
-  filePath="app/docs/source/source-basic.tsx"
-  classNameComponentContainer="p-0"
-/>
+A basic source component.
 
-### Custom Source
+##### Custom Source
 
-<ComponentCodePreview
-  component={<SourceCustom />}
-  filePath="app/docs/source/source-custom.tsx"
-  classNameComponentContainer="p-0"
-/>
+Customized source component with additional styling.
 
-## Installation
+#### Installation
 
-<Tabs defaultValue="cli">
+```bash
+npx shadcn add "https://prompt-kit.com/c/source.json"
+```
 
-<TabsList>
-  <TabsTrigger value="cli">CLI</TabsTrigger>
-  <TabsTrigger value="manual">Manual</TabsTrigger>
-</TabsList>
+#### Component API
 
-<TabsContent value="cli">
-
-<CodeBlock
-  code={`npx shadcn add "https://prompt-kit.com/c/source.json"`}
-  language="bash"
-/>
-
-</TabsContent>
-
-<TabsContent value="manual">
-
-<Steps>
-
-<Step>Copy and paste the following code into your project.</Step>
-
-<CodeBlock filePath="components/prompt-kit/source.tsx" language="tsx" />
-
-<Step>Update the import paths to match your project setup.</Step>
-
-</Steps>
-
-</TabsContent>
-
-</Tabs>
-
-## Component API
-
-### Source
+##### Source
 
 | Prop     | Type            | Default | Description            |
 | :------- | :-------------- | :------ | :--------------------- |
 | href     | string          |         | The URL of the source  |
 | children | React.ReactNode |         | The content to display |
 
-### SourceTrigger
+##### SourceTrigger
 
 | Prop        | Type    | Default | Description                 |
 | :---------- | :------ | :------ | :-------------------------- |
@@ -1864,14 +1073,13 @@ Displays website sources used by AI-generated content, showing URL details, titl
 | showFavicon | boolean | false   | Whether to show the favicon |
 | className   | string  |         | Additional CSS classes      |
 
-### SourceContent
+##### SourceContent
 
 | Prop        | Type   | Default | Description                |
 | :---------- | :----- | :------ | :------------------------- |
 | title       | string |         | The title to display       |
 | description | string |         | The description to display |
-| className   | string |         | Additional CSS classes     |
-
+| className   | string  |         | Additional CSS classes     |
 
 ## Showcase
 
@@ -1879,102 +1087,20 @@ Check out these example implementations using prompt-kit components:
 
 - [zola.chat](https://zola.chat/): Open-source AI chat app built with prompt-kit components
 
-import { Button } from "@/components/ui/button"
-import { ArrowRightIcon } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import { generateMetadata } from "../utils/metadata"
+### Building something great with prompt-kit?
 
-export const metadata = generateMetadata("Showcase", "Showcase for prompt-kit.")
+We'd love to feature your project here.
 
-const projects = [
-  {
-    title: "zola.chat",
-    href: "https://zola.chat",
-    thumbnail: "https://www.zola.chat/cover_zola.jpg",
-  },
-  {
-    title: "emojis.com",
-    href: "https://emojis.com",
-    thumbnail: "https://attic.sh/_static/emojis/ai-emoji-generator/og.jpg",
-  },
-  {
-    title: "ottogrid.ai",
-    href: "https://ottogrid.ai",
-    thumbnail: "https://ottogrid.ai/opengraph-image.png?2ca0b60807e14ef5",
-  },
-  {
-    title: "aiagent.app",
-    href: "https://aiagent.app",
-    thumbnail:
-      "https://aiagent.app/opengraph-image.png?opengraph-image.e8b1925a.png",
-  },
-  {
-    title: "www.findappgaps.com",
-    href: "https://www.findappgaps.com",
-    thumbnail:
-      "https://www.findappgaps.com/opengraph-image.png?fd2d072fb61c49f3",
-  },
-  {
-    title: "faithbase.ai",
-    href: "https://faithbase.ai",
-    thumbnail: "https://faithbase.ai/opengraph.jpg",
-  },
-]
+[Submit your project](https://forms.gle/SfNVyJJMyZ2RfnTb6)
 
-export default function Showcase() {
-  return (
-    <div className="not-prose w-full flex-auto pt-2.5">
-      <div className="relative w-full pb-16">
-        <h1 className="text-sm font-medium text-[#0D74CE] dark:text-[#70B8FF]">
-          Showcase
-        </h1>
-        <p className="text-foreground mt-6 text-3xl font-[450] tracking-tight text-pretty">
-          Building something great with prompt-kit?
-        </p>
-        <p className="text-muted-foreground mb-4 text-3xl font-[450] tracking-tight">
-          We'd love to feature your project here.
-        </p>
-        <Link href="https://forms.gle/SfNVyJJMyZ2RfnTb6" target="_blank">
-          <Button className="mt-2">
-            Submit your project <ArrowRightIcon className="size-4" />
-          </Button>
-        </Link>
-      </div>
-      <div className="grid w-full grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2">
-        {projects.map((project) => (
-          <div className="relative isolate w-full overflow-hidden rounded-2xl max-md:aspect-1200/630 md:h-48">
-            <Image
-              priority
-              src={project.thumbnail}
-              alt="thumbnail"
-              unoptimized
-              width={1200}
-              height={630}
-              className="h-full w-full object-cover"
-            />
+### Featured Projects
 
-            <div
-              aria-hidden
-              className="absolute bottom-2 left-2 rounded-[6px] bg-black/70 px-1.5 py-0.5 text-xs font-medium text-white"
-            >
-              {project.title}
-            </div>
-
-            <Link
-              href={`${project.href}?utm_source=prompt-kit.com&utm_medium=referral`}
-              target="_blank"
-              className="absolute inset-0"
-            >
-              <span className="sr-only">Visit {project.title}</span>
-            </Link>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
+- **zola.chat** - Open-source AI chat application
+- **emojis.com** - AI emoji generator
+- **ottogrid.ai** - AI grid tools
+- **aiagent.app** - AI agent platform
+- **findappgaps.com** - App gap finder
+- **faithbase.ai** - Faith-based AI platform
 
 ## Blocks
 
@@ -2003,15 +1129,18 @@ Available primitives:
 
 ### Chatbot
 
-**Name**: `chatbot`  
+**Name**: `chatbot`
+
 **Description**: A chatbot component that allows users to chat with an AI model. It uses prompt-kit, shadcn/ui, and AI SDK V5.
 
 **Installation**:
+
 ```bash
 npx shadcn add "https://prompt-kit.com/c/chatbot.json"
 ```
 
 **Features**:
+
 - Complete frontend and backend implementation
 - Built with prompt-kit components
 - shadcn/ui compatible
@@ -2020,15 +1149,18 @@ npx shadcn add "https://prompt-kit.com/c/chatbot.json"
 
 ### Tool calling
 
-**Name**: `tool-calling`  
+**Name**: `tool-calling`
+
 **Description**: A chatbot with tool calling feature. It uses prompt-kit, shadcn/ui, and AI SDK V5.
 
 **Installation**:
+
 ```bash
 npx shadcn add "https://prompt-kit.com/c/tool-calling.json"
 ```
 
 **Features**:
+
 - Complete frontend and backend implementation
 - Built with prompt-kit components
 - shadcn/ui compatible

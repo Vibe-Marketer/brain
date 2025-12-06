@@ -25,7 +25,7 @@ interface AnalyticsFilterBarProps {
 }
 
 export function AnalyticsFilterBar({ filters, onFiltersChange }: AnalyticsFilterBarProps) {
-  const updateFilter = (key: keyof AnalyticsFilters, value: any) => {
+  const updateFilter = (key: keyof AnalyticsFilters, value: boolean | string) => {
     onFiltersChange({ ...filters, [key]: value });
   };
 

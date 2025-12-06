@@ -187,7 +187,7 @@ serve(async (req) => {
     const transcriptData = transcriptResponse.ok ? await transcriptResponse.json() : { transcript: [] };
 
     // Search for meeting metadata using date filtering if we have the date
-    let meetingInfo: any = null;
+    let meetingInfo: {recording_id: number} | null = null;
     const targetRecordingId = parseInt(recording_id);
 
     // Helper function to search with date range
@@ -219,7 +219,7 @@ serve(async (req) => {
         }
 
         const listData = await listResponse.json();
-        const found = listData.items?.find((m: any) => m.recording_id === targetRecordingId);
+        const found = listData.items?.find((m: {recording_id: number}) => m.recording_id === targetRecordingId);
 
         if (found) {
           console.log(`Found meeting ${recording_id} on page ${page + 1}`);

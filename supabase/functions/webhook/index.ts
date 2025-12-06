@@ -145,7 +145,12 @@ async function verifyWebhookSignature(
   return false;
 }
 
-async function processMeetingWebhook(meeting: any, supabase: any): Promise<string[]> {
+async function processMeetingWebhook(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  meeting: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any
+): Promise<string[]> {
   try {
     console.log(`Processing webhook for meeting: ${meeting.recording_id}`);
 
@@ -196,7 +201,8 @@ async function processMeetingWebhook(meeting: any, supabase: any): Promise<strin
       const lastTimestamp = transcript[transcript.length - 1].timestamp || '00:00:00';
       console.log(`   - First timestamp: ${firstTimestamp}`);
       console.log(`   - Last timestamp: ${lastTimestamp}`);
-      console.log(`   - Total characters in all segments: ${transcript.reduce((sum: number, seg: any) => sum + (seg.text?.length || 0), 0)}`);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    console.log(`   - Total characters in all segments: ${transcript.reduce((sum: number, seg: any) => sum + (seg.text?.length || 0), 0)}`);
     }
     console.log(`   - Meeting duration: ${meeting.recording_start_time} to ${meeting.recording_end_time}`);
     
@@ -205,6 +211,7 @@ async function processMeetingWebhook(meeting: any, supabase: any): Promise<strin
     let currentTimestamp: string | null = null;
     let currentTexts: string[] = [];
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     transcript.forEach((seg: any, index: number) => {
       const speakerName = seg.speaker?.display_name || 'Unknown';
       
@@ -284,11 +291,13 @@ async function processMeetingWebhook(meeting: any, supabase: any): Promise<strin
           .eq('recording_id', meeting.recording_id)
           .eq('user_id', userId);
 
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const transcriptRows = meeting.transcript.map((segment: any) => {
           // Try to get email from transcript match first, then from calendar invitees
           let speakerEmail = segment.speaker.matched_calendar_invitee_email;
 
           if (!speakerEmail && meeting.calendar_invitees) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const matchedInvitee = meeting.calendar_invitees.find((inv: any) =>
               inv.matched_speaker_display_name === segment.speaker.display_name ||
               inv.name === segment.speaker.display_name
@@ -364,10 +373,10 @@ Deno.serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
-  
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let meeting: any;
   let userId: string | null = null;
-  let errorMessage: string | null = null;
   
   try {
     // Clone the request to read body multiple times if needed
@@ -398,7 +407,7 @@ Deno.serve(async (req) => {
     // ==========================================================================
     // PARALLEL VERIFICATION TEST - Try ALL methods and log results
     // ==========================================================================
-    const verificationResults: Record<string, { available: boolean; verified: boolean; secret_preview?: string }> = {
+    const verificationResults: Record<string, {available: boolean; verified: boolean; secret_preview?: string}> = {
       personal_by_email: { available: false, verified: false },
       oauth_app_secret: { available: false, verified: false },
       first_user_fallback: { available: false, verified: false }
@@ -531,7 +540,7 @@ Deno.serve(async (req) => {
       console.error('❌ Webhook signature verification FAILED - NO METHOD WORKED');
       console.error('   - Webhook ID:', req.headers.get('webhook-id'));
       console.error('   - Signature Header:', req.headers.get('webhook-signature'));
-      errorMessage = `Invalid webhook signature - all methods failed. Results: ${JSON.stringify(verificationResults)}`;
+      const errorMessage = `Invalid webhook signature - all methods failed. Results: ${JSON.stringify(verificationResults)}`;
 
       // Log failed delivery WITH verification results
       const logUserId = userId || firstUserId;

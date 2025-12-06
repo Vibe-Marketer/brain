@@ -41,6 +41,7 @@ This system transforms Conversion Brain from a passive transcript storage tool i
 ### Current State
 
 Conversion Brain currently:
+
 - Stores meeting transcripts from Fathom/Zoom in `fathom_transcripts` table
 - Provides manual search and filtering capabilities
 - Allows category-based organization
@@ -49,6 +50,7 @@ Conversion Brain currently:
 ### Problem Statement
 
 Users cannot:
+
 - **Ask natural language questions** about their transcript data
 - **Get AI-generated insights** from patterns across multiple meetings
 - **Build custom AI workflows** without coding
@@ -57,6 +59,7 @@ Users cannot:
 ### Desired State
 
 Users will be able to:
+
 - Chat with their transcript knowledge base using natural language
 - Visually design AI agents that perform specific tasks (e.g., "Find all pain points mentioned in Q4 sales calls")
 - Get answers that understand temporal context ("What changed in customer objections over time?")
@@ -135,6 +138,7 @@ Users will be able to:
 ### Technology Stack
 
 #### Frontend
+
 - **Chat UI:** prompt-kit components (shadcn/ui + Tailwind)
 - **Agent Builder:** ReactFlow 12.x (visual workflow canvas)
 - **State Management:** @tanstack/react-query (existing)
@@ -142,6 +146,7 @@ Users will be able to:
 - **Styling:** Tailwind CSS (following brand-guidelines-v3.3.md)
 
 #### Backend
+
 - **Runtime:** Deno (Supabase Edge Functions)
 - **AI SDK:** Vercel AI SDK v6 beta (ToolLoopAgent)
 - **LLM Provider:** OpenAI GPT-4 Turbo (via @ai-sdk/openai)
@@ -150,6 +155,7 @@ Users will be able to:
 - **Hybrid Search:** RRF (Reciprocal Rank Fusion)
 
 #### Database
+
 - **Platform:** Supabase PostgreSQL
 - **Extensions:** pgvector, pg_trgm (for keyword search)
 - **RLS:** Multi-tenant isolation by user_id
@@ -500,6 +506,7 @@ COMMENT ON FUNCTION public.hybrid_search_transcripts IS 'Hybrid search using RRF
 **Location:** `src/pages/Chat.tsx`
 
 **Components:**
+
 ```
 src/components/chat/
 ├── ChatContainer.tsx           # Main chat layout (prompt-kit)
@@ -513,6 +520,7 @@ src/components/chat/
 ```
 
 **Key Features:**
+
 - Real-time streaming responses
 - Tool call visualization
 - Source citation (transcript chunks)
@@ -521,6 +529,7 @@ src/components/chat/
 - Code block syntax highlighting
 
 **Hooks:**
+
 ```typescript
 // src/hooks/useChat.ts
 import { useChat } from '@ai-sdk/react';
@@ -551,6 +560,7 @@ export function useChatSession(sessionId?: string) {
 **Location:** `src/pages/AgentBuilder.tsx`
 
 **Components:**
+
 ```
 src/components/agent-builder/
 ├── AgentCanvas.tsx             # ReactFlow canvas container
@@ -568,6 +578,7 @@ src/components/agent-builder/
 ```
 
 **Node Types:**
+
 ```typescript
 // src/components/agent-builder/types.ts
 export type AgentNodeType =
@@ -590,6 +601,7 @@ export interface AgentNode extends Node {
 ```
 
 **ReactFlow Integration:**
+
 ```typescript
 // src/pages/AgentBuilder.tsx
 import ReactFlow, {
@@ -641,6 +653,7 @@ export function AgentBuilder() {
 **Location:** `src/pages/AgentInbox.tsx`
 
 **Components:**
+
 ```
 src/components/agent-inbox/
 ├── AgentList.tsx               # Grid/list of agents
@@ -651,6 +664,7 @@ src/components/agent-inbox/
 ```
 
 **Features:**
+
 - Published agents library
 - Execution history
 - Quick run interface
@@ -851,6 +865,7 @@ Deno.serve(async (req) => {
 **Goal:** Set up database schema and basic indexing
 
 **Tasks:**
+
 1. ✅ **Create database migrations**
    - `transcript_chunks` table
    - `transcript_chunk_relationships` table
@@ -869,12 +884,14 @@ Deno.serve(async (req) => {
    - Error handling
 
 **Deliverables:**
+
 - Database schema deployed
 - Embedding function working
 - All existing transcripts indexed
 - Hybrid search tested
 
 **Acceptance Criteria:**
+
 - [ ] Can search transcripts semantically
 - [ ] Keyword search works
 - [ ] Hybrid RRF returns relevant results
@@ -887,6 +904,7 @@ Deno.serve(async (req) => {
 **Goal:** Build basic chat UI with streaming
 
 **Tasks:**
+
 1. ✅ **Set up chat UI components**
    - Install prompt-kit components
    - Create `ChatContainer`, `ChatMessage`, `ChatInput`
@@ -911,12 +929,14 @@ Deno.serve(async (req) => {
    - Source citation formatting
 
 **Deliverables:**
+
 - Functional chat interface at `/chat`
 - Real-time streaming working
 - RAG search integrated
 - Session persistence
 
 **Acceptance Criteria:**
+
 - [ ] User can send messages and receive streaming responses
 - [ ] Tool calls are displayed
 - [ ] Sources are cited with recording IDs
@@ -929,6 +949,7 @@ Deno.serve(async (req) => {
 **Goal:** Enable visual agent configuration
 
 **Tasks:**
+
 1. ✅ **Set up ReactFlow canvas**
    - Install reactflow
    - Create `AgentCanvas` component
@@ -959,12 +980,14 @@ Deno.serve(async (req) => {
    - Execution tracking
 
 **Deliverables:**
+
 - Agent builder UI at `/agents/builder`
 - 5 node types implemented
 - Agent save/load working
 - Agent execution functional
 
 **Acceptance Criteria:**
+
 - [ ] User can create agent workflow visually
 - [ ] Agent can be saved and loaded
 - [ ] Agent executes correctly based on workflow
@@ -977,6 +1000,7 @@ Deno.serve(async (req) => {
 **Goal:** Complete agent management experience
 
 **Tasks:**
+
 1. ✅ **Build agent inbox**
    - Agent list/grid view
    - Agent card components
@@ -1003,12 +1027,14 @@ Deno.serve(async (req) => {
    - Empty states
 
 **Deliverables:**
+
 - Agent inbox at `/agents/inbox`
 - Agent management CRUD
 - Execution history viewer
 - Polished UI
 
 **Acceptance Criteria:**
+
 - [ ] User can view all published agents
 - [ ] Execution history is accessible
 - [ ] UI follows brand-guidelines-v3.3.md
@@ -1021,6 +1047,7 @@ Deno.serve(async (req) => {
 **Goal:** Add advanced capabilities
 
 **Tasks:**
+
 1. ✅ **Multi-agent orchestration**
    - Agent routing node
    - Sub-agent invocation
@@ -1042,12 +1069,14 @@ Deno.serve(async (req) => {
    - Add request batching
 
 **Deliverables:**
+
 - Multi-agent support
 - Temporal analysis tool
 - Export functionality
 - Performance improvements
 
 **Acceptance Criteria:**
+
 - [ ] Agents can invoke other agents
 - [ ] Temporal queries return accurate trends
 - [ ] Exports maintain formatting
@@ -1066,6 +1095,7 @@ Need a robust, production-ready framework for building AI agents with tool calli
 Use Vercel AI SDK v6 beta with `ToolLoopAgent` class.
 
 **Rationale:**
+
 - Native streaming support (SSE)
 - Built-in tool calling with Zod validation
 - Agent abstraction reduces boilerplate
@@ -1074,11 +1104,13 @@ Use Vercel AI SDK v6 beta with `ToolLoopAgent` class.
 - Supports multiple LLM providers
 
 **Alternatives Considered:**
+
 - LangChain: More complex, heavier dependencies
 - Custom implementation: Too much reinvention
 - OpenAI Assistants API: Vendor lock-in, less flexibility
 
 **Consequences:**
+
 - Beta software risk (pin versions)
 - Learning curve for team
 - Dependency on Vercel ecosystem
@@ -1095,6 +1127,7 @@ Need a visual canvas for users to design agent workflows without coding.
 Use ReactFlow 12.x for visual workflow builder.
 
 **Rationale:**
+
 - Mature library (2.79M weekly downloads)
 - React-first architecture
 - Extensive customization (custom nodes/edges)
@@ -1103,11 +1136,13 @@ Use ReactFlow 12.x for visual workflow builder.
 - MIT license
 
 **Alternatives Considered:**
+
 - Rete.js: Less React integration
 - Custom canvas: Too complex
 - GoJS: Commercial license required
 
 **Consequences:**
+
 - Additional bundle size (~150KB)
 - Need to learn ReactFlow API
 - Benefit: Production-ready UX
@@ -1123,6 +1158,7 @@ Need to search transcripts using both semantic meaning and exact keywords, with 
 Use pgvector with HNSW index + tsvector with GIN index, combined using Reciprocal Rank Fusion (RRF).
 
 **Rationale:**
+
 - pgvector: PostgreSQL extension, native Supabase support
 - HNSW index: Fast approximate nearest neighbor search
 - tsvector: PostgreSQL built-in full-text search
@@ -1130,11 +1166,13 @@ Use pgvector with HNSW index + tsvector with GIN index, combined using Reciproca
 - All in-database: No external dependencies
 
 **Alternatives Considered:**
+
 - Pinecone/Weaviate: External service, cost
 - Elasticsearch: Separate infrastructure
 - Simple vector search only: Misses exact matches
 
 **Consequences:**
+
 - Database storage increases (embeddings)
 - Need to manage embedding generation
 - Benefit: Fast, accurate, cost-effective
@@ -1150,6 +1188,7 @@ Transcripts can be very long (10,000+ tokens). Need to chunk for embedding and r
 Chunk transcripts at 500 tokens with speaker continuity preservation.
 
 **Rationale:**
+
 - 500 tokens: ~1-2 minutes of conversation
 - Preserves context without exceeding embedding limits
 - Speaker-aware: Don't split mid-sentence
@@ -1157,11 +1196,13 @@ Chunk transcripts at 500 tokens with speaker continuity preservation.
 - Relationships: Track speaker continuity, temporal sequence
 
 **Alternatives Considered:**
+
 - Fixed 1000 tokens: Too large, loses granularity
 - Sentence-level: Too small, too many chunks
 - Paragraph-level: Inconsistent sizes
 
 **Consequences:**
+
 - More chunks = more embeddings = higher cost
 - More chunks = better retrieval precision
 - Need to handle chunk relationships
@@ -1177,6 +1218,7 @@ Need production-ready chat UI components with streaming support.
 Use prompt-kit components built on shadcn/ui and Tailwind.
 
 **Rationale:**
+
 - Built on shadcn/ui (already using in project)
 - Tailwind CSS (follows brand guidelines)
 - Designed for AI SDKs (Vercel, OpenAI)
@@ -1184,11 +1226,13 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 - Composable, customizable
 
 **Alternatives Considered:**
+
 - Build from scratch: Too time-consuming
 - ChatUI libraries: Not Tailwind-based
 - Material UI chat: Doesn't match brand
 
 **Consequences:**
+
 - Dependencies on shadcn/ui patterns
 - Need to customize for brand guidelines
 - Benefit: Fast development, proven patterns
@@ -1200,6 +1244,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 ### Functional Requirements
 
 ✅ **Chat Interface**
+
 - [ ] User can send messages and receive streaming responses
 - [ ] Tool calls are visualized in the UI
 - [ ] Sources are cited with recording IDs and timestamps
@@ -1207,6 +1252,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 - [ ] Chat history is searchable
 
 ✅ **Knowledge Base**
+
 - [ ] Hybrid search returns relevant results
 - [ ] Temporal queries work ("What changed over Q4?")
 - [ ] Relational queries work ("What did John say about pricing?")
@@ -1214,6 +1260,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 - [ ] Embeddings are generated automatically for new transcripts
 
 ✅ **Agent Builder**
+
 - [ ] User can drag-and-drop nodes onto canvas
 - [ ] Nodes can be configured via side panel
 - [ ] Workflows can be saved and loaded
@@ -1221,6 +1268,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 - [ ] Execution results are displayed
 
 ✅ **Agent Inbox**
+
 - [ ] User can view all published agents
 - [ ] User can run agents with custom prompts
 - [ ] Execution history is accessible
@@ -1229,6 +1277,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 ### Non-Functional Requirements
 
 ✅ **Performance**
+
 - [ ] Chat response time < 2 seconds (first token)
 - [ ] Full chat response < 10 seconds
 - [ ] Search query < 200ms
@@ -1236,17 +1285,20 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 - [ ] Page load time < 1 second
 
 ✅ **Scalability**
+
 - [ ] Handles 100,000+ transcript chunks per user
 - [ ] Supports 10+ concurrent chat sessions
 - [ ] Agent executions don't block other operations
 
 ✅ **Security**
+
 - [ ] RLS enforces user isolation
 - [ ] API keys are not exposed to client
 - [ ] User input is sanitized
 - [ ] Tool executions are sandboxed
 
 ✅ **Usability**
+
 - [ ] UI follows brand-guidelines-v3.3.md
 - [ ] Responsive on mobile/tablet/desktop
 - [ ] Loading states are clear
@@ -1259,6 +1311,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 ### Technical Risks
 
 **Risk 1: AI SDK v6 Beta Instability**
+
 - **Likelihood:** Medium
 - **Impact:** High
 - **Mitigation:**
@@ -1268,6 +1321,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
   - Monitor GitHub issues
 
 **Risk 2: Embedding Cost Explosion**
+
 - **Likelihood:** Medium
 - **Impact:** Medium
 - **Mitigation:**
@@ -1277,6 +1331,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
   - Consider smaller embedding models
 
 **Risk 3: Search Performance Degradation**
+
 - **Likelihood:** Low
 - **Impact:** High
 - **Mitigation:**
@@ -1286,6 +1341,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
   - Add pagination
 
 **Risk 4: Complex Agent Workflows**
+
 - **Likelihood:** High
 - **Impact:** Medium
 - **Mitigation:**
@@ -1297,6 +1353,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 ### User Experience Risks
 
 **Risk 5: Confusing Agent Builder UI**
+
 - **Likelihood:** Medium
 - **Impact:** High
 - **Mitigation:**
@@ -1306,6 +1363,7 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
   - Tooltips and help text
 
 **Risk 6: Slow Chat Responses**
+
 - **Likelihood:** Low
 - **Impact:** High
 - **Mitigation:**
@@ -1352,19 +1410,23 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 ### Technology Reference Links
 
 **Vercel AI SDK:**
+
 - [Chat UI components for AI apps – prompt-kit](https://www.prompt-kit.com/chat-ui)
 - [How to build AI Agents with Vercel and the AI SDK](https://vercel.com/guides/how-to-build-ai-agents-with-vercel-and-the-ai-sdk)
 - [AI SDK 5 - Vercel](https://vercel.com/blog/ai-sdk-5)
 
 **ReactFlow:**
+
 - [Node-Based UIs in React - React Flow](https://reactflow.dev)
 - [LangGraph GUI ReactFlow - Visual AI Agent Workflow Builder](https://creati.ai/ai-tools/langgraph-gui-reactflow/)
 
 **Hybrid RAG:**
+
 - [Hybrid search | Supabase Docs](https://supabase.com/docs/guides/ai/hybrid-search)
 - [pgvector: Embeddings and vector similarity | Supabase Docs](https://supabase.com/docs/guides/database/extensions/pgvector)
 
 **Brand Guidelines:**
+
 - `/docs/design/brand-guidelines-v3.3.md`
 - `/docs/architecture/api-naming-conventions.md`
 

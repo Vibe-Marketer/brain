@@ -1,5 +1,3 @@
----
-
 # Loop Control
 
 You can control both the execution flow and the settings at each step of the agent loop. The AI SDK provides built-in loop control through two parameters: `stopWhen` for defining stopping conditions and `prepareStep` for modifying settings (model, tools, messages, and more) between steps.
@@ -330,7 +328,3 @@ This manual approach gives you complete control over:
 - Error handling and recovery
 
 [Learn more about manual agent loops in the cookbook](/cookbook/node/manual-agent-loop).
-
----
-title: Agents
-description: An overview of building agents with the AI SDK.

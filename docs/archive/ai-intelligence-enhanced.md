@@ -11,12 +11,14 @@
 ## 📐 Design Philosophy (Inspired by TWINE)
 
 ### 1. **Agent-First Architecture**
+
 - Users create and manage AI "agents" that run automatically
 - Each agent has a specific purpose (like TWINE's "Feed agents" and "Thematic agents")
 - Visual workflow builder for agent configuration
 - Progressive disclosure: Simple start → Advanced options
 
 ### 2. **Context-Centric Organization**
+
 ```
 ┌─────────────────────────────────────────────────┐
 │  Context                                        │
@@ -31,12 +33,14 @@
 ```
 
 ### 3. **Intel Cards** (Not tables)
+
 - Each AI-extracted insight is a **card**
 - Shows: Type, Title, Summary, Source Call, Date, Priority
 - Filterable by type, date, priority, call owner
 - Click to expand for full details + take action
 
 ### 4. **Clean, Minimalist UI**
+
 - Icon-based sidebar navigation
 - Generous white space
 - Clear typography hierarchy
@@ -47,7 +51,7 @@
 
 ## 🗂️ Information Architecture
 
-### Navigation Structure:
+### Navigation Structure
 
 ```
 ├─ 🏠 Home (Dashboard overview)
@@ -67,6 +71,7 @@
 ## 🤖 Agent Types
 
 ### **Feed Agents** (Continuous monitoring)
+
 - Run automatically on every new call
 - Deliver intel via Slack/Email/Dashboard
 - Examples:
@@ -76,6 +81,7 @@
   - **"Competitive Intel Feed"** - Notifies when competitors mentioned
 
 ### **Thematic Agents** (Scheduled reports)
+
 - Run weekly/monthly on batches of calls
 - Generate comprehensive reports
 - Examples:
@@ -219,7 +225,7 @@
 
 ## 🛠️ Enhanced Database Schema
 
-### Core Intelligence Tables:
+### Core Intelligence Tables
 
 ```sql
 -- 1. Intel Items (Primary intelligence store - like TWINE's Intel cards)
@@ -374,6 +380,7 @@ CREATE INDEX idx_action_items_status ON action_items(user_id, status, due_date);
 ### **Feed Agents** (Real-time intelligence)
 
 #### 1. **Critical Feedback Monitor**
+
 ```
 Find new: Product feedback (Critical only)
 Deliver via: Slack
@@ -382,6 +389,7 @@ If no intel: Don't send
 ```
 
 #### 2. **Deal Signal Alert**
+
 ```
 Find new: All intel where:
   - Budget mentioned
@@ -393,6 +401,7 @@ If no intel: Don't send
 ```
 
 #### 3. **Customer Love Feed**
+
 ```
 Find new: Customer love
 Deliver via: Slack #wins channel
@@ -401,6 +410,7 @@ If no intel: Don't send
 ```
 
 #### 4. **Churn Risk Alert**
+
 ```
 Find new: All intel where:
   - Sentiment: Negative
@@ -413,6 +423,7 @@ Repeat: Realtime
 ### **Thematic Agents** (Scheduled reports)
 
 #### 5. **Weekly Product Feedback Digest**
+
 ```
 Find new: Product feedback
 Time range: Last 7 days
@@ -422,6 +433,7 @@ Format: Grouped by theme
 ```
 
 #### 6. **Monthly Voice of Customer**
+
 ```
 Find new: All intel types
 Time range: Last 30 days
@@ -434,7 +446,7 @@ Generate: Executive report with trends
 
 ## 🏗️ Edge Functions Architecture
 
-### Agent Execution System:
+### Agent Execution System
 
 ```typescript
 // 1. ai-analyze-call (Entry point - called by Fathom webhook)
@@ -631,6 +643,7 @@ async function deliverToSlack(webhookUrl: string, intelItems: any[]) {
 ## 📱 Page Structure Overhaul
 
 ### **1. Intel Page** (New - Primary View)
+
 - Replace current "Dashboard" with "Intel" as the home page
 - Show all AI-discovered insights as cards
 - Filter by type, date, priority, criticality
@@ -639,6 +652,7 @@ async function deliverToSlack(webhookUrl: string, intelItems: any[]) {
 - Link to source call and related contact
 
 ### **2. Agents Page** (New)
+
 - List of active agents (card-based)
 - Each card shows: Name, Type, Status, Last run, Next run, Intel found
 - "+ Create Agent" button → Visual workflow builder
@@ -646,6 +660,7 @@ async function deliverToSlack(webhookUrl: string, intelItems: any[]) {
 - View agent execution history
 
 ### **3. Connectors Page** (Enhanced)
+
 - Sources: Fathom (OAuth), Calendar sync
 - Link to revenue: Connect CRM (GHL) - modal with CRM options
 - Destinations: Slack, Email, Teams
@@ -653,12 +668,14 @@ async function deliverToSlack(webhookUrl: string, intelItems: any[]) {
 - Simple CTAs: "Sync calls", "Connect CRM", "Connect Slack"
 
 ### **4. Calls Page** (Simplified)
+
 - Just the raw transcript library
 - Filterable, searchable
 - "Intel extracted" badge showing count
 - Click → View call detail with intel overlay
 
 ### **5. Customers Page** (Enhanced)
+
 - Keep existing table view
 - Add "Intel" column showing count of intel items
 - Click customer → Detail view with intel timeline
@@ -668,7 +685,8 @@ async function deliverToSlack(webhookUrl: string, intelItems: any[]) {
 
 ## 🎨 Visual Design Language
 
-### Color System (from TWINE):
+### Color System (from TWINE)
+
 ```css
 /* Intel Type Colors */
 --intel-feedback: #F59E0B;      /* Amber */
@@ -688,7 +706,8 @@ async function deliverToSlack(webhookUrl: string, intelItems: any[]) {
 --negative: #EF4444;
 ```
 
-### Component Patterns:
+### Component Patterns
+
 1. **Card-based layouts** (not tables) for intel items
 2. **Icon-driven navigation** in sidebar
 3. **Progressive disclosure** in forms
@@ -701,24 +720,28 @@ async function deliverToSlack(webhookUrl: string, intelItems: any[]) {
 ## 🚀 Implementation Phases (TWINE-Inspired)
 
 ### **Phase 1: Foundation** (Week 1)
+
 ✅ Database migration (intel_items, ai_agents, action_items, company_context)
 ✅ Company Context setup page
 ✅ Master AI extractor edge function
 ✅ Basic Intel page (card view)
 
 ### **Phase 2: Agent System** (Week 2)
+
 ✅ Create Agent page with visual workflow builder
 ✅ Feed agent execution engine
 ✅ Slack delivery integration
 ✅ Agent management UI
 
 ### **Phase 3: Intelligence Layer** (Week 3)
+
 ✅ Enhance intel extraction (better prompts)
 ✅ Contact linking (auto-associate intel with customers)
 ✅ Action item extraction
 ✅ Customer detail view with intel timeline
 
 ### **Phase 4: Advanced Agents** (Week 4)
+
 ✅ Thematic agents (scheduled reports)
 ✅ Email delivery
 ✅ Agent analytics dashboard
@@ -790,16 +813,19 @@ Step 5: Name & Activate
 ## 💡 Key Innovations (Beyond TWINE)
 
 ### 1. **AI-Powered Contact Enrichment**
+
 - Automatically link intel to contacts
 - Build personality profiles from call patterns
 - Update CRM fields with AI-extracted data
 
 ### 2. **Business Impact Scoring**
+
 - Each intel item gets a priority score (0-100)
 - Based on: Criticality, affected customers, revenue impact, urgency
 - Sort intel by impact, not just date
 
 ### 3. **Intel Actions**
+
 - Every intel card has quick actions:
   - Create action item
   - Link to customer
@@ -808,11 +834,13 @@ Step 5: Name & Activate
   - Mark as reviewed
 
 ### 4. **Contextual AI**
+
 - AI learns from your company context
 - Better at identifying what matters to YOUR business
 - Personalized intel types based on your industry
 
 ### 5. **Intel → CRM Bridge**
+
 - Auto-update customer records with intel
 - "Last negative feedback: 3 days ago"
 - "Product requests: 5 open items"
@@ -823,6 +851,7 @@ Step 5: Name & Activate
 ## 🎪 Example Intel Cards
 
 ### Product Feedback (Critical)
+
 ```
 ┌─────────────────────────────────────────────┐
 │ ⚠️ Product feedback · Critical              │
@@ -845,6 +874,7 @@ Step 5: Name & Activate
 ```
 
 ### Customer Love
+
 ```
 ┌─────────────────────────────────────────────┐
 │ 💚 Customer love                            │
@@ -868,6 +898,7 @@ Step 5: Name & Activate
 ```
 
 ### Deal Signal
+
 ```
 ┌─────────────────────────────────────────────┐
 │ 💰 Deal signal · High priority              │
@@ -965,13 +996,15 @@ const intelligenceExtractionTool = {
 
 ## 📊 Success Metrics
 
-### User Metrics:
+### User Metrics
+
 - Time to first intel: < 60 seconds after first call
 - Intel review rate: > 80% of items reviewed within 24 hours
 - Agent activation rate: > 50% of users create at least 1 agent
 - Daily active usage: Users check Intel tab daily
 
-### Technical Metrics:
+### Technical Metrics
+
 - Processing time: < 10s per call
 - Accuracy: > 90% precision on intel classification
 - Cost: < $0.02 per call

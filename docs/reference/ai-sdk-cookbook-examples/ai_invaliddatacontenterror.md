@@ -1,5 +1,3 @@
----
-
 # AI_InvalidArgumentError
 
 This error occurs when an invalid argument was provided.
@@ -21,7 +19,3 @@ if (InvalidArgumentError.isInstance(error)) {
   // Handle the error
 }
 ```
-
----
-title: AI_InvalidDataContentError
-description: How to fix AI_InvalidDataContentError

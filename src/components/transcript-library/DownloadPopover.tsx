@@ -9,9 +9,10 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { logger } from "@/lib/logger";
+import type { Meeting } from "@/types";
 
 interface DownloadPopoverProps {
-  call: any;
+  call: Meeting;
 }
 
 export function DownloadPopover({ call }: DownloadPopoverProps) {
@@ -38,8 +39,14 @@ export function DownloadPopover({ call }: DownloadPopoverProps) {
         return;
       }
 
-      const fullTranscript = transcripts
-        .map((t: any) => {
+      interface TranscriptRow {
+        timestamp?: string | null;
+        speaker_name?: string | null;
+        text: string;
+      }
+
+      const fullTranscript = (transcripts as TranscriptRow[])
+        .map((t) => {
           const timestamp = includeTimestamps && t.timestamp ? `[${t.timestamp}] ` : "";
           return `${timestamp}${t.speaker_name || "Unknown"}: ${t.text}`;
         })
@@ -77,7 +84,7 @@ export function DownloadPopover({ call }: DownloadPopoverProps) {
                   children: [new TextRun({ text: call.title, bold: true, size: 28 })],
                 }),
                 new Paragraph({ children: [new TextRun("")] }),
-                ...transcripts.map((t: any) =>
+                ...(transcripts as TranscriptRow[]).map((t) =>
                   new Paragraph({
                     children: [
                       new TextRun({

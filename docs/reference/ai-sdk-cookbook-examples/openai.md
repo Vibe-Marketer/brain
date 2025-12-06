@@ -1,6 +1,6 @@
----
-
 # Vercel Provider
+
+---
 
 The [Vercel](https://vercel.com) provider gives you access to the [v0 API](https://vercel.com/docs/v0/api), designed for building modern web applications. The v0 models support text and image inputs and provide fast streaming responses.
 
@@ -125,6 +125,4 @@ All v0 models have the following capabilities:
 | `v0-1.5-lg` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 | `v0-1.0-md` | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> | <Check size={18} /> |
 
----
-title: OpenAI
-description: Learn how to use the OpenAI provider for the AI SDK.
+<!-- Concatenated content - OpenAI section -->

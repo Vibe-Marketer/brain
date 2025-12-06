@@ -1,4 +1,5 @@
 # CALLVAULT BRAND GUIDELINES v3.3.9
+
 ## Authoritative Design System Reference
 
 **Last Updated:** November 26, 2025
@@ -7,6 +8,7 @@
 
 > ⚠️ **CRITICAL: VERSIONING REQUIREMENT**
 > When editing this document, you MUST:
+>
 > 1. Increment version in **3 places:**
 >    - Title (line 1)
 >    - DOCUMENT VERSION section
@@ -75,18 +77,21 @@ Information > Structure > Style > Decoration
 Conversion Brain uses **two-layer background system**:
 
 **Light Mode:**
+
 ```
 Layer 1: Viewport/Gutters  → #FCFCFC (very light gray)
 Layer 2: Content Cards     → #FFFFFF (pure white)
 ```
 
 **Dark Mode:**
+
 ```
 Layer 1: Viewport/Gutters  → #161616 (near black)
 Layer 2: Content Cards     → #202020 (off-black)
 ```
 
 **CSS Variables:**
+
 ```css
 /* Light Mode */
 --viewport: 0 0% 99%;       /* #FCFCFC */
@@ -100,6 +105,7 @@ Layer 2: Content Cards     → #202020 (off-black)
 ```
 
 **Tailwind Usage:**
+
 ```tsx
 <div className="bg-viewport">     {/* Gutters/body */}
   <div className="bg-card">       {/* Content area */}
@@ -152,6 +158,7 @@ Professional indicators with subtle backgrounds (2-3% opacity):
 ### Card-on-Viewport System
 
 **Structure:**
+
 ```
 ┌───────────────────────────────────────┐
 │ AppShell (viewport bg)                │
@@ -171,6 +178,7 @@ Professional indicators with subtle backgrounds (2-3% opacity):
 ```
 
 **Implementation:**
+
 ```tsx
 <div className="min-h-screen w-full bg-viewport relative">
   <TopBar /> {/* 52px height, full width */}
@@ -186,6 +194,7 @@ Professional indicators with subtle backgrounds (2-3% opacity):
 ### Measurements
 
 **CRITICAL - CORRECTED VALUES:**
+
 - **TopBar height:** 52px (full width, no side gutters)
 - **MainCard gutters:** 8px right/bottom/left (via `inset-2` = 0.5rem)
 - **MainCard top:** 52px (via `top-[52px]`) - **FLUSH with TopBar, no gap**
@@ -199,21 +208,25 @@ Professional indicators with subtle backgrounds (2-3% opacity):
 ### Content Padding Rules
 
 **SCROLLABLE Data Pages** (Analytics, Transcripts, Library):
+
 ```tsx
 <div className="bg-card rounded-2xl px-10 shadow-lg border border-border h-full overflow-auto">
   {/* Content scrolls flush to top/bottom edges */}
 </div>
 ```
+
 - **Horizontal:** 40px (px-10) - creates margin from viewport edges
 - **Vertical:** 0px - content scrolls edge-to-edge for maximum space
 - **Use for:** Tables, charts, data lists requiring vertical scrolling
 
 **STATIC Content Pages** (Settings, Forms, Modals):
+
 ```tsx
 <div className="bg-card rounded-2xl px-10 pb-10 pt-2 shadow-lg border border-border h-full overflow-auto">
   {/* Has vertical padding */}
 </div>
 ```
+
 - **Horizontal:** 40px (px-10)
 - **Top:** 8px (pt-2)
 - **Bottom:** 40px (pb-10)
@@ -222,6 +235,7 @@ Professional indicators with subtle backgrounds (2-3% opacity):
 ### Future Multi-Card Support
 
 Layout must support side-by-side cards:
+
 ```
 ┌─────────────────────────────────────────┐
 │ Viewport                                │
@@ -240,6 +254,7 @@ Both cards use `bg-card` and maintain consistent styling.
 ### Overview
 
 **6 standardized variants:**
+
 1. Primary (default) - Glossy slate gradient for main actions
 2. Plain (hollow) - Simple border for secondary actions
 3. Destructive - Red for dangerous actions
@@ -254,6 +269,7 @@ Both cards use `bg-card` and maintain consistent styling.
 **Variant:** `variant="default"`
 
 **Visual Specifications:**
+
 ```css
 /* Slate gradient (same in light and dark mode) */
 background: linear-gradient(160deg, #627285 0%, #394655 100%);
@@ -269,6 +285,7 @@ box-shadow:
 ```
 
 **Sizes:**
+
 | Size | Height | Padding | Font Size | Border Radius | Min Width |
 |------|--------|---------|-----------|---------------|--------------|
 | sm | 36px | 0 20px | 14px | 12px | 100px |
@@ -279,6 +296,7 @@ box-shadow:
 **Icon Button Size Note:** Size was intentionally reduced from 40x40px to 32x32px for a cleaner aesthetic.
 
 **States:**
+
 ```css
 /* Hover - No transform, stays in place */
 hover: { /* slight shadow enhancement possible */ }
@@ -304,6 +322,7 @@ disabled: {
 ```
 
 **Usage:**
+
 ```tsx
 <Button variant="default">Save Changes</Button>
 <Button variant="default" size="sm">Submit</Button>
@@ -311,6 +330,7 @@ disabled: {
 ```
 
 **When to use:**
+
 - Primary call-to-action
 - Form submissions (Save, Submit, Create)
 - Critical operations
@@ -319,6 +339,7 @@ disabled: {
 - Modal confirmations
 
 **Where NOT to use:**
+
 - Table row actions (use Plain)
 - Pagination (use Plain)
 - Icon-only toolbars (use Plain or icon size)
@@ -335,6 +356,7 @@ disabled: {
 **Visual Specifications:**
 
 **Light Mode:**
+
 ```css
 background: #FFFFFF;
 color: #111111;
@@ -343,6 +365,7 @@ border-radius: 12px;
 ```
 
 **Dark Mode:**
+
 ```css
 background: #202020;
 color: #FFFFFF;
@@ -353,6 +376,7 @@ border-radius: 12px;
 **Sizes:** Same as Primary (sm, default, lg, icon)
 
 **States:**
+
 ```css
 /* Hover */
 hover: {
@@ -380,6 +404,7 @@ disabled: {
 ```
 
 **Icon Button Implementation (CORRECTED):**
+
 ```typescript
 if (size === 'icon') {
   return (
@@ -408,12 +433,14 @@ if (size === 'icon') {
 ```
 
 **Key Icon Button Specifications:**
+
 - Size: **32x32px** (h-8 w-8) - reduced from 40x40px
 - Padding: **8px** (not 12px)
 - Border: **Required** - black in light, white in dark
 - Hover: **Light gray (#F8F8F8)** NOT pure black
 
 **Usage:**
+
 ```tsx
 <Button variant="hollow">Cancel</Button>
 <Button variant="hollow" size="icon">
@@ -422,6 +449,7 @@ if (size === 'icon') {
 ```
 
 **When to use:**
+
 - Secondary actions (Cancel, Back, Skip)
 - Table row actions
 - Pagination buttons
@@ -438,6 +466,7 @@ if (size === 'icon') {
 **Variant:** `variant="destructive"`
 
 **Visual Specifications:**
+
 ```css
 /* Red gradient (same in light and dark mode) */
 background: linear-gradient(160deg, #E54D4D 0%, #C93A3A 100%);
@@ -457,12 +486,14 @@ box-shadow:
 **States:** Same as Primary (green ring on active/focus)
 
 **Usage:**
+
 ```tsx
 <Button variant="destructive">Delete Account</Button>
 <Button variant="destructive">Remove Agent</Button>
 ```
 
 **When to use:**
+
 - Delete operations
 - Remove/revoke actions
 - Account cancellation
@@ -477,6 +508,7 @@ box-shadow:
 **Variant:** `variant="link"`
 
 **Visual Specifications:**
+
 ```css
 background: transparent;
 color: #1a1a1a (light) / #FFFFFF (dark);
@@ -488,6 +520,7 @@ height: auto;
 ```
 
 **States:**
+
 ```css
 /* Hover */
 hover: {
@@ -503,12 +536,14 @@ focus: {
 ```
 
 **Usage:**
+
 ```tsx
 <Button variant="link">Learn more</Button>
 <Button variant="link">View details</Button>
 ```
 
 **When to use:**
+
 - Inline text actions
 - "Learn more" / "View details" links
 - Tertiary navigation
@@ -526,6 +561,7 @@ focus: {
 **Visual Specifications:**
 
 **Light Mode:**
+
 ```css
 background: transparent;
 color: #6B6B6B;  /* cb-ink-soft */
@@ -534,6 +570,7 @@ border-radius: 8px;
 ```
 
 **Dark Mode:**
+
 ```css
 background: transparent;
 color: #9A9A9A;  /* cb-text-dark-secondary */
@@ -542,6 +579,7 @@ border-radius: 8px;
 ```
 
 **Sizes:**
+
 | Size | Height | Padding | Font Size |
 |------|--------|---------|-----------|
 | sm | 32px | 0 12px | 12px |
@@ -550,6 +588,7 @@ border-radius: 8px;
 | icon | 32px/24px | - | 16px |
 
 **States:**
+
 ```css
 /* Hover */
 hover: {
@@ -566,6 +605,7 @@ focus: {
 ```
 
 **Usage:**
+
 ```tsx
 {/* For toggleable filters - pairs with default for selected state */}
 <Button variant={isSelected ? 'default' : 'outline'}>Category</Button>
@@ -578,6 +618,7 @@ focus: {
 ```
 
 **When to use:**
+
 - Filter toggles (unselected state)
 - Tag/category selection (pairs with `default` for selected)
 - Suggestion chips
@@ -598,6 +639,7 @@ focus: {
 **Visual Specifications:**
 
 **Light Mode:**
+
 ```css
 background: transparent;
 color: #7A7A7A;  /* cb-ink-muted */
@@ -606,6 +648,7 @@ border-radius: 8px;
 ```
 
 **Dark Mode:**
+
 ```css
 background: transparent;
 color: #9A9A9A;  /* cb-text-dark-secondary */
@@ -614,6 +657,7 @@ border-radius: 8px;
 ```
 
 **Sizes:**
+
 | Size | Height | Padding | Font Size |
 |------|--------|---------|-----------|
 | sm | 32px | 0 12px | 12px |
@@ -622,6 +666,7 @@ border-radius: 8px;
 | icon | 32px/24px | - | 16px |
 
 **States:**
+
 ```css
 /* Hover */
 hover: {
@@ -637,6 +682,7 @@ focus: {
 ```
 
 **Usage:**
+
 ```tsx
 {/* Code block copy button */}
 <Button variant="ghost" size="icon">
@@ -650,6 +696,7 @@ focus: {
 ```
 
 **When to use:**
+
 - Icon toolbars with minimal UI
 - Code block actions (copy, expand)
 - Inline actions that should be subtle
@@ -699,7 +746,7 @@ Is this a secondary action / toolbar / table / mobile?
 
 ## ICON SYSTEM
 
-**Library:** Remix Icon (https://remixicon.com)
+**Library:** Remix Icon (<https://remixicon.com>)
 **Package:** `@remixicon/react`
 **License:** Apache 2.0 (free for commercial use)
 
@@ -730,6 +777,7 @@ Ri{IconName}{Style}
 - `{Style}` - `Line` (outlined) or `Fill` (filled)
 
 **Examples:**
+
 - `RiEditLine` - Outlined edit/pencil icon
 - `RiEditFill` - Filled edit/pencil icon
 - `RiCheckLine` - Outlined checkmark
@@ -797,6 +845,7 @@ import { RiEditLine, RiDeleteBinLine, RiDownloadLine } from "@remixicon/react";
 **Preferred:** Use `-line` (outlined) style for consistency with minimal brand aesthetic
 
 **When to use `-fill`:**
+
 - Active/selected states (e.g., filled star for favorited)
 - High-emphasis indicators
 - Toggle states (line = off, fill = on)
@@ -855,6 +904,7 @@ If migrating existing code from other icon libraries:
 **Purpose:** Navigation between major sections. Use for both page-level tabs (e.g., TRANSCRIPTS / SYNC / ANALYTICS) and modal/dialog tabs. This is the same reusable component for all tab navigation throughout the application.
 
 **Default Behavior (ENFORCED - Cannot Be Overridden):**
+
 - Left-justified alignment (`justify-start`)
 - 24px gap between tabs (`gap-6`)
 - No padding/margin on triggers (`px-0 pb-3 pt-0 m-0`)
@@ -864,6 +914,7 @@ If migrating existing code from other icon libraries:
 ### Active Tab Underline
 
 **Visual Specifications:**
+
 - Height: 6px
 - Color: Vibe green (#D9FC67)
 - Shape: **Parallelogram/angular** (NOT rounded)
@@ -871,11 +922,13 @@ If migrating existing code from other icon libraries:
 - Clip-path: `polygon(5% 0, 95% 0, 100% 100%, 0 100%)` (trapezoid, narrow top)
 
 **Full-Width Black Underline:**
+
 - TabsList wrapped in div with `border-b border-cb-ink dark:border-white`
 - Provides visual separation between tabs and content
 
 **CSS Implementation:**
 The clip-path is applied via global CSS in `src/index.css`:
+
 ```css
 [data-state="active"]::after {
   clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
@@ -885,6 +938,7 @@ The clip-path is applied via global CSS in `src/index.css`:
 **Note:** Horizontal tabs use 5% offset (subtle). Vertical markers use 10%.
 
 **Typography:**
+
 | State | Font | Size | Weight | Color |
 |-------|------|------|--------|-------|
 | **Inactive** | Inter | 14px | Light (300) | #7A7A7A (cb-ink-muted) |
@@ -951,6 +1005,7 @@ const TabsTrigger = React.forwardRef<
 ```
 
 **Usage Example:**
+
 ```tsx
 <Tabs defaultValue="overview">
   <TabsList>
@@ -967,6 +1022,7 @@ const TabsTrigger = React.forwardRef<
 ### CRITICAL RULES
 
 **✅ ALWAYS:**
+
 - Use clip-path polygon for angular aesthetic (applied via CSS in index.css)
 - Use 6px height for the underline
 - Use vibe green (#D9FC67) color
@@ -975,6 +1031,7 @@ const TabsTrigger = React.forwardRef<
 - Vertical markers: needle `polygon(0 0, 100% 10%, 100% 90%, 0 100%)`
 
 **❌ NEVER:**
+
 - Use `grid` or `grid-cols-*` on TabsList (flex layout is enforced)
 - Add padding/margin to TabsTrigger (enforced as px-0 m-0)
 - Use `rounded-t-sm` or any border-radius on tab underlines
@@ -987,6 +1044,7 @@ const TabsTrigger = React.forwardRef<
 The angular underline matches the angled vibe green markers on metric cards, maintaining cohesive design language throughout the application.
 
 **Visual Example:**
+
 ```
 [Active Tab]  ← 6px vibe green angular underline
     ╱────╲
@@ -1003,6 +1061,7 @@ The angular underline matches the angled vibe green markers on metric cards, mai
 **Body/UI:** Inter (300, 400, 500)
 
 **Loading:**
+
 ```html
 <!-- In index.html for performance -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&family=Montserrat:wght@800&display=swap" rel="stylesheet">
@@ -1029,6 +1088,7 @@ The angular underline matches the angled vibe green markers on metric cards, mai
 ### Typography Rules
 
 **Headers, Headlines, and UI Labels (ALL CAPS):**
+
 - ✅ Page titles, section headers, subheads (H1, H2, H3) - Montserrat Extra Bold, ALL CAPS
 - ✅ Tab names (TRANSCRIPTS, SYNC, ANALYTICS) - Inter Medium, ALL CAPS
 - ✅ Table column headers - Inter Medium, UPPERCASE
@@ -1036,6 +1096,7 @@ The angular underline matches the angled vibe green markers on metric cards, mai
 - ✅ Navigation items - ALL CAPS
 
 **Body Text and Conversational Copy (Title/Sentence Case):**
+
 - ✅ Body text, paragraphs - Inter Light (300) or Regular (400), normal case
 - ✅ Helper/instructional text - Inter Light, sentence case
 - ✅ Notifications and system feedback - Inter Regular, title or sentence case
@@ -1045,11 +1106,13 @@ The angular underline matches the angled vibe green markers on metric cards, mai
 **Rationale:** Data, navigation, and system/structure elements remain bold and ALL CAPS for hierarchy. Conversational, instructional, or feedback copy uses title/sentence case for easier reading and approachability.
 
 **Additional Rules:**
+
 - ✅ Numbers use tabular figures: `font-feature-settings: 'tnum'`
 - ❌ NEVER mix Montserrat and Inter in same text element
 - ❌ NEVER use Inter Medium for body text (only for UI elements)
 
 **Tailwind Classes:**
+
 ```tsx
 // Headings
 <h1 className="font-display text-4xl font-extrabold uppercase tracking-wider">
@@ -1074,6 +1137,7 @@ The angular underline matches the angled vibe green markers on metric cards, mai
 ### Table Header
 
 **Visual:**
+
 ```css
 background: #FFFFFF (light) / #202020 (dark);
 color: #7A7A7A (light) / #6B6B6B (dark);
@@ -1085,12 +1149,14 @@ border-bottom: 1px solid #E5E5E5 (light) / #3A3A3A (dark);
 ```
 
 **Vibe Green Underline (Active/Sortable Columns ONLY):**
+
 ```css
 /* Only on sortable/active individual columns, NOT full header row */
 border-bottom: 3px solid #D9FC67;
 ```
 
 **Example:**
+
 ```
 ┌─────────────┬─────────────┬─────────────┐
 │ NAME        │ DATE        │ STATUS      │  ← White bg
@@ -1102,6 +1168,7 @@ border-bottom: 3px solid #D9FC67;
 ### Table Rows
 
 **Single-Line Rows (30px height):**
+
 ```css
 height: 30px;  /* py-2 */
 font-size: 14px;
@@ -1111,6 +1178,7 @@ border-bottom: 1px solid #E5E5E5 (light) / #3A3A3A (dark);
 ```
 
 **Two-Line Rows (52-56px height):**
+
 ```tsx
 <td className="py-2.5">
   <div className="flex flex-col gap-1">
@@ -1125,6 +1193,7 @@ border-bottom: 1px solid #E5E5E5 (light) / #3A3A3A (dark);
 ```
 
 **Hover State:**
+
 ```css
 background: #F8F8F8 (light) / #2A2A2A (dark);
 /* Entire row background changes */
@@ -1133,16 +1202,19 @@ background: #F8F8F8 (light) / #2A2A2A (dark);
 ### Table Cell Content
 
 **Primary Text:**
+
 - Size: 14px
 - Weight: 500 (Medium)
 - Color: #111111 (light) / #FFFFFF (dark)
 
 **Secondary Text (metadata):**
+
 - Size: 12px
 - Weight: 300 (Light) or 500 (Medium)
 - Color: #7A7A7A (light) / #6B6B6B (dark)
 
 **Numbers:**
+
 ```tsx
 <td className="text-right tabular-nums">
   1,234.56
@@ -1150,6 +1222,7 @@ background: #F8F8F8 (light) / #2A2A2A (dark);
 ```
 
 **IDs (monospace):**
+
 ```tsx
 <span className="font-mono uppercase tabular-nums text-xs">
   ABC123DEF
@@ -1159,6 +1232,7 @@ background: #F8F8F8 (light) / #2A2A2A (dark);
 ### Table Structure Rules
 
 **✅ DO:**
+
 - Use horizontal 1px borders only
 - Align numbers right with tabular figures
 - Use white header background (#FFFFFF light, #202020 dark)
@@ -1167,6 +1241,7 @@ background: #F8F8F8 (light) / #2A2A2A (dark);
 - Structure two-line cells with `flex flex-col gap-1`
 
 **❌ DON'T:**
+
 - Use vertical borders (creates visual clutter)
 - Use colored header backgrounds
 - Apply vibe green across entire header row
@@ -1183,6 +1258,7 @@ Cards/containers are used ONLY in these contexts:
 ### 1. Metric/Stat Cards ⭐ PRIMARY USE CASE
 
 **Visual Specifications:**
+
 ```css
 /* Card container */
 background: #FFFFFF (light) / #202020 (dark)
@@ -1203,6 +1279,7 @@ clip-path: polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)  ← 10%/90% angle
 ```
 
 **Complete Implementation:**
+
 ```tsx
 <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
   {/* Vibe green angled marker - STANDARDIZED DIMENSIONS */}
@@ -1233,6 +1310,7 @@ clip-path: polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)  ← 10%/90% angle
 ```
 
 **Marker Dimensions - DO NOT DEVIATE:**
+
 - Width: **6px** (w-1.5 in Tailwind)
 - Height: **56px** (h-14 in Tailwind)
 - Angle: **10%/90%** (sharper than alternatives)
@@ -1241,17 +1319,20 @@ clip-path: polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)  ← 10%/90% angle
 - Reference: Analytics page, "Impact Overview" section
 
 **Typography in Cards:**
+
 - Label: 12px (text-xs), medium weight, muted color
 - Value: 24px (text-2xl), extrabold, primary color
 - Secondary value: 18px (text-lg), semibold, soft color
 
 **When to Use Metric Cards:**
+
 - ✅ Dashboard KPI displays
 - ✅ Analytics summary metrics
 - ✅ Stats needing visual emphasis
 - ✅ When data requires hierarchy vs flat tables
 
 **When NOT to Use:**
+
 - ❌ Regular content sections (use no container)
 - ❌ Form fields (different styling system)
 - ❌ Table rows (NEVER use cards)
@@ -1264,6 +1345,7 @@ The angular marker matches the tab underline aesthetic, maintaining cohesive des
 ### 2. Modals/Dialogs
 
 **Container:**
+
 ```css
 background: #FFFFFF (light) / #202020 (dark);
 border-radius: 12px;
@@ -1273,12 +1355,14 @@ box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
 ```
 
 **Overlay:**
+
 ```css
 background: rgba(0, 0, 0, 0.5);
 backdrop-filter: blur(4px);
 ```
 
 **When to use:**
+
 - Confirmation dialogs
 - Forms requiring focus
 - Critical user decisions
@@ -1287,6 +1371,7 @@ backdrop-filter: blur(4px);
 ### 3. Dropdown Menus
 
 **Container:**
+
 ```css
 background: #FFFFFF (light) / #202020 (dark);
 border: 1px solid #E5E5E5 (light) / #3A3A3A (dark);
@@ -1295,6 +1380,7 @@ box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 ```
 
 **Items:**
+
 ```css
 padding: 8px 12px;
 font-size: 14px;
@@ -1304,6 +1390,7 @@ hover: background #F8F8F8 (light) / #2A2A2A (dark);
 ### 4. Search Input Fields
 
 **Light Mode:**
+
 ```css
 background: #FFFFFF;
 border: 1px solid #E5E5E5;
@@ -1313,6 +1400,7 @@ font-size: 14px;
 ```
 
 **Dark Mode:**
+
 ```css
 background: #202020;
 border: 1px solid #3A3A3A;
@@ -1320,6 +1408,7 @@ border: 1px solid #3A3A3A;
 ```
 
 **Focus State:**
+
 ```css
 border-left: 3px solid #D9FC67;
 outline: none;
@@ -1328,6 +1417,7 @@ outline: none;
 ### 5. Toast Notifications
 
 **Container:**
+
 ```css
 background: #FFFFFF (light) / #202020 (dark);
 border: 1px solid #E5E5E5 (light) / #3A3A3A (dark);
@@ -1337,6 +1427,7 @@ box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 ```
 
 **When to use:**
+
 - Temporary feedback messages
 - System notifications
 - Success/error confirmations
@@ -1344,6 +1435,7 @@ box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 ### 6. Onboarding Tips (as of v3.3.7)
 
 Contextual, step-by-step guidance for new users (may include checklists):
+
 ```css
 background: #FFFFFF (light) / #202020 (dark);
 border: 1px solid #E5E5E5 (light) / #3A3A3A (dark);
@@ -1354,6 +1446,7 @@ padding: 16px;
 ### 7. Task/Status Banners (as of v3.3.7)
 
 Prominent temporary indicators for sync, import/export, error status:
+
 ```css
 background: #FFFFFF (light) / #202020 (dark);
 border: 1px solid #E5E5E5 (light) / #3A3A3A (dark);
@@ -1366,6 +1459,7 @@ padding: 12px 16px;
 Limited-duration alerts for new feature rollout, action-required messages during onboarding, or temporary product updates.
 
 **ALL cards/containers must:**
+
 - Use white as the background (no colored fills)
 - Have a minimal border (1px, neutral gray or soft shadow ONLY if floating)
 - Follow the standard component corner radius (12px for cards, 8px for inputs)
@@ -1383,6 +1477,7 @@ Limited-duration alerts for new feature rollout, action-required messages during
 ### ✅ Core Approved Usage (5 Primary Uses)
 
 #### 1. Active Tab Underlines
+
 ```tsx
 <div 
   className="border-b-[6px] border-vibe-green"
@@ -1391,11 +1486,13 @@ Limited-duration alerts for new feature rollout, action-required messages during
   Active Tab
 </div>
 ```
+
 - 6px angular line beneath active tab
 - Uses clip-path for trapezoid shape
 - Indicates current section in navigation
 
 #### 2. Left-Edge Indicators (Metric Cards)
+
 ```tsx
 <div 
   className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14"
@@ -1405,43 +1502,52 @@ Limited-duration alerts for new feature rollout, action-required messages during
   }}
 />
 ```
+
 - 6px width, 56px height angular marker
 - Used on left edge of metric cards
 - NEVER fill entire background
 
 #### 3. Table Column Headers (Individual Columns Only)
+
 ```tsx
 <th className="border-b-3 border-vibe-green">
   Sortable Column
 </th>
 ```
+
 - 3px underline beneath specific sortable columns
 - NOT a horizontal line across entire header row
 - Example: "Name" column has underline, others don't
 
 #### 4. Focus States
+
 ```tsx
 <input className="focus:border-l-3 focus:border-l-vibe-green" />
 <button className="focus:outline focus:outline-2 focus:outline-vibe-green" />
 ```
+
 - 3px left border on input fields when focused
 - 2px outline on buttons when focused/active
 - Never change entire border color
 
 #### 5. Circular Progress Indicators
+
 ```tsx
 <CircularProgress
   value={75}
   color="vibe-green"  // Filled portion only
 />
 ```
+
 - Filled portion of circular charts
 - Progress bars (used sparingly)
 
 ### ✅ Additional Approved Uses (as of v3.3.7)
 
 #### 6. Progress Trackers
+
 Linear or circular progress bars for onboarding, setup, or feature completion journeys:
+
 ```tsx
 <div className="h-1 bg-cb-border rounded-full">
   <div className="h-1 bg-vibe-green rounded-full" style={{ width: '60%' }} />
@@ -1449,37 +1555,49 @@ Linear or circular progress bars for onboarding, setup, or feature completion jo
 ```
 
 #### 7. Wayfinding and Step Indication
+
 Active step markers or micro-dividers in onboarding flows, navigation progress, or section transitions:
+
 ```tsx
 <div className="flex items-center gap-2">
   <div className="w-2 h-2 rounded-full bg-vibe-green" /> {/* Active step */}
   <div className="w-2 h-2 rounded-full bg-cb-border" />   {/* Inactive */}
 </div>
 ```
+
 - Ensure WCAG AA contrast when used
 
 #### 8. Section Dividers (Onboarding/Instructional Only)
+
 Vertical or horizontal lines on white/neutral backgrounds:
+
 ```tsx
 <div className="w-full h-0.5 bg-vibe-green" />  {/* Horizontal */}
 <div className="h-full w-0.5 bg-vibe-green" />  {/* Vertical */}
 ```
+
 - NOT as a fill or main background
 
 #### 9. Contextual Info Banners
+
 In onboarding checklists or system alerts, as a subtle accent ONLY:
+
 ```tsx
 <div className="border-l-3 border-l-vibe-green pl-4 bg-card">
   {/* Banner content */}
 </div>
 ```
+
 - Never as the primary surface color
 
 #### 10. Top Status Indicator Bar
+
 Horizontal status bar at the top of the page for system-wide states (syncing, processing, etc.):
+
 ```tsx
 <div className="w-full h-1 bg-vibe-green" />  {/* Top status bar */}
 ```
+
 - Full-width bar at top of page or section
 - Height: 1-2px maximum
 - Used for temporary status states (loading, syncing, processing)
@@ -1500,6 +1618,7 @@ Horizontal status bar at the top of the page for system-wide states (syncing, pr
 ### Visual Examples
 
 **Correct Usage:**
+
 ```
 [Active Tab]  ← 6px vibe green angular underline
     ╱────╲
@@ -1509,6 +1628,7 @@ Horizontal status bar at the top of the page for system-wide states (syncing, pr
 ```
 
 **Incorrect Usage:**
+
 ```
 ┌─────────────────────┐
 │ ENTIRE CARD GREEN   │  ← WRONG: Full background
@@ -1526,18 +1646,22 @@ Horizontal status bar at the top of the page for system-wide states (syncing, pr
 ### Conversation/Dialogue UI Exception
 
 **User/Host Messages:**
+
 - Background: #007AFF (both light and dark modes)
 - Text: #FFFFFF
 - Rationale: Clear visual distinction, consistent across themes
 
 **Other Participants:**
+
 - Background: bg-cb-hover
 - Text: text-cb-ink
 
 **User/Host Messages (Exception to Monochromatic Rule):**
+
 ```tsx
 className="bg-[#007AFF] dark:bg-[#0A84FF] text-white rounded-2xl p-3"
 ```
+
 - Light Mode: #007AFF background
 - Dark Mode: #0A84FF background  
 - Text: White (#FFFFFF)
@@ -1545,9 +1669,11 @@ className="bg-[#007AFF] dark:bg-[#0A84FF] text-white rounded-2xl p-3"
 - Rationale: Clear visual distinction for user's own messages in conversation interfaces
 
 **Other Participant Messages:**
+
 ```tsx
 className="bg-cb-hover text-cb-ink rounded-2xl p-3 border border-cb-border-soft"
 ```
+
 - Light Mode: #F8F8F8 background (bg-cb-hover)
 - Dark Mode: #2A2A2A background
 - Text: #111111 (text-cb-ink)
@@ -1555,12 +1681,14 @@ className="bg-cb-hover text-cb-ink rounded-2xl p-3 border border-cb-border-soft"
 - Border-radius: 16px (rounded-2xl)
 
 **When to Use:**
+
 - Conversation/transcript views
 - Chat interfaces  
 - Message threads
 - Call dialogue displays
 
 **When NOT to Use:**
+
 - Comments sections (use standard card/content styling)
 - Notifications (use badges/alerts)
 - Email threads (use standard layout patterns)
@@ -1586,6 +1714,7 @@ All spacing uses 4px increments (Tailwind's default):
 ### Common Patterns
 
 **Button Groups:**
+
 ```tsx
 <div className="flex gap-3">  {/* 12px between buttons */}
   <Button>Cancel</Button>
@@ -1594,6 +1723,7 @@ All spacing uses 4px increments (Tailwind's default):
 ```
 
 **Icon + Text:**
+
 ```tsx
 <button className="flex items-center gap-2">  {/* 8px gap */}
   <Icon />
@@ -1602,6 +1732,7 @@ All spacing uses 4px increments (Tailwind's default):
 ```
 
 **Section Spacing:**
+
 ```tsx
 <div className="space-y-6">  {/* 24px vertical spacing */}
   <Section1 />
@@ -1610,6 +1741,7 @@ All spacing uses 4px increments (Tailwind's default):
 ```
 
 **Page Gutters:**
+
 - Viewport inset: 8px right/bottom/left (via `inset-2`)
 - TopBar: 52px height, flush with main card
 - Card padding: 40px horizontal (px-10), varies by page type
@@ -1621,6 +1753,7 @@ All spacing uses 4px increments (Tailwind's default):
 ### Status Pills/Badges
 
 **Structure:**
+
 ```tsx
 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cb-success-bg text-cb-success-text border border-cb-success-border">
   Active
@@ -1630,6 +1763,7 @@ All spacing uses 4px increments (Tailwind's default):
 **Colors:** Use semantic color system (success, warning, danger, info, neutral)
 
 **When to use:**
+
 - Status indicators
 - Tags
 - Labels
@@ -1644,6 +1778,7 @@ box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 ```
 
 **Rules:**
+
 - Shadows are used for orientation/elevation only
 - Never for decorative layering or on data containers
 - Use sparingly - most UI should remain flat
@@ -1661,6 +1796,7 @@ box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 ### Theme Toggle Behavior
 
 **Light Mode (Default):**
+
 - Viewport: #FCFCFC
 - Content: #FFFFFF
 - Text: #111111 → #7A7A7A
@@ -1669,6 +1805,7 @@ box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 - Plain button: White bg → Dark bg
 
 **Dark Mode:**
+
 - Viewport: #161616
 - Content: #202020
 - Text: #FFFFFF → #6B6B6B
@@ -1679,6 +1816,7 @@ box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 ### CSS Class Strategy
 
 **Use Tailwind dark: prefix:**
+
 ```tsx
 <div className="bg-white dark:bg-[#202020]">
   <p className="text-cb-ink dark:text-cb-text-dark-primary">
@@ -1688,6 +1826,7 @@ box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 ```
 
 **Or use semantic tokens:**
+
 ```tsx
 <div className="bg-card">  {/* Auto-adapts to theme */}
   <p className="text-foreground">  {/* Auto-adapts */}
@@ -1733,23 +1872,27 @@ Follow Tailwind default breakpoints:
 ### Mobile Adaptations (< 768px)
 
 **Buttons:**
+
 - All `variant="default"` → `variant="hollow"`
 - Size stays same (40px height minimum for touch targets)
 - Labels may truncate or icon-only in tight spaces
 
 **Layout:**
+
 - Card gutters reduce from 8px to 4px
 - Card padding reduces from 40px to 16px
 - Tables may scroll horizontally
 - Dock/navigation adapts to mobile-friendly layout
 
 **Typography:**
+
 - H1: 32px → 24px
 - H2: 24px → 20px
 - Body: 14px stays same
 - Touch targets: Minimum 44px × 44px always
 
 **Implementation:**
+
 ```tsx
 <Button
   variant="default"
@@ -1768,11 +1911,13 @@ Follow Tailwind default breakpoints:
 ### WCAG AA Compliance
 
 **Minimum contrast ratios:**
+
 - Primary text on background: 7:1 (AAA)
 - Secondary text on background: 4.5:1 (AA)
 - UI elements: 3:1 (minimum)
 
 **Current ratios:**
+
 | Combination | Ratio | Status |
 |-------------|-------|--------|
 | #111111 on #FFFFFF | 16.1:1 | AAA ✅ |
@@ -1783,6 +1928,7 @@ Follow Tailwind default breakpoints:
 ### Focus States
 
 **All interactive elements show focus:**
+
 ```css
 /* Buttons, inputs, links */
 focus-visible:outline-none
@@ -1796,6 +1942,7 @@ focus:border-l-vibe-green
 ```
 
 **Keyboard navigation:**
+
 - Tab: Move focus forward
 - Shift+Tab: Move focus backward
 - Enter/Space: Activate focused element
@@ -1804,6 +1951,7 @@ focus:border-l-vibe-green
 ### Screen Reader Support
 
 **Semantic HTML:**
+
 ```tsx
 <button>  {/* Not <div onClick> */}
 <nav>
@@ -1813,6 +1961,7 @@ focus:border-l-vibe-green
 ```
 
 **ARIA labels:**
+
 ```tsx
 <button aria-label="Close dialog">
   <XIcon />
@@ -1829,6 +1978,7 @@ focus:border-l-vibe-green
 **Minimum size: 44px × 44px**
 
 All interactive elements meet this:
+
 - Buttons: 40px+ height (meets requirement)
 - Icon buttons: 32x32px (still meets with padding)
 - Table row actions: 40px minimum height
@@ -1858,6 +2008,7 @@ All interactive elements meet this:
 ### Implementation
 
 **Buttons:**
+
 ```css
 transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
 
@@ -1868,6 +2019,7 @@ active: {
 ```
 
 **Modals:**
+
 ```css
 /* Overlay */
 animation: fadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1);
@@ -1877,6 +2029,7 @@ animation: slideUp 200ms cubic-bezier(0.16, 1, 0.3, 1);
 ```
 
 **What NOT to animate:**
+
 - Layout shifts
 - Text reflow
 - Table sorting
@@ -1891,12 +2044,14 @@ animation: slideUp 200ms cubic-bezier(0.16, 1, 0.3, 1);
 System microcopy, notifications, onboarding messages, empty states, and system feedback should employ a **clever, human, and encouraging tone** wherever possible.
 
 **Encouraged:**
+
 - Puns and wit
 - Positive encouragement
 - Warm, approachable language
 - "Quips" that add personality
 
 **Examples of Good Microcopy:**
+
 ```
 "Nice job, automation's humming!"
 "Nothing here yet—let's create some magic"
@@ -1916,12 +2071,14 @@ System microcopy, notifications, onboarding messages, empty states, and system f
 | Tooltips | Concise, informative | Sentence case |
 
 **What to Avoid:**
+
 - ❌ Emojis (never use in any context)
 - ❌ Exclamation overuse (one per message max)
 - ❌ Overly casual or unprofessional slang
 - ❌ Humor in error states that could frustrate users
 
 **When to Stay Neutral:**
+
 - Data-critical operations
 - Destructive action confirmations
 - Security-related messages
@@ -2090,6 +2247,7 @@ colors: {
 Before shipping any feature:
 
 ### Color
+
 - [ ] Vibe green ONLY in 5 approved contexts
 - [ ] No vibe green text anywhere
 - [ ] No vibe green button backgrounds
@@ -2097,6 +2255,7 @@ Before shipping any feature:
 - [ ] Components use bg-card, not hardcoded colors
 
 ### Typography
+
 - [ ] Headings in Montserrat Extra Bold, ALL CAPS
 - [ ] Body text in Inter Light/Regular
 - [ ] Interactive elements in Inter Medium
@@ -2105,6 +2264,7 @@ Before shipping any feature:
 - [ ] Numbers use tabular figures
 
 ### Buttons
+
 - [ ] Only 6 variants used (default, hollow, destructive, link, outline, ghost)
 - [ ] Primary actions use variant="default"
 - [ ] Secondary actions use variant="hollow"
@@ -2116,12 +2276,14 @@ Before shipping any feature:
 - [ ] Mobile uses plain buttons
 
 ### Tabs
+
 - [ ] Active underline is 6px height
 - [ ] Angular shape using clip-path polygon (NOT rounded-t-sm)
 - [ ] Vibe green color
 - [ ] Matches metric card marker aesthetic
 
 ### Tables
+
 - [ ] White header background
 - [ ] Header text: 12px uppercase, gray
 - [ ] 3px vibe green underline ONLY on sortable columns (not all)
@@ -2131,6 +2293,7 @@ Before shipping any feature:
 - [ ] Hover state on entire row
 
 ### Metric Cards
+
 - [ ] Vibe green marker: w-1.5 h-14 (6px × 56px)
 - [ ] Angle: 10%/90% clip-path
 - [ ] Position: absolute left-0 top-1/2 -translate-y-1/2
@@ -2138,6 +2301,7 @@ Before shipping any feature:
 - [ ] NOT used decoratively
 
 ### Layout
+
 - [ ] Content on white card, not floating in space
 - [ ] Viewport uses bg-viewport
 - [ ] Card uses bg-card
@@ -2148,6 +2312,7 @@ Before shipping any feature:
 - [ ] Thin gray separators + white space for divisions
 
 ### Accessibility
+
 - [ ] WCAG AA contrast met (4.5:1 minimum)
 - [ ] Focus states with vibe green ring
 - [ ] Touch targets ≥44px
@@ -2156,6 +2321,7 @@ Before shipping any feature:
 - [ ] Semantic HTML used
 
 ### Dark Mode
+
 - [ ] Toggle switches themes correctly
 - [ ] No hardcoded colors (use semantic tokens)
 - [ ] Primary button stays same (doesn't invert)
@@ -2170,6 +2336,7 @@ Before shipping any feature:
 This document follows semantic versioning to track changes:
 
 **Version Format:** `vX.Y` or `vX.Y.Z`
+
 - Initial versions use two digits: v3.3 (not v3.3.0)
 - After first patch, use three digits: v3.3.1, v3.3.2, etc.
 
@@ -2180,22 +2347,26 @@ This document follows semantic versioning to track changes:
 | **Major** | X → X+1 | v3.4 → v4.0 | **User only** - Never done by Claude |
 
 **Patch Version (Claude does automatically):**
+
 - Small fixes, clarifications, typo corrections
 - Updates to 1-2 sections
 - Code example corrections
 
 **Minor Version (Claude flags to user):**
+
 - Updates across 3+ sections
 - New component documentation
 - Significant specification changes
 
 **Major Version (User decision only):**
+
 - Complete rewrites
 - Breaking changes
 - Major restructuring
 - Claude should NEVER increment major version
 
 **When to Update:**
+
 - ✅ Update version at TOP and BOTTOM of this document
 - ✅ Add entry to [brand-guidelines-changelog.md](./brand-guidelines-changelog.md) with date, time, git commit
 - ✅ Update "Last Updated" date/time in header
@@ -2205,6 +2376,7 @@ This document follows semantic versioning to track changes:
 - ❌ **PATCH versions:** Do NOT rename file
 
 **Examples:**
+
 - Fixing a typo → v3.3.3 → v3.3.4 (no file rename)
 - Updating tab section only → v3.3.4 → v3.3.5 (no file rename)
 - Updates across 4 sections → v3.3.5 → v3.4 (rename to brand-guidelines-v3.4.md)
@@ -2229,6 +2401,7 @@ This version reference must match the title at the top of the document.
 ## DOCUMENT USAGE
 
 **This document is:**
+
 - ✅ The single source of truth for all design decisions
 - ✅ Required reading for all developers
 - ✅ Reference for AI-assisted coding
@@ -2236,12 +2409,14 @@ This version reference must match the title at the top of the document.
 - ✅ Onboarding material for new team members
 
 **This document supersedes:**
+
 - All previous brand guideline versions
 - Any conflicting component documentation
 - Verbal instructions given during development
 - Legacy component implementations
 
 **When in doubt:**
+
 1. Check this document first
 2. Ask the design team if clarification needed
 3. Update this document with the answer

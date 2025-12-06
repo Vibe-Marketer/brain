@@ -8,14 +8,14 @@
 export interface FathomError {
   statusCode: number;
   message: string;
-  body?: any;
+  body?: unknown;
 }
 
 /**
  * Check if an error is a Fathom API error
  */
-export function isFathomError(error: any): error is FathomError {
-  return error && typeof error.statusCode === 'number' && typeof error.message === 'string';
+export function isFathomError(error: unknown): error is FathomError {
+  return !!error && typeof error === 'object' && 'statusCode' in error && typeof (error as FathomError).statusCode === 'number' && 'message' in error && typeof (error as FathomError).message === 'string';
 }
 
 /**
@@ -26,12 +26,12 @@ export async function retryWithBackoff<T>(
   maxRetries: number = 3,
   baseDelay: number = 1000
 ): Promise<T> {
-  let lastError: any;
+  let lastError: unknown;
   
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       return await fn();
-    } catch (error: any) {
+    } catch (error: unknown) {
       lastError = error;
       
       // Check if it's a rate limit error (429)
@@ -55,7 +55,7 @@ export async function retryWithBackoff<T>(
 /**
  * Format error message for user display
  */
-export function getErrorMessage(error: any): string {
+export function getErrorMessage(error: unknown): string {
   if (isFathomError(error)) {
     switch (error.statusCode) {
       case 401:

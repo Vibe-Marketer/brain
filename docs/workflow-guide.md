@@ -7,12 +7,14 @@
 ## THE 10X MINDSET SHIFT
 
 ### OLD WAY (1x Speed)
+
 ```
 Research → Design → Implement → Test → Review → Done
 (Sequential, one thing at a time)
 ```
 
 ### NEW WAY (10-20x Speed)
+
 ```
 ┌─────────────────────────────────────────────────────────┐
 │  WAVE 1: PARALLEL DISCOVERY (3 agents)                  │
@@ -54,6 +56,7 @@ Research → Design → Implement → Test → Review → Done
 **WAVE**: Launch next parallel wave with checkpoint outputs
 
 ### Token ROI
+
 - Sequential: 50,000 tokens over 2 hours
 - Parallel Waves: 50,000 tokens in 20 minutes (same cost, 6x faster)
 
@@ -64,6 +67,7 @@ Research → Design → Implement → Test → Review → Done
 ### 1. FEATURE DEVELOPMENT (10x Pattern)
 
 **You say:**
+
 ```
 "Build [feature] - use parallel agents"
 ```
@@ -99,6 +103,7 @@ WAVE 3: Validation (Single message, 3 parallel SlashCommand calls)
 ### 2. BUG INVESTIGATION (5x Pattern)
 
 **You say:**
+
 ```
 "Debug [issue] - investigate in parallel"
 ```
@@ -127,6 +132,7 @@ WAVE 2: Fix + Validate
 ### 3. CODEBASE UNDERSTANDING (10x Pattern)
 
 **You say:**
+
 ```
 "I need to understand [system/feature] deeply - parallel exploration"
 ```
@@ -150,6 +156,7 @@ CHECKPOINT: Create unified architecture diagram/documentation
 ### 4. REFACTORING (15x Pattern)
 
 **You say:**
+
 ```
 "Refactor [system] - parallel analysis and execution"
 ```
@@ -186,6 +193,7 @@ WAVE 3: Validation
 ### 5. NEW PROJECT ONBOARDING (20x Pattern)
 
 **You say:**
+
 ```
 "I'm new to this codebase - give me full parallel onboarding"
 ```
@@ -216,7 +224,9 @@ OUTPUT: Complete project understanding in 15-20 minutes
 ## AGENT SPAWN PATTERNS
 
 ### Pattern 1: Explore Swarm
+
 Use for understanding before acting:
+
 ```
 YOU: "Before implementing, explore in parallel: [specific questions]"
 
@@ -224,7 +234,9 @@ CLAUDE: Spawns 3 Explore agents with specific focus areas
 ```
 
 ### Pattern 2: Implementation Army
+
 Use for multi-file features:
+
 ```
 YOU: "Implement these independently in parallel:
 - Component A in [file]
@@ -236,7 +248,9 @@ CLAUDE: Spawns 4 general-purpose agents, each with specific deliverable
 ```
 
 ### Pattern 3: Review Battalion
+
 Use before any merge:
+
 ```
 YOU: "Run all reviews in parallel"
 
@@ -247,7 +261,9 @@ CLAUDE: Simultaneously runs:
 ```
 
 ### Pattern 4: Research Squad
+
 Use for unfamiliar territory:
+
 ```
 YOU: "Research [topic] from multiple angles in parallel"
 
@@ -279,6 +295,7 @@ Add these to your requests:
 ## CONVERSATION STARTERS FOR 10X MODE
 
 ### Feature Development
+
 ```
 "Build [feature]. Use parallel waves:
 Wave 1: 3 agents explore patterns, dependencies, and APIs
@@ -288,6 +305,7 @@ Let's crush this."
 ```
 
 ### Bug Fix
+
 ```
 "Debug [issue]. Parallel investigation:
 - Search for error patterns
@@ -297,6 +315,7 @@ Then fix and validate."
 ```
 
 ### Refactoring
+
 ```
 "Refactor [system]. Parallel approach:
 1. Multi-agent analysis of dependencies and usages
@@ -306,6 +325,7 @@ Then fix and validate."
 ```
 
 ### Learning/Onboarding
+
 ```
 "I need to understand [system] fast. Spawn parallel Explore agents for:
 - Architecture and data flow
@@ -319,6 +339,7 @@ Then fix and validate."
 ## DEPENDENCY MAPPING: WHAT CAN RUN IN PARALLEL
 
 ### Always Parallel-Safe
+
 - Reading different files
 - Exploring different parts of codebase
 - Running different review commands
@@ -326,12 +347,15 @@ Then fix and validate."
 - Writing to different files
 
 ### Requires Sequencing
+
 - File A depends on File B → B first, then A
 - Tests depend on implementation → impl first (or parallel if mocked)
 - Migration depends on schema design → design first
 
 ### Smart Chunking
+
 Break work into independent pieces:
+
 ```
 Feature: User Profile Page
 ├── Chunk A: Profile display component (independent)
@@ -351,6 +375,7 @@ Feature: User Profile Page
 ### Example 1: Build Settings Page Feature
 
 **You:**
+
 ```
 Build a new "Notification Preferences" section in Settings. Use parallel waves.
 ```
@@ -358,6 +383,7 @@ Build a new "Notification Preferences" section in Settings. Use parallel waves.
 **Claude Executes:**
 
 **WAVE 1** (3 parallel Explore agents):
+
 - Agent 1: Explore existing Settings page patterns
 - Agent 2: Find notification-related code and schemas
 - Agent 3: Check brand guidelines for settings UI
@@ -365,6 +391,7 @@ Build a new "Notification Preferences" section in Settings. Use parallel waves.
 **CHECKPOINT**: Plan with patterns, identify all files
 
 **WAVE 2** (4 parallel implementation agents):
+
 - Agent 1: NotificationPreferences component
 - Agent 2: Edge Function save-notification-preferences
 - Agent 3: Database migration for preferences table
@@ -373,6 +400,7 @@ Build a new "Notification Preferences" section in Settings. Use parallel waves.
 **CHECKPOINT**: Integrate, wire up
 
 **WAVE 3** (3 parallel reviews):
+
 - /code-review
 - /security-review
 - /brain-ui-consistency-review
@@ -384,6 +412,7 @@ Build a new "Notification Preferences" section in Settings. Use parallel waves.
 ### Example 2: Debug Complex Issue
 
 **You:**
+
 ```
 Calls aren't syncing properly. Parallel debug investigation.
 ```
@@ -391,6 +420,7 @@ Calls aren't syncing properly. Parallel debug investigation.
 **Claude Executes:**
 
 **WAVE 1** (4 parallel investigations):
+
 - Agent 1: Check sync Edge Functions for errors
 - Agent 2: Review recent changes to sync code
 - Agent 3: Analyze Fathom webhook handling
@@ -399,6 +429,7 @@ Calls aren't syncing properly. Parallel debug investigation.
 **CHECKPOINT**: Correlate findings → Root cause identified
 
 **WAVE 2** (2 parallel):
+
 - Direct: Implement fix
 - Agent: Write regression test + check for similar issues
 
@@ -409,6 +440,7 @@ Calls aren't syncing properly. Parallel debug investigation.
 ### Example 3: Major Refactoring
 
 **You:**
+
 ```
 Refactor the FilterBar component (700+ lines). Parallel approach.
 ```
@@ -416,6 +448,7 @@ Refactor the FilterBar component (700+ lines). Parallel approach.
 **Claude Executes:**
 
 **WAVE 1** (3 parallel analysis):
+
 - Agent 1: Map all FilterBar usages and props
 - Agent 2: Identify extraction opportunities (sub-components)
 - Agent 3: Analyze test coverage gaps
@@ -423,6 +456,7 @@ Refactor the FilterBar component (700+ lines). Parallel approach.
 **CHECKPOINT**: Refactoring plan with 5 independent chunks
 
 **WAVE 2** (5 parallel extractions):
+
 - Agent 1: Extract CategoryFilter component
 - Agent 2: Extract DateRangeFilter component
 - Agent 3: Extract ParticipantFilter component
@@ -432,6 +466,7 @@ Refactor the FilterBar component (700+ lines). Parallel approach.
 **CHECKPOINT**: Integrate, update parent component
 
 **WAVE 3** (parallel validation):
+
 - Run tests
 - /code-review
 - /brain-ui-consistency-review
@@ -443,23 +478,27 @@ Refactor the FilterBar component (700+ lines). Parallel approach.
 ## MAXIMIZING AGENT EFFICIENCY
 
 ### 1. Be Specific in Agent Prompts
+
 ```
 BAD: "Explore the codebase"
 GOOD: "Find all files that handle user authentication, map the auth flow from login to session storage, list all auth-related hooks"
 ```
 
 ### 2. Give Clear Deliverables
+
 ```
 BAD: "Implement the feature"
 GOOD: "Implement NotificationToggle component in src/components/settings/ following the existing Toggle pattern from IntegrationsTab.tsx, export from index.ts"
 ```
 
 ### 3. Set Boundaries
+
 ```
 "Implement ONLY [specific scope]. Do not modify [other files]."
 ```
 
 ### 4. Request Checkpoint Summaries
+
 ```
 "After completing, provide: files changed, key decisions made, any blockers"
 ```
@@ -469,18 +508,21 @@ GOOD: "Implement NotificationToggle component in src/components/settings/ follow
 ## WHEN TO USE WHAT LEVEL
 
 ### Level 1: Direct (Simple tasks)
+
 - Single file edits
 - Quick fixes
 - Simple questions
 **Time: 1-5 minutes**
 
 ### Level 2: Single Agent (Focused tasks)
+
 - Single feature implementation
 - Targeted investigation
 - Specific review
 **Time: 10-30 minutes**
 
 ### Level 3: Multi-Agent Parallel (Complex tasks)
+
 - Multi-file features
 - System-wide changes
 - Major refactoring
@@ -488,6 +530,7 @@ GOOD: "Implement NotificationToggle component in src/components/settings/ follow
 **Time: 30-60 minutes (vs 3-6 hours sequential)**
 
 ### Level 4: Wave Pattern (Major projects)
+
 - New major features
 - Architecture changes
 - Full system onboarding

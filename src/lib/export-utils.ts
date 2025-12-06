@@ -23,6 +23,11 @@ interface TranscriptSegment {
   timestamp?: string;
 }
 
+interface CalendarInvitee {
+  name?: string;
+  email?: string;
+}
+
 export async function exportToPDF(calls: Call[]) {
   const pdf = new jsPDF();
   let yPosition = 20;
@@ -348,13 +353,13 @@ function calculateDurationMinutes(call: Call): number | null {
 }
 
 // Helper: Get participant names from call
-function getParticipantNames(call: Call): string[] {
+function getParticipantNames(call: Call & { calendar_invitees?: CalendarInvitee[] }): string[] {
   const participants: string[] = [];
   if (call.recorded_by_name) {
     participants.push(call.recorded_by_name);
   }
-  if ((call as any).calendar_invitees && Array.isArray((call as any).calendar_invitees)) {
-    (call as any).calendar_invitees.forEach((inv: any) => {
+  if (call.calendar_invitees && Array.isArray(call.calendar_invitees)) {
+    call.calendar_invitees.forEach((inv: CalendarInvitee) => {
       if (inv?.name && !participants.includes(inv.name)) {
         participants.push(inv.name);
       }
@@ -377,7 +382,7 @@ function transcriptToMarkdown(transcript: string): string {
     const match = line.match(/^\[(\d{2}:\d{2}:\d{2})\]\s+([^(:]+?)(?:\s*\([^)]+\))?\s*:\s*(.*)$/);
 
     if (match) {
-      const [, timestamp, speaker, text] = match;
+      const [, _timestamp, speaker, text] = match;
       const cleanSpeaker = speaker.split('|')[0].trim();
 
       if (cleanSpeaker !== currentSpeaker) {
@@ -487,7 +492,7 @@ export async function exportToMarkdown(calls: Call[], asZip: boolean = false) {
       new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-    sortedCalls.forEach((call, index) => {
+    sortedCalls.forEach((call) => {
       const fileName = `${String(calls.indexOf(call) + 1).padStart(3, '0')}_${call.title.replace(/[^a-z0-9]/gi, '_')}.md`;
       indexContent += `- [[${fileName}|${call.title}]] - ${formatDateShort(call.created_at)}\n`;
     });
@@ -567,8 +572,6 @@ export async function exportByWeek(calls: Call[], format: 'md' | 'txt' = 'md') {
   sortedCalls.forEach(call => {
     const { week, year, weekStart, weekEnd } = getWeekInfo(call.created_at);
     const weekKey = `${year}-W${String(week).padStart(2, '0')}`;
-    const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
-
     if (!weekGroups.has(weekKey)) {
       weekGroups.set(weekKey, []);
     }
@@ -577,7 +580,7 @@ export async function exportByWeek(calls: Call[], format: 'md' | 'txt' = 'md') {
 
   // Create folder for each week
   let weekIndex = 0;
-  for (const [weekKey, weekCalls] of weekGroups) {
+  for (const [_weekKey, weekCalls] of weekGroups) {
     weekIndex++;
     const { weekStart, weekEnd } = getWeekInfo(weekCalls[0].created_at);
     const folderName = `Week_${weekIndex}_${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).replace(/\s/g, '')}-${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).replace(/\s/g, '')}`;
@@ -645,7 +648,7 @@ export async function exportByWeek(calls: Call[], format: 'md' | 'txt' = 'md') {
     : `MEETING EXPORT BY WEEK\n${'='.repeat(80)}\n\nExported: ${new Date().toLocaleString()}\n\nSUMMARY\n- Total Meetings: ${calls.length}\n- Weeks Covered: ${weekGroups.size}\n\nWEEKS\n${'-'.repeat(80)}\n\n`;
 
   weekIndex = 0;
-  for (const [weekKey, weekCalls] of weekGroups) {
+  for (const [, weekCalls] of weekGroups) {
     weekIndex++;
     const { weekStart, weekEnd } = getWeekInfo(weekCalls[0].created_at);
     masterIndex += format === 'md'

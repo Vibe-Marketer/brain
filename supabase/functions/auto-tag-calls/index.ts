@@ -69,7 +69,11 @@ interface HistoricalPattern {
   typical_attendee_count: number;
 }
 
-async function getUserTagPreferences(supabase: any, userId: string): Promise<TagPreference[]> {
+async function getUserTagPreferences(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string
+): Promise<TagPreference[]> {
   const { data, error } = await supabase
     .from('tag_preferences')
     .select('*')
@@ -86,9 +90,10 @@ async function getUserTagPreferences(supabase: any, userId: string): Promise<Tag
 }
 
 async function getHistoricalPatterns(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   userId: string,
-  currentTitle: string
+  _currentTitle: string
 ): Promise<HistoricalPattern[]> {
   // Get historical calls with tags to learn patterns
   const { data, error } = await supabase
@@ -290,8 +295,9 @@ Deno.serve(async (req) => {
 
         // Extract attendee information
         const attendeeCount = call.calendar_invitees?.length || 0;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const attendeeEmails = call.calendar_invitees?.map((inv: any) => inv.email).filter(Boolean) || [];
-        const attendeeDomains = attendeeEmails.map((email: string) => email.split('@')[1]);
+        const _attendeeDomains = attendeeEmails.map((email: string) => email.split('@')[1]);
 
         // Prepare content for AI analysis
         const callInfo = [

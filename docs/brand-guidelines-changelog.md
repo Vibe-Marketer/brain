@@ -9,23 +9,28 @@ Track all changes to the CallVault Brand Guidelines document.
 **Type:** Minor version bump (file renamed from v3.3 to v3.4)
 
 ### Summary
+
 Complete rebrand from "Conversion Brain" to "CallVault" with primary accent color change from vibe-green to vibe-orange.
 
 ### Changes
 
 #### Brand Identity
+
 - **Product Name:** "Conversion Brain" → "CallVault"
 - **Trademark:** Added ™ symbol (CallVault™)
 - **Domain:** conversion.brain → callvault.ai
 
 #### Color System
+
 - **Primary Accent:** vibe-green (#D9FC67) → vibe-orange (#FF8800)
 - **HSL Values:** 72 96% 70% → 32 100% 50%
 - **CSS Variables:** All `--vibe-green-*` tokens renamed to `--vibe-orange-*`
 - **Tailwind Classes:** All `vibe-green` utilities renamed to `vibe-orange`
 
 #### Usage Updates
+
 All 9 approved accent color uses updated:
+
 1. Active tab underlines (6px angular)
 2. Left-edge indicators on metric cards
 3. Table column header underlines (sortable)
@@ -37,6 +42,7 @@ All 9 approved accent color uses updated:
 9. Contextual info banners
 
 #### Code Examples
+
 - All component examples updated with `vibe-orange` classes
 - CSS variable references updated
 - Tailwind config examples updated

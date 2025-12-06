@@ -52,30 +52,34 @@ export function DateRangePicker({
   const getQuickSelectRange = (preset: string): { from: Date; to: Date } => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     switch (preset) {
       case 'today':
         return { from: today, to: today };
       case 'yesterday':
         return { from: yesterday, to: yesterday };
-      case 'last7':
+      case 'last7': {
         const last7 = new Date(today);
         last7.setDate(last7.getDate() - 7);
         return { from: last7, to: today };
-      case 'thisMonth':
+      }
+      case 'thisMonth': {
         const thisMonthStart = new Date(today.getFullYear(), today.getMonth(), 1);
         return { from: thisMonthStart, to: today };
-      case 'lastMonth':
+      }
+      case 'lastMonth': {
         const lastMonthStart = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0);
         return { from: lastMonthStart, to: lastMonthEnd };
-      case 'last30':
+      }
+      case 'last30': {
         const last30 = new Date(today);
         last30.setDate(last30.getDate() - 30);
         return { from: last30, to: today };
+      }
       default:
         return { from: today, to: today };
     }

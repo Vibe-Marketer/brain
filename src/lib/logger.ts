@@ -10,7 +10,7 @@ type LogLevel = 'info' | 'warn' | 'error';
 const isDevelopment = import.meta.env.DEV;
 
 class Logger {
-  private log(level: LogLevel, message: string, data?: any) {
+  private log(level: LogLevel, message: string, data?: unknown) {
     if (isDevelopment) {
       const timestamp = new Date().toISOString();
       const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
@@ -30,15 +30,15 @@ class Logger {
     // In production, you could send to error tracking service (Sentry, LogRocket, etc.)
   }
 
-  info(message: string, data?: any) {
+  info(message: string, data?: unknown) {
     this.log('info', message, data);
   }
 
-  warn(message: string, data?: any) {
+  warn(message: string, data?: unknown) {
     this.log('warn', message, data);
   }
 
-  error(message: string, error?: any) {
+  error(message: string, error?: unknown) {
     this.log('error', message, error);
   }
 

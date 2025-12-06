@@ -17,7 +17,7 @@ interface SyncedTranscriptsSectionProps {
   dateRange: DateRange | undefined;
   onSelectCall: (id: number) => void;
   onSelectAll: () => void;
-  onCallClick: (call: any) => void;
+  onCallClick: (call: Meeting) => void;
   onCategorizeCall: (callId: number) => void;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
