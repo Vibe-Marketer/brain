@@ -167,8 +167,15 @@ export function ChatSidebar({
   const [sessionToDelete, setSessionToDelete] = React.useState<string | null>(null);
 
   // Memoize filtered sessions to prevent unnecessary recalculations
-  const pinnedSessions = React.useMemo(() => sessions.filter((s) => s.is_pinned), [sessions]);
-  const unpinnedSessions = React.useMemo(() => sessions.filter((s) => !s.is_pinned), [sessions]);
+  // Defensive guard: ensure sessions is a valid array before filtering
+  const pinnedSessions = React.useMemo(() => {
+    if (!sessions || !Array.isArray(sessions)) return [];
+    return sessions.filter((s) => s?.is_pinned);
+  }, [sessions]);
+  const unpinnedSessions = React.useMemo(() => {
+    if (!sessions || !Array.isArray(sessions)) return [];
+    return sessions.filter((s) => s && !s.is_pinned);
+  }, [sessions]);
 
   const handleDeleteClick = React.useCallback((sessionId: string) => {
     setSessionToDelete(sessionId);

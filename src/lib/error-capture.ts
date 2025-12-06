@@ -257,7 +257,7 @@ export function initErrorCapture(): void {
       // Extract error from arguments
       const firstArg = args[0];
       let error: Error | string;
-      let metadata: Record<string, unknown> = {};
+      const metadata: Record<string, unknown> = {};
 
       if (firstArg instanceof Error) {
         error = firstArg;

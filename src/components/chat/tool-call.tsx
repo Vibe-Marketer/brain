@@ -119,7 +119,12 @@ interface ToolCallsProps {
 }
 
 export function ToolCalls({ parts, className }: ToolCallsProps) {
-  const toolCalls = parts.filter((p) => p.type === 'tool-call' || p.type === 'tool-result');
+  // Defensive guard: ensure parts is a valid array before filtering
+  if (!parts || !Array.isArray(parts)) {
+    return null;
+  }
+
+  const toolCalls = parts.filter((p) => p && (p.type === 'tool-call' || p.type === 'tool-result'));
 
   if (toolCalls.length === 0) {
     return null;

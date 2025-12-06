@@ -235,10 +235,12 @@ export function PromptInputContextBar({
 
   // Filter calls based on search query
   const filteredCalls = React.useMemo(() => {
+    // Defensive guard: ensure availableCalls is a valid array
+    if (!availableCalls || !Array.isArray(availableCalls)) return [];
     if (!searchQuery) return availableCalls.slice(0, 20);
     const query = searchQuery.toLowerCase();
     return availableCalls
-      .filter(call => call.title?.toLowerCase().includes(query))
+      .filter(call => call?.title?.toLowerCase().includes(query))
       .slice(0, 20);
   }, [availableCalls, searchQuery]);
 

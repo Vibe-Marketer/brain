@@ -102,9 +102,9 @@ interface ToolCallPart {
 
 // Helper to extract text content from message parts
 function getMessageTextContent(message: UIMessage): string {
-  if (!message.parts) return '';
+  if (!message?.parts || !Array.isArray(message.parts)) return '';
   return message.parts
-    .filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .filter((part): part is { type: 'text'; text: string } => part?.type === 'text' && typeof part.text === 'string')
     .map(part => part.text)
     .join('');
 }
@@ -112,11 +112,12 @@ function getMessageTextContent(message: UIMessage): string {
 // Helper to extract tool invocations from message parts
 // AI SDK v5 states: 'input-streaming', 'input-available', 'output-available', 'output-error'
 function getToolInvocations(message: UIMessage): ToolCallPart[] {
-  if (!message.parts) return [];
+  if (!message?.parts || !Array.isArray(message.parts)) return [];
 
   const toolParts: ToolCallPart[] = [];
 
   for (const part of message.parts) {
+    if (!part || typeof part.type !== 'string') continue;
     // AI SDK v5 tool parts have type like 'tool-searchTranscripts', 'tool-getCallDetails', etc.
     // Also handle 'dynamic-tool' for dynamic tools
     if (part.type.startsWith('tool-') || part.type === 'dynamic-tool') {
@@ -227,20 +228,31 @@ export default function Chat() {
     recording_ids: filters.recordingIds.length > 0 ? filters.recordingIds : undefined,
   }), [filters]);
 
-  // Create transport instance - memoized to avoid recreation on every render
+  // Use refs for values that change frequently but shouldn't recreate transport
+  // This prevents infinite re-render loops when sessionId/model/filters change
+  const apiFiltersRef = React.useRef(apiFilters);
+  const selectedModelRef = React.useRef(selectedModel);
+  React.useEffect(() => { apiFiltersRef.current = apiFilters; }, [apiFilters]);
+  React.useEffect(() => { selectedModelRef.current = selectedModel; }, [selectedModel]);
+
+  // Create transport instance - ONLY recreate when auth token changes
+  // Other values (filters, model, sessionId) are read from refs at request time
   const transport = React.useMemo(() => {
     return new DefaultChatTransport({
       api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`,
       headers: {
         Authorization: `Bearer ${session?.access_token}`,
       },
+      // Use a function to get current values at request time from refs
+      // This prevents transport recreation when these values change
       body: {
-        filters: apiFilters,
-        model: selectedModel,
-        sessionId: currentSessionId,
+        get filters() { return apiFiltersRef.current; },
+        get model() { return selectedModelRef.current; },
+        get sessionId() { return currentSessionIdRef.current; },
       },
     });
-  }, [session?.access_token, apiFilters, selectedModel, currentSessionId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.access_token]); // ONLY depend on auth token - refs handle the rest
 
   // Use the AI SDK v5 chat hook
   const {
