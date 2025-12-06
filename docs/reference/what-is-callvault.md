@@ -1,6 +1,6 @@
-# What is Conversion Brain?
+# What is CallVault?
 
-**Conversion Brain™** is an AI-powered Meeting Intelligence System built for founder-led, service, coaching, and consulting businesses who do most of their selling, delivery, or support through live calls or meetings.
+**CallVault™** is an AI-powered Meeting Intelligence System built for founder-led, service, coaching, and consulting businesses who do most of their selling, delivery, or support through live calls or meetings.
 
 It automatically turns all your meetings—sales, coaching, community, demos, and more—into actionable assets: marketing content, CRM intelligence, client health insights, and ready-to-use follow-ups. The system ingests your call transcripts (from Fathom, Zoom, and more), understands what type of meeting it was, extracts key moments (pain points, goals, objections, successes, etc.), and transforms these into emails, social posts, testimonials, and detailed client records. Everything is organized, scored, and routed the way an elite human team would do—but fully automated.
 
@@ -9,30 +9,30 @@ It automatically turns all your meetings—sales, coaching, community, demos, an
 
 ***
 
-## Why Was Conversion Brain™ Built?
+## Why Was CallVault™ Built?
 
 Most founder-led businesses waste hours every week on repetitive meeting notes, forgotten insights, and missed content opportunities. Valuable client language and market insights are buried inside meeting recordings—never making it into your marketing, follow-up, or product feedback loops.
 
-Existing tools only transcribe meetings or require manual tagging, writing, and data entry to get value. Conversion Brain was created to automate the entire workflow:
+Existing tools only transcribe meetings or require manual tagging, writing, and data entry to get value. CallVault was created to automate the entire workflow:
 
 - **No more blank post-meeting screens:** The system instantly classifies, summarizes, and routes your meeting data, turning raw conversations into gold.
 - **No more “note-taking bottleneck":** It listens for key signals—pain, results, objections, etc.—and surfaces quotes, action items, trends, and marketing hooks, so you never lose what matters.
 
 ***
 
-## The Problems Conversion Brain™ Solves
+## The Problems CallVault™ Solves
 
 1. **Manual Data Entry & Missed Details:**  
-   Most meeting insights are never captured or used. Conversion Brain listens for everything that matters, categorizes it, and links it to the right client or opportunity.
+   Most meeting insights are never captured or used. CallVault listens for everything that matters, categorizes it, and links it to the right client or opportunity.
 
 2. **Lost Content Goldmine:**  
-   All your meetings are packed with marketing stories, testimonials, and content ideas. Conversion Brain curates and generates posts, emails, and even blog outlines in your brand voice.
+   All your meetings are packed with marketing stories, testimonials, and content ideas. CallVault curates and generates posts, emails, and even blog outlines in your brand voice.
 
 3. **Client Churn & Declining Engagement:**  
    Early warning signals (like client frustration or blockers) are often missed until it’s too late. The system tracks sentiment and engagement, alerting you to at-risk clients or testimonial opportunities.
 
 4. **Fragmented Tools & No Integrated View:**  
-   Insights, follow-ups, and content ideas end up scattered across tools. With Conversion Brain, transcripts, CRM, and content generation are unified, searchable, and routed to the right place.
+   Insights, follow-ups, and content ideas end up scattered across tools. With CallVault, transcripts, CRM, and content generation are unified, searchable, and routed to the right place.
 
 5. **Inefficient Follow-Ups & Missed Revenue:**  
    Automated, context-aware follow-ups are generated right after every key meeting—so sales and support never fall through the cracks.
@@ -42,7 +42,7 @@ Existing tools only transcribe meetings or require manual tagging, writing, and 
 ## How Does It Work? (Plain English Workflow)
 
 - **Input:**  
-  It connects to Fathom, Zoom, and more. Whenever a meeting finishes, the transcript gets sucked into Conversion Brain automatically.
+  It connects to Fathom, Zoom, and more. Whenever a meeting finishes, the transcript gets sucked into CallVault automatically.
 
 - **Smart Classification:**  
   The system detects what type of meeting it was (sales, coaching, demo, community, internal, support, etc.) using AI and rule-based cues from the title, calendar, participants, and tags.
@@ -72,7 +72,7 @@ Existing tools only transcribe meetings or require manual tagging, writing, and 
 
 ## Primary Value Proposition
 
-**Conversion Brain™ turns every conversation into a marketing, sales, and customer intelligence engine—automatically**.  
+**CallVault™ turns every conversation into a marketing, sales, and customer intelligence engine—automatically**.  
 It gives you fresh, high-impact content, deep customer insights, and flawless follow-up without manual work.
 
 ***
@@ -100,10 +100,10 @@ Everything is tagged, searchable, and context-aware. You get more value from eve
 
 ***
 
-## Who is Conversion Brain™ NOT For?
+## Who is CallVault™ NOT For?
 
 - **Passive, “Set-It-and-Forget-It” Users:**  
-  You want results, but don’t care to review or approve content—Conversion Brain values quality control.
+  You want results, but don’t care to review or approve content—CallVault values quality control.
 - **Tiny teams with almost no meetings or client interactions.**
 - **Enterprises wanting 100% custom workflows and legacy system integration (for now).**
 
@@ -129,7 +129,7 @@ Everything is tagged, searchable, and context-aware. You get more value from eve
 
 ## Ultimate Outcome
 
-**Conversion Brain transforms your weekly meetings into a high-leverage engine for growth:**  
+**CallVault transforms your weekly meetings into a high-leverage engine for growth:**  
 - Saves 10+ hours per week
 - Doubles your usable content output  
 - Alerts you before you lose clients or revenue  

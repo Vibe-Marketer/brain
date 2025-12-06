@@ -1,8 +1,8 @@
-# CONVERSION BRAIN CHAT PAGE - COMPLETE STRUCTURAL DOCUMENTATION
+# CALLVAULT CHAT PAGE - COMPLETE STRUCTURAL DOCUMENTATION
 
 ## Executive Summary
 
-This document provides a **pixel-perfect implementation guide** for the Conversion Brain chat interface that mirrors how desktop applications work: a main viewport (like your screen) contains an application window (like opening Kortex in a browser).
+This document provides a **pixel-perfect implementation guide** for the CallVault chat interface that mirrors how desktop applications work: a main viewport (like your screen) contains an application window (like opening Kortex in a browser).
 
 **The Two-Card System:**
 - **BG-CARD-MAIN**: The "browser window" - the outermost application container

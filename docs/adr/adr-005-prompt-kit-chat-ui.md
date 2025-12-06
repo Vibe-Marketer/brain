@@ -19,7 +19,7 @@ The AI Chat Agent System requires a production-ready chat interface with:
 
 The chat UI must:
 - Integrate seamlessly with Vercel AI SDK's `useChat` hook
-- Follow Conversion Brain's brand guidelines (v3.3)
+- Follow CallVault's brand guidelines (v3.3)
 - Use our existing design system (shadcn/ui + Tailwind CSS)
 - Support streaming responses (SSE)
 - Be fully customizable

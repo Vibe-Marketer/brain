@@ -1,6 +1,6 @@
 # Design System Documentation
 
-This directory contains the complete design system documentation for Conversion Brain.
+This directory contains the complete design system documentation for CallVault.
 
 ## Core Documents
 

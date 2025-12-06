@@ -1,12 +1,12 @@
-# Conversion Brain™
+# CallVault™
 
 **Every Call Becomes a Conversion Asset.**
 
-Conversion Brain is an AI-powered Meeting Intelligence System that automatically transforms your meetings—sales, coaching, demos, support—into actionable marketing content, CRM intelligence, client health insights, and ready-to-use follow-ups.
+CallVault is an AI-powered Meeting Intelligence System that automatically transforms your meetings—sales, coaching, demos, support—into actionable marketing content, CRM intelligence, client health insights, and ready-to-use follow-ups.
 
-## What is Conversion Brain?
+## What is CallVault?
 
-Conversion Brain automatically turns all your meetings into actionable assets. It ingests call transcripts from Fathom (and soon Zoom and other platforms), intelligently classifies meetings, extracts key insights using the **PROFITS framework**, and generates:
+CallVault automatically turns all your meetings into actionable assets. It ingests call transcripts from Fathom (and soon Zoom and other platforms), intelligently classifies meetings, extracts key insights using the **PROFITS framework**, and generates:
 
 - ✅ Personalized follow-up emails
 - ✅ Social media posts (LinkedIn, Facebook, X)
@@ -228,7 +228,7 @@ When working with Claude:
 - **docs/design/**: Brand guidelines and design principles
 - **docs/architecture/**: API naming conventions
 - **docs/adr/**: Architecture Decision Records
-- **docs/reference/**: Reference documentation including "What is Conversion Brain"
+- **docs/reference/**: Reference documentation including "What is CallVault"
 
 ## Contributing
 

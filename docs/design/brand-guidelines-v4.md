@@ -1,4 +1,4 @@
-# CALL VAULT BRAND GUIDELINES v4.0
+# CALLVAULT BRAND GUIDELINES v4.0
 ## Authoritative Design System Reference
 
 **Last Updated:** December 4, 2025
