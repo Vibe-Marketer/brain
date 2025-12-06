@@ -18,6 +18,39 @@ export function useSetupWizard(): SetupWizardData {
   const [wizardCompleted, setWizardCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // IMPORTANT: markWizardComplete must be declared BEFORE checkWizardStatus
+  // to avoid Temporal Dead Zone (TDZ) error when used in dependency array
+  const markWizardComplete = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        logger.error("Cannot mark wizard complete: no authenticated user");
+        toast.error("Authentication error");
+        return;
+      }
+
+      const { error } = await supabase
+        .from("user_profiles")
+        .update({
+          onboarding_completed: true,
+        })
+        .eq("user_id", user.id);
+
+      if (error) {
+        logger.error("Error marking wizard complete", error);
+        toast.error("Failed to save setup completion");
+        return;
+      }
+
+      setWizardCompleted(true);
+      toast.success("Setup completed successfully!");
+      logger.info("Wizard marked as complete for user", { userId: user.id });
+    } catch (error) {
+      logger.error("Unexpected error in markWizardComplete", error);
+      toast.error("Failed to complete setup");
+    }
+  }, []);
+
   const checkWizardStatus = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -86,37 +119,6 @@ export function useSetupWizard(): SetupWizardData {
       setLoading(false);
     }
   }, [markWizardComplete]);
-
-  const markWizardComplete = useCallback(async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        logger.error("Cannot mark wizard complete: no authenticated user");
-        toast.error("Authentication error");
-        return;
-      }
-
-      const { error } = await supabase
-        .from("user_profiles")
-        .update({
-          onboarding_completed: true,
-        })
-        .eq("user_id", user.id);
-
-      if (error) {
-        logger.error("Error marking wizard complete", error);
-        toast.error("Failed to save setup completion");
-        return;
-      }
-
-      setWizardCompleted(true);
-      toast.success("Setup completed successfully!");
-      logger.info("Wizard marked as complete for user", { userId: user.id });
-    } catch (error) {
-      logger.error("Unexpected error in markWizardComplete", error);
-      toast.error("Failed to complete setup");
-    }
-  }, []);
 
   useEffect(() => {
     checkWizardStatus();
