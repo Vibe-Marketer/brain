@@ -606,6 +606,24 @@ export default function Chat() {
     }));
   }, []);
 
+  // Handle removing a context attachment (stable callback for PromptInputContextBar)
+  const handleRemoveAttachment = React.useCallback((id: number) => {
+    setContextAttachments(prev => prev.filter(a => a.id !== id));
+  }, []);
+
+  // Handle adding a call as context attachment (stable callback for PromptInputContextBar)
+  const handleAddCall = React.useCallback((call: { recording_id: number; title: string; created_at: string }) => {
+    setContextAttachments(prev => [
+      ...prev,
+      {
+        type: 'call' as const,
+        id: call.recording_id,
+        title: call.title,
+        date: call.created_at,
+      },
+    ]);
+  }, []);
+
   // Use mentions hook for @ mention functionality
   const {
     showMentions,
@@ -1023,21 +1041,9 @@ export default function Chat() {
                 {/* Context Bar with call attachments */}
                 <PromptInputContextBar
                   attachments={contextAttachments}
-                  onRemoveAttachment={(id) => {
-                    setContextAttachments(prev => prev.filter(a => a.id !== id));
-                  }}
+                  onRemoveAttachment={handleRemoveAttachment}
                   availableCalls={availableCalls}
-                  onAddCall={(call) => {
-                    setContextAttachments(prev => [
-                      ...prev,
-                      {
-                        type: 'call',
-                        id: call.recording_id,
-                        title: call.title,
-                        date: call.created_at,
-                      },
-                    ]);
-                  }}
+                  onAddCall={handleAddCall}
                 />
 
                 {/* Main textarea */}
