@@ -96,7 +96,7 @@ mcp__supabase__deploy_edge_function({
 - Rebased local `main` onto `origin/main`
 - Pushed commit `95b2edd` to origin
 - All changes merged successfully
-- brand-guidelines-v4.md changes pending commit
+- ✅ brand-guidelines-v4.md committed: `ba01d44`
 
 ---
 
