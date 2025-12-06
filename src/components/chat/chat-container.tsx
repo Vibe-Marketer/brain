@@ -29,8 +29,14 @@ export function ChatContainerRoot({ children, className, ...props }: ChatContain
     initial: 'smooth',
   });
 
+  // Memoize context value to prevent unnecessary re-renders of children
+  const contextValue = React.useMemo(
+    () => ({ isAtBottom, scrollToBottom }),
+    [isAtBottom, scrollToBottom]
+  );
+
   return (
-    <ChatContainerContext.Provider value={{ isAtBottom, scrollToBottom }}>
+    <ChatContainerContext.Provider value={contextValue}>
       <div
         ref={scrollRef}
         className={cn('relative h-full w-full overflow-y-auto', className)}

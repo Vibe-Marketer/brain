@@ -60,8 +60,14 @@ export function PromptInput({
     }
   };
 
+  // Memoize context value to prevent unnecessary re-renders of children
+  const contextValue = React.useMemo(
+    () => ({ value, onValueChange: handleValueChange, isLoading, maxHeight, onSubmit }),
+    [value, handleValueChange, isLoading, maxHeight, onSubmit]
+  );
+
   return (
-    <PromptInputContext.Provider value={{ value, onValueChange: handleValueChange, isLoading, maxHeight, onSubmit }}>
+    <PromptInputContext.Provider value={contextValue}>
       <form
         onSubmit={handleSubmit}
         className={cn(

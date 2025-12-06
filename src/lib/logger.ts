@@ -9,7 +9,7 @@
 
 import { captureError, originalConsoleError, originalConsoleWarn } from './error-capture';
 
-type LogLevel = 'info' | 'warn' | 'error';
+type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
 const isDevelopment = import.meta.env.DEV;
 
@@ -30,6 +30,9 @@ class Logger {
         case 'info':
           console.log(prefix, message, data || '');
           break;
+        case 'debug':
+          console.log(prefix, message, data || '');
+          break;
       }
     }
 
@@ -44,6 +47,14 @@ class Logger {
         sendToSentry: true,
       });
     }
+  }
+
+  /**
+   * Debug level logging - only shown in development mode
+   * Use for verbose information that helps during debugging
+   */
+  debug(message: string, data?: unknown) {
+    this.log('debug', message, data);
   }
 
   info(message: string, data?: unknown) {

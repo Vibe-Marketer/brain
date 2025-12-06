@@ -94,15 +94,14 @@ export function MessageAction({ tooltip, children, side = 'top', className }: Me
     return <span className={className}>{children}</span>;
   }
 
+  // Note: TooltipProvider is at the app level in App.tsx, no need to wrap here
   return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <span className={className}>{children}</span>
-        </TooltipTrigger>
-        <TooltipContent side={side}>{tooltip}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className={className}>{children}</span>
+      </TooltipTrigger>
+      <TooltipContent side={side}>{tooltip}</TooltipContent>
+    </Tooltip>
   );
 }
 

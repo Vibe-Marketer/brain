@@ -49,14 +49,18 @@ export interface CallSourceProps {
 }
 
 export function CallSource({ source, onViewCall, children }: CallSourceProps) {
+  // Memoize context value to prevent unnecessary re-renders
+  const contextValue = React.useMemo(
+    () => ({
+      recordingId: source.recording_id,
+      title: source.call_title || 'Transcript',
+      onViewCall,
+    }),
+    [source.recording_id, source.call_title, onViewCall]
+  );
+
   return (
-    <CallSourceContext.Provider
-      value={{
-        recordingId: source.recording_id,
-        title: source.call_title || 'Transcript',
-        onViewCall,
-      }}
-    >
+    <CallSourceContext.Provider value={contextValue}>
       <HoverCard openDelay={150} closeDelay={0}>
         {children}
       </HoverCard>
