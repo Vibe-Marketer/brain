@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-A log of architectural decisions for Conversion Brain.
+A log of architectural decisions for CallVault.
 
 ## What is an ADR?
 

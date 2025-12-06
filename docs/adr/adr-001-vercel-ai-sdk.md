@@ -10,7 +10,7 @@
 
 ## Context
 
-We're building chat, RAG, and agent features into Conversion Brain. We need to choose an SDK that:
+We're building chat, RAG, and agent features into CallVault. We need to choose an SDK that:
 - Supports multiple AI providers (OpenAI, Anthropic, Google)
 - Has built-in streaming and tool calling
 - Works well with our React/TypeScript/Supabase stack

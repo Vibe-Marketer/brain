@@ -1,6 +1,6 @@
 # Scripts Directory
 
-This directory contains utility scripts for the Conversion Brain project.
+This directory contains utility scripts for the CallVault project.
 
 ## RAG Testing Scripts (WEEK 3 - TASK 3.3)
 

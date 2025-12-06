@@ -1,6 +1,6 @@
 # Troubleshooting Documentation
 
-This directory contains comprehensive troubleshooting guides for common issues in Conversion Brain.
+This directory contains comprehensive troubleshooting guides for common issues in CallVault.
 
 ---
 

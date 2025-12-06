@@ -1,8 +1,8 @@
-# Data Fetching Architecture - Conversion Brain
+# Data Fetching Architecture - CallVault
 
 ## Overview
 
-Conversion Brain uses **TanStack Query v5** as the primary data fetching and caching layer. All server state flows through TanStack Query hooks, with mutations calling Supabase Edge Functions via a centralized API client.
+CallVault uses **TanStack Query v5** as the primary data fetching and caching layer. All server state flows through TanStack Query hooks, with mutations calling Supabase Edge Functions via a centralized API client.
 
 ## Core Components
 

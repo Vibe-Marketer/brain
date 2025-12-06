@@ -1,8 +1,8 @@
-# Conversion Brain Architecture
+# CallVault Architecture
 
 ## Overview
 
-Conversion Brain is a meeting intelligence platform that syncs with Fathom to process call transcripts, categorize meetings, and provide analytics. The application follows a client-server architecture with a React frontend and Supabase Edge Functions backend.
+CallVault is a meeting intelligence platform that syncs with Fathom to process call transcripts, categorize meetings, and provide analytics. The application follows a client-server architecture with a React frontend and Supabase Edge Functions backend.
 
 ## Tech Stack
 

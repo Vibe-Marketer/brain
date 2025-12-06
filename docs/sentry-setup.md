@@ -1,6 +1,6 @@
 # Sentry Setup Guide
 
-This document explains how to set up Sentry error monitoring for the Conversion Brain web application based on their onboarding recommendation. 
+This document explains how to set up Sentry error monitoring for the CallVault web application based on their onboarding recommendation. 
 
 
 

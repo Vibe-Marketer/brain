@@ -1,6 +1,6 @@
 # BUTTON VARIANTS - Implementation Reference
 
-**Quick reference for all button implementations in Conversion Brain**
+**Quick reference for all button implementations in CallVault**
 
 Copy-paste these exact implementations. Always reference this file when creating buttons.
 

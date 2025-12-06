@@ -1,4 +1,4 @@
-# CONVERSION BRAIN CHAT PAGE - COMPLETE STRUCTURAL DOCUMENTATION
+# CALLVAULT CHAT PAGE - COMPLETE STRUCTURAL DOCUMENTATION
 
 ## OVERVIEW
 
@@ -13,7 +13,7 @@ The outer application structure remains **100% UNCHANGED**:
 
 | Component | Description | Keep Exactly As-Is |
 |-----------|-------------|---------------------|
-| TopBar | 52px height, full width, "Conversion Brain" logo left, "HOME" center, search/settings right | ✅ YES |
+| TopBar | 52px height, full width, "CallVault" logo left, "HOME" center, search/settings right | ✅ YES |
 | Viewport Background | `bg-viewport` (#FCFCFC light / #161616 dark) | ✅ YES |
 | Main BG-CARD | `rounded-2xl`, `shadow-lg`, `border border-cb-border`, positioned with `inset-2 top-[52px]` | ✅ YES |
 | Card Gutters | 8px right/bottom/left (via `inset-2`) | ✅ YES |

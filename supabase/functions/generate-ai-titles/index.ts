@@ -13,7 +13,7 @@ function createOpenRouterProvider(apiKey: string) {
   return createOpenRouter({
     apiKey,
     headers: {
-      'HTTP-Referer': 'https://conversion.brain',
+      'HTTP-Referer': 'https://callvault.app',
       'X-Title': 'CallVault',
     },
   });

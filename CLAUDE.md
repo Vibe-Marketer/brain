@@ -550,8 +550,8 @@ function createOpenRouterProvider(apiKey: string) {
     apiKey,
     baseURL: OPENROUTER_BASE_URL,
     headers: {
-      'HTTP-Referer': 'https://conversion.brain',
-      'X-Title': 'Conversion Brain',
+      'HTTP-Referer': 'https://callvault.app',
+      'X-Title': 'CallVault',
     },
   });
 }
@@ -719,7 +719,7 @@ Requires access to live preview environment, uses Playwright for automated testi
 
 ## Design Principles
 
-- Comprehensive design checklist in `/docs/design/design-principles-conversion-brain.md`
+- Comprehensive design checklist in `/docs/design/design-principles-callvault.md`
 - Brand style guide in `/docs/design/brand-guidelines-v3.4.md`
 - When making visual (front-end, UI/UX) changes, always refer to these files for guidance
 
@@ -730,7 +730,7 @@ Requires access to live preview environment, uses Playwright for automated testi
 1. **Identify what changed** - Review the modified components/pages
 2. **Check dev server URL** - Read `vite.config.ts` for the server port (default: http://localhost:8080)
 3. **Navigate to affected pages** - Use `mcp__playwright__browser_navigate` to visit each changed view at the correct URL
-4. **Verify design compliance** - Compare against `/docs/design/design-principles-conversion-brain.md` and `/docs/design/brand-guidelines-v3.4.md`
+4. **Verify design compliance** - Compare against `/docs/design/design-principles-callvault.md` and `/docs/design/brand-guidelines-v3.4.md`
 5. **Validate feature implementation** - Ensure the change fulfills the user's specific request
 6. **Check acceptance criteria** - Review any provided context files or requirements
 7. **Capture evidence** - Take full page screenshot at desktop viewport (1440px) of each changed view

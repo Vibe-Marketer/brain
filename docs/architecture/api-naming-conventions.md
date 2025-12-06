@@ -1,8 +1,8 @@
-# API Naming Conventions - Conversion Brain
+# API Naming Conventions - CallVault
 
 ## Overview
 
-This document describes the actual naming conventions used throughout Conversion Brain's codebase based on current implementation patterns. All examples reference real files where these patterns are implemented.
+This document describes the actual naming conventions used throughout CallVault's codebase based on current implementation patterns. All examples reference real files where these patterns are implemented.
 
 ## Backend: Supabase Edge Functions
 

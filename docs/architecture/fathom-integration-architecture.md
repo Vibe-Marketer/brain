@@ -2,7 +2,7 @@
 
 **Last Updated:** 2025-11-29
 
-This document describes how Conversion Brain integrates with Fathom for meeting sync, covering both manual and automatic flows.
+This document describes how CallVault integrates with Fathom for meeting sync, covering both manual and automatic flows.
 
 ---
 
@@ -19,7 +19,7 @@ This document describes how Conversion Brain integrates with Fathom for meeting 
 
 ## Overview
 
-There are **two ways** meetings get into Conversion Brain:
+There are **two ways** meetings get into CallVault:
 
 | Flow | Trigger | When It Happens | Auth Used |
 |------|---------|-----------------|-----------|
