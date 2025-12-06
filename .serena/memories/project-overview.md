@@ -1,7 +1,9 @@
 # CallVault - Project Overview
 
 ## Purpose
+
 CallVault is a meeting intelligence and transcript management application. It integrates with Fathom to sync, process, and analyze meeting recordings and transcripts. Features include:
+
 - Meeting sync and transcript management
 - AI-powered transcript analysis and tagging
 - RAG-based chat with meeting content
@@ -9,6 +11,7 @@ CallVault is a meeting intelligence and transcript management application. It in
 - Multi-provider AI model support via OpenRouter
 
 ## Tech Stack
+
 - **Frontend**: React 18 + TypeScript + Vite (port 8080)
 - **UI**: Radix UI primitives + Tailwind CSS + shadcn/ui patterns
 - **State/Data**: TanStack Query (React Query)
@@ -19,12 +22,14 @@ CallVault is a meeting intelligence and transcript management application. It in
 - **Charts**: Recharts + Tremor
 
 ## AI/LLM Configuration
+
 - **All models route through OpenRouter** (OpenAI-compatible API)
 - **Default model**: `z-ai/glm-4.6`
 - **Embeddings**: OpenAI direct (`text-embedding-3-small`) - OpenRouter doesn't support embeddings
 - **Supported providers**: OpenAI, Anthropic, Google, xAI, Meta, DeepSeek, Mistral, 300+ more
 
 ## Key Directories
+
 ```
 src/
 ├── components/     # React components (UI, settings, transcripts, chat, etc.)
@@ -48,6 +53,7 @@ docs/
 ```
 
 ## Important Documentation
+
 - `CLAUDE.md` - Development instructions and conventions
 - `docs/design/brand-guidelines-v3.4.md` - UI/design system (MUST READ before UI work)
 - `docs/architecture/api-naming-conventions.md` - Naming conventions
