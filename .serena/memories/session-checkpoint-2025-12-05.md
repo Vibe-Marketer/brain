@@ -2,140 +2,137 @@
 
 ## Session Summary
 
-Major rebrand from "Conversion Brain" to "CallVault" with primary accent color change from vibe-green to vibe-orange. Complete update of branding assets, documentation, and UI components.
+This session covered two main areas:
+1. **Earlier**: Fixed critical CORS issue blocking AI chat functionality
+2. **Later**: Fixed all markdown linting errors in brand-guidelines-v4.md
 
 ---
 
-## 1. CallVault Rebrand - Complete
+## 1. Critical Fix: CORS Headers for Sentry Tracing
 
-### Brand Identity Changes
-- **Product Name**: "Conversion Brain" → "CallVault"
-- **Primary Accent**: vibe-green (#D9FC67) → vibe-orange (#FF8800)
-- **HSL Values**: 72 96% 70% → 32 100% 50%
-- **Domain Reference**: callvault.ai
-
-### Files Created/Added
-| File | Description |
-|------|-------------|
-| `docs/design/brand-guidelines-v3.4.md` | Complete rebrand guidelines (2200+ lines) |
-| `docs/brand-guidelines-changelog.md` | New changelog for version tracking |
-| `public/og-image.png` | Social sharing image (1200x630px) |
-| `public/cv-wordmark.png` | PNG logo with transparent background (for dark mode) |
-
-### Files Modified
-| File | Changes |
-|------|---------|
-| `CLAUDE.md` | Updated all references: v3.3→v3.4, green→orange, "Conversion Brain"→"CallVault" |
-| `index.html` | Title, favicon, OpenGraph meta tags, Twitter cards, theme-color |
-| `src/components/ui/top-bar.tsx` | Logo display with light/dark mode support |
-
----
-
-## 2. Top Bar / Header Updates
-
-### Logo Display Solution
-- **Light mode**: SVG with `mix-blend-multiply` to hide white background from embedded PNGs
-- **Dark mode**: PNG version (`cv-wordmark.png`) with transparent background
-- **Background**: Uses `bg-viewport` class for proper light/dark adaptation
-
-### Code Pattern
-```tsx
-{/* Light mode: SVG with mix-blend-multiply */}
-<img src="/cv-wordmark.svg" className="mix-blend-multiply dark:hidden" />
-{/* Dark mode: PNG with transparent background */}
-<img src="/cv-wordmark.png" className="hidden dark:block" />
+### Problem
+AI Chat was completely broken with `Failed to fetch` errors. Console showed:
+```
+Request header field sentry-trace is not allowed by Access-Control-Allow-Headers
+Request header field baggage is not allowed by Access-Control-Allow-Headers
 ```
 
-### Page Label
-- Uses `text-vibe-orange` class
-- Font: Montserrat Extra Bold, uppercase, tracking
+### Root Cause
+Sentry SDK adds `sentry-trace` and `baggage` headers to all fetch requests for distributed tracing. These headers were being rejected by Edge Functions' CORS configuration.
 
----
+### Solution
+Added `sentry-trace, baggage` to `Access-Control-Allow-Headers` in:
+- `supabase/functions/chat-stream/index.ts` (line 11)
+- `supabase/functions/get-available-models/index.ts` (line 21)
 
-## 3. index.html Configuration
+```typescript
+// Before
+'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type'
 
-```html
-<title>CallVault</title>
-<link rel="icon" href="/cv-play-button.svg" />
-<meta name="theme-color" content="#FF8800" />
-<meta property="og:title" content="CallVault - Your AI-Powered Call Intelligence Platform" />
-<meta property="og:description" content="Transform your sales calls into actionable insights..." />
-<meta property="og:image" content="/og-image.png" />
+// After
+'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage'
 ```
 
----
+### Deployment
+- `chat-stream`: deployed via MCP to version 76
+- `get-available-models`: deployed via MCP to version 15
 
-## 4. Documentation Updates
-
-### Brand Guidelines v3.4
-- Complete document rewrite with CallVault branding
-- All vibe-green references → vibe-orange
-- Updated CSS variable section with orange tokens
-- Updated all 9 approved accent color uses
-- All code examples use `vibe-orange` classes
-
-### CLAUDE.md Updates
-- Title: "CALLVAULT - CLAUDE INSTRUCTIONS"
-- All brand-guidelines references point to v3.4
-- All color references updated to vibe-orange
-- Last updated: 2025-12-05
-
-### Serena Memories Updated
-- `project-overview`: Updated to CallVault, v3.4 references
-- `brand-guidelines-summary`: Updated colors, v3.4 references
+### Verification
+Chat tested successfully - AI responded to test message.
 
 ---
 
-## 5. Public Assets
+## 2. Brand Guidelines v4.0 - Markdown Linting Fixes
 
-### Logo Files Available
-| File | Size | Usage |
-|------|------|-------|
-| `cv-wordmark.svg` | 189KB | Light mode (has embedded PNG with white bg) |
-| `cv-wordmark.png` | 171KB | Dark mode (transparent background) |
-| `cv-play-button.svg` | 280KB | Favicon |
-| `callvault-icon.svg` | 280KB | Icon version |
-| `callvault-wordmark.svg` | 189KB | Alternate wordmark |
+### Task
+Fixed all markdown linting errors in `docs/design/brand-guidelines-v4.md` (2500+ line document).
 
-### Social Sharing
-- `og-image.png` (672KB, 1200x630px) - Shows CallVault logo with vault door background
+### Errors Fixed
+
+| Error Code | Description | Count Fixed |
+|------------|-------------|-------------|
+| MD032 | Lists not surrounded by blank lines | ~80+ |
+| MD012 | Multiple consecutive blank lines | ~15 |
+| MD031 | Fenced code blocks not surrounded by blank lines | ~60+ |
+| MD022 | Headings not surrounded by blank lines | ~20 |
+| MD024 | Duplicate heading content | 1 (renamed "Accessibility" to "Accessibility Checklist") |
+| MD036 | Emphasis used instead of heading | 2 (version history, end of doc) |
+| MD051 | Invalid link fragment | 1 (TOC link to "10% Approved Card Usage") |
+| MD040 | Fenced code blocks without language | 2 |
+
+### Key Changes Made
+1. **Renamed duplicate heading**: "Accessibility" → "Accessibility Checklist" (in QA checklist section)
+2. **Fixed TOC anchor**: `#10-percent-approved-card-usage` → `#the-10---approved-card-usage` (matches actual heading)
+3. **Converted emphasis to heading**: `**v4.0 - December 4, 2025**` → `### v4.0 - December 4, 2025`
+4. **Fixed end marker**: Changed `**END OF BRAND GUIDELINES v4.0**` to `*END OF BRAND GUIDELINES v4.0*` (italics)
+5. **Added blank lines**: Around all code blocks, lists, and headings per markdownlint rules
+
+### Final Result
+- **Diagnostics**: 0 errors (was 170+ before fixes)
+- **File lines**: ~2519 (slight increase from added blank lines)
 
 ---
 
-## 6. Technical Notes
+## 3. Deployment Notes
 
-### SVG Logo Issue
-The cv-wordmark.svg contains embedded base64 PNG images with white backgrounds baked in. This cannot be fixed with CSS filters alone. Solution:
-- Light mode: `mix-blend-multiply` blends white with background
-- Dark mode: Use separate PNG file with actual transparency
+### Supabase CLI Issue
+The local Supabase CLI (`supabase functions deploy`) was hanging indefinitely. Docker was not running but remote deployment shouldn't need Docker.
 
-### CSS Classes for Vibe Orange
-```css
-.text-vibe-orange { color: hsl(32 100% 50%); }
-.bg-vibe-orange { background-color: hsl(32 100% 50%); }
-.border-vibe-orange { border-color: hsl(32 100% 50%); }
+**Workaround**: Used the Supabase MCP tool (`mcp__supabase__deploy_edge_function`) which deploys directly via API without needing local Docker.
+
+### Important
+If CLI deployments hang in the future, use the MCP deploy tool:
+```typescript
+mcp__supabase__deploy_edge_function({
+  name: "function-name",
+  files: [{ name: "index.ts", content: "..." }]
+})
 ```
 
 ---
 
-## 7. Verified Working
+## 4. Git Status
 
-- [x] Light mode logo (no white background visible)
-- [x] Dark mode logo (transparent PNG, no artifacts)
-- [x] Browser tab title shows "CallVault"
-- [x] Favicon shows cv-play-button.svg
-- [x] Page label in orange color
-- [x] OpenGraph meta tags configured
-- [x] og-image.png in place for social sharing
+- Rebased local `main` onto `origin/main`
+- Pushed commit `95b2edd` to origin
+- All changes merged successfully
+- brand-guidelines-v4.md changes pending commit
+
+---
+
+## Files Modified This Session
+
+| File | Change |
+|------|--------|
+| `supabase/functions/chat-stream/index.ts` | Added sentry-trace, baggage to CORS headers |
+| `supabase/functions/get-available-models/index.ts` | Added sentry-trace, baggage to CORS headers |
+| `docs/design/brand-guidelines-v4.md` | Fixed all markdown linting errors (~170+ fixes) |
 
 ---
 
 ## Pending Items
 
-1. **Deploy changes** - All rebrand changes ready for production
-2. **Test social sharing** - Verify OG image appears on social platforms
-3. **Consider creating light-mode PNG** - If SVG blend mode causes issues
+- Commit brand-guidelines-v4.md markdown linting fixes
 
 ---
 
-*Session completed: 2025-12-05 ~12:00 PM*
+## Technical Reference
+
+### Current AI Architecture
+- **Frontend**: `@ai-sdk/react` useChat hook with DefaultChatTransport
+- **Backend**: Direct OpenRouter API calls (not AI SDK due to zod/esm.sh issues)
+- **Default Model**: `openai/gpt-4o-mini`
+- **Embeddings**: OpenAI direct (OpenRouter doesn't support embeddings)
+
+### Edge Function Versions
+- `chat-stream`: v76
+- `get-available-models`: v15
+
+### Markdown Linting
+- Tool: markdownlint (via VSCode/IDE diagnostics)
+- Config: Default rules
+- Target: Zero errors for clean documentation
+
+---
+
+*Last updated: 2025-12-05 (late evening)*
