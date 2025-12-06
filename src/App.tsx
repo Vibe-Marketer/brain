@@ -7,6 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "./components/Layout";
+import { ErrorLogViewer } from "./components/ErrorLogViewer";
 import Settings from "./pages/Settings";
 import TranscriptsNew from "./pages/TranscriptsNew";
 import Chat from "./pages/Chat";
@@ -58,6 +59,7 @@ const App = () => {
               </Routes>
               <Toaster />
               <Sonner />
+              <ErrorLogViewer />
             </TooltipProvider>
           </AuthProvider>
         </ThemeProvider>
