@@ -251,7 +251,7 @@ export default function Chat() {
         get sessionId() { return currentSessionIdRef.current; },
       },
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [session?.access_token]); // ONLY depend on auth token - refs handle the rest
 
   // Use the AI SDK v5 chat hook

@@ -1,13 +1,9 @@
 /**
- * Conditional logging utility for security-conscious applications
+ * Simple Logger Utility
  *
- * Logs detailed errors only in development mode to prevent
- * information leakage in production environments.
- *
- * Integrates with centralized error capture for comprehensive error tracking.
+ * Provides structured logging with environment awareness.
+ * Integrates with the DebugPanel for visibility.
  */
-
-import { captureError, originalConsoleError, originalConsoleWarn } from './error-capture';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -21,38 +17,26 @@ class Logger {
     if (isDevelopment) {
       switch (level) {
         case 'error':
-          // Use original console.error to avoid double-capture
-          originalConsoleError(prefix, message, data || '');
+          console.error(prefix, message, data || '');
           break;
         case 'warn':
-          originalConsoleWarn(prefix, message, data || '');
+          console.warn(prefix, message, data || '');
           break;
         case 'info':
-          console.log(prefix, message, data || '');
-          break;
         case 'debug':
           console.log(prefix, message, data || '');
           break;
       }
-    }
-
-    // For errors, always send to centralized error capture (which handles Sentry)
-    if (level === 'error') {
-      const errorObj = data instanceof Error ? data : new Error(message);
-      captureError(errorObj, 'manual', {
-        metadata: {
-          loggerMessage: message,
-          additionalData: data instanceof Error ? undefined : data,
-        },
-        sendToSentry: true,
-      });
+    } else {
+      // In production, only log errors and warnings to console
+      if (level === 'error') {
+        console.error(prefix, message, data || '');
+      } else if (level === 'warn') {
+        console.warn(prefix, message, data || '');
+      }
     }
   }
 
-  /**
-   * Debug level logging - only shown in development mode
-   * Use for verbose information that helps during debugging
-   */
   debug(message: string, data?: unknown) {
     this.log('debug', message, data);
   }
@@ -71,7 +55,6 @@ class Logger {
 
   /**
    * Get a user-friendly error message
-   * Returns detailed message in dev, generic message in production
    */
   getUserMessage(error: unknown): string {
     if (isDevelopment && error instanceof Error) {

@@ -55,6 +55,7 @@
     "docx": "^9.5.1",
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.24",
+    "html2canvas-pro": "^1.5.13",
     "jspdf": "^3.0.4",
     "jszip": "^3.10.1",
     "next-themes": "^0.3.0",

@@ -7,7 +7,7 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { Layout } from "./components/Layout";
-import { ErrorLogViewer } from "./components/ErrorLogViewer";
+import { DebugPanelProvider, DebugPanel } from "./components/debug-panel";
 import Settings from "./pages/Settings";
 import TranscriptsNew from "./pages/TranscriptsNew";
 import Chat from "./pages/Chat";
@@ -39,28 +39,30 @@ const App = () => {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
           <AuthProvider>
-            <TooltipProvider>
-              <Routes>
-                {/* Auth routes */}
-                <Route path="/login" element={<Login />} />
-                <Route path="/auth" element={<Login />} />
-                <Route path="/oauth/callback" element={<OAuthCallback />} />
+            <DebugPanelProvider>
+              <TooltipProvider>
+                <Routes>
+                  {/* Auth routes */}
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/auth" element={<Login />} />
+                  <Route path="/oauth/callback" element={<OAuthCallback />} />
 
-                {/* Main app routes */}
-                <Route path="/" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
-                <Route path="/transcripts" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
-                <Route path="/chat" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
-                <Route path="/chat/:sessionId" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-                <Route path="/categorization" element={<ProtectedRoute><Layout><Categorization /></Layout></ProtectedRoute>} />
+                  {/* Main app routes */}
+                  <Route path="/" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
+                  <Route path="/transcripts" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
+                  <Route path="/chat" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
+                  <Route path="/chat/:sessionId" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
+                  <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+                  <Route path="/categorization" element={<ProtectedRoute><Layout><Categorization /></Layout></ProtectedRoute>} />
 
-                {/* 404 */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              <Toaster />
-              <Sonner />
-              <ErrorLogViewer />
-            </TooltipProvider>
+                  {/* 404 */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+                <Toaster />
+                <Sonner />
+                <DebugPanel />
+              </TooltipProvider>
+            </DebugPanelProvider>
           </AuthProvider>
         </ThemeProvider>
       </QueryClientProvider>
