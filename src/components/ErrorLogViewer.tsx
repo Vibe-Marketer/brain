@@ -13,9 +13,8 @@ import {
   getErrorLog,
   getErrorStats,
   clearErrorLog,
-  getRecentErrors,
 } from '@/lib/error-capture';
-import { RiAlertLine, RiCloseLine, RiDeleteBinLine, RiArrowDownSLine, RiArrowUpSLine, RiBugLine } from '@remixicon/react';
+import { RiCloseLine, RiDeleteBinLine, RiArrowDownSLine, RiArrowUpSLine, RiBugLine } from '@remixicon/react';
 
 // Only show in development
 const isDev = import.meta.env.DEV;
@@ -129,9 +128,7 @@ function ErrorEntry({ entry, isExpanded, onToggle }: {
 }
 
 export function ErrorLogViewer() {
-  // Don't render in production
-  if (!isDev) return null;
-
+  // All hooks must be called before any conditional returns (React rules of hooks)
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
   const [errors, setErrors] = useState<readonly ErrorLogEntry[]>([]);
@@ -140,14 +137,16 @@ export function ErrorLogViewer() {
 
   // Update errors on mount and when new errors occur
   const refreshErrors = useCallback(() => {
+    if (!isDev) return; // No-op in production
     setErrors(getErrorLog());
   }, []);
 
   useEffect(() => {
+    if (!isDev) return; // No-op in production
     refreshErrors();
 
     // Listen for new errors
-    const handleNewError = (event: CustomEvent<ErrorLogEntry>) => {
+    const handleNewError = (_event: CustomEvent<ErrorLogEntry>) => {
       refreshErrors();
       if (!isOpen || isMinimized) {
         setNewErrorCount(prev => prev + 1);
@@ -170,10 +169,14 @@ export function ErrorLogViewer() {
 
   // Reset new error count when opening
   useEffect(() => {
+    if (!isDev) return; // No-op in production
     if (isOpen && !isMinimized) {
       setNewErrorCount(0);
     }
   }, [isOpen, isMinimized]);
+
+  // Don't render in production (after all hooks have been called)
+  if (!isDev) return null;
 
   const stats = getErrorStats();
   const recentErrors = [...errors].reverse(); // Show newest first
