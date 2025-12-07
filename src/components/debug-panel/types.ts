@@ -38,6 +38,33 @@ export interface DebugDump {
   screenshot?: string;
 }
 
+// Enhanced dump format for Claude Code consumption
+export interface ActionTrailEntry {
+  timestamp: number;
+  action: 'navigation' | 'click' | 'api_call' | 'state_change' | 'user_input';
+  description: string;
+  details?: string;
+}
+
+export interface EnhancedDebugDump extends DebugDump {
+  generatedAt: string; // ISO timestamp
+  summary: {
+    totalMessages: number;
+    errors: number;
+    warnings: number;
+    info: number;
+    uniqueErrors: number;
+    timeSpan: string;
+    topIssue: string | null;
+  };
+  environment: {
+    browser: string;
+    os: string;
+    viewport: { width: number; height: number };
+  };
+  actionTrail?: ActionTrailEntry[];
+}
+
 export type MessageFilter = 'all' | 'error' | 'warning' | 'info' | 'network' | 'console';
 export type CategoryFilter = 'all' | 'api' | 'auth' | 'sync' | 'ui' | 'network' | 'system' | 'react';
 export type ViewMode = 'list' | 'timeline' | 'analytics';

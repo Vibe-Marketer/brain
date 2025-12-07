@@ -22,12 +22,14 @@ import {
   RiSearchLine,
   RiFileCopyLine,
   RiCheckLine,
+  RiMarkdownLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { captureDebugScreenshot } from '@/lib/screenshot';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useDebugPanel, setGlobalDebugLogger } from './DebugPanelContext';
-import type { DebugMessage, DebugDump, MessageFilter, CategoryFilter, ViewMode } from './types';
+import type { DebugMessage, DebugDump, EnhancedDebugDump, MessageFilter, CategoryFilter, ViewMode } from './types';
+import { generateSummary, parseUserAgent, formatAsMarkdown } from './debug-dump-utils';
 
 // Error Boundary to prevent debug panel crashes from affecting main app
 class DebugPanelErrorBoundary extends Component<
@@ -99,6 +101,7 @@ function DebugPanelCore() {
   const [isGeneratingDump, setIsGeneratingDump] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [copiedAll, setCopiedAll] = useState(false);
+  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -200,7 +203,7 @@ function DebugPanelCore() {
     setExpandedMessages(newExpanded);
   };
 
-  const generateDebugDump = async (): Promise<DebugDump> => {
+  const generateDebugDump = async (): Promise<EnhancedDebugDump> => {
     let screenshot: string | undefined;
     try {
       const result = await captureDebugScreenshot();
@@ -209,14 +212,25 @@ function DebugPanelCore() {
       // Screenshot failed, continue without it
     }
 
+    const appState = {
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    };
+
+    const { browser, os } = parseUserAgent(navigator.userAgent);
+
     return {
       timestamp: Date.now(),
       sessionId: `debug-${Date.now()}`,
+      generatedAt: new Date().toISOString(),
       messages: messages.map(msg => ({ ...msg })),
-      appState: {
-        url: window.location.href,
-        userAgent: navigator.userAgent,
-        viewport: { width: window.innerWidth, height: window.innerHeight },
+      appState,
+      summary: generateSummary(messages),
+      environment: {
+        browser,
+        os,
+        viewport: appState.viewport,
       },
       screenshot,
     };
@@ -261,11 +275,18 @@ function DebugPanelCore() {
   };
 
   const copyAllToClipboard = async () => {
+    const appState = {
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    };
+    const { browser, os } = parseUserAgent(navigator.userAgent);
+
     const dump = {
-      timestamp: new Date().toISOString(),
-      totalMessages: messages.length,
-      errors: messages.filter(m => m.type === 'error').length,
-      warnings: messages.filter(m => m.type === 'warning').length,
+      generatedAt: new Date().toISOString(),
+      summary: generateSummary(messages),
+      environment: { browser, os, viewport: appState.viewport },
+      appState,
       messages: messages.map(msg => ({
         id: msg.id,
         type: msg.type,
@@ -282,6 +303,18 @@ function DebugPanelCore() {
     await navigator.clipboard.writeText(JSON.stringify(dump, null, 2));
     setCopiedAll(true);
     setTimeout(() => setCopiedAll(false), 2000);
+  };
+
+  const copyAsMarkdown = async () => {
+    const appState = {
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    };
+    const markdown = formatAsMarkdown(messages, appState);
+    await navigator.clipboard.writeText(markdown);
+    setCopiedMarkdown(true);
+    setTimeout(() => setCopiedMarkdown(false), 2000);
   };
 
   const copyMessageToClipboard = async (msg: DebugMessage) => {
@@ -413,6 +446,21 @@ function DebugPanelCore() {
               <RiFileCopyLine className="w-3.5 h-3.5 mr-1" />
             )}
             {copiedAll ? 'Copied!' : 'Copy All'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyAsMarkdown}
+            disabled={messages.length === 0}
+            className="text-xs"
+            title="Copy as Markdown - optimized for Claude Code"
+          >
+            {copiedMarkdown ? (
+              <RiCheckLine className="w-3.5 h-3.5 mr-1 text-green-500" />
+            ) : (
+              <RiMarkdownLine className="w-3.5 h-3.5 mr-1" />
+            )}
+            {copiedMarkdown ? 'Copied!' : 'Copy MD'}
           </Button>
           <Button
             variant="outline"
