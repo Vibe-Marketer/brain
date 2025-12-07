@@ -1,10 +1,11 @@
 /**
  * Error Log Viewer
  *
- * Development-only floating panel that shows all captured errors.
- * Provides visibility into errors that might otherwise only appear in console or Sentry.
+ * Floating panel that shows all captured errors in real-time.
+ * Provides immediate visibility into errors for rapid debugging.
  *
- * Only renders in development mode (import.meta.env.DEV).
+ * Works in all environments (dev and production) so you can
+ * diagnose issues as they happen.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -16,8 +17,8 @@ import {
 } from '@/lib/error-capture';
 import { RiCloseLine, RiDeleteBinLine, RiArrowDownSLine, RiArrowUpSLine, RiBugLine } from '@remixicon/react';
 
-// Only show in development
-const isDev = import.meta.env.DEV;
+// Enable error viewer in all environments for production debugging
+// The floating button provides quick access to captured errors
 
 // Source badges with colors
 const sourceConfig: Record<string, { label: string; color: string }> = {
@@ -128,7 +129,6 @@ function ErrorEntry({ entry, isExpanded, onToggle }: {
 }
 
 export function ErrorLogViewer() {
-  // All hooks must be called before any conditional returns (React rules of hooks)
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
   const [errors, setErrors] = useState<readonly ErrorLogEntry[]>([]);
@@ -137,12 +137,10 @@ export function ErrorLogViewer() {
 
   // Update errors on mount and when new errors occur
   const refreshErrors = useCallback(() => {
-    if (!isDev) return; // No-op in production
     setErrors(getErrorLog());
   }, []);
 
   useEffect(() => {
-    if (!isDev) return; // No-op in production
     refreshErrors();
 
     // Listen for new errors
@@ -169,14 +167,10 @@ export function ErrorLogViewer() {
 
   // Reset new error count when opening
   useEffect(() => {
-    if (!isDev) return; // No-op in production
     if (isOpen && !isMinimized) {
       setNewErrorCount(0);
     }
   }, [isOpen, isMinimized]);
-
-  // Don't render in production (after all hooks have been called)
-  if (!isDev) return null;
 
   const stats = getErrorStats();
   const recentErrors = [...errors].reverse(); // Show newest first
