@@ -25,24 +25,6 @@
       "has": [{ "type": "host", "value": "www.aicallvault.com" }],
       "destination": "https://app.callvaultai.com/:path*",
       "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "transcriptsos.com" }],
-      "destination": "https://app.callvaultai.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "www.transcriptsos.com" }],
-      "destination": "https://app.callvaultai.com/:path*",
-      "permanent": true
-    },
-    {
-      "source": "/:path*",
-      "has": [{ "type": "host", "value": "brain.transcriptsos.com" }],
-      "destination": "https://app.callvaultai.com/:path*",
-      "permanent": true
     }
   ],
   "rewrites": [
