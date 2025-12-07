@@ -219,6 +219,13 @@ export default function Chat() {
     toggleArchive,
   } = useChatSession(session?.user?.id);
 
+  // Ref to track sessions for async callbacks (avoids stale closure and infinite re-renders)
+  // React Query returns a new array reference on each query, so we use a ref to break the dependency cycle
+  const sessionsRef = React.useRef(sessions);
+  React.useEffect(() => {
+    sessionsRef.current = sessions;
+  }, [sessions]);
+
   // Build filter object for API - memoized to avoid unnecessary transport recreation
   const apiFilters = React.useMemo(() => ({
     date_start: filters.dateStart?.toISOString(),
@@ -385,7 +392,8 @@ export default function Chat() {
       try {
         // STEP 1: Load filters FIRST (before messages)
         // This ensures the transport is configured with correct filters when messages arrive
-        const sessionMeta = sessions.find((s) => s.id === sessionId);
+        // Use sessionsRef.current to avoid infinite re-render loop (React Query returns new array ref each query)
+        const sessionMeta = sessionsRef.current.find((s) => s.id === sessionId);
         if (sessionMeta) {
           const nextFilters: ChatFilters = {
             dateStart: sessionMeta.filter_date_start ? new Date(sessionMeta.filter_date_start) : undefined,
@@ -425,7 +433,8 @@ export default function Chat() {
     }
 
     loadSession();
-  }, [sessionId, sessions, fetchMessages, setMessages]);
+    // NOTE: sessions intentionally excluded - using sessionsRef.current to break React Query infinite loop
+  }, [sessionId, fetchMessages, setMessages]);
 
   // Create a new session with current filters
   const createNewSession = React.useCallback(async () => {

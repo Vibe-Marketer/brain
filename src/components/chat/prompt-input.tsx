@@ -244,18 +244,21 @@ export function PromptInputContextBar({
       .slice(0, 20);
   }, [availableCalls, searchQuery]);
 
-  // Check if a call is already attached
-  const isAttached = (recordingId: number) => {
+  // Check if a call is already attached - memoized to prevent unnecessary re-renders
+  const isAttached = React.useCallback((recordingId: number) => {
     return attachments.some(a => a.type === 'call' && a.id === recordingId);
-  };
+  }, [attachments]);
 
-  const handleSelectCall = (call: { recording_id: number; title: string; created_at: string }) => {
-    if (!isAttached(call.recording_id)) {
+  // Handle call selection - memoized for stability
+  const handleSelectCall = React.useCallback((call: { recording_id: number; title: string; created_at: string }) => {
+    // Check inline to avoid stale closure with isAttached
+    const alreadyAttached = attachments.some(a => a.type === 'call' && a.id === call.recording_id);
+    if (!alreadyAttached) {
       onAddCall?.(call);
     }
     setIsOpen(false);
     setSearchQuery('');
-  };
+  }, [attachments, onAddCall]);
 
   return (
     <div
