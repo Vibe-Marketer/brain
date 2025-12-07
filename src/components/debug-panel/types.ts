@@ -13,7 +13,7 @@ export interface DebugMessage {
   source?: string;
   messageType?: string;
   rawMessage?: unknown;
-  category?: 'api' | 'auth' | 'sync' | 'ui' | 'network' | 'system';
+  category?: 'api' | 'auth' | 'sync' | 'ui' | 'network' | 'system' | 'react';
   duration?: number; // Time since previous message
   isBookmarked?: boolean;
   stack?: string;
@@ -39,5 +39,5 @@ export interface DebugDump {
 }
 
 export type MessageFilter = 'all' | 'error' | 'warning' | 'info' | 'network' | 'console';
-export type CategoryFilter = 'all' | 'api' | 'auth' | 'sync' | 'ui' | 'network' | 'system';
+export type CategoryFilter = 'all' | 'api' | 'auth' | 'sync' | 'ui' | 'network' | 'system' | 'react';
 export type ViewMode = 'list' | 'timeline' | 'analytics';

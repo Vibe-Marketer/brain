@@ -1,5 +1,6 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
+import { debugLog } from '@/components/debug-panel';
 
 interface Props {
   children: React.ReactNode;
@@ -54,6 +55,19 @@ export class ErrorBoundary extends React.Component<Props, State> {
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     console.error('Component stack:', errorInfo.componentStack);
+
+    // Send to DebugPanel for visibility
+    debugLog('error', `🔥 React Error: ${error.message}`, {
+      source: 'ErrorBoundary',
+      category: 'react',
+      metadata: {
+        errorName: error.name,
+        errorMessage: error.message,
+        errorStack: error.stack,
+        componentStack: errorInfo.componentStack,
+        isChunkLoadError: isChunkLoadError(error),
+      },
+    });
 
     // Update state with error details
     this.setState({
