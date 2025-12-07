@@ -37,7 +37,7 @@ export function initSentry() {
     // Control distributed tracing targets
     tracePropagationTargets: [
       "localhost",
-      /^https:\/\/transcriptsos\.com/,
+      /^https:\/\/.*callvaultai\.com/,
       /^https:\/\/.*\.supabase\.co/,
     ],
 

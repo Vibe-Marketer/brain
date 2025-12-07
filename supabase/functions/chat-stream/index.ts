@@ -490,7 +490,7 @@ async function* streamOpenRouterChat(
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://conversionbrain.ai',
+      'HTTP-Referer': 'https://callvaultai.com',
       'X-Title': 'CallVault',
     },
     body: JSON.stringify({
