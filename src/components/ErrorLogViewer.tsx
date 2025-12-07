@@ -1,11 +1,11 @@
 /**
- * Error Log Viewer
+ * Error Log Viewer (Admin Only)
  *
  * Floating panel that shows all captured errors in real-time.
  * Provides immediate visibility into errors for rapid debugging.
  *
- * Works in all environments (dev and production) so you can
- * diagnose issues as they happen.
+ * Only visible to users with ADMIN role. Works in all environments
+ * (dev and production) so admins can diagnose issues as they happen.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -15,9 +15,10 @@ import {
   getErrorStats,
   clearErrorLog,
 } from '@/lib/error-capture';
+import { useUserRole } from '@/hooks/useUserRole';
 import { RiCloseLine, RiDeleteBinLine, RiArrowDownSLine, RiArrowUpSLine, RiBugLine } from '@remixicon/react';
 
-// Enable error viewer in all environments for production debugging
+// Admin-only error viewer for production debugging
 // The floating button provides quick access to captured errors
 
 // Source badges with colors
@@ -129,6 +130,9 @@ function ErrorEntry({ entry, isExpanded, onToggle }: {
 }
 
 export function ErrorLogViewer() {
+  // Check admin status first (hook must be called unconditionally)
+  const { isAdmin, loading: roleLoading } = useUserRole();
+
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(true);
   const [errors, setErrors] = useState<readonly ErrorLogEntry[]>([]);
@@ -141,6 +145,9 @@ export function ErrorLogViewer() {
   }, []);
 
   useEffect(() => {
+    // Only set up listeners for admin users
+    if (!isAdmin) return;
+
     refreshErrors();
 
     // Listen for new errors
@@ -163,7 +170,7 @@ export function ErrorLogViewer() {
       window.removeEventListener('error-log-update', handleNewError as EventListener);
       window.removeEventListener('error-log-cleared', handleClear);
     };
-  }, [refreshErrors, isOpen, isMinimized]);
+  }, [refreshErrors, isOpen, isMinimized, isAdmin]);
 
   // Reset new error count when opening
   useEffect(() => {
@@ -171,6 +178,9 @@ export function ErrorLogViewer() {
       setNewErrorCount(0);
     }
   }, [isOpen, isMinimized]);
+
+  // Only render for admin users (after all hooks)
+  if (roleLoading || !isAdmin) return null;
 
   const stats = getErrorStats();
   const recentErrors = [...errors].reverse(); // Show newest first
