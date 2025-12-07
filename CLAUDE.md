@@ -587,7 +587,7 @@ function createOpenRouterProvider(apiKey: string) {
     apiKey,
     baseURL: OPENROUTER_BASE_URL,
     headers: {
-      'HTTP-Referer': 'https://callvaultai.com',
+      'HTTP-Referer': 'https://app.callvaultai.com',
       'X-Title': 'CallVault',
     },
   });

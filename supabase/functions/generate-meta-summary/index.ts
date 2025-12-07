@@ -13,7 +13,7 @@ function createOpenRouterProvider(apiKey: string) {
   return createOpenRouter({
     apiKey,
     headers: {
-      'HTTP-Referer': 'https://callvaultai.com',
+      'HTTP-Referer': 'https://app.callvaultai.com',
       'X-Title': 'CallVault',
     },
   });
