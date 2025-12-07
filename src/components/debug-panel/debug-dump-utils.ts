@@ -4,7 +4,7 @@
  * Helper functions for creating enhanced, Claude-Code-friendly debug dumps.
  */
 
-import type { DebugMessage } from './types';
+import type { DebugMessage, ActionTrailEntry } from './types';
 
 // Parse user agent into readable format
 export function parseUserAgent(ua: string): { browser: string; os: string } {
@@ -165,20 +165,41 @@ export function generateSummary(messages: DebugMessage[]): DumpSummary {
   };
 }
 
-// Format as Markdown for Claude Code
+// Format action trail entry for display
+function formatActionIcon(action: ActionTrailEntry['action']): string {
+  switch (action) {
+    case 'navigation': return '🧭';
+    case 'click': return '👆';
+    case 'api_call': return '🔗';
+    case 'state_change': return '⚡';
+    case 'user_input': return '⌨️';
+    default: return '•';
+  }
+}
+
+// Format as Markdown for Claude Code with AI pre-prompt
 export function formatAsMarkdown(
   messages: DebugMessage[],
-  appState: { url: string; userAgent: string; viewport: { width: number; height: number } }
+  appState: { url: string; userAgent: string; viewport: { width: number; height: number } },
+  actionTrail?: ActionTrailEntry[]
 ): string {
   const summary = generateSummary(messages);
   const groups = groupErrors(messages);
   const { browser, os } = parseUserAgent(appState.userAgent);
 
-  let md = `# 🐛 Debug Report\n\n`;
+  // AI Pre-prompt Header - frames the document for Claude Code
+  let md = `# CallVault Bug Report\n\n`;
+  md += `> **Context for AI:** This is a structured bug report from CallVault's debug panel.\n`;
+  md += `> Analyze the errors below, identify root causes, and suggest specific fixes.\n`;
+  md += `> Reference file paths when available. Prioritize errors over warnings.\n\n`;
+
+  md += `---\n\n`;
+
   md += `**Generated:** ${new Date().toISOString()}\n`;
   md += `**URL:** ${appState.url}\n`;
   md += `**Environment:** ${browser} on ${os} (${appState.viewport.width}x${appState.viewport.height})\n\n`;
 
+  // Summary table
   md += `## Summary\n\n`;
   md += `| Metric | Value |\n|--------|-------|\n`;
   md += `| Total Messages | ${summary.totalMessages} |\n`;
@@ -191,6 +212,26 @@ export function formatAsMarkdown(
     md += `**Top Issue:** ${summary.topIssue}\n\n`;
   }
 
+  // Action Trail (User Journey) - shows what happened before errors
+  if (actionTrail && actionTrail.length > 0) {
+    md += `## User Journey (Before Errors)\n\n`;
+    md += `> What the user did leading up to the errors:\n\n`;
+
+    // Show last 10 actions in chronological order
+    const recentActions = actionTrail.slice(-10);
+    for (const action of recentActions) {
+      const time = new Date(action.timestamp).toLocaleTimeString();
+      const icon = formatActionIcon(action.action);
+      md += `- \`${time}\` ${icon} **${action.action}**: ${action.description}`;
+      if (action.details) {
+        md += ` _(${action.details})_`;
+      }
+      md += `\n`;
+    }
+    md += `\n`;
+  }
+
+  // Error Groups
   md += `## Error Groups\n\n`;
 
   for (const group of groups) {

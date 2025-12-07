@@ -22,7 +22,6 @@ import {
   RiSearchLine,
   RiFileCopyLine,
   RiCheckLine,
-  RiMarkdownLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { captureDebugScreenshot } from '@/lib/screenshot';
@@ -90,7 +89,7 @@ function categorizeMessage(msg: DebugMessage): DebugMessage['category'] {
 
 function DebugPanelCore() {
   const { isAdmin, loading: roleLoading } = useUserRole();
-  const { messages, clearMessages, toggleBookmark, addMessage } = useDebugPanel();
+  const { messages, actionTrail, clearMessages, toggleBookmark, addMessage } = useDebugPanel();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -100,8 +99,7 @@ function DebugPanelCore() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isGeneratingDump, setIsGeneratingDump] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
-  const [copiedAll, setCopiedAll] = useState(false);
-  const [copiedMarkdown, setCopiedMarkdown] = useState(false);
+  const [copiedReport, setCopiedReport] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   const panelRef = useRef<HTMLDivElement>(null);
@@ -274,47 +272,17 @@ function DebugPanelCore() {
     }
   };
 
-  const copyAllToClipboard = async () => {
+  // Primary copy function - Markdown with AI pre-prompt and action trail
+  const copyReport = async () => {
     const appState = {
       url: window.location.href,
       userAgent: navigator.userAgent,
       viewport: { width: window.innerWidth, height: window.innerHeight },
     };
-    const { browser, os } = parseUserAgent(navigator.userAgent);
-
-    const dump = {
-      generatedAt: new Date().toISOString(),
-      summary: generateSummary(messages),
-      environment: { browser, os, viewport: appState.viewport },
-      appState,
-      messages: messages.map(msg => ({
-        id: msg.id,
-        type: msg.type,
-        message: msg.message,
-        source: msg.source,
-        category: msg.category,
-        timestamp: new Date(msg.timestamp).toISOString(),
-        details: msg.details,
-        stack: msg.stack,
-        componentStack: msg.componentStack,
-        isBookmarked: msg.isBookmarked,
-      })),
-    };
-    await navigator.clipboard.writeText(JSON.stringify(dump, null, 2));
-    setCopiedAll(true);
-    setTimeout(() => setCopiedAll(false), 2000);
-  };
-
-  const copyAsMarkdown = async () => {
-    const appState = {
-      url: window.location.href,
-      userAgent: navigator.userAgent,
-      viewport: { width: window.innerWidth, height: window.innerHeight },
-    };
-    const markdown = formatAsMarkdown(messages, appState);
+    const markdown = formatAsMarkdown(messages, appState, actionTrail);
     await navigator.clipboard.writeText(markdown);
-    setCopiedMarkdown(true);
-    setTimeout(() => setCopiedMarkdown(false), 2000);
+    setCopiedReport(true);
+    setTimeout(() => setCopiedReport(false), 2000);
   };
 
   const copyMessageToClipboard = async (msg: DebugMessage) => {
@@ -436,31 +404,17 @@ function DebugPanelCore() {
           <Button
             variant="outline"
             size="sm"
-            onClick={copyAllToClipboard}
+            onClick={copyReport}
             disabled={messages.length === 0}
             className="text-xs"
+            title="Copy bug report - optimized for Claude Code"
           >
-            {copiedAll ? (
+            {copiedReport ? (
               <RiCheckLine className="w-3.5 h-3.5 mr-1 text-green-500" />
             ) : (
               <RiFileCopyLine className="w-3.5 h-3.5 mr-1" />
             )}
-            {copiedAll ? 'Copied!' : 'Copy All'}
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={copyAsMarkdown}
-            disabled={messages.length === 0}
-            className="text-xs"
-            title="Copy as Markdown - optimized for Claude Code"
-          >
-            {copiedMarkdown ? (
-              <RiCheckLine className="w-3.5 h-3.5 mr-1 text-green-500" />
-            ) : (
-              <RiMarkdownLine className="w-3.5 h-3.5 mr-1" />
-            )}
-            {copiedMarkdown ? 'Copied!' : 'Copy MD'}
+            {copiedReport ? 'Copied!' : 'Copy Report'}
           </Button>
           <Button
             variant="outline"
@@ -468,9 +422,10 @@ function DebugPanelCore() {
             onClick={downloadDump}
             disabled={isGeneratingDump}
             className="text-xs"
+            title="Download full dump with screenshot (JSON)"
           >
             <RiDownloadLine className="w-3.5 h-3.5 mr-1" />
-            {isGeneratingDump ? 'Generating...' : 'Download'}
+            {isGeneratingDump ? 'Generating...' : 'Download Full'}
           </Button>
           <Button
             variant="outline"

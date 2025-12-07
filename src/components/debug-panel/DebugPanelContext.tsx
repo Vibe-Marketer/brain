@@ -8,7 +8,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import * as Sentry from '@sentry/react';
-import type { DebugMessage } from './types';
+import type { DebugMessage, ActionTrailEntry } from './types';
 
 const MAX_MESSAGES = 500; // Limit to prevent memory issues
 
@@ -24,9 +24,13 @@ function shouldIgnore(message: string): boolean {
   return IGNORE_PATTERNS.some(pattern => pattern.test(message));
 }
 
+const MAX_ACTIONS = 50; // Limit action trail history
+
 interface DebugPanelContextType {
   messages: DebugMessage[];
+  actionTrail: ActionTrailEntry[];
   addMessage: (msg: Omit<DebugMessage, 'id' | 'timestamp'> & { id?: string; timestamp?: number }) => void;
+  logAction: (action: ActionTrailEntry['action'], description: string, details?: string) => void;
   clearMessages: () => void;
   toggleBookmark: (messageId: string) => void;
 }
@@ -45,8 +49,35 @@ let isCapturing = false;
 
 export function DebugPanelProvider({ children }: { children: React.ReactNode }) {
   const [messages, setMessages] = useState<DebugMessage[]>([]);
+  const [actionTrail, setActionTrail] = useState<ActionTrailEntry[]>([]);
   const isInitialized = useRef(false);
   const addMessageRef = useRef<typeof addMessageInternal | null>(null);
+  const logActionRef = useRef<typeof logActionInternal | null>(null);
+
+  // Log user actions for trail
+  const logActionInternal = useCallback((
+    action: ActionTrailEntry['action'],
+    description: string,
+    details?: string
+  ) => {
+    const entry: ActionTrailEntry = {
+      timestamp: Date.now(),
+      action,
+      description,
+      details,
+    };
+
+    setActionTrail(prev => {
+      const updated = [...prev, entry];
+      if (updated.length > MAX_ACTIONS) {
+        return updated.slice(-MAX_ACTIONS);
+      }
+      return updated;
+    });
+  }, []);
+
+  // Store ref for use in event handlers
+  logActionRef.current = logActionInternal;
 
   // Internal add function
   const addMessageInternal = useCallback((
@@ -177,39 +208,77 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
       }
     };
 
-    // Intercept fetch for network errors
+    // Intercept fetch for network errors AND action trail tracking
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+      const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
+      const method = init?.method || 'GET';
+
+      // Extract short URL for action trail (remove query params for readability)
+      const shortUrl = (() => {
+        try {
+          const urlObj = new URL(url);
+          return urlObj.pathname.slice(0, 50) + (urlObj.pathname.length > 50 ? '...' : '');
+        } catch {
+          return url.slice(0, 50);
+        }
+      })();
+
+      // Log API call to action trail
+      logActionRef.current?.('api_call', `${method} ${shortUrl}`, url);
+
       try {
         const response = await originalFetch.call(window, input, init);
 
         // Capture server errors (5xx)
         if (response.status >= 500) {
-          const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
           addMessageRef.current?.({
             type: 'error',
             message: `HTTP ${response.status}: ${response.statusText}`,
             source: 'network',
             category: 'network',
-            details: `URL: ${url}\nMethod: ${init?.method || 'GET'}`,
+            details: `URL: ${url}\nMethod: ${method}`,
           });
         }
 
         return response;
       } catch (error) {
-        const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
         addMessageRef.current?.({
           type: 'error',
           message: error instanceof Error ? error.message : 'Network request failed',
           source: 'network',
           category: 'network',
-          details: `URL: ${url}\nMethod: ${init?.method || 'GET'}`,
+          details: `URL: ${url}\nMethod: ${method}`,
         });
         throw error;
       }
     };
 
+    // Track navigation events (popstate for browser back/forward)
+    const handlePopState = () => {
+      logActionRef.current?.('navigation', `Navigated to ${window.location.pathname}`, window.location.href);
+    };
+
+    // Track click events on interactive elements
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target) return;
+
+      // Only track meaningful clicks (buttons, links, etc.)
+      const clickable = target.closest('button, a, [role="button"], [data-clickable]');
+      if (clickable) {
+        const text = clickable.textContent?.trim().slice(0, 30) || clickable.getAttribute('aria-label') || 'element';
+        const tagName = clickable.tagName.toLowerCase();
+        logActionRef.current?.('click', `Clicked ${tagName}: "${text}"`, clickable.className.slice(0, 50));
+      }
+    };
+
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleRejection);
+    window.addEventListener('popstate', handlePopState);
+    document.addEventListener('click', handleClick, { capture: true });
+
+    // Log initial page load as navigation
+    logActionRef.current?.('navigation', `Page loaded: ${window.location.pathname}`, window.location.href);
 
     // Log initialization in dev
     if (import.meta.env.DEV) {
@@ -219,6 +288,8 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
     return () => {
       window.removeEventListener('error', handleError);
       window.removeEventListener('unhandledrejection', handleRejection);
+      window.removeEventListener('popstate', handlePopState);
+      document.removeEventListener('click', handleClick, { capture: true });
       console.error = originalConsoleError;
       console.warn = originalConsoleWarn;
       window.fetch = originalFetch;
@@ -241,8 +312,16 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
     );
   }, []);
 
+  const logAction = useCallback((
+    action: ActionTrailEntry['action'],
+    description: string,
+    details?: string
+  ) => {
+    logActionInternal(action, description, details);
+  }, [logActionInternal]);
+
   return (
-    <DebugPanelContext.Provider value={{ messages, addMessage, clearMessages, toggleBookmark }}>
+    <DebugPanelContext.Provider value={{ messages, actionTrail, addMessage, logAction, clearMessages, toggleBookmark }}>
       {children}
     </DebugPanelContext.Provider>
   );
