@@ -20,6 +20,8 @@ import {
   RiListUnordered,
   RiDeleteBinLine,
   RiSearchLine,
+  RiFileCopyLine,
+  RiCheckLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { captureDebugScreenshot } from '@/lib/screenshot';
@@ -96,6 +98,8 @@ function DebugPanelCore() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isGeneratingDump, setIsGeneratingDump] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [copiedAll, setCopiedAll] = useState(false);
+  const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
 
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -256,6 +260,48 @@ function DebugPanelCore() {
     }
   };
 
+  const copyAllToClipboard = async () => {
+    const dump = {
+      timestamp: new Date().toISOString(),
+      totalMessages: messages.length,
+      errors: messages.filter(m => m.type === 'error').length,
+      warnings: messages.filter(m => m.type === 'warning').length,
+      messages: messages.map(msg => ({
+        id: msg.id,
+        type: msg.type,
+        message: msg.message,
+        source: msg.source,
+        category: msg.category,
+        timestamp: new Date(msg.timestamp).toISOString(),
+        details: msg.details,
+        stack: msg.stack,
+        componentStack: msg.componentStack,
+        isBookmarked: msg.isBookmarked,
+      })),
+    };
+    await navigator.clipboard.writeText(JSON.stringify(dump, null, 2));
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2000);
+  };
+
+  const copyMessageToClipboard = async (msg: DebugMessage) => {
+    const singleMessage = {
+      id: msg.id,
+      type: msg.type,
+      message: msg.message,
+      source: msg.source,
+      category: msg.category,
+      timestamp: new Date(msg.timestamp).toISOString(),
+      details: msg.details,
+      stack: msg.stack,
+      componentStack: msg.componentStack,
+      isBookmarked: msg.isBookmarked,
+    };
+    await navigator.clipboard.writeText(JSON.stringify(singleMessage, null, 2));
+    setCopiedMessageId(msg.id);
+    setTimeout(() => setCopiedMessageId(null), 2000);
+  };
+
   return (
     <>
       {/* Toggle Button */}
@@ -354,6 +400,20 @@ function DebugPanelCore() {
 
         {/* Action Bar */}
         <div className="flex items-center gap-2 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyAllToClipboard}
+            disabled={messages.length === 0}
+            className="text-xs"
+          >
+            {copiedAll ? (
+              <RiCheckLine className="w-3.5 h-3.5 mr-1 text-green-500" />
+            ) : (
+              <RiFileCopyLine className="w-3.5 h-3.5 mr-1" />
+            )}
+            {copiedAll ? 'Copied!' : 'Copy All'}
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -566,23 +626,41 @@ function DebugPanelCore() {
                           : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
                       } ${message.isBookmarked ? 'ring-2 ring-amber-300' : ''}`}
                     >
-                      <button
-                        onClick={() => toggleBookmark(message.id)}
-                        className={`absolute top-2 right-2 p-1 rounded transition-all ${
-                          message.isBookmarked
-                            ? 'text-amber-500 hover:text-amber-600'
-                            : 'text-gray-300 hover:text-amber-500'
-                        }`}
-                        title={message.isBookmarked ? 'Remove bookmark' : 'Bookmark'}
-                      >
-                        {message.isBookmarked ? (
-                          <RiBookmarkFill className="w-4 h-4" />
-                        ) : (
-                          <RiBookmarkLine className="w-4 h-4" />
-                        )}
-                      </button>
+                      {/* Action buttons - Copy and Bookmark */}
+                      <div className="absolute top-2 right-2 flex items-center gap-1">
+                        <button
+                          onClick={() => copyMessageToClipboard(message)}
+                          className={`p-1 rounded transition-all ${
+                            copiedMessageId === message.id
+                              ? 'text-green-500'
+                              : 'text-gray-300 hover:text-gray-500'
+                          }`}
+                          title={copiedMessageId === message.id ? 'Copied!' : 'Copy to clipboard'}
+                        >
+                          {copiedMessageId === message.id ? (
+                            <RiCheckLine className="w-4 h-4" />
+                          ) : (
+                            <RiFileCopyLine className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => toggleBookmark(message.id)}
+                          className={`p-1 rounded transition-all ${
+                            message.isBookmarked
+                              ? 'text-amber-500 hover:text-amber-600'
+                              : 'text-gray-300 hover:text-amber-500'
+                          }`}
+                          title={message.isBookmarked ? 'Remove bookmark' : 'Bookmark'}
+                        >
+                          {message.isBookmarked ? (
+                            <RiBookmarkFill className="w-4 h-4" />
+                          ) : (
+                            <RiBookmarkLine className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
 
-                      <div className="flex items-center gap-2 mb-1 pr-8">
+                      <div className="flex items-center gap-2 mb-1 pr-14">
                         <span className={`text-[10px] font-medium uppercase ${
                           message.type === 'error' ? 'text-red-600' :
                           message.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'

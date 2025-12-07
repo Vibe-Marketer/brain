@@ -85,6 +85,26 @@ All required for chat-stream function:
 - Minor conflict in CallDetailHeader.tsx (comment difference) - resolved
 - Successfully pushed rebased branch
 
+## Update: 2025-12-07 - Supabase Project Configuration Fix
+
+### Critical .env Misconfiguration Found
+- **Problem**: `.env` file still contained OLD deprecated Supabase project ID `pwscjdytgcyiavqiufqs`
+- **Symptom**: "Failed to fetch (pwscjdytgcyiavqiufqs.supabase.co)" error on login
+- **Fix**: Updated all references to correct project `vltmrnjsubfzrgrtdqey`
+
+### Correct Supabase Configuration
+| Connection Type | Port | Host Pattern |
+|----------------|------|--------------|
+| Transaction Mode Pooler | 6543 | `aws-1-us-east-1.pooler.supabase.com` |
+| Session Mode Pooler | 5432 | `aws-1-us-east-1.pooler.supabase.com` |
+| Direct Connection | 5432 | `db.vltmrnjsubfzrgrtdqey.supabase.co` |
+| Dedicated Pooler | 6543 | `db.vltmrnjsubfzrgrtdqey.supabase.co` |
+
+### Key Reference
+- **CURRENT Project**: `vltmrnjsubfzrgrtdqey`
+- **OLD/Deprecated**: `pwscjdytgcyiavqiufqs` (NEVER USE)
+- **Region**: `aws-1-us-east-1` (not `aws-0-us-west-1`)
+
 ## Session Metadata
 - Date: 2025-12-03 (continued 2025-12-04)
 - Duration: ~60 minutes total
