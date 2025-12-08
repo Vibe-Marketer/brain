@@ -35,6 +35,7 @@ interface FilterBarProps {
   folders: Folder[];
   searchQuery: string;
   onSearchChange: (query: string) => void;
+  onCreateFolder?: () => void;
 }
 
 export function FilterBar({
@@ -44,6 +45,7 @@ export function FilterBar({
   folders,
   searchQuery,
   onSearchChange,
+  onCreateFolder,
 }: FilterBarProps) {
   const isMobile = useIsMobile();
   const [allParticipants, setAllParticipants] = useState<string[]>([]);
@@ -182,6 +184,7 @@ export function FilterBar({
           selectedFolders={filters.folders}
           folders={folders}
           onFoldersChange={(folders) => onFiltersChange({ ...filters, folders })}
+          onCreateFolder={onCreateFolder}
         />
 
         {/* Participants Filter */}

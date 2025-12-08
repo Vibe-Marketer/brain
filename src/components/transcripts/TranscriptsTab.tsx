@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
+import { RiMenuLine } from "@remixicon/react";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
@@ -27,7 +29,13 @@ import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SmartExportDialog from "@/components/SmartExportDialog";
 import AssignFolderDialog from "@/components/AssignFolderDialog";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
+import EditFolderDialog from "@/components/EditFolderDialog";
 import { FolderManagementDialog } from "@/components/transcript-library/FolderManagementDialog";
+import { FolderSidebar } from "@/components/transcript-library/FolderSidebar";
+import {
+  ChatOuterCard,
+  ChatInnerCard,
+} from "@/components/chat/chat-main-card";
 import {
   FilterState,
   parseSearchSyntax,
@@ -80,6 +88,10 @@ export function TranscriptsTab() {
     folders: true,
   });
 
+  // Sidebar state
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+
   // Dialog state
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
   const [smartExportOpen, setSmartExportOpen] = useState(false);
@@ -88,6 +100,7 @@ export function TranscriptsTab() {
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [quickCreateFolderOpen, setQuickCreateFolderOpen] = useState(false);
   const [folderManagementOpen, setFolderManagementOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<typeof folders[0] | null>(null);
   const [folderingCallId, setFolderingCallId] = useState<number | null>(null);
 
   // Load host email
@@ -155,7 +168,18 @@ export function TranscriptsTab() {
   });
 
   // Fetch folders
-  const { folders, folderAssignments, deleteFolder } = useFolders();
+  const { folders, folderAssignments, deleteFolder, assignToFolder } = useFolders();
+
+  // Calculate folder counts from folderAssignments
+  const folderCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    Object.values(folderAssignments).forEach((folderIds) => {
+      folderIds.forEach((folderId) => {
+        counts[folderId] = (counts[folderId] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [folderAssignments]);
 
   // Drag and drop helpers
   const dragHelpers = useDragAndDrop();
@@ -276,7 +300,20 @@ export function TranscriptsTab() {
 
   // Fetch tag assignments for displayed calls
   // Filter out any undefined/null entries to prevent "Cannot read properties of undefined" errors
-  const validCalls = calls.filter(c => c && c.recording_id != null);
+  // Also filter by selected folder if one is selected
+  const validCalls = useMemo(() => {
+    let filtered = calls.filter(c => c && c.recording_id != null);
+
+    // Filter by selected folder
+    if (selectedFolderId) {
+      filtered = filtered.filter(call => {
+        const callFolders = folderAssignments[call.recording_id] || [];
+        return callFolders.includes(selectedFolderId);
+      });
+    }
+
+    return filtered;
+  }, [calls, selectedFolderId, folderAssignments]);
   const { data: tagAssignments = {} } = useQuery({
     queryKey: ["tag-assignments", validCalls.map(c => c.recording_id)],
     queryFn: async () => {
@@ -489,6 +526,13 @@ export function TranscriptsTab() {
         });
         setSelectedCalls([]);
       }
+
+      // Handle drop on folder zones (from FolderSidebar)
+      if (over.data?.current?.type === "folder-zone") {
+        const folderId = over.data.current.folderId;
+        assignToFolder(dragHelpers.draggedItems, folderId);
+        setSelectedCalls([]);
+      }
     }
 
     dragHelpers.handleDragEnd(event);
@@ -524,111 +568,170 @@ export function TranscriptsTab() {
         />
       )}
 
-      <div>
-        {/* Top separator for breathing room */}
-        <Separator className="mb-6" />
-
-        {/* Filter bar */}
-        <FilterBar
-          filters={filters}
-          onFiltersChange={setFilters}
-          tags={tags}
-          folders={folders}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+      {/* Mobile sidebar overlay backdrop */}
+      {showSidebar && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+          onClick={() => setShowSidebar(false)}
         />
+      )}
 
-        <Separator className="my-6" />
-
-        {/* Bulk Actions Toolbar */}
-        {selectedCalls.length > 0 && (
-          <ErrorBoundary>
-            <BulkActionToolbarEnhanced
-              selectedCount={selectedCalls.length}
-              selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
-              tags={tags}
-              onTag={(tagId) => {
-                tagMutation.mutate({
-                  callIds: selectedCalls,
-                  tagId,
-                });
-              }}
-              onRemoveTag={() => {
-                untagMutation.mutate({
-                  callIds: selectedCalls,
-                });
-              }}
-              onClearSelection={() => setSelectedCalls([])}
-              onDelete={handleDeleteCalls}
-              onCreateNewTag={() => {
-                setIsQuickCreateOpen(true);
-                setPendingTagTranscripts(selectedCalls);
-              }}
-              onAssignFolder={() => setFolderDialogOpen(true)}
-            />
-          </ErrorBoundary>
-        )}
-
-        {selectedCalls.length > 0 && <Separator className="my-6" />}
-
-        {/* Content Area */}
-        {callsLoading ? (
-          <TranscriptTableSkeleton />
-        ) : validCalls.length === 0 ? (
-          <EmptyState
-            type={searchQuery || Object.keys(combinedFilters).length > 0 ? "no-results" : "no-transcripts"}
-            onAction={() => {
-              setSearchQuery("");
-              setFilters({});
+      {/* BG-CARD-MAIN: Browser window container */}
+      <ChatOuterCard className="h-[calc(100vh-120px)]">
+        {/* SIDEBAR */}
+        <div
+          className={`
+            ${showSidebar ? 'fixed inset-y-0 left-0 z-50 shadow-2xl' : 'hidden'}
+            md:block md:relative md:shadow-none
+            w-[280px] flex-shrink-0 transition-all duration-200
+          `}
+        >
+          <FolderSidebar
+            folders={folders}
+            folderCounts={folderCounts}
+            totalCount={totalCount}
+            selectedFolderId={selectedFolderId}
+            onSelectFolder={(folderId) => {
+              setSelectedFolderId(folderId);
+              setShowSidebar(false);
             }}
+            onNewFolder={() => setQuickCreateFolderOpen(true)}
+            onManageFolders={() => setFolderManagementOpen(true)}
+            isDragging={!!dragHelpers.activeDragId}
           />
-        ) : (
-          <>
-            {/* AI Processing Progress */}
-            <AIProcessingProgress onJobsComplete={() => queryClient.invalidateQueries({ queryKey: ["transcript-calls"] })} />
+        </div>
 
-            <ErrorBoundary>
-              <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
-                <TranscriptTable
-                  calls={validCalls}
-                  selectedCalls={selectedCalls}
-                  onSelectCall={(callId) => {
-                    if (selectedCalls.includes(callId)) {
-                      setSelectedCalls(selectedCalls.filter(id => id !== callId));
-                    } else {
-                      setSelectedCalls([...selectedCalls, callId]);
-                    }
-                  }}
-                  onSelectAll={() => {
-                    if (selectedCalls.length === validCalls.length) {
-                      setSelectedCalls([]);
-                    } else {
-                      setSelectedCalls(validCalls.map(c => c.recording_id));
-                    }
-                  }}
-                  onCallClick={(call) => setSelectedCall(call)}
-                  tags={tags}
-                  tagAssignments={tagAssignments}
-                  folders={folders}
-                  folderAssignments={folderAssignments}
-                  onFolderCall={(callId) => setFolderingCallId(callId as number)}
-                  totalCount={totalCount}
-                  page={page}
-                  pageSize={pageSize}
-                  onPageChange={setPage}
-                  onPageSizeChange={setPageSize}
-                  hostEmail={hostEmail}
-                  visibleColumns={visibleColumns}
-                  onToggleColumn={(columnId) =>
-                    setVisibleColumns((prev) => ({ ...prev, [columnId]: !prev[columnId] }))
-                  }
-                  onExport={() => setSmartExportOpen(true)}
-                />
+        {/* BG-CARD-INNER: Main content */}
+        <ChatInnerCard>
+          {/* Header with mobile toggle */}
+          <div className="flex-shrink-0 px-4 py-2 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {/* Mobile menu toggle */}
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  className="md:hidden h-8 w-8 p-0"
+                  onClick={() => setShowSidebar(!showSidebar)}
+                >
+                  <RiMenuLine className="h-5 w-5" />
+                </Button>
+                <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
+                  {selectedFolderId
+                    ? folders.find(f => f.id === selectedFolderId)?.name || "Folder"
+                    : "All Transcripts"}
+                </h1>
               </div>
-            </ErrorBoundary>
-          </>
-        )}
-      </div>
+            </div>
+          </div>
+
+          {/* Content area with scroll */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {/* Filter bar */}
+            <FilterBar
+              filters={filters}
+              onFiltersChange={setFilters}
+              tags={tags}
+              folders={folders}
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              onCreateFolder={() => setQuickCreateFolderOpen(true)}
+            />
+
+            <Separator className="my-4" />
+
+            {/* Bulk Actions Toolbar */}
+            {selectedCalls.length > 0 && (
+              <ErrorBoundary>
+                <BulkActionToolbarEnhanced
+                  selectedCount={selectedCalls.length}
+                  selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
+                  tags={tags}
+                  onTag={(tagId) => {
+                    tagMutation.mutate({
+                      callIds: selectedCalls,
+                      tagId,
+                    });
+                  }}
+                  onRemoveTag={() => {
+                    untagMutation.mutate({
+                      callIds: selectedCalls,
+                    });
+                  }}
+                  onClearSelection={() => setSelectedCalls([])}
+                  onDelete={handleDeleteCalls}
+                  onCreateNewTag={() => {
+                    setIsQuickCreateOpen(true);
+                    setPendingTagTranscripts(selectedCalls);
+                  }}
+                  onAssignFolder={() => setFolderDialogOpen(true)}
+                />
+              </ErrorBoundary>
+            )}
+
+            {selectedCalls.length > 0 && <Separator className="my-4" />}
+
+            {/* Content Area */}
+            {callsLoading ? (
+              <TranscriptTableSkeleton />
+            ) : validCalls.length === 0 ? (
+              <EmptyState
+                type={searchQuery || Object.keys(combinedFilters).length > 0 ? "no-results" : "no-transcripts"}
+                onAction={() => {
+                  setSearchQuery("");
+                  setFilters({});
+                  setSelectedFolderId(null);
+                }}
+              />
+            ) : (
+              <>
+                {/* AI Processing Progress */}
+                <AIProcessingProgress onJobsComplete={() => queryClient.invalidateQueries({ queryKey: ["transcript-calls"] })} />
+
+                <ErrorBoundary>
+                  <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
+                    <TranscriptTable
+                      calls={validCalls}
+                      selectedCalls={selectedCalls}
+                      onSelectCall={(callId) => {
+                        if (selectedCalls.includes(callId)) {
+                          setSelectedCalls(selectedCalls.filter(id => id !== callId));
+                        } else {
+                          setSelectedCalls([...selectedCalls, callId]);
+                        }
+                      }}
+                      onSelectAll={() => {
+                        if (selectedCalls.length === validCalls.length) {
+                          setSelectedCalls([]);
+                        } else {
+                          setSelectedCalls(validCalls.map(c => c.recording_id));
+                        }
+                      }}
+                      onCallClick={(call) => setSelectedCall(call)}
+                      tags={tags}
+                      tagAssignments={tagAssignments}
+                      folders={folders}
+                      folderAssignments={folderAssignments}
+                      onFolderCall={(callId) => setFolderingCallId(callId as number)}
+                      totalCount={totalCount}
+                      page={page}
+                      pageSize={pageSize}
+                      onPageChange={setPage}
+                      onPageSizeChange={setPageSize}
+                      hostEmail={hostEmail}
+                      visibleColumns={visibleColumns}
+                      onToggleColumn={(columnId) =>
+                        setVisibleColumns((prev) => ({ ...prev, [columnId]: !prev[columnId] }))
+                      }
+                      onExport={() => setSmartExportOpen(true)}
+                    />
+                  </div>
+                </ErrorBoundary>
+              </>
+            )}
+          </div>
+        </ChatInnerCard>
+      </ChatOuterCard>
 
       {/* Dialogs */}
       {selectedCall && (
@@ -717,6 +820,10 @@ export function TranscriptsTab() {
             queryClient.invalidateQueries({ queryKey: ["folders", "assignments"] });
             setSelectedCalls([]);
           }}
+          onCreateFolder={() => {
+            setFolderDialogOpen(false);
+            setQuickCreateFolderOpen(true);
+          }}
         />
       )}
 
@@ -729,6 +836,10 @@ export function TranscriptsTab() {
           onFoldersUpdated={() => {
             queryClient.invalidateQueries({ queryKey: ["folders", "assignments"] });
             setFolderingCallId(null);
+          }}
+          onCreateFolder={() => {
+            setFolderingCallId(null);
+            setQuickCreateFolderOpen(true);
           }}
         />
       )}
@@ -750,15 +861,29 @@ export function TranscriptsTab() {
           open={folderManagementOpen}
           onOpenChange={setFolderManagementOpen}
           folders={folders}
+          transcriptCounts={folderCounts}
           onCreateFolder={() => {
             setFolderManagementOpen(false);
             setQuickCreateFolderOpen(true);
           }}
           onEditFolder={(folder) => {
-            // TODO: Implement edit folder dialog
-            console.log("Edit folder:", folder);
+            setFolderManagementOpen(false);
+            setEditingFolder(folder);
           }}
           onDeleteFolder={(folder) => deleteFolder(folder.id)}
+        />
+      )}
+
+      {/* Edit Folder Dialog */}
+      {editingFolder && (
+        <EditFolderDialog
+          open={!!editingFolder}
+          onOpenChange={(open) => !open && setEditingFolder(null)}
+          folder={editingFolder}
+          onFolderUpdated={() => {
+            queryClient.invalidateQueries({ queryKey: ["folders"] });
+            setEditingFolder(null);
+          }}
         />
       )}
     </DndContext>

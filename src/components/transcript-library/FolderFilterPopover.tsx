@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { RiFolderLine } from "@remixicon/react";
+import { RiFolderLine, RiFolderAddLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -27,12 +27,14 @@ interface FolderFilterPopoverProps {
   selectedFolders: string[] | undefined;
   folders: Folder[];
   onFoldersChange: (folderIds: string[]) => void;
+  onCreateFolder?: () => void;
 }
 
 export function FolderFilterPopover({
   selectedFolders = [],
   folders,
   onFoldersChange,
+  onCreateFolder,
 }: FolderFilterPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -226,13 +228,29 @@ export function FolderFilterPopover({
           </div>
 
           {/* Action buttons */}
-          <div className="flex justify-end gap-2 p-3 border-t">
-            <Button variant="hollow" size="sm" onClick={handleClear}>
-              Clear
-            </Button>
-            <Button size="sm" onClick={handleApply}>
-              Apply
-            </Button>
+          <div className="flex justify-between items-center gap-2 p-3 border-t">
+            {onCreateFolder && (
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => {
+                  setIsOpen(false);
+                  onCreateFolder();
+                }}
+                className="text-sm gap-1 px-0"
+              >
+                <RiFolderAddLine className="h-3.5 w-3.5" />
+                Add Folder
+              </Button>
+            )}
+            <div className="flex gap-2 ml-auto">
+              <Button variant="hollow" size="sm" onClick={handleClear}>
+                Clear
+              </Button>
+              <Button size="sm" onClick={handleApply}>
+                Apply
+              </Button>
+            </div>
           </div>
         </div>
       </PopoverContent>

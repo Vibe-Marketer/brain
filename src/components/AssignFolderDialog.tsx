@@ -28,6 +28,7 @@ interface AssignFolderDialogProps {
   recordingId?: string;
   recordingIds?: string[];
   onFoldersUpdated: () => void;
+  onCreateFolder?: () => void;
 }
 
 export default function AssignFolderDialog({
@@ -36,6 +37,7 @@ export default function AssignFolderDialog({
   recordingId,
   recordingIds,
   onFoldersUpdated,
+  onCreateFolder,
 }: AssignFolderDialogProps) {
   const [folders, setFolders] = useState<Folder[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
@@ -242,9 +244,12 @@ export default function AssignFolderDialog({
   };
 
   const handleCreateFolder = () => {
-    // TODO: In Phase 3, this will open a CreateFolderDialog
-    // For now, just show a placeholder message
-    toast.info("Create folder feature coming soon");
+    if (onCreateFolder) {
+      onCreateFolder();
+    } else {
+      // Fallback for backwards compatibility
+      toast.info("Create folder feature coming soon");
+    }
   };
 
   const getFolderDisplayName = (folder: Folder): string => {

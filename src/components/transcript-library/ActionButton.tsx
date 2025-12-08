@@ -2,17 +2,14 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-interface ActionButtonProps {
+interface ActionButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon: React.ElementType;
   label?: string;
-  onClick?: () => void;
   variant?: "default" | "destructive" | "hollow";
-  className?: string;
-  title?: string;
 }
 
 export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProps>(
-  ({ icon: Icon, label, onClick, variant = "default", className = "", title }, ref) => {
+  ({ icon: Icon, label, onClick, variant = "default", className = "", title, ...rest }, ref) => {
     const isMobile = useIsMobile();
 
     if (isMobile) {
@@ -27,6 +24,7 @@ export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProp
           className={`${mobileClasses} ${className}`}
           onClick={onClick}
           title={title}
+          {...rest}
         >
           <Icon className="h-3.5 w-3.5" />
         </Button>
@@ -47,6 +45,7 @@ export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProp
         className={`${desktopClasses} ${className}`}
         onClick={onClick}
         title={title}
+        {...rest}
       >
         <Icon className="h-4 w-4" />
         {label && <span className="hidden sm:inline">{label}</span>}
