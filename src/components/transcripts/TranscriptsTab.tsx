@@ -821,10 +821,8 @@ export function TranscriptsTab() {
             setSelectedCalls([]);
           }}
           onCreateFolder={() => {
-            console.log("[TranscriptsTab] onCreateFolder (bulk) callback called");
             setFolderDialogOpen(false);
             setQuickCreateFolderOpen(true);
-            console.log("[TranscriptsTab] quickCreateFolderOpen set to true");
           }}
         />
       )}
@@ -840,10 +838,8 @@ export function TranscriptsTab() {
             setFolderingCallId(null);
           }}
           onCreateFolder={() => {
-            console.log("[TranscriptsTab] onCreateFolder (single) callback called");
             setFolderingCallId(null);
             setQuickCreateFolderOpen(true);
-            console.log("[TranscriptsTab] quickCreateFolderOpen set to true");
           }}
         />
       )}

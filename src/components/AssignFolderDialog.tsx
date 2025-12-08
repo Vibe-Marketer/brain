@@ -244,15 +244,9 @@ export default function AssignFolderDialog({
   };
 
   const handleCreateFolder = () => {
-    // DEBUG: Using alert to ensure this fires - will remove after debugging
-    alert("DEBUG: handleCreateFolder clicked! onCreateFolder is: " + typeof onCreateFolder);
-    console.log("[AssignFolderDialog] handleCreateFolder called, onCreateFolder:", typeof onCreateFolder);
     if (onCreateFolder) {
-      console.log("[AssignFolderDialog] Calling onCreateFolder callback");
       onCreateFolder();
     } else {
-      // Fallback for backwards compatibility
-      console.log("[AssignFolderDialog] No onCreateFolder callback, showing toast");
       toast.info("Create folder feature coming soon");
     }
   };
@@ -315,10 +309,9 @@ export default function AssignFolderDialog({
           <Button
             variant="link"
             onClick={handleCreateFolder}
-            onMouseDown={() => console.log("[AssignFolderDialog] onMouseDown on button")}
             className="text-sm"
           >
-            + New Folder (v2)
+            + Create New Folder
           </Button>
 
           <div className="flex gap-2">
