@@ -4,6 +4,9 @@
  * Shared types for the debug panel system.
  */
 
+// Resolution status for error tracking lifecycle
+export type ResolutionStatus = 'active' | 'resolved' | 'recurring';
+
 export interface DebugMessage {
   id: string;
   timestamp: number;
@@ -31,6 +34,22 @@ export interface DebugMessage {
   httpStatus?: number;
   httpMethod?: string;
   url?: string;
+  // Resolution tracking
+  errorSignature?: string;        // Unique fingerprint to identify "same" error
+  resolutionStatus?: ResolutionStatus;
+  resolvedAt?: number;            // Timestamp when marked resolved
+  resolutionNote?: string;        // What was done to fix it
+  recurrenceCount?: number;       // How many times this recurred after resolution
+  originalErrorId?: string;       // Links to the original resolved error
+  appStateSnapshot?: AppStateSnapshot; // State when error occurred
+}
+
+// Snapshot of app state when error occurred (for comparison)
+export interface AppStateSnapshot {
+  url: string;
+  timestamp: number;
+  recentActions: string[];        // Last 5 actions before error
+  activeComponent?: string;       // Current route/component if known
 }
 
 export interface DebugDump {
@@ -76,12 +95,24 @@ export type MessageFilter = 'all' | 'error' | 'warning' | 'info' | 'network' | '
 export type CategoryFilter = 'all' | 'api' | 'auth' | 'sync' | 'ui' | 'network' | 'system' | 'react' | 'websocket';
 export type ViewMode = 'list' | 'timeline' | 'analytics';
 
+// Resolved error record for tracking recurrence
+export interface ResolvedErrorRecord {
+  signature: string;              // Error fingerprint
+  originalMessage: string;        // Original error message
+  resolvedAt: number;             // When it was resolved
+  resolutionNote?: string;        // What was done to fix
+  recurrenceCount: number;        // Times it recurred after resolution
+  lastRecurrence?: number;        // Last time it recurred
+  appStateAtResolution?: AppStateSnapshot;
+}
+
 // Storage keys for localStorage persistence
 export const STORAGE_KEYS = {
   MESSAGES: 'debug_panel_messages',
   ACTION_TRAIL: 'debug_panel_action_trail',
   UNACKNOWLEDGED_COUNT: 'debug_panel_unack_count',
   SESSION_ID: 'debug_panel_session_id',
+  RESOLVED_ERRORS: 'debug_panel_resolved_errors', // Track resolved errors for recurrence detection
 } as const;
 
 // Configuration for the debug panel

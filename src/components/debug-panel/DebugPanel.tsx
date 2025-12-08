@@ -22,6 +22,8 @@ import {
   RiSearchLine,
   RiFileCopyLine,
   RiCheckLine,
+  RiCheckDoubleLine,
+  RiArrowGoBackLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { captureDebugScreenshot } from '@/lib/screenshot';
@@ -93,12 +95,15 @@ function DebugPanelCore() {
     messages,
     actionTrail,
     unacknowledgedCount,
+    resolvedErrors,
     clearMessages,
     toggleBookmark,
     acknowledgeErrors,
     addMessage,
     logAction,
     logWebSocket,
+    resolveError,
+    unresolveError,
   } = useDebugPanel();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -130,6 +135,9 @@ function DebugPanelCore() {
   const errorCount = messages.filter(m => m.type === 'error').length;
   const warningCount = messages.filter(m => m.type === 'warning').length;
   const bookmarkedCount = messages.filter(m => m.isBookmarked).length;
+  const resolvedCount = messages.filter(m => m.resolutionStatus === 'resolved').length;
+  const recurringCount = messages.filter(m => m.resolutionStatus === 'recurring').length;
+  const resolvedErrorsCount = resolvedErrors.size;
 
   // Analytics data - must be called unconditionally (before early return)
   const analyticsData = useMemo(() => {
@@ -554,6 +562,42 @@ function DebugPanelCore() {
                 </div>
               </div>
 
+              {/* Resolution Status */}
+              {(resolvedCount > 0 || recurringCount > 0 || resolvedErrorsCount > 0) && (
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+                  <h4 className="font-medium text-purple-800 dark:text-purple-200 text-sm mb-2 flex items-center gap-1">
+                    <RiCheckDoubleLine className="w-4 h-4" />
+                    Resolution Tracking
+                  </h4>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-purple-500">Resolved:</span>{' '}
+                      <span className="font-mono text-green-600 dark:text-green-400">{resolvedCount}</span>
+                    </div>
+                    <div>
+                      <span className="text-purple-500">Recurring:</span>{' '}
+                      <span className="font-mono text-orange-600 dark:text-orange-400">{recurringCount}</span>
+                    </div>
+                    <div>
+                      <span className="text-purple-500">Tracked:</span>{' '}
+                      <span className="font-mono">{resolvedErrorsCount}</span>
+                    </div>
+                  </div>
+                  {recurringCount > 0 && (
+                    <div className="mt-2 pt-2 border-t border-purple-200 dark:border-purple-700">
+                      <div className="text-[10px] text-orange-600 dark:text-orange-400 font-medium mb-1">
+                        ⚠️ Recurring Errors (previously resolved):
+                      </div>
+                      {messages.filter(m => m.resolutionStatus === 'recurring').slice(0, 3).map(msg => (
+                        <div key={msg.id} className="text-xs text-purple-700 dark:text-purple-300 truncate">
+                          {msg.message} (×{msg.recurrenceCount})
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Bookmarked */}
               {bookmarkedCount > 0 && (
                 <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
@@ -635,19 +679,49 @@ function DebugPanelCore() {
               ) : (
                 [...filteredMessages].reverse().map((message) => {
                   const isExpanded = expandedMessages.has(message.id);
+                  const isResolved = message.resolutionStatus === 'resolved';
+                  const isRecurring = message.resolutionStatus === 'recurring';
                   return (
                     <div
                       key={message.id}
                       className={`border-l-4 rounded-r-lg p-2 transition-all relative ${
-                        message.type === 'error'
+                        isRecurring
+                          ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
+                          : isResolved
+                          ? 'border-green-500 bg-green-50 dark:bg-green-900/20 opacity-60'
+                          : message.type === 'error'
                           ? 'border-red-500 bg-red-50 dark:bg-red-900/20'
                           : message.type === 'warning'
                           ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20'
                           : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                      } ${message.isBookmarked ? 'ring-2 ring-amber-300' : ''}`}
+                      } ${message.isBookmarked ? 'ring-2 ring-amber-300' : ''} ${isRecurring ? 'ring-2 ring-orange-400' : ''}`}
                     >
-                      {/* Action buttons - Copy and Bookmark */}
+                      {/* Action buttons - Resolution, Copy and Bookmark */}
                       <div className="absolute top-2 right-2 flex items-center gap-1">
+                        {/* Resolution button (errors only) */}
+                        {message.type === 'error' && (
+                          isResolved ? (
+                            <button
+                              onClick={() => unresolveError(message.id)}
+                              className="p-1 rounded transition-all text-green-500 hover:text-green-600"
+                              title="Mark as unresolved (reopen)"
+                            >
+                              <RiArrowGoBackLine className="w-4 h-4" />
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => resolveError(message.id)}
+                              className={`p-1 rounded transition-all ${
+                                isRecurring
+                                  ? 'text-orange-500 hover:text-green-500'
+                                  : 'text-gray-300 hover:text-green-500'
+                              }`}
+                              title={isRecurring ? 'Re-resolve this recurring error' : 'Mark as resolved'}
+                            >
+                              <RiCheckDoubleLine className="w-4 h-4" />
+                            </button>
+                          )
+                        )}
                         <button
                           onClick={() => copyMessageToClipboard(message)}
                           className={`p-1 rounded transition-all ${
@@ -680,13 +754,20 @@ function DebugPanelCore() {
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-2 mb-1 pr-14">
+                      <div className="flex items-center gap-2 mb-1 pr-20">
                         <span className={`text-[10px] font-medium uppercase ${
+                          isRecurring ? 'text-orange-600' :
+                          isResolved ? 'text-green-600' :
                           message.type === 'error' ? 'text-red-600' :
                           message.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'
                         }`}>
-                          {message.type}
+                          {isRecurring ? '🔄 RECURRING' : isResolved ? '✓ RESOLVED' : message.type}
                         </span>
+                        {isRecurring && message.recurrenceCount && (
+                          <span className="text-[10px] bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-200 px-1.5 py-0.5 rounded font-medium">
+                            ×{message.recurrenceCount}
+                          </span>
+                        )}
                         {message.source && (
                           <span className="text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">
                             {message.source}

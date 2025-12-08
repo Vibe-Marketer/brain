@@ -91,22 +91,53 @@ export function TranscriptsTab() {
 
   // Load host email
   useEffect(() => {
+    // Track if component is still mounted to prevent state updates after unmount
+    let isMounted = true;
+
     const loadHostEmail = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data } = await supabase
+      try {
+        // Use safe pattern to handle network errors
+        const userResponse = await supabase.auth.getUser();
+
+        // Check for errors in the response (network issues, etc.)
+        if (userResponse.error) {
+          logger.warn("Error getting user for host email", userResponse.error);
+          return;
+        }
+
+        const user = userResponse.data?.user;
+        if (!user) return;
+
+        const { data, error } = await supabase
           .from("user_settings")
           .select("host_email")
           .eq("user_id", user.id)
           .maybeSingle();
-        
-        if (data?.host_email) {
+
+        if (error) {
+          if (isMounted) {
+            logger.warn("Error fetching host email", error);
+          }
+          return;
+        }
+
+        if (isMounted && data?.host_email) {
           setHostEmail(data.host_email);
+        }
+      } catch (error) {
+        // Only log errors if component is still mounted
+        if (isMounted) {
+          logger.error("Error loading host email", error);
         }
       }
     };
 
     loadHostEmail();
+
+    // Cleanup: mark as unmounted to prevent state updates
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // Fetch tags

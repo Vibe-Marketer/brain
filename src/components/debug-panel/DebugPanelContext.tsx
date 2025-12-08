@@ -14,7 +14,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import type { DebugMessage, ActionTrailEntry, DebugPanelConfig } from './types';
+import type { DebugMessage, ActionTrailEntry, DebugPanelConfig, ResolvedErrorRecord, AppStateSnapshot, ResolutionStatus } from './types';
 import { STORAGE_KEYS } from './types';
 
 // Sentry is OPTIONAL - only used if already installed in the host app
@@ -156,17 +156,88 @@ function persistActions(actions: ActionTrailEntry[], limit: number): void {
   }
 }
 
+/**
+ * Generate a unique signature for an error to identify "same" errors
+ * Used for recurrence detection after resolution
+ */
+function generateErrorSignature(message: string, source?: string, category?: string): string {
+  // Normalize the message: remove numbers, timestamps, IDs to group similar errors
+  const normalizedMessage = message
+    .replace(/\d+/g, 'N')                    // Replace numbers with N
+    .replace(/[a-f0-9]{8,}/gi, 'ID')         // Replace hex IDs with ID
+    .replace(/\s+/g, ' ')                     // Normalize whitespace
+    .trim()
+    .toLowerCase();
+
+  // Create a simple hash from the normalized components
+  const components = [normalizedMessage, source || '', category || ''].join('|');
+  let hash = 0;
+  for (let i = 0; i < components.length; i++) {
+    const char = components.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return `err_${Math.abs(hash).toString(36)}`;
+}
+
+/**
+ * Load resolved errors from localStorage
+ */
+function loadResolvedErrors(): Map<string, ResolvedErrorRecord> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.RESOLVED_ERRORS);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return new Map(parsed.map((r: ResolvedErrorRecord) => [r.signature, r]));
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return new Map();
+}
+
+/**
+ * Save resolved errors to localStorage
+ */
+function persistResolvedErrors(resolved: Map<string, ResolvedErrorRecord>): void {
+  try {
+    const toSave = Array.from(resolved.values());
+    localStorage.setItem(STORAGE_KEYS.RESOLVED_ERRORS, JSON.stringify(toSave));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+/**
+ * Capture current app state for comparison
+ */
+function captureAppState(actionTrail: ActionTrailEntry[]): AppStateSnapshot {
+  return {
+    url: window.location.href,
+    timestamp: Date.now(),
+    recentActions: actionTrail.slice(-5).map(a => `${a.action}: ${a.description}`),
+    activeComponent: window.location.pathname,
+  };
+}
+
 interface DebugPanelContextType {
   messages: DebugMessage[];
   actionTrail: ActionTrailEntry[];
   unacknowledgedCount: number;
+  resolvedErrors: Map<string, ResolvedErrorRecord>;
   addMessage: (msg: Omit<DebugMessage, 'id' | 'timestamp'> & { id?: string; timestamp?: number }) => void;
   logAction: (action: ActionTrailEntry['action'], description: string, details?: string) => void;
   logWebSocket: (messageType: string, data: unknown, wsCategory?: DebugMessage['wsCategory']) => void;
-  clearMessages: () => void;
+  clearMessages: (clearResolved?: boolean) => void;
   toggleBookmark: (messageId: string) => void;
   acknowledgeErrors: () => void;
   acknowledgeMessage: (messageId: string) => void;
+  // Resolution tracking
+  resolveError: (messageId: string, note?: string) => void;
+  unresolveError: (messageId: string) => void;
+  getResolutionHistory: (signature: string) => ResolvedErrorRecord | undefined;
 }
 
 const DebugPanelContext = createContext<DebugPanelContextType | undefined>(undefined);
@@ -207,6 +278,9 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
     config.persistMessages ? loadPersistedActions() : []
   );
   const [unacknowledgedCount, setUnacknowledgedCount] = useState(0);
+  const [resolvedErrors, setResolvedErrors] = useState<Map<string, ResolvedErrorRecord>>(() =>
+    config.persistMessages ? loadResolvedErrors() : new Map()
+  );
 
   const isInitialized = useRef(false);
   const addMessageRef = useRef<typeof addMessageInternal | null>(null);
@@ -226,6 +300,13 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       persistActions(actionTrail, config.maxActions);
     }
   }, [actionTrail, config.persistMessages, config.maxActions]);
+
+  // Persist resolved errors whenever they change
+  useEffect(() => {
+    if (config.persistMessages) {
+      persistResolvedErrors(resolvedErrors);
+    }
+  }, [resolvedErrors, config.persistMessages]);
 
   // Update unacknowledged count
   useEffect(() => {
@@ -268,12 +349,45 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
     // Ignore certain messages
     if (shouldIgnore(msg.message)) return;
 
+    // Generate error signature for errors (for recurrence detection)
+    const isError = msg.type === 'error';
+    const signature = isError ? generateErrorSignature(msg.message, msg.source, msg.category) : undefined;
+
+    // Check for recurrence of resolved errors
+    let resolutionStatus: ResolutionStatus = 'active';
+    let recurrenceCount = 0;
+    let originalErrorId: string | undefined;
+
+    if (isError && signature && resolvedErrors.has(signature)) {
+      const resolved = resolvedErrors.get(signature)!;
+      resolutionStatus = 'recurring';
+      recurrenceCount = resolved.recurrenceCount + 1;
+      originalErrorId = resolved.signature;
+
+      // Update the resolved error record with new recurrence
+      setResolvedErrors(prev => {
+        const updated = new Map(prev);
+        updated.set(signature, {
+          ...resolved,
+          recurrenceCount,
+          lastRecurrence: Date.now(),
+        });
+        return updated;
+      });
+    }
+
     const newMessage: DebugMessage = {
       ...msg,
       id: msg.id || generateId(),
       timestamp: msg.timestamp || Date.now(),
       isBookmarked: false,
       isAcknowledged: false,
+      // Resolution tracking
+      errorSignature: signature,
+      resolutionStatus: isError ? resolutionStatus : undefined,
+      recurrenceCount: recurrenceCount > 0 ? recurrenceCount : undefined,
+      originalErrorId,
+      appStateSnapshot: isError ? captureAppState(actionTrail) : undefined,
     };
 
     // Send errors to Sentry (only if Sentry is installed AND enabled)
@@ -301,7 +415,7 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       }
       return updated;
     });
-  }, [config.enableSentry, config.maxMessages]);
+  }, [config.enableSentry, config.maxMessages, resolvedErrors, actionTrail]);
 
   // Store ref for use in event handlers
   addMessageRef.current = addMessageInternal;
@@ -598,12 +712,18 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
     addMessageInternal(msg);
   }, [addMessageInternal]);
 
-  const clearMessages = useCallback(() => {
+  const clearMessages = useCallback((clearResolved = false) => {
     setMessages([]);
     setActionTrail([]);
+    if (clearResolved) {
+      setResolvedErrors(new Map());
+    }
     if (config.persistMessages) {
       localStorage.removeItem(STORAGE_KEYS.MESSAGES);
       localStorage.removeItem(STORAGE_KEYS.ACTION_TRAIL);
+      if (clearResolved) {
+        localStorage.removeItem(STORAGE_KEYS.RESOLVED_ERRORS);
+      }
     }
   }, [config.persistMessages]);
 
@@ -681,11 +801,76 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
     }, isError); // Only send errors to Sentry
   }, [addMessageInternal]);
 
+  /**
+   * Mark an error as resolved with optional note
+   */
+  const resolveError = useCallback((messageId: string, note?: string) => {
+    setMessages(prev => {
+      const msg = prev.find(m => m.id === messageId);
+      if (!msg || msg.type !== 'error' || !msg.errorSignature) return prev;
+
+      // Add to resolved errors registry
+      const signature = msg.errorSignature;
+      setResolvedErrors(prevResolved => {
+        const updated = new Map(prevResolved);
+        updated.set(signature, {
+          signature,
+          originalMessage: msg.message,
+          resolvedAt: Date.now(),
+          resolutionNote: note,
+          recurrenceCount: 0,
+          appStateAtResolution: msg.appStateSnapshot,
+        });
+        return updated;
+      });
+
+      // Update the message status
+      return prev.map(m =>
+        m.id === messageId
+          ? { ...m, resolutionStatus: 'resolved' as ResolutionStatus, resolvedAt: Date.now(), resolutionNote: note }
+          : m
+      );
+    });
+  }, []);
+
+  /**
+   * Mark an error as unresolved (reopen it)
+   */
+  const unresolveError = useCallback((messageId: string) => {
+    setMessages(prev => {
+      const msg = prev.find(m => m.id === messageId);
+      if (!msg || msg.type !== 'error' || !msg.errorSignature) return prev;
+
+      // Remove from resolved errors registry
+      const signature = msg.errorSignature;
+      setResolvedErrors(prevResolved => {
+        const updated = new Map(prevResolved);
+        updated.delete(signature);
+        return updated;
+      });
+
+      // Update the message status
+      return prev.map(m =>
+        m.id === messageId
+          ? { ...m, resolutionStatus: 'active' as ResolutionStatus, resolvedAt: undefined, resolutionNote: undefined }
+          : m
+      );
+    });
+  }, []);
+
+  /**
+   * Get resolution history for a given error signature
+   */
+  const getResolutionHistory = useCallback((signature: string): ResolvedErrorRecord | undefined => {
+    return resolvedErrors.get(signature);
+  }, [resolvedErrors]);
+
   return (
     <DebugPanelContext.Provider value={{
       messages,
       actionTrail,
       unacknowledgedCount,
+      resolvedErrors,
       addMessage,
       logAction,
       logWebSocket,
@@ -693,6 +878,10 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       toggleBookmark,
       acknowledgeErrors,
       acknowledgeMessage,
+      // Resolution tracking
+      resolveError,
+      unresolveError,
+      getResolutionHistory,
     }}>
       {children}
     </DebugPanelContext.Provider>
