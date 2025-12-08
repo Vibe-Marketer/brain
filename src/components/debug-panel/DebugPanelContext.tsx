@@ -14,7 +14,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import type { DebugMessage, ActionTrailEntry, DebugPanelConfig, ResolvedErrorRecord, AppStateSnapshot, ResolutionStatus } from './types';
+import type { DebugMessage, ActionTrailEntry, DebugPanelConfig, ResolvedErrorRecord, AppStateSnapshot, ResolutionStatus, IgnoredPattern } from './types';
 import { STORAGE_KEYS } from './types';
 
 // Sentry is OPTIONAL - only used if already installed in the host app
@@ -211,6 +211,36 @@ function persistResolvedErrors(resolved: Map<string, ResolvedErrorRecord>): void
 }
 
 /**
+ * Load ignored patterns from localStorage
+ */
+function loadIgnoredPatterns(): Map<string, IgnoredPattern> {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.IGNORED_PATTERNS);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return new Map(parsed.map((p: IgnoredPattern) => [p.signature, p]));
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return new Map();
+}
+
+/**
+ * Save ignored patterns to localStorage
+ */
+function persistIgnoredPatterns(patterns: Map<string, IgnoredPattern>): void {
+  try {
+    const toSave = Array.from(patterns.values());
+    localStorage.setItem(STORAGE_KEYS.IGNORED_PATTERNS, JSON.stringify(toSave));
+  } catch {
+    // Ignore storage errors
+  }
+}
+
+/**
  * Capture current app state for comparison
  */
 function captureAppState(actionTrail: ActionTrailEntry[]): AppStateSnapshot {
@@ -227,6 +257,7 @@ interface DebugPanelContextType {
   actionTrail: ActionTrailEntry[];
   unacknowledgedCount: number;
   resolvedErrors: Map<string, ResolvedErrorRecord>;
+  ignoredPatterns: Map<string, IgnoredPattern>;
   addMessage: (msg: Omit<DebugMessage, 'id' | 'timestamp'> & { id?: string; timestamp?: number }) => void;
   logAction: (action: ActionTrailEntry['action'], description: string, details?: string) => void;
   logWebSocket: (messageType: string, data: unknown, wsCategory?: DebugMessage['wsCategory']) => void;
@@ -238,6 +269,10 @@ interface DebugPanelContextType {
   resolveError: (messageId: string, note?: string) => void;
   unresolveError: (messageId: string) => void;
   getResolutionHistory: (signature: string) => ResolvedErrorRecord | undefined;
+  // Ignore patterns
+  ignoreMessage: (messageId: string, reason?: string) => void;
+  unignorePattern: (signature: string) => void;
+  isMessageIgnored: (message: DebugMessage) => boolean;
 }
 
 const DebugPanelContext = createContext<DebugPanelContextType | undefined>(undefined);
@@ -281,6 +316,9 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
   const [resolvedErrors, setResolvedErrors] = useState<Map<string, ResolvedErrorRecord>>(() =>
     config.persistMessages ? loadResolvedErrors() : new Map()
   );
+  const [ignoredPatterns, setIgnoredPatterns] = useState<Map<string, IgnoredPattern>>(() =>
+    config.persistMessages ? loadIgnoredPatterns() : new Map()
+  );
 
   const isInitialized = useRef(false);
   const addMessageRef = useRef<typeof addMessageInternal | null>(null);
@@ -307,6 +345,13 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       persistResolvedErrors(resolvedErrors);
     }
   }, [resolvedErrors, config.persistMessages]);
+
+  // Persist ignored patterns whenever they change
+  useEffect(() => {
+    if (config.persistMessages) {
+      persistIgnoredPatterns(ignoredPatterns);
+    }
+  }, [ignoredPatterns, config.persistMessages]);
 
   // Update unacknowledged count
   useEffect(() => {
@@ -865,12 +910,55 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
     return resolvedErrors.get(signature);
   }, [resolvedErrors]);
 
+  /**
+   * Ignore a message pattern (won't be shown in future)
+   */
+  const ignoreMessage = useCallback((messageId: string, reason?: string) => {
+    const msg = messages.find(m => m.id === messageId);
+    if (!msg) return;
+
+    // Generate a signature for the message pattern
+    const signature = generateErrorSignature(msg.message, msg.source, msg.category);
+
+    setIgnoredPatterns(prev => {
+      const updated = new Map(prev);
+      updated.set(signature, {
+        signature,
+        pattern: msg.message.slice(0, 100), // Store first 100 chars for display
+        ignoredAt: Date.now(),
+        reason,
+        type: msg.type === 'error' ? 'error' : msg.type === 'warning' ? 'warning' : msg.type === 'info' ? 'info' : 'all',
+      });
+      return updated;
+    });
+  }, [messages]);
+
+  /**
+   * Remove a pattern from the ignore list
+   */
+  const unignorePattern = useCallback((signature: string) => {
+    setIgnoredPatterns(prev => {
+      const updated = new Map(prev);
+      updated.delete(signature);
+      return updated;
+    });
+  }, []);
+
+  /**
+   * Check if a message matches an ignored pattern
+   */
+  const isMessageIgnored = useCallback((message: DebugMessage): boolean => {
+    const signature = generateErrorSignature(message.message, message.source, message.category);
+    return ignoredPatterns.has(signature);
+  }, [ignoredPatterns]);
+
   return (
     <DebugPanelContext.Provider value={{
       messages,
       actionTrail,
       unacknowledgedCount,
       resolvedErrors,
+      ignoredPatterns,
       addMessage,
       logAction,
       logWebSocket,
@@ -882,6 +970,10 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       resolveError,
       unresolveError,
       getResolutionHistory,
+      // Ignore patterns
+      ignoreMessage,
+      unignorePattern,
+      isMessageIgnored,
     }}>
       {children}
     </DebugPanelContext.Provider>

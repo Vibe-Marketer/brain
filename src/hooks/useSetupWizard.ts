@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 
 interface SetupWizardData {
   wizardCompleted: boolean;
@@ -22,9 +23,9 @@ export function useSetupWizard(): SetupWizardData {
   // to avoid Temporal Dead Zone (TDZ) error when used in dependency array
   const markWizardComplete = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        logger.error("Cannot mark wizard complete: no authenticated user");
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) {
+        logger.error("Cannot mark wizard complete: auth error", authError);
         toast.error("Authentication error");
         return;
       }
@@ -53,10 +54,12 @@ export function useSetupWizard(): SetupWizardData {
 
   const checkWizardStatus = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        // Expected on login page - not an error condition
-        logger.debug("No authenticated user (expected on login page)");
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) {
+        // Expected on login page or network error - not a critical error
+        if (authError) {
+          logger.debug("Auth error during wizard check (may be expected)", authError);
+        }
         setWizardCompleted(false);
         setLoading(false);
         return;

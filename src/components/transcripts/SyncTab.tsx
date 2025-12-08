@@ -79,8 +79,8 @@ export function SyncTab() {
 
   const loadExistingTranscripts = useCallback(async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       let query = supabase
         .from("fathom_calls")
@@ -361,8 +361,7 @@ export function SyncTab() {
     setSyncing(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await requireUser();
 
       // Convert dates to UTC to match the fetch filter
       const createdAfter = dateRange?.from

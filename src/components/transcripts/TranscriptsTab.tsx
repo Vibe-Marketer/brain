@@ -10,6 +10,7 @@ import { TranscriptTableSkeleton } from "@/components/ui/transcript-table-skelet
 import { logger } from "@/lib/logger";
 import { Meeting } from "@/types/meetings";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { requireUser } from "@/lib/auth-utils";
 
 import { TranscriptTable } from "@/components/transcript-library/TranscriptTable";
 import { CallDetailDialog } from "@/components/CallDetailDialog";
@@ -304,8 +305,7 @@ export function TranscriptsTab() {
   // Bulk tag mutation
   const tagMutation = useMutation({
     mutationFn: async ({ callIds, tagId }: { callIds: number[]; tagId: string }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await requireUser();
 
       // Remove existing tag assignments
       await supabase
@@ -376,8 +376,7 @@ export function TranscriptsTab() {
   // Delete calls mutation - CASCADE deletes from all related tables
   const deleteCallsMutation = useMutation({
     mutationFn: async (ids: number[]) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await requireUser();
 
       logger.info("Starting delete for IDs", ids);
 

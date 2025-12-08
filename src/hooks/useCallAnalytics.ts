@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { requireUser } from '@/lib/auth-utils';
 
 interface CallAnalytics {
   totalCalls: number;
@@ -39,8 +40,7 @@ export function useCallAnalytics(timeRange: string = '30d') {
   return useQuery({
     queryKey: ['call-analytics', timeRange],
     queryFn: async (): Promise<CallAnalytics> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const user = await requireUser();
 
       const dateFilter = getDateRangeFilter(timeRange);
       const baseQuery = supabase.from('fathom_calls').select('*', { count: 'exact', head: true }).eq('user_id', user.id);

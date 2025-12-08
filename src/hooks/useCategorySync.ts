@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { getSafeUser, requireUser } from "@/lib/auth-utils";
 
 export interface Tag {
   id: string;
@@ -21,8 +22,8 @@ export function useTagSync() {
 
   const loadTags = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       const { data, error } = await supabase
         .from("call_tags")
@@ -142,8 +143,7 @@ export function useTagSync() {
     onSuccess?: () => void
   ) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await requireUser();
 
       const { data, error } = await supabase
         .from("call_tags")

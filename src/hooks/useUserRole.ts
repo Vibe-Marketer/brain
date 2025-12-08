@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 
 type UserRole = "FREE" | "PRO" | "TEAM" | "ADMIN";
 
@@ -25,9 +26,11 @@ export function useUserRole(): UserRoleData {
   useEffect(() => {
     async function fetchUserRole() {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          logger.warn("No authenticated user found");
+        const { user, error: authError } = await getSafeUser();
+        if (authError || !user) {
+          if (authError) {
+            logger.warn("Error getting user for role check", authError);
+          }
           setRole("FREE");
           setLoading(false);
           return;

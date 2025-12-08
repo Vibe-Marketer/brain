@@ -106,6 +106,15 @@ export interface ResolvedErrorRecord {
   appStateAtResolution?: AppStateSnapshot;
 }
 
+// Ignored pattern record
+export interface IgnoredPattern {
+  signature: string;              // Message fingerprint
+  pattern: string;                // Original message pattern (for display)
+  ignoredAt: number;              // When it was ignored
+  reason?: string;                // Why it was ignored (optional note)
+  type: 'error' | 'warning' | 'info' | 'all'; // What type was ignored
+}
+
 // Storage keys for localStorage persistence
 export const STORAGE_KEYS = {
   MESSAGES: 'debug_panel_messages',
@@ -113,6 +122,7 @@ export const STORAGE_KEYS = {
   UNACKNOWLEDGED_COUNT: 'debug_panel_unack_count',
   SESSION_ID: 'debug_panel_session_id',
   RESOLVED_ERRORS: 'debug_panel_resolved_errors', // Track resolved errors for recurrence detection
+  IGNORED_PATTERNS: 'debug_panel_ignored_patterns', // Track ignored message patterns
 } as const;
 
 // Configuration for the debug panel

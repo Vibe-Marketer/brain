@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { queryKeys } from "@/lib/query-config";
+import { requireUser } from "@/lib/auth-utils";
 
 export interface Folder {
   id: string;
@@ -59,8 +60,7 @@ export function useFolders() {
   const { data: folders = [], isLoading, refetch } = useQuery({
     queryKey: queryKeys.folders.list(),
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await requireUser();
 
       const { data, error } = await supabase
         .from("folders")
@@ -102,8 +102,7 @@ export function useFolders() {
   // Create folder mutation
   const createFolderMutation = useMutation({
     mutationFn: async ({ name, parentId = null, color = "#6B7280", icon = "folder", description = null }: CreateFolderParams) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await requireUser();
 
       // Get the next position for this folder level
       const { data: existingFolders } = await supabase
@@ -231,8 +230,7 @@ export function useFolders() {
   // Assign recordings to folder mutation
   const assignToFolderMutation = useMutation({
     mutationFn: async ({ recordingIds, folderId }: AssignToFolderParams) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await requireUser();
 
       const assignments = recordingIds.map((id) => ({
         call_recording_id: id,
@@ -342,8 +340,7 @@ export function useFolders() {
   // Move recordings from one folder to another mutation
   const moveToFolderMutation = useMutation({
     mutationFn: async ({ recordingIds, fromFolderId, toFolderId }: MoveToFolderParams) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await requireUser();
 
       // Delete from old folder if specified
       if (fromFolderId) {

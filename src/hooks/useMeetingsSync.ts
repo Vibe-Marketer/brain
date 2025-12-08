@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { DateRange } from "react-day-picker";
+import { getSafeUser } from "@/lib/auth-utils";
 
 export interface CalendarInvitee {
   name: string;
@@ -59,8 +60,8 @@ export function useMeetingsSync() {
 
   const loadHostEmail = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       const { data: settings } = await supabase
         .from("user_settings")
