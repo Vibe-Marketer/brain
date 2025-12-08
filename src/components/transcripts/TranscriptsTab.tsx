@@ -88,8 +88,8 @@ export function TranscriptsTab() {
     folders: true,
   });
 
-  // Sidebar state
-  const [showSidebar, setShowSidebar] = useState(false);
+  // Sidebar state - desktop starts expanded, mobile starts collapsed
+  const [showSidebar, setShowSidebar] = useState(true);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
   // Dialog state
@@ -578,11 +578,10 @@ export function TranscriptsTab() {
 
       {/* BG-CARD-MAIN: Browser window container */}
       <ChatOuterCard className="h-[calc(100vh-120px)]">
-        {/* SIDEBAR */}
+        {/* SIDEBAR - Collapsible on desktop */}
         <div
           className={`
-            ${showSidebar ? 'fixed inset-y-0 left-0 z-50 shadow-2xl' : 'hidden'}
-            md:block md:relative md:shadow-none
+            ${showSidebar ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none' : 'hidden'}
             w-[280px] flex-shrink-0 transition-all duration-200
           `}
         >
@@ -593,7 +592,10 @@ export function TranscriptsTab() {
             selectedFolderId={selectedFolderId}
             onSelectFolder={(folderId) => {
               setSelectedFolderId(folderId);
-              setShowSidebar(false);
+              // Only close sidebar on mobile
+              if (window.innerWidth < 768) {
+                setShowSidebar(false);
+              }
             }}
             onNewFolder={() => setQuickCreateFolderOpen(true)}
             onManageFolders={() => setFolderManagementOpen(true)}
@@ -603,42 +605,37 @@ export function TranscriptsTab() {
 
         {/* BG-CARD-INNER: Main content */}
         <ChatInnerCard>
-          {/* Header with mobile toggle */}
-          <div className="flex-shrink-0 px-4 py-2 border-b border-border">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {/* Mobile menu toggle */}
-                <Button
-                  variant="hollow"
-                  size="sm"
-                  className="md:hidden h-8 w-8 p-0"
-                  onClick={() => setShowSidebar(!showSidebar)}
-                >
-                  <RiMenuLine className="h-5 w-5" />
-                </Button>
-                <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
-                  {selectedFolderId
-                    ? folders.find(f => f.id === selectedFolderId)?.name || "Folder"
-                    : "All Transcripts"}
-                </h1>
+          {/* Header with sidebar toggle */}
+          <div className="flex-shrink-0 px-4 py-3 border-b border-border">
+            <div className="flex items-center gap-3">
+              {/* Sidebar toggle button */}
+              <Button
+                variant="hollow"
+                size="sm"
+                className="h-8 w-8 p-0"
+                onClick={() => setShowSidebar(!showSidebar)}
+                title={showSidebar ? "Hide sidebar" : "Show sidebar"}
+              >
+                <RiMenuLine className="h-5 w-5" />
+              </Button>
+
+              {/* Filter bar - moved to header */}
+              <div className="flex-1">
+                <FilterBar
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  tags={tags}
+                  folders={folders}
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  onCreateFolder={() => setQuickCreateFolderOpen(true)}
+                />
               </div>
             </div>
           </div>
 
           {/* Content area with scroll */}
-          <div className="flex-1 overflow-y-auto p-4">
-            {/* Filter bar */}
-            <FilterBar
-              filters={filters}
-              onFiltersChange={setFilters}
-              tags={tags}
-              folders={folders}
-              searchQuery={searchQuery}
-              onSearchChange={setSearchQuery}
-              onCreateFolder={() => setQuickCreateFolderOpen(true)}
-            />
-
-            <Separator className="my-4" />
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
 
             {/* Bulk Actions Toolbar */}
             {selectedCalls.length > 0 && (
@@ -668,8 +665,6 @@ export function TranscriptsTab() {
                 />
               </ErrorBoundary>
             )}
-
-            {selectedCalls.length > 0 && <Separator className="my-4" />}
 
             {/* Content Area */}
             {callsLoading ? (

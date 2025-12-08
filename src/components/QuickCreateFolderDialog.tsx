@@ -54,10 +54,16 @@ const FOLDER_ICONS = [
   'bookmark',
 ] as const;
 
-interface Folder {
+interface FolderWithDepth {
   id: string;
   name: string;
   depth: number;
+  parent_id: string | null;
+}
+
+interface Folder {
+  id: string;
+  name: string;
   parent_id: string | null;
 }
 
@@ -74,7 +80,7 @@ export default function QuickCreateFolderDialog({
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(parentFolderId);
   const [customColor, setCustomColor] = useState("");
   const [saving, setSaving] = useState(false);
-  const [folders, setFolders] = useState<Folder[]>([]);
+  const [foldersWithDepth, setFoldersWithDepth] = useState<FolderWithDepth[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
 
   // Load folders for parent selection
@@ -97,12 +103,32 @@ export default function QuickCreateFolderDialog({
 
       const { data, error } = await supabase
         .from("folders")
-        .select("id, name, depth, parent_id")
+        .select("id, name, parent_id")
         .eq("user_id", user.id)
         .order("name");
 
       if (error) throw error;
-      setFolders(data || []);
+
+      // Compute depth for each folder
+      const foldersMap = new Map<string, Folder>(
+        (data || []).map(f => [f.id, f])
+      );
+
+      const computeDepth = (folderId: string, visited = new Set<string>()): number => {
+        if (visited.has(folderId)) return 0; // Prevent infinite loops
+        visited.add(folderId);
+
+        const folder = foldersMap.get(folderId);
+        if (!folder || !folder.parent_id) return 0;
+        return 1 + computeDepth(folder.parent_id, visited);
+      };
+
+      const foldersWithDepth: FolderWithDepth[] = (data || []).map(f => ({
+        ...f,
+        depth: computeDepth(f.id),
+      }));
+
+      setFoldersWithDepth(foldersWithDepth);
     } catch (error) {
       logger.error("Error loading folders", error);
     } finally {
@@ -132,7 +158,7 @@ export default function QuickCreateFolderDialog({
 
       // Check if parent folder would violate depth constraint
       if (selectedParentId) {
-        const parentFolder = folders.find(f => f.id === selectedParentId);
+        const parentFolder = foldersWithDepth.find(f => f.id === selectedParentId);
         if (parentFolder && parentFolder.depth >= 2) {
           toast.error("Cannot create folder: Maximum folder depth is 3 levels");
           return;
@@ -152,7 +178,7 @@ export default function QuickCreateFolderDialog({
 
       if (existingFolder) {
         const location = selectedParentId
-          ? `in folder "${folders.find(f => f.id === selectedParentId)?.name}"`
+          ? `in folder "${foldersWithDepth.find(f => f.id === selectedParentId)?.name}"`
           : "at root level";
         toast.error(`A folder named "${validation.data.name}" already exists ${location}`);
         return;
@@ -222,7 +248,7 @@ export default function QuickCreateFolderDialog({
   const IconComponent = getIconComponent(icon);
 
   // Filter folders to only show those that can be parents (depth < 2)
-  const availableParentFolders = folders.filter(f => f.depth < 2);
+  const availableParentFolders = foldersWithDepth.filter(f => f.depth < 2);
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -283,7 +309,7 @@ export default function QuickCreateFolderDialog({
                 ))}
               </SelectContent>
             </Select>
-            {selectedParentId && folders.find(f => f.id === selectedParentId)?.depth === 2 && (
+            {selectedParentId && foldersWithDepth.find(f => f.id === selectedParentId)?.depth === 2 && (
               <p className="text-xs text-destructive">
                 This folder is already at maximum depth
               </p>
