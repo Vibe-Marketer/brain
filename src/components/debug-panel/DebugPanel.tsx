@@ -418,6 +418,20 @@ function DebugPanelCore() {
               )}
             </button>
             <button
+              onClick={() => {
+                // Test 1: Console.error (should be captured)
+                console.error('[TEST] Debug Panel test error - console.error capture working');
+                // Test 2: Throw error (should be captured by window.onerror)
+                setTimeout(() => {
+                  throw new Error('[TEST] Debug Panel test error - window.onerror capture working');
+                }, 0);
+              }}
+              className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
+              title="Test error capture (triggers test errors)"
+            >
+              <RiBugLine className="w-4 h-4 text-amber-500" />
+            </button>
+            <button
               onClick={clearMessages}
               className="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded transition-colors"
               title="Clear all"
