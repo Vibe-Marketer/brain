@@ -14,6 +14,7 @@ import { RiEditLine, RiCheckboxCircleLine, RiCloseCircleLine, RiLoader2Line, RiE
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -60,7 +61,8 @@ export default function AccountTab() {
 
   const loadProfileData = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       if (user) {
         setUserEmail(user.email || "");
@@ -93,9 +95,8 @@ export default function AccountTab() {
   const saveProfile = async () => {
     try {
       setProfileSaving(true);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       const { error } = await supabase
         .from("user_profiles")
@@ -118,9 +119,8 @@ export default function AccountTab() {
   const saveTimezone = async () => {
     try {
       setTimezoneSaving(true);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       // Save to user_settings table (future implementation)
       setSavedTimezone(timezone);
@@ -137,9 +137,8 @@ export default function AccountTab() {
   const saveHostEmail = async () => {
     try {
       setHostEmailSaving(true);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       const { error } = await supabase
         .from("user_settings")

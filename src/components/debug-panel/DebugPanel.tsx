@@ -24,6 +24,8 @@ import {
   RiCheckLine,
   RiCheckDoubleLine,
   RiArrowGoBackLine,
+  RiEyeOffLine,
+  RiEyeLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { captureDebugScreenshot } from '@/lib/screenshot';
@@ -96,6 +98,7 @@ function DebugPanelCore() {
     actionTrail,
     unacknowledgedCount,
     resolvedErrors,
+    ignoredPatterns,
     clearMessages,
     toggleBookmark,
     acknowledgeErrors,
@@ -104,6 +107,9 @@ function DebugPanelCore() {
     logWebSocket,
     resolveError,
     unresolveError,
+    ignoreMessage,
+    unignorePattern,
+    isMessageIgnored,
   } = useDebugPanel();
 
   const [isOpen, setIsOpen] = useState(false);
@@ -116,6 +122,7 @@ function DebugPanelCore() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [copiedReport, setCopiedReport] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
+  const [showIgnored, setShowIgnored] = useState(false);
 
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -138,6 +145,7 @@ function DebugPanelCore() {
   const resolvedCount = messages.filter(m => m.resolutionStatus === 'resolved').length;
   const recurringCount = messages.filter(m => m.resolutionStatus === 'recurring').length;
   const resolvedErrorsCount = resolvedErrors.size;
+  const ignoredCount = ignoredPatterns.size;
 
   // Analytics data - must be called unconditionally (before early return)
   const analyticsData = useMemo(() => {
@@ -200,6 +208,8 @@ function DebugPanelCore() {
   if (roleLoading || !isAdmin) return null;
 
   const filteredMessages = messages.filter(msg => {
+    // Filter out ignored messages unless showIgnored is enabled
+    if (!showIgnored && isMessageIgnored(msg)) return false;
     if (filter !== 'all' && msg.type !== filter) return false;
     if (_categoryFilter !== 'all') {
       const category = categorizeMessage(msg);
@@ -478,7 +488,7 @@ function DebugPanelCore() {
               />
             </div>
           </div>
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex gap-1 flex-wrap items-center">
             {[
               { key: 'all' as const, label: 'All', count: messages.length },
               { key: 'error' as const, label: 'Errors', count: errorCount, color: 'red' },
@@ -503,6 +513,21 @@ function DebugPanelCore() {
                 {label} ({count})
               </button>
             ))}
+            {/* Show ignored toggle */}
+            {ignoredCount > 0 && (
+              <button
+                onClick={() => setShowIgnored(!showIgnored)}
+                className={`px-2 py-0.5 text-xs rounded-full transition-all flex items-center gap-1 ml-auto ${
+                  showIgnored
+                    ? 'bg-purple-500 text-white'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+                title={showIgnored ? 'Hide ignored messages' : 'Show ignored messages'}
+              >
+                {showIgnored ? <RiEyeLine className="w-3 h-3" /> : <RiEyeOffLine className="w-3 h-3" />}
+                Ignored ({ignoredCount})
+              </button>
+            )}
           </div>
         </div>
 
@@ -609,6 +634,37 @@ function DebugPanelCore() {
                     {messages.filter(m => m.isBookmarked).slice(0, 5).map(msg => (
                       <div key={msg.id} className="text-xs text-amber-700 dark:text-amber-300 truncate">
                         {new Date(msg.timestamp).toLocaleTimeString()}: {msg.message}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Ignored Patterns */}
+              {ignoredCount > 0 && (
+                <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+                  <h4 className="font-medium text-purple-800 dark:text-purple-200 text-sm mb-2 flex items-center gap-1">
+                    <RiEyeOffLine className="w-4 h-4" />
+                    Ignored Patterns ({ignoredCount})
+                  </h4>
+                  <div className="space-y-2">
+                    {Array.from(ignoredPatterns.values()).map(pattern => (
+                      <div key={pattern.signature} className="flex items-start justify-between gap-2 text-xs">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-purple-700 dark:text-purple-300 truncate" title={pattern.pattern}>
+                            {pattern.pattern}
+                          </div>
+                          <div className="text-[10px] text-purple-500 dark:text-purple-400">
+                            {pattern.type} • Ignored {new Date(pattern.ignoredAt).toLocaleDateString()}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => unignorePattern(pattern.signature)}
+                          className="p-1 text-purple-400 hover:text-purple-600 dark:hover:text-purple-300 transition-colors flex-shrink-0"
+                          title="Stop ignoring"
+                        >
+                          <RiEyeLine className="w-4 h-4" />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -751,6 +807,14 @@ function DebugPanelCore() {
                           ) : (
                             <RiBookmarkLine className="w-4 h-4" />
                           )}
+                        </button>
+                        {/* Ignore button */}
+                        <button
+                          onClick={() => ignoreMessage(message.id)}
+                          className="p-1 rounded transition-all text-gray-300 hover:text-purple-500"
+                          title="Ignore similar messages"
+                        >
+                          <RiEyeOffLine className="w-4 h-4" />
                         </button>
                       </div>
 

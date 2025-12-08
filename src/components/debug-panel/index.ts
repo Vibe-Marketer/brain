@@ -38,6 +38,7 @@ export type {
   CategoryFilter,
   ViewMode,
   DebugPanelConfig,
+  IgnoredPattern,
 } from './types';
 
 // Constants
