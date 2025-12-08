@@ -108,6 +108,7 @@ function DebugPanelCore() {
     resolveError,
     unresolveError,
     ignoreMessage,
+    addIgnorePattern,
     unignorePattern,
     isMessageIgnored,
   } = useDebugPanel();
@@ -513,6 +514,40 @@ function DebugPanelCore() {
                 {label} ({count})
               </button>
             ))}
+            {/* Quick mute Long Tasks button */}
+            {(() => {
+              const longTaskCount = messages.filter(m => m.message.includes('[LONG TASK]')).length;
+              const isLongTaskMuted = isMessageIgnored({
+                id: '', message: '[LONG TASK] Main thread blocked for Nms',
+                source: 'performance', category: 'system', type: 'warning', timestamp: 0
+              });
+              if (longTaskCount > 0 || isLongTaskMuted) {
+                return (
+                  <button
+                    onClick={() => {
+                      if (isLongTaskMuted) {
+                        // Find and unmute
+                        const signature = Array.from(ignoredPatterns.entries())
+                          .find(([, p]) => p.pattern.includes('[LONG TASK]'))?.[0];
+                        if (signature) unignorePattern(signature);
+                      } else {
+                        addIgnorePattern('[LONG TASK] Main thread blocked for Nms', 'performance', 'system', 'Auto-muted Long Task warnings');
+                      }
+                    }}
+                    className={`px-2 py-0.5 text-xs rounded-full transition-all flex items-center gap-1 ${
+                      isLongTaskMuted
+                        ? 'bg-amber-500 text-white'
+                        : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-800/50'
+                    }`}
+                    title={isLongTaskMuted ? 'Show Long Task warnings again' : 'Mute all Long Task warnings'}
+                  >
+                    {isLongTaskMuted ? <RiEyeLine className="w-3 h-3" /> : <RiEyeOffLine className="w-3 h-3" />}
+                    {isLongTaskMuted ? 'Long Tasks Muted' : `Mute Long Tasks (${longTaskCount})`}
+                  </button>
+                );
+              }
+              return null;
+            })()}
             {/* Show ignored toggle */}
             {ignoredCount > 0 && (
               <button
@@ -808,11 +843,11 @@ function DebugPanelCore() {
                             <RiBookmarkLine className="w-4 h-4" />
                           )}
                         </button>
-                        {/* Ignore button */}
+                        {/* Ignore button - more visible */}
                         <button
                           onClick={() => ignoreMessage(message.id)}
-                          className="p-1 rounded transition-all text-gray-300 hover:text-purple-500"
-                          title="Ignore similar messages"
+                          className="p-1 rounded transition-all text-purple-400 hover:text-purple-600 hover:bg-purple-100 dark:hover:bg-purple-900/30"
+                          title="Ignore similar messages (hides all matching)"
                         >
                           <RiEyeOffLine className="w-4 h-4" />
                         </button>

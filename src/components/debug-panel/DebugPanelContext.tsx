@@ -271,6 +271,7 @@ interface DebugPanelContextType {
   getResolutionHistory: (signature: string) => ResolvedErrorRecord | undefined;
   // Ignore patterns
   ignoreMessage: (messageId: string, reason?: string) => void;
+  addIgnorePattern: (message: string, source?: string, category?: string, reason?: string) => void;
   unignorePattern: (signature: string) => void;
   isMessageIgnored: (message: DebugMessage) => boolean;
 }
@@ -952,6 +953,26 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
     return ignoredPatterns.has(signature);
   }, [ignoredPatterns]);
 
+  /**
+   * Add an ignore pattern directly (without needing a specific message ID)
+   * Useful for pre-defined patterns like "Mute Long Tasks"
+   */
+  const addIgnorePattern = useCallback((message: string, source?: string, category?: string, reason?: string) => {
+    const signature = generateErrorSignature(message, source, category);
+
+    setIgnoredPatterns(prev => {
+      const updated = new Map(prev);
+      updated.set(signature, {
+        signature,
+        pattern: message.slice(0, 100),
+        ignoredAt: Date.now(),
+        reason,
+        type: 'all',
+      });
+      return updated;
+    });
+  }, []);
+
   return (
     <DebugPanelContext.Provider value={{
       messages,
@@ -972,6 +993,7 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       getResolutionHistory,
       // Ignore patterns
       ignoreMessage,
+      addIgnorePattern,
       unignorePattern,
       isMessageIgnored,
     }}>
