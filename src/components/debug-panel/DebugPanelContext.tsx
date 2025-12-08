@@ -46,7 +46,7 @@ const DEFAULT_CONFIG: Required<DebugPanelConfig> = {
   trackLargePayloads: true,
   largePayloadThreshold: 1048576,  // 1 MB
   trackLongTasks: true,
-  longTaskThreshold: 50,           // 50ms (standard long task definition)
+  longTaskThreshold: 150,          // 150ms (relaxed - 50ms standard is too noisy)
   trackResourceErrors: true,
 };
 

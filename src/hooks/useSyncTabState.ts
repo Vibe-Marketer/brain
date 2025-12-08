@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
+import { getSafeUser } from "@/lib/auth-utils";
 import type { Tag } from "@/hooks/useCategorySync";
 
 interface SyncJob {
@@ -37,18 +38,17 @@ export function useSyncTabState({
   // Load user timezone from user_settings
   const loadUserTimezone = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
-      if (user) {
-        const { data: settings } = await supabase
-          .from('user_settings')
-          .select('timezone')
-          .eq('user_id', user.id)
-          .maybeSingle();
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('timezone')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        if (settings?.timezone) {
-          setUserTimezone(settings.timezone);
-        }
+      if (settings?.timezone) {
+        setUserTimezone(settings.timezone);
       }
     } catch (error) {
       logger.error('Error loading timezone', error);
@@ -58,18 +58,17 @@ export function useSyncTabState({
   // Load host email from user_settings
   const loadHostEmail = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
-      if (user) {
-        const { data: settings } = await supabase
-          .from('user_settings')
-          .select('host_email')
-          .eq('user_id', user.id)
-          .maybeSingle();
+      const { data: settings } = await supabase
+        .from('user_settings')
+        .select('host_email')
+        .eq('user_id', user.id)
+        .maybeSingle();
 
-        if (settings?.host_email) {
-          setHostEmail(settings.host_email);
-        }
+      if (settings?.host_email) {
+        setHostEmail(settings.host_email);
       }
     } catch (error) {
       logger.error('Error loading host email', error);
@@ -98,8 +97,8 @@ export function useSyncTabState({
 
     const pollSyncJobs = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user || !isMounted) return;
+        const { user, error: authError } = await getSafeUser();
+        if (authError || !user || !isMounted) return;
 
         // Fetch active sync jobs (pending or processing)
         const { data: jobs, error } = await supabase

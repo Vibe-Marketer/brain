@@ -132,6 +132,6 @@ export interface DebugPanelConfig {
   trackLargePayloads?: boolean;   // Warn on large responses (default: true)
   largePayloadThreshold?: number; // Threshold in bytes (default: 1MB = 1048576)
   trackLongTasks?: boolean;       // Detect main thread blocking (default: true)
-  longTaskThreshold?: number;     // Threshold in ms (default: 50)
+  longTaskThreshold?: number;     // Threshold in ms (default: 150 - relaxed from 50ms standard)
   trackResourceErrors?: boolean;  // Track failed images/scripts/CSS (default: true)
 }

@@ -14,6 +14,7 @@ import { useMeetingsSync, type Meeting, type CalendarInvitee } from "@/hooks/use
 import { useSyncTabState } from "@/hooks/useSyncTabState";
 import { DateRange } from "react-day-picker";
 import { logger } from "@/lib/logger";
+import { getSafeUser, requireUser } from "@/lib/auth-utils";
 
 export function SyncTab() {
   const isMobile = useIsMobile();
@@ -56,8 +57,8 @@ export function SyncTab() {
   // Functions needed by useSyncTabState hook
   const checkSyncStatus = async (recordingIds: string[]) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       const { data: syncedCalls } = await supabase
         .from('fathom_calls')
