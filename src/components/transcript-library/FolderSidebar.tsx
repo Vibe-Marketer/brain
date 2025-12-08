@@ -8,6 +8,8 @@ import {
   RiArrowRightSLine,
   RiArrowDownSLine,
   RiInboxLine,
+  RiSidebarFoldLine,
+  RiSidebarUnfoldLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,6 +26,8 @@ interface FolderSidebarProps {
   onNewFolder: () => void;
   onManageFolders: () => void;
   isDragging?: boolean;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 // Droppable folder item with drag feedback
@@ -39,6 +43,7 @@ interface DroppableFolderItemProps {
   childrenByParent: Record<string, Folder[]>;
   isDragging: boolean;
   expandedFolders: Set<string>;
+  isCollapsed?: boolean;
 }
 
 const DroppableFolderItem = React.memo(function DroppableFolderItem({
@@ -53,6 +58,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
   childrenByParent,
   isDragging,
   expandedFolders,
+  isCollapsed = false,
 }: DroppableFolderItemProps) {
   const hasChildren = children.length > 0;
   const count = folderCounts[folder.id] || 0;
@@ -75,67 +81,77 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
           'group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer',
           'transition-colors duration-150 overflow-hidden',
           isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
-          depth > 0 && 'ml-3',
+          depth > 0 && !isCollapsed && 'ml-3',
           // Drag feedback
           isDragging && 'ring-1 ring-cb-border ring-inset',
-          isOver && 'bg-cb-vibe-orange/10 ring-2 ring-cb-vibe-orange'
+          isOver && 'bg-cb-vibe-orange/10 ring-2 ring-cb-vibe-orange',
+          isCollapsed && 'justify-center'
         )}
         onClick={() => onSelect(folder.id)}
+        title={isCollapsed ? `${folder.name}${count > 0 ? ` (${count})` : ''}` : undefined}
       >
-        {/* Expand/Collapse */}
-        {hasChildren ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand(folder.id);
-            }}
-            className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-cb-border/50 mr-1"
-          >
-            {isExpanded ? (
-              <RiArrowDownSLine className="h-4 w-4 text-cb-ink-muted" />
+        {!isCollapsed && (
+          <>
+            {/* Expand/Collapse */}
+            {hasChildren ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleExpand(folder.id);
+                }}
+                className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-cb-border/50 mr-1"
+              >
+                {isExpanded ? (
+                  <RiArrowDownSLine className="h-4 w-4 text-cb-ink-muted" />
+                ) : (
+                  <RiArrowRightSLine className="h-4 w-4 text-cb-ink-muted" />
+                )}
+              </button>
             ) : (
-              <RiArrowRightSLine className="h-4 w-4 text-cb-ink-muted" />
+              <div className="w-6 flex-shrink-0" />
             )}
-          </button>
-        ) : (
-          <div className="w-6 flex-shrink-0" />
+          </>
         )}
 
         {/* Folder Icon */}
-        {isExpanded && hasChildren ? (
+        {isExpanded && hasChildren && !isCollapsed ? (
           <RiFolderOpenLine
-            className="h-4 w-4 flex-shrink-0 mr-2"
+            className={cn("h-4 w-4 flex-shrink-0", !isCollapsed && "mr-2")}
             style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
           />
         ) : (
           <RiFolderLine
-            className="h-4 w-4 flex-shrink-0 mr-2"
+            className={cn("h-4 w-4 flex-shrink-0", !isCollapsed && "mr-2")}
             style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
           />
         )}
 
-        {/* Folder Name - truncates with ellipsis */}
-        <span
-          className={cn(
-            'flex-1 min-w-0 truncate text-sm',
-            isSelected ? 'text-cb-ink font-medium' : 'text-cb-ink-soft',
-            isOver && 'text-cb-ink font-medium'
-          )}
-        >
-          {folder.name}
-        </span>
+        {!isCollapsed && (
+          <>
+            {/* Folder Name - truncates with ellipsis */}
+            <span
+              className={cn(
+                'flex-1 min-w-0 truncate text-sm',
+                isSelected ? 'text-cb-ink font-medium' : 'text-cb-ink-soft',
+                isOver && 'text-cb-ink font-medium'
+              )}
+            >
+              {folder.name}
+            </span>
 
-        {/* Count Badge */}
-        {count > 0 && (
-          <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
-            {count}
-          </Badge>
+            {/* Count Badge */}
+            {count > 0 && (
+              <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
+                {count}
+              </Badge>
+            )}
+          </>
         )}
       </div>
 
       {/* Children - nested */}
-      {hasChildren && isExpanded && (
+      {hasChildren && isExpanded && !isCollapsed && (
         <div className="mt-0.5">
           {children.sort((a, b) => a.position - b.position).map((child) => {
             const grandChildren = childrenByParent[child.id] || [];
@@ -153,6 +169,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
                 childrenByParent={childrenByParent}
                 isDragging={isDragging}
                 expandedFolders={expandedFolders}
+                isCollapsed={isCollapsed}
               />
             );
           })}
@@ -171,6 +188,8 @@ export function FolderSidebar({
   onNewFolder,
   onManageFolders,
   isDragging = false,
+  isCollapsed = false,
+  onToggleCollapse,
 }: FolderSidebarProps) {
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(new Set());
 
@@ -204,17 +223,41 @@ export function FolderSidebar({
 
   return (
     <div
-      className="h-full flex flex-col rounded-overflow"
+      className={cn(
+        "h-full flex flex-col rounded-overflow transition-all duration-300",
+        isCollapsed ? "w-[60px]" : "w-[280px]"
+      )}
       data-component="FOLDER-SIDEBAR"
     >
       {/* Header - matches ChatSidebar header */}
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
-          Folders
-        </h1>
-        <Button variant="ghost" size="icon" onClick={onNewFolder} aria-label="New folder">
-          <RiAddLine className="h-4 w-4" />
-        </Button>
+        {!isCollapsed && (
+          <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
+            Folders
+          </h1>
+        )}
+        <div className="flex items-center gap-1">
+          {!isCollapsed && (
+            <Button variant="ghost" size="icon" onClick={onNewFolder} aria-label="New folder">
+              <RiAddLine className="h-4 w-4" />
+            </Button>
+          )}
+          {onToggleCollapse && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={onToggleCollapse} 
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              className="hidden md:flex"
+            >
+              {isCollapsed ? (
+                <RiSidebarUnfoldLine className="h-4 w-4" />
+              ) : (
+                <RiSidebarFoldLine className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Folder list - compact padding, matches ChatSidebar ScrollArea */}
@@ -225,27 +268,33 @@ export function FolderSidebar({
             className={cn(
               'group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer',
               'transition-colors duration-150 overflow-hidden',
-              selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50'
+              selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+              isCollapsed && 'justify-center'
             )}
             onClick={() => onSelectFolder(null)}
+            title={isCollapsed ? `All Transcripts (${totalCount})` : undefined}
           >
-            <div className="w-6 flex-shrink-0" />
-            <RiInboxLine className="h-4 w-4 flex-shrink-0 mr-2 text-cb-ink-muted" />
-            <span
-              className={cn(
-                'flex-1 min-w-0 truncate text-sm',
-                selectedFolderId === null ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'
-              )}
-            >
-              All Transcripts
-            </span>
-            <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
-              {totalCount}
-            </Badge>
+            {!isCollapsed && <div className="w-6 flex-shrink-0" />}
+            <RiInboxLine className={cn("h-4 w-4 flex-shrink-0 text-cb-ink-muted", !isCollapsed && "mr-2")} />
+            {!isCollapsed && (
+              <>
+                <span
+                  className={cn(
+                    'flex-1 min-w-0 truncate text-sm',
+                    selectedFolderId === null ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'
+                  )}
+                >
+                  All Transcripts
+                </span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
+                  {totalCount}
+                </Badge>
+              </>
+            )}
           </div>
 
           {/* Folders section header */}
-          {folders.length > 0 && (
+          {folders.length > 0 && !isCollapsed && (
             <div className="px-2 py-2 mt-2">
               <span className="text-[11px] text-cb-ink-muted uppercase tracking-wider">
                 {isDragging ? 'Drop on a folder' : 'Folders'}
@@ -273,12 +322,13 @@ export function FolderSidebar({
                 childrenByParent={childrenByParent}
                 isDragging={isDragging}
                 expandedFolders={expandedFolders}
+                isCollapsed={isCollapsed}
               />
             );
           })}
 
           {/* Empty state - matches ChatSidebar empty state */}
-          {folders.length === 0 && (
+          {folders.length === 0 && !isCollapsed && (
             <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
               <RiFolderLine className="h-10 w-10 text-cb-ink-muted mb-3" aria-hidden="true" />
               <p className="text-sm text-cb-ink-soft mb-1">No folders yet</p>
@@ -292,10 +342,14 @@ export function FolderSidebar({
       <div className="p-2 border-t border-cb-border">
         <button
           onClick={onManageFolders}
-          className="flex items-center gap-2 w-full px-2 py-2 text-sm text-cb-ink-muted hover:text-cb-ink rounded-lg hover:bg-cb-hover/50 transition-colors"
+          className={cn(
+            "flex items-center gap-2 w-full px-2 py-2 text-sm text-cb-ink-muted hover:text-cb-ink rounded-lg hover:bg-cb-hover/50 transition-colors",
+            isCollapsed && "justify-center"
+          )}
+          title={isCollapsed ? "Manage Folders" : undefined}
         >
           <RiSettings3Line className="h-4 w-4" />
-          Manage Folders
+          {!isCollapsed && "Manage Folders"}
         </button>
       </div>
     </div>

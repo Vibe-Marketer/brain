@@ -91,6 +91,11 @@ export function TranscriptsTab() {
   // Sidebar state
   const [showSidebar, setShowSidebar] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // Load collapsed state from localStorage
+    const saved = localStorage.getItem('folderSidebarCollapsed');
+    return saved === 'true';
+  });
 
   // Dialog state
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
@@ -538,6 +543,12 @@ export function TranscriptsTab() {
     dragHelpers.handleDragEnd(event);
   };
 
+  const handleToggleSidebarCollapse = () => {
+    const newCollapsed = !sidebarCollapsed;
+    setSidebarCollapsed(newCollapsed);
+    localStorage.setItem('folderSidebarCollapsed', String(newCollapsed));
+  };
+
 
   return (
     <DndContext
@@ -580,11 +591,11 @@ export function TranscriptsTab() {
       <ChatOuterCard className="h-[calc(100vh-120px)]">
         {/* SIDEBAR */}
         <div
-          className={`
-            ${showSidebar ? 'fixed inset-y-0 left-0 z-50 shadow-2xl' : 'hidden'}
-            md:block md:relative md:shadow-none
-            w-[280px] flex-shrink-0 transition-all duration-200
-          `}
+          className={cn(
+            "flex-shrink-0 transition-all duration-300",
+            showSidebar ? 'fixed inset-y-0 left-0 z-50 shadow-2xl' : 'hidden',
+            'md:block md:relative md:shadow-none'
+          )}
         >
           <FolderSidebar
             folders={folders}
@@ -598,13 +609,15 @@ export function TranscriptsTab() {
             onNewFolder={() => setQuickCreateFolderOpen(true)}
             onManageFolders={() => setFolderManagementOpen(true)}
             isDragging={!!dragHelpers.activeDragId}
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={handleToggleSidebarCollapse}
           />
         </div>
 
         {/* BG-CARD-INNER: Main content */}
         <ChatInnerCard>
           {/* Header with mobile toggle */}
-          <div className="flex-shrink-0 px-4 py-2 border-b border-border">
+          <div className="flex-shrink-0 px-4 pt-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {/* Mobile menu toggle */}
@@ -616,17 +629,12 @@ export function TranscriptsTab() {
                 >
                   <RiMenuLine className="h-5 w-5" />
                 </Button>
-                <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
-                  {selectedFolderId
-                    ? folders.find(f => f.id === selectedFolderId)?.name || "Folder"
-                    : "All Transcripts"}
-                </h1>
               </div>
             </div>
           </div>
 
           {/* Content area with scroll */}
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto p-4 pt-2">
             {/* Filter bar */}
             <FilterBar
               filters={filters}
@@ -638,58 +646,59 @@ export function TranscriptsTab() {
               onCreateFolder={() => setQuickCreateFolderOpen(true)}
             />
 
-            <Separator className="my-4" />
-
             {/* Bulk Actions Toolbar */}
             {selectedCalls.length > 0 && (
-              <ErrorBoundary>
-                <BulkActionToolbarEnhanced
-                  selectedCount={selectedCalls.length}
-                  selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
-                  tags={tags}
-                  onTag={(tagId) => {
-                    tagMutation.mutate({
-                      callIds: selectedCalls,
-                      tagId,
-                    });
-                  }}
-                  onRemoveTag={() => {
-                    untagMutation.mutate({
-                      callIds: selectedCalls,
-                    });
-                  }}
-                  onClearSelection={() => setSelectedCalls([])}
-                  onDelete={handleDeleteCalls}
-                  onCreateNewTag={() => {
-                    setIsQuickCreateOpen(true);
-                    setPendingTagTranscripts(selectedCalls);
-                  }}
-                  onAssignFolder={() => setFolderDialogOpen(true)}
-                />
-              </ErrorBoundary>
+              <>
+                <div className="mt-4">
+                  <ErrorBoundary>
+                    <BulkActionToolbarEnhanced
+                      selectedCount={selectedCalls.length}
+                      selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
+                      tags={tags}
+                      onTag={(tagId) => {
+                        tagMutation.mutate({
+                          callIds: selectedCalls,
+                          tagId,
+                        });
+                      }}
+                      onRemoveTag={() => {
+                        untagMutation.mutate({
+                          callIds: selectedCalls,
+                        });
+                      }}
+                      onClearSelection={() => setSelectedCalls([])}
+                      onDelete={handleDeleteCalls}
+                      onCreateNewTag={() => {
+                        setIsQuickCreateOpen(true);
+                        setPendingTagTranscripts(selectedCalls);
+                      }}
+                      onAssignFolder={() => setFolderDialogOpen(true)}
+                    />
+                  </ErrorBoundary>
+                </div>
+              </>
             )}
 
-            {selectedCalls.length > 0 && <Separator className="my-4" />}
-
             {/* Content Area */}
-            {callsLoading ? (
-              <TranscriptTableSkeleton />
-            ) : validCalls.length === 0 ? (
-              <EmptyState
-                type={searchQuery || Object.keys(combinedFilters).length > 0 ? "no-results" : "no-transcripts"}
-                onAction={() => {
-                  setSearchQuery("");
-                  setFilters({});
-                  setSelectedFolderId(null);
-                }}
-              />
-            ) : (
-              <>
-                {/* AI Processing Progress */}
-                <AIProcessingProgress onJobsComplete={() => queryClient.invalidateQueries({ queryKey: ["transcript-calls"] })} />
+            <div className="mt-4">
+              {callsLoading ? (
+                <TranscriptTableSkeleton />
+              ) : validCalls.length === 0 ? (
+                <EmptyState
+                  type={searchQuery || Object.keys(combinedFilters).length > 0 ? "no-results" : "no-transcripts"}
+                  onAction={() => {
+                    setSearchQuery("");
+                    setFilters({});
+                    setSelectedFolderId(null);
+                  }}
+                />
+              ) : (
+                <>
+                  {/* AI Processing Progress */}
+                  <AIProcessingProgress onJobsComplete={() => queryClient.invalidateQueries({ queryKey: ["transcript-calls"] })} />
 
-                <ErrorBoundary>
-                  <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
+                  <ErrorBoundary>
+                    <div className="border-t border-cb-gray-light dark:border-cb-gray-dark mt-4">
                     <TranscriptTable
                       calls={validCalls}
                       selectedCalls={selectedCalls}
@@ -725,10 +734,11 @@ export function TranscriptsTab() {
                       }
                       onExport={() => setSmartExportOpen(true)}
                     />
-                  </div>
-                </ErrorBoundary>
-              </>
-            )}
+                    </div>
+                  </ErrorBoundary>
+                </>
+              )}
+            </div>
           </div>
         </ChatInnerCard>
       </ChatOuterCard>
