@@ -23,62 +23,45 @@ import { embedAllUnindexedTranscripts } from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 
-// AI Model presets - these map to the full model IDs used by the backend
-// Format: value (preset key) -> label (display name) -> provider -> description
+// AI Model presets - curated list of top models from major providers
+// Format: value (preset key) -> label (display name) -> provider -> description -> context
 // The preset keys are used for user_settings storage, actual model IDs are resolved in backend
 const AI_MODEL_PRESETS = [
-  // Z.AI models (Default)
-  { value: "z-ai/glm-4.6", label: "GLM-4.6", provider: "Z.AI", description: "Default model" },
   // OpenAI models
-  { value: "openai/gpt-4.1", label: "GPT-4.1", provider: "OpenAI", description: "Latest flagship model" },
-  { value: "openai/gpt-4o", label: "GPT-4o", provider: "OpenAI", description: "Most capable, multimodal" },
-  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", description: "Fast and efficient" },
-  { value: "openai/o1", label: "o1", provider: "OpenAI", description: "Advanced reasoning" },
-  { value: "openai/o1-mini", label: "o1 Mini", provider: "OpenAI", description: "Fast reasoning" },
-  { value: "openai/o3-mini", label: "o3 Mini", provider: "OpenAI", description: "Latest reasoning model" },
+  { value: "openai/gpt-4.1", label: "GPT-4.1", provider: "OpenAI", description: "Latest flagship", context: "1M" },
+  { value: "openai/gpt-4o", label: "GPT-4o", provider: "OpenAI", description: "Most capable", context: "128K" },
+  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", description: "Fast & efficient", context: "128K" },
+  { value: "openai/o3-mini", label: "o3 Mini", provider: "OpenAI", description: "Latest reasoning", context: "128K" },
   // Anthropic models
-  { value: "anthropic/claude-sonnet-4-20250514", label: "Claude Sonnet 4", provider: "Anthropic", description: "Latest Claude model" },
-  { value: "anthropic/claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", provider: "Anthropic", description: "Balanced quality & speed" },
-  { value: "anthropic/claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", provider: "Anthropic", description: "Fast and affordable" },
-  { value: "anthropic/claude-3-opus-20240229", label: "Claude 3 Opus", provider: "Anthropic", description: "Most capable Claude 3" },
+  { value: "anthropic/claude-sonnet-4-20250514", label: "Claude Sonnet 4", provider: "Anthropic", description: "Latest Claude", context: "200K" },
+  { value: "anthropic/claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", provider: "Anthropic", description: "Balanced quality", context: "200K" },
+  { value: "anthropic/claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", provider: "Anthropic", description: "Fast & affordable", context: "200K" },
   // Google models
-  { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "Google", description: "Fast multimodal" },
-  { value: "google/gemini-2.0-flash-thinking", label: "Gemini 2.0 Flash Thinking", provider: "Google", description: "Reasoning model" },
-  { value: "google/gemini-1.5-pro", label: "Gemini 1.5 Pro", provider: "Google", description: "Best for complex tasks" },
-  { value: "google/gemini-1.5-flash", label: "Gemini 1.5 Flash", provider: "Google", description: "Fast and efficient" },
+  { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "Google", description: "Fast multimodal", context: "1M" },
+  { value: "google/gemini-1.5-pro", label: "Gemini 1.5 Pro", provider: "Google", description: "Complex tasks", context: "1M" },
   // xAI models (Grok)
-  { value: "xai/grok-3", label: "Grok 3", provider: "xAI", description: "Latest xAI model" },
-  { value: "xai/grok-3-fast", label: "Grok 3 Fast", provider: "xAI", description: "Faster Grok 3" },
-  { value: "xai/grok-2-1212", label: "Grok 2", provider: "xAI", description: "Powerful reasoning" },
-  { value: "xai/grok-2-vision-1212", label: "Grok 2 Vision", provider: "xAI", description: "Multimodal Grok" },
-  // Groq models (Fast inference)
-  { value: "groq/llama-3.3-70b-versatile", label: "Llama 3.3 70B", provider: "Groq", description: "Fast Llama inference" },
-  { value: "groq/llama-3.1-8b-instant", label: "Llama 3.1 8B", provider: "Groq", description: "Ultra-fast inference" },
-  { value: "groq/mixtral-8x7b-32768", label: "Mixtral 8x7B", provider: "Groq", description: "Fast MoE model" },
-  // Mistral models
-  { value: "mistral/mistral-large-latest", label: "Mistral Large", provider: "Mistral", description: "Most capable Mistral" },
-  { value: "mistral/mistral-small-latest", label: "Mistral Small", provider: "Mistral", description: "Fast and efficient" },
-  { value: "mistral/codestral-latest", label: "Codestral", provider: "Mistral", description: "Optimized for code" },
+  { value: "xai/grok-3", label: "Grok 3", provider: "xAI", description: "Latest Grok", context: "128K" },
+  { value: "xai/grok-3-fast", label: "Grok 3 Fast", provider: "xAI", description: "Faster Grok", context: "128K" },
   // DeepSeek models
-  { value: "deepseek/deepseek-chat", label: "DeepSeek V3", provider: "DeepSeek", description: "Latest DeepSeek model" },
-  { value: "deepseek/deepseek-reasoner", label: "DeepSeek R1", provider: "DeepSeek", description: "Reasoning model" },
-  // Perplexity models
-  { value: "perplexity/sonar-pro", label: "Sonar Pro", provider: "Perplexity", description: "Best for research" },
-  { value: "perplexity/sonar", label: "Sonar", provider: "Perplexity", description: "Fast web search" },
+  { value: "deepseek/deepseek-chat", label: "DeepSeek V3", provider: "DeepSeek", description: "Powerful & affordable", context: "128K" },
+  { value: "deepseek/deepseek-reasoner", label: "DeepSeek R1", provider: "DeepSeek", description: "Reasoning model", context: "128K" },
+  // Groq models (Fast Llama inference)
+  { value: "groq/llama-3.3-70b-versatile", label: "Llama 3.3 70B", provider: "Groq", description: "Fast Llama", context: "128K" },
+  { value: "groq/llama-3.1-8b-instant", label: "Llama 3.1 8B", provider: "Groq", description: "Ultra-fast", context: "128K" },
 ] as const;
 
 // Group presets by provider for display
 const PRESET_GROUPS = {
-  "Z.AI": AI_MODEL_PRESETS.filter(p => p.provider === "Z.AI"),
   OpenAI: AI_MODEL_PRESETS.filter(p => p.provider === "OpenAI"),
   Anthropic: AI_MODEL_PRESETS.filter(p => p.provider === "Anthropic"),
   Google: AI_MODEL_PRESETS.filter(p => p.provider === "Google"),
   xAI: AI_MODEL_PRESETS.filter(p => p.provider === "xAI"),
-  Groq: AI_MODEL_PRESETS.filter(p => p.provider === "Groq"),
-  Mistral: AI_MODEL_PRESETS.filter(p => p.provider === "Mistral"),
   DeepSeek: AI_MODEL_PRESETS.filter(p => p.provider === "DeepSeek"),
-  Perplexity: AI_MODEL_PRESETS.filter(p => p.provider === "Perplexity"),
+  Groq: AI_MODEL_PRESETS.filter(p => p.provider === "Groq"),
 };
+
+// Default model - GPT-4.1 has 1M context and is the latest flagship
+const DEFAULT_MODEL = "openai/gpt-4.1";
 
 interface IndexingStats {
   totalChunks: number;
@@ -113,21 +96,22 @@ export default function AITab() {
   const [loading, setLoading] = useState(true);
   const [activeJob, setActiveJob] = useState<EmbeddingJob | null>(null);
 
-  // AI Model selection state - default to GLM-4.6
-  const [selectedModel, setSelectedModel] = useState("z-ai/glm-4.6");
-  const [savedModel, setSavedModel] = useState("z-ai/glm-4.6");
+  // AI Model selection state
+  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [savedModel, setSavedModel] = useState(DEFAULT_MODEL);
   const [modelSaving, setModelSaving] = useState(false);
 
   // Map legacy preset values to new format
   const mapLegacyPreset = (preset: string): string => {
     const legacyMap: Record<string, string> = {
-      'openai': 'z-ai/glm-4.6',  // Default to GLM-4.6
+      'openai': DEFAULT_MODEL,
       'fast': 'openai/gpt-4o-mini',
-      'quality': 'z-ai/glm-4.6',  // Default to GLM-4.6
-      'best': 'anthropic/claude-3-5-sonnet-20241022',
+      'quality': DEFAULT_MODEL,
+      'best': 'anthropic/claude-sonnet-4-20250514',
       'anthropic': 'anthropic/claude-3-5-haiku-20241022',
-      'google': 'google/gemini-1.5-flash',
-      'balanced': 'z-ai/glm-4.6',  // Default to GLM-4.6
+      'google': 'google/gemini-2.0-flash',
+      'balanced': DEFAULT_MODEL,
+      'z-ai/glm-4.6': DEFAULT_MODEL,  // Migrate old default
     };
     return legacyMap[preset] || preset;
   };
@@ -450,7 +434,10 @@ export default function AITab() {
                           {presets.map((preset) => (
                             <SelectItem key={preset.value} value={preset.value}>
                               <div className="flex flex-col">
-                                <span className="font-medium">{preset.label}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{preset.label}</span>
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{preset.context}</span>
+                                </div>
                                 <span className="text-xs text-muted-foreground">{preset.description}</span>
                               </div>
                             </SelectItem>
@@ -465,7 +452,7 @@ export default function AITab() {
               {currentModel && (
                 <div className="pt-3 border-t border-cb-border dark:border-cb-border-dark">
                   <p className="text-xs text-muted-foreground">
-                    <strong>Current:</strong> {currentModel.label} ({currentModel.provider}) - {currentModel.description}
+                    <strong>Current:</strong> {currentModel.label} ({currentModel.provider}) - {currentModel.description} · {currentModel.context} context
                   </p>
                 </div>
               )}

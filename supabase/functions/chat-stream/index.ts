@@ -322,7 +322,54 @@ async function executeSearchTranscripts(
   }
 
   if (!candidates || candidates.length === 0) {
-    return { message: 'No relevant transcripts found for this query.' };
+    // Fallback: Search summaries in fathom_calls when transcript search returns nothing
+    // This handles cases where keywords exist in AI-generated summaries but not raw speech
+    console.log('No transcript matches, falling back to summary search...');
+
+    const keywords = query.split(/\s+/).filter(word => word.length > 3).slice(0, 5);
+    if (keywords.length > 0) {
+      let summaryQuery = supabase
+        .from('fathom_calls')
+        .select('recording_id, title, created_at, summary, recorded_by_name')
+        .eq('user_id', user.id)
+        .not('summary', 'is', null);
+
+      // Apply session filters if present
+      if (filters?.date_start) {
+        summaryQuery = summaryQuery.gte('created_at', filters.date_start);
+      }
+      if (filters?.date_end) {
+        summaryQuery = summaryQuery.lte('created_at', filters.date_end);
+      }
+      if (filters?.recording_ids && filters.recording_ids.length > 0) {
+        summaryQuery = summaryQuery.in('recording_id', filters.recording_ids);
+      }
+
+      // Use ilike for case-insensitive search on any keyword
+      const { data: summaryMatches, error: summaryError } = await summaryQuery
+        .or(keywords.map(k => `summary.ilike.%${k}%`).join(','))
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (!summaryError && summaryMatches && summaryMatches.length > 0) {
+        console.log(`Found ${summaryMatches.length} matches in call summaries`);
+        return {
+          source: 'summaries',
+          message: 'Found matches in call summaries (not raw transcripts)',
+          results: summaryMatches.map((call: { recording_id: number; title: string; created_at: string; summary: string; recorded_by_name: string }, i: number) => ({
+            index: i + 1,
+            recording_id: call.recording_id,
+            call_title: call.title,
+            call_date: call.created_at,
+            recorded_by: call.recorded_by_name,
+            summary_excerpt: call.summary.substring(0, 800) + (call.summary.length > 800 ? '...' : ''),
+          })),
+          total_found: summaryMatches.length,
+        };
+      }
+    }
+
+    return { message: 'No relevant transcripts or summaries found for this query.' };
   }
 
   console.log(`Hybrid search returned ${candidates.length} candidates in ${Date.now() - searchStartTime}ms`);
