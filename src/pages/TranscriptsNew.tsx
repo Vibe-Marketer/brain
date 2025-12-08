@@ -24,32 +24,48 @@ const tabConfig = {
 
 const TranscriptsNew = () => {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [activeTab, setActiveTab] = useState<TabValue>((searchParams.get("tab") as TabValue) || "transcripts");
 
-  // Update URL when tab changes
-  useEffect(() => {
-    const currentTab = searchParams.get("tab");
-    if (currentTab !== activeTab && activeTab !== "transcripts") {
-      setSearchParams({ tab: activeTab });
-    } else if (activeTab === "transcripts" && currentTab) {
-      setSearchParams({});
+  // Derive initial tab from URL, defaulting to "transcripts"
+  const getTabFromUrl = (): TabValue => {
+    const urlTab = searchParams.get("tab") as TabValue;
+    if (urlTab && ["transcripts", "sync", "analytics"].includes(urlTab)) {
+      return urlTab;
     }
-  }, [activeTab, searchParams, setSearchParams]);
+    return "transcripts";
+  };
 
-  // Sync tab from URL
+  const [activeTab, setActiveTab] = useState<TabValue>(getTabFromUrl);
+
+  // Single effect to handle URL changes (browser back/forward)
   useEffect(() => {
-    const tabFromUrl = searchParams.get("tab") as TabValue;
-    if (tabFromUrl && tabFromUrl !== activeTab) {
+    const tabFromUrl = getTabFromUrl();
+    if (tabFromUrl !== activeTab) {
       setActiveTab(tabFromUrl);
     }
-  }, [searchParams, activeTab]);
+    // Only depend on searchParams - activeTab changes are handled by handleTabChange
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  // Handle tab changes from user clicks
+  const handleTabChange = (newTab: TabValue) => {
+    setActiveTab(newTab);
+    // Update URL immediately
+    if (newTab === "transcripts") {
+      // Remove tab param for default tab
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("tab");
+      setSearchParams(newParams, { replace: true });
+    } else {
+      setSearchParams({ tab: newTab }, { replace: true });
+    }
+  };
 
   const currentConfig = tabConfig[activeTab];
 
   return (
     <div className="min-h-screen bg-cb-white dark:bg-card">
       {/* Tabs at the very top */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)}>
+      <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabValue)}>
         <div className="max-w-[1800px] mx-auto pt-2">
           <TabsList>
             <TabsTrigger value="transcripts">TRANSCRIPTS</TabsTrigger>

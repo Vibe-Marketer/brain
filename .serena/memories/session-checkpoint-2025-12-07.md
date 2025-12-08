@@ -1,68 +1,85 @@
-# Session Checkpoint - 2025-12-07 (Updated)
+# Session Checkpoint - December 7, 2025
 
 ## Session Summary
-Enhanced the DebugPanel system with AI-optimized bug reports and user journey tracking.
+Major enhancement of the Debug Panel to become a fully portable "Sentry-in-a-Box" debugging system.
 
-## Commits This Session
-1. `35919ec` - feat: enhance debug dump with rich context for Claude Code
-2. `6c8f9cb` - feat(debug-panel): add user journey tracking and AI-optimized reports
+## Key Accomplishments
 
-## Major Changes
+### Debug Panel Enhancements (COMPLETED)
+1. **Performance Monitoring**
+   - Slow request detection (>3s threshold, configurable)
+   - Large payload warnings (>1MB threshold, configurable)
+   - Long task detection via PerformanceObserver (>50ms threshold)
+   - Resource error tracking (images, scripts, CSS, video, audio, iframes)
 
-### 1. AI Pre-Prompt Header
-Bug reports now include context for Claude Code:
-```markdown
-# CallVault Bug Report
+2. **Persistence & State**
+   - localStorage persistence for messages and action trail
+   - Session ID tracking via sessionStorage
+   - Error acknowledgment system with unread counts
+   - Messages survive page refresh
 
-> **Context for AI:** This is a structured bug report from CallVault's debug panel.
-> Analyze the errors below, identify root causes, and suggest specific fixes.
-> Reference file paths when available. Prioritize errors over warnings.
+3. **Tracking Features**
+   - HTTP 4xx/5xx error tracking with duration
+   - WebSocket event categorization (generation, phase, file, deployment, system, connection)
+   - User journey tracking (navigation, clicks, API calls)
+   - Rapid state change detection (infinite loop detection)
+
+4. **Documentation**
+   - Renamed `INSTALLATION.md` → `DEBUG-PANEL-INSTALL.md` for clarity
+   - Updated docs with all new performance monitoring features
+   - Added full configuration reference
+
+### Configuration Options
+```typescript
+interface DebugPanelConfig {
+  // Core settings
+  maxMessages?: number;           // default: 500
+  maxActions?: number;            // default: 50
+  persistMessages?: boolean;      // default: true
+  persistedMessageLimit?: number; // default: 100
+
+  // HTTP tracking
+  trackHttpErrors?: boolean;      // default: true
+  track4xxAsWarnings?: boolean;   // default: true
+
+  // Performance monitoring
+  trackSlowRequests?: boolean;    // default: true
+  slowRequestThreshold?: number;  // default: 3000ms
+  trackLargePayloads?: boolean;   // default: true
+  largePayloadThreshold?: number; // default: 1048576 (1MB)
+  trackLongTasks?: boolean;       // default: true
+  longTaskThreshold?: number;     // default: 50ms
+  trackResourceErrors?: boolean;  // default: true
+
+  // State tracking
+  rapidStateThreshold?: number;   // default: 20
+  rapidStateWindow?: number;      // default: 500ms
+}
 ```
-
-### 2. Action Trail / User Journey Tracking
-New automatic tracking in `DebugPanelContext.tsx`:
-- **Navigation**: Page loads, popstate (back/forward)
-- **Clicks**: Buttons, links, interactive elements with text
-- **API Calls**: All fetch requests with method/URL
-- Stores last 50 actions, shows last 10 in reports
-
-### 3. Enhanced Markdown Report Format
-- AI pre-prompt header for zero-explanation pasting
-- Summary table (errors, warnings, unique issues, time span)
-- User Journey section showing actions before errors
-- Grouped errors with occurrence counts
-
-### 4. Simplified UI
-- Removed: "Copy All" (JSON), "Copy MD" (separate)
-- Added: "Copy Report" (primary - MD with trail + AI context)
-- Renamed: "Download" → "Download Full" (JSON with screenshot)
 
 ## Files Modified
-- `src/components/debug-panel/types.ts` - Added ActionTrailEntry, EnhancedDebugDump
-- `src/components/debug-panel/debug-dump-utils.ts` - Added formatAsMarkdown with trail support
-- `src/components/debug-panel/DebugPanelContext.tsx` - Added action trail tracking
-- `src/components/debug-panel/DebugPanel.tsx` - Simplified UI, integrated trail
+- `src/components/debug-panel/DebugPanelContext.tsx` - Major rewrite with all new features
+- `src/components/debug-panel/DebugPanel.tsx` - Updated to use new context values
+- `src/components/debug-panel/types.ts` - Added new config options
+- `src/components/debug-panel/index.ts` - Updated exports
+- `src/components/debug-panel/DEBUG-PANEL-INSTALL.md` - New installation guide
 
-## Key Decisions
-1. **Markdown over JSON for primary copy** - AI agents parse MD natively, no explanation needed
-2. **Keep JSON for Download** - Archives need screenshots and full data
-3. **Auto-track user journey** - Navigation, clicks, API calls captured automatically
-4. **AI pre-prompt in header** - Frames data for immediate analysis
+## Git Commits
+- `549461f` - feat(debug-panel): add comprehensive performance monitoring
 
-## User Journey Tracking Implementation
-```typescript
-// In DebugPanelContext.tsx
-- logAction('navigation', `Page loaded: ${pathname}`, fullUrl)
-- logAction('click', `Clicked ${tagName}: "${text}"`, className)
-- logAction('api_call', `${method} ${shortUrl}`, fullUrl)
-```
+## Technical Decisions
+1. **Sentry Integration** - Made conditional via dynamic require. Works if installed, skips if not.
+2. **PerformanceObserver** - Used for long task detection (standard 50ms threshold)
+3. **Resource Errors** - Captured via window error event in capture phase (they don't bubble)
+4. **localStorage** - Used for persistence with configurable limits
 
-## Next Steps (If Continuing)
-- Consider adding `state_change` tracking for Zustand/context updates
-- Could add `user_input` tracking for form submissions
-- Screenshot functionality already works in Download Full
+## Notes for Future Sessions
+- Debug Panel is now portable - can be copied to any React project
+- Only required dependency is `@remixicon/react`
+- Optional: `html2canvas-pro` for screenshot capture
+- Sentry integration is transparent - works if present, ignored if not
 
-## Branch Status
-- Branch: main
-- All changes pushed
-- Build passing
+## Project Status
+- Debug Panel: ✅ COMPLETE and fully enhanced
+- Ready for production use
+- Pushed to main branch

@@ -330,32 +330,47 @@ export default function Chat() {
 
   // Fetch available filters on mount
   React.useEffect(() => {
+    // Track if component is still mounted to prevent state updates after unmount
+    let isMounted = true;
+
     async function fetchFilterOptions() {
       if (!session?.access_token) return;
 
-      // Fetch speakers
-      const { data: speakers } = await supabase.rpc('get_user_speakers', {
-        p_user_id: session.user.id,
-      });
-      if (speakers) setAvailableSpeakers(speakers);
+      try {
+        // Fetch speakers
+        const { data: speakers } = await supabase.rpc('get_user_speakers', {
+          p_user_id: session.user.id,
+        });
+        if (isMounted && speakers) setAvailableSpeakers(speakers);
 
-      // Fetch categories
-      const { data: categories } = await supabase.rpc('get_user_categories', {
-        p_user_id: session.user.id,
-      });
-      if (categories) setAvailableCategories(categories);
+        // Fetch categories
+        const { data: categories } = await supabase.rpc('get_user_categories', {
+          p_user_id: session.user.id,
+        });
+        if (isMounted && categories) setAvailableCategories(categories);
 
-      // Fetch recent calls
-      const { data: calls } = await supabase
-        .from('fathom_calls')
-        .select('recording_id, title, created_at')
-        .eq('user_id', session.user.id)
-        .order('created_at', { ascending: false })
-        .limit(30);
-      if (calls) setAvailableCalls(calls);
+        // Fetch recent calls
+        const { data: calls } = await supabase
+          .from('fathom_calls')
+          .select('recording_id, title, created_at')
+          .eq('user_id', session.user.id)
+          .order('created_at', { ascending: false })
+          .limit(30);
+        if (isMounted && calls) setAvailableCalls(calls);
+      } catch (error) {
+        // Only log errors if component is still mounted (ignore abort errors)
+        if (isMounted) {
+          console.error('Failed to fetch filter options:', error);
+        }
+      }
     }
 
     fetchFilterOptions();
+
+    // Cleanup: mark as unmounted to prevent state updates
+    return () => {
+      isMounted = false;
+    };
   }, [session]);
 
   // Handle incoming location state for pre-filtering
@@ -375,17 +390,22 @@ export default function Chat() {
   // CRITICAL: Filters must be loaded BEFORE messages to ensure transport has correct config
   // This prevents a 10-20ms race where messages load with stale/default filters
   React.useEffect(() => {
+    // Track if component is still mounted to prevent state updates after unmount
+    let isMounted = true;
+
     async function loadSession() {
       // Clear state atomically when no session selected
       if (!sessionId) {
-        setCurrentSessionId(null);
-        currentSessionIdRef.current = null;
-        setMessages([]);
-        setFilters({
-          speakers: [],
-          categories: [],
-          recordingIds: [],
-        });
+        if (isMounted) {
+          setCurrentSessionId(null);
+          currentSessionIdRef.current = null;
+          setMessages([]);
+          setFilters({
+            speakers: [],
+            categories: [],
+            recordingIds: [],
+          });
+        }
         return;
       }
 
@@ -394,7 +414,7 @@ export default function Chat() {
         // This ensures the transport is configured with correct filters when messages arrive
         // Use sessionsRef.current to avoid infinite re-render loop (React Query returns new array ref each query)
         const sessionMeta = sessionsRef.current.find((s) => s.id === sessionId);
-        if (sessionMeta) {
+        if (sessionMeta && isMounted) {
           const nextFilters: ChatFilters = {
             dateStart: sessionMeta.filter_date_start ? new Date(sessionMeta.filter_date_start) : undefined,
             dateEnd: sessionMeta.filter_date_end ? new Date(sessionMeta.filter_date_end) : undefined,
@@ -412,6 +432,10 @@ export default function Chat() {
 
         // STEP 2: Load messages (transport now uses correct filters from step 1)
         const loadedMessages = await fetchMessages(sessionId);
+
+        // Only update state if still mounted
+        if (!isMounted) return;
+
         console.log(`Loaded ${loadedMessages.length} messages for session ${sessionId}`);
 
         // Convert loaded messages to UIMessage format
@@ -428,11 +452,19 @@ export default function Chat() {
         setCurrentSessionId(sessionId);
         currentSessionIdRef.current = sessionId;
       } catch (err) {
-        console.error('Failed to load session:', err);
+        // Only log errors if component is still mounted
+        if (isMounted) {
+          console.error('Failed to load session:', err);
+        }
       }
     }
 
     loadSession();
+
+    // Cleanup: mark as unmounted to prevent state updates
+    return () => {
+      isMounted = false;
+    };
     // NOTE: sessions intentionally excluded - using sessionsRef.current to break React Query infinite loop
   }, [sessionId, fetchMessages, setMessages]);
 

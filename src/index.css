@@ -99,6 +99,10 @@ CallVault™ Brand System v4.0
     /* Button Focus Ring (vibe orange) */
     --btn-focus-ring: var(--vibe-orange);  /* #FF8800 */
 
+    /* Button Gradients - Glossy 3D effect */
+    --btn-gradient-slate: linear-gradient(160deg, hsl(213 14% 45%) 0%, hsl(207 19% 28%) 100%);
+    --btn-gradient-destructive: linear-gradient(160deg, hsl(0 74% 60%) 0%, hsl(0 56% 51%) 100%);
+
     /* ============================================
        SEMANTIC STATUS COLORS
        Professional indicators with subtle backgrounds

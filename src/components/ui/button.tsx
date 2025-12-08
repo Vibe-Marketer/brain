@@ -49,15 +49,17 @@ const sizeStyles = {
 };
 
 // Variant styles - 3D glossy buttons (default = slate, destructive = red)
+// Colors use CSS custom properties for maintainability
 const getVariantStyles = (variant: string, size: string) => {
   const shadowScale = size === 'sm' ? 0.8 : size === 'lg' ? 1.1 : 1;
 
   switch (variant) {
     case 'default':
+      // Primary slate gradient button - uses design token colors
       return {
-        background: 'linear-gradient(160deg, #627285 0%, #394655 100%)',  // Slate gradient
-        color: 'white',
-        borderColor: 'rgba(57, 70, 85, 0.8)',
+        background: 'var(--btn-gradient-slate, linear-gradient(160deg, hsl(213 14% 45%) 0%, hsl(207 19% 28%) 100%))',
+        color: 'hsl(var(--btn-text-primary))',
+        borderColor: 'hsl(207 19% 28% / 0.8)',
         borderWidth: '1px',
         textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)',
         boxShadow: `
@@ -67,10 +69,11 @@ const getVariantStyles = (variant: string, size: string) => {
         `,
       };
     case 'destructive':
+      // Destructive red gradient button - uses design token colors
       return {
-        background: 'linear-gradient(160deg, #E54D4D 0%, #C93A3A 100%)',
-        color: 'white',
-        borderColor: 'rgba(190, 50, 50, 0.8)',
+        background: 'var(--btn-gradient-destructive, linear-gradient(160deg, hsl(0 74% 60%) 0%, hsl(0 56% 51%) 100%))',
+        color: 'hsl(var(--btn-text-primary))',
+        borderColor: 'hsl(0 59% 47% / 0.8)',
         borderWidth: '1px',
         textShadow: '0 1px 2px rgba(0, 0, 0, 0.25)',
         boxShadow: `
@@ -167,22 +170,17 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       );
     }
     
-    // Special case: link variant
+    // Special case: link variant - uses design tokens for text color
     if (variant === 'link') {
       return (
         <Comp
           ref={ref}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#1a1a1a',
-            textDecoration: 'underline-offset-4',
-            cursor: 'pointer',
-            fontWeight: '500',
-            padding: '0',
-            height: 'auto',
-          }}
-          className={cn('hover:underline inline-flex items-center justify-center', className)}
+          className={cn(
+            'bg-transparent border-none underline-offset-4 cursor-pointer font-medium p-0 h-auto',
+            'text-cb-ink dark:text-white',
+            'hover:underline inline-flex items-center justify-center',
+            className
+          )}
           {...props}
         />
       );

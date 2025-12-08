@@ -130,11 +130,32 @@ export function TranscriptsTab() {
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
   const [pendingTagTranscripts, setPendingTagTranscripts] = useState<number[]>([]);
 
-  // Update URL params when filters change
+  // Update URL params when filters change (preserve tab param)
   useEffect(() => {
-    const params = filtersToURLParams(filters);
-    if (params.toString() !== searchParams.toString()) {
-      setSearchParams(params, { replace: true });
+    const filterParams = filtersToURLParams(filters);
+    const newParams = new URLSearchParams(searchParams);
+
+    // Preserve the tab parameter
+    const currentTab = newParams.get("tab");
+
+    // Remove all filter-related params first, then add new ones
+    ["from", "to", "participants", "categories", "durMin", "durMax", "tags", "folders"].forEach(key => {
+      newParams.delete(key);
+    });
+
+    // Add filter params
+    filterParams.forEach((value, key) => {
+      newParams.set(key, value);
+    });
+
+    // Restore tab if it was set
+    if (currentTab) {
+      newParams.set("tab", currentTab);
+    }
+
+    // Only update if actually changed
+    if (newParams.toString() !== searchParams.toString()) {
+      setSearchParams(newParams, { replace: true });
     }
   }, [filters, searchParams, setSearchParams]);
 

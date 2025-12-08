@@ -268,10 +268,16 @@ export function SyncTab() {
     }
   };
 
-  // Load existing transcripts when filters change
+  // Load existing transcripts only when a date range is set (user has searched)
   useEffect(() => {
-    loadExistingTranscripts();
-  }, [loadExistingTranscripts]);
+    if (dateRange?.from || dateRange?.to) {
+      loadExistingTranscripts();
+    } else {
+      // Clear existing transcripts when no date range is set
+      setExistingTranscripts([]);
+      setExistingTotalCount(0);
+    }
+  }, [dateRange, loadExistingTranscripts]);
 
   const loadTagAssignments = async (recordingIds: string[]) => {
     try {

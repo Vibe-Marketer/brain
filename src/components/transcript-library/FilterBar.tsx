@@ -50,17 +50,36 @@ export function FilterBar({
 
   // Fetch all unique participants
   useEffect(() => {
+    // Track if component is still mounted to prevent state updates after unmount
+    let isMounted = true;
+
     const fetchParticipants = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        // Use safe destructuring to handle network errors
+        const userResponse = await supabase.auth.getUser();
+
+        // Check for errors in the response (network issues, etc.)
+        if (userResponse.error) {
+          logger.warn("Error getting user for participants fetch", userResponse.error);
+          return;
+        }
+
+        const user = userResponse.data?.user;
         if (!user) return;
 
-        const { data } = await supabase
+        const { data, error: fetchError } = await supabase
           .from("fathom_calls")
           .select("calendar_invitees")
           .eq("user_id", user.id);
 
-        if (data) {
+        if (fetchError) {
+          if (isMounted) {
+            logger.error("Error fetching participants data", fetchError);
+          }
+          return;
+        }
+
+        if (isMounted && data) {
           const participantsSet = new Set<string>();
           data.forEach((call: { calendar_invitees?: CalendarInvitee[] | null }) => {
             if (call.calendar_invitees && Array.isArray(call.calendar_invitees)) {
@@ -72,10 +91,18 @@ export function FilterBar({
           setAllParticipants(Array.from(participantsSet).sort());
         }
       } catch (error) {
-        logger.error("Error fetching participants", error);
+        // Only log errors if component is still mounted
+        if (isMounted) {
+          logger.error("Error fetching participants", error);
+        }
       }
     };
     fetchParticipants();
+
+    // Cleanup: mark as unmounted to prevent state updates
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const formatDateRange = (from?: Date, to?: Date) => {
@@ -189,7 +216,7 @@ export function FilterBar({
             variant="link"
             size="sm"
             onClick={handleClearAll}
-            className="h-8 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 px-2"
+            className="h-8 text-xs text-cb-ink-soft hover:text-cb-ink dark:text-cb-text-dark-secondary dark:hover:text-white px-2"
           >
             Clear all
           </Button>

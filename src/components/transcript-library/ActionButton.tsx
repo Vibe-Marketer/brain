@@ -33,11 +33,11 @@ export const ActionButton = React.forwardRef<HTMLButtonElement, ActionButtonProp
       );
     }
 
-    const desktopClasses = variant === "default"
-      ? "h-8 gap-2 bg-cb-black text-cb-white hover:bg-cb-hover"
-      : variant === "destructive"
-      ? "h-8 gap-2"
-      : "h-8 gap-2";
+    // Use proper button variants - no custom overrides needed
+    // default = glossy slate button (per brand guidelines)
+    // destructive = glossy red button
+    // hollow = white bordered button
+    const desktopClasses = "h-8 gap-2";
 
     return (
       <Button

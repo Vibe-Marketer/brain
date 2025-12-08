@@ -128,7 +128,8 @@ export default function Login() {
               <form onSubmit={handleSignIn} className="space-y-4">
                 <Button
                   type="button"
-                  className="w-full bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white border-[#1a1a1a]"
+                  variant="hollow"
+                  className="w-full"
                   onClick={handleGoogleSignIn}
                   disabled={loading}
                 >
@@ -196,7 +197,8 @@ export default function Login() {
               <form onSubmit={handleSignUp} className="space-y-4">
                 <Button
                   type="button"
-                  className="w-full bg-[#1a1a1a] hover:bg-[#2a2a2a] text-white border-[#1a1a1a]"
+                  variant="hollow"
+                  className="w-full"
                   onClick={handleGoogleSignIn}
                   disabled={loading}
                 >
