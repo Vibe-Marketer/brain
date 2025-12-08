@@ -1,59 +1,68 @@
-# Session Checkpoint - December 7, 2025
+# Session Checkpoint - 2025-12-07 (Updated)
 
-## Session Focus
-Integration of ErrorBoundary with DebugPanel for React error visibility.
+## Session Summary
+Enhanced the DebugPanel system with AI-optimized bug reports and user journey tracking.
 
-## Completed Tasks
+## Commits This Session
+1. `35919ec` - feat: enhance debug dump with rich context for Claude Code
+2. `6c8f9cb` - feat(debug-panel): add user journey tracking and AI-optimized reports
 
-### ErrorBoundary-DebugPanel Integration
-- **Commit**: `7cbd38f` (pushed to main)
-- **Problem**: React errors caught by ErrorBoundary weren't visible in the new DebugPanel
-- **Root Cause**: React errors during render are caught by React's ErrorBoundary system, not `window.onerror`. DebugPanel's handlers are set up in `useEffect` which runs AFTER render.
-- **Solution**: Added direct `debugLog` call in ErrorBoundary's `componentDidCatch` method
+## Major Changes
 
-### Files Modified
-1. **`src/components/ErrorBoundary.tsx`**
-   - Added import: `import { debugLog } from '@/components/debug-panel';`
-   - Added `debugLog` call in `componentDidCatch` (lines 59-69)
-   - Includes: error name, message, stack, component stack, isChunkLoadError flag
-   - Category: 'react', Source: 'ErrorBoundary'
+### 1. AI Pre-Prompt Header
+Bug reports now include context for Claude Code:
+```markdown
+# CallVault Bug Report
 
-2. **`src/components/debug-panel/types.ts`**
-   - Added `'react'` to category union type (line 16)
-   - Added `'react'` to CategoryFilter type (line 42)
-
-### Prior Session Work (Summarized)
-- Fixed React hooks violations in DebugPanel.tsx (moved `useMemo` hooks before early return)
-- Renamed unused state to `_categoryFilter`
-- Moved `categorizeMessage` helper outside component
-- All 47 tests passing, build successful
-
-## Key Technical Insights
-
-### Why ErrorBoundary Errors Weren't Captured
-1. `window.onerror` doesn't catch React render errors
-2. React's error boundary system handles these internally
-3. `useEffect` runs AFTER render - if error occurs during render, handlers aren't active yet
-4. Solution: Direct integration via `debugLog` function (module-level, works from class components)
-
-### debugLog Function Pattern
-```typescript
-// Can be called from anywhere, including class components
-debugLog('error', 'Error message', {
-  source: 'ComponentName',
-  category: 'react',
-  metadata: { /* error details */ }
-});
+> **Context for AI:** This is a structured bug report from CallVault's debug panel.
+> Analyze the errors below, identify root causes, and suggest specific fixes.
+> Reference file paths when available. Prioritize errors over warnings.
 ```
 
-## Verification Status
-- ✅ Type-check passed
-- ✅ Lint: 0 errors (6 fast-refresh warnings - pre-existing)
-- ✅ All 47 tests passing
-- ✅ Build successful (22.47s)
-- ✅ Pushed to main
+### 2. Action Trail / User Journey Tracking
+New automatic tracking in `DebugPanelContext.tsx`:
+- **Navigation**: Page loads, popstate (back/forward)
+- **Clicks**: Buttons, links, interactive elements with text
+- **API Calls**: All fetch requests with method/URL
+- Stores last 50 actions, shows last 10 in reports
 
-## Next Steps (If Needed)
-- The infinite loop bug (Error #185) is being fixed separately
-- Once fixed, React errors should appear in DebugPanel with full details
-- May want to add category filter dropdown to DebugPanel UI for 'react' category
+### 3. Enhanced Markdown Report Format
+- AI pre-prompt header for zero-explanation pasting
+- Summary table (errors, warnings, unique issues, time span)
+- User Journey section showing actions before errors
+- Grouped errors with occurrence counts
+
+### 4. Simplified UI
+- Removed: "Copy All" (JSON), "Copy MD" (separate)
+- Added: "Copy Report" (primary - MD with trail + AI context)
+- Renamed: "Download" → "Download Full" (JSON with screenshot)
+
+## Files Modified
+- `src/components/debug-panel/types.ts` - Added ActionTrailEntry, EnhancedDebugDump
+- `src/components/debug-panel/debug-dump-utils.ts` - Added formatAsMarkdown with trail support
+- `src/components/debug-panel/DebugPanelContext.tsx` - Added action trail tracking
+- `src/components/debug-panel/DebugPanel.tsx` - Simplified UI, integrated trail
+
+## Key Decisions
+1. **Markdown over JSON for primary copy** - AI agents parse MD natively, no explanation needed
+2. **Keep JSON for Download** - Archives need screenshots and full data
+3. **Auto-track user journey** - Navigation, clicks, API calls captured automatically
+4. **AI pre-prompt in header** - Frames data for immediate analysis
+
+## User Journey Tracking Implementation
+```typescript
+// In DebugPanelContext.tsx
+- logAction('navigation', `Page loaded: ${pathname}`, fullUrl)
+- logAction('click', `Clicked ${tagName}: "${text}"`, className)
+- logAction('api_call', `${method} ${shortUrl}`, fullUrl)
+```
+
+## Next Steps (If Continuing)
+- Consider adding `state_change` tracking for Zustand/context updates
+- Could add `user_input` tracking for form submissions
+- Screenshot functionality already works in Download Full
+
+## Branch Status
+- Branch: main
+- All changes pushed
+- Build passing

@@ -1,10 +1,54 @@
 /**
  * Debug Panel Module
  *
- * Admin-only debugging console with comprehensive error tracking,
- * analytics, timeline view, and debug dump export.
+ * Portable "Sentry-in-a-Box" debugging console with:
+ * - Comprehensive error tracking (JS exceptions, network, console)
+ * - localStorage persistence (survives refresh)
+ * - User journey tracking (navigation, clicks, API calls)
+ * - WebSocket event logging
+ * - Rapid state change detection (infinite loop detection)
+ * - Markdown export for AI-assisted debugging
+ *
+ * See INSTALLATION.md for setup instructions.
  */
 
+// Main components
 export { DebugPanel } from './DebugPanel';
-export { DebugPanelProvider, useDebugPanel, debugLog } from './DebugPanelContext';
-export type { DebugMessage, DebugDump, MessageFilter, CategoryFilter, ViewMode } from './types';
+
+// Context and hooks
+export {
+  DebugPanelProvider,
+  useDebugPanel,
+  useStateTracker,
+  useNavigationTracker,
+  // Global logging functions (for non-React code)
+  setGlobalDebugLogger,
+  debugLog,
+  debugAction,
+  debugWebSocket,
+} from './DebugPanelContext';
+
+// Types
+export type {
+  DebugMessage,
+  DebugDump,
+  EnhancedDebugDump,
+  ActionTrailEntry,
+  MessageFilter,
+  CategoryFilter,
+  ViewMode,
+  DebugPanelConfig,
+} from './types';
+
+// Constants
+export { STORAGE_KEYS } from './types';
+
+// Utilities
+export {
+  formatAsMarkdown,
+  generateSummary,
+  groupErrors,
+  parseUserAgent,
+  calculateTimeSpan,
+  parseStackTrace,
+} from './debug-dump-utils';

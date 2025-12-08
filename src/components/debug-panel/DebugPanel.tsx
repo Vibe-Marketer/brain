@@ -89,7 +89,17 @@ function categorizeMessage(msg: DebugMessage): DebugMessage['category'] {
 
 function DebugPanelCore() {
   const { isAdmin, loading: roleLoading } = useUserRole();
-  const { messages, actionTrail, clearMessages, toggleBookmark, addMessage } = useDebugPanel();
+  const {
+    messages,
+    actionTrail,
+    unacknowledgedCount,
+    clearMessages,
+    toggleBookmark,
+    acknowledgeErrors,
+    addMessage,
+    logAction,
+    logWebSocket,
+  } = useDebugPanel();
 
   const [isOpen, setIsOpen] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -104,10 +114,17 @@ function DebugPanelCore() {
 
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Register global logger
+  // Register global logger with all functions
   useEffect(() => {
-    setGlobalDebugLogger(addMessage);
-  }, [addMessage]);
+    setGlobalDebugLogger(addMessage, logAction, logWebSocket);
+  }, [addMessage, logAction, logWebSocket]);
+
+  // Acknowledge errors when panel is opened
+  useEffect(() => {
+    if (isOpen && unacknowledgedCount > 0) {
+      acknowledgeErrors();
+    }
+  }, [isOpen, unacknowledgedCount, acknowledgeErrors]);
 
   // Compute counts early (needed for analytics)
   const errorCount = messages.filter(m => m.type === 'error').length;
@@ -309,19 +326,19 @@ function DebugPanelCore() {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`fixed bottom-6 right-6 z-[9999] p-3 rounded-full shadow-lg transition-all duration-300 hover:scale-105 ${
-          errorCount > 0 && !isOpen
+          unacknowledgedCount > 0 && !isOpen
             ? 'bg-red-500 text-white animate-pulse'
             : warningCount > 0 && !isOpen
             ? 'bg-yellow-500 text-white'
             : 'bg-gray-800 text-white hover:bg-gray-700'
         }`}
-        title={`Debug Console (${errorCount} errors, ${warningCount} warnings)`}
+        title={`Debug Console (${unacknowledgedCount} unread, ${errorCount} total errors, ${warningCount} warnings)`}
         data-debug-panel
       >
         <RiBugLine className="w-5 h-5" />
-        {(errorCount > 0 || warningCount > 0) && (
+        {(unacknowledgedCount > 0 || (warningCount > 0 && !isOpen)) && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
-            {errorCount > 0 ? errorCount : warningCount}
+            {unacknowledgedCount > 0 ? unacknowledgedCount : warningCount}
           </span>
         )}
       </button>

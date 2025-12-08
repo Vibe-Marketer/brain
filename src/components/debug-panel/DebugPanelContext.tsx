@@ -4,13 +4,51 @@
  * Global state management for debug messages.
  * Provides addMessage() for logging from anywhere in the app.
  * Integrates with Sentry for production error tracking.
+ *
+ * Features:
+ * - localStorage persistence (survives refresh)
+ * - 4xx/5xx HTTP error tracking
+ * - WebSocket event logging
+ * - Rapid state change detection
+ * - Error acknowledgment system
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import * as Sentry from '@sentry/react';
-import type { DebugMessage, ActionTrailEntry } from './types';
+import type { DebugMessage, ActionTrailEntry, DebugPanelConfig } from './types';
+import { STORAGE_KEYS } from './types';
 
-const MAX_MESSAGES = 500; // Limit to prevent memory issues
+// Sentry is OPTIONAL - only used if already installed in the host app
+// This allows the Debug Panel to work as a standalone "Sentry replacement"
+let Sentry: typeof import('@sentry/react') | null = null;
+try {
+  // Dynamic import check - only loads if @sentry/react is installed
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  Sentry = require('@sentry/react');
+} catch {
+  // Sentry not installed - that's fine, we'll skip Sentry integration
+  Sentry = null;
+}
+
+// Default configuration
+const DEFAULT_CONFIG: Required<DebugPanelConfig> = {
+  maxMessages: 500,
+  maxActions: 50,
+  persistMessages: true,
+  persistedMessageLimit: 100,
+  trackHttpErrors: true,
+  track4xxAsWarnings: true,
+  enableSentry: true,
+  rapidStateThreshold: 20,
+  rapidStateWindow: 500,
+  // Performance tracking defaults
+  trackSlowRequests: true,
+  slowRequestThreshold: 3000,      // 3 seconds
+  trackLargePayloads: true,
+  largePayloadThreshold: 1048576,  // 1 MB
+  trackLongTasks: true,
+  longTaskThreshold: 50,           // 50ms (standard long task definition)
+  trackResourceErrors: true,
+};
 
 // Patterns to ignore (browser extensions, etc.)
 const IGNORE_PATTERNS = [
@@ -24,15 +62,111 @@ function shouldIgnore(message: string): boolean {
   return IGNORE_PATTERNS.some(pattern => pattern.test(message));
 }
 
-const MAX_ACTIONS = 50; // Limit action trail history
+/**
+ * Extract meaningful error messages from various object shapes
+ */
+function extractErrorMessage(arg: unknown): string {
+  if (arg instanceof Error) {
+    return `${arg.name}: ${arg.message}`;
+  }
+  if (typeof arg === 'string') {
+    return arg;
+  }
+  if (typeof arg === 'object' && arg !== null) {
+    const obj = arg as Record<string, unknown>;
+    // Try common error properties in priority order
+    if (obj.message && typeof obj.message === 'string') return obj.message;
+    if (obj.error && typeof obj.error === 'string') return obj.error;
+    if (obj.errorMessage && typeof obj.errorMessage === 'string') return obj.errorMessage;
+    if (obj.msg && typeof obj.msg === 'string') return obj.msg;
+    if (obj.reason && typeof obj.reason === 'string') return obj.reason;
+    if (obj.code) return `Error code: ${String(obj.code)}`;
+    if (obj.statusText && typeof obj.statusText === 'string') return obj.statusText;
+
+    // Try to stringify, but handle empty objects specially
+    try {
+      const str = JSON.stringify(arg, null, 2);
+      if (str === '{}') return '[Empty Error Object - check stack trace]';
+      if (str === '[]') return '[Empty Array]';
+      return str;
+    } catch {
+      return '[Unserializable Object]';
+    }
+  }
+  return String(arg);
+}
+
+/**
+ * Load persisted messages from localStorage
+ */
+function loadPersistedMessages(): DebugMessage[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.MESSAGES);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return [];
+}
+
+/**
+ * Load persisted action trail from localStorage
+ */
+function loadPersistedActions(): ActionTrailEntry[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.ACTION_TRAIL);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Ignore parse errors
+  }
+  return [];
+}
+
+/**
+ * Save messages to localStorage
+ */
+function persistMessages(messages: DebugMessage[], limit: number): void {
+  try {
+    const toSave = messages.slice(-limit);
+    localStorage.setItem(STORAGE_KEYS.MESSAGES, JSON.stringify(toSave));
+  } catch {
+    // Ignore storage errors (quota exceeded, etc.)
+  }
+}
+
+/**
+ * Save action trail to localStorage
+ */
+function persistActions(actions: ActionTrailEntry[], limit: number): void {
+  try {
+    const toSave = actions.slice(-limit);
+    localStorage.setItem(STORAGE_KEYS.ACTION_TRAIL, JSON.stringify(toSave));
+  } catch {
+    // Ignore storage errors
+  }
+}
 
 interface DebugPanelContextType {
   messages: DebugMessage[];
   actionTrail: ActionTrailEntry[];
+  unacknowledgedCount: number;
   addMessage: (msg: Omit<DebugMessage, 'id' | 'timestamp'> & { id?: string; timestamp?: number }) => void;
   logAction: (action: ActionTrailEntry['action'], description: string, details?: string) => void;
+  logWebSocket: (messageType: string, data: unknown, wsCategory?: DebugMessage['wsCategory']) => void;
   clearMessages: () => void;
   toggleBookmark: (messageId: string) => void;
+  acknowledgeErrors: () => void;
+  acknowledgeMessage: (messageId: string) => void;
 }
 
 const DebugPanelContext = createContext<DebugPanelContextType | undefined>(undefined);
@@ -47,12 +181,59 @@ function generateId(): string {
 // Flag to prevent recursive capture
 let isCapturing = false;
 
-export function DebugPanelProvider({ children }: { children: React.ReactNode }) {
-  const [messages, setMessages] = useState<DebugMessage[]>([]);
-  const [actionTrail, setActionTrail] = useState<ActionTrailEntry[]>([]);
+// Generate or retrieve session ID
+function getSessionId(): string {
+  let sessionId = sessionStorage.getItem(STORAGE_KEYS.SESSION_ID);
+  if (!sessionId) {
+    sessionId = `session-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    sessionStorage.setItem(STORAGE_KEYS.SESSION_ID, sessionId);
+  }
+  return sessionId;
+}
+
+interface DebugPanelProviderProps {
+  children: React.ReactNode;
+  config?: Partial<DebugPanelConfig>;
+}
+
+export function DebugPanelProvider({ children, config: userConfig }: DebugPanelProviderProps) {
+  const config = { ...DEFAULT_CONFIG, ...userConfig };
+
+  // Initialize with persisted data
+  const [messages, setMessages] = useState<DebugMessage[]>(() =>
+    config.persistMessages ? loadPersistedMessages() : []
+  );
+  const [actionTrail, setActionTrail] = useState<ActionTrailEntry[]>(() =>
+    config.persistMessages ? loadPersistedActions() : []
+  );
+  const [unacknowledgedCount, setUnacknowledgedCount] = useState(0);
+
   const isInitialized = useRef(false);
   const addMessageRef = useRef<typeof addMessageInternal | null>(null);
   const logActionRef = useRef<typeof logActionInternal | null>(null);
+  const sessionId = useRef(getSessionId());
+
+  // Persist messages whenever they change
+  useEffect(() => {
+    if (config.persistMessages) {
+      persistMessages(messages, config.persistedMessageLimit);
+    }
+  }, [messages, config.persistMessages, config.persistedMessageLimit]);
+
+  // Persist action trail whenever it changes
+  useEffect(() => {
+    if (config.persistMessages) {
+      persistActions(actionTrail, config.maxActions);
+    }
+  }, [actionTrail, config.persistMessages, config.maxActions]);
+
+  // Update unacknowledged count
+  useEffect(() => {
+    const unackCount = messages.filter(
+      m => m.type === 'error' && !m.isAcknowledged
+    ).length;
+    setUnacknowledgedCount(unackCount);
+  }, [messages]);
 
   // Log user actions for trail
   const logActionInternal = useCallback((
@@ -69,12 +250,12 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
 
     setActionTrail(prev => {
       const updated = [...prev, entry];
-      if (updated.length > MAX_ACTIONS) {
-        return updated.slice(-MAX_ACTIONS);
+      if (updated.length > config.maxActions) {
+        return updated.slice(-config.maxActions);
       }
       return updated;
     });
-  }, []);
+  }, [config.maxActions]);
 
   // Store ref for use in event handlers
   logActionRef.current = logActionInternal;
@@ -92,15 +273,21 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
       id: msg.id || generateId(),
       timestamp: msg.timestamp || Date.now(),
       isBookmarked: false,
+      isAcknowledged: false,
     };
 
-    // Send errors to Sentry
-    if (sendToSentry && msg.type === 'error') {
+    // Send errors to Sentry (only if Sentry is installed AND enabled)
+    // This is OPTIONAL - Debug Panel works without Sentry
+    if (Sentry && config.enableSentry && sendToSentry && msg.type === 'error') {
       Sentry.withScope((scope) => {
         scope.setTag('source', msg.source || 'unknown');
         scope.setTag('category', msg.category || 'system');
+        scope.setTag('session_id', sessionId.current);
         if (msg.stack) {
           scope.setExtra('stack', msg.stack);
+        }
+        if (msg.httpStatus) {
+          scope.setTag('http_status', String(msg.httpStatus));
         }
         Sentry.captureMessage(msg.message, 'error');
       });
@@ -109,12 +296,12 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
 
     setMessages(prev => {
       const updated = [...prev, newMessage];
-      if (updated.length > MAX_MESSAGES) {
-        return updated.slice(-MAX_MESSAGES);
+      if (updated.length > config.maxMessages) {
+        return updated.slice(-config.maxMessages);
       }
       return updated;
     });
-  }, []);
+  }, [config.enableSentry, config.maxMessages]);
 
   // Store ref for use in event handlers
   addMessageRef.current = addMessageInternal;
@@ -146,7 +333,7 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
     const handleRejection = (event: PromiseRejectionEvent) => {
       if (isCapturing) return;
       const reason = event.reason;
-      const message = reason instanceof Error ? reason.message : String(reason);
+      const message = extractErrorMessage(reason);
       addMessageRef.current?.({
         type: 'error',
         message: `Unhandled Promise Rejection: ${message}`,
@@ -165,9 +352,7 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
       isCapturing = true;
 
       try {
-        const message = args.map(arg =>
-          typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-        ).join(' ');
+        const message = args.map(extractErrorMessage).join(' ');
 
         // Skip internal logs
         if (message.includes('[ERROR]') || message.includes('Debug Panel')) {
@@ -193,9 +378,7 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
       isCapturing = true;
 
       try {
-        const message = args.map(arg =>
-          typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-        ).join(' ');
+        const message = args.map(extractErrorMessage).join(' ');
 
         addMessageRef.current?.({
           type: 'warning',
@@ -208,10 +391,11 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
       }
     };
 
-    // Intercept fetch for network errors AND action trail tracking
+    // Intercept fetch for network errors, performance tracking, AND action trail
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
       const method = init?.method || 'GET';
+      const startTime = performance.now();
 
       // Extract short URL for action trail (remove query params for readability)
       const shortUrl = (() => {
@@ -228,26 +412,72 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
 
       try {
         const response = await originalFetch.call(window, input, init);
+        const duration = Math.round(performance.now() - startTime);
 
-        // Capture server errors (5xx)
-        if (response.status >= 500) {
+        // Track slow requests
+        if (config.trackSlowRequests && duration > config.slowRequestThreshold) {
           addMessageRef.current?.({
-            type: 'error',
-            message: `HTTP ${response.status}: ${response.statusText}`,
+            type: 'warning',
+            message: `[SLOW REQUEST] ${method} ${shortUrl} took ${duration}ms`,
+            source: 'performance',
+            category: 'network',
+            details: `URL: ${url}\nMethod: ${method}\nDuration: ${duration}ms\nThreshold: ${config.slowRequestThreshold}ms`,
+            httpMethod: method,
+            url,
+            duration,
+          }, false); // Don't send to Sentry
+        }
+
+        // Track large payloads (check Content-Length header)
+        if (config.trackLargePayloads) {
+          const contentLength = response.headers.get('content-length');
+          if (contentLength) {
+            const size = parseInt(contentLength, 10);
+            if (size > config.largePayloadThreshold) {
+              const sizeMB = (size / 1048576).toFixed(2);
+              addMessageRef.current?.({
+                type: 'warning',
+                message: `[LARGE PAYLOAD] ${method} ${shortUrl} returned ${sizeMB}MB`,
+                source: 'performance',
+                category: 'network',
+                details: `URL: ${url}\nMethod: ${method}\nSize: ${sizeMB}MB (${size} bytes)\nThreshold: ${(config.largePayloadThreshold / 1048576).toFixed(2)}MB`,
+                httpMethod: method,
+                url,
+              }, false); // Don't send to Sentry
+            }
+          }
+        }
+
+        // Capture HTTP errors (4xx and 5xx)
+        if (config.trackHttpErrors && response.status >= 400) {
+          const isServerError = response.status >= 500;
+          const type = isServerError ? 'error' : (config.track4xxAsWarnings ? 'warning' : 'error');
+
+          addMessageRef.current?.({
+            type,
+            message: `HTTP ${response.status}: ${response.statusText || 'Request Failed'}`,
             source: 'network',
             category: 'network',
-            details: `URL: ${url}\nMethod: ${method}`,
-          });
+            details: `URL: ${url}\nMethod: ${method}\nDuration: ${duration}ms`,
+            httpStatus: response.status,
+            httpMethod: method,
+            url,
+            duration,
+          }, isServerError); // Only send 5xx to Sentry by default
         }
 
         return response;
       } catch (error) {
+        const duration = Math.round(performance.now() - startTime);
         addMessageRef.current?.({
           type: 'error',
           message: error instanceof Error ? error.message : 'Network request failed',
           source: 'network',
           category: 'network',
-          details: `URL: ${url}\nMethod: ${method}`,
+          details: `URL: ${url}\nMethod: ${method}\nDuration: ${duration}ms`,
+          httpMethod: method,
+          url,
+          duration,
         });
         throw error;
       }
@@ -272,17 +502,71 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
       }
     };
 
+    // Track resource loading errors (images, scripts, stylesheets)
+    const handleResourceError = (event: Event) => {
+      if (!config.trackResourceErrors) return;
+      const target = event.target as HTMLElement;
+      if (!target) return;
+
+      // Only track actual resource elements
+      const tagName = target.tagName?.toLowerCase();
+      if (!['img', 'script', 'link', 'video', 'audio', 'iframe'].includes(tagName)) return;
+
+      const src = (target as HTMLImageElement).src ||
+                  (target as HTMLScriptElement).src ||
+                  (target as HTMLLinkElement).href || 'unknown';
+
+      // Skip data URLs and blob URLs
+      if (src.startsWith('data:') || src.startsWith('blob:')) return;
+
+      addMessageRef.current?.({
+        type: 'error',
+        message: `[RESOURCE FAILED] ${tagName.toUpperCase()} failed to load`,
+        source: 'resource',
+        category: 'network',
+        details: `Resource: ${src}\nElement: <${tagName}>`,
+        url: src,
+      }, false); // Don't send to Sentry by default
+    };
+
+    // Track long tasks (main thread blocking > 50ms) via PerformanceObserver
+    let longTaskObserver: PerformanceObserver | null = null;
+    if (config.trackLongTasks && typeof PerformanceObserver !== 'undefined') {
+      try {
+        longTaskObserver = new PerformanceObserver((list) => {
+          for (const entry of list.getEntries()) {
+            const duration = Math.round(entry.duration);
+            if (duration >= config.longTaskThreshold) {
+              addMessageRef.current?.({
+                type: 'warning',
+                message: `[LONG TASK] Main thread blocked for ${duration}ms`,
+                source: 'performance',
+                category: 'system',
+                details: `Duration: ${duration}ms\nThreshold: ${config.longTaskThreshold}ms\nThis may cause UI jank or unresponsiveness`,
+                duration,
+              }, false); // Don't send to Sentry
+            }
+          }
+        });
+        longTaskObserver.observe({ entryTypes: ['longtask'] });
+      } catch {
+        // Long task observation not supported in this browser
+      }
+    }
+
     window.addEventListener('error', handleError);
     window.addEventListener('unhandledrejection', handleRejection);
     window.addEventListener('popstate', handlePopState);
     document.addEventListener('click', handleClick, { capture: true });
+    // Use capture phase for resource errors on window (they don't bubble)
+    window.addEventListener('error', handleResourceError, { capture: true });
 
     // Log initial page load as navigation
     logActionRef.current?.('navigation', `Page loaded: ${window.location.pathname}`, window.location.href);
 
     // Log initialization in dev
     if (import.meta.env.DEV) {
-      originalConsoleError.call(console, '🛡️ Debug Panel initialized');
+      originalConsoleError.call(console, '🛡️ Debug Panel initialized (with persistence)');
     }
 
     return () => {
@@ -290,11 +574,25 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
       window.removeEventListener('unhandledrejection', handleRejection);
       window.removeEventListener('popstate', handlePopState);
       document.removeEventListener('click', handleClick, { capture: true });
+      window.removeEventListener('error', handleResourceError, { capture: true });
+      if (longTaskObserver) {
+        longTaskObserver.disconnect();
+      }
       console.error = originalConsoleError;
       console.warn = originalConsoleWarn;
       window.fetch = originalFetch;
     };
-  }, []);
+  }, [
+    config.trackHttpErrors,
+    config.track4xxAsWarnings,
+    config.trackSlowRequests,
+    config.slowRequestThreshold,
+    config.trackLargePayloads,
+    config.largePayloadThreshold,
+    config.trackLongTasks,
+    config.longTaskThreshold,
+    config.trackResourceErrors,
+  ]);
 
   const addMessage = useCallback((msg: Omit<DebugMessage, 'id' | 'timestamp'> & { id?: string; timestamp?: number }) => {
     addMessageInternal(msg);
@@ -302,12 +600,33 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
 
   const clearMessages = useCallback(() => {
     setMessages([]);
-  }, []);
+    setActionTrail([]);
+    if (config.persistMessages) {
+      localStorage.removeItem(STORAGE_KEYS.MESSAGES);
+      localStorage.removeItem(STORAGE_KEYS.ACTION_TRAIL);
+    }
+  }, [config.persistMessages]);
 
   const toggleBookmark = useCallback((messageId: string) => {
     setMessages(prev =>
       prev.map(msg =>
         msg.id === messageId ? { ...msg, isBookmarked: !msg.isBookmarked } : msg
+      )
+    );
+  }, []);
+
+  const acknowledgeErrors = useCallback(() => {
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.type === 'error' ? { ...msg, isAcknowledged: true } : msg
+      )
+    );
+  }, []);
+
+  const acknowledgeMessage = useCallback((messageId: string) => {
+    setMessages(prev =>
+      prev.map(msg =>
+        msg.id === messageId ? { ...msg, isAcknowledged: true } : msg
       )
     );
   }, []);
@@ -320,8 +639,61 @@ export function DebugPanelProvider({ children }: { children: React.ReactNode }) 
     logActionInternal(action, description, details);
   }, [logActionInternal]);
 
+  /**
+   * Log WebSocket events with categorization
+   */
+  const logWebSocket = useCallback((
+    messageType: string,
+    data: unknown,
+    wsCategory?: DebugMessage['wsCategory']
+  ) => {
+    // Auto-detect category if not provided
+    let category = wsCategory;
+    if (!category) {
+      if (messageType.includes('generation') || messageType.includes('gen_')) {
+        category = 'generation';
+      } else if (messageType.includes('phase')) {
+        category = 'phase';
+      } else if (messageType.includes('file')) {
+        category = 'file';
+      } else if (messageType.includes('deploy') || messageType.includes('cloudflare')) {
+        category = 'deployment';
+      } else if (messageType.includes('connect') || messageType.includes('disconnect')) {
+        category = 'connection';
+      } else {
+        category = 'system';
+      }
+    }
+
+    // Determine message type (error detection)
+    const isError = messageType.includes('error') || messageType.includes('fail');
+    const type: DebugMessage['type'] = isError ? 'error' : 'websocket';
+
+    addMessageInternal({
+      type,
+      message: messageType,
+      source: 'websocket',
+      category: 'websocket',
+      wsCategory: category,
+      messageType,
+      rawMessage: data,
+      details: typeof data === 'object' ? JSON.stringify(data, null, 2) : String(data),
+    }, isError); // Only send errors to Sentry
+  }, [addMessageInternal]);
+
   return (
-    <DebugPanelContext.Provider value={{ messages, actionTrail, addMessage, logAction, clearMessages, toggleBookmark }}>
+    <DebugPanelContext.Provider value={{
+      messages,
+      actionTrail,
+      unacknowledgedCount,
+      addMessage,
+      logAction,
+      logWebSocket,
+      clearMessages,
+      toggleBookmark,
+      acknowledgeErrors,
+      acknowledgeMessage,
+    }}>
       {children}
     </DebugPanelContext.Provider>
   );
@@ -340,9 +712,17 @@ export function useDebugPanel() {
  * Can be used outside of React components
  */
 let globalAddMessage: DebugPanelContextType['addMessage'] | null = null;
+let globalLogAction: DebugPanelContextType['logAction'] | null = null;
+let globalLogWebSocket: DebugPanelContextType['logWebSocket'] | null = null;
 
-export function setGlobalDebugLogger(addMessage: DebugPanelContextType['addMessage']) {
+export function setGlobalDebugLogger(
+  addMessage: DebugPanelContextType['addMessage'],
+  logAction?: DebugPanelContextType['logAction'],
+  logWebSocket?: DebugPanelContextType['logWebSocket']
+) {
   globalAddMessage = addMessage;
+  globalLogAction = logAction || null;
+  globalLogWebSocket = logWebSocket || null;
 }
 
 export function debugLog(
@@ -353,4 +733,99 @@ export function debugLog(
   if (globalAddMessage) {
     globalAddMessage({ type, message, ...options });
   }
+}
+
+export function debugAction(
+  action: ActionTrailEntry['action'],
+  description: string,
+  details?: string
+) {
+  if (globalLogAction) {
+    globalLogAction(action, description, details);
+  }
+}
+
+export function debugWebSocket(
+  messageType: string,
+  data: unknown,
+  wsCategory?: DebugMessage['wsCategory']
+) {
+  if (globalLogWebSocket) {
+    globalLogWebSocket(messageType, data, wsCategory);
+  }
+}
+
+/**
+ * Hook for tracking rapid state changes (detects infinite loops)
+ * Use: const trackState = useStateTracker('MyComponent');
+ *      trackState('counterState', counter);
+ */
+export function useStateTracker(componentName: string, threshold = 20, windowMs = 500) {
+  const { logAction, addMessage } = useDebugPanel();
+  const stateChanges = useRef<Map<string, number[]>>(new Map());
+
+  return useCallback((stateName: string, _value?: unknown) => {
+    const now = Date.now();
+    const key = `${componentName}:${stateName}`;
+
+    // Get or create change history for this state
+    let changes = stateChanges.current.get(key);
+    if (!changes) {
+      changes = [];
+      stateChanges.current.set(key, changes);
+    }
+
+    // Add current timestamp
+    changes.push(now);
+
+    // Remove timestamps outside the window
+    const cutoff = now - windowMs;
+    while (changes.length > 0 && changes[0] < cutoff) {
+      changes.shift();
+    }
+
+    // Check for rapid changes
+    if (changes.length >= threshold) {
+      const message = `[RAPID STATE] ${componentName}.${stateName} changed ${changes.length} times in ${windowMs}ms`;
+
+      addMessage({
+        type: 'warning',
+        message,
+        source: 'state-tracker',
+        category: 'react',
+        details: `Component: ${componentName}\nState: ${stateName}\nChanges: ${changes.length} in ${windowMs}ms\nPossible infinite loop detected`,
+      });
+
+      logAction('state_change', message, `Threshold: ${threshold}, Window: ${windowMs}ms`);
+
+      // Reset after warning to avoid spam
+      stateChanges.current.set(key, []);
+    }
+  }, [componentName, threshold, windowMs, logAction, addMessage]);
+}
+
+/**
+ * Hook for tracking React Router navigation
+ * Usage: Add useNavigationTracker() to your Router component
+ */
+export function useNavigationTracker() {
+  const { logAction } = useDebugPanel();
+  const prevPath = useRef(window.location.pathname);
+
+  useEffect(() => {
+    // Check for pathname changes periodically (for SPA navigation)
+    const checkNavigation = () => {
+      const currentPath = window.location.pathname;
+      if (currentPath !== prevPath.current) {
+        logAction('navigation', `Navigated to ${currentPath}`, `From: ${prevPath.current}`);
+        prevPath.current = currentPath;
+      }
+    };
+
+    // Use MutationObserver to detect DOM changes that might indicate navigation
+    const observer = new MutationObserver(checkNavigation);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => observer.disconnect();
+  }, [logAction]);
 }
