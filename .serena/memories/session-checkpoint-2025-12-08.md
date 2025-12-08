@@ -124,15 +124,48 @@ const user = await requireUser();
 // Throws if not authenticated
 ```
 
+## Debug Panel Ignore Pattern Feature (NEW)
+
+### Implementation Details
+
+**Problem:** Too many warnings (especially long task warnings) cluttering the debug panel.
+
+**Solution:** Added "Ignore Pattern" feature allowing temporary suppression of specific message patterns.
+
+**Files Modified:**
+- `types.ts` - Added `IgnoredPattern` interface and `IGNORED_PATTERNS` storage key
+- `DebugPanelContext.tsx` - Added state, load/persist, and functions (ignoreMessage, unignorePattern, isMessageIgnored)
+- `DebugPanel.tsx` - Added UI controls (ignore button, show/hide toggle, management in analytics)
+- `index.ts` - Exported new type
+
+**Key Features:**
+1. **Ignore Button** - Eye-off icon on each message row to ignore similar patterns
+2. **Show/Hide Toggle** - Purple "Ignored (n)" button in filter bar to reveal ignored messages
+3. **Management UI** - Ignored Patterns section in Analytics view to unignore patterns
+4. **Persistence** - Stored in localStorage, survives page refreshes
+5. **Signature Matching** - Uses same error signature logic as resolution tracking
+
+**Usage Pattern:**
+```typescript
+// Context provides these functions:
+ignoreMessage(messageId: string, reason?: string) => void
+unignorePattern(signature: string) => void
+isMessageIgnored(message: DebugMessage) => boolean
+```
+
+### Commit
+- `543670b` - feat(debug-panel): add ignore pattern UI controls
+
 ## Notes for Future Sessions
 
 1. **All auth patterns migrated** - Zero unsafe `supabase.auth.getUser()` patterns remain
 2. **Debug panel long task threshold** was relaxed from 50ms to 150ms to reduce noise
 3. **isMounted pattern** is standard for all useEffect async operations to prevent state updates after unmount
-4. **Ignore pattern UI** added to debug panel for filtering out expected warnings
+4. **Ignore pattern feature** - Users can now temporarily hide specific warnings/errors
 
 ## Project Status
 - Security hardening: ✅ **COMPLETE** - All 36 auth patterns migrated to safe wrappers
+- Debug panel enhancements: ✅ **COMPLETE** - Ignore pattern feature implemented
 - All changes pushed to main
 - No build/type errors
 - Sentry auth errors should now be resolved

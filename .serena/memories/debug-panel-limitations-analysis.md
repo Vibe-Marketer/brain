@@ -67,9 +67,14 @@
 1. **State change rate detection** - `useStateTracker()` hook detects >20 changes in 500ms
 2. **localStorage persistence** - Messages and action trail persist across page refresh
 3. **Slow request detection** - Warns on API calls >3 seconds
-4. **Long task detection** - PerformanceObserver catches main thread blocking >50ms
+4. **Long task detection** - PerformanceObserver catches main thread blocking >150ms (relaxed from 50ms - too noisy)
 5. **Large payload warnings** - Flags responses >1MB
 6. **Resource error tracking** - Catches failed images/scripts/CSS
+7. **Ignore pattern feature** - Users can temporarily hide specific warnings/errors (added 2025-12-08)
+   - Ignore button on each message row
+   - Show/hide toggle for ignored messages
+   - Management UI in Analytics view to unignore patterns
+   - Persistence in localStorage
 
 ### Still TODO (Future Enhancements):
 1. React render counting per component (would need React profiler API)
