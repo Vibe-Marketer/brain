@@ -40,13 +40,19 @@ Created `src/lib/auth-utils.ts` with two safe wrappers:
 - `SyncTab.tsx` - 3 instances
 - `TranscriptsTab.tsx` - 2 instances
 
-### Remaining (17 instances - lower priority)
-These are in settings/dialog components that are less frequently accessed:
+### All Auth Patterns Migrated ✅
+All 17 remaining instances have been fixed in commit `2934671`:
 - `AccountTab.tsx` - 4 instances
 - `IntegrationsTab.tsx` - 3 instances
 - `AITab.tsx` - 2 instances
 - `QuickCreateFolderDialog.tsx` - 2 instances
-- And 6 more dialog components
+- `AssignFolderDialog.tsx` - 1 instance
+- `QuickCreateTagDialog.tsx` - 1 instance
+- `FathomSetupWizard.tsx` - 1 instance
+- `UsersTab.tsx` - 1 instance
+- `WebhookDeliveryViewer.tsx` - 1 instance
+- `TagFilterPopover.tsx` - 1 instance
+
 
 ## Previous Session Work (Continued)
 
@@ -66,6 +72,8 @@ These are in settings/dialog components that are less frequently accessed:
 2. `f3c019b` - docs: update session checkpoint with error resolution tracking  
 3. `2395e95` - fix(debug-panel): relax long task threshold from 50ms to 150ms
 4. `a8c506e` - fix(security): migrate critical auth calls to safe pattern
+5. `543670b` - feat(debug-panel): add ignore pattern UI controls
+6. `2934671` - fix(security): complete migration of all auth calls to safe pattern
 
 ## Technical Details
 
@@ -118,11 +126,13 @@ const user = await requireUser();
 
 ## Notes for Future Sessions
 
-1. **17 remaining unsafe patterns** in settings/dialog components can be migrated incrementally
+1. **All auth patterns migrated** - Zero unsafe `supabase.auth.getUser()` patterns remain
 2. **Debug panel long task threshold** was relaxed from 50ms to 150ms to reduce noise
 3. **isMounted pattern** is standard for all useEffect async operations to prevent state updates after unmount
+4. **Ignore pattern UI** added to debug panel for filtering out expected warnings
 
 ## Project Status
-- Security hardening: ✅ Critical paths fixed
+- Security hardening: ✅ **COMPLETE** - All 36 auth patterns migrated to safe wrappers
 - All changes pushed to main
 - No build/type errors
+- Sentry auth errors should now be resolved
