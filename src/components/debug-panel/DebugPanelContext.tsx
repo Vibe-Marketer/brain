@@ -513,8 +513,8 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       try {
         const message = args.map(extractErrorMessage).join(' ');
 
-        // Skip internal logs
-        if (message.includes('[ERROR]') || message.includes('Debug Panel')) {
+        // Skip only debug panel's own internal logs (not app logs)
+        if (message.includes('Debug Panel initialized') || message.includes('Debug Panel Error')) {
           return;
         }
 
