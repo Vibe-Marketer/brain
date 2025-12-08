@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,8 +40,8 @@ export default function QuickCreateTagDialog({
 
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) {
         toast.error("You must be logged in to create tags");
         return;
       }

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 import { RiRefreshLine, RiCheckboxCircleLine, RiCloseCircleLine, RiAlertLine, RiArrowDownSLine, RiArrowUpSLine, RiExternalLinkLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
@@ -60,9 +61,9 @@ export default function WebhookDeliveryViewer() {
   const loadDeliveries = async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
+      const { user, error: authError } = await getSafeUser();
+
+      if (authError || !user) {
         toast.error("Not authenticated");
         return;
       }

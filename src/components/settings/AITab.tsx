@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { embedAllUnindexedTranscripts } from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 
 // AI Model presets - these map to the full model IDs used by the backend
 // Format: value (preset key) -> label (display name) -> provider -> description
@@ -169,8 +170,8 @@ export default function AITab() {
   const loadIndexingStats = useCallback(async () => {
     try {
       setLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       // Get total chunks
       const { count: chunksCount } = await supabase
@@ -251,8 +252,8 @@ export default function AITab() {
     setModelSaving(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) {
         toast.error("Not authenticated");
         setSelectedModel(savedModel);
         return;

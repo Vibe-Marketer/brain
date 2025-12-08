@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -181,7 +182,7 @@ export default function AssignFolderDialog({
       const assignmentsToAdd: Array<{call_recording_id: number, folder_id: string, assigned_by: string | null, user_id: string | null}> = [];
 
       // Get current user ID for assigned_by
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user } = await getSafeUser();
       const userId = user?.id || null;
 
       numericRecordingIds.forEach(recordingId => {

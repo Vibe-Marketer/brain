@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -91,8 +92,8 @@ export default function QuickCreateFolderDialog({
   const loadFolders = async () => {
     setLoadingFolders(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       const { data, error } = await supabase
         .from("folders")
@@ -123,8 +124,8 @@ export default function QuickCreateFolderDialog({
 
     setSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) {
         toast.error("You must be logged in to create folders");
         return;
       }

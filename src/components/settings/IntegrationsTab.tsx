@@ -47,8 +47,8 @@ export default function IntegrationsTab() {
 
   const loadKnowledgeBaseStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       // Get total calls with transcripts
       const { count: callsCount } = await supabase
@@ -109,9 +109,8 @@ export default function IntegrationsTab() {
 
   const loadIntegrationStatus = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       const { data: settings } = await supabase
         .from("user_settings")
@@ -160,9 +159,9 @@ export default function IntegrationsTab() {
   const handleSaveCredentials = async () => {
     try {
       setSavingCredentials(true);
-      const { data: { user } } = await supabase.auth.getUser();
+      const { user, error: authError } = await getSafeUser();
 
-      if (!user) {
+      if (authError || !user) {
         toast.error("Not authenticated");
         return;
       }

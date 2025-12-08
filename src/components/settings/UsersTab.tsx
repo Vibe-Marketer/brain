@@ -7,6 +7,7 @@ import { logger } from "@/lib/logger";
 import { useUserRole } from "@/hooks/useUserRole";
 import { UserTable } from "@/components/settings/UserTable";
 import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 
 interface UserProfile {
   user_id: string;
@@ -31,9 +32,8 @@ export default function UsersTab() {
 
   const loadUsers = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (!user) return;
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
 
       // For TEAM users: Show only users in same organization (future: add org_id filtering)
       // For ADMIN users: Show all users in organization

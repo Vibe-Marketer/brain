@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { requireUser } from "@/lib/auth-utils";
 import { FilterButton } from "./FilterButton";
 import { logger } from "@/lib/logger";
 
@@ -34,8 +35,7 @@ export function TagFilterPopover({
     if (!name?.trim()) return;
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
+      const user = await requireUser();
 
       const { error } = await supabase
         .from("call_tags")
