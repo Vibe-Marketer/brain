@@ -123,6 +123,8 @@ export const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, PromptI
   return (
     <textarea
       ref={textareaRef}
+      id="chat-message-input"
+      name="chat-message"
       value={value}
       onChange={(e) => onValueChange(e.target.value)}
       onKeyDown={handleKeyDown}
@@ -307,6 +309,8 @@ export function PromptInputContextBar({
                 <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cb-ink-muted" />
                 <input
                   type="text"
+                  id="context-search-input"
+                  name="context-search"
                   placeholder="Search calls..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
