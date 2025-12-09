@@ -21,6 +21,7 @@ import { TagManagementDialog } from "@/components/transcript-library/TagManageme
 import { FilterBar } from "@/components/transcript-library/FilterBar";
 import { BulkActionToolbarEnhanced } from "@/components/transcript-library/BulkActionToolbarEnhanced";
 import { useFolders } from "@/hooks/useFolders";
+import { useHiddenFolders } from "@/hooks/useHiddenFolders";
 import { DragDropZones } from "@/components/transcript-library/DragDropZones";
 import { EmptyState } from "@/components/transcript-library/EmptyStates";
 import { AIProcessingProgress } from "@/components/transcripts/AIProcessingProgress";
@@ -175,6 +176,7 @@ export function TranscriptsTab() {
 
   // Fetch folders
   const { folders, folderAssignments, deleteFolder, assignToFolder, isLoading: foldersLoading } = useFolders();
+  const { hiddenFolders, toggleHidden } = useHiddenFolders();
 
   // All Transcripts customization settings
   const { settings: allTranscriptsSettings, updateSettings: updateAllTranscriptsSettings, resetSettings: resetAllTranscriptsSettings, defaultSettings: allTranscriptsDefaults } = useAllTranscriptsSettings();
@@ -314,17 +316,26 @@ export function TranscriptsTab() {
   const validCalls = useMemo(() => {
     let filtered = calls.filter(c => c && c.recording_id != null);
 
-    // Filter by selected folder (null = inbox = show all)
+    // Filter by selected folder (null = All Transcripts = show all except hidden)
     if (selectedFolderId) {
       // Specific folder: show transcripts in that folder
       filtered = filtered.filter(call => {
         const callFolders = folderAssignments[call.recording_id] || [];
         return callFolders.includes(selectedFolderId);
       });
+    } else if (hiddenFolders.size > 0) {
+      // All Transcripts view: exclude transcripts that are ONLY in hidden folders
+      filtered = filtered.filter(call => {
+        const callFolders = folderAssignments[call.recording_id] || [];
+        // If transcript has no folders, show it
+        if (callFolders.length === 0) return true;
+        // If transcript has at least one non-hidden folder, show it
+        return callFolders.some(folderId => !hiddenFolders.has(folderId));
+      });
     }
 
     return filtered;
-  }, [calls, selectedFolderId, folderAssignments]);
+  }, [calls, selectedFolderId, folderAssignments, hiddenFolders]);
   const { data: tagAssignments = {} } = useQuery({
     queryKey: ["tag-assignments", validCalls.map(c => c.recording_id)],
     queryFn: async () => {
@@ -590,10 +601,10 @@ export function TranscriptsTab() {
       {/* BG-CARD-MAIN: Browser window container */}
       <ChatOuterCard className="h-[calc(100vh-120px)]">
         {/* SIDEBAR - Expanded (280px) or Collapsed (icons only)
-            Collapsed width: 56px = 40px icon + 8px padding on each side */}
+            Collapsed width: 44px = 36px icon + 4px padding on each side */}
         <div
           className={`
-            ${sidebarState === 'expanded' ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none w-[280px]' : 'w-[56px]'}
+            ${sidebarState === 'expanded' ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none w-[280px]' : 'w-[44px]'}
             flex-shrink-0 transition-all duration-200
           `}
         >
@@ -618,6 +629,8 @@ export function TranscriptsTab() {
             isLoading={foldersLoading}
             allTranscriptsSettings={allTranscriptsSettings}
             onEditAllTranscripts={() => setEditAllTranscriptsOpen(true)}
+            hiddenFolders={hiddenFolders}
+            onToggleHidden={toggleHidden}
           />
         </div>
 

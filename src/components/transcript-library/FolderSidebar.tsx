@@ -10,6 +10,8 @@ import {
   RiPencilLine,
   RiDeleteBinLine,
   RiPaletteLine,
+  RiEyeLine,
+  RiEyeOffLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -46,6 +48,9 @@ interface FolderSidebarProps {
   // All Transcripts customization
   allTranscriptsSettings?: AllTranscriptsSettings;
   onEditAllTranscripts?: () => void;
+  // Hidden folders (excluded from All Transcripts view)
+  hiddenFolders?: Set<string>;
+  onToggleHidden?: (folderId: string) => void;
 }
 
 // Droppable folder item with drag feedback
@@ -66,6 +71,8 @@ interface DroppableFolderItemProps {
   isFocused?: boolean;
   selectableItems: Array<{ type: 'all' | 'folder'; id: string | null }>;
   focusedIndex: number;
+  hiddenFolders?: Set<string>;
+  onToggleHidden?: (folderId: string) => void;
 }
 
 const DroppableFolderItem = React.memo(function DroppableFolderItem({
@@ -85,9 +92,12 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
   isFocused = false,
   selectableItems,
   focusedIndex,
+  hiddenFolders,
+  onToggleHidden,
 }: DroppableFolderItemProps) {
   const hasChildren = children.length > 0;
   const count = folderCounts[folder.id] || 0;
+  const isHidden = hiddenFolders?.has(folder.id) ?? false;
 
   // Set up droppable zone for this folder
   const { setNodeRef, isOver } = useDroppable({
@@ -161,15 +171,40 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
         className={cn(
           'flex-1 min-w-0 truncate text-sm',
           isSelected ? 'text-cb-ink font-medium' : 'text-cb-ink-soft',
-          isOver && 'text-cb-ink font-medium'
+          isOver && 'text-cb-ink font-medium',
+          isHidden && 'opacity-50 line-through'
         )}
       >
         {folder.name}
       </span>
 
-      {/* Edit/Delete buttons - appear on hover */}
-      {(onEditFolder || onDeleteFolder) && (
-        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+      {/* Hide/Edit/Delete buttons - appear on hover (or always for hidden toggle) */}
+      {(onToggleHidden || onEditFolder || onDeleteFolder) && (
+        <div className={cn(
+          "flex items-center gap-0.5 transition-opacity flex-shrink-0",
+          // Show toggle immediately for hidden folders, otherwise on hover
+          isHidden ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )}>
+          {onToggleHidden && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleHidden(folder.id);
+              }}
+              className={cn(
+                "h-6 w-6 flex items-center justify-center rounded transition-colors",
+                isHidden
+                  ? "text-cb-vibe-orange bg-cb-vibe-orange/10 hover:bg-cb-vibe-orange/20"
+                  : "text-cb-ink-muted hover:bg-cb-border/50 hover:text-cb-ink"
+              )}
+              aria-label={isHidden ? `Show ${folder.name} in All Transcripts` : `Hide ${folder.name} from All Transcripts`}
+              title={isHidden ? "Click to show in All Transcripts" : "Click to hide from All Transcripts"}
+            >
+              {/* When hidden: show eye (click to reveal), when visible: show eye-off (click to hide) */}
+              {isHidden ? <RiEyeLine className="h-3.5 w-3.5" /> : <RiEyeOffLine className="h-3.5 w-3.5" />}
+            </button>
+          )}
           {onEditFolder && (
             <button
               type="button"
@@ -269,6 +304,8 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
                 isFocused={isChildFocused}
                 selectableItems={selectableItems}
                 focusedIndex={focusedIndex}
+                hiddenFolders={hiddenFolders}
+                onToggleHidden={onToggleHidden}
               />
             );
           })}
@@ -308,6 +345,8 @@ export function FolderSidebar({
   isCollapsed = false,
   allTranscriptsSettings,
   onEditAllTranscripts,
+  hiddenFolders,
+  onToggleHidden,
 }: FolderSidebarProps) {
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(new Set());
   const [focusedIndex, setFocusedIndex] = React.useState<number>(-1);
@@ -419,7 +458,7 @@ export function FolderSidebar({
     return (
       <TooltipProvider delayDuration={300}>
         <div
-          className="h-full flex flex-col items-center py-4 bg-cb-card border-r border-cb-border"
+          className="h-full flex flex-col items-center py-2 bg-cb-card"
           data-component="FOLDER-SIDEBAR-COLLAPSED"
         >
           {/* All Transcripts icon */}
@@ -427,30 +466,31 @@ export function FolderSidebar({
             type="button"
             onClick={() => onSelectFolder(null)}
             className={cn(
-              'w-10 h-10 flex items-center justify-center rounded-lg mb-2 transition-colors',
+              'w-9 h-9 flex items-center justify-center rounded-lg mb-1 transition-colors',
               selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50'
             )}
             title={allTranscriptsSettings?.name || 'All Transcripts'}
           >
             {allIsEmoji ? (
-              <span className="text-lg">{allIcon}</span>
+              <span className="text-base">{allIcon}</span>
             ) : AllIconComponent ? (
-              <AllIconComponent className="h-5 w-5 text-cb-ink-muted" />
+              <AllIconComponent className="h-4 w-4 text-cb-ink-muted" />
             ) : (
-              <RiFileTextLine className="h-5 w-5 text-cb-ink-muted" />
+              <RiFileTextLine className="h-4 w-4 text-cb-ink-muted" />
             )}
           </button>
 
           {/* Divider */}
-          <div className="w-6 h-px bg-cb-border my-2" />
+          <div className="w-5 h-px bg-cb-border my-1" />
 
-          {/* Folder icons */}
-          <ScrollArea className="flex-1 w-full">
-            <div className="flex flex-col items-center gap-1 px-2">
+          {/* Folder icons - no scroll needed with smaller icons */}
+          <div className="flex-1 w-full overflow-y-auto">
+            <div className="flex flex-col items-center gap-0.5 px-1">
               {rootFolders.map((folder) => {
                 const FolderIcon = getIconComponent(folder.icon);
                 const folderIsEmoji = isEmojiIcon(folder.icon);
                 const isSelected = selectedFolderId === folder.id;
+                const isHidden = hiddenFolders?.has(folder.id) ?? false;
 
                 return (
                   <button
@@ -458,47 +498,52 @@ export function FolderSidebar({
                     type="button"
                     onClick={() => onSelectFolder(folder.id)}
                     className={cn(
-                      'w-10 h-10 flex items-center justify-center rounded-lg transition-colors',
-                      isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50'
+                      'relative w-9 h-9 flex items-center justify-center rounded-lg transition-colors',
+                      isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+                      isHidden && 'opacity-40'
                     )}
-                    title={folder.name}
+                    title={isHidden ? `${folder.name} (hidden)` : folder.name}
                   >
                     {folderIsEmoji ? (
-                      <span className="text-lg">{folder.icon}</span>
+                      <span className="text-base">{folder.icon}</span>
                     ) : FolderIcon ? (
                       <FolderIcon
-                        className="h-5 w-5"
+                        className="h-4 w-4"
                         style={{ color: folder.color || '#6B7280' }}
                       />
                     ) : (
                       <RiFolderLine
-                        className="h-5 w-5"
+                        className="h-4 w-4"
                         style={{ color: folder.color || '#6B7280' }}
                       />
+                    )}
+                    {/* Hidden indicator dot */}
+                    {isHidden && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-cb-vibe-orange rounded-full" />
                     )}
                   </button>
                 );
               })}
             </div>
-          </ScrollArea>
+          </div>
 
           {/* Bottom actions */}
-          <div className="flex flex-col items-center gap-1 pt-2 border-t border-cb-border mt-2">
+          <div className="flex flex-col items-center gap-0.5 pt-1 mt-1">
             <button
               type="button"
               onClick={onNewFolder}
-              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-cb-hover/50 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-cb-hover/50 transition-colors"
               title="New folder"
             >
-              <RiAddLine className="h-5 w-5 text-cb-ink-muted" />
+              <RiAddLine className="h-4 w-4 text-cb-ink-muted" />
             </button>
             <button
               type="button"
               onClick={onManageFolders}
-              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-cb-hover/50 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-cb-hover/50 transition-colors"
               title="Manage folders"
             >
-              <RiSettings3Line className="h-5 w-5 text-cb-ink-muted" />
+              <RiSettings3Line className="h-4 w-4 text-cb-ink-muted" />
             </button>
           </div>
         </div>
@@ -661,6 +706,8 @@ export function FolderSidebar({
                   isFocused={isFocused}
                   selectableItems={selectableItems}
                   focusedIndex={focusedIndex}
+                  hiddenFolders={hiddenFolders}
+                  onToggleHidden={onToggleHidden}
                 />
               );
             })}
@@ -678,10 +725,10 @@ export function FolderSidebar({
         </ScrollArea>
 
         {/* Footer - Manage Folders link */}
-        <div className="p-2 border-t border-cb-border">
+        <div className="p-2 pt-1">
           <button
             onClick={onManageFolders}
-            className="flex items-center gap-2 w-full px-2 py-2 text-sm text-cb-ink-muted hover:text-cb-ink rounded-lg hover:bg-cb-hover/50 transition-colors"
+            className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-cb-ink-muted hover:text-cb-ink rounded-lg hover:bg-cb-hover/50 transition-colors"
           >
             <RiSettings3Line className="h-4 w-4" />
             Manage Folders

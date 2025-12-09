@@ -4,10 +4,10 @@ import { getSafeUser } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -22,8 +22,7 @@ import {
 import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
-import * as RemixIcon from "@remixicon/react";
-import { IconEmojiPicker, FOLDER_COLORS, isEmojiIcon, getIconComponent } from "@/components/ui/icon-emoji-picker";
+import { EmojiPickerInline } from "@/components/ui/emoji-picker-inline";
 
 interface Folder {
   id: string;
@@ -43,8 +42,6 @@ interface EditFolderDialogProps {
   onFolderUpdated?: () => void;
 }
 
-
-
 interface FolderOption {
   id: string;
   name: string;
@@ -60,10 +57,9 @@ export default function EditFolderDialog({
 }: EditFolderDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [color, setColor] = useState(FOLDER_COLORS[0]);
-  const [icon, setIcon] = useState<string>('folder');
+  const [showDescription, setShowDescription] = useState(false);
+  const [emoji, setEmoji] = useState("📁");
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(undefined);
-  const [customColor, setCustomColor] = useState("");
   const [saving, setSaving] = useState(false);
   const [folders, setFolders] = useState<FolderOption[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
@@ -73,17 +69,9 @@ export default function EditFolderDialog({
     if (open && folder) {
       setName(folder.name || "");
       setDescription(folder.description || "");
-      setColor(folder.color || FOLDER_COLORS[0]);
-      setIcon(folder.icon || 'folder');
+      setShowDescription(!!folder.description);
+      setEmoji(folder.icon || "📁");
       setSelectedParentId(folder.parent_id || undefined);
-
-      // Check if it's a custom color
-      if (folder.color && !FOLDER_COLORS.includes(folder.color)) {
-        setCustomColor(folder.color);
-      } else {
-        setCustomColor("");
-      }
-
       loadFolders();
     }
   }, [open, folder]);
@@ -112,10 +100,9 @@ export default function EditFolderDialog({
   const handleUpdate = async () => {
     if (!folder) return;
 
-    // Validate input
     const validation = folderSchema.safeParse({
       name: name.trim(),
-      description: description.trim() || undefined
+      description: showDescription ? description.trim() || undefined : undefined
     });
 
     if (!validation.success) {
@@ -131,7 +118,7 @@ export default function EditFolderDialog({
         return;
       }
 
-      // Check if parent folder would violate depth constraint
+      // Check depth constraint
       if (selectedParentId) {
         const parentFolder = folders.find(f => f.id === selectedParentId);
         if (parentFolder && parentFolder.depth >= 2) {
@@ -139,13 +126,12 @@ export default function EditFolderDialog({
           return;
         }
 
-        // Prevent setting self or descendants as parent
         if (selectedParentId === folder.id) {
           toast.error("A folder cannot be its own parent");
           return;
         }
 
-        // Check if selected parent is a descendant of the current folder
+        // Check circular reference
         const isDescendant = (potentialParentId: string): boolean => {
           const potentialParent = folders.find(f => f.id === potentialParentId);
           if (!potentialParent) return false;
@@ -160,7 +146,7 @@ export default function EditFolderDialog({
         }
       }
 
-      // Check for duplicate name within same parent (excluding current folder)
+      // Check duplicate name
       let duplicateQuery = supabase
         .from("folders")
         .select("id")
@@ -168,7 +154,6 @@ export default function EditFolderDialog({
         .eq("name", validation.data.name)
         .neq("id", folder.id);
 
-      // Use .is() for null comparison, .eq() for actual values
       if (selectedParentId) {
         duplicateQuery = duplicateQuery.eq("parent_id", selectedParentId);
       } else {
@@ -176,7 +161,6 @@ export default function EditFolderDialog({
       }
 
       const { data: existingFolder, error: checkError } = await duplicateQuery.maybeSingle();
-
       if (checkError) throw checkError;
 
       if (existingFolder) {
@@ -188,15 +172,13 @@ export default function EditFolderDialog({
       }
 
       // Update folder
-      const finalColor = customColor || color;
       const { error } = await supabase
         .from("folders")
         .update({
           name: validation.data.name,
-          description: validation.data.description,
+          description: showDescription ? validation.data.description : null,
           parent_id: selectedParentId || null,
-          icon,
-          color: finalColor,
+          icon: emoji,
           updated_at: new Date().toISOString(),
         })
         .eq("id", folder.id)
@@ -215,26 +197,16 @@ export default function EditFolderDialog({
     }
   };
 
-  const handleOpenChange = (newOpen: boolean) => {
-    onOpenChange(newOpen);
-  };
-
-  // Use shared utilities from icon-emoji-picker
-  const isEmoji = isEmojiIcon(icon);
-  const IconComponent = getIconComponent(icon);
-
-  // Filter folders to exclude current folder and its descendants, and only show those that can be parents (depth < 2)
+  // Filter folders to exclude current and descendants
   const getAvailableParentFolders = (): FolderOption[] => {
     if (!folder) return folders.filter(f => f.depth < 2);
 
-    // Get all descendant IDs
     const getDescendantIds = (folderId: string): string[] => {
       const children = folders.filter(f => f.parent_id === folderId);
       return children.flatMap(child => [child.id, ...getDescendantIds(child.id)]);
     };
 
     const excludeIds = new Set([folder.id, ...getDescendantIds(folder.id)]);
-
     return folders.filter(f => f.depth < 2 && !excludeIds.has(f.id));
   };
 
@@ -243,54 +215,57 @@ export default function EditFolderDialog({
   if (!folder) return null;
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Folder</DialogTitle>
-          <DialogDescription>
-            Update folder settings and organization
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Name */}
+        <div className="space-y-4 py-2">
+          {/* Name with inline emoji */}
           <div className="space-y-2">
-            <Label htmlFor="folder-name">Folder Name *</Label>
-            <Input
-              id="folder-name"
-              placeholder="e.g., Client Meetings, Team Calls"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !saving) {
-                  handleUpdate();
-                }
-              }}
-              autoFocus
-            />
+            <Label htmlFor="folder-name">Folder Name</Label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {}}
+                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-cb-border bg-cb-card hover:bg-cb-hover transition-colors"
+                title="Selected emoji"
+              >
+                {emoji}
+              </button>
+              <Input
+                id="folder-name"
+                placeholder="e.g., Client Meetings"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !saving && name.trim()) {
+                    handleUpdate();
+                  }
+                }}
+                className="flex-1"
+                autoFocus
+              />
+            </div>
           </div>
 
-          {/* Description */}
+          {/* Emoji picker inline */}
           <div className="space-y-2">
-            <Label htmlFor="folder-description">Description (optional)</Label>
-            <Input
-              id="folder-description"
-              placeholder="Brief description of this folder"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
+            <Label>Icon</Label>
+            <EmojiPickerInline value={emoji} onChange={setEmoji} />
           </div>
 
           {/* Parent Folder */}
           <div className="space-y-2">
-            <Label htmlFor="parent-folder">Parent Folder (optional)</Label>
+            <Label htmlFor="parent-folder">Parent Folder</Label>
             <Select
               value={selectedParentId || "none"}
               onValueChange={(value) => setSelectedParentId(value === "none" ? undefined : value)}
               disabled={loadingFolders}
             >
               <SelectTrigger id="parent-folder">
-                <SelectValue placeholder="Select parent folder" />
+                <SelectValue placeholder="None (Root Level)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None (Root Level)</SelectItem>
@@ -303,78 +278,31 @@ export default function EditFolderDialog({
             </Select>
           </div>
 
-          {/* Color Picker */}
+          {/* Optional Description */}
           <div className="space-y-2">
-            <Label>Color</Label>
-            <div className="flex gap-2 flex-wrap items-center">
-              {FOLDER_COLORS.map((colorValue) => (
-                <button
-                  key={colorValue}
-                  type="button"
-                  onClick={() => {
-                    setColor(colorValue);
-                    setCustomColor("");
-                  }}
-                  className={`w-8 h-8 rounded-md border-2 transition-all ${
-                    color === colorValue && !customColor
-                      ? 'border-cb-ink scale-110'
-                      : 'border-cb-border hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: colorValue }}
-                  title={colorValue}
-                />
-              ))}
-              <div className="flex items-center gap-2 ml-2">
-                <Label htmlFor="custom-color" className="text-xs">
-                  Custom:
-                </Label>
-                <input
-                  id="custom-color"
-                  type="color"
-                  value={customColor || color}
-                  onChange={(e) => setCustomColor(e.target.value)}
-                  className="w-8 h-8 rounded border border-cb-border cursor-pointer"
-                />
-              </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="show-description"
+                checked={showDescription}
+                onCheckedChange={(checked) => setShowDescription(checked === true)}
+              />
+              <Label htmlFor="show-description" className="text-sm font-normal cursor-pointer">
+                Add description
+              </Label>
             </div>
-          </div>
-
-          {/* Icon/Emoji Picker */}
-          <div className="space-y-2">
-            <Label>Icon or Emoji</Label>
-            <IconEmojiPicker
-              value={icon}
-              onChange={setIcon}
-              color={customColor || color}
-            />
-          </div>
-
-          {/* Preview */}
-          <div className="space-y-2">
-            <Label>Preview</Label>
-            <div className="flex items-center gap-2 p-3 rounded-md border border-cb-border bg-cb-card">
-              {isEmoji ? (
-                <span className="text-xl">{icon}</span>
-              ) : IconComponent ? (
-                <IconComponent
-                  className="h-5 w-5"
-                  style={{ color: customColor || color }}
-                />
-              ) : (
-                <RemixIcon.RiFolderLine
-                  className="h-5 w-5"
-                  style={{ color: customColor || color }}
-                />
-              )}
-              <span className="font-medium">
-                {name || "Folder Name"}
-              </span>
-            </div>
+            {showDescription && (
+              <Input
+                id="folder-description"
+                placeholder="Brief description of this folder"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            )}
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="hollow" onClick={() => handleOpenChange(false)}>
+          <Button variant="hollow" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button onClick={handleUpdate} disabled={saving || !name.trim()}>

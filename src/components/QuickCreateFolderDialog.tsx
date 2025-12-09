@@ -4,10 +4,10 @@ import { getSafeUser } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -22,8 +22,7 @@ import {
 import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
-import * as RemixIcon from "@remixicon/react";
-import { IconEmojiPicker, FOLDER_COLORS, isEmojiIcon, getIconComponent } from "@/components/ui/icon-emoji-picker";
+import { EmojiPickerInline } from "@/components/ui/emoji-picker-inline";
 
 interface QuickCreateFolderDialogProps {
   open: boolean;
@@ -31,8 +30,6 @@ interface QuickCreateFolderDialogProps {
   onFolderCreated?: (folderId: string) => void;
   parentFolderId?: string;
 }
-
-
 
 interface FolderWithDepth {
   id: string;
@@ -55,10 +52,9 @@ export default function QuickCreateFolderDialog({
 }: QuickCreateFolderDialogProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [color, setColor] = useState(FOLDER_COLORS[0]);
-  const [icon, setIcon] = useState<string>('folder');
+  const [showDescription, setShowDescription] = useState(false);
+  const [emoji, setEmoji] = useState("📁");
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(parentFolderId);
-  const [customColor, setCustomColor] = useState("");
   const [saving, setSaving] = useState(false);
   const [foldersWithDepth, setFoldersWithDepth] = useState<FolderWithDepth[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
@@ -95,9 +91,8 @@ export default function QuickCreateFolderDialog({
       );
 
       const computeDepth = (folderId: string, visited = new Set<string>()): number => {
-        if (visited.has(folderId)) return 0; // Prevent infinite loops
+        if (visited.has(folderId)) return 0;
         visited.add(folderId);
-
         const folder = foldersMap.get(folderId);
         if (!folder || !folder.parent_id) return 0;
         return 1 + computeDepth(folder.parent_id, visited);
@@ -117,10 +112,9 @@ export default function QuickCreateFolderDialog({
   };
 
   const handleCreate = async () => {
-    // Validate input
     const validation = folderSchema.safeParse({
       name: name.trim(),
-      description: description.trim() || undefined
+      description: showDescription ? description.trim() || undefined : undefined
     });
 
     if (!validation.success) {
@@ -136,7 +130,7 @@ export default function QuickCreateFolderDialog({
         return;
       }
 
-      // Check if parent folder would violate depth constraint
+      // Check depth constraint
       if (selectedParentId) {
         const parentFolder = foldersWithDepth.find(f => f.id === selectedParentId);
         if (parentFolder && parentFolder.depth >= 2) {
@@ -145,14 +139,13 @@ export default function QuickCreateFolderDialog({
         }
       }
 
-      // Check for duplicate name within same parent
+      // Check for duplicate name
       let query = supabase
         .from("folders")
         .select("id")
         .eq("user_id", user.id)
         .eq("name", validation.data.name);
 
-      // Use .is() for null comparison, .eq() for actual values
       if (selectedParentId) {
         query = query.eq("parent_id", selectedParentId);
       } else {
@@ -160,7 +153,6 @@ export default function QuickCreateFolderDialog({
       }
 
       const { data: existingFolder, error: checkError } = await query.maybeSingle();
-
       if (checkError) throw checkError;
 
       if (existingFolder) {
@@ -172,7 +164,6 @@ export default function QuickCreateFolderDialog({
       }
 
       // Create folder
-      const finalColor = customColor || color;
       const { data, error } = await supabase
         .from("folders")
         .insert({
@@ -180,8 +171,7 @@ export default function QuickCreateFolderDialog({
           description: validation.data.description,
           user_id: user.id,
           parent_id: selectedParentId || null,
-          icon,
-          color: finalColor,
+          icon: emoji,
           position: 0,
         })
         .select()
@@ -204,9 +194,8 @@ export default function QuickCreateFolderDialog({
   const resetForm = () => {
     setName("");
     setDescription("");
-    setColor(FOLDER_COLORS[0]);
-    setIcon('folder');
-    setCustomColor("");
+    setShowDescription(false);
+    setEmoji("📁");
     setSelectedParentId(parentFolderId);
   };
 
@@ -217,11 +206,7 @@ export default function QuickCreateFolderDialog({
     onOpenChange(newOpen);
   };
 
-  // Use shared utilities from icon-emoji-picker
-  const isEmoji = isEmojiIcon(icon);
-  const IconComponent = getIconComponent(icon);
-
-  // Filter folders to only show those that can be parents (depth < 2)
+  // Filter folders that can be parents (depth < 2)
   const availableParentFolders = foldersWithDepth.filter(f => f.depth < 2);
 
   return (
@@ -229,50 +214,53 @@ export default function QuickCreateFolderDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create New Folder</DialogTitle>
-          <DialogDescription>
-            Add a new folder to organize your meeting calls
-          </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          {/* Name */}
+        <div className="space-y-4 py-2">
+          {/* Name with inline emoji */}
           <div className="space-y-2">
-            <Label htmlFor="folder-name">Folder Name *</Label>
-            <Input
-              id="folder-name"
-              placeholder="e.g., Client Meetings, Team Calls"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !saving) {
-                  handleCreate();
-                }
-              }}
-              autoFocus
-            />
+            <Label htmlFor="folder-name">Folder Name</Label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {}}
+                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-cb-border bg-cb-card hover:bg-cb-hover transition-colors"
+                title="Selected emoji"
+              >
+                {emoji}
+              </button>
+              <Input
+                id="folder-name"
+                placeholder="e.g., Client Meetings"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !saving && name.trim()) {
+                    handleCreate();
+                  }
+                }}
+                className="flex-1"
+                autoFocus
+              />
+            </div>
           </div>
 
-          {/* Description */}
+          {/* Emoji picker inline */}
           <div className="space-y-2">
-            <Label htmlFor="folder-description">Description (optional)</Label>
-            <Input
-              id="folder-description"
-              placeholder="Brief description of this folder"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
+            <Label>Icon</Label>
+            <EmojiPickerInline value={emoji} onChange={setEmoji} />
           </div>
 
           {/* Parent Folder */}
           <div className="space-y-2">
-            <Label htmlFor="parent-folder">Parent Folder (optional)</Label>
+            <Label htmlFor="parent-folder">Parent Folder</Label>
             <Select
               value={selectedParentId || "none"}
               onValueChange={(value) => setSelectedParentId(value === "none" ? undefined : value)}
               disabled={loadingFolders}
             >
               <SelectTrigger id="parent-folder">
-                <SelectValue placeholder="Select parent folder" />
+                <SelectValue placeholder="None (Root Level)" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none">None (Root Level)</SelectItem>
@@ -283,80 +271,28 @@ export default function QuickCreateFolderDialog({
                 ))}
               </SelectContent>
             </Select>
-            {selectedParentId && foldersWithDepth.find(f => f.id === selectedParentId)?.depth === 2 && (
-              <p className="text-xs text-destructive">
-                This folder is already at maximum depth
-              </p>
+          </div>
+
+          {/* Optional Description */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="show-description"
+                checked={showDescription}
+                onCheckedChange={(checked) => setShowDescription(checked === true)}
+              />
+              <Label htmlFor="show-description" className="text-sm font-normal cursor-pointer">
+                Add description
+              </Label>
+            </div>
+            {showDescription && (
+              <Input
+                id="folder-description"
+                placeholder="Brief description of this folder"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
             )}
-          </div>
-
-          {/* Color Picker */}
-          <div className="space-y-2">
-            <Label>Color</Label>
-            <div className="flex gap-2 flex-wrap items-center">
-              {FOLDER_COLORS.map((colorValue) => (
-                <button
-                  key={colorValue}
-                  type="button"
-                  onClick={() => {
-                    setColor(colorValue);
-                    setCustomColor("");
-                  }}
-                  className={`w-8 h-8 rounded-md border-2 transition-all ${
-                    color === colorValue && !customColor
-                      ? 'border-cb-ink scale-110'
-                      : 'border-cb-border hover:scale-105'
-                  }`}
-                  style={{ backgroundColor: colorValue }}
-                  title={colorValue}
-                />
-              ))}
-              <div className="flex items-center gap-2 ml-2">
-                <Label htmlFor="custom-color" className="text-xs">
-                  Custom:
-                </Label>
-                <input
-                  id="custom-color"
-                  type="color"
-                  value={customColor || color}
-                  onChange={(e) => setCustomColor(e.target.value)}
-                  className="w-8 h-8 rounded border border-cb-border cursor-pointer"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Icon/Emoji Picker */}
-          <div className="space-y-2">
-            <Label>Icon or Emoji</Label>
-            <IconEmojiPicker
-              value={icon}
-              onChange={setIcon}
-              color={customColor || color}
-            />
-          </div>
-
-          {/* Preview */}
-          <div className="space-y-2">
-            <Label>Preview</Label>
-            <div className="flex items-center gap-2 p-3 rounded-md border border-cb-border bg-cb-card">
-              {isEmoji ? (
-                <span className="text-xl">{icon}</span>
-              ) : IconComponent ? (
-                <IconComponent
-                  className="h-5 w-5"
-                  style={{ color: customColor || color }}
-                />
-              ) : (
-                <RemixIcon.RiFolderLine
-                  className="h-5 w-5"
-                  style={{ color: customColor || color }}
-                />
-              )}
-              <span className="font-medium">
-                {name || "Folder Name"}
-              </span>
-            </div>
           </div>
         </div>
 
