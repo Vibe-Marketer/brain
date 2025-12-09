@@ -4,25 +4,10 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { queryKeys } from "@/lib/query-config";
 import { requireUser } from "@/lib/auth-utils";
+import type { Folder, FolderAssignment } from "@/types/folders";
 
-export interface Folder {
-  id: string;
-  user_id: string;
-  name: string;
-  description: string | null;
-  color: string;
-  icon: string;
-  parent_id: string | null;
-  position: number;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface FolderAssignment {
-  folder_id: string;
-  call_recording_id: number;
-  assigned_at: string;
-}
+// Re-export types for consumers
+export type { Folder, FolderAssignment } from "@/types/folders";
 
 interface CreateFolderParams {
   name: string;

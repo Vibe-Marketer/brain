@@ -168,7 +168,7 @@ export function TranscriptsTab() {
   });
 
   // Fetch folders
-  const { folders, folderAssignments, deleteFolder, assignToFolder } = useFolders();
+  const { folders, folderAssignments, deleteFolder, assignToFolder, isLoading: foldersLoading } = useFolders();
 
   // Calculate folder counts from folderAssignments
   const folderCounts = useMemo(() => {
@@ -304,8 +304,9 @@ export function TranscriptsTab() {
   const validCalls = useMemo(() => {
     let filtered = calls.filter(c => c && c.recording_id != null);
 
-    // Filter by selected folder
+    // Filter by selected folder (null = inbox = show all)
     if (selectedFolderId) {
+      // Specific folder: show transcripts in that folder
       filtered = filtered.filter(call => {
         const callFolders = folderAssignments[call.recording_id] || [];
         return callFolders.includes(selectedFolderId);
@@ -600,6 +601,7 @@ export function TranscriptsTab() {
             onNewFolder={() => setQuickCreateFolderOpen(true)}
             onManageFolders={() => setFolderManagementOpen(true)}
             isDragging={!!dragHelpers.activeDragId}
+            isLoading={foldersLoading}
           />
         </div>
 
@@ -708,7 +710,7 @@ export function TranscriptsTab() {
                       folders={folders}
                       folderAssignments={folderAssignments}
                       onFolderCall={(callId) => setFolderingCallId(callId as number)}
-                      totalCount={totalCount}
+                      totalCount={selectedFolderId ? validCalls.length : totalCount}
                       page={page}
                       pageSize={pageSize}
                       onPageChange={setPage}

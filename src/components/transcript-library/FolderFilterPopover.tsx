@@ -6,28 +6,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterButton } from "./FilterButton";
 import { cn } from "@/lib/utils";
-
-export interface Folder {
-  id: string;
-  userId: string;
-  name: string;
-  parentId: string | null;
-  depth: number;
-  icon?: string;
-  color?: string;
-  sortOrder: number;
-  createdAt: Date;
-  updatedAt: Date;
-  path?: string;
-  childCount?: number;
-  callCount?: number;
-}
+import type { Folder } from "@/hooks/useFolders";
 
 interface FolderFilterPopoverProps {
   selectedFolders: string[] | undefined;
   folders: Folder[];
   onFoldersChange: (folderIds: string[]) => void;
   onCreateFolder?: () => void;
+  folderCounts?: Record<string, number>;
 }
 
 export function FolderFilterPopover({
@@ -35,6 +21,7 @@ export function FolderFilterPopover({
   folders,
   onFoldersChange,
   onCreateFolder,
+  folderCounts = {},
 }: FolderFilterPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -54,19 +41,19 @@ export function FolderFilterPopover({
     // Build tree structure
     folders.forEach((folder) => {
       const folderWithChildren = folderMap.get(folder.id)!;
-      if (folder.parentId === null) {
+      if (folder.parent_id === null) {
         rootFolders.push(folderWithChildren);
       } else {
-        const parent = folderMap.get(folder.parentId);
+        const parent = folderMap.get(folder.parent_id);
         if (parent) {
           parent.children.push(folderWithChildren);
         }
       }
     });
 
-    // Sort by sortOrder
+    // Sort by position
     const sortFolders = (folderList: FolderWithChildren[]) => {
-      folderList.sort((a, b) => a.sortOrder - b.sortOrder);
+      folderList.sort((a, b) => a.position - b.position);
       folderList.forEach((folder) => {
         if (folder.children.length > 0) {
           sortFolders(folder.children);
@@ -85,8 +72,7 @@ export function FolderFilterPopover({
     const query = searchQuery.toLowerCase();
     return folderTree
       .map((folder) => {
-        const matchesSearch = folder.name.toLowerCase().includes(query) ||
-          folder.path?.toLowerCase().includes(query);
+        const matchesSearch = folder.name.toLowerCase().includes(query);
         const filteredChildren = filterFolders(folder.children);
 
         if (matchesSearch || filteredChildren.length > 0) {
@@ -128,6 +114,7 @@ export function FolderFilterPopover({
   const renderFolderItem = (folder: FolderWithChildren, depth = 0) => {
     const isSelected = selectedFolders.includes(folder.id);
     const indentClass = depth === 0 ? "" : depth === 1 ? "ml-4" : "ml-8";
+    const callCount = folderCounts[folder.id];
 
     return (
       <div key={folder.id}>
@@ -148,14 +135,14 @@ export function FolderFilterPopover({
               />
             )}
             <span className="truncate">{folder.name}</span>
-            {folder.callCount !== undefined && folder.callCount > 0 && (
-              <span className="text-xs text-muted-foreground">({folder.callCount})</span>
+            {callCount !== undefined && callCount > 0 && (
+              <span className="text-xs text-muted-foreground">({callCount})</span>
             )}
           </label>
         </div>
         {folder.children.length > 0 && (
           <div className="space-y-1">
-            {folder.children.map((child) => renderFolderItem(child, depth + 1))}
+            {folder.children.map((child: FolderWithChildren) => renderFolderItem(child, depth + 1))}
           </div>
         )}
       </div>

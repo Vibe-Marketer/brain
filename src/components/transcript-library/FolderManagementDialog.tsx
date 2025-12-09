@@ -24,18 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-
-export interface Folder {
-  id: string;
-  user_id: string;
-  name: string;
-  description: string | null;
-  color?: string | null;
-  icon?: string | null;
-  parent_id?: string | null;
-  created_at: string;
-  updated_at: string;
-}
+import type { Folder } from "@/types/folders";
 
 interface FolderManagementDialogProps {
   open: boolean;

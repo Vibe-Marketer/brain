@@ -13,14 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-
-interface Folder {
-  id: string;
-  name: string;
-  color: string;
-  parent_id: string | null;
-  depth?: number;
-}
+import type { FolderWithDepth } from "@/types/folders";
 
 interface AssignFolderDialogProps {
   open: boolean;
@@ -39,7 +32,7 @@ export default function AssignFolderDialog({
   onFoldersUpdated,
   onCreateFolder,
 }: AssignFolderDialogProps) {
-  const [folders, setFolders] = useState<Folder[]>([]);
+  const [folders, setFolders] = useState<FolderWithDepth[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -119,9 +112,9 @@ export default function AssignFolderDialog({
     }
   }, [open, targetRecordingIds.length, loadExistingAssignments, loadFolders]);
 
-  const sortFoldersHierarchically = (folders: Folder[]): Folder[] => {
+  const sortFoldersHierarchically = (folders: FolderWithDepth[]): FolderWithDepth[] => {
     // Build a map of parent_id -> children
-    const folderMap = new Map<string | null, Folder[]>();
+    const folderMap = new Map<string | null, FolderWithDepth[]>();
     folders.forEach(folder => {
       const parentId = folder.parent_id;
       if (!folderMap.has(parentId)) {
@@ -131,7 +124,7 @@ export default function AssignFolderDialog({
     });
 
     // Recursively build sorted list
-    const sorted: Folder[] = [];
+    const sorted: FolderWithDepth[] = [];
     const addFoldersRecursively = (parentId: string | null, depth: number = 0) => {
       const children = folderMap.get(parentId) || [];
       children.sort((a, b) => a.name.localeCompare(b.name));
@@ -251,7 +244,7 @@ export default function AssignFolderDialog({
     }
   };
 
-  const getFolderDisplayName = (folder: Folder): string => {
+  const getFolderDisplayName = (folder: FolderWithDepth): string => {
     const indent = "  ".repeat(folder.depth || 0);
     return `${indent}${folder.name}`;
   };
