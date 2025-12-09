@@ -338,10 +338,11 @@ ${cleanedTranscript}`;
         // Clean up the response - remove any quotes, markdown, or extra whitespace
         const aiTitle = result.text
           .trim()
-          .replace(/^["']|["']$/g, '')  // Remove leading/trailing quotes
-          .replace(/\*\*/g, '')          // Remove markdown bold
-          .replace(/\*/g, '')            // Remove markdown italic
-          .replace(/\n/g, ' ')           // Remove newlines
+          .replace(/^["'`]|["'`]$/g, '')  // Remove leading/trailing quotes and backticks
+          .replace(/`/g, '')              // Remove any remaining backticks
+          .replace(/\*\*/g, '')           // Remove markdown bold
+          .replace(/\*/g, '')             // Remove markdown italic
+          .replace(/\n/g, ' ')            // Remove newlines
           .trim();
 
         console.log(`Generated for ${recordingId}: "${aiTitle}"`);
