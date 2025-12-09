@@ -36,6 +36,7 @@ import {
   RiAddLine,
   RiDeleteBinLine,
   RiEditLine,
+  RiFolderLine,
   RiLoader2Line,
   RiPlayLine,
 } from "@remixicon/react";
@@ -56,7 +57,8 @@ interface Rule {
   description: string | null;
   rule_type: string;
   conditions: RuleConditions;
-  tag_id: string;
+  tag_id: string | null;
+  folder_id: string | null;
   priority: number;
   is_active: boolean | null;
   times_applied: number | null;
@@ -68,6 +70,13 @@ interface Tag {
   id: string;
   name: string;
   color: string | null;
+}
+
+interface Folder {
+  id: string;
+  name: string;
+  color: string | null;
+  icon: string | null;
 }
 
 const RULE_TYPES = [
@@ -91,6 +100,7 @@ export function RulesTab() {
     description: "",
     rule_type: "title_exact",
     tag_id: "",
+    folder_id: "",
     priority: 100,
     conditions: {} as RuleConditions,
   });
@@ -123,6 +133,20 @@ export function RulesTab() {
     },
   });
 
+  // Fetch folders
+  const { data: folders } = useQuery({
+    queryKey: ["folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("folders")
+        .select("id, name, color, icon")
+        .order("name");
+
+      if (error) throw error;
+      return data as Folder[];
+    },
+  });
+
   // Toggle rule active status
   const toggleRuleMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
@@ -147,6 +171,10 @@ export function RulesTab() {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not authenticated");
 
+      // Convert empty strings to null for database
+      const tag_id = data.tag_id || null;
+      const folder_id = data.folder_id || null;
+
       if (editingRule) {
         const { error } = await supabase
           .from("tag_rules")
@@ -154,7 +182,8 @@ export function RulesTab() {
             name: data.name,
             description: data.description || null,
             rule_type: data.rule_type,
-            tag_id: data.tag_id,
+            tag_id,
+            folder_id,
             priority: data.priority,
             conditions: data.conditions,
           })
@@ -167,7 +196,8 @@ export function RulesTab() {
           name: data.name,
           description: data.description || null,
           rule_type: data.rule_type,
-          tag_id: data.tag_id,
+          tag_id,
+          folder_id,
           priority: data.priority,
           conditions: data.conditions,
           is_active: true,
@@ -223,9 +253,23 @@ export function RulesTab() {
       return data;
     },
     onSuccess: (data) => {
-      const count = Array.isArray(data) ? data.length : 0;
-      toast.success(`Applied rules to ${count} calls`);
+      const results = Array.isArray(data) ? data : [];
+      const count = results.length;
+      // Count how many had tags vs folders assigned
+      const tagCount = results.filter((r: { tag_name: string | null }) => r.tag_name).length;
+      const folderCount = results.filter((r: { folder_name: string | null }) => r.folder_name).length;
+
+      let message = `Applied rules to ${count} calls`;
+      if (tagCount > 0 && folderCount > 0) {
+        message += ` (${tagCount} tagged, ${folderCount} filed)`;
+      } else if (tagCount > 0) {
+        message += ` (${tagCount} tagged)`;
+      } else if (folderCount > 0) {
+        message += ` (${folderCount} filed)`;
+      }
+      toast.success(message);
       queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
+      queryClient.invalidateQueries({ queryKey: ["folder-assignments"] });
     },
     onError: (error) => {
       toast.error(`Failed to apply rules: ${error.message}`);
@@ -239,6 +283,7 @@ export function RulesTab() {
       description: "",
       rule_type: "title_exact",
       tag_id: "",
+      folder_id: "",
       priority: 100,
       conditions: {},
     });
@@ -251,7 +296,8 @@ export function RulesTab() {
       name: rule.name,
       description: rule.description || "",
       rule_type: rule.rule_type,
-      tag_id: rule.tag_id,
+      tag_id: rule.tag_id || "",
+      folder_id: rule.folder_id || "",
       priority: rule.priority,
       conditions: rule.conditions || {},
     });
@@ -266,25 +312,42 @@ export function RulesTab() {
       description: "",
       rule_type: "title_exact",
       tag_id: "",
+      folder_id: "",
       priority: 100,
       conditions: {},
     });
   };
 
   const handleSubmit = () => {
-    if (!formData.name || !formData.tag_id) {
-      toast.error("Please fill in required fields");
+    if (!formData.name) {
+      toast.error("Please enter a rule name");
+      return;
+    }
+    if (!formData.tag_id && !formData.folder_id) {
+      toast.error("Please select at least a tag or folder to assign");
       return;
     }
     saveMutation.mutate(formData);
   };
 
-  const getTagName = (tagId: string) => {
+  const getTagName = (tagId: string | null) => {
+    if (!tagId) return null;
     return tags?.find((t) => t.id === tagId)?.name || "Unknown";
   };
 
-  const getTagColor = (tagId: string) => {
+  const getTagColor = (tagId: string | null) => {
+    if (!tagId) return "#666";
     return tags?.find((t) => t.id === tagId)?.color || "#666";
+  };
+
+  const getFolderName = (folderId: string | null) => {
+    if (!folderId) return null;
+    return folders?.find((f) => f.id === folderId)?.name || "Unknown";
+  };
+
+  const getFolderColor = (folderId: string | null) => {
+    if (!folderId) return "#666";
+    return folders?.find((f) => f.id === folderId)?.color || "#666";
   };
 
   const renderConditionEditor = () => {
@@ -466,6 +529,9 @@ export function RulesTab() {
               <TableHead className="font-medium text-xs uppercase tracking-wider w-32">
                 Tag
               </TableHead>
+              <TableHead className="font-medium text-xs uppercase tracking-wider w-32">
+                Folder
+              </TableHead>
               <TableHead className="font-medium text-xs uppercase tracking-wider w-20 text-right">
                 Applied
               </TableHead>
@@ -477,7 +543,7 @@ export function RulesTab() {
           <TableBody>
             {rules?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-cb-ink-muted">
+                <TableCell colSpan={7} className="text-center py-8 text-cb-ink-muted">
                   No rules created yet. Create your first rule to get started.
                 </TableCell>
               </TableRow>
@@ -506,13 +572,30 @@ export function RulesTab() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="w-3 h-3 rounded-sm"
-                        style={{ backgroundColor: getTagColor(rule.tag_id) }}
-                      />
-                      {getTagName(rule.tag_id)}
-                    </div>
+                    {rule.tag_id ? (
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="w-3 h-3 rounded-sm"
+                          style={{ backgroundColor: getTagColor(rule.tag_id) }}
+                        />
+                        {getTagName(rule.tag_id)}
+                      </div>
+                    ) : (
+                      <span className="text-cb-ink-muted">—</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {rule.folder_id ? (
+                      <div className="flex items-center gap-2">
+                        <RiFolderLine
+                          className="h-4 w-4"
+                          style={{ color: getFolderColor(rule.folder_id) }}
+                        />
+                        {getFolderName(rule.folder_id)}
+                      </div>
+                    ) : (
+                      <span className="text-cb-ink-muted">—</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">
                     {rule.times_applied || 0}
@@ -547,7 +630,7 @@ export function RulesTab() {
           <DialogHeader>
             <DialogTitle>{editingRule ? "Edit Rule" : "Create Rule"}</DialogTitle>
             <DialogDescription>
-              Define conditions for automatically tagging calls.
+              Define conditions for automatically assigning tags and/or folders to calls.
             </DialogDescription>
           </DialogHeader>
 
@@ -604,29 +687,71 @@ export function RulesTab() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Tag *</Label>
-              <Select
-                value={formData.tag_id}
-                onValueChange={(v) => setFormData({ ...formData, tag_id: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select tag" />
-                </SelectTrigger>
-                <SelectContent>
-                  {tags?.map((tag) => (
-                    <SelectItem key={tag.id} value={tag.id}>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-sm"
-                          style={{ backgroundColor: tag.color || "#666" }}
-                        />
-                        {tag.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            {/* Actions Section - Tag and/or Folder assignment */}
+            <div className="space-y-4 border-t pt-4">
+              <Label className="text-sm font-medium">
+                Actions (select at least one)
+              </Label>
+
+              {/* Tag Assignment (optional) */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">Assign Tag</Label>
+                <Select
+                  value={formData.tag_id || "none"}
+                  onValueChange={(v) =>
+                    setFormData({ ...formData, tag_id: v === "none" ? "" : v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="No tag (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No tag</SelectItem>
+                    {tags?.map((tag) => (
+                      <SelectItem key={tag.id} value={tag.id}>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-sm"
+                            style={{ backgroundColor: tag.color || "#666" }}
+                          />
+                          {tag.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Folder Assignment (optional) */}
+              <div className="space-y-2">
+                <Label className="text-xs text-muted-foreground">
+                  Assign to Folder
+                </Label>
+                <Select
+                  value={formData.folder_id || "none"}
+                  onValueChange={(v) =>
+                    setFormData({ ...formData, folder_id: v === "none" ? "" : v })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="No folder (optional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No folder</SelectItem>
+                    {folders?.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        <div className="flex items-center gap-2">
+                          <RiFolderLine
+                            className="h-4 w-4"
+                            style={{ color: folder.color || "#666" }}
+                          />
+                          {folder.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {renderConditionEditor()}

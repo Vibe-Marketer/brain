@@ -9,16 +9,24 @@
 
 -- 1. Add folder_id column to existing tag_rules table (nullable FK to folders)
 ALTER TABLE tag_rules
-ADD COLUMN folder_id UUID REFERENCES folders(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS folder_id UUID REFERENCES folders(id) ON DELETE SET NULL;
 
 -- 2. Make tag_id nullable (rules can now assign folder only, tag only, or both)
 ALTER TABLE tag_rules
 ALTER COLUMN tag_id DROP NOT NULL;
 
 -- 3. Add constraint: at least one target must be set (tag_id OR folder_id)
-ALTER TABLE tag_rules
-ADD CONSTRAINT tag_rules_at_least_one_target
-CHECK (tag_id IS NOT NULL OR folder_id IS NOT NULL);
+-- First check if it exists
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'tag_rules_at_least_one_target'
+  ) THEN
+    ALTER TABLE tag_rules
+    ADD CONSTRAINT tag_rules_at_least_one_target
+    CHECK (tag_id IS NOT NULL OR folder_id IS NOT NULL);
+  END IF;
+END $$;
 
 -- 4. Add index for folder_id lookups
 CREATE INDEX IF NOT EXISTS idx_tag_rules_folder_id
