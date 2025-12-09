@@ -39,6 +39,19 @@ export async function callEdgeFunction<T = unknown>(
   const { retry = true, maxRetries = 3 } = options;
 
   const makeRequest = async () => {
+    // Ensure we have a valid session before making the request
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+
+    if (sessionError) {
+      logger.error(`Session error before calling ${functionName}`, sessionError);
+      throw new Error(`Authentication error: ${sessionError.message}`);
+    }
+
+    if (!sessionData.session) {
+      logger.error(`No session available for ${functionName}`);
+      throw new Error('Not authenticated. Please sign in again.');
+    }
+
     const { data, error } = await supabase.functions.invoke(functionName, {
       body,
     });
