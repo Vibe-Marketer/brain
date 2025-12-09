@@ -172,11 +172,13 @@ export function SyncTab() {
     hostEmail,
     categories,
     activeSyncJobs,
+    recentlyCompletedJobs,
     setActiveSyncJobs,
   } = useSyncTabState({
     meetings,
     loadExistingTranscripts,
     checkSyncStatus,
+    setMeetings,
   });
 
   const cancelSyncJob = async (jobId: string) => {
@@ -496,6 +498,7 @@ export function SyncTab() {
       {/* Active Sync Jobs Status - Shows real-time progress */}
       <ActiveSyncJobsCard
         activeSyncJobs={activeSyncJobs}
+        recentlyCompletedJobs={recentlyCompletedJobs}
         onCancelJob={cancelSyncJob}
       />
 

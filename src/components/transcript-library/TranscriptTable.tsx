@@ -128,10 +128,22 @@ export const TranscriptTable = React.memo(({
             <TableHeader>
               <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
                 <TableHead className="w-8 md:w-12 h-10 md:h-12">
-                  <Checkbox
-                    checked={selectedCalls.length === calls.length && calls.length > 0}
-                    onCheckedChange={onSelectAll}
-                  />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <div className="flex items-center">
+                          <Checkbox
+                            checked={selectedCalls.length === calls.length && calls.length > 0}
+                            onCheckedChange={onSelectAll}
+                            aria-label={selectedCalls.length === calls.length ? "Deselect all" : "Select all"}
+                          />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p>{selectedCalls.length === calls.length && calls.length > 0 ? "Deselect all" : `Select all (${calls.length})`}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </TableHead>
                 <TableHead className="min-w-[150px] md:min-w-[200px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
                   <SortButton field="title">TITLE</SortButton>

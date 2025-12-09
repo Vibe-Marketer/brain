@@ -656,19 +656,24 @@ Deno.serve(async (req) => {
           console.error('Failed to invoke embed-chunks:', embedErr);
         }
 
-        // Trigger AI title generation
+        // Trigger AI title generation for each synced user
         console.log(`🏷️ Triggering AI title generation for meeting ${meeting.recording_id}...`);
-        try {
-          const { error: titleError } = await supabase.functions.invoke('generate-ai-titles', {
-            body: { recordingIds: [meeting.recording_id] },
-          });
-          if (titleError) {
-            console.error('AI title generation failed:', titleError);
-          } else {
-            console.log('✅ AI title generation triggered successfully');
+        for (const syncedUserId of syncedUserIds) {
+          try {
+            const { error: titleError } = await supabase.functions.invoke('generate-ai-titles', {
+              body: {
+                recordingIds: [meeting.recording_id],
+                user_id: syncedUserId  // Pass user_id for internal service call
+              },
+            });
+            if (titleError) {
+              console.error(`AI title generation failed for user ${syncedUserId}:`, titleError);
+            } else {
+              console.log(`✅ AI title generation triggered for user ${syncedUserId}`);
+            }
+          } catch (titleErr) {
+            console.error(`Failed to invoke generate-ai-titles for user ${syncedUserId}:`, titleErr);
           }
-        } catch (titleErr) {
-          console.error('Failed to invoke generate-ai-titles:', titleErr);
         }
 
         // Log successful delivery WITH verification results

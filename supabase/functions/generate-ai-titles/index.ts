@@ -23,6 +23,7 @@ interface GenerateTitlesRequest {
   recordingIds?: number[];
   auto_discover?: boolean;  // Find all calls without AI titles
   limit?: number;           // Max calls to process when auto_discover is true
+  user_id?: string;         // For internal service calls (bypasses JWT auth)
 }
 
 const TitleSchema = z.object({
@@ -55,37 +56,62 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify authorization
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Parse body first to check for internal service call
+    const body: GenerateTitlesRequest = await req.json();
+    const { recordingIds, auto_discover, limit = 50, user_id: internalUserId } = body;
+
+    let userId: string;
+
+    // Check for internal service call (from webhook or other Edge Functions)
+    // These calls include user_id in body and use service role key
+    if (internalUserId) {
+      // Validate the internal user_id exists
+      const { data: userExists } = await supabase
+        .from('user_settings')
+        .select('user_id')
+        .eq('user_id', internalUserId)
+        .maybeSingle();
+
+      if (!userExists) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid user_id for internal call' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = internalUserId;
+      console.log(`Internal service call for user: ${userId}`);
+    } else {
+      // External call - verify JWT authorization
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'No authorization header' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+      if (userError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = user.id;
     }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const { recordingIds, auto_discover, limit = 50 }: GenerateTitlesRequest = await req.json();
 
     let idsToProcess: number[] = [];
 
     if (auto_discover) {
       // Find all calls without AI-generated titles
-      console.log(`Auto-discovering calls without AI titles for user ${user.id} (limit: ${limit})`);
+      console.log(`Auto-discovering calls without AI titles for user ${userId} (limit: ${limit})`);
 
       const { data: callsWithoutTitles, error: discoverError } = await supabase
         .from('fathom_calls')
         .select('recording_id')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .is('ai_generated_title', null)
         .not('full_transcript', 'is', null)  // Must have transcript
         .order('created_at', { ascending: false })
@@ -117,7 +143,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Generating AI titles for ${idsToProcess.length} calls for user ${user.id}`);
+    console.log(`Generating AI titles for ${idsToProcess.length} calls for user ${userId}`);
 
     const results = [];
     // Use OpenRouter for model access
@@ -130,7 +156,7 @@ Deno.serve(async (req) => {
           .from('fathom_calls')
           .select('recording_id, title, full_transcript, summary, ai_generated_title')
           .eq('recording_id', recordingId)
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .single();
 
         if (callError || !call) {
@@ -162,8 +188,9 @@ Deno.serve(async (req) => {
         ].filter(Boolean).join('\n\n');
 
         // Generate improved title using OpenRouter
+        // Using gpt-4o-mini for reliable structured output support
         const result = await generateObject({
-          model: openrouter('z-ai/glm-4.6'),
+          model: openrouter('openai/gpt-4o-mini'),
           schema: TitleSchema,
           prompt: `You are an expert at analyzing sales calls, coaching sessions, and business meetings to extract the CORE PURPOSE and PRIMARY OUTCOME.
 
@@ -225,7 +252,7 @@ Generate the most descriptive, specific title possible.`,
             ai_title_generated_at: new Date().toISOString(),
           })
           .eq('recording_id', recordingId)
-          .eq('user_id', user.id);
+          .eq('user_id', userId);
 
         if (updateError) {
           console.error(`Error updating title for ${recordingId}:`, updateError);
@@ -256,7 +283,7 @@ Generate the most descriptive, specific title possible.`,
                 .insert({
                   call_recording_id: recordingId,
                   tag_id: tag.id,
-                  user_id: user.id,
+                  user_id: userId,
                   auto_assigned: true,
                   is_primary: true,
                 })

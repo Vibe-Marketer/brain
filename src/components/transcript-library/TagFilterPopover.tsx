@@ -29,7 +29,8 @@ export function TagFilterPopover({
 
   const handleCreateTag = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget; // Capture reference before async operations
+    const formData = new FormData(form);
     const name = formData.get('tagName') as string;
 
     if (!name?.trim()) return;
@@ -43,7 +44,7 @@ export function TagFilterPopover({
 
       if (error) throw error;
 
-      e.currentTarget.reset();
+      form.reset(); // Use captured reference
     } catch (error) {
       logger.error("Error creating tag", error);
     }

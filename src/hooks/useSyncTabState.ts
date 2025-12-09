@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { getSafeUser } from "@/lib/auth-utils";
 import type { Tag } from "@/hooks/useCategorySync";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 
-interface SyncJob {
+export interface SyncJob {
   id: string;
   user_id: string;
   status: string;
@@ -23,17 +24,22 @@ interface UseSyncTabStateProps {
   meetings: Array<{ recording_id: string }>;
   loadExistingTranscripts: () => Promise<void>;
   checkSyncStatus: (recordingIds: string[]) => Promise<void>;
+  setMeetings?: (meetings: Array<{ recording_id: string }> | ((prev: Array<{ recording_id: string }>) => Array<{ recording_id: string }>)) => void;
 }
 
 export function useSyncTabState({
   meetings,
   loadExistingTranscripts,
-  checkSyncStatus
+  checkSyncStatus,
+  setMeetings
 }: UseSyncTabStateProps) {
   const [userTimezone, setUserTimezone] = useState<string>("America/New_York");
   const [hostEmail, setHostEmail] = useState<string>("");
   const [tags, setTags] = useState<Tag[]>([]);
   const [activeSyncJobs, setActiveSyncJobs] = useState<SyncJob[]>([]);
+  const [recentlyCompletedJobs, setRecentlyCompletedJobs] = useState<SyncJob[]>([]);
+  const realtimeChannelRef = useRef<RealtimeChannel | null>(null);
+  const completedJobTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Load user timezone from user_settings
   const loadUserTimezone = async () => {
@@ -90,80 +96,176 @@ export function useSyncTabState({
     }
   };
 
-  // Background sync job polling - polls for active sync jobs and updates UI
+  // Handle job completion - show success state and refresh data
+  const handleJobCompleted = useCallback(async (job: SyncJob) => {
+    logger.info(`Sync job ${job.id} completed with status: ${job.status}`);
+
+    // Remove from active jobs
+    setActiveSyncJobs(prev => prev.filter(j => j.id !== job.id));
+
+    // Add to recently completed (will show success message)
+    setRecentlyCompletedJobs(prev => [...prev, job]);
+
+    // Auto-remove completed job after 8 seconds
+    const timeoutId = setTimeout(() => {
+      setRecentlyCompletedJobs(prev => prev.filter(j => j.id !== job.id));
+      completedJobTimeoutsRef.current.delete(job.id);
+    }, 8000);
+    completedJobTimeoutsRef.current.set(job.id, timeoutId);
+
+    // Refresh the data
+    await loadExistingTranscripts();
+
+    // Remove synced meetings from unsynced list
+    if (setMeetings && job.synced_ids && job.synced_ids.length > 0) {
+      const syncedIdStrings = new Set(job.synced_ids.map(id => String(id)));
+      setMeetings(prev => prev.filter(m => !syncedIdStrings.has(m.recording_id)));
+    }
+
+    // Check sync status for remaining meetings
+    if (meetings.length > 0) {
+      await checkSyncStatus(meetings.map(m => m.recording_id));
+    }
+  }, [loadExistingTranscripts, checkSyncStatus, meetings, setMeetings]);
+
+  // Hybrid approach: Try realtime with polling fallback
   useEffect(() => {
-    let pollInterval: NodeJS.Timeout | null = null;
     let isMounted = true;
+    let pollInterval: NodeJS.Timeout | null = null;
+    let realtimeConnected = false;
+    let previousJobsRef: SyncJob[] = [];
 
     const pollSyncJobs = async () => {
       try {
         const { user, error: authError } = await getSafeUser();
         if (authError || !user || !isMounted) return;
 
-        // Fetch active sync jobs (pending or processing)
         const { data: jobs, error } = await supabase
           .from('sync_jobs')
           .select('*')
           .eq('user_id', user.id)
-          .in('status', ['pending', 'processing'])
+          .in('status', ['pending', 'processing', 'completed', 'failed', 'completed_with_errors'])
+          .gte('updated_at', new Date(Date.now() - 60000).toISOString()) // Last minute
           .order('created_at', { ascending: false });
 
-        if (error) {
-          logger.error('Error polling sync jobs', error);
-          return;
-        }
+        if (error || !isMounted) return;
 
-        if (!isMounted) return;
+        const activeJobs = (jobs || []).filter(j =>
+          j.status === 'pending' || j.status === 'processing'
+        );
 
-        // Update active sync jobs state
-        setActiveSyncJobs(jobs || []);
+        // Check for newly completed jobs
+        const completedJobs = (jobs || []).filter(j =>
+          j.status === 'completed' || j.status === 'failed' || j.status === 'completed_with_errors'
+        );
 
-        // If no active jobs, stop polling
-        if (!jobs || jobs.length === 0) {
-          if (pollInterval) {
-            clearInterval(pollInterval);
-            pollInterval = null;
+        // Find jobs that just completed (were in previousJobsRef but now are completed)
+        for (const completedJob of completedJobs) {
+          const wasActive = previousJobsRef.some(prev =>
+            prev.id === completedJob.id &&
+            (prev.status === 'pending' || prev.status === 'processing')
+          );
+          const alreadyHandled = recentlyCompletedJobs.some(r => r.id === completedJob.id);
+
+          if (wasActive && !alreadyHandled) {
+            await handleJobCompleted(completedJob);
           }
-          return;
         }
+
+        setActiveSyncJobs(activeJobs);
+        previousJobsRef = jobs || [];
       } catch (error) {
-        logger.error('Error in sync job polling', error);
+        logger.error('Error polling sync jobs', error);
       }
     };
 
-    // Initial poll
-    pollSyncJobs();
+    const setupRealtimeSubscription = async () => {
+      try {
+        const { user, error: authError } = await getSafeUser();
+        if (authError || !user || !isMounted) return;
 
-    // Start polling if there are active jobs
-    pollInterval = setInterval(pollSyncJobs, 2000);
+        // Initial fetch
+        await pollSyncJobs();
 
-    // Cleanup
+        // Try to set up realtime subscription
+        const channel = supabase
+          .channel(`sync_jobs_${user.id}`)
+          .on(
+            'postgres_changes',
+            {
+              event: '*',
+              schema: 'public',
+              table: 'sync_jobs',
+              filter: `user_id=eq.${user.id}`,
+            },
+            async (payload) => {
+              if (!isMounted) return;
+
+              logger.debug('Sync job realtime update:', payload);
+              realtimeConnected = true;
+
+              const newJob = payload.new as SyncJob;
+              const oldJob = payload.old as SyncJob;
+
+              if (payload.eventType === 'INSERT') {
+                setActiveSyncJobs(prev => [newJob, ...prev]);
+              } else if (payload.eventType === 'UPDATE') {
+                if (newJob.status === 'completed' || newJob.status === 'failed' || newJob.status === 'completed_with_errors') {
+                  await handleJobCompleted(newJob);
+                } else {
+                  setActiveSyncJobs(prev =>
+                    prev.map(j => j.id === newJob.id ? newJob : j)
+                  );
+                }
+              } else if (payload.eventType === 'DELETE') {
+                setActiveSyncJobs(prev => prev.filter(j => j.id !== oldJob.id));
+              }
+            }
+          )
+          .subscribe((status) => {
+            logger.debug('Sync jobs realtime subscription status:', status);
+            if (status === 'SUBSCRIBED') {
+              realtimeConnected = true;
+              // Reduce polling frequency when realtime is connected
+              if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = setInterval(pollSyncJobs, 10000); // Poll every 10s as backup
+              }
+            } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR') {
+              realtimeConnected = false;
+              // Increase polling frequency when realtime fails
+              if (pollInterval) {
+                clearInterval(pollInterval);
+              }
+              pollInterval = setInterval(pollSyncJobs, 2000); // Poll every 2s
+            }
+          });
+
+        realtimeChannelRef.current = channel;
+
+        // Start polling as fallback (will be adjusted when realtime connects)
+        pollInterval = setInterval(pollSyncJobs, 2000);
+
+      } catch (error) {
+        logger.error('Error setting up sync jobs monitoring', error);
+        // Fallback to polling only
+        pollInterval = setInterval(pollSyncJobs, 2000);
+      }
+    };
+
+    setupRealtimeSubscription();
+
     return () => {
       isMounted = false;
-      if (pollInterval) {
-        clearInterval(pollInterval);
+      if (pollInterval) clearInterval(pollInterval);
+      if (realtimeChannelRef.current) {
+        supabase.removeChannel(realtimeChannelRef.current);
+        realtimeChannelRef.current = null;
       }
+      completedJobTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
+      completedJobTimeoutsRef.current.clear();
     };
-  }, []);
-
-  // Refresh transcripts when a sync job completes
-  useEffect(() => {
-    let previousJobs: SyncJob[] = [];
-
-    const checkForCompletedJobs = async () => {
-      // Find jobs that were previously in activeSyncJobs but are now missing (completed)
-      if (previousJobs.length > 0 && activeSyncJobs.length === 0) {
-        // At least one job completed - refresh data
-        await loadExistingTranscripts();
-        if (meetings.length > 0) {
-          await checkSyncStatus(meetings.map(m => m.recording_id));
-        }
-      }
-      previousJobs = [...activeSyncJobs];
-    };
-
-    checkForCompletedJobs();
-  }, [activeSyncJobs, meetings, loadExistingTranscripts, checkSyncStatus]);
+  }, [handleJobCompleted, recentlyCompletedJobs]);
 
   // Load initial data on mount
   useEffect(() => {
@@ -177,6 +279,7 @@ export function useSyncTabState({
     hostEmail,
     tags,
     activeSyncJobs,
+    recentlyCompletedJobs,
     setTags,
     setActiveSyncJobs,
     // Backward-compatible aliases

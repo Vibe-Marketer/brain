@@ -37,6 +37,9 @@ export function UnsyncedMeetingsSection({
   onDirectCategorize,
   onDownload,
 }: UnsyncedMeetingsSectionProps) {
+  const allSelected = selectedMeetings.size === meetings.length && meetings.length > 0;
+  const someSelected = selectedMeetings.size > 0;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -45,13 +48,28 @@ export function UnsyncedMeetingsSection({
             Unsynced Meetings
           </h2>
           <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light mt-1">
-            {meetings.length} meetings found • {selectedMeetings.size} selected
+            {meetings.length} meeting{meetings.length !== 1 ? 's' : ''} found
+            {someSelected && (
+              <span className="ml-1">
+                • <span className="font-medium text-primary">{selectedMeetings.size} selected</span>
+              </span>
+            )}
           </p>
         </div>
+        {meetings.length > 0 && (
+          <Button
+            variant="hollow"
+            size="sm"
+            onClick={onSelectAll}
+            className="h-8 px-3 text-xs"
+          >
+            {allSelected ? 'Deselect All' : `Select All (${meetings.length})`}
+          </Button>
+        )}
       </div>
 
       {/* Bulk Actions for Unsynced */}
-      {selectedMeetings.size > 0 && (
+      {someSelected && (
         <div className="flex items-center gap-2">
           <Button
             variant="default"

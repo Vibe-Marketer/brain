@@ -92,10 +92,29 @@ export function BulkActionToolbarEnhanced({
         throw new Error(error);
       }
 
-      toast.success(
-        `Generated ${data.successCount} title${data.successCount > 1 ? 's' : ''} successfully`,
-        { id: loadingToast }
-      );
+      // Report results with appropriate feedback
+      if (data.successCount > 0) {
+        if (data.failureCount > 0) {
+          toast.success(
+            `Generated ${data.successCount} title${data.successCount !== 1 ? 's' : ''}, ${data.failureCount} failed`,
+            { id: loadingToast }
+          );
+        } else {
+          toast.success(
+            `Generated ${data.successCount} title${data.successCount !== 1 ? 's' : ''} successfully`,
+            { id: loadingToast }
+          );
+        }
+      } else if (data.failureCount > 0) {
+        // All failed - show error with details
+        const firstError = data.results?.find((r: { success: boolean; error?: string }) => !r.success)?.error;
+        toast.error(
+          `Failed to generate titles: ${firstError || 'Unknown error'}`,
+          { id: loadingToast }
+        );
+      } else {
+        toast.info('No calls to process', { id: loadingToast });
+      }
       onClearSelection();
     } catch (error) {
       logger.error('Error generating AI titles', error);
