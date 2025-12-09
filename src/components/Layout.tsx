@@ -1,5 +1,6 @@
 import { MacOSDock, DockApp } from "@/components/ui/mac-os-dock";
 import { TopBar } from "@/components/ui/top-bar";
+import { TestEnvironmentBanner } from "@/components/TestEnvironmentBanner";
 import { useNavigate, useLocation } from "react-router-dom";
 import { RiHome4Fill, RiChat1Fill, RiPriceTag3Fill, RiSettings3Fill } from "@remixicon/react";
 
@@ -72,6 +73,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   // Chat page provides its own container (ChatOuterCard), so we don't wrap it
   const isChatPage = location.pathname.startsWith('/chat');
 
+  // Check if test environment for layout adjustments
+  const isTestEnv = typeof window !== 'undefined' &&
+    (window.location.hostname.includes('test.') ||
+     window.location.hostname === 'localhost' ||
+     window.location.hostname === '127.0.0.1');
+
   return (
     <div
       className="min-h-screen w-full relative"
@@ -79,8 +86,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         background: 'linear-gradient(135deg, rgba(255, 235, 0, 0.12) 0%, rgba(255, 136, 0, 0.08) 50%, rgba(255, 61, 0, 0.05) 100%), hsl(var(--viewport))'
       }}
     >
-      <TopBar pageLabel={getPageLabel()} />
-      <main className="fixed inset-2 top-[52px]">
+      <TestEnvironmentBanner />
+      <TopBar pageLabel={getPageLabel()} className={isTestEnv ? 'top-[40px]' : ''} />
+      <main className={`fixed inset-2 ${isTestEnv ? 'top-[92px]' : 'top-[52px]'}`}>
         {isChatPage ? (
           // Chat page uses ChatOuterCard directly - no wrapper
           children
