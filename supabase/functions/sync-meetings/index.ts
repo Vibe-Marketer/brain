@@ -3,7 +3,7 @@ import { FathomClient } from '../_shared/fathom-client.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 };
 
 // Rate limiter for API calls - conservative to avoid 429 errors
