@@ -164,12 +164,11 @@ export function TranscriptTableRow({
       {visibleColumns.tags !== false && (
         <TableCell className="hidden xl:table-cell py-1.5 whitespace-nowrap">
         <div className="flex flex-col justify-center h-full gap-1 py-0.5">
-          {/* Primary tag (or UNKNOWN default) */}
-          {(() => {
-            const tag = tagAssignments.length > 0
-              ? tags.find((t) => t.id === tagAssignments[0])
-              : null;
-            const isSkip = tag?.name === 'SKIP';
+          {/* Primary tag - only render if assigned */}
+          {tagAssignments.length > 0 && (() => {
+            const tag = tags.find((t) => t.id === tagAssignments[0]);
+            if (!tag) return null;
+            const isSkip = tag.name === 'SKIP';
             const Icon = isSkip ? RiCloseCircleLine : RiPriceTag3Line;
             return (
               <Badge
@@ -178,22 +177,29 @@ export function TranscriptTableRow({
               >
                 <Icon className="h-3 w-3 mr-0.5 flex-shrink-0" />
                 <span className="truncate max-w-[80px]">
-                  {tag ? tag.name : 'UNKNOWN'}
+                  {tag.name}
                 </span>
               </Badge>
             );
           })()}
 
-          {/* Secondary tag from auto_tags (AI-generated hint) */}
-          <Badge
-            variant="outline"
-            className="text-[10px] py-0 px-1.5 h-4 w-fit leading-none flex items-center gap-0.5"
-          >
-            <RiPriceTag3Line className="h-3 w-3 mr-0.5 flex-shrink-0" />
-            <span className="truncate max-w-[80px]">
-              {call.auto_tags && call.auto_tags.length > 0 ? call.auto_tags[0] : 'UNKNOWN'}
-            </span>
-          </Badge>
+          {/* Secondary tag from auto_tags - only render if exists */}
+          {call.auto_tags && call.auto_tags.length > 0 && (
+            <Badge
+              variant="outline"
+              className="text-[10px] py-0 px-1.5 h-4 w-fit leading-none flex items-center gap-0.5"
+            >
+              <RiPriceTag3Line className="h-3 w-3 mr-0.5 flex-shrink-0" />
+              <span className="truncate max-w-[80px]">
+                {call.auto_tags[0]}
+              </span>
+            </Badge>
+          )}
+
+          {/* Show placeholder only if NO tags at all */}
+          {tagAssignments.length === 0 && (!call.auto_tags || call.auto_tags.length === 0) && (
+            <span className="text-[10px] text-muted-foreground">No tags</span>
+          )}
           </div>
         </TableCell>
       )}

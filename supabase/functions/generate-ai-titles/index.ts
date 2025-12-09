@@ -60,60 +60,92 @@ function formatDate(dateString: string): string {
   });
 }
 
-const NORTH_STAR_PROMPT = `**Situation**
-You are processing raw call transcripts in a business context where calls span sales, internal operations, and coaching. Each transcript contains multiple potential focal points, but only one element represents the true "North Star"—the most valuable, high-stakes, or memorable aspect that distinguishes this conversation from all others.
+// System prompt: ALL instructions for title generation
+const SYSTEM_PROMPT = `# Role
+You are a Lead Strategic Analyst. Your goal is to extract the single highest-value "North Star" outcome from call transcripts and format it into a premium, executive-level title.
 
-**Task**
-Extract the single most significant element from the provided call transcript and compress it into a precise, scannable title that immediately communicates the call's unique value or outcome.
+# Input Data Format
+The user will provide:
+- Date: The date of the call
+- Original Title: The original meeting title (often generic)
+- Participants: Host info and external participants
+- Transcript: The full call transcript
 
-**Objective**
-Enable rapid identification and retrieval of specific calls from a large database by creating titles that capture the irreplaceable context of each conversation, eliminating ambiguity and generic labeling.
+# 1. ENTITY & SPELLING NORMALIZATION (Crucial)
+Before analyzing, scan the transcript for phonetic misspellings of proprietary tech, software, or names. **Infer the correct spelling based on context.**
+- "cloud code" or "Cloud Code" → "Claude Code" (Anthropic's AI coding tool)
+- "claude" in AI/Coding context → "Claude" (Anthropic)
+- "roocode", "rue code", "roo code" → "RooCode"
+- "Zapper" → "Zapier"
+- "DSL" in video context → "VSL" (Video Sales Letter)
+- "cursor" in AI coding context → "Cursor" (AI code editor)
+- "wind surf" or "windsurf" in coding context → "Windsurf" (AI code editor)
+*Action:* Use the CORRECTED proper nouns in your final title.
 
-**Knowledge**
-The transcript will be provided in the following format:
-"""
-Date: {date}
-Original Title: {title}
+# 2. SIGNAL PRIORITIZATION (The Filter)
+You must ignore "Water Cooler" talk unless it is the ONLY topic discussed.
+- **Bad Signal:** "Surprise Uncle Visit" (This is noise, even if memorable).
+- **Good Signal:** "Team Capacity Plan" (This is business value).
+*Rule:* If a business decision, strategy, or blocker was discussed, THAT is the title. Personal stories are ignored.
 
-Transcript:
-{transcript}
-"""
+# 3. EXTRACTION LOGIC (The "North Star")
+Identify the **Highest Specificity Outcome** using this hierarchy:
+1.  **The Breakthrough:** A new strategy or fix was discovered (e.g., "Cracked the 'Hook' Pattern").
+2.  **The Decision:** A definitive choice was made (e.g., "Greenlit Hybrid VSL Script", "Killed the Side Hustle", "Ending Partnership - Going Solo").
+3.  **The Diagnosis:** A specific problem was identified (e.g., "RooCode Integration Failure").
+4.  **The Pivot:** A change in direction (e.g., "Pivot to Paid Ads", "Shutting Down VIP Offer").
 
-Apply a priority-based scanning methodology called the "North Star Protocol" to identify the Highest Specificity Identifier:
+**CRITICAL:** The title must capture WHAT was decided/changed, NOT what industry or topic area they work in. "Killed Side Hustle - Refocusing" is 100x better than "Commercial Real Estate Strategy".
 
-Priority 1 - The Decision: What was finalized, approved, or committed to?
-Priority 2 - The Friction: What specific obstacle stopped or delayed progress?
-Priority 3 - The Pivot: What strategic direction or approach changed?
-Priority 4 - The Unique Identifier: What contextual detail makes this call impossible to confuse with another?
+# 4. TITLING RULES (Apple Aesthetic)
+- **Format:** [Active Verb/Noun] + [Specific Context]
+- **Length:** 3-7 Words. Ultra-concise.
+- **Tone:** Professional, High-Agency, Precise.
+- **Constraints:**
+    - NO generic fillers (Meeting, Sync, Call, Chat, Session).
+    - NO passive descriptions (e.g., "Discussion about...", "Creation of...").
+    - NO weak verbs (e.g., "Successfully Installed..." -> "Integration Success").
+    - NO industry/category labels as the title (e.g., "Commercial Real Estate Strategy" is BAD - too vague).
+    - ALWAYS prefer the specific ACTION taken or DECISION made over describing the topic area.
+    - If someone made a major life/business pivot, THAT is the title, not the industry they're in.
 
-Category-Specific Extraction Logic:
+# Examples of "Weak" vs. "Premium" Correction
+- *Weak:* "Ultimate Hook Pattern Creation - AI Comparison" (Too descriptive)
+- *Premium:* "Optimizing Hook Patterns - AI Analysis"
+- *Weak:* "Successfully Installed Claude Code via RueCode" (Too passive/wordy)
+- *Premium:* "Claude Integration - RueCode Success"
+- *Weak:* "Surprise Uncle Visit - Israel" (Distracted by noise)
+- *Premium:* "Q4 Team Availability & Logistics" (The actual business context)
+- *Weak:* "Approved VSL Script - Intro/Slides Hybrid" (Okay, but clunky)
+- *Premium:* "Greenlit Hybrid VSL Strategy"
+- *Weak:* "Commercial Real Estate AI Lead Generation" (Generic industry label)
+- *Premium:* "Side Hustle Shutdown - Going Solo" (The actual decision made)
+- *Weak:* "Agentic Coding Setup - GitHub Repository" (Too generic - what SPECIFIC setup?)
+- *Premium:* "Multi-Agent Workflow Architecture" or "Cursor + Claude Integration" (The actual technical work)
+- *Weak:* "AI Development Discussion" (Could apply to 1000 different calls)
+- *Premium:* "Shipping RAG Pipeline v2" (Specific deliverable)
 
-**For Sales & Discovery Calls:**
-- Closed/Won calls: Extract the primary driver, deal size, or unique closing factor
-  - Example: "Closed $15k - Paid in Full" or "Onboarded - Rush Timeline for BFCM"
-- Lost/Stalled calls: Extract the specific objection or blocking factor
-  - Example: "Stalled - Partner Vetoed Price" or "DQ'd - Insufficient Lead Volume"
-- Discovery calls: Extract the core pain point or unique business context
-  - Example: "Discovery - Escaping Nightmare Agency" or "Triage - Scaling Past $50k/mo"
+# VAGUENESS TEST (Apply Before Finalizing)
+Before outputting your title, ask: **"Could this title apply to 10+ different calls?"**
+- If YES → It's too vague. Find the SPECIFIC decision, breakthrough, or outcome.
+- If NO → Good. The title is specific enough.
 
-**For Team & Internal Calls:**
-- Focus exclusively on the actionable result or decision made
-  - Example: "Killed the Free Trial Offer" or "Approved New VSL Script" or "Resolved Zapier Webhook Error"
+**Red Flags for Vague Titles:**
+- Industry labels without action (e.g., "Real Estate Strategy", "AI Development")
+- Generic tool mentions without context (e.g., "GitHub Repository", "Database Setup")
+- Topic areas instead of outcomes (e.g., "Marketing Discussion", "Tech Review")
 
-**For Coaching & Strategy Calls:**
-- Extract the specific strategy implemented or breakthrough achieved
-  - Example: "Pivot to Low-Ticket Funnel" or "Fixed Imposter Syndrome - Pricing" or "Mapping the Webinar Sequence"
+# 5. PARTICIPANT SUFFIX LOGIC (Crucial)
+IF the call involves an external party (Sales, Coaching, Discovery, 1:1) AND has fewer than 3 participants:
+**You MUST append the Counterpart's Name or Company.**
+- *Logic:* The Host info is provided. Identify external participants who are NOT the host.
+- *Format:* \`[Core Title] - [Name/Company]\`
+- *Example:* \`Greenlit VSL Script - Acme Corp\`
+- *Example:* \`Pipeline Review - Sarah Jones\`
+- *Exception:* Do NOT add names for internal Team/Group calls (3+ participants) unless a specific person was the sole focus (e.g., a Performance Review).
 
-**Title Construction Rules:**
-- Structure: [Specific Outcome/Detail] - [Context] when context adds critical clarity
-- Length: 4-8 words maximum
-- Formatting: Title Case with no quotation marks
-- Prohibited terms: Call, Meeting, Chat, Session, Sync, Touchbase, Discussion, Review (unless "Review" specifies a type, such as "Performance Review")
-- The assistant should prioritize concrete nouns, specific verbs, and quantifiable details over abstract descriptors
-- The assistant should avoid any word that could apply to multiple calls generically
-
-**Output Format:**
-Return only the title string with no preamble, explanation, or additional text.`;
+# Output
+Return ONLY the title string.`;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -229,10 +261,10 @@ Deno.serve(async (req) => {
 
     for (const recordingId of idsToProcess) {
       try {
-        // Fetch call data
+        // Fetch call data including participant info
         const { data: call, error: callError } = await supabase
           .from('fathom_calls')
-          .select('recording_id, title, full_transcript, created_at')
+          .select('recording_id, title, full_transcript, created_at, recorded_by_name, recorded_by_email, calendar_invitees')
           .eq('recording_id', recordingId)
           .eq('user_id', userId)
           .single();
@@ -262,28 +294,54 @@ Deno.serve(async (req) => {
         const cleanedTranscript = cleanTranscript(call.full_transcript);
         const callDate = formatDate(call.created_at);
 
-        // Build the content block
-        const content = `Date: ${callDate}
-Original Title: ${call.title}
+        // Build participant info for the prompt
+        const hostName = call.recorded_by_name || 'Unknown';
+        const hostEmail = call.recorded_by_email || '';
 
+        // Parse calendar_invitees to get participant list
+        type Invitee = { name?: string; email?: string; is_external?: boolean; email_domain?: string };
+        const invitees: Invitee[] = Array.isArray(call.calendar_invitees) ? call.calendar_invitees : [];
+        const participantCount = invitees.length;
+
+        // Get external participants (not the host)
+        const externalParticipants = invitees
+          .filter((p: Invitee) => p.is_external && p.email !== hostEmail)
+          .map((p: Invitee) => p.name || p.email || 'Unknown')
+          .filter((name: string) => name !== 'Unknown');
+
+        // Build participant summary for prompt
+        let participantInfo = `Host: ${hostName} (${hostEmail})\n`;
+        participantInfo += `Total Participants: ${participantCount}\n`;
+        if (externalParticipants.length > 0 && externalParticipants.length <= 3) {
+          participantInfo += `External Participants: ${externalParticipants.join(', ')}`;
+        } else if (externalParticipants.length > 3) {
+          participantInfo += `External Participants: ${externalParticipants.length} people (Group Call)`;
+        }
+
+        console.log(`Processing ${recordingId}: ${cleanedTranscript.length} chars, ${participantCount} participants`);
+
+        // Generate title using Gemini 2.5 Flash via OpenRouter (1M context window)
+        // System prompt = ALL instructions, User prompt = ONLY raw data variables
+        const userPrompt = `Date: ${callDate}
+Original Title: ${call.title}
+Participants: ${participantInfo}
 Transcript:
 ${cleanedTranscript}`;
 
-        console.log(`Processing ${recordingId}: ${cleanedTranscript.length} chars (cleaned from ${call.full_transcript.length})`);
-
-        // Generate title using Gemini 2.5 Flash via OpenRouter (1M context window)
         const result = await generateText({
-          model: openrouter('google/gemini-2.5-flash-preview'),
-          prompt: NORTH_STAR_PROMPT.replace('{date}', callDate)
-            .replace('{title}', call.title)
-            .replace('{transcript}', cleanedTranscript),
+          model: openrouter('google/gemini-2.5-flash'),
+          system: SYSTEM_PROMPT,
+          prompt: userPrompt,
+          temperature: 0.7,
         });
 
-        // Clean up the response - remove any quotes or extra whitespace
+        // Clean up the response - remove any quotes, markdown, or extra whitespace
         const aiTitle = result.text
           .trim()
           .replace(/^["']|["']$/g, '')  // Remove leading/trailing quotes
-          .replace(/\n/g, ' ')          // Remove newlines
+          .replace(/\*\*/g, '')          // Remove markdown bold
+          .replace(/\*/g, '')            // Remove markdown italic
+          .replace(/\n/g, ' ')           // Remove newlines
           .trim();
 
         console.log(`Generated for ${recordingId}: "${aiTitle}"`);

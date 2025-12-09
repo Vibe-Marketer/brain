@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useFolders, type Folder } from "@/hooks/useFolders";
 import {
   Table,
@@ -71,14 +71,15 @@ export function FoldersTab() {
     }
   };
 
-  // Recursive folder row renderer
+  // Recursive folder row renderer - uses Fragment with key to avoid invalid DOM nesting
   const renderFolderRow = (folder: Folder, depth: number = 0): React.ReactNode => {
     const children = childrenByParent[folder.id] || [];
     const FolderIcon = getIconComponent(folder.icon);
     const isEmoji = isEmojiIcon(folder.icon);
+    const sortedChildren = children.sort((a, b) => a.position - b.position);
 
     return (
-      <div key={folder.id}>
+      <React.Fragment key={folder.id}>
         <TableRow>
           <TableCell style={{ paddingLeft: `${depth * 24 + 16}px` }}>
             <div className="flex items-center gap-2">
@@ -119,10 +120,8 @@ export function FoldersTab() {
             </div>
           </TableCell>
         </TableRow>
-        {children
-          .sort((a, b) => a.position - b.position)
-          .map((child) => renderFolderRow(child, depth + 1))}
-      </div>
+        {sortedChildren.map((child) => renderFolderRow(child, depth + 1))}
+      </React.Fragment>
     );
   };
 

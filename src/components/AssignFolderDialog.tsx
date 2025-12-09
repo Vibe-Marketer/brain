@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +12,17 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { RiArrowRightSLine, RiArrowDownSLine, RiFolderLine, RiCheckLine } from "@remixicon/react";
+import { cn } from "@/lib/utils";
+import { isEmojiIcon, getIconComponent } from "@/components/ui/icon-emoji-picker";
 import type { FolderWithDepth } from "@/types/folders";
+
+// Extended folder type for tree structure
+interface FolderTreeNode extends FolderWithDepth {
+  icon?: string;
+  position?: number;
+  children: FolderTreeNode[];
+}
 
 interface AssignFolderDialogProps {
   open: boolean;
@@ -32,10 +41,14 @@ export default function AssignFolderDialog({
   onFoldersUpdated,
   onCreateFolder,
 }: AssignFolderDialogProps) {
-  const [folders, setFolders] = useState<FolderWithDepth[]>([]);
+  const [folderTree, setFolderTree] = useState<FolderTreeNode[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Track all folders flat for saving operations
+  const [allFolders, setAllFolders] = useState<FolderWithDepth[]>([]);
 
   const isBulkMode = recordingIds && recordingIds.length > 1;
 
@@ -92,16 +105,40 @@ export default function AssignFolderDialog({
     try {
       const { data, error } = await supabase
         .from("folders")
-        .select("id, name, color, parent_id")
-        .order("name");
+        .select("id, name, color, parent_id, icon, position")
+        .order("position");
 
       if (error) throw error;
 
-      // Sort folders to show nested structure (parents before children)
-      const sortedFolders = sortFoldersHierarchically(data || []);
-      setFolders(sortedFolders);
+      // Store flat list for operations
+      setAllFolders(data || []);
+
+      // Build tree structure
+      const tree = buildFolderTree(data || []);
+      setFolderTree(tree);
+
+      // Auto-expand all parent folders that have selected children
+      // (will be set after loadExistingAssignments runs)
     } catch (error) {
       logger.error("Error loading folders", error);
+    }
+  }, []);
+
+  // Auto-expand parents of selected folders
+  const autoExpandParents = useCallback((selectedIds: Set<string>, folders: FolderWithDepth[]) => {
+    const parentIds = new Set<string>();
+    const folderMap = new Map(folders.map(f => [f.id, f]));
+
+    selectedIds.forEach(selectedId => {
+      let current = folderMap.get(selectedId);
+      while (current?.parent_id) {
+        parentIds.add(current.parent_id);
+        current = folderMap.get(current.parent_id);
+      }
+    });
+
+    if (parentIds.size > 0) {
+      setExpandedFolders(prev => new Set([...prev, ...parentIds]));
     }
   }, []);
 
@@ -110,32 +147,75 @@ export default function AssignFolderDialog({
       loadFolders();
       loadExistingAssignments();
     }
+    // Reset expanded state when dialog closes
+    if (!open) {
+      setExpandedFolders(new Set());
+    }
   }, [open, targetRecordingIds.length, loadExistingAssignments, loadFolders]);
 
-  const sortFoldersHierarchically = (folders: FolderWithDepth[]): FolderWithDepth[] => {
-    // Build a map of parent_id -> children
-    const folderMap = new Map<string | null, FolderWithDepth[]>();
-    folders.forEach(folder => {
-      const parentId = folder.parent_id;
-      if (!folderMap.has(parentId)) {
-        folderMap.set(parentId, []);
-      }
-      folderMap.get(parentId)!.push(folder);
+  // Auto-expand when selected folders change
+  useEffect(() => {
+    if (selectedFolders.size > 0 && allFolders.length > 0) {
+      autoExpandParents(selectedFolders, allFolders);
+    }
+  }, [selectedFolders, allFolders, autoExpandParents]);
+
+  // Build a tree structure from flat folder list
+  const buildFolderTree = (folders: FolderWithDepth[]): FolderTreeNode[] => {
+    const folderMap = new Map<string, FolderTreeNode>();
+    const rootFolders: FolderTreeNode[] = [];
+
+    // Initialize all folders with children array
+    folders.forEach((folder) => {
+      folderMap.set(folder.id, { ...folder, children: [] } as FolderTreeNode);
     });
 
-    // Recursively build sorted list
-    const sorted: FolderWithDepth[] = [];
-    const addFoldersRecursively = (parentId: string | null, depth: number = 0) => {
-      const children = folderMap.get(parentId) || [];
-      children.sort((a, b) => a.name.localeCompare(b.name));
-      children.forEach(folder => {
-        sorted.push({ ...folder, depth });
-        addFoldersRecursively(folder.id, depth + 1);
+    // Build tree structure
+    folders.forEach((folder) => {
+      const folderNode = folderMap.get(folder.id)!;
+      if (folder.parent_id === null) {
+        rootFolders.push(folderNode);
+      } else {
+        const parent = folderMap.get(folder.parent_id);
+        if (parent) {
+          parent.children.push(folderNode);
+        } else {
+          // Orphaned folder - add to root
+          rootFolders.push(folderNode);
+        }
+      }
+    });
+
+    // Sort by position, fallback to name
+    const sortFolders = (folderList: FolderTreeNode[]) => {
+      folderList.sort((a, b) => {
+        const posA = a.position ?? 999;
+        const posB = b.position ?? 999;
+        if (posA !== posB) return posA - posB;
+        return a.name.localeCompare(b.name);
+      });
+      folderList.forEach((folder) => {
+        if (folder.children.length > 0) {
+          sortFolders(folder.children);
+        }
       });
     };
 
-    addFoldersRecursively(null, 0);
-    return sorted;
+    sortFolders(rootFolders);
+    return rootFolders;
+  };
+
+  // Toggle folder expansion
+  const toggleExpand = (folderId: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(folderId)) {
+        next.delete(folderId);
+      } else {
+        next.add(folderId);
+      }
+      return next;
+    });
   };
 
   const toggleFolder = (folderId: string) => {
@@ -225,7 +305,27 @@ export default function AssignFolderDialog({
       }
 
       const count = targetRecordingIds.length;
-      toast.success(`Folders updated for ${count} meeting${count > 1 ? 's' : ''}`);
+      const folderCount = selectedFolders.size;
+
+      // Build informative success message
+      if (folderCount === 0) {
+        toast.success(`Removed from all folders (${count} meeting${count > 1 ? 's' : ''})`);
+      } else {
+        // Get folder names for feedback
+        const selectedFolderNames = allFolders
+          .filter(f => selectedFolders.has(f.id))
+          .map(f => f.name)
+          .slice(0, 3); // Show max 3 names
+
+        const folderNamesDisplay = selectedFolderNames.join(', ') +
+          (folderCount > 3 ? ` +${folderCount - 3} more` : '');
+
+        toast.success(
+          `${count > 1 ? `${count} meetings` : 'Meeting'} assigned to: ${folderNamesDisplay}`,
+          { duration: 4000 }
+        );
+      }
+
       onFoldersUpdated();
       onOpenChange(false);
     } catch (error) {
@@ -244,75 +344,149 @@ export default function AssignFolderDialog({
     }
   };
 
-  const getFolderDisplayName = (folder: FolderWithDepth): string => {
-    const indent = "  ".repeat(folder.depth || 0);
-    return `${indent}${folder.name}`;
+  // Render a single folder item with proper hierarchy
+  const renderFolderItem = (folder: FolderTreeNode, depth: number = 0) => {
+    const hasChildren = folder.children.length > 0;
+    const isExpanded = expandedFolders.has(folder.id);
+    const isSelected = selectedFolders.has(folder.id);
+
+    // Get the appropriate icon
+    const folderIsEmoji = folder.icon ? isEmojiIcon(folder.icon) : false;
+    const FolderIcon = folder.icon ? getIconComponent(folder.icon) : null;
+
+    return (
+      <div key={folder.id}>
+        <div
+          className={cn(
+            "flex items-center gap-2 py-1.5 px-2 rounded-md cursor-pointer transition-colors",
+            "hover:bg-muted/50",
+            isSelected && "bg-primary/10",
+            depth > 0 && "ml-4"
+          )}
+          style={{ marginLeft: depth > 0 ? depth * 16 : 0 }}
+        >
+          {/* Expand/Collapse button for folders with children */}
+          {hasChildren ? (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleExpand(folder.id);
+              }}
+              className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-muted"
+            >
+              {isExpanded ? (
+                <RiArrowDownSLine className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <RiArrowRightSLine className="h-4 w-4 text-muted-foreground" />
+              )}
+            </button>
+          ) : (
+            <div className="w-5 flex-shrink-0" />
+          )}
+
+          {/* Checkbox */}
+          <Checkbox
+            id={folder.id}
+            checked={isSelected}
+            onCheckedChange={() => toggleFolder(folder.id)}
+            className="flex-shrink-0"
+          />
+
+          {/* Folder Icon */}
+          {folderIsEmoji ? (
+            <span className="text-base flex-shrink-0">{folder.icon}</span>
+          ) : FolderIcon ? (
+            <FolderIcon
+              className="h-4 w-4 flex-shrink-0"
+              style={{ color: folder.color || '#6B7280' }}
+            />
+          ) : (
+            <RiFolderLine
+              className="h-4 w-4 flex-shrink-0"
+              style={{ color: folder.color || '#6B7280' }}
+            />
+          )}
+
+          {/* Folder Name */}
+          <label
+            htmlFor={folder.id}
+            className={cn(
+              "flex-1 text-sm cursor-pointer truncate",
+              isSelected && "font-medium"
+            )}
+          >
+            {folder.name}
+          </label>
+
+          {/* Selected indicator */}
+          {isSelected && (
+            <RiCheckLine className="h-4 w-4 text-primary flex-shrink-0" />
+          )}
+        </div>
+
+        {/* Children - render recursively when expanded */}
+        {hasChildren && isExpanded && (
+          <div className="border-l border-muted ml-4 pl-0">
+            {folder.children.map((child) => renderFolderItem(child, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
   };
+
+  // Count selected folders for save button feedback
+  const selectedCount = selectedFolders.size;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Assign to Folders</DialogTitle>
           <DialogDescription>
             {isBulkMode ? (
-              <span className="block text-sm font-medium mt-1">
-                Assigning {targetRecordingIds.length} meetings to folders
-              </span>
+              <>Assigning {targetRecordingIds.length} meetings to folders</>
             ) : (
-              <span className="block text-sm font-medium mt-1">
-                A call can be in multiple folders
-              </span>
+              <>Select folders for this meeting (can be in multiple)</>
             )}
-            Select the folders for this meeting
           </DialogDescription>
         </DialogHeader>
 
         {loading ? (
           <div className="py-8 text-center text-muted-foreground">Loading...</div>
-        ) : folders.length === 0 ? (
+        ) : folderTree.length === 0 ? (
           <div className="py-8 text-center text-muted-foreground">
-            No folders yet. Create a folder to get started.
+            <RiFolderLine className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No folders yet.</p>
+            <p className="text-xs mt-1">Create a folder to get started.</p>
           </div>
         ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {folders.map((folder) => (
-              <div key={folder.id} className="flex items-center space-x-2">
-                <Checkbox
-                  id={folder.id}
-                  checked={selectedFolders.has(folder.id)}
-                  onCheckedChange={() => toggleFolder(folder.id)}
-                />
-                <div
-                  className="w-3 h-3 rounded-sm flex-shrink-0"
-                  style={{ backgroundColor: folder.color || '#6B7280' }}
-                />
-                <Label
-                  htmlFor={folder.id}
-                  className="text-sm font-normal cursor-pointer flex-1 font-mono"
-                >
-                  {getFolderDisplayName(folder)}
-                </Label>
-              </div>
-            ))}
+          <div className="max-h-80 overflow-y-auto -mx-2 px-2">
+            {folderTree.map((folder) => renderFolderItem(folder, 0))}
           </div>
         )}
 
-        <div className="flex justify-between items-center gap-2 mt-4 pt-4 border-t">
+        <div className="flex justify-between items-center gap-2 pt-4 border-t">
           <Button
             variant="link"
             onClick={handleCreateFolder}
-            className="text-sm"
+            className="text-sm px-0"
           >
             + Create New Folder
           </Button>
 
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <Button variant="hollow" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>
             <Button onClick={handleSave} disabled={saving || loading}>
-              {saving ? "Saving..." : "Save"}
+              {saving ? (
+                "Saving..."
+              ) : selectedCount > 0 ? (
+                `Save (${selectedCount} folder${selectedCount !== 1 ? 's' : ''})`
+              ) : (
+                "Save"
+              )}
             </Button>
           </div>
         </div>

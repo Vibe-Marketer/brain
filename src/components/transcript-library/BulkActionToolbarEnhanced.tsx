@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { RiDeleteBin6Line, RiCloseLine, RiShareForwardLine, RiPriceTag3Line, RiMagicLine, RiFolderLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ export function BulkActionToolbarEnhanced({
   onCreateNewTag,
   onAssignFolder,
 }: BulkActionToolbarEnhancedProps) {
+  const queryClient = useQueryClient();
   const [showSmartExport, setShowSmartExport] = useState(false);
   const [showManualTagDialog, setShowManualTagDialog] = useState(false);
 
@@ -115,6 +117,11 @@ export function BulkActionToolbarEnhanced({
       } else {
         toast.info('No calls to process', { id: loadingToast });
       }
+
+      // Invalidate queries to refresh the table with new AI titles
+      await queryClient.invalidateQueries({ queryKey: ["tag-calls"] });
+      await queryClient.invalidateQueries({ queryKey: ["transcript-calls"] });
+
       onClearSelection();
     } catch (error) {
       logger.error('Error generating AI titles', error);
