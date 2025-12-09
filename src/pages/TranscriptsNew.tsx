@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
+import { RiSearchLine } from "@remixicon/react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { TranscriptsTab } from "@/components/transcripts/TranscriptsTab";
 import { SyncTab } from "@/components/transcripts/SyncTab";
 import { AnalyticsTab } from "@/components/transcripts/AnalyticsTab";
@@ -62,6 +64,9 @@ const TranscriptsNew = () => {
 
   const currentConfig = tabConfig[activeTab];
 
+  // Search state lifted to page level
+  const [searchQuery, setSearchQuery] = useState("");
+
   return (
     <div className="min-h-screen bg-cb-white dark:bg-card">
       {/* Tabs at the very top */}
@@ -77,23 +82,37 @@ const TranscriptsNew = () => {
         {/* Full-width black line */}
         <div className="w-full border-b border-cb-black dark:border-cb-white" />
 
-        {/* Page Header - dynamic based on tab */}
+        {/* Page Header - dynamic based on tab with search */}
         <div className="max-w-[1800px] mx-auto">
-          <div className="mt-2 mb-3">
-            <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
-              LIBRARY
-            </p>
-            <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
-              {currentConfig.title}
-            </h1>
-            <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
+          <div className="mt-2 mb-2 flex items-end justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
+                LIBRARY
+              </p>
+              <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
+                {currentConfig.title}
+              </h1>
+              <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
+            </div>
+            {/* Search bar - right side of header (only show for transcripts tab) */}
+            {activeTab === "transcripts" && (
+              <div className="relative w-64 flex-shrink-0">
+                <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cb-ink-muted" />
+                <Input
+                  placeholder="Search transcripts..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-9 pl-8 text-sm bg-white dark:bg-cb-card border-cb-border"
+                />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Tab Content */}
         <div className="max-w-[1800px] mx-auto">
           <TabsContent value="transcripts">
-            <TranscriptsTab />
+            <TranscriptsTab searchQuery={searchQuery} onSearchChange={setSearchQuery} />
           </TabsContent>
 
           <TabsContent value="sync">

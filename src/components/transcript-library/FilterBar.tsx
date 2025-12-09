@@ -33,9 +33,12 @@ interface FilterBarProps {
   onFiltersChange: (filters: FilterBarProps['filters']) => void;
   tags: Array<{ id: string; name: string; description?: string | null }>;
   folders: Folder[];
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
+  // Search is now optional - can be handled by parent or removed entirely
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
   onCreateFolder?: () => void;
+  // Compact mode for when search is in page header
+  compact?: boolean;
 }
 
 export function FilterBar({
@@ -46,6 +49,7 @@ export function FilterBar({
   searchQuery,
   onSearchChange,
   onCreateFolder,
+  compact = false,
 }: FilterBarProps) {
   const isMobile = useIsMobile();
   const [allParticipants, setAllParticipants] = useState<string[]>([]);
@@ -202,15 +206,17 @@ export function FilterBar({
         />
       </div>
 
-      {/* Search bar - full width on mobile */}
-      <div className="w-full">
-        <Input
-          placeholder="Search"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="h-8 text-xs w-full"
-        />
-      </div>
+      {/* Search bar - only shown if not in compact mode and handlers provided */}
+      {!compact && onSearchChange && (
+        <div className="w-full">
+          <Input
+            placeholder="Search"
+            value={searchQuery || ""}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="h-8 text-xs w-full"
+          />
+        </div>
+      )}
 
       {/* Clear filters link - aligned right */}
       {hasActiveFilters && (

@@ -53,13 +53,18 @@ interface Tag {
   created_at: string;
 }
 
+interface TranscriptsTabProps {
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
+}
+
 /**
  * TranscriptsTab Component
- * 
+ *
  * Extracted from TranscriptLibrary for use in tabbed interface.
  * Contains all transcript management functionality without page header.
  */
-export function TranscriptsTab() {
+export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChange }: TranscriptsTabProps) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
@@ -68,7 +73,10 @@ export function TranscriptsTab() {
   // Selection & interaction state
   const [selectedCalls, setSelectedCalls] = useState<number[]>([]);
   const [selectedCall, setSelectedCall] = useState<Meeting | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  // Use external search if provided, otherwise local state for backwards compatibility
+  const [internalSearchQuery, setInternalSearchQuery] = useState("");
+  const searchQuery = externalSearchQuery ?? internalSearchQuery;
+  const setSearchQuery = onSearchChange ?? setInternalSearchQuery;
   const [hostEmail, setHostEmail] = useState<string>("");
 
   // Pagination state
@@ -636,34 +644,33 @@ export function TranscriptsTab() {
 
         {/* BG-CARD-INNER: Main content */}
         <ChatInnerCard>
-          {/* Header with sidebar toggle */}
-          <div className="flex-shrink-0 px-4 py-3 border-b border-border">
-            <div className="flex items-center gap-3">
+          {/* Header with sidebar toggle and filters (search is now in page header) */}
+          <div className="flex-shrink-0 px-3 py-2 border-b border-border">
+            <div className="flex items-center gap-2">
               {/* Sidebar toggle button */}
               <Button
                 variant="hollow"
                 size="sm"
-                className="h-8 w-8 p-0"
+                className="h-7 w-7 p-0 flex-shrink-0"
                 onClick={toggleSidebar}
                 title={sidebarState === 'expanded' ? "Hide sidebar" : "Show sidebar"}
               >
                 {sidebarState === 'expanded' ? (
-                  <RiLayoutLeftLine className="h-5 w-5" />
+                  <RiLayoutLeftLine className="h-4 w-4" />
                 ) : (
-                  <RiMenuLine className="h-5 w-5" />
+                  <RiMenuLine className="h-4 w-4" />
                 )}
               </Button>
 
-              {/* Filter bar - moved to header */}
-              <div className="flex-1">
+              {/* Filter bar - compact mode (no search, search is in page header) */}
+              <div className="flex-1 min-w-0">
                 <FilterBar
                   filters={filters}
                   onFiltersChange={setFilters}
                   tags={tags}
                   folders={folders}
-                  searchQuery={searchQuery}
-                  onSearchChange={setSearchQuery}
                   onCreateFolder={() => setQuickCreateFolderOpen(true)}
+                  compact={true}
                 />
               </div>
             </div>
