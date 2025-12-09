@@ -181,14 +181,21 @@ export default function EditFolderDialog({
       }
 
       // Check for duplicate name within same parent (excluding current folder)
-      const { data: existingFolder, error: checkError } = await supabase
+      let duplicateQuery = supabase
         .from("folders")
         .select("id")
         .eq("user_id", user.id)
         .eq("name", validation.data.name)
-        .eq("parent_id", selectedParentId || null)
-        .neq("id", folder.id)
-        .maybeSingle();
+        .neq("id", folder.id);
+
+      // Use .is() for null comparison, .eq() for actual values
+      if (selectedParentId) {
+        duplicateQuery = duplicateQuery.eq("parent_id", selectedParentId);
+      } else {
+        duplicateQuery = duplicateQuery.is("parent_id", null);
+      }
+
+      const { data: existingFolder, error: checkError } = await duplicateQuery.maybeSingle();
 
       if (checkError) throw checkError;
 

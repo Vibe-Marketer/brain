@@ -90,11 +90,19 @@ export function useFolders() {
       const user = await requireUser();
 
       // Get the next position for this folder level
-      const { data: existingFolders } = await supabase
+      let positionQuery = supabase
         .from("folders")
         .select("position")
-        .eq("user_id", user.id)
-        .eq("parent_id", parentId || null)
+        .eq("user_id", user.id);
+
+      // Use .is() for null comparison, .eq() for actual values
+      if (parentId) {
+        positionQuery = positionQuery.eq("parent_id", parentId);
+      } else {
+        positionQuery = positionQuery.is("parent_id", null);
+      }
+
+      const { data: existingFolders } = await positionQuery
         .order("position", { ascending: false })
         .limit(1);
 
