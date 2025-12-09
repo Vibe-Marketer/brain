@@ -27,13 +27,15 @@ interface DateRangePickerProps {
   triggerClassName?: string;
   onFetch?: () => void;
   fetchButtonText?: string;
+  /** Show extended quick select options (90 days, 6 months, year options) */
+  extendedQuickSelect?: boolean;
 }
 
 export function DateRangePicker({
   dateRange,
   onDateRangeChange,
   showQuickSelect = true,
-  numberOfMonths = 2,
+  numberOfMonths = 1,
   disableFuture = false,
   placeholder = "Pick a date range",
   align = "start",
@@ -42,10 +44,11 @@ export function DateRangePicker({
   triggerClassName,
   onFetch,
   fetchButtonText = "Fetch",
+  extendedQuickSelect = false,
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false);
   const isMobile = useIsMobile();
-  
+
   // Use 1 month on mobile, otherwise use the prop value
   const displayMonths = isMobile ? 1 : numberOfMonths;
 
@@ -79,6 +82,25 @@ export function DateRangePicker({
         const last30 = new Date(today);
         last30.setDate(last30.getDate() - 30);
         return { from: last30, to: today };
+      }
+      case 'last90': {
+        const last90 = new Date(today);
+        last90.setDate(last90.getDate() - 90);
+        return { from: last90, to: today };
+      }
+      case 'last6Months': {
+        const last6Months = new Date(today);
+        last6Months.setMonth(last6Months.getMonth() - 6);
+        return { from: last6Months, to: today };
+      }
+      case 'thisYear': {
+        const thisYearStart = new Date(today.getFullYear(), 0, 1);
+        return { from: thisYearStart, to: today };
+      }
+      case 'lastYear': {
+        const lastYearStart = new Date(today.getFullYear() - 1, 0, 1);
+        const lastYearEnd = new Date(today.getFullYear() - 1, 11, 31);
+        return { from: lastYearStart, to: lastYearEnd };
       }
       default:
         return { from: today, to: today };
@@ -198,6 +220,42 @@ export function DateRangePicker({
                 >
                   Last 30 Days
                 </Button>
+                {extendedQuickSelect && (
+                  <>
+                    <Button
+                      variant="hollow"
+                      size="sm"
+                      onClick={() => handleQuickSelect('last90')}
+                      className="h-7 text-xs"
+                    >
+                      Last 90 Days
+                    </Button>
+                    <Button
+                      variant="hollow"
+                      size="sm"
+                      onClick={() => handleQuickSelect('last6Months')}
+                      className="h-7 text-xs"
+                    >
+                      Last 6 Months
+                    </Button>
+                    <Button
+                      variant="hollow"
+                      size="sm"
+                      onClick={() => handleQuickSelect('thisYear')}
+                      className="h-7 text-xs"
+                    >
+                      This Year
+                    </Button>
+                    <Button
+                      variant="hollow"
+                      size="sm"
+                      onClick={() => handleQuickSelect('lastYear')}
+                      className="h-7 text-xs"
+                    >
+                      Last Year
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           )}

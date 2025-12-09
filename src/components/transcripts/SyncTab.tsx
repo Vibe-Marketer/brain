@@ -476,6 +476,7 @@ export function SyncTab() {
             onFetch={fetchMeetings}
             fetchButtonText={loading ? "Fetching..." : "Fetch Meetings"}
             disabled={loading}
+            extendedQuickSelect={true}
           />
         </div>
 
