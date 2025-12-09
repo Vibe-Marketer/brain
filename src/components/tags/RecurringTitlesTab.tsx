@@ -30,14 +30,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RiAddLine, RiCheckLine, RiLoader2Line } from "@remixicon/react";
+import { RiAddLine, RiCheckLine, RiLoader2Line, RiFolderLine } from "@remixicon/react";
 import { format } from "date-fns";
+import { isEmojiIcon, getIconComponent } from "@/lib/folder-icons";
 
 interface Tag {
   id: string;
   name: string;
   color: string | null;
   description: string | null;
+}
+
+interface Folder {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
 }
 
 interface CallData {
@@ -57,6 +65,7 @@ export function RecurringTitlesTab() {
   const [createRuleDialogOpen, setCreateRuleDialogOpen] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string>("");
+  const [selectedFolderId, setSelectedFolderId] = useState<string>("");
   const [ruleName, setRuleName] = useState("");
 
   // Fetch recurring titles
@@ -110,6 +119,20 @@ export function RecurringTitlesTab() {
     },
   });
 
+  // Fetch folders
+  const { data: folders } = useQuery({
+    queryKey: ["folders"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("folders")
+        .select("id, name, color, icon")
+        .order("name");
+
+      if (error) throw error;
+      return data as Folder[];
+    },
+  });
+
   // Fetch existing rules
   const { data: existingRules } = useQuery({
     queryKey: ["tag-rules"],
@@ -126,7 +149,7 @@ export function RecurringTitlesTab() {
 
   // Create rule mutation
   const createRuleMutation = useMutation({
-    mutationFn: async ({ title, tagId, name }: { title: string; tagId: string; name: string }) => {
+    mutationFn: async ({ title, tagId, folderId, name }: { title: string; tagId: string | null; folderId: string | null; name: string }) => {
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) throw new Error("Not authenticated");
 
@@ -135,7 +158,8 @@ export function RecurringTitlesTab() {
         name: name,
         rule_type: "title_exact",
         conditions: { title },
-        tag_id: tagId,
+        tag_id: tagId || null,
+        folder_id: folderId || null,
         priority: 100,
         is_active: true,
       });
@@ -143,11 +167,12 @@ export function RecurringTitlesTab() {
       if (error) throw error;
     },
     onSuccess: () => {
-      toast.success("Tag rule created successfully");
+      toast.success("Rule created successfully");
       queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
       setCreateRuleDialogOpen(false);
       setSelectedTitle(null);
       setSelectedTagId("");
+      setSelectedFolderId("");
       setRuleName("");
     },
     onError: (error) => {
@@ -162,13 +187,18 @@ export function RecurringTitlesTab() {
   };
 
   const handleSubmitRule = () => {
-    if (!selectedTitle || !selectedTagId || !ruleName) {
+    if (!selectedTitle || !ruleName) {
       toast.error("Please fill in all fields");
+      return;
+    }
+    if (!selectedTagId && !selectedFolderId) {
+      toast.error("Please select at least a tag or folder to assign");
       return;
     }
     createRuleMutation.mutate({
       title: selectedTitle,
-      tagId: selectedTagId,
+      tagId: selectedTagId || null,
+      folderId: selectedFolderId || null,
       name: ruleName,
     });
   };
@@ -259,13 +289,13 @@ export function RecurringTitlesTab() {
         </Table>
       </div>
 
-      {/* Create Tag Rule Dialog */}
+      {/* Create Rule Dialog */}
       <Dialog open={createRuleDialogOpen} onOpenChange={setCreateRuleDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create Tag Rule</DialogTitle>
+            <DialogTitle>Create Rule</DialogTitle>
             <DialogDescription>
-              Automatically tag calls with this exact title.
+              Automatically assign tags and/or folders to calls with this exact title.
             </DialogDescription>
           </DialogHeader>
 
@@ -285,12 +315,18 @@ export function RecurringTitlesTab() {
             </div>
 
             <div className="space-y-2">
-              <Label>Tag</Label>
-              <Select value={selectedTagId} onValueChange={setSelectedTagId}>
+              <Label>
+                Tag <span className="text-cb-ink-muted font-normal">(optional)</span>
+              </Label>
+              <Select
+                value={selectedTagId || "none"}
+                onValueChange={(value) => setSelectedTagId(value === "none" ? "" : value)}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select a tag" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
                   {tags?.map((tag) => (
                     <SelectItem key={tag.id} value={tag.id}>
                       <div className="flex items-center gap-2">
@@ -304,7 +340,48 @@ export function RecurringTitlesTab() {
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-cb-ink-muted">Tags control AI analysis behavior</p>
             </div>
+
+            <div className="space-y-2">
+              <Label>
+                Folder <span className="text-cb-ink-muted font-normal">(optional)</span>
+              </Label>
+              <Select
+                value={selectedFolderId || "none"}
+                onValueChange={(value) => setSelectedFolderId(value === "none" ? "" : value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a folder" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  {folders?.map((folder) => {
+                    const FolderIcon = getIconComponent(folder.icon);
+                    const isEmoji = isEmojiIcon(folder.icon);
+                    return (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        <div className="flex items-center gap-2">
+                          {isEmoji ? (
+                            <span className="text-sm">{folder.icon}</span>
+                          ) : FolderIcon ? (
+                            <FolderIcon className="h-4 w-4" style={{ color: folder.color }} />
+                          ) : (
+                            <RiFolderLine className="h-4 w-4" style={{ color: folder.color }} />
+                          )}
+                          {folder.name}
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-cb-ink-muted">Folders organize calls for browsing only</p>
+            </div>
+
+            {!selectedTagId && !selectedFolderId && (
+              <p className="text-xs text-amber-600">Select at least a tag or folder</p>
+            )}
           </div>
 
           <DialogFooter>
@@ -313,7 +390,7 @@ export function RecurringTitlesTab() {
             </Button>
             <Button
               onClick={handleSubmitRule}
-              disabled={createRuleMutation.isPending || !selectedTagId || !ruleName}
+              disabled={createRuleMutation.isPending || (!selectedTagId && !selectedFolderId) || !ruleName}
             >
               {createRuleMutation.isPending && (
                 <RiLoader2Line className="h-4 w-4 mr-2 animate-spin" />

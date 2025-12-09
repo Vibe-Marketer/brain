@@ -11,7 +11,7 @@ import { DebugPanelProvider, DebugPanel } from "./components/debug-panel";
 import Settings from "./pages/Settings";
 import TranscriptsNew from "./pages/TranscriptsNew";
 import Chat from "./pages/Chat";
-import Categorization from "./pages/Categorization";
+import SortingTagging from "./pages/SortingTagging";
 import Login from "./pages/Login";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
@@ -53,7 +53,7 @@ const App = () => {
                   <Route path="/chat" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
                   <Route path="/chat/:sessionId" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-                  <Route path="/categorization" element={<ProtectedRoute><Layout><Categorization /></Layout></ProtectedRoute>} />
+                  <Route path="/sorting-tagging" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
 
                   {/* 404 */}
                   <Route path="*" element={<NotFound />} />

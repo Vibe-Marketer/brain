@@ -39,10 +39,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       onClick: () => navigate('/chat'),
     },
     {
-      id: 'categorization',
-      name: 'Tags',
+      id: 'sorting-tagging',
+      name: 'Sorting',
       icon: <DockIcon><RiPriceTag3Fill className="w-6 h-6 text-cb-black" /></DockIcon>,
-      onClick: () => navigate('/categorization'),
+      onClick: () => navigate('/sorting-tagging'),
     },
     {
       id: 'settings',
@@ -56,7 +56,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     const apps: string[] = [];
     if (location.pathname === '/') apps.push('home');
     if (location.pathname.startsWith('/chat')) apps.push('chat');
-    if (location.pathname.startsWith('/categorization')) apps.push('categorization');
+    if (location.pathname.startsWith('/sorting-tagging')) apps.push('sorting-tagging');
     if (location.pathname.startsWith('/settings')) apps.push('settings');
     return apps;
   };
@@ -64,7 +64,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const getPageLabel = () => {
     if (location.pathname === '/') return 'HOME';
     if (location.pathname === '/chat') return 'AI CHAT';
-    if (location.pathname === '/categorization') return 'CATEGORIES';
+    if (location.pathname === '/sorting-tagging') return 'SORTING & TAGGING';
     if (location.pathname === '/settings') return 'SETTINGS';
     return 'HOME';
   };
