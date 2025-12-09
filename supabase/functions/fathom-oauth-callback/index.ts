@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
     // Get production OAuth credentials
     const clientId = Deno.env.get('FATHOM_OAUTH_CLIENT_ID');
     const clientSecret = Deno.env.get('FATHOM_OAUTH_CLIENT_SECRET');
-    const redirectUri = 'https://app.callvaultai.com/oauth/callback';
+    const redirectUri = 'https://app.callvaultai.com/oauth/callback/';
 
     if (!clientId || !clientSecret) {
       return new Response(
