@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { useDroppable } from '@dnd-kit/core';
+import * as RemixIcon from '@remixicon/react';
 import {
   RiAddLine,
   RiFolderLine,
@@ -13,8 +14,30 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { Folder } from '@/hooks/useFolders';
+
+// Import icon options from centralized location
+import { FOLDER_ICON_OPTIONS } from '@/components/ui/icon-emoji-picker';
+
+// Check if a string is an emoji (not an icon ID)
+const isEmojiIcon = (value: string | null | undefined): boolean => {
+  if (!value) return false;
+  return !FOLDER_ICON_OPTIONS.some(opt => opt.id === value);
+};
+
+// Get icon component for a given icon name
+const getIconComponent = (iconName: string | null | undefined): React.ComponentType<{ className?: string; style?: React.CSSProperties }> | null => {
+  if (!iconName) return RemixIcon.RiFolderLine;
+  const iconOption = FOLDER_ICON_OPTIONS.find(opt => opt.id === iconName);
+  return iconOption?.icon || RemixIcon.RiFolderLine;
+};
 
 interface FolderSidebarProps {
   folders: Folder[];
@@ -26,6 +49,7 @@ interface FolderSidebarProps {
   onManageFolders: () => void;
   isDragging?: boolean;
   isLoading?: boolean;
+  isMinimized?: boolean;
 }
 
 // Droppable folder item with drag feedback
@@ -44,6 +68,7 @@ interface DroppableFolderItemProps {
   isFocused?: boolean;
   selectableItems: Array<{ type: 'all' | 'folder'; id: string | null }>;
   focusedIndex: number;
+  isMinimized?: boolean;
 }
 
 const DroppableFolderItem = React.memo(function DroppableFolderItem({
@@ -61,6 +86,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
   isFocused = false,
   selectableItems,
   focusedIndex,
+  isMinimized = false,
 }: DroppableFolderItemProps) {
   const hasChildren = children.length > 0;
   const count = folderCounts[folder.id] || 0;
@@ -73,6 +99,56 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
       folderId: folder.id,
     },
   });
+
+  // Get the appropriate icon for this folder
+  const FolderIcon = getIconComponent(folder.icon);
+  const folderIsEmoji = isEmojiIcon(folder.icon);
+
+  // Minimized view - just icon with tooltip
+  if (isMinimized) {
+    return (
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div
+            ref={setNodeRef}
+            className={cn(
+              'flex items-center justify-center h-10 w-10 mx-auto rounded-lg cursor-pointer',
+              'transition-colors duration-150',
+              isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+              isDragging && 'ring-1 ring-cb-border ring-inset',
+              isOver && 'bg-cb-vibe-orange/10 ring-2 ring-cb-vibe-orange',
+              isFocused && 'ring-2 ring-cb-vibe-orange ring-inset'
+            )}
+            onClick={() => onSelect(folder.id)}
+            role="option"
+            aria-selected={isSelected}
+          >
+            {folderIsEmoji ? (
+              <span className="text-xl">{folder.icon}</span>
+            ) : FolderIcon ? (
+              <FolderIcon
+                className="h-5 w-5"
+                style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
+              />
+            ) : (
+              <RiFolderLine
+                className="h-5 w-5"
+                style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
+              />
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="flex items-center gap-2">
+          <span>{folder.name}</span>
+          {count > 0 && (
+            <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+              {count}
+            </Badge>
+          )}
+        </TooltipContent>
+      </Tooltip>
+    );
+  }
 
   return (
     <div>
@@ -114,9 +190,11 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
           <div className="w-6 flex-shrink-0" />
         )}
 
-        {/* Folder Icon */}
-        {isExpanded && hasChildren ? (
-          <RiFolderOpenLine
+        {/* Folder Icon - use custom icon or emoji if set */}
+        {folderIsEmoji ? (
+          <span className="text-base flex-shrink-0 mr-2">{folder.icon}</span>
+        ) : FolderIcon ? (
+          <FolderIcon
             className="h-4 w-4 flex-shrink-0 mr-2"
             style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
           />
@@ -171,6 +249,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
                 isFocused={isChildFocused}
                 selectableItems={selectableItems}
                 focusedIndex={focusedIndex}
+                isMinimized={isMinimized}
               />
             );
           })}
@@ -205,6 +284,7 @@ export function FolderSidebar({
   onManageFolders,
   isDragging = false,
   isLoading = false,
+  isMinimized = false,
 }: FolderSidebarProps) {
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(new Set());
   const [focusedIndex, setFocusedIndex] = React.useState<number>(-1);
@@ -307,131 +387,190 @@ export function FolderSidebar({
   }, [focusedIndex, selectableItems, onSelectFolder, expandedFolders, handleToggleExpand]);
 
   return (
-    <div
-      className="h-full flex flex-col rounded-overflow"
-      data-component="FOLDER-SIDEBAR"
-      tabIndex={0}
-      onKeyDown={handleKeyDown}
-      role="listbox"
-      aria-label="Folder navigation"
-    >
-      {/* Header - matches ChatSidebar header */}
-      <div className="flex items-center justify-between p-4 pb-2">
-        <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
-          Folders
-        </h1>
-        <Button variant="ghost" size="icon" onClick={onNewFolder} aria-label="New folder">
-          <RiAddLine className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Search input - only when >10 folders */}
-      {folders.length > 10 && (
-        <div className="px-4 pb-2">
-          <Input
-            placeholder="Search folders..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="h-8 text-xs"
-          />
-        </div>
-      )}
-
-      {/* Folder list - compact padding, matches ChatSidebar ScrollArea */}
-      <ScrollArea className="flex-1 overflow-hidden min-w-0">
-        {isLoading ? (
-          <FolderSidebarSkeleton />
-        ) : (
-          <div className="p-2 space-y-0.5 overflow-hidden">
-          {/* All Transcripts - shows ALL transcripts (primary view) */}
-          <div
-            className={cn(
-              'group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer',
-              'transition-colors duration-150 overflow-hidden',
-              selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
-              focusedIndex === 0 && 'ring-2 ring-cb-vibe-orange ring-inset'
-            )}
-            onClick={() => onSelectFolder(null)}
-            role="option"
-            aria-selected={selectedFolderId === null}
-          >
-            <div className="w-6 flex-shrink-0" />
-            <RiFileTextLine className="h-4 w-4 flex-shrink-0 mr-2 text-cb-ink-muted" />
-            <span
-              className={cn(
-                'flex-1 min-w-0 truncate text-sm',
-                selectedFolderId === null ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'
-              )}
-            >
-              All Transcripts
-            </span>
-            <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
-              {totalCount}
-            </Badge>
+    <TooltipProvider delayDuration={300}>
+      <div
+        className={cn(
+          "h-full flex flex-col rounded-overflow",
+          isMinimized && "items-center"
+        )}
+        data-component="FOLDER-SIDEBAR"
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        role="listbox"
+        aria-label="Folder navigation"
+      >
+        {/* Header - matches ChatSidebar header */}
+        {isMinimized ? (
+          <div className="p-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" onClick={onNewFolder} aria-label="New folder">
+                  <RiAddLine className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">New folder</TooltipContent>
+            </Tooltip>
           </div>
-
-          {/* Folders section header */}
-          {folders.length > 0 && (
-            <div className="px-2 py-2 mt-2">
-              <span className="text-[11px] text-cb-ink-muted uppercase tracking-wider">
-                {isDragging ? 'Drop on a folder' : 'Folders'}
-              </span>
-            </div>
-          )}
-
-          {/* Folder tree */}
-          {filteredRootFolders.map(folder => {
-            const children = childrenByParent[folder.id] || [];
-            const isExpanded = expandedFolders.has(folder.id);
-            const isSelected = selectedFolderId === folder.id;
-
-            // Calculate the flat index for this folder
-            const itemIndex = selectableItems.findIndex(item => item.id === folder.id);
-            const isFocused = focusedIndex === itemIndex;
-
-            return (
-              <DroppableFolderItem
-                key={folder.id}
-                folder={folder}
-                children={children}
-                folderCounts={folderCounts}
-                depth={0}
-                isSelected={isSelected}
-                isExpanded={isExpanded}
-                onSelect={onSelectFolder}
-                onToggleExpand={handleToggleExpand}
-                childrenByParent={childrenByParent}
-                isDragging={isDragging}
-                expandedFolders={expandedFolders}
-                isFocused={isFocused}
-                selectableItems={selectableItems}
-                focusedIndex={focusedIndex}
-              />
-            );
-          })}
-
-          {/* Empty state - matches ChatSidebar empty state */}
-          {folders.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-              <RiFolderLine className="h-10 w-10 text-cb-ink-muted mb-3" aria-hidden="true" />
-              <p className="text-sm text-cb-ink-soft mb-1">No folders yet</p>
-              <p className="text-xs text-cb-ink-muted">Create a folder to organize calls</p>
-            </div>
-          )}
+        ) : (
+          <div className="flex items-center justify-between p-4 pb-2">
+            <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
+              Folders
+            </h1>
+            <Button variant="ghost" size="icon" onClick={onNewFolder} aria-label="New folder">
+              <RiAddLine className="h-4 w-4" />
+            </Button>
           </div>
         )}
-      </ScrollArea>
 
-      {/* Footer - Manage Folders link */}
-      <div className="p-2 border-t border-cb-border">
-        <button
-          onClick={onManageFolders}
-          className="flex items-center gap-2 w-full px-2 py-2 text-sm text-cb-ink-muted hover:text-cb-ink rounded-lg hover:bg-cb-hover/50 transition-colors"
-        >
-          <RiSettings3Line className="h-4 w-4" />
-          Manage Folders
-        </button>
+        {/* Search input - only when >10 folders and not minimized */}
+        {!isMinimized && folders.length > 10 && (
+          <div className="px-4 pb-2">
+            <Input
+              placeholder="Search folders..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 text-xs"
+            />
+          </div>
+        )}
+
+        {/* Folder list - compact padding, matches ChatSidebar ScrollArea */}
+        <ScrollArea className="flex-1 overflow-hidden min-w-0">
+          {isLoading ? (
+            <FolderSidebarSkeleton />
+          ) : (
+            <div className={cn("p-2 space-y-0.5 overflow-hidden", isMinimized && "space-y-1")}>
+            {/* All Transcripts - shows ALL transcripts (primary view) */}
+            {isMinimized ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div
+                    className={cn(
+                      'flex items-center justify-center h-10 w-10 mx-auto rounded-lg cursor-pointer',
+                      'transition-colors duration-150',
+                      selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+                      focusedIndex === 0 && 'ring-2 ring-cb-vibe-orange ring-inset'
+                    )}
+                    onClick={() => onSelectFolder(null)}
+                    role="option"
+                    aria-selected={selectedFolderId === null}
+                  >
+                    <RiFileTextLine className="h-5 w-5 text-cb-ink-muted" />
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="flex items-center gap-2">
+                  <span>All Transcripts</span>
+                  <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                    {totalCount}
+                  </Badge>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <div
+                className={cn(
+                  'group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer',
+                  'transition-colors duration-150 overflow-hidden',
+                  selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+                  focusedIndex === 0 && 'ring-2 ring-cb-vibe-orange ring-inset'
+                )}
+                onClick={() => onSelectFolder(null)}
+                role="option"
+                aria-selected={selectedFolderId === null}
+              >
+                <div className="w-6 flex-shrink-0" />
+                <RiFileTextLine className="h-4 w-4 flex-shrink-0 mr-2 text-cb-ink-muted" />
+                <span
+                  className={cn(
+                    'flex-1 min-w-0 truncate text-sm',
+                    selectedFolderId === null ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'
+                  )}
+                >
+                  All Transcripts
+                </span>
+                <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
+                  {totalCount}
+                </Badge>
+              </div>
+            )}
+
+            {/* Folders section header - hidden when minimized */}
+            {!isMinimized && folders.length > 0 && (
+              <div className="px-2 py-2 mt-2">
+                <span className="text-[11px] text-cb-ink-muted uppercase tracking-wider">
+                  {isDragging ? 'Drop on a folder' : 'Folders'}
+                </span>
+              </div>
+            )}
+
+            {/* Folder tree */}
+            {filteredRootFolders.map(folder => {
+              const children = childrenByParent[folder.id] || [];
+              const isExpanded = expandedFolders.has(folder.id);
+              const isSelected = selectedFolderId === folder.id;
+
+              // Calculate the flat index for this folder
+              const itemIndex = selectableItems.findIndex(item => item.id === folder.id);
+              const isFocused = focusedIndex === itemIndex;
+
+              return (
+                <DroppableFolderItem
+                  key={folder.id}
+                  folder={folder}
+                  children={children}
+                  folderCounts={folderCounts}
+                  depth={0}
+                  isSelected={isSelected}
+                  isExpanded={isExpanded}
+                  onSelect={onSelectFolder}
+                  onToggleExpand={handleToggleExpand}
+                  childrenByParent={childrenByParent}
+                  isDragging={isDragging}
+                  expandedFolders={expandedFolders}
+                  isFocused={isFocused}
+                  selectableItems={selectableItems}
+                  focusedIndex={focusedIndex}
+                  isMinimized={isMinimized}
+                />
+              );
+            })}
+
+            {/* Empty state - matches ChatSidebar empty state */}
+            {!isMinimized && folders.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
+                <RiFolderLine className="h-10 w-10 text-cb-ink-muted mb-3" aria-hidden="true" />
+                <p className="text-sm text-cb-ink-soft mb-1">No folders yet</p>
+                <p className="text-xs text-cb-ink-muted">Create a folder to organize calls</p>
+              </div>
+            )}
+            </div>
+          )}
+        </ScrollArea>
+
+        {/* Footer - Manage Folders link */}
+        <div className={cn("p-2 border-t border-cb-border", isMinimized && "border-t-0")}>
+          {isMinimized ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onManageFolders}
+                  className="flex items-center justify-center h-10 w-10 mx-auto rounded-lg text-cb-ink-muted hover:text-cb-ink hover:bg-cb-hover/50 transition-colors"
+                >
+                  <RiSettings3Line className="h-5 w-5" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Manage Folders</TooltipContent>
+            </Tooltip>
+          ) : (
+            <button
+              onClick={onManageFolders}
+              className="flex items-center gap-2 w-full px-2 py-2 text-sm text-cb-ink-muted hover:text-cb-ink rounded-lg hover:bg-cb-hover/50 transition-colors"
+            >
+              <RiSettings3Line className="h-4 w-4" />
+              Manage Folders
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }

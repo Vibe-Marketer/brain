@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
 import * as RemixIcon from "@remixicon/react";
+import { IconEmojiPicker, FOLDER_ICON_OPTIONS } from "@/components/ui/icon-emoji-picker";
 
 interface Folder {
   id: string;
@@ -54,16 +55,6 @@ const FOLDER_COLORS = [
   '#EC4899', // Pink
 ];
 
-const FOLDER_ICONS = [
-  'folder',
-  'folder-2',
-  'folder-3',
-  'folder-open',
-  'briefcase',
-  'archive',
-  'inbox',
-  'bookmark',
-] as const;
 
 interface FolderOption {
   id: string;
@@ -81,7 +72,7 @@ export default function EditFolderDialog({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [color, setColor] = useState(FOLDER_COLORS[0]);
-  const [icon, setIcon] = useState<typeof FOLDER_ICONS[number]>('folder');
+  const [icon, setIcon] = useState<string>('folder');
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(undefined);
   const [customColor, setCustomColor] = useState("");
   const [saving, setSaving] = useState(false);
@@ -94,7 +85,7 @@ export default function EditFolderDialog({
       setName(folder.name || "");
       setDescription(folder.description || "");
       setColor(folder.color || FOLDER_COLORS[0]);
-      setIcon((folder.icon as typeof FOLDER_ICONS[number]) || 'folder');
+      setIcon(folder.icon || 'folder');
       setSelectedParentId(folder.parent_id || undefined);
 
       // Check if it's a custom color
@@ -239,19 +230,13 @@ export default function EditFolderDialog({
     onOpenChange(newOpen);
   };
 
+  // Check if icon is an emoji (not in the icon options list)
+  const isEmoji = !FOLDER_ICON_OPTIONS.some(opt => opt.id === icon);
+
   // Get icon component dynamically
-  const getIconComponent = (iconName: string): React.ComponentType<{ className?: string }> => {
-    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-      'folder': RemixIcon.RiFolderLine,
-      'folder-2': RemixIcon.RiFolder2Line,
-      'folder-3': RemixIcon.RiFolder3Line,
-      'folder-open': RemixIcon.RiFolderOpenLine,
-      'briefcase': RemixIcon.RiBriefcaseLine,
-      'archive': RemixIcon.RiArchiveLine,
-      'inbox': RemixIcon.RiInboxLine,
-      'bookmark': RemixIcon.RiBookmarkLine,
-    };
-    return iconMap[iconName] || RemixIcon.RiFolderLine;
+  const getIconComponent = (iconName: string): React.ComponentType<{ className?: string; style?: React.CSSProperties }> | null => {
+    const iconOption = FOLDER_ICON_OPTIONS.find(opt => opt.id === iconName);
+    return iconOption?.icon || null;
   };
 
   const IconComponent = getIconComponent(icon);
@@ -336,30 +321,6 @@ export default function EditFolderDialog({
             </Select>
           </div>
 
-          {/* Icon Selector */}
-          <div className="space-y-2">
-            <Label>Icon</Label>
-            <div className="flex gap-2 flex-wrap">
-              {FOLDER_ICONS.map((iconName) => {
-                const Icon = getIconComponent(iconName);
-                return (
-                  <button
-                    key={iconName}
-                    type="button"
-                    onClick={() => setIcon(iconName)}
-                    className={`p-2 rounded-md border transition-colors ${
-                      icon === iconName
-                        ? 'border-cb-ink bg-cb-ink/5'
-                        : 'border-cb-border hover:border-cb-ink/50'
-                    }`}
-                  >
-                    <Icon className="h-5 w-5 text-cb-ink-muted" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Color Picker */}
           <div className="space-y-2">
             <Label>Color</Label>
@@ -396,14 +357,33 @@ export default function EditFolderDialog({
             </div>
           </div>
 
+          {/* Icon/Emoji Picker */}
+          <div className="space-y-2">
+            <Label>Icon or Emoji</Label>
+            <IconEmojiPicker
+              value={icon}
+              onChange={setIcon}
+              color={customColor || color}
+            />
+          </div>
+
           {/* Preview */}
           <div className="space-y-2">
             <Label>Preview</Label>
             <div className="flex items-center gap-2 p-3 rounded-md border border-cb-border bg-cb-card">
-              <IconComponent
-                className="h-5 w-5"
-                style={{ color: customColor || color }}
-              />
+              {isEmoji ? (
+                <span className="text-xl">{icon}</span>
+              ) : IconComponent ? (
+                <IconComponent
+                  className="h-5 w-5"
+                  style={{ color: customColor || color }}
+                />
+              ) : (
+                <RemixIcon.RiFolderLine
+                  className="h-5 w-5"
+                  style={{ color: customColor || color }}
+                />
+              )}
               <span className="font-medium">
                 {name || "Folder Name"}
               </span>

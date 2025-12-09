@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import { RiMenuLine } from "@remixicon/react";
+import { RiMenuLine, RiLayoutLeftLine, RiLayoutRightLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
@@ -88,9 +88,19 @@ export function TranscriptsTab() {
     folders: true,
   });
 
-  // Sidebar state - desktop starts expanded, mobile starts collapsed
-  const [showSidebar, setShowSidebar] = useState(true);
+  // Sidebar state - 'expanded' | 'minimized' | 'hidden'
+  // Desktop starts expanded, mobile starts hidden
+  const [sidebarState, setSidebarState] = useState<'expanded' | 'minimized' | 'hidden'>('expanded');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+
+  // Helper to cycle sidebar state
+  const cycleSidebarState = () => {
+    setSidebarState(prev => {
+      if (prev === 'expanded') return 'minimized';
+      if (prev === 'minimized') return 'hidden';
+      return 'expanded';
+    });
+  };
 
   // Dialog state
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
@@ -569,21 +579,23 @@ export function TranscriptsTab() {
         />
       )}
 
-      {/* Mobile sidebar overlay backdrop */}
-      {showSidebar && (
+      {/* Mobile sidebar overlay backdrop - only when expanded on mobile */}
+      {sidebarState === 'expanded' && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setShowSidebar(false)}
+          onClick={() => setSidebarState('hidden')}
         />
       )}
 
       {/* BG-CARD-MAIN: Browser window container */}
       <ChatOuterCard className="h-[calc(100vh-120px)]">
-        {/* SIDEBAR - Collapsible on desktop */}
+        {/* SIDEBAR - Expanded (280px), Minimized (64px), or Hidden */}
         <div
           className={`
-            ${showSidebar ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none' : 'hidden'}
-            w-[280px] flex-shrink-0 transition-all duration-200
+            ${sidebarState === 'hidden' ? 'hidden' : ''}
+            ${sidebarState === 'expanded' ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none w-[280px]' : ''}
+            ${sidebarState === 'minimized' ? 'w-16' : ''}
+            flex-shrink-0 transition-all duration-200
           `}
         >
           <FolderSidebar
@@ -595,13 +607,14 @@ export function TranscriptsTab() {
               setSelectedFolderId(folderId);
               // Only close sidebar on mobile
               if (window.innerWidth < 768) {
-                setShowSidebar(false);
+                setSidebarState('hidden');
               }
             }}
             onNewFolder={() => setQuickCreateFolderOpen(true)}
             onManageFolders={() => setFolderManagementOpen(true)}
             isDragging={!!dragHelpers.activeDragId}
             isLoading={foldersLoading}
+            isMinimized={sidebarState === 'minimized'}
           />
         </div>
 
@@ -610,15 +623,25 @@ export function TranscriptsTab() {
           {/* Header with sidebar toggle */}
           <div className="flex-shrink-0 px-4 py-3 border-b border-border">
             <div className="flex items-center gap-3">
-              {/* Sidebar toggle button */}
+              {/* Sidebar toggle button - cycles through expanded/minimized/hidden */}
               <Button
                 variant="hollow"
                 size="sm"
                 className="h-8 w-8 p-0"
-                onClick={() => setShowSidebar(!showSidebar)}
-                title={showSidebar ? "Hide sidebar" : "Show sidebar"}
+                onClick={cycleSidebarState}
+                title={
+                  sidebarState === 'expanded' ? "Minimize sidebar" :
+                  sidebarState === 'minimized' ? "Hide sidebar" :
+                  "Show sidebar"
+                }
               >
-                <RiMenuLine className="h-5 w-5" />
+                {sidebarState === 'expanded' ? (
+                  <RiLayoutRightLine className="h-5 w-5" />
+                ) : sidebarState === 'minimized' ? (
+                  <RiLayoutLeftLine className="h-5 w-5" />
+                ) : (
+                  <RiMenuLine className="h-5 w-5" />
+                )}
               </Button>
 
               {/* Filter bar - moved to header */}
