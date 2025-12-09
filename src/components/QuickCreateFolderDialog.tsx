@@ -166,13 +166,20 @@ export default function QuickCreateFolderDialog({
       }
 
       // Check for duplicate name within same parent
-      const { data: existingFolder, error: checkError } = await supabase
+      let query = supabase
         .from("folders")
         .select("id")
         .eq("user_id", user.id)
-        .eq("name", validation.data.name)
-        .eq("parent_id", selectedParentId || null)
-        .maybeSingle();
+        .eq("name", validation.data.name);
+
+      // Use .is() for null comparison, .eq() for actual values
+      if (selectedParentId) {
+        query = query.eq("parent_id", selectedParentId);
+      } else {
+        query = query.is("parent_id", null);
+      }
+
+      const { data: existingFolder, error: checkError } = await query.maybeSingle();
 
       if (checkError) throw checkError;
 
