@@ -1,43 +1,34 @@
 import * as React from 'react';
 import { useDroppable } from '@dnd-kit/core';
-import * as RemixIcon from '@remixicon/react';
 import {
   RiAddLine,
   RiFolderLine,
-  RiFolderOpenLine,
   RiSettings3Line,
   RiArrowRightSLine,
   RiArrowDownSLine,
   RiFileTextLine,
+  RiPencilLine,
+  RiDeleteBinLine,
+  RiPaletteLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { TooltipProvider } from '@/components/ui/tooltip';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
 import type { Folder } from '@/hooks/useFolders';
 
-// Import icon options from centralized location
-import { FOLDER_ICON_OPTIONS } from '@/components/ui/icon-emoji-picker';
-
-// Check if a string is an emoji (not an icon ID)
-const isEmojiIcon = (value: string | null | undefined): boolean => {
-  if (!value) return false;
-  return !FOLDER_ICON_OPTIONS.some(opt => opt.id === value);
-};
-
-// Get icon component for a given icon name
-const getIconComponent = (iconName: string | null | undefined): React.ComponentType<{ className?: string; style?: React.CSSProperties }> | null => {
-  if (!iconName) return RemixIcon.RiFolderLine;
-  const iconOption = FOLDER_ICON_OPTIONS.find(opt => opt.id === iconName);
-  return iconOption?.icon || RemixIcon.RiFolderLine;
-};
+// Import shared utilities from centralized location
+import { isEmojiIcon, getIconComponent } from '@/components/ui/icon-emoji-picker';
+import type { AllTranscriptsSettings } from '@/hooks/useAllTranscriptsSettings';
 
 interface FolderSidebarProps {
   folders: Folder[];
@@ -47,9 +38,14 @@ interface FolderSidebarProps {
   onSelectFolder: (folderId: string | null) => void;
   onNewFolder: () => void;
   onManageFolders: () => void;
+  onEditFolder?: (folder: Folder) => void;
+  onDeleteFolder?: (folder: Folder) => void;
   isDragging?: boolean;
   isLoading?: boolean;
-  isMinimized?: boolean;
+  isCollapsed?: boolean;
+  // All Transcripts customization
+  allTranscriptsSettings?: AllTranscriptsSettings;
+  onEditAllTranscripts?: () => void;
 }
 
 // Droppable folder item with drag feedback
@@ -62,13 +58,14 @@ interface DroppableFolderItemProps {
   isExpanded: boolean;
   onSelect: (folderId: string) => void;
   onToggleExpand: (folderId: string) => void;
+  onEditFolder?: (folder: Folder) => void;
+  onDeleteFolder?: (folder: Folder) => void;
   childrenByParent: Record<string, Folder[]>;
   isDragging: boolean;
   expandedFolders: Set<string>;
   isFocused?: boolean;
   selectableItems: Array<{ type: 'all' | 'folder'; id: string | null }>;
   focusedIndex: number;
-  isMinimized?: boolean;
 }
 
 const DroppableFolderItem = React.memo(function DroppableFolderItem({
@@ -80,13 +77,14 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
   isExpanded,
   onSelect,
   onToggleExpand,
+  onEditFolder,
+  onDeleteFolder,
   childrenByParent,
   isDragging,
   expandedFolders,
   isFocused = false,
   selectableItems,
   focusedIndex,
-  isMinimized = false,
 }: DroppableFolderItemProps) {
   const hasChildren = children.length > 0;
   const count = folderCounts[folder.id] || 0;
@@ -104,125 +102,145 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
   const FolderIcon = getIconComponent(folder.icon);
   const folderIsEmoji = isEmojiIcon(folder.icon);
 
-  // Minimized view - just icon with tooltip
-  if (isMinimized) {
-    return (
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div
-            ref={setNodeRef}
-            className={cn(
-              'flex items-center justify-center h-10 w-10 mx-auto rounded-lg cursor-pointer',
-              'transition-colors duration-150',
-              isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
-              isDragging && 'ring-1 ring-cb-border ring-inset',
-              isOver && 'bg-cb-vibe-orange/10 ring-2 ring-cb-vibe-orange',
-              isFocused && 'ring-2 ring-cb-vibe-orange ring-inset'
-            )}
-            onClick={() => onSelect(folder.id)}
-            role="option"
-            aria-selected={isSelected}
-          >
-            {folderIsEmoji ? (
-              <span className="text-xl">{folder.icon}</span>
-            ) : FolderIcon ? (
-              <FolderIcon
-                className="h-5 w-5"
-                style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
-              />
-            ) : (
-              <RiFolderLine
-                className="h-5 w-5"
-                style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
-              />
-            )}
-          </div>
-        </TooltipTrigger>
-        <TooltipContent side="right" className="flex items-center gap-2">
-          <span>{folder.name}</span>
-          {count > 0 && (
-            <Badge variant="secondary" className="h-5 px-1.5 text-xs">
-              {count}
-            </Badge>
+  // Folder row content (shared between context menu and regular view)
+  const folderRowContent = (
+    <div
+      ref={setNodeRef}
+      className={cn(
+        'group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer',
+        'transition-colors duration-150 overflow-hidden',
+        isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+        depth > 0 && 'ml-3',
+        // Drag feedback
+        isDragging && 'ring-1 ring-cb-border ring-inset',
+        isOver && 'bg-cb-vibe-orange/10 ring-2 ring-cb-vibe-orange',
+        // Keyboard focus
+        isFocused && 'ring-2 ring-cb-vibe-orange ring-inset'
+      )}
+      onClick={() => onSelect(folder.id)}
+      role="option"
+      aria-selected={isSelected}
+    >
+      {/* Expand/Collapse */}
+      {hasChildren ? (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleExpand(folder.id);
+          }}
+          className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-cb-border/50 mr-1"
+        >
+          {isExpanded ? (
+            <RiArrowDownSLine className="h-4 w-4 text-cb-ink-muted" />
+          ) : (
+            <RiArrowRightSLine className="h-4 w-4 text-cb-ink-muted" />
           )}
-        </TooltipContent>
-      </Tooltip>
-    );
-  }
+        </button>
+      ) : (
+        <div className="w-6 flex-shrink-0" />
+      )}
+
+      {/* Folder Icon - use custom icon or emoji if set */}
+      {folderIsEmoji ? (
+        <span className="text-base flex-shrink-0 mr-2">{folder.icon}</span>
+      ) : FolderIcon ? (
+        <FolderIcon
+          className="h-4 w-4 flex-shrink-0 mr-2"
+          style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
+        />
+      ) : (
+        <RiFolderLine
+          className="h-4 w-4 flex-shrink-0 mr-2"
+          style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
+        />
+      )}
+
+      {/* Folder Name - truncates with ellipsis */}
+      <span
+        className={cn(
+          'flex-1 min-w-0 truncate text-sm',
+          isSelected ? 'text-cb-ink font-medium' : 'text-cb-ink-soft',
+          isOver && 'text-cb-ink font-medium'
+        )}
+      >
+        {folder.name}
+      </span>
+
+      {/* Edit/Delete buttons - appear on hover */}
+      {(onEditFolder || onDeleteFolder) && (
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+          {onEditFolder && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEditFolder(folder);
+              }}
+              className="h-6 w-6 flex items-center justify-center rounded hover:bg-cb-border/50 text-cb-ink-muted hover:text-cb-ink"
+              aria-label={`Edit ${folder.name}`}
+            >
+              <RiPencilLine className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {onDeleteFolder && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteFolder(folder);
+              }}
+              className="h-6 w-6 flex items-center justify-center rounded hover:bg-destructive/10 text-cb-ink-muted hover:text-destructive"
+              aria-label={`Delete ${folder.name}`}
+            >
+              <RiDeleteBinLine className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Count Badge */}
+      {count > 0 && (
+        <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
+          {count}
+        </Badge>
+      )}
+    </div>
+  );
 
   return (
     <div>
-      {/* Folder row - h-9 matches SessionItem */}
-      <div
-        ref={setNodeRef}
-        className={cn(
-          'group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer',
-          'transition-colors duration-150 overflow-hidden',
-          isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
-          depth > 0 && 'ml-3',
-          // Drag feedback
-          isDragging && 'ring-1 ring-cb-border ring-inset',
-          isOver && 'bg-cb-vibe-orange/10 ring-2 ring-cb-vibe-orange',
-          // Keyboard focus
-          isFocused && 'ring-2 ring-cb-vibe-orange ring-inset'
-        )}
-        onClick={() => onSelect(folder.id)}
-        role="option"
-        aria-selected={isSelected}
-      >
-        {/* Expand/Collapse */}
-        {hasChildren ? (
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleExpand(folder.id);
-            }}
-            className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-cb-border/50 mr-1"
-          >
-            {isExpanded ? (
-              <RiArrowDownSLine className="h-4 w-4 text-cb-ink-muted" />
-            ) : (
-              <RiArrowRightSLine className="h-4 w-4 text-cb-ink-muted" />
+      {/* Folder row with context menu */}
+      {(onEditFolder || onDeleteFolder) ? (
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            {folderRowContent}
+          </ContextMenuTrigger>
+          <ContextMenuContent className="w-48">
+            {onEditFolder && (
+              <ContextMenuItem
+                onClick={() => onEditFolder(folder)}
+                className="cursor-pointer"
+              >
+                <RiPencilLine className="h-4 w-4 mr-2" />
+                Edit Folder
+              </ContextMenuItem>
             )}
-          </button>
-        ) : (
-          <div className="w-6 flex-shrink-0" />
-        )}
-
-        {/* Folder Icon - use custom icon or emoji if set */}
-        {folderIsEmoji ? (
-          <span className="text-base flex-shrink-0 mr-2">{folder.icon}</span>
-        ) : FolderIcon ? (
-          <FolderIcon
-            className="h-4 w-4 flex-shrink-0 mr-2"
-            style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
-          />
-        ) : (
-          <RiFolderLine
-            className="h-4 w-4 flex-shrink-0 mr-2"
-            style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
-          />
-        )}
-
-        {/* Folder Name - truncates with ellipsis */}
-        <span
-          className={cn(
-            'flex-1 min-w-0 truncate text-sm',
-            isSelected ? 'text-cb-ink font-medium' : 'text-cb-ink-soft',
-            isOver && 'text-cb-ink font-medium'
-          )}
-        >
-          {folder.name}
-        </span>
-
-        {/* Count Badge */}
-        {count > 0 && (
-          <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
-            {count}
-          </Badge>
-        )}
-      </div>
+            {onEditFolder && onDeleteFolder && <ContextMenuSeparator />}
+            {onDeleteFolder && (
+              <ContextMenuItem
+                onClick={() => onDeleteFolder(folder)}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <RiDeleteBinLine className="h-4 w-4 mr-2" />
+                Delete Folder
+              </ContextMenuItem>
+            )}
+          </ContextMenuContent>
+        </ContextMenu>
+      ) : (
+        folderRowContent
+      )}
 
       {/* Children - nested */}
       {hasChildren && isExpanded && (
@@ -243,13 +261,14 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
                 isExpanded={expandedFolders.has(child.id)}
                 onSelect={onSelect}
                 onToggleExpand={onToggleExpand}
+                onEditFolder={onEditFolder}
+                onDeleteFolder={onDeleteFolder}
                 childrenByParent={childrenByParent}
                 isDragging={isDragging}
                 expandedFolders={expandedFolders}
                 isFocused={isChildFocused}
                 selectableItems={selectableItems}
                 focusedIndex={focusedIndex}
-                isMinimized={isMinimized}
               />
             );
           })}
@@ -282,9 +301,13 @@ export function FolderSidebar({
   onSelectFolder,
   onNewFolder,
   onManageFolders,
+  onEditFolder,
+  onDeleteFolder,
   isDragging = false,
   isLoading = false,
-  isMinimized = false,
+  isCollapsed = false,
+  allTranscriptsSettings,
+  onEditAllTranscripts,
 }: FolderSidebarProps) {
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(new Set());
   const [focusedIndex, setFocusedIndex] = React.useState<number>(-1);
@@ -386,44 +409,126 @@ export function FolderSidebar({
     }
   }, [focusedIndex, selectableItems, onSelectFolder, expandedFolders, handleToggleExpand]);
 
+  // Collapsed view - icons only
+  if (isCollapsed) {
+    // Get All Transcripts icon info
+    const allIcon = allTranscriptsSettings?.icon || 'file-text';
+    const allIsEmoji = isEmojiIcon(allIcon);
+    const AllIconComponent = getIconComponent(allIcon);
+
+    return (
+      <TooltipProvider delayDuration={300}>
+        <div
+          className="h-full flex flex-col items-center py-4 bg-cb-card border-r border-cb-border"
+          data-component="FOLDER-SIDEBAR-COLLAPSED"
+        >
+          {/* All Transcripts icon */}
+          <button
+            type="button"
+            onClick={() => onSelectFolder(null)}
+            className={cn(
+              'w-10 h-10 flex items-center justify-center rounded-lg mb-2 transition-colors',
+              selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50'
+            )}
+            title={allTranscriptsSettings?.name || 'All Transcripts'}
+          >
+            {allIsEmoji ? (
+              <span className="text-lg">{allIcon}</span>
+            ) : AllIconComponent ? (
+              <AllIconComponent className="h-5 w-5 text-cb-ink-muted" />
+            ) : (
+              <RiFileTextLine className="h-5 w-5 text-cb-ink-muted" />
+            )}
+          </button>
+
+          {/* Divider */}
+          <div className="w-6 h-px bg-cb-border my-2" />
+
+          {/* Folder icons */}
+          <ScrollArea className="flex-1 w-full">
+            <div className="flex flex-col items-center gap-1 px-2">
+              {rootFolders.map((folder) => {
+                const FolderIcon = getIconComponent(folder.icon);
+                const folderIsEmoji = isEmojiIcon(folder.icon);
+                const isSelected = selectedFolderId === folder.id;
+
+                return (
+                  <button
+                    key={folder.id}
+                    type="button"
+                    onClick={() => onSelectFolder(folder.id)}
+                    className={cn(
+                      'w-10 h-10 flex items-center justify-center rounded-lg transition-colors',
+                      isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50'
+                    )}
+                    title={folder.name}
+                  >
+                    {folderIsEmoji ? (
+                      <span className="text-lg">{folder.icon}</span>
+                    ) : FolderIcon ? (
+                      <FolderIcon
+                        className="h-5 w-5"
+                        style={{ color: folder.color || '#6B7280' }}
+                      />
+                    ) : (
+                      <RiFolderLine
+                        className="h-5 w-5"
+                        style={{ color: folder.color || '#6B7280' }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+
+          {/* Bottom actions */}
+          <div className="flex flex-col items-center gap-1 pt-2 border-t border-cb-border mt-2">
+            <button
+              type="button"
+              onClick={onNewFolder}
+              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-cb-hover/50 transition-colors"
+              title="New folder"
+            >
+              <RiAddLine className="h-5 w-5 text-cb-ink-muted" />
+            </button>
+            <button
+              type="button"
+              onClick={onManageFolders}
+              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-cb-hover/50 transition-colors"
+              title="Manage folders"
+            >
+              <RiSettings3Line className="h-5 w-5 text-cb-ink-muted" />
+            </button>
+          </div>
+        </div>
+      </TooltipProvider>
+    );
+  }
+
+  // Expanded view - full sidebar
   return (
     <TooltipProvider delayDuration={300}>
       <div
-        className={cn(
-          "h-full flex flex-col rounded-overflow",
-          isMinimized && "items-center"
-        )}
+        className="h-full flex flex-col rounded-overflow"
         data-component="FOLDER-SIDEBAR"
         tabIndex={0}
         onKeyDown={handleKeyDown}
         role="listbox"
         aria-label="Folder navigation"
       >
-        {/* Header - matches ChatSidebar header */}
-        {isMinimized ? (
-          <div className="p-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" onClick={onNewFolder} aria-label="New folder">
-                  <RiAddLine className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">New folder</TooltipContent>
-            </Tooltip>
-          </div>
-        ) : (
-          <div className="flex items-center justify-between p-4 pb-2">
-            <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
-              Folders
-            </h1>
-            <Button variant="ghost" size="icon" onClick={onNewFolder} aria-label="New folder">
-              <RiAddLine className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 pb-2">
+          <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
+            Folders
+          </h1>
+          <Button variant="ghost" size="icon" onClick={onNewFolder} aria-label="New folder">
+            <RiAddLine className="h-4 w-4" />
+          </Button>
+        </div>
 
-        {/* Search input - only when >10 folders and not minimized */}
-        {!isMinimized && folders.length > 10 && (
+        {/* Search input - only when >10 folders */}
+        {folders.length > 10 && (
           <div className="px-4 pb-2">
             <Input
               placeholder="Search folders..."
@@ -434,67 +539,92 @@ export function FolderSidebar({
           </div>
         )}
 
-        {/* Folder list - compact padding, matches ChatSidebar ScrollArea */}
+        {/* Folder list */}
         <ScrollArea className="flex-1 overflow-hidden min-w-0">
           {isLoading ? (
             <FolderSidebarSkeleton />
           ) : (
-            <div className={cn("p-2 space-y-0.5 overflow-hidden", isMinimized && "space-y-1")}>
+            <div className="p-2 space-y-0.5 overflow-hidden">
             {/* All Transcripts - shows ALL transcripts (primary view) */}
-            {isMinimized ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div
+            {(() => {
+              // Determine icon to display for All Transcripts
+              const allIcon = allTranscriptsSettings?.icon || 'file-text';
+              const allName = allTranscriptsSettings?.name || 'All Transcripts';
+              const allIsEmoji = isEmojiIcon(allIcon);
+              const AllIconComponent = getIconComponent(allIcon);
+
+              const allTranscriptsContent = (
+                <div
+                  className={cn(
+                    'group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer',
+                    'transition-colors duration-150 overflow-hidden',
+                    selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+                    focusedIndex === 0 && 'ring-2 ring-cb-vibe-orange ring-inset'
+                  )}
+                  onClick={() => onSelectFolder(null)}
+                  role="option"
+                  aria-selected={selectedFolderId === null}
+                >
+                  <div className="w-6 flex-shrink-0" />
+                  {allIsEmoji ? (
+                    <span className="text-base flex-shrink-0 mr-2">{allIcon}</span>
+                  ) : AllIconComponent ? (
+                    <AllIconComponent className="h-4 w-4 flex-shrink-0 mr-2 text-cb-ink-muted" />
+                  ) : (
+                    <RiFileTextLine className="h-4 w-4 flex-shrink-0 mr-2 text-cb-ink-muted" />
+                  )}
+                  <span
                     className={cn(
-                      'flex items-center justify-center h-10 w-10 mx-auto rounded-lg cursor-pointer',
-                      'transition-colors duration-150',
-                      selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
-                      focusedIndex === 0 && 'ring-2 ring-cb-vibe-orange ring-inset'
+                      'flex-1 min-w-0 truncate text-sm',
+                      selectedFolderId === null ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'
                     )}
-                    onClick={() => onSelectFolder(null)}
-                    role="option"
-                    aria-selected={selectedFolderId === null}
                   >
-                    <RiFileTextLine className="h-5 w-5 text-cb-ink-muted" />
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="right" className="flex items-center gap-2">
-                  <span>All Transcripts</span>
-                  <Badge variant="secondary" className="h-5 px-1.5 text-xs">
+                    {allName}
+                  </span>
+                  {/* Edit button - appears on hover */}
+                  {onEditAllTranscripts && (
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 mr-1">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onEditAllTranscripts();
+                        }}
+                        className="h-6 w-6 flex items-center justify-center rounded hover:bg-cb-border/50 text-cb-ink-muted hover:text-cb-ink"
+                        aria-label="Customize All Transcripts"
+                      >
+                        <RiPaletteLine className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+                  <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
                     {totalCount}
                   </Badge>
-                </TooltipContent>
-              </Tooltip>
-            ) : (
-              <div
-                className={cn(
-                  'group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer',
-                  'transition-colors duration-150 overflow-hidden',
-                  selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
-                  focusedIndex === 0 && 'ring-2 ring-cb-vibe-orange ring-inset'
-                )}
-                onClick={() => onSelectFolder(null)}
-                role="option"
-                aria-selected={selectedFolderId === null}
-              >
-                <div className="w-6 flex-shrink-0" />
-                <RiFileTextLine className="h-4 w-4 flex-shrink-0 mr-2 text-cb-ink-muted" />
-                <span
-                  className={cn(
-                    'flex-1 min-w-0 truncate text-sm',
-                    selectedFolderId === null ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'
-                  )}
-                >
-                  All Transcripts
-                </span>
-                <Badge variant="secondary" className="h-5 px-1.5 text-xs flex-shrink-0">
-                  {totalCount}
-                </Badge>
-              </div>
-            )}
+                </div>
+              );
 
-            {/* Folders section header - hidden when minimized */}
-            {!isMinimized && folders.length > 0 && (
+              return onEditAllTranscripts ? (
+                <ContextMenu>
+                  <ContextMenuTrigger asChild>
+                    {allTranscriptsContent}
+                  </ContextMenuTrigger>
+                  <ContextMenuContent className="w-48">
+                    <ContextMenuItem
+                      onClick={onEditAllTranscripts}
+                      className="cursor-pointer"
+                    >
+                      <RiPaletteLine className="h-4 w-4 mr-2" />
+                      Customize
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
+              ) : (
+                allTranscriptsContent
+              );
+            })()}
+
+            {/* Folders section header */}
+            {folders.length > 0 && (
               <div className="px-2 py-2 mt-2">
                 <span className="text-[11px] text-cb-ink-muted uppercase tracking-wider">
                   {isDragging ? 'Drop on a folder' : 'Folders'}
@@ -523,19 +653,20 @@ export function FolderSidebar({
                   isExpanded={isExpanded}
                   onSelect={onSelectFolder}
                   onToggleExpand={handleToggleExpand}
+                  onEditFolder={onEditFolder}
+                  onDeleteFolder={onDeleteFolder}
                   childrenByParent={childrenByParent}
                   isDragging={isDragging}
                   expandedFolders={expandedFolders}
                   isFocused={isFocused}
                   selectableItems={selectableItems}
                   focusedIndex={focusedIndex}
-                  isMinimized={isMinimized}
                 />
               );
             })}
 
-            {/* Empty state - matches ChatSidebar empty state */}
-            {!isMinimized && folders.length === 0 && (
+            {/* Empty state */}
+            {folders.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
                 <RiFolderLine className="h-10 w-10 text-cb-ink-muted mb-3" aria-hidden="true" />
                 <p className="text-sm text-cb-ink-soft mb-1">No folders yet</p>
@@ -547,28 +678,14 @@ export function FolderSidebar({
         </ScrollArea>
 
         {/* Footer - Manage Folders link */}
-        <div className={cn("p-2 border-t border-cb-border", isMinimized && "border-t-0")}>
-          {isMinimized ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  onClick={onManageFolders}
-                  className="flex items-center justify-center h-10 w-10 mx-auto rounded-lg text-cb-ink-muted hover:text-cb-ink hover:bg-cb-hover/50 transition-colors"
-                >
-                  <RiSettings3Line className="h-5 w-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Manage Folders</TooltipContent>
-            </Tooltip>
-          ) : (
-            <button
-              onClick={onManageFolders}
-              className="flex items-center gap-2 w-full px-2 py-2 text-sm text-cb-ink-muted hover:text-cb-ink rounded-lg hover:bg-cb-hover/50 transition-colors"
-            >
-              <RiSettings3Line className="h-4 w-4" />
-              Manage Folders
-            </button>
-          )}
+        <div className="p-2 border-t border-cb-border">
+          <button
+            onClick={onManageFolders}
+            className="flex items-center gap-2 w-full px-2 py-2 text-sm text-cb-ink-muted hover:text-cb-ink rounded-lg hover:bg-cb-hover/50 transition-colors"
+          >
+            <RiSettings3Line className="h-4 w-4" />
+            Manage Folders
+          </button>
         </div>
       </div>
     </TooltipProvider>

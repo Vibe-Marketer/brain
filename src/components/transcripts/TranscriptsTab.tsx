@@ -3,9 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import { RiMenuLine, RiLayoutLeftLine, RiLayoutRightLine } from "@remixicon/react";
+import { RiMenuLine, RiLayoutLeftLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { TranscriptTableSkeleton } from "@/components/ui/transcript-table-skeleton";
@@ -30,8 +29,10 @@ import SmartExportDialog from "@/components/SmartExportDialog";
 import AssignFolderDialog from "@/components/AssignFolderDialog";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import EditFolderDialog from "@/components/EditFolderDialog";
+import EditAllTranscriptsDialog from "@/components/EditAllTranscriptsDialog";
 import { FolderManagementDialog } from "@/components/transcript-library/FolderManagementDialog";
 import { FolderSidebar } from "@/components/transcript-library/FolderSidebar";
+import { useAllTranscriptsSettings } from "@/hooks/useAllTranscriptsSettings";
 import {
   ChatOuterCard,
   ChatInnerCard,
@@ -88,18 +89,13 @@ export function TranscriptsTab() {
     folders: true,
   });
 
-  // Sidebar state - 'expanded' | 'minimized' | 'hidden'
-  // Desktop starts expanded, mobile starts hidden
-  const [sidebarState, setSidebarState] = useState<'expanded' | 'minimized' | 'hidden'>('expanded');
+  // Sidebar state - 'expanded' (full) | 'collapsed' (icons only)
+  const [sidebarState, setSidebarState] = useState<'expanded' | 'collapsed'>('expanded');
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
 
-  // Helper to cycle sidebar state
-  const cycleSidebarState = () => {
-    setSidebarState(prev => {
-      if (prev === 'expanded') return 'minimized';
-      if (prev === 'minimized') return 'hidden';
-      return 'expanded';
-    });
+  // Helper to toggle sidebar state
+  const toggleSidebar = () => {
+    setSidebarState(prev => prev === 'expanded' ? 'collapsed' : 'expanded');
   };
 
   // Dialog state
@@ -179,6 +175,10 @@ export function TranscriptsTab() {
 
   // Fetch folders
   const { folders, folderAssignments, deleteFolder, assignToFolder, isLoading: foldersLoading } = useFolders();
+
+  // All Transcripts customization settings
+  const { settings: allTranscriptsSettings, updateSettings: updateAllTranscriptsSettings, resetSettings: resetAllTranscriptsSettings, defaultSettings: allTranscriptsDefaults } = useAllTranscriptsSettings();
+  const [editAllTranscriptsOpen, setEditAllTranscriptsOpen] = useState(false);
 
   // Calculate folder counts from folderAssignments
   const folderCounts = useMemo(() => {
@@ -583,18 +583,17 @@ export function TranscriptsTab() {
       {sidebarState === 'expanded' && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setSidebarState('hidden')}
+          onClick={() => setSidebarState('collapsed')}
         />
       )}
 
       {/* BG-CARD-MAIN: Browser window container */}
       <ChatOuterCard className="h-[calc(100vh-120px)]">
-        {/* SIDEBAR - Expanded (280px), Minimized (64px), or Hidden */}
+        {/* SIDEBAR - Expanded (280px) or Collapsed (icons only)
+            Collapsed width: 56px = 40px icon + 8px padding on each side */}
         <div
           className={`
-            ${sidebarState === 'hidden' ? 'hidden' : ''}
-            ${sidebarState === 'expanded' ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none w-[280px]' : ''}
-            ${sidebarState === 'minimized' ? 'w-16' : ''}
+            ${sidebarState === 'expanded' ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none w-[280px]' : 'w-[56px]'}
             flex-shrink-0 transition-all duration-200
           `}
         >
@@ -605,16 +604,20 @@ export function TranscriptsTab() {
             selectedFolderId={selectedFolderId}
             onSelectFolder={(folderId) => {
               setSelectedFolderId(folderId);
-              // Only close sidebar on mobile
+              // Only collapse sidebar on mobile
               if (window.innerWidth < 768) {
-                setSidebarState('hidden');
+                setSidebarState('collapsed');
               }
             }}
+            isCollapsed={sidebarState === 'collapsed'}
             onNewFolder={() => setQuickCreateFolderOpen(true)}
             onManageFolders={() => setFolderManagementOpen(true)}
+            onEditFolder={(folder) => setEditingFolder(folder)}
+            onDeleteFolder={(folder) => deleteFolder(folder.id)}
             isDragging={!!dragHelpers.activeDragId}
             isLoading={foldersLoading}
-            isMinimized={sidebarState === 'minimized'}
+            allTranscriptsSettings={allTranscriptsSettings}
+            onEditAllTranscripts={() => setEditAllTranscriptsOpen(true)}
           />
         </div>
 
@@ -623,21 +626,15 @@ export function TranscriptsTab() {
           {/* Header with sidebar toggle */}
           <div className="flex-shrink-0 px-4 py-3 border-b border-border">
             <div className="flex items-center gap-3">
-              {/* Sidebar toggle button - cycles through expanded/minimized/hidden */}
+              {/* Sidebar toggle button */}
               <Button
                 variant="hollow"
                 size="sm"
                 className="h-8 w-8 p-0"
-                onClick={cycleSidebarState}
-                title={
-                  sidebarState === 'expanded' ? "Minimize sidebar" :
-                  sidebarState === 'minimized' ? "Hide sidebar" :
-                  "Show sidebar"
-                }
+                onClick={toggleSidebar}
+                title={sidebarState === 'expanded' ? "Hide sidebar" : "Show sidebar"}
               >
                 {sidebarState === 'expanded' ? (
-                  <RiLayoutRightLine className="h-5 w-5" />
-                ) : sidebarState === 'minimized' ? (
                   <RiLayoutLeftLine className="h-5 w-5" />
                 ) : (
                   <RiMenuLine className="h-5 w-5" />
@@ -906,6 +903,16 @@ export function TranscriptsTab() {
           }}
         />
       )}
+
+      {/* Edit All Transcripts Dialog */}
+      <EditAllTranscriptsDialog
+        open={editAllTranscriptsOpen}
+        onOpenChange={setEditAllTranscriptsOpen}
+        settings={allTranscriptsSettings}
+        onSave={updateAllTranscriptsSettings}
+        onReset={resetAllTranscriptsSettings}
+        defaultSettings={allTranscriptsDefaults}
+      />
     </DndContext>
   );
 }

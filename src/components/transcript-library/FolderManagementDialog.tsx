@@ -6,6 +6,7 @@ import {
   RiDeleteBinLine,
   RiAlertLine,
 } from "@remixicon/react";
+import { isEmojiIcon, getIconComponent } from "@/components/ui/icon-emoji-picker";
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,10 @@ export function FolderManagementDialog({
     const transcriptCount = transcriptCounts[folder.id];
     const indentClass = depth > 0 ? `ml-${depth * 6}` : "";
 
+    // Compute folder icon - either emoji or icon component
+    const folderIsEmoji = isEmojiIcon(folder.icon);
+    const FolderIcon = folderIsEmoji ? null : (getIconComponent(folder.icon) ?? RiFolderOpenLine);
+
     return (
       <div key={folder.id}>
         <div
@@ -90,10 +95,14 @@ export function FolderManagementDialog({
           )}
 
           {/* Folder icon */}
-          <RiFolderOpenLine
-            className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0"
-            style={folder.color ? { color: folder.color } : undefined}
-          />
+          {folderIsEmoji ? (
+            <span className="text-lg mt-0.5 flex-shrink-0">{folder.icon}</span>
+          ) : FolderIcon && (
+            <FolderIcon
+              className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0"
+              style={folder.color ? { color: folder.color } : undefined}
+            />
+          )}
 
           {/* Folder info */}
           <div className="flex-1 min-w-0">

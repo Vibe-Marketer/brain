@@ -23,7 +23,7 @@ import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
 import * as RemixIcon from "@remixicon/react";
-import { IconEmojiPicker, FOLDER_ICON_OPTIONS } from "@/components/ui/icon-emoji-picker";
+import { IconEmojiPicker, FOLDER_COLORS, isEmojiIcon, getIconComponent } from "@/components/ui/icon-emoji-picker";
 
 interface Folder {
   id: string;
@@ -43,17 +43,6 @@ interface EditFolderDialogProps {
   onFolderUpdated?: () => void;
 }
 
-const FOLDER_COLORS = [
-  '#6B7280', // Gray (default)
-  '#EF4444', // Red
-  '#F97316', // Orange
-  '#EAB308', // Yellow
-  '#22C55E', // Green
-  '#06B6D4', // Cyan
-  '#3B82F6', // Blue
-  '#8B5CF6', // Purple
-  '#EC4899', // Pink
-];
 
 
 interface FolderOption {
@@ -230,15 +219,8 @@ export default function EditFolderDialog({
     onOpenChange(newOpen);
   };
 
-  // Check if icon is an emoji (not in the icon options list)
-  const isEmoji = !FOLDER_ICON_OPTIONS.some(opt => opt.id === icon);
-
-  // Get icon component dynamically
-  const getIconComponent = (iconName: string): React.ComponentType<{ className?: string; style?: React.CSSProperties }> | null => {
-    const iconOption = FOLDER_ICON_OPTIONS.find(opt => opt.id === iconName);
-    return iconOption?.icon || null;
-  };
-
+  // Use shared utilities from icon-emoji-picker
+  const isEmoji = isEmojiIcon(icon);
   const IconComponent = getIconComponent(icon);
 
   // Filter folders to exclude current folder and its descendants, and only show those that can be parents (depth < 2)

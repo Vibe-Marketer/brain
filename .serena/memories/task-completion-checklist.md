@@ -8,7 +8,7 @@
 - [ ] Run `npx vitest` - Tests pass (if applicable)
 
 ### For UI/Frontend Changes
-- [ ] Read relevant section of `docs/design/brand-guidelines-v3.3.md` BEFORE implementing
+- [ ] Read relevant section of `docs/design/brand-guidelines-v4.1.md` BEFORE implementing
 - [ ] Verify design compliance with brand guidelines
 - [ ] Navigate to changed pages with Playwright (`http://localhost:8080`)
 - [ ] Take screenshot to verify visual appearance
@@ -20,6 +20,12 @@
 - [ ] Update `src/lib/api-client.ts` if adding new endpoints
 - [ ] Test Edge Function locally with `npx supabase functions serve`
 - [ ] Deploy with `npx supabase functions deploy <name>`
+
+### One-Click Promise Friction Check
+- [ ] Can this be done in fewer clicks/actions?
+- [ ] Are we defaulting to smart values vs. asking users to configure?
+- [ ] Is there unnecessary confirmation or intermediate steps?
+- [ ] Does this absorb complexity from the user?
 
 ### For New Features
 - [ ] Add to appropriate location per project structure

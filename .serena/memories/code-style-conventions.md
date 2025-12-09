@@ -63,3 +63,16 @@ import { useHook } from "@/hooks/useHook";
 - React hooks rules enforced
 - react-refresh for HMR compatibility
 - Unused vars warning (not error), underscore prefix allowed
+
+## Fast Refresh Compatibility
+When exporting constants/functions from component files causes Fast Refresh warnings:
+- Extract to separate utility file in `src/lib/`
+- Re-export from component file for backward compatibility
+- Example: `src/lib/folder-icons.ts` exports `FOLDER_ICON_OPTIONS`, `isEmojiIcon`, `getIconComponent`
+
+## Testing Conventions
+- Framework: Vitest
+- Test files: `__tests__/*.test.ts` adjacent to source
+- Hooks: Use `@testing-library/react` with `renderHook`
+- Mocking: Use `vi.mock()` for modules, `vi.fn()` for functions
+- localStorage: Mock with custom object, not `vi.stubGlobal`

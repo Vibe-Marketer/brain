@@ -1,8 +1,8 @@
-# CALLVAULT BRAND GUIDELINES v4.0
+# CALLVAULT BRAND GUIDELINES v4.1
 
 ## Authoritative Design System Reference
 
-**Last Updated:** December 4, 2025
+**Last Updated:** December 9, 2025
 **Status:** Complete & Accurate - Supersedes ALL previous versions
 **Purpose:** Single source of truth for all design and development decisions
 
@@ -306,22 +306,129 @@ Professional indicators with subtle backgrounds (2-3% opacity):
 - **Bottom:** 40px (pb-10)
 - **Use for:** Forms, configuration screens, single-page content without scrolling
 
-### Future Multi-Card Support
+### Multi-Card and Sidebar Layouts
 
-Layout must support side-by-side cards:
+Layout supports side-by-side cards with collapsible sidebars:
 
 ```text
-+-----------------------------------------+
-
-| Viewport                                |
-|  +--------------+  +--------------+     |
-|  | MainCard     |  | SideCard     |     |
-|  +--------------+  +--------------+     |
-
-+-----------------------------------------+
+┌─────────────────────────────────────────────────┐
+│  ChatOuterCard (BG-CARD-MAIN)                   │
+│  ┌──────────┬──────────────────────────────┐    │
+│  │ Sidebar  │  ChatInnerCard (BG-CARD-INNER)│    │
+│  │ 280px    │  - Header with toggle        │    │
+│  │ expanded │  - Content area              │    │
+│  │ ───or─── │                              │    │
+│  │ 56px     │                              │    │
+│  │ collapsed│                              │    │
+│  └──────────┴──────────────────────────────┘    │
+└─────────────────────────────────────────────────┘
 ```
 
 Both cards use `bg-card` and maintain consistent styling.
+
+### Sidebar Layout Pattern
+
+When implementing collapsible sidebar navigation alongside main content:
+
+**Container Structure:**
+
+```tsx
+import { ChatOuterCard, ChatInnerCard } from '@/components/chat/chat-main-card';
+
+<ChatOuterCard className="h-[calc(100vh-120px)]">
+  {/* Mobile overlay backdrop when sidebar expanded */}
+  {sidebarState === 'expanded' && (
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+      onClick={() => setSidebarState('collapsed')}
+    />
+  )}
+
+  {/* SIDEBAR - Expanded (280px) or Collapsed (56px icons only) */}
+  <div
+    className={`
+      ${sidebarState === 'expanded'
+        ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none w-[280px]'
+        : 'w-[56px]'}
+      flex-shrink-0 transition-all duration-200
+    `}
+  >
+    <Sidebar isCollapsed={sidebarState === 'collapsed'} />
+  </div>
+
+  {/* MAIN CONTENT */}
+  <ChatInnerCard>
+    <Header>
+      {/* Toggle button in header */}
+      <Button variant="hollow" size="sm" onClick={toggleSidebar}>
+        {sidebarState === 'expanded'
+          ? <RiLayoutLeftLine className="h-5 w-5" />
+          : <RiMenuLine className="h-5 w-5" />
+        }
+      </Button>
+    </Header>
+    <Content />
+  </ChatInnerCard>
+</ChatOuterCard>
+```
+
+**Required Specifications:**
+
+| Property | Expanded | Collapsed |
+|----------|----------|-----------|
+| Width | 280px (`w-[280px]`) | 56px (`w-[56px]`) |
+| Content | Full navigation with text labels | Icons only (40x40px touch targets) |
+| Transition | `transition-all duration-200` | `transition-all duration-200` |
+| Background | `bg-cb-card` | `bg-cb-card` |
+| Border | `border-r border-cb-border` | `border-r border-cb-border` |
+
+**State Management:**
+
+```tsx
+// Two states only: 'expanded' or 'collapsed'
+const [sidebarState, setSidebarState] = useState<'expanded' | 'collapsed'>('expanded');
+
+const toggleSidebar = () => {
+  setSidebarState(prev => prev === 'expanded' ? 'collapsed' : 'expanded');
+};
+```
+
+**Toggle Button Placement:**
+
+- Located in `ChatInnerCard` header (NOT in sidebar)
+- Uses `variant="hollow"` Button, `size="sm"`
+- Icon size: `h-5 w-5`
+- Icons from Remix Icon:
+  - **When expanded:** `RiLayoutLeftLine` (shows collapse action)
+  - **When collapsed:** `RiMenuLine` (shows expand action)
+
+**Collapsed Sidebar Content:**
+
+```tsx
+// Collapsed view - icons only, centered vertically
+<div className="h-full flex flex-col items-center py-4 bg-cb-card border-r border-cb-border">
+  {/* Icon buttons - 40x40px touch targets */}
+  <button className="w-10 h-10 flex items-center justify-center rounded-lg">
+    <Icon className="h-5 w-5 text-cb-ink-muted" />
+  </button>
+</div>
+```
+
+**Mobile Responsive Behavior:**
+
+On screens < 768px (`md` breakpoint):
+
+- Sidebar becomes **fixed overlay** when expanded
+- **Backdrop blur** appears behind sidebar (`bg-black/50 backdrop-blur-sm`)
+- Clicking backdrop **closes sidebar**
+- Sidebar has elevated shadow (`shadow-2xl`)
+- On desktop (`md:` and up), sidebar returns to normal relative positioning
+
+**Reference Implementation:**
+
+- Container: [chat-main-card.tsx](src/components/chat/chat-main-card.tsx)
+- Sidebar: [FolderSidebar.tsx](src/components/transcript-library/FolderSidebar.tsx)
+- Page usage: [TranscriptsTab.tsx](src/components/transcripts/TranscriptsTab.tsx)
 
 ---
 
@@ -2481,7 +2588,7 @@ Full changelog: [brand-guidelines-changelog.md](./brand-guidelines-changelog.md)
 
 ## DOCUMENT VERSION
 
-**Current Version:** v4.0
+**Current Version:** v4.1
 
 This version reference must match the title at the top of the document.
 
@@ -2513,7 +2620,7 @@ This version reference must match the title at the top of the document.
 
 ---
 
-*END OF BRAND GUIDELINES v4.0*
+*END OF BRAND GUIDELINES v4.1*
 
-This document is complete and accurate as of December 4, 2025.
+This document is complete and accurate as of December 9, 2025.
 All implementations must follow these specifications exactly.

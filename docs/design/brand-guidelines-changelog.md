@@ -1,8 +1,44 @@
 # BRAND GUIDELINES CHANGELOG
 
-This file tracks all changes to `brand-guidelines-v3.3.md`.
+This file tracks all changes to `brand-guidelines-v4.1.md`.
 
 **Format:** Each entry includes version, date, time, git commit, and summary of changes.
+
+---
+
+## v4.1 (December 9, 2025)
+
+**Git Commit:** pending
+**Summary:** Sidebar Layout Pattern documentation
+
+- **ADDED:** New "Multi-Card and Sidebar Layouts" section replacing placeholder "Future Multi-Card Support"
+- **ADDED:** Comprehensive "Sidebar Layout Pattern" subsection with:
+  - Container structure using `ChatOuterCard` + `ChatInnerCard`
+  - Required specifications table (expanded: 280px, collapsed: 56px)
+  - State management code examples
+  - Toggle button placement and icon specifications (RiLayoutLeftLine, RiMenuLine)
+  - Collapsed sidebar content pattern
+  - Mobile responsive behavior with backdrop overlay
+  - Reference implementation links to TranscriptsTab, FolderSidebar, chat-main-card
+- **ARCHIVED:** v3.3.md and v3.4.md to docs/archive/
+
+---
+
+## v4.0 (December 4, 2025)
+
+**Git Commit:** pending
+**Summary:** Major version - rebrand and comprehensive expansion
+
+- **RENAMED:** Product from "Conversion Brain" to "Call Vault"
+- **ADDED:** Brand Identity & Logo section with:
+  - Brand name usage table (Call Vault, Call Vault AI, CALLVAULT)
+  - Logo asset specifications (Full Logo, Wordmark Only, Icon Only)
+  - Icon design specifications (glassy play button with molten waveform)
+  - Wordmark design (CALL dark metallic, VAULT orange gradient)
+  - Logo clear space and misuse guidelines
+- **ADDED:** Gradient usage specifications ("White Hot to Lava" direction)
+- **UPDATED:** Color system with refined vibe orange gradient colors
+- **UPDATED:** Supersedes notice to reference "Conversion Brain v3.3.9"
 
 ---
 
