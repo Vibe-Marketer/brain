@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { RiCloseLine } from "@remixicon/react";
@@ -10,6 +10,7 @@ import { SyncTabDialogs } from "./SyncTabDialogs";
 import { UnsyncedMeetingsSection } from "./UnsyncedMeetingsSection";
 import { SyncedTranscriptsSection } from "./SyncedTranscriptsSection";
 import { ActiveSyncJobsCard } from "./ActiveSyncJobsCard";
+import { SyncStatusIndicator } from "./SyncStatusIndicator";
 import { useMeetingsSync, type Meeting, type CalendarInvitee } from "@/hooks/useMeetingsSync";
 import { useSyncTabState } from "@/hooks/useSyncTabState";
 import { DateRange } from "react-day-picker";
@@ -37,6 +38,14 @@ export function SyncTab() {
   const [perMeetingTags, setPerMeetingTags] = useState<Record<string, string>>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [hasFetchedResults, setHasFetchedResults] = useState(false);
+
+  // Ref for scrolling to synced section
+  const syncedSectionRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to synced transcripts section
+  const scrollToSyncedSection = useCallback(() => {
+    syncedSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   // Individual meeting sync and preview states
   const [syncingMeetings] = useState<Set<string>>(new Set());
@@ -468,6 +477,17 @@ export function SyncTab() {
       {/* Top separator for breathing room */}
       <Separator className="mb-12" />
 
+      {/* Persistent Sync Status Indicator - Always visible when syncing */}
+      {(activeSyncJobs.length > 0 || recentlyCompletedJobs.length > 0) && (
+        <div className="flex items-center justify-between mb-4">
+          <SyncStatusIndicator
+            activeSyncJobs={activeSyncJobs}
+            recentlyCompletedJobs={recentlyCompletedJobs}
+            onViewSynced={scrollToSyncedSection}
+          />
+        </div>
+      )}
+
       {/* Date Range and Fetch Controls - Single Row */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-4 border-b border-cb-gray-light dark:border-cb-gray-dark">
         <div className="flex-1 min-w-[240px]">
@@ -500,6 +520,7 @@ export function SyncTab() {
         activeSyncJobs={activeSyncJobs}
         recentlyCompletedJobs={recentlyCompletedJobs}
         onCancelJob={cancelSyncJob}
+        onViewSynced={scrollToSyncedSection}
       />
 
       {/* Unsynced Meetings Section */}
@@ -541,6 +562,7 @@ export function SyncTab() {
       )}
 
       {/* Synced Transcripts Section */}
+      <div ref={syncedSectionRef}>
       <SyncedTranscriptsSection
         existingTranscripts={existingTranscripts}
         filteredExistingTranscripts={filteredExistingTranscripts}
@@ -580,6 +602,7 @@ export function SyncTab() {
         onDelete={() => setShowDeleteDialog(true)}
         onBulkCategorize={handleBulkCategorize}
       />
+      </div>
 
       {/* Dialogs */}
       <SyncTabDialogs

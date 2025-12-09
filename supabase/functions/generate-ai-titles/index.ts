@@ -1,7 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
-import { generateObject } from 'https://esm.sh/ai@5.0.102';
-import { z } from 'https://esm.sh/zod@3.23.8';
+import { generateText } from 'https://esm.sh/ai@5.0.102';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,16 +25,95 @@ interface GenerateTitlesRequest {
   user_id?: string;         // For internal service calls (bypasses JWT auth)
 }
 
-const TitleSchema = z.object({
-  title: z.string().describe('A concise, descriptive title for the call (3-8 words max)'),
-  tag_hint: z.enum([
-    'TEAM', 'COACH_GROUP', 'COACH_1ON1', 'WEBINAR', 'SALES',
-    'EXTERNAL', 'DISCOVERY', 'ONBOARDING', 'REFUND', 'FREE',
-    'EDUCATION', 'PRODUCT', 'SUPPORT', 'REVIEW', 'STRATEGY', 'SKIP'
-  ]).describe('Best-fit tag for this call (controls AI analysis)'),
-  key_theme: z.string().describe('The single most important theme/topic (2-4 words)'),
-  reasoning: z.string().describe('Brief explanation of why this title was chosen'),
-});
+/**
+ * Clean transcript to minimize token waste while preserving speaker attribution
+ * Removes timestamps, excessive whitespace, and formatting cruft
+ */
+function cleanTranscript(transcript: string): string {
+  return transcript
+    // Remove timestamps like [00:00:00] or (00:00:00) or 00:00:00
+    .replace(/[\[\(]?\d{1,2}:\d{2}(:\d{2})?[\]\)]?\s*/g, '')
+    // Remove excessive newlines (more than 2 in a row)
+    .replace(/\n{3,}/g, '\n\n')
+    // Remove leading/trailing whitespace from each line
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0)
+    .join('\n')
+    // Normalize speaker labels (Speaker 1: -> Speaker 1:)
+    .replace(/\s+:/g, ':')
+    // Remove any remaining excessive spaces
+    .replace(/  +/g, ' ')
+    .trim();
+}
+
+/**
+ * Format date for display
+ */
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+
+const NORTH_STAR_PROMPT = `**Situation**
+You are processing raw call transcripts in a business context where calls span sales, internal operations, and coaching. Each transcript contains multiple potential focal points, but only one element represents the true "North Star"—the most valuable, high-stakes, or memorable aspect that distinguishes this conversation from all others.
+
+**Task**
+Extract the single most significant element from the provided call transcript and compress it into a precise, scannable title that immediately communicates the call's unique value or outcome.
+
+**Objective**
+Enable rapid identification and retrieval of specific calls from a large database by creating titles that capture the irreplaceable context of each conversation, eliminating ambiguity and generic labeling.
+
+**Knowledge**
+The transcript will be provided in the following format:
+"""
+Date: {date}
+Original Title: {title}
+
+Transcript:
+{transcript}
+"""
+
+Apply a priority-based scanning methodology called the "North Star Protocol" to identify the Highest Specificity Identifier:
+
+Priority 1 - The Decision: What was finalized, approved, or committed to?
+Priority 2 - The Friction: What specific obstacle stopped or delayed progress?
+Priority 3 - The Pivot: What strategic direction or approach changed?
+Priority 4 - The Unique Identifier: What contextual detail makes this call impossible to confuse with another?
+
+Category-Specific Extraction Logic:
+
+**For Sales & Discovery Calls:**
+- Closed/Won calls: Extract the primary driver, deal size, or unique closing factor
+  - Example: "Closed $15k - Paid in Full" or "Onboarded - Rush Timeline for BFCM"
+- Lost/Stalled calls: Extract the specific objection or blocking factor
+  - Example: "Stalled - Partner Vetoed Price" or "DQ'd - Insufficient Lead Volume"
+- Discovery calls: Extract the core pain point or unique business context
+  - Example: "Discovery - Escaping Nightmare Agency" or "Triage - Scaling Past $50k/mo"
+
+**For Team & Internal Calls:**
+- Focus exclusively on the actionable result or decision made
+  - Example: "Killed the Free Trial Offer" or "Approved New VSL Script" or "Resolved Zapier Webhook Error"
+
+**For Coaching & Strategy Calls:**
+- Extract the specific strategy implemented or breakthrough achieved
+  - Example: "Pivot to Low-Ticket Funnel" or "Fixed Imposter Syndrome - Pricing" or "Mapping the Webinar Sequence"
+
+**Title Construction Rules:**
+- Structure: [Specific Outcome/Detail] - [Context] when context adds critical clarity
+- Length: 4-8 words maximum
+- Formatting: Title Case with no quotation marks
+- Prohibited terms: Call, Meeting, Chat, Session, Sync, Touchbase, Discussion, Review (unless "Review" specifies a type, such as "Performance Review")
+- The assistant should prioritize concrete nouns, specific verbs, and quantifiable details over abstract descriptors
+- The assistant should avoid any word that could apply to multiple calls generically
+
+**Output Format:**
+Return only the title string with no preamble, explanation, or additional text.`;
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -146,7 +224,7 @@ Deno.serve(async (req) => {
     console.log(`Generating AI titles for ${idsToProcess.length} calls for user ${userId}`);
 
     const results = [];
-    // Use OpenRouter for model access
+    // Use OpenRouter for model access - Gemini 2.5 Flash for large context window
     const openrouter = createOpenRouterProvider(openrouterApiKey);
 
     for (const recordingId of idsToProcess) {
@@ -154,7 +232,7 @@ Deno.serve(async (req) => {
         // Fetch call data
         const { data: call, error: callError } = await supabase
           .from('fathom_calls')
-          .select('recording_id, title, full_transcript, summary, ai_generated_title')
+          .select('recording_id, title, full_transcript, created_at')
           .eq('recording_id', recordingId)
           .eq('user_id', userId)
           .single();
@@ -169,82 +247,48 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        // Skip if no content
-        if (!call.full_transcript && !call.summary) {
-          console.log(`Call ${recordingId} has no content to analyze`);
+        // Skip if no transcript
+        if (!call.full_transcript) {
+          console.log(`Call ${recordingId} has no transcript to analyze`);
           results.push({
             recordingId,
             success: false,
-            error: 'No transcript or summary available',
+            error: 'No transcript available',
           });
           continue;
         }
 
-        // Prepare content for AI analysis
-        const content = [
-          `Current title: ${call.title}`,
-          call.summary ? `Summary: ${call.summary}` : '',
-          call.full_transcript ? `Transcript excerpt: ${call.full_transcript.substring(0, 2000)}` : '',
-        ].filter(Boolean).join('\n\n');
+        // Clean and prepare the transcript
+        const cleanedTranscript = cleanTranscript(call.full_transcript);
+        const callDate = formatDate(call.created_at);
 
-        // Generate improved title using OpenRouter
-        // Using gpt-4o-mini for reliable structured output support
-        const result = await generateObject({
-          model: openrouter('openai/gpt-4o-mini'),
-          schema: TitleSchema,
-          prompt: `You are an expert at analyzing sales calls, coaching sessions, and business meetings to extract the CORE PURPOSE and PRIMARY OUTCOME.
+        // Build the content block
+        const content = `Date: ${callDate}
+Original Title: ${call.title}
 
-CALL CONTENT:
-${content}
+Transcript:
+${cleanedTranscript}`;
 
-YOUR TASK:
-Generate a title that immediately tells someone what this call was about and why it mattered.
+        console.log(`Processing ${recordingId}: ${cleanedTranscript.length} chars (cleaned from ${call.full_transcript.length})`);
 
-TITLE REQUIREMENTS:
-1. 3-8 words MAXIMUM (shorter is better)
-2. Lead with the PRIMARY ACTION or OUTCOME, not the format
-3. Use this pattern: [Action/Topic] + [Context/Who]
-4. Be SPECIFIC - avoid generic words like "Meeting", "Call", "Discussion", "Session"
-5. Include company/person name ONLY if it's the main subject
-
-GOOD EXAMPLES:
-- "Pricing Objections - Enterprise Deal" (not "Sales Call with John")
-- "Scaling Facebook Ads Strategy" (not "Marketing Coaching Session")
-- "New Feature Walkthrough for Onboarding" (not "Product Demo")
-- "Q4 Revenue Goals & OKRs" (not "Team Meeting")
-- "Handling Refund Request - Billing Issue" (not "Support Call")
-- "Cold Email Teardown & Optimization" (not "Email Review Session")
-
-BAD EXAMPLES (too generic):
-- "Weekly Team Sync" → Instead: "Sprint Planning & Blockers"
-- "1:1 with Sarah" → Instead: "Sarah's Pipeline Review"
-- "Group Coaching" → Instead: "Objection Handling Workshop"
-- "Customer Call" → Instead: "Expansion Opportunity - Acme"
-
-TAG GUIDANCE (controls AI analysis):
-- TEAM: Internal meetings, founder syncs, team standups
-- COACH_GROUP: Paid group coaching/mastermind (2+ participants)
-- COACH_1ON1: One-on-one paid coaching
-- SALES: Prospect/closing calls
-- DISCOVERY: Pre-sales qualification/triage
-- ONBOARDING: Customer onboarding/implementation
-- SUPPORT: Tech support, troubleshooting
-- PRODUCT: Product demos
-- WEBINAR: Large group events
-- EXTERNAL: Podcasts, collaborations
-- FREE: Free community calls
-- EDUCATION: Courses/coaching you attend (as student)
-- REVIEW: Testimonials, feedback interviews
-- REFUND: Retention/cancellation calls
-- STRATEGY: Mission/vision planning
-
-Generate the most descriptive, specific title possible.`,
+        // Generate title using Gemini 2.5 Flash via OpenRouter (1M context window)
+        const result = await generateText({
+          model: openrouter('google/gemini-2.5-flash-preview'),
+          prompt: NORTH_STAR_PROMPT.replace('{date}', callDate)
+            .replace('{title}', call.title)
+            .replace('{transcript}', cleanedTranscript),
         });
 
-        const { title: aiTitle, tag_hint, key_theme, reasoning } = result.object;
-        console.log(`Generated for ${recordingId}: "${aiTitle}" | Tag: ${tag_hint} | Theme: ${key_theme}`);
+        // Clean up the response - remove any quotes or extra whitespace
+        const aiTitle = result.text
+          .trim()
+          .replace(/^["']|["']$/g, '')  // Remove leading/trailing quotes
+          .replace(/\n/g, ' ')          // Remove newlines
+          .trim();
 
-        // Update database with AI-generated title and timestamp (use composite key)
+        console.log(`Generated for ${recordingId}: "${aiTitle}"`);
+
+        // Update database with AI-generated title and timestamp
         const { error: updateError } = await supabase
           .from('fathom_calls')
           .update({
@@ -262,44 +306,11 @@ Generate the most descriptive, specific title possible.`,
             error: updateError.message,
           });
         } else {
-          // Also apply tag if we have a hint and no existing tag
-          const { data: existingTag } = await supabase
-            .from('call_tag_assignments')
-            .select('id')
-            .eq('call_recording_id', recordingId)
-            .maybeSingle();
-
-          if (!existingTag && tag_hint) {
-            // Look up tag ID
-            const { data: tag } = await supabase
-              .from('call_tags')
-              .select('id')
-              .eq('name', tag_hint)
-              .maybeSingle();
-
-            if (tag) {
-              await supabase
-                .from('call_tag_assignments')
-                .insert({
-                  call_recording_id: recordingId,
-                  tag_id: tag.id,
-                  user_id: userId,
-                  auto_assigned: true,
-                  is_primary: true,
-                })
-                .onConflict('call_recording_id,tag_id')
-                .ignore();
-            }
-          }
-
           results.push({
             recordingId,
             success: true,
             originalTitle: call.title,
             aiGeneratedTitle: aiTitle,
-            tagHint: tag_hint,
-            keyTheme: key_theme,
-            reasoning,
           });
         }
       } catch (error) {

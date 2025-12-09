@@ -9,10 +9,13 @@ export interface SyncJob {
   id: string;
   user_id: string;
   status: string;
+  type?: string;
   created_at: string;
   updated_at: string;
+  started_at?: string | null;
   completed_at: string | null;
-  error_message: string | null;
+  error: string | null;
+  metadata?: Record<string, unknown>;
   recording_ids: number[];
   progress_current: number;
   progress_total: number;
@@ -40,6 +43,7 @@ export function useSyncTabState({
   const [recentlyCompletedJobs, setRecentlyCompletedJobs] = useState<SyncJob[]>([]);
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null);
   const completedJobTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const processedSyncedIdsRef = useRef<Set<number>>(new Set());
 
   // Load user timezone from user_settings
   const loadUserTimezone = async () => {
@@ -96,9 +100,31 @@ export function useSyncTabState({
     }
   };
 
+  // Progressively remove synced meetings as they complete
+  const removeNewlySyncedMeetings = useCallback((job: SyncJob) => {
+    if (!setMeetings || !job.synced_ids) return;
+
+    // Find IDs that are newly synced (not already processed)
+    const newlySyncedIds = job.synced_ids.filter(id => !processedSyncedIdsRef.current.has(id));
+
+    if (newlySyncedIds.length > 0) {
+      // Mark these IDs as processed
+      newlySyncedIds.forEach(id => processedSyncedIdsRef.current.add(id));
+
+      // Remove from unsynced list
+      const syncedIdStrings = new Set(newlySyncedIds.map(id => String(id)));
+      setMeetings(prev => prev.filter(m => !syncedIdStrings.has(m.recording_id)));
+
+      logger.debug(`Removed ${newlySyncedIds.length} newly synced meetings from unsynced list`);
+    }
+  }, [setMeetings]);
+
   // Handle job completion - show success state and refresh data
   const handleJobCompleted = useCallback(async (job: SyncJob) => {
     logger.info(`Sync job ${job.id} completed with status: ${job.status}`);
+
+    // Clear processed IDs for this completed job
+    processedSyncedIdsRef.current.clear();
 
     // Remove from active jobs
     setActiveSyncJobs(prev => prev.filter(j => j.id !== job.id));
@@ -159,6 +185,11 @@ export function useSyncTabState({
           j.status === 'completed' || j.status === 'failed' || j.status === 'completed_with_errors'
         );
 
+        // Progressively remove synced meetings for active jobs
+        for (const activeJob of activeJobs) {
+          removeNewlySyncedMeetings(activeJob);
+        }
+
         // Find jobs that just completed (were in previousJobsRef but now are completed)
         for (const completedJob of completedJobs) {
           const wasActive = previousJobsRef.some(prev =>
@@ -213,6 +244,8 @@ export function useSyncTabState({
                 if (newJob.status === 'completed' || newJob.status === 'failed' || newJob.status === 'completed_with_errors') {
                   await handleJobCompleted(newJob);
                 } else {
+                  // Progressively remove synced meetings during sync
+                  removeNewlySyncedMeetings(newJob);
                   setActiveSyncJobs(prev =>
                     prev.map(j => j.id === newJob.id ? newJob : j)
                   );
@@ -265,7 +298,7 @@ export function useSyncTabState({
       completedJobTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
       completedJobTimeoutsRef.current.clear();
     };
-  }, [handleJobCompleted, recentlyCompletedJobs]);
+  }, [handleJobCompleted, recentlyCompletedJobs, removeNewlySyncedMeetings]);
 
   // Load initial data on mount
   useEffect(() => {

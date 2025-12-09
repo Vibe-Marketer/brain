@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { RiLoader2Line, RiCheckLine, RiCloseLine, RiAlertLine } from "@remixicon/react";
+import { RiLoader2Line, RiCheckLine, RiCloseLine, RiAlertLine, RiArrowRightLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import type { SyncJob } from "@/hooks/useSyncTabState";
 
@@ -9,9 +9,10 @@ interface ActiveSyncJobsCardProps {
   activeSyncJobs: SyncJob[];
   recentlyCompletedJobs?: SyncJob[];
   onCancelJob: (jobId: string) => Promise<void>;
+  onViewSynced?: () => void;
 }
 
-export function ActiveSyncJobsCard({ activeSyncJobs, recentlyCompletedJobs = [], onCancelJob }: ActiveSyncJobsCardProps) {
+export function ActiveSyncJobsCard({ activeSyncJobs, recentlyCompletedJobs = [], onCancelJob, onViewSynced }: ActiveSyncJobsCardProps) {
   const hasActiveJobs = activeSyncJobs.length > 0;
   const hasCompletedJobs = recentlyCompletedJobs.length > 0;
 
@@ -35,7 +36,7 @@ export function ActiveSyncJobsCard({ activeSyncJobs, recentlyCompletedJobs = [],
           bgColor = 'bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800';
           icon = <RiCloseLine className="h-5 w-5 text-red-600 dark:text-red-400" />;
           title = 'Sync Failed';
-          subtitle = job.error_message || 'Failed to sync meetings';
+          subtitle = job.error || 'Failed to sync meetings';
         } else if (hasFailures) {
           bgColor = 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-800';
           icon = <RiAlertLine className="h-5 w-5 text-orange-600 dark:text-orange-400" />;
@@ -51,7 +52,19 @@ export function ActiveSyncJobsCard({ activeSyncJobs, recentlyCompletedJobs = [],
                 <p className="text-sm font-medium">{title}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
               </div>
-              <p className="text-xs text-muted-foreground">Auto-dismissing...</p>
+              <div className="flex items-center gap-3">
+                {onViewSynced && syncedCount > 0 && (
+                  <Button
+                    variant="hollow"
+                    size="sm"
+                    onClick={onViewSynced}
+                    className="gap-1"
+                  >
+                    View Synced <RiArrowRightLine className="h-4 w-4" />
+                  </Button>
+                )}
+                <p className="text-xs text-muted-foreground">Auto-dismissing...</p>
+              </div>
             </div>
           </Card>
         );
