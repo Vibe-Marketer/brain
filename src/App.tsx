@@ -15,7 +15,6 @@ import Categorization from "./pages/Categorization";
 import Login from "./pages/Login";
 import OAuthCallback from "./pages/OAuthCallback";
 import NotFound from "./pages/NotFound";
-import TestVerification from "./pages/TestVerification";
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -55,9 +54,6 @@ const App = () => {
                   <Route path="/chat/:sessionId" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
                   <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
                   <Route path="/categorization" element={<ProtectedRoute><Layout><Categorization /></Layout></ProtectedRoute>} />
-
-                  {/* Test environment verification (only shows UI on test subdomain) */}
-                  <Route path="/test-verification" element={<TestVerification />} />
 
                   {/* 404 */}
                   <Route path="*" element={<NotFound />} />
