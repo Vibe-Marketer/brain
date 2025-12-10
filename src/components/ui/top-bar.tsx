@@ -50,11 +50,11 @@ export function TopBar({
     >
       {/* Left: Logo/Branding - CallVault™ wordmark */}
       <button onClick={() => navigate('/')} className="flex items-center hover:opacity-80 transition-opacity">
-        {/* Light mode: SVG with mix-blend-multiply hides white background */}
+        {/* Light mode: SVG with transparent background */}
         <img
           src="/cv-wordmark.svg"
           alt="CallVault™"
-          className="h-8 md:h-10 w-auto object-contain mix-blend-multiply dark:hidden"
+          className="h-8 md:h-10 w-auto object-contain dark:hidden"
         />
         {/* Dark mode: PNG version has transparent background */}
         <img
