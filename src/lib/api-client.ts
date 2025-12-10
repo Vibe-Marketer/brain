@@ -4,7 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { retryWithBackoff, getErrorMessage } from "./fathom";
+import { retryWithBackoff, getErrorMessage } from "./utils";
 import { logger } from "./logger";
 
 // API Response types

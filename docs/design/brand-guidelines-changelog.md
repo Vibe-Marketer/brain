@@ -6,6 +6,32 @@ This file tracks all changes to `brand-guidelines-v4.1.md`.
 
 ---
 
+## v4.1.1 (December 9, 2025)
+
+**Git Commit:** pending
+**Summary:** New Sidebar Navigation Pattern with Glossy 3D Icons and Edge-Mounted Collapse Toggle
+
+- **UPDATED:** Complete rewrite of "Sidebar Layout Pattern" section to reflect new implementation
+- **ADDED:** "Sidebar Structure Hierarchy" documenting 3-tier layout (Nav Icons → Separator → Content)
+- **ADDED:** "Edge-Mounted Collapse Toggle" subsection with:
+  - Toggle now on sidebar edge (not in header)
+  - 24x24px circular button specifications
+  - Chevron icon behavior (left/right arrows)
+  - Usage code example with SidebarCollapseToggle component
+- **ADDED:** "Sidebar Navigation Icons (SidebarNav)" subsection with:
+  - 4 primary nav items (Home, AI Chat, Sorting, Settings)
+  - Glossy 3D icon styling for light AND dark mode
+  - Icon button specifications (44x44px, rounded-xl)
+  - Active indicator dot (6x6px orange)
+  - Layout behavior for expanded/collapsed states
+- **UPDATED:** Reference implementations to include new components:
+  - sidebar-collapse-toggle.tsx
+  - sidebar-nav.tsx
+  - TranscriptsNew.tsx (instead of TranscriptsTab)
+- **UPDATED:** Container structure code example with new component imports
+
+---
+
 ## v4.1 (December 9, 2025)
 
 **Git Commit:** pending

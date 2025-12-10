@@ -458,7 +458,7 @@ export function FolderSidebar({
     return (
       <TooltipProvider delayDuration={300}>
         <div
-          className="h-full flex flex-col items-center py-2 bg-cb-card"
+          className="h-full flex flex-col items-center py-2"
           data-component="FOLDER-SIDEBAR-COLLAPSED"
         >
           {/* All Transcripts icon */}

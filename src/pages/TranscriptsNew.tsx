@@ -1,11 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RiSearchLine } from "@remixicon/react";
+import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { TranscriptsTab } from "@/components/transcripts/TranscriptsTab";
 import { SyncTab } from "@/components/transcripts/SyncTab";
 import { AnalyticsTab } from "@/components/transcripts/AnalyticsTab";
+import { FolderSidebar } from "@/components/transcript-library/FolderSidebar";
+import { SidebarCollapseToggle } from "@/components/ui/sidebar-collapse-toggle";
+import { SidebarNav } from "@/components/ui/sidebar-nav";
+import { useFolders } from "@/hooks/useFolders";
+import { useHiddenFolders } from "@/hooks/useHiddenFolders";
+import { useAllTranscriptsSettings } from "@/hooks/useAllTranscriptsSettings";
+import { useDragAndDrop } from "@/hooks/useDragAndDrop";
+import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
+import EditFolderDialog from "@/components/EditFolderDialog";
+import EditAllTranscriptsDialog from "@/components/EditAllTranscriptsDialog";
+import { FolderManagementDialog } from "@/components/transcript-library/FolderManagementDialog";
 
 type TabValue = "transcripts" | "sync" | "analytics";
 
@@ -67,64 +79,248 @@ const TranscriptsNew = () => {
   // Search state lifted to page level
   const [searchQuery, setSearchQuery] = useState("");
 
+  // ============================================================================
+  // SIDEBAR STATE & HOOKS - Page level (same plane as header)
+  // ============================================================================
+
+  // Sidebar visibility state
+  const [sidebarState, setSidebarState] = useState<'expanded' | 'collapsed'>('expanded');
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+
+  // Toggle sidebar state
+  const toggleSidebar = () => {
+    setSidebarState(prev => prev === 'expanded' ? 'collapsed' : 'expanded');
+  };
+
+  // Folder hooks
+  const { folders, folderAssignments, deleteFolder, assignToFolder, isLoading: foldersLoading } = useFolders();
+  const { hiddenFolders, toggleHidden } = useHiddenFolders();
+  const {
+    settings: allTranscriptsSettings,
+    updateSettings: updateAllTranscriptsSettings,
+    resetSettings: resetAllTranscriptsSettings,
+    defaultSettings: allTranscriptsDefaults,
+  } = useAllTranscriptsSettings();
+
+  // Drag and drop for folder assignment
+  const dragHelpers = useDragAndDrop();
+
+  // Calculate folder counts from folderAssignments
+  const folderCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    Object.values(folderAssignments).forEach((folderIds) => {
+      folderIds.forEach((folderId) => {
+        counts[folderId] = (counts[folderId] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [folderAssignments]);
+
+  // Total count for "All Transcripts"
+  const [totalCount, setTotalCount] = useState(0);
+
+  // Dialog state
+  const [quickCreateFolderOpen, setQuickCreateFolderOpen] = useState(false);
+  const [folderManagementOpen, setFolderManagementOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<typeof folders[0] | null>(null);
+  const [editAllTranscriptsOpen, setEditAllTranscriptsOpen] = useState(false);
+
+  // Handle drag end for folder assignment
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { over } = event;
+
+    if (over?.data?.current?.type === "folder-zone" && dragHelpers.draggedItems.length > 0) {
+      const folderId = over.data.current.folderId;
+      assignToFolder(dragHelpers.draggedItems, folderId);
+    }
+
+    dragHelpers.handleDragEnd(event);
+  };
+
   return (
-    <div className="min-h-screen bg-cb-white dark:bg-card">
-      {/* Tabs at the very top */}
-      <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabValue)}>
-        <div className="max-w-[1800px] mx-auto pt-2">
-          <TabsList>
-            <TabsTrigger value="transcripts">TRANSCRIPTS</TabsTrigger>
-            <TabsTrigger value="sync">SYNC</TabsTrigger>
-            <TabsTrigger value="analytics">ANALYTICS</TabsTrigger>
-          </TabsList>
-        </div>
-
-        {/* Full-width black line */}
-        <div className="w-full border-b border-cb-black dark:border-cb-white" />
-
-        {/* Page Header - dynamic based on tab with search */}
-        <div className="max-w-[1800px] mx-auto">
-          <div className="mt-2 mb-2 flex items-end justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
-                LIBRARY
-              </p>
-              <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
-                {currentConfig.title}
-              </h1>
-              <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
-            </div>
-            {/* Search bar - right side of header (only show for transcripts tab) */}
-            {activeTab === "transcripts" && (
-              <div className="relative w-64 flex-shrink-0">
-                <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cb-ink-muted" />
-                <Input
-                  placeholder="Search transcripts..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-9 pl-8 text-sm bg-white dark:bg-cb-card border-cb-border"
+    <DndContext
+      onDragStart={(e) => dragHelpers.handleDragStart(e, [])}
+      onDragEnd={handleDragEnd}
+      onDragCancel={dragHelpers.handleDragCancel}
+    >
+      {/* Full height flex container - sidebar + main content side by side */}
+      {/* The parent <main> has inset-2.5 providing 10px gutters on right/bottom/left */}
+      <div className="h-full flex gap-2.5 overflow-hidden">
+        {/* SIDEBAR - Same plane as main content, with edge-mounted collapse toggle */}
+        {activeTab === "transcripts" && (
+          <>
+            {/* Mobile sidebar overlay backdrop */}
+            {sidebarState === 'expanded' && (
+              <div
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
+                onClick={() => setSidebarState('collapsed')}
+              />
+            )}
+            {/* Sidebar wrapper with edge-mounted collapse toggle */}
+            <div
+              className={`
+                relative flex-shrink-0 transition-all duration-200 h-full flex flex-col
+                ${sidebarState === 'expanded'
+                  ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none w-[280px]'
+                  : 'w-[56px]'
+                }
+                bg-card rounded-2xl border border-border
+              `}
+            >
+              {/* Edge-mounted collapse toggle - hidden on mobile */}
+              <div className="hidden md:block">
+                <SidebarCollapseToggle
+                  isCollapsed={sidebarState === 'collapsed'}
+                  onToggle={toggleSidebar}
                 />
               </div>
-            )}
-          </div>
+
+              {/* Navigation icons at top */}
+              <SidebarNav isCollapsed={sidebarState === 'collapsed'} />
+
+              {/* Folder sidebar takes remaining space */}
+              <FolderSidebar
+                folders={folders}
+                folderCounts={folderCounts}
+                totalCount={totalCount}
+                selectedFolderId={selectedFolderId}
+                onSelectFolder={(folderId) => {
+                  setSelectedFolderId(folderId);
+                  // Only collapse sidebar on mobile
+                  if (window.innerWidth < 768) {
+                    setSidebarState('collapsed');
+                  }
+                }}
+                isCollapsed={sidebarState === 'collapsed'}
+                onNewFolder={() => setQuickCreateFolderOpen(true)}
+                onManageFolders={() => setFolderManagementOpen(true)}
+                onEditFolder={(folder) => setEditingFolder(folder)}
+                onDeleteFolder={(folder) => deleteFolder(folder.id)}
+                isDragging={!!dragHelpers.activeDragId}
+                isLoading={foldersLoading}
+                allTranscriptsSettings={allTranscriptsSettings}
+                onEditAllTranscripts={() => setEditAllTranscriptsOpen(true)}
+                hiddenFolders={hiddenFolders}
+                onToggleHidden={toggleHidden}
+              />
+            </div>
+          </>
+        )}
+
+        {/* MAIN CONTENT CARD - Contains tabs, header, and table */}
+        <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col">
+          <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabValue)} className="h-full flex flex-col">
+            {/* Tabs header */}
+            <div className="px-4 md:px-10 pt-2">
+              <TabsList>
+                <TabsTrigger value="transcripts">TRANSCRIPTS</TabsTrigger>
+                <TabsTrigger value="sync">SYNC</TabsTrigger>
+                <TabsTrigger value="analytics">ANALYTICS</TabsTrigger>
+              </TabsList>
+            </div>
+
+            {/* Full-width black line */}
+            <div className="w-full border-b border-cb-black dark:border-cb-white" />
+
+            {/* Page Header - dynamic based on tab with search */}
+            <div className="px-4 md:px-10">
+              <div className="mt-2 mb-2 flex items-end justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
+                    LIBRARY
+                  </p>
+                  <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
+                    {currentConfig.title}
+                  </h1>
+                  <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
+                </div>
+                {/* Search bar - right side of header (only show for transcripts tab) */}
+                {activeTab === "transcripts" && (
+                  <div className="relative w-64 flex-shrink-0">
+                    <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cb-ink-muted" />
+                    <Input
+                      placeholder="Search transcripts..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="h-9 pl-8 text-sm bg-white dark:bg-cb-card border-cb-border"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tab Content - fills remaining space */}
+            <div className="flex-1 min-h-0 overflow-hidden">
+              <TabsContent value="transcripts" className="mt-0 h-full">
+                <TranscriptsTab
+                  searchQuery={searchQuery}
+                  onSearchChange={setSearchQuery}
+                  selectedFolderId={selectedFolderId}
+                  onTotalCountChange={setTotalCount}
+                  sidebarState={sidebarState}
+                  onToggleSidebar={toggleSidebar}
+                  folders={folders}
+                  folderAssignments={folderAssignments}
+                  assignToFolder={assignToFolder}
+                  dragHelpers={dragHelpers}
+                />
+              </TabsContent>
+
+              <TabsContent value="sync" className="mt-0 h-full overflow-auto">
+                <SyncTab />
+              </TabsContent>
+
+              <TabsContent value="analytics" className="mt-0 h-full overflow-auto">
+                <AnalyticsTab />
+              </TabsContent>
+            </div>
+          </Tabs>
         </div>
+      </div>
 
-        {/* Tab Content */}
-        <div className="max-w-[1800px] mx-auto">
-          <TabsContent value="transcripts">
-            <TranscriptsTab searchQuery={searchQuery} onSearchChange={setSearchQuery} />
-          </TabsContent>
+      {/* Folder Dialogs */}
+      <QuickCreateFolderDialog
+        open={quickCreateFolderOpen}
+        onOpenChange={setQuickCreateFolderOpen}
+      />
 
-          <TabsContent value="sync">
-            <SyncTab />
-          </TabsContent>
+      {folderManagementOpen && (
+        <FolderManagementDialog
+          open={folderManagementOpen}
+          onOpenChange={setFolderManagementOpen}
+          folders={folders}
+          transcriptCounts={folderCounts}
+          onCreateFolder={() => {
+            setFolderManagementOpen(false);
+            setQuickCreateFolderOpen(true);
+          }}
+          onEditFolder={(folder) => {
+            setFolderManagementOpen(false);
+            setEditingFolder(folder);
+          }}
+          onDeleteFolder={(folder) => deleteFolder(folder.id)}
+        />
+      )}
 
-          <TabsContent value="analytics">
-            <AnalyticsTab />
-          </TabsContent>
-        </div>
-      </Tabs>
-    </div>
+      {editingFolder && (
+        <EditFolderDialog
+          folder={editingFolder}
+          open={!!editingFolder}
+          onOpenChange={(open) => !open && setEditingFolder(null)}
+        />
+      )}
+
+      {editAllTranscriptsOpen && (
+        <EditAllTranscriptsDialog
+          open={editAllTranscriptsOpen}
+          onOpenChange={setEditAllTranscriptsOpen}
+          settings={allTranscriptsSettings}
+          onSave={updateAllTranscriptsSettings}
+          onReset={resetAllTranscriptsSettings}
+          defaultSettings={allTranscriptsDefaults}
+        />
+      )}
+    </DndContext>
   );
 };
 

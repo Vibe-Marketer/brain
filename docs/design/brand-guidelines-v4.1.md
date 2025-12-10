@@ -1,4 +1,4 @@
-# CALLVAULT BRAND GUIDELINES v4.1
+# CALLVAULT BRAND GUIDELINES v4.1.1
 
 ## Authoritative Design System Reference
 
@@ -330,12 +330,23 @@ Both cards use `bg-card` and maintain consistent styling.
 
 When implementing collapsible sidebar navigation alongside main content:
 
+**Sidebar Structure Hierarchy:**
+
+The sidebar follows a specific vertical structure:
+
+1. **Navigation Icons** (top) - 4 glossy 3D icons for main navigation
+2. **Separator Line** - Thin border dividing nav from content
+3. **Content Area** (folder list, etc.) - Takes remaining vertical space
+
 **Container Structure:**
 
 ```tsx
-import { ChatOuterCard, ChatInnerCard } from '@/components/chat/chat-main-card';
+import { SidebarCollapseToggle } from '@/components/ui/sidebar-collapse-toggle';
+import { SidebarNav } from '@/components/ui/sidebar-nav';
+import { FolderSidebar } from '@/components/transcript-library/FolderSidebar';
 
-<ChatOuterCard className="h-[calc(100vh-120px)]">
+{/* Full height flex container - sidebar + main content side by side */}
+<div className="h-full flex gap-2.5 overflow-hidden">
   {/* Mobile overlay backdrop when sidebar expanded */}
   {sidebarState === 'expanded' && (
     <div
@@ -344,32 +355,36 @@ import { ChatOuterCard, ChatInnerCard } from '@/components/chat/chat-main-card';
     />
   )}
 
-  {/* SIDEBAR - Expanded (280px) or Collapsed (56px icons only) */}
+  {/* SIDEBAR - Edge-mounted collapse toggle */}
   <div
     className={`
+      relative flex-shrink-0 transition-all duration-200 h-full flex flex-col
       ${sidebarState === 'expanded'
         ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none w-[280px]'
         : 'w-[56px]'}
-      flex-shrink-0 transition-all duration-200
+      bg-card rounded-2xl border border-border
     `}
   >
-    <Sidebar isCollapsed={sidebarState === 'collapsed'} />
+    {/* Edge-mounted collapse toggle - hidden on mobile */}
+    <div className="hidden md:block">
+      <SidebarCollapseToggle
+        isCollapsed={sidebarState === 'collapsed'}
+        onToggle={toggleSidebar}
+      />
+    </div>
+
+    {/* Navigation icons at top */}
+    <SidebarNav isCollapsed={sidebarState === 'collapsed'} />
+
+    {/* Folder sidebar takes remaining space */}
+    <FolderSidebar isCollapsed={sidebarState === 'collapsed'} />
   </div>
 
   {/* MAIN CONTENT */}
-  <ChatInnerCard>
-    <Header>
-      {/* Toggle button in header */}
-      <Button variant="hollow" size="sm" onClick={toggleSidebar}>
-        {sidebarState === 'expanded'
-          ? <RiLayoutLeftLine className="h-5 w-5" />
-          : <RiMenuLine className="h-5 w-5" />
-        }
-      </Button>
-    </Header>
+  <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
     <Content />
-  </ChatInnerCard>
-</ChatOuterCard>
+  </div>
+</div>
 ```
 
 **Required Specifications:**
@@ -377,10 +392,11 @@ import { ChatOuterCard, ChatInnerCard } from '@/components/chat/chat-main-card';
 | Property | Expanded | Collapsed |
 |----------|----------|-----------|
 | Width | 280px (`w-[280px]`) | 56px (`w-[56px]`) |
-| Content | Full navigation with text labels | Icons only (40x40px touch targets) |
+| Nav Icons | Horizontal row with labels | Vertical column, icons only |
+| Content | Full navigation with text labels | Icons only (44x44px touch targets) |
 | Transition | `transition-all duration-200` | `transition-all duration-200` |
-| Background | `bg-cb-card` | `bg-cb-card` |
-| Border | `border-r border-cb-border` | `border-r border-cb-border` |
+| Background | `bg-card` with `rounded-2xl` | `bg-card` with `rounded-2xl` |
+| Border | `border border-border` | `border border-border` |
 
 **State Management:**
 
@@ -393,25 +409,98 @@ const toggleSidebar = () => {
 };
 ```
 
-**Toggle Button Placement:**
+### Edge-Mounted Collapse Toggle
 
-- Located in `ChatInnerCard` header (NOT in sidebar)
-- Uses `variant="hollow"` Button, `size="sm"`
-- Icon size: `h-5 w-5`
-- Icons from Remix Icon:
-  - **When expanded:** `RiLayoutLeftLine` (shows collapse action)
-  - **When collapsed:** `RiMenuLine` (shows expand action)
+**IMPORTANT:** The collapse/expand toggle is now edge-mounted on the sidebar itself, NOT in the header.
 
-**Collapsed Sidebar Content:**
+**Toggle Specifications:**
+
+| Property | Value |
+|----------|-------|
+| Position | Absolute, right edge (-12px), vertically centered |
+| Size | 24x24px circle (`w-6 h-6 rounded-full`) |
+| Z-index | 10 (above sidebar content, below modals) |
+| Background | `bg-card` (matches sidebar) |
+| Border | `border border-border` |
+| Shadow | `shadow-sm` |
+| Hover | `bg-cb-hover` |
+
+**Icon Behavior:**
+
+- **When collapsed:** Right chevron (`RiArrowRightSLine`) - indicates expand action
+- **When expanded:** Left chevron (`RiArrowLeftSLine`) - indicates collapse action
+- Icon color: `text-cb-ink-muted`
+- Icon size: `w-4 h-4`
 
 ```tsx
-// Collapsed view - icons only, centered vertically
-<div className="h-full flex flex-col items-center py-4 bg-cb-card border-r border-cb-border">
-  {/* Icon buttons - 40x40px touch targets */}
-  <button className="w-10 h-10 flex items-center justify-center rounded-lg">
-    <Icon className="h-5 w-5 text-cb-ink-muted" />
-  </button>
+import { SidebarCollapseToggle } from '@/components/ui/sidebar-collapse-toggle';
+
+// Usage - must be inside a relative-positioned parent
+<div className="relative">
+  <SidebarCollapseToggle
+    isCollapsed={sidebarState === 'collapsed'}
+    onToggle={toggleSidebar}
+  />
+  {/* Sidebar content */}
 </div>
+```
+
+### Sidebar Navigation Icons (SidebarNav)
+
+The sidebar includes 4 primary navigation icons at the top, styled with a glossy 3D effect similar to macOS dock icons.
+
+**Navigation Items:**
+
+| ID | Name | Icon | Path | Match Paths |
+|----|------|------|------|-------------|
+| home | Home | `RiHome4Fill` | `/` | `/`, `/transcripts` |
+| chat | AI Chat | `RiChat1Fill` | `/chat` | `/chat` |
+| sorting | Sorting | `RiPriceTag3Fill` | `/sorting-tagging` | `/sorting-tagging` |
+| settings | Settings | `RiSettings3Fill` | `/settings` | `/settings` |
+
+**Glossy 3D Icon Styling:**
+
+```tsx
+// Light mode
+'bg-gradient-to-br from-white to-gray-200',
+'border border-gray-300/80',
+'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
+
+// Dark mode
+'dark:from-gray-700 dark:to-gray-800',
+'dark:border-gray-600/80',
+'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
+```
+
+**Icon Button Specifications:**
+
+| Property | Value |
+|----------|-------|
+| Button size | 44x44px (`w-11 h-11`) |
+| Border radius | `rounded-xl` (12px) |
+| Icon size | 20x20px (`w-5 h-5`) |
+| Icon color (light) | `text-cb-black` |
+| Icon color (dark) | `text-cb-white` |
+| Hover effect | `scale-105` |
+| Active state | `ring-2 ring-cb-vibe-orange/50` |
+
+**Active Indicator:**
+
+- Small orange dot below active icon
+- Size: 6x6px (`w-1.5 h-1.5`)
+- Color: `bg-cb-vibe-orange`
+- Position: Centered, -2px below button
+
+**Layout Behavior:**
+
+- **Expanded sidebar:** Icons in horizontal row, centered with 8px gap
+- **Collapsed sidebar:** Icons in vertical column, centered
+- Separator line below: `border-t border-cb-border` with 12px horizontal margin
+
+```tsx
+import { SidebarNav } from '@/components/ui/sidebar-nav';
+
+<SidebarNav isCollapsed={sidebarState === 'collapsed'} />
 ```
 
 **Mobile Responsive Behavior:**
@@ -422,13 +511,15 @@ On screens < 768px (`md` breakpoint):
 - **Backdrop blur** appears behind sidebar (`bg-black/50 backdrop-blur-sm`)
 - Clicking backdrop **closes sidebar**
 - Sidebar has elevated shadow (`shadow-2xl`)
+- Edge-mounted toggle is **hidden** on mobile (toggle via backdrop tap)
 - On desktop (`md:` and up), sidebar returns to normal relative positioning
 
 **Reference Implementation:**
 
-- Container: [chat-main-card.tsx](src/components/chat/chat-main-card.tsx)
-- Sidebar: [FolderSidebar.tsx](src/components/transcript-library/FolderSidebar.tsx)
-- Page usage: [TranscriptsTab.tsx](src/components/transcripts/TranscriptsTab.tsx)
+- Collapse Toggle: [sidebar-collapse-toggle.tsx](src/components/ui/sidebar-collapse-toggle.tsx)
+- Navigation: [sidebar-nav.tsx](src/components/ui/sidebar-nav.tsx)
+- Folder Sidebar: [FolderSidebar.tsx](src/components/transcript-library/FolderSidebar.tsx)
+- Page usage: [TranscriptsNew.tsx](src/pages/TranscriptsNew.tsx)
 
 ---
 
@@ -2588,7 +2679,7 @@ Full changelog: [brand-guidelines-changelog.md](./brand-guidelines-changelog.md)
 
 ## DOCUMENT VERSION
 
-**Current Version:** v4.1
+**Current Version:** v4.1.1
 
 This version reference must match the title at the top of the document.
 
@@ -2620,7 +2711,7 @@ This version reference must match the title at the top of the document.
 
 ---
 
-*END OF BRAND GUIDELINES v4.1*
+*END OF BRAND GUIDELINES v4.1.1*
 
 This document is complete and accurate as of December 9, 2025.
 All implementations must follow these specifications exactly.

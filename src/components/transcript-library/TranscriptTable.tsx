@@ -41,7 +41,7 @@ interface Folder {
 const columnOptions = [
   { id: "date", label: "Date" },
   { id: "duration", label: "Duration" },
-  { id: "participants", label: "Participants" },
+  { id: "participants", label: "Invitees" },
   { id: "tags", label: "Tags" },
   { id: "folders", label: "Folders" },
 ];
@@ -160,7 +160,7 @@ export const TranscriptTable = React.memo(({
                 )}
                 {visibleColumns.participants !== false && (
                   <TableHead className="hidden lg:table-cell text-center w-[85px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="participants">PARTICIPANTS</SortButton>
+                    <SortButton field="participants">INVITEES</SortButton>
                   </TableHead>
                 )}
                 <TableHead className="hidden xl:table-cell text-center w-20 h-12 whitespace-nowrap text-xs md:text-sm">COUNT</TableHead>

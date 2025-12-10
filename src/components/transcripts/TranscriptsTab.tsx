@@ -3,10 +3,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
-import { RiMenuLine, RiLayoutLeftLine } from "@remixicon/react";
-import { Button } from "@/components/ui/button";
-import { DndContext, DragEndEvent } from "@dnd-kit/core";
-import { useDragAndDrop } from "@/hooks/useDragAndDrop";
 import { TranscriptTableSkeleton } from "@/components/ui/transcript-table-skeleton";
 import { logger } from "@/lib/logger";
 import { Meeting } from "@/types/meetings";
@@ -20,8 +16,6 @@ import QuickCreateTagDialog from "@/components/QuickCreateTagDialog";
 import { TagManagementDialog } from "@/components/transcript-library/TagManagementDialog";
 import { FilterBar } from "@/components/transcript-library/FilterBar";
 import { BulkActionToolbarEnhanced } from "@/components/transcript-library/BulkActionToolbarEnhanced";
-import { useFolders } from "@/hooks/useFolders";
-import { useHiddenFolders } from "@/hooks/useHiddenFolders";
 import { DragDropZones } from "@/components/transcript-library/DragDropZones";
 import { EmptyState } from "@/components/transcript-library/EmptyStates";
 import { AIProcessingProgress } from "@/components/transcripts/AIProcessingProgress";
@@ -29,15 +23,7 @@ import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SmartExportDialog from "@/components/SmartExportDialog";
 import AssignFolderDialog from "@/components/AssignFolderDialog";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
-import EditFolderDialog from "@/components/EditFolderDialog";
-import EditAllTranscriptsDialog from "@/components/EditAllTranscriptsDialog";
-import { FolderManagementDialog } from "@/components/transcript-library/FolderManagementDialog";
-import { FolderSidebar } from "@/components/transcript-library/FolderSidebar";
-import { useAllTranscriptsSettings } from "@/hooks/useAllTranscriptsSettings";
-import {
-  ChatOuterCard,
-  ChatInnerCard,
-} from "@/components/chat/chat-main-card";
+import { Folder } from "@/types/folders";
 import {
   FilterState,
   parseSearchSyntax,
@@ -53,22 +39,48 @@ interface Tag {
   created_at: string;
 }
 
+interface DragHelpers {
+  activeDragId: string | null;
+  draggedItems: number[];
+  handleDragStart: (e: unknown, selectedCalls: number[]) => void;
+  handleDragEnd: (e: unknown) => void;
+  handleDragCancel: () => void;
+}
+
 interface TranscriptsTabProps {
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
+  selectedFolderId: string | null;
+  onTotalCountChange?: (count: number) => void;
+  sidebarState: 'expanded' | 'collapsed';
+  onToggleSidebar: () => void;
+  folders: Folder[];
+  folderAssignments: Record<number, string[]>;
+  assignToFolder: (recordingIds: number[], folderId: string) => void;
+  dragHelpers: DragHelpers;
 }
 
 /**
  * TranscriptsTab Component
  *
- * Extracted from TranscriptLibrary for use in tabbed interface.
- * Contains all transcript management functionality without page header.
+ * The main content card for the transcripts view.
+ * Sidebar is rendered at page level (TranscriptsNew.tsx).
+ * This component contains only the card content (table, filters, dialogs).
  */
-export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChange }: TranscriptsTabProps) {
+export function TranscriptsTab({
+  searchQuery: externalSearchQuery,
+  onSearchChange,
+  selectedFolderId,
+  onTotalCountChange,
+  sidebarState,
+  onToggleSidebar,
+  folders,
+  folderAssignments,
+  assignToFolder,
+  dragHelpers,
+}: TranscriptsTabProps) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
-
-  // Removed viewMode - only one table view now
 
   // Selection & interaction state
   const [selectedCalls, setSelectedCalls] = useState<number[]>([]);
@@ -98,15 +110,6 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
     folders: true,
   });
 
-  // Sidebar state - 'expanded' (full) | 'collapsed' (icons only)
-  const [sidebarState, setSidebarState] = useState<'expanded' | 'collapsed'>('expanded');
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-
-  // Helper to toggle sidebar state
-  const toggleSidebar = () => {
-    setSidebarState(prev => prev === 'expanded' ? 'collapsed' : 'expanded');
-  };
-
   // Dialog state
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
   const [smartExportOpen, setSmartExportOpen] = useState(false);
@@ -114,21 +117,18 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
   const [taggingCallId, setTaggingCallId] = useState<number | null>(null);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const [quickCreateFolderOpen, setQuickCreateFolderOpen] = useState(false);
-  const [folderManagementOpen, setFolderManagementOpen] = useState(false);
-  const [editingFolder, setEditingFolder] = useState<typeof folders[0] | null>(null);
   const [folderingCallId, setFolderingCallId] = useState<number | null>(null);
+  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
+  const [pendingTagTranscripts, setPendingTagTranscripts] = useState<number[]>([]);
 
   // Load host email
   useEffect(() => {
-    // Track if component is still mounted to prevent state updates after unmount
     let isMounted = true;
 
     const loadHostEmail = async () => {
       try {
-        // Use safe pattern to handle network errors
         const userResponse = await supabase.auth.getUser();
 
-        // Check for errors in the response (network issues, etc.)
         if (userResponse.error) {
           logger.warn("Error getting user for host email", userResponse.error);
           return;
@@ -154,7 +154,6 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
           setHostEmail(data.host_email);
         }
       } catch (error) {
-        // Only log errors if component is still mounted
         if (isMounted) {
           logger.error("Error loading host email", error);
         }
@@ -163,7 +162,6 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
 
     loadHostEmail();
 
-    // Cleanup: mark as unmounted to prevent state updates
     return () => {
       isMounted = false;
     };
@@ -182,54 +180,25 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
     },
   });
 
-  // Fetch folders
-  const { folders, folderAssignments, deleteFolder, assignToFolder, isLoading: foldersLoading } = useFolders();
-  const { hiddenFolders, toggleHidden } = useHiddenFolders();
-
-  // All Transcripts customization settings
-  const { settings: allTranscriptsSettings, updateSettings: updateAllTranscriptsSettings, resetSettings: resetAllTranscriptsSettings, defaultSettings: allTranscriptsDefaults } = useAllTranscriptsSettings();
-  const [editAllTranscriptsOpen, setEditAllTranscriptsOpen] = useState(false);
-
-  // Calculate folder counts from folderAssignments
-  const folderCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    Object.values(folderAssignments).forEach((folderIds) => {
-      folderIds.forEach((folderId) => {
-        counts[folderId] = (counts[folderId] || 0) + 1;
-      });
-    });
-    return counts;
-  }, [folderAssignments]);
-
-  // Drag and drop helpers
-  const dragHelpers = useDragAndDrop();
-  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
-  const [pendingTagTranscripts, setPendingTagTranscripts] = useState<number[]>([]);
-
   // Update URL params when filters change (preserve tab param)
   useEffect(() => {
     const filterParams = filtersToURLParams(filters);
     const newParams = new URLSearchParams(searchParams);
 
-    // Preserve the tab parameter
     const currentTab = newParams.get("tab");
 
-    // Remove all filter-related params first, then add new ones
     ["from", "to", "participants", "categories", "durMin", "durMax", "tags", "folders"].forEach(key => {
       newParams.delete(key);
     });
 
-    // Add filter params
     filterParams.forEach((value, key) => {
       newParams.set(key, value);
     });
 
-    // Restore tab if it was set
     if (currentTab) {
       newParams.set("tab", currentTab);
     }
 
-    // Only update if actually changed
     if (newParams.toString() !== searchParams.toString()) {
       setSearchParams(newParams, { replace: true });
     }
@@ -298,7 +267,9 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
       const { data, error, count } = await query;
       if (error) throw error;
 
-      setTotalCount(count || 0);
+      const newTotalCount = count || 0;
+      setTotalCount(newTotalCount);
+      onTotalCountChange?.(newTotalCount);
 
       // Client-side filtering for complex queries
       let filteredData = data || [];
@@ -318,32 +289,21 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
     },
   });
 
-  // Fetch tag assignments for displayed calls
-  // Filter out any undefined/null entries to prevent "Cannot read properties of undefined" errors
-  // Also filter by selected folder if one is selected
+  // Filter by selected folder
   const validCalls = useMemo(() => {
     let filtered = calls.filter(c => c && c.recording_id != null);
 
-    // Filter by selected folder (null = All Transcripts = show all except hidden)
     if (selectedFolderId) {
-      // Specific folder: show transcripts in that folder
       filtered = filtered.filter(call => {
         const callFolders = folderAssignments[call.recording_id] || [];
         return callFolders.includes(selectedFolderId);
       });
-    } else if (hiddenFolders.size > 0) {
-      // All Transcripts view: exclude transcripts that are ONLY in hidden folders
-      filtered = filtered.filter(call => {
-        const callFolders = folderAssignments[call.recording_id] || [];
-        // If transcript has no folders, show it
-        if (callFolders.length === 0) return true;
-        // If transcript has at least one non-hidden folder, show it
-        return callFolders.some(folderId => !hiddenFolders.has(folderId));
-      });
     }
 
     return filtered;
-  }, [calls, selectedFolderId, folderAssignments, hiddenFolders]);
+  }, [calls, selectedFolderId, folderAssignments]);
+
+  // Fetch tag assignments for displayed calls
   const { data: tagAssignments = {} } = useQuery({
     queryKey: ["tag-assignments", validCalls.map(c => c.recording_id)],
     queryFn: async () => {
@@ -372,15 +332,13 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
   // Bulk tag mutation
   const tagMutation = useMutation({
     mutationFn: async ({ callIds, tagId }: { callIds: number[]; tagId: string }) => {
-      const user = await requireUser();
+      await requireUser();
 
-      // Remove existing tag assignments
       await supabase
         .from("call_tag_assignments")
         .delete()
         .in("call_recording_id", callIds);
 
-      // Create new assignments
       const assignments = callIds.map((callId) => ({
         call_recording_id: callId,
         tag_id: tagId,
@@ -440,14 +398,13 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
     },
   });
 
-  // Delete calls mutation - CASCADE deletes from all related tables
+  // Delete calls mutation
   const deleteCallsMutation = useMutation({
     mutationFn: async (ids: number[]) => {
       const user = await requireUser();
 
       logger.info("Starting delete for IDs", ids);
 
-      // Delete from all related tables first - throw errors to stop execution
       const { error: assignmentsError } = await supabase
         .from("call_tag_assignments")
         .delete()
@@ -466,9 +423,6 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
         throw tagsError;
       }
 
-      // NOTE: contact_call_associations and intel_items tables deleted (orphaned features)
-      // Removed deletion attempts to prevent errors
-
       const { error: speakersError } = await supabase
         .from("call_speakers")
         .delete()
@@ -486,15 +440,14 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
         logger.error("Error deleting transcripts", transcriptsError);
         throw transcriptsError;
       }
-      
-      // Finally delete the main call record with user verification
+
       const { data: deletedCalls, error } = await supabase
         .from("fathom_calls")
         .delete()
         .in("recording_id", ids)
         .eq("user_id", user.id)
         .select();
-        
+
       if (error) {
         logger.error("Error deleting fathom_calls", error);
         throw error;
@@ -505,7 +458,6 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
     },
     onSuccess: async (deletedCalls) => {
       logger.info("Delete mutation succeeded, refetching queries");
-      // Force immediate refetch of all queries
       await queryClient.invalidateQueries({ queryKey: ["tag-calls"] });
       await queryClient.invalidateQueries({ queryKey: ["tag-assignments"] });
       setSelectedCalls([]);
@@ -529,52 +481,8 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
     deleteCallsMutation.mutate(selectedCalls);
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { over } = event;
-
-    if (over) {
-      // Handle untag
-      if (over.data?.current?.type === "untag-zone") {
-        untagMutation.mutate({
-          callIds: dragHelpers.draggedItems,
-        });
-        setSelectedCalls([]);
-      }
-
-      // Handle create new tag
-      if (over.data?.current?.type === "create-new-zone") {
-        setIsQuickCreateOpen(true);
-        setPendingTagTranscripts(dragHelpers.draggedItems);
-      }
-
-      // Handle drop on tag zones
-      if (over.data?.current?.type === "tag-zone") {
-        const tagId = over.data.current.tagId;
-        tagMutation.mutate({
-          callIds: dragHelpers.draggedItems,
-          tagId,
-        });
-        setSelectedCalls([]);
-      }
-
-      // Handle drop on folder zones (from FolderSidebar)
-      if (over.data?.current?.type === "folder-zone") {
-        const folderId = over.data.current.folderId;
-        assignToFolder(dragHelpers.draggedItems, folderId);
-        setSelectedCalls([]);
-      }
-    }
-
-    dragHelpers.handleDragEnd(event);
-  };
-
-
   return (
-    <DndContext
-      onDragStart={(e) => dragHelpers.handleDragStart(e, selectedCalls)}
-      onDragEnd={handleDragEnd}
-      onDragCancel={dragHelpers.handleDragCancel}
-    >
+    <>
       {/* Drag Drop Zones - Shows when dragging */}
       {dragHelpers.activeDragId && (
         <DragDropZones
@@ -598,177 +506,116 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
         />
       )}
 
-      {/* Mobile sidebar overlay backdrop - only when expanded on mobile */}
-      {sidebarState === 'expanded' && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 md:hidden"
-          onClick={() => setSidebarState('collapsed')}
-        />
-      )}
-
-      {/* BG-CARD-MAIN: Browser window container */}
-      <ChatOuterCard className="h-[calc(100vh-120px)]">
-        {/* SIDEBAR - Expanded (280px) or Collapsed (icons only)
-            Collapsed width: 44px = 36px icon + 4px padding on each side */}
-        <div
-          className={`
-            ${sidebarState === 'expanded' ? 'fixed inset-y-0 left-0 z-50 shadow-2xl md:relative md:shadow-none w-[280px]' : 'w-[44px]'}
-            flex-shrink-0 transition-all duration-200
-          `}
-        >
-          <FolderSidebar
-            folders={folders}
-            folderCounts={folderCounts}
-            totalCount={totalCount}
-            selectedFolderId={selectedFolderId}
-            onSelectFolder={(folderId) => {
-              setSelectedFolderId(folderId);
-              // Only collapse sidebar on mobile
-              if (window.innerWidth < 768) {
-                setSidebarState('collapsed');
-              }
-            }}
-            isCollapsed={sidebarState === 'collapsed'}
-            onNewFolder={() => setQuickCreateFolderOpen(true)}
-            onManageFolders={() => setFolderManagementOpen(true)}
-            onEditFolder={(folder) => setEditingFolder(folder)}
-            onDeleteFolder={(folder) => deleteFolder(folder.id)}
-            isDragging={!!dragHelpers.activeDragId}
-            isLoading={foldersLoading}
-            allTranscriptsSettings={allTranscriptsSettings}
-            onEditAllTranscripts={() => setEditAllTranscriptsOpen(true)}
-            hiddenFolders={hiddenFolders}
-            onToggleHidden={toggleHidden}
-          />
-        </div>
-
-        {/* BG-CARD-INNER: Main content */}
-        <ChatInnerCard>
-          {/* Header with sidebar toggle and filters (search is now in page header) */}
-          <div className="flex-shrink-0 px-3 py-2 border-b border-border">
-            <div className="flex items-center gap-2">
-              {/* Sidebar toggle button */}
-              <Button
-                variant="hollow"
-                size="sm"
-                className="h-7 w-7 p-0 flex-shrink-0"
-                onClick={toggleSidebar}
-                title={sidebarState === 'expanded' ? "Hide sidebar" : "Show sidebar"}
-              >
-                {sidebarState === 'expanded' ? (
-                  <RiLayoutLeftLine className="h-4 w-4" />
-                ) : (
-                  <RiMenuLine className="h-4 w-4" />
-                )}
-              </Button>
-
-              {/* Filter bar - compact mode (no search, search is in page header) */}
-              <div className="flex-1 min-w-0">
-                <FilterBar
-                  filters={filters}
-                  onFiltersChange={setFilters}
-                  tags={tags}
-                  folders={folders}
-                  onCreateFolder={() => setQuickCreateFolderOpen(true)}
-                  compact={true}
-                />
-              </div>
+      {/* Main content area - NO card wrapper, directly on page */}
+      <div className="h-full flex flex-col">
+        {/* Filter bar - compact mode (no search, search is in page header) */}
+        {/* No border separator - clean transition from header to filters */}
+        <div className="flex-shrink-0 px-4 md:px-10 py-2">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <FilterBar
+                filters={filters}
+                onFiltersChange={setFilters}
+                tags={tags}
+                folders={folders}
+                onCreateFolder={() => setQuickCreateFolderOpen(true)}
+                compact={true}
+              />
             </div>
           </div>
+        </div>
 
-          {/* Content area with scroll */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Content area with scroll */}
+        <div className="flex-1 overflow-y-auto px-4 md:px-10 py-4 space-y-4">
 
-            {/* Bulk Actions Toolbar */}
-            {selectedCalls.length > 0 && (
-              <ErrorBoundary>
-                <BulkActionToolbarEnhanced
-                  selectedCount={selectedCalls.length}
-                  selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
-                  tags={tags}
-                  onTag={(tagId) => {
-                    tagMutation.mutate({
-                      callIds: selectedCalls,
-                      tagId,
-                    });
-                  }}
-                  onRemoveTag={() => {
-                    untagMutation.mutate({
-                      callIds: selectedCalls,
-                    });
-                  }}
-                  onClearSelection={() => setSelectedCalls([])}
-                  onDelete={handleDeleteCalls}
-                  onCreateNewTag={() => {
-                    setIsQuickCreateOpen(true);
-                    setPendingTagTranscripts(selectedCalls);
-                  }}
-                  onAssignFolder={() => setFolderDialogOpen(true)}
-                />
-              </ErrorBoundary>
-            )}
-
-            {/* Content Area */}
-            {callsLoading ? (
-              <TranscriptTableSkeleton />
-            ) : validCalls.length === 0 ? (
-              <EmptyState
-                type={searchQuery || Object.keys(combinedFilters).length > 0 ? "no-results" : "no-transcripts"}
-                onAction={() => {
-                  setSearchQuery("");
-                  setFilters({});
-                  setSelectedFolderId(null);
+          {/* Bulk Actions Toolbar */}
+          {selectedCalls.length > 0 && (
+            <ErrorBoundary>
+              <BulkActionToolbarEnhanced
+                selectedCount={selectedCalls.length}
+                selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
+                tags={tags}
+                onTag={(tagId) => {
+                  tagMutation.mutate({
+                    callIds: selectedCalls,
+                    tagId,
+                  });
                 }}
+                onRemoveTag={() => {
+                  untagMutation.mutate({
+                    callIds: selectedCalls,
+                  });
+                }}
+                onClearSelection={() => setSelectedCalls([])}
+                onDelete={handleDeleteCalls}
+                onCreateNewTag={() => {
+                  setIsQuickCreateOpen(true);
+                  setPendingTagTranscripts(selectedCalls);
+                }}
+                onAssignFolder={() => setFolderDialogOpen(true)}
               />
-            ) : (
-              <>
-                {/* AI Processing Progress */}
-                <AIProcessingProgress onJobsComplete={() => queryClient.invalidateQueries({ queryKey: ["transcript-calls"] })} />
+            </ErrorBoundary>
+          )}
 
-                <ErrorBoundary>
-                  <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
-                    <TranscriptTable
-                      calls={validCalls}
-                      selectedCalls={selectedCalls}
-                      onSelectCall={(callId) => {
-                        if (selectedCalls.includes(callId)) {
-                          setSelectedCalls(selectedCalls.filter(id => id !== callId));
-                        } else {
-                          setSelectedCalls([...selectedCalls, callId]);
-                        }
-                      }}
-                      onSelectAll={() => {
-                        if (selectedCalls.length === validCalls.length) {
-                          setSelectedCalls([]);
-                        } else {
-                          setSelectedCalls(validCalls.map(c => c.recording_id));
-                        }
-                      }}
-                      onCallClick={(call) => setSelectedCall(call)}
-                      tags={tags}
-                      tagAssignments={tagAssignments}
-                      folders={folders}
-                      folderAssignments={folderAssignments}
-                      onFolderCall={(callId) => setFolderingCallId(callId as number)}
-                      totalCount={selectedFolderId ? validCalls.length : totalCount}
-                      page={page}
-                      pageSize={pageSize}
-                      onPageChange={setPage}
-                      onPageSizeChange={setPageSize}
-                      hostEmail={hostEmail}
-                      visibleColumns={visibleColumns}
-                      onToggleColumn={(columnId) =>
-                        setVisibleColumns((prev) => ({ ...prev, [columnId]: !prev[columnId] }))
+          {/* Content Area */}
+          {callsLoading ? (
+            <TranscriptTableSkeleton />
+          ) : validCalls.length === 0 ? (
+            <EmptyState
+              type={searchQuery || Object.keys(combinedFilters).length > 0 ? "no-results" : "no-transcripts"}
+              onAction={() => {
+                setSearchQuery("");
+                setFilters({});
+              }}
+            />
+          ) : (
+            <>
+              {/* AI Processing Progress */}
+              <AIProcessingProgress onJobsComplete={() => queryClient.invalidateQueries({ queryKey: ["transcript-calls"] })} />
+
+              <ErrorBoundary>
+                <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
+                  <TranscriptTable
+                    calls={validCalls}
+                    selectedCalls={selectedCalls}
+                    onSelectCall={(callId) => {
+                      if (selectedCalls.includes(callId)) {
+                        setSelectedCalls(selectedCalls.filter(id => id !== callId));
+                      } else {
+                        setSelectedCalls([...selectedCalls, callId]);
                       }
-                      onExport={() => setSmartExportOpen(true)}
-                    />
-                  </div>
-                </ErrorBoundary>
-              </>
-            )}
-          </div>
-        </ChatInnerCard>
-      </ChatOuterCard>
+                    }}
+                    onSelectAll={() => {
+                      if (selectedCalls.length === validCalls.length) {
+                        setSelectedCalls([]);
+                      } else {
+                        setSelectedCalls(validCalls.map(c => c.recording_id));
+                      }
+                    }}
+                    onCallClick={(call) => setSelectedCall(call)}
+                    tags={tags}
+                    tagAssignments={tagAssignments}
+                    folders={folders}
+                    folderAssignments={folderAssignments}
+                    onFolderCall={(callId) => setFolderingCallId(callId as number)}
+                    totalCount={selectedFolderId ? validCalls.length : totalCount}
+                    page={page}
+                    pageSize={pageSize}
+                    onPageChange={setPage}
+                    onPageSizeChange={setPageSize}
+                    hostEmail={hostEmail}
+                    visibleColumns={visibleColumns}
+                    onToggleColumn={(columnId) =>
+                      setVisibleColumns((prev) => ({ ...prev, [columnId]: !prev[columnId] }))
+                    }
+                    onExport={() => setSmartExportOpen(true)}
+                  />
+                </div>
+              </ErrorBoundary>
+            </>
+          )}
+        </div>
+      </div>
 
       {/* Dialogs */}
       {selectedCall && (
@@ -891,48 +738,6 @@ export function TranscriptsTab({ searchQuery: externalSearchQuery, onSearchChang
           }}
         />
       )}
-
-      {/* Folder Management Dialog */}
-      {folderManagementOpen && (
-        <FolderManagementDialog
-          open={folderManagementOpen}
-          onOpenChange={setFolderManagementOpen}
-          folders={folders}
-          transcriptCounts={folderCounts}
-          onCreateFolder={() => {
-            setFolderManagementOpen(false);
-            setQuickCreateFolderOpen(true);
-          }}
-          onEditFolder={(folder) => {
-            setFolderManagementOpen(false);
-            setEditingFolder(folder);
-          }}
-          onDeleteFolder={(folder) => deleteFolder(folder.id)}
-        />
-      )}
-
-      {/* Edit Folder Dialog */}
-      {editingFolder && (
-        <EditFolderDialog
-          open={!!editingFolder}
-          onOpenChange={(open) => !open && setEditingFolder(null)}
-          folder={editingFolder}
-          onFolderUpdated={() => {
-            queryClient.invalidateQueries({ queryKey: ["folders"] });
-            setEditingFolder(null);
-          }}
-        />
-      )}
-
-      {/* Edit All Transcripts Dialog */}
-      <EditAllTranscriptsDialog
-        open={editAllTranscriptsOpen}
-        onOpenChange={setEditAllTranscriptsOpen}
-        settings={allTranscriptsSettings}
-        onSave={updateAllTranscriptsSettings}
-        onReset={resetAllTranscriptsSettings}
-        defaultSettings={allTranscriptsDefaults}
-      />
-    </DndContext>
+    </>
   );
 }

@@ -1,65 +1,8 @@
-import { MacOSDock, DockApp } from "@/components/ui/mac-os-dock";
 import { TopBar } from "@/components/ui/top-bar";
-import { useNavigate, useLocation } from "react-router-dom";
-import { RiHome4Fill, RiChat1Fill, RiPriceTag3Fill, RiSettings3Fill } from "@remixicon/react";
-
-// Glossy 3D dock icon wrapper - white version of primary button effect
-const DockIcon = ({ children }: { children: React.ReactNode }) => (
-  <div
-    className="w-full h-full flex items-center justify-center rounded-xl"
-    style={{
-      background: 'linear-gradient(160deg, #FFFFFF 0%, #E8E8E8 100%)',
-      border: '1px solid rgba(200, 200, 200, 0.8)',
-      boxShadow: `
-        0 4px 6px rgba(255, 255, 255, 0.5) inset,
-        0 -4px 6px rgba(0, 0, 0, 0.08) inset,
-        0 10px 20px rgba(0, 0, 0, 0.08)
-      `,
-    }}
-  >
-    {children}
-  </div>
-);
+import { useLocation } from "react-router-dom";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
-  const navigate = useNavigate();
   const location = useLocation();
-
-  const dockApps: DockApp[] = [
-    {
-      id: 'home',
-      name: 'Home',
-      icon: <DockIcon><RiHome4Fill className="w-6 h-6 text-cb-black" /></DockIcon>,
-      onClick: () => navigate('/'),
-    },
-    {
-      id: 'chat',
-      name: 'AI Chat',
-      icon: <DockIcon><RiChat1Fill className="w-6 h-6 text-cb-black" /></DockIcon>,
-      onClick: () => navigate('/chat'),
-    },
-    {
-      id: 'sorting-tagging',
-      name: 'Sorting',
-      icon: <DockIcon><RiPriceTag3Fill className="w-6 h-6 text-cb-black" /></DockIcon>,
-      onClick: () => navigate('/sorting-tagging'),
-    },
-    {
-      id: 'settings',
-      name: 'Settings',
-      icon: <DockIcon><RiSettings3Fill className="w-6 h-6 text-cb-black" /></DockIcon>,
-      onClick: () => navigate('/settings'),
-    },
-  ];
-
-  const getOpenApps = () => {
-    const apps: string[] = [];
-    if (location.pathname === '/') apps.push('home');
-    if (location.pathname.startsWith('/chat')) apps.push('chat');
-    if (location.pathname.startsWith('/sorting-tagging')) apps.push('sorting-tagging');
-    if (location.pathname.startsWith('/settings')) apps.push('settings');
-    return apps;
-  };
 
   const getPageLabel = () => {
     if (location.pathname === '/') return 'HOME';
@@ -69,8 +12,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     return 'HOME';
   };
   
-  // Chat page provides its own container (ChatOuterCard), so we don't wrap it
+  // Pages that provide their own container/layout (no card wrapper)
   const isChatPage = location.pathname.startsWith('/chat');
+  const isTranscriptsPage = location.pathname === '/' || location.pathname === '/transcripts';
+  const usesCustomLayout = isChatPage || isTranscriptsPage;
 
   return (
     <div
@@ -80,9 +25,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       }}
     >
       <TopBar pageLabel={getPageLabel()} />
-      <main className="fixed inset-2 top-[52px]">
-        {isChatPage ? (
-          // Chat page uses ChatOuterCard directly - no wrapper
+      <main className="fixed inset-2.5 top-[52px]">
+        {usesCustomLayout ? (
+          // Chat and Transcripts pages provide their own layout - no wrapper
           children
         ) : (
           // Other pages get the standard card wrapper
@@ -91,7 +36,6 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
           </div>
         )}
       </main>
-      <MacOSDock apps={dockApps} openApps={getOpenApps()} />
     </div>
   );
 }
