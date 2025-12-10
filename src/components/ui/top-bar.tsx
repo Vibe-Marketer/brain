@@ -44,7 +44,7 @@ export function TopBar({
       className={cn(
         "h-[52px] fixed top-0 left-0 right-0 z-40",
         "flex items-center justify-between px-3 md:px-6",
-        "bg-viewport",
+        "bg-transparent",
         className
       )}
     >
