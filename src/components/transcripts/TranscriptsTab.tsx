@@ -226,34 +226,14 @@ export function TranscriptsTab({
   }, [syntax, filters]);
 
   // Fetch calls with filters
-  // PERFORMANCE: Only select columns needed for table display - NOT full_transcript (56KB avg per row)
-  // The full_transcript is loaded on-demand when viewing call details
   const { data: calls = [], isLoading: callsLoading } = useQuery({
     queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize],
     queryFn: async () => {
       const offset = (page - 1) * pageSize;
-      // Select only columns needed for table display (excludes full_transcript which averages 56KB per row)
-      const tableColumns = `
-        recording_id,
-        user_id,
-        title,
-        ai_generated_title,
-        created_at,
-        recording_start_time,
-        recording_end_time,
-        url,
-        share_url,
-        recorded_by_name,
-        recorded_by_email,
-        calendar_invitees,
-        summary,
-        auto_tags,
-        synced_at
-      `.replace(/\s+/g, '');
 
       let query = supabase
         .from("fathom_calls")
-        .select(tableColumns, { count: "exact" })
+        .select("*", { count: "exact" })
         .order("created_at", { ascending: false })
         .range(offset, offset + pageSize - 1);
 
