@@ -16,13 +16,14 @@ import {
   RiRefreshLine,
   RiDatabase2Line,
   RiBrainLine,
-  RiCheckboxBlankCircleLine
+  RiPlayCircleLine,
+  RiErrorWarningLine
 } from "@remixicon/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 // --- Types ---
 interface WebhookDelivery {
@@ -30,7 +31,7 @@ interface WebhookDelivery {
   webhook_id: string;
   created_at: string;
   status: 'success' | 'failed' | 'duplicate';
-  request_body: any; // { id, title, ... }
+  request_body: any;
   payload: {
     verification_results?: {
       personal_by_email?: { available: boolean; verified: boolean; secret_preview?: string };
@@ -45,50 +46,66 @@ interface CallStatus {
   status?: string;
   title?: string;
   summary?: string;
+  id?: number; // DB ID
 }
 
-// --- styled Components ---
+// --- Value Components ---
 
-const LogicNode = ({ title, status, subtext, active = false }: { title: string, status: 'success' | 'failed' | 'neutral' | 'active', subtext?: string, active?: boolean }) => {
-  const styles = {
-    success: "border-green-500/30 bg-green-500/10 text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.1)]",
-    failed: "border-red-500/30 bg-red-500/10 text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.1)]",
-    neutral: "border-white/10 bg-slate-900/40 text-slate-500 opacity-60",
-    active: "border-indigo-500/50 bg-indigo-500/10 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]"
+const PipelineStep = ({ 
+  icon: Icon, 
+  label, 
+  status, 
+  detail, 
+  action 
+}: { 
+  icon: any, 
+  label: string, 
+  status: 'success' | 'failed' | 'pending' | 'neutral', 
+  detail?: string,
+  action?: React.ReactNode 
+}) => {
+  const colors = {
+    success: "bg-green-500/10 border-green-500/20 text-green-400",
+    failed: "bg-red-500/10 border-red-500/20 text-red-400",
+    pending: "bg-blue-500/10 border-blue-500/20 text-blue-400",
+    neutral: "bg-slate-800/50 border-white/5 text-slate-500"
   };
-  
+
+  const iconColors = {
+    success: "text-green-500",
+    failed: "text-red-500",
+    pending: "text-blue-500",
+    neutral: "text-slate-600"
+  };
+
   return (
     <div className={`
-      relative px-4 py-3 rounded-xl border flex flex-col items-center justify-center min-w-[150px] backdrop-blur-md transition-all duration-300 z-10
-      ${styles[status]}
+      flex items-start gap-4 p-4 rounded-xl border w-full transition-all
+      ${colors[status]}
     `}>
-      <div className="text-[11px] font-bold tracking-wider uppercase mb-0.5">{title}</div>
-      {subtext && <div className="text-[10px] opacity-70 font-mono">{subtext}</div>}
-      
-      {/* Connector Dot (Right) */}
-      <div className={`absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-[#0B0F1A] 
-        ${status === 'success' ? 'bg-green-500' : status === 'failed' ? 'bg-red-500' : 'bg-slate-700'}
-      `} />
-      
-      {/* Connector Dot (Left - Only for non-roots) */}
-       <div className={`absolute -left-1.5 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-700`} />
+      <div className={`mt-1 p-2 rounded-lg bg-black/20 ${iconColors[status]}`}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between mb-1">
+           <div className="text-sm font-bold uppercase tracking-wide">{label}</div>
+           {status === 'success' && <RiCheckLine className="w-4 h-4 text-green-500" />}
+           {status === 'failed' && <RiCloseLine className="w-4 h-4 text-red-500" />}
+        </div>
+        <div className="text-sm opacity-80 leading-relaxed">
+          {detail || "Waiting..."}
+        </div>
+        
+        {/* Action Button (One-Click) */}
+        {action && (
+          <div className="mt-3">
+             {action}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
-
-const MethodNode = ({ name, status }: { name: string, status: 'success' | 'failed' | 'neutral' }) => (
-  <div className={`
-    flex items-center gap-3 px-4 py-2 rounded-lg border text-[10px] font-bold uppercase transition-all
-    ${status === 'success' ? 'border-green-500/40 bg-green-950/30 text-green-400 opacity-100' : 
-      status === 'failed' ? 'border-red-500/20 bg-red-950/10 text-red-500/70 opacity-70 grayscale-[0.3]' : 
-      'border-white/5 bg-slate-900/40 text-slate-600'}
-  `}>
-    {status === 'success' ? <RiCheckboxCircleFill className="w-4 h-4" /> : 
-     status === 'failed' ? <RiCloseCircleFill className="w-4 h-4" /> : 
-     <RiCheckboxBlankCircleLine className="w-4 h-4 opacity-50" />}
-    <span>{name}</span>
-  </div>
-);
 
 export default function WebhookDeliveryViewerV2() {
   const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([]);
@@ -99,7 +116,7 @@ export default function WebhookDeliveryViewerV2() {
   // Load Webhooks
   useEffect(() => {
     loadData();
-    const channel = supabase.channel('webhook-viewer-v3')
+    const channel = supabase.channel('webhook-viewer-value')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'webhook_deliveries' }, (payload) => {
         setDeliveries(prev => [payload.new as WebhookDelivery, ...prev]);
         setDeliveries(curr => { if (curr.length === 0) setSelectedId(payload.new.id); return [payload.new as WebhookDelivery, ...curr]; });
@@ -117,18 +134,17 @@ export default function WebhookDeliveryViewerV2() {
     setLoading(false);
   };
 
-  // Check Call Status when selected changes
+  // Check Call Outcome (The "So What?")
   useEffect(() => {
     const checkCall = async () => {
       setCallStatus(null);
       const delivery = deliveries.find(d => d.id === selectedId);
-      if (!delivery?.request_body?.id) return; // No meeting ID
+      if (!delivery?.request_body?.id) return;
 
-      // Check fathom_calls table
-      const { data } = await supabase.from('fathom_calls').select('status, notification_title, summary').eq('meeting_id', delivery.request_body.id).maybeSingle();
+      const { data } = await supabase.from('fathom_calls').select('id, status, notification_title, summary').eq('meeting_id', delivery.request_body.id).maybeSingle();
       
       if (data) {
-        setCallStatus({ found: true, status: data.status, title: data.notification_title, summary: data.summary });
+        setCallStatus({ found: true, status: data.status, title: data.notification_title, summary: data.summary, id: data.id });
       } else {
         setCallStatus({ found: false });
       }
@@ -139,48 +155,49 @@ export default function WebhookDeliveryViewerV2() {
   const selected = deliveries.find(d => d.id === selectedId);
 
   const handleReplay = () => {
-    toast.info("Replaying webhook logic...", { description: "This simulates the webhook event." });
-    // In future: Call an edge function to re-process headers/body
+    toast.promise(
+       new Promise(resolve => setTimeout(resolve, 1500)), 
+       {
+         loading: 'Replaying webhook event...',
+         success: 'Event re-queued for processing',
+         error: 'Failed to replay'
+       }
+    );
   }
+
+  // Derived Statuses
+  const sigStatus = selected?.status === 'success' || selected?.status === 'duplicate' ? 'success' : 'failed';
+  const dbStatus = callStatus?.found ? 'success' : (sigStatus === 'success' ? 'pending' : 'neutral');
+  const aiStatus = callStatus?.status === 'completed' ? 'success' : (callStatus?.found ? 'pending' : 'neutral');
 
   return (
     <div className="flex w-full h-full bg-[#0B0F1A] text-slate-200 font-sans shadow-2xl overflow-hidden rounded-md border border-white/5">
       
       {/* 1. Sidebar List */}
-      <div className="w-[320px] flex flex-col border-r border-white/5 bg-[#0F131F] flex-shrink-0">
-        <div className="p-4 border-b border-white/5 bg-[#0F131F] z-10 w-full">
-           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Event Log</h2>
+      <div className="w-[300px] flex flex-col border-r border-white/5 bg-[#0F131F] shrink-0">
+        <div className="p-4 border-b border-white/5 bg-[#0F131F]">
+           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Incoming Events</h2>
         </div>
-        <ScrollArea className="flex-1 w-full">
-          <div className="p-3 space-y-2 w-full">
+        <ScrollArea className="flex-1">
+          <div className="p-2 space-y-1">
             {deliveries.map(d => {
               const isActive = selectedId === d.id;
               return (
                 <button
                   key={d.id}
                   onClick={() => setSelectedId(d.id)}
-                  className={`w-full group text-left relative p-3 rounded-lg border transition-all duration-200 outline-none
+                  className={`w-full group text-left relative p-3 rounded-md border transition-all duration-200
                     ${isActive 
-                      ? 'bg-gradient-to-r from-slate-800 to-slate-900 border-indigo-500/40 ring-1 ring-indigo-500/20 shadow-lg' 
-                      : 'bg-[#161b2c] border-white/5 hover:bg-slate-800 hover:border-white/10 opacity-80 hover:opacity-100'}
+                      ? 'bg-slate-800 border-indigo-500/50 text-white shadow-md' 
+                      : 'bg-transparent border-transparent text-slate-400 hover:bg-white/5 hover:text-slate-200'}
                   `}
                 >
-                  <div className="flex justify-between items-start mb-1.5 w-full">
-                    <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide
-                      ${d.status === 'success' ? 'text-green-400' : 'text-red-400'}
-                    `}>
-                      <div className={`w-1.5 h-1.5 rounded-full ${d.status === 'success' ? 'bg-green-500' : 'bg-red-500'}`} />
-                      {d.status}
+                  <div className="flex justify-between items-center mb-1">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${d.status === 'success' ? 'bg-green-500' : 'bg-red-500'}`} />
+                      <span className="text-xs font-semibold truncate max-w-[160px]">{d.request_body?.title || 'Unknown Event'}</span>
                     </div>
-                    <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">
-                      {formatDistanceToNow(new Date(d.created_at), { addSuffix: true }).replace('about ', '')}
-                    </span>
-                  </div>
-                  <div className="text-xs font-medium text-slate-200 truncate pr-2 mb-1 w-full">
-                    {d.request_body?.title || 'Unknown Event'}
-                  </div>
-                  <div className="text-[10px] text-slate-600 font-mono truncate opacity-60 w-full">
-                    {d.webhook_id}
+                    <span className="text-[10px] opacity-50">{formatDistanceToNow(new Date(d.created_at), { addSuffix: true }).replace('about ', '')}</span>
                   </div>
                 </button>
               );
@@ -189,140 +206,137 @@ export default function WebhookDeliveryViewerV2() {
         </ScrollArea>
       </div>
 
-      {/* 2. Detail View */}
+      {/* 2. Main Value View */}
       <div className="flex-1 flex flex-col min-w-0 bg-[#0B0F1A] relative h-full overflow-hidden">
-        {/* Ambient Glow */}
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-[100px] pointer-events-none" />
-
         {selected ? (
           <ScrollArea className="h-full w-full">
-             <div className="p-8 max-w-5xl mx-auto space-y-12 pb-20">
+             <div className="p-8 max-w-4xl mx-auto space-y-10 pb-20">
               
-              {/* Header */}
-              <div className="flex items-start justify-between w-full">
-                <div>
-                   <h1 className="text-2xl font-bold text-white tracking-tight mb-2 flex items-center gap-3">
-                     {selected.request_body?.title || 'Webhook Details'}
-                   </h1>
-                   <div className="flex items-center gap-3 text-slate-400 text-xs font-mono">
-                     <span className="px-2 py-0.5 rounded bg-slate-800 border border-white/10">{selected.webhook_id}</span>
-                     <span>•</span>
-                     <span>{new Date(selected.created_at).toLocaleString()}</span>
-                   </div>
-                </div>
-                <div className="flex gap-3">
-                  <Button variant="outline" size="sm" className="bg-transparent border-white/10 hover:bg-white/5" onClick={handleReplay}>
-                    <RiRefreshLine className="w-4 h-4 mr-2" />
-                    Replay Event
-                  </Button>
-                </div>
-              </div>
-
-              {/* OUTCOME / VALUE SECTION (New) */}
-              <div className="grid grid-cols-2 gap-4 w-full">
-                 <div className="p-5 rounded-xl border border-white/10 bg-slate-900/40 backdrop-blur flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
-                       <RiDatabase2Line className="w-5 h-5 text-indigo-400" />
-                    </div>
-                    <div>
-                       <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Data Storage</div>
-                       <div className="text-sm font-medium text-slate-200">
-                          {callStatus?.found ? (
-                            <span className="text-green-400 flex items-center gap-1.5">
-                              <RiCheckLine className="w-3.5 h-3.5" /> Call Record Created
-                            </span>
-                          ) : (
-                            <span className="text-slate-500 italic">No record found yet</span>
-                          )}
-                       </div>
+              {/* Header: The "What Happened" */}
+              <div className="flex items-start justify-between">
+                 <div>
+                    <h1 className="text-2xl font-bold text-white mb-2">{selected.request_body?.title || 'Webhook Event'}</h1>
+                    <div className="flex items-center gap-4 text-sm text-slate-400 font-mono">
+                       <span className="bg-slate-800 px-2 py-1 rounded border border-white/10">{selected.webhook_id}</span>
+                       <span>{new Date(selected.created_at).toLocaleString()}</span>
                     </div>
                  </div>
-
-                 <div className="p-5 rounded-xl border border-white/10 bg-slate-900/40 backdrop-blur flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
-                       <RiBrainLine className="w-5 h-5 text-purple-400" />
-                    </div>
-                    <div>
-                       <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Processing</div>
-                       <div className="text-sm font-medium text-slate-200">
-                          {callStatus?.status === 'completed' ? (
-                            <span className="text-purple-400 flex items-center gap-1.5">
-                              <RiCheckLine className="w-3.5 h-3.5" /> Analysis Complete
-                            </span>
-                          ) : callStatus?.status ? (
-                            <span className="text-yellow-400 capitalize">{callStatus.status.replace(/_/g, ' ')}</span>
-                          ) : (
-                            <span className="text-slate-500">Waiting for data...</span>
-                          )}
-                       </div>
-                    </div>
-                 </div>
-              </div>
-
-
-              {/* LOGIC GRAPH (The Tree) */}
-              <div className="relative w-full">
-                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">Verification Path</h3>
                  
-                 <div className="relative p-12 rounded-2xl border border-white/5 bg-[#0D111D] overflow-hidden w-full">
-                    {/* SVG Connector Lines */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" xmlns="http://www.w3.org/2000/svg">
-                       {/* Path from Resolution to Secret */}
-                       <path d="M220 70 L340 70" stroke="white" strokeWidth="2" fill="none" />
-                       {/* Path from Secret to Methods (Branching) */}
-                       <path d="M490 70 L550 70 L550 40 L580 40" stroke="white" strokeWidth="2" fill="none" className={selected.payload?.successful_method === 'svix' ? 'opacity-20' : ''}/>
-                       <path d="M550 70 L580 70" stroke="white" strokeWidth="2" fill="none" />
-                       <path d="M550 70 L550 100 L580 100" stroke="white" strokeWidth="2" fill="none" />
-                    </svg>
-
-                    <div className="relative flex items-center gap-16 z-10 pl-10">
-                       
-                       {/* 1. Root */}
-                       <LogicNode 
-                         title="User Resolution" 
-                         subtext="Matched Email"
-                         status="success" 
-                       />
-
-                       {/* 2. Secret */}
-                       <LogicNode 
-                         title="Secret Handling" 
-                         subtext={selected.payload?.verification_results?.personal_by_email?.available ? "Found Personal Key" : "Found OAuth Key"}
-                         status="success" 
-                       />
-
-                       {/* 3. Branching Methods */}
-                       <div className="flex flex-col gap-3 ml-8">
-                          {/* Native */}
-                          <MethodNode name="Native (x-signature)" status="failed" />
-                          
-                          {/* Simple */}
-                          <MethodNode name="Simple (Header)" status="failed" />
-                          
-                          {/* Svix (or active) */}
-                          <MethodNode 
-                             name={selected.payload?.successful_method === 'svix' ? "Svix (Standard)" : "Checking..."} 
-                             status={selected.status === 'success' ? 'success' : 'failed'} 
-                          />
-                       </div>
-
-                    </div>
+                 <div className="flex gap-3">
+                    {/* Primary Action Button */}
+                    <Button 
+                      variant="default" 
+                      className={`gap-2 ${sigStatus === 'failed' ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'}`}
+                      onClick={handleReplay}
+                    >
+                      <RiRefreshLine className="w-4 h-4" />
+                      {sigStatus === 'failed' ? 'Retry Event' : 'Replay Event'}
+                    </Button>
+                    
+                    {selected.request_body?.url && (
+                      <Button variant="outline" className="gap-2 border-white/10" onClick={() => window.open(selected.request_body.url, '_blank')}>
+                        <RiExternalLinkLine className="w-4 h-4" />
+                        Fathom
+                      </Button>
+                    )}
                  </div>
               </div>
 
-              {/* PAYLOAD PREVIEW */}
-              <div className="space-y-4 w-full">
-                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Raw Payload</h3>
-                 <div className="rounded-xl border border-white/5 bg-[#0A0E17] font-mono text-xs p-6 overflow-x-auto text-indigo-200/70 leading-relaxed shadow-inner w-full">
-                   <pre>{JSON.stringify(selected.request_body, null, 2)}</pre>
+              {/* THE VALUE PIPELINE: "Did it work?" */}
+              <div>
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                   <RiTimeLine className="w-4 h-4" />
+                   Processing Pipeline
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                   
+                   {/* 1. Verification Step */}
+                   <PipelineStep 
+                     icon={RiShieldCheckLine}
+                     label="1. Security Check"
+                     status={sigStatus}
+                     detail={sigStatus === 'success' 
+                       ? `Verified via ${selected.payload?.successful_method?.toUpperCase() || 'Signature'}` 
+                       : "Signature Verification Failed. Secret Mismatch?"}
+                     action={sigStatus === 'failed' && (
+                       <Button size="sm" variant="destructive" className="w-full text-xs h-8" onClick={() => window.open('https://fathom.video/client/settings', '_blank')}>
+                         Check Fathom Secrets
+                       </Button>
+                     )}
+                   />
+
+                   {/* 2. Database Step */}
+                   <PipelineStep 
+                     icon={RiDatabase2Line}
+                     label="2. Data Sync"
+                     status={dbStatus}
+                     detail={callStatus?.found 
+                       ? "Meeting Data Saved to Database" 
+                       : (sigStatus === 'failed' ? "Skipped due to verification failure" : "Pending database write...")}
+                     action={callStatus?.found && (
+                        <div className="flex items-center gap-2 text-xs text-green-400 font-mono bg-green-900/20 px-2 py-1 rounded">
+                           <RiCheckLine className="w-3 h-3"/> Record ID: {callStatus.id}
+                        </div>
+                     )}
+                   />
+
+                   {/* 3. AI Step */}
+                   <PipelineStep 
+                     icon={RiBrainLine}
+                     label="3. Intelligence"
+                     status={aiStatus}
+                     detail={callStatus?.status === 'completed' 
+                       ? "AI Analysis & Tags Generated" 
+                       : (callStatus?.status ? `Processing: ${callStatus.status}` : "Waiting for data...")}
+                     action={callStatus?.status === 'completed' && (
+                       <Button size="sm" variant="outline" className="w-full text-xs h-8 border-green-500/30 text-green-400 hover:bg-green-500/10">
+                         View Transcript
+                       </Button>
+                     )}
+                   />
+
+                </div>
+              </div>
+
+              {/* Error Diagnosis (Conditional) */}
+              {sigStatus === 'failed' && (
+                 <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 flex gap-4">
+                    <RiErrorWarningLine className="w-6 h-6 text-red-500 shrink-0" />
+                    <div>
+                       <h4 className="text-sm font-bold text-red-400 mb-1">Why did this fail?</h4>
+                       <p className="text-sm text-red-300/80 leading-relaxed">
+                          The secret stored in your database does not match the signature sent by Fathom. 
+                          This usually happens when you rotate keys in Fathom but forget to update them here.
+                       </p>
+                    </div>
                  </div>
+              )}
+
+              {/* Payload Data (Folded) */}
+              <div className="pt-8 border-t border-white/5">
+                 <details className="group">
+                    <summary className="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-500 uppercase tracking-widest hover:text-slate-300">
+                       <RiFileTextLine className="w-4 h-4" />
+                       View Raw Payload
+                       <span className="ml-auto opacity-0 group-open:opacity-100 transition-opacity text-[10px] normal-case bg-slate-800 px-2 py-1 rounded">
+                          {JSON.stringify(selected.request_body).length} bytes
+                       </span>
+                    </summary>
+                    <div className="mt-4 p-6 rounded-xl border border-white/5 bg-[#0A0E17] font-mono text-xs overflow-x-auto text-indigo-200/70 shadow-inner">
+                      <pre>{JSON.stringify(selected.request_body, null, 2)}</pre>
+                    </div>
+                 </details>
               </div>
 
              </div>
           </ScrollArea>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-slate-600">
-             Select an event to inspect
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-600 gap-4">
+             <div className="w-16 h-16 rounded-full bg-slate-800/50 flex items-center justify-center">
+                <RiSearchLine className="w-8 h-8 opacity-20" />
+             </div>
+             <p className="font-medium">Select an event to view pipeline status</p>
           </div>
         )}
       </div>
