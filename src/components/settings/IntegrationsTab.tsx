@@ -166,9 +166,10 @@ export default function IntegrationsTab() {
         return;
       }
 
-      // Basic validation
-      if (!apiKey.startsWith('fth_')) {
-        toast.error("Invalid API key format. Should start with 'fth_'");
+      // Basic validation - only validate webhook secret format
+      // Note: Fathom API keys don't have a consistent prefix requirement
+      if (!apiKey.trim()) {
+        toast.error("API key is required");
         return;
       }
 
@@ -316,7 +317,7 @@ export default function IntegrationsTab() {
                         type="text"
                         value={apiKey}
                         onChange={(e) => setApiKey(e.target.value)}
-                        placeholder="fth_xxxxxxxxxxxxxxxxxx"
+                        placeholder="Your Fathom API key"
                         className="mt-2"
                       />
                     </div>

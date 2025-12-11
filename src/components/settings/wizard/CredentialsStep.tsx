@@ -59,7 +59,7 @@ export function CredentialsStep({
             type="text"
             value={apiKey}
             onChange={(e) => onApiKeyChange(e.target.value)}
-            placeholder="fth_xxxxxxxxxxxxxxxxxx"
+            placeholder="Your Fathom API key"
             className="mt-2"
             disabled={!clickedFathomLink}
           />
