@@ -6,22 +6,19 @@ import {
   RiAlertLine, 
   RiTimeLine, 
   RiSearchLine,
-  RiKey2Line,
   RiShieldCheckLine,
   RiFileTextLine,
+  RiExternalLinkLine,
   RiArrowRightLine,
-  RiExternalLinkLine
+  RiKey2Line,
+  RiCpuLine
 } from "@remixicon/react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { logger } from "@/lib/logger";
-import { toast } from "sonner";
 
 // --- Types ---
 interface WebhookDelivery {
@@ -49,29 +46,70 @@ interface SecretInfo {
   webhook_secret: string;
 }
 
-// --- Status Badge Component ---
-function StatusBadge({ status }: { status: string }) {
-  if (status === 'success') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-500 border border-green-500/20">
-        <RiCheckboxCircleLine className="w-3.5 h-3.5" />
-        Verified
-      </span>
-    );
-  }
-  if (status === 'duplicate') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-500/10 text-yellow-500 border border-yellow-500/20">
-        <RiAlertLine className="w-3.5 h-3.5" />
-        Duplicate
-      </span>
-    );
-  }
+// --- Neon Components ---
+
+function NeonBadge({ status, text }: { status: string, text?: string }) {
+  const styles = {
+    success: "bg-green-500/10 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(74,222,128,0.2)]",
+    failed: "bg-red-500/10 text-red-400 border-red-500/50 shadow-[0_0_10px_rgba(248,113,113,0.2)]",
+    duplicate: "bg-yellow-500/10 text-yellow-400 border-yellow-500/50 shadow-[0_0_10px_rgba(250,204,21,0.2)]",
+    neutral: "bg-slate-700/50 text-slate-400 border-slate-600",
+  };
+  
+  const icon = {
+    success: <RiCheckboxCircleLine className="w-3.5 h-3.5" />,
+    failed: <RiCloseCircleLine className="w-3.5 h-3.5" />,
+    duplicate: <RiAlertLine className="w-3.5 h-3.5" />,
+    neutral: null
+  };
+
+  const type = (status as keyof typeof styles) || 'neutral';
+
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium bg-red-500/10 text-red-500 border border-red-500/20">
-      <RiCloseCircleLine className="w-3.5 h-3.5" />
-      Failed
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border backdrop-blur-md ${styles[type]}`}>
+      {icon[type]}
+      {text || status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
+  );
+}
+
+function GlassCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
+  return (
+    <div className={`bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl shadow-xl ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function FlowNode({ icon: Icon, title, subtitle, status = 'neutral', isEnd = false }: any) {
+  const statusColors = {
+    success: "border-green-500/50 text-green-400 bg-green-950/20 shadow-[0_0_15px_rgba(74,222,128,0.1)]",
+    failed: "border-red-500/50 text-red-400 bg-red-950/20 shadow-[0_0_15px_rgba(248,113,113,0.1)]",
+    neutral: "border-white/10 text-slate-400 bg-slate-800/30",
+    active: "border-blue-500/50 text-blue-400 bg-blue-950/20 shadow-[0_0_15px_rgba(96,165,250,0.1)]"
+  };
+
+  return (
+    <div className="flex items-center">
+      <div className={`relative flex flex-col items-center justify-center p-4 rounded-xl border min-w-[140px] transition-all duration-300 ${statusColors[status as keyof typeof statusColors]}`}>
+        <Icon className={`w-6 h-6 mb-2 ${status === 'neutral' ? 'opacity-50' : 'opacity-100'}`} />
+        <span className="text-xs font-bold tracking-wide uppercase opacity-80">{title}</span>
+        {subtitle && <span className="text-[10px] opacity-60 mt-1">{subtitle}</span>}
+        
+        {/* Status indicator dot */}
+        {status !== 'neutral' && (
+           <div className={`absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full border-2 border-slate-950 ${
+             status === 'success' ? 'bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 
+             status === 'failed' ? 'bg-red-500 shadow-[0_0_8px_rgba(248,113,113,0.8)]' : 'bg-blue-500'
+           }`}></div>
+        )}
+      </div>
+      {!isEnd && (
+        <div className="mx-2 text-slate-600">
+          <RiArrowRightLine className="w-5 h-5 opacity-30" />
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -80,277 +118,239 @@ export default function WebhookDeliveryViewerV2() {
   const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [secrets, setSecrets] = useState<SecretInfo[]>([]);
-
   const selectedDelivery = deliveries.find(d => d.id === selectedId);
 
   useEffect(() => {
     loadData();
-    
-    // Realtime subscription
-    const channel = supabase
-      .channel('webhook-viewer-v2')
+    const channel = supabase.channel('webhook-viewer-neon')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'webhook_deliveries' }, (payload) => {
-        const newDelivery = payload.new as WebhookDelivery;
-        setDeliveries(prev => [newDelivery, ...prev]);
-        if (!selectedId) setSelectedId(newDelivery.id); // Auto-select if first
-      })
-      .subscribe();
-
+        setDeliveries(prev => [payload.new as WebhookDelivery, ...prev]);
+        if (!selectedId) setSelectedId(payload.new.id);
+      }).subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [selectedId]);
 
   const loadData = async () => {
-    try {
-      setLoading(true);
-      const { user } = await getSafeUser();
-      if (!user) return;
-
-      // Fetch deliveries
-      const { data: deliveryData } = await supabase
-        .from('webhook_deliveries')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (deliveryData) {
-        setDeliveries(deliveryData);
-        if (deliveryData.length > 0) setSelectedId(deliveryData[0].id);
-      }
-
-      // Fetch secrets for context
-      const { data: secretData } = await supabase
-        .from('user_settings')
-        .select('host_email, webhook_secret')
-        .not('webhook_secret', 'is', null);
-        
-      if (secretData) setSecrets(secretData);
-
-    } catch (e) {
-      logger.error("Failed to load webhooks", e);
-    } finally {
-      setLoading(false);
-    }
+    setLoading(true);
+    const { data } = await supabase.from('webhook_deliveries').select('*').order('created_at', { ascending: false }).limit(50);
+    if (data) { setDeliveries(data as any); if (data.length > 0) setSelectedId(data[0].id); }
+    setLoading(false);
   };
 
-  const getRecordTitle = (d: WebhookDelivery) => d.request_body?.title || 'Unknown Meeting';
-  const getRecordEmail = (d: WebhookDelivery) => d.request_body?.recorded_by?.email || 'Unknown Email';
+  // Helper to determine step status
+  const getStepStatus = (d: WebhookDelivery, step: 'secret' | 'signature') => {
+    const res = d.payload?.verification_results;
+    if (step === 'secret') {
+      const hasPersonal = res?.personal_by_email?.available;
+      const hasOauth = res?.oauth_app_secret?.available;
+      return (hasPersonal || hasOauth) ? 'success' : 'failed';
+    }
+    if (step === 'signature') return d.signature_valid ? 'success' : 'failed';
+    return 'neutral';
+  };
 
-  // --- Render ---
   return (
-    <div className="flex h-full border rounded-xl overflow-hidden bg-card text-card-foreground shadow-sm">
-      {/* LEFT SIDEBAR: LIST */}
-      <div className="w-[350px] flex flex-col border-r bg-muted/10">
-        <div className="p-4 border-b">
-          <div className="relative">
-            <RiSearchLine className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search webhooks..." className="pl-9 h-9 text-sm" />
-          </div>
+    <div className="flex h-[800px] w-full bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden rounded-xl border border-slate-800 shadow-2xl">
+      
+      {/* Sidebar */}
+      <div className="w-[320px] flex flex-col border-r border-white/5 bg-slate-900/50 backdrop-blur-sm">
+        <div className="p-5 border-b border-white/5">
+           <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4">Recent Webhooks</h2>
+           <div className="relative">
+             <RiSearchLine className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
+             <input 
+               type="text" 
+               placeholder="Search event..." 
+               className="w-full bg-slate-800/50 border border-white/5 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
+             />
+           </div>
         </div>
-        <ScrollArea className="flex-1">
-          <div className="flex flex-col">
+        <ScrollArea className="flex-1 px-3 py-3">
+          <div className="space-y-2">
             {deliveries.map(d => (
               <button
                 key={d.id}
                 onClick={() => setSelectedId(d.id)}
-                className={`flex flex-col gap-1 p-4 text-left border-b transition-colors hover:bg-muted/50 ${
-                  selectedId === d.id ? 'bg-muted/80 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'
+                className={`group flex flex-col w-full text-left p-3 rounded-xl border transition-all duration-200 ${
+                  selectedId === d.id 
+                  ? 'bg-slate-800/80 border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.1)]' 
+                  : 'bg-transparent border-transparent hover:bg-slate-800/40 hover:border-white/5'
                 }`}
               >
-                <div className="flex items-center justify-between w-full mb-1">
-                  <StatusBadge status={d.status} />
-                  <span className="text-[10px] text-muted-foreground tabular-nums">
-                    {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
-                  </span>
+                <div className="flex items-center justify-between mb-2">
+                   <div className={`w-2 h-2 rounded-full ${
+                     d.status === 'success' ? 'bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 
+                     d.status === 'failed' ? 'bg-red-500 shadow-[0_0_8px_rgba(248,113,113,0.6)]' : 'bg-yellow-500'
+                   }`}></div>
+                   <span className="text-[10px] font-mono text-slate-500">
+                     {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
+                   </span>
                 </div>
-                <span className="font-medium text-sm truncate w-full">
-                  {getRecordTitle(d)}
-                </span>
-                <span className="text-xs text-muted-foreground truncate w-full">
+                <h3 className={`text-sm font-medium truncate w-full ${selectedId === d.id ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`}>
+                  {d.request_body?.title || 'Unknown Event'}
+                </h3>
+                <code className="text-[10px] text-slate-600 mt-1 truncate w-full font-mono opacity-60">
                   {d.webhook_id}
-                </span>
+                </code>
               </button>
             ))}
-            {deliveries.length === 0 && !loading && (
-              <div className="p-8 text-center text-sm text-muted-foreground">
-                No webhooks received yet.
-              </div>
-            )}
           </div>
         </ScrollArea>
       </div>
 
-      {/* RIGHT SIDE: DETAIL VIEW */}
-      <div className="flex-1 flex flex-col h-full bg-background">
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col relative overflow-hidden bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950">
+        
+        {/* Subtle background grid */}
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+
         {selectedDelivery ? (
-          <ScrollArea className="h-full">
-            <div className="p-8 space-y-8 max-w-4xl mx-auto">
+          <ScrollArea className="flex-1 h-full z-10">
+            <div className="p-8 max-w-5xl mx-auto space-y-8">
+              
               {/* Header */}
-              <div className="flex items-start justify-between">
+              <div className="flex items-center justify-between">
                 <div>
-                  <div className="flex items-center gap-3 mb-2">
-                    <h2 className="text-2xl font-bold tracking-tight">Webhook Details</h2>
-                    <StatusBadge status={selectedDelivery.status} />
-                  </div>
-                  <p className="text-muted-foreground flex items-center gap-2 text-sm">
-                    <RiTimeLine className="w-4 h-4" />
-                    Processed {new Date(selectedDelivery.created_at).toLocaleString()}
-                  </p>
+                   <div className="flex items-center gap-4 mb-2">
+                     <h1 className="text-2xl font-bold text-white tracking-tight">Webhook Verified</h1>
+                     <NeonBadge status={selectedDelivery.status} />
+                   </div>
+                   <p className="text-slate-400 text-sm flex items-center gap-2">
+                     <RiTimeLine className="w-4 h-4 text-slate-600" />
+                     {new Date(selectedDelivery.created_at).toUTCString()}
+                   </p>
                 </div>
-                <div className="text-right">
-                   <p className="text-xs font-mono text-muted-foreground mb-1">ID: {selectedDelivery.webhook_id}</p>
-                   {selectedDelivery.request_body?.url && (
-                     <a href={selectedDelivery.request_body.url} target="_blank" rel="noreferrer" className="text-sm text-primary hover:underline inline-flex items-center gap-1 justify-end">
-                       View in Fathom <RiExternalLinkLine className="w-3 h-3"/>
-                     </a>
-                   )}
+                <div className="flex gap-2">
+                  {selectedDelivery.request_body?.url && (
+                    <a href={selectedDelivery.request_body.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 text-xs font-medium transition-colors border border-white/5">
+                      Open in Fathom <RiExternalLinkLine className="w-3.5 h-3.5" />
+                    </a>
+                  )}
                 </div>
               </div>
 
-              {/* Verification Flow Visualization */}
+              {/* Logic Flow */}
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                  <RiShieldCheckLine className="w-4 h-4" />
-                  Security & Verification
-                </h3>
-                
-                <Card>
-                  <CardContent className="p-6">
-                    <div className="relative flex flex-col gap-8">
-                       {/* Step 1: User Lookup */}
-                       <div className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">1</div>
-                            <div className="w-0.5 h-full bg-border mt-2"></div>
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-sm">User Resolution</h4>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Matched host email <code>{getRecordEmail(selectedDelivery)}</code>
-                            </p>
-                          </div>
-                       </div>
+                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Verification Logic</h3>
+                 <GlassCard className="p-8">
+                    <div className="flex flex-wrap items-center justify-center gap-y-4">
+                       {/* 1. Start */}
+                       <FlowNode 
+                         icon={RiSearchLine}
+                         title="Resolution"
+                         subtitle="Match User"
+                         status="active" // Always active as step 1
+                       />
+                       
+                       {/* 2. Secret */}
+                       <FlowNode 
+                         icon={RiKey2Line}
+                         title="Found Secret"
+                         subtitle={selectedDelivery.payload?.verification_results?.personal_by_email?.available ? "Personal API" : "OAuth App"}
+                         status={getStepStatus(selectedDelivery, 'secret')}
+                       />
 
-                       {/* Step 2: Secret Lookup */}
-                       <div className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shrink-0">2</div>
-                             <div className="w-0.5 h-full bg-border mt-2"></div>
-                          </div>
-                          <div>
-                             <h4 className="font-medium text-sm">Secret Retrieval</h4>
-                             <div className="flex flex-wrap gap-2 mt-2">
-                                {/* Personal Secret Status */}
-                                <Badge variant="outline" className={`font-mono text-xs ${
-                                  selectedDelivery.payload?.verification_results?.personal_by_email?.available 
-                                  ? 'bg-green-500/5 border-green-500/30' 
-                                  : 'bg-muted text-muted-foreground'
-                                }`}>
-                                  Personal: {selectedDelivery.payload?.verification_results?.personal_by_email?.available ? 'Found' : 'Missing'}
-                                </Badge>
+                       {/* 3. Signature */}
+                       <FlowNode
+                         icon={RiShieldCheckLine}
+                         title={selectedDelivery.successful_method === 'svix' ? 'Svix Algo' : (selectedDelivery.successful_method ? 'Simple Algo' : 'Checking')}
+                         subtitle="HMAC-SHA256"
+                         status={getStepStatus(selectedDelivery, 'signature')}
+                       />
 
-                                {/* OAuth Secret Status */}
-                                <Badge variant="outline" className={`font-mono text-xs ${
-                                  selectedDelivery.payload?.verification_results?.oauth_app_secret?.available 
-                                  ? 'bg-blue-500/5 border-blue-500/30' 
-                                  : 'bg-muted text-muted-foreground'
-                                }`}>
-                                  OAuth App: {selectedDelivery.payload?.verification_results?.oauth_app_secret?.available ? 'Found' : 'Missing'}
-                                </Badge>
-                             </div>
-                          </div>
-                       </div>
-
-                       {/* Step 3: Signature Verification */}
-                       <div className="flex gap-4">
-                          <div className="flex flex-col items-center">
-                             <div className={`w-8 h-8 rounded-full flex items-center justify-center border shrink-0 ${
-                               selectedDelivery.status === 'success' || selectedDelivery.status === 'duplicate' 
-                               ? 'bg-green-500 text-white border-green-600' 
-                               : 'bg-red-500 text-white border-red-600'
-                             }`}>
-                               {selectedDelivery.status !== 'failed' ? <RiCheckboxCircleLine className="w-5 h-5"/> : <RiCloseCircleLine className="w-5 h-5"/>}
-                             </div>
-                          </div>
-                          <div>
-                             <h4 className="font-medium text-sm">Signature Check</h4>
-                             <p className="text-sm text-muted-foreground mt-1 mb-2">
-                               {selectedDelivery.status === 'failed' 
-                                 ? "All verification methods failed. The secret stored in DB does not match the signature sent by Fathom."
-                                 : `Verified successfully using method: ${selectedDelivery.payload?.successful_method?.toUpperCase().replace(/_/g, ' ') || 'Unknown'}`
-                               }
-                             </p>
-                             
-                             {/* Detailed Comparison Grid */}
-                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {Object.entries(selectedDelivery.payload?.verification_results || {}).map(([key, result]: [string, any]) => (
-                                  <div key={key} className={`p-3 rounded border text-xs ${result.verified ? 'bg-green-500/10 border-green-500/30' : 'bg-muted/30'}`}>
-                                    <div className="font-semibold mb-1 uppercase tracking-wider opacity-70 text-[10px]">{key.replace(/_/g, ' ')}</div>
-                                    <div className="flex justify-between items-center">
-                                      <span>Result:</span>
-                                      <span className={result.verified ? 'text-green-600 font-bold' : 'text-muted-foreground'}>
-                                        {result.verified ? 'PASSED' : 'FAILED'}
-                                      </span>
-                                    </div>
-                                    {result.secret_preview && (
-                                      <div className="font-mono text-[10px] mt-1 opacity-60">
-                                        Used Secret: {result.secret_preview}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                             </div>
-                          </div>
-                       </div>
+                       {/* 4. End */}
+                       <FlowNode
+                         icon={selectedDelivery.status === 'success' ? RiCheckboxCircleLine : RiCloseCircleLine}
+                         title={selectedDelivery.status === 'success' ? 'Verified' : 'Rejected'}
+                         status={selectedDelivery.status === 'success' ? 'success' : 'failed'}
+                         isEnd={true}
+                       />
                     </div>
-                  </CardContent>
-                </Card>
+                 </GlassCard>
+              </div>
 
-                {/* Diagnostics Help Box (Only IF Failed) */}
-                {selectedDelivery.status === 'failed' && (
-                  <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 flex gap-3">
-                    <RiAlertLine className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+              {/* Diagnostics (if failed) */}
+              {selectedDelivery.status === 'failed' && (
+                <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-5 relative overflow-hidden group">
+                  <div className="absolute inset-0 bg-red-500/5 group-hover:bg-red-500/10 transition-colors"></div>
+                  <div className="relative flex gap-4">
+                    <div className="p-3 rounded-lg bg-red-900/30 border border-red-500/20 shrink-0 h-fit">
+                      <RiAlertLine className="w-6 h-6 text-red-400" />
+                    </div>
                     <div>
-                      <h4 className="text-sm font-bold text-red-700 dark:text-red-400">Diagnosis: Secret Mismatch</h4>
-                      <p className="text-sm text-red-600/90 dark:text-red-400/90 mt-1">
-                        We found a secret for <strong>{getRecordEmail(selectedDelivery)}</strong> in your database, but it did not generate the correct signature. 
-                        This almost always means the secret in Fathom Settings is different from the one in your database.
+                      <h4 className="text-red-400 font-bold text-sm mb-1">Signature Mismatch Detected</h4>
+                      <p className="text-red-300/70 text-sm leading-relaxed max-w-2xl">
+                        The secret in your database (<code>{selectedDelivery.payload?.verification_results?.personal_by_email?.secret_preview || '...'}</code>) 
+                        did not match the signature provided by Fathom. This usually happens when the secret is regenerated in Fathom but not updated here.
                       </p>
-                      <Button variant="destructive" size="sm" className="mt-3" onClick={() => window.open('https://fathom.video/client/settings', '_blank')}>
-                        Open Fathom Settings to Check Secret
-                      </Button>
                     </div>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
 
-              {/* Payload Data */}
-              <div className="space-y-4">
-                <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-                   <RiFileTextLine className="w-4 h-4" />
-                   Record Payload
-                </h3>
-                <Card>
-                  <CardContent className="p-0 overflow-hidden">
-                    <ScrollArea className="h-[300px] w-full">
-                      <div className="p-4">
-                        <pre className="text-xs font-mono">
-                          {JSON.stringify(selectedDelivery.request_body, null, 2)}
-                        </pre>
-                      </div>
-                    </ScrollArea>
-                    <div className="bg-muted/50 p-2 text-xs text-center border-t text-muted-foreground">
-                       Raw JSON Payload ({JSON.stringify(selectedDelivery.request_body).length} bytes)
+              {/* Payload Data Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 
+                 {/* Metadata Card */}
+                 <GlassCard className="p-5 md:col-span-3">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
+                       <RiFileTextLine className="w-4 h-4" /> Payload Overview
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                       <div>
+                          <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Meeting Title</div>
+                          <div className="text-slate-200 font-medium truncate" title={selectedDelivery.request_body?.title}>
+                             {selectedDelivery.request_body?.title || '—'}
+                          </div>
+                       </div>
+                       <div>
+                          <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Duration</div>
+                          <div className="text-slate-200 font-medium">
+                             {selectedDelivery.request_body?.duration ? `${Math.round(selectedDelivery.request_body.duration / 60)} mins` : '—'}
+                          </div>
+                       </div>
+                       <div>
+                          <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Participants</div>
+                          <div className="text-slate-200 font-medium">
+                             {selectedDelivery.request_body?.participants?.length || 0} People
+                          </div>
+                       </div>
+                       <div>
+                          <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Action Items</div>
+                          <div className="text-slate-200 font-medium">
+                             {selectedDelivery.request_body?.action_items?.length || 0} Items
+                          </div>
+                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                 </GlassCard>
+
+                 {/* Raw JSON viewer */}
+                 <div className="md:col-span-3">
+                    <div className="flex items-center justify-between mb-2">
+                       <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Raw Payload</h3>
+                       <span className="text-[10px] text-slate-600 font-mono">JSON • Read-only</span>
+                    </div>
+                    <div className="bg-slate-950 rounded-xl border border-white/5 p-4 overflow-hidden relative">
+                       <ScrollArea className="h-[200px] w-full">
+                         <div className="font-mono text-xs text-slate-400">
+                           <pre className="whitespace-pre-wrap break-all">
+                             {JSON.stringify(selectedDelivery.request_body, null, 2)}
+                           </pre>
+                         </div>
+                       </ScrollArea>
+                    </div>
+                 </div>
+
               </div>
 
             </div>
           </ScrollArea>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
-             Select a webhook to view details
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-600 gap-4">
+             <div className="w-16 h-16 rounded-2xl bg-slate-900/50 border border-white/5 flex items-center justify-center">
+                <RiCpuLine className="w-8 h-8 opacity-20" />
+             </div>
+             <p className="text-sm font-medium">Select a webhook to inspect verification</p>
           </div>
         )}
       </div>
