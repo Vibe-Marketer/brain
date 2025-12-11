@@ -12,94 +12,98 @@ import {
   RiKey2Line,
   RiCpuLine,
   RiCheckLine,
-  RiCloseLine
+  RiCloseLine,
+  RiRefreshLine,
+  RiDatabase2Line,
+  RiBrainLine,
+  RiCheckboxBlankCircleLine
 } from "@remixicon/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 
 // --- Types ---
 interface WebhookDelivery {
   id: string;
   webhook_id: string;
-  recording_id: number | null;
-  status: 'success' | 'failed' | 'duplicate';
   created_at: string;
-  request_body: any;
+  status: 'success' | 'failed' | 'duplicate';
+  request_body: any; // { id, title, ... }
   payload: {
     verification_results?: {
       personal_by_email?: { available: boolean; verified: boolean; secret_preview?: string };
       oauth_app_secret?: { available: boolean; verified: boolean; secret_preview?: string };
-      first_user_fallback?: { available: boolean; verified: boolean; secret_preview?: string };
     };
     successful_method?: string;
   };
 }
 
+interface CallStatus {
+  found: boolean;
+  status?: string;
+  title?: string;
+  summary?: string;
+}
+
 // --- styled Components ---
 
-const GlassCard = ({ children, className = "", active = false }: { children: React.ReactNode, className?: string, active?: boolean }) => (
-  <div className={`
-    backdrop-blur-xl border transition-all duration-300 relative overflow-hidden
-    ${active 
-      ? 'bg-slate-800/60 border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.1)]' 
-      : 'bg-slate-900/40 border-white/5 hover:border-white/10 hover:bg-slate-800/40'}
-    ${className}
-  `}>
-    {children}
-  </div>
-);
-
-const LogicNode = ({ title, status, isStart = false, isEnd = false, subtext }: { title: string, status: 'success' | 'failed' | 'neutral', isStart?: boolean, isEnd?: boolean, subtext?: string }) => {
-  const colors = {
-    success: "border-green-500/40 bg-green-900/10 text-green-400 shadow-[0_0_15px_rgba(74,222,128,0.1)]",
-    failed: "border-red-500/40 bg-red-900/10 text-red-400 shadow-[0_0_15px_rgba(248,113,113,0.1)]",
-    neutral: "border-white/10 bg-slate-800/50 text-slate-400"
+const LogicNode = ({ title, status, subtext, active = false }: { title: string, status: 'success' | 'failed' | 'neutral' | 'active', subtext?: string, active?: boolean }) => {
+  const styles = {
+    success: "border-green-500/30 bg-green-500/10 text-green-400 shadow-[0_0_12px_rgba(34,197,94,0.1)]",
+    failed: "border-red-500/30 bg-red-500/10 text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.1)]",
+    neutral: "border-white/10 bg-slate-900/40 text-slate-500 opacity-60",
+    active: "border-indigo-500/50 bg-indigo-500/10 text-indigo-300 shadow-[0_0_12px_rgba(99,102,241,0.2)]"
   };
   
   return (
-    <div className="flex items-center">
-      <div className={`
-        relative px-5 py-3 rounded-xl border flex flex-col items-center justify-center min-w-[140px] z-10 backdrop-blur-md transition-all duration-500
-        ${colors[status]}
-      `}>
-        <div className="text-xs font-bold tracking-wide uppercase">{title}</div>
-        {subtext && <div className="text-[10px] opacity-70 mt-0.5">{subtext}</div>}
-        
-        {/* Status Icon Badge */}
-        {status !== 'neutral' && (
-          <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-950 shadow-lg ${status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
-            {status === 'success' ? <RiCheckLine className="w-3 h-3 text-slate-950 stroke-[3]" /> : <RiCloseLine className="w-3 h-3 text-white" />}
-          </div>
-        )}
-      </div>
+    <div className={`
+      relative px-4 py-3 rounded-xl border flex flex-col items-center justify-center min-w-[150px] backdrop-blur-md transition-all duration-300 z-10
+      ${styles[status]}
+    `}>
+      <div className="text-[11px] font-bold tracking-wider uppercase mb-0.5">{title}</div>
+      {subtext && <div className="text-[10px] opacity-70 font-mono">{subtext}</div>}
       
-      {!isEnd && (
-        <div className="w-8 h-0.5 bg-gradient-to-r from-slate-700 to-slate-800 mx-1 relative">
-           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-slate-700 rounded-full"></div>
-        </div>
-      )}
+      {/* Connector Dot (Right) */}
+      <div className={`absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-[#0B0F1A] 
+        ${status === 'success' ? 'bg-green-500' : status === 'failed' ? 'bg-red-500' : 'bg-slate-700'}
+      `} />
+      
+      {/* Connector Dot (Left - Only for non-roots) */}
+       <div className={`absolute -left-1.5 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-slate-700`} />
     </div>
   );
 };
 
+const MethodNode = ({ name, status }: { name: string, status: 'success' | 'failed' | 'neutral' }) => (
+  <div className={`
+    flex items-center gap-3 px-4 py-2 rounded-lg border text-[10px] font-bold uppercase transition-all
+    ${status === 'success' ? 'border-green-500/40 bg-green-950/30 text-green-400 opacity-100' : 
+      status === 'failed' ? 'border-red-500/20 bg-red-950/10 text-red-500/70 opacity-70 grayscale-[0.3]' : 
+      'border-white/5 bg-slate-900/40 text-slate-600'}
+  `}>
+    {status === 'success' ? <RiCheckboxCircleFill className="w-4 h-4" /> : 
+     status === 'failed' ? <RiCloseCircleFill className="w-4 h-4" /> : 
+     <RiCheckboxBlankCircleLine className="w-4 h-4 opacity-50" />}
+    <span>{name}</span>
+  </div>
+);
+
 export default function WebhookDeliveryViewerV2() {
   const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [callStatus, setCallStatus] = useState<CallStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // FIX: Removed [selectedId] from dependency array to prevent reset on click
+  // Load Webhooks
   useEffect(() => {
     loadData();
-    const channel = supabase.channel('webhook-viewer-final')
+    const channel = supabase.channel('webhook-viewer-v3')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'webhook_deliveries' }, (payload) => {
         setDeliveries(prev => [payload.new as WebhookDelivery, ...prev]);
-        // Only select new if we're at the top or nothing selected
-        setDeliveries(current => {
-           if (current.length === 0) setSelectedId(payload.new.id);
-           return [payload.new as WebhookDelivery, ...current];
-        });
+        setDeliveries(curr => { if (curr.length === 0) setSelectedId(payload.new.id); return [payload.new as WebhookDelivery, ...curr]; });
       }).subscribe();
-      
     return () => { supabase.removeChannel(channel); };
   }, []);
 
@@ -113,188 +117,212 @@ export default function WebhookDeliveryViewerV2() {
     setLoading(false);
   };
 
+  // Check Call Status when selected changes
+  useEffect(() => {
+    const checkCall = async () => {
+      setCallStatus(null);
+      const delivery = deliveries.find(d => d.id === selectedId);
+      if (!delivery?.request_body?.id) return; // No meeting ID
+
+      // Check fathom_calls table
+      const { data } = await supabase.from('fathom_calls').select('status, notification_title, summary').eq('meeting_id', delivery.request_body.id).maybeSingle();
+      
+      if (data) {
+        setCallStatus({ found: true, status: data.status, title: data.notification_title, summary: data.summary });
+      } else {
+        setCallStatus({ found: false });
+      }
+    };
+    checkCall();
+  }, [selectedId, deliveries]);
+
   const selected = deliveries.find(d => d.id === selectedId);
 
-  return (
-    <div className="flex h-[850px] w-full bg-[#0B0F1A] text-slate-200 font-sans overflow-hidden rounded-2xl border border-white/5 shadow-2xl">
-      
-      {/* 1. Sidebar Panel */}
-      <div className="w-[340px] flex flex-col border-r border-white/5 bg-[#0F131F]/80 backdrop-blur-md">
-        <div className="p-6 pb-4">
-           <h2 className="text-sm font-bold text-slate-100 mb-6">Recent Webhooks</h2>
-           <ScrollArea className="h-[750px] pr-4">
-             <div className="space-y-3">
-               {deliveries.map(d => {
-                 const isActive = selectedId === d.id;
-                 return (
-                   <button
-                     key={d.id}
-                     onClick={() => setSelectedId(d.id)}
-                     className={`w-full group text-left relative p-4 rounded-xl border transition-all duration-300
-                       ${isActive 
-                         ? 'bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-green-500/30 ring-1 ring-green-500/20 shadow-lg' 
-                         : 'bg-slate-900/20 border-white/5 hover:bg-slate-800/40 hover:border-white/10'}
-                     `}
-                   >
-                     {/* Glow effect for active */}
-                     {isActive && <div className="absolute inset-0 bg-green-500/5 rounded-xl blur-sm" />}
+  const handleReplay = () => {
+    toast.info("Replaying webhook logic...", { description: "This simulates the webhook event." });
+    // In future: Call an edge function to re-process headers/body
+  }
 
-                     <div className="relative flex items-start gap-4">
-                       <div className={`mt-1 w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor] shrink-0
-                         ${d.status === 'success' ? 'text-green-500 bg-green-500' : 'text-red-500 bg-red-500'}
-                       `} />
-                       
-                       <div className="flex-1 min-w-0">
-                         <div className="text-xs font-semibold text-slate-200 truncate pr-2">
-                           {d.request_body?.title || 'Unknown Event'}
-                         </div>
-                         <div className="text-[10px] text-slate-500 mt-1 font-mono truncate opacity-60">
-                           {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
-                         </div>
-                         <div className="text-[10px] text-slate-600 mt-1 font-mono truncate">
-                           ID: {d.webhook_id.substring(0, 18)}...
-                         </div>
-                       </div>
-                     </div>
-                   </button>
-                 );
-               })}
-             </div>
-           </ScrollArea>
+  return (
+    <div className="flex w-full h-full bg-[#0B0F1A] text-slate-200 font-sans shadow-2xl overflow-hidden rounded-md border border-white/5">
+      
+      {/* 1. Sidebar List */}
+      <div className="w-[320px] flex flex-col border-r border-white/5 bg-[#0F131F] flex-shrink-0">
+        <div className="p-4 border-b border-white/5 bg-[#0F131F] z-10 w-full">
+           <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Event Log</h2>
         </div>
+        <ScrollArea className="flex-1 w-full">
+          <div className="p-3 space-y-2 w-full">
+            {deliveries.map(d => {
+              const isActive = selectedId === d.id;
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => setSelectedId(d.id)}
+                  className={`w-full group text-left relative p-3 rounded-lg border transition-all duration-200 outline-none
+                    ${isActive 
+                      ? 'bg-gradient-to-r from-slate-800 to-slate-900 border-indigo-500/40 ring-1 ring-indigo-500/20 shadow-lg' 
+                      : 'bg-[#161b2c] border-white/5 hover:bg-slate-800 hover:border-white/10 opacity-80 hover:opacity-100'}
+                  `}
+                >
+                  <div className="flex justify-between items-start mb-1.5 w-full">
+                    <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide
+                      ${d.status === 'success' ? 'text-green-400' : 'text-red-400'}
+                    `}>
+                      <div className={`w-1.5 h-1.5 rounded-full ${d.status === 'success' ? 'bg-green-500' : 'bg-red-500'}`} />
+                      {d.status}
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">
+                      {formatDistanceToNow(new Date(d.created_at), { addSuffix: true }).replace('about ', '')}
+                    </span>
+                  </div>
+                  <div className="text-xs font-medium text-slate-200 truncate pr-2 mb-1 w-full">
+                    {d.request_body?.title || 'Unknown Event'}
+                  </div>
+                  <div className="text-[10px] text-slate-600 font-mono truncate opacity-60 w-full">
+                    {d.webhook_id}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
       </div>
 
-      {/* 2. Main Detail Panel */}
-      <div className="flex-1 flex flex-col relative bg-[#0B0F1A]">
-        {/* Background Gradients */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-green-600/5 rounded-full blur-[120px] pointer-events-none" />
+      {/* 2. Detail View */}
+      <div className="flex-1 flex flex-col min-w-0 bg-[#0B0F1A] relative h-full overflow-hidden">
+        {/* Ambient Glow */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-indigo-600/5 rounded-full blur-[100px] pointer-events-none" />
 
         {selected ? (
-          <ScrollArea className="flex-1 z-10">
-            <div className="p-8 max-w-5xl mx-auto space-y-10">
+          <ScrollArea className="h-full w-full">
+             <div className="p-8 max-w-5xl mx-auto space-y-12 pb-20">
               
-              {/* Header Title Area */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-6">
-                   <h1 className="text-3xl font-bold text-white tracking-tight">Webhook Verified</h1>
-                   <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-[0_0_15px_currentColor] flex items-center gap-2
-                     ${selected.status === 'success' 
-                       ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
-                       : 'bg-red-500/10 text-red-400 border border-red-500/20'}
-                   `}>
-                     {selected.status === 'success' ? 'Success' : 'Failed'}
+              {/* Header */}
+              <div className="flex items-start justify-between w-full">
+                <div>
+                   <h1 className="text-2xl font-bold text-white tracking-tight mb-2 flex items-center gap-3">
+                     {selected.request_body?.title || 'Webhook Details'}
+                   </h1>
+                   <div className="flex items-center gap-3 text-slate-400 text-xs font-mono">
+                     <span className="px-2 py-0.5 rounded bg-slate-800 border border-white/10">{selected.webhook_id}</span>
+                     <span>•</span>
+                     <span>{new Date(selected.created_at).toLocaleString()}</span>
                    </div>
                 </div>
-                <div className="text-right">
-                   <div className="text-slate-500 text-sm font-mono mb-1">{new Date(selected.created_at).toUTCString()}</div>
-                   {selected.request_body?.url && (
-                    <a href={selected.request_body.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center justify-end gap-1">
-                      View in Fathom <RiExternalLinkLine className="w-3 h-3"/>
-                    </a>
-                   )}
+                <div className="flex gap-3">
+                  <Button variant="outline" size="sm" className="bg-transparent border-white/10 hover:bg-white/5" onClick={handleReplay}>
+                    <RiRefreshLine className="w-4 h-4 mr-2" />
+                    Replay Event
+                  </Button>
                 </div>
               </div>
 
-              {/* 3. Logic & Verification Flow (The Graph) */}
-              <div>
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 ml-1">Verification Logic</h3>
-                <div className="relative p-10 rounded-2xl border border-white/5 bg-slate-900/30 backdrop-blur-sm overflow-hidden">
-                  {/* Grid Pattern Background */}
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
-
-                  <div className="relative flex flex-wrap items-center justify-center gap-y-8 z-10 w-full">
-                     
-                     {/* Step 1: User MATCH */}
-                     <LogicNode 
-                       title="Secret Resolution" 
-                       subtext="Match User Email"
-                       status="success" 
-                       isStart
-                     />
-
-                     {/* Step 2: Secret FOUND */}
-                     <LogicNode 
-                       title="Found Personal Secret" 
-                       subtext={selected.payload?.verification_results?.personal_by_email?.available ? "Matched by Email" : "Using Fallback"}
-                       status={
-                         (selected.payload?.verification_results?.personal_by_email?.available || selected.payload?.verification_results?.oauth_app_secret?.available) 
-                         ? 'success' : 'failed'
-                       }
-                     />
-
-                     <div className="flex flex-col gap-4 mx-4">
-                        {/* Branch A: Native */}
-                        <div className="flex items-center opacity-50">
-                           <RiArrowRightLine className="w-5 h-5 text-slate-600 mr-2" />
-                           <div className="px-4 py-2 rounded-lg border border-red-500/20 bg-red-950/20 text-red-400 text-[10px] font-bold uppercase">
-                              Native (Failed)
-                           </div>
-                        </div>
-
-                        {/* Branch B: Simply (Body Only) */}
-                        <div className="flex items-center opacity-50">
-                           <RiArrowRightLine className="w-5 h-5 text-slate-600 mr-2" />
-                           <div className="px-4 py-2 rounded-lg border border-red-500/20 bg-red-950/20 text-red-400 text-[10px] font-bold uppercase">
-                              Simple (Failed)
-                           </div>
-                        </div>
-
-                        {/* Branch C: Svix (or Successful One) */}
-                        <div className="flex items-center scale-110 origin-left">
-                           <div className="w-8 h-0.5 bg-green-500 mr-2 shadow-[0_0_10px_#22c55e]"></div>
-                           <div className={`px-5 py-3 rounded-xl border text-xs font-bold uppercase shadow-lg flex items-center gap-2
-                             ${selected.status === 'success' 
-                               ? 'border-green-500 text-slate-950 bg-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]' 
-                               : 'border-red-500 text-slate-950 bg-red-500'}
-                           `}>
-                              {selected.payload?.successful_method === 'svix' ? 'Svix Method' : 'Method'}
-                              {selected.status === 'success' ? <RiCheckLine className="w-4 h-4"/> : <RiCloseLine className="w-4 h-4"/>}
-                           </div>
-                        </div>
-                     </div>
-
-                  </div>
-                </div>
-              </div>
-
-              {/* 4. Payload Overview Cards */}
-              <div className="grid grid-cols-4 gap-4">
-                 {[
-                   { label: "Meeting Title", val: selected.request_body?.title, width: "col-span-2" },
-                   { label: "Duration", val: selected.request_body?.duration ? `${Math.round(selected.request_body.duration/60)} mins` : null },
-                   { label: "Participants", val: `${selected.request_body?.participants?.length || 0} People` },
-                 ].map((item, i) => (
-                   <div key={i} className={`p-5 rounded-xl border border-white/5 bg-slate-900/40 backdrop-blur-sm ${item.width || ''}`}>
-                      <div className="text-[10px] font-bold uppercase text-slate-500 mb-2">{item.label}</div>
-                      <div className="text-sm font-medium text-slate-200 truncate">{item.val || '—'}</div>
-                   </div>
-                 ))}
-              </div>
-
-              {/* 5. Raw JSON Payload */}
-              <div className="rounded-xl border border-white/5 overflow-hidden bg-[#0A0E17]">
-                 <div className="px-4 py-2 border-b border-white/5 flex items-center justify-between bg-slate-900/50">
-                    <span className="text-[10px] font-bold uppercase text-slate-500">Raw JSON</span>
-                    <div className="flex gap-1.5">
-                       <div className="w-2.5 h-2.5 rounded-full bg-red-500/20"></div>
-                       <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20"></div>
-                       <div className="w-2.5 h-2.5 rounded-full bg-green-500/20"></div>
+              {/* OUTCOME / VALUE SECTION (New) */}
+              <div className="grid grid-cols-2 gap-4 w-full">
+                 <div className="p-5 rounded-xl border border-white/10 bg-slate-900/40 backdrop-blur flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                       <RiDatabase2Line className="w-5 h-5 text-indigo-400" />
+                    </div>
+                    <div>
+                       <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Data Storage</div>
+                       <div className="text-sm font-medium text-slate-200">
+                          {callStatus?.found ? (
+                            <span className="text-green-400 flex items-center gap-1.5">
+                              <RiCheckLine className="w-3.5 h-3.5" /> Call Record Created
+                            </span>
+                          ) : (
+                            <span className="text-slate-500 italic">No record found yet</span>
+                          )}
+                       </div>
                     </div>
                  </div>
-                 <ScrollArea className="h-[250px] w-full">
-                    <div className="p-4 font-mono text-xs leading-relaxed text-indigo-200/80 selection:bg-indigo-500/30">
-                       <pre>{JSON.stringify(selected.request_body, null, 2)}</pre>
+
+                 <div className="p-5 rounded-xl border border-white/10 bg-slate-900/40 backdrop-blur flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center border border-purple-500/20">
+                       <RiBrainLine className="w-5 h-5 text-purple-400" />
                     </div>
-                 </ScrollArea>
+                    <div>
+                       <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Processing</div>
+                       <div className="text-sm font-medium text-slate-200">
+                          {callStatus?.status === 'completed' ? (
+                            <span className="text-purple-400 flex items-center gap-1.5">
+                              <RiCheckLine className="w-3.5 h-3.5" /> Analysis Complete
+                            </span>
+                          ) : callStatus?.status ? (
+                            <span className="text-yellow-400 capitalize">{callStatus.status.replace(/_/g, ' ')}</span>
+                          ) : (
+                            <span className="text-slate-500">Waiting for data...</span>
+                          )}
+                       </div>
+                    </div>
+                 </div>
               </div>
 
-            </div>
+
+              {/* LOGIC GRAPH (The Tree) */}
+              <div className="relative w-full">
+                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6">Verification Path</h3>
+                 
+                 <div className="relative p-12 rounded-2xl border border-white/5 bg-[#0D111D] overflow-hidden w-full">
+                    {/* SVG Connector Lines */}
+                    <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20" xmlns="http://www.w3.org/2000/svg">
+                       {/* Path from Resolution to Secret */}
+                       <path d="M220 70 L340 70" stroke="white" strokeWidth="2" fill="none" />
+                       {/* Path from Secret to Methods (Branching) */}
+                       <path d="M490 70 L550 70 L550 40 L580 40" stroke="white" strokeWidth="2" fill="none" className={selected.payload?.successful_method === 'svix' ? 'opacity-20' : ''}/>
+                       <path d="M550 70 L580 70" stroke="white" strokeWidth="2" fill="none" />
+                       <path d="M550 70 L550 100 L580 100" stroke="white" strokeWidth="2" fill="none" />
+                    </svg>
+
+                    <div className="relative flex items-center gap-16 z-10 pl-10">
+                       
+                       {/* 1. Root */}
+                       <LogicNode 
+                         title="User Resolution" 
+                         subtext="Matched Email"
+                         status="success" 
+                       />
+
+                       {/* 2. Secret */}
+                       <LogicNode 
+                         title="Secret Handling" 
+                         subtext={selected.payload?.verification_results?.personal_by_email?.available ? "Found Personal Key" : "Found OAuth Key"}
+                         status="success" 
+                       />
+
+                       {/* 3. Branching Methods */}
+                       <div className="flex flex-col gap-3 ml-8">
+                          {/* Native */}
+                          <MethodNode name="Native (x-signature)" status="failed" />
+                          
+                          {/* Simple */}
+                          <MethodNode name="Simple (Header)" status="failed" />
+                          
+                          {/* Svix (or active) */}
+                          <MethodNode 
+                             name={selected.payload?.successful_method === 'svix' ? "Svix (Standard)" : "Checking..."} 
+                             status={selected.status === 'success' ? 'success' : 'failed'} 
+                          />
+                       </div>
+
+                    </div>
+                 </div>
+              </div>
+
+              {/* PAYLOAD PREVIEW */}
+              <div className="space-y-4 w-full">
+                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest">Raw Payload</h3>
+                 <div className="rounded-xl border border-white/5 bg-[#0A0E17] font-mono text-xs p-6 overflow-x-auto text-indigo-200/70 leading-relaxed shadow-inner w-full">
+                   <pre>{JSON.stringify(selected.request_body, null, 2)}</pre>
+                 </div>
+              </div>
+
+             </div>
           </ScrollArea>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-600 gap-4 opacity-50">
-             <RiCpuLine className="w-16 h-16 opacity-20" />
-             <p className="font-medium tracking-wide">SELECT A WEBHOOK</p>
+          <div className="flex-1 flex items-center justify-center text-slate-600">
+             Select an event to inspect
           </div>
         )}
       </div>
