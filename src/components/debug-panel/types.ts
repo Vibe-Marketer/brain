@@ -93,7 +93,7 @@ export interface EnhancedDebugDump extends DebugDump {
 
 export type MessageFilter = 'all' | 'error' | 'warning' | 'info' | 'network' | 'console' | 'websocket';
 export type CategoryFilter = 'all' | 'api' | 'auth' | 'sync' | 'ui' | 'network' | 'system' | 'react' | 'websocket';
-export type ViewMode = 'list' | 'timeline' | 'analytics';
+export type ViewMode = 'list' | 'timeline' | 'analytics' | 'webhooks';
 
 // Resolved error record for tracking recurrence
 export interface ResolvedErrorRecord {

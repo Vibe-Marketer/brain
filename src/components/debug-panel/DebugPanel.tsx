@@ -26,6 +26,7 @@ import {
   RiArrowGoBackLine,
   RiEyeOffLine,
   RiEyeLine,
+  RiGlobeLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { captureDebugScreenshot } from '@/lib/screenshot';
@@ -33,6 +34,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useDebugPanel, setGlobalDebugLogger } from './DebugPanelContext';
 import type { DebugMessage, DebugDump, EnhancedDebugDump, MessageFilter, CategoryFilter, ViewMode } from './types';
 import { generateSummary, parseUserAgent, formatAsMarkdown } from './debug-dump-utils';
+import WebhookDeliveryViewer from '../WebhookDeliveryViewer';
 
 // Error Boundary to prevent debug panel crashes from affecting main app
 class DebugPanelErrorBoundary extends Component<
@@ -392,6 +394,7 @@ function DebugPanelCore() {
                 { key: 'list' as const, icon: RiListUnordered, label: 'List' },
                 { key: 'analytics' as const, icon: RiBarChartLine, label: 'Stats' },
                 { key: 'timeline' as const, icon: RiTimeLine, label: 'Timeline' },
+                { key: 'webhooks' as const, icon: RiGlobeLine, label: 'Webhooks' },
               ].map(({ key, icon: Icon, label }) => (
                 <button
                   key={key}
@@ -758,6 +761,10 @@ function DebugPanelCore() {
                   </div>
                 </div>
               )}
+            </div>
+          ) : viewMode === 'webhooks' ? (
+            <div className="p-4 h-full overflow-y-auto">
+              <WebhookDeliveryViewer />
             </div>
           ) : (
             /* List View */

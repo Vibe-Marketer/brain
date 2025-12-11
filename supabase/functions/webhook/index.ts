@@ -46,6 +46,126 @@ async function verifyFathomSignature(
   return expected === xSignature;
 }
 
+// Fathom simple signature verification (per Fathom docs: HMAC-SHA256 of body with secret)
+// This is what Fathom docs show, but it may send webhook-signature header with v1, prefix
+async function verifyFathomSimpleSignature(
+  secret: string,
+  headers: Headers,
+  rawBody: string
+): Promise<boolean> {
+  const signatureHeader = headers.get('webhook-signature');
+  if (!signatureHeader) {
+    return false;
+  }
+
+  console.log('Verifying Fathom simple signature (body only, no id.timestamp)');
+
+  // Extract signature(s) from header (format: "v1,signature" or space separated list)
+  const signatures = signatureHeader.split(' ').map(s => {
+    if (s.startsWith('v1,')) return s.substring(3);
+    return s; // Fallback for raw signature
+  });
+
+  // Per Fathom docs: Use the secret directly to HMAC the raw body
+  // The secret is the full whsec_XXXX string used as-is
+  const encoder = new TextEncoder();
+  const secretBytes = encoder.encode(secret);
+  const messageData = encoder.encode(rawBody);
+
+  const cryptoKey = await crypto.subtle.importKey(
+    'raw',
+    secretBytes,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
+  const computed = btoa(String.fromCharCode(...new Uint8Array(signature)));
+
+  // Store computed signature
+  signatureDebugInfo.simple_full_secret = computed;
+
+  console.log('Fathom simple - Computed signature:', computed);
+  console.log('Fathom simple - Received signatures:', signatures);
+
+  if (signatures.includes(computed)) {
+    return true;
+  }
+
+  // Also try with just the base64 part of the secret (after whsec_) as UTF-8 string
+  if (secret.startsWith('whsec_')) {
+    const secretPart = secret.substring(6);
+    const secretBytes2 = encoder.encode(secretPart);
+
+    const cryptoKey2 = await crypto.subtle.importKey(
+      'raw',
+      secretBytes2,
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    );
+
+    const signature2 = await crypto.subtle.sign('HMAC', cryptoKey2, messageData);
+    const computed2 = btoa(String.fromCharCode(...new Uint8Array(signature2)));
+
+    // Store computed signature
+    signatureDebugInfo.simple_no_prefix = computed2;
+
+    console.log('Fathom simple (no prefix, as string) - Computed signature:', computed2);
+
+    if (signatures.includes(computed2)) {
+      return true;
+    }
+
+    // CRITICAL: Also try BASE64 DECODING the secret part (like Svix format)
+    // This is likely the correct format: secret is base64-encoded bytes after whsec_
+    // but we HMAC just the body (not id.timestamp.body like Svix)
+    try {
+      const decodedSecretBytes = Uint8Array.from(atob(secretPart), c => c.charCodeAt(0));
+      console.log('Fathom simple (base64 decoded secret) - Decoded secret length:', decodedSecretBytes.length);
+
+      const cryptoKey3 = await crypto.subtle.importKey(
+        'raw',
+        decodedSecretBytes,
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+
+      const signature3 = await crypto.subtle.sign('HMAC', cryptoKey3, messageData);
+      const computed3 = btoa(String.fromCharCode(...new Uint8Array(signature3)));
+
+      // Store computed signature
+      signatureDebugInfo.simple_base64_decoded = computed3;
+
+      console.log('Fathom simple (base64 decoded secret) - Computed signature:', computed3);
+
+      if (signatures.includes(computed3)) {
+        return true;
+      }
+    } catch (decodeError) {
+      console.log('Failed to base64 decode secret part:', decodeError);
+    }
+  }
+
+  return false;
+}
+
+// Store debug info for signature verification
+const signatureDebugInfo: {
+  received_signature?: string;
+  svix_computed?: string;
+  simple_full_secret?: string;
+  simple_no_prefix?: string;
+  simple_base64_decoded?: string;
+  raw_body_length?: number;
+  raw_body_first_100?: string;
+  raw_body_last_100?: string;
+  webhook_id?: string;
+  webhook_timestamp?: string;
+} = {};
+
 // Svix signature verification (for API Key webhooks)
 async function verifySvixSignature(
   secret: string,
@@ -68,6 +188,14 @@ async function verifySvixSignature(
     return false;
   }
 
+  // Store debug info
+  signatureDebugInfo.received_signature = signatureBlock;
+  signatureDebugInfo.webhook_id = webhookId;
+  signatureDebugInfo.webhook_timestamp = webhookTimestamp;
+  signatureDebugInfo.raw_body_length = rawBody.length;
+  signatureDebugInfo.raw_body_first_100 = rawBody.substring(0, 100);
+  signatureDebugInfo.raw_body_last_100 = rawBody.substring(rawBody.length - 100);
+
   // Svix signs the format: webhook-id.webhook-timestamp.body
   const signedContent = `${webhookId}.${webhookTimestamp}.${rawBody}`;
   console.log('Verifying Svix signature for content, length:', signedContent.length);
@@ -82,6 +210,7 @@ async function verifySvixSignature(
   // Base64 decode the secret
   const secretBytes = Uint8Array.from(atob(secretParts[1]), c => c.charCodeAt(0));
   console.log('Decoded secret length:', secretBytes.length);
+  console.log('Secret being used (first 10 chars):', secret.substring(0, 16) + '...');
 
   // Use Web Crypto API to sign the Svix format
   const encoder = new TextEncoder();
@@ -98,14 +227,26 @@ async function verifySvixSignature(
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
   const expected = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
-  console.log('Expected Svix signature:', expected);
-  console.log('Received Svix signatures:', signatureBlock);
+  // Store computed signature
+  signatureDebugInfo.svix_computed = expected;
+
+  console.log('🔐 SVIX SIGNATURE COMPARISON:');
+  console.log('   Computed signature:', expected);
+  console.log('   Received signature:', signatureBlock);
+  console.log('   Match:', expected === signatureBlock ? '✅ YES' : '❌ NO');
+
+  // Also compare character by character for debugging
+  if (expected !== signatureBlock) {
+    console.log('   First diff at position:', [...expected].findIndex((c, i) => c !== signatureBlock[i]));
+    console.log('   Expected length:', expected.length);
+    console.log('   Received length:', signatureBlock.length);
+  }
 
   const signatures = signatureBlock.split(' ');
   return signatures.includes(expected);
 }
 
-// Main verification function that tries both methods
+// Main verification function that tries all methods
 async function verifyWebhookSignature(
   secret: string,
   headers: Headers,
@@ -129,7 +270,18 @@ async function verifyWebhookSignature(
     console.log('❌ Fathom native signature failed');
   }
 
-  // Try Svix signature (webhook-signature header)
+  // Try Fathom simple signature (per Fathom docs: HMAC of body only)
+  if (headers.get('webhook-signature')) {
+    console.log('🔐 Attempting Fathom simple signature verification (body only)...');
+    const fathomSimpleValid = await verifyFathomSimpleSignature(secret, headers, rawBody);
+    if (fathomSimpleValid) {
+      console.log('✅ Fathom simple signature verified');
+      return true;
+    }
+    console.log('❌ Fathom simple signature failed');
+  }
+
+  // Try Svix signature (webhook-signature header with id.timestamp.body)
   if (headers.get('webhook-signature')) {
     console.log('🔐 Attempting Svix signature verification...');
     const svixValid = await verifySvixSignature(secret, headers, rawBody);
@@ -554,7 +706,10 @@ Deno.serve(async (req) => {
           request_headers: Object.fromEntries(req.headers.entries()),
           request_body: meeting,
           signature_valid: false,
-          payload: { verification_results: verificationResults }
+          payload: {
+            verification_results: verificationResults,
+            signature_debug: signatureDebugInfo
+          }
         });
       }
 
@@ -562,6 +717,7 @@ Deno.serve(async (req) => {
         JSON.stringify({
           error: 'Invalid signature',
           verification_results: verificationResults,
+          signature_debug: signatureDebugInfo,
           hint: 'Check logs for which secrets were tested and their results'
         }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

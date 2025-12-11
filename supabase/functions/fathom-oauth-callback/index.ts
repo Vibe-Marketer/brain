@@ -119,10 +119,61 @@ Deno.serve(async (req) => {
 
     console.log('OAuth tokens stored successfully for user:', user.id);
 
+    // AUTO-DETECT HOST EMAIL: Fetch one meeting to get the user's Fathom email
+    // This is critical for webhook routing - webhooks use recorded_by.email to identify the user
+    let detectedHostEmail: string | null = null;
+    try {
+      console.log('Attempting to auto-detect host_email from Fathom...');
+      const meetingsResponse = await fetch('https://fathom.video/external/v1/meetings?limit=1', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${tokens.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (meetingsResponse.ok) {
+        const meetingsData = await meetingsResponse.json();
+        if (meetingsData.items && meetingsData.items.length > 0) {
+          const firstMeeting = meetingsData.items[0];
+          if (firstMeeting.recorded_by?.email) {
+            detectedHostEmail = firstMeeting.recorded_by.email;
+            console.log('Auto-detected host_email:', detectedHostEmail);
+
+            // Update host_email in user_settings
+            const { error: hostEmailError } = await supabase
+              .from('user_settings')
+              .update({ host_email: detectedHostEmail })
+              .eq('user_id', user.id);
+
+            if (hostEmailError) {
+              console.error('Failed to update host_email:', hostEmailError);
+              // Non-fatal - continue with success response
+            } else {
+              console.log('Successfully set host_email for user:', user.id);
+            }
+          } else {
+            console.log('No recorded_by.email found in first meeting');
+          }
+        } else {
+          console.log('No meetings found to detect host_email - user may need to record a call first');
+        }
+      } else {
+        console.log('Failed to fetch meetings for host_email detection:', meetingsResponse.status);
+      }
+    } catch (hostEmailError) {
+      console.error('Error during host_email detection (non-fatal):', hostEmailError);
+      // Non-fatal error - OAuth connection succeeded, just couldn't auto-detect email
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Successfully connected to Fathom',
+        host_email_detected: detectedHostEmail,
+        host_email_note: detectedHostEmail
+          ? `Your Fathom account email (${detectedHostEmail}) has been automatically configured for webhook sync.`
+          : 'No meetings found yet. Your host email will be detected when you make your first call.',
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

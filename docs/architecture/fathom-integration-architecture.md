@@ -43,12 +43,20 @@ There are **two ways** meetings get into CallVault:
 2. Fall back to API key if refresh fails
 
 ### For Webhook Verification
+Webhooks are verified using a robust multi-method strategy to handle Fathom's varying signature formats:
 
-| Method | Header | Stored In | Use Case |
-|--------|--------|-----------|----------|
-| **OAuth App Secret** | `webhook-signature` (Svix format) | `FATHOM_OAUTH_WEBHOOK_SECRET` env var | ALL OAuth app webhooks |
+1. **Verification Methods (tried in order)**:
+   - **Fathom Native**: Checks `x-signature` header (HMAC-SHA256 of body with secret).
+   - **Fathom Simple**: Checks `webhook-signature` header against HMAC-SHA256 of **body only**.
+     - Tries with full secret string.
+     - Tries with secret string matching `whsec_` prefix removed.
+     - Tries with Base64-decoded secret (standard Svix style but body-only).
+   - **Svix Standard**: Checks `webhook-signature` against `webhook-id`.`webhook-timestamp`.`body`.
 
-**Important:** The OAuth app webhook secret is **shared for ALL users** who connect via OAuth. The `recorded_by.email` in the webhook payload tells you WHO recorded the call, but the signature is always verified with the same OAuth app secret.
+2. **Secret Resolution**:
+   - **Personal Webhooks**: Matched by `recorded_by.email` in the payload -> `user_settings.host_email`. Uses the unique `webhook_secret` for that user.
+   - **OAuth App Webhooks**: Falls back to shared `FATHOM_OAUTH_WEBHOOK_SECRET` if configured.
+   - **Fallback**: As a last resort, tries the first user's secret (legacy support).
 
 ---
 
