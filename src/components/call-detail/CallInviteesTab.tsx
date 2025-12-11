@@ -28,11 +28,10 @@ export function CallInviteesTab({ calendarInvitees }: CallInviteesTabProps) {
               <div className="space-y-3">
                 {calendarInvitees.map((invitee, idx) => (
                   <div key={idx} className="relative flex items-start gap-3 py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
-                    {/* Vibe green angled marker - STANDARDIZED DIMENSIONS */}
+                    {/* Vibe orange angled marker - STANDARDIZED DIMENSIONS */}
                     <div
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-cb-vibe-orange"
                       style={{
-                        backgroundColor: "rgb(217, 252, 103)",
                         clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
                       }}
                     />

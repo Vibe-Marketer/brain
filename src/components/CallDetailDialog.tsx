@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
@@ -309,6 +310,9 @@ export function CallDetailDialog({
         className="max-w-5xl h-[90vh] flex flex-col overflow-hidden bg-card"
         aria-describedby="call-detail-description"
       >
+        <DialogDescription id="call-detail-description" className="sr-only">
+          View and edit call details including overview, transcript, invitees, and participants.
+        </DialogDescription>
         <CallDetailHeader
           call={call}
           isEditing={isEditing}

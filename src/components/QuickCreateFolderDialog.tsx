@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -214,6 +215,9 @@ export default function QuickCreateFolderDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Create New Folder</DialogTitle>
+          <DialogDescription className="sr-only">
+            Create a new folder with a name, icon, parent folder, and optional description.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">

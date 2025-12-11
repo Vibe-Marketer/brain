@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -219,6 +220,9 @@ export default function EditFolderDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Edit Folder</DialogTitle>
+          <DialogDescription className="sr-only">
+            Edit the folder name, icon, parent folder, and description.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
