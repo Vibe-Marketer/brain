@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { 
-  RiCheckboxCircleLine, 
-  RiCloseCircleLine, 
-  RiAlertLine, 
+  RiCheckboxCircleFill, 
+  RiCloseCircleFill, 
   RiTimeLine, 
   RiSearchLine,
   RiShieldCheckLine,
@@ -11,14 +10,12 @@ import {
   RiExternalLinkLine,
   RiArrowRightLine,
   RiKey2Line,
-  RiCpuLine
+  RiCpuLine,
+  RiCheckLine,
+  RiCloseLine
 } from "@remixicon/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
-import { getSafeUser } from "@/lib/auth-utils";
-import { logger } from "@/lib/logger";
 
 // --- Types ---
 interface WebhookDelivery {
@@ -26,8 +23,7 @@ interface WebhookDelivery {
   webhook_id: string;
   recording_id: number | null;
   status: 'success' | 'failed' | 'duplicate';
-  error_message: string | null;
-  request_headers: Record<string, string>;
+  created_at: string;
   request_body: any;
   payload: {
     verification_results?: {
@@ -37,320 +33,268 @@ interface WebhookDelivery {
     };
     successful_method?: string;
   };
-  created_at: string;
-  user_id: string;
 }
 
-interface SecretInfo {
-  host_email: string;
-  webhook_secret: string;
-}
+// --- styled Components ---
 
-// --- Neon Components ---
+const GlassCard = ({ children, className = "", active = false }: { children: React.ReactNode, className?: string, active?: boolean }) => (
+  <div className={`
+    backdrop-blur-xl border transition-all duration-300 relative overflow-hidden
+    ${active 
+      ? 'bg-slate-800/60 border-green-500/50 shadow-[0_0_20px_rgba(34,197,94,0.1)]' 
+      : 'bg-slate-900/40 border-white/5 hover:border-white/10 hover:bg-slate-800/40'}
+    ${className}
+  `}>
+    {children}
+  </div>
+);
 
-function NeonBadge({ status, text }: { status: string, text?: string }) {
-  const styles = {
-    success: "bg-green-500/10 text-green-400 border-green-500/50 shadow-[0_0_10px_rgba(74,222,128,0.2)]",
-    failed: "bg-red-500/10 text-red-400 border-red-500/50 shadow-[0_0_10px_rgba(248,113,113,0.2)]",
-    duplicate: "bg-yellow-500/10 text-yellow-400 border-yellow-500/50 shadow-[0_0_10px_rgba(250,204,21,0.2)]",
-    neutral: "bg-slate-700/50 text-slate-400 border-slate-600",
+const LogicNode = ({ title, status, isStart = false, isEnd = false, subtext }: { title: string, status: 'success' | 'failed' | 'neutral', isStart?: boolean, isEnd?: boolean, subtext?: string }) => {
+  const colors = {
+    success: "border-green-500/40 bg-green-900/10 text-green-400 shadow-[0_0_15px_rgba(74,222,128,0.1)]",
+    failed: "border-red-500/40 bg-red-900/10 text-red-400 shadow-[0_0_15px_rgba(248,113,113,0.1)]",
+    neutral: "border-white/10 bg-slate-800/50 text-slate-400"
   };
   
-  const icon = {
-    success: <RiCheckboxCircleLine className="w-3.5 h-3.5" />,
-    failed: <RiCloseCircleLine className="w-3.5 h-3.5" />,
-    duplicate: <RiAlertLine className="w-3.5 h-3.5" />,
-    neutral: null
-  };
-
-  const type = (status as keyof typeof styles) || 'neutral';
-
-  return (
-    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border backdrop-blur-md ${styles[type]}`}>
-      {icon[type]}
-      {text || status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
-  );
-}
-
-function GlassCard({ children, className = "" }: { children: React.ReactNode, className?: string }) {
-  return (
-    <div className={`bg-slate-900/40 backdrop-blur-xl border border-white/5 rounded-2xl shadow-xl ${className}`}>
-      {children}
-    </div>
-  );
-}
-
-function FlowNode({ icon: Icon, title, subtitle, status = 'neutral', isEnd = false }: any) {
-  const statusColors = {
-    success: "border-green-500/50 text-green-400 bg-green-950/20 shadow-[0_0_15px_rgba(74,222,128,0.1)]",
-    failed: "border-red-500/50 text-red-400 bg-red-950/20 shadow-[0_0_15px_rgba(248,113,113,0.1)]",
-    neutral: "border-white/10 text-slate-400 bg-slate-800/30",
-    active: "border-blue-500/50 text-blue-400 bg-blue-950/20 shadow-[0_0_15px_rgba(96,165,250,0.1)]"
-  };
-
   return (
     <div className="flex items-center">
-      <div className={`relative flex flex-col items-center justify-center p-4 rounded-xl border min-w-[140px] transition-all duration-300 ${statusColors[status as keyof typeof statusColors]}`}>
-        <Icon className={`w-6 h-6 mb-2 ${status === 'neutral' ? 'opacity-50' : 'opacity-100'}`} />
-        <span className="text-xs font-bold tracking-wide uppercase opacity-80">{title}</span>
-        {subtitle && <span className="text-[10px] opacity-60 mt-1">{subtitle}</span>}
+      <div className={`
+        relative px-5 py-3 rounded-xl border flex flex-col items-center justify-center min-w-[140px] z-10 backdrop-blur-md transition-all duration-500
+        ${colors[status]}
+      `}>
+        <div className="text-xs font-bold tracking-wide uppercase">{title}</div>
+        {subtext && <div className="text-[10px] opacity-70 mt-0.5">{subtext}</div>}
         
-        {/* Status indicator dot */}
+        {/* Status Icon Badge */}
         {status !== 'neutral' && (
-           <div className={`absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full border-2 border-slate-950 ${
-             status === 'success' ? 'bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.8)]' : 
-             status === 'failed' ? 'bg-red-500 shadow-[0_0_8px_rgba(248,113,113,0.8)]' : 'bg-blue-500'
-           }`}></div>
+          <div className={`absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center border-2 border-slate-950 shadow-lg ${status === 'success' ? 'bg-green-500' : 'bg-red-500'}`}>
+            {status === 'success' ? <RiCheckLine className="w-3 h-3 text-slate-950 stroke-[3]" /> : <RiCloseLine className="w-3 h-3 text-white" />}
+          </div>
         )}
       </div>
+      
       {!isEnd && (
-        <div className="mx-2 text-slate-600">
-          <RiArrowRightLine className="w-5 h-5 opacity-30" />
+        <div className="w-8 h-0.5 bg-gradient-to-r from-slate-700 to-slate-800 mx-1 relative">
+           <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-slate-700 rounded-full"></div>
         </div>
       )}
     </div>
   );
-}
+};
 
-// --- Main Component ---
 export default function WebhookDeliveryViewerV2() {
   const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const selectedDelivery = deliveries.find(d => d.id === selectedId);
 
+  // FIX: Removed [selectedId] from dependency array to prevent reset on click
   useEffect(() => {
     loadData();
-    const channel = supabase.channel('webhook-viewer-neon')
+    const channel = supabase.channel('webhook-viewer-final')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'webhook_deliveries' }, (payload) => {
         setDeliveries(prev => [payload.new as WebhookDelivery, ...prev]);
-        if (!selectedId) setSelectedId(payload.new.id);
+        // Only select new if we're at the top or nothing selected
+        setDeliveries(current => {
+           if (current.length === 0) setSelectedId(payload.new.id);
+           return [payload.new as WebhookDelivery, ...current];
+        });
       }).subscribe();
+      
     return () => { supabase.removeChannel(channel); };
-  }, [selectedId]);
+  }, []);
 
   const loadData = async () => {
     setLoading(true);
     const { data } = await supabase.from('webhook_deliveries').select('*').order('created_at', { ascending: false }).limit(50);
-    if (data) { setDeliveries(data as any); if (data.length > 0) setSelectedId(data[0].id); }
+    if (data) { 
+      setDeliveries(data as any); 
+      if (data.length > 0) setSelectedId(data[0].id); 
+    }
     setLoading(false);
   };
 
-  // Helper to determine step status
-  const getStepStatus = (d: WebhookDelivery, step: 'secret' | 'signature') => {
-    const res = d.payload?.verification_results;
-    if (step === 'secret') {
-      const hasPersonal = res?.personal_by_email?.available;
-      const hasOauth = res?.oauth_app_secret?.available;
-      return (hasPersonal || hasOauth) ? 'success' : 'failed';
-    }
-    if (step === 'signature') return d.signature_valid ? 'success' : 'failed';
-    return 'neutral';
-  };
+  const selected = deliveries.find(d => d.id === selectedId);
 
   return (
-    <div className="flex h-[800px] w-full bg-slate-950 text-slate-200 font-sans selection:bg-indigo-500/30 overflow-hidden rounded-xl border border-slate-800 shadow-2xl">
+    <div className="flex h-[850px] w-full bg-[#0B0F1A] text-slate-200 font-sans overflow-hidden rounded-2xl border border-white/5 shadow-2xl">
       
-      {/* Sidebar */}
-      <div className="w-[320px] flex flex-col border-r border-white/5 bg-slate-900/50 backdrop-blur-sm">
-        <div className="p-5 border-b border-white/5">
-           <h2 className="text-sm font-bold uppercase tracking-widest text-slate-500 mb-4">Recent Webhooks</h2>
-           <div className="relative">
-             <RiSearchLine className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
-             <input 
-               type="text" 
-               placeholder="Search event..." 
-               className="w-full bg-slate-800/50 border border-white/5 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-300 placeholder:text-slate-600 focus:outline-none focus:border-indigo-500/50 transition-colors"
-             />
-           </div>
+      {/* 1. Sidebar Panel */}
+      <div className="w-[340px] flex flex-col border-r border-white/5 bg-[#0F131F]/80 backdrop-blur-md">
+        <div className="p-6 pb-4">
+           <h2 className="text-sm font-bold text-slate-100 mb-6">Recent Webhooks</h2>
+           <ScrollArea className="h-[750px] pr-4">
+             <div className="space-y-3">
+               {deliveries.map(d => {
+                 const isActive = selectedId === d.id;
+                 return (
+                   <button
+                     key={d.id}
+                     onClick={() => setSelectedId(d.id)}
+                     className={`w-full group text-left relative p-4 rounded-xl border transition-all duration-300
+                       ${isActive 
+                         ? 'bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-green-500/30 ring-1 ring-green-500/20 shadow-lg' 
+                         : 'bg-slate-900/20 border-white/5 hover:bg-slate-800/40 hover:border-white/10'}
+                     `}
+                   >
+                     {/* Glow effect for active */}
+                     {isActive && <div className="absolute inset-0 bg-green-500/5 rounded-xl blur-sm" />}
+
+                     <div className="relative flex items-start gap-4">
+                       <div className={`mt-1 w-2.5 h-2.5 rounded-full shadow-[0_0_8px_currentColor] shrink-0
+                         ${d.status === 'success' ? 'text-green-500 bg-green-500' : 'text-red-500 bg-red-500'}
+                       `} />
+                       
+                       <div className="flex-1 min-w-0">
+                         <div className="text-xs font-semibold text-slate-200 truncate pr-2">
+                           {d.request_body?.title || 'Unknown Event'}
+                         </div>
+                         <div className="text-[10px] text-slate-500 mt-1 font-mono truncate opacity-60">
+                           {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
+                         </div>
+                         <div className="text-[10px] text-slate-600 mt-1 font-mono truncate">
+                           ID: {d.webhook_id.substring(0, 18)}...
+                         </div>
+                       </div>
+                     </div>
+                   </button>
+                 );
+               })}
+             </div>
+           </ScrollArea>
         </div>
-        <ScrollArea className="flex-1 px-3 py-3">
-          <div className="space-y-2">
-            {deliveries.map(d => (
-              <button
-                key={d.id}
-                onClick={() => setSelectedId(d.id)}
-                className={`group flex flex-col w-full text-left p-3 rounded-xl border transition-all duration-200 ${
-                  selectedId === d.id 
-                  ? 'bg-slate-800/80 border-indigo-500/30 shadow-[0_0_20px_rgba(99,102,241,0.1)]' 
-                  : 'bg-transparent border-transparent hover:bg-slate-800/40 hover:border-white/5'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                   <div className={`w-2 h-2 rounded-full ${
-                     d.status === 'success' ? 'bg-green-500 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 
-                     d.status === 'failed' ? 'bg-red-500 shadow-[0_0_8px_rgba(248,113,113,0.6)]' : 'bg-yellow-500'
-                   }`}></div>
-                   <span className="text-[10px] font-mono text-slate-500">
-                     {formatDistanceToNow(new Date(d.created_at), { addSuffix: true })}
-                   </span>
-                </div>
-                <h3 className={`text-sm font-medium truncate w-full ${selectedId === d.id ? 'text-white' : 'text-slate-400 group-hover:text-slate-200'}`}>
-                  {d.request_body?.title || 'Unknown Event'}
-                </h3>
-                <code className="text-[10px] text-slate-600 mt-1 truncate w-full font-mono opacity-60">
-                  {d.webhook_id}
-                </code>
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col relative overflow-hidden bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/20 via-slate-950 to-slate-950">
-        
-        {/* Subtle background grid */}
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20 pointer-events-none"></div>
+      {/* 2. Main Detail Panel */}
+      <div className="flex-1 flex flex-col relative bg-[#0B0F1A]">
+        {/* Background Gradients */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-green-600/5 rounded-full blur-[120px] pointer-events-none" />
 
-        {selectedDelivery ? (
-          <ScrollArea className="flex-1 h-full z-10">
-            <div className="p-8 max-w-5xl mx-auto space-y-8">
+        {selected ? (
+          <ScrollArea className="flex-1 z-10">
+            <div className="p-8 max-w-5xl mx-auto space-y-10">
               
-              {/* Header */}
+              {/* Header Title Area */}
               <div className="flex items-center justify-between">
-                <div>
-                   <div className="flex items-center gap-4 mb-2">
-                     <h1 className="text-2xl font-bold text-white tracking-tight">Webhook Verified</h1>
-                     <NeonBadge status={selectedDelivery.status} />
+                <div className="flex items-center gap-6">
+                   <h1 className="text-3xl font-bold text-white tracking-tight">Webhook Verified</h1>
+                   <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-[0_0_15px_currentColor] flex items-center gap-2
+                     ${selected.status === 'success' 
+                       ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                       : 'bg-red-500/10 text-red-400 border border-red-500/20'}
+                   `}>
+                     {selected.status === 'success' ? 'Success' : 'Failed'}
                    </div>
-                   <p className="text-slate-400 text-sm flex items-center gap-2">
-                     <RiTimeLine className="w-4 h-4 text-slate-600" />
-                     {new Date(selectedDelivery.created_at).toUTCString()}
-                   </p>
                 </div>
-                <div className="flex gap-2">
-                  {selectedDelivery.request_body?.url && (
-                    <a href={selectedDelivery.request_body.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 text-slate-300 text-xs font-medium transition-colors border border-white/5">
-                      Open in Fathom <RiExternalLinkLine className="w-3.5 h-3.5" />
+                <div className="text-right">
+                   <div className="text-slate-500 text-sm font-mono mb-1">{new Date(selected.created_at).toUTCString()}</div>
+                   {selected.request_body?.url && (
+                    <a href={selected.request_body.url} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center justify-end gap-1">
+                      View in Fathom <RiExternalLinkLine className="w-3 h-3"/>
                     </a>
-                  )}
+                   )}
                 </div>
               </div>
 
-              {/* Logic Flow */}
-              <div className="space-y-4">
-                 <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Verification Logic</h3>
-                 <GlassCard className="p-8">
-                    <div className="flex flex-wrap items-center justify-center gap-y-4">
-                       {/* 1. Start */}
-                       <FlowNode 
-                         icon={RiSearchLine}
-                         title="Resolution"
-                         subtitle="Match User"
-                         status="active" // Always active as step 1
-                       />
-                       
-                       {/* 2. Secret */}
-                       <FlowNode 
-                         icon={RiKey2Line}
-                         title="Found Secret"
-                         subtitle={selectedDelivery.payload?.verification_results?.personal_by_email?.available ? "Personal API" : "OAuth App"}
-                         status={getStepStatus(selectedDelivery, 'secret')}
-                       />
+              {/* 3. Logic & Verification Flow (The Graph) */}
+              <div>
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-6 ml-1">Verification Logic</h3>
+                <div className="relative p-10 rounded-2xl border border-white/5 bg-slate-900/30 backdrop-blur-sm overflow-hidden">
+                  {/* Grid Pattern Background */}
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:40px_40px]"></div>
 
-                       {/* 3. Signature */}
-                       <FlowNode
-                         icon={RiShieldCheckLine}
-                         title={selectedDelivery.successful_method === 'svix' ? 'Svix Algo' : (selectedDelivery.successful_method ? 'Simple Algo' : 'Checking')}
-                         subtitle="HMAC-SHA256"
-                         status={getStepStatus(selectedDelivery, 'signature')}
-                       />
+                  <div className="relative flex flex-wrap items-center justify-center gap-y-8 z-10 w-full">
+                     
+                     {/* Step 1: User MATCH */}
+                     <LogicNode 
+                       title="Secret Resolution" 
+                       subtext="Match User Email"
+                       status="success" 
+                       isStart
+                     />
 
-                       {/* 4. End */}
-                       <FlowNode
-                         icon={selectedDelivery.status === 'success' ? RiCheckboxCircleLine : RiCloseCircleLine}
-                         title={selectedDelivery.status === 'success' ? 'Verified' : 'Rejected'}
-                         status={selectedDelivery.status === 'success' ? 'success' : 'failed'}
-                         isEnd={true}
-                       />
-                    </div>
-                 </GlassCard>
-              </div>
+                     {/* Step 2: Secret FOUND */}
+                     <LogicNode 
+                       title="Found Personal Secret" 
+                       subtext={selected.payload?.verification_results?.personal_by_email?.available ? "Matched by Email" : "Using Fallback"}
+                       status={
+                         (selected.payload?.verification_results?.personal_by_email?.available || selected.payload?.verification_results?.oauth_app_secret?.available) 
+                         ? 'success' : 'failed'
+                       }
+                     />
 
-              {/* Diagnostics (if failed) */}
-              {selectedDelivery.status === 'failed' && (
-                <div className="rounded-xl border border-red-500/30 bg-red-950/20 p-5 relative overflow-hidden group">
-                  <div className="absolute inset-0 bg-red-500/5 group-hover:bg-red-500/10 transition-colors"></div>
-                  <div className="relative flex gap-4">
-                    <div className="p-3 rounded-lg bg-red-900/30 border border-red-500/20 shrink-0 h-fit">
-                      <RiAlertLine className="w-6 h-6 text-red-400" />
-                    </div>
-                    <div>
-                      <h4 className="text-red-400 font-bold text-sm mb-1">Signature Mismatch Detected</h4>
-                      <p className="text-red-300/70 text-sm leading-relaxed max-w-2xl">
-                        The secret in your database (<code>{selectedDelivery.payload?.verification_results?.personal_by_email?.secret_preview || '...'}</code>) 
-                        did not match the signature provided by Fathom. This usually happens when the secret is regenerated in Fathom but not updated here.
-                      </p>
-                    </div>
+                     <div className="flex flex-col gap-4 mx-4">
+                        {/* Branch A: Native */}
+                        <div className="flex items-center opacity-50">
+                           <RiArrowRightLine className="w-5 h-5 text-slate-600 mr-2" />
+                           <div className="px-4 py-2 rounded-lg border border-red-500/20 bg-red-950/20 text-red-400 text-[10px] font-bold uppercase">
+                              Native (Failed)
+                           </div>
+                        </div>
+
+                        {/* Branch B: Simply (Body Only) */}
+                        <div className="flex items-center opacity-50">
+                           <RiArrowRightLine className="w-5 h-5 text-slate-600 mr-2" />
+                           <div className="px-4 py-2 rounded-lg border border-red-500/20 bg-red-950/20 text-red-400 text-[10px] font-bold uppercase">
+                              Simple (Failed)
+                           </div>
+                        </div>
+
+                        {/* Branch C: Svix (or Successful One) */}
+                        <div className="flex items-center scale-110 origin-left">
+                           <div className="w-8 h-0.5 bg-green-500 mr-2 shadow-[0_0_10px_#22c55e]"></div>
+                           <div className={`px-5 py-3 rounded-xl border text-xs font-bold uppercase shadow-lg flex items-center gap-2
+                             ${selected.status === 'success' 
+                               ? 'border-green-500 text-slate-950 bg-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]' 
+                               : 'border-red-500 text-slate-950 bg-red-500'}
+                           `}>
+                              {selected.payload?.successful_method === 'svix' ? 'Svix Method' : 'Method'}
+                              {selected.status === 'success' ? <RiCheckLine className="w-4 h-4"/> : <RiCloseLine className="w-4 h-4"/>}
+                           </div>
+                        </div>
+                     </div>
+
                   </div>
                 </div>
-              )}
+              </div>
 
-              {/* Payload Data Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                 
-                 {/* Metadata Card */}
-                 <GlassCard className="p-5 md:col-span-3">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4 flex items-center gap-2">
-                       <RiFileTextLine className="w-4 h-4" /> Payload Overview
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                       <div>
-                          <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Meeting Title</div>
-                          <div className="text-slate-200 font-medium truncate" title={selectedDelivery.request_body?.title}>
-                             {selectedDelivery.request_body?.title || '—'}
-                          </div>
-                       </div>
-                       <div>
-                          <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Duration</div>
-                          <div className="text-slate-200 font-medium">
-                             {selectedDelivery.request_body?.duration ? `${Math.round(selectedDelivery.request_body.duration / 60)} mins` : '—'}
-                          </div>
-                       </div>
-                       <div>
-                          <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Participants</div>
-                          <div className="text-slate-200 font-medium">
-                             {selectedDelivery.request_body?.participants?.length || 0} People
-                          </div>
-                       </div>
-                       <div>
-                          <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Action Items</div>
-                          <div className="text-slate-200 font-medium">
-                             {selectedDelivery.request_body?.action_items?.length || 0} Items
-                          </div>
-                       </div>
-                    </div>
-                 </GlassCard>
+              {/* 4. Payload Overview Cards */}
+              <div className="grid grid-cols-4 gap-4">
+                 {[
+                   { label: "Meeting Title", val: selected.request_body?.title, width: "col-span-2" },
+                   { label: "Duration", val: selected.request_body?.duration ? `${Math.round(selected.request_body.duration/60)} mins` : null },
+                   { label: "Participants", val: `${selected.request_body?.participants?.length || 0} People` },
+                 ].map((item, i) => (
+                   <div key={i} className={`p-5 rounded-xl border border-white/5 bg-slate-900/40 backdrop-blur-sm ${item.width || ''}`}>
+                      <div className="text-[10px] font-bold uppercase text-slate-500 mb-2">{item.label}</div>
+                      <div className="text-sm font-medium text-slate-200 truncate">{item.val || '—'}</div>
+                   </div>
+                 ))}
+              </div>
 
-                 {/* Raw JSON viewer */}
-                 <div className="md:col-span-3">
-                    <div className="flex items-center justify-between mb-2">
-                       <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-500 ml-1">Raw Payload</h3>
-                       <span className="text-[10px] text-slate-600 font-mono">JSON • Read-only</span>
-                    </div>
-                    <div className="bg-slate-950 rounded-xl border border-white/5 p-4 overflow-hidden relative">
-                       <ScrollArea className="h-[200px] w-full">
-                         <div className="font-mono text-xs text-slate-400">
-                           <pre className="whitespace-pre-wrap break-all">
-                             {JSON.stringify(selectedDelivery.request_body, null, 2)}
-                           </pre>
-                         </div>
-                       </ScrollArea>
+              {/* 5. Raw JSON Payload */}
+              <div className="rounded-xl border border-white/5 overflow-hidden bg-[#0A0E17]">
+                 <div className="px-4 py-2 border-b border-white/5 flex items-center justify-between bg-slate-900/50">
+                    <span className="text-[10px] font-bold uppercase text-slate-500">Raw JSON</span>
+                    <div className="flex gap-1.5">
+                       <div className="w-2.5 h-2.5 rounded-full bg-red-500/20"></div>
+                       <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/20"></div>
+                       <div className="w-2.5 h-2.5 rounded-full bg-green-500/20"></div>
                     </div>
                  </div>
-
+                 <ScrollArea className="h-[250px] w-full">
+                    <div className="p-4 font-mono text-xs leading-relaxed text-indigo-200/80 selection:bg-indigo-500/30">
+                       <pre>{JSON.stringify(selected.request_body, null, 2)}</pre>
+                    </div>
+                 </ScrollArea>
               </div>
 
             </div>
           </ScrollArea>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-slate-600 gap-4">
-             <div className="w-16 h-16 rounded-2xl bg-slate-900/50 border border-white/5 flex items-center justify-center">
-                <RiCpuLine className="w-8 h-8 opacity-20" />
-             </div>
-             <p className="text-sm font-medium">Select a webhook to inspect verification</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-slate-600 gap-4 opacity-50">
+             <RiCpuLine className="w-16 h-16 opacity-20" />
+             <p className="font-medium tracking-wide">SELECT A WEBHOOK</p>
           </div>
         )}
       </div>
