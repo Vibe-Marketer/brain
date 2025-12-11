@@ -4,13 +4,10 @@ import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import { RiVideoLine, RiFlashlightLine, RiErrorWarningLine, RiBrainLine, RiLoader4Line, RiCheckLine } from "@remixicon/react";
+import { RiVideoLine, RiFlashlightLine, RiBrainLine, RiLoader4Line, RiCheckLine } from "@remixicon/react";
 import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
 import IntegrationStatusCard from "./IntegrationStatusCard";
 import FathomSetupWizard from "./FathomSetupWizard";
-import ConfirmWebhookDialog from "./ConfirmWebhookDialog";
-import WebhookDeliveryViewer from "../WebhookDeliveryViewer";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl, embedAllUnindexedTranscripts } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -20,8 +17,6 @@ import { getSafeUser } from "@/lib/auth-utils";
 export default function IntegrationsTab() {
   const [fathomConnected, setFathomConnected] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  const [showWebhookDialog, setShowWebhookDialog] = useState(false);
-  const [showDiagnostics, setShowDiagnostics] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Edit credentials state
@@ -144,16 +139,6 @@ export default function IntegrationsTab() {
   const handleWizardComplete = async () => {
     setShowWizard(false);
     await loadIntegrationStatus(); // Refresh status after wizard completion
-  };
-
-  const handleWebhookDiagnostics = () => {
-    setShowWebhookDialog(true);
-  };
-
-  const handleWebhookConfirm = () => {
-    setShowWebhookDialog(false);
-    setShowDiagnostics(true);
-    logger.info("Opening webhook diagnostics");
   };
 
   const handleSaveCredentials = async () => {
@@ -373,40 +358,7 @@ export default function IntegrationsTab() {
         </>
       )}
 
-      {/* Webhook Diagnostics Section */}
-      {fathomConnected && (
-        <>
-          <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-            <div>
-              <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-                Webhook Diagnostics
-              </h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-                Advanced troubleshooting for webhook sync issues
-              </p>
-            </div>
-            <div className="lg:col-span-2">
-              <div className="flex items-start gap-4">
-                <RiErrorWarningLine className="h-5 w-5 text-yellow-600 dark:text-yellow-500 shrink-0" />
-                <div className="flex-1 space-y-3">
-                  <p className="text-sm text-gray-900 dark:text-gray-50">
-                    <strong>Only enable if support requested.</strong> Webhook diagnostics are for troubleshooting sync issues with our support team.
-                  </p>
-                  <Button
-                    variant="hollow"
-                    size="sm"
-                    onClick={handleWebhookDiagnostics}
-                  >
-                    Enable Diagnostics
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
 
-          <Separator className="my-16" />
-        </>
-      )}
 
       {/* AI Knowledge Base Section */}
       {fathomConnected && (
@@ -556,26 +508,14 @@ export default function IntegrationsTab() {
         />
       )}
 
-      <ConfirmWebhookDialog
-        open={showWebhookDialog}
-        onOpenChange={setShowWebhookDialog}
-        onConfirm={handleWebhookConfirm}
-      />
-
-      {/* Webhook Diagnostics Dialog */}
-      <Dialog open={showDiagnostics} onOpenChange={setShowDiagnostics}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Webhook Diagnostics</DialogTitle>
-            <DialogDescription>
-              Monitor webhook delivery status, view real-time notifications, and troubleshoot sync issues
-            </DialogDescription>
-          </DialogHeader>
-          <div className="mt-4">
-            <WebhookDeliveryViewer />
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Modals */}
+      {showWizard && (
+        <FathomSetupWizard
+          open={showWizard}
+          onComplete={handleWizardComplete}
+          onDismiss={() => setShowWizard(false)}
+        />
+      )}
     </div>
   );
 }

@@ -34,7 +34,7 @@ import { useUserRole } from '@/hooks/useUserRole';
 import { useDebugPanel, setGlobalDebugLogger } from './DebugPanelContext';
 import type { DebugMessage, DebugDump, EnhancedDebugDump, MessageFilter, CategoryFilter, ViewMode } from './types';
 import { generateSummary, parseUserAgent, formatAsMarkdown } from './debug-dump-utils';
-import WebhookDeliveryViewer from '../WebhookDeliveryViewer';
+import WebhookDeliveryViewerV2 from './WebhookDeliveryViewerV2';
 
 // Error Boundary to prevent debug panel crashes from affecting main app
 class DebugPanelErrorBoundary extends Component<
@@ -763,8 +763,8 @@ function DebugPanelCore() {
               )}
             </div>
           ) : viewMode === 'webhooks' ? (
-            <div className="p-4 h-full overflow-y-auto">
-              <WebhookDeliveryViewer />
+            <div className="h-full overflow-hidden p-4">
+              <WebhookDeliveryViewerV2 />
             </div>
           ) : (
             /* List View */
