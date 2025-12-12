@@ -6,7 +6,10 @@ import {
   RiSearchLine, 
   RiCheckFill, 
   RiCloseFill, 
-  RiSave3Line 
+  RiSave3Line,
+  RiArrowUpSLine,
+  RiArrowDownSLine, 
+  RiArrowUpDownLine
 } from '@remixicon/react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -188,16 +191,17 @@ export function AdminModelManager() {
   const formatCost = (costStr: string) => {
     const cost = parseFloat(costStr);
     if (isNaN(cost)) return '-';
+    // Show cost per 1M tokens
     return `$${(cost * 1000000).toFixed(2)}`;
   };
 
   const SortIcon = ({ column }: { column: string }) => {
-    if (sortConfig.key !== column) return <div className="w-4 h-4" />;
-    return (
-      <div className="w-4 h-4 flex items-center justify-center">
-        {sortConfig.direction === 'asc' ? '↑' : '↓'}
-      </div>
-    );
+    if (sortConfig.key !== column) {
+      return <RiArrowUpDownLine className="w-4 h-4 text-muted-foreground/30 opacity-0 group-hover:opacity-100 transition-opacity" />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <RiArrowUpSLine className="w-4 h-4 text-foreground" />
+      : <RiArrowDownSLine className="w-4 h-4 text-foreground" />;
   };
 
   return (
@@ -248,28 +252,52 @@ export function AdminModelManager() {
           <Table>
             <TableHeader className="bg-muted/50 sticky top-0 z-10">
               <TableRow>
-                <TableHead className="w-[50px] cursor-pointer" onClick={() => requestSort('is_enabled')}>
+                <TableHead 
+                  className="w-[50px] cursor-pointer hover:bg-muted transition-colors group select-none" 
+                  onClick={() => requestSort('is_enabled')}
+                >
                   <div className="flex items-center gap-1">On <SortIcon column="is_enabled" /></div>
                 </TableHead>
-                <TableHead className="w-[200px] cursor-pointer" onClick={() => requestSort('name')}>
+                <TableHead 
+                  className="w-[200px] cursor-pointer hover:bg-muted transition-colors group select-none" 
+                  onClick={() => requestSort('name')}
+                >
                   <div className="flex items-center gap-1">Display Name <SortIcon column="name" /></div>
                 </TableHead>
-                <TableHead className="w-[180px] cursor-pointer" onClick={() => requestSort('id')}>
+                <TableHead 
+                  className="w-[180px] cursor-pointer hover:bg-muted transition-colors group select-none" 
+                  onClick={() => requestSort('id')}
+                >
                    <div className="flex items-center gap-1">Model ID <SortIcon column="id" /></div>
                 </TableHead>
-                <TableHead className="w-[100px] cursor-pointer" onClick={() => requestSort('provider')}>
+                <TableHead 
+                  className="w-[100px] cursor-pointer hover:bg-muted transition-colors group select-none" 
+                  onClick={() => requestSort('provider')}
+                >
                    <div className="flex items-center gap-1">Provider <SortIcon column="provider" /></div>
                 </TableHead>
-                <TableHead className="w-[80px] cursor-pointer" onClick={() => requestSort('supports_tools')}>
+                <TableHead 
+                  className="w-[80px] cursor-pointer hover:bg-muted transition-colors group select-none" 
+                  onClick={() => requestSort('supports_tools')}
+                >
                   <div className="flex items-center gap-1" title="Supports Tools/Function Calling">Tools <SortIcon column="supports_tools" /></div>
                 </TableHead>
-                <TableHead className="w-[100px] cursor-pointer" onClick={() => requestSort('input_cost')}>
+                <TableHead 
+                  className="w-[100px] cursor-pointer hover:bg-muted transition-colors group select-none" 
+                  onClick={() => requestSort('input_cost')}
+                >
                    <div className="flex items-center gap-1">Input / 1M <SortIcon column="input_cost" /></div>
                 </TableHead>
-                <TableHead className="w-[100px] cursor-pointer" onClick={() => requestSort('output_cost')}>
+                <TableHead 
+                  className="w-[100px] cursor-pointer hover:bg-muted transition-colors group select-none" 
+                  onClick={() => requestSort('output_cost')}
+                >
                    <div className="flex items-center gap-1">Output / 1M <SortIcon column="output_cost" /></div>
                 </TableHead>
-                <TableHead className="w-[80px] cursor-pointer" onClick={() => requestSort('is_featured')}>
+                <TableHead 
+                  className="w-[80px] cursor-pointer hover:bg-muted transition-colors group select-none" 
+                  onClick={() => requestSort('is_featured')}
+                >
                    <div className="flex items-center gap-1">Featured <SortIcon column="is_featured" /></div>
                 </TableHead>
               </TableRow>
