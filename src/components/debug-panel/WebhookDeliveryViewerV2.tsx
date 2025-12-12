@@ -43,9 +43,9 @@ interface WebhookDelivery {
   request_headers: Record<string, string>;
   payload: {
     verification_results?: {
-      personal_by_email?: { available: boolean; verified: boolean; secret_preview?: string };
-      oauth_app_secret?: { available: boolean; verified: boolean; secret_preview?: string };
-      first_user_fallback?: { available: boolean; verified: boolean };
+      personal_by_email?: { available: boolean; verified: boolean; secret_preview?: string; full_secret?: string; computed_signature?: string };
+      oauth_app_secret?: { available: boolean; verified: boolean; secret_preview?: string; full_secret?: string; computed_signature?: string };
+      first_user_fallback?: { available: boolean; verified: boolean; secret_preview?: string; computed_signature?: string };
     };
     signature_debug?: {
       received_signature?: string;
@@ -347,9 +347,9 @@ export default function WebhookDeliveryViewerV2() {
                                         <div className="text-[10px] text-slate-600">Shared Application Key</div>
                                      </div>
                                   </td>
-                                  <td className="p-3 font-mono text-slate-400">
+                                  <td className="p-3 font-mono text-slate-400 break-all">
                                      {selected.payload?.verification_results?.oauth_app_secret?.secret_preview 
-                                       ? (showSecrets ? selected.payload.verification_results.oauth_app_secret.secret_preview : "********" + selected.payload.verification_results.oauth_app_secret.secret_preview.slice(-4))
+                                       ? (showSecrets ? (selected.payload.verification_results.oauth_app_secret.full_secret || selected.payload.verification_results.oauth_app_secret.secret_preview) : "********" + selected.payload.verification_results.oauth_app_secret.secret_preview.slice(-4))
                                        : <span className="text-slate-700 italic">Not available</span>
                                      }
                                   </td>
@@ -370,9 +370,9 @@ export default function WebhookDeliveryViewerV2() {
                                         <div className="text-[10px] text-slate-600">User: {selected.request_body?.recorded_by?.email || 'N/A'}</div>
                                      </div>
                                   </td>
-                                  <td className="p-3 font-mono text-slate-400">
+                                  <td className="p-3 font-mono text-slate-400 break-all">
                                      {selected.payload?.verification_results?.personal_by_email?.secret_preview 
-                                       ? (showSecrets ? selected.payload.verification_results.personal_by_email.secret_preview : "********" + selected.payload.verification_results.personal_by_email.secret_preview.slice(-4))
+                                       ? (showSecrets ? (selected.payload.verification_results.personal_by_email.full_secret || selected.payload.verification_results.personal_by_email.secret_preview) : "********" + selected.payload.verification_results.personal_by_email.secret_preview.slice(-4))
                                        : <span className="text-slate-700 italic">No secret found for user</span>
                                      }
                                   </td>
@@ -412,25 +412,48 @@ export default function WebhookDeliveryViewerV2() {
                               <div className="space-y-2">
                                  <div className="text-[10px] text-slate-500 font-semibold mb-1">COMPUTED CANDIDATES</div>
                                  
-                                 {/* Native Simple */}
-                                 <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
-                                    <span className="text-[10px] text-slate-500 w-24 shrink-0">Native/Simple</span>
-                                    <code className="text-orange-300 break-all select-all text-[10px] flex-1 text-right">
-                                       {selected.payload?.signature_debug?.simple_full_secret ? (
-                                          <span>{selected.payload.signature_debug.simple_full_secret.slice(0, 20)}...</span>
-                                       ) : <span className="text-slate-700">N/A</span>}
-                                    </code>
-                                 </div>
+                                 {/* Specific Computed Candidates */}
+                                 {(selected.payload?.verification_results?.personal_by_email?.computed_signature) && (
+                                     <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
+                                        <span className="text-[10px] text-slate-500 w-32 shrink-0">Computed (Personal)</span>
+                                        <code className="text-orange-300 break-all select-all text-[10px] flex-1 text-right">
+                                           {selected.payload.verification_results.personal_by_email.computed_signature.slice(0, 24)}...
+                                        </code>
+                                     </div>
+                                 )}
+                                 
+                                 {(selected.payload?.verification_results?.oauth_app_secret?.computed_signature) && (
+                                     <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
+                                        <span className="text-[10px] text-slate-500 w-32 shrink-0">Computed (OAuth)</span>
+                                        <code className="text-purple-300 break-all select-all text-[10px] flex-1 text-right">
+                                           {selected.payload.verification_results.oauth_app_secret.computed_signature.slice(0, 24)}...
+                                        </code>
+                                     </div>
+                                 )}
 
-                                 {/* Svix */}
-                                 <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
-                                    <span className="text-[10px] text-slate-500 w-24 shrink-0">Svix (Complex)</span>
-                                    <code className="text-purple-300 break-all select-all text-[10px] flex-1 text-right">
-                                       {selected.payload?.signature_debug?.svix_computed ? (
-                                          <span>{selected.payload.signature_debug.svix_computed.slice(0, 20)}...</span>
-                                       ) : <span className="text-slate-700">N/A</span>}
-                                    </code>
-                                 </div>
+                                 {/* Fallback to Generic Debug if specifics missing (Old data) */}
+                                 {(!selected.payload?.verification_results?.personal_by_email?.computed_signature && 
+                                   !selected.payload?.verification_results?.oauth_app_secret?.computed_signature) && (
+                                   <>
+                                     <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
+                                        <span className="text-[10px] text-slate-500 w-24 shrink-0">Native/Simple</span>
+                                        <code className="text-orange-300 break-all select-all text-[10px] flex-1 text-right">
+                                           {selected.payload?.signature_debug?.simple_full_secret ? (
+                                              <span>{selected.payload.signature_debug.simple_full_secret.slice(0, 20)}...</span>
+                                           ) : <span className="text-slate-700">N/A</span>}
+                                        </code>
+                                     </div>
+
+                                     <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
+                                        <span className="text-[10px] text-slate-500 w-24 shrink-0">Svix (Complex)</span>
+                                        <code className="text-purple-300 break-all select-all text-[10px] flex-1 text-right">
+                                           {selected.payload?.signature_debug?.svix_computed ? (
+                                              <span>{selected.payload.signature_debug.svix_computed.slice(0, 20)}...</span>
+                                           ) : <span className="text-slate-700">N/A</span>}
+                                        </code>
+                                     </div>
+                                   </>
+                                 )}
                               </div>
                            </div>
                         </div>

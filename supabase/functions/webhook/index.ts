@@ -247,54 +247,49 @@ async function verifySvixSignature(
 }
 
 // Main verification function that tries all methods
+// Helper to verify and return the computed signature for debugging
+async function verifyWebhookSignatureWithDebug(
+  secret: string,
+  headers: Headers,
+  rawBody: string
+): Promise<{ isValid: boolean; computedSignature: string | null }> {
+  // Capture the last computed signature from the inner calls
+  let computed = null;
+  
+  if (headers.get('x-signature')) {
+    const valid = await verifyFathomSignature(secret, headers, rawBody);
+    // Note: verifyFathomSignature doesn't set debug info global yet, rely on simple/svix for now
+    if (valid) return { isValid: true, computedSignature: "Matched Native" };
+  }
+
+  if (headers.get('webhook-signature')) {
+    const valid = await verifyFathomSimpleSignature(secret, headers, rawBody);
+    // verifyFathomSimpleSignature writes to global signatureDebugInfo.simple_full_secret
+    // We grab it here immediately
+    computed = signatureDebugInfo.simple_full_secret || signatureDebugInfo.simple_no_prefix || null;
+    if (valid) return { isValid: true, computedSignature: computed };
+  }
+
+  if (headers.get('webhook-signature')) {
+    const valid = await verifySvixSignature(secret, headers, rawBody);
+     // If svix was tried, it writes to signatureDebugInfo.svix_computed
+     // We prefer showing the svix one if simple failed
+     const svixComputed = signatureDebugInfo.svix_computed;
+     if (svixComputed) computed = svixComputed; 
+     
+    if (valid) return { isValid: true, computedSignature: computed };
+  }
+  
+  return { isValid: false, computedSignature: computed };
+}
+
 async function verifyWebhookSignature(
   secret: string,
   headers: Headers,
   rawBody: string
 ): Promise<boolean> {
-  // Log available headers for debugging
-  console.log('📝 Available signature headers:');
-  console.log('   - x-signature:', headers.get('x-signature') ? 'present' : 'missing');
-  console.log('   - webhook-signature:', headers.get('webhook-signature') ? 'present' : 'missing');
-  console.log('   - webhook-id:', headers.get('webhook-id') ? 'present' : 'missing');
-  console.log('   - webhook-timestamp:', headers.get('webhook-timestamp') ? 'present' : 'missing');
-
-  // Try Fathom native signature first (x-signature header)
-  if (headers.get('x-signature')) {
-    console.log('🔐 Attempting Fathom native signature verification...');
-    const fathomValid = await verifyFathomSignature(secret, headers, rawBody);
-    if (fathomValid) {
-      console.log('✅ Fathom native signature verified');
-      return true;
-    }
-    console.log('❌ Fathom native signature failed');
-  }
-
-  // Try Fathom simple signature (per Fathom docs: HMAC of body only)
-  if (headers.get('webhook-signature')) {
-    console.log('🔐 Attempting Fathom simple signature verification (body only)...');
-    const fathomSimpleValid = await verifyFathomSimpleSignature(secret, headers, rawBody);
-    if (fathomSimpleValid) {
-      console.log('✅ Fathom simple signature verified');
-      return true;
-    }
-    console.log('❌ Fathom simple signature failed');
-  }
-
-  // Try Svix signature (webhook-signature header with id.timestamp.body)
-  if (headers.get('webhook-signature')) {
-    console.log('🔐 Attempting Svix signature verification...');
-    const svixValid = await verifySvixSignature(secret, headers, rawBody);
-    if (svixValid) {
-      console.log('✅ Svix signature verified');
-      return true;
-    }
-    console.log('❌ Svix signature failed');
-  }
-
-  // No valid signature found
-  console.error('❌ No valid signature found with any method');
-  return false;
+  const { isValid } = await verifyWebhookSignatureWithDebug(secret, headers, rawBody);
+  return isValid;
 }
 
 async function processMeetingWebhook(
@@ -559,12 +554,28 @@ Deno.serve(async (req) => {
     // ==========================================================================
     // PARALLEL VERIFICATION TEST - Try ALL methods and log results
     // ==========================================================================
-    const verificationResults: Record<string, {available: boolean; verified: boolean; secret_preview?: string}> = {
-      personal_by_email: { available: false, verified: false },
-      oauth_app_secret: { available: false, verified: false },
-      first_user_fallback: { available: false, verified: false }
-    };
+    interface VerificationResult {
+      available: boolean;
+      verified: boolean;
+      secret_preview: string | null;
+      full_secret?: string | null;
+      computed_signature?: string | null;
+    }
 
+    const verificationResults: {
+      personal_by_email: VerificationResult;
+      oauth_app_secret: VerificationResult;
+      first_user_fallback: VerificationResult;
+      request_details: any;
+    } = {
+      personal_by_email: { available: false, verified: false, secret_preview: null, full_secret: null, computed_signature: null },
+      oauth_app_secret: { available: false, verified: false, secret_preview: null, full_secret: null, computed_signature: null },
+      first_user_fallback: { available: false, verified: false, secret_preview: null, computed_signature: null },
+      request_details: {
+        header_signature: req.headers.get('webhook-signature') || req.headers.get('x-signature'),
+        webhook_id: req.headers.get('webhook-id')
+      }
+    };
     let matchedUserId = null;
     let successfulMethod: string | null = null;
 
@@ -587,14 +598,16 @@ Deno.serve(async (req) => {
         personalSecret = settings.webhook_secret;
         personalUserId = settings.user_id;
         verificationResults.personal_by_email.available = true;
-        verificationResults.personal_by_email.secret_preview = personalSecret.substring(0, 15) + '...';
+        verificationResults.personal_by_email.secret_preview = personalSecret.substring(0, 4) + '...' + personalSecret.substring(personalSecret.length - 4);
+        verificationResults.personal_by_email.full_secret = personalSecret;
       }
     }
 
     // 2. Check OAuth app secret
     if (oauthAppSecret) {
       verificationResults.oauth_app_secret.available = true;
-      verificationResults.oauth_app_secret.secret_preview = oauthAppSecret.substring(0, 15) + '...';
+      verificationResults.oauth_app_secret.secret_preview = oauthAppSecret.substring(0, 4) + '...' + oauthAppSecret.substring(oauthAppSecret.length - 4);
+      verificationResults.oauth_app_secret.full_secret = oauthAppSecret;
     }
 
     // 3. Check first user fallback
@@ -608,7 +621,7 @@ Deno.serve(async (req) => {
       firstUserSecret = firstSettings.webhook_secret;
       firstUserId = firstSettings.user_id;
       verificationResults.first_user_fallback.available = true;
-      verificationResults.first_user_fallback.secret_preview = firstUserSecret.substring(0, 15) + '...';
+      verificationResults.first_user_fallback.secret_preview = firstUserSecret.substring(0, 4) + '...' + firstUserSecret.substring(firstUserSecret.length - 4);
     }
 
     console.log('📋 VERIFICATION TEST - Available secrets:');
@@ -622,10 +635,12 @@ Deno.serve(async (req) => {
     // Test 1: Personal secret by email
     if (personalSecret) {
       console.log('\n--- Testing PERSONAL secret (email match) ---');
-      const personalValid = await verifyWebhookSignature(personalSecret, req.headers, rawBody);
-      verificationResults.personal_by_email.verified = personalValid;
-      console.log(`   Result: ${personalValid ? '✅ VERIFIED' : '❌ FAILED'}`);
-      if (personalValid && !successfulMethod) {
+      const { isValid, computedSignature } = await verifyWebhookSignatureWithDebug(personalSecret, req.headers, rawBody);
+      verificationResults.personal_by_email.verified = isValid;
+      verificationResults.personal_by_email.computed_signature = computedSignature;
+      
+      console.log(`   Result: ${isValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      if (isValid && !successfulMethod) {
         successfulMethod = 'personal_by_email';
         matchedUserId = personalUserId;
       }
@@ -634,10 +649,12 @@ Deno.serve(async (req) => {
     // Test 2: OAuth app secret
     if (oauthAppSecret) {
       console.log('\n--- Testing OAUTH APP secret ---');
-      const oauthValid = await verifyWebhookSignature(oauthAppSecret, req.headers, rawBody);
-      verificationResults.oauth_app_secret.verified = oauthValid;
-      console.log(`   Result: ${oauthValid ? '✅ VERIFIED' : '❌ FAILED'}`);
-      if (oauthValid && !successfulMethod) {
+      const { isValid, computedSignature } = await verifyWebhookSignatureWithDebug(oauthAppSecret, req.headers, rawBody);
+      verificationResults.oauth_app_secret.verified = isValid;
+      verificationResults.oauth_app_secret.computed_signature = computedSignature;
+      
+      console.log(`   Result: ${isValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      if (isValid && !successfulMethod) {
         successfulMethod = 'oauth_app_secret';
         // For OAuth, still need to find user by email
         if (meeting.recorded_by?.email) {
@@ -656,10 +673,11 @@ Deno.serve(async (req) => {
     // Test 3: First user fallback (only if different from personal)
     if (firstUserSecret && firstUserSecret !== personalSecret) {
       console.log('\n--- Testing FIRST USER FALLBACK secret ---');
-      const fallbackValid = await verifyWebhookSignature(firstUserSecret, req.headers, rawBody);
-      verificationResults.first_user_fallback.verified = fallbackValid;
-      console.log(`   Result: ${fallbackValid ? '✅ VERIFIED' : '❌ FAILED'}`);
-      if (fallbackValid && !successfulMethod) {
+      const { isValid, computedSignature } = await verifyWebhookSignatureWithDebug(firstUserSecret, req.headers, rawBody);
+      verificationResults.first_user_fallback.verified = isValid;
+      
+      console.log(`   Result: ${isValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      if (isValid && !successfulMethod) {
         successfulMethod = 'first_user_fallback';
         matchedUserId = firstUserId;
       }
