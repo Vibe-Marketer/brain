@@ -87,13 +87,10 @@ export function useAvailableModels() {
       } catch (err) {
         console.error('Error fetching available models:', err);
         setError(err instanceof Error ? err.message : 'Failed to load models');
-        // Set fallback models
-        setModels([
-          { id: 'z-ai/glm-4.6', name: 'GLM-4.6', provider: 'z-ai' },
-          { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai' },
-          { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai' },
-        ]);
-        setDefaultModel('z-ai/glm-4.6');
+        // Set fallback models - REMOVED ZAI/GLM as per user request
+        // Only falling back to empty to trigger error state in UI
+        setModels([]); 
+        setDefaultModel(null);
       } finally {
         setIsLoading(false);
       }

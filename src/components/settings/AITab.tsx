@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -24,46 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { AdminModelManager } from "./AdminModelManager";
 import { Label } from "@/components/ui/label";
-
-// AI Model presets - curated list of top models from major providers
-// Format: value (preset key) -> label (display name) -> provider -> description -> context
-// The preset keys are used for user_settings storage, actual model IDs are resolved in backend
-const AI_MODEL_PRESETS = [
-  // OpenAI models
-  { value: "openai/gpt-4.1", label: "GPT-4.1", provider: "OpenAI", description: "Latest flagship", context: "1M" },
-  { value: "openai/gpt-4o", label: "GPT-4o", provider: "OpenAI", description: "Most capable", context: "128K" },
-  { value: "openai/gpt-4o-mini", label: "GPT-4o Mini", provider: "OpenAI", description: "Fast & efficient", context: "128K" },
-  { value: "openai/o3-mini", label: "o3 Mini", provider: "OpenAI", description: "Latest reasoning", context: "128K" },
-  // Anthropic models
-  { value: "anthropic/claude-sonnet-4-20250514", label: "Claude Sonnet 4", provider: "Anthropic", description: "Latest Claude", context: "200K" },
-  { value: "anthropic/claude-3-5-sonnet-20241022", label: "Claude 3.5 Sonnet", provider: "Anthropic", description: "Balanced quality", context: "200K" },
-  { value: "anthropic/claude-3-5-haiku-20241022", label: "Claude 3.5 Haiku", provider: "Anthropic", description: "Fast & affordable", context: "200K" },
-  // Google models
-  { value: "google/gemini-2.0-flash", label: "Gemini 2.0 Flash", provider: "Google", description: "Fast multimodal", context: "1M" },
-  { value: "google/gemini-1.5-pro", label: "Gemini 1.5 Pro", provider: "Google", description: "Complex tasks", context: "1M" },
-  // xAI models (Grok)
-  { value: "xai/grok-3", label: "Grok 3", provider: "xAI", description: "Latest Grok", context: "128K" },
-  { value: "xai/grok-3-fast", label: "Grok 3 Fast", provider: "xAI", description: "Faster Grok", context: "128K" },
-  // DeepSeek models
-  { value: "deepseek/deepseek-chat", label: "DeepSeek V3", provider: "DeepSeek", description: "Powerful & affordable", context: "128K" },
-  { value: "deepseek/deepseek-reasoner", label: "DeepSeek R1", provider: "DeepSeek", description: "Reasoning model", context: "128K" },
-  // Groq models (Fast Llama inference)
-  { value: "groq/llama-3.3-70b-versatile", label: "Llama 3.3 70B", provider: "Groq", description: "Fast Llama", context: "128K" },
-  { value: "groq/llama-3.1-8b-instant", label: "Llama 3.1 8B", provider: "Groq", description: "Ultra-fast", context: "128K" },
-] as const;
-
-// Group presets by provider for display
-const PRESET_GROUPS = {
-  OpenAI: AI_MODEL_PRESETS.filter(p => p.provider === "OpenAI"),
-  Anthropic: AI_MODEL_PRESETS.filter(p => p.provider === "Anthropic"),
-  Google: AI_MODEL_PRESETS.filter(p => p.provider === "Google"),
-  xAI: AI_MODEL_PRESETS.filter(p => p.provider === "xAI"),
-  DeepSeek: AI_MODEL_PRESETS.filter(p => p.provider === "DeepSeek"),
-  Groq: AI_MODEL_PRESETS.filter(p => p.provider === "Groq"),
-};
-
-// Default model - GPT-4.1 has 1M context and is the latest flagship
-const DEFAULT_MODEL = "openai/gpt-4.1";
+import { useAvailableModels } from "@/components/chat/model-selector";
 
 interface IndexingStats {
   totalChunks: number;
@@ -98,8 +59,23 @@ export default function AITab() {
   const [loading, setLoading] = useState(true);
   const [activeJob, setActiveJob] = useState<EmbeddingJob | null>(null);
 
-  // AI Model selection state
-  const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  // Dynamic Model Loading
+  const { models, defaultModel: systemDefault, isLoading: modelsLoading } = useAvailableModels();
+  
+  const DEFAULT_MODEL = systemDefault || "openai/gpt-4o-mini";
+  const [selectedModel, setSelectedModel] = useState<string>(""); // Initialize empty, set after load
+  
+  // Group models by provider
+  const modelGroups = useMemo(() => {
+    const groups: Record<string, typeof models> = {};
+    models.forEach(model => {
+      const provider = model.provider || 'Other';
+      if (!groups[provider]) groups[provider] = [];
+      groups[provider].push(model);
+    });
+    return groups;
+  }, [models]);
+
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -111,20 +87,20 @@ export default function AITab() {
     };
     checkAdmin();
   }, []);
-  const [savedModel, setSavedModel] = useState(DEFAULT_MODEL);
+  
+  const [savedModel, setSavedModel] = useState("");
   const [modelSaving, setModelSaving] = useState(false);
 
-  // Map legacy preset values to new format
+  // Map legacy preset values to new ID format if needed
   const mapLegacyPreset = (preset: string): string => {
     const legacyMap: Record<string, string> = {
-      'openai': DEFAULT_MODEL,
+      'openai': 'openai/gpt-4o',
       'fast': 'openai/gpt-4o-mini',
-      'quality': DEFAULT_MODEL,
-      'best': 'anthropic/claude-sonnet-4-20250514',
-      'anthropic': 'anthropic/claude-3-5-haiku-20241022',
+      'quality': 'openai/gpt-4.1',
+      'best': 'anthropic/claude-3-5-sonnet',
+      'anthropic': 'anthropic/claude-3-5-sonnet',
       'google': 'google/gemini-2.0-flash',
-      'balanced': DEFAULT_MODEL,
-      'z-ai/glm-4.6': DEFAULT_MODEL,  // Migrate old default
+      'balanced': 'openai/gpt-4o',
     };
     return legacyMap[preset] || preset;
   };
@@ -170,6 +146,7 @@ export default function AITab() {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
+      // ... existing stats fetching logic ...
       // Get total chunks
       const { count: chunksCount } = await supabase
         .from("transcript_chunks")
@@ -219,7 +196,7 @@ export default function AITab() {
 
       if (jobs && jobs.length > 0) {
         setActiveJob(jobs[0] as EmbeddingJob);
-        setIndexing(true); // Resume polling for active job
+        setIndexing(true);
       }
 
       // Load saved AI model preference
@@ -230,10 +207,13 @@ export default function AITab() {
         .maybeSingle();
 
       if (settings?.ai_model_preset) {
-        // Map legacy preset values to new format
-        const mappedPreset = mapLegacyPreset(settings.ai_model_preset);
-        setSelectedModel(mappedPreset);
-        setSavedModel(mappedPreset);
+        const mapped = mapLegacyPreset(settings.ai_model_preset);
+        setSelectedModel(mapped);
+        setSavedModel(mapped);
+      } else {
+         // No setting? Use system default
+         // Note: We might need to wait for `models` to load to know the true system default, 
+         // but `systemDefault` from hook handles that.
       }
     } catch (error) {
       logger.error("Error loading indexing stats", error);
@@ -241,7 +221,14 @@ export default function AITab() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, []); // Re-run if systemDefault changes? No, load once.
+
+  // Sync selectedModel with systemDefault if nothing selected yet
+  useEffect(() => {
+    if (!selectedModel && systemDefault) {
+      setSelectedModel(systemDefault);
+    }
+  }, [selectedModel, systemDefault]);
 
   // Save AI model preference
   const handleModelChange = async (newModel: string) => {
@@ -256,7 +243,6 @@ export default function AITab() {
         return;
       }
 
-      // Upsert the model preference
       const { error } = await supabase
         .from("user_settings")
         .upsert(
@@ -270,8 +256,8 @@ export default function AITab() {
         setSelectedModel(savedModel);
       } else {
         setSavedModel(newModel);
-        const preset = AI_MODEL_PRESETS.find(p => p.value === newModel);
-        toast.success(`AI model updated to ${preset?.label || newModel}`);
+        const modelName = models.find(m => m.id === newModel)?.name || newModel;
+        toast.success(`AI model updated to ${modelName}`);
       }
     } catch (error) {
       logger.error("Error saving model preference", error);
@@ -287,6 +273,7 @@ export default function AITab() {
     loadIndexingStats();
   }, [loadIndexingStats]);
 
+  // ... (keeping existing job polling effects) ...
   // Poll for active job status with proper cleanup
   useEffect(() => {
     if (!activeJob || (activeJob.status !== "pending" && activeJob.status !== "running")) {
@@ -308,6 +295,7 @@ export default function AITab() {
   }, [activeJob?.status, loadIndexingStats]);
 
   const handleIndexTranscripts = async () => {
+     // ... (existing implementation) ...
     try {
       setIndexing(true);
       logger.info("Starting transcript indexing...");
@@ -328,7 +316,6 @@ export default function AITab() {
         logger.info("Indexing started", { job_id, recordings_processed });
         toast.success(`Indexing ${recordings_processed} transcripts...`);
 
-        // Start polling for job status
         if (job_id) {
           const { data: job } = await supabase
             .from("embedding_jobs")
@@ -348,18 +335,6 @@ export default function AITab() {
     }
   };
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "Never";
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
-
   const getProgressPercentage = () => {
     if (!activeJob || activeJob.progress_total === 0) return 0;
     return Math.round((activeJob.progress_current / activeJob.progress_total) * 100);
@@ -373,12 +348,11 @@ export default function AITab() {
     );
   }
 
-  // Get the currently selected model details
-  const currentModel = AI_MODEL_PRESETS.find(p => p.value === selectedModel);
+  // Get current model details for display
+  const currentModelDetails = models.find(m => m.id === selectedModel);
 
   return (
     <div>
-      {/* Top separator for breathing room */}
       <Separator className="mb-12" />
 
       {/* AI Model Configuration Section */}
@@ -412,38 +386,44 @@ export default function AITab() {
               <Select
                 value={selectedModel}
                   onValueChange={handleModelChange}
-                  disabled={modelSaving}
+                  disabled={modelSaving || modelsLoading}
                 >
                   <SelectTrigger className="w-full">
-                    {modelSaving ? (
+                    {modelSaving || modelsLoading ? (
                       <div className="flex items-center gap-2">
                         <RiLoader2Line className="h-4 w-4 animate-spin" />
-                        <span>Saving...</span>
+                        <span>{modelSaving ? "Saving..." : "Loading Models..."}</span>
                       </div>
                     ) : (
                       <SelectValue placeholder="Select AI model">
-                        {currentModel && (
+                        {currentModelDetails ? (
                           <div className="flex items-center gap-2">
-                            <span className="font-medium">{currentModel.label}</span>
-                            <span className="text-muted-foreground">({currentModel.provider})</span>
+                            <span className="font-medium">{currentModelDetails.name}</span>
+                            <span className="text-muted-foreground">({currentModelDetails.provider})</span>
                           </div>
+                        ) : (
+                           selectedModel || "Select Model"
                         )}
                       </SelectValue>
                     )}
                   </SelectTrigger>
-                  <SelectContent className="max-h-[400px]">
-                    {Object.entries(PRESET_GROUPS).map(([provider, presets]) => (
-                      presets.length > 0 && (
+                   <SelectContent className="max-h-[400px]">
+                    {Object.entries(modelGroups).map(([provider, providerModels]) => (
+                      providerModels.length > 0 && (
                         <SelectGroup key={provider}>
-                          <SelectLabel>{provider}</SelectLabel>
-                          {presets.map((preset) => (
-                            <SelectItem key={preset.value} value={preset.value}>
+                          <SelectLabel className="capitalize">{provider}</SelectLabel>
+                          {providerModels.map((model) => (
+                            <SelectItem key={model.id} value={model.id}>
                               <div className="flex flex-col">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium">{preset.label}</span>
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{preset.context}</span>
+                                  <span className="font-medium">{model.name}</span>
+                                  {model.contextLength && (
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                      {Math.round(model.contextLength / 1000)}k
+                                    </span>
+                                  )}
                                 </div>
-                                <span className="text-xs text-muted-foreground">{preset.description}</span>
+                                <span className="text-xs text-muted-foreground">{model.id}</span>
                               </div>
                             </SelectItem>
                           ))}
@@ -454,10 +434,11 @@ export default function AITab() {
                 </Select>
               </div>
 
-              {currentModel && (
+              {currentModelDetails && (
                 <div className="pt-3 border-t border-cb-border dark:border-cb-border-dark">
                   <p className="text-xs text-muted-foreground">
-                    <strong>Current:</strong> {currentModel.label} ({currentModel.provider}) - {currentModel.description} · {currentModel.context} context
+                    <strong>Current:</strong> {currentModelDetails.name} ({currentModelDetails.provider})
+                     {currentModelDetails.pricing && ` · $${currentModelDetails.pricing.prompt}/1M input`}
                   </p>
                 </div>
               )}
