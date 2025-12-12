@@ -337,38 +337,14 @@ Deno.serve(async (req) => {
     const syncedCount = meetingsWithSyncStatus.filter(m => m.synced).length;
     console.log(`Returning ${meetingsWithSyncStatus.length} meetings (${syncedCount} synced, ${meetingsWithSyncStatus.length - syncedCount} not synced)`);
 
-    // FALLBACK: Auto-detect and set host_email if not already configured
-    // This ensures existing users who connected before this feature get their host_email set
-    let hostEmailDetected: string | null = null;
-    if (!settings?.host_email && allMeetings.length > 0) {
-      // Find the first meeting with recorded_by.email
-      const meetingWithEmail = allMeetings.find(m => m.recorded_by?.email);
-      if (meetingWithEmail?.recorded_by?.email) {
-        hostEmailDetected = meetingWithEmail.recorded_by.email;
-        console.log('Auto-detecting host_email from meetings:', hostEmailDetected);
-
-        // Update host_email in database (non-blocking)
-        supabase
-          .from('user_settings')
-          .update({ host_email: hostEmailDetected })
-          .eq('user_id', user.id)
-          .then(({ error }) => {
-            if (error) {
-              console.error('Failed to auto-set host_email:', error);
-            } else {
-              console.log('Successfully auto-set host_email for user:', user.id);
-            }
-          });
-      }
-    }
+    // NOTE: Auto-detection of host_email was removed because it was unreliable.
+    // The first meeting might be from a call where someone else was the host,
+    // leading to incorrect host_email assignment. Users should set their host_email
+    // manually in Settings.
 
     return new Response(
       JSON.stringify({
         meetings: meetingsWithSyncStatus,
-        host_email_detected: hostEmailDetected,
-        host_email_note: hostEmailDetected
-          ? `Your Fathom account email (${hostEmailDetected}) has been automatically configured for webhook sync.`
-          : null,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

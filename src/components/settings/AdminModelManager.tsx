@@ -34,6 +34,7 @@ interface AIModel {
   };
   is_enabled: boolean;
   is_featured: boolean;
+  supports_tools: boolean;
 }
 
 export function AdminModelManager() {
@@ -43,6 +44,7 @@ export function AdminModelManager() {
   const [models, setModels] = React.useState<AIModel[]>([]);
   const [searchQuery, setSearchQuery] = React.useState('');
   const [hasChanges, setHasChanges] = React.useState(false);
+  const [sortConfig, setSortConfig] = React.useState<{ key: keyof AIModel | 'input_cost' | 'output_cost'; direction: 'asc' | 'desc' }>({ key: 'provider', direction: 'asc' });
   
   // Track local edits before saving
   const [edits, setEdits] = React.useState<Record<string, Partial<AIModel>>>({});
@@ -52,9 +54,7 @@ export function AdminModelManager() {
     try {
       const { data, error } = await supabase
         .from('ai_models')
-        .select('*')
-        .order('provider', { ascending: true })
-        .order('name', { ascending: true });
+        .select('*');
 
       if (error) throw error;
       setModels(data || []);
@@ -81,7 +81,6 @@ export function AdminModelManager() {
         return;
       }
 
-      // Use direct fetch instead of supabase.functions.invoke for better CORS compatibility
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-openrouter-models`,
         {
@@ -100,7 +99,7 @@ export function AdminModelManager() {
 
       const result = await response.json();
       toast.success(`Synced ${result.total} models (${result.message})`);
-      fetchModels(); // Refresh list
+      fetchModels(); 
     } catch (err) {
       console.error('Sync error:', err);
       toast.error('Failed to sync models from OpenRouter: ' + (err instanceof Error ? err.message : 'Unknown error'));
@@ -113,7 +112,6 @@ export function AdminModelManager() {
     if (!Object.keys(edits).length) return;
 
     try {
-      // Process updates in parallel
       const updates = Object.entries(edits).map(([id, changes]) => 
         supabase.from('ai_models').update(changes).eq('id', id)
       );
@@ -135,25 +133,71 @@ export function AdminModelManager() {
     }));
     setHasChanges(true);
     
-    // Optimistic update for UI responsiveness
+    // Optimistic update
     setModels(prev => prev.map(m => m.id === id ? { ...m, ...changes } : m));
   };
 
-  const filteredModels = React.useMemo(() => {
-    if (!searchQuery) return models;
-    const lower = searchQuery.toLowerCase();
-    return models.filter(m => 
-      m.name.toLowerCase().includes(lower) || 
-      m.id.toLowerCase().includes(lower) ||
-      m.provider.toLowerCase().includes(lower)
-    );
-  }, [models, searchQuery]);
+  const requestSort = (key: keyof AIModel | 'input_cost' | 'output_cost') => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedModels = React.useMemo(() => {
+    let sortableModels = [...models];
+    
+    // Filter first
+    if (searchQuery) {
+      const lower = searchQuery.toLowerCase();
+      sortableModels = sortableModels.filter(m => 
+        m.name.toLowerCase().includes(lower) || 
+        m.id.toLowerCase().includes(lower) ||
+        m.provider.toLowerCase().includes(lower)
+      );
+    }
+
+    // Then sort
+    if (sortConfig) {
+      sortableModels.sort((a, b) => {
+        let aValue: any = a[sortConfig.key as keyof AIModel];
+        let bValue: any = b[sortConfig.key as keyof AIModel];
+
+        // Handle computed costs
+        if (sortConfig.key === 'input_cost') {
+          aValue = parseFloat(a.pricing?.prompt || '0');
+          bValue = parseFloat(b.pricing?.prompt || '0');
+        } else if (sortConfig.key === 'output_cost') {
+          aValue = parseFloat(a.pricing?.completion || '0');
+          bValue = parseFloat(b.pricing?.completion || '0');
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableModels;
+  }, [models, searchQuery, sortConfig]);
 
   const formatCost = (costStr: string) => {
     const cost = parseFloat(costStr);
     if (isNaN(cost)) return '-';
-    // Show cost per 1M tokens
     return `$${(cost * 1000000).toFixed(2)}`;
+  };
+
+  const SortIcon = ({ column }: { column: string }) => {
+    if (sortConfig.key !== column) return <div className="w-4 h-4" />;
+    return (
+      <div className="w-4 h-4 flex items-center justify-center">
+        {sortConfig.direction === 'asc' ? '↑' : '↓'}
+      </div>
+    );
   };
 
   return (
@@ -195,7 +239,7 @@ export function AdminModelManager() {
           />
         </div>
         <div className="text-sm text-muted-foreground">
-          Showing {filteredModels.length} of {models.length}
+          Showing {sortedModels.length} of {models.length}
         </div>
       </div>
 
@@ -204,30 +248,47 @@ export function AdminModelManager() {
           <Table>
             <TableHeader className="bg-muted/50 sticky top-0 z-10">
               <TableRow>
-                <TableHead className="w-[50px]">On</TableHead>
-                <TableHead className="w-[200px]">Display Name (Editable)</TableHead>
-                <TableHead className="w-[180px]">Model ID</TableHead>
-                <TableHead className="w-[100px]">Provider</TableHead>
-                <TableHead className="w-[100px]">Input / 1M</TableHead>
-                <TableHead className="w-[100px]">Output / 1M</TableHead>
-                <TableHead className="w-[80px]">Featured</TableHead>
+                <TableHead className="w-[50px] cursor-pointer" onClick={() => requestSort('is_enabled')}>
+                  <div className="flex items-center gap-1">On <SortIcon column="is_enabled" /></div>
+                </TableHead>
+                <TableHead className="w-[200px] cursor-pointer" onClick={() => requestSort('name')}>
+                  <div className="flex items-center gap-1">Display Name <SortIcon column="name" /></div>
+                </TableHead>
+                <TableHead className="w-[180px] cursor-pointer" onClick={() => requestSort('id')}>
+                   <div className="flex items-center gap-1">Model ID <SortIcon column="id" /></div>
+                </TableHead>
+                <TableHead className="w-[100px] cursor-pointer" onClick={() => requestSort('provider')}>
+                   <div className="flex items-center gap-1">Provider <SortIcon column="provider" /></div>
+                </TableHead>
+                <TableHead className="w-[80px] cursor-pointer" onClick={() => requestSort('supports_tools')}>
+                  <div className="flex items-center gap-1" title="Supports Tools/Function Calling">Tools <SortIcon column="supports_tools" /></div>
+                </TableHead>
+                <TableHead className="w-[100px] cursor-pointer" onClick={() => requestSort('input_cost')}>
+                   <div className="flex items-center gap-1">Input / 1M <SortIcon column="input_cost" /></div>
+                </TableHead>
+                <TableHead className="w-[100px] cursor-pointer" onClick={() => requestSort('output_cost')}>
+                   <div className="flex items-center gap-1">Output / 1M <SortIcon column="output_cost" /></div>
+                </TableHead>
+                <TableHead className="w-[80px] cursor-pointer" onClick={() => requestSort('is_featured')}>
+                   <div className="flex items-center gap-1">Featured <SortIcon column="is_featured" /></div>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                     Loading models...
                   </TableCell>
                 </TableRow>
-              ) : filteredModels.length === 0 ? (
+              ) : sortedModels.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
                     No models found. Try clicking "Sync from OpenRouter".
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredModels.map((model) => (
+                sortedModels.map((model) => (
                   <TableRow key={model.id} className="hover:bg-muted/30">
                     <TableCell>
                       <Switch 
@@ -249,6 +310,17 @@ export function AdminModelManager() {
                       <Badge variant="outline" className="text-xs font-normal">
                         {model.provider}
                       </Badge>
+                    </TableCell>
+                     <TableCell>
+                       {model.supports_tools ? (
+                          <div className="flex justify-center" title="Supports Tools">
+                            <RiCheckFill className="h-4 w-4 text-green-500" />
+                          </div>
+                       ) : (
+                          <div className="flex justify-center" title="No Tool Support">
+                            <RiCloseFill className="h-4 w-4 text-muted-foreground/30" />
+                          </div>
+                       )}
                     </TableCell>
                     <TableCell className="text-xs font-mono">
                       {formatCost(model.pricing?.prompt)}

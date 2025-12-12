@@ -73,16 +73,25 @@ Deno.serve(async (req) => {
     let errorCount = 0
     const batchSize = 50
 
+    const TOOL_SUPPORTED_KEYWORDS = ['gpt-4', 'claude-3', 'mistral-large', 'gemini-1.5', 'command-r', 'firefunction'];
+
     for (let i = 0; i < models.length; i += batchSize) {
-      const batch = models.slice(i, i + batchSize).map(m => ({
-        id: m.id,
-        name: m.name,
-        // Extract provider from ID (e.g. "openai/gpt-4" -> "openai")
-        provider: m.id.split('/')[0] || 'unknown',
-        context_length: m.context_length || 0,
-        pricing: m.pricing,
-        updated_at: new Date().toISOString()
-      }))
+      const batch = models.slice(i, i + batchSize).map(m => {
+        const isToolCapable = TOOL_SUPPORTED_KEYWORDS.some(k => m.id.toLowerCase().includes(k)) || 
+                             (m.description && m.description.toLowerCase().includes('tool')) ||
+                             (m.description && m.description.toLowerCase().includes('function calling'));
+
+        return {
+          id: m.id,
+          name: m.name,
+          // Extract provider from ID (e.g. "openai/gpt-4" -> "openai")
+          provider: m.id.split('/')[0] || 'unknown',
+          context_length: m.context_length || 0,
+          pricing: m.pricing,
+          supports_tools: isToolCapable,
+          updated_at: new Date().toISOString()
+        };
+      })
 
       const { error } = await supabaseClient
         .from('ai_models')
