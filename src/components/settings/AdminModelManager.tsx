@@ -76,15 +76,29 @@ export function AdminModelManager() {
     setSyncing(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+      if (!session) {
+        toast.error('No active session');
+        return;
+      }
 
-      const { data, error } = await supabase.functions.invoke('sync-openrouter-models', {
-        method: 'POST',
-      });
+      // Use direct fetch instead of supabase.functions.invoke for better CORS compatibility
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/sync-openrouter-models`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
 
-      if (error) throw error;
-      
-      const result = data;
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
       toast.success(`Synced ${result.total} models (${result.message})`);
       fetchModels(); // Refresh list
     } catch (err) {

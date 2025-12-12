@@ -2,9 +2,11 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 console.log('Sync OpenRouter Models function starting...')
 
+// CORS headers - including sentry-trace and baggage for Sentry distributed tracing
 const corsHeaders = {
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, accept, x-requested-with, origin',
-  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
 }
 
 interface OpenRouterModel {
@@ -19,18 +21,9 @@ interface OpenRouterModel {
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS
-  const origin = req.headers.get('Origin') || '*'
-  // If Origin is present, we must return that exact origin or * if we don't care.
-  // Ideally we validate it against allowed list, but for now reflect it to allow credentials or strict browsers.
-  
-  const headers = {
-    ...corsHeaders,
-    'Access-Control-Allow-Origin': origin,
-  }
-
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers })
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
@@ -107,20 +100,20 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: `Synced ${upsertCount} models`, 
+      JSON.stringify({
+        success: true,
+        message: `Synced ${upsertCount} models`,
         total: models.length,
-        errors: errorCount 
+        errors: errorCount
       }),
-      { headers: { ...headers, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
   } catch (error) {
     console.error('Function error:', error)
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 400, headers: { ...headers, 'Content-Type': 'application/json' } }
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
