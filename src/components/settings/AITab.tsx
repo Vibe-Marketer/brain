@@ -223,12 +223,26 @@ export default function AITab() {
     }
   }, []); // Re-run if systemDefault changes? No, load once.
 
-  // Sync selectedModel with systemDefault if nothing selected yet
+  // Sync selectedModel with systemDefault if nothing selected yet, OR if selected is invalid
   useEffect(() => {
+    // 1. If nothing selected, set default
     if (!selectedModel && systemDefault) {
       setSelectedModel(systemDefault);
+    } 
+    // 2. If selected but not in list (and list is loaded), reset to default
+    else if (selectedModel && models.length > 0 && !modelsLoading) {
+       const isValid = models.find(m => m.id === selectedModel);
+       if (!isValid) {
+         console.warn(`Selected model ${selectedModel} invalid. Resetting to default.`);
+         // Prevent infinite loop if systemDefault is also somehow invalid (unlikely)
+         if (systemDefault && models.find(m => m.id === systemDefault)) {
+            setSelectedModel(systemDefault);
+         } else if (models.length > 0) {
+            setSelectedModel(models[0].id);
+         }
+       }
     }
-  }, [selectedModel, systemDefault]);
+  }, [selectedModel, systemDefault, models, modelsLoading]);
 
   // Save AI model preference
   const handleModelChange = async (newModel: string) => {
