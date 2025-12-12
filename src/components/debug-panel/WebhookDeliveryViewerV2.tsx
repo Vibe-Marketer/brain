@@ -14,7 +14,10 @@ import {
   RiFileCopyLine,
   RiTerminalBoxLine,
   RiLockPasswordLine,
-  RiBugLine
+  RiBugLine,
+  RiEyeLine,
+  RiEyeOffLine,
+  RiKey2Line
 } from "@remixicon/react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +73,7 @@ export default function WebhookDeliveryViewerV2() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [callStatus, setCallStatus] = useState<CallStatus | null>(null);
   const [showDebug, setShowDebug] = useState(false);
+  const [showSecrets, setShowSecrets] = useState(false);
   
   // Container Responsive Logic
   const containerRef = useRef<HTMLDivElement>(null);
@@ -312,60 +316,121 @@ export default function WebhookDeliveryViewerV2() {
 
                    {/* FORENSICS PANEL */}
                    {showDebug && (
-                     <div className="bg-slate-950 text-slate-300 rounded-lg border border-slate-800 overflow-hidden text-xs font-mono">
-                        <div className="p-3 bg-slate-900 border-b border-slate-800 font-bold flex items-center gap-2 text-slate-400">
-                           <RiLockPasswordLine className="w-3.5 h-3.5" /> Cryptographic Verification Log
+                     <div className="bg-slate-950 text-slate-300 rounded-lg border border-slate-800 overflow-hidden text-xs font-mono shadow-inner shadow-black/50">
+                        <div className="p-3 bg-slate-900 border-b border-slate-800 font-bold flex items-center justify-between text-slate-400">
+                           <div className="flex items-center gap-2">
+                             <RiLockPasswordLine className="w-3.5 h-3.5" /> Cryptographic Verification Log
+                           </div>
+                           <Button variant="ghost" size="sm" onClick={() => setShowSecrets(!showSecrets)} className="h-6 gap-1 text-[10px] text-slate-500 hover:text-slate-300">
+                              {showSecrets ? <RiEyeOffLine className="w-3 h-3"/> : <RiEyeLine className="w-3 h-3"/>}
+                              {showSecrets ? "Hide Secrets" : "Reveal Secrets"}
+                           </Button>
                         </div>
                         
-                        {/* 1. Secrets Tried */}
-                        <div className="p-4 border-b border-slate-800 space-y-3">
-                           <div className="opacity-50 uppercase tracking-wider text-[10px] font-bold">Secrets Tested</div>
-                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                             {/* OAuth Secret */}
-                             <div className="flex justify-between p-2 bg-slate-900/50 rounded border border-slate-800">
-                                <span>OAuth App Secret</span>
-                                <span className={selected.payload?.verification_results?.oauth_app_secret?.verified ? "text-green-400" : "text-red-400"}>
-                                   {selected.payload?.verification_results?.oauth_app_secret?.verified ? "MATCH" : "FAIL"}
-                                </span>
-                             </div>
-                             {/* Personal Secret */}
-                             <div className="flex justify-between p-2 bg-slate-900/50 rounded border border-slate-800">
-                                <span>Personal Secret ({selected.request_body?.recorded_by?.email || 'N/A'})</span>
-                                <span className={selected.payload?.verification_results?.personal_by_email ? (selected.payload.verification_results.personal_by_email.verified ? "text-green-400" : "text-red-400") : "text-slate-600"}>
-                                   {selected.payload?.verification_results?.personal_by_email ? (selected.payload.verification_results.personal_by_email.verified ? "MATCH" : "FAIL") : "N/A"}
-                                </span>
-                             </div>
-                           </div>
+                        {/* 1. Secrets Comparison Table */}
+                        <div className="p-0 overflow-x-auto">
+                           <table className="w-full text-left">
+                             <thead className="bg-slate-900/50 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
+                               <tr>
+                                  <th className="p-3 border-b border-slate-800 font-medium">Method / Secret Source</th>
+                                  <th className="p-3 border-b border-slate-800 font-medium">Key Preview</th>
+                                  <th className="p-3 border-b border-slate-800 font-medium text-right">Result</th>
+                               </tr>
+                             </thead>
+                             <tbody className="divide-y divide-slate-800">
+                               {/* OAuth Secret Row */}
+                               <tr className="bg-slate-900/20 hover:bg-slate-900/40">
+                                  <td className="p-3 flex items-center gap-2">
+                                     <RiKey2Line className="w-3 h-3 text-slate-500" />
+                                     <div>
+                                        <div className="font-semibold text-slate-300">OAuth App Secret</div>
+                                        <div className="text-[10px] text-slate-600">Shared Application Key</div>
+                                     </div>
+                                  </td>
+                                  <td className="p-3 font-mono text-slate-400">
+                                     {selected.payload?.verification_results?.oauth_app_secret?.secret_preview 
+                                       ? (showSecrets ? selected.payload.verification_results.oauth_app_secret.secret_preview : "********" + selected.payload.verification_results.oauth_app_secret.secret_preview.slice(-4))
+                                       : <span className="text-slate-700 italic">Not available</span>
+                                     }
+                                  </td>
+                                  <td className="p-3 text-right">
+                                     {selected.payload?.verification_results?.oauth_app_secret?.verified ? (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-green-500/10 text-green-400 border border-green-500/20">MATCH</span>
+                                     ) : (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-red-500/10 text-red-400 border border-red-500/20">FAIL</span>
+                                     )}
+                                  </td>
+                               </tr>
+                               {/* Personal Secret Row */}
+                               <tr className="bg-slate-900/20 hover:bg-slate-900/40">
+                                  <td className="p-3 flex items-center gap-2">
+                                     <RiKey2Line className="w-3 h-3 text-slate-500" />
+                                     <div>
+                                        <div className="font-semibold text-slate-300">Personal Secret</div>
+                                        <div className="text-[10px] text-slate-600">User: {selected.request_body?.recorded_by?.email || 'N/A'}</div>
+                                     </div>
+                                  </td>
+                                  <td className="p-3 font-mono text-slate-400">
+                                     {selected.payload?.verification_results?.personal_by_email?.secret_preview 
+                                       ? (showSecrets ? selected.payload.verification_results.personal_by_email.secret_preview : "********" + selected.payload.verification_results.personal_by_email.secret_preview.slice(-4))
+                                       : <span className="text-slate-700 italic">No secret found for user</span>
+                                     }
+                                  </td>
+                                  <td className="p-3 text-right">
+                                     {selected.payload?.verification_results?.personal_by_email?.verified ? (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-green-500/10 text-green-400 border border-green-500/20">MATCH</span>
+                                     ) : (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-red-500/10 text-red-400 border border-red-500/20">
+                                           {selected.payload?.verification_results?.personal_by_email?.available ? "FAIL" : "MISSING"}
+                                        </span>
+                                     )}
+                                  </td>
+                               </tr>
+                             </tbody>
+                           </table>
                         </div>
 
-                        {/* 2. Signatures */}
-                        <div className="p-4 space-y-3 overflow-x-auto">
-                           <div className="opacity-50 uppercase tracking-wider text-[10px] font-bold">Signature Comparison</div>
+                        {/* 2. Signature Comparison Table */}
+                        <div className="border-t border-slate-800 p-4 space-y-3">
+                           <div className="opacity-50 uppercase tracking-wider text-[10px] font-bold">Signature Analysis</div>
                            
-                           {/* Received */}
-                           <div>
-                              <div className="text-slate-500 mb-1">Received Header (x-signature or webhook-signature)</div>
-                              <div className="p-2 bg-blue-900/20 text-blue-200 border border-blue-900/40 rounded break-all select-all">
-                                 {selected.payload?.signature_debug?.received_signature || 
-                                  selected.request_headers['x-signature'] || 
-                                  selected.request_headers['webhook-signature'] || "MISSING"}
-                              </div>
-                           </div>
-
-                           {/* Computed (Comparison) */}
-                           <div className="grid gap-2 mt-2">
-                              <div className="text-slate-500 mb-1">Computed Candidates</div>
-                              
-                              {/* Native */}
-                              <div className="flex gap-2 items-center p-2 bg-slate-900 rounded border border-slate-800">
-                                 <span className="w-24 shrink-0 text-slate-500">Native Simple:</span>
-                                 <code className="text-orange-300 break-all select-all">{selected.payload?.signature_debug?.simple_full_secret || "N/A"}</code>
+                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {/* Received */}
+                              <div className="space-y-1">
+                                 <div className="text-[10px] text-slate-500 font-semibold mb-1">RECEIVED HEADER</div>
+                                 <div className="p-3 bg-blue-950/30 text-blue-200 border border-blue-900/50 rounded break-all select-all font-mono text-[11px] leading-relaxed relative group">
+                                    <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                       <RiFileCopyLine className="w-3 h-3 cursor-pointer" onClick={() => copyToClipboard(selected.payload?.signature_debug?.received_signature || "", "Signature")} />
+                                    </div>
+                                    {selected.payload?.signature_debug?.received_signature || 
+                                     selected.request_headers['x-signature'] || 
+                                     selected.request_headers['webhook-signature'] || "MISSING"}
+                                 </div>
                               </div>
 
-                              {/* Svix */}
-                              <div className="flex gap-2 items-center p-2 bg-slate-900 rounded border border-slate-800">
-                                 <span className="w-24 shrink-0 text-slate-500">Svix (Complex):</span>
-                                 <code className="text-purple-300 break-all select-all">{selected.payload?.signature_debug?.svix_computed || "N/A"}</code>
+                              {/* Computed */}
+                              <div className="space-y-2">
+                                 <div className="text-[10px] text-slate-500 font-semibold mb-1">COMPUTED CANDIDATES</div>
+                                 
+                                 {/* Native Simple */}
+                                 <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
+                                    <span className="text-[10px] text-slate-500 w-24 shrink-0">Native/Simple</span>
+                                    <code className="text-orange-300 break-all select-all text-[10px] flex-1 text-right">
+                                       {selected.payload?.signature_debug?.simple_full_secret ? (
+                                          <span>{selected.payload.signature_debug.simple_full_secret.slice(0, 20)}...</span>
+                                       ) : <span className="text-slate-700">N/A</span>}
+                                    </code>
+                                 </div>
+
+                                 {/* Svix */}
+                                 <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
+                                    <span className="text-[10px] text-slate-500 w-24 shrink-0">Svix (Complex)</span>
+                                    <code className="text-purple-300 break-all select-all text-[10px] flex-1 text-right">
+                                       {selected.payload?.signature_debug?.svix_computed ? (
+                                          <span>{selected.payload.signature_debug.svix_computed.slice(0, 20)}...</span>
+                                       ) : <span className="text-slate-700">N/A</span>}
+                                    </code>
+                                 </div>
                               </div>
                            </div>
                         </div>
