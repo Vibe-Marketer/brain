@@ -1,30 +1,45 @@
-import * as React from 'react';
-import { useChat } from '@ai-sdk/react';
-import { DefaultChatTransport, type UIMessage } from 'ai';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { RiSendPlaneFill, RiFilterLine, RiCalendarLine, RiUser3Line, RiFolder3Line, RiCloseLine, RiAddLine, RiMenuLine, RiAtLine, RiVideoLine } from '@remixicon/react';
-import { Button } from '@/components/ui/button';
-import { CallDetailDialog } from '@/components/CallDetailDialog';
-import { Meeting } from '@/types';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Badge } from '@/components/ui/badge';
-import { DateRangePicker } from '@/components/ui/date-range-picker';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
-import { Checkbox } from '@/components/ui/checkbox';
+import * as React from "react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport, type UIMessage } from "ai";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
+import {
+  RiSendPlaneFill,
+  RiFilterLine,
+  RiCalendarLine,
+  RiUser3Line,
+  RiFolder3Line,
+  RiCloseLine,
+  RiAddLine,
+  RiMenuLine,
+  RiAtLine,
+  RiVideoLine,
+} from "@remixicon/react";
+import { Button } from "@/components/ui/button";
+import { CallDetailDialog } from "@/components/CallDetailDialog";
+import { Meeting } from "@/types";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ChatContainerRoot,
   ChatContainerContent,
   ChatContainerScrollAnchor,
-} from '@/components/chat/chat-container';
+} from "@/components/chat/chat-container";
 import {
   ChatOuterCard,
   ChatInnerCard,
   ChatInnerCardContent,
   ChatInnerCardInputArea,
   ChatInnerCardHeader,
-} from '@/components/chat/chat-main-card';
-import { ChatWelcome } from '@/components/chat/chat-welcome';
+} from "@/components/chat/chat-main-card";
+import { ChatWelcome } from "@/components/chat/chat-welcome";
 import {
   PromptInput,
   PromptInputTextarea,
@@ -35,19 +50,19 @@ import {
   PromptInputHintBar,
   KeyboardHint,
   type ContextAttachment,
-} from '@/components/chat/prompt-input';
-import { ModelSelector } from '@/components/chat/model-selector';
-import { UserMessage, AssistantMessage } from '@/components/chat/message';
-import { ScrollButton } from '@/components/chat/scroll-button';
-import { ThinkingLoader } from '@/components/chat/loader';
-import { Sources } from '@/components/chat/source';
-import { ToolCalls } from '@/components/chat/tool-call';
-import { ChatSidebar } from '@/components/chat/ChatSidebar';
-import { useAuth } from '@/contexts/AuthContext';
-import { useChatSession } from '@/hooks/useChatSession';
-import { useMentions } from '@/hooks/useMentions';
-import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+} from "@/components/chat/prompt-input";
+import { ModelSelector } from "@/components/chat/model-selector";
+import { UserMessage, AssistantMessage } from "@/components/chat/message";
+import { ScrollButton } from "@/components/chat/scroll-button";
+import { ThinkingLoader } from "@/components/chat/loader";
+import { Sources } from "@/components/chat/source";
+import { ToolCalls } from "@/components/chat/tool-call";
+import { ChatSidebar } from "@/components/chat/ChatSidebar";
+import { useAuth } from "@/contexts/AuthContext";
+import { useChatSession } from "@/hooks/useChatSession";
+import { useMentions } from "@/hooks/useMentions";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 interface ChatFilters {
   dateStart?: Date;
@@ -62,6 +77,8 @@ interface ChatLocationState {
     recordingIds?: number[];
   };
   callTitle?: string;
+  newSession?: boolean;
+  initialContext?: ContextAttachment[];
 }
 
 interface Speaker {
@@ -85,7 +102,7 @@ interface ToolCallPart {
   type: string;
   toolName: string;
   toolCallId: string;
-  state?: 'pending' | 'running' | 'success' | 'error';
+  state?: "pending" | "running" | "success" | "error";
   args?: Record<string, unknown>;
   result?: Record<string, unknown> & {
     results?: Array<{
@@ -102,11 +119,14 @@ interface ToolCallPart {
 
 // Helper to extract text content from message parts
 function getMessageTextContent(message: UIMessage): string {
-  if (!message?.parts || !Array.isArray(message.parts)) return '';
+  if (!message?.parts || !Array.isArray(message.parts)) return "";
   return message.parts
-    .filter((part): part is { type: 'text'; text: string } => part?.type === 'text' && typeof part.text === 'string')
-    .map(part => part.text)
-    .join('');
+    .filter(
+      (part): part is { type: "text"; text: string } =>
+        part?.type === "text" && typeof part.text === "string"
+    )
+    .map((part) => part.text)
+    .join("");
 }
 
 // Helper to extract tool invocations from message parts
@@ -117,10 +137,10 @@ function getToolInvocations(message: UIMessage): ToolCallPart[] {
   const toolParts: ToolCallPart[] = [];
 
   for (const part of message.parts) {
-    if (!part || typeof part.type !== 'string') continue;
+    if (!part || typeof part.type !== "string") continue;
     // AI SDK v5 tool parts have type like 'tool-searchTranscripts', 'tool-getCallDetails', etc.
     // Also handle 'dynamic-tool' for dynamic tools
-    if (part.type.startsWith('tool-') || part.type === 'dynamic-tool') {
+    if (part.type.startsWith("tool-") || part.type === "dynamic-tool") {
       const toolPart = part as {
         type: string;
         toolCallId: string;
@@ -133,32 +153,35 @@ function getToolInvocations(message: UIMessage): ToolCallPart[] {
 
       // Extract tool name from type (e.g., 'tool-searchTranscripts' -> 'searchTranscripts')
       // For dynamic-tool, use the toolName property
-      const toolName = part.type === 'dynamic-tool'
-        ? toolPart.toolName || 'unknown'
-        : toolPart.type.replace('tool-', '');
+      const toolName =
+        part.type === "dynamic-tool"
+          ? toolPart.toolName || "unknown"
+          : toolPart.type.replace("tool-", "");
 
       // Map AI SDK v5 states to our UI states
       // AI SDK v5 states: 'input-streaming', 'input-available', 'output-available', 'output-error'
-      let state: 'pending' | 'running' | 'success' | 'error' = 'pending';
-      if (toolPart.state === 'input-streaming') {
-        state = 'running';
-      } else if (toolPart.state === 'input-available') {
-        state = 'running'; // Still running, waiting for output
-      } else if (toolPart.state === 'output-available') {
-        state = 'success';
-      } else if (toolPart.state === 'output-error') {
-        state = 'error';
+      let state: "pending" | "running" | "success" | "error" = "pending";
+      if (toolPart.state === "input-streaming") {
+        state = "running";
+      } else if (toolPart.state === "input-available") {
+        state = "running"; // Still running, waiting for output
+      } else if (toolPart.state === "output-available") {
+        state = "success";
+      } else if (toolPart.state === "output-error") {
+        state = "error";
       }
 
       toolParts.push({
-        type: toolPart.state === 'output-available' ? 'tool-result' : 'tool-call',
+        type:
+          toolPart.state === "output-available" ? "tool-result" : "tool-call",
         toolName,
         toolCallId: toolPart.toolCallId,
         state,
         args: toolPart.input as Record<string, unknown>,
-        result: toolPart.state === 'output-available'
-          ? toolPart.output as Record<string, unknown>
-          : undefined,
+        result:
+          toolPart.state === "output-available"
+            ? (toolPart.output as Record<string, unknown>)
+            : undefined,
         error: toolPart.errorText,
       });
     }
@@ -173,31 +196,92 @@ export default function Chat() {
   const location = useLocation();
   const { sessionId } = useParams<{ sessionId: string }>();
 
-  const [filters, setFilters] = React.useState<ChatFilters>({
-    speakers: [],
-    categories: [],
-    recordingIds: [],
+  // Filter state - Initialize from location state if available (prevents race condition)
+  const [filters, setFilters] = React.useState<ChatFilters>(() => {
+    const state = location.state as ChatLocationState | undefined;
+    if (state?.prefilter) {
+      return {
+        dateStart: undefined,
+        dateEnd: undefined,
+        speakers: [],
+        categories: [],
+        recordingIds: state.prefilter.recordingIds || [],
+      };
+    }
+    return {
+      dateStart: undefined,
+      dateEnd: undefined,
+      speakers: [],
+      categories: [],
+      recordingIds: [],
+    };
   });
-  const [availableSpeakers, setAvailableSpeakers] = React.useState<Speaker[]>([]);
-  const [availableCategories, setAvailableCategories] = React.useState<Category[]>([]);
+  const [availableSpeakers, setAvailableSpeakers] = React.useState<Speaker[]>(
+    []
+  );
+  const [availableCategories, setAvailableCategories] = React.useState<
+    Category[]
+  >([]);
   const [availableCalls, setAvailableCalls] = React.useState<Call[]>([]);
   const [showFilters, setShowFilters] = React.useState(false);
   const [showSidebar, setShowSidebar] = React.useState(false);
-  const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(sessionId || null);
+  const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(
+    sessionId || null
+  );
 
   // Input state - managed locally (AI SDK v5 doesn't manage input)
-  const [input, setInput] = React.useState('');
+  const [input, setInput] = React.useState("");
 
   // Selected model state - format: 'provider/model-name' (e.g., 'openai/gpt-4o-mini')
   // Default to GPT-4o-mini - reliable, fast, economical with excellent tool calling
-  const [selectedModel, setSelectedModel] = React.useState<string>('openai/gpt-4o-mini');
+  const [selectedModel, setSelectedModel] =
+    React.useState<string>("openai/gpt-4o-mini");
+
+  const { user } = useAuth();
+
+  // Load user's preferred model from settings
+  React.useEffect(() => {
+    async function loadModelPreference() {
+      if (!user?.id) return;
+      
+      const { data: settings } = await supabase
+        .from("user_settings")
+        .select("ai_model_preset")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (settings?.ai_model_preset) {
+        // Trust the setting directly, only fallback if it's a truly legacy value (e.g. "fast")
+        // The ModelSelector will handle showing/hiding it, but we should respect the saved ID.
+        let modelId = settings.ai_model_preset;
+        
+        // Simple legacy mapping for very old values
+        if (modelId === 'fast') modelId = 'openai/gpt-4o-mini';
+        else if (modelId === 'quality') modelId = 'openai/gpt-4.1';
+        else if (modelId === 'best') modelId = 'anthropic/claude-3-5-sonnet'; 
+        
+        setSelectedModel(modelId);
+      }
+    }
+
+    loadModelPreference();
+  }, [user?.id]);
 
   // CallDetailDialog state for viewing sources
   const [selectedCall, setSelectedCall] = React.useState<Meeting | null>(null);
   const [showCallDialog, setShowCallDialog] = React.useState(false);
 
   // Context attachments state (calls attached via "+ Add context")
-  const [contextAttachments, setContextAttachments] = React.useState<ContextAttachment[]>([]);
+  const [contextAttachments, setContextAttachments] = React.useState<
+    ContextAttachment[]
+  >(() => {
+    // Initialize from location state if available
+    const state = location.state as ChatLocationState | undefined;
+    if (state?.initialContext) {
+      return state.initialContext;
+    }
+    return [];
+  });
 
   // Ref to track current session ID for async callbacks (avoids stale closure)
   const currentSessionIdRef = React.useRef<string | null>(currentSessionId);
@@ -227,20 +311,29 @@ export default function Chat() {
   }, [sessions]);
 
   // Build filter object for API - memoized to avoid unnecessary transport recreation
-  const apiFilters = React.useMemo(() => ({
-    date_start: filters.dateStart?.toISOString(),
-    date_end: filters.dateEnd?.toISOString(),
-    speakers: filters.speakers.length > 0 ? filters.speakers : undefined,
-    categories: filters.categories.length > 0 ? filters.categories : undefined,
-    recording_ids: filters.recordingIds.length > 0 ? filters.recordingIds : undefined,
-  }), [filters]);
+  const apiFilters = React.useMemo(
+    () => ({
+      date_start: filters.dateStart?.toISOString(),
+      date_end: filters.dateEnd?.toISOString(),
+      speakers: filters.speakers.length > 0 ? filters.speakers : undefined,
+      categories:
+        filters.categories.length > 0 ? filters.categories : undefined,
+      recording_ids:
+        filters.recordingIds.length > 0 ? filters.recordingIds : undefined,
+    }),
+    [filters]
+  );
 
   // Use refs for values that change frequently but shouldn't recreate transport
   // This prevents infinite re-render loops when sessionId/model/filters change
   const apiFiltersRef = React.useRef(apiFilters);
   const selectedModelRef = React.useRef(selectedModel);
-  React.useEffect(() => { apiFiltersRef.current = apiFilters; }, [apiFilters]);
-  React.useEffect(() => { selectedModelRef.current = selectedModel; }, [selectedModel]);
+  React.useEffect(() => {
+    apiFiltersRef.current = apiFilters;
+  }, [apiFilters]);
+  React.useEffect(() => {
+    selectedModelRef.current = selectedModel;
+  }, [selectedModel]);
 
   // Create transport instance - ONLY recreate when auth token changes
   // Other values (filters, model, sessionId) are read from refs at request time
@@ -253,22 +346,21 @@ export default function Chat() {
       // Use a function to get current values at request time from refs
       // This prevents transport recreation when these values change
       body: {
-        get filters() { return apiFiltersRef.current; },
-        get model() { return selectedModelRef.current; },
-        get sessionId() { return currentSessionIdRef.current; },
+        get filters() {
+          return apiFiltersRef.current;
+        },
+        get model() {
+          return selectedModelRef.current;
+        },
+        get sessionId() {
+          return currentSessionIdRef.current;
+        },
       },
     });
-   
   }, [session?.access_token]); // ONLY depend on auth token - refs handle the rest
 
   // Use the AI SDK v5 chat hook
-  const {
-    messages,
-    sendMessage,
-    status,
-    error,
-    setMessages,
-  } = useChat({
+  const { messages, sendMessage, status, error, setMessages } = useChat({
     transport,
   });
 
@@ -292,9 +384,9 @@ export default function Chat() {
       timeoutId = setTimeout(async () => {
         try {
           // Convert UIMessage to the format expected by saveMessages (keep parts for tool calls)
-          const messagesToSave = msgs.map(m => ({
+          const messagesToSave = msgs.map((m) => ({
             id: m.id,
-            role: m.role as 'user' | 'assistant' | 'system',
+            role: m.role as "user" | "assistant" | "system",
             content: getMessageTextContent(m),
             parts: m.parts,
           }));
@@ -305,7 +397,7 @@ export default function Chat() {
             model,
           });
         } catch (err) {
-          console.error('Failed to save messages:', err);
+          console.error("Failed to save messages:", err);
         }
       }, 500);
     };
@@ -315,7 +407,9 @@ export default function Chat() {
   React.useEffect(() => {
     return () => {
       // Cancel any pending saves when component unmounts
-      const cleanup = debouncedSaveMessages as unknown as { cancel?: () => void };
+      const cleanup = debouncedSaveMessages as unknown as {
+        cancel?: () => void;
+      };
       if (cleanup.cancel) cleanup.cancel();
     };
   }, [debouncedSaveMessages]);
@@ -323,10 +417,21 @@ export default function Chat() {
   // Save messages when they change and status becomes ready (debounced)
   React.useEffect(() => {
     const sessionIdToSave = currentSessionIdRef.current;
-    if (status === 'ready' && sessionIdToSave && session?.user?.id && messages.length > 0) {
+    if (
+      status === "ready" &&
+      sessionIdToSave &&
+      session?.user?.id &&
+      messages.length > 0
+    ) {
       debouncedSaveMessages(messages, sessionIdToSave, selectedModel);
     }
-  }, [status, messages, session?.user?.id, debouncedSaveMessages, selectedModel]);
+  }, [
+    status,
+    messages,
+    session?.user?.id,
+    debouncedSaveMessages,
+    selectedModel,
+  ]);
 
   // Fetch available filters on mount
   React.useEffect(() => {
@@ -338,29 +443,29 @@ export default function Chat() {
 
       try {
         // Fetch speakers
-        const { data: speakers } = await supabase.rpc('get_user_speakers', {
+        const { data: speakers } = await supabase.rpc("get_user_speakers", {
           p_user_id: session.user.id,
         });
         if (isMounted && speakers) setAvailableSpeakers(speakers);
 
         // Fetch categories
-        const { data: categories } = await supabase.rpc('get_user_categories', {
+        const { data: categories } = await supabase.rpc("get_user_categories", {
           p_user_id: session.user.id,
         });
         if (isMounted && categories) setAvailableCategories(categories);
 
         // Fetch recent calls
         const { data: calls } = await supabase
-          .from('fathom_calls')
-          .select('recording_id, title, created_at')
-          .eq('user_id', session.user.id)
-          .order('created_at', { ascending: false })
+          .from("fathom_calls")
+          .select("recording_id, title, created_at")
+          .eq("user_id", session.user.id)
+          .order("created_at", { ascending: false })
           .limit(30);
         if (isMounted && calls) setAvailableCalls(calls);
       } catch (error) {
         // Only log errors if component is still mounted (ignore abort errors)
         if (isMounted) {
-          console.error('Failed to fetch filter options:', error);
+          console.error("Failed to fetch filter options:", error);
         }
       }
     }
@@ -372,19 +477,6 @@ export default function Chat() {
       isMounted = false;
     };
   }, [session]);
-
-  // Handle incoming location state for pre-filtering
-  React.useEffect(() => {
-    const state = location.state as ChatLocationState | undefined;
-    if (state?.prefilter?.recordingIds?.length) {
-      setFilters(prev => ({
-        ...prev,
-        recordingIds: state.prefilter!.recordingIds!,
-      }));
-      navigate(location.pathname, { replace: true, state: {} });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // Atomically load session data (filters + messages) to prevent race conditions
   // CRITICAL: Filters must be loaded BEFORE messages to ensure transport has correct config
@@ -416,8 +508,12 @@ export default function Chat() {
         const sessionMeta = sessionsRef.current.find((s) => s.id === sessionId);
         if (sessionMeta && isMounted) {
           const nextFilters: ChatFilters = {
-            dateStart: sessionMeta.filter_date_start ? new Date(sessionMeta.filter_date_start) : undefined,
-            dateEnd: sessionMeta.filter_date_end ? new Date(sessionMeta.filter_date_end) : undefined,
+            dateStart: sessionMeta.filter_date_start
+              ? new Date(sessionMeta.filter_date_start)
+              : undefined,
+            dateEnd: sessionMeta.filter_date_end
+              ? new Date(sessionMeta.filter_date_end)
+              : undefined,
             speakers: sessionMeta.filter_speakers || [],
             categories: sessionMeta.filter_categories || [],
             recordingIds: sessionMeta.filter_recording_ids || [],
@@ -430,21 +526,72 @@ export default function Chat() {
           });
         }
 
-        // STEP 2: Load messages (transport now uses correct filters from step 1)
+        // Initialize filters from location state if present (and not already set)
+        const locationState = location.state as ChatLocationState | undefined;
+        
+        // Handle visual context attachments from location state
+        if (locationState?.initialContext) {
+          setContextAttachments(prev => {
+             const prevJson = JSON.stringify(prev);
+             const nextJson = JSON.stringify(locationState.initialContext);
+             return prevJson === nextJson ? prev : locationState.initialContext || [];
+          });
+        }
+
+        if (locationState?.prefilter?.recordingIds) {
+          setFilters((prev) => {
+            // Only update if actually different to avoid cycles
+            if (JSON.stringify(prev.recordingIds) !== JSON.stringify(locationState.prefilter!.recordingIds)) {
+               return {
+                ...prev,
+                recordingIds: locationState.prefilter!.recordingIds || [],
+              };
+            }
+            return prev;
+          });
+        }
+
+        // Check if this is a newly created session (passed via navigation state)
+        // If so, we skip fetching messages from DB to avoid overwriting the optimistic local state
+        // with an empty array from the DB (race condition fix)
+        if (locationState?.newSession) {
+          console.log(
+            "New session detected, skipping initial DB fetch to preserve optimistic state"
+          );
+
+          // Still need to set the session ID refs
+          setCurrentSessionId(sessionId);
+          currentSessionIdRef.current = sessionId;
+
+          // Ensure filters are saved to the new session if they exist
+          // This relies on saveMessages also saving session metadata, or a separate update
+          
+          // Clear the newSession flag so subsequent refreshes/navigation work normally
+          // We use replace to update state without adding a new history entry
+          navigate(location.pathname, {
+            replace: true,
+            state: { ...locationState, newSession: undefined },
+          });
+          return;
+        }
+
         const loadedMessages = await fetchMessages(sessionId);
 
         // Only update state if still mounted
         if (!isMounted) return;
 
-        console.log(`Loaded ${loadedMessages.length} messages for session ${sessionId}`);
+        console.log(
+          `Loaded ${loadedMessages.length} messages for session ${sessionId}`
+        );
 
         // Convert loaded messages to UIMessage format
-        const uiMessages: UIMessage[] = loadedMessages.map(m => ({
+        const uiMessages: UIMessage[] = loadedMessages.map((m) => ({
           id: m.id,
-          role: m.role as 'user' | 'assistant' | 'system',
-          parts: m.parts && Array.isArray(m.parts) && m.parts.length > 0
-            ? m.parts as unknown as UIMessage['parts']
-            : [{ type: 'text' as const, text: m.content || '' }],
+          role: m.role as "user" | "assistant" | "system",
+          parts:
+            m.parts && Array.isArray(m.parts) && m.parts.length > 0
+              ? (m.parts as unknown as UIMessage["parts"])
+              : [{ type: "text" as const, text: m.content || "" }],
         }));
 
         // STEP 3: Update UI state atomically
@@ -454,7 +601,7 @@ export default function Chat() {
       } catch (err) {
         // Only log errors if component is still mounted
         if (isMounted) {
-          console.error('Failed to load session:', err);
+          console.error("Failed to load session:", err);
         }
       }
     }
@@ -486,133 +633,181 @@ export default function Chat() {
       const newSession = await createNewSession();
       navigate(`/chat/${newSession.id}`);
     } catch (err) {
-      console.error('Failed to create session:', err);
+      console.error("Failed to create session:", err);
     }
   }, [createNewSession, navigate]);
 
   // Handle session selection
-  const handleSessionSelect = React.useCallback((selectedSessionId: string) => {
-    navigate(`/chat/${selectedSessionId}`);
-    setShowSidebar(false);
-  }, [navigate]);
+  const handleSessionSelect = React.useCallback(
+    (selectedSessionId: string) => {
+      navigate(`/chat/${selectedSessionId}`);
+      setShowSidebar(false);
+    },
+    [navigate]
+  );
 
   // Handle session deletion
-  const handleDeleteSession = React.useCallback(async (sessionIdToDelete: string) => {
-    try {
-      await deleteSession(sessionIdToDelete);
-      if (sessionIdToDelete === currentSessionId) {
-        navigate('/chat');
+  const handleDeleteSession = React.useCallback(
+    async (sessionIdToDelete: string) => {
+      try {
+        await deleteSession(sessionIdToDelete);
+        if (sessionIdToDelete === currentSessionId) {
+          navigate("/chat");
+        }
+      } catch (err) {
+        console.error("Failed to delete session:", err);
       }
-    } catch (err) {
-      console.error('Failed to delete session:', err);
-    }
-  }, [deleteSession, currentSessionId, navigate]);
+    },
+    [deleteSession, currentSessionId, navigate]
+  );
 
   // Handle toggle pin
-  const handleTogglePin = React.useCallback(async (sessionId: string, isPinned: boolean) => {
-    try {
-      await togglePin({ sessionId, isPinned });
-    } catch (err) {
-      console.error('Failed to toggle pin:', err);
-    }
-  }, [togglePin]);
+  const handleTogglePin = React.useCallback(
+    async (sessionId: string, isPinned: boolean) => {
+      try {
+        await togglePin({ sessionId, isPinned });
+      } catch (err) {
+        console.error("Failed to toggle pin:", err);
+      }
+    },
+    [togglePin]
+  );
 
   // Handle toggle archive
-  const handleToggleArchive = React.useCallback(async (sessionId: string, isArchived: boolean) => {
-    try {
-      await toggleArchive({ sessionId, isArchived });
-    } catch (err) {
-      console.error('Failed to toggle archive:', err);
-    }
-  }, [toggleArchive]);
+  const handleToggleArchive = React.useCallback(
+    async (sessionId: string, isArchived: boolean) => {
+      try {
+        await toggleArchive({ sessionId, isArchived });
+      } catch (err) {
+        console.error("Failed to toggle archive:", err);
+      }
+    },
+    [toggleArchive]
+  );
 
   // Handle chat submission
-  const handleChatSubmit = React.useCallback(async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handleChatSubmit = React.useCallback(
+    async (e?: React.FormEvent) => {
+      e?.preventDefault();
 
-    let inputToSubmit = input;
+      let inputToSubmit = input;
 
-    // If there are context attachments, add them as @mentions
-    if (contextAttachments.length > 0) {
-      const attachmentMentions = contextAttachments
-        .map(a => `@[${a.title}](recording:${a.id})`)
-        .join(' ');
-      inputToSubmit = `[Context: ${attachmentMentions}]\n\n${input}`;
-      setContextAttachments([]);
-    }
-
-    if (!inputToSubmit || !inputToSubmit.trim()) return;
-
-    // Create session if it doesn't exist
-    let sessionIdToUse = currentSessionId;
-    if (!sessionIdToUse && session?.user?.id) {
-      try {
-        const newSession = await createNewSession();
-        sessionIdToUse = newSession.id;
-        currentSessionIdRef.current = newSession.id;
-        setCurrentSessionId(newSession.id);
-        navigate(`/chat/${newSession.id}`, { replace: true });
-      } catch (err) {
-        console.error('Failed to create session:', err);
-        return;
+      // If there are context attachments, add them as @mentions
+      if (contextAttachments.length > 0) {
+        const attachmentMentions = contextAttachments
+          .map((a) => `@[${a.title}](recording:${a.id})`)
+          .join(" ");
+        inputToSubmit = `[Context: ${attachmentMentions}]\n\n${input}`;
+        setContextAttachments([]);
       }
-    }
 
-    // Send message using AI SDK v5
-    sendMessage({ text: inputToSubmit });
-    setInput(''); // Clear input after sending
-  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, sendMessage, contextAttachments]);
+      if (!inputToSubmit || !inputToSubmit.trim()) return;
+
+      // Create session if it doesn't exist
+      let sessionIdToUse = currentSessionId;
+      if (!sessionIdToUse && session?.user?.id) {
+        try {
+          const newSession = await createNewSession();
+          sessionIdToUse = newSession.id;
+          currentSessionIdRef.current = newSession.id;
+          setCurrentSessionId(newSession.id);
+          // Pass newSession: true to prevent loadSession from overwriting our optimistic message
+          navigate(`/chat/${newSession.id}`, { 
+            replace: true,
+            state: { newSession: true }
+          });
+        } catch (err) {
+          console.error("Failed to create session:", err);
+          return;
+        }
+      }
+
+      // Send message using AI SDK v5
+      sendMessage({ text: inputToSubmit });
+      setInput(""); // Clear input after sending
+    },
+    [
+      input,
+      currentSessionId,
+      session?.user?.id,
+      createNewSession,
+      navigate,
+      sendMessage,
+      contextAttachments,
+    ]
+  );
 
   // Handle suggestion clicks
-  const handleSuggestionClick = React.useCallback(async (text: string) => {
-    // Create session if needed first
-    let sessionIdToUse = currentSessionId;
-    if (!sessionIdToUse && session?.user?.id) {
-      try {
-        const newSession = await createNewSession();
-        sessionIdToUse = newSession.id;
-        currentSessionIdRef.current = newSession.id;
-        setCurrentSessionId(newSession.id);
-        navigate(`/chat/${newSession.id}`, { replace: true });
-      } catch (err) {
-        console.error('Failed to create session:', err);
-        return;
+  const handleSuggestionClick = React.useCallback(
+    async (text: string) => {
+      // Create session if needed first
+      let sessionIdToUse = currentSessionId;
+      if (!sessionIdToUse && session?.user?.id) {
+        try {
+          const newSession = await createNewSession();
+          sessionIdToUse = newSession.id;
+          currentSessionIdRef.current = newSession.id;
+          setCurrentSessionId(newSession.id);
+          // Pass newSession: true to prevent loadSession from overwriting our optimistic message
+          navigate(`/chat/${newSession.id}`, { 
+            replace: true,
+            state: { newSession: true }
+          });
+        } catch (err) {
+          console.error("Failed to create session:", err);
+          return;
+        }
       }
-    }
 
-    // Send the suggestion directly
-    sendMessage({ text });
-  }, [currentSessionId, session?.user?.id, createNewSession, navigate, sendMessage]);
+      // Send the suggestion directly
+      sendMessage({ text });
+    },
+    [
+      currentSessionId,
+      session?.user?.id,
+      createNewSession,
+      navigate,
+      sendMessage,
+    ]
+  );
 
   // Handler to view a call from a source citation
-  const handleViewCall = React.useCallback(async (recordingId: number) => {
-    if (!session?.user?.id) {
-      console.error('No user session');
-      return;
-    }
-
-    try {
-      // Use composite key (recording_id, user_id) for the lookup
-      const { data: callData, error } = await supabase
-        .from('fathom_calls')
-        .select('*')
-        .eq('recording_id', recordingId)
-        .eq('user_id', session.user.id)
-        .single();
-
-      if (error) {
-        console.error('Failed to fetch call:', error);
+  const handleViewCall = React.useCallback(
+    async (recordingId: number) => {
+      if (!session?.user?.id) {
+        console.error("No user session");
         return;
       }
 
-      setSelectedCall(callData as unknown as Meeting);
-      setShowCallDialog(true);
-    } catch (err) {
-      console.error('Error fetching call:', err);
-    }
-  }, [session?.user?.id]);
+      try {
+        // Use composite key (recording_id, user_id) for the lookup
+        const { data: callData, error } = await supabase
+          .from("fathom_calls")
+          .select("*")
+          .eq("recording_id", recordingId)
+          .eq("user_id", session.user.id)
+          .single();
 
-  const hasActiveFilters = filters.dateStart || filters.dateEnd || filters.speakers.length > 0 || filters.categories.length > 0 || filters.recordingIds.length > 0;
+        if (error) {
+          console.error("Failed to fetch call:", error);
+          return;
+        }
+
+        setSelectedCall(callData as unknown as Meeting);
+        setShowCallDialog(true);
+      } catch (err) {
+        console.error("Error fetching call:", err);
+      }
+    },
+    [session?.user?.id]
+  );
+
+  const hasActiveFilters =
+    filters.dateStart ||
+    filters.dateEnd ||
+    filters.speakers.length > 0 ||
+    filters.categories.length > 0 ||
+    filters.recordingIds.length > 0;
 
   const clearFilters = React.useCallback(() => {
     setFilters({
@@ -623,35 +818,35 @@ export default function Chat() {
   }, []);
 
   const toggleSpeaker = React.useCallback((speaker: string) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       speakers: prev.speakers.includes(speaker)
-        ? prev.speakers.filter(s => s !== speaker)
+        ? prev.speakers.filter((s) => s !== speaker)
         : [...prev.speakers, speaker],
     }));
   }, []);
 
   const toggleCategory = React.useCallback((category: string) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       categories: prev.categories.includes(category)
-        ? prev.categories.filter(c => c !== category)
+        ? prev.categories.filter((c) => c !== category)
         : [...prev.categories, category],
     }));
   }, []);
 
   const toggleCall = React.useCallback((recordingId: number) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       recordingIds: prev.recordingIds.includes(recordingId)
-        ? prev.recordingIds.filter(id => id !== recordingId)
+        ? prev.recordingIds.filter((id) => id !== recordingId)
         : [...prev.recordingIds, recordingId],
     }));
   }, []);
 
   // Handle call selection from mentions
   const handleMentionCallSelect = React.useCallback((recordingId: number) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       recordingIds: prev.recordingIds.includes(recordingId)
         ? prev.recordingIds
@@ -661,21 +856,24 @@ export default function Chat() {
 
   // Handle removing a context attachment (stable callback for PromptInputContextBar)
   const handleRemoveAttachment = React.useCallback((id: number) => {
-    setContextAttachments(prev => prev.filter(a => a.id !== id));
+    setContextAttachments((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
   // Handle adding a call as context attachment (stable callback for PromptInputContextBar)
-  const handleAddCall = React.useCallback((call: { recording_id: number; title: string; created_at: string }) => {
-    setContextAttachments(prev => [
-      ...prev,
-      {
-        type: 'call' as const,
-        id: call.recording_id,
-        title: call.title,
-        date: call.created_at,
-      },
-    ]);
-  }, []);
+  const handleAddCall = React.useCallback(
+    (call: { recording_id: number; title: string; created_at: string }) => {
+      setContextAttachments((prev) => [
+        ...prev,
+        {
+          type: "call" as const,
+          id: call.recording_id,
+          title: call.title,
+          date: call.created_at,
+        },
+      ]);
+    },
+    []
+  );
 
   // Use mentions hook for @ mention functionality
   const {
@@ -692,7 +890,7 @@ export default function Chat() {
   });
 
   // Compute loading state from status
-  const isLoading = status === 'submitted' || status === 'streaming';
+  const isLoading = status === "submitted" || status === "streaming";
 
   return (
     <>
@@ -706,35 +904,38 @@ export default function Chat() {
 
       {/* BG-CARD-MAIN: Browser window container */}
       <ChatOuterCard>
-          {/* SIDEBAR */}
-          <div
-            className={`
-              ${showSidebar ? 'fixed inset-y-0 left-0 z-50 shadow-2xl' : 'hidden'}
+        {/* SIDEBAR */}
+        <div
+          className={`
+              ${
+                showSidebar
+                  ? "fixed inset-y-0 left-0 z-50 shadow-2xl"
+                  : "hidden"
+              }
               md:block md:relative md:shadow-none
               w-[280px] flex-shrink-0 transition-all duration-200
             `}
-          >
-            <ChatSidebar
-              sessions={sessions}
-              activeSessionId={currentSessionId}
-              onSessionSelect={handleSessionSelect}
-              onNewChat={handleNewChat}
-              onDeleteSession={handleDeleteSession}
-              onTogglePin={handleTogglePin}
-              onToggleArchive={handleToggleArchive}
-            />
-          </div>
+        >
+          <ChatSidebar
+            sessions={sessions}
+            activeSessionId={currentSessionId}
+            onSessionSelect={handleSessionSelect}
+            onNewChat={handleNewChat}
+            onDeleteSession={handleDeleteSession}
+            onTogglePin={handleTogglePin}
+            onToggleArchive={handleToggleArchive}
+          />
+        </div>
 
-          {/* BG-CARD-INNER: Chat interface */}
-          <ChatInnerCard>
-            {/* Header */}
-            <ChatInnerCardHeader>
+        {/* BG-CARD-INNER: Chat interface */}
+        <ChatInnerCard>
+          {/* Header */}
+          <ChatInnerCardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 md:gap-3">
                 {/* Mobile menu toggle */}
                 <Button
                   variant="hollow"
-                  size="sm"
                   className="md:hidden h-8 w-8 p-0"
                   onClick={() => setShowSidebar(!showSidebar)}
                 >
@@ -745,26 +946,30 @@ export default function Chat() {
                     {filters.dateStart && (
                       <Badge variant="secondary" className="gap-1">
                         <RiCalendarLine className="h-3 w-3" />
-                        {format(filters.dateStart, 'MMM d')}
-                        {filters.dateEnd && ` - ${format(filters.dateEnd, 'MMM d')}`}
+                        {format(filters.dateStart, "MMM d")}
+                        {filters.dateEnd &&
+                          ` - ${format(filters.dateEnd, "MMM d")}`}
                       </Badge>
                     )}
                     {filters.speakers.length > 0 && (
                       <Badge variant="secondary" className="gap-1">
                         <RiUser3Line className="h-3 w-3" />
-                        {filters.speakers.length} speaker{filters.speakers.length > 1 ? 's' : ''}
+                        {filters.speakers.length} speaker
+                        {filters.speakers.length > 1 ? "s" : ""}
                       </Badge>
                     )}
                     {filters.categories.length > 0 && (
                       <Badge variant="secondary" className="gap-1">
                         <RiFolder3Line className="h-3 w-3" />
-                        {filters.categories.length} categor{filters.categories.length > 1 ? 'ies' : 'y'}
+                        {filters.categories.length} categor
+                        {filters.categories.length > 1 ? "ies" : "y"}
                       </Badge>
                     )}
                     {filters.recordingIds.length > 0 && (
                       <Badge variant="secondary" className="gap-1">
                         <RiVideoLine className="h-3 w-3" />
-                        {filters.recordingIds.length} call{filters.recordingIds.length > 1 ? 's' : ''}
+                        {filters.recordingIds.length} call
+                        {filters.recordingIds.length > 1 ? "s" : ""}
                       </Badge>
                     )}
                     <Button
@@ -800,7 +1005,7 @@ export default function Chat() {
                 <Popover open={showFilters} onOpenChange={setShowFilters}>
                   <PopoverTrigger asChild>
                     <Button
-                      variant={hasActiveFilters ? 'default' : 'outline'}
+                      variant={hasActiveFilters ? "default" : "outline"}
                       size="sm"
                       className="gap-1 h-8 px-2 md:px-3"
                     >
@@ -820,9 +1025,12 @@ export default function Chat() {
                           Date Range
                         </label>
                         <DateRangePicker
-                          dateRange={{ from: filters.dateStart, to: filters.dateEnd }}
+                          dateRange={{
+                            from: filters.dateStart,
+                            to: filters.dateEnd,
+                          }}
                           onDateRangeChange={(range) => {
-                            setFilters(prev => ({
+                            setFilters((prev) => ({
                               ...prev,
                               dateStart: range?.from,
                               dateEnd: range?.to,
@@ -847,20 +1055,32 @@ export default function Chat() {
                           <div className="space-y-1">
                             {availableSpeakers.map((speaker) => (
                               <button
-                                key={speaker.speaker_email || speaker.speaker_name}
-                                onClick={() => toggleSpeaker(speaker.speaker_name)}
+                                key={
+                                  speaker.speaker_email || speaker.speaker_name
+                                }
+                                onClick={() =>
+                                  toggleSpeaker(speaker.speaker_name)
+                                }
                                 className={`flex w-full items-center justify-between rounded-md px-2 py-1.5 text-sm transition-colors ${
-                                  filters.speakers.includes(speaker.speaker_name)
-                                    ? 'bg-vibe-orange/10 text-cb-ink'
-                                    : 'hover:bg-cb-hover text-cb-ink-soft'
+                                  filters.speakers.includes(
+                                    speaker.speaker_name
+                                  )
+                                    ? "bg-vibe-orange/10 text-cb-ink"
+                                    : "hover:bg-cb-hover text-cb-ink-soft"
                                 }`}
                               >
-                                <span className="truncate">{speaker.speaker_name}</span>
-                                <span className="text-xs text-cb-ink-muted">{speaker.call_count} calls</span>
+                                <span className="truncate">
+                                  {speaker.speaker_name}
+                                </span>
+                                <span className="text-xs text-cb-ink-muted">
+                                  {speaker.call_count} calls
+                                </span>
                               </button>
                             ))}
                             {availableSpeakers.length === 0 && (
-                              <p className="text-sm text-cb-ink-muted py-2">No speakers indexed yet</p>
+                              <p className="text-sm text-cb-ink-muted py-2">
+                                No speakers indexed yet
+                              </p>
                             )}
                           </div>
                         </ScrollArea>
@@ -877,7 +1097,11 @@ export default function Chat() {
                           {availableCategories.map((cat) => (
                             <Badge
                               key={cat.category}
-                              variant={filters.categories.includes(cat.category) ? 'default' : 'outline'}
+                              variant={
+                                filters.categories.includes(cat.category)
+                                  ? "default"
+                                  : "outline"
+                              }
                               className="cursor-pointer"
                               onClick={() => toggleCategory(cat.category)}
                             >
@@ -885,7 +1109,9 @@ export default function Chat() {
                             </Badge>
                           ))}
                           {availableCategories.length === 0 && (
-                            <p className="text-sm text-cb-ink-muted py-2">No categories indexed yet</p>
+                            <p className="text-sm text-cb-ink-muted py-2">
+                              No categories indexed yet
+                            </p>
                           )}
                         </div>
                       </div>
@@ -906,8 +1132,12 @@ export default function Chat() {
                               >
                                 <Checkbox
                                   id={`call-${call.recording_id}`}
-                                  checked={filters.recordingIds.includes(call.recording_id)}
-                                  onCheckedChange={() => toggleCall(call.recording_id)}
+                                  checked={filters.recordingIds.includes(
+                                    call.recording_id
+                                  )}
+                                  onCheckedChange={() =>
+                                    toggleCall(call.recording_id)
+                                  }
                                   className="mt-0.5"
                                 />
                                 <label
@@ -915,16 +1145,21 @@ export default function Chat() {
                                   className="flex-1 cursor-pointer text-sm"
                                 >
                                   <div className="text-cb-ink font-medium truncate">
-                                    {call.title || 'Untitled Call'}
+                                    {call.title || "Untitled Call"}
                                   </div>
                                   <div className="text-xs text-cb-ink-muted">
-                                    {format(new Date(call.created_at), 'MMM d, yyyy')}
+                                    {format(
+                                      new Date(call.created_at),
+                                      "MMM d, yyyy"
+                                    )}
                                   </div>
                                 </label>
                               </div>
                             ))}
                             {availableCalls.length === 0 && (
-                              <p className="text-sm text-cb-ink-muted py-2">No calls found</p>
+                              <p className="text-sm text-cb-ink-muted py-2">
+                                No calls found
+                              </p>
                             )}
                           </div>
                         </ScrollArea>
@@ -934,16 +1169,18 @@ export default function Chat() {
                 </Popover>
               </div>
             </div>
-            </ChatInnerCardHeader>
+          </ChatInnerCardHeader>
 
-            {/* Chat content area */}
-            <ChatInnerCardContent>
+          {/* Chat content area */}
+          <ChatInnerCardContent>
             <ChatContainerRoot className="h-full">
               <ChatContainerContent className="px-4 py-0">
                 {/* Welcome/Empty State */}
                 {messages.length === 0 && (
                   <ChatWelcome
-                    userName={session?.user?.user_metadata?.full_name?.split(' ')[0]}
+                    userName={
+                      session?.user?.user_metadata?.full_name?.split(" ")[0]
+                    }
                     subtitle="Search across all your calls, find specific discussions, and uncover insights."
                     onSuggestionClick={handleSuggestionClick}
                   />
@@ -951,16 +1188,14 @@ export default function Chat() {
 
                 {/* Messages */}
                 {messages.map((message) => {
-                  if (message.role === 'user') {
+                  if (message.role === "user") {
                     const textContent = getMessageTextContent(message);
                     return (
-                      <UserMessage key={message.id}>
-                        {textContent}
-                      </UserMessage>
+                      <UserMessage key={message.id}>{textContent}</UserMessage>
                     );
                   }
 
-                  if (message.role === 'assistant') {
+                  if (message.role === "assistant") {
                     const toolParts = getToolInvocations(message);
                     const textContent = getMessageTextContent(message);
 
@@ -975,32 +1210,59 @@ export default function Chat() {
                     }> = [];
 
                     toolParts.forEach((p) => {
-                      if (p.type === 'tool-result' && p.result) {
-                        if (p.result.results && Array.isArray(p.result.results)) {
+                      if (p.type === "tool-result" && p.result) {
+                        if (
+                          p.result.results &&
+                          Array.isArray(p.result.results)
+                        ) {
                           sources.push(...p.result.results);
-                        } else if (p.result.recording_id && p.result.title && !p.result.error) {
+                        } else if (
+                          p.result.calls &&
+                          Array.isArray(p.result.calls)
+                        ) {
+                          // Handle summarizeCalls tool results
+                          sources.push(...p.result.calls.map((c: any) => ({
+                            recording_id: c.recording_id,
+                            text: c.summary_preview || c.summary || "",
+                            speaker: c.recorded_by || "Unknown",
+                            call_date: c.date || c.created_at,
+                            call_title: c.title,
+                            relevance: "100", // Summarized calls are implicitly relevant
+                          })));
+                        } else if (
+                          p.result.recording_id &&
+                          p.result.title &&
+                          !p.result.error
+                        ) {
                           sources.push({
                             recording_id: p.result.recording_id as number,
-                            text: (p.result.summary as string) || '',
-                            speaker: (p.result.recorded_by as string) || '',
-                            call_date: (p.result.date as string) || '',
-                            call_title: (p.result.title as string) || '',
-                            relevance: '100',
+                            text: (p.result.summary as string) || "",
+                            speaker: (p.result.recorded_by as string) || "",
+                            call_date: (p.result.date as string) || "",
+                            call_title: (p.result.title as string) || "",
+                            relevance: "100",
                           });
                         }
                       }
                     });
 
                     const uniqueSources = sources
-                      .filter((s, i, arr) => arr.findIndex(x => x.recording_id === s.recording_id) === i)
-                      .slice(0, 5);
+                      .filter(
+                        (s, i, arr) =>
+                          arr.findIndex(
+                            (x) => x.recording_id === s.recording_id
+                          ) === i
+                      )
+                      .slice(0, 20);
 
                     const hasContent = textContent.trim().length > 0;
                     const isThinking = !hasContent && toolParts.length > 0;
 
                     return (
                       <div key={message.id} className="space-y-2">
-                        {toolParts.length > 0 && <ToolCalls parts={toolParts} />}
+                        {toolParts.length > 0 && (
+                          <ToolCalls parts={toolParts} />
+                        )}
                         {hasContent ? (
                           <AssistantMessage markdown>
                             {textContent}
@@ -1032,11 +1294,20 @@ export default function Chat() {
                   return null;
                 })}
 
-                {/* Loading indicator */}
+                {/* Loading indicator - only show if not already showing a tool/thinking state in last message */}
                 {isLoading && (
-                  <div className="ml-11">
-                    <ThinkingLoader />
-                  </div>
+                  (() => {
+                    const lastMsg = messages[messages.length - 1];
+                    const isLastMsgThinking = lastMsg?.role === 'assistant' && !getMessageTextContent(lastMsg).trim() && getToolInvocations(lastMsg).length > 0;
+                    
+                    if (isLastMsgThinking) return null;
+                    
+                    return (
+                      <div className="ml-11">
+                         <ThinkingLoader />
+                      </div>
+                    );
+                  })()
                 )}
 
                 {/* Error message */}
@@ -1049,10 +1320,10 @@ export default function Chat() {
               <ChatContainerScrollAnchor />
               <ScrollButton className="shadow-lg" />
             </ChatContainerRoot>
-            </ChatInnerCardContent>
+          </ChatInnerCardContent>
 
-            {/* Input area */}
-            <ChatInnerCardInputArea>
+          {/* Input area */}
+          <ChatInnerCardInputArea>
             <div className="relative w-full">
               {/* Mentions popover */}
               {showMentions && filteredCalls.length > 0 && (
@@ -1072,10 +1343,10 @@ export default function Chat() {
                           <RiVideoLine className="h-4 w-4 text-cb-ink-muted flex-shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
                             <div className="text-sm text-cb-ink font-medium truncate">
-                              {call.title || 'Untitled Call'}
+                              {call.title || "Untitled Call"}
                             </div>
                             <div className="text-xs text-cb-ink-muted">
-                              {format(new Date(call.created_at), 'MMM d, yyyy')}
+                              {format(new Date(call.created_at), "MMM d, yyyy")}
                             </div>
                           </div>
                         </button>
@@ -1135,9 +1406,9 @@ export default function Chat() {
                 <KeyboardHint label="New line" shortcut="Shift+Enter" />
               </PromptInputHintBar>
             </div>
-            </ChatInnerCardInputArea>
-          </ChatInnerCard>
-        </ChatOuterCard>
+          </ChatInnerCardInputArea>
+        </ChatInnerCard>
+      </ChatOuterCard>
 
       {/* Call Detail Dialog */}
       <CallDetailDialog

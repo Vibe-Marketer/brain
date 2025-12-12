@@ -246,13 +246,24 @@ export function CallDetailDialog({
 
   const handleChatWithAI = useCallback(() => {
     onOpenChange(false);
+    if (!call?.recording_id) return;
+
+    const initialContext = [{
+      type: 'call' as const,
+      id: Number(call.recording_id),
+      title: call.title || `Call ${call.recording_id}`,
+      date: call.created_at
+    }];
+
     navigate('/chat', {
       state: {
-        prefilter: { recordingIds: [call?.recording_id] },
-        callTitle: call?.title
+        prefilter: { recordingIds: [call.recording_id] },
+        callTitle: call.title,
+        initialContext,
+        newSession: true // Treat as new session to ensure context loading
       }
     });
-  }, [call?.recording_id, call?.title, navigate, onOpenChange]);
+  }, [call?.recording_id, call?.title, call?.created_at, navigate, onOpenChange]);
 
   // Create grouped props using useMemo for optimal performance
   const transcriptViewState: TranscriptViewState = useMemo(() => ({

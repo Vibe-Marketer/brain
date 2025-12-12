@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { RiDeleteBin6Line, RiCloseLine, RiShareForwardLine, RiPriceTag3Line, RiMagicLine, RiFolderLine } from "@remixicon/react";
+import { useNavigate } from "react-router-dom";
+import { RiDeleteBin6Line, RiCloseLine, RiShareForwardLine, RiPriceTag3Line, RiMagicLine, RiFolderLine, RiChatQuoteLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
@@ -38,6 +39,7 @@ export function BulkActionToolbarEnhanced({
   onAssignFolder,
 }: BulkActionToolbarEnhancedProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [showSmartExport, setShowSmartExport] = useState(false);
   const [showManualTagDialog, setShowManualTagDialog] = useState(false);
 
@@ -49,19 +51,19 @@ export function BulkActionToolbarEnhanced({
     try {
       switch (format) {
         case 'pdf':
-          await exportToPDF(selectedCalls);
+          await exportToPDF(selectedCalls as any[]);
           break;
         case 'docx':
-          await exportToDOCX(selectedCalls);
+          await exportToDOCX(selectedCalls as any[]);
           break;
         case 'txt':
-          await exportToTXT(selectedCalls);
+          await exportToTXT(selectedCalls as any[]);
           break;
         case 'json':
-          await exportToJSON(selectedCalls);
+          await exportToJSON(selectedCalls as any[]);
           break;
         case 'zip':
-          await exportToZIP(selectedCalls);
+          await exportToZIP(selectedCalls as any[]);
           break;
       }
       toast.success(`Successfully exported ${selectedCount} transcript${selectedCount > 1 ? 's' : ''}`, { id: loadingToast });
@@ -73,6 +75,36 @@ export function BulkActionToolbarEnhanced({
 
   const handleShare = () => {
     toast.info("Share feature coming soon");
+  };
+
+  const handleChat = () => {
+    const recordingIds = selectedCalls
+      .filter(c => c?.recording_id != null)
+      .map(c => Number(c.recording_id));
+
+    if (recordingIds.length === 0) {
+      toast.error('No valid recordings selected');
+      return;
+    }
+
+    const initialContext = selectedCalls
+      .filter(c => c?.recording_id != null)
+      .map(c => ({
+        type: 'call' as const,
+        id: Number(c.recording_id),
+        title: c.title || `Call ${c.recording_id}`,
+        date: c.created_at
+      }));
+
+    navigate('/chat', {
+      state: {
+        newSession: true,
+        prefilter: {
+          recordingIds
+        },
+        initialContext
+      }
+    });
   };
 
   const handleGenerateAITitles = async () => {
@@ -95,21 +127,23 @@ export function BulkActionToolbarEnhanced({
       }
 
       // Report results with appropriate feedback
-      if (data.successCount > 0) {
-        if (data.failureCount > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const responseData = data as any;
+      if (responseData.successCount > 0) {
+        if (responseData.failureCount > 0) {
           toast.success(
-            `Generated ${data.successCount} title${data.successCount !== 1 ? 's' : ''}, ${data.failureCount} failed`,
+            `Generated ${responseData.successCount} title${responseData.successCount !== 1 ? 's' : ''}, ${responseData.failureCount} failed`,
             { id: loadingToast }
           );
         } else {
           toast.success(
-            `Generated ${data.successCount} title${data.successCount !== 1 ? 's' : ''} successfully`,
+            `Generated ${responseData.successCount} title${responseData.successCount !== 1 ? 's' : ''} successfully`,
             { id: loadingToast }
           );
         }
-      } else if (data.failureCount > 0) {
+      } else if (responseData.failureCount > 0) {
         // All failed - show error with details
-        const firstError = data.results?.find((r: { success: boolean; error?: string }) => !r.success)?.error;
+        const firstError = responseData.results?.find((r: { success: boolean; error?: string }) => !r.success)?.error;
         toast.error(
           `Failed to generate titles: ${firstError || 'Unknown error'}`,
           { id: loadingToast }
@@ -148,8 +182,10 @@ export function BulkActionToolbarEnhanced({
         throw new Error(error);
       }
 
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const responseData = data as any;
       toast.success(
-        `Tagged ${data.successCount} call${data.successCount > 1 ? 's' : ''} successfully`,
+        `Tagged ${responseData.successCount} call${responseData.successCount > 1 ? 's' : ''} successfully`,
         { id: loadingToast }
       );
       onClearSelection();
@@ -200,6 +236,17 @@ export function BulkActionToolbarEnhanced({
             label="Share"
             onClick={handleShare}
           />
+          
+          <div className="h-6 w-px bg-border mx-1" />
+
+          <ActionButton
+            icon={RiChatQuoteLine}
+            label="Chat"
+            onClick={handleChat}
+            title="Chat with selected transcripts"
+          />
+
+          <div className="h-6 w-px bg-border mx-1" />
 
           <ActionButton
             icon={RiPriceTag3Line}

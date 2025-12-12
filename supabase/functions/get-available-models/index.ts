@@ -1,3 +1,5 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+
 /**
  * Get Available Models Edge Function
  * Fetches available models from OpenRouter API
@@ -18,246 +20,80 @@
 // Note: sentry-trace and baggage are needed for Sentry distributed tracing
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-// OpenRouter API endpoint
-const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1';
-
-// Provider display names and colors for the UI
-const PROVIDER_DISPLAY_NAMES: Record<string, string> = {
-  'z-ai': 'Z.AI',
-  'openai': 'OpenAI',
-  'anthropic': 'Anthropic',
-  'google': 'Google',
-  'xai': 'xAI',
-  'meta-llama': 'Meta',
-  'mistralai': 'Mistral',
-  'deepseek': 'DeepSeek',
-  'perplexity': 'Perplexity',
-  'cohere': 'Cohere',
-  'qwen': 'Qwen',
-  'nvidia': 'NVIDIA',
-  'microsoft': 'Microsoft',
-};
-
-// Provider order for display (preferred providers first)
-const PROVIDER_ORDER = [
-  'openai',     // OpenAI first - GPT-4.1 series is default
-  'anthropic',
-  'google',
-  'xai',
-  'z-ai',
-  'meta-llama',
-  'mistralai',
-  'deepseek',
-  'perplexity',
-  'cohere',
-  'qwen',
-  'nvidia',
-  'microsoft',
-];
-
-// Featured models to prioritize (show at top of each provider section)
-const FEATURED_MODELS = new Set([
-  // OpenAI GPT-4.1 series (newest, most economical)
-  'openai/gpt-4.1-nano',  // Fastest/cheapest - default for chat
-  'openai/gpt-4.1-mini',  // Mid-tier, great performance
-  'openai/gpt-4.1',       // Full GPT-4.1
-  'openai/gpt-4o',
-  'openai/gpt-4o-mini',
-  'openai/o1',
-  'openai/o1-mini',
-  'openai/o3-mini',
-  // Anthropic
-  'anthropic/claude-opus-4',
-  'anthropic/claude-sonnet-4',
-  'anthropic/claude-3.5-sonnet',
-  'anthropic/claude-3.5-haiku',
-  // Google
-  'google/gemini-2.0-flash-001',
-  'google/gemini-2.5-pro-preview',
-  'google/gemini-1.5-pro',
-  'google/gemini-1.5-flash',
-  // xAI
-  'xai/grok-3-beta',
-  'xai/grok-2-1212',
-  // Z.AI
-  'z-ai/glm-4.6',
-  // Meta
-  'meta-llama/llama-3.3-70b-instruct',
-  'meta-llama/llama-3.1-405b-instruct',
-  // DeepSeek
-  'deepseek/deepseek-chat-v3-0324',
-  'deepseek/deepseek-r1',
-  // Mistral
-  'mistralai/mistral-large-2411',
-  'mistralai/codestral-2501',
-]);
-
-interface OpenRouterModel {
-  id: string;
-  name: string;
-  description?: string;
-  context_length: number;
-  pricing: {
-    prompt: string;
-    completion: string;
-  };
-  architecture?: {
-    modality: string;
-    input_modalities?: string[];
-    output_modalities?: string[];
-  };
-}
-
-interface OpenRouterModelsResponse {
-  data: OpenRouterModel[];
-}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const openrouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    )
 
-    if (!openrouterApiKey) {
-      console.log('No OpenRouter API key configured');
-      return new Response(
+    // Fetch enabled models from DB
+    const { data: models, error } = await supabaseClient
+      .from('ai_models')
+      .select('*')
+      .eq('is_enabled', true)
+      .order('is_featured', { ascending: false })
+      .order('name', { ascending: true })
+
+    if (error) {
+      throw error
+    }
+
+    // If no models in DB, fall back to hardcoded default (safety net)
+    if (!models || models.length === 0) {
+       // Return minimal default set if DB is empty to avoid breaking app before first sync
+       return new Response(
         JSON.stringify({
-          error: 'OpenRouter API key not configured',
-          models: [],
-          providers: [],
-          defaultModel: null,
-          hasOpenRouter: false,
+          models: [
+            { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai' },
+            { id: 'anthropic/claude-3.5-haiku', name: 'Claude 3.5 Haiku', provider: 'anthropic' }
+          ],
+          providers: ['openai', 'anthropic'],
+          defaultModel: 'openai/gpt-4o-mini',
+          hasOpenRouter: true
         }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    // Fetch available models from OpenRouter
-    const response = await fetch(`${OPENROUTER_API_URL}/models`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${openrouterApiKey}`,
-        'Content-Type': 'application/json',
-      },
-    });
+    const mappedModels = models.map(m => ({
+      id: m.id,
+      name: m.name,
+      provider: m.provider,
+      contextLength: m.context_length,
+      pricing: m.pricing,
+      isFeatured: m.is_featured
+    }))
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('OpenRouter models fetch failed:', response.status, errorText);
-      throw new Error(`OpenRouter API error: ${response.status}`);
-    }
-
-    const data: OpenRouterModelsResponse = await response.json();
-
-    // Filter to only text-to-text models (language models, not image/audio)
-    const languageModels = data.data
-      .filter((m) => {
-        // Exclude embedding models
-        if (m.id.includes('embed')) return false;
-        // Exclude image generation models
-        if (m.id.includes('dall-e') || m.id.includes('midjourney') || m.id.includes('stable-diffusion')) return false;
-        // Exclude audio/speech models
-        if (m.id.includes('whisper') || m.id.includes('tts')) return false;
-        // Include text models
-        const modality = m.architecture?.modality || 'text->text';
-        return modality === 'text->text' || modality.includes('text');
-      })
-      .map((m) => {
-        // Extract provider from model ID (format: provider/model-name)
-        const provider = m.id.split('/')[0];
-
-        // Calculate pricing per 1M tokens
-        const promptPrice = parseFloat(m.pricing.prompt) * 1000000;
-        const completionPrice = parseFloat(m.pricing.completion) * 1000000;
-
-        return {
-          id: m.id,
-          name: m.name || m.id.split('/')[1] || m.id,
-          provider: provider,
-          providerDisplayName: PROVIDER_DISPLAY_NAMES[provider] || provider,
-          // Don't send long descriptions - just use model name in dropdown
-          contextLength: m.context_length,
-          pricing: {
-            prompt: promptPrice,
-            completion: completionPrice,
-          },
-          isFeatured: FEATURED_MODELS.has(m.id),
-        };
-      });
-
-    // Sort models: featured first within each provider, then by name
-    languageModels.sort((a, b) => {
-      // Featured models first
-      if (a.isFeatured && !b.isFeatured) return -1;
-      if (!a.isFeatured && b.isFeatured) return 1;
-      // Then alphabetically by name
-      return a.name.localeCompare(b.name);
-    });
-
-    // Get unique providers and sort by preferred order
-    const providersSet = new Set(languageModels.map((m) => m.provider));
-    const providers = PROVIDER_ORDER.filter((p) => providersSet.has(p));
-    // Add any providers not in our preferred list at the end
-    for (const p of providersSet) {
-      if (!providers.includes(p)) {
-        providers.push(p);
-      }
-    }
-
-    // Default to GPT-4o-mini - reliable, fast, economical
-    const defaultModel = languageModels.find((m) => m.id === 'openai/gpt-4o-mini')?.id
-      || languageModels.find((m) => m.id === 'openai/gpt-4o')?.id
-      || languageModels.find((m) => m.isFeatured)?.id
-      || languageModels[0]?.id
-      || null;
-
-    console.log(`Fetched ${languageModels.length} models from OpenRouter across ${providers.length} providers`);
+    // Get unique providers
+    const providers = [...new Set(mappedModels.map(m => m.provider))]
+    
+    // Determine default model
+    // Try to find a featured OpenAI or Anthropic model, or just the first one
+    const defaultModel = mappedModels.find(m => m.isFeatured)?.id || mappedModels[0]?.id
 
     return new Response(
       JSON.stringify({
-        models: languageModels,
+        models: mappedModels,
         providers,
-        providerDisplayNames: PROVIDER_DISPLAY_NAMES,
         defaultModel,
-        hasOpenRouter: true,
-        totalCount: languageModels.length,
+        hasOpenRouter: true
       }),
-      {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
 
   } catch (error) {
     console.error('Error getting available models:', error);
-
-    // Return fallback models if OpenRouter fails
-    const fallbackModels = [
-      { id: 'openai/gpt-4.1-nano', name: 'GPT-4.1 Nano', provider: 'openai', providerDisplayName: 'OpenAI', isFeatured: true },
-      { id: 'openai/gpt-4.1-mini', name: 'GPT-4.1 Mini', provider: 'openai', providerDisplayName: 'OpenAI', isFeatured: true },
-      { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai', providerDisplayName: 'OpenAI', isFeatured: true },
-      { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', providerDisplayName: 'OpenAI', isFeatured: true },
-      { id: 'anthropic/claude-sonnet-4', name: 'Claude Sonnet 4', provider: 'anthropic', providerDisplayName: 'Anthropic', isFeatured: true },
-      { id: 'anthropic/claude-3.5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'anthropic', providerDisplayName: 'Anthropic', isFeatured: true },
-      { id: 'google/gemini-2.0-flash-001', name: 'Gemini 2.0 Flash', provider: 'google', providerDisplayName: 'Google', isFeatured: true },
-      { id: 'xai/grok-3-beta', name: 'Grok 3', provider: 'xai', providerDisplayName: 'xAI', isFeatured: true },
-      { id: 'z-ai/glm-4.6', name: 'GLM-4.6', provider: 'z-ai', providerDisplayName: 'Z.AI', isFeatured: true },
-    ];
-
     return new Response(
-      JSON.stringify({
-        models: fallbackModels,
-        providers: ['openai', 'anthropic', 'google', 'xai', 'z-ai'],
-        providerDisplayNames: PROVIDER_DISPLAY_NAMES,
-        defaultModel: 'openai/gpt-4o-mini',
-        hasOpenRouter: false,
-        error: error instanceof Error ? error.message : 'Failed to fetch models from OpenRouter',
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    )
   }
-});
+})

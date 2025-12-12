@@ -258,7 +258,18 @@ export function useChatSession(userId: string | undefined) {
           .single();
 
         if (sessionData && !sessionData.title && typeof firstUserMessage.content === 'string') {
-          const title = firstUserMessage.content.slice(0, 50) + (firstUserMessage.content.length > 50 ? '...' : '');
+          // Clean up content for title generation
+          let cleanContent = firstUserMessage.content.trim();
+          
+          // Remove potential leading special chars or tool artifacts
+          cleanContent = cleanContent.replace(/^[^a-zA-Z0-9]+/, '');
+
+          // If content is empty or too short after cleaning, fallback to "New Chat"
+          if (cleanContent.length < 2) {
+            cleanContent = "New Chat";
+          }
+
+          const title = cleanContent.slice(0, 50) + (cleanContent.length > 50 ? '...' : '');
           await supabase
             .from('chat_sessions')
             .update({ title })

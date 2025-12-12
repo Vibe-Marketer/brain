@@ -7,7 +7,10 @@ import {
   RiArchiveLine,
   RiChat3Line,
   RiMoreLine,
+  RiListCheck,
+  RiCloseLine,
 } from '@remixicon/react';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
@@ -57,6 +60,9 @@ interface SessionItemProps {
   onTogglePin: (sessionId: string, isPinned: boolean) => void;
   onToggleArchive: (sessionId: string, isArchived: boolean) => void;
   onDelete: (sessionId: string) => void;
+  isSelectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (sessionId: string) => void;
 }
 
 const SessionItem = React.memo(function SessionItem({
@@ -66,26 +72,50 @@ const SessionItem = React.memo(function SessionItem({
   onTogglePin,
   onToggleArchive,
   onDelete,
+  isSelectionMode,
+  isSelected,
+  onToggleSelection,
 }: SessionItemProps) {
   const title = session.title || 'New conversation';
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (isSelectionMode && onToggleSelection) {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggleSelection(session.id);
+    } else {
+      onSelect(session.id);
+    }
+  };
 
   return (
     <div
       className={`
         group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer
         transition-colors duration-150 overflow-hidden
-        ${isActive
+        ${isActive && !isSelectionMode
           ? 'bg-cb-hover'
           : 'hover:bg-cb-hover/50'
         }
       `}
-      onClick={() => onSelect(session.id)}
+      onClick={handleClick}
     >
+      {isSelectionMode && (
+         <div className="mr-2 flex-shrink-0">
+            <Checkbox 
+              checked={isSelected} 
+              onCheckedChange={() => onToggleSelection && onToggleSelection(session.id)}
+              className="h-4 w-4"
+              onClick={(e) => e.stopPropagation()}
+            />
+         </div>
+      )}
+
       {/* Title - truncates with ellipsis */}
       <span
         className={`
           flex-1 min-w-0 truncate text-sm
-          ${isActive ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'}
+          ${isActive && !isSelectionMode ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'}
         `}
         dir="auto"
       >
@@ -165,9 +195,46 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [sessionToDelete, setSessionToDelete] = React.useState<string | null>(null);
+  
+  // Bulk selection state
+  const [isSelectionMode, setIsSelectionMode] = React.useState(false);
+  const [selectedSessions, setSelectedSessions] = React.useState<string[]>([]);
 
-  // Memoize filtered sessions to prevent unnecessary recalculations
-  // Defensive guard: ensure sessions is a valid array before filtering
+  const toggleSelection = React.useCallback((sessionId: string) => {
+    setSelectedSessions(prev => 
+      prev.includes(sessionId) 
+        ? prev.filter(id => id !== sessionId)
+        : [...prev, sessionId]
+    );
+  }, []);
+
+  const selectAll = React.useCallback(() => {
+    if (selectedSessions.length === sessions.length) {
+      setSelectedSessions([]);
+    } else {
+      setSelectedSessions(sessions.map(s => s.id));
+    }
+  }, [sessions, selectedSessions]);
+
+  const handleDeleteClick = React.useCallback((sessionId: string) => {
+    setSessionToDelete(sessionId);
+    setDeleteDialogOpen(true);
+  }, []);
+
+  const confirmDelete = React.useCallback(() => {
+    if (sessionToDelete === 'BULK_DELETE') {
+       // Bulk delete
+       selectedSessions.forEach(id => onDeleteSession(id));
+       setSelectedSessions([]);
+       setIsSelectionMode(false);
+       setSessionToDelete(null);
+       setDeleteDialogOpen(false);
+    } else if (sessionToDelete) {
+      onDeleteSession(sessionToDelete);
+      setSessionToDelete(null);
+      setDeleteDialogOpen(false);
+    }
+  }, [sessionToDelete, onDeleteSession, selectedSessions]);
   const pinnedSessions = React.useMemo(() => {
     if (!sessions || !Array.isArray(sessions)) return [];
     return sessions.filter((s) => s?.is_pinned);
@@ -177,18 +244,7 @@ export function ChatSidebar({
     return sessions.filter((s) => s && !s.is_pinned);
   }, [sessions]);
 
-  const handleDeleteClick = React.useCallback((sessionId: string) => {
-    setSessionToDelete(sessionId);
-    setDeleteDialogOpen(true);
-  }, []);
 
-  const confirmDelete = React.useCallback(() => {
-    if (sessionToDelete) {
-      onDeleteSession(sessionToDelete);
-      setSessionToDelete(null);
-      setDeleteDialogOpen(false);
-    }
-  }, [sessionToDelete, onDeleteSession]);
 
   return (
     <>
@@ -202,10 +258,52 @@ export function ChatSidebar({
           <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
             AI Chat
           </h1>
-          <Button variant="ghost" size="icon" onClick={onNewChat} aria-label="New chat">
-            <RiAddLine className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-1">
+             {/* Bulk Selection Toggle */}
+             {sessions.length > 0 && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => {
+                  setIsSelectionMode(!isSelectionMode);
+                  setSelectedSessions([]);
+                }}
+                className={isSelectionMode ? "bg-cb-hover text-cb-ink" : ""}
+                aria-label={isSelectionMode ? "Cancel selection" : "Select chats"}
+              >
+                {isSelectionMode ? <RiCloseLine className="h-4 w-4" /> : <RiListCheck className="h-4 w-4" />}
+              </Button>
+            )}
+            <Button variant="ghost" size="icon" onClick={onNewChat} aria-label="New chat">
+              <RiAddLine className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
+        
+        {/* Bulk Actions Header */}
+        {isSelectionMode && (
+          <div className="px-2 pb-2 flex items-center justify-between animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-2">
+               <Checkbox 
+                  checked={selectedSessions.length === sessions.length && sessions.length > 0}
+                  onCheckedChange={selectAll}
+                  className="h-4 w-4"
+                  aria-label="Select all"
+               />
+               <span className="text-xs font-medium text-cb-ink-soft">{selectedSessions.length} selected</span>
+            </div>
+             {selectedSessions.length > 0 && (
+               <Button 
+                  variant="destructive" 
+                  size="sm" 
+                  className="h-7 px-2 text-xs"
+                  onClick={() => handleDeleteClick('BULK_DELETE')}
+                >
+                  Delete
+                </Button>
+             )}
+          </div>
+        )}
 
         {/* Sessions list - compact padding */}
         <ScrollArea className="flex-1 overflow-hidden min-w-0">
@@ -225,6 +323,9 @@ export function ChatSidebar({
                     onTogglePin={onTogglePin}
                     onToggleArchive={onToggleArchive}
                     onDelete={handleDeleteClick}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedSessions.includes(session.id)}
+                    onToggleSelection={toggleSelection}
                   />
                 ))}
               </div>
@@ -247,6 +348,9 @@ export function ChatSidebar({
                     onTogglePin={onTogglePin}
                     onToggleArchive={onToggleArchive}
                     onDelete={handleDeleteClick}
+                    isSelectionMode={isSelectionMode}
+                    isSelected={selectedSessions.includes(session.id)}
+                    onToggleSelection={toggleSelection}
                   />
                 ))}
               </div>

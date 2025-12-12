@@ -22,6 +22,8 @@ import { logger } from "@/lib/logger";
 import { embedAllUnindexedTranscripts } from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { AdminModelManager } from "./AdminModelManager";
+import { Label } from "@/components/ui/label";
 
 // AI Model presets - curated list of top models from major providers
 // Format: value (preset key) -> label (display name) -> provider -> description -> context
@@ -98,6 +100,17 @@ export default function AITab() {
 
   // AI Model selection state
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data } = await supabase.rpc('has_role', { _user_id: user.id, _role: 'ADMIN' });
+      setIsAdmin(!!data);
+    };
+    checkAdmin();
+  }, []);
   const [savedModel, setSavedModel] = useState(DEFAULT_MODEL);
   const [modelSaving, setModelSaving] = useState(false);
 
@@ -394,18 +407,10 @@ export default function AITab() {
             </div>
 
             <div className="flex-1 space-y-4">
-              <div>
-                <h3 className="font-medium text-gray-900 dark:text-gray-50">
-                  Metadata Extraction Model
-                </h3>
-                <p className="mt-2 text-sm text-gray-500 dark:text-gray-500">
-                  Select the AI model used to extract topics, sentiment, entities, and intent signals from your call transcripts.
-                </p>
-              </div>
-
-              <div className="max-w-md">
-                <Select
-                  value={selectedModel}
+            <div className="flex flex-col gap-2">
+              <Label>Default Chat Model</Label>
+              <Select
+                value={selectedModel}
                   onValueChange={handleModelChange}
                   disabled={modelSaving}
                 >
@@ -470,69 +475,6 @@ export default function AITab() {
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
             Index your call transcripts to enable AI-powered search and chat
           </p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
-            <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-              style={{
-                clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-              }}
-            />
-            <div className="flex items-center gap-3 mb-2">
-              <RiDatabaseLine className="h-5 w-5 text-cb-ink-muted" />
-              <p className="text-xs font-medium text-muted-foreground">Total Chunks</p>
-            </div>
-            <p className="text-2xl font-extrabold tabular-nums">{stats.totalChunks}</p>
-          </div>
-
-          <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
-            <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-              style={{
-                clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-              }}
-            />
-            <div className="flex items-center gap-3 mb-2">
-              <RiCheckboxCircleLine className="h-5 w-5 text-cb-ink-muted" />
-              <p className="text-xs font-medium text-muted-foreground">Indexed Calls</p>
-            </div>
-            <p className="text-2xl font-extrabold tabular-nums">
-              {stats.totalRecordings - stats.unindexedRecordings}
-            </p>
-          </div>
-
-          <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
-            <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-              style={{
-                clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-              }}
-            />
-            <div className="flex items-center gap-3 mb-2">
-              <RiSparklingLine className="h-5 w-5 text-cb-ink-muted" />
-              <p className="text-xs font-medium text-muted-foreground">Unindexed</p>
-            </div>
-            <p className="text-2xl font-extrabold tabular-nums">{stats.unindexedRecordings}</p>
-          </div>
-
-          <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
-            <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-              style={{
-                clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-              }}
-            />
-            <div className="flex items-center gap-3 mb-2">
-              <RiCheckboxCircleLine className="h-5 w-5 text-cb-ink-muted" />
-              <p className="text-xs font-medium text-muted-foreground">Last Indexed</p>
-            </div>
-            <p className="text-xs font-medium tabular-nums">
-              {formatDate(stats.lastIndexedDate)}
-            </p>
-          </div>
         </div>
 
         {/* Indexing Action Card */}
@@ -610,6 +552,37 @@ export default function AITab() {
                   )}
                 </Button>
 
+                {indexing && activeJob && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={async () => {
+                      try {
+                        const { error } = await supabase
+                          .from("embedding_jobs")
+                          .update({ 
+                            status: "failed", 
+                            error_message: "Cancelled by user",
+                            completed_at: new Date().toISOString()
+                          })
+                          .eq("id", activeJob.id);
+
+                        if (error) throw error;
+                        
+                        toast.success("Indexing cancelled");
+                        setIndexing(false);
+                        setActiveJob(null);
+                        loadIndexingStats();
+                      } catch (err) {
+                        toast.error("Failed to cancel job");
+                        logger.error("Cancel job error", err);
+                      }
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                )}
+
                 {stats.unindexedRecordings === 0 && (
                   <p className="text-sm text-muted-foreground">
                     All transcripts are indexed
@@ -629,6 +602,12 @@ export default function AITab() {
           </div>
         </div>
       </div>
+
+      {isAdmin && (
+        <div className="mt-12 pt-12 border-t border-border">
+          <AdminModelManager />
+        </div>
+      )}
     </div>
   );
 }

@@ -126,15 +126,28 @@ async function rerankResults(
   const startTime = Date.now();
 
   try {
-    const batchSize = 5;
+  try {
+    // Optimization: Increase batch size and cap total candidates to prevent timeouts
+    // Hugging Face inference API handles larger batches reasonably well
+    const batchSize = 10; 
+    const maxCandidates = 30; // Hard cap on re-ranking to ensure responsiveness
+    
+    // Only re-rank the top N candidates from RRF/hybrid search
+    const candidatesToRerank = candidates.slice(0, maxCandidates);
     const scoredCandidates: RerankCandidate[] = [];
 
-    for (let i = 0; i < candidates.length; i += batchSize) {
-      const batch = candidates.slice(i, i + batchSize);
+    // Process in parallel chunks to speed up
+    // We'll limit concurrency to 3 batches at a time
+    for (let i = 0; i < candidatesToRerank.length; i += batchSize) {
+      const batch = candidatesToRerank.slice(i, i + batchSize);
 
       const batchResults = await Promise.all(
         batch.map(async (candidate) => {
           try {
+            // Add timeout for individual rerank requests (1s) to fail fast
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1500);
+
             const response = await fetch(
               `https://api-inference.huggingface.co/models/${RERANK_MODEL}`,
               {
@@ -145,10 +158,12 @@ async function rerankResults(
                 },
                 body: JSON.stringify({
                   inputs: `${query} [SEP] ${candidate.chunk_text.substring(0, 500)}`,
-                  options: { wait_for_model: true },
+                  options: { wait_for_model: true, use_cache: true },
                 }),
+                signal: controller.signal,
               }
             );
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
               return { ...candidate, rerank_score: candidate.rrf_score };
@@ -164,15 +179,20 @@ async function rerankResults(
       );
 
       scoredCandidates.push(...batchResults);
-
-      if (i + batchSize < candidates.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
+      // Removed artificial delay to improve speed
     }
 
     console.log(`Re-ranking completed in ${Date.now() - startTime}ms`);
+    
+    // Merge re-ranked results with any remaining candidates that weren't re-ranked (keeping their original order/score)
+    const remainingCandidates = candidates.slice(maxCandidates).map(c => ({
+       ...c, 
+       rerank_score: c.rrf_score // Use RRF score as fallback for tail
+    }));
+    
+    const allScored = [...scoredCandidates, ...remainingCandidates];
 
-    return scoredCandidates
+    return allScored
       .sort((a, b) => (b.rerank_score || 0) - (a.rerank_score || 0))
       .slice(0, topK);
 
@@ -184,8 +204,8 @@ async function rerankResults(
 
 function diversityFilter<T extends { recording_id: number }>(
   chunks: T[],
-  maxPerRecording: number = 2,
-  targetCount: number = 5
+  maxPerRecording: number = 5,
+  targetCount: number = 20
 ): T[] {
   const diverse: T[] = [];
   const recordingCounts = new Map<number, number>();
@@ -222,7 +242,7 @@ const tools: OpenAITool[] = [
           },
           limit: {
             type: 'number',
-            description: 'Maximum number of results to return (default: 10)',
+            description: 'Maximum number of results to return (default: 20)',
           },
         },
         required: ['query'],
@@ -294,12 +314,16 @@ async function executeSearchTranscripts(
   openaiApiKey: string,
   filters?: SessionFilters
 ): Promise<unknown> {
-  const { query, limit = 10 } = args;
+  const { query, limit = 20 } = args;
   console.log(`Searching transcripts: "${query}" (limit: ${limit})`);
   const searchStartTime = Date.now();
 
   const queryEmbedding = await generateQueryEmbedding(query, openaiApiKey);
-  const candidateCount = Math.min(limit * 3, 30);
+  // Fetch more candidates to ensure we have enough after diversity filtering
+  // For context attachment flows (where filters are set), fetch even more
+  const hasSpecificRecordingFilters = filters?.recording_ids && filters.recording_ids.length > 0;
+  const baseCount = hasSpecificRecordingFilters ? 60 : 40;
+  const candidateCount = Math.min(limit * 3, baseCount);
 
   const { data: candidates, error } = await supabase.rpc('hybrid_search_transcripts', {
     query_text: query,
@@ -375,7 +399,10 @@ async function executeSearchTranscripts(
   console.log(`Hybrid search returned ${candidates.length} candidates in ${Date.now() - searchStartTime}ms`);
 
   const reranked = await rerankResults(query, candidates, limit * 2);
-  const diverse = diversityFilter(reranked, 2, limit);
+  
+  // Relaxed diversity filter: allow more chunks per recording (5) to capture full context
+  // This is especially important when user "chats with X calls" explicitly
+  const diverse = diversityFilter(reranked, 5, limit);
 
   console.log(`Search pipeline complete: ${candidates.length} → ${reranked.length} → ${diverse.length} results`);
 
@@ -478,7 +505,8 @@ async function executeSummarizeCalls(
       title: c.title,
       date: c.created_at,
       recorded_by: c.recorded_by_name,
-      summary_preview: c.summary ? c.summary.substring(0, 200) + '...' : 'No summary',
+      // Provide much more context for broader analysis (1200 chars vs 200)
+      summary_preview: c.summary ? c.summary.substring(0, 1200) + (c.summary.length > 1200 ? '...' : '') : 'No summary',
     })),
   };
 }
@@ -711,7 +739,15 @@ Deno.serve(async (req: Request) => {
 
     // Parse request body
     const body = await req.json();
-    const { messages, sessionId, model: requestedModel } = body;
+    const { messages, sessionId, model: requestedModel, filters: requestFilters } = body;
+
+    // Debug: Log incoming request structure
+    console.log('=== CHAT-STREAM REQUEST ===');
+    console.log('SessionId:', sessionId);
+    console.log('Model:', requestedModel);
+    console.log('Filters from request:', JSON.stringify(requestFilters));
+    console.log('Messages count:', messages?.length);
+    console.log('Messages:', JSON.stringify(messages, null, 2));
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -720,9 +756,22 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get session filters if sessionId provided
+    // Get filters - prefer request filters, fall back to session filters
     let filters: SessionFilters | undefined;
-    if (sessionId) {
+
+    // First, try to use filters from the request body (sent by DefaultChatTransport)
+    if (requestFilters) {
+      filters = {
+        date_start: requestFilters.date_start,
+        date_end: requestFilters.date_end,
+        speakers: requestFilters.speakers,
+        categories: requestFilters.categories,
+        recording_ids: requestFilters.recording_ids,
+      };
+      console.log('Using filters from request body');
+    }
+    // Fall back to session filters if sessionId provided and no request filters
+    else if (sessionId) {
       const { data: session } = await supabase
         .from('chat_sessions')
         .select('filter_date_start, filter_date_end, filter_speakers, filter_categories, filter_recording_ids')
@@ -738,8 +787,11 @@ Deno.serve(async (req: Request) => {
           categories: session.filter_categories,
           recording_ids: session.filter_recording_ids,
         };
+        console.log('Using filters from session');
       }
     }
+
+    console.log('Final filters:', JSON.stringify(filters));
 
     // Determine model - default to openai/gpt-4o-mini for cost efficiency
     // Frontend sends OpenRouter format like "openai/gpt-4o-mini" - use as-is
@@ -764,20 +816,27 @@ Deno.serve(async (req: Request) => {
     const systemPrompt = `You are an intelligent assistant for CallVault™, helping users analyze their meeting transcripts and extract insights.
 
 Your capabilities:
-- Search through meeting transcripts to find relevant information
-- Provide details about specific calls
-- Summarize patterns across multiple calls
+- Search through meeting transcripts to find relevant information (searchTranscripts)
+- Provide details about specific calls (getCallDetails)
+- Summarize patterns, trends, and topics across multiple calls (summarizeCalls)
 - Answer questions about what was discussed in meetings
 
 When responding:
 - Always cite your sources by mentioning the call title and date
 - Be concise but thorough
-- If you need to search for information, use the searchTranscripts tool
-- For specific call details, use getCallDetails
-- For high-level overviews, use summarizeCalls
 
-TEMPORAL QUERY HANDLING:
-Today's date is ${todayStr}. When users mention temporal terms, interpret them as date filters:
+QUERY HANDLING STRATEGIES:
+1. **Specific Questions** (e.g., "what did John say about pricing?"): Use 'searchTranscripts' with specific keywords.
+2. **Broad/High-Level Questions** (e.g., "common pain points", "trends over time", "summary of last week"): Use 'summarizeCalls'. This tool retrieves summaries of up to 20 calls, which is better for detecting patterns than searching for specific keywords.
+3. **Temporal Queries** (e.g., "last month", "recent"): Use 'summarizeCalls' with 'date_start' based on today's date (${todayStr}).
+
+Temporal logic:
+- "recent calls" = last 14 days
+- "last week" = past 7 days
+- "this month" = since 1st of current month
+- "last 3 months" = past 90 days
+
+IMPORTANT: For "patterns", "trends", "themes", or "pain points", ALWAYS start with 'summarizeCalls' to get a high-level view.
 
 - "recent calls" = last 14 days (date_start: ${new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]})
 - "last week" = past 7 days (date_start: ${new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]})
@@ -795,17 +854,20 @@ Important: Only access transcripts belonging to the current user. Never fabricat
     // Convert UI messages to OpenAI format
     const openaiMessages = convertUIMessagesToOpenAI(messages);
 
-    // Setup streaming response
+    // Setup streaming response following AI SDK v5 Data Stream Protocol
+    // See: https://ai-sdk.dev/docs/ai-sdk-ui/stream-protocol
     const encoder = new TextEncoder();
     const messageId = crypto.randomUUID();
 
     const stream = new ReadableStream({
       async start(controller) {
+        // Send SSE-formatted data following AI SDK v5 protocol exactly
         const send = (data: Record<string, unknown>) => {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
         };
 
         try {
+          // AI SDK v5: Message Start Part
           send({ type: 'start', messageId });
 
           let continueLoop = true;
@@ -814,57 +876,78 @@ Important: Only access transcripts belonging to the current user. Never fabricat
 
           while (continueLoop && step < maxSteps) {
             step++;
+            // AI SDK v5: Start Step Part
             send({ type: 'start-step' });
 
             let textId = '';
             let textStarted = false;
+            let accumulatedText = ''; // Track accumulated text for the assistant message
             const pendingToolCalls: Array<{ id: string; name: string; arguments: string }> = [];
 
             // Track active tool calls by index for streaming
-            const activeToolCalls: Map<number, { id: string; name: string }> = new Map();
+            const activeToolCalls: Map<number, { id: string; name: string; arguments: string }> = new Map();
 
             // Stream from OpenRouter (supports 300+ models)
             for await (const event of streamOpenRouterChat(openrouterApiKey, selectedModel, openaiMessages, systemPrompt)) {
               if (event.type === 'text') {
+                const textDelta = event.data as string;
                 if (!textStarted) {
                   textId = crypto.randomUUID();
+                  // AI SDK v5: Text Start Part
                   send({ type: 'text-start', id: textId });
                   textStarted = true;
                 }
-                send({ type: 'text-delta', id: textId, delta: event.data });
+                // AI SDK v5: Text Delta Part
+                send({ type: 'text-delta', id: textId, delta: textDelta });
+                accumulatedText += textDelta;
               } else if (event.type === 'tool-call-start') {
                 const { index, id } = event.data as { index: number; id: string };
-                activeToolCalls.set(index, { id, name: '' });
+                activeToolCalls.set(index, { id, name: '', arguments: '' });
                 // Don't send tool-input-start yet, wait for tool name
               } else if (event.type === 'tool-call-name') {
                 const { index, name } = event.data as { index: number; name: string };
                 const tc = activeToolCalls.get(index);
                 if (tc) {
                   tc.name = name;
-                  // Now we have both id and name, send tool-input-start
+                  // AI SDK v5: Tool Input Start Part
                   send({ type: 'tool-input-start', toolCallId: tc.id, toolName: name });
                 }
               } else if (event.type === 'tool-call-args-delta') {
                 const { index, delta } = event.data as { index: number; delta: string };
                 const tc = activeToolCalls.get(index);
                 if (tc) {
+                  tc.arguments += delta;
+                  // AI SDK v5: Tool Input Delta Part
                   send({ type: 'tool-input-delta', toolCallId: tc.id, inputTextDelta: delta });
                 }
               } else if (event.type === 'tool-call-complete') {
+                // End text block before tool calls
                 if (textStarted) {
+                  // AI SDK v5: Text End Part
                   send({ type: 'text-end', id: textId });
                   textStarted = false;
                 }
                 const tc = event.data as { id: string; name: string; arguments: string };
                 pendingToolCalls.push(tc);
+
+                // Parse input safely
+                let parsedInput = {};
+                try {
+                  parsedInput = JSON.parse(tc.arguments);
+                } catch {
+                  console.warn('Failed to parse tool arguments:', tc.arguments);
+                }
+
+                // AI SDK v5: Tool Input Available Part
                 send({
                   type: 'tool-input-available',
                   toolCallId: tc.id,
                   toolName: tc.name,
-                  input: JSON.parse(tc.arguments),
+                  input: parsedInput,
                 });
               } else if (event.type === 'finish') {
                 if (textStarted) {
+                  // AI SDK v5: Text End Part
                   send({ type: 'text-end', id: textId });
                   textStarted = false;
                 }
@@ -882,10 +965,10 @@ Important: Only access transcripts belonging to the current user. Never fabricat
 
             // Execute pending tool calls
             if (pendingToolCalls.length > 0) {
-              // Add assistant message with tool calls
+              // Add assistant message with tool calls to conversation history
               openaiMessages.push({
                 role: 'assistant',
-                content: null,
+                content: accumulatedText || null,
                 tool_calls: pendingToolCalls.map(tc => ({
                   id: tc.id,
                   type: 'function' as const,
@@ -896,9 +979,15 @@ Important: Only access transcripts belonging to the current user. Never fabricat
               // Execute each tool and add results
               for (const tc of pendingToolCalls) {
                 console.log(`Executing tool: ${tc.name}`);
-                const args = JSON.parse(tc.arguments);
+                let args = {};
+                try {
+                  args = JSON.parse(tc.arguments);
+                } catch {
+                  console.warn('Failed to parse tool arguments for execution:', tc.arguments);
+                }
                 const result = await executeTool(tc.name, args, supabase, user, openaiApiKey, filters);
 
+                // AI SDK v5: Tool Output Available Part
                 send({
                   type: 'tool-output-available',
                   toolCallId: tc.id,
@@ -912,17 +1001,22 @@ Important: Only access transcripts belonging to the current user. Never fabricat
                 });
               }
             } else {
+              // No tool calls means we're done (either finished with text or errored)
               continueLoop = false;
             }
 
+            // AI SDK v5: Finish Step Part
             send({ type: 'finish-step' });
           }
 
+          // AI SDK v5: Finish Message Part
           send({ type: 'finish' });
+          // AI SDK v5: Stream Termination
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
         } catch (error) {
           console.error('Stream error:', error);
+          // AI SDK v5: Error Part
           send({
             type: 'error',
             errorText: error instanceof Error ? error.message : 'Unknown error',

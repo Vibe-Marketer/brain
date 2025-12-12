@@ -140,12 +140,14 @@ function splitOversizedText(
   return chunks;
 }
 
-// Chunk transcripts into ~400 token segments with 20% overlap (100 tokens)
-// Handles oversized segments by splitting them at sentence boundaries
+// Chunk transcripts with adaptive sizing to preserve speaker turns
+// targetTokens: Preferred chunk size (e.g. 500)
+// maxTokens: Absolute limit to allow for long speaker turns (e.g. 1200)
 function chunkTranscript(
   segments: TranscriptSegment[],
-  maxTokens: number = 400,
-  overlapTokens: number = 100
+  targetTokens: number = 500,
+  overlapTokens: number = 100,
+  maxTokens: number = 1200
 ): Array<{
   text: string;
   speakers: Set<string>;
@@ -164,6 +166,7 @@ function chunkTranscript(
     speakers: new Set<string>(),
     startTimestamp: null as string | null,
     endTimestamp: null as string | null,
+    lastSpeaker: null as string | null, 
   };
   let currentTokens = 0;
 
@@ -183,62 +186,91 @@ function chunkTranscript(
     const fullSegmentText = speakerPrefix + segmentText;
     const segmentTokens = estimateTokens(fullSegmentText);
 
-    // Handle oversized segments by splitting them first
+    // Case 1: Oversized Segment (Single turn > maxTokens)
     if (segmentTokens > maxTokens) {
-      // Flush current chunk first
+      // Flush current chunk first if it has content
       if (currentChunk.text.length > 0) {
-        chunks.push({ ...currentChunk, speakers: new Set(currentChunk.speakers) });
+        chunks.push({ 
+          text: currentChunk.text,
+          speakers: new Set(currentChunk.speakers),
+          startTimestamp: currentChunk.startTimestamp,
+          endTimestamp: currentChunk.endTimestamp
+        });
         currentChunk = {
           text: '',
           speakers: new Set<string>(),
           startTimestamp: null,
           endTimestamp: null,
+          lastSpeaker: null,
         };
         currentTokens = 0;
       }
 
-      // Split the oversized segment and add resulting chunks
+      // Split the oversized segment
       const splitChunks = splitOversizedText(
         fullSegmentText,
-        maxTokens,
+        targetTokens, // Use target size for splits
         segment.speaker_name,
         segment.timestamp
       );
       chunks.push(...splitChunks);
 
-      // Clear overlap buffer since we've broken continuity
+      // Reset buffers
       overlapBuffer.length = 0;
       overlapBufferTokens = 0;
       continue;
     }
 
-    if (currentTokens + segmentTokens > maxTokens && currentChunk.text.length > 0) {
-      chunks.push({ ...currentChunk, speakers: new Set(currentChunk.speakers) });
+    // Case 2: Check Limits
+    const willExceedTarget = currentTokens + segmentTokens > targetTokens;
+    const willExceedMax = currentTokens + segmentTokens > maxTokens;
+    const isSameSpeaker = currentChunk.lastSpeaker === segment.speaker_name;
+
+    // Decision: Should we split?
+    // Split if:
+    // 1. We would exceed the HARD limit (maxTokens)
+    // 2. OR we would exceed the SOFT limit (targetTokens) AND it's a new speaker (don't break mid-turn if possible)
+    const shouldSplit = willExceedMax || (willExceedTarget && !isSameSpeaker);
+
+    if (shouldSplit && currentChunk.text.length > 0) {
+      chunks.push({ 
+        text: currentChunk.text,
+        speakers: new Set(currentChunk.speakers),
+        startTimestamp: currentChunk.startTimestamp,
+        endTimestamp: currentChunk.endTimestamp
+      });
 
       currentChunk = {
         text: '',
         speakers: new Set<string>(),
         startTimestamp: null,
         endTimestamp: null,
+        lastSpeaker: null,
       };
       currentTokens = 0;
 
-      // Add overlap buffer to new chunk
+      // Add overlap buffer to new chunk (to maintain context across splits)
       for (const bufferedItem of overlapBuffer) {
         const bufferedSegment = bufferedItem.segment;
-        currentChunk.text += (currentChunk.text ? '\n' : '') + bufferedItem.formattedText;
-        if (bufferedSegment.speaker_name) {
-          currentChunk.speakers.add(bufferedSegment.speaker_name);
+        
+        // Only add overlap if it doesn't immediately blow the budget
+        if (currentTokens + bufferedItem.tokens < targetTokens) {
+            currentChunk.text += (currentChunk.text ? '\n' : '') + bufferedItem.formattedText;
+            if (bufferedSegment.speaker_name) {
+              currentChunk.speakers.add(bufferedSegment.speaker_name);
+            }
+            if (!currentChunk.startTimestamp && bufferedSegment.timestamp) {
+              currentChunk.startTimestamp = bufferedSegment.timestamp;
+            }
+            // Don't update endTimestamp from overlap, let the new content define it
+            currentChunk.lastSpeaker = bufferedSegment.speaker_name || null;
+            currentTokens += bufferedItem.tokens;
         }
-        if (!currentChunk.startTimestamp && bufferedSegment.timestamp) {
-          currentChunk.startTimestamp = bufferedSegment.timestamp;
-        }
-        currentChunk.endTimestamp = bufferedSegment.timestamp;
-        currentTokens += bufferedItem.tokens;
       }
     }
 
-    currentChunk.text += (currentChunk.text ? '\n' : '') + speakerPrefix + segmentText;
+    // Add current segment
+    currentChunk.text += (currentChunk.text ? '\n' : '') + fullSegmentText;
     if (segment.speaker_name) {
       currentChunk.speakers.add(segment.speaker_name);
     }
@@ -246,6 +278,7 @@ function chunkTranscript(
       currentChunk.startTimestamp = segment.timestamp;
     }
     currentChunk.endTimestamp = segment.timestamp;
+    currentChunk.lastSpeaker = segment.speaker_name || null;
     currentTokens += segmentTokens;
 
     // Update overlap buffer
@@ -256,6 +289,7 @@ function chunkTranscript(
     });
     overlapBufferTokens += segmentTokens;
 
+    // Maintain overlap buffer size
     while (overlapBufferTokens > overlapTokens && overlapBuffer.length > 1) {
       const removed = overlapBuffer.shift()!;
       overlapBufferTokens -= removed.tokens;
@@ -263,7 +297,12 @@ function chunkTranscript(
   }
 
   if (currentChunk.text.length > 0) {
-    chunks.push(currentChunk);
+    chunks.push({
+        text: currentChunk.text,
+        speakers: new Set(currentChunk.speakers),
+        startTimestamp: currentChunk.startTimestamp,
+        endTimestamp: currentChunk.endTimestamp
+    });
   }
 
   return chunks;
@@ -339,8 +378,10 @@ async function processRecording(
 
   const tagName = (tagAssignment?.call_tags as {name: string} | null)?.name || null;
 
-  // Chunk the transcript
-  const chunks = chunkTranscript(segments, 400, 100);
+  // Chunk the transcript - Adaptive Strategy
+  // Target: 500 tokens (~2000 chars)
+  // Max: 1200 tokens (~4800 chars) to allow long speaker turns to complete
+  const chunks = chunkTranscript(segments, 500, 100, 1200);
   console.log(`Created ${chunks.length} chunks for recording ${recording_id}`);
 
   if (chunks.length === 0) return 0;
