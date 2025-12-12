@@ -9,7 +9,9 @@ import {
   RiSave3Line,
   RiArrowUpSLine,
   RiArrowDownSLine, 
-  RiArrowUpDownLine
+  RiArrowUpDownLine,
+  RiStarFill,
+  RiStarLine
 } from '@remixicon/react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -38,9 +40,12 @@ interface AIModel {
   is_enabled: boolean;
   is_featured: boolean;
   supports_tools: boolean;
+  min_tier: 'FREE' | 'PRO' | 'TEAM' | 'ADMIN';
+  is_default: boolean;
 }
 
 export function AdminModelManager() {
+  // Force rebuild - resolving reported stale EOF error
   const { user } = useAuth();
   const [loading, setLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
@@ -139,6 +144,35 @@ export function AdminModelManager() {
     // Optimistic update
     setModels(prev => prev.map(m => m.id === id ? { ...m, ...changes } : m));
   };
+  
+  const handleSetDefault = (id: string) => {
+    // Optimistic: Set this to true, all others to false
+    // We update state immediately for UI responsiveness
+    setModels(prev => prev.map(m => ({
+      ...m,
+      is_default: m.id === id
+    })));
+    
+    // We treat this as a change that needs saving
+    updateModel(id, { is_default: true }); 
+    // Note: The uniqueness is really enforced by DB trigger, 
+    // but informing the local edit state helps consistency.
+  };
+  
+  const cycleTier = (currentTier: string) => {
+    const tiers = ['FREE', 'PRO', 'TEAM', 'ADMIN'];
+    const idx = tiers.indexOf(currentTier || 'FREE');
+    return tiers[(idx + 1) % tiers.length];
+  };
+
+  const getTierColor = (tier: string) => {
+    switch (tier) {
+      case 'PRO': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'TEAM': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'ADMIN': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
 
   const requestSort = (key: keyof AIModel | 'input_cost' | 'output_cost') => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -174,6 +208,10 @@ export function AdminModelManager() {
         } else if (sortConfig.key === 'output_cost') {
           aValue = parseFloat(a.pricing?.completion || '0');
           bValue = parseFloat(b.pricing?.completion || '0');
+        } else if (sortConfig.key === 'min_tier') {
+          const tiers = { 'FREE': 0, 'PRO': 1, 'TEAM': 2, 'ADMIN': 3 };
+          aValue = tiers[a['min_tier'] as keyof typeof tiers] || 0;
+          bValue = tiers[b['min_tier'] as keyof typeof tiers] || 0;
         }
 
         if (aValue < bValue) {
@@ -210,7 +248,7 @@ export function AdminModelManager() {
         <div>
           <h3 className="text-lg font-medium">Model Management</h3>
           <p className="text-sm text-muted-foreground">
-            Manage available models, rename them, and set visibility.
+            Manage available models, tiers, and system default.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -257,6 +295,19 @@ export function AdminModelManager() {
                   onClick={() => requestSort('is_enabled')}
                 >
                   <div className="flex items-center gap-1">On <SortIcon column="is_enabled" /></div>
+                </TableHead>
+                 <TableHead 
+                  className="w-[60px] cursor-pointer hover:bg-muted transition-colors group select-none" 
+                  onClick={() => requestSort('is_default')}
+                  title="System Default"
+                >
+                  <div className="flex items-center justify-center gap-1"><RiStarFill className="w-3 h-3 text-yellow-500" /> <SortIcon column="is_default" /></div>
+                </TableHead>
+                <TableHead 
+                  className="w-[80px] cursor-pointer hover:bg-muted transition-colors group select-none" 
+                  onClick={() => requestSort('min_tier')}
+                >
+                  <div className="flex items-center gap-1">Tier <SortIcon column="min_tier" /></div>
                 </TableHead>
                 <TableHead 
                   className="w-[200px] cursor-pointer hover:bg-muted transition-colors group select-none" 
@@ -305,13 +356,13 @@ export function AdminModelManager() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                     Loading models...
                   </TableCell>
                 </TableRow>
               ) : sortedModels.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={10} className="h-24 text-center text-muted-foreground">
                     No models found. Try clicking "Sync from OpenRouter".
                   </TableCell>
                 </TableRow>
@@ -324,6 +375,31 @@ export function AdminModelManager() {
                         onCheckedChange={(checked) => updateModel(model.id, { is_enabled: checked })}
                       />
                     </TableCell>
+                     <TableCell>
+                      <button 
+                        onClick={() => handleSetDefault(model.id)}
+                        className="flex justify-center w-full hover:scale-110 transition-transform"
+                        title="Set as System Default"
+                      >
+                         {model.is_default ? (
+                           <RiStarFill className="h-4 w-4 text-yellow-500" />
+                         ) : (
+                           <RiStarLine className="h-4 w-4 text-muted-foreground/30 hover:text-yellow-500" />
+                         )}
+                      </button>
+                    </TableCell>
+                    <TableCell>
+                      <div 
+                        className={cn(
+                          "cursor-pointer px-2 py-0.5 rounded text-[10px] font-medium border text-center select-none w-[50px] transition-colors", 
+                          getTierColor(model.min_tier || 'FREE')
+                        )}
+                        onClick={() => updateModel(model.id, { min_tier: cycleTier(model.min_tier) as any })}
+                        title="Click to cycle Tier"
+                      >
+                        {model.min_tier || 'FREE'}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <Input 
                         value={model.name}
@@ -331,7 +407,7 @@ export function AdminModelManager() {
                         className="h-8"
                       />
                     </TableCell>
-                    <TableCell className="font-mono text-xs text-muted-foreground truncate max-w-[180px]" title={model.id}>
+                    <TableCell className="font-mono text-xs text-muted-foreground truncate max-w-[150px]" title={model.id}>
                       {model.id}
                     </TableCell>
                     <TableCell>

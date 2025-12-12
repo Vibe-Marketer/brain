@@ -29,12 +29,46 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Create client with user's auth context if present
+    const authHeader = req.headers.get('Authorization')
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      { global: { headers: { Authorization: authHeader ?? '' } } }
     )
 
-    // Fetch enabled models from DB
+    // 1. Get User Role
+    let userRole = 'FREE';
+    try {
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+      if (user && !userError) {
+        // Use the helper function if available, or query directly
+        // For efficiency in edge function, we'll query the table directly
+        const { data: roleData } = await supabaseClient
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (roleData) {
+          userRole = roleData.role;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to fetch user role, defaulting to FREE', e);
+    }
+
+    const ROLE_LEVELS = {
+      'FREE': 0,
+      'PRO': 1,
+      'TEAM': 2,
+      'ADMIN': 3
+    };
+
+    const currentLevel = ROLE_LEVELS[userRole as keyof typeof ROLE_LEVELS] || 0;
+
+    // 2. Fetch enabled models from DB
+    // We select ALL enabled models first, then filter in memory to handle the Enum string comparison comfortably
     const { data: models, error } = await supabaseClient
       .from('ai_models')
       .select('*')
@@ -52,10 +86,9 @@ Deno.serve(async (req) => {
        return new Response(
         JSON.stringify({
           models: [
-            { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai' },
-            { id: 'anthropic/claude-3.5-haiku', name: 'Claude 3.5 Haiku', provider: 'anthropic' }
+            { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', isFeatured: true, isDefault: true }
           ],
-          providers: ['openai', 'anthropic'],
+          providers: ['openai'],
           defaultModel: 'openai/gpt-4o-mini',
           hasOpenRouter: true
         }),
@@ -63,21 +96,37 @@ Deno.serve(async (req) => {
       )
     }
 
-    const mappedModels = models.map(m => ({
+    // 3. Filter models based on tier
+    const accessibleModels = models.filter(m => {
+      const modelTier = m.min_tier || 'FREE';
+      const modelLevel = ROLE_LEVELS[modelTier as keyof typeof ROLE_LEVELS] || 0;
+      return currentLevel >= modelLevel;
+    });
+
+    const mappedModels = accessibleModels.map(m => ({
       id: m.id,
       name: m.name,
       provider: m.provider,
       contextLength: m.context_length,
       pricing: m.pricing,
-      isFeatured: m.is_featured
+      isFeatured: m.is_featured,
+      isDefault: m.is_default
     }))
 
     // Get unique providers
     const providers = [...new Set(mappedModels.map(m => m.provider))]
     
-    // Determine default model
-    // Try to find a featured OpenAI or Anthropic model, or just the first one
-    const defaultModel = mappedModels.find(m => m.isFeatured)?.id || mappedModels[0]?.id
+    // 4. Determine default model
+    // Priority: Explicit System Default -> First Featured -> First available
+    // Note: We check the FULL list for the default, to ensure we can identify it 
+    // even if the user can't access it (though fallback logic handles replacement)
+    const systemDefault = models.find(m => m.is_default)?.id;
+    const fallbackDefault = mappedModels.find(m => m.isFeatured)?.id || mappedModels[0]?.id
+
+    // If the system default is accessible to this user, use it. Otherwise fallback.
+    const defaultModel = accessibleModels.find(m => m.id === systemDefault) 
+      ? systemDefault 
+      : fallbackDefault;
 
     return new Response(
       JSON.stringify({
