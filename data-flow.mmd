@@ -1,0 +1,29 @@
+sequenceDiagram
+    participant User
+    participant UI as React UI
+    participant Hook as useAIProcessing
+    participant Edge as Edge Function
+    participant OpenAI as GPT-4 Turbo
+    participant DB as Supabase DB
+    
+    User->>UI: Upload Call Transcript
+    UI->>Hook: analyzeTranscript(transcript)
+    Hook->>Edge: POST /extract-knowledge
+    Edge->>OpenAI: Analyze with GPT-4
+    OpenAI-->>Edge: Insights + PROFITS
+    Edge->>DB: Store insights
+    Edge->>DB: Update call record
+    Edge-->>Hook: Analysis complete
+    Hook-->>UI: Update state
+    UI-->>User: Show insights
+    
+    User->>UI: Select insights
+    User->>UI: Click "Generate Content"
+    UI->>Hook: createContent(type, insights)
+    Hook->>Edge: POST /generate-content
+    Edge->>OpenAI: Generate (streaming)
+    OpenAI-->>Edge: Stream response
+    Edge-->>Hook: Stream chunks
+    Hook-->>UI: Update content
+    UI-->>User: Display generated content
+    Edge->>DB: Store generated content

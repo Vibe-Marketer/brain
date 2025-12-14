@@ -1,0 +1,41 @@
+graph TB
+    subgraph "Frontend Layer"
+        UI[React UI Components]
+        AppShell[AppShell Layout]
+        Pages[Pages: Home, Insights, Analytics, Call Detail]
+        Components[Loop Components: Sidebar, TopBar, Cards]
+    end
+    
+    subgraph "Business Logic Layer"
+        Hooks[React Hooks: useAIProcessing]
+        AIAgent[AI Agent: ai-agent.ts]
+        Query[TanStack Query State Management]
+    end
+    
+    subgraph "Backend Services"
+        Supabase[Supabase PostgreSQL]
+        Auth[Supabase Auth]
+        EdgeFn[Edge Functions: extract-knowledge, generate-content]
+    end
+    
+    subgraph "External Services"
+        OpenAI[OpenAI GPT-4 Turbo]
+    end
+    
+    UI --> AppShell
+    AppShell --> Pages
+    AppShell --> Components
+    Pages --> Hooks
+    Components --> Hooks
+    Hooks --> AIAgent
+    Hooks --> Query
+    Query --> Supabase
+    AIAgent --> EdgeFn
+    EdgeFn --> OpenAI
+    EdgeFn --> Supabase
+    Auth --> Supabase
+    
+    style UI fill:#9333ea,color:#fff
+    style AIAgent fill:#7c3aed,color:#fff
+    style OpenAI fill:#10a37f,color:#fff
+    style Supabase fill:#3ecf8e,color:#fff
