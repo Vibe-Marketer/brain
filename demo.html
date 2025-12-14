@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CallVault - Contextual Panel Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+    .panel-transition { transition: width 300ms cubic-bezier(0.4, 0, 0.2, 1); }
+  </style>
+</head>
+<body class="h-screen overflow-hidden bg-gray-50">
+  <div id="app" class="flex h-full">
+    <!-- Primary Sidebar (64px, always visible) -->
+    <aside class="w-16 bg-white border-r border-gray-200 flex flex-col">
+      <!-- Logo -->
+      <div class="h-16 flex items-center justify-center border-b border-gray-200">
+        <div class="w-8 h-8 bg-gradient-to-br from-purple-600 to-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+          CV
+        </div>
+      </div>
+
+      <!-- Navigation -->
+      <div class="flex-1 overflow-y-auto py-4 space-y-1">
+        <button onclick="navigate('home')" class="nav-btn group relative w-full h-12 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all" title="Home">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <div class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Home</div>
+        </button>
+        
+        <button onclick="navigate('workspaces')" class="nav-btn group relative w-full h-12 flex items-center justify-center text-purple-600 transition-all" title="Workspaces">
+          <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-purple-600 rounded-r"></div>
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+          <div class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Workspaces</div>
+        </button>
+        
+        <button onclick="navigate('insights')" class="nav-btn group relative w-full h-12 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all" title="Insights">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          <div class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Insights</div>
+        </button>
+        
+        <button onclick="navigate('calls')" class="nav-btn group relative w-full h-12 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all" title="Calls">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          <div class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Calls</div>
+        </button>
+        
+        <button onclick="navigate('analytics')" class="nav-btn group relative w-full h-12 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all" title="Analytics">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          <div class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Analytics</div>
+        </button>
+      </div>
+
+      <!-- System Navigation -->
+      <div class="border-t border-gray-200 py-4 space-y-1">
+        <button class="group relative w-full h-12 flex items-center justify-center text-gray-600 hover:text-gray-900 hover:bg-gray-100 transition-all" title="Settings">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          <div class="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity whitespace-nowrap z-50">Settings</div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Secondary Panel (280px, slides in/out) -->
+    <div id="secondaryPanel" class="panel-transition w-0 overflow-hidden bg-gray-50 border-r border-gray-200 flex flex-col">
+      <div id="panelContent" class="w-[280px] h-full flex flex-col"></div>
+    </div>
+
+    <!-- Main Content Area (flexible) -->
+    <main id="mainContent" class="flex-1 overflow-auto bg-white">
+      <!-- Content will be injected here -->
+    </main>
+  </div>
+
+  <script>
+    let isPanelOpen = false;
+    let isPinned = false;
+    let currentPanel = null;
+
+    function navigate(page) {
+      // Open contextual panel for certain pages
+      if (page === 'workspaces') {
+        openPanel('workspace-detail');
+        loadWorkspacesPage();
+      } else if (page === 'calls') {
+        openPanel('filter-tool');
+        loadCallsPage();
+      } else if (page === 'insights') {
+        openPanel('filter-tool');
+        loadInsightsPage();
+      } else {
+        if (!isPinned) closePanel();
+        loadPage(page);
+      }
+    }
+
+    function openPanel(type) {
+      isPanelOpen = true;
+      currentPanel = type;
+      document.getElementById('secondaryPanel').style.width = '280px';
+      renderPanel(type);
+    }
+
+    function closePanel() {
+      if (isPinned) return;
+      isPanelOpen = false;
+      currentPanel = null;
+      document.getElementById('secondaryPanel').style.width = '0';
+    }
+
+    function togglePin() {
+      isPinned = !isPinned;
+      renderPanel(currentPanel);
+    }
+
+    function renderPanel(type) {
+      const panelContent = document.getElementById('panelContent');
+      
+      if (type === 'workspace-detail') {
+        panelContent.innerHTML = `
+          <div class="h-14 px-4 flex items-center justify-between border-b border-gray-200 bg-white">
+            <h2 class="text-sm font-semibold text-gray-900">Workspace</h2>
+            <div class="flex gap-1">
+              <button onclick="togglePin()" class="p-1 rounded ${isPinned ? 'bg-purple-100 text-purple-600' : 'hover:bg-gray-100 text-gray-600'} transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+              </button>
+              <button onclick="closePanel()" class="p-1 hover:bg-gray-100 rounded transition-colors">
+                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-4 space-y-6">
+            <div class="space-y-3">
+              <div class="flex items-center gap-3">
+                <div class="text-4xl">🚀</div>
+                <div class="flex-1">
+                  <h3 class="font-semibold text-gray-900">Product Discovery</h3>
+                  <p class="text-xs text-gray-500">Updated 2 hours ago</p>
+                </div>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div class="bg-white rounded-lg p-3 border border-gray-200">
+                <div class="text-xs text-gray-600 mb-1">Members</div>
+                <div class="text-2xl font-semibold text-gray-900">5</div>
+              </div>
+              <div class="bg-white rounded-lg p-3 border border-gray-200">
+                <div class="text-xs text-gray-600 mb-1">Calls</div>
+                <div class="text-2xl font-semibold text-gray-900">12</div>
+              </div>
+            </div>
+            <div class="space-y-3">
+              <h4 class="text-xs font-semibold text-gray-700 uppercase tracking-wide">Members</h4>
+              ${['Sarah Johnson', 'Mike Chen', 'Emma Davis'].map(name => `
+                <div class="flex items-center gap-3 p-2 hover:bg-white rounded-lg transition-colors">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-br from-purple-400 to-blue-400 flex items-center justify-center text-white text-xs font-medium">
+                    ${name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <div class="flex-1">
+                    <div class="text-sm font-medium text-gray-900">${name}</div>
+                    <div class="text-xs text-gray-500">Editor</div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (type === 'filter-tool') {
+        panelContent.innerHTML = `
+          <div class="h-14 px-4 flex items-center justify-between border-b border-gray-200 bg-white">
+            <h2 class="text-sm font-semibold text-gray-900">Filters</h2>
+            <div class="flex gap-1">
+              <button onclick="togglePin()" class="p-1 rounded ${isPinned ? 'bg-purple-100 text-purple-600' : 'hover:bg-gray-100 text-gray-600'} transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
+              </button>
+              <button onclick="closePanel()" class="p-1 hover:bg-gray-100 rounded transition-colors">
+                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-4 space-y-6">
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-gray-700 uppercase tracking-wide">Search</label>
+              <input type="text" placeholder="Search..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm">
+            </div>
+            <div class="space-y-2">
+              <label class="text-xs font-semibold text-gray-700 uppercase tracking-wide">Sort By</label>
+              <select class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm bg-white">
+                <option>Newest First</option>
+                <option>Oldest First</option>
+                <option>Name (A-Z)</option>
+              </select>
+            </div>
+            <div class="space-y-3">
+              <label class="text-xs font-semibold text-gray-700 uppercase tracking-wide">Filters</label>
+              ${['AI Processed (24)', 'Positive Sentiment (18)', 'Has Action Items (15)'].map(filter => `
+                <button class="w-full flex items-center justify-between p-2.5 rounded-lg bg-white border border-gray-200 hover:border-gray-300 transition-colors text-left">
+                  <span class="text-sm text-gray-700">${filter.split('(')[0]}</span>
+                  <span class="text-xs text-gray-500">${filter.match(/\((\d+)\)/)[1]}</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function loadWorkspacesPage() {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="h-full flex flex-col">
+          <div class="px-8 py-6 border-b border-gray-200">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h1 class="text-2xl font-bold text-gray-900">Workspaces</h1>
+                <p class="text-sm text-gray-600 mt-1">Organize your calls into collaborative spaces</p>
+              </div>
+              <button class="flex items-center gap-2 px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors font-medium">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                New Workspace
+              </button>
+            </div>
+          </div>
+          <div class="flex-1 overflow-y-auto p-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              ${[
+                { name: 'Product Discovery', emoji: '🚀', gradient: 'from-purple-400 to-pink-400', members: 5, calls: 12 },
+                { name: 'Customer Success', emoji: '💡', gradient: 'from-blue-400 to-cyan-400', members: 8, calls: 24 },
+                { name: 'Sales Calls', emoji: '📞', gradient: 'from-green-400 to-emerald-400', members: 3, calls: 18 },
+              ].map(ws => `
+                <div class="group bg-white rounded-xl border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all overflow-hidden cursor-pointer">
+                  <div class="h-24 bg-gradient-to-br ${ws.gradient} relative">
+                    <div class="absolute -bottom-6 left-6">
+                      <div class="w-16 h-16 bg-white rounded-xl shadow-lg flex items-center justify-center text-3xl border-4 border-white">
+                        ${ws.emoji}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="pt-10 px-6 pb-6">
+                    <h3 class="font-semibold text-gray-900 text-lg mb-2 group-hover:text-purple-600 transition-colors">${ws.name}</h3>
+                    <div class="flex items-center gap-4 text-sm text-gray-600">
+                      <span>${ws.members} members</span>
+                      <span>•</span>
+                      <span>${ws.calls} calls</span>
+                    </div>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function loadCallsPage() {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="h-full flex flex-col">
+          <div class="px-8 py-6 border-b border-gray-200">
+            <h1 class="text-2xl font-bold text-gray-900">Calls</h1>
+            <p class="text-sm text-gray-600 mt-1">All your call transcripts and recordings</p>
+          </div>
+          <div class="flex-1 overflow-y-auto p-8">
+            <div class="space-y-2">
+              ${[
+                { title: 'Discovery Call - Acme Corp', date: 'Dec 13, 2024', sentiment: 'positive', insights: 8 },
+                { title: 'Follow-up - TechStart Inc', date: 'Dec 13, 2024', sentiment: 'neutral', insights: 5 },
+                { title: 'Demo Call - GlobalSoft', date: 'Dec 12, 2024', sentiment: 'positive', insights: 12 },
+              ].map(call => `
+                <div class="flex items-center gap-4 p-4 bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-md transition-all cursor-pointer">
+                  <div class="flex-1">
+                    <h3 class="font-semibold text-gray-900">${call.title}</h3>
+                    <p class="text-sm text-gray-600">${call.date}</p>
+                  </div>
+                  <div class="px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg text-sm font-medium">
+                    ${call.insights} insights
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function loadInsightsPage() {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="h-full flex flex-col">
+          <div class="px-8 py-6 border-b border-gray-200">
+            <h1 class="text-2xl font-bold text-gray-900">AI Insights</h1>
+            <p class="text-sm text-gray-600 mt-1">Knowledge extracted from your calls</p>
+          </div>
+          <div class="flex-1 overflow-y-auto p-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              ${[
+                { type: 'Pain', content: 'Manual data entry taking 10+ hours per week', confidence: 92 },
+                { type: 'Success', content: 'Previous tool saved 20 hours per week', confidence: 88 },
+                { type: 'Objection', content: 'Concerned about implementation timeline', confidence: 85 },
+              ].map(insight => `
+                <div class="p-5 bg-white rounded-lg border border-gray-200 hover:border-purple-300 hover:shadow-lg transition-all cursor-pointer">
+                  <div class="flex items-start justify-between mb-3">
+                    <span class="px-3 py-1.5 rounded-lg text-sm font-medium ${
+                      insight.type === 'Pain' ? 'bg-red-100 text-red-700' :
+                      insight.type === 'Success' ? 'bg-green-100 text-green-700' :
+                      'bg-orange-100 text-orange-700'
+                    }">${insight.type}</span>
+                    <span class="text-sm font-semibold text-gray-900">${insight.confidence}%</span>
+                  </div>
+                  <p class="text-gray-900 font-medium leading-relaxed">${insight.content}</p>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function loadPage(page) {
+      document.getElementById('mainContent').innerHTML = `
+        <div class="flex items-center justify-center h-full">
+          <div class="text-center">
+            <h1 class="text-2xl font-bold text-gray-900 mb-2">${page.charAt(0).toUpperCase() + page.slice(1)}</h1>
+            <p class="text-gray-600">Page content coming soon...</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Initialize with workspaces page
+    navigate('workspaces');
+  </script>
+</body>
+</html>

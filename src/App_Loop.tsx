@@ -5,7 +5,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { LoopShell } from '@/components/LoopShell';
 import { WorkspacesPage } from '@/pages/WorkspacesPage';
 import { CallsPage } from '@/pages/CallsPage';
-import Login from '@/pages/Login';
+import { Login } from '@/pages/Login';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Import existing pages

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CallVault - Comprehensive Test Suite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .test-pass { color: #10b981; }
+    .test-fail { color: #ef4444; }
+    .test-running { color: #f59e0b; }
+  </style>
+</head>
+<body class="p-8 bg-gray-50">
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">CallVault Contextual Panel Architecture - Test Suite</h1>
+    
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-xl font-semibold">Test Results</h2>
+        <button onclick="runAllTests()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
+          Run All Tests
+        </button>
+      </div>
+      <div id="summary" class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-green-50 p-4 rounded-lg">
+          <div class="text-2xl font-bold text-green-600" id="passCount">0</div>
+          <div class="text-sm text-gray-600">Passed</div>
+        </div>
+        <div class="bg-red-50 p-4 rounded-lg">
+          <div class="text-2xl font-bold text-red-600" id="failCount">0</div>
+          <div class="text-sm text-gray-600">Failed</div>
+        </div>
+        <div class="bg-blue-50 p-4 rounded-lg">
+          <div class="text-2xl font-bold text-blue-600" id="totalCount">0</div>
+          <div class="text-sm text-gray-600">Total</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="space-y-4">
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Navigation Tests</h3>
+        <div id="navTests" class="space-y-2"></div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Panel Behavior Tests</h3>
+        <div id="panelTests" class="space-y-2"></div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">Interaction Tests</h3>
+        <div id="interactionTests" class="space-y-2"></div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">State Management Tests</h3>
+        <div id="stateTests" class="space-y-2"></div>
+      </div>
+
+      <div class="bg-white rounded-lg shadow p-6">
+        <h3 class="text-lg font-semibold mb-4">UI/UX Tests</h3>
+        <div id="uiTests" class="space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Hidden iframe for testing -->
+    <iframe id="testFrame" src="demo.html" style="position:absolute;left:-9999px;width:1200px;height:800px;"></iframe>
+  </div>
+
+  <script>
+    let testResults = {
+      passed: 0,
+      failed: 0,
+      total: 0
+    };
+
+    function logTest(category, name, passed, message = '') {
+      testResults.total++;
+      if (passed) {
+        testResults.passed++;
+      } else {
+        testResults.failed++;
+      }
+
+      const container = document.getElementById(category);
+      const testEl = document.createElement('div');
+      testEl.className = `flex items-center justify-between p-3 rounded ${passed ? 'bg-green-50' : 'bg-red-50'}`;
+      testEl.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="w-6 h-6 rounded-full ${passed ? 'bg-green-500' : 'bg-red-500'} flex items-center justify-center text-white text-xs font-bold">
+            ${passed ? '✓' : '✗'}
+          </div>
+          <span class="${passed ? 'test-pass' : 'test-fail'} font-medium">${name}</span>
+        </div>
+        ${message ? `<span class="text-sm text-gray-600">${message}</span>` : ''}
+      `;
+      container.appendChild(testEl);
+
+      updateSummary();
+    }
+
+    function updateSummary() {
+      document.getElementById('passCount').textContent = testResults.passed;
+      document.getElementById('failCount').textContent = testResults.failed;
+      document.getElementById('totalCount').textContent = testResults.total;
+    }
+
+    function sleep(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    async function runAllTests() {
+      // Reset
+      testResults = { passed: 0, failed: 0, total: 0 };
+      ['navTests', 'panelTests', 'interactionTests', 'stateTests', 'uiTests'].forEach(id => {
+        document.getElementById(id).innerHTML = '';
+      });
+
+      const frame = document.getElementById('testFrame');
+      const doc = frame.contentDocument || frame.contentWindow.document;
+      const win = frame.contentWindow;
+
+      await sleep(500); // Wait for iframe to load
+
+      // NAVIGATION TESTS
+      console.log('Running Navigation Tests...');
+      
+      // Test 1: Primary sidebar exists
+      const sidebar = doc.querySelector('aside');
+      logTest('navTests', 'Primary sidebar exists', !!sidebar);
+
+      // Test 2: All navigation buttons exist
+      const navButtons = doc.querySelectorAll('aside button');
+      logTest('navTests', 'All navigation buttons exist', navButtons.length >= 6, `Found ${navButtons.length} buttons`);
+
+      // Test 3: Home navigation works
+      const homeBtn = Array.from(navButtons).find(btn => btn.textContent.includes('Home') || btn.title === 'Home');
+      if (homeBtn) {
+        homeBtn.click();
+        await sleep(200);
+        const mainContent = doc.getElementById('mainContent');
+        const hasHomeContent = mainContent && mainContent.textContent.includes('Home');
+        logTest('navTests', 'Home navigation works', hasHomeContent);
+      } else {
+        logTest('navTests', 'Home navigation works', false, 'Home button not found');
+      }
+
+      // Test 4: Workspaces navigation works
+      const workspacesBtn = Array.from(navButtons).find(btn => btn.textContent.includes('Workspaces') || btn.title === 'Workspaces');
+      if (workspacesBtn) {
+        workspacesBtn.click();
+        await sleep(200);
+        const mainContent = doc.getElementById('mainContent');
+        const hasWorkspacesContent = mainContent && mainContent.textContent.includes('Workspaces');
+        logTest('navTests', 'Workspaces navigation works', hasWorkspacesContent);
+      } else {
+        logTest('navTests', 'Workspaces navigation works', false, 'Workspaces button not found');
+      }
+
+      // Test 5: Calls navigation works
+      const callsBtn = Array.from(navButtons).find(btn => btn.textContent.includes('Calls') || btn.title === 'Calls');
+      if (callsBtn) {
+        callsBtn.click();
+        await sleep(200);
+        const mainContent = doc.getElementById('mainContent');
+        const hasCallsContent = mainContent && mainContent.textContent.includes('Calls');
+        logTest('navTests', 'Calls navigation works', hasCallsContent);
+      } else {
+        logTest('navTests', 'Calls navigation works', false, 'Calls button not found');
+      }
+
+      // Test 6: Insights navigation works
+      const insightsBtn = Array.from(navButtons).find(btn => btn.textContent.includes('Insights') || btn.title === 'Insights');
+      if (insightsBtn) {
+        insightsBtn.click();
+        await sleep(200);
+        const mainContent = doc.getElementById('mainContent');
+        const hasInsightsContent = mainContent && mainContent.textContent.includes('Insights');
+        logTest('navTests', 'Insights navigation works', hasInsightsContent);
+      } else {
+        logTest('navTests', 'Insights navigation works', false, 'Insights button not found');
+      }
+
+      // PANEL BEHAVIOR TESTS
+      console.log('Running Panel Behavior Tests...');
+
+      // Test 7: Secondary panel exists
+      const panel = doc.getElementById('secondaryPanel');
+      logTest('panelTests', 'Secondary panel exists', !!panel);
+
+      // Test 8: Panel opens when navigating to Workspaces
+      if (workspacesBtn) {
+        workspacesBtn.click();
+        await sleep(300);
+        const panelWidth = panel.style.width;
+        logTest('panelTests', 'Panel opens on Workspaces navigation', panelWidth === '280px', `Width: ${panelWidth}`);
+      }
+
+      // Test 9: Panel shows correct content for Workspaces
+      const panelContent = doc.getElementById('panelContent');
+      const hasWorkspacePanel = panelContent && panelContent.textContent.includes('Workspace');
+      logTest('panelTests', 'Panel shows Workspace content', hasWorkspacePanel);
+
+      // Test 10: Panel opens when navigating to Calls
+      if (callsBtn) {
+        callsBtn.click();
+        await sleep(300);
+        const panelWidth = panel.style.width;
+        logTest('panelTests', 'Panel opens on Calls navigation', panelWidth === '280px');
+      }
+
+      // Test 11: Panel shows correct content for Calls (Filter Tool)
+      const hasFilterPanel = panelContent && panelContent.textContent.includes('Filters');
+      logTest('panelTests', 'Panel shows Filter content for Calls', hasFilterPanel);
+
+      // Test 12: Panel content changes between pages
+      if (workspacesBtn && callsBtn) {
+        workspacesBtn.click();
+        await sleep(200);
+        const workspaceContent = panelContent.textContent;
+        
+        callsBtn.click();
+        await sleep(200);
+        const callsContent = panelContent.textContent;
+        
+        logTest('panelTests', 'Panel content changes between pages', workspaceContent !== callsContent);
+      }
+
+      // INTERACTION TESTS
+      console.log('Running Interaction Tests...');
+
+      // Test 13: Pin button exists
+      const pinBtn = doc.querySelector('#panelContent button[onclick*="togglePin"]');
+      logTest('interactionTests', 'Pin button exists', !!pinBtn);
+
+      // Test 14: Close button exists
+      const closeBtn = doc.querySelector('#panelContent button[onclick*="closePanel"]');
+      logTest('interactionTests', 'Close button exists', !!closeBtn);
+
+      // Test 15: Pin button toggles state
+      if (pinBtn) {
+        const initialState = win.isPinned;
+        pinBtn.click();
+        await sleep(100);
+        const newState = win.isPinned;
+        logTest('interactionTests', 'Pin button toggles state', initialState !== newState);
+      }
+
+      // Test 16: Close button closes panel when not pinned
+      if (closeBtn && !win.isPinned) {
+        closeBtn.click();
+        await sleep(300);
+        const panelWidth = panel.style.width;
+        logTest('interactionTests', 'Close button closes panel', panelWidth === '0px' || panelWidth === '0');
+      }
+
+      // Test 17: Close button doesn't close when pinned
+      if (workspacesBtn && pinBtn && closeBtn) {
+        workspacesBtn.click();
+        await sleep(200);
+        pinBtn.click(); // Pin it
+        await sleep(100);
+        closeBtn.click(); // Try to close
+        await sleep(300);
+        const panelWidth = panel.style.width;
+        logTest('interactionTests', 'Close button respects pin state', panelWidth === '280px');
+      }
+
+      // Test 18: Search input exists in filter panel
+      if (callsBtn) {
+        callsBtn.click();
+        await sleep(200);
+        const searchInput = doc.querySelector('#panelContent input[type="text"]');
+        logTest('interactionTests', 'Search input exists in filter panel', !!searchInput);
+      }
+
+      // Test 19: Sort dropdown exists in filter panel
+      const sortSelect = doc.querySelector('#panelContent select');
+      logTest('interactionTests', 'Sort dropdown exists in filter panel', !!sortSelect);
+
+      // Test 20: Filter buttons exist
+      const filterButtons = doc.querySelectorAll('#panelContent button');
+      const hasFilterButtons = filterButtons.length > 2; // More than just pin/close
+      logTest('interactionTests', 'Filter buttons exist', hasFilterButtons, `Found ${filterButtons.length} buttons`);
+
+      // STATE MANAGEMENT TESTS
+      console.log('Running State Management Tests...');
+
+      // Test 21: isPanelOpen state exists
+      logTest('stateTests', 'isPanelOpen state exists', typeof win.isPanelOpen !== 'undefined');
+
+      // Test 22: isPinned state exists
+      logTest('stateTests', 'isPinned state exists', typeof win.isPinned !== 'undefined');
+
+      // Test 23: currentPanel state exists
+      logTest('stateTests', 'currentPanel state exists', typeof win.currentPanel !== 'undefined');
+
+      // Test 24: State updates on navigation
+      if (workspacesBtn) {
+        workspacesBtn.click();
+        await sleep(200);
+        const isWorkspacePanel = win.currentPanel === 'workspace-detail';
+        logTest('stateTests', 'State updates on Workspaces navigation', isWorkspacePanel);
+      }
+
+      // Test 25: State updates on Calls navigation
+      if (callsBtn) {
+        callsBtn.click();
+        await sleep(200);
+        const isFilterPanel = win.currentPanel === 'filter-tool';
+        logTest('stateTests', 'State updates on Calls navigation', isFilterPanel);
+      }
+
+      // Test 26: Panel state persists when pinned
+      if (workspacesBtn && homeBtn && pinBtn) {
+        workspacesBtn.click();
+        await sleep(200);
+        pinBtn.click(); // Pin
+        await sleep(100);
+        homeBtn.click(); // Navigate away
+        await sleep(200);
+        const panelStillOpen = panel.style.width === '280px';
+        logTest('stateTests', 'Panel state persists when pinned', panelStillOpen);
+      }
+
+      // UI/UX TESTS
+      console.log('Running UI/UX Tests...');
+
+      // Test 27: Primary sidebar has correct width
+      const sidebarWidth = sidebar ? getComputedStyle(sidebar).width : '0px';
+      logTest('uiTests', 'Primary sidebar has 64px width', sidebarWidth === '64px', `Width: ${sidebarWidth}`);
+
+      // Test 28: Panel has correct width when open
+      if (workspacesBtn) {
+        workspacesBtn.click();
+        await sleep(300);
+        const panelWidth = panel.style.width;
+        logTest('uiTests', 'Panel has 280px width when open', panelWidth === '280px');
+      }
+
+      // Test 29: Main content area exists
+      const mainContent = doc.getElementById('mainContent');
+      logTest('uiTests', 'Main content area exists', !!mainContent);
+
+      // Test 30: Main content is never obscured
+      const mainContentVisible = mainContent && getComputedStyle(mainContent).display !== 'none';
+      logTest('uiTests', 'Main content is always visible', mainContentVisible);
+
+      // Test 31: Smooth transitions applied
+      const hasTransition = panel && panel.className.includes('panel-transition');
+      logTest('uiTests', 'Panel has transition class', hasTransition);
+
+      // Test 32: Active navigation indicator exists
+      const activeIndicator = doc.querySelector('aside button .bg-purple-600');
+      logTest('uiTests', 'Active navigation indicator exists', !!activeIndicator);
+
+      // Test 33: Tooltips exist on hover
+      const hasTooltips = Array.from(navButtons).some(btn => {
+        const tooltip = btn.querySelector('.group-hover\\:opacity-100');
+        return !!tooltip;
+      });
+      logTest('uiTests', 'Navigation tooltips exist', hasTooltips);
+
+      // Test 34: Workspace cards render correctly
+      if (workspacesBtn) {
+        workspacesBtn.click();
+        await sleep(200);
+        const workspaceCards = mainContent.querySelectorAll('.group');
+        logTest('uiTests', 'Workspace cards render', workspaceCards.length > 0, `Found ${workspaceCards.length} cards`);
+      }
+
+      // Test 35: Call list renders correctly
+      if (callsBtn) {
+        callsBtn.click();
+        await sleep(200);
+        const callItems = mainContent.querySelectorAll('.cursor-pointer');
+        logTest('uiTests', 'Call list renders', callItems.length > 0, `Found ${callItems.length} items`);
+      }
+
+      // Test 36: Insight cards render correctly
+      if (insightsBtn) {
+        insightsBtn.click();
+        await sleep(200);
+        const insightCards = mainContent.querySelectorAll('.cursor-pointer');
+        logTest('uiTests', 'Insight cards render', insightCards.length > 0, `Found ${insightCards.length} cards`);
+      }
+
+      // Test 37: Gradient backgrounds work
+      const hasGradients = mainContent.innerHTML.includes('bg-gradient-to-br');
+      logTest('uiTests', 'Gradient backgrounds applied', hasGradients);
+
+      // Test 38: Responsive grid layout
+      const hasGridLayout = mainContent.innerHTML.includes('grid');
+      logTest('uiTests', 'Grid layout applied', hasGridLayout);
+
+      // Test 39: Hover effects work
+      const hasHoverEffects = mainContent.innerHTML.includes('hover:');
+      logTest('uiTests', 'Hover effects applied', hasHoverEffects);
+
+      // Test 40: Color scheme consistency
+      const hasPurpleTheme = doc.body.innerHTML.includes('purple-600');
+      logTest('uiTests', 'Purple theme color applied', hasPurpleTheme);
+
+      console.log('All tests completed!');
+      console.log(`Passed: ${testResults.passed}/${testResults.total}`);
+      console.log(`Failed: ${testResults.failed}/${testResults.total}`);
+    }
+
+    // Auto-run tests on load
+    window.addEventListener('load', () => {
+      setTimeout(runAllTests, 1000);
+    });
+  </script>
+</body>
+</html>
