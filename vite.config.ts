@@ -8,6 +8,7 @@ export default defineConfig({
   server: {
     host: "::",
     port: 8080,
+    allowedHosts: [".manusvm.computer"],
   },
   build: {
     sourcemap: true, // Required for Sentry source maps

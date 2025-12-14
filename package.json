@@ -17,6 +17,7 @@
     "test:rag": "tsx scripts/test-rag-retrieval.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^2.0.86",
     "@ai-sdk/react": "^2.0.102",
     "@dnd-kit/core": "^6.3.1",
     "@headlessui/tailwindcss": "^0.2.2",
@@ -48,7 +49,7 @@
     "@tailwindcss/forms": "^0.5.10",
     "@tanstack/react-query": "^5.90.10",
     "@tremor/react": "^3.18.7",
-    "ai": "^5.0.102",
+    "ai": "^5.0.113",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",

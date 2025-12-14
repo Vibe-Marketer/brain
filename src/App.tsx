@@ -6,8 +6,13 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Layout } from "./components/Layout";
+import { AppShell } from "./components/loop/AppShell";
 import { DebugPanelProvider, DebugPanel } from "./components/debug-panel";
+import { WorkspacesHome } from "./pages/WorkspacesHome";
+import { InsightsPage } from "./pages/InsightsPage";
+import { CallDetailPage } from "./pages/CallDetailPage";
+import { AnalyticsPage } from "./pages/AnalyticsPage";
+import { TranscriptsNewEnhanced } from "./pages/TranscriptsNewEnhanced";
 import Settings from "./pages/Settings";
 import TranscriptsNew from "./pages/TranscriptsNew";
 import Chat from "./pages/Chat";
@@ -47,13 +52,25 @@ const App = () => {
                   <Route path="/auth" element={<Login />} />
                   <Route path="/oauth/callback" element={<OAuthCallback />} />
 
-                  {/* Main app routes */}
-                  <Route path="/" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
-                  <Route path="/transcripts" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
-                  <Route path="/chat" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
-                  <Route path="/chat/:sessionId" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
-                  <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
-                  <Route path="/sorting-tagging" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
+                  {/* Main app routes with AppShell */}
+                  <Route path="/" element={<ProtectedRoute><AppShell /></ProtectedRoute>}>
+                    <Route index element={<WorkspacesHome />} />
+                    <Route path="recent" element={<WorkspacesHome />} />
+                    <Route path="ideas" element={<WorkspacesHome />} />
+                    <Route path="favorites" element={<WorkspacesHome />} />
+                    <Route path="workspace/:id" element={<TranscriptsNewEnhanced />} />
+                    <Route path="call/:callId" element={<CallDetailPage />} />
+                    <Route path="insights" element={<InsightsPage />} />
+                    <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="library" element={<TranscriptsNew />} />
+                    <Route path="tags" element={<TranscriptsNew />} />
+                    <Route path="settings" element={<Settings />} />
+                    <Route path="integrations" element={<Settings />} />
+                    <Route path="transcripts" element={<TranscriptsNew />} />
+                    <Route path="chat" element={<Chat />} />
+                    <Route path="chat/:sessionId" element={<Chat />} />
+                    <Route path="sorting-tagging" element={<SortingTagging />} />
+                  </Route>
 
                   {/* 404 */}
                   <Route path="*" element={<NotFound />} />
