@@ -1,0 +1,834 @@
+{
+  "name": "Brand-Agnostic Component Library",
+  "description": "Component specifications extracted from Microsoft Loop UI analysis",
+  "version": "1.0.0",
+  
+  "components": [
+    {
+      "name": "Button",
+      "purpose": "Trigger actions or navigate to new views",
+      "variants": [
+        {
+          "name": "Primary",
+          "description": "Main call-to-action with filled background",
+          "props": {
+            "label": "string",
+            "onClick": "function",
+            "disabled": "boolean",
+            "icon": "optional ReactNode"
+          },
+          "states": ["default", "hover", "active", "disabled"],
+          "styling": {
+            "background": "accent-primary",
+            "color": "white",
+            "padding": "8px 16px",
+            "borderRadius": "4px"
+          }
+        },
+        {
+          "name": "Secondary",
+          "description": "Alternative actions with outlined style",
+          "props": {
+            "label": "string",
+            "onClick": "function",
+            "disabled": "boolean",
+            "icon": "optional ReactNode"
+          },
+          "states": ["default", "hover", "active", "disabled"],
+          "styling": {
+            "background": "transparent",
+            "border": "1px solid neutral-300",
+            "color": "text-primary",
+            "padding": "8px 16px",
+            "borderRadius": "4px"
+          }
+        },
+        {
+          "name": "Icon",
+          "description": "Compact button with icon only",
+          "props": {
+            "icon": "ReactNode",
+            "onClick": "function",
+            "disabled": "boolean",
+            "ariaLabel": "string"
+          },
+          "states": ["default", "hover", "active", "disabled"],
+          "styling": {
+            "size": "32-40px square",
+            "borderRadius": "4px or circular"
+          }
+        },
+        {
+          "name": "Text",
+          "description": "Tertiary actions with text only",
+          "props": {
+            "label": "string",
+            "onClick": "function",
+            "disabled": "boolean"
+          },
+          "states": ["default", "hover", "active", "disabled"],
+          "styling": {
+            "background": "transparent",
+            "color": "text-secondary",
+            "padding": "4px 8px"
+          }
+        }
+      ],
+      "accessibility": {
+        "role": "button",
+        "ariaLabel": "Required for icon buttons",
+        "keyboard": "Enter and Space to activate",
+        "focusVisible": "Outline on keyboard focus"
+      }
+    },
+    
+    {
+      "name": "NavigationList",
+      "purpose": "Display hierarchical or flat navigation items",
+      "variants": [
+        {
+          "name": "Hierarchical",
+          "description": "Nested navigation with collapsible parents",
+          "props": {
+            "items": "array of NavigationItem",
+            "activeItemId": "string",
+            "onItemClick": "function",
+            "collapsible": "boolean"
+          },
+          "states": ["default", "hover", "active", "expanded", "collapsed"],
+          "structure": {
+            "item": {
+              "icon": "optional",
+              "label": "required",
+              "children": "optional array",
+              "indentation": "16-24px per level"
+            }
+          }
+        },
+        {
+          "name": "Flat",
+          "description": "Single-level navigation list",
+          "props": {
+            "items": "array of NavigationItem",
+            "activeItemId": "string",
+            "onItemClick": "function"
+          },
+          "states": ["default", "hover", "active"],
+          "structure": {
+            "item": {
+              "icon": "optional",
+              "label": "required",
+              "metadata": "optional (timestamp, count)"
+            }
+          }
+        }
+      ],
+      "accessibility": {
+        "role": "navigation",
+        "ariaLabel": "Descriptive label for navigation region",
+        "keyboard": "Arrow keys to navigate, Enter to select",
+        "ariaCurrent": "page for active item"
+      }
+    },
+    
+    {
+      "name": "DataTable",
+      "purpose": "Display structured data with sorting and filtering",
+      "props": {
+        "columns": "array of ColumnDefinition",
+        "data": "array of objects",
+        "sortable": "boolean",
+        "selectable": "boolean",
+        "onRowClick": "function",
+        "onSort": "function",
+        "onSelect": "function"
+      },
+      "columnTypes": [
+        {
+          "type": "text",
+          "alignment": "left",
+          "truncation": "ellipsis if too long"
+        },
+        {
+          "type": "date",
+          "alignment": "left",
+          "format": "relative or absolute"
+        },
+        {
+          "type": "number",
+          "alignment": "right",
+          "format": "with appropriate precision"
+        },
+        {
+          "type": "status",
+          "alignment": "left",
+          "display": "badge or icon with text"
+        },
+        {
+          "type": "actions",
+          "alignment": "right",
+          "display": "icon buttons"
+        }
+      ],
+      "states": ["default", "hover", "selected", "sorted"],
+      "interactions": [
+        "Click column header to sort",
+        "Click row to navigate or select",
+        "Checkbox for multi-select",
+        "Right-click for context menu"
+      ],
+      "accessibility": {
+        "role": "table",
+        "ariaSort": "ascending or descending on sorted column",
+        "keyboard": "Tab to navigate cells, Space to select",
+        "ariaSelected": "true for selected rows"
+      }
+    },
+    
+    {
+      "name": "Card",
+      "purpose": "Visual container for content items",
+      "props": {
+        "title": "string",
+        "metadata": "optional string or array",
+        "coverImage": "optional string (URL)",
+        "actions": "optional array of actions",
+        "onClick": "optional function"
+      },
+      "states": ["default", "hover", "active"],
+      "structure": {
+        "coverImage": "optional, 16:9 or 4:3 ratio",
+        "title": "bold, 16-18px, 1-2 lines",
+        "metadata": "small text, 12-14px",
+        "actions": "icon buttons in corner or bottom"
+      },
+      "styling": {
+        "borderRadius": "8px",
+        "shadow": "sm",
+        "shadowHover": "md",
+        "padding": "16-24px"
+      },
+      "accessibility": {
+        "role": "article or button if clickable",
+        "ariaLabel": "Descriptive label",
+        "keyboard": "Enter to activate if clickable"
+      }
+    },
+    
+    {
+      "name": "Dropdown",
+      "purpose": "Display list of actions or options",
+      "variants": [
+        {
+          "name": "Standard",
+          "description": "Single-level dropdown menu",
+          "props": {
+            "trigger": "ReactNode",
+            "items": "array of MenuItem",
+            "onSelect": "function",
+            "position": "below | above | auto"
+          }
+        },
+        {
+          "name": "Nested",
+          "description": "Hierarchical dropdown with submenus",
+          "props": {
+            "trigger": "ReactNode",
+            "items": "array of MenuItem (with children)",
+            "onSelect": "function",
+            "position": "below | above | auto"
+          }
+        }
+      ],
+      "menuItemTypes": [
+        {
+          "type": "action",
+          "structure": "icon + text",
+          "behavior": "executes command on click"
+        },
+        {
+          "type": "link",
+          "structure": "icon + text",
+          "behavior": "navigates to new view"
+        },
+        {
+          "type": "toggle",
+          "structure": "icon + text + checkbox/switch",
+          "behavior": "toggles state"
+        },
+        {
+          "type": "destructive",
+          "structure": "icon + text (red)",
+          "behavior": "dangerous action with confirmation"
+        },
+        {
+          "type": "divider",
+          "structure": "horizontal line",
+          "behavior": "visual separator"
+        }
+      ],
+      "styling": {
+        "minWidth": "180px",
+        "maxWidth": "320px",
+        "borderRadius": "8px",
+        "shadow": "md",
+        "itemHeight": "32-40px"
+      },
+      "accessibility": {
+        "role": "menu",
+        "ariaHaspopup": "true on trigger",
+        "ariaExpanded": "true when open",
+        "keyboard": "Arrow keys to navigate, Enter to select, Escape to close"
+      }
+    },
+    
+    {
+      "name": "Modal",
+      "purpose": "Focused interaction requiring user input",
+      "props": {
+        "title": "string",
+        "children": "ReactNode",
+        "actions": "array of action buttons",
+        "onClose": "function",
+        "size": "sm | md | lg"
+      },
+      "structure": {
+        "overlay": "semi-transparent dark background",
+        "container": "centered, max-width based on size",
+        "header": "title + close button",
+        "body": "scrollable content",
+        "footer": "action buttons (optional)"
+      },
+      "styling": {
+        "maxWidth": "600-800px",
+        "borderRadius": "12px",
+        "shadow": "xl",
+        "padding": "24-32px"
+      },
+      "states": ["opening", "open", "closing", "closed"],
+      "accessibility": {
+        "role": "dialog",
+        "ariaModal": "true",
+        "ariaLabelledby": "title element ID",
+        "keyboard": "Escape to close, Tab to cycle through focusable elements",
+        "focusTrap": "Keep focus within modal when open"
+      }
+    },
+    
+    {
+      "name": "SidePanel",
+      "purpose": "Contextual information or actions",
+      "props": {
+        "title": "string",
+        "children": "ReactNode",
+        "actions": "optional array of action buttons",
+        "onClose": "function",
+        "position": "left | right"
+      },
+      "structure": {
+        "header": "title + close button",
+        "body": "scrollable content",
+        "footer": "optional action buttons"
+      },
+      "styling": {
+        "width": "320-480px",
+        "height": "full viewport height",
+        "shadow": "xl"
+      },
+      "states": ["opening", "open", "closing", "closed"],
+      "accessibility": {
+        "role": "complementary or dialog",
+        "ariaLabel": "Descriptive label",
+        "keyboard": "Escape to close, Tab to cycle through focusable elements"
+      }
+    },
+    
+    {
+      "name": "Popover",
+      "purpose": "Small contextual information or actions",
+      "props": {
+        "trigger": "ReactNode",
+        "children": "ReactNode",
+        "position": "top | bottom | left | right | auto",
+        "showArrow": "boolean"
+      },
+      "styling": {
+        "maxWidth": "280-320px",
+        "borderRadius": "8px",
+        "shadow": "md",
+        "arrow": "optional pointer to trigger"
+      },
+      "accessibility": {
+        "role": "tooltip or dialog",
+        "ariaDescribedby": "popover content ID",
+        "keyboard": "Escape to close"
+      }
+    },
+    
+    {
+      "name": "TextInput",
+      "purpose": "Single-line text entry",
+      "props": {
+        "value": "string",
+        "onChange": "function",
+        "placeholder": "string",
+        "disabled": "boolean",
+        "error": "optional string",
+        "icon": "optional ReactNode"
+      },
+      "states": ["default", "focus", "error", "disabled"],
+      "styling": {
+        "height": "36-40px",
+        "padding": "8-12px horizontal",
+        "borderRadius": "4px",
+        "fontSize": "14px"
+      },
+      "accessibility": {
+        "role": "textbox",
+        "ariaLabel": "Descriptive label",
+        "ariaInvalid": "true if error",
+        "ariaDescribedby": "error message ID"
+      }
+    },
+    
+    {
+      "name": "Textarea",
+      "purpose": "Multi-line text entry",
+      "props": {
+        "value": "string",
+        "onChange": "function",
+        "placeholder": "string",
+        "disabled": "boolean",
+        "error": "optional string",
+        "rows": "number"
+      },
+      "states": ["default", "focus", "error", "disabled"],
+      "styling": {
+        "minHeight": "80-120px",
+        "padding": "8-12px",
+        "borderRadius": "4px",
+        "fontSize": "14px",
+        "resize": "vertical only"
+      },
+      "accessibility": {
+        "role": "textbox",
+        "ariaLabel": "Descriptive label",
+        "ariaMultiline": "true",
+        "ariaInvalid": "true if error"
+      }
+    },
+    
+    {
+      "name": "Select",
+      "purpose": "Choose one option from a list",
+      "props": {
+        "value": "string",
+        "onChange": "function",
+        "options": "array of {label, value}",
+        "placeholder": "string",
+        "disabled": "boolean"
+      },
+      "states": ["default", "focus", "open", "disabled"],
+      "styling": {
+        "height": "36-40px",
+        "padding": "8-12px horizontal",
+        "borderRadius": "4px",
+        "fontSize": "14px",
+        "arrow": "icon on right"
+      },
+      "accessibility": {
+        "role": "combobox",
+        "ariaLabel": "Descriptive label",
+        "ariaExpanded": "true when open",
+        "keyboard": "Arrow keys to navigate options, Enter to select"
+      }
+    },
+    
+    {
+      "name": "Checkbox",
+      "purpose": "Binary selection or multi-select",
+      "props": {
+        "checked": "boolean",
+        "onChange": "function",
+        "label": "string",
+        "disabled": "boolean",
+        "indeterminate": "boolean"
+      },
+      "states": ["unchecked", "checked", "indeterminate", "disabled"],
+      "styling": {
+        "size": "16-20px square",
+        "borderRadius": "2-4px",
+        "checkedBackground": "accent-primary",
+        "checkmark": "white icon"
+      },
+      "accessibility": {
+        "role": "checkbox",
+        "ariaLabel": "Descriptive label",
+        "ariaChecked": "true | false | mixed",
+        "keyboard": "Space to toggle"
+      }
+    },
+    
+    {
+      "name": "Radio",
+      "purpose": "Single selection from multiple options",
+      "props": {
+        "value": "string",
+        "checked": "boolean",
+        "onChange": "function",
+        "label": "string",
+        "disabled": "boolean",
+        "name": "string (group identifier)"
+      },
+      "states": ["unselected", "selected", "disabled"],
+      "styling": {
+        "size": "16-20px circle",
+        "selectedCenter": "filled circle with accent-primary"
+      },
+      "accessibility": {
+        "role": "radio",
+        "ariaLabel": "Descriptive label",
+        "ariaChecked": "true | false",
+        "keyboard": "Arrow keys to navigate group, Space to select"
+      }
+    },
+    
+    {
+      "name": "Toggle",
+      "purpose": "Binary on/off switch",
+      "props": {
+        "checked": "boolean",
+        "onChange": "function",
+        "label": "string",
+        "disabled": "boolean"
+      },
+      "states": ["off", "on", "disabled"],
+      "styling": {
+        "width": "40-48px",
+        "height": "20-24px",
+        "borderRadius": "full (pill shape)",
+        "knob": "circular, slides left/right",
+        "onBackground": "accent-primary",
+        "offBackground": "neutral-300"
+      },
+      "accessibility": {
+        "role": "switch",
+        "ariaLabel": "Descriptive label",
+        "ariaChecked": "true | false",
+        "keyboard": "Space to toggle"
+      }
+    },
+    
+    {
+      "name": "Badge",
+      "purpose": "Indicate status, category, or count",
+      "variants": [
+        {
+          "name": "Status",
+          "description": "Small pill shape with filled background",
+          "props": {
+            "label": "string",
+            "variant": "success | warning | error | info | neutral"
+          },
+          "styling": {
+            "padding": "2-4px vertical, 8-12px horizontal",
+            "borderRadius": "12px (full pill)",
+            "fontSize": "12px"
+          }
+        },
+        {
+          "name": "Count",
+          "description": "Numerical indicator",
+          "props": {
+            "count": "number",
+            "max": "optional number (e.g., 99+)"
+          },
+          "styling": {
+            "size": "16-20px circle or auto-width pill",
+            "background": "accent-primary or error",
+            "color": "white",
+            "fontSize": "10-12px"
+          }
+        },
+        {
+          "name": "Tag",
+          "description": "Categorization label",
+          "props": {
+            "label": "string",
+            "onRemove": "optional function",
+            "variant": "outlined | filled"
+          },
+          "styling": {
+            "padding": "4-6px vertical, 10-14px horizontal",
+            "borderRadius": "4px or 12px",
+            "fontSize": "12-14px",
+            "removeIcon": "X icon on right if removable"
+          }
+        }
+      ],
+      "accessibility": {
+        "role": "status for count badges",
+        "ariaLabel": "Descriptive label",
+        "ariaLive": "polite for dynamic count updates"
+      }
+    },
+    
+    {
+      "name": "Avatar",
+      "purpose": "Represent user identity",
+      "props": {
+        "src": "optional string (image URL)",
+        "name": "string (for initials fallback)",
+        "size": "sm | md | lg | xl",
+        "presence": "optional online | away | busy | offline"
+      },
+      "structure": {
+        "image": "profile photo or initials on colored background",
+        "presenceIndicator": "small circle at bottom-right corner"
+      },
+      "styling": {
+        "shape": "circular",
+        "sizes": {
+          "sm": "24px",
+          "md": "32px",
+          "lg": "40px",
+          "xl": "48-64px"
+        },
+        "border": "optional 2px white border for layering",
+        "presenceSize": "8-12px circle",
+        "presenceBorder": "2px white border"
+      },
+      "accessibility": {
+        "role": "img",
+        "ariaLabel": "User name",
+        "alt": "User name for image"
+      }
+    },
+    
+    {
+      "name": "AvatarGroup",
+      "purpose": "Display multiple users",
+      "props": {
+        "avatars": "array of Avatar props",
+        "max": "number (max visible avatars)",
+        "size": "sm | md | lg"
+      },
+      "structure": {
+        "layout": "overlapping circles, offset by 8-12px",
+        "overflow": "+N indicator for additional avatars"
+      },
+      "interactions": [
+        "Hover to expand and show all avatars"
+      ],
+      "accessibility": {
+        "role": "group",
+        "ariaLabel": "List of users"
+      }
+    },
+    
+    {
+      "name": "SearchInput",
+      "purpose": "Global or contextual search",
+      "props": {
+        "value": "string",
+        "onChange": "function",
+        "onSubmit": "function",
+        "placeholder": "string",
+        "autoComplete": "boolean",
+        "results": "optional array for autocomplete"
+      },
+      "structure": {
+        "icon": "search icon on left",
+        "input": "text input",
+        "shortcut": "keyboard shortcut hint (e.g., ⌘K)",
+        "autocomplete": "dropdown with suggestions"
+      },
+      "styling": {
+        "width": "240-320px (expandable on focus)",
+        "height": "36-40px",
+        "borderRadius": "4px"
+      },
+      "states": ["default", "focus", "expanded"],
+      "accessibility": {
+        "role": "searchbox",
+        "ariaLabel": "Search",
+        "ariaAutocomplete": "list if autocomplete enabled",
+        "keyboard": "Arrow keys to navigate suggestions, Enter to select"
+      }
+    },
+    
+    {
+      "name": "NotificationPanel",
+      "purpose": "Display list of notifications",
+      "props": {
+        "notifications": "array of Notification",
+        "onMarkAsRead": "function",
+        "onDismiss": "function",
+        "onNotificationClick": "function"
+      },
+      "structure": {
+        "header": "title + tabs (All, Unread) + close button",
+        "body": "scrollable list of notification items"
+      },
+      "notificationItem": {
+        "icon": "user avatar or system icon",
+        "content": "bold title + description text",
+        "timestamp": "relative time (e.g., 2h ago)",
+        "actions": "mark as read, dismiss, quick action buttons",
+        "unread": "stronger background or left border accent"
+      },
+      "styling": {
+        "width": "360-400px",
+        "height": "full viewport or max-height with scroll",
+        "position": "slides in from right"
+      },
+      "accessibility": {
+        "role": "complementary",
+        "ariaLabel": "Notifications",
+        "ariaLive": "polite for new notifications"
+      }
+    },
+    
+    {
+      "name": "EmptyState",
+      "purpose": "Provide guidance when no content available",
+      "props": {
+        "icon": "optional ReactNode",
+        "title": "string",
+        "description": "string",
+        "action": "optional {label, onClick}"
+      },
+      "structure": {
+        "icon": "large icon or illustration (48-64px)",
+        "title": "heading (e.g., 'No items yet')",
+        "description": "brief explanation",
+        "action": "optional button (e.g., 'Create item')"
+      },
+      "styling": {
+        "alignment": "centered",
+        "maxWidth": "400-480px",
+        "textColor": "neutral-600",
+        "iconColor": "neutral-400"
+      },
+      "accessibility": {
+        "role": "status",
+        "ariaLabel": "Empty state message"
+      }
+    },
+    
+    {
+      "name": "Breadcrumb",
+      "purpose": "Show navigation hierarchy",
+      "props": {
+        "items": "array of {label, href}",
+        "separator": "optional ReactNode (default: /)"
+      },
+      "structure": {
+        "items": "Home > Section > Current",
+        "separator": "/ or > icon",
+        "links": "all items except current are clickable",
+        "truncation": "middle items collapse to ... on narrow screens"
+      },
+      "accessibility": {
+        "role": "navigation",
+        "ariaLabel": "Breadcrumb",
+        "ariaCurrent": "page for current item"
+      }
+    },
+    
+    {
+      "name": "Tabs",
+      "purpose": "Switch between related views",
+      "props": {
+        "tabs": "array of {label, value, icon?}",
+        "activeTab": "string",
+        "onChange": "function"
+      },
+      "structure": {
+        "layout": "horizontal list of tabs",
+        "activeIndicator": "underline or background highlight",
+        "overflow": "horizontal scroll or dropdown for many tabs"
+      },
+      "styling": {
+        "height": "40-48px",
+        "padding": "8-12px horizontal per tab",
+        "fontSize": "14px"
+      },
+      "accessibility": {
+        "role": "tablist",
+        "ariaLabel": "Tab navigation",
+        "ariaSelected": "true for active tab",
+        "keyboard": "Arrow keys to navigate, Enter to select"
+      }
+    },
+    
+    {
+      "name": "LoadingSpinner",
+      "purpose": "Indicate loading state",
+      "props": {
+        "size": "sm | md | lg",
+        "color": "optional color token"
+      },
+      "styling": {
+        "sizes": {
+          "sm": "16px",
+          "md": "24px",
+          "lg": "32px"
+        },
+        "animation": "rotating circle or dots"
+      },
+      "accessibility": {
+        "role": "status",
+        "ariaLabel": "Loading",
+        "ariaLive": "polite"
+      }
+    },
+    
+    {
+      "name": "ProgressBar",
+      "purpose": "Show progress of determinate operation",
+      "props": {
+        "value": "number (0-100)",
+        "max": "number (default 100)",
+        "label": "optional string"
+      },
+      "styling": {
+        "height": "4-8px",
+        "borderRadius": "full",
+        "background": "neutral-200",
+        "fill": "accent-primary"
+      },
+      "accessibility": {
+        "role": "progressbar",
+        "ariaValuenow": "current value",
+        "ariaValuemin": "0",
+        "ariaValuemax": "max value",
+        "ariaLabel": "Progress label"
+      }
+    },
+    
+    {
+      "name": "Tooltip",
+      "purpose": "Provide additional context on hover",
+      "props": {
+        "content": "string or ReactNode",
+        "children": "ReactNode (trigger element)",
+        "position": "top | bottom | left | right | auto"
+      },
+      "styling": {
+        "maxWidth": "200-280px",
+        "padding": "4-8px",
+        "borderRadius": "4px",
+        "background": "neutral-900",
+        "color": "white",
+        "fontSize": "12px",
+        "arrow": "small pointer to trigger"
+      },
+      "accessibility": {
+        "role": "tooltip",
+        "ariaDescribedby": "tooltip content ID",
+        "keyboard": "Show on focus, hide on blur"
+      }
+    }
+  ]
+}

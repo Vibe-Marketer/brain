@@ -38,6 +38,10 @@ interface SidebarNavProps {
   isCollapsed?: boolean;
   /** Additional CSS classes */
   className?: string;
+  /** Optional callback for the Sync/Plus button */
+  onSyncClick?: () => void;
+  /** Optional callback to toggle the Library panel */
+  onLibraryToggle?: () => void;
 }
 
 /**
@@ -99,7 +103,7 @@ const navItems: NavItem[] = [
   },
 ];
 
-export function SidebarNav({ isCollapsed, className }: SidebarNavProps) {
+export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggle }: SidebarNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -119,35 +123,125 @@ export function SidebarNav({ isCollapsed, className }: SidebarNavProps) {
       <div
         className={cn(
           'flex gap-2 p-3',
-          isCollapsed ? 'flex-col items-center' : 'flex-row justify-center'
+          isCollapsed ? 'flex-col items-center' : 'flex-col items-stretch px-4'
         )}
       >
+        {/* Main Nav Items */}
         {navItems.map((item) => {
           const active = isActive(item);
           return (
-            <div key={item.id} className="relative flex flex-col items-center">
+            <div key={item.id} className="relative flex flex-col mb-1">
               <button
                 type="button"
                 onClick={() => navigate(item.path)}
                 className={cn(
-                  'relative flex items-center justify-center',
-                  'w-11 h-11 rounded-xl',
-                  'transition-all duration-200',
-                  'hover:scale-105',
+                  'relative flex items-center',
+                  isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
+                  'rounded-xl transition-all duration-200',
+                  'hover:bg-gray-100 dark:hover:bg-white/10',
+                  active && !isCollapsed && 'bg-gray-100 dark:bg-white/10 font-semibold',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
                 )}
                 title={item.name}
-                aria-label={item.name}
               >
-                <NavIcon isActive={active}>{item.icon}</NavIcon>
+                  {/* Icon Container */}
+                  <div className={cn(
+                      "flex-shrink-0 flex items-center justify-center",
+                       isCollapsed ? "w-11 h-11" : "w-5 h-5"
+                  )}>
+                     {isCollapsed ? <NavIcon isActive={active}>{item.icon}</NavIcon> : item.icon}
+                  </div>
+                  
+                  {/* Label - Visible only when expanded */}
+                  {!isCollapsed && (
+                      <span className="text-sm text-foreground truncate">{item.name}</span>
+                  )}
               </button>
-              {/* Active indicator dot */}
-              {active && (
-                <div className="absolute -bottom-0.5 w-1.5 h-1.5 rounded-full bg-cb-vibe-orange" />
+              
+               {/* Active indicator dot (Only in collapsed mode) */}
+              {active && isCollapsed && (
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cb-vibe-orange" />
               )}
             </div>
           );
         })}
+
+        {/* Separator - Visible in expanded mode */}
+        {!isCollapsed && <div className="h-px bg-border my-2 mx-3" />}
+
+        {/* Library Toggle Action - As a list item in expanded mode */}
+        {onLibraryToggle && (
+           <div className="relative flex flex-col mt-1">
+            <button
+              type="button"
+              onClick={onLibraryToggle}
+              className={cn(
+                'relative flex items-center',
+                isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
+                'rounded-xl transition-all duration-200',
+                'hover:bg-gray-100 dark:hover:bg-white/10',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
+              )}
+              title="Toggle Library"
+            >
+               <div className={cn(
+                      "flex-shrink-0 flex items-center justify-center",
+                       isCollapsed ? "w-11 h-11" : "w-5 h-5 text-muted-foreground"
+                  )}>
+                  {isCollapsed ? (
+                      <NavIcon>
+                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={iconClass}>
+                            <path d="M3 4H21V20H3V4ZM5 6V18H19V6H5ZM7 8H17V10H7V8ZM7 11H17V13H7V11ZM7 14H17V16H7V14Z" /> 
+                        </svg>
+                      </NavIcon>
+                  ) : (
+                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                            <path d="M3 4H21V20H3V4ZM5 6V18H19V6H5ZM7 8H17V10H7V8ZM7 11H17V13H7V11ZM7 14H17V16H7V14Z" /> 
+                        </svg>
+                  )}
+              </div>
+              {!isCollapsed && <span className="text-sm text-foreground truncate">Library Panel</span>}
+            </button>
+             {isCollapsed && <div className="w-8 h-px bg-cb-border mt-2 mx-auto" />}
+          </div>
+        )}
+
+        {/* Optional Sync/Add Action */}
+        {onSyncClick && (
+          <div className="relative flex flex-col mt-1">
+             <button
+              type="button"
+              onClick={onSyncClick}
+              className={cn(
+                'relative flex items-center',
+                isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
+                'rounded-xl transition-all duration-200',
+                'hover:bg-gray-100 dark:hover:bg-white/10',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
+              )}
+              title="Sync / Import"
+            >
+               <div className={cn(
+                      "flex-shrink-0 flex items-center justify-center",
+                       isCollapsed ? "w-11 h-11" : "w-5 h-5 text-cb-vibe-orange"
+                  )}>
+                   {isCollapsed ? (
+                       <NavIcon>
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={iconClass}>
+                            <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z" />
+                        </svg>
+                      </NavIcon>
+                   ) : (
+                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
+                            <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z" />
+                        </svg>
+                   )}
+                   
+              </div>
+              {!isCollapsed && <span className="text-sm font-medium text-foreground truncate">Sync & Import</span>}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Separator line */}
