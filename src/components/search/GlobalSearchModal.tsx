@@ -26,7 +26,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSearchStore } from '@/stores/searchStore';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 import { useSearchShortcut } from '@/hooks/useKeyboardShortcut';
-import { SearchResultItem } from './SearchResultItem';
+import { SearchResultItem, getResultRoute } from './SearchResultItem';
 import { cn } from '@/lib/utils';
 import type { SearchResult } from '@/types/search';
 
@@ -154,10 +154,9 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     }
   };
 
-  // Handle result click - navigate to the call
-  const handleResultClick = (result: SearchResult) => {
-    // Navigate to the call detail page
-    navigate(`/call/${result.sourceCallId}`);
+  // Handle result click - close modal and clear search
+  // Navigation is handled by SearchResultItem component
+  const handleResultClick = (_result: SearchResult) => {
     closeModal();
     clear();
   };
@@ -167,7 +166,10 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     if (e.key === 'Enter' && results.length > 0) {
       e.preventDefault();
       // Navigate to the first result
-      handleResultClick(results[0]);
+      const firstResult = results[0];
+      navigate(getResultRoute(firstResult));
+      closeModal();
+      clear();
     }
   };
 

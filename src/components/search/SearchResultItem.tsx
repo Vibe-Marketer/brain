@@ -9,6 +9,7 @@
  */
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   RiFileTextLine,
   RiLightbulbLine,
@@ -134,22 +135,61 @@ const getResultConfig = (result: SearchResult) => {
   return RESULT_TYPE_CONFIG[result.type];
 };
 
+/**
+ * Generate the navigation route for a search result
+ * All result types navigate to the call detail page
+ *
+ * @param result - The search result to generate a route for
+ * @returns The navigation path
+ */
+export const getResultRoute = (result: SearchResult): string => {
+  // Base route is always the call detail page
+  const basePath = `/call/${result.sourceCallId}`;
+
+  // For transcript results, we could add a segment/timestamp hash
+  // For now, all types navigate to the call detail page
+  switch (result.type) {
+    case 'transcript':
+      // Navigate to call, potentially with timestamp in the future
+      return basePath;
+    case 'insight':
+      // Navigate to call where the insight was extracted
+      // Future enhancement: scroll to or highlight the insight
+      return basePath;
+    case 'quote':
+      // Navigate to call containing the quote
+      return basePath;
+    default:
+      return basePath;
+  }
+};
+
 export const SearchResultItem: React.FC<SearchResultItemProps> = ({
   result,
   onClick,
   isHighlighted = false,
 }) => {
+  const navigate = useNavigate();
   const config = getResultConfig(result);
   const Icon = config.icon;
 
+  /**
+   * Handle click/selection of a search result
+   * Navigates to the appropriate route and calls onClick callback
+   */
   const handleClick = () => {
+    // Navigate to the result's page
+    const route = getResultRoute(result);
+    navigate(route);
+
+    // Call the onClick callback (used by GlobalSearchModal to close modal)
     onClick?.(result);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onClick?.(result);
+      handleClick();
     }
   };
 
