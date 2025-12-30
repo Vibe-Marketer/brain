@@ -1,0 +1,426 @@
+{
+  "feature": "Global TopBar Search with Cmd/Ctrl+K Shortcut",
+  "workflow_type": "feature",
+  "workflow_rationale": "This is a new feature implementation that adds universal search functionality to the TopBar. The TopBar already has a search input placeholder (line 89 in TopBar.tsx) with a TODO comment, indicating this is net-new functionality. The feature follows a typical frontend feature workflow: build foundation (types, stores), implement logic (hooks), create UI (components), and integrate everything together.",
+  "phases": [
+    {
+      "id": "phase-1-foundation",
+      "name": "Foundation - Types and State",
+      "type": "implementation",
+      "description": "Create TypeScript type definitions and Zustand store for search state management",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Create search type definitions",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/types/search.ts"
+          ],
+          "patterns_from": [
+            "src/types/meetings.ts",
+            "src/components/loop/InsightCard.tsx"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npm run build",
+            "expected": "Build succeeds without TypeScript errors"
+          },
+          "status": "completed",
+          "notes": "Search type definitions were already created in a previous session. Added export from src/types/index.ts to properly re-export all search types. Build verification passed successfully.",
+          "updated_at": "2025-12-30T00:59:02.338807+00:00"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "Create Zustand search store",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/stores/searchStore.ts"
+          ],
+          "patterns_from": [
+            "src/stores/panelStore.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npm run build",
+            "expected": "Build succeeds, store exports correctly"
+          },
+          "status": "pending",
+          "notes": "Follow panelStore.ts pattern: create store with isModalOpen, query, results, isLoading state, and actions for openModal, closeModal, setQuery, setResults. Reset query and results when closing modal."
+        }
+      ]
+    },
+    {
+      "id": "phase-2-search-logic",
+      "name": "Search Logic - Hooks and Queries",
+      "type": "implementation",
+      "description": "Implement keyboard shortcut detection and Supabase search queries with debouncing",
+      "depends_on": [
+        "phase-1-foundation"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Create keyboard shortcut hook",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/hooks/useKeyboardShortcut.ts"
+          ],
+          "patterns_from": [
+            "src/components/QuickCreateFolderDialog.tsx"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Add hook to test component, press Cmd/Ctrl+K, verify callback fires and console logs confirm detection"
+          },
+          "status": "pending",
+          "notes": "Create reusable hook that accepts a callback and key combo (default: Cmd/Ctrl+K). Use useEffect to add keydown event listener, check for metaKey || ctrlKey with e.key === 'k', call preventDefault(), and clean up listener on unmount. Based on QuickCreateFolderDialog.tsx line 242 pattern."
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Create search hook with Supabase queries",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/hooks/useGlobalSearch.ts"
+          ],
+          "patterns_from": [
+            "src/hooks/useChatSession.ts",
+            "src/integrations/supabase/client.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Test hook with sample queries, verify it returns results from transcript_segments table, debouncing works (300ms delay), and loading states update correctly"
+          },
+          "status": "pending",
+          "notes": "Create hook that accepts query string, implements 300ms debounce (use lodash.debounce or custom useDebounce), queries Supabase transcript_segments table using textSearch, fetches related call_recordings data, transforms results to SearchResult[] format. Handle loading and error states. Start with transcripts only, leave TODOs for insights and quotes (future enhancement)."
+        }
+      ]
+    },
+    {
+      "id": "phase-3-ui-components",
+      "name": "UI Components - Modal and Results",
+      "type": "implementation",
+      "description": "Build search modal component and result display components",
+      "depends_on": [
+        "phase-2-search-logic"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Create SearchResultItem component",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/components/search/SearchResultItem.tsx"
+          ],
+          "patterns_from": [
+            "src/components/loop/InsightCard.tsx",
+            "src/components/ui/card.tsx"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000",
+            "checks": [
+              "Component renders with mock data",
+              "Type indicators display correctly (transcript/insight/quote)",
+              "Click handler fires",
+              "Styling matches design system"
+            ]
+          },
+          "status": "pending",
+          "notes": "Create component that accepts SearchResult prop. Display type badge (use InsightCard INSIGHT_CONFIG colors for insights, generic style for transcripts/quotes), title, snippet (truncate to 2 lines), timestamp, sourceCallTitle. Add onClick prop for navigation. Use Tailwind classes consistent with InsightCard styling."
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Create GlobalSearchModal component",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/components/search/GlobalSearchModal.tsx"
+          ],
+          "patterns_from": [
+            "src/components/ui/dialog.tsx",
+            "src/components/QuickCreateFolderDialog.tsx"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000",
+            "checks": [
+              "Modal opens and closes correctly",
+              "Search input has autofocus",
+              "Escape key closes modal",
+              "Results list renders",
+              "Loading state shows skeleton",
+              "Empty state shows helpful message"
+            ]
+          },
+          "status": "pending",
+          "notes": "Use Dialog from ui/dialog.tsx. Structure: DialogContent with DialogHeader (title: 'Search', description with sr-only), Input with search icon and autofocus, results area (show loading skeleton, empty state, or SearchResultItem list). Wire up useSearchStore for state, useGlobalSearch for queries, useKeyboardShortcut to open modal. Handle Escape to close. Focus input when modal opens. Include DialogDescription with sr-only for accessibility."
+        }
+      ]
+    },
+    {
+      "id": "phase-4-integration",
+      "name": "Integration - TopBar and Navigation",
+      "type": "integration",
+      "description": "Connect TopBar search input to modal and implement result navigation",
+      "depends_on": [
+        "phase-3-ui-components"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Update TopBar to trigger search modal",
+          "service": "main",
+          "files_to_modify": [
+            "src/components/loop/TopBar.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/stores/searchStore.ts"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000",
+            "checks": [
+              "Clicking TopBar search input opens modal",
+              "Cmd/Ctrl+K opens modal from any page",
+              "Modal opens with focus on search input"
+            ]
+          },
+          "status": "pending",
+          "notes": "Import useSearchStore and GlobalSearchModal. Remove TODO comment (line 55). Update onFocus handler for search input to call openModal(). Add GlobalSearchModal component to TopBar render. The keyboard shortcut (Cmd/Ctrl+K) will work globally via the hook inside GlobalSearchModal."
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Implement navigation from search results",
+          "service": "main",
+          "files_to_modify": [
+            "src/components/search/SearchResultItem.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [
+            "src/components/loop/InsightCard.tsx"
+          ],
+          "verification": {
+            "type": "browser",
+            "url": "http://localhost:3000",
+            "checks": [
+              "Clicking transcript result navigates to /call/:id",
+              "Clicking insight result navigates to correct route",
+              "Modal closes after navigation",
+              "Browser history works correctly"
+            ]
+          },
+          "status": "pending",
+          "notes": "Import useNavigate from react-router-dom and useSearchStore. On result click: navigate to /call/{sourceCallId} for transcripts (reference InsightCard.tsx line 169 Link pattern), call closeModal() from store. For insights/quotes, navigate to appropriate routes when implemented (leave TODO comments for now)."
+        }
+      ]
+    },
+    {
+      "id": "phase-5-validation",
+      "name": "Validation - Tests and Performance",
+      "type": "implementation",
+      "description": "Write unit tests, integration tests, and verify performance requirements",
+      "depends_on": [
+        "phase-4-integration"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Write unit tests for search functionality",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/stores/searchStore.test.ts",
+            "src/hooks/useKeyboardShortcut.test.ts"
+          ],
+          "patterns_from": [
+            "src/hooks/__tests__/useChatSession.test.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "npm run test",
+            "expected": "All unit tests pass"
+          },
+          "status": "pending",
+          "notes": "Create tests for searchStore actions (openModal, closeModal, setQuery, setResults state updates). Create tests for useKeyboardShortcut hook (detects Cmd+K, Ctrl+K, prevents default, cleans up listener). Follow existing test patterns from hooks/__tests__ directory using Vitest."
+        },
+        {
+          "id": "subtask-5-2",
+          "description": "Verify performance and accessibility",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Use browser DevTools Network tab to verify search queries complete in < 500ms. Test keyboard navigation (Tab through results, Enter to select, Escape to close). Run Lighthouse accessibility audit. Verify ARIA labels are present on Dialog components."
+          },
+          "status": "pending",
+          "notes": "Performance target: < 500ms for most queries (use DevTools to measure). Verify debouncing works (300ms delay, only one query per typing interval). Test accessibility: keyboard navigation, screen reader announces modal correctly, DialogDescription is present with sr-only. Test on Chrome, Firefox, Safari."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 5,
+    "total_subtasks": 10,
+    "services_involved": [
+      "main"
+    ],
+    "estimated_completion_time": "4-6 hours",
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "No parallelization possible - phases have sequential dependencies",
+      "reasoning": "Each phase depends on the previous: foundation must exist before search logic, search logic before UI, UI before integration, integration before validation. All work is in a single service (main)."
+    },
+    "startup_command": "cd /Users/Naegele/dev/brain && npm run dev"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "unit",
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All existing tests pass (npm run test)",
+      "New unit tests for searchStore and useKeyboardShortcut pass",
+      "Search modal opens via Cmd/Ctrl+K and TopBar input click",
+      "Search queries return results in < 500ms",
+      "Results navigate correctly to transcript pages",
+      "No console errors or warnings",
+      "Accessibility audit passes (keyboard navigation, ARIA labels)"
+    ],
+    "verification_steps": [
+      {
+        "name": "Unit Tests",
+        "command": "npm run test",
+        "expected_outcome": "All tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Build Verification",
+        "command": "npm run build",
+        "expected_outcome": "Build succeeds without TypeScript errors",
+        "type": "build",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Performance Check",
+        "command": "manual",
+        "expected_outcome": "Search queries complete in < 500ms (measure with DevTools)",
+        "type": "manual",
+        "required": true,
+        "blocking": false
+      },
+      {
+        "name": "Accessibility Check",
+        "command": "manual",
+        "expected_outcome": "Lighthouse accessibility score > 90, keyboard navigation works",
+        "type": "manual",
+        "required": true,
+        "blocking": false
+      }
+    ],
+    "reasoning": "Medium risk feature with performance SLA requires unit tests for core logic (store, hooks) and manual verification of performance (<500ms) and accessibility requirements. Integration tests will verify search flow end-to-end. No security concerns as search is read-only."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "npm run test"
+      ],
+      "minimum_coverage": null,
+      "notes": "Test searchStore actions, useKeyboardShortcut detection and cleanup, debouncing behavior"
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [],
+      "services_to_test": [
+        "main"
+      ],
+      "notes": "Manual integration testing: keyboard shortcut opens modal, typing query returns results, clicking result navigates, Escape closes modal"
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": [
+        "search-and-navigate"
+      ],
+      "notes": "Optional: Playwright test for full search flow if time permits. Manual testing is acceptable for this phase."
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:3000/",
+          "checks": [
+            "Cmd/Ctrl+K opens search modal",
+            "Clicking TopBar search input opens modal",
+            "Search input has autofocus when modal opens",
+            "Typing query shows loading state then results",
+            "Clicking result navigates to transcript",
+            "Escape key closes modal",
+            "No console errors"
+          ]
+        },
+        {
+          "url": "http://localhost:3000/settings",
+          "checks": [
+            "Cmd/Ctrl+K works from Settings page",
+            "Search modal appears above Settings content"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": false,
+      "checks": [],
+      "notes": "No database changes in this feature"
+    },
+    "performance_verification": {
+      "required": true,
+      "checks": [
+        "Search queries complete in < 500ms (DevTools Network tab)",
+        "Debouncing works (300ms delay, single query per typing burst)",
+        "No memory leaks (event listeners cleaned up on unmount)"
+      ]
+    },
+    "accessibility_verification": {
+      "required": true,
+      "checks": [
+        "Tab key cycles through search results",
+        "Enter key selects result",
+        "Escape key closes modal",
+        "DialogDescription present with sr-only class",
+        "ARIA labels on Dialog components",
+        "Focus returns to trigger element when modal closes"
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "status": "in_progress",
+  "planStatus": "in_progress",
+  "updated_at": "2025-12-30T00:52:24.325Z",
+  "recoveryNote": "Task recovered from stuck state at 2025-12-30T00:52:24.325Z",
+  "last_updated": "2025-12-30T00:59:02.338814+00:00"
+}

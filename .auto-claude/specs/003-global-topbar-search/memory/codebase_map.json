@@ -1,0 +1,10 @@
+{
+  "discovered_files": {
+    "src/types/search.ts": {
+      "description": "Search types file contains SearchResultType, SearchResult, SearchQuery, SearchResponse, SearchState, and SearchActions interfaces. Also includes SearchInsightType matching InsightCard component. All types are re-exported from src/types/index.ts.",
+      "category": "types",
+      "discovered_at": "2025-12-30T00:59:09.378911+00:00"
+    }
+  },
+  "last_updated": "2025-12-30T00:59:09.378921+00:00"
+}
