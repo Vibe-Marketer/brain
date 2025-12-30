@@ -426,10 +426,64 @@
       ]
     }
   },
-  "qa_signoff": null,
-  "status": "in_progress",
-  "planStatus": "in_progress",
+  "qa_signoff": {
+    "status": "approved",
+    "qa_session": 1,
+    "issues_found": [
+      {
+        "description": "None - All 3 Session 1 fixes verified as applied"
+      }
+    ],
+    "tests_passed": {},
+    "timestamp": "2025-12-30T01:47:16.649672+00:00",
+    "ready_for_qa_revalidation": false
+  },
+  "status": "human_review",
+  "planStatus": "review",
   "updated_at": "2025-12-30T00:52:24.325Z",
   "recoveryNote": "Task recovered from stuck state at 2025-12-30T00:52:24.325Z",
-  "last_updated": "2025-12-30T01:28:40.052940+00:00"
+  "last_updated": "2025-12-30T01:47:16.649694+00:00",
+  "qa_iteration_history": [
+    {
+      "iteration": 1,
+      "status": "rejected",
+      "timestamp": "2025-12-30T01:37:01.795239+00:00",
+      "issues": [
+        {
+          "type": "critical",
+          "title": "GlobalSearchModal never rendered",
+          "location": "src/App.tsx",
+          "fix_required": "Import and render GlobalSearchModal in App.tsx"
+        },
+        {
+          "type": "critical",
+          "title": "Wrong TopBar modified",
+          "location": "src/components/ui/top-bar.tsx",
+          "fix_required": "Add search trigger to ui/top-bar.tsx"
+        },
+        {
+          "type": "critical",
+          "title": "Missing /call/:id route",
+          "location": "src/App.tsx",
+          "fix_required": "Add route or update navigation"
+        }
+      ],
+      "duration_seconds": 459.16
+    },
+    {
+      "iteration": 2,
+      "status": "approved",
+      "timestamp": "2025-12-30T01:47:33.741742+00:00",
+      "issues": [],
+      "duration_seconds": 362.7
+    }
+  ],
+  "qa_stats": {
+    "total_iterations": 2,
+    "last_iteration": 2,
+    "last_status": "approved",
+    "issues_by_type": {
+      "critical": 3
+    }
+  }
 }

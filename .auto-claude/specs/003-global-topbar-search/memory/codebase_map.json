@@ -4,7 +4,12 @@
       "description": "GlobalSearchModal component uses Dialog from ui/dialog.tsx, useSearchStore for modal state, useGlobalSearch for search logic, and useSearchShortcut for Cmd/Ctrl+K keyboard shortcut. Features skeleton loading, empty state, initial state, query-too-short state, and result click navigation to /call/:id.",
       "category": "component",
       "discovered_at": "2025-12-30T01:15:14.752011+00:00"
+    },
+    "src/components/search/SearchResultItem.tsx": {
+      "description": "SearchResultItem now exports getResultRoute() utility function for generating navigation routes. Can be used by other components needing to navigate to search results. All result types (transcript, insight, quote) navigate to /call/:sourceCallId.",
+      "category": "routing",
+      "discovered_at": "2025-12-30T01:20:08.369720+00:00"
     }
   },
-  "last_updated": "2025-12-30T01:15:14.752020+00:00"
+  "last_updated": "2025-12-30T01:20:08.369730+00:00"
 }
