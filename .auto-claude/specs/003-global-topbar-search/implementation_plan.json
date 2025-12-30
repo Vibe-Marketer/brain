@@ -79,9 +79,9 @@
             "type": "manual",
             "instructions": "Add hook to test component, press Cmd/Ctrl+K, verify callback fires and console logs confirm detection"
           },
-          "status": "in_progress",
-          "notes": "Creating useKeyboardShortcut hook following use-mobile.tsx pattern for event listener setup/cleanup",
-          "updated_at": "2025-12-30T01:02:28.178996+00:00"
+          "status": "completed",
+          "notes": "Created useKeyboardShortcut hook at src/hooks/useKeyboardShortcut.ts. Includes main hook with configurable options (key, cmdOrCtrl, shift, alt, enabled, preventDefault) and convenience useSearchShortcut hook for Cmd/Ctrl+K. Build verification passed. Committed as 89f1b39.",
+          "updated_at": "2025-12-30T01:03:23.903739+00:00"
         },
         {
           "id": "subtask-2-2",
@@ -99,8 +99,9 @@
             "type": "manual",
             "instructions": "Test hook with sample queries, verify it returns results from transcript_segments table, debouncing works (300ms delay), and loading states update correctly"
           },
-          "status": "pending",
-          "notes": "Create hook that accepts query string, implements 300ms debounce (use lodash.debounce or custom useDebounce), queries Supabase transcript_segments table using textSearch, fetches related call_recordings data, transforms results to SearchResult[] format. Handle loading and error states. Start with transcripts only, leave TODOs for insights and quotes (future enhancement)."
+          "status": "in_progress",
+          "notes": "Creating search hook with Supabase queries, debouncing, and proper type mapping",
+          "updated_at": "2025-12-30T01:05:48.010982+00:00"
         }
       ]
     },
@@ -424,5 +425,5 @@
   "planStatus": "in_progress",
   "updated_at": "2025-12-30T00:52:24.325Z",
   "recoveryNote": "Task recovered from stuck state at 2025-12-30T00:52:24.325Z",
-  "last_updated": "2025-12-30T01:02:28.179004+00:00"
+  "last_updated": "2025-12-30T01:05:48.010991+00:00"
 }
