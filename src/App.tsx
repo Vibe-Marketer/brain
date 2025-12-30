@@ -7,6 +7,8 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from "@/components/Layout";
 import Login from '@/pages/Login';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { GlobalSearchModal } from '@/components/search/GlobalSearchModal';
+import { CallDetailPage } from '@/pages/CallDetailPage';
 
 // Import existing pages
 import TranscriptsNew from '@/pages/TranscriptsNew';
@@ -49,10 +51,14 @@ function App() {
                     <Route path="/sorting-tagging" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
                     <Route path="/loop" element={<Layout><LoopLayoutDemo /></Layout>} />
 
+                    {/* Call detail route for search result navigation */}
+                    <Route path="/call/:callId" element={<ProtectedRoute><Layout><CallDetailPage /></Layout></ProtectedRoute>} />
+
                     {/* 404 */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
               <Toaster />
+              <GlobalSearchModal />
             </Router>
           </ThemeProvider>
         </AuthProvider>
