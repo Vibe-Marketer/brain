@@ -9,12 +9,12 @@
  * - User menu
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  RiSearchLine, 
-  RiBellLine, 
-  RiUserLine, 
+import {
+  RiSearchLine,
+  RiBellLine,
+  RiUserLine,
   RiSettings4Line,
   RiLogoutBoxLine,
   RiMenuLine,
@@ -30,8 +30,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSearchStore } from '@/stores/searchStore';
 import { cn } from '@/lib/utils';
 
 interface TopBarProps {
@@ -42,17 +42,29 @@ interface TopBarProps {
 export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar, sidebarCollapsed }) => {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const [searchFocused, setSearchFocused] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const { openModal } = useSearchStore();
+
+  // Handle Cmd/Ctrl+K keyboard shortcut to open search modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openModal();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [openModal]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/login');
   };
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Implement search functionality
+  const handleSearchClick = () => {
+    openModal();
   };
 
   return (
@@ -82,20 +94,23 @@ export const TopBar: React.FC<TopBarProps> = ({ onToggleSidebar, sidebarCollapse
 
         {/* Center Section - Search */}
         <div className="flex-1 max-w-2xl mx-8">
-          <form onSubmit={handleSearch} className="relative">
-            <RiSearchLine className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <Input
-              type="search"
-              placeholder="Search calls, insights, content..."
-              className={cn(
-                "pl-10 pr-4 h-9 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-                "focus:bg-white dark:focus:bg-gray-900 transition-all",
-                searchFocused && "ring-2 ring-purple-500"
-              )}
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-            />
-          </form>
+          <button
+            onClick={handleSearchClick}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 h-9 rounded-md border",
+              "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+              "hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors",
+              "text-left"
+            )}
+          >
+            <RiSearchLine className="w-5 h-5 text-gray-400 flex-shrink-0" />
+            <span className="text-sm text-gray-500 dark:text-gray-400 flex-1">
+              Search calls, insights, content...
+            </span>
+            <kbd className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-xs font-medium text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
+              <span className="text-xs">⌘</span>K
+            </kbd>
+          </button>
         </div>
 
         {/* Right Section */}

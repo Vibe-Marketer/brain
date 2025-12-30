@@ -137,8 +137,9 @@
               "Styling matches design system"
             ]
           },
-          "status": "pending",
-          "notes": "Create component that accepts SearchResult prop. Display type badge (use InsightCard INSIGHT_CONFIG colors for insights, generic style for transcripts/quotes), title, snippet (truncate to 2 lines), timestamp, sourceCallTitle. Add onClick prop for navigation. Use Tailwind classes consistent with InsightCard styling."
+          "status": "completed",
+          "notes": "Created SearchResultItem component at src/components/search/SearchResultItem.tsx. Features: type indicators for transcript/insight/quote with distinct icons and colors; insight subtype styling (pain/success/objection/question) matching InsightCard patterns; click handler and keyboard navigation (Enter/Space); responsive styling with dark mode; accessibility with role, tabIndex, aria-label. Build verification passed. Committed as bc892e5.",
+          "updated_at": "2025-12-30T01:09:52.475854+00:00"
         },
         {
           "id": "subtask-3-2",
@@ -164,8 +165,9 @@
               "Empty state shows helpful message"
             ]
           },
-          "status": "pending",
-          "notes": "Use Dialog from ui/dialog.tsx. Structure: DialogContent with DialogHeader (title: 'Search', description with sr-only), Input with search icon and autofocus, results area (show loading skeleton, empty state, or SearchResultItem list). Wire up useSearchStore for state, useGlobalSearch for queries, useKeyboardShortcut to open modal. Handle Escape to close. Focus input when modal opens. Include DialogDescription with sr-only for accessibility."
+          "status": "completed",
+          "notes": "GlobalSearchModal component already created and committed (commit cbd7a42). Features: Dialog-based modal with Cmd/Ctrl+K keyboard shortcut, autofocus on input, Escape to close, skeleton loading states, empty/initial/query-too-short states, results list with SearchResultItem components, keyboard navigation (Enter to select first result), result counts, and accessibility (sr-only DialogTitle/DialogDescription). Build verification passed.",
+          "updated_at": "2025-12-30T01:15:06.254197+00:00"
         }
       ]
     },
@@ -425,5 +427,5 @@
   "planStatus": "in_progress",
   "updated_at": "2025-12-30T00:52:24.325Z",
   "recoveryNote": "Task recovered from stuck state at 2025-12-30T00:52:24.325Z",
-  "last_updated": "2025-12-30T01:07:20.020781+00:00"
+  "last_updated": "2025-12-30T01:15:06.254204+00:00"
 }
