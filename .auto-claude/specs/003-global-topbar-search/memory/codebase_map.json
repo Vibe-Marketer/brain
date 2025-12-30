@@ -9,7 +9,12 @@
       "description": "Keyboard shortcut hook for detecting key combinations with modifiers (Cmd/Ctrl, Shift, Alt). Main hook useKeyboardShortcut accepts callback and options object. Convenience hook useSearchShortcut specifically for Cmd/Ctrl+K. Handles event cleanup on unmount and case-insensitive key matching.",
       "category": "hooks",
       "discovered_at": "2025-12-30T01:03:06.587090+00:00"
+    },
+    "src/hooks/useGlobalSearch.ts": {
+      "description": "Global search hook using transcript_chunks table with ilike query. Implements 300ms debounce, returns SearchResult[] with max 3 results per recording for diversity. Uses useAuth() for user context and @tanstack/react-query for caching.",
+      "category": "hooks",
+      "discovered_at": "2025-12-30T01:07:19.997294+00:00"
     }
   },
-  "last_updated": "2025-12-30T01:03:06.587099+00:00"
+  "last_updated": "2025-12-30T01:07:19.997301+00:00"
 }
