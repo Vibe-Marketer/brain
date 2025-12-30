@@ -1,0 +1,71 @@
+{
+  "complexity": "standard",
+  "workflow_type": "feature",
+  "confidence": 0.85,
+  "reasoning": "Multi-file feature (6-8 files) following existing React/Radix UI patterns. No new integrations or infrastructure changes. Performance requirement adds rigor but doesn't require research.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 7,
+      "estimated_services": 1,
+      "is_cross_cutting": false,
+      "notes": "TopBar modification, new SearchModal component, search hooks/API, keyboard shortcut handler, result navigation logic, and possibly result display components. All contained to search feature."
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "Uses existing Supabase integration for querying transcripts, insights, and quotes. May use existing keyboard library or standard React event handlers."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "No infrastructure changes needed. Assumes transcripts, insights, and quotes tables already exist in Supabase. No new environment variables required."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "Codebase already uses Radix UI for modals/dialogs, Supabase for data queries, React hooks for state. Standard keyboard event handling patterns available."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Performance requirement (< 500ms) requires optimized queries",
+        "Search across multiple tables needs efficient implementation",
+        "Global keyboard shortcut requires proper event handling and cleanup",
+        "Modal state management during navigation",
+        "Search result ranking and relevance"
+      ],
+      "notes": "Primary risk is performance. Will need query optimization, possibly database indexes, and efficient result merging from multiple sources."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": false,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "User-facing feature with performance SLA requires unit tests for search logic and keyboard handling, plus integration tests for the full search flow. No security concerns as search is read-only."
+  },
+
+  "created_at": "2025-12-29T18:45:00.000Z"
+}

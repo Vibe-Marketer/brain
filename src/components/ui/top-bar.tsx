@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { RiSearchLine, RiBellLine, RiSettings3Line, RiLogoutBoxRLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -6,6 +6,7 @@ import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
+import { useSearchStore } from '@/stores/searchStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +30,29 @@ export function TopBar({
 }: TopBarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { openModal } = useSearchStore();
+
+  // Handle search click - use custom handler if provided, otherwise open modal
+  const handleSearchClick = () => {
+    if (onSearchClick) {
+      onSearchClick();
+    } else {
+      openModal();
+    }
+  };
+
+  // Handle Cmd/Ctrl+K keyboard shortcut to open search modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        openModal();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [openModal]);
 
   const getInitials = (email?: string) => {
     if (!email) return 'U';
@@ -73,7 +97,7 @@ export function TopBar({
 
       {/* Right: Utilities */}
       <div className="flex items-center gap-1 md:gap-2">
-        {searchEnabled && <Button variant="hollow" size="icon" onClick={onSearchClick} className="text-muted-foreground">
+        {searchEnabled && <Button variant="hollow" size="icon" onClick={handleSearchClick} className="text-muted-foreground" aria-label="Search (Cmd+K)">
             <RiSearchLine className="w-4 h-4" />
           </Button>}
 
