@@ -164,74 +164,90 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
   const content = helpContent[topic] || helpContent.profile;
 
   return (
-    <div className="h-full flex flex-col">
+    <div
+      className="h-full flex flex-col"
+      role="region"
+      aria-label={`Help for ${content.title}`}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-cb-border">
+      <header className="flex items-center justify-between p-4 border-b border-cb-border">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary">
+          <div
+            className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary"
+            aria-hidden="true"
+          >
             {content.icon}
           </div>
           <div className="min-w-0">
-            <h3 className="font-semibold text-cb-ink truncate">{content.title}</h3>
+            <h3 className="font-semibold text-cb-ink truncate" id="help-panel-title">{content.title}</h3>
             <p className="text-xs text-cb-ink-muted">Help & Tips</p>
           </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0" role="toolbar" aria-label="Panel actions">
           <Button
             variant="ghost"
             size="sm"
             onClick={togglePin}
-            title={isPinned ? "Unpin panel" : "Pin panel"}
+            aria-label={isPinned ? "Unpin panel" : "Pin panel"}
+            aria-pressed={isPinned}
           >
             {isPinned ? (
-              <RiPushpinFill className="h-4 w-4 text-cb-ink" />
+              <RiPushpinFill className="h-4 w-4 text-cb-ink" aria-hidden="true" />
             ) : (
-              <RiPushpinLine className="h-4 w-4" />
+              <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
             )}
           </Button>
-          <Button variant="ghost" size="sm" onClick={closePanel} title="Close panel">
-            <RiCloseLine className="h-4 w-4" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={closePanel}
+            aria-label="Close panel"
+          >
+            <RiCloseLine className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
-      </div>
+      </header>
 
       {/* Content - scrollable */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Description */}
-        <div className="space-y-2">
+        <section className="space-y-2" aria-labelledby="about-heading">
           <div className="flex items-center gap-2">
-            <RiQuestionLine className="h-4 w-4 text-cb-ink-muted" />
-            <h4 className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
+            <RiQuestionLine className="h-4 w-4 text-cb-ink-muted" aria-hidden="true" />
+            <h4 id="about-heading" className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
               About
             </h4>
           </div>
           <p className="text-sm text-cb-ink leading-relaxed">
             {content.description}
           </p>
-        </div>
+        </section>
 
         {/* Tips */}
         {content.tips && content.tips.length > 0 && (
-          <div className="space-y-3">
-            <h4 className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
+          <section className="space-y-3" aria-labelledby="tips-heading">
+            <h4 id="tips-heading" className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
               Tips & Best Practices
             </h4>
-            <ul className="space-y-2">
+            <ul className="space-y-2" role="list" aria-label="Tips and best practices">
               {content.tips.map((tip, index) => (
                 <li key={index} className="flex items-start gap-2 text-sm text-cb-ink-muted">
-                  <span className="w-5 h-5 rounded-full bg-cb-accent/10 text-cb-accent flex items-center justify-center flex-shrink-0 text-xs font-medium mt-0.5">
+                  <span
+                    className="w-5 h-5 rounded-full bg-cb-accent/10 text-cb-accent flex items-center justify-center flex-shrink-0 text-xs font-medium mt-0.5"
+                    aria-hidden="true"
+                  >
                     {index + 1}
                   </span>
                   <span className="leading-relaxed">{tip}</span>
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
         )}
 
         {/* Quick Help Section */}
-        <div className="space-y-3 pt-4 border-t border-cb-border">
-          <h4 className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
+        <section className="space-y-3 pt-4 border-t border-cb-border" aria-labelledby="more-help-heading">
+          <h4 id="more-help-heading" className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
             Need More Help?
           </h4>
           <div className="bg-cb-card rounded-lg p-3 border border-cb-border">
@@ -240,7 +256,7 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
               or visit our documentation.
             </p>
           </div>
-        </div>
+        </section>
       </div>
     </div>
   );
