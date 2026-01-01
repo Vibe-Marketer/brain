@@ -119,11 +119,35 @@
         }
       ],
       "status": "completed"
+    },
+    "subtask-5-1": {
+      "attempts": [
+        {
+          "session": 11,
+          "timestamp": "2026-01-01T05:34:26.798162",
+          "approach": "Implemented: Delete orphaned App_Original.tsx and App_Loop.tsx",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
+    },
+    "subtask-6-1": {
+      "attempts": [
+        {
+          "session": 12,
+          "timestamp": "2026-01-01T05:35:48.660159",
+          "approach": "Implemented: Update loop/index.ts to remove AppShell, Sidebar, TopBar exports",
+          "success": true,
+          "error": null
+        }
+      ],
+      "status": "completed"
     }
   },
   "stuck_subtasks": [],
   "metadata": {
     "created_at": "2026-01-01T05:15:31.031991",
-    "last_updated": "2026-01-01T05:33:05.731757"
+    "last_updated": "2026-01-01T05:35:48.660163"
   }
 }

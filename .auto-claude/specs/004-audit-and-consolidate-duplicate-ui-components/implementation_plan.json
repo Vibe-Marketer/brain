@@ -277,7 +277,9 @@
             "command": "test ! -f src/App_Original.tsx && test ! -f src/App_Loop.tsx && echo 'DELETED'",
             "expected": "DELETED"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Deleted orphaned App_Original.tsx and App_Loop.tsx files. Verified no imports existed before deletion. Only App.tsx remains as the active entry point.",
+          "updated_at": "2026-01-01T10:34:10.157270+00:00"
         }
       ]
     },
@@ -305,7 +307,9 @@
             "command": "! grep -E 'AppShell|Sidebar|TopBar' src/components/loop/index.ts && echo 'OK'",
             "expected": "OK"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Work already completed in subtask-4-3 commit (9c0e749). The loop/index.ts was updated when the orphaned AppShell.tsx and TopBar.tsx files were deleted. Verification passes - no AppShell/Sidebar/TopBar exports in the file.",
+          "updated_at": "2026-01-01T10:35:34.883612+00:00"
         }
       ]
     },
@@ -332,8 +336,9 @@
             "command": "! grep -r 'import.*from.*LoopShell\\|import.*from.*AppShellV2\\|import.*from.*layout/loop' src/ 2>/dev/null && echo 'NO_ORPHAN_IMPORTS'",
             "expected": "NO_ORPHAN_IMPORTS"
           },
-          "status": "pending",
-          "notes": "Ensure all imports point to canonical components only"
+          "status": "completed",
+          "notes": "Verification passed - no orphaned layout/shell imports found. Checked for: LoopShell, AppShellV2, layout/loop, App_Loop, App_Original, contextual/ - all clean.",
+          "updated_at": "2026-01-01T10:36:40.454414+00:00"
         },
         {
           "id": "subtask-7-2",
@@ -535,5 +540,5 @@
       ".auto-claude/specs/004-audit-and-consolidate-duplicate-ui-components/ORPHAN_AUDIT.md"
     ]
   },
-  "last_updated": "2026-01-01T10:33:00.098017+00:00"
+  "last_updated": "2026-01-01T10:36:40.454419+00:00"
 }
