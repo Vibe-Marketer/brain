@@ -1,12 +1,15 @@
 import { create } from 'zustand';
 
-export type PanelType = 
+export type PanelType =
   | 'workspace-detail'
   | 'call-detail'
   | 'insight-detail'
   | 'filter-tool'
   | 'ai-assistant'
   | 'inspector'
+  | 'folder-detail'
+  | 'tag-detail'
+  | 'setting-help'
   | null;
 
 interface PanelState {

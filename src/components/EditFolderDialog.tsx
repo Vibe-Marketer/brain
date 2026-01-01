@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { Button } from "@/components/ui/button";
@@ -64,6 +64,21 @@ export default function EditFolderDialog({
   const [saving, setSaving] = useState(false);
   const [folders, setFolders] = useState<FolderOption[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
+
+  // Ref for focus management
+  const nameInputRef = useRef<HTMLInputElement>(null);
+
+  // Handle focus when dialog opens
+  const handleOpenAutoFocus = useCallback((event: Event) => {
+    // Prevent default focus behavior and focus the name input
+    event.preventDefault();
+    // Use setTimeout to ensure the dialog is fully rendered
+    setTimeout(() => {
+      nameInputRef.current?.focus();
+      // Select all text for easy editing
+      nameInputRef.current?.select();
+    }, 0);
+  }, []);
 
   // Initialize form with folder data when opened
   useEffect(() => {
@@ -217,29 +232,34 @@ export default function EditFolderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className="max-w-md"
+        onOpenAutoFocus={handleOpenAutoFocus}
+        aria-describedby="edit-folder-description"
+      >
         <DialogHeader>
           <DialogTitle>Edit Folder</DialogTitle>
-          <DialogDescription className="sr-only">
+          <DialogDescription id="edit-folder-description" className="sr-only">
             Edit the folder name, icon, parent folder, and description.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          {/* Name with inline emoji */}
+          {/* Name with emoji indicator */}
           <div className="space-y-2">
-            <Label htmlFor="folder-name">Folder Name</Label>
+            <Label htmlFor="edit-folder-name">Folder Name</Label>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {}}
-                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-cb-border bg-cb-card hover:bg-cb-hover transition-colors"
-                title="Selected emoji"
+              {/* Emoji indicator (non-interactive, just shows current selection) */}
+              <div
+                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-cb-border bg-cb-card"
+                aria-label={`Selected icon: ${emoji}`}
+                aria-hidden="true"
               >
                 {emoji}
-              </button>
+              </div>
               <Input
-                id="folder-name"
+                ref={nameInputRef}
+                id="edit-folder-name"
                 placeholder="e.g., Client Meetings"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -249,9 +269,12 @@ export default function EditFolderDialog({
                   }
                 }}
                 className="flex-1"
-                autoFocus
+                aria-describedby="edit-folder-name-hint"
               />
             </div>
+            <p id="edit-folder-name-hint" className="sr-only">
+              Edit the folder name. Press Enter to save.
+            </p>
           </div>
 
           {/* Emoji picker inline */}
@@ -262,13 +285,13 @@ export default function EditFolderDialog({
 
           {/* Parent Folder */}
           <div className="space-y-2">
-            <Label htmlFor="parent-folder">Parent Folder</Label>
+            <Label htmlFor="edit-parent-folder">Parent Folder</Label>
             <Select
               value={selectedParentId || "none"}
               onValueChange={(value) => setSelectedParentId(value === "none" ? undefined : value)}
               disabled={loadingFolders}
             >
-              <SelectTrigger id="parent-folder">
+              <SelectTrigger id="edit-parent-folder">
                 <SelectValue placeholder="None (Root Level)" />
               </SelectTrigger>
               <SelectContent>
@@ -286,17 +309,17 @@ export default function EditFolderDialog({
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Checkbox
-                id="show-description"
+                id="edit-show-description"
                 checked={showDescription}
                 onCheckedChange={(checked) => setShowDescription(checked === true)}
               />
-              <Label htmlFor="show-description" className="text-sm font-normal cursor-pointer">
+              <Label htmlFor="edit-show-description" className="text-sm font-normal cursor-pointer">
                 Add description
               </Label>
             </div>
             {showDescription && (
               <Input
-                id="folder-description"
+                id="edit-folder-description"
                 placeholder="Brief description of this folder"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
