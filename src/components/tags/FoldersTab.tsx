@@ -34,6 +34,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePanelStore } from "@/stores/panelStore";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { useListKeyboardNavigationWithState } from "@/hooks/useListKeyboardNavigation";
+import { useVirtualTable } from "@/hooks/useVirtualList";
 
 export function FoldersTab() {
   const { folders, folderAssignments, deleteFolder, updateFolder, createFolder, isLoading, refetch } = useFolders();
@@ -152,16 +153,40 @@ export function FoldersTab() {
   }, [folders]);
 
   // Flatten folder hierarchy for keyboard navigation (in display order)
-  const flattenedFolders = useMemo(() => {
+  // Also compute depth for each folder for proper indentation
+  const { flattenedFolders, depthMap } = useMemo(() => {
     const result: Folder[] = [];
-    const addFolder = (folder: Folder) => {
+    const depths: Record<string, number> = {};
+    const addFolder = (folder: Folder, depth: number) => {
       result.push(folder);
+      depths[folder.id] = depth;
       const children = childrenByParent[folder.id] || [];
-      children.sort((a, b) => a.position - b.position).forEach(addFolder);
+      children.sort((a, b) => a.position - b.position).forEach(child => addFolder(child, depth + 1));
     };
-    rootFolders.forEach(addFolder);
-    return result;
+    rootFolders.forEach(folder => addFolder(folder, 0));
+    return { flattenedFolders: result, depthMap: depths };
   }, [rootFolders, childrenByParent]);
+
+  // Virtualization for large folder lists (threshold: 50 folders)
+  const ROW_HEIGHT = 44; // Consistent row height for virtualization
+  const CONTAINER_HEIGHT = 500; // Max height before scrolling
+  const {
+    visibleItems,
+    isVirtualized,
+    containerRef,
+    handleScroll,
+    offsetBefore,
+    offsetAfter,
+    containerStyle,
+    scrollToIndex,
+  } = useVirtualTable({
+    items: flattenedFolders,
+    rowHeight: ROW_HEIGHT,
+    containerHeight: CONTAINER_HEIGHT,
+    threshold: 50,
+    overscan: 5,
+    getKey: (folder) => folder.id,
+  });
 
   // Keyboard navigation for folder list
   const { focusedId, getRowRef, handleRowClick } = useListKeyboardNavigationWithState({
@@ -171,6 +196,16 @@ export function FoldersTab() {
     onSelect: handleFolderClick,
     enabled: !editingFolderId && !createDialogOpen && !deleteConfirmFolder, // Disable when editing or dialogs open
   });
+
+  // Scroll to focused item when using keyboard navigation with virtualization
+  useEffect(() => {
+    if (isVirtualized && focusedId) {
+      const index = flattenedFolders.findIndex(f => f.id === focusedId);
+      if (index !== -1) {
+        scrollToIndex(index);
+      }
+    }
+  }, [isVirtualized, focusedId, flattenedFolders, scrollToIndex]);
 
   // Calculate folder call counts from assignments
   const folderCounts = useMemo(() => {
@@ -212,35 +247,34 @@ export function FoldersTab() {
     }
   };
 
-  // Recursive folder row renderer - uses Fragment with key to avoid invalid DOM nesting
-  const renderFolderRow = (folder: Folder, depth: number = 0): React.ReactNode => {
-    const children = childrenByParent[folder.id] || [];
+  // Folder row renderer - uses depthMap for indentation (no recursion for virtualization)
+  const renderFolderRow = (folder: Folder): React.ReactNode => {
+    const depth = depthMap[folder.id] || 0;
     const FolderIcon = getIconComponent(folder.icon);
     const isEmoji = isEmojiIcon(folder.icon);
-    const sortedChildren = children.sort((a, b) => a.position - b.position);
     const isSelected = selectedFolderId === folder.id;
     const isFocused = focusedId === folder.id;
     const isEditing = editingFolderId === folder.id;
 
     return (
-      <React.Fragment key={folder.id}>
-        <ContextMenu>
-          <ContextMenuTrigger asChild>
-            <TableRow
-              ref={getRowRef(folder.id) as React.Ref<HTMLTableRowElement>}
-              className={`cursor-pointer transition-colors ${
-                isSelected
-                  ? "bg-cb-hover dark:bg-cb-hover-dark"
-                  : isFocused
-                  ? "bg-cb-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
-                  : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
-              }`}
-              onClick={() => {
-                handleRowClick(folder);
-                if (!isEditing) handleFolderClick(folder);
-              }}
-            >
-              <TableCell style={{ paddingLeft: `${depth * 24 + 16}px` }}>
+      <ContextMenu key={folder.id}>
+        <ContextMenuTrigger asChild>
+          <TableRow
+            ref={getRowRef(folder.id) as React.Ref<HTMLTableRowElement>}
+            className={`cursor-pointer transition-colors ${
+              isSelected
+                ? "bg-cb-hover dark:bg-cb-hover-dark"
+                : isFocused
+                ? "bg-cb-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
+                : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
+            }`}
+            style={isVirtualized ? { height: ROW_HEIGHT } : undefined}
+            onClick={() => {
+              handleRowClick(folder);
+              if (!isEditing) handleFolderClick(folder);
+            }}
+          >
+            <TableCell style={{ paddingLeft: `${depth * 24 + 16}px` }}>
                 <div className="flex items-center gap-2">
                   {isEmoji ? (
                     <span className="text-base">{folder.icon}</span>
@@ -325,8 +359,6 @@ export function FoldersTab() {
             </ContextMenuItem>
           </ContextMenuContent>
         </ContextMenu>
-        {sortedChildren.map((child) => renderFolderRow(child, depth + 1))}
-      </React.Fragment>
     );
   };
 
@@ -393,29 +425,55 @@ export function FoldersTab() {
               <TableHead className="w-24 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
-            {rootFolders.map((folder) => renderFolderRow(folder))}
-            {folders.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={3} className="p-0">
-                  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-                    <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
-                      <RiFolderLine className="h-8 w-8 text-muted-foreground/50" />
-                    </div>
-                    <h3 className="text-lg font-semibold mb-2">No folders yet</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mb-6">
-                      Create folders to organize your calls. Folders help you browse and find calls but don&apos;t affect AI analysis.
-                    </p>
-                    <Button onClick={() => setCreateDialogOpen(true)}>
-                      <RiAddLine className="h-4 w-4 mr-2" />
-                      Create Folder
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
         </Table>
+        {/* Virtualized scroll container for the table body */}
+        <div
+          ref={containerRef}
+          onScroll={handleScroll}
+          style={isVirtualized ? containerStyle : { maxHeight: CONTAINER_HEIGHT, overflow: 'auto' }}
+          className="relative"
+        >
+          <Table>
+            <TableBody>
+              {/* Spacer row for virtualization (maintains scroll position) */}
+              {isVirtualized && offsetBefore > 0 && (
+                <tr style={{ height: offsetBefore }} aria-hidden="true" />
+              )}
+              {/* Render visible folder rows */}
+              {visibleItems.map(({ item: folder }) => renderFolderRow(folder))}
+              {/* Spacer row for virtualization (maintains total height) */}
+              {isVirtualized && offsetAfter > 0 && (
+                <tr style={{ height: offsetAfter }} aria-hidden="true" />
+              )}
+              {/* Empty state */}
+              {folders.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={3} className="p-0">
+                    <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                      <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                        <RiFolderLine className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">No folders yet</h3>
+                      <p className="text-sm text-muted-foreground max-w-sm mb-6">
+                        Create folders to organize your calls. Folders help you browse and find calls but don&apos;t affect AI analysis.
+                      </p>
+                      <Button onClick={() => setCreateDialogOpen(true)}>
+                        <RiAddLine className="h-4 w-4 mr-2" />
+                        Create Folder
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+        {/* Virtualization info for accessibility */}
+        {isVirtualized && (
+          <div className="sr-only" aria-live="polite">
+            Showing {visibleItems.length} of {flattenedFolders.length} folders. Scroll to see more.
+          </div>
+        )}
       </div>
 
       {/* Create Dialog */}
