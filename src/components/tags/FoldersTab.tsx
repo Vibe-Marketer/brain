@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RiAddLine, RiDeleteBinLine, RiFolderLine } from "@remixicon/react";
+import { RiAddLine, RiDeleteBinLine, RiFolderLine, RiPencilLine, RiFileCopyLine } from "@remixicon/react";
 import { isEmojiIcon, getIconComponent } from "@/lib/folder-icons";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import {
@@ -23,11 +23,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePanelStore } from "@/stores/panelStore";
 
 export function FoldersTab() {
-  const { folders, folderAssignments, deleteFolder, updateFolder, isLoading, refetch } = useFolders();
+  const { folders, folderAssignments, deleteFolder, updateFolder, createFolder, isLoading, refetch } = useFolders();
   const { openPanel, panelData, panelType } = usePanelStore();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteConfirmFolder, setDeleteConfirmFolder] = useState<Folder | null>(null);
@@ -132,6 +139,18 @@ export function FoldersTab() {
     }
   };
 
+  // Duplicate folder with "Copy of" prefix
+  const handleDuplicateFolder = async (folder: Folder) => {
+    await createFolder(
+      `Copy of ${folder.name}`,
+      folder.parent_id || undefined,
+      folder.color,
+      folder.icon,
+      folder.description || undefined
+    );
+    refetch();
+  };
+
   // Recursive folder row renderer - uses Fragment with key to avoid invalid DOM nesting
   const renderFolderRow = (folder: Folder, depth: number = 0): React.ReactNode => {
     const children = childrenByParent[folder.id] || [];
@@ -143,67 +162,96 @@ export function FoldersTab() {
 
     return (
       <React.Fragment key={folder.id}>
-        <TableRow
-          className={`cursor-pointer transition-colors ${
-            isSelected
-              ? "bg-cb-hover dark:bg-cb-hover-dark"
-              : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
-          }`}
-          onClick={() => !isEditing && handleFolderClick(folder)}
-        >
-          <TableCell style={{ paddingLeft: `${depth * 24 + 16}px` }}>
-            <div className="flex items-center gap-2">
-              {isEmoji ? (
-                <span className="text-base">{folder.icon}</span>
-              ) : FolderIcon ? (
-                <FolderIcon className="h-4 w-4" style={{ color: folder.color }} />
-              ) : (
-                <RiFolderLine className="h-4 w-4" style={{ color: folder.color }} />
-              )}
-              {isEditing ? (
-                <Input
-                  ref={editInputRef}
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  onKeyDown={handleRenameKeyDown}
-                  onBlur={handleSaveRename}
-                  onClick={(e) => e.stopPropagation()}
-                  className="h-7 w-48 text-sm font-medium"
-                  autoFocus
-                />
-              ) : (
-                <span
-                  className="font-medium cursor-text"
-                  onDoubleClick={(e) => handleStartRename(folder, e)}
-                  title="Double-click to rename"
-                >
-                  {folder.name}
-                </span>
-              )}
-              {!isEditing && folder.description && (
-                <span className="text-cb-ink-muted text-xs">- {folder.description}</span>
-              )}
-            </div>
-          </TableCell>
-          <TableCell className="text-right tabular-nums">
-            {folderCounts[folder.id] || 0}
-          </TableCell>
-          <TableCell className="text-right">
-            <div className="flex items-center justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setDeleteConfirmFolder(folder);
-                }}
-                title="Delete folder"
-              >
-                <RiDeleteBinLine className="h-4 w-4 text-destructive" />
-              </Button>
-            </div>
-          </TableCell>
-        </TableRow>
+        <ContextMenu>
+          <ContextMenuTrigger asChild>
+            <TableRow
+              className={`cursor-pointer transition-colors ${
+                isSelected
+                  ? "bg-cb-hover dark:bg-cb-hover-dark"
+                  : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
+              }`}
+              onClick={() => !isEditing && handleFolderClick(folder)}
+            >
+              <TableCell style={{ paddingLeft: `${depth * 24 + 16}px` }}>
+                <div className="flex items-center gap-2">
+                  {isEmoji ? (
+                    <span className="text-base">{folder.icon}</span>
+                  ) : FolderIcon ? (
+                    <FolderIcon className="h-4 w-4" style={{ color: folder.color }} />
+                  ) : (
+                    <RiFolderLine className="h-4 w-4" style={{ color: folder.color }} />
+                  )}
+                  {isEditing ? (
+                    <Input
+                      ref={editInputRef}
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      onKeyDown={handleRenameKeyDown}
+                      onBlur={handleSaveRename}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-7 w-48 text-sm font-medium"
+                      autoFocus
+                    />
+                  ) : (
+                    <span
+                      className="font-medium cursor-text"
+                      onDoubleClick={(e) => handleStartRename(folder, e)}
+                      title="Double-click to rename"
+                    >
+                      {folder.name}
+                    </span>
+                  )}
+                  {!isEditing && folder.description && (
+                    <span className="text-cb-ink-muted text-xs">- {folder.description}</span>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell className="text-right tabular-nums">
+                {folderCounts[folder.id] || 0}
+              </TableCell>
+              <TableCell className="text-right">
+                <div className="flex items-center justify-end gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteConfirmFolder(folder);
+                    }}
+                    title="Delete folder"
+                  >
+                    <RiDeleteBinLine className="h-4 w-4 text-destructive" />
+                  </Button>
+                </div>
+              </TableCell>
+            </TableRow>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            <ContextMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStartRename(folder, e as unknown as React.MouseEvent);
+              }}
+            >
+              <RiPencilLine className="h-4 w-4 mr-2" />
+              Rename
+            </ContextMenuItem>
+            <ContextMenuItem
+              onClick={() => handleDuplicateFolder(folder)}
+            >
+              <RiFileCopyLine className="h-4 w-4 mr-2" />
+              Duplicate
+            </ContextMenuItem>
+            <ContextMenuSeparator />
+            <ContextMenuItem
+              onClick={() => setDeleteConfirmFolder(folder)}
+              className="text-destructive focus:text-destructive"
+            >
+              <RiDeleteBinLine className="h-4 w-4 mr-2" />
+              Delete
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
         {sortedChildren.map((child) => renderFolderRow(child, depth + 1))}
       </React.Fragment>
     );

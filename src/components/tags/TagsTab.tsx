@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Table,
@@ -11,6 +12,25 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePanelStore } from "@/stores/panelStore";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { RiPencilLine, RiFileCopyLine, RiDeleteBinLine } from "@remixicon/react";
+import { toast } from "sonner";
 
 interface Tag {
   id: string;
@@ -22,12 +42,74 @@ interface Tag {
 
 export function TagsTab() {
   const { openPanel, panelData, panelType } = usePanelStore();
+  const queryClient = useQueryClient();
+  const [deleteConfirmTag, setDeleteConfirmTag] = useState<Tag | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Track selected tag for visual highlighting
   const selectedTagId = panelType === 'tag-detail' ? panelData?.tagId : null;
 
   const handleTagClick = (tag: Tag) => {
     openPanel('tag-detail', { tagId: tag.id });
+  };
+
+  // Delete tag mutation
+  const deleteTagMutation = useMutation({
+    mutationFn: async (tagId: string) => {
+      const { error } = await supabase
+        .from("call_tags")
+        .delete()
+        .eq("id", tagId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["call-tags"] });
+      queryClient.invalidateQueries({ queryKey: ["tag-counts"] });
+      toast.success("Tag deleted successfully");
+    },
+    onError: () => {
+      toast.error("Failed to delete tag");
+    },
+  });
+
+  // Duplicate tag mutation
+  const duplicateTagMutation = useMutation({
+    mutationFn: async (tag: Tag) => {
+      const { data, error } = await supabase
+        .from("call_tags")
+        .insert({
+          name: `Copy of ${tag.name}`,
+          color: tag.color,
+          description: tag.description,
+          is_system: false, // Duplicated tags are always custom
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["call-tags"] });
+      toast.success("Tag duplicated successfully");
+    },
+    onError: () => {
+      toast.error("Failed to duplicate tag");
+    },
+  });
+
+  const handleDeleteTag = async () => {
+    if (!deleteConfirmTag) return;
+    setIsDeleting(true);
+    try {
+      await deleteTagMutation.mutateAsync(deleteConfirmTag.id);
+      setDeleteConfirmTag(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDuplicateTag = (tag: Tag) => {
+    duplicateTagMutation.mutate(tag);
   };
 
   // Fetch tags
@@ -105,39 +187,87 @@ export function TagsTab() {
             {tags?.map((tag) => {
               const isSelected = selectedTagId === tag.id;
               return (
-                <TableRow
-                  key={tag.id}
-                  className={`cursor-pointer transition-colors ${
-                    isSelected
-                      ? "bg-cb-hover dark:bg-cb-hover-dark"
-                      : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
-                  }`}
-                  onClick={() => handleTagClick(tag)}
-                >
-                  <TableCell>
-                    <div
-                      className="w-6 h-6 rounded-sm"
-                      style={{ backgroundColor: tag.color || "#666" }}
-                    />
-                  </TableCell>
-                  <TableCell className="font-medium">{tag.name}</TableCell>
-                  <TableCell className="text-cb-ink-muted">
-                    {tag.description || "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={tag.is_system ? "secondary" : "outline"}>
-                      {tag.is_system ? "System" : "Custom"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {tagCounts?.[tag.id] || 0}
-                  </TableCell>
-                </TableRow>
+                <ContextMenu key={tag.id}>
+                  <ContextMenuTrigger asChild>
+                    <TableRow
+                      className={`cursor-pointer transition-colors ${
+                        isSelected
+                          ? "bg-cb-hover dark:bg-cb-hover-dark"
+                          : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
+                      }`}
+                      onClick={() => handleTagClick(tag)}
+                    >
+                      <TableCell>
+                        <div
+                          className="w-6 h-6 rounded-sm"
+                          style={{ backgroundColor: tag.color || "#666" }}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">{tag.name}</TableCell>
+                      <TableCell className="text-cb-ink-muted">
+                        {tag.description || "-"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={tag.is_system ? "secondary" : "outline"}>
+                          {tag.is_system ? "System" : "Custom"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {tagCounts?.[tag.id] || 0}
+                      </TableCell>
+                    </TableRow>
+                  </ContextMenuTrigger>
+                  <ContextMenuContent>
+                    <ContextMenuItem onClick={() => handleTagClick(tag)}>
+                      <RiPencilLine className="h-4 w-4 mr-2" />
+                      Edit
+                    </ContextMenuItem>
+                    <ContextMenuItem onClick={() => handleDuplicateTag(tag)}>
+                      <RiFileCopyLine className="h-4 w-4 mr-2" />
+                      Duplicate
+                    </ContextMenuItem>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                      onClick={() => setDeleteConfirmTag(tag)}
+                      className="text-destructive focus:text-destructive"
+                      disabled={tag.is_system ?? false}
+                    >
+                      <RiDeleteBinLine className="h-4 w-4 mr-2" />
+                      Delete
+                    </ContextMenuItem>
+                  </ContextMenuContent>
+                </ContextMenu>
               );
             })}
           </TableBody>
         </Table>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!deleteConfirmTag}
+        onOpenChange={(open) => !open && setDeleteConfirmTag(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Tag</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete &quot;{deleteConfirmTag?.name}&quot;? This action cannot be undone.
+              Calls with this tag will no longer have it assigned.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteTag}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
