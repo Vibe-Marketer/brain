@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RiAddLine, RiDeleteBinLine, RiFolderLine, RiPencilLine, RiFileCopyLine } from "@remixicon/react";
+import { RiAddLine, RiDeleteBinLine, RiFolderLine, RiPencilLine, RiFileCopyLine, RiLoader4Line } from "@remixicon/react";
 import { isEmojiIcon, getIconComponent } from "@/lib/folder-icons";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import {
@@ -41,6 +41,7 @@ export function FoldersTab() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteConfirmFolder, setDeleteConfirmFolder] = useState<Folder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [duplicatingFolderId, setDuplicatingFolderId] = useState<string | null>(null);
 
   // Inline rename state
   const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
@@ -196,14 +197,19 @@ export function FoldersTab() {
 
   // Duplicate folder with "Copy of" prefix
   const handleDuplicateFolder = async (folder: Folder) => {
-    await createFolder(
-      `Copy of ${folder.name}`,
-      folder.parent_id || undefined,
-      folder.color,
-      folder.icon,
-      folder.description || undefined
-    );
-    refetch();
+    setDuplicatingFolderId(folder.id);
+    try {
+      await createFolder(
+        `Copy of ${folder.name}`,
+        folder.parent_id || undefined,
+        folder.color,
+        folder.icon,
+        folder.description || undefined
+      );
+      refetch();
+    } finally {
+      setDuplicatingFolderId(null);
+    }
   };
 
   // Recursive folder row renderer - uses Fragment with key to avoid invalid DOM nesting
@@ -300,9 +306,14 @@ export function FoldersTab() {
             </ContextMenuItem>
             <ContextMenuItem
               onClick={() => handleDuplicateFolder(folder)}
+              disabled={duplicatingFolderId === folder.id}
             >
-              <RiFileCopyLine className="h-4 w-4 mr-2" />
-              Duplicate
+              {duplicatingFolderId === folder.id ? (
+                <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <RiFileCopyLine className="h-4 w-4 mr-2" />
+              )}
+              {duplicatingFolderId === folder.id ? "Duplicating..." : "Duplicate"}
             </ContextMenuItem>
             <ContextMenuSeparator />
             <ContextMenuItem
@@ -322,9 +333,42 @@ export function FoldersTab() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <Skeleton className="h-4 w-64" />
+        {/* Description skeleton */}
+        <Skeleton className="h-4 w-3/4" />
+
+        {/* Create button skeleton */}
         <Skeleton className="h-10 w-36" />
-        <Skeleton className="h-64 w-full" />
+
+        {/* Table skeleton */}
+        <div className="border border-cb-border rounded-sm overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-cb-white dark:bg-card">
+                <TableHead>Name</TableHead>
+                <TableHead className="w-24 text-right">Calls</TableHead>
+                <TableHead className="w-24 text-right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(5)].map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-4 rounded" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="h-4 w-6 ml-auto" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="h-8 w-8 ml-auto rounded" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     );
   }
@@ -403,6 +447,7 @@ export function FoldersTab() {
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+              {isDeleting && <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" />}
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -20,6 +20,7 @@ import {
   RiCloseLine,
   RiPushpinLine,
   RiPushpinFill,
+  RiLoader4Line,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
@@ -425,6 +426,7 @@ export function FolderDetailPanel({
           aria-busy={saving}
           aria-describedby="save-status"
         >
+          {saving && <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" />}
           {saving ? "Saving..." : "Save Changes"}
         </Button>
         <span id="save-status" className="sr-only">
@@ -460,6 +462,7 @@ export function FolderDetailPanel({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               aria-busy={isDeleting}
             >
+              {isDeleting && <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" />}
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>

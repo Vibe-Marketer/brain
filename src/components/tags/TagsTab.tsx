@@ -29,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { RiPencilLine, RiFileCopyLine, RiDeleteBinLine, RiPriceTag3Line } from "@remixicon/react";
+import { RiPencilLine, RiFileCopyLine, RiDeleteBinLine, RiPriceTag3Line, RiLoader4Line } from "@remixicon/react";
 import { toast } from "sonner";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { useListKeyboardNavigationWithState } from "@/hooks/useListKeyboardNavigation";
@@ -47,6 +47,7 @@ export function TagsTab() {
   const queryClient = useQueryClient();
   const [deleteConfirmTag, setDeleteConfirmTag] = useState<Tag | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [duplicatingTagId, setDuplicatingTagId] = useState<string | null>(null);
 
   // Track selected tag for visual highlighting
   const selectedTagId = panelType === 'tag-detail' ? panelData?.tagId : null;
@@ -110,8 +111,13 @@ export function TagsTab() {
     }
   };
 
-  const handleDuplicateTag = (tag: Tag) => {
-    duplicateTagMutation.mutate(tag);
+  const handleDuplicateTag = async (tag: Tag) => {
+    setDuplicatingTagId(tag.id);
+    try {
+      await duplicateTagMutation.mutateAsync(tag);
+    } finally {
+      setDuplicatingTagId(null);
+    }
   };
 
   // Fetch tags
@@ -184,9 +190,54 @@ export function TagsTab() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        {[...Array(10)].map((_, i) => (
-          <Skeleton key={i} className="h-12 w-full" />
-        ))}
+        {/* Description skeleton */}
+        <Skeleton className="h-4 w-3/4" />
+
+        {/* Table skeleton */}
+        <div className="border border-cb-border dark:border-cb-border-dark rounded-sm overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-cb-white dark:bg-card hover:bg-cb-white dark:hover:bg-card">
+                <TableHead className="font-medium text-xs uppercase tracking-wider w-12">
+                  Color
+                </TableHead>
+                <TableHead className="font-medium text-xs uppercase tracking-wider">
+                  Name
+                </TableHead>
+                <TableHead className="font-medium text-xs uppercase tracking-wider">
+                  Description
+                </TableHead>
+                <TableHead className="font-medium text-xs uppercase tracking-wider w-24">
+                  Type
+                </TableHead>
+                <TableHead className="font-medium text-xs uppercase tracking-wider w-20 text-right">
+                  Calls
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {[...Array(8)].map((_, i) => (
+                <TableRow key={i}>
+                  <TableCell>
+                    <Skeleton className="h-6 w-6 rounded-sm" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-40" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-14 rounded-full" />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Skeleton className="h-4 w-6 ml-auto" />
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     );
   }
@@ -281,9 +332,16 @@ export function TagsTab() {
                       <RiPencilLine className="h-4 w-4 mr-2" />
                       Edit
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => handleDuplicateTag(tag)}>
-                      <RiFileCopyLine className="h-4 w-4 mr-2" />
-                      Duplicate
+                    <ContextMenuItem
+                      onClick={() => handleDuplicateTag(tag)}
+                      disabled={duplicatingTagId === tag.id}
+                    >
+                      {duplicatingTagId === tag.id ? (
+                        <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" />
+                      ) : (
+                        <RiFileCopyLine className="h-4 w-4 mr-2" />
+                      )}
+                      {duplicatingTagId === tag.id ? "Duplicating..." : "Duplicate"}
                     </ContextMenuItem>
                     <ContextMenuSeparator />
                     <ContextMenuItem
@@ -322,6 +380,7 @@ export function TagsTab() {
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
+              {isDeleting && <RiLoader4Line className="h-4 w-4 mr-2 animate-spin" />}
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
