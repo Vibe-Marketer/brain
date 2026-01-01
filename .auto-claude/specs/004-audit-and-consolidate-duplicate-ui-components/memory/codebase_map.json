@@ -1,0 +1,10 @@
+{
+  "discovered_files": {
+    ".auto-claude/specs/004-audit-and-consolidate-duplicate-ui-components/ORPHAN_AUDIT.md": {
+      "description": "Complete audit of 20 orphaned UI files. Key findings: App_Original.tsx and App_Loop.tsx are orphaned entry points that import all other orphaned components. The entire contextual/ and layout/loop/ directories are orphaned. Only 3 files in loop/ are orphaned (AppShell, Sidebar, TopBar) - the rest (InsightCard, WorkspaceCard, etc.) are actively used.",
+      "category": "architecture",
+      "discovered_at": "2026-01-01T10:18:06.669866+00:00"
+    }
+  },
+  "last_updated": "2026-01-01T10:18:06.669870+00:00"
+}

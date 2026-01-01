@@ -1,0 +1,7 @@
+{
+  "task_description": "Component Deduplication & Reusability Audit\nObjective: Ensure all shared UI elements follow single-source-of-truth architecture\u2014one change propagates everywhere.\nScope:\n\nSidebar component(s)\nMiddle pane / list views\nMain pane / detail views\nAny UI pattern appearing on 2+ pages\n\nActions:\n\nAudit \u2014 Scan the codebase for duplicate or near-duplicate component code across pages. Flag anything that's copy-pasted rather than imported.\nExtract \u2014 Refactor duplicated elements into shared components in /components/shared/ (or equivalent). This includes:\n\nComponent files\nDesign tokens (colors, spacing, typography)\nShared CSS/styles\n\n\nReplace \u2014 Update all instances to import from the single source. Remove orphaned duplicate code.\nVerify \u2014 Confirm that modifying the shared component updates every usage across the app.\n\nDeliverable: A codebase where layout shells (sidebar, panes) and repeated UI patterns exist in exactly one place.",
+  "scoped_services": [],
+  "files_to_modify": [],
+  "files_to_reference": [],
+  "created_at": "2026-01-01T05:01:49.714279"
+}

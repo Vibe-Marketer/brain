@@ -1,0 +1,96 @@
+{
+  "complexity": "standard",
+  "workflow_type": "refactor",
+  "confidence": 0.85,
+  "reasoning": "This is a cross-cutting refactoring task to consolidate 5+ duplicate sidebar implementations (~1,652 LOC) and 5+ layout shell implementations (~837 LOC) into single sources of truth. No external dependencies or infrastructure changes required, but significant scope (20+ files) and medium-high regression risk justify thorough planning.",
+
+  "analysis": {
+    "scope": {
+      "estimated_files": 25,
+      "estimated_services": 1,
+      "is_cross_cutting": true,
+      "notes": "Multiple sidebar variants (loop/Sidebar, contextual/PrimarySidebar, layout/loop/PrimarySidebar, chat/ChatSidebar, FolderSidebar), multiple layout shells (AppShell, AppShellV2, LoopShell, CallVaultLayout), and several V2 page variants. All 188 TSX files need to be audited for imports."
+    },
+    "integrations": {
+      "external_services": [],
+      "new_dependencies": [],
+      "research_needed": false,
+      "notes": "Pure internal refactoring - no external APIs or new libraries required."
+    },
+    "infrastructure": {
+      "docker_changes": false,
+      "database_changes": false,
+      "config_changes": false,
+      "notes": "Frontend-only changes. No infrastructure impact."
+    },
+    "knowledge": {
+      "patterns_exist": true,
+      "research_required": false,
+      "unfamiliar_tech": [],
+      "notes": "Existing codebase has multiple layout patterns. Need to identify which is canonical vs deprecated. Uses standard React/TypeScript patterns."
+    },
+    "risk": {
+      "level": "medium",
+      "concerns": [
+        "Breaking existing UI layouts during consolidation",
+        "Orphaned imports after removing duplicate files",
+        "Determining which version (V1 vs V2) is the correct one to keep",
+        "Ensuring changes propagate correctly to all usages"
+      ],
+      "notes": "Layout changes are high-visibility. Thorough testing required to catch visual regressions."
+    }
+  },
+
+  "recommended_phases": [
+    "discovery",
+    "requirements",
+    "context",
+    "spec_writing",
+    "self_critique",
+    "planning",
+    "validation"
+  ],
+
+  "flags": {
+    "needs_research": false,
+    "needs_self_critique": true,
+    "needs_infrastructure_setup": false
+  },
+
+  "validation_recommendations": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "minimal_mode": false,
+    "test_types_required": ["unit", "integration"],
+    "security_scan_required": false,
+    "staging_deployment_required": false,
+    "reasoning": "Cross-cutting UI refactoring requires unit tests for shared components and integration tests to verify imports are correct. No security implications since this is pure UI consolidation with no auth or data handling changes."
+  },
+
+  "duplication_audit_summary": {
+    "sidebar_variants": [
+      "src/components/loop/Sidebar.tsx (244 lines)",
+      "src/components/contextual/PrimarySidebar.tsx (142 lines)",
+      "src/components/layout/loop/PrimarySidebar.tsx (131 lines)",
+      "src/components/chat/ChatSidebar.tsx (395 lines)",
+      "src/components/transcript-library/FolderSidebar.tsx (740 lines)"
+    ],
+    "layout_shell_variants": [
+      "src/components/loop/AppShell.tsx (58 lines)",
+      "src/components/contextual/AppShellV2.tsx (53 lines)",
+      "src/components/LoopShell.tsx (304 lines)",
+      "src/components/layout/loop/AppShell.tsx (21 lines)",
+      "src/components/layout/CallVaultLayout.tsx (401 lines)"
+    ],
+    "page_v2_variants": [
+      "CallsPage.tsx vs CallsPageV2.tsx",
+      "InsightsPage.tsx vs InsightsPageV2.tsx",
+      "TranscriptsNew.tsx vs TranscriptsNewEnhanced.tsx",
+      "WorkspacesPage.tsx vs WorkspacesPageV2.tsx"
+    ],
+    "shared_directory_exists": false,
+    "total_tsx_files": 188
+  },
+
+  "created_at": "2026-01-01T14:22:00.000Z"
+}

@@ -1,0 +1,526 @@
+{
+  "feature": "Component Deduplication & Reusability Audit",
+  "workflow_type": "refactor",
+  "workflow_rationale": "This is a staged refactoring task that removes orphaned code while preserving existing functionality. Follows refactor pattern: verify -> add tests -> migrate -> remove old -> verify.",
+  "phases": [
+    {
+      "id": "phase-1-audit",
+      "name": "Audit & Verification",
+      "type": "implementation",
+      "description": "Verify orphan status of all identified duplicate components by tracing imports",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Create ORPHAN_AUDIT.md documenting all identified orphaned files with import verification",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            ".auto-claude/specs/004-audit-and-consolidate-duplicate-ui-components/ORPHAN_AUDIT.md"
+          ],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test -f .auto-claude/specs/004-audit-and-consolidate-duplicate-ui-components/ORPHAN_AUDIT.md && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created comprehensive ORPHAN_AUDIT.md documenting 20 orphaned files with import verification. Verified via grep that none are imported by active code paths. Committed as fd85764.",
+          "updated_at": "2026-01-01T10:17:59.879211+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-tests",
+      "name": "Create Canonical Component Tests",
+      "type": "implementation",
+      "description": "Add unit tests for Layout and SidebarNav canonical components (currently missing)",
+      "depends_on": [
+        "phase-1-audit"
+      ],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Create unit tests for Layout component",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/components/__tests__/Layout.test.tsx"
+          ],
+          "patterns_from": [
+            "src/stores/__tests__/searchStore.test.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "test -f src/components/__tests__/Layout.test.tsx && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "completed",
+          "notes": "Created comprehensive unit tests for Layout component covering: page label rendering for all routes, layout structure, custom layout detection for chat/transcripts pages, card wrapper rendering for other pages, container styling, and multiple children rendering. Tests use MemoryRouter for routing mocks and mock the TopBar component for isolation.",
+          "updated_at": "2026-01-01T10:20:35.015337+00:00"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Create unit tests for SidebarNav component",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [
+            "src/components/ui/__tests__/sidebar-nav.test.tsx"
+          ],
+          "patterns_from": [
+            "src/stores/__tests__/searchStore.test.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "test -f src/components/ui/__tests__/sidebar-nav.test.tsx && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-remove-sidebars",
+      "name": "Remove Orphaned Sidebar Duplicates",
+      "type": "cleanup",
+      "description": "Delete orphaned sidebar implementations that are not imported anywhere",
+      "depends_on": [
+        "phase-1-audit"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Delete orphaned layout/loop/PrimarySidebar.tsx",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_delete": [
+            "src/components/layout/loop/PrimarySidebar.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test ! -f src/components/layout/loop/PrimarySidebar.tsx && echo 'DELETED'",
+            "expected": "DELETED"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Delete orphaned contextual/PrimarySidebar.tsx",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_delete": [
+            "src/components/contextual/PrimarySidebar.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test ! -f src/components/contextual/PrimarySidebar.tsx && echo 'DELETED'",
+            "expected": "DELETED"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "Delete orphaned loop/Sidebar.tsx",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_delete": [
+            "src/components/loop/Sidebar.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test ! -f src/components/loop/Sidebar.tsx && echo 'DELETED'",
+            "expected": "DELETED"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-remove-shells",
+      "name": "Remove Orphaned Layout Shells",
+      "type": "cleanup",
+      "description": "Delete orphaned AppShell and layout implementations",
+      "depends_on": [
+        "phase-3-remove-sidebars"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Delete orphaned layout/loop/ directory (AppShell, MainLayout, SecondaryPanel)",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_delete": [
+            "src/components/layout/loop/AppShell.tsx",
+            "src/components/layout/loop/MainLayout.tsx",
+            "src/components/layout/loop/SecondaryPanel.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test ! -d src/components/layout/loop && echo 'DELETED'",
+            "expected": "DELETED"
+          },
+          "status": "pending",
+          "notes": "After deleting files, remove the empty directory"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Delete orphaned contextual/ directory (AppShellV2, SecondaryPanel, panels)",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_delete": [
+            "src/components/contextual/AppShellV2.tsx",
+            "src/components/contextual/SecondaryPanel.tsx",
+            "src/components/contextual/index.ts",
+            "src/components/contextual/panels/AIAssistantPanel.tsx",
+            "src/components/contextual/panels/CallDetailPanel.tsx",
+            "src/components/contextual/panels/FilterToolPanel.tsx",
+            "src/components/contextual/panels/InsightDetailPanel.tsx",
+            "src/components/contextual/panels/InspectorPanel.tsx",
+            "src/components/contextual/panels/WorkspaceDetailPanel.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test ! -d src/components/contextual && echo 'DELETED'",
+            "expected": "DELETED"
+          },
+          "status": "pending",
+          "notes": "Verify no imports exist before deleting. After files, remove empty directories."
+        },
+        {
+          "id": "subtask-4-3",
+          "description": "Delete orphaned loop/AppShell.tsx and loop/TopBar.tsx",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_delete": [
+            "src/components/loop/AppShell.tsx",
+            "src/components/loop/TopBar.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test ! -f src/components/loop/AppShell.tsx && test ! -f src/components/loop/TopBar.tsx && echo 'DELETED'",
+            "expected": "DELETED"
+          },
+          "status": "pending",
+          "notes": "Keep other loop/ components (InsightCard, WorkspaceCard, etc.) as they are actively used"
+        },
+        {
+          "id": "subtask-4-4",
+          "description": "Delete orphaned LoopShell.tsx",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_delete": [
+            "src/components/LoopShell.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test ! -f src/components/LoopShell.tsx && echo 'DELETED'",
+            "expected": "DELETED"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-remove-entry-points",
+      "name": "Remove Orphaned App Entry Points",
+      "type": "cleanup",
+      "description": "Delete orphaned App_Original.tsx and App_Loop.tsx",
+      "depends_on": [
+        "phase-4-remove-shells"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Delete orphaned App_Original.tsx and App_Loop.tsx",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_delete": [
+            "src/App_Original.tsx",
+            "src/App_Loop.tsx"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "test ! -f src/App_Original.tsx && test ! -f src/App_Loop.tsx && echo 'DELETED'",
+            "expected": "DELETED"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-6-cleanup-loop-index",
+      "name": "Update Loop Directory Index",
+      "type": "cleanup",
+      "description": "Update loop/index.ts to remove deleted component exports",
+      "depends_on": [
+        "phase-4-remove-shells"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-6-1",
+          "description": "Update loop/index.ts to remove AppShell, Sidebar, TopBar exports",
+          "service": "main",
+          "files_to_modify": [
+            "src/components/loop/index.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "! grep -E 'AppShell|Sidebar|TopBar' src/components/loop/index.ts && echo 'OK'",
+            "expected": "OK"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-7-verification",
+      "name": "Final Verification",
+      "type": "integration",
+      "description": "Verify no duplicate imports remain and build succeeds",
+      "depends_on": [
+        "phase-5-remove-entry-points",
+        "phase-6-cleanup-loop-index"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-7-1",
+          "description": "Verify no orphaned layout/shell imports remain in codebase",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "! grep -r 'import.*from.*LoopShell\\|import.*from.*AppShellV2\\|import.*from.*layout/loop' src/ 2>/dev/null && echo 'NO_ORPHAN_IMPORTS'",
+            "expected": "NO_ORPHAN_IMPORTS"
+          },
+          "status": "pending",
+          "notes": "Ensure all imports point to canonical components only"
+        },
+        {
+          "id": "subtask-7-2",
+          "description": "Verify TypeScript compilation succeeds",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "npx tsc --noEmit && echo 'TYPE_CHECK_PASS'",
+            "expected": "TYPE_CHECK_PASS"
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-7-3",
+          "description": "Verify Vite build succeeds",
+          "service": "main",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "npx vite build && echo 'BUILD_SUCCESS'",
+            "expected": "BUILD_SUCCESS"
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 7,
+    "total_subtasks": 15,
+    "services_involved": [
+      "main"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 2,
+      "parallel_groups": [
+        {
+          "phases": [
+            "phase-2-tests",
+            "phase-3-remove-sidebars"
+          ],
+          "reason": "Tests creation can happen in parallel with sidebar cleanup after audit"
+        }
+      ],
+      "recommended_workers": 1,
+      "speedup_estimate": "Minimal - sequential cleanup is safer for this refactor"
+    },
+    "startup_command": "source .auto-claude/.venv/bin/activate && python .auto-claude/run.py --spec 004 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "phase-2-tests",
+    "test_types_required": [
+      "unit",
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "All existing tests pass",
+      "New Layout and SidebarNav tests pass",
+      "No orphaned component imports remain",
+      "TypeScript compilation succeeds",
+      "Vite build succeeds",
+      "All pages render correctly"
+    ],
+    "verification_steps": [
+      {
+        "name": "TypeScript Check",
+        "command": "npx tsc --noEmit",
+        "expected_outcome": "No type errors",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Unit Tests",
+        "command": "npx vitest run",
+        "expected_outcome": "All tests pass",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Build Check",
+        "command": "npx vite build",
+        "expected_outcome": "Build succeeds",
+        "type": "test",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk refactoring with cross-cutting file deletions requires type checking, unit tests, and build verification to catch broken imports"
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": true,
+      "commands": [
+        "npx vitest run"
+      ],
+      "minimum_coverage": null
+    },
+    "integration_tests": {
+      "required": false,
+      "commands": [],
+      "services_to_test": []
+    },
+    "e2e_tests": {
+      "required": false,
+      "commands": [],
+      "flows": []
+    },
+    "browser_verification": {
+      "required": true,
+      "pages": [
+        {
+          "url": "http://localhost:3000/",
+          "checks": [
+            "Sidebar visible",
+            "Navigation works",
+            "No console errors"
+          ]
+        },
+        {
+          "url": "http://localhost:3000/chat",
+          "checks": [
+            "Layout consistent",
+            "Chat loads"
+          ]
+        },
+        {
+          "url": "http://localhost:3000/settings",
+          "checks": [
+            "Layout consistent",
+            "Settings tabs work"
+          ]
+        },
+        {
+          "url": "http://localhost:3000/sorting-tagging",
+          "checks": [
+            "Layout consistent",
+            "Content loads"
+          ]
+        }
+      ]
+    },
+    "database_verification": {
+      "required": false,
+      "checks": []
+    }
+  },
+  "qa_signoff": null,
+  "files_summary": {
+    "canonical_components": {
+      "navigation": "src/components/ui/sidebar-nav.tsx",
+      "layout": "src/components/Layout.tsx",
+      "responsive_layout": "src/components/layout/CallVaultLayout.tsx",
+      "topbar": "src/components/ui/top-bar.tsx"
+    },
+    "files_to_delete": [
+      "src/components/layout/loop/PrimarySidebar.tsx",
+      "src/components/layout/loop/AppShell.tsx",
+      "src/components/layout/loop/MainLayout.tsx",
+      "src/components/layout/loop/SecondaryPanel.tsx",
+      "src/components/contextual/PrimarySidebar.tsx",
+      "src/components/contextual/AppShellV2.tsx",
+      "src/components/contextual/SecondaryPanel.tsx",
+      "src/components/contextual/index.ts",
+      "src/components/contextual/panels/AIAssistantPanel.tsx",
+      "src/components/contextual/panels/CallDetailPanel.tsx",
+      "src/components/contextual/panels/FilterToolPanel.tsx",
+      "src/components/contextual/panels/InsightDetailPanel.tsx",
+      "src/components/contextual/panels/InspectorPanel.tsx",
+      "src/components/contextual/panels/WorkspaceDetailPanel.tsx",
+      "src/components/loop/Sidebar.tsx",
+      "src/components/loop/AppShell.tsx",
+      "src/components/loop/TopBar.tsx",
+      "src/components/LoopShell.tsx",
+      "src/App_Original.tsx",
+      "src/App_Loop.tsx"
+    ],
+    "files_to_keep_in_loop": [
+      "src/components/loop/AIStatusWidget.tsx",
+      "src/components/loop/AutoProcessingToggle.tsx",
+      "src/components/loop/ContentGenerator.tsx",
+      "src/components/loop/InsightCard.tsx",
+      "src/components/loop/WorkspaceCard.tsx",
+      "src/components/loop/index.ts"
+    ],
+    "files_to_create": [
+      "src/components/__tests__/Layout.test.tsx",
+      "src/components/ui/__tests__/sidebar-nav.test.tsx",
+      ".auto-claude/specs/004-audit-and-consolidate-duplicate-ui-components/ORPHAN_AUDIT.md"
+    ]
+  },
+  "last_updated": "2026-01-01T10:20:35.015342+00:00"
+}

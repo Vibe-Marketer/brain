@@ -1,0 +1,70 @@
+=== AUTO-BUILD PROGRESS ===
+
+Project: Component Deduplication & Reusability Audit
+Workspace: /Users/Naegele/dev/brain
+Started: 2026-01-01
+
+Workflow Type: refactor
+Rationale: Staged refactoring task that removes orphaned code while preserving existing functionality. Follows pattern: verify -> add tests -> migrate -> remove old -> verify.
+
+Session 1 (Planner):
+- Completed deep codebase investigation
+- Verified canonical vs orphaned components
+- Created implementation_plan.json with 7 phases and 15 subtasks
+- Created init.sh startup script
+
+Phase Summary:
+- Phase 1 (Audit & Verification): 1 subtask, no dependencies
+- Phase 2 (Create Canonical Component Tests): 2 subtasks, depends on phase-1
+- Phase 3 (Remove Orphaned Sidebar Duplicates): 3 subtasks, depends on phase-1
+- Phase 4 (Remove Orphaned Layout Shells): 4 subtasks, depends on phase-3
+- Phase 5 (Remove Orphaned App Entry Points): 1 subtask, depends on phase-4
+- Phase 6 (Update Loop Directory Index): 1 subtask, depends on phase-4
+- Phase 7 (Final Verification): 3 subtasks, depends on phase-5, phase-6
+
+Services Involved:
+- main (frontend): React/TypeScript/Vite application
+
+Canonical Components Identified:
+- Navigation: src/components/ui/sidebar-nav.tsx (actively used by 5+ pages)
+- Layout: src/components/Layout.tsx (used by App.tsx)
+- Responsive Layout: src/components/layout/CallVaultLayout.tsx (best architecture, available for future use)
+- TopBar: src/components/ui/top-bar.tsx (used by Layout.tsx)
+
+Files to Delete (20 orphaned):
+- 3 sidebar duplicates (layout/loop/PrimarySidebar, contextual/PrimarySidebar, loop/Sidebar)
+- 4 layout/shell duplicates (layout/loop/*, contextual/*, LoopShell)
+- 6 contextual panel duplicates (contextual/panels/*)
+- 2 orphaned entry points (App_Original.tsx, App_Loop.tsx)
+- 2 orphaned loop components (loop/AppShell, loop/TopBar)
+- 3 index/support files (contextual/index.ts, contextual/SecondaryPanel, layout/loop/SecondaryPanel)
+
+Files to Keep in loop/:
+- AIStatusWidget.tsx, AutoProcessingToggle.tsx, ContentGenerator.tsx
+- InsightCard.tsx, WorkspaceCard.tsx, index.ts (actively imported)
+
+Files to Create:
+- src/components/__tests__/Layout.test.tsx (unit tests)
+- src/components/ui/__tests__/sidebar-nav.test.tsx (unit tests)
+- ORPHAN_AUDIT.md (documentation)
+
+Parallelism Analysis:
+- Max parallel phases: 2
+- Recommended workers: 1 (sequential is safer for refactor)
+- Parallel groups: [phase-2-tests, phase-3-remove-sidebars] can run together
+
+Verification Strategy:
+- Risk Level: medium
+- Tests Required: unit, integration
+- Verification Steps: TypeScript check, Vitest run, Vite build
+
+=== STARTUP COMMAND ===
+
+To continue building this spec, run:
+
+  source .auto-claude/.venv/bin/activate && python .auto-claude/run.py --spec 004 --parallel 1
+
+Development server (for manual testing):
+  cd /Users/Naegele/dev/brain && npm run dev
+
+=== END SESSION 1 ===
