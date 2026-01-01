@@ -10,7 +10,7 @@ import { createOpenAI } from '@ai-sdk/openai';
 
 // Initialize OpenAI client (uses env vars automatically)
 const openai = createOpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY || '',
 });
 
 export interface PROFITSInsights {

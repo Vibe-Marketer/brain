@@ -2,19 +2,20 @@
  * Sidebar Navigation
  *
  * Navigation icons that sit at the top of the sidebar.
- * Uses the same glossy 3D icon style as the MacOS dock.
- * Shows active state with vibe orange indicator dot.
+ * Loop-inspired design with clean, modern aesthetics.
+ * Uses Remix Icons (no emojis per brand guidelines).
  *
  * ## Design Specification
  *
  * - **Position**: Top of sidebar, above folder list
- * - **Layout**: Horizontal row of icons (expanded) or vertical column (collapsed)
- * - **Size**: 44x44px icon buttons with 12x12 inner icons
+ * - **Layout**: Vertical column with icons and labels
+ * - **Size**: 44x44px icon buttons (collapsed) or full-width items (expanded)
  * - **Styling**:
- *   - Glossy white gradient background
- *   - Subtle border and shadow
- *   - Active state: small orange dot below
- * - **Separator**: Thin gray line below nav section
+ *   - Clean, modern appearance
+ *   - Glossy 3D icons in collapsed mode
+ *   - Active state: left border indicator (vibe orange)
+ *   - Hover: subtle background highlight
+ * - **Separator**: Thin gray line between sections
  *
  * @pattern sidebar-nav
  * @brand-version v4.1
@@ -22,7 +23,14 @@
 
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { RiHome4Fill, RiChat1Fill, RiPriceTag3Fill, RiSettings3Fill } from '@remixicon/react';
+import {
+  RiHome4Fill,
+  RiChat1Fill,
+  RiPriceTag3Fill,
+  RiSettings3Fill,
+  RiLayoutColumnLine,
+  RiAddLine
+} from '@remixicon/react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
@@ -131,6 +139,10 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
           const active = isActive(item);
           return (
             <div key={item.id} className="relative flex flex-col mb-1">
+              {/* Active indicator - left border (Loop-style) - visible in expanded mode */}
+              {active && !isCollapsed && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-cb-vibe-orange rounded-r-full" />
+              )}
               <button
                 type="button"
                 onClick={() => navigate(item.path)}
@@ -139,7 +151,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
                   'rounded-xl transition-all duration-200',
                   'hover:bg-gray-100 dark:hover:bg-white/10',
-                  active && !isCollapsed && 'bg-gray-100 dark:bg-white/10 font-semibold',
+                  active && !isCollapsed && 'bg-cb-vibe-orange/10 dark:bg-cb-vibe-orange/20 text-cb-vibe-orange',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
                 )}
                 title={item.name}
@@ -151,13 +163,16 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   )}>
                      {isCollapsed ? <NavIcon isActive={active}>{item.icon}</NavIcon> : item.icon}
                   </div>
-                  
+
                   {/* Label - Visible only when expanded */}
                   {!isCollapsed && (
-                      <span className="text-sm text-foreground truncate">{item.name}</span>
+                      <span className={cn(
+                        "text-sm truncate transition-colors",
+                        active ? "font-semibold text-cb-vibe-orange" : "text-foreground"
+                      )}>{item.name}</span>
                   )}
               </button>
-              
+
                {/* Active indicator dot (Only in collapsed mode) */}
               {active && isCollapsed && (
                 <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cb-vibe-orange" />
@@ -182,7 +197,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 'hover:bg-gray-100 dark:hover:bg-white/10',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
               )}
-              title="Toggle Library"
+              title="Toggle Library Panel"
             >
                <div className={cn(
                       "flex-shrink-0 flex items-center justify-center",
@@ -190,17 +205,13 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   )}>
                   {isCollapsed ? (
                       <NavIcon>
-                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={iconClass}>
-                            <path d="M3 4H21V20H3V4ZM5 6V18H19V6H5ZM7 8H17V10H7V8ZM7 11H17V13H7V11ZM7 14H17V16H7V14Z" /> 
-                        </svg>
+                        <RiLayoutColumnLine className={iconClass} />
                       </NavIcon>
                   ) : (
-                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                            <path d="M3 4H21V20H3V4ZM5 6V18H19V6H5ZM7 8H17V10H7V8ZM7 11H17V13H7V11ZM7 14H17V16H7V14Z" /> 
-                        </svg>
+                    <RiLayoutColumnLine className="w-5 h-5" />
                   )}
               </div>
-              {!isCollapsed && <span className="text-sm text-foreground truncate">Library Panel</span>}
+              {!isCollapsed && <span className="text-sm text-muted-foreground truncate">Library Panel</span>}
             </button>
              {isCollapsed && <div className="w-8 h-px bg-cb-border mt-2 mx-auto" />}
           </div>
@@ -219,7 +230,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 'hover:bg-gray-100 dark:hover:bg-white/10',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
               )}
-              title="Sync / Import"
+              title="Sync & Import"
             >
                <div className={cn(
                       "flex-shrink-0 flex items-center justify-center",
@@ -227,18 +238,13 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   )}>
                    {isCollapsed ? (
                        <NavIcon>
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={iconClass}>
-                            <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z" />
-                        </svg>
+                        <RiAddLine className={iconClass} />
                       </NavIcon>
                    ) : (
-                       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                            <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z" />
-                        </svg>
+                    <RiAddLine className="w-5 h-5" />
                    )}
-                   
               </div>
-              {!isCollapsed && <span className="text-sm font-medium text-foreground truncate">Sync & Import</span>}
+              {!isCollapsed && <span className="text-sm font-medium text-cb-vibe-orange truncate">Sync & Import</span>}
             </button>
           </div>
         )}

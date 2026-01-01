@@ -47,3 +47,6 @@ migration-export-*.json
 PROJECT_INDEX.md
 PROJECT_INDEX.json
 test-results/
+
+# Auto Claude data directory
+.auto-claude/

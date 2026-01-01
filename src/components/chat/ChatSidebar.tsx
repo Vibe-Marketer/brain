@@ -248,41 +248,39 @@ export function ChatSidebar({
 
   return (
     <>
-      {/* Sidebar wrapper - simplified, integrated panel style */}
+      {/* Sidebar wrapper - matches Library panel styling from LoopLayoutDemo */}
       <div
-        className="h-full flex flex-col rounded-overflow"
+        className="h-full flex flex-col"
         data-component="SIDEBAR"
       >
-        {/* Header - simplified, no border */}
-        <div className="flex items-center justify-between">
-          <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
-            AI Chat
-          </h1>
-          <div className="flex gap-1">
+        {/* Header - matches Library panel styling */}
+        <div className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-white/50 dark:bg-black/20">
+          <h2 className="text-sm font-semibold text-foreground tracking-tight uppercase">AI Chat</h2>
+          <div className="flex items-center gap-1">
              {/* Bulk Selection Toggle */}
              {sessions.length > 0 && (
-              <Button 
-                variant="ghost" 
-                size="icon" 
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={() => {
                   setIsSelectionMode(!isSelectionMode);
                   setSelectedSessions([]);
                 }}
-                className={isSelectionMode ? "bg-cb-hover text-cb-ink" : ""}
+                className={`h-6 w-6 rounded-full ${isSelectionMode ? "bg-cb-hover text-cb-ink" : ""}`}
                 aria-label={isSelectionMode ? "Cancel selection" : "Select chats"}
               >
-                {isSelectionMode ? <RiCloseLine className="h-4 w-4" /> : <RiListCheck className="h-4 w-4" />}
+                {isSelectionMode ? <RiCloseLine className="w-4 h-4 opacity-70" /> : <RiListCheck className="w-4 h-4 opacity-70" />}
               </Button>
             )}
-            <Button variant="ghost" size="icon" onClick={onNewChat} aria-label="New chat">
-              <RiAddLine className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={onNewChat} aria-label="New chat">
+              <RiAddLine className="w-4 h-4 opacity-70" />
             </Button>
           </div>
         </div>
         
         {/* Bulk Actions Header */}
         {isSelectionMode && (
-          <div className="px-2 pb-2 flex items-center justify-between animate-in slide-in-from-top-2">
+          <div className="px-4 py-2 flex items-center justify-between animate-in slide-in-from-top-2 bg-white/30 dark:bg-black/10">
             <div className="flex items-center gap-2">
                <Checkbox 
                   checked={selectedSessions.length === sessions.length && sessions.length > 0}
@@ -305,9 +303,10 @@ export function ChatSidebar({
           </div>
         )}
 
-        {/* Sessions list - compact padding */}
-        <ScrollArea className="flex-1 overflow-hidden min-w-0">
-          <div className="p-2 space-y-0.5 overflow-hidden">
+        {/* Sessions list - matches Library panel styling */}
+        <div className="flex-1 overflow-hidden pt-2">
+          <ScrollArea className="h-full">
+            <div className="px-2 space-y-0.5">
             {/* Pinned sessions */}
             {pinnedSessions.length > 0 && (
               <div className="mb-2">
@@ -364,8 +363,9 @@ export function ChatSidebar({
                 <p className="text-xs text-cb-ink-muted">Start a new chat</p>
               </div>
             )}
-          </div>
-        </ScrollArea>
+            </div>
+          </ScrollArea>
+        </div>
       </div>
 
       {/* Delete confirmation dialog */}

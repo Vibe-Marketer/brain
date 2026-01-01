@@ -15,7 +15,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   // Pages that provide their own container/layout (no card wrapper)
   const isChatPage = location.pathname.startsWith('/chat');
   const isTranscriptsPage = location.pathname === '/' || location.pathname === '/transcripts';
-  const usesCustomLayout = isChatPage || isTranscriptsPage;
+  const isSortingPage = location.pathname === '/sorting-tagging';
+  const isSettingsPage = location.pathname === '/settings';
+  const usesCustomLayout = isChatPage || isTranscriptsPage || isSortingPage || isSettingsPage;
 
   return (
     <div
