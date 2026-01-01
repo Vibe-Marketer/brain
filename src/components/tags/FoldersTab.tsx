@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useFolders, type Folder } from "@/hooks/useFolders";
 import {
   Table,
@@ -9,6 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { RiAddLine, RiDeleteBinLine, RiFolderLine } from "@remixicon/react";
 import { isEmojiIcon, getIconComponent } from "@/lib/folder-icons";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
@@ -26,14 +27,67 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { usePanelStore } from "@/stores/panelStore";
 
 export function FoldersTab() {
-  const { folders, folderAssignments, deleteFolder, isLoading, refetch } = useFolders();
+  const { folders, folderAssignments, deleteFolder, updateFolder, isLoading, refetch } = useFolders();
   const { openPanel, panelData, panelType } = usePanelStore();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteConfirmFolder, setDeleteConfirmFolder] = useState<Folder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Inline rename state
+  const [editingFolderId, setEditingFolderId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const editInputRef = useRef<HTMLInputElement>(null);
+
   // Track selected folder for visual highlighting
   const selectedFolderId = panelType === 'folder-detail' ? panelData?.folderId : null;
+
+  // Focus input when entering edit mode
+  useEffect(() => {
+    if (editingFolderId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingFolderId]);
+
+  // Start inline rename on double-click
+  const handleStartRename = (folder: Folder, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingFolderId(folder.id);
+    setEditName(folder.name);
+  };
+
+  // Save the renamed folder
+  const handleSaveRename = async () => {
+    if (!editingFolderId || !editName.trim()) {
+      setEditingFolderId(null);
+      setEditName("");
+      return;
+    }
+
+    try {
+      await updateFolder(editingFolderId, { name: editName.trim() });
+    } finally {
+      setEditingFolderId(null);
+      setEditName("");
+    }
+  };
+
+  // Cancel rename and restore original name
+  const handleCancelRename = () => {
+    setEditingFolderId(null);
+    setEditName("");
+  };
+
+  // Handle keyboard events in rename input
+  const handleRenameKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSaveRename();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelRename();
+    }
+  };
 
   const handleFolderClick = (folder: Folder) => {
     openPanel('folder-detail', { folderId: folder.id });
@@ -85,6 +139,7 @@ export function FoldersTab() {
     const isEmoji = isEmojiIcon(folder.icon);
     const sortedChildren = children.sort((a, b) => a.position - b.position);
     const isSelected = selectedFolderId === folder.id;
+    const isEditing = editingFolderId === folder.id;
 
     return (
       <React.Fragment key={folder.id}>
@@ -94,7 +149,7 @@ export function FoldersTab() {
               ? "bg-cb-hover dark:bg-cb-hover-dark"
               : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
           }`}
-          onClick={() => handleFolderClick(folder)}
+          onClick={() => !isEditing && handleFolderClick(folder)}
         >
           <TableCell style={{ paddingLeft: `${depth * 24 + 16}px` }}>
             <div className="flex items-center gap-2">
@@ -105,8 +160,27 @@ export function FoldersTab() {
               ) : (
                 <RiFolderLine className="h-4 w-4" style={{ color: folder.color }} />
               )}
-              <span className="font-medium">{folder.name}</span>
-              {folder.description && (
+              {isEditing ? (
+                <Input
+                  ref={editInputRef}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={handleRenameKeyDown}
+                  onBlur={handleSaveRename}
+                  onClick={(e) => e.stopPropagation()}
+                  className="h-7 w-48 text-sm font-medium"
+                  autoFocus
+                />
+              ) : (
+                <span
+                  className="font-medium cursor-text"
+                  onDoubleClick={(e) => handleStartRename(folder, e)}
+                  title="Double-click to rename"
+                >
+                  {folder.name}
+                </span>
+              )}
+              {!isEditing && folder.description && (
                 <span className="text-cb-ink-muted text-xs">- {folder.description}</span>
               )}
             </div>
