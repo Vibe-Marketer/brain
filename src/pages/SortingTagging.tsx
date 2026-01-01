@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { usePanelStore } from "@/stores/panelStore";
 import { FolderDetailPanel } from "@/components/panels/FolderDetailPanel";
 import { TagDetailPanel } from "@/components/panels/TagDetailPanel";
+import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 
 type TabValue = "folders" | "tags" | "rules" | "recurring";
 
@@ -48,8 +49,22 @@ export default function SortingTagging() {
   const [showMobileNav, setShowMobileNav] = useState(false); // Mobile nav overlay
 
   // --- Panel Store ---
-  const { isPanelOpen, panelType, panelData } = usePanelStore();
+  const { isPanelOpen, panelType, panelData, closePanel } = usePanelStore();
   const showRightPanel = isPanelOpen && (panelType === 'folder-detail' || panelType === 'tag-detail');
+
+  // --- Keyboard Shortcuts ---
+  // Escape: Close the detail panel
+  const handleEscapeShortcut = useCallback(() => {
+    if (showRightPanel) {
+      closePanel();
+    }
+  }, [showRightPanel, closePanel]);
+
+  useKeyboardShortcut(handleEscapeShortcut, {
+    key: 'Escape',
+    cmdOrCtrl: false,
+    enabled: showRightPanel
+  });
 
   // Close mobile overlays when breakpoint changes away from mobile
   useEffect(() => {

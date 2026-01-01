@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import { useFolders, type Folder } from "@/hooks/useFolders";
 import {
   Table,
@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePanelStore } from "@/stores/panelStore";
+import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 
 export function FoldersTab() {
   const { folders, folderAssignments, deleteFolder, updateFolder, createFolder, isLoading, refetch } = useFolders();
@@ -47,6 +48,38 @@ export function FoldersTab() {
 
   // Track selected folder for visual highlighting
   const selectedFolderId = panelType === 'folder-detail' ? panelData?.folderId : null;
+
+  // Get the currently selected folder object
+  const selectedFolder = useMemo(() => {
+    if (!selectedFolderId) return null;
+    return folders.find(f => f.id === selectedFolderId) || null;
+  }, [selectedFolderId, folders]);
+
+  // --- Keyboard Shortcuts ---
+  // Cmd+N: Open create folder dialog
+  const handleCreateShortcut = useCallback(() => {
+    setCreateDialogOpen(true);
+  }, []);
+
+  // Cmd+E: Edit selected folder (start inline rename)
+  const handleEditShortcut = useCallback(() => {
+    if (selectedFolder) {
+      setEditingFolderId(selectedFolder.id);
+      setEditName(selectedFolder.name);
+    }
+  }, [selectedFolder]);
+
+  // Cmd+Backspace: Delete selected folder
+  const handleDeleteShortcut = useCallback(() => {
+    if (selectedFolder) {
+      setDeleteConfirmFolder(selectedFolder);
+    }
+  }, [selectedFolder]);
+
+  // Register keyboard shortcuts
+  useKeyboardShortcut(handleCreateShortcut, { key: 'n' });
+  useKeyboardShortcut(handleEditShortcut, { key: 'e', enabled: !!selectedFolder });
+  useKeyboardShortcut(handleDeleteShortcut, { key: 'Backspace', enabled: !!selectedFolder });
 
   // Focus input when entering edit mode
   useEffect(() => {

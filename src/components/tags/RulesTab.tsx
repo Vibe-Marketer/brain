@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
@@ -105,6 +106,25 @@ export function RulesTab() {
     priority: 100,
     conditions: {} as RuleConditions,
   });
+
+  // --- Keyboard Shortcuts ---
+  // Cmd+N: Open create rule dialog
+  const handleCreateShortcut = useCallback(() => {
+    setEditingRule(null);
+    setFormData({
+      name: "",
+      description: "",
+      rule_type: "title_exact",
+      tag_id: "",
+      folder_id: "",
+      priority: 100,
+      conditions: {},
+    });
+    setDialogOpen(true);
+  }, []);
+
+  // Register keyboard shortcuts
+  useKeyboardShortcut(handleCreateShortcut, { key: 'n' });
 
   // Fetch rules
   const { data: rules, isLoading: rulesLoading } = useQuery({

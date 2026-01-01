@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { RiLoader2Line, RiQuestionLine } from "@remixicon/react";
@@ -16,6 +16,7 @@ import AdminTab from "@/components/settings/AdminTab";
 import AITab from "@/components/settings/AITab";
 import FathomSetupWizard from "@/components/settings/FathomSetupWizard";
 import { SettingHelpPanel, type SettingHelpTopic } from "@/components/panels/SettingHelpPanel";
+import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 
 export default function Settings() {
   const { loading: roleLoading, isAdmin, isTeam } = useUserRole();
@@ -30,7 +31,7 @@ export default function Settings() {
   const [showMobileNav, setShowMobileNav] = useState(false); // Mobile nav overlay
 
   // --- Panel Store ---
-  const { isPanelOpen, panelType, panelData, openPanel } = usePanelStore();
+  const { isPanelOpen, panelType, panelData, openPanel, closePanel } = usePanelStore();
   const showRightPanel = isPanelOpen && panelType === 'setting-help';
 
   // Determine default tab based on role
@@ -59,6 +60,31 @@ export default function Settings() {
     };
     return topicMap[tab] || "profile";
   };
+
+  // --- Keyboard Shortcuts ---
+  // Escape: Close the help panel
+  const handleEscapeShortcut = useCallback(() => {
+    if (showRightPanel) {
+      closePanel();
+    }
+  }, [showRightPanel, closePanel]);
+
+  // Cmd+/: Toggle help panel for current tab
+  const handleHelpShortcut = useCallback(() => {
+    if (showRightPanel) {
+      closePanel();
+    } else {
+      openHelpPanel(getHelpTopicForTab(currentTab));
+    }
+  }, [showRightPanel, closePanel, currentTab]);
+
+  useKeyboardShortcut(handleEscapeShortcut, {
+    key: 'Escape',
+    cmdOrCtrl: false,
+    enabled: showRightPanel
+  });
+
+  useKeyboardShortcut(handleHelpShortcut, { key: '/' });
 
   // Close mobile overlays when breakpoint changes away from mobile
   useEffect(() => {

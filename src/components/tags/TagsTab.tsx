@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RiPencilLine, RiFileCopyLine, RiDeleteBinLine, RiPriceTag3Line } from "@remixicon/react";
 import { toast } from "sonner";
+import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 
 interface Tag {
   id: string;
@@ -144,6 +145,31 @@ export function TagsTab() {
       return counts;
     },
   });
+
+  // Get the currently selected tag object
+  const selectedTag = useMemo(() => {
+    if (!selectedTagId || !tags) return null;
+    return tags.find(t => t.id === selectedTagId) || null;
+  }, [selectedTagId, tags]);
+
+  // --- Keyboard Shortcuts ---
+  // Cmd+E: Edit selected tag (open detail panel)
+  const handleEditShortcut = useCallback(() => {
+    if (selectedTag) {
+      openPanel('tag-detail', { tagId: selectedTag.id });
+    }
+  }, [selectedTag, openPanel]);
+
+  // Cmd+Backspace: Delete selected tag (non-system tags only)
+  const handleDeleteShortcut = useCallback(() => {
+    if (selectedTag && !selectedTag.is_system) {
+      setDeleteConfirmTag(selectedTag);
+    }
+  }, [selectedTag]);
+
+  // Register keyboard shortcuts
+  useKeyboardShortcut(handleEditShortcut, { key: 'e', enabled: !!selectedTag });
+  useKeyboardShortcut(handleDeleteShortcut, { key: 'Backspace', enabled: !!selectedTag && !selectedTag.is_system });
 
   if (isLoading) {
     return (
