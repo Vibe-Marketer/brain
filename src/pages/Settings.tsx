@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { RiLoader2Line } from "@remixicon/react";
+import { RiLoader2Line, RiQuestionLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { SidebarNav } from "@/components/ui/sidebar-nav";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSetupWizard } from "@/hooks/useSetupWizard";
+import { usePanelStore } from "@/stores/panelStore";
 import AccountTab from "@/components/settings/AccountTab";
 import BillingTab from "@/components/settings/BillingTab";
 import IntegrationsTab from "@/components/settings/IntegrationsTab";
@@ -14,6 +15,7 @@ import UsersTab from "@/components/settings/UsersTab";
 import AdminTab from "@/components/settings/AdminTab";
 import AITab from "@/components/settings/AITab";
 import FathomSetupWizard from "@/components/settings/FathomSetupWizard";
+import { SettingHelpPanel, type SettingHelpTopic } from "@/components/panels/SettingHelpPanel";
 
 export default function Settings() {
   const { loading: roleLoading, isAdmin, isTeam } = useUserRole();
@@ -26,6 +28,37 @@ export default function Settings() {
   // --- Sidebar Logic ---
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true); // Control Nav Rail width (Icon vs Text)
   const [showMobileNav, setShowMobileNav] = useState(false); // Mobile nav overlay
+
+  // --- Panel Store ---
+  const { isPanelOpen, panelType, panelData, openPanel } = usePanelStore();
+  const showRightPanel = isPanelOpen && panelType === 'setting-help';
+
+  // Determine default tab based on role
+  const getDefaultTab = () => {
+    if (!wizardCompleted) return "account";
+    return "account";
+  };
+
+  // Track current tab for contextual help
+  const [currentTab, setCurrentTab] = useState(getDefaultTab());
+
+  // Helper function to open help panel for a specific topic
+  const openHelpPanel = (topic: SettingHelpTopic) => {
+    openPanel('setting-help', { topic });
+  };
+
+  // Get help topic based on current tab
+  const getHelpTopicForTab = (tab: string): SettingHelpTopic => {
+    const topicMap: Record<string, SettingHelpTopic> = {
+      account: "profile",
+      users: "users",
+      billing: "billing",
+      integrations: "integrations",
+      ai: "ai",
+      admin: "admin",
+    };
+    return topicMap[tab] || "profile";
+  };
 
   // Close mobile overlays when breakpoint changes away from mobile
   useEffect(() => {
@@ -45,12 +78,6 @@ export default function Settings() {
       </div>
     );
   }
-
-  // Determine default tab based on role
-  const getDefaultTab = () => {
-    if (!wizardCompleted) return "account";
-    return "account";
-  };
 
   return (
     <>
@@ -123,7 +150,7 @@ export default function Settings() {
 
         {/* PANE 3: Main Content (Settings/Tabs) - No Pane 2 for Settings per spec */}
         <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0 transition-all duration-300">
-          <Tabs defaultValue={getDefaultTab()} className="h-full flex flex-col">
+          <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full flex flex-col">
             {/* Mobile header with hamburger menu */}
             {isMobile && (
               <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40 flex-shrink-0">
@@ -164,13 +191,24 @@ export default function Settings() {
 
             {/* Page Header */}
             <div className="px-4 md:px-10 flex-shrink-0">
-              <div className="mt-2 mb-3">
-                <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
-                  Settings
-                </h1>
-                <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
-                  Manage your account, integrations, and preferences
-                </p>
+              <div className="mt-2 mb-3 flex items-start justify-between">
+                <div>
+                  <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
+                    Settings
+                  </h1>
+                  <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+                    Manage your account, integrations, and preferences
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => openHelpPanel(getHelpTopicForTab(currentTab))}
+                  className="text-muted-foreground hover:text-foreground"
+                  title="Get help for this section"
+                >
+                  <RiQuestionLine className="h-5 w-5" />
+                </Button>
               </div>
             </div>
 
@@ -211,6 +249,18 @@ export default function Settings() {
               )}
             </div>
           </Tabs>
+        </div>
+
+        {/* Right Panel - Settings Help */}
+        <div
+          className={cn(
+            "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full transition-all duration-300 ease-in-out",
+            showRightPanel ? "w-[360px] opacity-100" : "w-0 opacity-0 border-0"
+          )}
+        >
+          {showRightPanel && (
+            <SettingHelpPanel topic={panelData?.topic as SettingHelpTopic} />
+          )}
         </div>
       </div>
 
