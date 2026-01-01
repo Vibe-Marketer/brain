@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { RiLoader2Line, RiQuestionLine } from "@remixicon/react";
+import { RiLoader2Line, RiQuestionLine, RiCloseLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { SidebarNav } from "@/components/ui/sidebar-nav";
-import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { useBreakpointFlags } from "@/hooks/useBreakpoint";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSetupWizard } from "@/hooks/useSetupWizard";
 import { usePanelStore } from "@/stores/panelStore";
@@ -23,12 +23,13 @@ export default function Settings() {
   const { wizardCompleted, loading: wizardLoading, markWizardComplete } = useSetupWizard();
 
   // --- Responsive Breakpoint ---
-  const breakpoint = useBreakpoint();
-  const isMobile = breakpoint === "mobile";
+  const { isMobile, isTablet } = useBreakpointFlags();
 
   // --- Sidebar Logic ---
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true); // Control Nav Rail width (Icon vs Text)
+  // Auto-collapse sidebar on tablet, expanded on desktop
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(!isTablet);
   const [showMobileNav, setShowMobileNav] = useState(false); // Mobile nav overlay
+  const [showMobileBottomSheet, setShowMobileBottomSheet] = useState(false); // Mobile bottom sheet for right panel
 
   // --- Panel Store ---
   const { isPanelOpen, panelType, panelData, openPanel, closePanel } = usePanelStore();
@@ -86,12 +87,35 @@ export default function Settings() {
 
   useKeyboardShortcut(handleHelpShortcut, { key: '/' });
 
+  // Sync tablet sidebar state - auto-collapse on tablet
+  useEffect(() => {
+    if (isTablet) {
+      setIsSidebarExpanded(false);
+    }
+  }, [isTablet]);
+
+  // Sync mobile bottom sheet with panel state
+  useEffect(() => {
+    if (isMobile && showRightPanel) {
+      setShowMobileBottomSheet(true);
+    } else if (!isMobile) {
+      setShowMobileBottomSheet(false);
+    }
+  }, [isMobile, showRightPanel]);
+
   // Close mobile overlays when breakpoint changes away from mobile
   useEffect(() => {
     if (!isMobile) {
       setShowMobileNav(false);
+      setShowMobileBottomSheet(false);
     }
   }, [isMobile]);
+
+  // Handle closing the mobile bottom sheet
+  const handleCloseMobileBottomSheet = useCallback(() => {
+    setShowMobileBottomSheet(false);
+    closePanel();
+  }, [closePanel]);
 
   const handleWizardComplete = async () => {
     await markWizardComplete();
@@ -107,11 +131,14 @@ export default function Settings() {
 
   return (
     <>
-      {/* Mobile overlay backdrop */}
-      {isMobile && showMobileNav && (
+      {/* Mobile overlay backdrop - for nav or bottom sheet */}
+      {isMobile && (showMobileNav || showMobileBottomSheet) && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-          onClick={() => setShowMobileNav(false)}
+          onClick={() => {
+            if (showMobileNav) setShowMobileNav(false);
+            if (showMobileBottomSheet) handleCloseMobileBottomSheet();
+          }}
           aria-hidden="true"
         />
       )}
@@ -298,23 +325,66 @@ export default function Settings() {
           </Tabs>
         </main>
 
-        {/* Right Panel - Settings Help */}
+        {/* Right Panel - Settings Help (tablet and desktop) */}
+        {!isMobile && (
+          <aside
+            role="complementary"
+            aria-label="Settings help panel"
+            aria-hidden={!showRightPanel}
+            tabIndex={showRightPanel ? 0 : -1}
+            className={cn(
+              "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full transition-all duration-300 ease-in-out",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
+              showRightPanel
+                ? isTablet
+                  ? "w-[320px] opacity-100" // Narrower on tablet
+                  : "w-[360px] opacity-100" // Full width on desktop
+                : "w-0 opacity-0 border-0"
+            )}
+          >
+            {showRightPanel && (
+              <SettingHelpPanel topic={panelData?.topic as SettingHelpTopic} />
+            )}
+          </aside>
+        )}
+      </div>
+
+      {/* Mobile Bottom Sheet - Settings Help */}
+      {isMobile && showMobileBottomSheet && (
         <aside
           role="complementary"
           aria-label="Settings help panel"
-          aria-hidden={!showRightPanel}
-          tabIndex={showRightPanel ? 0 : -1}
           className={cn(
-            "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full transition-all duration-300 ease-in-out",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
-            showRightPanel ? "w-[360px] opacity-100" : "w-0 opacity-0 border-0"
+            "fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl border-t border-border/60 shadow-xl flex flex-col",
+            "max-h-[85vh] animate-in slide-in-from-bottom duration-300"
           )}
         >
-          {showRightPanel && (
-            <SettingHelpPanel topic={panelData?.topic as SettingHelpTopic} />
-          )}
+          {/* Bottom sheet handle/header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto"
+                aria-hidden="true"
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleCloseMobileBottomSheet}
+              className="text-muted-foreground hover:text-foreground h-8 w-8"
+              aria-label="Close panel"
+            >
+              <RiCloseLine className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </div>
+          {/* Bottom sheet content */}
+          <div className="flex-1 overflow-y-auto">
+            {showRightPanel && (
+              <SettingHelpPanel topic={panelData?.topic as SettingHelpTopic} />
+            )}
+          </div>
         </aside>
-      </div>
+      )}
 
       {/* Fathom Setup Wizard */}
       {!wizardCompleted && (

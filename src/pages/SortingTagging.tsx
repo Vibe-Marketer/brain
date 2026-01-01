@@ -7,11 +7,12 @@ import { FoldersTab } from "@/components/tags/FoldersTab";
 import { TagsTab } from "@/components/tags/TagsTab";
 import { RulesTab } from "@/components/tags/RulesTab";
 import { RecurringTitlesTab } from "@/components/tags/RecurringTitlesTab";
-import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { useBreakpointFlags } from "@/hooks/useBreakpoint";
 import { usePanelStore } from "@/stores/panelStore";
 import { FolderDetailPanel } from "@/components/panels/FolderDetailPanel";
 import { TagDetailPanel } from "@/components/panels/TagDetailPanel";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
+import { RiCloseLine } from "@remixicon/react";
 
 type TabValue = "folders" | "tags" | "rules" | "recurring";
 
@@ -40,13 +41,14 @@ export default function SortingTagging() {
   const currentConfig = tabConfig[activeTab];
 
   // --- Responsive Breakpoint ---
-  const breakpoint = useBreakpoint();
-  const isMobile = breakpoint === "mobile";
+  const { isMobile, isTablet } = useBreakpointFlags();
 
   // --- Sidebar Logic ---
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true); // Control Nav Rail width (Icon vs Text)
+  // Auto-collapse sidebar on tablet, expanded on desktop
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(!isTablet);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false); // Control Middle Panel visibility (default closed for settings)
   const [showMobileNav, setShowMobileNav] = useState(false); // Mobile nav overlay
+  const [showMobileBottomSheet, setShowMobileBottomSheet] = useState(false); // Mobile bottom sheet for right panel
 
   // --- Panel Store ---
   const { isPanelOpen, panelType, panelData, closePanel } = usePanelStore();
@@ -66,20 +68,46 @@ export default function SortingTagging() {
     enabled: showRightPanel
   });
 
+  // Sync tablet sidebar state - auto-collapse on tablet
+  useEffect(() => {
+    if (isTablet) {
+      setIsSidebarExpanded(false);
+    }
+  }, [isTablet]);
+
+  // Sync mobile bottom sheet with panel state
+  useEffect(() => {
+    if (isMobile && showRightPanel) {
+      setShowMobileBottomSheet(true);
+    } else if (!isMobile) {
+      setShowMobileBottomSheet(false);
+    }
+  }, [isMobile, showRightPanel]);
+
   // Close mobile overlays when breakpoint changes away from mobile
   useEffect(() => {
     if (!isMobile) {
       setShowMobileNav(false);
+      setShowMobileBottomSheet(false);
     }
   }, [isMobile]);
 
+  // Handle closing the mobile bottom sheet
+  const handleCloseMobileBottomSheet = useCallback(() => {
+    setShowMobileBottomSheet(false);
+    closePanel();
+  }, [closePanel]);
+
   return (
     <>
-      {/* Mobile overlay backdrop */}
-      {isMobile && showMobileNav && (
+      {/* Mobile overlay backdrop - for nav or bottom sheet */}
+      {isMobile && (showMobileNav || showMobileBottomSheet) && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-          onClick={() => setShowMobileNav(false)}
+          onClick={() => {
+            if (showMobileNav) setShowMobileNav(false);
+            if (showMobileBottomSheet) handleCloseMobileBottomSheet();
+          }}
           aria-hidden="true"
         />
       )}
@@ -248,7 +276,7 @@ export default function SortingTagging() {
         </Tabs>
       </main>
 
-        {/* PANE 4: Right Panel - Detail view for selected folder/tag */}
+        {/* PANE 4: Right Panel - Detail view for selected folder/tag (tablet and desktop) */}
         {!isMobile && (
           <aside
             role="complementary"
@@ -258,7 +286,11 @@ export default function SortingTagging() {
             className={cn(
               "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden transition-all duration-300 ease-in-out",
               "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
-              showRightPanel ? "w-[360px] opacity-100" : "w-0 opacity-0 border-0"
+              showRightPanel
+                ? isTablet
+                  ? "w-[320px] opacity-100" // Narrower on tablet
+                  : "w-[360px] opacity-100" // Full width on desktop
+                : "w-0 opacity-0 border-0"
             )}
           >
             {showRightPanel && panelType === 'folder-detail' && panelData?.folderId && (
@@ -270,6 +302,46 @@ export default function SortingTagging() {
           </aside>
         )}
     </div>
+
+      {/* Mobile Bottom Sheet - Detail view for selected folder/tag */}
+      {isMobile && showMobileBottomSheet && (
+        <aside
+          role="complementary"
+          aria-label={panelType === 'folder-detail' ? "Folder detail panel" : panelType === 'tag-detail' ? "Tag detail panel" : "Detail panel"}
+          className={cn(
+            "fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl border-t border-border/60 shadow-xl flex flex-col",
+            "max-h-[85vh] animate-in slide-in-from-bottom duration-300"
+          )}
+        >
+          {/* Bottom sheet handle/header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 flex-shrink-0">
+            <div className="flex items-center gap-2">
+              <div
+                className="w-10 h-1 bg-muted-foreground/30 rounded-full mx-auto"
+                aria-hidden="true"
+              />
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleCloseMobileBottomSheet}
+              className="text-muted-foreground hover:text-foreground h-8 w-8"
+              aria-label="Close panel"
+            >
+              <RiCloseLine className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </div>
+          {/* Bottom sheet content */}
+          <div className="flex-1 overflow-y-auto">
+            {showRightPanel && panelType === 'folder-detail' && panelData?.folderId && (
+              <FolderDetailPanel folderId={panelData.folderId} />
+            )}
+            {showRightPanel && panelType === 'tag-detail' && panelData?.tagId && (
+              <TagDetailPanel tagId={panelData.tagId} />
+            )}
+          </div>
+        </aside>
+      )}
   </>
   );
 }
