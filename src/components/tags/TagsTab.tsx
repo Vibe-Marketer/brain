@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePanelStore } from "@/stores/panelStore";
 
 interface Tag {
   id: string;
@@ -20,6 +21,15 @@ interface Tag {
 }
 
 export function TagsTab() {
+  const { openPanel, panelData, panelType } = usePanelStore();
+
+  // Track selected tag for visual highlighting
+  const selectedTagId = panelType === 'tag-detail' ? panelData?.tagId : null;
+
+  const handleTagClick = (tag: Tag) => {
+    openPanel('tag-detail', { tagId: tag.id });
+  };
+
   // Fetch tags
   const { data: tags, isLoading } = useQuery({
     queryKey: ["call-tags"],
@@ -92,28 +102,39 @@ export function TagsTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tags?.map((tag) => (
-              <TableRow key={tag.id}>
-                <TableCell>
-                  <div
-                    className="w-6 h-6 rounded-sm"
-                    style={{ backgroundColor: tag.color || "#666" }}
-                  />
-                </TableCell>
-                <TableCell className="font-medium">{tag.name}</TableCell>
-                <TableCell className="text-cb-ink-muted">
-                  {tag.description || "-"}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={tag.is_system ? "secondary" : "outline"}>
-                    {tag.is_system ? "System" : "Custom"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right tabular-nums">
-                  {tagCounts?.[tag.id] || 0}
-                </TableCell>
-              </TableRow>
-            ))}
+            {tags?.map((tag) => {
+              const isSelected = selectedTagId === tag.id;
+              return (
+                <TableRow
+                  key={tag.id}
+                  className={`cursor-pointer transition-colors ${
+                    isSelected
+                      ? "bg-cb-hover dark:bg-cb-hover-dark"
+                      : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
+                  }`}
+                  onClick={() => handleTagClick(tag)}
+                >
+                  <TableCell>
+                    <div
+                      className="w-6 h-6 rounded-sm"
+                      style={{ backgroundColor: tag.color || "#666" }}
+                    />
+                  </TableCell>
+                  <TableCell className="font-medium">{tag.name}</TableCell>
+                  <TableCell className="text-cb-ink-muted">
+                    {tag.description || "-"}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={tag.is_system ? "secondary" : "outline"}>
+                      {tag.is_system ? "System" : "Custom"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {tagCounts?.[tag.id] || 0}
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </div>

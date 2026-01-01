@@ -9,10 +9,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { RiAddLine, RiEditLine, RiDeleteBinLine, RiFolderLine } from "@remixicon/react";
+import { RiAddLine, RiDeleteBinLine, RiFolderLine } from "@remixicon/react";
 import { isEmojiIcon, getIconComponent } from "@/lib/folder-icons";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
-import EditFolderDialog from "@/components/EditFolderDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,13 +23,21 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { usePanelStore } from "@/stores/panelStore";
 
 export function FoldersTab() {
   const { folders, folderAssignments, deleteFolder, isLoading, refetch } = useFolders();
+  const { openPanel, panelData, panelType } = usePanelStore();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editFolder, setEditFolder] = useState<Folder | null>(null);
   const [deleteConfirmFolder, setDeleteConfirmFolder] = useState<Folder | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Track selected folder for visual highlighting
+  const selectedFolderId = panelType === 'folder-detail' ? panelData?.folderId : null;
+
+  const handleFolderClick = (folder: Folder) => {
+    openPanel('folder-detail', { folderId: folder.id });
+  };
 
   // Build hierarchy from flat folder list
   const rootFolders = useMemo(
@@ -77,10 +84,18 @@ export function FoldersTab() {
     const FolderIcon = getIconComponent(folder.icon);
     const isEmoji = isEmojiIcon(folder.icon);
     const sortedChildren = children.sort((a, b) => a.position - b.position);
+    const isSelected = selectedFolderId === folder.id;
 
     return (
       <React.Fragment key={folder.id}>
-        <TableRow>
+        <TableRow
+          className={`cursor-pointer transition-colors ${
+            isSelected
+              ? "bg-cb-hover dark:bg-cb-hover-dark"
+              : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
+          }`}
+          onClick={() => handleFolderClick(folder)}
+        >
           <TableCell style={{ paddingLeft: `${depth * 24 + 16}px` }}>
             <div className="flex items-center gap-2">
               {isEmoji ? (
@@ -104,15 +119,10 @@ export function FoldersTab() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setEditFolder(folder)}
-                title="Edit folder"
-              >
-                <RiEditLine className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setDeleteConfirmFolder(folder)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setDeleteConfirmFolder(folder);
+                }}
                 title="Delete folder"
               >
                 <RiDeleteBinLine className="h-4 w-4 text-destructive" />
@@ -173,17 +183,6 @@ export function FoldersTab() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onFolderCreated={() => {
-          refetch();
-        }}
-      />
-
-      {/* Edit Dialog */}
-      <EditFolderDialog
-        open={!!editFolder}
-        onOpenChange={(open) => !open && setEditFolder(null)}
-        folder={editFolder}
-        onFolderUpdated={() => {
-          setEditFolder(null);
           refetch();
         }}
       />

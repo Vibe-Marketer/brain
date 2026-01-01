@@ -8,6 +8,9 @@ import { TagsTab } from "@/components/tags/TagsTab";
 import { RulesTab } from "@/components/tags/RulesTab";
 import { RecurringTitlesTab } from "@/components/tags/RecurringTitlesTab";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
+import { usePanelStore } from "@/stores/panelStore";
+import { FolderDetailPanel } from "@/components/panels/FolderDetailPanel";
+import { TagDetailPanel } from "@/components/panels/TagDetailPanel";
 
 type TabValue = "folders" | "tags" | "rules" | "recurring";
 
@@ -43,6 +46,10 @@ export default function SortingTagging() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true); // Control Nav Rail width (Icon vs Text)
   const [isLibraryOpen, setIsLibraryOpen] = useState(false); // Control Middle Panel visibility (default closed for settings)
   const [showMobileNav, setShowMobileNav] = useState(false); // Mobile nav overlay
+
+  // --- Panel Store ---
+  const { isPanelOpen, panelType, panelData } = usePanelStore();
+  const showRightPanel = isPanelOpen && (panelType === 'folder-detail' || panelType === 'tag-detail');
 
   // Close mobile overlays when breakpoint changes away from mobile
   useEffect(() => {
@@ -200,6 +207,23 @@ export default function SortingTagging() {
           </div>
         </Tabs>
       </div>
+
+        {/* PANE 4: Right Panel - Detail view for selected folder/tag */}
+        {!isMobile && (
+          <div
+            className={cn(
+              "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden transition-all duration-300 ease-in-out",
+              showRightPanel ? "w-[360px] opacity-100" : "w-0 opacity-0 border-0"
+            )}
+          >
+            {showRightPanel && panelType === 'folder-detail' && panelData?.folderId && (
+              <FolderDetailPanel folderId={panelData.folderId} />
+            )}
+            {showRightPanel && panelType === 'tag-detail' && panelData?.tagId && (
+              <TagDetailPanel tagId={panelData.tagId} />
+            )}
+          </div>
+        )}
     </div>
   </>
   );
