@@ -9,7 +9,12 @@
       "description": "The layout/ directory is now empty after removing the orphaned loop/ subdirectory. May need cleanup if no other layout components are planned.",
       "category": "cleanup",
       "discovered_at": "2026-01-01T10:28:15.834120+00:00"
+    },
+    "src/components/contextual/": {
+      "description": "Deleted entire orphaned contextual/ directory. It contained AppShellV2.tsx, SecondaryPanel.tsx, index.ts, and 6 panel components (AIAssistantPanel, CallDetailPanel, FilterToolPanel, InsightDetailPanel, InspectorPanel, WorkspaceDetailPanel). Only import was from the also-orphaned App_Original.tsx.",
+      "category": "cleanup",
+      "discovered_at": "2026-01-01T10:29:34.837142+00:00"
     }
   },
-  "last_updated": "2026-01-01T10:28:15.834126+00:00"
+  "last_updated": "2026-01-01T10:29:34.837149+00:00"
 }
