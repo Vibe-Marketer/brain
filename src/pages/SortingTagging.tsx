@@ -117,9 +117,13 @@ export default function SortingTagging() {
 
         {/* PANE 1: Navigation Rail (Hidden on mobile, shown as overlay) */}
         {!isMobile && (
-          <div
+          <nav
+            role="navigation"
+            aria-label="Main navigation"
+            tabIndex={0}
             className={cn(
               "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col py-2 h-full z-10 transition-all duration-300 ease-in-out",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
               isSidebarExpanded ? "w-[240px]" : "w-[72px] items-center"
             )}
           >
@@ -141,23 +145,35 @@ export default function SortingTagging() {
               className="w-full flex-1"
               onLibraryToggle={() => setIsLibraryOpen(!isLibraryOpen)}
             />
-          </div>
+          </nav>
         )}
 
         {/* PANE 2: Secondary Panel (Hidden on mobile, collapsible - hidden by default for settings pages) */}
         {!isMobile && (
-          <div
+          <aside
+            role="complementary"
+            aria-label="Library panel"
+            tabIndex={isLibraryOpen ? 0 : -1}
             className={cn(
               "flex-shrink-0 bg-card/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden transition-all duration-500 ease-in-out",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
               isLibraryOpen ? "w-[280px] opacity-100 ml-0" : "w-0 opacity-0 -ml-3 border-0"
             )}
           >
             {/* Empty secondary panel - can be used for future content if needed */}
-          </div>
+          </aside>
         )}
 
         {/* PANE 3: Main Content (Settings/Tabs) */}
-        <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0 transition-all duration-300">
+        <main
+          role="main"
+          aria-label="Sorting and tagging content"
+          tabIndex={0}
+          className={cn(
+            "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0 transition-all duration-300",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
+          )}
+        >
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="h-full flex flex-col">
             {/* Mobile header with hamburger menu */}
             {isMobile && (
@@ -221,13 +237,17 @@ export default function SortingTagging() {
             </TabsContent>
           </div>
         </Tabs>
-      </div>
+      </main>
 
         {/* PANE 4: Right Panel - Detail view for selected folder/tag */}
         {!isMobile && (
-          <div
+          <aside
+            role="complementary"
+            aria-label="Detail panel"
+            tabIndex={showRightPanel ? 0 : -1}
             className={cn(
               "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden transition-all duration-300 ease-in-out",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
               showRightPanel ? "w-[360px] opacity-100" : "w-0 opacity-0 border-0"
             )}
           >
@@ -237,7 +257,7 @@ export default function SortingTagging() {
             {showRightPanel && panelType === 'tag-detail' && panelData?.tagId && (
               <TagDetailPanel tagId={panelData.tagId} />
             )}
-          </div>
+          </aside>
         )}
     </div>
   </>

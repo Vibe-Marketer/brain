@@ -148,9 +148,13 @@ export default function Settings() {
 
         {/* PANE 1: Navigation Rail (Hidden on mobile, shown as overlay) */}
         {!isMobile && (
-          <div
+          <nav
+            role="navigation"
+            aria-label="Main navigation"
+            tabIndex={0}
             className={cn(
               "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col py-2 h-full z-10 transition-all duration-300 ease-in-out",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
               isSidebarExpanded ? "w-[240px]" : "w-[72px] items-center"
             )}
           >
@@ -171,11 +175,19 @@ export default function Settings() {
               isCollapsed={!isSidebarExpanded}
               className="w-full flex-1"
             />
-          </div>
+          </nav>
         )}
 
         {/* PANE 3: Main Content (Settings/Tabs) - No Pane 2 for Settings per spec */}
-        <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0 transition-all duration-300">
+        <main
+          role="main"
+          aria-label="Settings content"
+          tabIndex={0}
+          className={cn(
+            "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0 transition-all duration-300",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
+          )}
+        >
           <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full flex flex-col">
             {/* Mobile header with hamburger menu */}
             {isMobile && (
@@ -275,19 +287,23 @@ export default function Settings() {
               )}
             </div>
           </Tabs>
-        </div>
+        </main>
 
         {/* Right Panel - Settings Help */}
-        <div
+        <aside
+          role="complementary"
+          aria-label="Settings help panel"
+          tabIndex={showRightPanel ? 0 : -1}
           className={cn(
             "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full transition-all duration-300 ease-in-out",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
             showRightPanel ? "w-[360px] opacity-100" : "w-0 opacity-0 border-0"
           )}
         >
           {showRightPanel && (
             <SettingHelpPanel topic={panelData?.topic as SettingHelpTopic} />
           )}
-        </div>
+        </aside>
       </div>
 
       {/* Fathom Setup Wizard */}
