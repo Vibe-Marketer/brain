@@ -134,7 +134,7 @@ export default function Settings() {
       {/* Mobile overlay backdrop - for nav or bottom sheet */}
       {isMobile && (showMobileNav || showMobileBottomSheet) && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-200"
           onClick={() => {
             if (showMobileNav) setShowMobileNav(false);
             if (showMobileBottomSheet) handleCloseMobileBottomSheet();
@@ -184,7 +184,8 @@ export default function Settings() {
             aria-label="Main navigation"
             tabIndex={0}
             className={cn(
-              "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col py-2 h-full z-10 transition-all duration-300 ease-in-out",
+              "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col py-2 h-full z-10",
+              "transition-[width,padding] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width]",
               "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
               isSidebarExpanded ? "w-[240px]" : "w-[72px] items-center"
             )}
@@ -217,7 +218,8 @@ export default function Settings() {
           aria-label="Settings content"
           tabIndex={0}
           className={cn(
-            "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0 transition-all duration-300",
+            "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0",
+            "transition-[flex,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
           )}
         >
@@ -333,13 +335,14 @@ export default function Settings() {
             aria-hidden={!showRightPanel}
             tabIndex={showRightPanel ? 0 : -1}
             className={cn(
-              "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full transition-all duration-300 ease-in-out",
+              "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full",
+              "transition-[width,opacity,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width,transform]",
               "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
               showRightPanel
                 ? isTablet
-                  ? "w-[320px] opacity-100" // Narrower on tablet
-                  : "w-[360px] opacity-100" // Full width on desktop
-                : "w-0 opacity-0 border-0"
+                  ? "w-[320px] opacity-100 translate-x-0" // Narrower on tablet
+                  : "w-[360px] opacity-100 translate-x-0" // Full width on desktop
+                : "w-0 opacity-0 translate-x-4 border-0"
             )}
           >
             {showRightPanel && (
