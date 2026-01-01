@@ -77,7 +77,9 @@
             "command": "test -f src/components/ui/__tests__/sidebar-nav.test.tsx && echo 'OK'",
             "expected": "OK"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Created comprehensive unit tests for SidebarNav component covering rendering, navigation, active states, collapsed/expanded modes, optional callbacks, accessibility, and path matching. Test file verified to exist at src/components/ui/__tests__/sidebar-nav.test.tsx",
+          "updated_at": "2026-01-01T10:23:27.141404+00:00"
         }
       ]
     },
@@ -106,7 +108,9 @@
             "command": "test ! -f src/components/layout/loop/PrimarySidebar.tsx && echo 'DELETED'",
             "expected": "DELETED"
           },
-          "status": "pending"
+          "status": "completed",
+          "notes": "Successfully deleted orphaned layout/loop/PrimarySidebar.tsx. Verified file no longer exists. Committed as cbf75c4.",
+          "updated_at": "2026-01-01T10:24:29.796460+00:00"
         },
         {
           "id": "subtask-3-2",
@@ -522,5 +526,5 @@
       ".auto-claude/specs/004-audit-and-consolidate-duplicate-ui-components/ORPHAN_AUDIT.md"
     ]
   },
-  "last_updated": "2026-01-01T10:20:35.015342+00:00"
+  "last_updated": "2026-01-01T10:24:29.796464+00:00"
 }
