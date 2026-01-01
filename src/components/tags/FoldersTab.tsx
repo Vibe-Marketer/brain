@@ -291,8 +291,20 @@ export function FoldersTab() {
             {rootFolders.map((folder) => renderFolderRow(folder))}
             {folders.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} className="text-center py-8 text-cb-ink-muted">
-                  No folders yet. Create a folder to organize calls.
+                <TableCell colSpan={3} className="p-0">
+                  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                      <RiFolderLine className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">No folders yet</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mb-6">
+                      Create folders to organize your calls. Folders help you browse and find calls but don&apos;t affect AI analysis.
+                    </p>
+                    <Button onClick={() => setCreateDialogOpen(true)}>
+                      <RiAddLine className="h-4 w-4 mr-2" />
+                      Create Folder
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             )}

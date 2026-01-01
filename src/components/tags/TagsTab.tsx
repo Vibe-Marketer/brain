@@ -29,7 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { RiPencilLine, RiFileCopyLine, RiDeleteBinLine } from "@remixicon/react";
+import { RiPencilLine, RiFileCopyLine, RiDeleteBinLine, RiPriceTag3Line } from "@remixicon/react";
 import { toast } from "sonner";
 
 interface Tag {
@@ -184,6 +184,22 @@ export function TagsTab() {
             </TableRow>
           </TableHeader>
           <TableBody>
+            {(!tags || tags.length === 0) && (
+              <TableRow>
+                <TableCell colSpan={5} className="p-0">
+                  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                      <RiPriceTag3Line className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">No tags yet</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mb-6">
+                      Tags classify your calls and control which AI prompts run on each call.
+                      Click on a tag to edit its settings.
+                    </p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
             {tags?.map((tag) => {
               const isSelected = selectedTagId === tag.id;
               return (

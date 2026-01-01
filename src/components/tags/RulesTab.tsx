@@ -39,6 +39,7 @@ import {
   RiFolderLine,
   RiLoader2Line,
   RiPlayLine,
+  RiFlowChart,
 } from "@remixicon/react";
 
 interface RuleConditions {
@@ -543,8 +544,20 @@ export function RulesTab() {
           <TableBody>
             {rules?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-cb-ink-muted">
-                  No rules created yet. Create your first rule to get started.
+                <TableCell colSpan={7} className="p-0">
+                  <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+                    <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                      <RiFlowChart className="h-8 w-8 text-muted-foreground/50" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">No rules yet</h3>
+                    <p className="text-sm text-muted-foreground max-w-sm mb-6">
+                      Create rules to automatically assign tags and folders to incoming calls based on titles, keywords, or patterns.
+                    </p>
+                    <Button onClick={handleOpenCreate}>
+                      <RiAddLine className="h-4 w-4 mr-2" />
+                      Create Rule
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
