@@ -112,12 +112,15 @@ export default function Settings() {
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
           onClick={() => setShowMobileNav(false)}
+          aria-hidden="true"
         />
       )}
 
       {/* Mobile navigation overlay */}
       {isMobile && showMobileNav && (
-        <div
+        <nav
+          role="navigation"
+          aria-label="Mobile navigation menu"
           className={cn(
             "fixed top-0 left-0 bottom-0 w-[280px] bg-card rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col py-2",
             "animate-in slide-in-from-left duration-300"
@@ -129,8 +132,9 @@ export default function Settings() {
               size="icon"
               onClick={() => setShowMobileNav(false)}
               className="text-muted-foreground hover:text-foreground"
+              aria-label="Close navigation menu"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -141,7 +145,7 @@ export default function Settings() {
             isCollapsed={false}
             className="w-full flex-1"
           />
-        </div>
+        </nav>
       )}
 
       <div className="h-full flex gap-3 overflow-hidden p-1">
@@ -165,8 +169,10 @@ export default function Settings() {
                 size="icon"
                 onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
                 className="text-muted-foreground hover:text-foreground"
+                aria-label={isSidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+                aria-expanded={isSidebarExpanded}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-panel-left"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-panel-left" aria-hidden="true"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
               </Button>
               {isSidebarExpanded && <span className="text-sm font-semibold mr-auto ml-2">Menu</span>}
             </div>
@@ -197,8 +203,10 @@ export default function Settings() {
                   size="icon"
                   onClick={() => setShowMobileNav(true)}
                   className="text-muted-foreground hover:text-foreground h-8 w-8"
+                  aria-label="Open navigation menu"
+                  aria-expanded={showMobileNav}
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <line x1="4" y1="6" x2="20" y2="6" />
                     <line x1="4" y1="12" x2="20" y2="12" />
                     <line x1="4" y1="18" x2="20" y2="18" />
@@ -243,9 +251,10 @@ export default function Settings() {
                   size="sm"
                   onClick={() => openHelpPanel(getHelpTopicForTab(currentTab))}
                   className="text-muted-foreground hover:text-foreground"
-                  title="Get help for this section"
+                  aria-label="Get help for this section"
+                  aria-expanded={showRightPanel}
                 >
-                  <RiQuestionLine className="h-5 w-5" />
+                  <RiQuestionLine className="h-5 w-5" aria-hidden="true" />
                 </Button>
               </div>
             </div>
@@ -293,6 +302,7 @@ export default function Settings() {
         <aside
           role="complementary"
           aria-label="Settings help panel"
+          aria-hidden={!showRightPanel}
           tabIndex={showRightPanel ? 0 : -1}
           className={cn(
             "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full transition-all duration-300 ease-in-out",

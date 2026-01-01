@@ -262,20 +262,26 @@ export function TagDetailPanel({
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div
+      className="h-full flex flex-col"
+      role="region"
+      aria-label={`Tag details: ${tag.name}`}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-cb-border">
+      <header className="flex items-center justify-between p-4 border-b border-cb-border">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-6 h-6 rounded-sm flex-shrink-0"
             style={{ backgroundColor: tag.color || "#6B7280" }}
+            role="img"
+            aria-label={`Tag color: ${tag.color || "gray"}`}
           />
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-cb-ink truncate">{tag.name}</h3>
+              <h3 className="font-semibold text-cb-ink truncate" id="tag-panel-title">{tag.name}</h3>
               {tag.is_system && (
                 <Badge variant="secondary" className="flex-shrink-0">
-                  <RiLockLine className="h-3 w-3 mr-1" />
+                  <RiLockLine className="h-3 w-3 mr-1" aria-hidden="true" />
                   System
                 </Badge>
               )}
@@ -285,44 +291,50 @@ export function TagDetailPanel({
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0" role="toolbar" aria-label="Panel actions">
           <Button
             variant="ghost"
             size="sm"
             onClick={togglePin}
-            title={isPinned ? "Unpin panel" : "Pin panel"}
+            aria-label={isPinned ? "Unpin panel" : "Pin panel"}
+            aria-pressed={isPinned}
           >
             {isPinned ? (
-              <RiPushpinFill className="h-4 w-4 text-cb-ink" />
+              <RiPushpinFill className="h-4 w-4 text-cb-ink" aria-hidden="true" />
             ) : (
-              <RiPushpinLine className="h-4 w-4" />
+              <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
             )}
           </Button>
-          <Button variant="ghost" size="sm" onClick={closePanel} title="Close panel">
-            <RiCloseLine className="h-4 w-4" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={closePanel}
+            aria-label="Close panel"
+          >
+            <RiCloseLine className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
-      </div>
+      </header>
 
       {/* Content - scrollable */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-cb-card rounded-lg p-3 border border-cb-border">
+        <div className="grid grid-cols-2 gap-3" role="group" aria-label="Tag statistics">
+          <div className="bg-cb-card rounded-lg p-3 border border-cb-border" aria-label={`${callCount} calls with this tag`}>
             <div className="flex items-center gap-2 text-cb-ink-muted mb-1">
-              <RiPhoneLine className="h-4 w-4" />
+              <RiPhoneLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Calls</span>
             </div>
-            <div className="text-2xl font-semibold text-cb-ink tabular-nums">
+            <div className="text-2xl font-semibold text-cb-ink tabular-nums" aria-hidden="true">
               {callCount}
             </div>
           </div>
-          <div className="bg-cb-card rounded-lg p-3 border border-cb-border">
+          <div className="bg-cb-card rounded-lg p-3 border border-cb-border" aria-label={`Created on ${formatDate(tag.created_at)}`}>
             <div className="flex items-center gap-2 text-cb-ink-muted mb-1">
-              <RiCalendarLine className="h-4 w-4" />
+              <RiCalendarLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Created</span>
             </div>
-            <div className="text-sm font-medium text-cb-ink">
+            <div className="text-sm font-medium text-cb-ink" aria-hidden="true">
               {formatDate(tag.created_at)}
             </div>
           </div>
@@ -330,9 +342,13 @@ export function TagDetailPanel({
 
         {/* System tag notice */}
         {tag.is_system && (
-          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+          <div
+            className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3"
+            role="note"
+            aria-label="System tag information"
+          >
             <div className="flex items-start gap-2">
-              <RiLockLine className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" />
+              <RiLockLine className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5" aria-hidden="true" />
               <div>
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
                   System Tag
@@ -348,8 +364,8 @@ export function TagDetailPanel({
 
         {/* Edit Form - only for non-system tags */}
         {isEditable && (
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }} aria-label="Edit tag form">
+            <h4 className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide" id="edit-tag-heading">
               Edit Tag
             </h4>
 
@@ -361,7 +377,10 @@ export function TagDetailPanel({
                 placeholder="e.g., Sales Call"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                aria-required="true"
+                aria-describedby="tag-name-hint"
               />
+              <span id="tag-name-hint" className="sr-only">Enter a name for this tag</span>
             </div>
 
             {/* Description */}
@@ -372,17 +391,26 @@ export function TagDetailPanel({
                 placeholder="Brief description of this tag"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                aria-label="Tag description"
               />
             </div>
 
             {/* Color picker */}
             <div className="space-y-2">
-              <Label>Color</Label>
-              <div className="flex flex-wrap gap-2">
+              <Label id="color-picker-label">Color</Label>
+              <div
+                className="flex flex-wrap gap-2"
+                role="radiogroup"
+                aria-labelledby="color-picker-label"
+                aria-label="Select a color for this tag"
+              >
                 {TAG_COLORS.map((colorOption) => (
                   <button
                     key={colorOption}
                     type="button"
+                    role="radio"
+                    aria-checked={color === colorOption}
+                    aria-label={`Color ${colorOption}`}
                     className={`w-8 h-8 rounded-md border-2 transition-all ${
                       color === colorOption
                         ? "border-cb-ink scale-110 ring-2 ring-offset-2 ring-cb-ink/20"
@@ -390,12 +418,11 @@ export function TagDetailPanel({
                     }`}
                     style={{ backgroundColor: colorOption }}
                     onClick={() => setColor(colorOption)}
-                    title={colorOption}
                   />
                 ))}
               </div>
             </div>
-          </div>
+          </form>
         )}
 
         {/* Metadata */}
@@ -413,31 +440,37 @@ export function TagDetailPanel({
 
       {/* Footer Actions - only for non-system tags */}
       {isEditable && (
-        <div className="p-4 border-t border-cb-border space-y-2">
+        <footer className="p-4 border-t border-cb-border space-y-2" role="group" aria-label="Tag actions">
           <Button
             className="w-full"
             onClick={handleSave}
             disabled={saving || !name.trim() || !hasChanges}
+            aria-busy={saving}
+            aria-describedby="save-tag-status"
           >
             {saving ? "Saving..." : "Save Changes"}
           </Button>
+          <span id="save-tag-status" className="sr-only">
+            {saving ? "Saving tag changes" : hasChanges ? "Changes ready to save" : "No changes to save"}
+          </span>
           <Button
             variant="hollow"
             className="w-full text-destructive hover:text-destructive"
             onClick={() => setDeleteConfirmOpen(true)}
+            aria-label={`Delete tag ${tag.name}`}
           >
-            <RiDeleteBinLine className="h-4 w-4 mr-2" />
+            <RiDeleteBinLine className="h-4 w-4 mr-2" aria-hidden="true" />
             Delete Tag
           </Button>
-        </div>
+        </footer>
       )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent role="alertdialog" aria-labelledby="delete-tag-dialog-title" aria-describedby="delete-tag-dialog-description">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Tag</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle id="delete-tag-dialog-title">Delete Tag</AlertDialogTitle>
+            <AlertDialogDescription id="delete-tag-dialog-description">
               Are you sure you want to delete &quot;{tag.name}&quot;? This action
               cannot be undone. Calls with this tag will no longer be tagged.
             </AlertDialogDescription>
@@ -448,6 +481,7 @@ export function TagDetailPanel({
               onClick={handleDelete}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              aria-busy={isDeleting}
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>

@@ -237,76 +237,88 @@ export function FolderDetailPanel({
   const isEmoji = isEmojiIcon(folder.icon);
 
   return (
-    <div className="h-full flex flex-col">
+    <div
+      className="h-full flex flex-col"
+      role="region"
+      aria-label={`Folder details: ${folder.name}`}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-cb-border">
+      <header className="flex items-center justify-between p-4 border-b border-cb-border">
         <div className="flex items-center gap-3 min-w-0">
           {isEmoji ? (
-            <span className="text-2xl flex-shrink-0">{folder.icon}</span>
+            <span className="text-2xl flex-shrink-0" aria-hidden="true">{folder.icon}</span>
           ) : FolderIcon ? (
             <FolderIcon
               className="h-6 w-6 flex-shrink-0"
               style={{ color: folder.color }}
+              aria-hidden="true"
             />
           ) : (
             <RiFolderLine
               className="h-6 w-6 flex-shrink-0"
               style={{ color: folder.color }}
+              aria-hidden="true"
             />
           )}
           <div className="min-w-0">
-            <h3 className="font-semibold text-cb-ink truncate">{folder.name}</h3>
+            <h3 className="font-semibold text-cb-ink truncate" id="folder-panel-title">{folder.name}</h3>
             {folder.description && (
               <p className="text-xs text-cb-ink-muted truncate">{folder.description}</p>
             )}
           </div>
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0" role="toolbar" aria-label="Panel actions">
           <Button
             variant="ghost"
             size="sm"
             onClick={togglePin}
-            title={isPinned ? "Unpin panel" : "Pin panel"}
+            aria-label={isPinned ? "Unpin panel" : "Pin panel"}
+            aria-pressed={isPinned}
           >
             {isPinned ? (
-              <RiPushpinFill className="h-4 w-4 text-cb-ink" />
+              <RiPushpinFill className="h-4 w-4 text-cb-ink" aria-hidden="true" />
             ) : (
-              <RiPushpinLine className="h-4 w-4" />
+              <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
             )}
           </Button>
-          <Button variant="ghost" size="sm" onClick={closePanel} title="Close panel">
-            <RiCloseLine className="h-4 w-4" />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={closePanel}
+            aria-label="Close panel"
+          >
+            <RiCloseLine className="h-4 w-4" aria-hidden="true" />
           </Button>
         </div>
-      </div>
+      </header>
 
       {/* Content - scrollable */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-cb-card rounded-lg p-3 border border-cb-border">
+        <div className="grid grid-cols-2 gap-3" role="group" aria-label="Folder statistics">
+          <div className="bg-cb-card rounded-lg p-3 border border-cb-border" aria-label={`${callCount} calls in this folder`}>
             <div className="flex items-center gap-2 text-cb-ink-muted mb-1">
-              <RiPhoneLine className="h-4 w-4" />
+              <RiPhoneLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Calls</span>
             </div>
-            <div className="text-2xl font-semibold text-cb-ink tabular-nums">
+            <div className="text-2xl font-semibold text-cb-ink tabular-nums" aria-hidden="true">
               {callCount}
             </div>
           </div>
-          <div className="bg-cb-card rounded-lg p-3 border border-cb-border">
+          <div className="bg-cb-card rounded-lg p-3 border border-cb-border" aria-label={`Created on ${formatDate(folder.created_at)}`}>
             <div className="flex items-center gap-2 text-cb-ink-muted mb-1">
-              <RiCalendarLine className="h-4 w-4" />
+              <RiCalendarLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Created</span>
             </div>
-            <div className="text-sm font-medium text-cb-ink">
+            <div className="text-sm font-medium text-cb-ink" aria-hidden="true">
               {formatDate(folder.created_at)}
             </div>
           </div>
         </div>
 
         {/* Edit Form */}
-        <div className="space-y-4">
-          <h4 className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }} aria-label="Edit folder form">
+          <h4 className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide" id="edit-folder-heading">
             Edit Folder
           </h4>
 
@@ -314,26 +326,29 @@ export function FolderDetailPanel({
           <div className="space-y-2">
             <Label htmlFor="folder-name">Folder Name</Label>
             <div className="flex items-center gap-2">
-              <button
-                type="button"
-                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-cb-border bg-cb-card hover:bg-cb-hover transition-colors flex-shrink-0"
-                title="Selected icon"
+              <span
+                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-cb-border bg-cb-card flex-shrink-0"
+                aria-label={`Selected icon: ${emoji}`}
+                role="img"
               >
                 {emoji}
-              </button>
+              </span>
               <Input
                 id="folder-name"
                 placeholder="e.g., Client Meetings"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="flex-1"
+                aria-required="true"
+                aria-describedby="folder-name-hint"
               />
             </div>
+            <span id="folder-name-hint" className="sr-only">Enter a name for this folder</span>
           </div>
 
           {/* Emoji picker inline */}
           <div className="space-y-2">
-            <Label>Icon</Label>
+            <Label id="icon-picker-label">Icon</Label>
             <EmojiPickerInline value={emoji} onChange={setEmoji} />
           </div>
 
@@ -367,6 +382,7 @@ export function FolderDetailPanel({
                 id="show-description"
                 checked={showDescription}
                 onCheckedChange={(checked) => setShowDescription(checked === true)}
+                aria-describedby="description-toggle-hint"
               />
               <Label
                 htmlFor="show-description"
@@ -375,16 +391,18 @@ export function FolderDetailPanel({
                 Add description
               </Label>
             </div>
+            <span id="description-toggle-hint" className="sr-only">Check to add an optional description to this folder</span>
             {showDescription && (
               <Input
                 id="folder-description"
                 placeholder="Brief description of this folder"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
+                aria-label="Folder description"
               />
             )}
           </div>
-        </div>
+        </form>
 
         {/* Metadata */}
         <div className="space-y-2 pt-4 border-t border-cb-border">
@@ -399,30 +417,36 @@ export function FolderDetailPanel({
       </div>
 
       {/* Footer Actions */}
-      <div className="p-4 border-t border-cb-border space-y-2">
+      <footer className="p-4 border-t border-cb-border space-y-2" role="group" aria-label="Folder actions">
         <Button
           className="w-full"
           onClick={handleSave}
           disabled={saving || !name.trim() || !hasChanges}
+          aria-busy={saving}
+          aria-describedby="save-status"
         >
           {saving ? "Saving..." : "Save Changes"}
         </Button>
+        <span id="save-status" className="sr-only">
+          {saving ? "Saving folder changes" : hasChanges ? "Changes ready to save" : "No changes to save"}
+        </span>
         <Button
           variant="hollow"
           className="w-full text-destructive hover:text-destructive"
           onClick={() => setDeleteConfirmOpen(true)}
+          aria-label={`Delete folder ${folder.name}`}
         >
-          <RiDeleteBinLine className="h-4 w-4 mr-2" />
+          <RiDeleteBinLine className="h-4 w-4 mr-2" aria-hidden="true" />
           Delete Folder
         </Button>
-      </div>
+      </footer>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent role="alertdialog" aria-labelledby="delete-dialog-title" aria-describedby="delete-dialog-description">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle id="delete-dialog-title">Delete Folder</AlertDialogTitle>
+            <AlertDialogDescription id="delete-dialog-description">
               Are you sure you want to delete &quot;{folder.name}&quot;? This action
               cannot be undone. Calls in this folder will not be deleted but will no
               longer be assigned to this folder.
@@ -434,6 +458,7 @@ export function FolderDetailPanel({
               onClick={handleDelete}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              aria-busy={isDeleting}
             >
               {isDeleting ? "Deleting..." : "Delete"}
             </AlertDialogAction>
