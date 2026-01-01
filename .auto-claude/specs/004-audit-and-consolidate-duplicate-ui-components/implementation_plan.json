@@ -226,8 +226,9 @@
             "command": "test ! -f src/components/loop/AppShell.tsx && test ! -f src/components/loop/TopBar.tsx && echo 'DELETED'",
             "expected": "DELETED"
           },
-          "status": "pending",
-          "notes": "Keep other loop/ components (InsightCard, WorkspaceCard, etc.) as they are actively used"
+          "status": "completed",
+          "notes": "Deleted orphaned loop/AppShell.tsx and loop/TopBar.tsx. Also cleaned up loop/index.ts to remove stale exports for AppShell, TopBar, and Sidebar.",
+          "updated_at": "2026-01-01T10:31:30.463490+00:00"
         },
         {
           "id": "subtask-4-4",
@@ -244,7 +245,9 @@
             "command": "test ! -f src/components/LoopShell.tsx && echo 'DELETED'",
             "expected": "DELETED"
           },
-          "status": "pending"
+          "status": "in_progress",
+          "notes": "Deleting orphaned LoopShell.tsx component",
+          "updated_at": "2026-01-01T10:32:37.594073+00:00"
         }
       ]
     },
@@ -532,5 +535,5 @@
       ".auto-claude/specs/004-audit-and-consolidate-duplicate-ui-components/ORPHAN_AUDIT.md"
     ]
   },
-  "last_updated": "2026-01-01T10:29:28.142650+00:00"
+  "last_updated": "2026-01-01T10:32:37.594078+00:00"
 }

@@ -14,7 +14,12 @@
       "description": "Deleted entire orphaned contextual/ directory. It contained AppShellV2.tsx, SecondaryPanel.tsx, index.ts, and 6 panel components (AIAssistantPanel, CallDetailPanel, FilterToolPanel, InsightDetailPanel, InspectorPanel, WorkspaceDetailPanel). Only import was from the also-orphaned App_Original.tsx.",
       "category": "cleanup",
       "discovered_at": "2026-01-01T10:29:34.837142+00:00"
+    },
+    "src/components/loop/index.ts": {
+      "description": "The loop/index.ts was exporting deleted components (AppShell, TopBar, Sidebar). Updated to only export remaining active components: WorkspaceCard, InsightCard, AIStatusWidget, and their types.",
+      "category": "cleanup",
+      "discovered_at": "2026-01-01T10:31:37.987794+00:00"
     }
   },
-  "last_updated": "2026-01-01T10:29:34.837149+00:00"
+  "last_updated": "2026-01-01T10:31:37.987802+00:00"
 }
