@@ -224,3 +224,309 @@ The `panelStore` pattern could be extended or a new `settingsPaneStore` created 
 | `src/components/settings/UsersTab.tsx` | User management tab |
 | `src/stores/panelStore.ts` | Panel state management (reference) |
 | `src/stores/searchStore.ts` | Search modal state (reference) |
+
+---
+
+# SortingTagging Page 3-Pane Implementation Audit
+
+**Audit Date:** 2026-01-01
+**Subtask:** subtask-1-2
+**Auditor:** auto-claude
+
+---
+
+## 1. Current Pane Structure
+
+### Overview
+The SortingTagging page (`src/pages/SortingTagging.tsx`) implements a **3-pane layout** structurally, but the middle pane is **empty/unused**:
+
+| Pane | Description | Width | Visibility |
+|------|-------------|-------|------------|
+| **Pane 1** | Navigation Rail (SidebarNav) | 240px expanded / 72px collapsed | Hidden on mobile, shown as overlay |
+| **Pane 2** | Secondary Panel (Library) | 280px when open / 0px when closed | Hidden on mobile, **EMPTY - not utilized** |
+| **Pane 3** | Main Content with Tabs | flex-1 (fills remaining space) | Always visible |
+
+### Pane 1: Navigation Rail (`SidebarNav`)
+- **Location:** Left side of layout
+- **Component:** `src/components/ui/sidebar-nav.tsx`
+- **Behavior:**
+  - Collapsible (240px ↔ 72px toggle via hamburger button)
+  - On mobile: Hidden by default, shown as slide-in overlay with backdrop
+  - Contains global app navigation (Home, AI Chat, Sorting, Settings)
+  - Includes `onLibraryToggle` callback to control Pane 2 visibility
+- **State Management:** Local React state (`isSidebarExpanded`, `showMobileNav`)
+
+### Pane 2: Secondary Panel (EMPTY)
+- **Location:** Between nav rail and main content
+- **Width:** 280px when `isLibraryOpen=true`, 0px when closed
+- **Current State:** `isLibraryOpen` defaults to `false`
+- **Content:** **COMPLETELY EMPTY** - comment says "can be used for future content"
+- **Animation:** Has smooth width transition (500ms ease-in-out)
+- **Issue:** This pane structure exists but provides no functionality
+
+### Pane 3: Main Content (Settings/Tabs)
+- **Location:** Right side of layout (fills remaining space)
+- **Structure:**
+  ```
+  ├── Mobile header (hamburger menu) - mobile only
+  ├── TabsList (horizontal tabs: FOLDERS, TAGS, RULES, RECURRING)
+  ├── Separator line (border-cb-black/white)
+  ├── Page Header ("SETTINGS" subtitle + dynamic title + description)
+  └── TabsContent (scrollable area with tab content)
+  ```
+- **Tabs Implementation:** Uses Radix UI `@radix-ui/react-tabs`
+  - Controlled component with `activeTab` state
+  - Dynamic title/description via `tabConfig` lookup
+
+---
+
+## 2. Tabs Implementation Analysis
+
+### Tab Configuration
+```typescript
+type TabValue = "folders" | "tags" | "rules" | "recurring";
+
+const tabConfig = {
+  folders: { title: "FOLDERS", description: "Create and manage folders..." },
+  tags: { title: "TAGS", description: "View available call tags..." },
+  rules: { title: "RULES", description: "Create and manage rules..." },
+  recurring: { title: "RECURRING TITLES", description: "View your most common call titles..." },
+};
+```
+
+### Tab Content Components
+| Tab | Component | Purpose |
+|-----|-----------|---------|
+| `folders` | `FoldersTab` | CRUD for folder organization |
+| `tags` | `TagsTab` | Read-only list of tags (system-managed) |
+| `rules` | `RulesTab` | CRUD for automatic sorting/tagging rules |
+| `recurring` | `RecurringTitlesTab` | View recurring call titles, create rules |
+
+### Tab Behavior
+- **Controlled:** Active tab state managed via `useState<TabValue>("folders")`
+- **Persistence:** No URL sync or localStorage persistence for active tab
+- **Mobile-friendly:** Same tabs visible on mobile, horizontally scrollable
+
+---
+
+## 3. Middle Library Pane Usage Analysis
+
+### Current Implementation
+```tsx
+{/* PANE 2: Secondary Panel (Hidden on mobile, collapsible - hidden by default for settings pages) */}
+{!isMobile && (
+  <div className={cn(
+    "flex-shrink-0 bg-card/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden transition-all duration-500 ease-in-out",
+    isLibraryOpen ? "w-[280px] opacity-100 ml-0" : "w-0 opacity-0 -ml-3 border-0"
+  )}>
+    {/* Empty secondary panel - can be used for future content if needed */}
+  </div>
+)}
+```
+
+### Issues
+| Issue | Description | Impact |
+|-------|-------------|--------|
+| **Empty panel** | Pane 2 renders but has no content | Wasted UI structure, confusing toggle behavior |
+| **Library toggle exists** | SidebarNav has `onLibraryToggle` callback | User can open empty panel via nav |
+| **No contextual use** | Doesn't show folder tree, tag list, or rule preview | Missed opportunity for master-detail UX |
+| **Hidden by default** | `isLibraryOpen` defaults to `false` | Unlike Library page, settings don't use it |
+
+### Opportunity
+The middle pane could display:
+- **Folders tab:** Folder tree hierarchy for selection/drag-drop
+- **Tags tab:** Quick tag preview with color swatches
+- **Rules tab:** Rule templates or rule testing interface
+- **Recurring tab:** Call preview when selecting a title
+
+---
+
+## 4. CRUD Flows Analysis
+
+### FoldersTab (`src/components/tags/FoldersTab.tsx`)
+
+| Operation | Implementation | UI Pattern | Status |
+|-----------|----------------|------------|--------|
+| **Create** | `QuickCreateFolderDialog` modal | Button → Dialog → Form | ✅ Working |
+| **Read** | Table with recursive hierarchy rendering | Indented rows, counts | ✅ Working |
+| **Update** | `EditFolderDialog` modal | Edit icon → Dialog → Form | ✅ Working |
+| **Delete** | `AlertDialog` confirmation | Delete icon → Confirm dialog | ✅ Working |
+
+**Data Flow:**
+- Hook: `useFolders()` provides `folders`, `folderAssignments`, `deleteFolder`, `isLoading`, `refetch`
+- Hierarchy: Built via `useMemo` from flat folder list (`parent_id` relationships)
+- Counts: Calculated from `folderAssignments` object
+
+**UX Notes:**
+- Supports nested folders with visual indentation (`depth * 24 + 16px`)
+- Icons: Emoji or Lucide icons with custom colors
+- Loading: Skeleton placeholders during fetch
+
+### TagsTab (`src/components/tags/TagsTab.tsx`)
+
+| Operation | Implementation | UI Pattern | Status |
+|-----------|----------------|------------|--------|
+| **Create** | Not implemented | N/A | ❌ Read-only |
+| **Read** | Table listing all tags | Color swatch, badge (System/Custom) | ✅ Working |
+| **Update** | Not implemented | N/A | ❌ Read-only |
+| **Delete** | Not implemented | N/A | ❌ Read-only |
+
+**Data Flow:**
+- Direct Supabase query for `call_tags` table
+- Separate query for `call_tag_assignments` to compute counts
+- No hook abstraction - inline `useQuery`
+
+**UX Notes:**
+- Purely informational - tags are system-managed
+- Shows usage count per tag
+- Distinguishes System vs Custom tags via badge
+
+### RulesTab (`src/components/tags/RulesTab.tsx`)
+
+| Operation | Implementation | UI Pattern | Status |
+|-----------|----------------|------------|--------|
+| **Create** | `Dialog` modal with form | Button → Dialog → Multi-step form | ✅ Working |
+| **Read** | Table with rule details | Badge for type, colored indicators | ✅ Working |
+| **Update** | Same `Dialog` modal (edit mode) | Edit icon → Dialog (pre-filled) | ✅ Working |
+| **Delete** | `Dialog` confirmation | Delete icon → Confirm dialog | ✅ Working |
+| **Toggle** | `Switch` inline | Toggle switch in table row | ✅ Working |
+| **Apply** | "Apply Rules Now" button | Batch action with loading state | ✅ Working |
+
+**Data Flow:**
+- Multiple `useQuery` hooks for rules, tags, folders
+- `useMutation` for toggle, save, delete, apply operations
+- Rule conditions vary by `rule_type` (title_exact, title_contains, title_regex, transcript_keyword, day_time)
+
+**UX Notes:**
+- Complex conditional form based on `rule_type`
+- Can assign both tag AND folder per rule
+- Shows times applied count
+- Bulk "Apply Rules Now" action available
+
+### RecurringTitlesTab (`src/components/tags/RecurringTitlesTab.tsx`)
+
+| Operation | Implementation | UI Pattern | Status |
+|-----------|----------------|------------|--------|
+| **Create Rule** | `Dialog` modal | Button per row → Dialog → Form | ✅ Working |
+| **Read** | Table of recurring call titles | Count, last seen date, rule status | ✅ Working |
+| **Update** | N/A | - | - |
+| **Delete** | N/A | - | - |
+
+**Data Flow:**
+- Fetches all `fathom_calls` titles, groups and counts client-side
+- Checks existing `tag_rules` for "Has Rule" badge
+- Creates rules via same `tag_rules` table
+
+**UX Notes:**
+- "Create Rule" button disabled if rule already exists
+- Pre-fills rule name from title
+- Requires at least one of tag or folder selection
+
+---
+
+## 5. UX Pain Points
+
+### Critical Issues
+
+| Issue | Location | Description | Impact |
+|-------|----------|-------------|--------|
+| 🔴 **Wasted middle pane** | SortingTagging.tsx | Empty Pane 2 structure with no content | Confusing if user toggles library |
+| 🔴 **Inconsistent CRUD patterns** | All tabs | Different modal styles, validation approaches | Learning curve between tabs |
+| 🔴 **No inline editing** | FoldersTab, RulesTab | Always requires modal for edits | Slower workflow for quick changes |
+
+### High Priority
+
+| Issue | Location | Description | Impact |
+|-------|----------|-------------|--------|
+| 🟡 **Client-side title counting** | RecurringTitlesTab | Fetches ALL calls, counts in JS | Performance issue at scale |
+| 🟡 **No rule testing** | RulesTab | Can't preview which calls a rule would match | Trial-and-error rule creation |
+| 🟡 **No bulk operations** | FoldersTab | Can only delete/edit one folder at a time | Tedious for cleanup |
+| 🟡 **Tab state not persisted** | SortingTagging.tsx | Active tab resets on navigation | Disruptive when returning |
+
+### Medium Priority
+
+| Issue | Location | Description | Impact |
+|-------|----------|-------------|--------|
+| 🟢 **No folder drag-drop reordering** | FoldersTab | Position set via form, not draggable | Awkward folder organization |
+| 🟢 **No search/filter** | All tabs | Can't filter long lists of folders/rules/titles | Hard to find items at scale |
+| 🟢 **Dense table layout** | All tabs | Small touch targets, cramped on mobile | Accessibility/mobile issues |
+| 🟢 **No empty state illustrations** | All tabs | Plain text "No items" messages | Less engaging onboarding |
+
+### Accessibility Gaps
+
+| Issue | Location | Recommendation |
+|-------|----------|----------------|
+| Missing table captions | All tables | Add `<caption>` for screen readers |
+| Dense action buttons | Table rows | Larger touch targets on mobile |
+| No loading announcements | All tabs | `aria-live` for loading states |
+| SVG icons without labels | Action buttons | Add `aria-label` to icon-only buttons |
+
+---
+
+## 6. Comparison with Settings Page
+
+| Aspect | Settings Page | SortingTagging Page |
+|--------|---------------|---------------------|
+| **Pane structure** | 2-pane (no middle) | 3-pane (empty middle) |
+| **Tab count** | 6 tabs (role-filtered) | 4 tabs (all visible) |
+| **CRUD pattern** | Inline editing (AccountTab) | Modal-based (all tabs) |
+| **Data hooks** | `useQuery` inline | Mix of hooks and inline queries |
+| **Middle pane use** | N/A | Library toggle exists but empty |
+| **Mobile nav** | Overlay | Same overlay pattern |
+
+---
+
+## 7. Summary of Findings
+
+### What's Working Well
+1. ✅ Full CRUD implemented for folders and rules
+2. ✅ Consistent 3-pane structural layout (matches Library page)
+3. ✅ Good use of Radix UI components (Switch, Dialog, Select)
+4. ✅ Loading skeletons provide feedback
+5. ✅ Rule conditions support multiple match types
+6. ✅ Recursive folder hierarchy rendering with visual depth
+
+### Gaps vs. Spec Requirements
+
+| Requirement | Current State | Gap Level |
+|-------------|---------------|-----------|
+| 3-pane with functional middle pane | Empty middle pane | 🔴 Major |
+| Consistent CRUD patterns | Modal-only, no inline editing | 🟡 Medium |
+| Performance at scale | Client-side counting | 🟡 Medium |
+| Tab state persistence | Not persisted | 🟢 Minor |
+| Bulk operations | Not implemented | 🟡 Medium |
+
+### Recommended Next Steps
+
+1. **Phase 1:** Repurpose middle pane for contextual content:
+   - Folders: Tree view for selection
+   - Rules: Rule tester/preview
+   - Recurring: Call details preview
+
+2. **Phase 2:** Standardize CRUD patterns across tabs:
+   - Consider inline editing for simple fields
+   - Unify dialog components and validation
+
+3. **Phase 3:** Performance improvements:
+   - Server-side title aggregation for RecurringTitlesTab
+   - Pagination for long lists
+
+4. **Phase 4:** Enhanced UX:
+   - Drag-drop folder reordering
+   - Search/filter for all lists
+   - Tab state persistence in URL
+
+---
+
+## Appendix: Additional File References
+
+| File | Purpose |
+|------|---------|
+| `src/pages/SortingTagging.tsx` | Main Sorting & Tagging page |
+| `src/components/tags/FoldersTab.tsx` | Folder CRUD tab |
+| `src/components/tags/TagsTab.tsx` | Read-only tags list |
+| `src/components/tags/RulesTab.tsx` | Rule CRUD tab |
+| `src/components/tags/RecurringTitlesTab.tsx` | Recurring titles with rule creation |
+| `src/hooks/useFolders.ts` | Folder data hook |
+| `src/components/QuickCreateFolderDialog.tsx` | Folder creation dialog |
+| `src/components/EditFolderDialog.tsx` | Folder edit dialog |
