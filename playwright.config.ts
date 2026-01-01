@@ -51,6 +51,15 @@ export default defineConfig({
       name: 'webkit',
       use: { ...devices['Desktop Safari'] },
     },
+
+    // Microsoft Edge (Chromium-based)
+    {
+      name: 'edge',
+      use: {
+        ...devices['Desktop Edge'],
+        channel: 'msedge',
+      },
+    },
   ],
 
   // Run local dev server before starting the tests
