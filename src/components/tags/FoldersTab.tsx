@@ -33,6 +33,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { usePanelStore } from "@/stores/panelStore";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
+import { useListKeyboardNavigationWithState } from "@/hooks/useListKeyboardNavigation";
 
 export function FoldersTab() {
   const { folders, folderAssignments, deleteFolder, updateFolder, createFolder, isLoading, refetch } = useFolders();
@@ -149,6 +150,27 @@ export function FoldersTab() {
     }, {} as Record<string, Folder[]>);
   }, [folders]);
 
+  // Flatten folder hierarchy for keyboard navigation (in display order)
+  const flattenedFolders = useMemo(() => {
+    const result: Folder[] = [];
+    const addFolder = (folder: Folder) => {
+      result.push(folder);
+      const children = childrenByParent[folder.id] || [];
+      children.sort((a, b) => a.position - b.position).forEach(addFolder);
+    };
+    rootFolders.forEach(addFolder);
+    return result;
+  }, [rootFolders, childrenByParent]);
+
+  // Keyboard navigation for folder list
+  const { focusedId, getRowRef, handleRowClick } = useListKeyboardNavigationWithState({
+    items: flattenedFolders,
+    getItemId: (folder) => folder.id,
+    selectedId: selectedFolderId,
+    onSelect: handleFolderClick,
+    enabled: !editingFolderId && !createDialogOpen && !deleteConfirmFolder, // Disable when editing or dialogs open
+  });
+
   // Calculate folder call counts from assignments
   const folderCounts = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -191,6 +213,7 @@ export function FoldersTab() {
     const isEmoji = isEmojiIcon(folder.icon);
     const sortedChildren = children.sort((a, b) => a.position - b.position);
     const isSelected = selectedFolderId === folder.id;
+    const isFocused = focusedId === folder.id;
     const isEditing = editingFolderId === folder.id;
 
     return (
@@ -198,12 +221,18 @@ export function FoldersTab() {
         <ContextMenu>
           <ContextMenuTrigger asChild>
             <TableRow
+              ref={getRowRef(folder.id) as React.Ref<HTMLTableRowElement>}
               className={`cursor-pointer transition-colors ${
                 isSelected
                   ? "bg-cb-hover dark:bg-cb-hover-dark"
+                  : isFocused
+                  ? "bg-cb-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
                   : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
               }`}
-              onClick={() => !isEditing && handleFolderClick(folder)}
+              onClick={() => {
+                handleRowClick(folder);
+                if (!isEditing) handleFolderClick(folder);
+              }}
             >
               <TableCell style={{ paddingLeft: `${depth * 24 + 16}px` }}>
                 <div className="flex items-center gap-2">

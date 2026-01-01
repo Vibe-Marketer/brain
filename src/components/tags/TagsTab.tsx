@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -32,6 +32,7 @@ import {
 import { RiPencilLine, RiFileCopyLine, RiDeleteBinLine, RiPriceTag3Line } from "@remixicon/react";
 import { toast } from "sonner";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
+import { useListKeyboardNavigationWithState } from "@/hooks/useListKeyboardNavigation";
 
 interface Tag {
   id: string;
@@ -171,6 +172,15 @@ export function TagsTab() {
   useKeyboardShortcut(handleEditShortcut, { key: 'e', enabled: !!selectedTag });
   useKeyboardShortcut(handleDeleteShortcut, { key: 'Backspace', enabled: !!selectedTag && !selectedTag.is_system });
 
+  // Keyboard navigation for tag list
+  const { focusedId, getRowRef, handleRowClick } = useListKeyboardNavigationWithState({
+    items: tags || [],
+    getItemId: (tag) => tag.id,
+    selectedId: selectedTagId,
+    onSelect: handleTagClick,
+    enabled: !deleteConfirmTag, // Disable when delete dialog is open
+  });
+
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -228,16 +238,23 @@ export function TagsTab() {
             )}
             {tags?.map((tag) => {
               const isSelected = selectedTagId === tag.id;
+              const isFocused = focusedId === tag.id;
               return (
                 <ContextMenu key={tag.id}>
                   <ContextMenuTrigger asChild>
                     <TableRow
+                      ref={getRowRef(tag.id) as React.Ref<HTMLTableRowElement>}
                       className={`cursor-pointer transition-colors ${
                         isSelected
                           ? "bg-cb-hover dark:bg-cb-hover-dark"
+                          : isFocused
+                          ? "bg-cb-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
                           : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
                       }`}
-                      onClick={() => handleTagClick(tag)}
+                      onClick={() => {
+                        handleRowClick(tag);
+                        handleTagClick(tag);
+                      }}
                     >
                       <TableCell>
                         <div
