@@ -26,6 +26,9 @@ import {
   RiLightbulbLine,
 } from "@remixicon/react";
 
+/** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
+const TRANSITION_DURATION = 250;
+
 export type SortingCategory = "folders" | "tags" | "rules" | "recurring";
 
 interface CategoryItem {
@@ -90,6 +93,14 @@ export function SortingCategoryPane({
   categoryCounts = {},
   className,
 }: SortingCategoryPaneProps) {
+  // Track mount state for enter animations
+  const [isMounted, setIsMounted] = React.useState(false);
+  React.useEffect(() => {
+    // Trigger enter animation after mount
+    const timer = setTimeout(() => setIsMounted(true), 10);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Keyboard navigation handler
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent, categoryId: SortingCategory) => {
@@ -108,7 +119,15 @@ export function SortingCategoryPane({
 
   return (
     <div
-      className={cn("h-full flex flex-col", className)}
+      className={cn(
+        "h-full flex flex-col",
+        // Pane enter animation (slide + fade)
+        "transition-all duration-300 ease-in-out",
+        isMounted
+          ? "opacity-100 translate-x-0"
+          : "opacity-0 -translate-x-2",
+        className
+      )}
       role="navigation"
       aria-label="Sorting and tagging categories"
     >
@@ -150,13 +169,17 @@ export function SortingCategoryPane({
               role="listitem"
               className="relative mb-1"
             >
-              {/* Active indicator - left border (Loop-style) */}
-              {isActive && (
-                <div
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-cb-vibe-orange rounded-r-full"
-                  aria-hidden="true"
-                />
-              )}
+              {/* Active indicator - left border (Loop-style) with smooth transition */}
+              <div
+                className={cn(
+                  "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-cb-vibe-orange rounded-r-full",
+                  "transition-all duration-200 ease-in-out",
+                  isActive
+                    ? "opacity-100 scale-y-100"
+                    : "opacity-0 scale-y-0"
+                )}
+                aria-hidden="true"
+              />
               <button
                 type="button"
                 onClick={() => onCategorySelect(category.id)}
@@ -174,18 +197,19 @@ export function SortingCategoryPane({
                 aria-current={isActive ? "true" : undefined}
                 aria-label={`${category.label}: ${category.description}${count !== undefined ? `, ${count} items` : ""}`}
               >
-                {/* Icon */}
+                {/* Icon - with smooth transition on state change */}
                 <div
                   className={cn(
                     "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
                     "bg-cb-card border border-cb-border",
+                    "transition-all duration-200 ease-in-out",
                     isActive && "border-cb-vibe-orange/30 bg-cb-vibe-orange/10"
                   )}
                   aria-hidden="true"
                 >
                   <Icon
                     className={cn(
-                      "h-4 w-4",
+                      "h-4 w-4 transition-colors duration-200 ease-in-out",
                       isActive ? "text-cb-vibe-orange" : "text-cb-ink-muted"
                     )}
                   />
@@ -197,6 +221,7 @@ export function SortingCategoryPane({
                     <span
                       className={cn(
                         "block text-sm font-medium truncate",
+                        "transition-colors duration-200 ease-in-out",
                         isActive ? "text-cb-vibe-orange" : "text-cb-ink"
                       )}
                     >
@@ -222,8 +247,11 @@ export function SortingCategoryPane({
                 {/* Arrow indicator for selection */}
                 <div
                   className={cn(
-                    "flex-shrink-0 mt-1.5 transition-opacity",
-                    isActive ? "opacity-100" : "opacity-0"
+                    "flex-shrink-0 mt-1.5",
+                    "transition-all duration-200 ease-in-out",
+                    isActive
+                      ? "opacity-100 translate-x-0"
+                      : "opacity-0 -translate-x-1"
                   )}
                   aria-hidden="true"
                 >

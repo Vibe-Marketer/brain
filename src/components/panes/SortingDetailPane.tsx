@@ -33,6 +33,9 @@ import {
 } from "@remixicon/react";
 import type { SortingCategory } from "./SortingCategoryPane";
 
+/** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
+const TRANSITION_DURATION = 250;
+
 // Lazy load sorting/tagging tab components
 const FoldersTab = React.lazy(() =>
   import("@/components/tags/FoldersTab").then((module) => ({
@@ -156,6 +159,34 @@ export function SortingDetailPane({
   const meta = CATEGORY_META[category];
   const Icon = meta.icon;
 
+  // Track mount state for enter animations
+  const [isMounted, setIsMounted] = React.useState(false);
+  React.useEffect(() => {
+    // Trigger enter animation after mount
+    const timer = setTimeout(() => setIsMounted(true), 10);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Track content transition state for category changes
+  const [isContentVisible, setIsContentVisible] = React.useState(true);
+  const [displayedCategory, setDisplayedCategory] = React.useState(category);
+  const prevCategoryRef = React.useRef(category);
+
+  React.useEffect(() => {
+    if (category !== prevCategoryRef.current) {
+      // Category changed - trigger exit/enter animation
+      setIsContentVisible(false);
+
+      const timer = setTimeout(() => {
+        setDisplayedCategory(category);
+        setIsContentVisible(true);
+      }, TRANSITION_DURATION);
+
+      prevCategoryRef.current = category;
+      return () => clearTimeout(timer);
+    }
+  }, [category]);
+
   // Render the appropriate sorting component based on category
   const renderContent = () => {
     switch (category) {
@@ -178,7 +209,15 @@ export function SortingDetailPane({
 
   return (
     <div
-      className={cn("h-full flex flex-col bg-background", className)}
+      className={cn(
+        "h-full flex flex-col bg-background",
+        // Pane enter animation (slide + fade)
+        "transition-all duration-300 ease-in-out",
+        isMounted
+          ? "opacity-100 translate-x-0"
+          : "opacity-0 translate-x-2",
+        className
+      )}
       role="region"
       aria-label={`${meta.label} management`}
     >
@@ -198,12 +237,12 @@ export function SortingDetailPane({
             </Button>
           )}
 
-          {/* Category icon */}
+          {/* Category icon - with smooth transition */}
           <div
-            className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+            className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 transition-all duration-200 ease-in-out"
             aria-hidden="true"
           >
-            <Icon className="h-4 w-4 text-cb-vibe-orange" />
+            <Icon className="h-4 w-4 text-cb-vibe-orange transition-transform duration-200 ease-in-out" />
           </div>
 
           {/* Category title and description */}
@@ -257,12 +296,21 @@ export function SortingDetailPane({
         </div>
       </header>
 
-      {/* Content - scrollable */}
+      {/* Content - scrollable with content transition animation */}
       <ScrollArea className="flex-1">
-        <div className="p-4 md:p-6">
+        <div
+          className={cn(
+            "p-4 md:p-6",
+            // Content transition animation for category changes
+            "transition-all duration-200 ease-in-out",
+            isContentVisible
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-1"
+          )}
+        >
           <React.Suspense fallback={<SortingLoadingSkeleton />}>
             <ErrorBoundary
-              fallback={<SortingErrorFallback category={category} />}
+              fallback={<SortingErrorFallback category={displayedCategory} />}
             >
               {renderContent()}
             </ErrorBoundary>
