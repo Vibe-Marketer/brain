@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SidebarNav } from "@/components/ui/sidebar-nav";
@@ -16,6 +17,9 @@ import { SortingCategoryPane, type SortingCategory } from "@/components/panes/So
 import { SortingDetailPane } from "@/components/panes/SortingDetailPane";
 
 type TabValue = "folders" | "tags" | "rules" | "recurring";
+
+// Valid category IDs for URL validation
+const VALID_CATEGORY_IDS: SortingCategory[] = ["folders", "tags", "rules", "recurring"];
 
 const tabConfig = {
   folders: {
@@ -37,6 +41,9 @@ const tabConfig = {
 };
 
 export default function SortingTagging() {
+  const { category: urlCategory } = useParams<{ category?: string }>();
+  const navigate = useNavigate();
+
   // --- Tab Logic ---
   const [activeTab, setActiveTab] = useState<TabValue>("folders");
   const currentConfig = tabConfig[activeTab];
@@ -56,6 +63,34 @@ export default function SortingTagging() {
   const [selectedCategory, setSelectedCategory] = useState<SortingCategory | null>(null);
   // Control visibility of the 2nd pane (category list)
   const [isCategoryPaneOpen, setIsCategoryPaneOpen] = useState(true);
+
+  // --- Deep Link Handling ---
+  // On initial load, read category from URL and validate
+  useEffect(() => {
+    if (urlCategory) {
+      // Validate the category from URL
+      if (VALID_CATEGORY_IDS.includes(urlCategory as SortingCategory)) {
+        setSelectedCategory(urlCategory as SortingCategory);
+        setActiveTab(urlCategory as TabValue);
+        setIsCategoryPaneOpen(true);
+      } else {
+        // Invalid category in URL, redirect to base sorting-tagging
+        navigate("/sorting-tagging", { replace: true });
+      }
+    }
+  }, [urlCategory, navigate]);
+
+  // Sync URL when selectedCategory changes (for user interactions)
+  useEffect(() => {
+    // Skip URL sync on initial load (handled by urlCategory effect above)
+    // Only sync when category changes via user interaction
+    if (selectedCategory && selectedCategory !== urlCategory) {
+      navigate(`/sorting-tagging/${selectedCategory}`, { replace: true });
+    } else if (!selectedCategory && urlCategory) {
+      // If category is deselected, go back to base sorting-tagging URL
+      navigate("/sorting-tagging", { replace: true });
+    }
+  }, [selectedCategory, urlCategory, navigate]);
 
   // --- Panel Store ---
   const { isPanelOpen, panelType, panelData, closePanel } = usePanelStore();
