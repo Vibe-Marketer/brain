@@ -3,7 +3,7 @@
  *
  * Navigation icons that sit at the top of the sidebar.
  * Loop-inspired design with clean, modern aesthetics.
- * Uses Remix Icons (no emojis per brand guidelines).
+ * Uses high-fidelity Emojis for warmth and modern appeal.
  *
  * ## Design Specification
  *
@@ -24,10 +24,6 @@
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  RiHome4Fill,
-  RiChat1Fill,
-  RiPriceTag3Fill,
-  RiSettings3Fill,
   RiLayoutColumnLine,
   RiAddLine
 } from '@remixicon/react';
@@ -77,35 +73,35 @@ const NavIcon = React.memo(({ children, isActive }: { children: React.ReactNode;
   </div>
 ));
 
-// Icon class for consistent styling with dark mode support
+// Icon class for consistent styling with action icons
 const iconClass = 'w-5 h-5 text-cb-black dark:text-cb-white';
 
 const navItems: NavItem[] = [
   {
     id: 'home',
     name: 'Home',
-    icon: <RiHome4Fill className={iconClass} />,
+    icon: <span className="text-xl">🏠</span>,
     path: '/',
     matchPaths: ['/', '/transcripts'],
   },
   {
     id: 'chat',
     name: 'AI Chat',
-    icon: <RiChat1Fill className={iconClass} />,
+    icon: <span className="text-xl">✨</span>,
     path: '/chat',
     matchPaths: ['/chat'],
   },
   {
     id: 'sorting',
     name: 'Sorting',
-    icon: <RiPriceTag3Fill className={iconClass} />,
+    icon: <span className="text-xl">🏷️</span>,
     path: '/sorting-tagging',
     matchPaths: ['/sorting-tagging'],
   },
   {
     id: 'settings',
     name: 'Settings',
-    icon: <RiSettings3Fill className={iconClass} />,
+    icon: <span className="text-xl">⚙️</span>,
     path: '/settings',
     matchPaths: ['/settings'],
   },
