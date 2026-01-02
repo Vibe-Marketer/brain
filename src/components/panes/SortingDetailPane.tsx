@@ -18,6 +18,7 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -159,6 +160,9 @@ export function SortingDetailPane({
   const meta = CATEGORY_META[category];
   const Icon = meta.icon;
 
+  // Ref to the pane container for focus management
+  const paneRef = React.useRef<HTMLDivElement>(null);
+
   // Track mount state for enter animations
   const [isMounted, setIsMounted] = React.useState(false);
   React.useEffect(() => {
@@ -166,6 +170,21 @@ export function SortingDetailPane({
     const timer = setTimeout(() => setIsMounted(true), 10);
     return () => clearTimeout(timer);
   }, []);
+
+  // Escape key to close pane (or go back if showing back button)
+  const handleEscape = React.useCallback(() => {
+    if (showBackButton && onBack) {
+      onBack();
+    } else if (onClose) {
+      onClose();
+    }
+  }, [showBackButton, onBack, onClose]);
+
+  useKeyboardShortcut(handleEscape, {
+    key: "Escape",
+    cmdOrCtrl: false,
+    enabled: !!(onClose || (showBackButton && onBack)),
+  });
 
   // Track content transition state for category changes
   const [isContentVisible, setIsContentVisible] = React.useState(true);
@@ -209,6 +228,7 @@ export function SortingDetailPane({
 
   return (
     <div
+      ref={paneRef}
       className={cn(
         "h-full flex flex-col bg-background",
         // Pane enter animation (slide + fade)
@@ -220,6 +240,7 @@ export function SortingDetailPane({
       )}
       role="region"
       aria-label={`${meta.label} management`}
+      tabIndex={-1}
     >
       {/* Header */}
       <header className="flex items-center justify-between px-4 py-3 border-b border-cb-border bg-cb-card/50 flex-shrink-0">

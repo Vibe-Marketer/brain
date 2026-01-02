@@ -3,23 +3,23 @@
   "spec": "006-ui-ux-for-settings-sorting-pages",
   "state": "building",
   "subtasks": {
-    "completed": 23,
+    "completed": 26,
     "total": 32,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Remove Tab Navigation from SortingTagging Page",
+    "current": "Polish UX and Verify Click Reduction",
     "id": null,
-    "total": 3
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 2268,
+    "number": 2271,
     "started_at": "2026-01-02T01:15:33.311999"
   },
-  "last_update": "2026-01-02T05:37:11.382738"
+  "last_update": "2026-01-02T05:51:27.599648"
 }

@@ -113,6 +113,11 @@ export function SettingsCategoryPane({
     return () => clearTimeout(timer);
   }, []);
 
+  // Refs for category buttons to enable focus management
+  const buttonRefs = React.useRef<Map<SettingsCategory, HTMLButtonElement>>(
+    new Map()
+  );
+
   // Filter categories based on user role
   const visibleCategories = React.useMemo(() => {
     return SETTINGS_CATEGORIES.filter((category) => {
@@ -131,15 +136,58 @@ export function SettingsCategoryPane({
     });
   }, [isAdmin, isTeam]);
 
-  // Keyboard navigation handler
+  // Get the current focused category index
+  const getFocusedIndex = React.useCallback(() => {
+    const focused = document.activeElement as HTMLElement;
+    const entries = Array.from(buttonRefs.current.entries());
+    return entries.findIndex(([, el]) => el === focused);
+  }, []);
+
+  // Focus a category by index (wraps around)
+  const focusCategoryByIndex = React.useCallback(
+    (index: number) => {
+      const categoryIds = visibleCategories.map((c) => c.id);
+      const wrappedIndex =
+        ((index % categoryIds.length) + categoryIds.length) % categoryIds.length;
+      const categoryId = categoryIds[wrappedIndex];
+      const button = buttonRefs.current.get(categoryId);
+      button?.focus();
+    },
+    [visibleCategories]
+  );
+
+  // Keyboard navigation handler for individual items
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent, categoryId: SettingsCategory) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        onCategorySelect(categoryId);
+      const currentIndex = visibleCategories.findIndex(
+        (c) => c.id === categoryId
+      );
+
+      switch (event.key) {
+        case "Enter":
+        case " ":
+          event.preventDefault();
+          onCategorySelect(categoryId);
+          break;
+        case "ArrowDown":
+          event.preventDefault();
+          focusCategoryByIndex(currentIndex + 1);
+          break;
+        case "ArrowUp":
+          event.preventDefault();
+          focusCategoryByIndex(currentIndex - 1);
+          break;
+        case "Home":
+          event.preventDefault();
+          focusCategoryByIndex(0);
+          break;
+        case "End":
+          event.preventDefault();
+          focusCategoryByIndex(visibleCategories.length - 1);
+          break;
       }
     },
-    [onCategorySelect]
+    [onCategorySelect, visibleCategories, focusCategoryByIndex]
   );
 
   return (
@@ -205,6 +253,13 @@ export function SettingsCategoryPane({
                 aria-hidden="true"
               />
               <button
+                ref={(el) => {
+                  if (el) {
+                    buttonRefs.current.set(category.id, el);
+                  } else {
+                    buttonRefs.current.delete(category.id);
+                  }
+                }}
                 type="button"
                 onClick={() => onCategorySelect(category.id)}
                 onKeyDown={(e) => handleKeyDown(e, category.id)}
