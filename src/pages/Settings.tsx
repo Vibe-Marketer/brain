@@ -130,6 +130,11 @@ export default function Settings() {
   };
 
   // --- Pane System Handlers ---
+  // Handle Settings nav item click - ensure category pane is open
+  const handleSettingsNavClick = useCallback(() => {
+    setIsCategoryPaneOpen(true);
+  }, []);
+
   // Handle category selection from the 2nd pane
   const handleCategorySelect = useCallback((category: SettingsCategory) => {
     setSelectedCategory(category);
@@ -197,6 +202,7 @@ export default function Settings() {
           <SidebarNav
             isCollapsed={false}
             className="w-full flex-1"
+            onSettingsClick={handleSettingsNavClick}
           />
         </nav>
       )}
@@ -234,6 +240,7 @@ export default function Settings() {
             <SidebarNav
               isCollapsed={!isSidebarExpanded}
               className="w-full flex-1"
+              onSettingsClick={handleSettingsNavClick}
             />
           </nav>
         )}
