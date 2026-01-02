@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SidebarNav } from "@/components/ui/sidebar-nav";
@@ -216,7 +215,7 @@ export default function SortingTagging() {
           </nav>
         )}
 
-        {/* PANE 2: Sorting Category List (Dual Mode - visible alongside tabs) */}
+        {/* PANE 2: Sorting Category List */}
         {!isMobile && isCategoryPaneOpen && (
           <div
             className={cn(
@@ -234,7 +233,7 @@ export default function SortingTagging() {
           </div>
         )}
 
-        {/* PANE 3: Sorting Detail (shown when category is selected, alongside tabs in dual mode) */}
+        {/* PANE 3: Sorting Detail (shown when category is selected) */}
         {!isMobile && selectedCategory && (
           <div
             className={cn(
@@ -254,7 +253,7 @@ export default function SortingTagging() {
           </div>
         )}
 
-        {/* PANE 4: Main Content (Sorting/Tabs) - Tabs preserved for dual mode */}
+        {/* PANE 4: Main Content - displays content based on selected category */}
         <main
           role="main"
           aria-label="Sorting and tagging content"
@@ -265,35 +264,26 @@ export default function SortingTagging() {
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
           )}
         >
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="h-full flex flex-col">
-            {/* Mobile header with hamburger menu */}
-            {isMobile && (
-              <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowMobileNav(true)}
-                  className="text-muted-foreground hover:text-foreground h-8 w-8"
-                  aria-label="Open navigation menu"
-                  aria-expanded={showMobileNav}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="4" y1="6" x2="20" y2="6" />
-                    <line x1="4" y1="12" x2="20" y2="12" />
-                    <line x1="4" y1="18" x2="20" y2="18" />
-                  </svg>
-                </Button>
-                <span className="text-sm font-semibold">Settings</span>
-              </div>
-            )}
-            <div className="px-4 md:px-10 pt-2 flex-shrink-0">
-              <TabsList>
-                <TabsTrigger value="folders">FOLDERS</TabsTrigger>
-                <TabsTrigger value="tags">TAGS</TabsTrigger>
-                <TabsTrigger value="rules">RULES</TabsTrigger>
-                <TabsTrigger value="recurring">RECURRING</TabsTrigger>
-              </TabsList>
+          {/* Mobile header with hamburger menu */}
+          {isMobile && (
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMobileNav(true)}
+                className="text-muted-foreground hover:text-foreground h-8 w-8"
+                aria-label="Open navigation menu"
+                aria-expanded={showMobileNav}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="4" y1="6" x2="20" y2="6" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="18" x2="20" y2="18" />
+                </svg>
+              </Button>
+              <span className="text-sm font-semibold">Settings</span>
             </div>
+          )}
 
           {/* Full-width line */}
           <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
@@ -311,26 +301,14 @@ export default function SortingTagging() {
             </div>
           </div>
 
-          {/* Tab Content */}
+          {/* Content based on selected category */}
           <div className="flex-1 min-h-0 overflow-auto px-4 md:px-10">
-            <TabsContent value="folders" className="mt-0">
-              <FoldersTab />
-            </TabsContent>
-
-            <TabsContent value="tags" className="mt-0">
-              <TagsTab />
-            </TabsContent>
-
-            <TabsContent value="rules" className="mt-0">
-              <RulesTab />
-            </TabsContent>
-
-            <TabsContent value="recurring" className="mt-0">
-              <RecurringTitlesTab />
-            </TabsContent>
+            {activeTab === "folders" && <FoldersTab />}
+            {activeTab === "tags" && <TagsTab />}
+            {activeTab === "rules" && <RulesTab />}
+            {activeTab === "recurring" && <RecurringTitlesTab />}
           </div>
-        </Tabs>
-      </main>
+        </main>
 
         {/* PANE 5: Right Panel - Detail view for selected folder/tag (tablet and desktop) */}
         {!isMobile && (
