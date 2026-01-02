@@ -500,7 +500,13 @@
       "checks": []
     }
   },
-  "qa_signoff": null,
+  "qa_signoff": {
+    "status": "approved",
+    "timestamp": "2026-01-01T11:00:00.000000+00:00",
+    "qa_session": 3,
+    "verified_by": "qa_agent",
+    "notes": "All code changes verified. 15/15 subtasks complete. 20 orphaned files deleted. Test files created. No orphan imports. Security review passed."
+  },
   "files_summary": {
     "canonical_components": {
       "navigation": "src/components/ui/sidebar-nav.tsx",
@@ -544,5 +550,44 @@
       ".auto-claude/specs/004-audit-and-consolidate-duplicate-ui-components/ORPHAN_AUDIT.md"
     ]
   },
-  "last_updated": "2026-01-01T10:42:27.328196+00:00"
+  "last_updated": "2026-01-01T10:42:27.328196+00:00",
+  "qa_iteration_history": [
+    {
+      "iteration": 1,
+      "status": "error",
+      "timestamp": "2026-01-01T10:48:04.552542+00:00",
+      "issues": [
+        {
+          "title": "QA error",
+          "description": "QA agent did not update implementation_plan.json"
+        }
+      ]
+    },
+    {
+      "iteration": 2,
+      "status": "error",
+      "timestamp": "2026-01-01T10:53:46.018355+00:00",
+      "issues": [
+        {
+          "title": "QA error",
+          "description": "QA agent did not update implementation_plan.json"
+        }
+      ]
+    },
+    {
+      "iteration": 3,
+      "status": "approved",
+      "timestamp": "2026-01-01T10:59:44.808315+00:00",
+      "issues": [],
+      "duration_seconds": 358.79
+    }
+  ],
+  "qa_stats": {
+    "total_iterations": 3,
+    "last_iteration": 3,
+    "last_status": "approved",
+    "issues_by_type": {
+      "unknown": 2
+    }
+  }
 }
