@@ -3,7 +3,7 @@
  *
  * Navigation icons that sit at the top of the sidebar.
  * Loop-inspired design with clean, modern aesthetics.
- * Uses Remix Icons (no emojis per brand guidelines).
+ * Uses high-fidelity Emojis for warmth and modern appeal.
  *
  * ## Design Specification
  *
@@ -24,10 +24,6 @@
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  RiHome4Fill,
-  RiChat1Fill,
-  RiPriceTag3Fill,
-  RiSettings3Fill,
   RiLayoutColumnLine,
   RiAddLine
 } from '@remixicon/react';
@@ -77,35 +73,35 @@ const NavIcon = React.memo(({ children, isActive }: { children: React.ReactNode;
   </div>
 ));
 
-// Icon class for consistent styling with dark mode support
+// Icon class for consistent styling with action icons
 const iconClass = 'w-5 h-5 text-cb-black dark:text-cb-white';
 
 const navItems: NavItem[] = [
   {
     id: 'home',
     name: 'Home',
-    icon: <RiHome4Fill className={iconClass} />,
+    icon: <span className="text-xl">🏠</span>,
     path: '/',
     matchPaths: ['/', '/transcripts'],
   },
   {
     id: 'chat',
     name: 'AI Chat',
-    icon: <RiChat1Fill className={iconClass} />,
+    icon: <span className="text-xl">✨</span>,
     path: '/chat',
     matchPaths: ['/chat'],
   },
   {
     id: 'sorting',
     name: 'Sorting',
-    icon: <RiPriceTag3Fill className={iconClass} />,
+    icon: <span className="text-xl">🏷️</span>,
     path: '/sorting-tagging',
     matchPaths: ['/sorting-tagging'],
   },
   {
     id: 'settings',
     name: 'Settings',
-    icon: <RiSettings3Fill className={iconClass} />,
+    icon: <span className="text-xl">⚙️</span>,
     path: '/settings',
     matchPaths: ['/settings'],
   },
@@ -149,7 +145,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 className={cn(
                   'relative flex items-center',
                   isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
-                  'rounded-xl transition-all duration-200',
+                  'rounded-xl transition-all duration-500 ease-in-out',
                   'hover:bg-gray-100 dark:hover:bg-white/10',
                   active && !isCollapsed && 'bg-cb-vibe-orange/10 dark:bg-cb-vibe-orange/20 text-cb-vibe-orange',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
@@ -193,7 +189,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
               className={cn(
                 'relative flex items-center',
                 isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
-                'rounded-xl transition-all duration-200',
+                'rounded-xl transition-all duration-500 ease-in-out',
                 'hover:bg-gray-100 dark:hover:bg-white/10',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
               )}
@@ -226,7 +222,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
               className={cn(
                 'relative flex items-center',
                 isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
-                'rounded-xl transition-all duration-200',
+                'rounded-xl transition-all duration-500 ease-in-out',
                 'hover:bg-gray-100 dark:hover:bg-white/10',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
               )}
