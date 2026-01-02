@@ -7,7 +7,6 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from "@/components/Layout";
 import Login from '@/pages/Login';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { GlobalSearchModal } from '@/components/search/GlobalSearchModal';
 import { CallDetailPage } from '@/pages/CallDetailPage';
 
 // Import existing pages
@@ -58,7 +57,6 @@ function App() {
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
               <Toaster />
-              <GlobalSearchModal />
             </Router>
           </ThemeProvider>
         </AuthProvider>

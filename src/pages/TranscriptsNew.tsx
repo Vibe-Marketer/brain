@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RiSearchLine, RiAddLine, RiMenuLine } from "@remixicon/react";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
@@ -19,6 +19,7 @@ import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import EditFolderDialog from "@/components/EditFolderDialog";
 import EditAllTranscriptsDialog from "@/components/EditAllTranscriptsDialog";
 import { FolderManagementDialog } from "@/components/transcript-library/FolderManagementDialog";
+import { FOCUS_INLINE_SEARCH_EVENT } from "@/stores/searchStore";
 import { cn } from "@/lib/utils";
 
 type TabValue = "transcripts" | "sync" | "analytics";
@@ -80,6 +81,21 @@ const TranscriptsNew = () => {
 
   // Search state lifted to page level
   const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Listen for focus-inline-search events (triggered by Cmd/Ctrl+K)
+  useEffect(() => {
+    const handleFocusSearch = () => {
+      // Focus the search input if we're on the transcripts tab
+      if (activeTab === "transcripts" && searchInputRef.current) {
+        searchInputRef.current.focus();
+        searchInputRef.current.select();
+      }
+    };
+
+    window.addEventListener(FOCUS_INLINE_SEARCH_EVENT, handleFocusSearch);
+    return () => window.removeEventListener(FOCUS_INLINE_SEARCH_EVENT, handleFocusSearch);
+  }, [activeTab]);
 
   // ============================================================================
   // 3-PANE LAYOUT STATE - Matching LoopLayoutDemo.tsx pattern
@@ -403,12 +419,13 @@ const TranscriptsNew = () => {
                   </h1>
                   <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
                 </div>
-                {/* Search Bar - Only for Transcripts */}
+                {/* Search Bar - Only for Transcripts (Cmd/Ctrl+K focuses this) */}
                 {activeTab === "transcripts" && (
                   <div className="relative w-64 flex-shrink-0 hidden md:block">
                     <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cb-ink-muted" />
                     <Input
-                      placeholder="Search transcripts..."
+                      ref={searchInputRef}
+                      placeholder="Search transcripts... (⌘K)"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       className="h-9 pl-8 text-sm bg-white dark:bg-cb-card border-cb-border"

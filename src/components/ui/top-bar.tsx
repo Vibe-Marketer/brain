@@ -6,7 +6,7 @@ import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
-import { useSearchStore } from '@/stores/searchStore';
+import { dispatchFocusInlineSearch } from '@/stores/searchStore';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -30,29 +30,30 @@ export function TopBar({
 }: TopBarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const { openModal } = useSearchStore();
 
-  // Handle search click - use custom handler if provided, otherwise open modal
+  // Handle search click - use custom handler if provided, otherwise focus inline search
   const handleSearchClick = () => {
     if (onSearchClick) {
       onSearchClick();
     } else {
-      openModal();
+      // Focus the inline search on the current page
+      dispatchFocusInlineSearch();
     }
   };
 
-  // Handle Cmd/Ctrl+K keyboard shortcut to open search modal
+  // Handle Cmd/Ctrl+K keyboard shortcut to focus inline search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        openModal();
+        // Focus inline search on the current page
+        dispatchFocusInlineSearch();
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [openModal]);
+  }, []);
 
   const getInitials = (email?: string) => {
     if (!email) return 'U';

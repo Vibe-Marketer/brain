@@ -2,6 +2,19 @@ import { create } from 'zustand';
 import type { SearchResult, SearchState, SearchActions } from '@/types/search';
 
 /**
+ * Event name for focusing inline search inputs
+ * Components with inline search should listen for this event
+ */
+export const FOCUS_INLINE_SEARCH_EVENT = 'focus-inline-search';
+
+/**
+ * Helper to dispatch the focus inline search event
+ */
+export const dispatchFocusInlineSearch = () => {
+  window.dispatchEvent(new CustomEvent(FOCUS_INLINE_SEARCH_EVENT));
+};
+
+/**
  * Global Search Store
  * Manages state for the global search modal and search functionality
  */
