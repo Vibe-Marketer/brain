@@ -131,6 +131,11 @@ describe('panelStore', () => {
         'folder-detail',
         'tag-detail',
         'setting-help',
+        // Multi-pane navigation panel types
+        'settings-category',
+        'settings-detail',
+        'sorting-category',
+        'sorting-detail',
       ];
 
       panelTypes.forEach((type) => {
