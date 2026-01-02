@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { RiDeleteBin6Line, RiCloseLine, RiShareForwardLine, RiPriceTag3Line, RiMagicLine, RiFolderLine, RiChatQuoteLine } from "@remixicon/react";
@@ -195,7 +196,7 @@ export function BulkActionToolbarEnhanced({
     }
   };
 
-  return (
+  return createPortal(
     <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
       <div className="bg-background/80 backdrop-blur-xl shadow-2xl rounded-2xl px-4 py-3 flex items-center gap-4 border border-border">
         <div className="flex items-center gap-2">
@@ -316,6 +317,7 @@ export function BulkActionToolbarEnhanced({
           onClearSelection();
         }}
       />
-    </div>
+    </div>,
+    document.body
   );
 }
