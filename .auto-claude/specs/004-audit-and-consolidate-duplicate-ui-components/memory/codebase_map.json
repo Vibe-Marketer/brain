@@ -1,0 +1,30 @@
+{
+  "discovered_files": {
+    ".auto-claude/specs/004-audit-and-consolidate-duplicate-ui-components/ORPHAN_AUDIT.md": {
+      "description": "Complete audit of 20 orphaned UI files. Key findings: App_Original.tsx and App_Loop.tsx are orphaned entry points that import all other orphaned components. The entire contextual/ and layout/loop/ directories are orphaned. Only 3 files in loop/ are orphaned (AppShell, Sidebar, TopBar) - the rest (InsightCard, WorkspaceCard, etc.) are actively used.",
+      "category": "architecture",
+      "discovered_at": "2026-01-01T10:18:06.669866+00:00"
+    },
+    "src/components/layout/": {
+      "description": "The layout/ directory is now empty after removing the orphaned loop/ subdirectory. May need cleanup if no other layout components are planned.",
+      "category": "cleanup",
+      "discovered_at": "2026-01-01T10:28:15.834120+00:00"
+    },
+    "src/components/contextual/": {
+      "description": "Deleted entire orphaned contextual/ directory. It contained AppShellV2.tsx, SecondaryPanel.tsx, index.ts, and 6 panel components (AIAssistantPanel, CallDetailPanel, FilterToolPanel, InsightDetailPanel, InspectorPanel, WorkspaceDetailPanel). Only import was from the also-orphaned App_Original.tsx.",
+      "category": "cleanup",
+      "discovered_at": "2026-01-01T10:29:34.837142+00:00"
+    },
+    "src/components/loop/index.ts": {
+      "description": "The loop/index.ts was exporting deleted components (AppShell, TopBar, Sidebar). Updated to only export remaining active components: WorkspaceCard, InsightCard, AIStatusWidget, and their types.",
+      "category": "cleanup",
+      "discovered_at": "2026-01-01T10:31:37.987794+00:00"
+    },
+    "src/App.tsx": {
+      "description": "Deleted orphaned App_Original.tsx and App_Loop.tsx files. App.tsx is now the only App entry point in src/. The orphaned files were alternative entry points that imported the now-deleted contextual/ and loop/ layout components.",
+      "category": "cleanup",
+      "discovered_at": "2026-01-01T10:34:16.788327+00:00"
+    }
+  },
+  "last_updated": "2026-01-01T10:34:16.788336+00:00"
+}

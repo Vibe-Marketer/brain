@@ -1,9 +1,0 @@
-export { AppShellV2 } from './AppShellV2';
-export { PrimarySidebar } from './PrimarySidebar';
-export { SecondaryPanel } from './SecondaryPanel';
-export { WorkspaceDetailPanel } from './panels/WorkspaceDetailPanel';
-export { CallDetailPanel } from './panels/CallDetailPanel';
-export { InsightDetailPanel } from './panels/InsightDetailPanel';
-export { FilterToolPanel } from './panels/FilterToolPanel';
-export { AIAssistantPanel } from './panels/AIAssistantPanel';
-export { InspectorPanel } from './panels/InspectorPanel';
