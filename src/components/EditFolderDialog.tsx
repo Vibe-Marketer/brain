@@ -98,14 +98,37 @@ export default function EditFolderDialog({
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
+      // Note: Do NOT query 'depth' column - it doesn't exist in the database
+      // Depth is computed client-side to avoid database schema dependencies
       const { data, error } = await supabase
         .from("folders")
-        .select("id, name, depth, parent_id")
+        .select("id, name, parent_id")
         .eq("user_id", user.id)
         .order("name");
 
       if (error) throw error;
-      setFolders(data || []);
+
+      // Compute depth client-side by traversing parent relationships
+      const foldersMap = new Map<string, { id: string; parent_id: string | null }>(
+        (data || []).map(f => [f.id, f])
+      );
+
+      const computeDepth = (folderId: string, visited = new Set<string>()): number => {
+        if (visited.has(folderId)) return 0; // Prevent infinite loops from circular refs
+        visited.add(folderId);
+        const folder = foldersMap.get(folderId);
+        if (!folder || !folder.parent_id) return 0;
+        return 1 + computeDepth(folder.parent_id, visited);
+      };
+
+      const foldersWithDepth: FolderOption[] = (data || []).map(f => ({
+        id: f.id,
+        name: f.name,
+        parent_id: f.parent_id,
+        depth: computeDepth(f.id),
+      }));
+
+      setFolders(foldersWithDepth);
     } catch (error) {
       logger.error("Error loading folders", error);
     } finally {
