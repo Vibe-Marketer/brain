@@ -45,7 +45,7 @@ interface CategoryItem {
   requiredRoles?: Array<"ADMIN" | "TEAM">;
 }
 
-const SETTINGS_CATEGORIES: CategoryItem[] = [
+export const SETTINGS_CATEGORIES: CategoryItem[] = [
   {
     id: "account",
     label: "Account",

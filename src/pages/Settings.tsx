@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { RiLoader2Line, RiQuestionLine, RiCloseLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
@@ -10,10 +11,15 @@ import { usePanelStore } from "@/stores/panelStore";
 import FathomSetupWizard from "@/components/settings/FathomSetupWizard";
 import { SettingHelpPanel, type SettingHelpTopic } from "@/components/panels/SettingHelpPanel";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
-import { SettingsCategoryPane, type SettingsCategory } from "@/components/panes/SettingsCategoryPane";
+import { SettingsCategoryPane, type SettingsCategory, SETTINGS_CATEGORIES } from "@/components/panes/SettingsCategoryPane";
 import { SettingsDetailPane } from "@/components/panes/SettingsDetailPane";
 
+// Valid category IDs for URL validation
+const VALID_CATEGORY_IDS = SETTINGS_CATEGORIES.map((c) => c.id);
+
 export default function Settings() {
+  const { category: urlCategory } = useParams<{ category?: string }>();
+  const navigate = useNavigate();
   const { loading: roleLoading, isAdmin, isTeam } = useUserRole();
   const { wizardCompleted, loading: wizardLoading, markWizardComplete } = useSetupWizard();
 
@@ -31,6 +37,44 @@ export default function Settings() {
   const [selectedCategory, setSelectedCategory] = useState<SettingsCategory | null>(null);
   // Control visibility of the 2nd pane (category list)
   const [isCategoryPaneOpen, setIsCategoryPaneOpen] = useState(true);
+
+  // --- Deep Link Handling ---
+  // On initial load, read category from URL and validate
+  useEffect(() => {
+    if (urlCategory) {
+      // Validate the category from URL
+      if (VALID_CATEGORY_IDS.includes(urlCategory as SettingsCategory)) {
+        // Check role-based access for restricted categories
+        const categoryConfig = SETTINGS_CATEGORIES.find((c) => c.id === urlCategory);
+        const hasAccess = !categoryConfig?.requiredRoles?.length ||
+          (categoryConfig.requiredRoles.includes("ADMIN") && isAdmin) ||
+          (categoryConfig.requiredRoles.includes("TEAM") && (isTeam || isAdmin));
+
+        if (hasAccess) {
+          setSelectedCategory(urlCategory as SettingsCategory);
+          setIsCategoryPaneOpen(true);
+        } else {
+          // Redirect to base settings if user doesn't have access
+          navigate("/settings", { replace: true });
+        }
+      } else {
+        // Invalid category in URL, redirect to base settings
+        navigate("/settings", { replace: true });
+      }
+    }
+  }, [urlCategory, isAdmin, isTeam, navigate]);
+
+  // Sync URL when selectedCategory changes (for user interactions)
+  useEffect(() => {
+    // Skip URL sync on initial load (handled by urlCategory effect above)
+    // Only sync when category changes via user interaction
+    if (selectedCategory && selectedCategory !== urlCategory) {
+      navigate(`/settings/${selectedCategory}`, { replace: true });
+    } else if (!selectedCategory && urlCategory) {
+      // If category is deselected, go back to base settings URL
+      navigate("/settings", { replace: true });
+    }
+  }, [selectedCategory, urlCategory, navigate]);
 
   // --- Panel Store ---
   const { isPanelOpen, panelType, panelData, openPanel, closePanel } = usePanelStore();
