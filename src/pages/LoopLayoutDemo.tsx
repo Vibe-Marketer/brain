@@ -103,28 +103,55 @@ export default function LoopLayoutDemo() {
       <div className="h-full flex gap-3 overflow-hidden p-1">
         
         {/* CARD 1: Navigation Rail (Expandable) */}
-        <div 
+        <div
             className={cn(
-                "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col py-2 h-full z-10 transition-all duration-300 ease-in-out",
-                isSidebarExpanded ? "w-[240px]" : "w-[72px] items-center"
+                "relative flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col py-2 h-full z-10 transition-all duration-500 ease-in-out",
+                isSidebarExpanded ? "w-[220px]" : "w-[72px] items-center"
             )}
         >
-          <div className="w-full px-2 mb-2 flex items-center justify-between">
-             {/* Toggle Sidebar Button (Hamburger/Menu) */}
-             <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-                className="text-muted-foreground hover:text-foreground"
-             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-panel-left"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
-             </Button>
-             {isSidebarExpanded && <span className="text-sm font-semibold mr-auto ml-2">Menu</span>}
+          {/* Click-to-toggle background overlay */}
+          <div
+            className="absolute inset-0 cursor-pointer z-0"
+            onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+          />
+
+          {/* Floating collapse/expand toggle on right edge */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsSidebarExpanded(!isSidebarExpanded);
+            }}
+            className={cn(
+              "absolute top-1/2 -translate-y-1/2 -right-3 z-20 w-6 h-6 rounded-full bg-card border border-border shadow-sm",
+              "flex items-center justify-center hover:bg-muted transition-colors"
+            )}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className={cn(
+                "transition-transform duration-500",
+                isSidebarExpanded ? "rotate-0" : "rotate-180"
+              )}
+            >
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+
+          <div className="w-full px-2 mb-2 flex items-center justify-between relative z-10">
+             {isSidebarExpanded && <span className="text-sm font-semibold ml-2">Menu</span>}
           </div>
 
-          <SidebarNav 
-            isCollapsed={!isSidebarExpanded} 
-            className="w-full flex-1"
+          <SidebarNav
+            isCollapsed={!isSidebarExpanded}
+            className="w-full flex-1 relative z-10"
             onSyncClick={() => setActiveTab("sync")}
             onLibraryToggle={() => setIsLibraryOpen(!isLibraryOpen)}
           />
@@ -169,7 +196,7 @@ export default function LoopLayoutDemo() {
         </div>
 
         {/* CARD 3: Main Content (Transcripts/Tabs) */}
-        <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0 transition-all duration-300">
+        <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0 transition-all duration-500">
             {/* 
                Exact Layout from TranscriptsNew.tsx:
                1. Tabs Header (TRANSCRIPTS | ANALYTICS) - Sync removed from here
