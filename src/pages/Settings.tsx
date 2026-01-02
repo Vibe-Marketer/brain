@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { RiLoader2Line, RiQuestionLine, RiCloseLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
@@ -8,17 +8,18 @@ import { useBreakpointFlags } from "@/hooks/useBreakpoint";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSetupWizard } from "@/hooks/useSetupWizard";
 import { usePanelStore } from "@/stores/panelStore";
-import AccountTab from "@/components/settings/AccountTab";
-import BillingTab from "@/components/settings/BillingTab";
-import IntegrationsTab from "@/components/settings/IntegrationsTab";
-import UsersTab from "@/components/settings/UsersTab";
-import AdminTab from "@/components/settings/AdminTab";
-import AITab from "@/components/settings/AITab";
 import FathomSetupWizard from "@/components/settings/FathomSetupWizard";
 import { SettingHelpPanel, type SettingHelpTopic } from "@/components/panels/SettingHelpPanel";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
+import { SettingsCategoryPane, type SettingsCategory, SETTINGS_CATEGORIES } from "@/components/panes/SettingsCategoryPane";
+import { SettingsDetailPane } from "@/components/panes/SettingsDetailPane";
+
+// Valid category IDs for URL validation
+const VALID_CATEGORY_IDS = SETTINGS_CATEGORIES.map((c) => c.id);
 
 export default function Settings() {
+  const { category: urlCategory } = useParams<{ category?: string }>();
+  const navigate = useNavigate();
   const { loading: roleLoading, isAdmin, isTeam } = useUserRole();
   const { wizardCompleted, loading: wizardLoading, markWizardComplete } = useSetupWizard();
 
@@ -30,6 +31,50 @@ export default function Settings() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(!isTablet);
   const [showMobileNav, setShowMobileNav] = useState(false); // Mobile nav overlay
   const [showMobileBottomSheet, setShowMobileBottomSheet] = useState(false); // Mobile bottom sheet for right panel
+
+  // --- Pane System Logic (Dual Mode) ---
+  // Selected category for the 2nd pane (category list) and 3rd pane (detail view)
+  const [selectedCategory, setSelectedCategory] = useState<SettingsCategory | null>(null);
+  // Control visibility of the 2nd pane (category list)
+  const [isCategoryPaneOpen, setIsCategoryPaneOpen] = useState(true);
+
+  // --- Deep Link Handling ---
+  // On initial load, read category from URL and validate
+  useEffect(() => {
+    if (urlCategory) {
+      // Validate the category from URL
+      if (VALID_CATEGORY_IDS.includes(urlCategory as SettingsCategory)) {
+        // Check role-based access for restricted categories
+        const categoryConfig = SETTINGS_CATEGORIES.find((c) => c.id === urlCategory);
+        const hasAccess = !categoryConfig?.requiredRoles?.length ||
+          (categoryConfig.requiredRoles.includes("ADMIN") && isAdmin) ||
+          (categoryConfig.requiredRoles.includes("TEAM") && (isTeam || isAdmin));
+
+        if (hasAccess) {
+          setSelectedCategory(urlCategory as SettingsCategory);
+          setIsCategoryPaneOpen(true);
+        } else {
+          // Redirect to base settings if user doesn't have access
+          navigate("/settings", { replace: true });
+        }
+      } else {
+        // Invalid category in URL, redirect to base settings
+        navigate("/settings", { replace: true });
+      }
+    }
+  }, [urlCategory, isAdmin, isTeam, navigate]);
+
+  // Sync URL when selectedCategory changes (for user interactions)
+  useEffect(() => {
+    // Skip URL sync on initial load (handled by urlCategory effect above)
+    // Only sync when category changes via user interaction
+    if (selectedCategory && selectedCategory !== urlCategory) {
+      navigate(`/settings/${selectedCategory}`, { replace: true });
+    } else if (!selectedCategory && urlCategory) {
+      // If category is deselected, go back to base settings URL
+      navigate("/settings", { replace: true });
+    }
+  }, [selectedCategory, urlCategory, navigate]);
 
   // --- Panel Store ---
   const { isPanelOpen, panelType, panelData, openPanel, closePanel } = usePanelStore();
@@ -121,6 +166,29 @@ export default function Settings() {
     await markWizardComplete();
   };
 
+  // --- Pane System Handlers ---
+  // Handle Settings nav item click - ensure category pane is open
+  const handleSettingsNavClick = useCallback(() => {
+    setIsCategoryPaneOpen(true);
+  }, []);
+
+  // Handle category selection from the 2nd pane
+  const handleCategorySelect = useCallback((category: SettingsCategory) => {
+    setSelectedCategory(category);
+    // Sync with tab state for dual mode
+    setCurrentTab(category);
+  }, []);
+
+  // Handle closing the detail pane (3rd pane)
+  const handleCloseDetailPane = useCallback(() => {
+    setSelectedCategory(null);
+  }, []);
+
+  // Handle back navigation (for mobile)
+  const handleBackFromDetail = useCallback(() => {
+    setSelectedCategory(null);
+  }, []);
+
   if (roleLoading || wizardLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -171,11 +239,85 @@ export default function Settings() {
           <SidebarNav
             isCollapsed={false}
             className="w-full flex-1"
+            onSettingsClick={handleSettingsNavClick}
           />
         </nav>
       )}
 
       <div className="h-full flex gap-3 overflow-hidden p-1">
+
+        {/* MOBILE: Single-pane view with category list or detail */}
+        {isMobile && (
+          <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+            {/* Mobile: Show category pane when no category selected */}
+            {!selectedCategory && (
+              <div
+                className="flex-1 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full overflow-hidden"
+                role="navigation"
+                aria-label="Settings categories"
+              >
+                {/* Mobile header */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowMobileNav(true)}
+                    className="text-muted-foreground hover:text-foreground h-10 w-10"
+                    aria-label="Open navigation menu"
+                    aria-expanded={showMobileNav}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="4" y1="6" x2="20" y2="6" />
+                      <line x1="4" y1="12" x2="20" y2="12" />
+                      <line x1="4" y1="18" x2="20" y2="18" />
+                    </svg>
+                  </Button>
+                  <span className="text-sm font-semibold">Settings</span>
+                </div>
+                <SettingsCategoryPane
+                  selectedCategory={selectedCategory}
+                  onCategorySelect={handleCategorySelect}
+                  className="flex-1 min-h-0"
+                />
+              </div>
+            )}
+
+            {/* Mobile: Show detail pane when category is selected */}
+            {selectedCategory && (
+              <div
+                className="flex-1 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full overflow-hidden"
+                role="region"
+                aria-label="Settings detail"
+              >
+                {/* Mobile header */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowMobileNav(true)}
+                    className="text-muted-foreground hover:text-foreground h-10 w-10"
+                    aria-label="Open navigation menu"
+                    aria-expanded={showMobileNav}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="4" y1="6" x2="20" y2="6" />
+                      <line x1="4" y1="12" x2="20" y2="12" />
+                      <line x1="4" y1="18" x2="20" y2="18" />
+                    </svg>
+                  </Button>
+                  <span className="text-sm font-semibold">Settings</span>
+                </div>
+                <SettingsDetailPane
+                  category={selectedCategory}
+                  onClose={handleCloseDetailPane}
+                  onBack={handleBackFromDetail}
+                  showBackButton={true}
+                  className="flex-1 min-h-0"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* PANE 1: Navigation Rail (Hidden on mobile, shown as overlay) */}
         {!isMobile && (
@@ -208,59 +350,61 @@ export default function Settings() {
             <SidebarNav
               isCollapsed={!isSidebarExpanded}
               className="w-full flex-1"
+              onSettingsClick={handleSettingsNavClick}
             />
           </nav>
         )}
 
-        {/* PANE 3: Main Content (Settings/Tabs) - No Pane 2 for Settings per spec */}
-        <main
-          role="main"
-          aria-label="Settings content"
-          tabIndex={0}
-          className={cn(
-            "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0",
-            "transition-[flex,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
-          )}
-        >
-          <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full flex flex-col">
-            {/* Mobile header with hamburger menu */}
-            {isMobile && (
-              <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowMobileNav(true)}
-                  className="text-muted-foreground hover:text-foreground h-8 w-8"
-                  aria-label="Open navigation menu"
-                  aria-expanded={showMobileNav}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="4" y1="6" x2="20" y2="6" />
-                    <line x1="4" y1="12" x2="20" y2="12" />
-                    <line x1="4" y1="18" x2="20" y2="18" />
-                  </svg>
-                </Button>
-                <span className="text-sm font-semibold">Settings</span>
-              </div>
+        {/* PANE 2: Settings Category List */}
+        {!isMobile && isCategoryPaneOpen && (
+          <div
+            className={cn(
+              "flex-shrink-0 bg-card/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
+              "transition-all duration-500 ease-in-out",
+              "w-[280px] opacity-100"
             )}
+            role="navigation"
+            aria-label="Settings categories"
+          >
+            <SettingsCategoryPane
+              selectedCategory={selectedCategory}
+              onCategorySelect={handleCategorySelect}
+            />
+          </div>
+        )}
 
-            {/* Tabs at the top */}
-            <div className="px-4 md:px-10 pt-2 flex-shrink-0">
-              <TabsList>
-                <TabsTrigger value="account">ACCOUNT</TabsTrigger>
-                {(isTeam || isAdmin) && (
-                  <TabsTrigger value="users">USERS</TabsTrigger>
-                )}
-                <TabsTrigger value="billing">BILLING</TabsTrigger>
-                <TabsTrigger value="integrations">INTEGRATIONS</TabsTrigger>
-                <TabsTrigger value="ai">AI</TabsTrigger>
-                {isAdmin && (
-                  <TabsTrigger value="admin">ADMIN</TabsTrigger>
-                )}
-              </TabsList>
-            </div>
+        {/* PANE 3: Settings Detail (shown when category is selected) */}
+        {!isMobile && selectedCategory && (
+          <div
+            className={cn(
+              "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
+              "transition-all duration-500 ease-in-out",
+              "w-[400px] opacity-100"
+            )}
+            role="region"
+            aria-label="Settings detail"
+          >
+            <SettingsDetailPane
+              category={selectedCategory}
+              onClose={handleCloseDetailPane}
+              onBack={handleBackFromDetail}
+              showBackButton={false}
+            />
+          </div>
+        )}
 
+        {/* PANE 4: Main Content (Settings) - Desktop/Tablet only - Content rendered via pane system */}
+        {!isMobile && (
+          <main
+            role="main"
+            aria-label="Settings content"
+            tabIndex={0}
+            className={cn(
+              "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0",
+              "transition-[flex,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
+            )}
+          >
             {/* Full-width black line */}
             <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
 
@@ -288,44 +432,16 @@ export default function Settings() {
               </div>
             </div>
 
-            {/* Tab Content */}
+            {/* Main content area - content is now rendered via the pane system (SettingsCategoryPane and SettingsDetailPane) */}
             <div className="flex-1 min-h-0 overflow-auto px-4 md:px-10">
-              {/* ACCOUNT TAB */}
-              <TabsContent value="account" className="space-y-0 mt-0">
-                <AccountTab />
-              </TabsContent>
-
-              {/* USERS TAB (TEAM/ADMIN only) */}
-              {(isTeam || isAdmin) && (
-                <TabsContent value="users" className="space-y-0 mt-0">
-                  <UsersTab />
-                </TabsContent>
-              )}
-
-              {/* BILLING TAB */}
-              <TabsContent value="billing" className="space-y-0 mt-0">
-                <BillingTab />
-              </TabsContent>
-
-              {/* INTEGRATIONS TAB */}
-              <TabsContent value="integrations" className="space-y-0 mt-0">
-                <IntegrationsTab />
-              </TabsContent>
-
-              {/* AI TAB */}
-              <TabsContent value="ai" className="space-y-0 mt-0">
-                <AITab />
-              </TabsContent>
-
-              {/* ADMIN TAB (ADMIN only) */}
-              {isAdmin && (
-                <TabsContent value="admin" className="space-y-0 mt-0">
-                  <AdminTab />
-                </TabsContent>
+              {!selectedCategory && (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  <p>Select a category from the sidebar to view settings</p>
+                </div>
               )}
             </div>
-          </Tabs>
-        </main>
+          </main>
+        )}
 
         {/* Right Panel - Settings Help (tablet and desktop) */}
         {!isMobile && (

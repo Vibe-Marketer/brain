@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SidebarNav } from "@/components/ui/sidebar-nav";
@@ -13,8 +13,13 @@ import { FolderDetailPanel } from "@/components/panels/FolderDetailPanel";
 import { TagDetailPanel } from "@/components/panels/TagDetailPanel";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { RiCloseLine } from "@remixicon/react";
+import { SortingCategoryPane, type SortingCategory } from "@/components/panes/SortingCategoryPane";
+import { SortingDetailPane } from "@/components/panes/SortingDetailPane";
 
 type TabValue = "folders" | "tags" | "rules" | "recurring";
+
+// Valid category IDs for URL validation
+const VALID_CATEGORY_IDS: SortingCategory[] = ["folders", "tags", "rules", "recurring"];
 
 const tabConfig = {
   folders: {
@@ -36,6 +41,9 @@ const tabConfig = {
 };
 
 export default function SortingTagging() {
+  const { category: urlCategory } = useParams<{ category?: string }>();
+  const navigate = useNavigate();
+
   // --- Tab Logic ---
   const [activeTab, setActiveTab] = useState<TabValue>("folders");
   const currentConfig = tabConfig[activeTab];
@@ -49,6 +57,40 @@ export default function SortingTagging() {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false); // Control Middle Panel visibility (default closed for settings)
   const [showMobileNav, setShowMobileNav] = useState(false); // Mobile nav overlay
   const [showMobileBottomSheet, setShowMobileBottomSheet] = useState(false); // Mobile bottom sheet for right panel
+
+  // --- Pane System Logic (Dual Mode) ---
+  // Selected category for the 2nd pane (category list) and 3rd pane (detail view)
+  const [selectedCategory, setSelectedCategory] = useState<SortingCategory | null>(null);
+  // Control visibility of the 2nd pane (category list)
+  const [isCategoryPaneOpen, setIsCategoryPaneOpen] = useState(true);
+
+  // --- Deep Link Handling ---
+  // On initial load, read category from URL and validate
+  useEffect(() => {
+    if (urlCategory) {
+      // Validate the category from URL
+      if (VALID_CATEGORY_IDS.includes(urlCategory as SortingCategory)) {
+        setSelectedCategory(urlCategory as SortingCategory);
+        setActiveTab(urlCategory as TabValue);
+        setIsCategoryPaneOpen(true);
+      } else {
+        // Invalid category in URL, redirect to base sorting-tagging
+        navigate("/sorting-tagging", { replace: true });
+      }
+    }
+  }, [urlCategory, navigate]);
+
+  // Sync URL when selectedCategory changes (for user interactions)
+  useEffect(() => {
+    // Skip URL sync on initial load (handled by urlCategory effect above)
+    // Only sync when category changes via user interaction
+    if (selectedCategory && selectedCategory !== urlCategory) {
+      navigate(`/sorting-tagging/${selectedCategory}`, { replace: true });
+    } else if (!selectedCategory && urlCategory) {
+      // If category is deselected, go back to base sorting-tagging URL
+      navigate("/sorting-tagging", { replace: true });
+    }
+  }, [selectedCategory, urlCategory, navigate]);
 
   // --- Panel Store ---
   const { isPanelOpen, panelType, panelData, closePanel } = usePanelStore();
@@ -98,6 +140,29 @@ export default function SortingTagging() {
     closePanel();
   }, [closePanel]);
 
+  // --- Pane System Handlers ---
+  // Handle Sorting nav item click - ensure category pane is open
+  const handleSortingNavClick = useCallback(() => {
+    setIsCategoryPaneOpen(true);
+  }, []);
+
+  // Handle category selection from the 2nd pane
+  const handleCategorySelect = useCallback((category: SortingCategory) => {
+    setSelectedCategory(category);
+    // Sync with tab state for dual mode
+    setActiveTab(category);
+  }, []);
+
+  // Handle closing the detail pane (3rd pane)
+  const handleCloseDetailPane = useCallback(() => {
+    setSelectedCategory(null);
+  }, []);
+
+  // Handle back navigation (for mobile)
+  const handleBackFromDetail = useCallback(() => {
+    setSelectedCategory(null);
+  }, []);
+
   return (
     <>
       {/* Mobile overlay backdrop - for nav or bottom sheet */}
@@ -141,11 +206,85 @@ export default function SortingTagging() {
             isCollapsed={false}
             className="w-full flex-1"
             onLibraryToggle={() => setIsLibraryOpen(!isLibraryOpen)}
+            onSortingClick={handleSortingNavClick}
           />
         </nav>
       )}
 
       <div className="h-full flex gap-3 overflow-hidden p-1">
+
+        {/* MOBILE: Single-pane view with category list or detail */}
+        {isMobile && (
+          <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+            {/* Mobile: Show category pane when no category selected */}
+            {!selectedCategory && (
+              <div
+                className="flex-1 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full overflow-hidden"
+                role="navigation"
+                aria-label="Sorting and tagging categories"
+              >
+                {/* Mobile header */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowMobileNav(true)}
+                    className="text-muted-foreground hover:text-foreground h-10 w-10"
+                    aria-label="Open navigation menu"
+                    aria-expanded={showMobileNav}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="4" y1="6" x2="20" y2="6" />
+                      <line x1="4" y1="12" x2="20" y2="12" />
+                      <line x1="4" y1="18" x2="20" y2="18" />
+                    </svg>
+                  </Button>
+                  <span className="text-sm font-semibold">Sorting & Tagging</span>
+                </div>
+                <SortingCategoryPane
+                  selectedCategory={selectedCategory}
+                  onCategorySelect={handleCategorySelect}
+                  className="flex-1 min-h-0"
+                />
+              </div>
+            )}
+
+            {/* Mobile: Show detail pane when category is selected */}
+            {selectedCategory && (
+              <div
+                className="flex-1 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full overflow-hidden"
+                role="region"
+                aria-label="Sorting detail"
+              >
+                {/* Mobile header */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowMobileNav(true)}
+                    className="text-muted-foreground hover:text-foreground h-10 w-10"
+                    aria-label="Open navigation menu"
+                    aria-expanded={showMobileNav}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="4" y1="6" x2="20" y2="6" />
+                      <line x1="4" y1="12" x2="20" y2="12" />
+                      <line x1="4" y1="18" x2="20" y2="18" />
+                    </svg>
+                  </Button>
+                  <span className="text-sm font-semibold">Sorting & Tagging</span>
+                </div>
+                <SortingDetailPane
+                  category={selectedCategory}
+                  onClose={handleCloseDetailPane}
+                  onBack={handleBackFromDetail}
+                  showBackButton={true}
+                  className="flex-1 min-h-0"
+                />
+              </div>
+            )}
+          </div>
+        )}
 
         {/* PANE 1: Navigation Rail (Hidden on mobile, shown as overlay) */}
         {!isMobile && (
@@ -179,107 +318,88 @@ export default function SortingTagging() {
               isCollapsed={!isSidebarExpanded}
               className="w-full flex-1"
               onLibraryToggle={() => setIsLibraryOpen(!isLibraryOpen)}
+              onSortingClick={handleSortingNavClick}
             />
           </nav>
         )}
 
-        {/* PANE 2: Secondary Panel (Hidden on mobile, collapsible - hidden by default for settings pages) */}
-        {!isMobile && (
-          <aside
-            role="complementary"
-            aria-label="Library panel"
-            aria-hidden={!isLibraryOpen}
-            tabIndex={isLibraryOpen ? 0 : -1}
+        {/* PANE 2: Sorting Category List */}
+        {!isMobile && isCategoryPaneOpen && (
+          <div
             className={cn(
               "flex-shrink-0 bg-card/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
-              "transition-[width,opacity,margin,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width,transform]",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
-              isLibraryOpen ? "w-[280px] opacity-100 ml-0 translate-x-0" : "w-0 opacity-0 -ml-3 -translate-x-2 border-0"
+              "transition-all duration-500 ease-in-out",
+              "w-[280px] opacity-100"
             )}
+            role="navigation"
+            aria-label="Sorting and tagging categories"
           >
-            {/* Empty secondary panel - can be used for future content if needed */}
-          </aside>
+            <SortingCategoryPane
+              selectedCategory={selectedCategory}
+              onCategorySelect={handleCategorySelect}
+            />
+          </div>
         )}
 
-        {/* PANE 3: Main Content (Settings/Tabs) */}
-        <main
-          role="main"
-          aria-label="Sorting and tagging content"
-          tabIndex={0}
-          className={cn(
-            "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0",
-            "transition-[flex,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
-          )}
-        >
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabValue)} className="h-full flex flex-col">
-            {/* Mobile header with hamburger menu */}
-            {isMobile && (
-              <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowMobileNav(true)}
-                  className="text-muted-foreground hover:text-foreground h-8 w-8"
-                  aria-label="Open navigation menu"
-                  aria-expanded={showMobileNav}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="4" y1="6" x2="20" y2="6" />
-                    <line x1="4" y1="12" x2="20" y2="12" />
-                    <line x1="4" y1="18" x2="20" y2="18" />
-                  </svg>
-                </Button>
-                <span className="text-sm font-semibold">Settings</span>
-              </div>
+        {/* PANE 3: Sorting Detail (shown when category is selected) */}
+        {!isMobile && selectedCategory && (
+          <div
+            className={cn(
+              "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
+              "transition-all duration-500 ease-in-out",
+              "w-[400px] opacity-100"
             )}
-            <div className="px-4 md:px-10 pt-2 flex-shrink-0">
-              <TabsList>
-                <TabsTrigger value="folders">FOLDERS</TabsTrigger>
-                <TabsTrigger value="tags">TAGS</TabsTrigger>
-                <TabsTrigger value="rules">RULES</TabsTrigger>
-                <TabsTrigger value="recurring">RECURRING</TabsTrigger>
-              </TabsList>
+            role="region"
+            aria-label="Sorting detail"
+          >
+            <SortingDetailPane
+              category={selectedCategory}
+              onClose={handleCloseDetailPane}
+              onBack={handleBackFromDetail}
+              showBackButton={false}
+            />
+          </div>
+        )}
+
+        {/* PANE 4: Main Content - Desktop/Tablet only - displays content based on selected category */}
+        {!isMobile && (
+          <main
+            role="main"
+            aria-label="Sorting and tagging content"
+            tabIndex={0}
+            className={cn(
+              "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0",
+              "transition-[flex,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
+            )}
+          >
+            {/* Full-width line */}
+            <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
+
+            {/* Page Header */}
+            <div className="px-4 md:px-10 flex-shrink-0">
+              <div className="mt-2 mb-3">
+                <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
+                  SETTINGS
+                </p>
+                <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
+                  {currentConfig.title}
+                </h1>
+                <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
+              </div>
             </div>
 
-          {/* Full-width line */}
-          <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
-
-          {/* Page Header */}
-          <div className="px-4 md:px-10 flex-shrink-0">
-            <div className="mt-2 mb-3">
-              <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
-                SETTINGS
-              </p>
-              <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
-                {currentConfig.title}
-              </h1>
-              <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
+            {/* Content based on selected category */}
+            <div className="flex-1 min-h-0 overflow-auto px-4 md:px-10">
+              {activeTab === "folders" && <FoldersTab />}
+              {activeTab === "tags" && <TagsTab />}
+              {activeTab === "rules" && <RulesTab />}
+              {activeTab === "recurring" && <RecurringTitlesTab />}
             </div>
-          </div>
+          </main>
+        )}
 
-          {/* Tab Content */}
-          <div className="flex-1 min-h-0 overflow-auto px-4 md:px-10">
-            <TabsContent value="folders" className="mt-0">
-              <FoldersTab />
-            </TabsContent>
-
-            <TabsContent value="tags" className="mt-0">
-              <TagsTab />
-            </TabsContent>
-
-            <TabsContent value="rules" className="mt-0">
-              <RulesTab />
-            </TabsContent>
-
-            <TabsContent value="recurring" className="mt-0">
-              <RecurringTitlesTab />
-            </TabsContent>
-          </div>
-        </Tabs>
-      </main>
-
-        {/* PANE 4: Right Panel - Detail view for selected folder/tag (tablet and desktop) */}
+        {/* PANE 5: Right Panel - Detail view for selected folder/tag (tablet and desktop) */}
         {!isMobile && (
           <aside
             role="complementary"

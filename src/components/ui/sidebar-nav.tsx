@@ -46,6 +46,10 @@ interface SidebarNavProps {
   onSyncClick?: () => void;
   /** Optional callback to toggle the Library panel */
   onLibraryToggle?: () => void;
+  /** Optional callback when Settings nav item is clicked (to open category pane) */
+  onSettingsClick?: () => void;
+  /** Optional callback when Sorting nav item is clicked (to open category pane) */
+  onSortingClick?: () => void;
 }
 
 /**
@@ -107,7 +111,7 @@ const navItems: NavItem[] = [
   },
 ];
 
-export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggle }: SidebarNavProps) {
+export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggle, onSettingsClick, onSortingClick }: SidebarNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -141,7 +145,17 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
               )}
               <button
                 type="button"
-                onClick={() => navigate(item.path)}
+                onClick={() => {
+                  navigate(item.path);
+                  // Call settings callback when Settings nav item is clicked
+                  if (item.id === 'settings' && onSettingsClick) {
+                    onSettingsClick();
+                  }
+                  // Call sorting callback when Sorting nav item is clicked
+                  if (item.id === 'sorting' && onSortingClick) {
+                    onSortingClick();
+                  }
+                }}
                 className={cn(
                   'relative flex items-center',
                   isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',

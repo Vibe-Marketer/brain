@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "005-ui-ux-enhancement",
+  "spec": "006-ui-ux-for-settings-sorting-pages",
   "state": "complete",
   "subtasks": {
-    "completed": 25,
-    "total": 25,
+    "completed": 32,
+    "total": 32,
     "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "Testing & QA",
+    "current": "Comprehensive Testing and QA",
     "id": null,
-    "total": 5
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 25,
-    "started_at": "2026-01-01T14:32:01.391900"
+    "number": 2276,
+    "started_at": "2026-01-02T01:15:33.311999"
   },
-  "last_update": "2026-01-01T16:17:33.301107"
+  "last_update": "2026-01-02T06:14:23.046314"
 }
