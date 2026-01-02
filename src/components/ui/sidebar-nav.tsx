@@ -145,7 +145,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 className={cn(
                   'relative flex items-center',
                   isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
-                  'rounded-xl transition-all duration-200',
+                  'rounded-xl transition-all duration-500 ease-in-out',
                   'hover:bg-gray-100 dark:hover:bg-white/10',
                   active && !isCollapsed && 'bg-cb-vibe-orange/10 dark:bg-cb-vibe-orange/20 text-cb-vibe-orange',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
@@ -189,7 +189,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
               className={cn(
                 'relative flex items-center',
                 isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
-                'rounded-xl transition-all duration-200',
+                'rounded-xl transition-all duration-500 ease-in-out',
                 'hover:bg-gray-100 dark:hover:bg-white/10',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
               )}
@@ -222,7 +222,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
               className={cn(
                 'relative flex items-center',
                 isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
-                'rounded-xl transition-all duration-200',
+                'rounded-xl transition-all duration-500 ease-in-out',
                 'hover:bg-gray-100 dark:hover:bg-white/10',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
               )}
