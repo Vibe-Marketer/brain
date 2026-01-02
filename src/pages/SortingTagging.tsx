@@ -213,6 +213,79 @@ export default function SortingTagging() {
 
       <div className="h-full flex gap-3 overflow-hidden p-1">
 
+        {/* MOBILE: Single-pane view with category list or detail */}
+        {isMobile && (
+          <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
+            {/* Mobile: Show category pane when no category selected */}
+            {!selectedCategory && (
+              <div
+                className="flex-1 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full overflow-hidden"
+                role="navigation"
+                aria-label="Sorting and tagging categories"
+              >
+                {/* Mobile header */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowMobileNav(true)}
+                    className="text-muted-foreground hover:text-foreground h-10 w-10"
+                    aria-label="Open navigation menu"
+                    aria-expanded={showMobileNav}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="4" y1="6" x2="20" y2="6" />
+                      <line x1="4" y1="12" x2="20" y2="12" />
+                      <line x1="4" y1="18" x2="20" y2="18" />
+                    </svg>
+                  </Button>
+                  <span className="text-sm font-semibold">Sorting & Tagging</span>
+                </div>
+                <SortingCategoryPane
+                  selectedCategory={selectedCategory}
+                  onCategorySelect={handleCategorySelect}
+                  className="flex-1 min-h-0"
+                />
+              </div>
+            )}
+
+            {/* Mobile: Show detail pane when category is selected */}
+            {selectedCategory && (
+              <div
+                className="flex-1 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full overflow-hidden"
+                role="region"
+                aria-label="Sorting detail"
+              >
+                {/* Mobile header */}
+                <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowMobileNav(true)}
+                    className="text-muted-foreground hover:text-foreground h-10 w-10"
+                    aria-label="Open navigation menu"
+                    aria-expanded={showMobileNav}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <line x1="4" y1="6" x2="20" y2="6" />
+                      <line x1="4" y1="12" x2="20" y2="12" />
+                      <line x1="4" y1="18" x2="20" y2="18" />
+                    </svg>
+                  </Button>
+                  <span className="text-sm font-semibold">Sorting & Tagging</span>
+                </div>
+                <SortingDetailPane
+                  category={selectedCategory}
+                  onClose={handleCloseDetailPane}
+                  onBack={handleBackFromDetail}
+                  showBackButton={true}
+                  className="flex-1 min-h-0"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
         {/* PANE 1: Navigation Rail (Hidden on mobile, shown as overlay) */}
         {!isMobile && (
           <nav
@@ -288,62 +361,43 @@ export default function SortingTagging() {
           </div>
         )}
 
-        {/* PANE 4: Main Content - displays content based on selected category */}
-        <main
-          role="main"
-          aria-label="Sorting and tagging content"
-          tabIndex={0}
-          className={cn(
-            "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0",
-            "transition-[flex,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-            "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
-          )}
-        >
-          {/* Mobile header with hamburger menu */}
-          {isMobile && (
-            <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowMobileNav(true)}
-                className="text-muted-foreground hover:text-foreground h-8 w-8"
-                aria-label="Open navigation menu"
-                aria-expanded={showMobileNav}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                  <line x1="4" y1="6" x2="20" y2="6" />
-                  <line x1="4" y1="12" x2="20" y2="12" />
-                  <line x1="4" y1="18" x2="20" y2="18" />
-                </svg>
-              </Button>
-              <span className="text-sm font-semibold">Settings</span>
+        {/* PANE 4: Main Content - Desktop/Tablet only - displays content based on selected category */}
+        {!isMobile && (
+          <main
+            role="main"
+            aria-label="Sorting and tagging content"
+            tabIndex={0}
+            className={cn(
+              "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0",
+              "transition-[flex,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
+            )}
+          >
+            {/* Full-width line */}
+            <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
+
+            {/* Page Header */}
+            <div className="px-4 md:px-10 flex-shrink-0">
+              <div className="mt-2 mb-3">
+                <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
+                  SETTINGS
+                </p>
+                <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
+                  {currentConfig.title}
+                </h1>
+                <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
+              </div>
             </div>
-          )}
 
-          {/* Full-width line */}
-          <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
-
-          {/* Page Header */}
-          <div className="px-4 md:px-10 flex-shrink-0">
-            <div className="mt-2 mb-3">
-              <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
-                SETTINGS
-              </p>
-              <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
-                {currentConfig.title}
-              </h1>
-              <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
+            {/* Content based on selected category */}
+            <div className="flex-1 min-h-0 overflow-auto px-4 md:px-10">
+              {activeTab === "folders" && <FoldersTab />}
+              {activeTab === "tags" && <TagsTab />}
+              {activeTab === "rules" && <RulesTab />}
+              {activeTab === "recurring" && <RecurringTitlesTab />}
             </div>
-          </div>
-
-          {/* Content based on selected category */}
-          <div className="flex-1 min-h-0 overflow-auto px-4 md:px-10">
-            {activeTab === "folders" && <FoldersTab />}
-            {activeTab === "tags" && <TagsTab />}
-            {activeTab === "rules" && <RulesTab />}
-            {activeTab === "recurring" && <RecurringTitlesTab />}
-          </div>
-        </main>
+          </main>
+        )}
 
         {/* PANE 5: Right Panel - Detail view for selected folder/tag (tablet and desktop) */}
         {!isMobile && (
