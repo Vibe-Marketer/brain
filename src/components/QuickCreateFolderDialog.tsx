@@ -24,6 +24,7 @@ import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
 import { EmojiPickerInline } from "@/components/ui/emoji-picker-inline";
+import { RiAddLine } from "@remixicon/react";
 
 interface QuickCreateFolderDialogProps {
   open: boolean;
@@ -59,6 +60,9 @@ export default function QuickCreateFolderDialog({
   const [saving, setSaving] = useState(false);
   const [foldersWithDepth, setFoldersWithDepth] = useState<FolderWithDepth[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
+
+  // Inline parent folder creation
+  const [inlineParentDialogOpen, setInlineParentDialogOpen] = useState(false);
 
   // Ref for focus management
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -281,13 +285,25 @@ export default function QuickCreateFolderDialog({
             <Label htmlFor="parent-folder">Parent Folder</Label>
             <Select
               value={selectedParentId || "none"}
-              onValueChange={(value) => setSelectedParentId(value === "none" ? undefined : value)}
+              onValueChange={(value) => {
+                if (value === "__create_new_parent__") {
+                  setInlineParentDialogOpen(true);
+                } else {
+                  setSelectedParentId(value === "none" ? undefined : value);
+                }
+              }}
               disabled={loadingFolders}
             >
               <SelectTrigger id="parent-folder">
                 <SelectValue placeholder="None (Root Level)" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="__create_new_parent__">
+                  <div className="flex items-center gap-2 text-primary">
+                    <RiAddLine className="h-4 w-4" />
+                    Create New Parent Folder
+                  </div>
+                </SelectItem>
                 <SelectItem value="none">None (Root Level)</SelectItem>
                 {availableParentFolders.map((folder) => (
                   <SelectItem key={folder.id} value={folder.id}>
@@ -330,6 +346,20 @@ export default function QuickCreateFolderDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Inline Parent Folder Creation Dialog */}
+      {inlineParentDialogOpen && (
+        <QuickCreateFolderDialog
+          open={inlineParentDialogOpen}
+          onOpenChange={setInlineParentDialogOpen}
+          onFolderCreated={(newParentId) => {
+            // Auto-select the newly created parent folder
+            setSelectedParentId(newParentId);
+            // Reload folders list to show the new parent
+            loadFolders();
+          }}
+        />
+      )}
     </Dialog>
   );
 }

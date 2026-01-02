@@ -24,6 +24,8 @@ import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
 import { EmojiPickerInline } from "@/components/ui/emoji-picker-inline";
+import { RiAddLine } from "@remixicon/react";
+import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 
 interface Folder {
   id: string;
@@ -64,6 +66,9 @@ export default function EditFolderDialog({
   const [saving, setSaving] = useState(false);
   const [folders, setFolders] = useState<FolderOption[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
+
+  // Inline parent folder creation
+  const [inlineParentDialogOpen, setInlineParentDialogOpen] = useState(false);
 
   // Ref for focus management
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -288,13 +293,25 @@ export default function EditFolderDialog({
             <Label htmlFor="edit-parent-folder">Parent Folder</Label>
             <Select
               value={selectedParentId || "none"}
-              onValueChange={(value) => setSelectedParentId(value === "none" ? undefined : value)}
+              onValueChange={(value) => {
+                if (value === "__create_new_parent__") {
+                  setInlineParentDialogOpen(true);
+                } else {
+                  setSelectedParentId(value === "none" ? undefined : value);
+                }
+              }}
               disabled={loadingFolders}
             >
               <SelectTrigger id="edit-parent-folder">
                 <SelectValue placeholder="None (Root Level)" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="__create_new_parent__">
+                  <div className="flex items-center gap-2 text-primary">
+                    <RiAddLine className="h-4 w-4" />
+                    Create New Parent Folder
+                  </div>
+                </SelectItem>
                 <SelectItem value="none">None (Root Level)</SelectItem>
                 {availableParentFolders.map((f) => (
                   <SelectItem key={f.id} value={f.id}>
@@ -337,6 +354,20 @@ export default function EditFolderDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Inline Parent Folder Creation Dialog */}
+      {inlineParentDialogOpen && (
+        <QuickCreateFolderDialog
+          open={inlineParentDialogOpen}
+          onOpenChange={setInlineParentDialogOpen}
+          onFolderCreated={(newParentId) => {
+            // Auto-select the newly created parent folder
+            setSelectedParentId(newParentId);
+            // Reload folders list to show the new parent
+            loadFolders();
+          }}
+        />
+      )}
     </Dialog>
   );
 }

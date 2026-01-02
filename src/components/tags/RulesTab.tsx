@@ -42,6 +42,8 @@ import {
   RiPlayLine,
   RiFlowChart,
 } from "@remixicon/react";
+import QuickCreateTagDialog from "@/components/QuickCreateTagDialog";
+import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 
 interface RuleConditions {
   title?: string;
@@ -95,6 +97,10 @@ export function RulesTab() {
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [ruleToDelete, setRuleToDelete] = useState<string | null>(null);
+
+  // Inline creation dialogs
+  const [inlineTagDialogOpen, setInlineTagDialogOpen] = useState(false);
+  const [inlineFolderDialogOpen, setInlineFolderDialogOpen] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -731,14 +737,24 @@ export function RulesTab() {
                 <Label className="text-xs text-muted-foreground">Assign Tag</Label>
                 <Select
                   value={formData.tag_id || "none"}
-                  onValueChange={(v) =>
-                    setFormData({ ...formData, tag_id: v === "none" ? "" : v })
-                  }
+                  onValueChange={(v) => {
+                    if (v === "__create_new_tag__") {
+                      setInlineTagDialogOpen(true);
+                    } else {
+                      setFormData({ ...formData, tag_id: v === "none" ? "" : v });
+                    }
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="No tag (optional)" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__create_new_tag__">
+                      <div className="flex items-center gap-2 text-primary">
+                        <RiAddLine className="h-4 w-4" />
+                        Create New Tag
+                      </div>
+                    </SelectItem>
                     <SelectItem value="none">No tag</SelectItem>
                     {tags?.map((tag) => (
                       <SelectItem key={tag.id} value={tag.id}>
@@ -762,14 +778,24 @@ export function RulesTab() {
                 </Label>
                 <Select
                   value={formData.folder_id || "none"}
-                  onValueChange={(v) =>
-                    setFormData({ ...formData, folder_id: v === "none" ? "" : v })
-                  }
+                  onValueChange={(v) => {
+                    if (v === "__create_new_folder__") {
+                      setInlineFolderDialogOpen(true);
+                    } else {
+                      setFormData({ ...formData, folder_id: v === "none" ? "" : v });
+                    }
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="No folder (optional)" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="__create_new_folder__">
+                      <div className="flex items-center gap-2 text-primary">
+                        <RiAddLine className="h-4 w-4" />
+                        Create New Folder
+                      </div>
+                    </SelectItem>
                     <SelectItem value="none">No folder</SelectItem>
                     {folders?.map((folder) => (
                       <SelectItem key={folder.id} value={folder.id}>
@@ -826,6 +852,30 @@ export function RulesTab() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Inline Tag Creation Dialog */}
+      <QuickCreateTagDialog
+        open={inlineTagDialogOpen}
+        onOpenChange={setInlineTagDialogOpen}
+        onTagCreated={(tagId) => {
+          // Auto-select the newly created tag
+          setFormData({ ...formData, tag_id: tagId });
+          // Refresh tags list
+          queryClient.invalidateQueries({ queryKey: ["call-tags"] });
+        }}
+      />
+
+      {/* Inline Folder Creation Dialog */}
+      <QuickCreateFolderDialog
+        open={inlineFolderDialogOpen}
+        onOpenChange={setInlineFolderDialogOpen}
+        onFolderCreated={(folderId) => {
+          // Auto-select the newly created folder
+          setFormData({ ...formData, folder_id: folderId });
+          // Refresh folders list
+          queryClient.invalidateQueries({ queryKey: ["folders"] });
+        }}
+      />
     </div>
   );
 }

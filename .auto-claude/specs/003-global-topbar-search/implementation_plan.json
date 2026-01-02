@@ -427,22 +427,22 @@
     }
   },
   "qa_signoff": {
-    "status": "approved",
-    "qa_session": 1,
+    "status": "rejected",
+    "qa_session": 2,
     "issues_found": [
       {
-        "description": "None - All 3 Session 1 fixes verified as applied"
+        "description": "1. Cmd/Ctrl+K only works on TranscriptsNew page, not from anywhere as spec requires. 2. Multi-type search (transcripts, insights, quotes) not implemented - only filters transcripts. 3. Dead code: GlobalSearchModal.tsx, SearchResultItem.tsx, useGlobalSearch.ts (~760 lines unused)"
       }
     ],
     "tests_passed": {},
-    "timestamp": "2025-12-30T01:47:16.649672+00:00",
+    "timestamp": "2026-01-02T00:45:49.419506+00:00",
     "ready_for_qa_revalidation": false
   },
   "status": "human_review",
   "planStatus": "review",
-  "updated_at": "2025-12-30T00:52:24.325Z",
+  "updated_at": "2026-01-01T19:08:54.497Z",
   "recoveryNote": "Task recovered from stuck state at 2025-12-30T00:52:24.325Z",
-  "last_updated": "2025-12-30T01:47:16.649694+00:00",
+  "last_updated": "2026-01-02T00:45:49.419516+00:00",
   "qa_iteration_history": [
     {
       "iteration": 1,
@@ -476,14 +476,37 @@
       "timestamp": "2025-12-30T01:47:33.741742+00:00",
       "issues": [],
       "duration_seconds": 362.7
+    },
+    {
+      "iteration": 2,
+      "status": "rejected",
+      "timestamp": "2026-01-02T00:46:08.182660+00:00",
+      "issues": [
+        {
+          "description": "1. Cmd/Ctrl+K only works on TranscriptsNew page, not from anywhere as spec requires. 2. Multi-type search (transcripts, insights, quotes) not implemented - only filters transcripts. 3. Dead code: GlobalSearchModal.tsx, SearchResultItem.tsx, useGlobalSearch.ts (~760 lines unused)"
+        }
+      ],
+      "duration_seconds": 289.81
+    },
+    {
+      "iteration": 2,
+      "status": "error",
+      "timestamp": "2026-01-02T00:46:09.984384+00:00",
+      "issues": [
+        {
+          "title": "Fixer error",
+          "description": "QA_FIX_REQUEST.md not found"
+        }
+      ]
     }
   ],
   "qa_stats": {
-    "total_iterations": 2,
+    "total_iterations": 4,
     "last_iteration": 2,
-    "last_status": "approved",
+    "last_status": "error",
     "issues_by_type": {
-      "critical": 3
+      "critical": 3,
+      "unknown": 2
     }
   }
 }
