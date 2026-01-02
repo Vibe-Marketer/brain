@@ -10,6 +10,8 @@ export type PanelType =
   | 'folder-detail'
   | 'tag-detail'
   | 'setting-help'
+  | 'settings'
+  | 'sorting'
   | null;
 
 interface PanelState {
