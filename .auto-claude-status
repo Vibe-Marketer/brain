@@ -3,7 +3,7 @@
   "spec": "006-ui-ux-for-settings-sorting-pages",
   "state": "building",
   "subtasks": {
-    "completed": 1,
+    "completed": 3,
     "total": 32,
     "in_progress": 1,
     "failed": 0
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 2,
+    "number": 4,
     "started_at": "2026-01-01T19:43:57.271259"
   },
-  "last_update": "2026-01-01T19:48:05.785523"
+  "last_update": "2026-01-01T19:52:45.956873"
 }
