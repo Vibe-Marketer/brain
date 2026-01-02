@@ -132,10 +132,8 @@ describe('panelStore', () => {
         'tag-detail',
         'setting-help',
         // Multi-pane navigation panel types
-        'settings-category',
-        'settings-detail',
-        'sorting-category',
-        'sorting-detail',
+        'settings',
+        'sorting',
       ];
 
       panelTypes.forEach((type) => {
