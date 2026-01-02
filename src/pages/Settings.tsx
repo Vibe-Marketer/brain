@@ -17,6 +17,8 @@ import AITab from "@/components/settings/AITab";
 import FathomSetupWizard from "@/components/settings/FathomSetupWizard";
 import { SettingHelpPanel, type SettingHelpTopic } from "@/components/panels/SettingHelpPanel";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
+import { SettingsCategoryPane, type SettingsCategory } from "@/components/panes/SettingsCategoryPane";
+import { SettingsDetailPane } from "@/components/panes/SettingsDetailPane";
 
 export default function Settings() {
   const { loading: roleLoading, isAdmin, isTeam } = useUserRole();
@@ -30,6 +32,12 @@ export default function Settings() {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(!isTablet);
   const [showMobileNav, setShowMobileNav] = useState(false); // Mobile nav overlay
   const [showMobileBottomSheet, setShowMobileBottomSheet] = useState(false); // Mobile bottom sheet for right panel
+
+  // --- Pane System Logic (Dual Mode) ---
+  // Selected category for the 2nd pane (category list) and 3rd pane (detail view)
+  const [selectedCategory, setSelectedCategory] = useState<SettingsCategory | null>(null);
+  // Control visibility of the 2nd pane (category list)
+  const [isCategoryPaneOpen, setIsCategoryPaneOpen] = useState(true);
 
   // --- Panel Store ---
   const { isPanelOpen, panelType, panelData, openPanel, closePanel } = usePanelStore();
@@ -120,6 +128,24 @@ export default function Settings() {
   const handleWizardComplete = async () => {
     await markWizardComplete();
   };
+
+  // --- Pane System Handlers ---
+  // Handle category selection from the 2nd pane
+  const handleCategorySelect = useCallback((category: SettingsCategory) => {
+    setSelectedCategory(category);
+    // Sync with tab state for dual mode
+    setCurrentTab(category);
+  }, []);
+
+  // Handle closing the detail pane (3rd pane)
+  const handleCloseDetailPane = useCallback(() => {
+    setSelectedCategory(null);
+  }, []);
+
+  // Handle back navigation (for mobile)
+  const handleBackFromDetail = useCallback(() => {
+    setSelectedCategory(null);
+  }, []);
 
   if (roleLoading || wizardLoading) {
     return (
@@ -212,7 +238,45 @@ export default function Settings() {
           </nav>
         )}
 
-        {/* PANE 3: Main Content (Settings/Tabs) - No Pane 2 for Settings per spec */}
+        {/* PANE 2: Settings Category List (Dual Mode - visible alongside tabs) */}
+        {!isMobile && isCategoryPaneOpen && (
+          <div
+            className={cn(
+              "flex-shrink-0 bg-card/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
+              "transition-all duration-500 ease-in-out",
+              "w-[280px] opacity-100"
+            )}
+            role="navigation"
+            aria-label="Settings categories"
+          >
+            <SettingsCategoryPane
+              selectedCategory={selectedCategory}
+              onCategorySelect={handleCategorySelect}
+            />
+          </div>
+        )}
+
+        {/* PANE 3: Settings Detail (shown when category is selected, alongside tabs in dual mode) */}
+        {!isMobile && selectedCategory && (
+          <div
+            className={cn(
+              "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
+              "transition-all duration-500 ease-in-out",
+              "w-[400px] opacity-100"
+            )}
+            role="region"
+            aria-label="Settings detail"
+          >
+            <SettingsDetailPane
+              category={selectedCategory}
+              onClose={handleCloseDetailPane}
+              onBack={handleBackFromDetail}
+              showBackButton={false}
+            />
+          </div>
+        )}
+
+        {/* PANE 4: Main Content (Settings/Tabs) - Tabs preserved for dual mode */}
         <main
           role="main"
           aria-label="Settings content"
