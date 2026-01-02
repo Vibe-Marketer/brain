@@ -267,30 +267,29 @@ test.describe('SortingTagging Pane Navigation', () => {
     });
   });
 
-  test.describe('Dual Mode (Tabs + Panes)', () => {
-    test('should display both tabs and pane navigation in dual mode', async ({ page }) => {
-      // Verify tabs are still visible (dual mode)
+  test.describe('Pane-Only Navigation (Tabs Removed)', () => {
+    test('should NOT display any tabs (tab navigation removed)', async ({ page }) => {
+      // Verify tabs have been removed - tablist should not exist
       const tabsList = page.getByRole('tablist');
-      await expect(tabsList).toBeVisible();
+      await expect(tabsList).not.toBeVisible();
 
-      // Verify tab triggers exist
-      await expect(page.getByRole('tab', { name: /folders/i })).toBeVisible();
-      await expect(page.getByRole('tab', { name: /tags/i })).toBeVisible();
-
-      // Verify category pane is also visible
-      const categoryPane = page.getByRole('navigation', { name: /sorting and tagging categories/i });
-      await expect(categoryPane).toBeVisible();
+      // Verify tab triggers do not exist
+      await expect(page.getByRole('tab', { name: /folders/i })).not.toBeVisible();
+      await expect(page.getByRole('tab', { name: /tags/i })).not.toBeVisible();
     });
 
-    test('should sync tab state when category is selected in pane', async ({ page }) => {
+    test('should only use pane navigation for sorting/tagging access', async ({ page }) => {
+      // Verify category pane is the primary navigation
       const categoryPane = page.getByRole('navigation', { name: /sorting and tagging categories/i });
+      await expect(categoryPane).toBeVisible();
 
-      // Click Tags category in pane
+      // Click categories and verify content loads via panes only
       await categoryPane.getByRole('button', { name: /tags.*view/i }).click();
 
-      // Verify the Tags tab is now active
-      const tagsTab = page.getByRole('tab', { name: /tags/i });
-      await expect(tagsTab).toHaveAttribute('aria-selected', 'true');
+      // Verify detail pane shows Tags content (no tabs involved)
+      const detailPane = page.getByRole('region', { name: /tags management/i });
+      await expect(detailPane).toBeVisible();
+      await expect(detailPane.getByText('Tags')).toBeVisible();
     });
   });
 
