@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { RiLoader2Line, RiQuestionLine, RiCloseLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
@@ -8,12 +7,6 @@ import { useBreakpointFlags } from "@/hooks/useBreakpoint";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useSetupWizard } from "@/hooks/useSetupWizard";
 import { usePanelStore } from "@/stores/panelStore";
-import AccountTab from "@/components/settings/AccountTab";
-import BillingTab from "@/components/settings/BillingTab";
-import IntegrationsTab from "@/components/settings/IntegrationsTab";
-import UsersTab from "@/components/settings/UsersTab";
-import AdminTab from "@/components/settings/AdminTab";
-import AITab from "@/components/settings/AITab";
 import FathomSetupWizard from "@/components/settings/FathomSetupWizard";
 import { SettingHelpPanel, type SettingHelpTopic } from "@/components/panels/SettingHelpPanel";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
@@ -245,7 +238,7 @@ export default function Settings() {
           </nav>
         )}
 
-        {/* PANE 2: Settings Category List (Dual Mode - visible alongside tabs) */}
+        {/* PANE 2: Settings Category List */}
         {!isMobile && isCategoryPaneOpen && (
           <div
             className={cn(
@@ -263,7 +256,7 @@ export default function Settings() {
           </div>
         )}
 
-        {/* PANE 3: Settings Detail (shown when category is selected, alongside tabs in dual mode) */}
+        {/* PANE 3: Settings Detail (shown when category is selected) */}
         {!isMobile && selectedCategory && (
           <div
             className={cn(
@@ -283,7 +276,7 @@ export default function Settings() {
           </div>
         )}
 
-        {/* PANE 4: Main Content (Settings/Tabs) - Tabs preserved for dual mode */}
+        {/* PANE 4: Main Content (Settings) - Content rendered via pane system */}
         <main
           role="main"
           aria-label="Settings content"
@@ -294,108 +287,62 @@ export default function Settings() {
             "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
           )}
         >
-          <Tabs value={currentTab} onValueChange={setCurrentTab} className="h-full flex flex-col">
-            {/* Mobile header with hamburger menu */}
-            {isMobile && (
-              <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowMobileNav(true)}
-                  className="text-muted-foreground hover:text-foreground h-8 w-8"
-                  aria-label="Open navigation menu"
-                  aria-expanded={showMobileNav}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <line x1="4" y1="6" x2="20" y2="6" />
-                    <line x1="4" y1="12" x2="20" y2="12" />
-                    <line x1="4" y1="18" x2="20" y2="18" />
-                  </svg>
-                </Button>
-                <span className="text-sm font-semibold">Settings</span>
+          {/* Mobile header with hamburger menu */}
+          {isMobile && (
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-border/40 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowMobileNav(true)}
+                className="text-muted-foreground hover:text-foreground h-8 w-8"
+                aria-label="Open navigation menu"
+                aria-expanded={showMobileNav}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <line x1="4" y1="6" x2="20" y2="6" />
+                  <line x1="4" y1="12" x2="20" y2="12" />
+                  <line x1="4" y1="18" x2="20" y2="18" />
+                </svg>
+              </Button>
+              <span className="text-sm font-semibold">Settings</span>
+            </div>
+          )}
+
+          {/* Full-width black line */}
+          <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
+
+          {/* Page Header */}
+          <div className="px-4 md:px-10 flex-shrink-0">
+            <div className="mt-2 mb-3 flex items-start justify-between">
+              <div>
+                <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
+                  Settings
+                </h1>
+                <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+                  Manage your account, integrations, and preferences
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => openHelpPanel(getHelpTopicForTab(currentTab))}
+                className="text-muted-foreground hover:text-foreground"
+                aria-label="Get help for this section"
+                aria-expanded={showRightPanel}
+              >
+                <RiQuestionLine className="h-5 w-5" aria-hidden="true" />
+              </Button>
+            </div>
+          </div>
+
+          {/* Main content area - content is now rendered via the pane system (SettingsCategoryPane and SettingsDetailPane) */}
+          <div className="flex-1 min-h-0 overflow-auto px-4 md:px-10">
+            {!selectedCategory && (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                <p>Select a category from the sidebar to view settings</p>
               </div>
             )}
-
-            {/* Tabs at the top */}
-            <div className="px-4 md:px-10 pt-2 flex-shrink-0">
-              <TabsList>
-                <TabsTrigger value="account">ACCOUNT</TabsTrigger>
-                {(isTeam || isAdmin) && (
-                  <TabsTrigger value="users">USERS</TabsTrigger>
-                )}
-                <TabsTrigger value="billing">BILLING</TabsTrigger>
-                <TabsTrigger value="integrations">INTEGRATIONS</TabsTrigger>
-                <TabsTrigger value="ai">AI</TabsTrigger>
-                {isAdmin && (
-                  <TabsTrigger value="admin">ADMIN</TabsTrigger>
-                )}
-              </TabsList>
-            </div>
-
-            {/* Full-width black line */}
-            <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
-
-            {/* Page Header */}
-            <div className="px-4 md:px-10 flex-shrink-0">
-              <div className="mt-2 mb-3 flex items-start justify-between">
-                <div>
-                  <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
-                    Settings
-                  </h1>
-                  <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
-                    Manage your account, integrations, and preferences
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openHelpPanel(getHelpTopicForTab(currentTab))}
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label="Get help for this section"
-                  aria-expanded={showRightPanel}
-                >
-                  <RiQuestionLine className="h-5 w-5" aria-hidden="true" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Tab Content */}
-            <div className="flex-1 min-h-0 overflow-auto px-4 md:px-10">
-              {/* ACCOUNT TAB */}
-              <TabsContent value="account" className="space-y-0 mt-0">
-                <AccountTab />
-              </TabsContent>
-
-              {/* USERS TAB (TEAM/ADMIN only) */}
-              {(isTeam || isAdmin) && (
-                <TabsContent value="users" className="space-y-0 mt-0">
-                  <UsersTab />
-                </TabsContent>
-              )}
-
-              {/* BILLING TAB */}
-              <TabsContent value="billing" className="space-y-0 mt-0">
-                <BillingTab />
-              </TabsContent>
-
-              {/* INTEGRATIONS TAB */}
-              <TabsContent value="integrations" className="space-y-0 mt-0">
-                <IntegrationsTab />
-              </TabsContent>
-
-              {/* AI TAB */}
-              <TabsContent value="ai" className="space-y-0 mt-0">
-                <AITab />
-              </TabsContent>
-
-              {/* ADMIN TAB (ADMIN only) */}
-              {isAdmin && (
-                <TabsContent value="admin" className="space-y-0 mt-0">
-                  <AdminTab />
-                </TabsContent>
-              )}
-            </div>
-          </Tabs>
+          </div>
         </main>
 
         {/* Right Panel - Settings Help (tablet and desktop) */}
