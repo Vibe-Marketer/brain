@@ -13,6 +13,8 @@ import { FolderDetailPanel } from "@/components/panels/FolderDetailPanel";
 import { TagDetailPanel } from "@/components/panels/TagDetailPanel";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { RiCloseLine } from "@remixicon/react";
+import { SortingCategoryPane, type SortingCategory } from "@/components/panes/SortingCategoryPane";
+import { SortingDetailPane } from "@/components/panes/SortingDetailPane";
 
 type TabValue = "folders" | "tags" | "rules" | "recurring";
 
@@ -49,6 +51,12 @@ export default function SortingTagging() {
   const [isLibraryOpen, setIsLibraryOpen] = useState(false); // Control Middle Panel visibility (default closed for settings)
   const [showMobileNav, setShowMobileNav] = useState(false); // Mobile nav overlay
   const [showMobileBottomSheet, setShowMobileBottomSheet] = useState(false); // Mobile bottom sheet for right panel
+
+  // --- Pane System Logic (Dual Mode) ---
+  // Selected category for the 2nd pane (category list) and 3rd pane (detail view)
+  const [selectedCategory, setSelectedCategory] = useState<SortingCategory | null>(null);
+  // Control visibility of the 2nd pane (category list)
+  const [isCategoryPaneOpen, setIsCategoryPaneOpen] = useState(true);
 
   // --- Panel Store ---
   const { isPanelOpen, panelType, panelData, closePanel } = usePanelStore();
@@ -97,6 +105,29 @@ export default function SortingTagging() {
     setShowMobileBottomSheet(false);
     closePanel();
   }, [closePanel]);
+
+  // --- Pane System Handlers ---
+  // Handle Sorting nav item click - ensure category pane is open
+  const handleSortingNavClick = useCallback(() => {
+    setIsCategoryPaneOpen(true);
+  }, []);
+
+  // Handle category selection from the 2nd pane
+  const handleCategorySelect = useCallback((category: SortingCategory) => {
+    setSelectedCategory(category);
+    // Sync with tab state for dual mode
+    setActiveTab(category);
+  }, []);
+
+  // Handle closing the detail pane (3rd pane)
+  const handleCloseDetailPane = useCallback(() => {
+    setSelectedCategory(null);
+  }, []);
+
+  // Handle back navigation (for mobile)
+  const handleBackFromDetail = useCallback(() => {
+    setSelectedCategory(null);
+  }, []);
 
   return (
     <>
@@ -183,25 +214,45 @@ export default function SortingTagging() {
           </nav>
         )}
 
-        {/* PANE 2: Secondary Panel (Hidden on mobile, collapsible - hidden by default for settings pages) */}
-        {!isMobile && (
-          <aside
-            role="complementary"
-            aria-label="Library panel"
-            aria-hidden={!isLibraryOpen}
-            tabIndex={isLibraryOpen ? 0 : -1}
+        {/* PANE 2: Sorting Category List (Dual Mode - visible alongside tabs) */}
+        {!isMobile && isCategoryPaneOpen && (
+          <div
             className={cn(
               "flex-shrink-0 bg-card/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
-              "transition-[width,opacity,margin,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] will-change-[width,transform]",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
-              isLibraryOpen ? "w-[280px] opacity-100 ml-0 translate-x-0" : "w-0 opacity-0 -ml-3 -translate-x-2 border-0"
+              "transition-all duration-500 ease-in-out",
+              "w-[280px] opacity-100"
             )}
+            role="navigation"
+            aria-label="Sorting and tagging categories"
           >
-            {/* Empty secondary panel - can be used for future content if needed */}
-          </aside>
+            <SortingCategoryPane
+              selectedCategory={selectedCategory}
+              onCategorySelect={handleCategorySelect}
+            />
+          </div>
         )}
 
-        {/* PANE 3: Main Content (Settings/Tabs) */}
+        {/* PANE 3: Sorting Detail (shown when category is selected, alongside tabs in dual mode) */}
+        {!isMobile && selectedCategory && (
+          <div
+            className={cn(
+              "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
+              "transition-all duration-500 ease-in-out",
+              "w-[400px] opacity-100"
+            )}
+            role="region"
+            aria-label="Sorting detail"
+          >
+            <SortingDetailPane
+              category={selectedCategory}
+              onClose={handleCloseDetailPane}
+              onBack={handleBackFromDetail}
+              showBackButton={false}
+            />
+          </div>
+        )}
+
+        {/* PANE 4: Main Content (Sorting/Tabs) - Tabs preserved for dual mode */}
         <main
           role="main"
           aria-label="Sorting and tagging content"
@@ -279,7 +330,7 @@ export default function SortingTagging() {
         </Tabs>
       </main>
 
-        {/* PANE 4: Right Panel - Detail view for selected folder/tag (tablet and desktop) */}
+        {/* PANE 5: Right Panel - Detail view for selected folder/tag (tablet and desktop) */}
         {!isMobile && (
           <aside
             role="complementary"
