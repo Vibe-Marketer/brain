@@ -1,25 +1,25 @@
 {
   "active": true,
   "spec": "007-update-the-ui-to-replace-the-old-icon-based-guidel",
-  "state": "building",
+  "state": "complete",
   "subtasks": {
-    "completed": 4,
+    "completed": 8,
     "total": 8,
-    "in_progress": 1,
+    "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "Folder Depth Bug Fix Preservation",
+    "current": "Pixel-Perfect Screenshot Matching",
     "id": null,
-    "total": 1
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 5,
+    "number": 8,
     "started_at": "2026-01-01T19:48:24.190622"
   },
-  "last_update": "2026-01-01T19:56:18.055615"
+  "last_update": "2026-01-01T20:05:44.848059"
 }
