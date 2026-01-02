@@ -172,6 +172,7 @@ export default function SortingTagging() {
             isCollapsed={false}
             className="w-full flex-1"
             onLibraryToggle={() => setIsLibraryOpen(!isLibraryOpen)}
+            onSortingClick={handleSortingNavClick}
           />
         </nav>
       )}
@@ -210,6 +211,7 @@ export default function SortingTagging() {
               isCollapsed={!isSidebarExpanded}
               className="w-full flex-1"
               onLibraryToggle={() => setIsLibraryOpen(!isLibraryOpen)}
+              onSortingClick={handleSortingNavClick}
             />
           </nav>
         )}

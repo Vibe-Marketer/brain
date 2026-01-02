@@ -52,6 +52,8 @@ interface SidebarNavProps {
   onLibraryToggle?: () => void;
   /** Optional callback when Settings nav item is clicked (to open category pane) */
   onSettingsClick?: () => void;
+  /** Optional callback when Sorting nav item is clicked (to open category pane) */
+  onSortingClick?: () => void;
 }
 
 /**
@@ -113,7 +115,7 @@ const navItems: NavItem[] = [
   },
 ];
 
-export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggle, onSettingsClick }: SidebarNavProps) {
+export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggle, onSettingsClick, onSortingClick }: SidebarNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -152,6 +154,10 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   // Call settings callback when Settings nav item is clicked
                   if (item.id === 'settings' && onSettingsClick) {
                     onSettingsClick();
+                  }
+                  // Call sorting callback when Sorting nav item is clicked
+                  if (item.id === 'sorting' && onSortingClick) {
+                    onSortingClick();
                   }
                 }}
                 className={cn(
