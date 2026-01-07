@@ -244,7 +244,7 @@ export function SettingsCategoryPane({
               {/* Active indicator - left border (Loop-style) with smooth transition */}
               <div
                 className={cn(
-                  "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-cb-vibe-orange rounded-r-full",
+                  "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-cb-vibe-orange rounded-r-full",
                   "transition-all duration-200 ease-in-out",
                   isActive
                     ? "opacity-100 scale-y-100"
