@@ -152,6 +152,14 @@ describe('SidebarNav', () => {
       expect(indicatorDot).toBeInTheDocument();
     });
 
+    it('should not show h-[80%] left-edge indicator in collapsed mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
+
+      // The h-[80%] left-edge indicator should not be present in collapsed mode
+      const leftIndicator = container.querySelector('.bg-cb-vibe-orange.h-\\[80\\%\\]');
+      expect(leftIndicator).not.toBeInTheDocument();
+    });
+
     it('should not show separator between main items in collapsed mode', () => {
       const { container } = renderWithRouter({ isCollapsed: true });
 
@@ -182,6 +190,46 @@ describe('SidebarNav', () => {
 
       const chatButton = screen.getByTitle('AI Chat');
       expect(chatButton).toHaveClass('bg-gray-100');
+    });
+
+    it('should render active indicator with h-[80%] height in expanded mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
+
+      // Active indicator should have 80% height class
+      const indicator = container.querySelector('.bg-cb-vibe-orange.h-\\[80\\%\\]');
+      expect(indicator).toBeInTheDocument();
+    });
+
+    it('should show active indicator with opacity-100 when item is active', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/chat']);
+
+      // Find the active indicator with visible state classes
+      const activeIndicators = container.querySelectorAll('.bg-cb-vibe-orange.opacity-100.scale-y-100');
+      expect(activeIndicators.length).toBeGreaterThan(0);
+    });
+
+    it('should have inactive indicators with opacity-0 for non-active items', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/chat']);
+
+      // Find inactive indicators with hidden state classes
+      const inactiveIndicators = container.querySelectorAll('.bg-cb-vibe-orange.opacity-0.scale-y-0');
+      expect(inactiveIndicators.length).toBeGreaterThan(0);
+    });
+
+    it('should have transition classes on indicator for smooth animation', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
+
+      // Indicator should have transition classes
+      const indicator = container.querySelector('.bg-cb-vibe-orange.transition-all.duration-200');
+      expect(indicator).toBeInTheDocument();
+    });
+
+    it('should have rounded-r-full class on indicator for pill shape', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
+
+      // Indicator should have rounded right edge
+      const indicator = container.querySelector('.bg-cb-vibe-orange.rounded-r-full');
+      expect(indicator).toBeInTheDocument();
     });
   });
 
