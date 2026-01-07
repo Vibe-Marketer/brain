@@ -3,7 +3,7 @@
   "spec": "008-add-orange-left-edge-indicator-to-active-navigatio",
   "state": "building",
   "subtasks": {
-    "completed": 0,
+    "completed": 1,
     "total": 8,
     "in_progress": 1,
     "failed": 0
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 1,
+    "number": 2,
     "started_at": "2026-01-07T18:35:36.914214"
   },
-  "last_update": "2026-01-07T18:35:36.922646"
+  "last_update": "2026-01-07T18:36:26.868123"
 }
