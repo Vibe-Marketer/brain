@@ -3,23 +3,23 @@
   "spec": "010-implement-teams-and-sharing-access-control-spec",
   "state": "building",
   "subtasks": {
-    "completed": 15,
+    "completed": 19,
     "total": 42,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Single Call Share Feature",
+    "current": "Coach Access Feature",
     "id": null,
-    "total": 7
+    "total": 9
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 16,
+    "number": 20,
     "started_at": "2026-01-08T17:51:28.649781"
   },
-  "last_update": "2026-01-08T18:27:46.349581"
+  "last_update": "2026-01-08T18:44:14.286107"
 }
