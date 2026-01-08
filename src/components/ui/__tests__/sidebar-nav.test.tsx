@@ -373,4 +373,89 @@ describe('SidebarNav', () => {
       expect(settingsButton).not.toHaveClass('font-semibold');
     });
   });
+
+  describe('icon variant rendering', () => {
+    it('should render icon with vibe-orange color when active in expanded mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
+
+      // Active icon should have vibe-orange text color
+      const activeIcon = container.querySelector('.text-cb-vibe-orange');
+      expect(activeIcon).toBeInTheDocument();
+    });
+
+    it('should render icon with muted-foreground color when inactive in expanded mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/chat']);
+
+      // Home is inactive when on /chat path, should have muted color
+      const homeButton = screen.getByTitle('Home');
+      const homeIcon = homeButton.querySelector('.text-muted-foreground');
+      expect(homeIcon).toBeInTheDocument();
+    });
+
+    it('should render multiple inactive icons with muted color', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
+
+      // Only Home is active, other items should have muted icons
+      const mutedIcons = container.querySelectorAll('.text-muted-foreground');
+      // Should have at least 3 muted icons (AI Chat, Sorting, Settings when Home is active)
+      expect(mutedIcons.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should have orange ring on active NavIcon in collapsed mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
+
+      // Active NavIcon should have ring-cb-vibe-orange class (via ring-2 ring-cb-vibe-orange/50)
+      const activeNavIconWrapper = container.querySelector('.ring-cb-vibe-orange\\/50');
+      expect(activeNavIconWrapper).toBeInTheDocument();
+    });
+
+    it('should not have orange ring on inactive NavIcon in collapsed mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
+
+      // Count elements with ring styling - only active item should have it
+      const ringElements = container.querySelectorAll('.ring-cb-vibe-orange\\/50');
+      expect(ringElements.length).toBe(1);
+    });
+
+    it('should apply vibe-orange background on active item in expanded mode', () => {
+      renderWithRouter({ isCollapsed: false }, ['/chat']);
+
+      // Active button should have orange background tint
+      const chatButton = screen.getByTitle('AI Chat');
+      expect(chatButton).toHaveClass('bg-cb-vibe-orange/10');
+    });
+
+    it('should not apply vibe-orange background on inactive items in expanded mode', () => {
+      renderWithRouter({ isCollapsed: false }, ['/chat']);
+
+      // Inactive buttons should not have orange background
+      const homeButton = screen.getByTitle('Home');
+      expect(homeButton).not.toHaveClass('bg-cb-vibe-orange/10');
+    });
+
+    it('should render glossy 3D icon wrapper in collapsed mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: true });
+
+      // NavIcon should have gradient background for glossy effect
+      const glossyWrapper = container.querySelector('.bg-gradient-to-br.from-white.to-gray-200');
+      expect(glossyWrapper).toBeInTheDocument();
+    });
+
+    it('should show active text color on label when active in expanded mode', () => {
+      renderWithRouter({ isCollapsed: false }, ['/']);
+
+      // Home label should have vibe-orange text
+      const homeLabel = screen.getByText('Home');
+      expect(homeLabel).toHaveClass('text-cb-vibe-orange');
+    });
+
+    it('should show foreground text color on label when inactive in expanded mode', () => {
+      renderWithRouter({ isCollapsed: false }, ['/chat']);
+
+      // Home label should have default foreground text (not vibe-orange)
+      const homeLabel = screen.getByText('Home');
+      expect(homeLabel).toHaveClass('text-foreground');
+      expect(homeLabel).not.toHaveClass('text-cb-vibe-orange');
+    });
+  });
 });
