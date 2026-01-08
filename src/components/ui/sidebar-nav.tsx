@@ -66,29 +66,69 @@ interface SidebarNavProps {
 }
 
 /**
+ * NavIcon Props - supports both Remix Icon components and React nodes
+ */
+interface NavIconProps {
+  /** Remix Icon component type for line variant (inactive state) */
+  icon?: RemixiconComponentType;
+  /** Remix Icon component type for fill variant (active state) */
+  iconFill?: RemixiconComponentType;
+  /** Whether the icon is in active state */
+  isActive?: boolean;
+  /** Optional children (for backward compatibility with pre-rendered icons) */
+  children?: React.ReactNode;
+}
+
+/**
  * Glossy 3D icon wrapper with dark mode support.
  * Light mode: White to light gray gradient
  * Dark mode: Dark gray gradient with adjusted shadows
+ *
+ * Supports two usage patterns:
+ * 1. Pass Remix Icon components directly via icon/iconFill props
+ * 2. Pass pre-rendered React nodes as children (backward compatible)
  */
-const NavIcon = React.memo(({ children, isActive }: { children: React.ReactNode; isActive?: boolean }) => (
-  <div
-    className={cn(
-      'w-full h-full flex items-center justify-center rounded-xl transition-all duration-150',
-      // Light mode styles
-      'bg-gradient-to-br from-white to-gray-200',
-      'border border-gray-300/80',
-      'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
-      // Dark mode styles
-      'dark:from-gray-700 dark:to-gray-800',
-      'dark:border-gray-600/80',
-      'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
-      // Active state
-      isActive && 'ring-2 ring-cb-vibe-orange/50'
-    )}
-  >
-    {children}
-  </div>
-));
+const NavIcon = React.memo(({ icon: IconLine, iconFill: IconFill, isActive, children }: NavIconProps) => {
+  // Determine which icon to render based on props and active state
+  const renderIcon = () => {
+    // If icon components are provided, render the appropriate one
+    if (IconLine || IconFill) {
+      const IconComponent = isActive && IconFill ? IconFill : IconLine;
+      if (IconComponent) {
+        return (
+          <IconComponent
+            className={cn(
+              iconClass,
+              isActive && "text-cb-vibe-orange"
+            )}
+          />
+        );
+      }
+    }
+    // Fall back to children for backward compatibility
+    return children;
+  };
+
+  return (
+    <div
+      className={cn(
+        'w-full h-full flex items-center justify-center rounded-xl transition-all duration-150',
+        // Light mode styles
+        'bg-gradient-to-br from-white to-gray-200',
+        'border border-gray-300/80',
+        'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
+        // Dark mode styles
+        'dark:from-gray-700 dark:to-gray-800',
+        'dark:border-gray-600/80',
+        'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
+        // Active state
+        isActive && 'ring-2 ring-cb-vibe-orange/50'
+      )}
+    >
+      {renderIcon()}
+    </div>
+  );
+});
 
 // Icon class for consistent styling - muted gray for inactive state
 const iconClass = 'w-5 h-5 text-muted-foreground';
@@ -197,11 +237,20 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                       "flex-shrink-0 flex items-center justify-center",
                        isCollapsed ? "w-11 h-11" : "w-5 h-5"
                   )}>
-                     {(() => {
-                       const IconComponent = active ? item.iconFill : item.iconLine;
-                       const icon = <IconComponent className={cn(iconClass, active && "text-cb-vibe-orange")} />;
-                       return isCollapsed ? <NavIcon isActive={active}>{icon}</NavIcon> : icon;
-                     })()}
+                     {isCollapsed ? (
+                       // Collapsed mode: Use NavIcon with icon props for glossy 3D effect
+                       <NavIcon
+                         icon={item.iconLine}
+                         iconFill={item.iconFill}
+                         isActive={active}
+                       />
+                     ) : (
+                       // Expanded mode: Render icon directly
+                       (() => {
+                         const IconComponent = active ? item.iconFill : item.iconLine;
+                         return <IconComponent className={cn(iconClass, active && "text-cb-vibe-orange")} />;
+                       })()
+                     )}
                   </div>
 
                   {/* Label - Visible only when expanded */}
@@ -244,9 +293,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                        isCollapsed ? "w-11 h-11" : "w-5 h-5 text-muted-foreground"
                   )}>
                   {isCollapsed ? (
-                      <NavIcon>
-                        <RiLayoutColumnLine className={iconClass} />
-                      </NavIcon>
+                      <NavIcon icon={RiLayoutColumnLine} />
                   ) : (
                     <RiLayoutColumnLine className="w-5 h-5" />
                   )}
@@ -277,9 +324,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                        isCollapsed ? "w-11 h-11" : "w-5 h-5 text-cb-vibe-orange"
                   )}>
                    {isCollapsed ? (
-                       <NavIcon>
-                        <RiAddLine className={iconClass} />
-                      </NavIcon>
+                       <NavIcon icon={RiAddLine} />
                    ) : (
                     <RiAddLine className="w-5 h-5" />
                    )}
