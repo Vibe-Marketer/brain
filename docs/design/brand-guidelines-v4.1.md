@@ -31,20 +31,21 @@
 6. [Icon System](#icon-system)
 7. [Tab Navigation](#tab-navigation)
 8. [Navigation & Selection States](#navigation--selection-states)
-9. [Typography](#typography)
-10. [Table Design](#table-design-system)
-11. [The 10 Percent - Approved Card Usage](#the-10-percent---approved-card-usage)
-12. [Vibe Orange Usage Rules](#vibe-orange-usage-rules)
-13. [Conversation Dialogue UI Rule Exception](#conversation-dialogue-ui-rule-exceptions)
-14. [Spacing and Grid](#spacing--grid)
-15. [Component Specifications](#component-specifications)
-16. [Dark Mode Implementation](#dark-mode-implementation)
-17. [Responsive Behavior](#responsive-behavior)
-18. [Accessibility](#accessibility)
-19. [Animation Guidelines](#animation-guidelines)
-20. [Microcopy & Quips](#microcopy--quips)
-21. [Prohibited Patterns](#prohibited-patterns)
-22. [CSS Variable Reference](#css-variable-reference)
+9. [Sidebar UX Patterns](#sidebar-ux-patterns)
+10. [Typography](#typography)
+11. [Table Design](#table-design-system)
+12. [The 10 Percent - Approved Card Usage](#the-10-percent---approved-card-usage)
+13. [Vibe Orange Usage Rules](#vibe-orange-usage-rules)
+14. [Conversation Dialogue UI Rule Exception](#conversation-dialogue-ui-rule-exceptions)
+15. [Spacing and Grid](#spacing--grid)
+16. [Component Specifications](#component-specifications)
+17. [Dark Mode Implementation](#dark-mode-implementation)
+18. [Responsive Behavior](#responsive-behavior)
+19. [Accessibility](#accessibility)
+20. [Animation Guidelines](#animation-guidelines)
+21. [Microcopy & Quips](#microcopy--quips)
+22. [Prohibited Patterns](#prohibited-patterns)
+23. [CSS Variable Reference](#css-variable-reference)
 
 ---
 
@@ -1631,6 +1632,190 @@ Focus states should be visually distinct from selection states:
 - Skip transition animations (feels jarring)
 - Mix selection state patterns across components
 - Forget accessible focus states
+
+---
+
+## SIDEBAR UX PATTERNS
+
+This section documents the Loop-style sidebar collapse/expand interaction pattern used across Call Vault. The pattern is inspired by Microsoft Loop's navigation rail behavior and provides an intuitive, discoverable way to manage sidebar state.
+
+### Loop-Style Collapse/Expand Behavior
+
+The sidebar supports two interaction methods for toggling its expanded/collapsed state:
+
+**1. Click-Anywhere Toggle:**
+
+Users can click anywhere on the sidebar's empty space to toggle between expanded and collapsed states. This provides a large, forgiving target for quick state changes.
+
+**2. Dedicated Edge Button:**
+
+A circular toggle button on the right edge provides a precise, always-visible control. The button uses a chevron icon that rotates to indicate direction.
+
+**Interaction Flow:**
+
+```text
+┌─────────────────────────────┐
+│                             │
+│   [Content]                 │◀── Click here toggles
+│                             │    (entire empty area)
+│                         ○ ◀─┼─── Circular button
+│                             │    (also toggles)
+│   [Content]                 │
+│                             │
+└─────────────────────────────┘
+```
+
+### Z-Index Hierarchy (CRITICAL)
+
+The sidebar uses a layered z-index system to ensure proper interaction behavior:
+
+| Layer | Z-Index | Element | Purpose |
+|-------|---------|---------|---------|
+| **Overlay** | z-0 | Click-to-toggle background | Catches clicks on empty space |
+| **Content** | z-10 | Navigation items, text, icons | Remains interactive above overlay |
+| **Button** | z-20 | Edge-mounted circular toggle | Always accessible, stops propagation |
+| **Main Content** | z-0 | Content pane to the right | Below sidebar elements |
+
+**Implementation:**
+
+```tsx
+{/* Navigation Rail Container */}
+<div className="relative flex-shrink-0 bg-card rounded-2xl ... transition-all duration-500 ease-in-out">
+
+  {/* Click-to-toggle background overlay (z-0) */}
+  <div
+    className="absolute inset-0 cursor-pointer z-0"
+    onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+  />
+
+  {/* Floating collapse/expand toggle on right edge (z-20) */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();  // Prevents double-toggle from overlay
+      setIsSidebarExpanded(!isSidebarExpanded);
+    }}
+    className="absolute top-1/2 -translate-y-1/2 -right-3 z-20 w-6 h-6 rounded-full bg-card border border-border shadow-sm"
+  >
+    <svg className={cn(
+      "transition-transform duration-500",
+      isSidebarExpanded ? "rotate-0" : "rotate-180"
+    )}>
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  </button>
+
+  {/* Content with z-10 to remain interactive */}
+  <div className="relative z-10">
+    <SidebarNav isCollapsed={!isSidebarExpanded} />
+  </div>
+</div>
+```
+
+**Key Implementation Details:**
+
+- `stopPropagation()` on the button prevents the overlay click handler from also firing
+- Content elements need explicit `z-10` to remain clickable above the overlay
+- The overlay uses `inset-0` to cover the entire sidebar container
+
+### Transition Timing
+
+Sidebar width changes use a **500ms ease-in-out** transition for smooth, premium-feeling animation:
+
+| Property | Duration | Timing Function | CSS |
+|----------|----------|-----------------|-----|
+| **Sidebar width** | 500ms | ease-in-out | `transition-all duration-500 ease-in-out` |
+| **Chevron rotation** | 500ms | default | `transition-transform duration-500` |
+| **Content opacity** | 500ms | ease-in-out | (inherited from container) |
+
+**Width Values:**
+
+| State | Width | Tailwind |
+|-------|-------|----------|
+| **Expanded** | 220px | `w-[220px]` |
+| **Collapsed** | 72px | `w-[72px]` |
+
+**Note:** The 500ms duration is intentionally longer than most UI transitions (150-200ms) to create a deliberate, smooth collapse/expand motion that draws attention to the significant layout change.
+
+### Edge-Mounted Toggle Button
+
+**Specifications:**
+
+| Property | Value | Tailwind/CSS |
+|----------|-------|--------------|
+| Position | Absolute, right edge, vertically centered | `absolute top-1/2 -translate-y-1/2 -right-3` |
+| Size | 24x24px circle | `w-6 h-6 rounded-full` |
+| Background | Card background | `bg-card` |
+| Border | 1px standard border | `border border-border` |
+| Shadow | Subtle elevation | `shadow-sm` |
+| Hover | Muted background | `hover:bg-muted` |
+| Z-index | Above content | `z-20` |
+
+**Icon Behavior:**
+
+- **Expanded state:** Left-pointing chevron (rotate-0)
+- **Collapsed state:** Right-pointing chevron (rotate-180)
+- Icon rotates 180° during transition with same 500ms timing
+
+**Visual:**
+
+```text
+Expanded:                    Collapsed:
+┌──────────────┐             ┌──────┐
+│              │             │      │
+│              │◀            │      │▶
+│              │             │      │
+└──────────────┘             └──────┘
+```
+
+### Mobile Considerations
+
+On mobile (screens < 768px), the Loop-style pattern is replaced with overlay navigation:
+
+| Feature | Desktop | Mobile |
+|---------|---------|--------|
+| Sidebar | Inline, collapsible | Hidden by default |
+| Toggle | Edge-mounted button | Menu button in header |
+| Expanded View | Inline push layout | Fixed overlay with backdrop |
+| Dismiss | Click anywhere on sidebar | Tap backdrop or close button |
+| Animation | Width transition | Slide-in from left |
+
+**Mobile Overlay Pattern:**
+
+```tsx
+{/* Mobile overlay backdrop */}
+{isMobile && showMobileNav && (
+  <div
+    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+    onClick={() => setShowMobileNav(false)}
+  />
+)}
+
+{/* Mobile Navigation Overlay */}
+{isMobile && showMobileNav && (
+  <div className="fixed top-0 left-0 bottom-0 w-[280px] bg-card ... z-50 animate-in slide-in-from-left duration-300">
+    {/* Navigation content */}
+  </div>
+)}
+```
+
+### CRITICAL RULES
+
+**ALWAYS:**
+
+- Use 500ms ease-in-out for sidebar width transitions
+- Include click-anywhere overlay at z-0
+- Position content at z-10 for interactivity
+- Position toggle button at z-20
+- Use `stopPropagation()` on the toggle button
+- Match transition timing between width and chevron rotation
+
+**NEVER:**
+
+- Use shorter transitions (feels abrupt for layout changes)
+- Forget z-index layering (breaks click handling)
+- Skip `stopPropagation()` (causes double-toggle)
+- Use different timing for width vs. icon animation (feels disconnected)
+- Show edge-mounted toggle on mobile (use overlay pattern instead)
 
 ---
 
