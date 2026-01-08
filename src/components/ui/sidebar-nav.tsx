@@ -3,7 +3,7 @@
  *
  * Navigation icons that sit at the top of the sidebar.
  * Loop-inspired design with clean, modern aesthetics.
- * Uses high-fidelity Emojis for warmth and modern appeal.
+ * Uses Remix Icons with line/fill variants for active states.
  *
  * ## Design Specification
  *
@@ -13,7 +13,8 @@
  * - **Styling**:
  *   - Clean, modern appearance
  *   - Glossy 3D icons in collapsed mode
- *   - Active state: left border indicator (vibe orange)
+ *   - Active state: left border indicator (vibe orange) + fill icon
+ *   - Inactive state: line icon
  *   - Hover: subtle background highlight
  * - **Separator**: Thin gray line between sections
  *
@@ -25,14 +26,26 @@ import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   RiLayoutColumnLine,
-  RiAddLine
+  RiAddLine,
+  RiHome4Line,
+  RiHome4Fill,
+  RiSparklingLine,
+  RiSparklingFill,
+  RiPriceTag3Line,
+  RiPriceTag3Fill,
+  RiSettings3Line,
+  RiSettings3Fill,
 } from '@remixicon/react';
+import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
   id: string;
   name: string;
-  icon: React.ReactNode;
+  /** Line icon variant (used when inactive) */
+  iconLine: RemixiconComponentType;
+  /** Fill icon variant (used when active) */
+  iconFill: RemixiconComponentType;
   path: string;
   matchPaths?: string[];
 }
@@ -84,28 +97,32 @@ const navItems: NavItem[] = [
   {
     id: 'home',
     name: 'Home',
-    icon: <span className="text-xl">🏠</span>,
+    iconLine: RiHome4Line,
+    iconFill: RiHome4Fill,
     path: '/',
     matchPaths: ['/', '/transcripts'],
   },
   {
     id: 'chat',
     name: 'AI Chat',
-    icon: <span className="text-xl">✨</span>,
+    iconLine: RiSparklingLine,
+    iconFill: RiSparklingFill,
     path: '/chat',
     matchPaths: ['/chat'],
   },
   {
     id: 'sorting',
     name: 'Sorting',
-    icon: <span className="text-xl">🏷️</span>,
+    iconLine: RiPriceTag3Line,
+    iconFill: RiPriceTag3Fill,
     path: '/sorting-tagging',
     matchPaths: ['/sorting-tagging'],
   },
   {
     id: 'settings',
     name: 'Settings',
-    icon: <span className="text-xl">⚙️</span>,
+    iconLine: RiSettings3Line,
+    iconFill: RiSettings3Fill,
     path: '/settings',
     matchPaths: ['/settings'],
   },
@@ -180,7 +197,11 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                       "flex-shrink-0 flex items-center justify-center",
                        isCollapsed ? "w-11 h-11" : "w-5 h-5"
                   )}>
-                     {isCollapsed ? <NavIcon isActive={active}>{item.icon}</NavIcon> : item.icon}
+                     {(() => {
+                       const IconComponent = active ? item.iconFill : item.iconLine;
+                       const icon = <IconComponent className={cn(iconClass, active && "text-cb-vibe-orange")} />;
+                       return isCollapsed ? <NavIcon isActive={active}>{icon}</NavIcon> : icon;
+                     })()}
                   </div>
 
                   {/* Label - Visible only when expanded */}
