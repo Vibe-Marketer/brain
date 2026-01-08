@@ -264,10 +264,10 @@ export function SettingsDetailPane({
 
           {/* Category icon - with smooth transition */}
           <div
-            className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 transition-all duration-200 ease-in-out"
+            className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 transition-all duration-200 ease-in-out"
             aria-hidden="true"
           >
-            <Icon className="h-4 w-4 text-cb-vibe-orange transition-transform duration-200 ease-in-out" />
+            <Icon className="h-4 w-4 text-vibe-orange transition-transform duration-200 ease-in-out" />
           </div>
 
           {/* Category title and description */}
@@ -300,7 +300,7 @@ export function SettingsDetailPane({
             >
               {isPinned ? (
                 <RiPushpinFill
-                  className="h-4 w-4 text-cb-vibe-orange"
+                  className="h-4 w-4 text-vibe-orange"
                   aria-hidden="true"
                 />
               ) : (

@@ -134,7 +134,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
       {/* Active indicator - left border (Loop-style) with smooth transition */}
       <div
         className={cn(
-          "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-cb-vibe-orange rounded-r-full",
+          "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-vibe-orange rounded-r-full",
           "transition-all duration-200 ease-in-out",
           isSelected
             ? "opacity-100 scale-y-100"
@@ -624,7 +624,7 @@ export function FolderSidebar({
                   {/* Active indicator - left border (Loop-style) with smooth transition */}
                   <div
                     className={cn(
-                      "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-cb-vibe-orange rounded-r-full",
+                      "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-vibe-orange rounded-r-full",
                       "transition-all duration-200 ease-in-out",
                       selectedFolderId === null
                         ? "opacity-100 scale-y-100"

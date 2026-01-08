@@ -210,7 +210,7 @@ export function SortingCategoryPane({
               {/* Active indicator - left border (Loop-style) with smooth transition */}
               <div
                 className={cn(
-                  "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-cb-vibe-orange rounded-r-full",
+                  "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-vibe-orange rounded-r-full",
                   "transition-all duration-200 ease-in-out",
                   isActive
                     ? "opacity-100 scale-y-100"
@@ -233,9 +233,9 @@ export function SortingCategoryPane({
                   "w-full flex items-start gap-3 px-3 py-3 rounded-lg",
                   "text-left transition-all duration-150 ease-in-out",
                   "hover:bg-muted/50 dark:hover:bg-white/5",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
-                    "bg-cb-vibe-orange/10 dark:bg-cb-vibe-orange/20",
+                    "bg-vibe-orange/10 dark:bg-vibe-orange/20",
                     "border-l-0 pl-4", // Offset for the active indicator
                   ]
                 )}
@@ -248,14 +248,14 @@ export function SortingCategoryPane({
                     "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
                     "bg-cb-card border border-cb-border",
                     "transition-all duration-200 ease-in-out",
-                    isActive && "border-cb-vibe-orange/30 bg-cb-vibe-orange/10"
+                    isActive && "border-vibe-orange/30 bg-vibe-orange/10"
                   )}
                   aria-hidden="true"
                 >
                   <Icon
                     className={cn(
                       "h-4 w-4 transition-colors duration-200 ease-in-out",
-                      isActive ? "text-cb-vibe-orange" : "text-cb-ink-muted"
+                      isActive ? "text-vibe-orange" : "text-cb-ink-muted"
                     )}
                   />
                 </div>
@@ -267,7 +267,7 @@ export function SortingCategoryPane({
                       className={cn(
                         "block text-sm font-medium truncate",
                         "transition-colors duration-200 ease-in-out",
-                        isActive ? "text-cb-vibe-orange" : "text-cb-ink"
+                        isActive ? "text-vibe-orange" : "text-cb-ink"
                       )}
                     >
                       {category.label}
@@ -276,7 +276,7 @@ export function SortingCategoryPane({
                       <span
                         className={cn(
                           "flex-shrink-0 text-xs tabular-nums",
-                          isActive ? "text-cb-vibe-orange/70" : "text-cb-ink-muted"
+                          isActive ? "text-vibe-orange/70" : "text-cb-ink-muted"
                         )}
                         aria-hidden="true"
                       >
@@ -301,7 +301,7 @@ export function SortingCategoryPane({
                   aria-hidden="true"
                 >
                   <svg
-                    className="h-4 w-4 text-cb-vibe-orange"
+                    className="h-4 w-4 text-vibe-orange"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
