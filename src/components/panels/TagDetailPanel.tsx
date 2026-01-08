@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import {
-  RiPriceTag3Line,
   RiPhoneLine,
   RiCalendarLine,
   RiDeleteBinLine,

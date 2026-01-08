@@ -6,11 +6,10 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  RiRobot2Line, 
+import {
+  RiRobot2Line,
   RiSettings4Line,
-  RiCheckLine,
-  RiCloseLine
+  RiCheckLine
 } from '@remixicon/react';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';

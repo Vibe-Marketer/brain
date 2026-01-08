@@ -12,8 +12,6 @@ import {
 } from "@/components/ui/select";
 import {
   RiLoader2Line,
-  RiDatabaseLine,
-  RiCheckboxCircleLine,
   RiSparklingLine,
   RiRobot2Line,
 } from "@remixicon/react";
@@ -61,8 +59,7 @@ export default function AITab() {
 
   // Dynamic Model Loading
   const { models, defaultModel: systemDefault, isLoading: modelsLoading } = useAvailableModels();
-  
-  const DEFAULT_MODEL = systemDefault || "openai/gpt-4o-mini";
+
   const [selectedModel, setSelectedModel] = useState<string>(""); // Initialize empty, set after load
   
   // Group models by provider

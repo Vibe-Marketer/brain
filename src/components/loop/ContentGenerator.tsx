@@ -6,13 +6,12 @@
  */
 
 import React, { useState } from 'react';
-import { 
-  RiMailLine, 
-  RiTwitterXLine, 
-  RiArticleLine, 
+import {
+  RiMailLine,
+  RiTwitterXLine,
+  RiArticleLine,
   RiFileTextLine,
   RiSparklingLine,
-  RiCloseLine,
   RiFileCopyLine,
   RiDownloadLine
 } from '@remixicon/react';

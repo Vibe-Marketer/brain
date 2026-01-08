@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import EmojiPicker, { Theme, EmojiClickData } from 'emoji-picker-react';
 import { RiArrowDownSLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
