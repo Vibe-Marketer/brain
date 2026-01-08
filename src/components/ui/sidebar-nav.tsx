@@ -90,8 +90,8 @@ const NavIcon = React.memo(({ children, isActive }: { children: React.ReactNode;
   </div>
 ));
 
-// Icon class for consistent styling with action icons
-const iconClass = 'w-5 h-5 text-cb-black dark:text-cb-white';
+// Icon class for consistent styling - muted gray for inactive state
+const iconClass = 'w-5 h-5 text-muted-foreground';
 
 const navItems: NavItem[] = [
   {
