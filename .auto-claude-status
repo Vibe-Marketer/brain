@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "008-add-orange-left-edge-indicator-to-active-navigatio",
+  "spec": "010-implement-teams-and-sharing-access-control-spec",
   "state": "building",
   "subtasks": {
-    "completed": 1,
-    "total": 8,
+    "completed": 0,
+    "total": 42,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Update Category Pane Indicators",
+    "current": "Database Foundation",
     "id": null,
-    "total": 2
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 2,
-    "started_at": "2026-01-07T18:35:36.914214"
+    "number": 1,
+    "started_at": "2026-01-08T17:51:28.649781"
   },
-  "last_update": "2026-01-07T18:36:26.868123"
+  "last_update": "2026-01-08T17:51:28.657736"
 }
