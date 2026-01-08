@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { SidebarNav } from '../sidebar-nav';
 
@@ -456,6 +457,179 @@ describe('SidebarNav', () => {
       const homeLabel = screen.getByText('Home');
       expect(homeLabel).toHaveClass('text-foreground');
       expect(homeLabel).not.toHaveClass('text-cb-vibe-orange');
+    });
+  });
+
+  describe('keyboard navigation', () => {
+    it('should have navigation landmark with proper role and label', () => {
+      renderWithRouter();
+
+      const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+      expect(nav).toBeInTheDocument();
+    });
+
+    it('should move focus to next item on ArrowDown', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const chatButton = screen.getByTitle('AI Chat');
+
+      // Focus Home button and press ArrowDown
+      homeButton.focus();
+      expect(document.activeElement).toBe(homeButton);
+
+      await user.keyboard('{ArrowDown}');
+      expect(document.activeElement).toBe(chatButton);
+    });
+
+    it('should move focus to previous item on ArrowUp', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const chatButton = screen.getByTitle('AI Chat');
+
+      // Focus AI Chat button and press ArrowUp
+      chatButton.focus();
+      expect(document.activeElement).toBe(chatButton);
+
+      await user.keyboard('{ArrowUp}');
+      expect(document.activeElement).toBe(homeButton);
+    });
+
+    it('should wrap focus to first item when pressing ArrowDown on last item', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const settingsButton = screen.getByTitle('Settings');
+
+      // Focus Settings (last item) and press ArrowDown
+      settingsButton.focus();
+      expect(document.activeElement).toBe(settingsButton);
+
+      await user.keyboard('{ArrowDown}');
+      expect(document.activeElement).toBe(homeButton);
+    });
+
+    it('should wrap focus to last item when pressing ArrowUp on first item', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const settingsButton = screen.getByTitle('Settings');
+
+      // Focus Home (first item) and press ArrowUp
+      homeButton.focus();
+      expect(document.activeElement).toBe(homeButton);
+
+      await user.keyboard('{ArrowUp}');
+      expect(document.activeElement).toBe(settingsButton);
+    });
+
+    it('should move focus to first item on Home key', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const settingsButton = screen.getByTitle('Settings');
+
+      // Focus Settings and press Home key
+      settingsButton.focus();
+      await user.keyboard('{Home}');
+      expect(document.activeElement).toBe(homeButton);
+    });
+
+    it('should move focus to last item on End key', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const settingsButton = screen.getByTitle('Settings');
+
+      // Focus Home and press End key
+      homeButton.focus();
+      await user.keyboard('{End}');
+      expect(document.activeElement).toBe(settingsButton);
+    });
+
+    it('should navigate on Enter key press', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const chatButton = screen.getByTitle('AI Chat');
+
+      // Focus AI Chat and press Enter
+      chatButton.focus();
+      await user.keyboard('{Enter}');
+
+      expect(mockNavigate).toHaveBeenCalledWith('/chat');
+    });
+
+    it('should navigate on Space key press', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const sortingButton = screen.getByTitle('Sorting');
+
+      // Focus Sorting and press Space
+      sortingButton.focus();
+      await user.keyboard(' ');
+
+      expect(mockNavigate).toHaveBeenCalledWith('/sorting-tagging');
+    });
+
+    it('should have visible focus ring with vibe-orange color', () => {
+      renderWithRouter();
+
+      const homeButton = screen.getByTitle('Home');
+      // Button should have focus-visible ring classes with vibe-orange
+      expect(homeButton.className).toContain('focus-visible:ring-2');
+      expect(homeButton.className).toContain('focus-visible:ring-cb-vibe-orange');
+      expect(homeButton.className).toContain('focus-visible:ring-offset-2');
+    });
+
+    it('should support Tab navigation between buttons', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const chatButton = screen.getByTitle('AI Chat');
+
+      // Tab to first button
+      await user.tab();
+      expect(document.activeElement).toBe(homeButton);
+
+      // Tab to next button
+      await user.tab();
+      expect(document.activeElement).toBe(chatButton);
+    });
+
+    it('should call onSettingsClick callback when Settings is activated via Enter', async () => {
+      const onSettingsClick = vi.fn();
+      renderWithRouter({ onSettingsClick });
+      const user = userEvent.setup();
+
+      const settingsButton = screen.getByTitle('Settings');
+      settingsButton.focus();
+      await user.keyboard('{Enter}');
+
+      expect(mockNavigate).toHaveBeenCalledWith('/settings');
+      expect(onSettingsClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call onSortingClick callback when Sorting is activated via Enter', async () => {
+      const onSortingClick = vi.fn();
+      renderWithRouter({ onSortingClick });
+      const user = userEvent.setup();
+
+      const sortingButton = screen.getByTitle('Sorting');
+      sortingButton.focus();
+      await user.keyboard('{Enter}');
+
+      expect(mockNavigate).toHaveBeenCalledWith('/sorting-tagging');
+      expect(onSortingClick).toHaveBeenCalledTimes(1);
     });
   });
 });

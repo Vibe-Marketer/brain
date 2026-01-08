@@ -172,6 +172,9 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Refs for nav buttons to enable keyboard focus management
+  const buttonRefs = React.useRef<Map<string, HTMLButtonElement>>(new Map());
+
   // Memoized active state checker to avoid recreating on every render
   const isActive = React.useCallback((item: NavItem) => {
     if (item.matchPaths) {
@@ -182,14 +185,48 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
     return location.pathname === item.path;
   }, [location.pathname]);
 
+  // Focus a nav item by index (wraps around)
+  const focusNavItemByIndex = React.useCallback((index: number) => {
+    const wrappedIndex = ((index % navItems.length) + navItems.length) % navItems.length;
+    const itemId = navItems[wrappedIndex].id;
+    const button = buttonRefs.current.get(itemId);
+    button?.focus();
+  }, []);
+
+  // Keyboard navigation handler
+  const handleKeyDown = React.useCallback((event: React.KeyboardEvent, itemId: string) => {
+    const currentIndex = navItems.findIndex(item => item.id === itemId);
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        focusNavItemByIndex(currentIndex + 1);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        focusNavItemByIndex(currentIndex - 1);
+        break;
+      case 'Home':
+        event.preventDefault();
+        focusNavItemByIndex(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        focusNavItemByIndex(navItems.length - 1);
+        break;
+    }
+  }, [focusNavItemByIndex]);
+
   return (
     <div className={cn('flex-shrink-0', className)}>
       {/* Navigation icons */}
-      <div
+      <nav
         className={cn(
           'flex gap-2 p-3',
           isCollapsed ? 'flex-col items-center' : 'flex-col items-stretch px-4'
         )}
+        role="navigation"
+        aria-label="Main navigation"
       >
         {/* Main Nav Items */}
         {navItems.map((item) => {
@@ -210,6 +247,13 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 />
               )}
               <button
+                ref={(el) => {
+                  if (el) {
+                    buttonRefs.current.set(item.id, el);
+                  } else {
+                    buttonRefs.current.delete(item.id);
+                  }
+                }}
                 type="button"
                 onClick={() => {
                   navigate(item.path);
@@ -222,6 +266,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                     onSortingClick();
                   }
                 }}
+                onKeyDown={(e) => handleKeyDown(e, item.id)}
                 className={cn(
                   'relative flex items-center',
                   isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
@@ -333,7 +378,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
             </button>
           </div>
         )}
-      </div>
+      </nav>
 
       {/* Separator line */}
       <div className="mx-3 border-t border-cb-border" />
