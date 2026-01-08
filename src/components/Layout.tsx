@@ -6,17 +6,17 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   const getPageLabel = () => {
     if (location.pathname === '/') return 'HOME';
-    if (location.pathname === '/chat') return 'AI CHAT';
-    if (location.pathname === '/sorting-tagging') return 'SORTING & TAGGING';
-    if (location.pathname === '/settings') return 'SETTINGS';
+    if (location.pathname.startsWith('/chat')) return 'AI CHAT';
+    if (location.pathname.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
+    if (location.pathname.startsWith('/settings')) return 'SETTINGS';
     return 'HOME';
   };
-  
+
   // Pages that provide their own container/layout (no card wrapper)
   const isChatPage = location.pathname.startsWith('/chat');
   const isTranscriptsPage = location.pathname === '/' || location.pathname === '/transcripts';
-  const isSortingPage = location.pathname === '/sorting-tagging';
-  const isSettingsPage = location.pathname === '/settings';
+  const isSortingPage = location.pathname.startsWith('/sorting-tagging');
+  const isSettingsPage = location.pathname.startsWith('/settings');
   const usesCustomLayout = isChatPage || isTranscriptsPage || isSortingPage || isSettingsPage;
 
   return (
