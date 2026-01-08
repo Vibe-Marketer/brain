@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "006-ui-ux-for-settings-sorting-pages",
-  "state": "complete",
+  "spec": "008-add-orange-left-edge-indicator-to-active-navigatio",
+  "state": "building",
   "subtasks": {
-    "completed": 32,
-    "total": 32,
-    "in_progress": 0,
+    "completed": 1,
+    "total": 8,
+    "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Comprehensive Testing and QA",
+    "current": "Update Category Pane Indicators",
     "id": null,
-    "total": 4
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 2276,
-    "started_at": "2026-01-02T01:15:33.311999"
+    "number": 2,
+    "started_at": "2026-01-07T18:35:36.914214"
   },
-  "last_update": "2026-01-02T06:14:23.046314"
+  "last_update": "2026-01-07T18:36:26.868123"
 }

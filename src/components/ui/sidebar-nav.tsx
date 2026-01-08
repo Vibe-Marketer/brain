@@ -139,9 +139,18 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
           const active = isActive(item);
           return (
             <div key={item.id} className="relative flex flex-col mb-1">
-              {/* Active indicator - left border (Loop-style) - visible in expanded mode */}
-              {active && !isCollapsed && (
-                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-cb-vibe-orange rounded-r-full" />
+              {/* Active indicator - left border (Loop-style) with smooth transition - visible in expanded mode */}
+              {!isCollapsed && (
+                <div
+                  className={cn(
+                    "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-cb-vibe-orange rounded-r-full",
+                    "transition-all duration-200 ease-in-out",
+                    active
+                      ? "opacity-100 scale-y-100"
+                      : "opacity-0 scale-y-0"
+                  )}
+                  aria-hidden="true"
+                />
               )}
               <button
                 type="button"
