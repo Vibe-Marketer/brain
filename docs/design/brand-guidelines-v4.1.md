@@ -30,20 +30,21 @@
 5. [Button System](#button-system)
 6. [Icon System](#icon-system)
 7. [Tab Navigation](#tab-navigation)
-8. [Typography](#typography)
-9. [Table Design](#table-design-system)
-10. [The 10 Percent - Approved Card Usage](#the-10-percent---approved-card-usage)
-11. [Vibe Orange Usage Rules](#vibe-orange-usage-rules)
-12. [Conversation Dialogue UI Rule Exception](#conversation-dialogue-ui-rule-exceptions)
-13. [Spacing and Grid](#spacing--grid)
-14. [Component Specifications](#component-specifications)
-15. [Dark Mode Implementation](#dark-mode-implementation)
-16. [Responsive Behavior](#responsive-behavior)
-17. [Accessibility](#accessibility)
-18. [Animation Guidelines](#animation-guidelines)
-19. [Microcopy & Quips](#microcopy--quips)
-20. [Prohibited Patterns](#prohibited-patterns)
-21. [CSS Variable Reference](#css-variable-reference)
+8. [Navigation & Selection States](#navigation--selection-states)
+9. [Typography](#typography)
+10. [Table Design](#table-design-system)
+11. [The 10 Percent - Approved Card Usage](#the-10-percent---approved-card-usage)
+12. [Vibe Orange Usage Rules](#vibe-orange-usage-rules)
+13. [Conversation Dialogue UI Rule Exception](#conversation-dialogue-ui-rule-exceptions)
+14. [Spacing and Grid](#spacing--grid)
+15. [Component Specifications](#component-specifications)
+16. [Dark Mode Implementation](#dark-mode-implementation)
+17. [Responsive Behavior](#responsive-behavior)
+18. [Accessibility](#accessibility)
+19. [Animation Guidelines](#animation-guidelines)
+20. [Microcopy & Quips](#microcopy--quips)
+21. [Prohibited Patterns](#prohibited-patterns)
+22. [CSS Variable Reference](#css-variable-reference)
 
 ---
 
@@ -1401,6 +1402,235 @@ The angular underline matches the angled vibe orange markers on metric cards, ma
     /----\
 [Content Below]
 ```
+
+---
+
+## NAVIGATION & SELECTION STATES
+
+This section documents the unified selection state pattern used across all navigation components including main sidebar, category panes, and folder navigation. The pattern provides clear visual feedback through multiple coordinated indicators.
+
+### Selection State Visual Pattern
+
+When a navigation item is selected/active, it displays a combination of visual indicators working together:
+
+**Complete Selection State:**
+
+```text
+┌─────────────────────────────────────┐
+│▌                                    │  <- Pill indicator (left edge)
+│▌  [●]  Item Label                   │  <- Fill icon + text
+│▌                                    │
+└─────────────────────────────────────┘
+      ^-- Orange tinted background
+```
+
+| Indicator | Specification | CSS/Tailwind |
+|-----------|---------------|--------------|
+| **Pill Indicator** | 4px wide, 80% height, flush left | `absolute left-0 w-1 h-[80%] rounded-r-full bg-vibe-orange` |
+| **Fill Icon** | Switches from `-Line` to `-Fill` variant | See Icon System section |
+| **Icon Color** | Vibe Orange (#FF8800) | `text-vibe-orange` |
+| **Background** | Subtle orange tint | `bg-vibe-orange/10 dark:bg-vibe-orange/20` |
+| **Text** | Semibold weight | `font-semibold text-vibe-orange` |
+
+### Pill Indicator Pattern
+
+The pill indicator is a vertical bar that marks the active item. It provides a strong visual anchor for the current selection.
+
+**Specifications:**
+
+| Property | Value |
+|----------|-------|
+| Width | 4px (`w-1`) |
+| Height | 80% of parent (`h-[80%]`) |
+| Position | Absolute, left edge (`absolute left-0`) |
+| Border radius | Right side only (`rounded-r-full`) |
+| Color | Vibe Orange (`bg-vibe-orange`) |
+| Shape | Needle/angular via clip-path |
+
+**Clip-Path for Angular Shape:**
+
+```css
+/* Applied via global CSS for angular "needle" effect */
+clip-path: polygon(0 0, 100% 10%, 100% 90%, 0 100%);
+```
+
+This creates a tapered effect that narrows toward the top and bottom.
+
+**Implementation:**
+
+```tsx
+{/* Pill indicator - only rendered when active */}
+{isActive && (
+  <div
+    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] rounded-r-full bg-vibe-orange"
+    style={{ clipPath: 'polygon(0 0, 100% 10%, 100% 90%, 0 100%)' }}
+  />
+)}
+```
+
+### Icon State Changes
+
+Icons dynamically switch between outline (`-Line`) and filled (`-Fill`) variants based on selection state. This reinforces the selection beyond just color changes.
+
+**State Behavior:**
+
+| State | Icon Variant | Icon Color |
+|-------|-------------|------------|
+| **Inactive/Default** | `-Line` (outlined) | `text-muted-foreground` |
+| **Active/Selected** | `-Fill` (filled) | `text-vibe-orange` |
+| **Hover** | `-Line` (outlined) | `text-foreground` |
+
+**Implementation Pattern:**
+
+```tsx
+// Navigation item definition
+interface NavItem {
+  id: string;
+  label: string;
+  iconLine: React.ComponentType<{ className?: string }>;
+  iconFill: React.ComponentType<{ className?: string }>;
+}
+
+// Conditional rendering
+const IconComponent = isActive ? item.iconFill : item.iconLine;
+
+<IconComponent
+  className={cn(
+    "h-5 w-5 transition-colors duration-200",
+    isActive ? "text-vibe-orange" : "text-muted-foreground"
+  )}
+/>
+```
+
+**Fallback for Icons Without Fill Variants:**
+
+Some icons (e.g., `RiFlowChart`) do not have a fill variant. In these cases:
+
+```tsx
+// Use line variant with orange color
+const IconComponent = category.iconFill ?? category.icon;
+
+<IconComponent
+  className={cn(
+    "h-4 w-4",
+    isActive ? "text-vibe-orange" : "text-muted-foreground"
+  )}
+/>
+```
+
+### Visual Hierarchy Layers
+
+Selection states use a layered approach for clear visual hierarchy:
+
+```text
+Layer 1: Background highlight (lowest emphasis)
+         └── Subtle orange tint for context
+
+Layer 2: Icon state change (medium emphasis)
+         └── Fill variant + orange color
+
+Layer 3: Text styling (medium-high emphasis)
+         └── Semibold weight + orange color
+
+Layer 4: Pill indicator (highest emphasis)
+         └── Strong orange bar for anchoring
+```
+
+All layers work together, but the pill indicator provides the primary visual anchor for "where am I?" orientation.
+
+### Animation & Transitions
+
+Selection state changes are animated for smooth visual feedback:
+
+| Element | Duration | Timing | Property |
+|---------|----------|--------|----------|
+| Pill indicator | 200ms | ease-in-out | opacity, scale |
+| Icon color | 200ms | ease-in-out | color |
+| Background | 200ms | ease-in-out | background-color |
+| Text color | 200ms | ease-in-out | color |
+| Icon swap | Instant | - | No transition (immediate) |
+
+**CSS Variables:**
+
+```css
+--selection-transition: 200ms ease-in-out;
+```
+
+**Note:** The icon component swap (Line to Fill) happens instantly. Only the color transition is animated.
+
+### Component-Specific Implementations
+
+**Main Sidebar Navigation:**
+
+- Uses glossy 3D icon buttons when collapsed
+- Small orange dot indicator below active icon when collapsed
+- Full pill + fill icon + background when expanded
+
+**Category Panes (Settings/Sorting):**
+
+- Full selection state with pill, fill icon, background
+- Categories arranged vertically in list
+- Each category shows selection state independently
+
+**Folder Navigation:**
+
+- Folder icon switches to `RiFolderFill` when selected
+- Nested folders inherit same selection pattern
+- Custom user icons do not switch variants (no fill available)
+
+### Dark Mode Considerations
+
+Selection states adjust for dark mode visibility:
+
+| Element | Light Mode | Dark Mode |
+|---------|------------|-----------|
+| Background tint | `bg-vibe-orange/10` | `bg-vibe-orange/20` |
+| Pill color | `bg-vibe-orange` | `bg-vibe-orange` |
+| Icon color | `text-vibe-orange` | `text-vibe-orange` |
+| Text color | `text-vibe-orange` | `text-vibe-orange` |
+
+The background opacity doubles in dark mode (10% → 20%) to maintain equivalent visual weight.
+
+### Keyboard Navigation
+
+Selection states must work with keyboard navigation:
+
+- **Arrow keys:** Move focus between items
+- **Enter/Space:** Select focused item
+- **Tab:** Move to next focusable element
+
+Focus states should be visually distinct from selection states:
+
+```tsx
+<button
+  className={cn(
+    "relative w-full",
+    // Selection state
+    isActive && "bg-vibe-orange/10 dark:bg-vibe-orange/20",
+    // Focus state (ring, not background)
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange"
+  )}
+>
+```
+
+### CRITICAL RULES
+
+**ALWAYS:**
+
+- Use all four selection indicators together (pill, icon, background, text)
+- Position pill flush to left edge (`left-0`)
+- Use 200ms transition timing for smooth animations
+- Handle icons without fill variants gracefully
+- Double background opacity for dark mode
+- Support keyboard navigation
+
+**NEVER:**
+
+- Use only one selection indicator (e.g., just color change)
+- Position pill away from edge (maintains visual anchor)
+- Skip transition animations (feels jarring)
+- Mix selection state patterns across components
+- Forget accessible focus states
 
 ---
 
