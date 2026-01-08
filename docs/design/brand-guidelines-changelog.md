@@ -6,6 +6,24 @@ This file tracks all changes to `brand-guidelines-v4.1.md`.
 
 ---
 
+## v4.1.3 (January 8, 2026)
+
+**Git Commit:** pending
+**Summary:** Icon Fill/Line Variant Pattern documentation
+
+- **ADDED:** New "Icon Fill/Line Variant Pattern (Navigation)" subsection to Icon System
+  - Documents `-Line` to `-Fill` icon swapping for navigation active states
+  - Pattern summary table showing inactive vs active variants
+  - Complete navigation icon mappings (13 components with line/fill variants)
+  - Implementation code example with NavItem interface and conditional rendering
+  - Visual state combination explanation (fill icon + vibe orange + pill indicator + background)
+  - Transition timing specifications
+- **UPDATED:** Prohibited section to clarify vibe orange icon exception for navigation active states
+- **UPDATED:** Document version to v4.1.3 in 3 places (title, DOCUMENT VERSION, END)
+- **UPDATED:** Last Updated date to January 8, 2026
+
+---
+
 ## v4.1.1 (December 9, 2025)
 
 **Git Commit:** pending

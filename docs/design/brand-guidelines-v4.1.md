@@ -1,8 +1,8 @@
-# CALLVAULT BRAND GUIDELINES v4.1.1
+# CALLVAULT BRAND GUIDELINES v4.1.3
 
 ## Authoritative Design System Reference
 
-**Last Updated:** December 9, 2025
+**Last Updated:** January 8, 2026
 **Status:** Complete & Accurate - Supersedes ALL previous versions
 **Purpose:** Single source of truth for all design and development decisions
 
@@ -1126,11 +1126,106 @@ import { RiEditLine, RiDeleteBinLine, RiDownloadLine } from "@remixicon/react";
 - High-emphasis indicators
 - Toggle states (line = off, fill = on)
 
+### Icon Fill/Line Variant Pattern (Navigation)
+
+For navigation components, icons dynamically switch between `-Line` (inactive) and `-Fill` (active) variants to provide clear visual feedback for selection state. This pattern is used in sidebar navigation, category panes, and folder navigation.
+
+**Pattern Summary:**
+
+| State | Icon Variant | Color | Example |
+|-------|-------------|-------|---------|
+| **Inactive** | `-Line` suffix | `text-muted-foreground` | `RiHome4Line` |
+| **Active** | `-Fill` suffix | `text-vibe-orange` | `RiHome4Fill` |
+
+**Navigation Icon Mappings:**
+
+| Component | Line Icon (Inactive) | Fill Icon (Active) |
+|-----------|---------------------|-------------------|
+| Home | `RiHome4Line` | `RiHome4Fill` |
+| AI Chat | `RiSparklingLine` | `RiSparklingFill` |
+| Sorting | `RiPriceTag3Line` | `RiPriceTag3Fill` |
+| Settings | `RiSettings3Line` | `RiSettings3Fill` |
+| Account | `RiUserLine` | `RiUserFill` |
+| Users | `RiTeamLine` | `RiTeamFill` |
+| Billing | `RiWalletLine` | `RiWalletFill` |
+| Integrations | `RiPlugLine` | `RiPlugFill` |
+| AI | `RiRobot2Line` | `RiRobot2Fill` |
+| Admin | `RiShieldLine` | `RiShieldFill` |
+| Folders | `RiFolderLine` | `RiFolderFill` |
+| Tags | `RiPriceTag3Line` | `RiPriceTag3Fill` |
+| Recurring | `RiRepeatLine` | `RiRepeatFill` |
+
+*Note: Some icons (e.g., `RiFlowChart`) have no fill variant. Use line variant with orange color for active state.*
+
+**Implementation Pattern:**
+
+```tsx
+// Define navigation item with both icon variants
+interface NavItem {
+  id: string;
+  label: string;
+  iconLine: React.ComponentType<{ className?: string }>;
+  iconFill: React.ComponentType<{ className?: string }>;
+  path: string;
+}
+
+// Example navigation items
+const navItems: NavItem[] = [
+  {
+    id: 'home',
+    label: 'Home',
+    iconLine: RiHome4Line,
+    iconFill: RiHome4Fill,
+    path: '/',
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    iconLine: RiSettings3Line,
+    iconFill: RiSettings3Fill,
+    path: '/settings',
+  },
+];
+
+// Render with conditional icon selection
+const NavItem = ({ item, isActive }: { item: NavItem; isActive: boolean }) => {
+  const IconComponent = isActive ? item.iconFill : item.iconLine;
+
+  return (
+    <button className={cn(
+      "flex items-center gap-2",
+      isActive && "text-vibe-orange"
+    )}>
+      <IconComponent className={cn(
+        "h-5 w-5",
+        isActive ? "text-vibe-orange" : "text-muted-foreground"
+      )} />
+      <span>{item.label}</span>
+    </button>
+  );
+};
+```
+
+**Visual State Combination:**
+
+When a navigation item is active, it combines:
+
+1. **Fill icon** - Replaces line icon with filled variant
+2. **Vibe orange color** - Icon changes from muted to orange (#FF8800)
+3. **Pill indicator** - Orange vertical bar on left edge (see Sidebar Layout Pattern)
+4. **Background highlight** - Subtle orange tint (`bg-vibe-orange/10 dark:bg-vibe-orange/20`)
+
+**Transition Timing:**
+
+- Icon swap: Instant (no transition)
+- Color transition: 200ms ease-in-out
+- Background transition: 200ms ease-in-out
+
 ### Prohibited
 
 - **DO NOT** mix icon libraries (no Lucide, Font Awesome, Bootstrap Icons, etc.)
 - **DO NOT** use custom SVGs when Remix Icon has an equivalent
-- **DO NOT** change icon colors to vibe orange (icons stay neutral)
+- **DO NOT** change icon colors to vibe orange in content areas (icons stay neutral) - *Exception: Navigation active states use vibe orange per Icon Fill/Line Variant Pattern*
 - **DO NOT** use icons larger than 24px except in hero/empty states
 
 ### Accessibility
@@ -2679,7 +2774,7 @@ Full changelog: [brand-guidelines-changelog.md](./brand-guidelines-changelog.md)
 
 ## DOCUMENT VERSION
 
-**Current Version:** v4.1.1
+**Current Version:** v4.1.3
 
 This version reference must match the title at the top of the document.
 
@@ -2711,7 +2806,7 @@ This version reference must match the title at the top of the document.
 
 ---
 
-*END OF BRAND GUIDELINES v4.1.1*
+*END OF BRAND GUIDELINES v4.1.3*
 
 This document is complete and accurate as of December 9, 2025.
 All implementations must follow these specifications exactly.
