@@ -63,6 +63,40 @@ export const queryKeys = {
     detail: (folderId: string) => ['folders', 'detail', folderId] as const,
     assignments: () => ['folder-assignments'] as const,
   },
+
+  // Sharing (Single Call Share)
+  sharing: {
+    all: ['sharing'] as const,
+    links: (callId: string | number) => ['sharing', 'links', callId] as const,
+    link: (linkId: string) => ['sharing', 'link', linkId] as const,
+    byToken: (token: string) => ['sharing', 'token', token] as const,
+    accessLog: (linkId: string) => ['sharing', 'access-log', linkId] as const,
+    sharedWithMe: () => ['sharing', 'shared-with-me'] as const,
+  },
+
+  // Coaches (Coach Relationships)
+  coaches: {
+    all: ['coaches'] as const,
+    relationships: () => ['coaches', 'relationships'] as const,
+    relationship: (relationshipId: string) => ['coaches', 'relationship', relationshipId] as const,
+    shares: (relationshipId: string) => ['coaches', 'shares', relationshipId] as const,
+    notes: (callId: string | number) => ['coaches', 'notes', callId] as const,
+    coachees: () => ['coaches', 'coachees'] as const,
+    sharedCalls: (filters?: Record<string, unknown>) => ['coaches', 'shared-calls', filters] as const,
+  },
+
+  // Teams
+  teams: {
+    all: ['teams'] as const,
+    list: () => ['teams', 'list'] as const,
+    detail: (teamId: string) => ['teams', 'detail', teamId] as const,
+    memberships: (teamId: string) => ['teams', 'memberships', teamId] as const,
+    membership: (membershipId: string) => ['teams', 'membership', membershipId] as const,
+    shares: (teamId: string) => ['teams', 'shares', teamId] as const,
+    directReports: (userId?: string) => ['teams', 'direct-reports', userId] as const,
+    managerNotes: (callId: string | number) => ['teams', 'manager-notes', callId] as const,
+    hierarchy: (teamId: string) => ['teams', 'hierarchy', teamId] as const,
+  },
 } as const;
 
 // Type helper for query keys

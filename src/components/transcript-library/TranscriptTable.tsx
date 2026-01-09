@@ -1,7 +1,9 @@
 import React from "react";
-import { RiArrowUpDownLine, RiLayoutColumnLine, RiFileDownloadLine } from "@remixicon/react";
+import { RiArrowUpDownLine, RiLayoutColumnLine, RiFileDownloadLine, RiTeamLine } from "@remixicon/react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -29,6 +31,7 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 import { TranscriptTableRow } from "./TranscriptTableRow";
 import { DownloadPopover } from "./DownloadPopover";
 import type { Meeting } from "@/types";
+import type { SharingStatus, AccessLevel } from "@/types/sharing";
 
 interface Folder {
   id: string;
@@ -44,6 +47,7 @@ const columnOptions = [
   { id: "participants", label: "Invitees" },
   { id: "tags", label: "Tags" },
   { id: "folders", label: "Folders" },
+  { id: "sharedWith", label: "Shared With" },
 ];
 
 interface TranscriptTableProps {
@@ -72,6 +76,13 @@ interface TranscriptTableProps {
   visibleColumns?: Record<string, boolean>;
   onToggleColumn?: (columnId: string) => void;
   onExport?: () => void;
+  // Direct reports filter (for managers)
+  showDirectReportsFilter?: boolean;
+  directReportsFilter?: boolean;
+  onDirectReportsFilterChange?: (enabled: boolean) => void;
+  // Sharing status per call
+  sharingStatuses?: Record<string | number, SharingStatus>;
+  accessLevels?: Record<string | number, AccessLevel>;
 }
 
 
@@ -99,6 +110,11 @@ export const TranscriptTable = React.memo(({
   visibleColumns = {},
   onToggleColumn,
   onExport,
+  showDirectReportsFilter = false,
+  directReportsFilter = false,
+  onDirectReportsFilterChange,
+  sharingStatuses = {},
+  accessLevels = {},
 }: TranscriptTableProps) => {
   const { sortField, sortDirection: _sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
 
@@ -122,6 +138,31 @@ export const TranscriptTable = React.memo(({
 
   return (
     <div className="space-y-4">
+      {/* Direct Reports Filter */}
+      {showDirectReportsFilter && onDirectReportsFilterChange && (
+        <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border">
+          <RiTeamLine className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-2">
+            <Switch
+              id="direct-reports-filter"
+              checked={directReportsFilter}
+              onCheckedChange={onDirectReportsFilterChange}
+              aria-label="Show only direct reports' calls"
+            />
+            <Label
+              htmlFor="direct-reports-filter"
+              className="text-sm font-medium cursor-pointer"
+            >
+              Direct Reports Only
+            </Label>
+          </div>
+          {directReportsFilter && (
+            <span className="text-xs text-muted-foreground ml-auto">
+              Showing calls from your direct reports
+            </span>
+          )}
+        </div>
+      )}
       <div>
         <div className="overflow-x-auto">
           <Table>
@@ -169,6 +210,9 @@ export const TranscriptTable = React.memo(({
                 )}
                 {visibleColumns.folders !== false && (
                   <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">FOLDERS</TableHead>
+                )}
+                {visibleColumns.sharedWith !== false && (
+                  <TableHead className="hidden xl:table-cell min-w-[80px] h-12 whitespace-nowrap text-xs md:text-sm">SHARED</TableHead>
                 )}
                 <TableHead className="w-[80px] md:w-[120px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
                   <div className="flex items-center justify-end gap-1">
@@ -250,6 +294,8 @@ export const TranscriptTable = React.memo(({
                     hostEmail={hostEmail}
                     isUnsyncedView={isUnsyncedView}
                     visibleColumns={visibleColumns}
+                    sharingStatus={sharingStatuses[call.recording_id]}
+                    accessLevel={accessLevels[call.recording_id]}
                     onSelect={() => onSelectCall(call.recording_id)}
                     onCallClick={() => onCallClick(call)}
                     onFolder={onFolderCall ? () => onFolderCall(call.recording_id) : undefined}

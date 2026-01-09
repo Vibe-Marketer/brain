@@ -8,6 +8,7 @@ import { Layout } from "@/components/Layout";
 import Login from '@/pages/Login';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { CallDetailPage } from '@/pages/CallDetailPage';
+import { SharedCallView } from '@/pages/SharedCallView';
 
 // Import existing pages
 import TranscriptsNew from '@/pages/TranscriptsNew';
@@ -15,6 +16,8 @@ import Chat from '@/pages/Chat';
 import SortingTagging from '@/pages/SortingTagging';
 import Settings from '@/pages/Settings';
 import LoopLayoutDemo from '@/pages/LoopLayoutDemo';
+import SharedWithMe from '@/pages/SharedWithMe';
+import CoachDashboard from '@/pages/CoachDashboard';
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -52,8 +55,17 @@ function App() {
                     <Route path="/sorting-tagging/:category" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
                     <Route path="/loop" element={<Layout><LoopLayoutDemo /></Layout>} />
 
+                    {/* Shared with me page */}
+                    <Route path="/shared-with-me" element={<ProtectedRoute><Layout><SharedWithMe /></Layout></ProtectedRoute>} />
+
+                    {/* Coach dashboard */}
+                    <Route path="/coach" element={<ProtectedRoute><Layout><CoachDashboard /></Layout></ProtectedRoute>} />
+
                     {/* Call detail route for search result navigation */}
                     <Route path="/call/:callId" element={<ProtectedRoute><Layout><CallDetailPage /></Layout></ProtectedRoute>} />
+
+                    {/* Shared call view - public route with token-based access */}
+                    <Route path="/s/:token" element={<SharedCallView />} />
 
                     {/* 404 */}
                     <Route path="*" element={<Navigate to="/" replace />} />

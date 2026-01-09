@@ -1,4 +1,4 @@
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import {
   DialogHeader,
   DialogTitle,
@@ -6,8 +6,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine, RiRobotLine } from "@remixicon/react";
+import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine, RiRobotLine, RiShareLine } from "@remixicon/react";
 import { Meeting } from "@/types";
+import { ShareCallDialog } from "@/components/sharing/ShareCallDialog";
 
 interface CallDetailHeaderProps {
   call: Meeting | null;
@@ -32,111 +33,130 @@ export function CallDetailHeader({
   isSaving,
   onChatWithAI,
 }: CallDetailHeaderProps) {
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
+
   // Early return if call is null to prevent white screen crashes
   if (!call) {
     return null;
   }
 
   return (
-    <DialogHeader className="flex-shrink-0">
-      <span id="call-detail-description" className="sr-only">
-        Detailed view of the meeting including transcript, participants, and speakers
-      </span>
-      <div className="flex items-center justify-between">
-        <DialogTitle>
-          <div className="flex items-center gap-2">
-            {isEditing ? (
-              <Input
-                value={editedTitle}
-                onChange={(e) => setEditedTitle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !isSaving) {
-                    onSave();
-                  }
-                }}
-                className="text-xl font-semibold"
-                autoFocus
-              />
-            ) : (
-              <span
-                onClick={() => setIsEditing(true)}
-                className="cursor-pointer hover:text-primary transition-colors flex items-center gap-2"
-                title="Click to edit title"
-              >
-                {editedTitle}
-              </span>
-            )}
-          </div>
-        </DialogTitle>
-        <div className="flex gap-2">
-          {call?.share_url && (
-            <>
-              <Button
-                variant="hollow"
-                size="sm"
-                onClick={() => call?.share_url && window.open(call.share_url, "_blank")}
-              >
-                <RiVidiconLine className="h-4 w-4 mr-2" />
-                VIEW
-              </Button>
-              <Button
-                variant="hollow"
-                size="sm"
-                onClick={() => {
-                  if (call?.share_url) {
-                    navigator.clipboard.writeText(call.share_url);
-                    toast.success("Link copied to clipboard");
-                  }
-                }}
-              >
-                <RiFileCopyLine className="h-4 w-4 mr-2" />
-                COPY
-              </Button>
-            </>
-          )}
-          {isEditing ? (
-            <>
-              <Button
-                variant="hollow"
-                size="sm"
-                onClick={() => {
-                  setIsEditing(false);
-                  setEditedTitle(call?.title || "");
-                  setEditedSummary(call?.summary || "");
-                }}
-              >
-                <RiCloseLine className="h-4 w-4 mr-2" />
-                CANCEL
-              </Button>
-              <Button variant="default" size="sm" onClick={onSave}>
-                <RiSaveLine className="h-4 w-4 mr-2" />
-                SAVE
-              </Button>
-            </>
-          ) : (
-            <>
-              {onChatWithAI && (
+    <>
+      <DialogHeader className="flex-shrink-0">
+        <span id="call-detail-description" className="sr-only">
+          Detailed view of the meeting including transcript, participants, and speakers
+        </span>
+        <div className="flex items-center justify-between">
+          <DialogTitle>
+            <div className="flex items-center gap-2">
+              {isEditing ? (
+                <Input
+                  value={editedTitle}
+                  onChange={(e) => setEditedTitle(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !isSaving) {
+                      onSave();
+                    }
+                  }}
+                  className="text-xl font-semibold"
+                  autoFocus
+                />
+              ) : (
+                <span
+                  onClick={() => setIsEditing(true)}
+                  className="cursor-pointer hover:text-primary transition-colors flex items-center gap-2"
+                  title="Click to edit title"
+                >
+                  {editedTitle}
+                </span>
+              )}
+            </div>
+          </DialogTitle>
+          <div className="flex gap-2">
+            {call?.share_url && (
+              <>
                 <Button
                   variant="hollow"
                   size="sm"
-                  onClick={onChatWithAI}
+                  onClick={() => call?.share_url && window.open(call.share_url, "_blank")}
                 >
-                  <RiRobotLine className="h-4 w-4 mr-2" />
-                  AI CHAT
+                  <RiVidiconLine className="h-4 w-4 mr-2" />
+                  VIEW
                 </Button>
-              )}
-              <Button
-                variant="hollow"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-              >
-                <RiEditLine className="h-4 w-4 mr-2" />
-                EDIT
-              </Button>
-            </>
-          )}
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={() => {
+                    if (call?.share_url) {
+                      navigator.clipboard.writeText(call.share_url);
+                      toast.success("Link copied to clipboard");
+                    }
+                  }}
+                >
+                  <RiFileCopyLine className="h-4 w-4 mr-2" />
+                  COPY
+                </Button>
+              </>
+            )}
+            {isEditing ? (
+              <>
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={() => {
+                    setIsEditing(false);
+                    setEditedTitle(call?.title || "");
+                    setEditedSummary(call?.summary || "");
+                  }}
+                >
+                  <RiCloseLine className="h-4 w-4 mr-2" />
+                  CANCEL
+                </Button>
+                <Button variant="default" size="sm" onClick={onSave}>
+                  <RiSaveLine className="h-4 w-4 mr-2" />
+                  SAVE
+                </Button>
+              </>
+            ) : (
+              <>
+                {onChatWithAI && (
+                  <Button
+                    variant="hollow"
+                    size="sm"
+                    onClick={onChatWithAI}
+                  >
+                    <RiRobotLine className="h-4 w-4 mr-2" />
+                    AI CHAT
+                  </Button>
+                )}
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={() => setShareDialogOpen(true)}
+                >
+                  <RiShareLine className="h-4 w-4 mr-2" />
+                  SHARE
+                </Button>
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <RiEditLine className="h-4 w-4 mr-2" />
+                  EDIT
+                </Button>
+              </>
+            )}
+          </div>
         </div>
-      </div>
-    </DialogHeader>
+      </DialogHeader>
+
+      <ShareCallDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        callId={call.id}
+        callTitle={call.title}
+      />
+    </>
   );
 }
