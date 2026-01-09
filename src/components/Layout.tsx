@@ -9,6 +9,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     if (location.pathname === '/chat') return 'AI CHAT';
     if (location.pathname === '/sorting-tagging') return 'SORTING & TAGGING';
     if (location.pathname === '/settings') return 'SETTINGS';
+    // Sharing pages
+    if (location.pathname === '/shared-with-me') return 'SHARED WITH ME';
+    if (location.pathname === '/coach-dashboard') return 'COACH DASHBOARD';
+    if (location.pathname === '/team-management') return 'TEAM MANAGEMENT';
     return 'HOME';
   };
   
@@ -16,8 +20,13 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const isChatPage = location.pathname.startsWith('/chat');
   const isTranscriptsPage = location.pathname === '/' || location.pathname === '/transcripts';
   const isSortingPage = location.pathname === '/sorting-tagging';
-  const isSettingsPage = location.pathname === '/settings';
-  const usesCustomLayout = isChatPage || isTranscriptsPage || isSortingPage || isSettingsPage;
+  const isSettingsPage = location.pathname.startsWith('/settings');
+  // Sharing pages provide their own layout
+  const isSharedWithMePage = location.pathname === '/shared-with-me';
+  const isCoachDashboardPage = location.pathname === '/coach-dashboard';
+  const isTeamManagementPage = location.pathname === '/team-management';
+  const usesCustomLayout = isChatPage || isTranscriptsPage || isSortingPage || isSettingsPage ||
+    isSharedWithMePage || isCoachDashboardPage || isTeamManagementPage;
 
   return (
     <div
