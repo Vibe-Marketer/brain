@@ -246,21 +246,26 @@ export function FolderDetailPanel({
       {/* Header */}
       <header className="flex items-center justify-between p-4 border-b border-cb-border">
         <div className="flex items-center gap-3 min-w-0">
-          {isEmoji ? (
-            <span className="text-2xl flex-shrink-0" aria-hidden="true">{folder.icon}</span>
-          ) : FolderIcon ? (
-            <FolderIcon
-              className="h-6 w-6 flex-shrink-0"
-              style={{ color: folder.color }}
-              aria-hidden="true"
-            />
-          ) : (
-            <RiFolderLine
-              className="h-6 w-6 flex-shrink-0"
-              style={{ color: folder.color }}
-              aria-hidden="true"
-            />
-          )}
+          <div
+            className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+            aria-hidden="true"
+          >
+            {isEmoji ? (
+              <span className="text-xl" aria-hidden="true">{folder.icon}</span>
+            ) : FolderIcon ? (
+              <FolderIcon
+                className="h-5 w-5 text-cb-vibe-orange"
+                style={{ color: folder.color }}
+                aria-hidden="true"
+              />
+            ) : (
+              <RiFolderLine
+                className="h-5 w-5 text-cb-vibe-orange"
+                style={{ color: folder.color }}
+                aria-hidden="true"
+              />
+            )}
+          </div>
           <div className="min-w-0">
             <h3 className="font-semibold text-cb-ink truncate" id="folder-panel-title">{folder.name}</h3>
             {folder.description && (

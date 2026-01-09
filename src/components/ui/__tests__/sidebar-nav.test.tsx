@@ -117,23 +117,26 @@ describe('SidebarNav', () => {
     it('should show AI Chat as active on /chat path', () => {
       renderWithRouter({ isCollapsed: false }, ['/chat']);
 
-      // In expanded mode, active items have font-semibold class
+      // In expanded mode, active items have orange background and text color on button
       const chatButton = screen.getByTitle('AI Chat');
-      expect(chatButton).toHaveClass('font-semibold');
+      expect(chatButton).toHaveClass('bg-cb-vibe-orange/10');
+      expect(chatButton).toHaveClass('text-cb-vibe-orange');
     });
 
     it('should show Settings as active on /settings path', () => {
       renderWithRouter({ isCollapsed: false }, ['/settings']);
 
       const settingsButton = screen.getByTitle('Settings');
-      expect(settingsButton).toHaveClass('font-semibold');
+      expect(settingsButton).toHaveClass('bg-cb-vibe-orange/10');
+      expect(settingsButton).toHaveClass('text-cb-vibe-orange');
     });
 
     it('should show Sorting as active on /sorting-tagging path', () => {
       renderWithRouter({ isCollapsed: false }, ['/sorting-tagging']);
 
       const sortingButton = screen.getByTitle('Sorting');
-      expect(sortingButton).toHaveClass('font-semibold');
+      expect(sortingButton).toHaveClass('bg-cb-vibe-orange/10');
+      expect(sortingButton).toHaveClass('text-cb-vibe-orange');
     });
   });
 
@@ -190,7 +193,8 @@ describe('SidebarNav', () => {
       renderWithRouter({ isCollapsed: false }, ['/chat']);
 
       const chatButton = screen.getByTitle('AI Chat');
-      expect(chatButton).toHaveClass('bg-gray-100');
+      // Active items have orange tinted background, not gray
+      expect(chatButton).toHaveClass('bg-cb-vibe-orange/10');
     });
 
     it('should render active indicator with h-[80%] height in expanded mode', () => {
@@ -239,42 +243,42 @@ describe('SidebarNav', () => {
       const onSyncClick = vi.fn();
       renderWithRouter({ onSyncClick });
 
-      expect(screen.getByTitle('Sync / Import')).toBeInTheDocument();
+      expect(screen.getByTitle('Sync & Import')).toBeInTheDocument();
     });
 
     it('should call onSyncClick when sync button is clicked', () => {
       const onSyncClick = vi.fn();
       renderWithRouter({ onSyncClick });
 
-      fireEvent.click(screen.getByTitle('Sync / Import'));
+      fireEvent.click(screen.getByTitle('Sync & Import'));
       expect(onSyncClick).toHaveBeenCalledTimes(1);
     });
 
     it('should not render sync button when onSyncClick is not provided', () => {
       renderWithRouter();
 
-      expect(screen.queryByTitle('Sync / Import')).not.toBeInTheDocument();
+      expect(screen.queryByTitle('Sync & Import')).not.toBeInTheDocument();
     });
 
     it('should render library toggle button when onLibraryToggle is provided', () => {
       const onLibraryToggle = vi.fn();
       renderWithRouter({ onLibraryToggle });
 
-      expect(screen.getByTitle('Toggle Library')).toBeInTheDocument();
+      expect(screen.getByTitle('Toggle Library Panel')).toBeInTheDocument();
     });
 
     it('should call onLibraryToggle when library button is clicked', () => {
       const onLibraryToggle = vi.fn();
       renderWithRouter({ onLibraryToggle });
 
-      fireEvent.click(screen.getByTitle('Toggle Library'));
+      fireEvent.click(screen.getByTitle('Toggle Library Panel'));
       expect(onLibraryToggle).toHaveBeenCalledTimes(1);
     });
 
     it('should not render library toggle button when onLibraryToggle is not provided', () => {
       renderWithRouter();
 
-      expect(screen.queryByTitle('Toggle Library')).not.toBeInTheDocument();
+      expect(screen.queryByTitle('Toggle Library Panel')).not.toBeInTheDocument();
     });
 
     it('should render both optional buttons when both callbacks are provided', () => {
@@ -282,8 +286,8 @@ describe('SidebarNav', () => {
       const onLibraryToggle = vi.fn();
       renderWithRouter({ onSyncClick, onLibraryToggle });
 
-      expect(screen.getByTitle('Sync / Import')).toBeInTheDocument();
-      expect(screen.getByTitle('Toggle Library')).toBeInTheDocument();
+      expect(screen.getByTitle('Sync & Import')).toBeInTheDocument();
+      expect(screen.getByTitle('Toggle Library Panel')).toBeInTheDocument();
     });
 
     it('should show Sync & Import label in expanded mode', () => {
@@ -349,14 +353,17 @@ describe('SidebarNav', () => {
       renderWithRouter({ isCollapsed: false }, ['/chat/session-123']);
 
       const chatButton = screen.getByTitle('AI Chat');
-      expect(chatButton).toHaveClass('font-semibold');
+      // Active state is indicated by orange background/text on button
+      expect(chatButton).toHaveClass('bg-cb-vibe-orange/10');
+      expect(chatButton).toHaveClass('text-cb-vibe-orange');
     });
 
     it('should match subpaths for settings', () => {
       renderWithRouter({ isCollapsed: false }, ['/settings/profile']);
 
       const settingsButton = screen.getByTitle('Settings');
-      expect(settingsButton).toHaveClass('font-semibold');
+      expect(settingsButton).toHaveClass('bg-cb-vibe-orange/10');
+      expect(settingsButton).toHaveClass('text-cb-vibe-orange');
     });
 
     it('should not match unrelated paths', () => {
@@ -368,10 +375,11 @@ describe('SidebarNav', () => {
       const settingsButton = screen.getByTitle('Settings');
 
       // None of these should be marked as active for an unknown path
-      expect(homeButton).not.toHaveClass('font-semibold');
-      expect(chatButton).not.toHaveClass('font-semibold');
-      expect(sortingButton).not.toHaveClass('font-semibold');
-      expect(settingsButton).not.toHaveClass('font-semibold');
+      // Active state is shown via orange background/text classes
+      expect(homeButton).not.toHaveClass('bg-cb-vibe-orange/10');
+      expect(chatButton).not.toHaveClass('bg-cb-vibe-orange/10');
+      expect(sortingButton).not.toHaveClass('bg-cb-vibe-orange/10');
+      expect(settingsButton).not.toHaveClass('bg-cb-vibe-orange/10');
     });
   });
 

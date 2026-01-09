@@ -233,11 +233,11 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
           const active = isActive(item);
           return (
             <div key={item.id} className="relative flex flex-col mb-1">
-              {/* Active indicator - left border (Loop-style) with smooth transition - visible in expanded mode */}
+              {/* Active indicator - pill shape (Loop-style) with smooth transition - visible in expanded mode */}
               {!isCollapsed && (
                 <div
                   className={cn(
-                    "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-cb-vibe-orange rounded-r-full",
+                    "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-cb-vibe-orange rounded-full",
                     "transition-all duration-200 ease-in-out",
                     active
                       ? "opacity-100 scale-y-100"
@@ -272,7 +272,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
                   'rounded-xl transition-all duration-500 ease-in-out',
                   'hover:bg-gray-100 dark:hover:bg-white/10',
-                  active && !isCollapsed && 'bg-cb-vibe-orange/10 dark:bg-cb-vibe-orange/20 text-cb-vibe-orange',
+                  active && !isCollapsed && 'bg-gray-100 dark:bg-gray-800',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
                 )}
                 title={item.name}

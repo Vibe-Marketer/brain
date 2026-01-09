@@ -270,11 +270,15 @@ export function TagDetailPanel({
       <header className="flex items-center justify-between p-4 border-b border-cb-border">
         <div className="flex items-center gap-3 min-w-0">
           <div
-            className="w-6 h-6 rounded-sm flex-shrink-0"
-            style={{ backgroundColor: tag.color || "#6B7280" }}
-            role="img"
-            aria-label={`Tag color: ${tag.color || "gray"}`}
-          />
+            className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+            style={{ backgroundColor: `${tag.color || "#6B7280"}20` }}
+            aria-hidden="true"
+          >
+            <div
+              className="w-4 h-4 rounded-sm"
+              style={{ backgroundColor: tag.color || "#6B7280" }}
+            />
+          </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-cb-ink truncate" id="tag-panel-title">{tag.name}</h3>

@@ -55,7 +55,8 @@ test-results/
 recent_deliveries*.json
 success_delivery.json
 RCA.md
-*.sql
+# Only ignore SQL exports in root - NOT supabase/migrations/*.sql
+/*.sql
 
 # Tool directories (AI assistants)
 .serena/

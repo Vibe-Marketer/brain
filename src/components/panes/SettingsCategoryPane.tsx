@@ -221,7 +221,7 @@ export function SettingsCategoryPane({
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-4 border-b border-cb-border bg-cb-card/50">
         <div
-          className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0 text-primary"
+          className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-cb-vibe-orange"
           aria-hidden="true"
         >
           <RiSettings3Line className="h-5 w-5" />
@@ -256,10 +256,10 @@ export function SettingsCategoryPane({
               role="listitem"
               className="relative mb-1"
             >
-              {/* Active indicator - left border (Loop-style) with smooth transition */}
+              {/* Active indicator - pill shape (Loop-style) with smooth transition */}
               <div
                 className={cn(
-                  "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-vibe-orange rounded-r-full",
+                  "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full",
                   "transition-all duration-200 ease-in-out",
                   isActive
                     ? "opacity-100 scale-y-100"
@@ -284,7 +284,7 @@ export function SettingsCategoryPane({
                   "hover:bg-muted/50 dark:hover:bg-white/5",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
-                    "bg-vibe-orange/10 dark:bg-vibe-orange/20",
+                    "bg-gray-100 dark:bg-gray-800",
                     "border-l-0 pl-4", // Offset for the active indicator
                   ]
                 )}

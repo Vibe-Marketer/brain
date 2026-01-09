@@ -50,10 +50,10 @@ export default function Settings() {
           (categoryConfig.requiredRoles.includes("ADMIN") && isAdmin) ||
           (categoryConfig.requiredRoles.includes("TEAM") && (isTeam || isAdmin));
 
-        if (hasAccess) {
+        if (hasAccess && selectedCategory !== urlCategory) {
           setSelectedCategory(urlCategory as SettingsCategory);
           setIsCategoryPaneOpen(true);
-        } else {
+        } else if (!hasAccess) {
           // Redirect to base settings if user doesn't have access
           navigate("/settings", { replace: true });
         }
@@ -61,8 +61,15 @@ export default function Settings() {
         // Invalid category in URL, redirect to base settings
         navigate("/settings", { replace: true });
       }
+    } else if (!roleLoading) {
+      // Auto-select first category if no URL category
+      const firstCategory = SETTINGS_CATEGORIES[0];
+      if (firstCategory && selectedCategory !== firstCategory.id) {
+        setSelectedCategory(firstCategory.id);
+        navigate(`/settings/${firstCategory.id}`, { replace: true });
+      }
     }
-  }, [urlCategory, isAdmin, isTeam, navigate]);
+  }, [urlCategory, isAdmin, isTeam, navigate, roleLoading]);
 
   // Sync URL when selectedCategory changes (for user interactions)
   useEffect(() => {
@@ -401,13 +408,12 @@ export default function Settings() {
           </div>
         )}
 
-        {/* PANE 3: Settings Detail (shown when category is selected) */}
+        {/* PANE 3: Settings Detail (shown when category is selected) - NEW IMPLEMENTATION */}
         {!isMobile && selectedCategory && (
           <div
             className={cn(
-              "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
-              "transition-all duration-500 ease-in-out",
-              "w-[400px] opacity-100"
+              "flex-1 min-w-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
+              "transition-all duration-500 ease-in-out"
             )}
             role="region"
             aria-label="Settings detail"
@@ -421,55 +427,7 @@ export default function Settings() {
           </div>
         )}
 
-        {/* PANE 4: Main Content (Settings) - Desktop/Tablet only - Content rendered via pane system */}
-        {!isMobile && (
-          <main
-            role="main"
-            aria-label="Settings content"
-            tabIndex={0}
-            className={cn(
-              "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0",
-              "transition-[flex,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
-            )}
-          >
-            {/* Full-width black line */}
-            <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
-
-            {/* Page Header */}
-            <div className="px-4 md:px-10 flex-shrink-0">
-              <div className="mt-2 mb-3 flex items-start justify-between">
-                <div>
-                  <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
-                    Settings
-                  </h1>
-                  <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
-                    Manage your account, integrations, and preferences
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openHelpPanel(getHelpTopicForTab(currentTab))}
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label="Get help for this section"
-                  aria-expanded={showRightPanel}
-                >
-                  <RiQuestionLine className="h-5 w-5" aria-hidden="true" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Main content area - content is now rendered via the pane system (SettingsCategoryPane and SettingsDetailPane) */}
-            <div className="flex-1 min-h-0 overflow-auto px-4 md:px-10">
-              {!selectedCategory && (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
-                  <p>Select a category from the sidebar to view settings</p>
-                </div>
-              )}
-            </div>
-          </main>
-        )}
+        {/* PANE 4: Removed - using new 3rd pane implementation instead of old content area */}
 
         {/* Right Panel - Settings Help (tablet and desktop) */}
         {!isMobile && (

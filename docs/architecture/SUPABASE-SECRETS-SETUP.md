@@ -20,7 +20,7 @@ This document contains the Supabase CLI commands needed to configure YouTube API
 ### Navigate to Project Root
 
 ```bash
-cd /Users/Naegele/dev/brain
+cd <your-project-directory>
 ```
 
 ### Set YouTube Data API Key

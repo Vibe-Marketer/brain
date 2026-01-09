@@ -118,7 +118,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
     <div
       ref={setNodeRef}
       className={cn(
-        'group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer',
+        'group relative flex items-center h-10 w-full px-2 rounded-lg cursor-pointer',
         'transition-colors duration-150 overflow-hidden',
         isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
         depth > 0 && 'ml-3',
@@ -132,10 +132,10 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
       role="option"
       aria-selected={isSelected}
     >
-      {/* Active indicator - left border (Loop-style) with smooth transition */}
+      {/* Active indicator - pill shape (Loop-style) with smooth transition */}
       <div
         className={cn(
-          "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-vibe-orange rounded-r-full",
+          "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full",
           "transition-all duration-200 ease-in-out",
           isSelected
             ? "opacity-100 scale-y-100"
@@ -625,7 +625,7 @@ export function FolderSidebar({
               const allTranscriptsContent = (
                 <div
                   className={cn(
-                    'group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer',
+                    'group relative flex items-center h-10 w-full px-2 rounded-lg cursor-pointer',
                     'transition-colors duration-150 overflow-hidden',
                     selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
                     focusedIndex === 0 && 'ring-2 ring-cb-vibe-orange ring-inset'
@@ -634,10 +634,10 @@ export function FolderSidebar({
                   role="option"
                   aria-selected={selectedFolderId === null}
                 >
-                  {/* Active indicator - left border (Loop-style) with smooth transition */}
+                  {/* Active indicator - pill shape (Loop-style) with smooth transition */}
                   <div
                     className={cn(
-                      "absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] bg-vibe-orange rounded-r-full",
+                      "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full",
                       "transition-all duration-200 ease-in-out",
                       selectedFolderId === null
                         ? "opacity-100 scale-y-100"

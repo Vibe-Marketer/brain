@@ -85,19 +85,21 @@ export function EmojiPickerInline({ value, onChange, className }: EmojiPickerInl
           </button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-auto p-0 border-0"
+          className="w-auto p-0 border-0 overflow-hidden"
           align="end"
           sideOffset={4}
         >
-          <EmojiPicker
-            onEmojiClick={handlePickerSelect}
-            theme={Theme.AUTO}
-            width={320}
-            height={400}
-            previewConfig={{ showPreview: false }}
-            searchPlaceholder="Search emoji..."
-            lazyLoadEmojis={true}
-          />
+          <div className="max-h-[400px] overflow-y-auto">
+            <EmojiPicker
+              onEmojiClick={handlePickerSelect}
+              theme={Theme.AUTO}
+              width={320}
+              height={400}
+              previewConfig={{ showPreview: false }}
+              searchPlaceholder="Search emoji..."
+              lazyLoadEmojis={true}
+            />
+          </div>
         </PopoverContent>
       </Popover>
     </div>

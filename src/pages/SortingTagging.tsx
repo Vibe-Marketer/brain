@@ -70,12 +70,22 @@ export default function SortingTagging() {
     if (urlCategory) {
       // Validate the category from URL
       if (VALID_CATEGORY_IDS.includes(urlCategory as SortingCategory)) {
-        setSelectedCategory(urlCategory as SortingCategory);
-        setActiveTab(urlCategory as TabValue);
-        setIsCategoryPaneOpen(true);
+        if (selectedCategory !== urlCategory) {
+          setSelectedCategory(urlCategory as SortingCategory);
+          setActiveTab(urlCategory as TabValue);
+          setIsCategoryPaneOpen(true);
+        }
       } else {
         // Invalid category in URL, redirect to base sorting-tagging
         navigate("/sorting-tagging", { replace: true });
+      }
+    } else {
+      // Auto-select first category if no URL category
+      const firstCategory = VALID_CATEGORY_IDS[0];
+      if (firstCategory && selectedCategory !== firstCategory) {
+        setSelectedCategory(firstCategory);
+        setActiveTab(firstCategory as TabValue);
+        navigate(`/sorting-tagging/${firstCategory}`, { replace: true });
       }
     }
   }, [urlCategory, navigate]);
@@ -369,13 +379,12 @@ export default function SortingTagging() {
           </div>
         )}
 
-        {/* PANE 3: Sorting Detail (shown when category is selected) */}
+        {/* PANE 3: Sorting Detail (shown when category is selected) - NEW IMPLEMENTATION */}
         {!isMobile && selectedCategory && (
           <div
             className={cn(
-              "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
-              "transition-all duration-500 ease-in-out",
-              "w-[400px] opacity-100"
+              "flex-1 min-w-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
+              "transition-all duration-500 ease-in-out"
             )}
             role="region"
             aria-label="Sorting detail"
@@ -389,43 +398,7 @@ export default function SortingTagging() {
           </div>
         )}
 
-        {/* PANE 4: Main Content - Desktop/Tablet only - displays content based on selected category */}
-        {!isMobile && (
-          <main
-            role="main"
-            aria-label="Sorting and tagging content"
-            tabIndex={0}
-            className={cn(
-              "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full relative z-0",
-              "transition-[flex,margin] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2"
-            )}
-          >
-            {/* Full-width line */}
-            <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
-
-            {/* Page Header */}
-            <div className="px-4 md:px-10 flex-shrink-0">
-              <div className="mt-2 mb-3">
-                <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
-                  SETTINGS
-                </p>
-                <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
-                  {currentConfig.title}
-                </h1>
-                <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
-              </div>
-            </div>
-
-            {/* Content based on selected category */}
-            <div className="flex-1 min-h-0 overflow-auto px-4 md:px-10">
-              {activeTab === "folders" && <FoldersTab />}
-              {activeTab === "tags" && <TagsTab />}
-              {activeTab === "rules" && <RulesTab />}
-              {activeTab === "recurring" && <RecurringTitlesTab />}
-            </div>
-          </main>
-        )}
+        {/* PANE 4: Removed - using new 3rd pane implementation instead of old tab-based system */}
 
         {/* PANE 5: Right Panel - Detail view for selected folder/tag (tablet and desktop) */}
         {!isMobile && (
