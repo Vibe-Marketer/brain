@@ -21,6 +21,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import {
   RiUserLine,
   RiTeamLine,
+  RiGroupLine,
   RiWalletLine,
   RiPlugLine,
   RiRobot2Line,
@@ -35,6 +36,7 @@ const TRANSITION_DURATION = 250;
 export type SettingsCategory =
   | "account"
   | "users"
+  | "team"
   | "coaches"
   | "billing"
   | "integrations"
@@ -62,6 +64,13 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     label: "Users",
     description: "Manage organization users",
     icon: RiTeamLine,
+    requiredRoles: ["TEAM", "ADMIN"],
+  },
+  {
+    id: "team",
+    label: "Team",
+    description: "Team hierarchy and sharing",
+    icon: RiGroupLine,
     requiredRoles: ["TEAM", "ADMIN"],
   },
   {
