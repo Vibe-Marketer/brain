@@ -13,7 +13,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { InviteesPopover } from "./InviteesPopover";
 import { InviteesCountCircle } from "./InviteesCountCircle";
+import { SharedWithIndicator } from "@/components/sharing/SharedWithIndicator";
 import type { Meeting } from "@/types";
+import type { SharingStatus, AccessLevel } from "@/types/sharing";
 
 interface Folder {
   id: string;
@@ -32,6 +34,8 @@ interface TranscriptTableRowProps {
   hostEmail?: string;
   isUnsyncedView?: boolean;
   visibleColumns?: Record<string, boolean>;
+  sharingStatus?: SharingStatus;
+  accessLevel?: AccessLevel;
   onSelect: () => void;
   onCallClick: () => void;
   onFolder?: () => void;
@@ -49,6 +53,8 @@ export function TranscriptTableRow({
   hostEmail,
   isUnsyncedView = false,
   visibleColumns = {},
+  sharingStatus,
+  accessLevel,
   onSelect,
   onCallClick,
   onFolder,
@@ -232,6 +238,16 @@ export function TranscriptTableRow({
               </span>
             )}
           </div>
+        </TableCell>
+      )}
+      {/* Shared With column */}
+      {visibleColumns.sharedWith !== false && (
+        <TableCell className="hidden xl:table-cell py-1.5 whitespace-nowrap">
+          <SharedWithIndicator
+            sharingStatus={sharingStatus}
+            accessLevel={accessLevel}
+            compact
+          />
         </TableCell>
       )}
       <TableCell className="align-middle py-0.5">

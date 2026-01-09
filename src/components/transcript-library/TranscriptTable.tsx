@@ -31,6 +31,7 @@ import { PaginationControls } from "@/components/ui/pagination-controls";
 import { TranscriptTableRow } from "./TranscriptTableRow";
 import { DownloadPopover } from "./DownloadPopover";
 import type { Meeting } from "@/types";
+import type { SharingStatus, AccessLevel } from "@/types/sharing";
 
 interface Folder {
   id: string;
@@ -46,6 +47,7 @@ const columnOptions = [
   { id: "participants", label: "Invitees" },
   { id: "tags", label: "Tags" },
   { id: "folders", label: "Folders" },
+  { id: "sharedWith", label: "Shared With" },
 ];
 
 interface TranscriptTableProps {
@@ -78,6 +80,9 @@ interface TranscriptTableProps {
   showDirectReportsFilter?: boolean;
   directReportsFilter?: boolean;
   onDirectReportsFilterChange?: (enabled: boolean) => void;
+  // Sharing status per call
+  sharingStatuses?: Record<string | number, SharingStatus>;
+  accessLevels?: Record<string | number, AccessLevel>;
 }
 
 
@@ -108,6 +113,8 @@ export const TranscriptTable = React.memo(({
   showDirectReportsFilter = false,
   directReportsFilter = false,
   onDirectReportsFilterChange,
+  sharingStatuses = {},
+  accessLevels = {},
 }: TranscriptTableProps) => {
   const { sortField, sortDirection: _sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
 
@@ -204,6 +211,9 @@ export const TranscriptTable = React.memo(({
                 {visibleColumns.folders !== false && (
                   <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">FOLDERS</TableHead>
                 )}
+                {visibleColumns.sharedWith !== false && (
+                  <TableHead className="hidden xl:table-cell min-w-[80px] h-12 whitespace-nowrap text-xs md:text-sm">SHARED</TableHead>
+                )}
                 <TableHead className="w-[80px] md:w-[120px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
                   <div className="flex items-center justify-end gap-1">
                     {/* Column visibility toggle */}
@@ -284,6 +294,8 @@ export const TranscriptTable = React.memo(({
                     hostEmail={hostEmail}
                     isUnsyncedView={isUnsyncedView}
                     visibleColumns={visibleColumns}
+                    sharingStatus={sharingStatuses[call.recording_id]}
+                    accessLevel={accessLevels[call.recording_id]}
                     onSelect={() => onSelectCall(call.recording_id)}
                     onCallClick={() => onCallClick(call)}
                     onFolder={onFolderCall ? () => onFolderCall(call.recording_id) : undefined}
