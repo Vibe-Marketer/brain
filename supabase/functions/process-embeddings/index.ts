@@ -475,6 +475,33 @@ async function handleTaskFailure(
   errorMessage: string
 ): Promise<void> {
   const newAttempts = task.attempts + 1;
+  const isTimeoutError = errorMessage.toLowerCase().includes('statement timeout') ||
+                         errorMessage.toLowerCase().includes('timeout');
+
+  // Special handling for timeout errors - reset to pending with longer delay
+  // Timeouts often succeed on retry when database load decreases
+  if (isTimeoutError) {
+    const timeoutBackoffSeconds = 300; // 5 minutes for timeout retry
+    const nextRetryAt = new Date(Date.now() + timeoutBackoffSeconds * 1000);
+
+    await supabase.from('embedding_queue').update({
+      status: 'pending', // Reset to pending, not failed - timeouts are transient
+      attempts: newAttempts,
+      last_error: errorMessage,
+      next_retry_at: nextRetryAt.toISOString(),
+      locked_at: null,
+      worker_id: null,
+    }).eq('id', task.id);
+
+    // Don't count timeout as a failure for job progress - it will be retried
+    console.log(
+      `Timeout error for task ${task.id} (recording ${task.recording_id}), ` +
+      `scheduled retry in ${timeoutBackoffSeconds}s (attempt ${newAttempts}/${task.max_attempts})`
+    );
+    return;
+  }
+
+  // Standard failure handling for non-timeout errors
   const shouldRetry = newAttempts < task.max_attempts;
 
   // Exponential backoff: 30s, 90s, 270s
