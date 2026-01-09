@@ -1,0 +1,53 @@
+name: Embedding Worker Cron
+
+# This workflow provides an external backup trigger for the embedding pipeline.
+# It ensures queue processing continues even if pg_cron or worker self-chaining breaks.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # Run every 5 minutes as backup trigger for embedding queue processing
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    # Allow manual triggering for testing and recovery
+
+jobs:
+  trigger-embedding-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger process-embeddings worker
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # Validate required secrets are set
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "Error: Required secrets SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set"
+            exit 1
+          fi
+
+          echo "Triggering process-embeddings worker..."
+
+          response=$(curl -s -w "\n%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -d '{"batch_size": 10, "triggered_by": "github-actions"}' \
+            "${SUPABASE_URL}/functions/v1/process-embeddings")
+
+          # Extract status code from last line
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response status: $http_code"
+          echo "Response body: $body"
+
+          # Check for success (2xx status codes)
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "Successfully triggered embedding worker"
+          else
+            echo "Failed to trigger embedding worker"
+            exit 1
+          fi
