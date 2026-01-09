@@ -2,35 +2,34 @@
 
 You have access to YouTube APIs for video research and transcript extraction.
 
-## API Credentials (stored securely)
+## API Credentials
 
-```
-YOUTUBE_DATA_API_KEY: AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E
-TRANSCRIPT_API_KEY: sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0
-```
+API keys are stored as environment variables. Access them via:
+- `YOUTUBE_DATA_API_KEY` - Google YouTube Data API v3
+- `TRANSCRIPT_API_KEY` - TranscriptAPI.com
 
 ## Available Operations
 
 ### 1. Search Videos
 ```bash
-curl -s "https://www.googleapis.com/youtube/v3/search?part=snippet&q={QUERY}&type=video&maxResults={COUNT}&key={YOUTUBE_DATA_API_KEY}"
+curl -s "https://www.googleapis.com/youtube/v3/search?part=snippet&q={QUERY}&type=video&maxResults={COUNT}&key=${YOUTUBE_DATA_API_KEY}"
 ```
 
 ### 2. Get Channel Videos
 ```bash
 # First get channel ID from channel URL/name
-curl -s "https://www.googleapis.com/youtube/v3/search?part=snippet&channelId={CHANNEL_ID}&type=video&maxResults={COUNT}&order=date&key={YOUTUBE_DATA_API_KEY}"
+curl -s "https://www.googleapis.com/youtube/v3/search?part=snippet&channelId={CHANNEL_ID}&type=video&maxResults={COUNT}&order=date&key=${YOUTUBE_DATA_API_KEY}"
 ```
 
 ### 3. Get Video Details
 ```bash
-curl -s "https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id={VIDEO_ID}&key={YOUTUBE_DATA_API_KEY}"
+curl -s "https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics,contentDetails&id={VIDEO_ID}&key=${YOUTUBE_DATA_API_KEY}"
 ```
 
 ### 4. Get Transcript
 ```bash
 curl -s "https://transcriptapi.com/api/v2/youtube/transcript?video_url={VIDEO_ID}&format=text&include_timestamp=false&send_metadata=true" \
-  -H "Authorization: Bearer {TRANSCRIPT_API_KEY}"
+  -H "Authorization: Bearer ${TRANSCRIPT_API_KEY}"
 ```
 
 ## User Request Handling
@@ -69,9 +68,9 @@ After fetching transcripts, offer to:
 ## Example Workflows
 
 ### "Get Alex Hormozi's latest videos"
-1. Search for channel: `https://www.googleapis.com/youtube/v3/search?part=snippet&q=Alex+Hormozi&type=channel&key={KEY}`
+1. Search for channel: `https://www.googleapis.com/youtube/v3/search?part=snippet&q=Alex+Hormozi&type=channel&key=${YOUTUBE_DATA_API_KEY}`
 2. Get channel ID from result
-3. List recent videos: `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId={ID}&type=video&order=date&maxResults=10&key={KEY}`
+3. List recent videos: `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId={ID}&type=video&order=date&maxResults=10&key=${YOUTUBE_DATA_API_KEY}`
 4. Present list, offer transcript fetching
 
 ### "Summarize this video: [URL]"

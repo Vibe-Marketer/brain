@@ -565,6 +565,6 @@ import { supabase } from "@/integrations/supabase/client";
 ## See Also
 
 - **API Conventions**: `docs/architecture/api-naming-conventions.md`
-- **Brand Guidelines**: `docs/design/brand-guidelines-v3.3.md`
+- **Brand Guidelines**: `docs/design/brand-guidelines-v4.1.md`
 - **Design Principles**: `docs/design/design-principles-conversion-brain.md`
 - **Data Fetching**: `docs/architecture/DATA_FETCHING_architecture.md`

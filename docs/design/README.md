@@ -4,7 +4,7 @@ This directory contains the complete design system documentation for CallVault.
 
 ## Core Documents
 
-### **[brand-guidelines-v3.3.md](brand-guidelines-v3.3.md)** ⭐ PRIMARY REFERENCE
+### **[brand-guidelines-v4.1.md](brand-guidelines-v4.1.md)** ⭐ PRIMARY REFERENCE
 
 The authoritative design system documentation. **Read this first** before making any UI changes.
 
@@ -51,11 +51,11 @@ The design system is enforced via:
 | Task | Document to Check |
 |------|-------------------|
 | Adding a button | [BUTTON_VARIANTS.md](BUTTON_VARIANTS.md) |
-| Choosing colors | [brand-guidelines-v3.3.md](brand-guidelines-v3.3.md) → Color System |
-| Typography decisions | [brand-guidelines-v3.3.md](brand-guidelines-v3.3.md) → Typography |
-| Table design | [brand-guidelines-v3.3.md](brand-guidelines-v3.3.md) → Table Specifications |
+| Choosing colors | [brand-guidelines-v4.1.md](brand-guidelines-v4.1.md) → Color System |
+| Typography decisions | [brand-guidelines-v4.1.md](brand-guidelines-v4.1.md) → Typography |
+| Table design | [brand-guidelines-v4.1.md](brand-guidelines-v4.1.md) → Table Specifications |
 | Understanding tokens | [DESIGN-TOKEN-SYSTEM.md](DESIGN-TOKEN-SYSTEM.md) |
-| Dark mode | [brand-guidelines-v3.3.md](brand-guidelines-v3.3.md) → Dark Mode |
+| Dark mode | [brand-guidelines-v4.1.md](brand-guidelines-v4.1.md) → Dark Mode |
 
 ## Quick Rules
 

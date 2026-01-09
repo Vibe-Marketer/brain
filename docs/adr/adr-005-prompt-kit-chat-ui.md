@@ -128,7 +128,7 @@ export function Chat() {
 
 1. **Rapid Development** - Production UI in days instead of weeks
 2. **shadcn/ui Alignment** - Uses same primitives we already have
-3. **Tailwind Customization** - Easy to adapt to brand-guidelines-v3.3.md
+3. **Tailwind Customization** - Easy to adapt to brand-guidelines-v4.1.md
 4. **AI SDK Native** - Built specifically for `useChat` hook
 5. **MIT License** - Can fork and modify if needed
 6. **TypeScript** - Full type safety
@@ -164,7 +164,7 @@ npx shadcn@latest add "https://prompt-kit.com/c/source.json"
 
 ### Customization for Brand Guidelines
 
-Changes needed to match `brand-guidelines-v3.3.md`:
+Changes needed to match `brand-guidelines-v4.1.md`:
 
 1. **Colors:**
 
@@ -260,7 +260,7 @@ No migration needed (new feature). Implementation plan:
 - [Prompt-Kit Chat UI](https://www.prompt-kit.com/chat-ui)
 - [Prompt-Kit Documentation](https://www.prompt-kit.com/docs)
 - [shadcn/ui](https://ui.shadcn.com/)
-- [Brand Guidelines v3.3](/docs/design/brand-guidelines-v3.3.md)
+- [Brand Guidelines v3.3](/docs/design/brand-guidelines-v4.1.md)
 
 **Approved by:** Claude
 

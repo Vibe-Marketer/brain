@@ -15,8 +15,8 @@ Provides YouTube integration functionality including video search, channel video
 Required environment variables (configure in Supabase Dashboard):
 
 ```
-YOUTUBE_DATA_API_KEY=AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E
-TRANSCRIPT_API_KEY=sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0
+YOUTUBE_DATA_API_KEY=YOUR_YOUTUBE_API_KEY
+TRANSCRIPT_API_KEY=YOUR_TRANSCRIPT_API_KEY
 ```
 
 ## API Endpoints

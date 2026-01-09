@@ -26,7 +26,7 @@ cd /Users/Naegele/dev/brain
 ### Set YouTube Data API Key
 
 ```bash
-supabase secrets set YOUTUBE_DATA_API_KEY=AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E
+supabase secrets set YOUTUBE_DATA_API_KEY=YOUR_YOUTUBE_API_KEY
 ```
 
 **Expected Output:**
@@ -38,7 +38,7 @@ Finished supabase secrets set.
 ### Set Transcript API Key
 
 ```bash
-supabase secrets set TRANSCRIPT_API_KEY=sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0
+supabase secrets set TRANSCRIPT_API_KEY=YOUR_TRANSCRIPT_API_KEY
 ```
 
 **Expected Output:**
@@ -82,11 +82,11 @@ If CLI is not available, you can set secrets via the web dashboard:
 2. Click "Edge Functions" → "Secrets"
 3. Add new secrets:
    - Name: `YOUTUBE_DATA_API_KEY`
-   - Value: `AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E`
+   - Value: `YOUR_YOUTUBE_API_KEY`
    - Click "Save"
 4. Add second secret:
    - Name: `TRANSCRIPT_API_KEY`
-   - Value: `sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0`
+   - Value: `YOUR_TRANSCRIPT_API_KEY`
    - Click "Save"
 
 ## Verification Checklist

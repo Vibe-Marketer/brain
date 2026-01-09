@@ -50,3 +50,17 @@ test-results/
 
 # Auto Claude data directory
 .auto-claude/
+
+# Debug/diagnostic exports (security)
+recent_deliveries*.json
+success_delivery.json
+RCA.md
+*.sql
+
+# Tool directories (AI assistants)
+.serena/
+.worktrees/
+
+# Debug logs
+logs.txt
+webhook_logs.txt

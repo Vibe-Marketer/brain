@@ -48,7 +48,7 @@ Architecture Decision Records (ADRs):
 - Time limit: 10-15 minutes max per ADR.
 
 Key reference files:
-- Brand guidelines: `docs/design/brand-guidelines-v3.3.md` (UI/design rules)
+- Brand guidelines: `docs/design/brand-guidelines-v4.1.md` (UI/design rules)
 - Design principles: `docs/design/design-principles-conversion-brain.md` (world-class SaaS design)
 - **API naming conventions: `docs/architecture/api-naming-conventions.md` (function/hook/type naming)**
 - AI SDK examples: `docs/ai-sdk-cookbook-examples/` (Vercel AI SDK patterns)

@@ -158,10 +158,10 @@ brain/
 │   └── migrations/        # SQL migration files
 ├── docs/
 │   ├── design/            # Brand guidelines & design principles
-│   ├── architecture/      # API naming conventions
+│   ├── architecture/      # API naming conventions, diagrams
 │   ├── adr/              # Architecture Decision Records
 │   └── reference/         # Reference documentation
-└── WARP.md               # Development guide for AI assistants
+└── CLAUDE.md             # Development guide for AI assistants
 ```
 
 ## Architecture
@@ -204,7 +204,7 @@ The `webhook/` Edge Function:
 
 ### Brand Guidelines
 
-**Before any UI work, read**: `docs/design/brand-guidelines-v3.3.md`
+**Before any UI work, read**: `docs/design/brand-guidelines-v4.1.md`
 
 Key rules:
 
@@ -243,10 +243,9 @@ When working with Claude:
 
 ## Documentation
 
-- **WARP.md**: Development guide for AI coding assistants
-- **CLAUDE.md**: Comprehensive Claude-specific instructions (810 lines)
+- **CLAUDE.md**: Comprehensive development guide for AI assistants
 - **docs/design/**: Brand guidelines and design principles
-- **docs/architecture/**: API naming conventions
+- **docs/architecture/**: API naming conventions, architecture diagrams
 - **docs/adr/**: Architecture Decision Records
 - **docs/reference/**: Reference documentation including "What is CallVault"
 
@@ -254,8 +253,8 @@ When working with Claude:
 
 ### Before Starting
 
-1. Read `WARP.md` for development setup
-2. Review `docs/design/brand-guidelines-v3.3.md` for UI work
+1. Read `CLAUDE.md` for development standards
+2. Review `docs/design/brand-guidelines-v4.1.md` for UI work
 3. Check `docs/architecture/api-naming-conventions.md` for naming standards
 
 ### Development Workflow
@@ -287,7 +286,6 @@ This project can be deployed via:
 
 For detailed development guidance:
 
-- Read `WARP.md` for AI assistant instructions
 - Check `CLAUDE.md` for comprehensive development standards
 - Review documentation in `docs/` directory
 

@@ -62,7 +62,7 @@
     "file-saver": "^2.0.5",
     "framer-motion": "^12.23.24",
     "html2canvas-pro": "^1.5.13",
-    "jspdf": "^3.0.4",
+    "jspdf": "^4.0.0",
     "jszip": "^3.10.1",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",
@@ -78,7 +78,6 @@
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
     "use-stick-to-bottom": "^1.1.1",
-    "vitest": "^4.0.13",
     "zod": "^3.25.76",
     "zustand": "^5.0.9"
   },
@@ -105,6 +104,7 @@
     "tsx": "^4.20.6",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.47.0",
-    "vite": "^5.4.19"
+    "vite": "^5.4.19",
+    "vitest": "^4.0.16"
   }
 }

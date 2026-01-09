@@ -232,15 +232,15 @@ For local development with Supabase CLI:
 1. Create `.env` file in your project root (or use Supabase secrets):
 
 ```env
-YOUTUBE_DATA_API_KEY=AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E
-TRANSCRIPT_API_KEY=sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0
+YOUTUBE_DATA_API_KEY=YOUR_YOUTUBE_API_KEY
+TRANSCRIPT_API_KEY=YOUR_TRANSCRIPT_API_KEY
 ```
 
 2. Set secrets via Supabase CLI:
 
 ```bash
-supabase secrets set YOUTUBE_DATA_API_KEY=AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E
-supabase secrets set TRANSCRIPT_API_KEY=sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0
+supabase secrets set YOUTUBE_DATA_API_KEY=YOUR_YOUTUBE_API_KEY
+supabase secrets set TRANSCRIPT_API_KEY=YOUR_TRANSCRIPT_API_KEY
 ```
 
 3. Or set in Supabase Dashboard:

@@ -62,7 +62,7 @@ Fast reference for understanding what was fixed in each component. Perfect for:
 → (Documentation pending)
 
 **UI/Design Issues:**
-→ See [../design/brand-guidelines-v3.3.md](../design/brand-guidelines-v3.3.md)
+→ See [../design/brand-guidelines-v4.1.md](../design/brand-guidelines-v4.1.md)
 
 ### Step 2: Follow the Guide
 
@@ -115,7 +115,7 @@ npm run dev
 
 ## Related Documentation
 
-- [Brand Guidelines](../design/brand-guidelines-v3.3.md) - UI/design standards
+- [Brand Guidelines](../design/brand-guidelines-v4.1.md) - UI/design standards
 - [API Naming Conventions](../architecture/api-naming-conventions.md) - Code naming
 - [ADR Index](../adr/README.md) - Architecture decisions
 - [CLAUDE.md](../../CLAUDE.md) - Development guide

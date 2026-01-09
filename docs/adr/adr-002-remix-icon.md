@@ -56,4 +56,4 @@ Remix Icon provides a neutral, professional aesthetic with consistent 24x24 grid
 - Migration guide included in brand guidelines for Lucide → Remix mapping
 - All new components must use Remix Icon exclusively
 
-**Related**: Documented in brand-guidelines-v3.3.md Icon System section
+**Related**: Documented in brand-guidelines-v4.1.md Icon System section

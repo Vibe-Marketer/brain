@@ -42,8 +42,8 @@ API keys are stored in multiple secure locations:
 1. **Local Development** (`/Users/Naegele/dev/brain/.env.local`):
 
    ```bash
-   YOUTUBE_DATA_API_KEY="AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E"
-   TRANSCRIPT_API_KEY="sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0"
+   YOUTUBE_DATA_API_KEY="YOUR_YOUTUBE_API_KEY"
+   TRANSCRIPT_API_KEY="YOUR_TRANSCRIPT_API_KEY"
    ```
 
 2. **Environment Variables** (`/Users/Naegele/dev/brain/.env`):
@@ -53,8 +53,8 @@ API keys are stored in multiple secure locations:
 
    ```bash
    # Set these in Supabase project settings or via CLI:
-   supabase secrets set YOUTUBE_DATA_API_KEY=AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E
-   supabase secrets set TRANSCRIPT_API_KEY=sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0
+   supabase secrets set YOUTUBE_DATA_API_KEY=YOUR_YOUTUBE_API_KEY
+   supabase secrets set TRANSCRIPT_API_KEY=YOUR_TRANSCRIPT_API_KEY
    ```
 
 4. **Claude Slash Command** (`.claude/commands/youtube.md`):
@@ -333,7 +333,7 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 
 ### Transcript API
 
-**Plan:** Based on key `sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0`
+**Plan:** Based on key `YOUR_TRANSCRIPT_API_KEY`
 **Tier:** Likely Pro/Enterprise (based on key format)
 
 **Estimated Limits:**
@@ -490,10 +490,10 @@ Trigger: Schedule (daily 9am)
 cd /Users/Naegele/dev/brain
 
 # Set YouTube Data API key
-supabase secrets set YOUTUBE_DATA_API_KEY=AIzaSyB-5OHLyCWibnpkO5-cIUh5ZBvsdCAq75E
+supabase secrets set YOUTUBE_DATA_API_KEY=YOUR_YOUTUBE_API_KEY
 
 # Set Transcript API key
-supabase secrets set TRANSCRIPT_API_KEY=sk_qIg9PTc9bkTSPbsWK-y-p455ljszZ-M6GMMHijsNGr0
+supabase secrets set TRANSCRIPT_API_KEY=YOUR_TRANSCRIPT_API_KEY
 
 # Verify secrets are set
 supabase secrets list
