@@ -19,9 +19,12 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import {
   RiFolderLine,
+  RiFolderFill,
   RiPriceTag3Line,
+  RiPriceTag3Fill,
   RiFlowChart,
   RiRepeatLine,
+  RiRepeatFill,
   RiOrganizationChart,
   RiLightbulbLine,
 } from "@remixicon/react";
@@ -36,6 +39,8 @@ interface CategoryItem {
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
+  /** Filled icon variant for active/selected state (optional - falls back to line icon with orange color) */
+  iconFill?: React.ComponentType<{ className?: string }>;
 }
 
 const SORTING_CATEGORIES: CategoryItem[] = [
@@ -44,24 +49,28 @@ const SORTING_CATEGORIES: CategoryItem[] = [
     label: "Folders",
     description: "Manage folder hierarchy",
     icon: RiFolderLine,
+    iconFill: RiFolderFill,
   },
   {
     id: "tags",
     label: "Tags",
     description: "View and edit call tags",
     icon: RiPriceTag3Line,
+    iconFill: RiPriceTag3Fill,
   },
   {
     id: "rules",
     label: "Rules",
     description: "Configure auto-sorting",
     icon: RiFlowChart,
+    // Note: RiFlowChart has no fill variant - handled gracefully with color change only
   },
   {
     id: "recurring",
     label: "Recurring Titles",
     description: "Create rules from patterns",
     icon: RiRepeatLine,
+    iconFill: RiRepeatFill,
   },
 ];
 
@@ -198,7 +207,8 @@ export function SortingCategoryPane({
       >
         {SORTING_CATEGORIES.map((category) => {
           const isActive = selectedCategory === category.id;
-          const Icon = category.icon;
+          // Use filled icon variant when active, fall back to line icon
+          const IconComponent = isActive && category.iconFill ? category.iconFill : category.icon;
           const count = categoryCounts[category.id];
 
           return (
@@ -252,7 +262,7 @@ export function SortingCategoryPane({
                   )}
                   aria-hidden="true"
                 >
-                  <Icon
+                  <IconComponent
                     className={cn(
                       "h-4 w-4 transition-colors duration-200 ease-in-out",
                       isActive ? "text-vibe-orange" : "text-cb-ink-muted"

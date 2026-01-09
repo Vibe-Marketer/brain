@@ -1,8 +1,8 @@
-# CALLVAULT BRAND GUIDELINES v4.1.1
+# CALLVAULT BRAND GUIDELINES v4.1.3
 
 ## Authoritative Design System Reference
 
-**Last Updated:** December 9, 2025
+**Last Updated:** January 8, 2026
 **Status:** Complete & Accurate - Supersedes ALL previous versions
 **Purpose:** Single source of truth for all design and development decisions
 
@@ -30,20 +30,22 @@
 5. [Button System](#button-system)
 6. [Icon System](#icon-system)
 7. [Tab Navigation](#tab-navigation)
-8. [Typography](#typography)
-9. [Table Design](#table-design-system)
-10. [The 10 Percent - Approved Card Usage](#the-10-percent---approved-card-usage)
-11. [Vibe Orange Usage Rules](#vibe-orange-usage-rules)
-12. [Conversation Dialogue UI Rule Exception](#conversation-dialogue-ui-rule-exceptions)
-13. [Spacing and Grid](#spacing--grid)
-14. [Component Specifications](#component-specifications)
-15. [Dark Mode Implementation](#dark-mode-implementation)
-16. [Responsive Behavior](#responsive-behavior)
-17. [Accessibility](#accessibility)
-18. [Animation Guidelines](#animation-guidelines)
-19. [Microcopy & Quips](#microcopy--quips)
-20. [Prohibited Patterns](#prohibited-patterns)
-21. [CSS Variable Reference](#css-variable-reference)
+8. [Navigation & Selection States](#navigation--selection-states)
+9. [Sidebar UX Patterns](#sidebar-ux-patterns)
+10. [Typography](#typography)
+11. [Table Design](#table-design-system)
+12. [The 10 Percent - Approved Card Usage](#the-10-percent---approved-card-usage)
+13. [Vibe Orange Usage Rules](#vibe-orange-usage-rules)
+14. [Conversation Dialogue UI Rule Exception](#conversation-dialogue-ui-rule-exceptions)
+15. [Spacing and Grid](#spacing--grid)
+16. [Component Specifications](#component-specifications)
+17. [Dark Mode Implementation](#dark-mode-implementation)
+18. [Responsive Behavior](#responsive-behavior)
+19. [Accessibility](#accessibility)
+20. [Animation Guidelines](#animation-guidelines)
+21. [Microcopy & Quips](#microcopy--quips)
+22. [Prohibited Patterns](#prohibited-patterns)
+23. [CSS Variable Reference](#css-variable-reference)
 
 ---
 
@@ -1126,11 +1128,106 @@ import { RiEditLine, RiDeleteBinLine, RiDownloadLine } from "@remixicon/react";
 - High-emphasis indicators
 - Toggle states (line = off, fill = on)
 
+### Icon Fill/Line Variant Pattern (Navigation)
+
+For navigation components, icons dynamically switch between `-Line` (inactive) and `-Fill` (active) variants to provide clear visual feedback for selection state. This pattern is used in sidebar navigation, category panes, and folder navigation.
+
+**Pattern Summary:**
+
+| State | Icon Variant | Color | Example |
+|-------|-------------|-------|---------|
+| **Inactive** | `-Line` suffix | `text-muted-foreground` | `RiHome4Line` |
+| **Active** | `-Fill` suffix | `text-vibe-orange` | `RiHome4Fill` |
+
+**Navigation Icon Mappings:**
+
+| Component | Line Icon (Inactive) | Fill Icon (Active) |
+|-----------|---------------------|-------------------|
+| Home | `RiHome4Line` | `RiHome4Fill` |
+| AI Chat | `RiSparklingLine` | `RiSparklingFill` |
+| Sorting | `RiPriceTag3Line` | `RiPriceTag3Fill` |
+| Settings | `RiSettings3Line` | `RiSettings3Fill` |
+| Account | `RiUserLine` | `RiUserFill` |
+| Users | `RiTeamLine` | `RiTeamFill` |
+| Billing | `RiWalletLine` | `RiWalletFill` |
+| Integrations | `RiPlugLine` | `RiPlugFill` |
+| AI | `RiRobot2Line` | `RiRobot2Fill` |
+| Admin | `RiShieldLine` | `RiShieldFill` |
+| Folders | `RiFolderLine` | `RiFolderFill` |
+| Tags | `RiPriceTag3Line` | `RiPriceTag3Fill` |
+| Recurring | `RiRepeatLine` | `RiRepeatFill` |
+
+*Note: Some icons (e.g., `RiFlowChart`) have no fill variant. Use line variant with orange color for active state.*
+
+**Implementation Pattern:**
+
+```tsx
+// Define navigation item with both icon variants
+interface NavItem {
+  id: string;
+  label: string;
+  iconLine: React.ComponentType<{ className?: string }>;
+  iconFill: React.ComponentType<{ className?: string }>;
+  path: string;
+}
+
+// Example navigation items
+const navItems: NavItem[] = [
+  {
+    id: 'home',
+    label: 'Home',
+    iconLine: RiHome4Line,
+    iconFill: RiHome4Fill,
+    path: '/',
+  },
+  {
+    id: 'settings',
+    label: 'Settings',
+    iconLine: RiSettings3Line,
+    iconFill: RiSettings3Fill,
+    path: '/settings',
+  },
+];
+
+// Render with conditional icon selection
+const NavItem = ({ item, isActive }: { item: NavItem; isActive: boolean }) => {
+  const IconComponent = isActive ? item.iconFill : item.iconLine;
+
+  return (
+    <button className={cn(
+      "flex items-center gap-2",
+      isActive && "text-vibe-orange"
+    )}>
+      <IconComponent className={cn(
+        "h-5 w-5",
+        isActive ? "text-vibe-orange" : "text-muted-foreground"
+      )} />
+      <span>{item.label}</span>
+    </button>
+  );
+};
+```
+
+**Visual State Combination:**
+
+When a navigation item is active, it combines:
+
+1. **Fill icon** - Replaces line icon with filled variant
+2. **Vibe orange color** - Icon changes from muted to orange (#FF8800)
+3. **Pill indicator** - Orange vertical bar on left edge (see Sidebar Layout Pattern)
+4. **Background highlight** - Subtle orange tint (`bg-vibe-orange/10 dark:bg-vibe-orange/20`)
+
+**Transition Timing:**
+
+- Icon swap: Instant (no transition)
+- Color transition: 200ms ease-in-out
+- Background transition: 200ms ease-in-out
+
 ### Prohibited
 
 - **DO NOT** mix icon libraries (no Lucide, Font Awesome, Bootstrap Icons, etc.)
 - **DO NOT** use custom SVGs when Remix Icon has an equivalent
-- **DO NOT** change icon colors to vibe orange (icons stay neutral)
+- **DO NOT** change icon colors to vibe orange in content areas (icons stay neutral) - *Exception: Navigation active states use vibe orange per Icon Fill/Line Variant Pattern*
 - **DO NOT** use icons larger than 24px except in hero/empty states
 
 ### Accessibility
@@ -1306,6 +1403,419 @@ The angular underline matches the angled vibe orange markers on metric cards, ma
     /----\
 [Content Below]
 ```
+
+---
+
+## NAVIGATION & SELECTION STATES
+
+This section documents the unified selection state pattern used across all navigation components including main sidebar, category panes, and folder navigation. The pattern provides clear visual feedback through multiple coordinated indicators.
+
+### Selection State Visual Pattern
+
+When a navigation item is selected/active, it displays a combination of visual indicators working together:
+
+**Complete Selection State:**
+
+```text
+┌─────────────────────────────────────┐
+│▌                                    │  <- Pill indicator (left edge)
+│▌  [●]  Item Label                   │  <- Fill icon + text
+│▌                                    │
+└─────────────────────────────────────┘
+      ^-- Orange tinted background
+```
+
+| Indicator | Specification | CSS/Tailwind |
+|-----------|---------------|--------------|
+| **Pill Indicator** | 4px wide, 80% height, flush left | `absolute left-0 w-1 h-[80%] rounded-r-full bg-vibe-orange` |
+| **Fill Icon** | Switches from `-Line` to `-Fill` variant | See Icon System section |
+| **Icon Color** | Vibe Orange (#FF8800) | `text-vibe-orange` |
+| **Background** | Subtle orange tint | `bg-vibe-orange/10 dark:bg-vibe-orange/20` |
+| **Text** | Semibold weight | `font-semibold text-vibe-orange` |
+
+### Pill Indicator Pattern
+
+The pill indicator is a vertical bar that marks the active item. It provides a strong visual anchor for the current selection.
+
+**Specifications:**
+
+| Property | Value |
+|----------|-------|
+| Width | 4px (`w-1`) |
+| Height | 80% of parent (`h-[80%]`) |
+| Position | Absolute, left edge (`absolute left-0`) |
+| Border radius | Right side only (`rounded-r-full`) |
+| Color | Vibe Orange (`bg-vibe-orange`) |
+| Shape | Needle/angular via clip-path |
+
+**Clip-Path for Angular Shape:**
+
+```css
+/* Applied via global CSS for angular "needle" effect */
+clip-path: polygon(0 0, 100% 10%, 100% 90%, 0 100%);
+```
+
+This creates a tapered effect that narrows toward the top and bottom.
+
+**Implementation:**
+
+```tsx
+{/* Pill indicator - only rendered when active */}
+{isActive && (
+  <div
+    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] rounded-r-full bg-vibe-orange"
+    style={{ clipPath: 'polygon(0 0, 100% 10%, 100% 90%, 0 100%)' }}
+  />
+)}
+```
+
+### Icon State Changes
+
+Icons dynamically switch between outline (`-Line`) and filled (`-Fill`) variants based on selection state. This reinforces the selection beyond just color changes.
+
+**State Behavior:**
+
+| State | Icon Variant | Icon Color |
+|-------|-------------|------------|
+| **Inactive/Default** | `-Line` (outlined) | `text-muted-foreground` |
+| **Active/Selected** | `-Fill` (filled) | `text-vibe-orange` |
+| **Hover** | `-Line` (outlined) | `text-foreground` |
+
+**Implementation Pattern:**
+
+```tsx
+// Navigation item definition
+interface NavItem {
+  id: string;
+  label: string;
+  iconLine: React.ComponentType<{ className?: string }>;
+  iconFill: React.ComponentType<{ className?: string }>;
+}
+
+// Conditional rendering
+const IconComponent = isActive ? item.iconFill : item.iconLine;
+
+<IconComponent
+  className={cn(
+    "h-5 w-5 transition-colors duration-200",
+    isActive ? "text-vibe-orange" : "text-muted-foreground"
+  )}
+/>
+```
+
+**Fallback for Icons Without Fill Variants:**
+
+Some icons (e.g., `RiFlowChart`) do not have a fill variant. In these cases:
+
+```tsx
+// Use line variant with orange color
+const IconComponent = category.iconFill ?? category.icon;
+
+<IconComponent
+  className={cn(
+    "h-4 w-4",
+    isActive ? "text-vibe-orange" : "text-muted-foreground"
+  )}
+/>
+```
+
+### Visual Hierarchy Layers
+
+Selection states use a layered approach for clear visual hierarchy:
+
+```text
+Layer 1: Background highlight (lowest emphasis)
+         └── Subtle orange tint for context
+
+Layer 2: Icon state change (medium emphasis)
+         └── Fill variant + orange color
+
+Layer 3: Text styling (medium-high emphasis)
+         └── Semibold weight + orange color
+
+Layer 4: Pill indicator (highest emphasis)
+         └── Strong orange bar for anchoring
+```
+
+All layers work together, but the pill indicator provides the primary visual anchor for "where am I?" orientation.
+
+### Animation & Transitions
+
+Selection state changes are animated for smooth visual feedback:
+
+| Element | Duration | Timing | Property |
+|---------|----------|--------|----------|
+| Pill indicator | 200ms | ease-in-out | opacity, scale |
+| Icon color | 200ms | ease-in-out | color |
+| Background | 200ms | ease-in-out | background-color |
+| Text color | 200ms | ease-in-out | color |
+| Icon swap | Instant | - | No transition (immediate) |
+
+**CSS Variables:**
+
+```css
+--selection-transition: 200ms ease-in-out;
+```
+
+**Note:** The icon component swap (Line to Fill) happens instantly. Only the color transition is animated.
+
+### Component-Specific Implementations
+
+**Main Sidebar Navigation:**
+
+- Uses glossy 3D icon buttons when collapsed
+- Small orange dot indicator below active icon when collapsed
+- Full pill + fill icon + background when expanded
+
+**Category Panes (Settings/Sorting):**
+
+- Full selection state with pill, fill icon, background
+- Categories arranged vertically in list
+- Each category shows selection state independently
+
+**Folder Navigation:**
+
+- Folder icon switches to `RiFolderFill` when selected
+- Nested folders inherit same selection pattern
+- Custom user icons do not switch variants (no fill available)
+
+### Dark Mode Considerations
+
+Selection states adjust for dark mode visibility:
+
+| Element | Light Mode | Dark Mode |
+|---------|------------|-----------|
+| Background tint | `bg-vibe-orange/10` | `bg-vibe-orange/20` |
+| Pill color | `bg-vibe-orange` | `bg-vibe-orange` |
+| Icon color | `text-vibe-orange` | `text-vibe-orange` |
+| Text color | `text-vibe-orange` | `text-vibe-orange` |
+
+The background opacity doubles in dark mode (10% → 20%) to maintain equivalent visual weight.
+
+### Keyboard Navigation
+
+Selection states must work with keyboard navigation:
+
+- **Arrow keys:** Move focus between items
+- **Enter/Space:** Select focused item
+- **Tab:** Move to next focusable element
+
+Focus states should be visually distinct from selection states:
+
+```tsx
+<button
+  className={cn(
+    "relative w-full",
+    // Selection state
+    isActive && "bg-vibe-orange/10 dark:bg-vibe-orange/20",
+    // Focus state (ring, not background)
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange"
+  )}
+>
+```
+
+### CRITICAL RULES
+
+**ALWAYS:**
+
+- Use all four selection indicators together (pill, icon, background, text)
+- Position pill flush to left edge (`left-0`)
+- Use 200ms transition timing for smooth animations
+- Handle icons without fill variants gracefully
+- Double background opacity for dark mode
+- Support keyboard navigation
+
+**NEVER:**
+
+- Use only one selection indicator (e.g., just color change)
+- Position pill away from edge (maintains visual anchor)
+- Skip transition animations (feels jarring)
+- Mix selection state patterns across components
+- Forget accessible focus states
+
+---
+
+## SIDEBAR UX PATTERNS
+
+This section documents the Loop-style sidebar collapse/expand interaction pattern used across Call Vault. The pattern is inspired by Microsoft Loop's navigation rail behavior and provides an intuitive, discoverable way to manage sidebar state.
+
+### Loop-Style Collapse/Expand Behavior
+
+The sidebar supports two interaction methods for toggling its expanded/collapsed state:
+
+**1. Click-Anywhere Toggle:**
+
+Users can click anywhere on the sidebar's empty space to toggle between expanded and collapsed states. This provides a large, forgiving target for quick state changes.
+
+**2. Dedicated Edge Button:**
+
+A circular toggle button on the right edge provides a precise, always-visible control. The button uses a chevron icon that rotates to indicate direction.
+
+**Interaction Flow:**
+
+```text
+┌─────────────────────────────┐
+│                             │
+│   [Content]                 │◀── Click here toggles
+│                             │    (entire empty area)
+│                         ○ ◀─┼─── Circular button
+│                             │    (also toggles)
+│   [Content]                 │
+│                             │
+└─────────────────────────────┘
+```
+
+### Z-Index Hierarchy (CRITICAL)
+
+The sidebar uses a layered z-index system to ensure proper interaction behavior:
+
+| Layer | Z-Index | Element | Purpose |
+|-------|---------|---------|---------|
+| **Overlay** | z-0 | Click-to-toggle background | Catches clicks on empty space |
+| **Content** | z-10 | Navigation items, text, icons | Remains interactive above overlay |
+| **Button** | z-20 | Edge-mounted circular toggle | Always accessible, stops propagation |
+| **Main Content** | z-0 | Content pane to the right | Below sidebar elements |
+
+**Implementation:**
+
+```tsx
+{/* Navigation Rail Container */}
+<div className="relative flex-shrink-0 bg-card rounded-2xl ... transition-all duration-500 ease-in-out">
+
+  {/* Click-to-toggle background overlay (z-0) */}
+  <div
+    className="absolute inset-0 cursor-pointer z-0"
+    onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+  />
+
+  {/* Floating collapse/expand toggle on right edge (z-20) */}
+  <button
+    onClick={(e) => {
+      e.stopPropagation();  // Prevents double-toggle from overlay
+      setIsSidebarExpanded(!isSidebarExpanded);
+    }}
+    className="absolute top-1/2 -translate-y-1/2 -right-3 z-20 w-6 h-6 rounded-full bg-card border border-border shadow-sm"
+  >
+    <svg className={cn(
+      "transition-transform duration-500",
+      isSidebarExpanded ? "rotate-0" : "rotate-180"
+    )}>
+      <polyline points="15 18 9 12 15 6" />
+    </svg>
+  </button>
+
+  {/* Content with z-10 to remain interactive */}
+  <div className="relative z-10">
+    <SidebarNav isCollapsed={!isSidebarExpanded} />
+  </div>
+</div>
+```
+
+**Key Implementation Details:**
+
+- `stopPropagation()` on the button prevents the overlay click handler from also firing
+- Content elements need explicit `z-10` to remain clickable above the overlay
+- The overlay uses `inset-0` to cover the entire sidebar container
+
+### Transition Timing
+
+Sidebar width changes use a **500ms ease-in-out** transition for smooth, premium-feeling animation:
+
+| Property | Duration | Timing Function | CSS |
+|----------|----------|-----------------|-----|
+| **Sidebar width** | 500ms | ease-in-out | `transition-all duration-500 ease-in-out` |
+| **Chevron rotation** | 500ms | default | `transition-transform duration-500` |
+| **Content opacity** | 500ms | ease-in-out | (inherited from container) |
+
+**Width Values:**
+
+| State | Width | Tailwind |
+|-------|-------|----------|
+| **Expanded** | 220px | `w-[220px]` |
+| **Collapsed** | 72px | `w-[72px]` |
+
+**Note:** The 500ms duration is intentionally longer than most UI transitions (150-200ms) to create a deliberate, smooth collapse/expand motion that draws attention to the significant layout change.
+
+### Edge-Mounted Toggle Button
+
+**Specifications:**
+
+| Property | Value | Tailwind/CSS |
+|----------|-------|--------------|
+| Position | Absolute, right edge, vertically centered | `absolute top-1/2 -translate-y-1/2 -right-3` |
+| Size | 24x24px circle | `w-6 h-6 rounded-full` |
+| Background | Card background | `bg-card` |
+| Border | 1px standard border | `border border-border` |
+| Shadow | Subtle elevation | `shadow-sm` |
+| Hover | Muted background | `hover:bg-muted` |
+| Z-index | Above content | `z-20` |
+
+**Icon Behavior:**
+
+- **Expanded state:** Left-pointing chevron (rotate-0)
+- **Collapsed state:** Right-pointing chevron (rotate-180)
+- Icon rotates 180° during transition with same 500ms timing
+
+**Visual:**
+
+```text
+Expanded:                    Collapsed:
+┌──────────────┐             ┌──────┐
+│              │             │      │
+│              │◀            │      │▶
+│              │             │      │
+└──────────────┘             └──────┘
+```
+
+### Mobile Considerations
+
+On mobile (screens < 768px), the Loop-style pattern is replaced with overlay navigation:
+
+| Feature | Desktop | Mobile |
+|---------|---------|--------|
+| Sidebar | Inline, collapsible | Hidden by default |
+| Toggle | Edge-mounted button | Menu button in header |
+| Expanded View | Inline push layout | Fixed overlay with backdrop |
+| Dismiss | Click anywhere on sidebar | Tap backdrop or close button |
+| Animation | Width transition | Slide-in from left |
+
+**Mobile Overlay Pattern:**
+
+```tsx
+{/* Mobile overlay backdrop */}
+{isMobile && showMobileNav && (
+  <div
+    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+    onClick={() => setShowMobileNav(false)}
+  />
+)}
+
+{/* Mobile Navigation Overlay */}
+{isMobile && showMobileNav && (
+  <div className="fixed top-0 left-0 bottom-0 w-[280px] bg-card ... z-50 animate-in slide-in-from-left duration-300">
+    {/* Navigation content */}
+  </div>
+)}
+```
+
+### CRITICAL RULES
+
+**ALWAYS:**
+
+- Use 500ms ease-in-out for sidebar width transitions
+- Include click-anywhere overlay at z-0
+- Position content at z-10 for interactivity
+- Position toggle button at z-20
+- Use `stopPropagation()` on the toggle button
+- Match transition timing between width and chevron rotation
+
+**NEVER:**
+
+- Use shorter transitions (feels abrupt for layout changes)
+- Forget z-index layering (breaks click handling)
+- Skip `stopPropagation()` (causes double-toggle)
+- Use different timing for width vs. icon animation (feels disconnected)
+- Show edge-mounted toggle on mobile (use overlay pattern instead)
 
 ---
 
@@ -2679,7 +3189,7 @@ Full changelog: [brand-guidelines-changelog.md](./brand-guidelines-changelog.md)
 
 ## DOCUMENT VERSION
 
-**Current Version:** v4.1.1
+**Current Version:** v4.1.3
 
 This version reference must match the title at the top of the document.
 
@@ -2711,7 +3221,7 @@ This version reference must match the title at the top of the document.
 
 ---
 
-*END OF BRAND GUIDELINES v4.1.1*
+*END OF BRAND GUIDELINES v4.1.3*
 
 This document is complete and accurate as of December 9, 2025.
 All implementations must follow these specifications exactly.

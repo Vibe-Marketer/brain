@@ -20,11 +20,17 @@ import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
   RiUserLine,
+  RiUserFill,
   RiTeamLine,
+  RiTeamFill,
   RiWalletLine,
+  RiWalletFill,
   RiPlugLine,
+  RiPlugFill,
   RiRobot2Line,
+  RiRobot2Fill,
   RiShieldLine,
+  RiShieldFill,
   RiSettings3Line,
 } from "@remixicon/react";
 
@@ -44,6 +50,8 @@ interface CategoryItem {
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
+  /** Filled icon variant for active/selected state (optional - falls back to line icon with orange color) */
+  iconFill?: React.ComponentType<{ className?: string }>;
   /** Roles required to see this category. Empty array = visible to all. */
   requiredRoles?: Array<"ADMIN" | "TEAM">;
 }
@@ -54,12 +62,14 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     label: "Account",
     description: "Profile and preferences",
     icon: RiUserLine,
+    iconFill: RiUserFill,
   },
   {
     id: "users",
     label: "Users",
     description: "Manage organization users",
     icon: RiTeamLine,
+    iconFill: RiTeamFill,
     requiredRoles: ["TEAM", "ADMIN"],
   },
   {
@@ -67,24 +77,28 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     label: "Billing",
     description: "Plans and payments",
     icon: RiWalletLine,
+    iconFill: RiWalletFill,
   },
   {
     id: "integrations",
     label: "Integrations",
     description: "Connected services",
     icon: RiPlugLine,
+    iconFill: RiPlugFill,
   },
   {
     id: "ai",
     label: "AI",
     description: "Models and knowledge base",
     icon: RiRobot2Line,
+    iconFill: RiRobot2Fill,
   },
   {
     id: "admin",
     label: "Admin",
     description: "System administration",
     icon: RiShieldLine,
+    iconFill: RiShieldFill,
     requiredRoles: ["ADMIN"],
   },
 ];
@@ -233,7 +247,8 @@ export function SettingsCategoryPane({
       >
         {visibleCategories.map((category) => {
           const isActive = selectedCategory === category.id;
-          const Icon = category.icon;
+          // Use filled icon variant when active, fall back to line icon
+          const IconComponent = isActive && category.iconFill ? category.iconFill : category.icon;
 
           return (
             <div
@@ -286,7 +301,7 @@ export function SettingsCategoryPane({
                   )}
                   aria-hidden="true"
                 >
-                  <Icon
+                  <IconComponent
                     className={cn(
                       "h-4 w-4 transition-colors duration-200 ease-in-out",
                       isActive

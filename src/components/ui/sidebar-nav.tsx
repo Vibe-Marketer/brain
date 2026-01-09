@@ -3,7 +3,7 @@
  *
  * Navigation icons that sit at the top of the sidebar.
  * Loop-inspired design with clean, modern aesthetics.
- * Uses high-fidelity Emojis for warmth and modern appeal.
+ * Uses Remix Icons with line/fill variants for active states.
  *
  * ## Design Specification
  *
@@ -13,7 +13,8 @@
  * - **Styling**:
  *   - Clean, modern appearance
  *   - Glossy 3D icons in collapsed mode
- *   - Active state: left border indicator (vibe orange)
+ *   - Active state: left border indicator (vibe orange) + fill icon
+ *   - Inactive state: line icon
  *   - Hover: subtle background highlight
  * - **Separator**: Thin gray line between sections
  *
@@ -25,14 +26,26 @@ import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   RiLayoutColumnLine,
-  RiAddLine
+  RiAddLine,
+  RiHome4Line,
+  RiHome4Fill,
+  RiSparklingLine,
+  RiSparklingFill,
+  RiPriceTag3Line,
+  RiPriceTag3Fill,
+  RiSettings3Line,
+  RiSettings3Fill,
 } from '@remixicon/react';
+import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 
 interface NavItem {
   id: string;
   name: string;
-  icon: React.ReactNode;
+  /** Line icon variant (used when inactive) */
+  iconLine: RemixiconComponentType;
+  /** Fill icon variant (used when active) */
+  iconFill: RemixiconComponentType;
   path: string;
   matchPaths?: string[];
 }
@@ -53,59 +66,103 @@ interface SidebarNavProps {
 }
 
 /**
+ * NavIcon Props - supports both Remix Icon components and React nodes
+ */
+interface NavIconProps {
+  /** Remix Icon component type for line variant (inactive state) */
+  icon?: RemixiconComponentType;
+  /** Remix Icon component type for fill variant (active state) */
+  iconFill?: RemixiconComponentType;
+  /** Whether the icon is in active state */
+  isActive?: boolean;
+  /** Optional children (for backward compatibility with pre-rendered icons) */
+  children?: React.ReactNode;
+}
+
+/**
  * Glossy 3D icon wrapper with dark mode support.
  * Light mode: White to light gray gradient
  * Dark mode: Dark gray gradient with adjusted shadows
+ *
+ * Supports two usage patterns:
+ * 1. Pass Remix Icon components directly via icon/iconFill props
+ * 2. Pass pre-rendered React nodes as children (backward compatible)
  */
-const NavIcon = React.memo(({ children, isActive }: { children: React.ReactNode; isActive?: boolean }) => (
-  <div
-    className={cn(
-      'w-full h-full flex items-center justify-center rounded-xl transition-all duration-150',
-      // Light mode styles
-      'bg-gradient-to-br from-white to-gray-200',
-      'border border-gray-300/80',
-      'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
-      // Dark mode styles
-      'dark:from-gray-700 dark:to-gray-800',
-      'dark:border-gray-600/80',
-      'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
-      // Active state
-      isActive && 'ring-2 ring-cb-vibe-orange/50'
-    )}
-  >
-    {children}
-  </div>
-));
+const NavIcon = React.memo(({ icon: IconLine, iconFill: IconFill, isActive, children }: NavIconProps) => {
+  // Determine which icon to render based on props and active state
+  const renderIcon = () => {
+    // If icon components are provided, render the appropriate one
+    if (IconLine || IconFill) {
+      const IconComponent = isActive && IconFill ? IconFill : IconLine;
+      if (IconComponent) {
+        return (
+          <IconComponent
+            className={cn(
+              iconClass,
+              isActive && "text-cb-vibe-orange"
+            )}
+          />
+        );
+      }
+    }
+    // Fall back to children for backward compatibility
+    return children;
+  };
 
-// Icon class for consistent styling with action icons
-const iconClass = 'w-5 h-5 text-cb-black dark:text-cb-white';
+  return (
+    <div
+      className={cn(
+        'w-full h-full flex items-center justify-center rounded-xl transition-all duration-150',
+        // Light mode styles
+        'bg-gradient-to-br from-white to-gray-200',
+        'border border-gray-300/80',
+        'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
+        // Dark mode styles
+        'dark:from-gray-700 dark:to-gray-800',
+        'dark:border-gray-600/80',
+        'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
+        // Active state
+        isActive && 'ring-2 ring-cb-vibe-orange/50'
+      )}
+    >
+      {renderIcon()}
+    </div>
+  );
+});
+
+// Icon class for consistent styling - muted gray for inactive state
+const iconClass = 'w-5 h-5 text-muted-foreground';
 
 const navItems: NavItem[] = [
   {
     id: 'home',
     name: 'Home',
-    icon: <span className="text-xl">🏠</span>,
+    iconLine: RiHome4Line,
+    iconFill: RiHome4Fill,
     path: '/',
     matchPaths: ['/', '/transcripts'],
   },
   {
     id: 'chat',
     name: 'AI Chat',
-    icon: <span className="text-xl">✨</span>,
+    iconLine: RiSparklingLine,
+    iconFill: RiSparklingFill,
     path: '/chat',
     matchPaths: ['/chat'],
   },
   {
     id: 'sorting',
     name: 'Sorting',
-    icon: <span className="text-xl">🏷️</span>,
+    iconLine: RiPriceTag3Line,
+    iconFill: RiPriceTag3Fill,
     path: '/sorting-tagging',
     matchPaths: ['/sorting-tagging'],
   },
   {
     id: 'settings',
     name: 'Settings',
-    icon: <span className="text-xl">⚙️</span>,
+    iconLine: RiSettings3Line,
+    iconFill: RiSettings3Fill,
     path: '/settings',
     matchPaths: ['/settings'],
   },
@@ -114,6 +171,9 @@ const navItems: NavItem[] = [
 export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggle, onSettingsClick, onSortingClick }: SidebarNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Refs for nav buttons to enable keyboard focus management
+  const buttonRefs = React.useRef<Map<string, HTMLButtonElement>>(new Map());
 
   // Memoized active state checker to avoid recreating on every render
   const isActive = React.useCallback((item: NavItem) => {
@@ -125,14 +185,48 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
     return location.pathname === item.path;
   }, [location.pathname]);
 
+  // Focus a nav item by index (wraps around)
+  const focusNavItemByIndex = React.useCallback((index: number) => {
+    const wrappedIndex = ((index % navItems.length) + navItems.length) % navItems.length;
+    const itemId = navItems[wrappedIndex].id;
+    const button = buttonRefs.current.get(itemId);
+    button?.focus();
+  }, []);
+
+  // Keyboard navigation handler
+  const handleKeyDown = React.useCallback((event: React.KeyboardEvent, itemId: string) => {
+    const currentIndex = navItems.findIndex(item => item.id === itemId);
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        focusNavItemByIndex(currentIndex + 1);
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        focusNavItemByIndex(currentIndex - 1);
+        break;
+      case 'Home':
+        event.preventDefault();
+        focusNavItemByIndex(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        focusNavItemByIndex(navItems.length - 1);
+        break;
+    }
+  }, [focusNavItemByIndex]);
+
   return (
     <div className={cn('flex-shrink-0', className)}>
       {/* Navigation icons */}
-      <div
+      <nav
         className={cn(
           'flex gap-2 p-3',
           isCollapsed ? 'flex-col items-center' : 'flex-col items-stretch px-4'
         )}
+        role="navigation"
+        aria-label="Main navigation"
       >
         {/* Main Nav Items */}
         {navItems.map((item) => {
@@ -153,6 +247,13 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 />
               )}
               <button
+                ref={(el) => {
+                  if (el) {
+                    buttonRefs.current.set(item.id, el);
+                  } else {
+                    buttonRefs.current.delete(item.id);
+                  }
+                }}
                 type="button"
                 onClick={() => {
                   navigate(item.path);
@@ -165,6 +266,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                     onSortingClick();
                   }
                 }}
+                onKeyDown={(e) => handleKeyDown(e, item.id)}
                 className={cn(
                   'relative flex items-center',
                   isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
@@ -180,7 +282,20 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                       "flex-shrink-0 flex items-center justify-center",
                        isCollapsed ? "w-11 h-11" : "w-5 h-5"
                   )}>
-                     {isCollapsed ? <NavIcon isActive={active}>{item.icon}</NavIcon> : item.icon}
+                     {isCollapsed ? (
+                       // Collapsed mode: Use NavIcon with icon props for glossy 3D effect
+                       <NavIcon
+                         icon={item.iconLine}
+                         iconFill={item.iconFill}
+                         isActive={active}
+                       />
+                     ) : (
+                       // Expanded mode: Render icon directly
+                       (() => {
+                         const IconComponent = active ? item.iconFill : item.iconLine;
+                         return <IconComponent className={cn(iconClass, active && "text-cb-vibe-orange")} />;
+                       })()
+                     )}
                   </div>
 
                   {/* Label - Visible only when expanded */}
@@ -223,9 +338,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                        isCollapsed ? "w-11 h-11" : "w-5 h-5 text-muted-foreground"
                   )}>
                   {isCollapsed ? (
-                      <NavIcon>
-                        <RiLayoutColumnLine className={iconClass} />
-                      </NavIcon>
+                      <NavIcon icon={RiLayoutColumnLine} />
                   ) : (
                     <RiLayoutColumnLine className="w-5 h-5" />
                   )}
@@ -256,9 +369,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                        isCollapsed ? "w-11 h-11" : "w-5 h-5 text-cb-vibe-orange"
                   )}>
                    {isCollapsed ? (
-                       <NavIcon>
-                        <RiAddLine className={iconClass} />
-                      </NavIcon>
+                       <NavIcon icon={RiAddLine} />
                    ) : (
                     <RiAddLine className="w-5 h-5" />
                    )}
@@ -267,7 +378,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
             </button>
           </div>
         )}
-      </div>
+      </nav>
 
       {/* Separator line */}
       <div className="mx-3 border-t border-cb-border" />

@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "008-add-orange-left-edge-indicator-to-active-navigatio",
+  "spec": "009-implement-icon-and-navigation-state-updates-across",
   "state": "building",
   "subtasks": {
-    "completed": 1,
-    "total": 8,
+    "completed": 18,
+    "total": 22,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Update Category Pane Indicators",
+    "current": "Brand Guidelines Update",
     "id": null,
-    "total": 2
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 2,
-    "started_at": "2026-01-07T18:35:36.914214"
+    "number": 19,
+    "started_at": "2026-01-08T17:16:13.728077"
   },
-  "last_update": "2026-01-07T18:36:26.868123"
+  "last_update": "2026-01-08T17:53:57.864496"
 }

@@ -54,6 +54,13 @@ describe('Layout', () => {
       expect(topBar).toHaveAttribute('data-page-label', 'SETTINGS');
     });
 
+    it('should render SETTINGS label for /settings subpaths', () => {
+      renderWithRouter(<div>Content</div>, ['/settings/account']);
+
+      const topBar = screen.getByTestId('top-bar');
+      expect(topBar).toHaveAttribute('data-page-label', 'SETTINGS');
+    });
+
     it('should render HOME label for unknown paths', () => {
       renderWithRouter(<div>Content</div>, ['/unknown-path']);
 
@@ -121,22 +128,32 @@ describe('Layout', () => {
       expect(cardWrapper).not.toBeInTheDocument();
     });
 
-    it('should use card wrapper for settings page', () => {
+    it('should use custom layout for settings page', () => {
       const { container } = renderWithRouter(<div data-testid="settings-content">Settings</div>, ['/settings']);
 
-      // Settings should have the card wrapper
+      // Settings should NOT have the card wrapper (uses custom layout)
       const cardWrapper = container.querySelector('.bg-card.rounded-2xl');
-      expect(cardWrapper).toBeInTheDocument();
+      expect(cardWrapper).not.toBeInTheDocument();
 
       expect(screen.getByTestId('settings-content')).toBeInTheDocument();
     });
 
-    it('should use card wrapper for sorting-tagging page', () => {
+    it('should use custom layout for settings subpaths', () => {
+      const { container } = renderWithRouter(<div data-testid="settings-account">Account</div>, ['/settings/account']);
+
+      // Settings subpaths should NOT have the card wrapper (uses custom layout)
+      const cardWrapper = container.querySelector('.bg-card.rounded-2xl');
+      expect(cardWrapper).not.toBeInTheDocument();
+
+      expect(screen.getByTestId('settings-account')).toBeInTheDocument();
+    });
+
+    it('should use custom layout for sorting-tagging page', () => {
       const { container } = renderWithRouter(<div data-testid="sorting-content">Sorting</div>, ['/sorting-tagging']);
 
-      // Sorting & Tagging should have the card wrapper
+      // Sorting & Tagging should NOT have the card wrapper (uses custom layout)
       const cardWrapper = container.querySelector('.bg-card.rounded-2xl');
-      expect(cardWrapper).toBeInTheDocument();
+      expect(cardWrapper).not.toBeInTheDocument();
 
       expect(screen.getByTestId('sorting-content')).toBeInTheDocument();
     });

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { SidebarNav } from '../sidebar-nav';
 
@@ -371,6 +372,264 @@ describe('SidebarNav', () => {
       expect(chatButton).not.toHaveClass('font-semibold');
       expect(sortingButton).not.toHaveClass('font-semibold');
       expect(settingsButton).not.toHaveClass('font-semibold');
+    });
+  });
+
+  describe('icon variant rendering', () => {
+    it('should render icon with vibe-orange color when active in expanded mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
+
+      // Active icon should have vibe-orange text color
+      const activeIcon = container.querySelector('.text-cb-vibe-orange');
+      expect(activeIcon).toBeInTheDocument();
+    });
+
+    it('should render icon with muted-foreground color when inactive in expanded mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/chat']);
+
+      // Home is inactive when on /chat path, should have muted color
+      const homeButton = screen.getByTitle('Home');
+      const homeIcon = homeButton.querySelector('.text-muted-foreground');
+      expect(homeIcon).toBeInTheDocument();
+    });
+
+    it('should render multiple inactive icons with muted color', () => {
+      const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
+
+      // Only Home is active, other items should have muted icons
+      const mutedIcons = container.querySelectorAll('.text-muted-foreground');
+      // Should have at least 3 muted icons (AI Chat, Sorting, Settings when Home is active)
+      expect(mutedIcons.length).toBeGreaterThanOrEqual(3);
+    });
+
+    it('should have orange ring on active NavIcon in collapsed mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
+
+      // Active NavIcon should have ring-cb-vibe-orange class (via ring-2 ring-cb-vibe-orange/50)
+      const activeNavIconWrapper = container.querySelector('.ring-cb-vibe-orange\\/50');
+      expect(activeNavIconWrapper).toBeInTheDocument();
+    });
+
+    it('should not have orange ring on inactive NavIcon in collapsed mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
+
+      // Count elements with ring styling - only active item should have it
+      const ringElements = container.querySelectorAll('.ring-cb-vibe-orange\\/50');
+      expect(ringElements.length).toBe(1);
+    });
+
+    it('should apply vibe-orange background on active item in expanded mode', () => {
+      renderWithRouter({ isCollapsed: false }, ['/chat']);
+
+      // Active button should have orange background tint
+      const chatButton = screen.getByTitle('AI Chat');
+      expect(chatButton).toHaveClass('bg-cb-vibe-orange/10');
+    });
+
+    it('should not apply vibe-orange background on inactive items in expanded mode', () => {
+      renderWithRouter({ isCollapsed: false }, ['/chat']);
+
+      // Inactive buttons should not have orange background
+      const homeButton = screen.getByTitle('Home');
+      expect(homeButton).not.toHaveClass('bg-cb-vibe-orange/10');
+    });
+
+    it('should render glossy 3D icon wrapper in collapsed mode', () => {
+      const { container } = renderWithRouter({ isCollapsed: true });
+
+      // NavIcon should have gradient background for glossy effect
+      const glossyWrapper = container.querySelector('.bg-gradient-to-br.from-white.to-gray-200');
+      expect(glossyWrapper).toBeInTheDocument();
+    });
+
+    it('should show active text color on label when active in expanded mode', () => {
+      renderWithRouter({ isCollapsed: false }, ['/']);
+
+      // Home label should have vibe-orange text
+      const homeLabel = screen.getByText('Home');
+      expect(homeLabel).toHaveClass('text-cb-vibe-orange');
+    });
+
+    it('should show foreground text color on label when inactive in expanded mode', () => {
+      renderWithRouter({ isCollapsed: false }, ['/chat']);
+
+      // Home label should have default foreground text (not vibe-orange)
+      const homeLabel = screen.getByText('Home');
+      expect(homeLabel).toHaveClass('text-foreground');
+      expect(homeLabel).not.toHaveClass('text-cb-vibe-orange');
+    });
+  });
+
+  describe('keyboard navigation', () => {
+    it('should have navigation landmark with proper role and label', () => {
+      renderWithRouter();
+
+      const nav = screen.getByRole('navigation', { name: 'Main navigation' });
+      expect(nav).toBeInTheDocument();
+    });
+
+    it('should move focus to next item on ArrowDown', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const chatButton = screen.getByTitle('AI Chat');
+
+      // Focus Home button and press ArrowDown
+      homeButton.focus();
+      expect(document.activeElement).toBe(homeButton);
+
+      await user.keyboard('{ArrowDown}');
+      expect(document.activeElement).toBe(chatButton);
+    });
+
+    it('should move focus to previous item on ArrowUp', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const chatButton = screen.getByTitle('AI Chat');
+
+      // Focus AI Chat button and press ArrowUp
+      chatButton.focus();
+      expect(document.activeElement).toBe(chatButton);
+
+      await user.keyboard('{ArrowUp}');
+      expect(document.activeElement).toBe(homeButton);
+    });
+
+    it('should wrap focus to first item when pressing ArrowDown on last item', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const settingsButton = screen.getByTitle('Settings');
+
+      // Focus Settings (last item) and press ArrowDown
+      settingsButton.focus();
+      expect(document.activeElement).toBe(settingsButton);
+
+      await user.keyboard('{ArrowDown}');
+      expect(document.activeElement).toBe(homeButton);
+    });
+
+    it('should wrap focus to last item when pressing ArrowUp on first item', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const settingsButton = screen.getByTitle('Settings');
+
+      // Focus Home (first item) and press ArrowUp
+      homeButton.focus();
+      expect(document.activeElement).toBe(homeButton);
+
+      await user.keyboard('{ArrowUp}');
+      expect(document.activeElement).toBe(settingsButton);
+    });
+
+    it('should move focus to first item on Home key', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const settingsButton = screen.getByTitle('Settings');
+
+      // Focus Settings and press Home key
+      settingsButton.focus();
+      await user.keyboard('{Home}');
+      expect(document.activeElement).toBe(homeButton);
+    });
+
+    it('should move focus to last item on End key', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const settingsButton = screen.getByTitle('Settings');
+
+      // Focus Home and press End key
+      homeButton.focus();
+      await user.keyboard('{End}');
+      expect(document.activeElement).toBe(settingsButton);
+    });
+
+    it('should navigate on Enter key press', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const chatButton = screen.getByTitle('AI Chat');
+
+      // Focus AI Chat and press Enter
+      chatButton.focus();
+      await user.keyboard('{Enter}');
+
+      expect(mockNavigate).toHaveBeenCalledWith('/chat');
+    });
+
+    it('should navigate on Space key press', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const sortingButton = screen.getByTitle('Sorting');
+
+      // Focus Sorting and press Space
+      sortingButton.focus();
+      await user.keyboard(' ');
+
+      expect(mockNavigate).toHaveBeenCalledWith('/sorting-tagging');
+    });
+
+    it('should have visible focus ring with vibe-orange color', () => {
+      renderWithRouter();
+
+      const homeButton = screen.getByTitle('Home');
+      // Button should have focus-visible ring classes with vibe-orange
+      expect(homeButton.className).toContain('focus-visible:ring-2');
+      expect(homeButton.className).toContain('focus-visible:ring-cb-vibe-orange');
+      expect(homeButton.className).toContain('focus-visible:ring-offset-2');
+    });
+
+    it('should support Tab navigation between buttons', async () => {
+      renderWithRouter();
+      const user = userEvent.setup();
+
+      const homeButton = screen.getByTitle('Home');
+      const chatButton = screen.getByTitle('AI Chat');
+
+      // Tab to first button
+      await user.tab();
+      expect(document.activeElement).toBe(homeButton);
+
+      // Tab to next button
+      await user.tab();
+      expect(document.activeElement).toBe(chatButton);
+    });
+
+    it('should call onSettingsClick callback when Settings is activated via Enter', async () => {
+      const onSettingsClick = vi.fn();
+      renderWithRouter({ onSettingsClick });
+      const user = userEvent.setup();
+
+      const settingsButton = screen.getByTitle('Settings');
+      settingsButton.focus();
+      await user.keyboard('{Enter}');
+
+      expect(mockNavigate).toHaveBeenCalledWith('/settings');
+      expect(onSettingsClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('should call onSortingClick callback when Sorting is activated via Enter', async () => {
+      const onSortingClick = vi.fn();
+      renderWithRouter({ onSortingClick });
+      const user = userEvent.setup();
+
+      const sortingButton = screen.getByTitle('Sorting');
+      sortingButton.focus();
+      await user.keyboard('{Enter}');
+
+      expect(mockNavigate).toHaveBeenCalledWith('/sorting-tagging');
+      expect(onSortingClick).toHaveBeenCalledTimes(1);
     });
   });
 });

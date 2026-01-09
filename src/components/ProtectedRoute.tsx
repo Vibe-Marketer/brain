@@ -56,14 +56,14 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
   // Force setup wizard completion for first-time users
   // Redirect to /settings if wizard not completed AND not already on settings page
-  if (!wizardCompleted && location.pathname !== '/settings') {
+  if (!wizardCompleted && !location.pathname.startsWith('/settings')) {
     return <Navigate to="/settings" replace />;
   }
 
   // If wizard completed but no transcripts synced, redirect to sync tab
   // (unless already on home page, settings page, or chat page)
   if (wizardCompleted && hasTranscripts === false &&
-      location.pathname !== '/' && location.pathname !== '/settings' && !location.pathname.startsWith('/chat')) {
+      location.pathname !== '/' && !location.pathname.startsWith('/settings') && !location.pathname.startsWith('/chat')) {
     return <Navigate to="/?tab=sync" replace />;
   }
 

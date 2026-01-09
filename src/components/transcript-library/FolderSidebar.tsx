@@ -3,6 +3,7 @@ import { useDroppable } from '@dnd-kit/core';
 import {
   RiAddLine,
   RiFolderLine,
+  RiFolderFill,
   RiSettings3Line,
   RiArrowRightSLine,
   RiArrowDownSLine,
@@ -163,10 +164,16 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
       )}
 
       {/* Folder Icon - use custom icon or emoji if set */}
+      {/* Emojis and custom icons don't change on selection; default folder uses fill variant when selected */}
       {folderIsEmoji ? (
         <span className="text-base flex-shrink-0 mr-2">{folder.icon}</span>
       ) : FolderIcon ? (
         <FolderIcon
+          className="h-4 w-4 flex-shrink-0 mr-2"
+          style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
+        />
+      ) : isSelected ? (
+        <RiFolderFill
           className="h-4 w-4 flex-shrink-0 mr-2"
           style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
         />
@@ -515,10 +522,16 @@ export function FolderSidebar({
                     )}
                     title={isHidden ? `${folder.name} (hidden)` : folder.name}
                   >
+                    {/* Emojis and custom icons don't change on selection; default folder uses fill variant when selected */}
                     {folderIsEmoji ? (
                       <span className="text-base">{folder.icon}</span>
                     ) : FolderIcon ? (
                       <FolderIcon
+                        className="h-4 w-4"
+                        style={{ color: folder.color || '#6B7280' }}
+                      />
+                    ) : isSelected ? (
+                      <RiFolderFill
                         className="h-4 w-4"
                         style={{ color: folder.color || '#6B7280' }}
                       />
