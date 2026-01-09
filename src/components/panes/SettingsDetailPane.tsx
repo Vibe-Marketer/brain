@@ -28,6 +28,7 @@ import {
   RiPushpinFill,
   RiUserLine,
   RiTeamLine,
+  RiUserHeartLine,
   RiWalletLine,
   RiPlugLine,
   RiRobot2Line,
@@ -42,6 +43,7 @@ const TRANSITION_DURATION = 250;
 // Lazy load settings tab components
 const AccountTab = React.lazy(() => import("@/components/settings/AccountTab"));
 const UsersTab = React.lazy(() => import("@/components/settings/UsersTab"));
+const CoachesTab = React.lazy(() => import("@/components/settings/CoachesTab"));
 const BillingTab = React.lazy(() => import("@/components/settings/BillingTab"));
 const IntegrationsTab = React.lazy(
   () => import("@/components/settings/IntegrationsTab")
@@ -67,6 +69,11 @@ const CATEGORY_META: Record<
     label: "Users",
     description: "Manage organization users",
     icon: RiTeamLine,
+  },
+  coaches: {
+    label: "Coaches",
+    description: "Manage coaching relationships",
+    icon: RiUserHeartLine,
   },
   billing: {
     label: "Billing",
@@ -213,6 +220,8 @@ export function SettingsDetailPane({
         return <AccountTab />;
       case "users":
         return <UsersTab />;
+      case "coaches":
+        return <CoachesTab />;
       case "billing":
         return <BillingTab />;
       case "integrations":

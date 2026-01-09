@@ -99,6 +99,7 @@ export default function Settings() {
     const topicMap: Record<string, SettingHelpTopic> = {
       account: "profile",
       users: "users",
+      coaches: "users", // Coaches use the same help topic as users for now
       billing: "billing",
       integrations: "integrations",
       ai: "ai",

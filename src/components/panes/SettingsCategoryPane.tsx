@@ -26,6 +26,7 @@ import {
   RiRobot2Line,
   RiShieldLine,
   RiSettings3Line,
+  RiUserHeartLine,
 } from "@remixicon/react";
 
 /** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
@@ -34,6 +35,7 @@ const TRANSITION_DURATION = 250;
 export type SettingsCategory =
   | "account"
   | "users"
+  | "coaches"
   | "billing"
   | "integrations"
   | "ai"
@@ -61,6 +63,12 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     description: "Manage organization users",
     icon: RiTeamLine,
     requiredRoles: ["TEAM", "ADMIN"],
+  },
+  {
+    id: "coaches",
+    label: "Coaches",
+    description: "Manage coaching relationships",
+    icon: RiUserHeartLine,
   },
   {
     id: "billing",
