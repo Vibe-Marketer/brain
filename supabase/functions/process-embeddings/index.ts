@@ -19,6 +19,7 @@ const corsHeaders = {
 
 const BATCH_SIZE = 10; // Number of recordings per invocation
 const MAX_PROCESSING_TIME_MS = 90000; // 90s safe limit (150s timeout - 60s buffer)
+const CHUNK_INSERT_BATCH_SIZE = 50; // Insert chunks in batches to avoid statement timeouts
 
 // Simple token estimation (avg ~4 chars per token for English text)
 // This is a heuristic that works well for chunking purposes
@@ -430,29 +431,41 @@ async function processRecording(
     .eq('recording_id', recording_id)
     .eq('user_id', user_id);
 
-  // Insert all chunks
-  const { data: insertedChunks, error: insertError } = await supabase
-    .from('transcript_chunks')
-    .insert(allChunksToInsert)
-    .select('id');
+  // Insert chunks in batches to avoid statement timeouts
+  const allInsertedIds: string[] = [];
+  const totalBatches = Math.ceil(allChunksToInsert.length / CHUNK_INSERT_BATCH_SIZE);
 
-  if (insertError) {
-    throw new Error(`Error inserting chunks for ${recording_id}: ${insertError.message}`);
+  for (let i = 0; i < allChunksToInsert.length; i += CHUNK_INSERT_BATCH_SIZE) {
+    const batch = allChunksToInsert.slice(i, i + CHUNK_INSERT_BATCH_SIZE);
+    const batchNumber = Math.floor(i / CHUNK_INSERT_BATCH_SIZE) + 1;
+
+    const { data: inserted, error: insertError } = await supabase
+      .from('transcript_chunks')
+      .insert(batch)
+      .select('id');
+
+    if (insertError) {
+      console.error(`Chunk insert batch ${batchNumber}/${totalBatches} failed for recording ${recording_id}:`, insertError);
+      throw new Error(`Error inserting chunks batch ${batchNumber} for ${recording_id}: ${insertError.message}`);
+    }
+
+    if (inserted) {
+      allInsertedIds.push(...inserted.map(c => c.id));
+    }
   }
 
-  console.log(`Inserted ${allChunksToInsert.length} chunks for recording ${recording_id}`);
+  console.log(`Inserted ${allInsertedIds.length} chunks in ${totalBatches} batches for recording ${recording_id}`);
 
   // Trigger metadata enrichment asynchronously (fire-and-forget)
-  if (insertedChunks && insertedChunks.length > 0) {
-    const insertedChunkIds = insertedChunks.map(c => c.id);
+  if (allInsertedIds.length > 0) {
     supabase.functions.invoke('enrich-chunk-metadata', {
-      body: { chunk_ids: insertedChunkIds },
+      body: { chunk_ids: allInsertedIds },
     }).catch(err => {
       console.error(`Metadata enrichment failed for recording ${recording_id}:`, err);
     });
   }
 
-  return allChunksToInsert.length;
+  return allInsertedIds.length;
 }
 
 // Handle task failure with exponential backoff
