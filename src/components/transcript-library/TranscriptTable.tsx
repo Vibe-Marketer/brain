@@ -1,7 +1,9 @@
 import React from "react";
-import { RiArrowUpDownLine, RiLayoutColumnLine, RiFileDownloadLine } from "@remixicon/react";
+import { RiArrowUpDownLine, RiLayoutColumnLine, RiFileDownloadLine, RiTeamLine } from "@remixicon/react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import {
   Table,
   TableBody,
@@ -72,6 +74,10 @@ interface TranscriptTableProps {
   visibleColumns?: Record<string, boolean>;
   onToggleColumn?: (columnId: string) => void;
   onExport?: () => void;
+  // Direct reports filter (for managers)
+  showDirectReportsFilter?: boolean;
+  directReportsFilter?: boolean;
+  onDirectReportsFilterChange?: (enabled: boolean) => void;
 }
 
 
@@ -99,6 +105,9 @@ export const TranscriptTable = React.memo(({
   visibleColumns = {},
   onToggleColumn,
   onExport,
+  showDirectReportsFilter = false,
+  directReportsFilter = false,
+  onDirectReportsFilterChange,
 }: TranscriptTableProps) => {
   const { sortField, sortDirection: _sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
 
@@ -122,6 +131,31 @@ export const TranscriptTable = React.memo(({
 
   return (
     <div className="space-y-4">
+      {/* Direct Reports Filter */}
+      {showDirectReportsFilter && onDirectReportsFilterChange && (
+        <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg border border-border">
+          <RiTeamLine className="h-4 w-4 text-muted-foreground" />
+          <div className="flex items-center gap-2">
+            <Switch
+              id="direct-reports-filter"
+              checked={directReportsFilter}
+              onCheckedChange={onDirectReportsFilterChange}
+              aria-label="Show only direct reports' calls"
+            />
+            <Label
+              htmlFor="direct-reports-filter"
+              className="text-sm font-medium cursor-pointer"
+            >
+              Direct Reports Only
+            </Label>
+          </div>
+          {directReportsFilter && (
+            <span className="text-xs text-muted-foreground ml-auto">
+              Showing calls from your direct reports
+            </span>
+          )}
+        </div>
+      )}
       <div>
         <div className="overflow-x-auto">
           <Table>
