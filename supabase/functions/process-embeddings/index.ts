@@ -19,6 +19,7 @@ const corsHeaders = {
 
 const BATCH_SIZE = 10; // Number of recordings per invocation
 const MAX_PROCESSING_TIME_MS = 90000; // 90s safe limit (150s timeout - 60s buffer)
+const CHUNK_INSERT_BATCH_SIZE = 50; // Insert chunks in batches to avoid statement timeouts
 
 // Simple token estimation (avg ~4 chars per token for English text)
 // This is a heuristic that works well for chunking purposes
@@ -430,29 +431,41 @@ async function processRecording(
     .eq('recording_id', recording_id)
     .eq('user_id', user_id);
 
-  // Insert all chunks
-  const { data: insertedChunks, error: insertError } = await supabase
-    .from('transcript_chunks')
-    .insert(allChunksToInsert)
-    .select('id');
+  // Insert chunks in batches to avoid statement timeouts
+  const allInsertedIds: string[] = [];
+  const totalBatches = Math.ceil(allChunksToInsert.length / CHUNK_INSERT_BATCH_SIZE);
 
-  if (insertError) {
-    throw new Error(`Error inserting chunks for ${recording_id}: ${insertError.message}`);
+  for (let i = 0; i < allChunksToInsert.length; i += CHUNK_INSERT_BATCH_SIZE) {
+    const batch = allChunksToInsert.slice(i, i + CHUNK_INSERT_BATCH_SIZE);
+    const batchNumber = Math.floor(i / CHUNK_INSERT_BATCH_SIZE) + 1;
+
+    const { data: inserted, error: insertError } = await supabase
+      .from('transcript_chunks')
+      .insert(batch)
+      .select('id');
+
+    if (insertError) {
+      console.error(`Chunk insert batch ${batchNumber}/${totalBatches} failed for recording ${recording_id}:`, insertError);
+      throw new Error(`Error inserting chunks batch ${batchNumber} for ${recording_id}: ${insertError.message}`);
+    }
+
+    if (inserted) {
+      allInsertedIds.push(...inserted.map(c => c.id));
+    }
   }
 
-  console.log(`Inserted ${allChunksToInsert.length} chunks for recording ${recording_id}`);
+  console.log(`Inserted ${allInsertedIds.length} chunks in ${totalBatches} batches for recording ${recording_id}`);
 
   // Trigger metadata enrichment asynchronously (fire-and-forget)
-  if (insertedChunks && insertedChunks.length > 0) {
-    const insertedChunkIds = insertedChunks.map(c => c.id);
+  if (allInsertedIds.length > 0) {
     supabase.functions.invoke('enrich-chunk-metadata', {
-      body: { chunk_ids: insertedChunkIds },
+      body: { chunk_ids: allInsertedIds },
     }).catch(err => {
       console.error(`Metadata enrichment failed for recording ${recording_id}:`, err);
     });
   }
 
-  return allChunksToInsert.length;
+  return allInsertedIds.length;
 }
 
 // Handle task failure with exponential backoff
@@ -462,6 +475,33 @@ async function handleTaskFailure(
   errorMessage: string
 ): Promise<void> {
   const newAttempts = task.attempts + 1;
+  const isTimeoutError = errorMessage.toLowerCase().includes('statement timeout') ||
+                         errorMessage.toLowerCase().includes('timeout');
+
+  // Special handling for timeout errors - reset to pending with longer delay
+  // Timeouts often succeed on retry when database load decreases
+  if (isTimeoutError) {
+    const timeoutBackoffSeconds = 300; // 5 minutes for timeout retry
+    const nextRetryAt = new Date(Date.now() + timeoutBackoffSeconds * 1000);
+
+    await supabase.from('embedding_queue').update({
+      status: 'pending', // Reset to pending, not failed - timeouts are transient
+      attempts: newAttempts,
+      last_error: errorMessage,
+      next_retry_at: nextRetryAt.toISOString(),
+      locked_at: null,
+      worker_id: null,
+    }).eq('id', task.id);
+
+    // Don't count timeout as a failure for job progress - it will be retried
+    console.log(
+      `Timeout error for task ${task.id} (recording ${task.recording_id}), ` +
+      `scheduled retry in ${timeoutBackoffSeconds}s (attempt ${newAttempts}/${task.max_attempts})`
+    );
+    return;
+  }
+
+  // Standard failure handling for non-timeout errors
   const shouldRetry = newAttempts < task.max_attempts;
 
   // Exponential backoff: 30s, 90s, 270s

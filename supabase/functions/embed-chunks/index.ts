@@ -180,16 +180,25 @@ Deno.serve(async (req) => {
 
     // Trigger first worker invocation (fire-and-forget)
     // Use EdgeRuntime.waitUntil to not block the response
+    // Use direct HTTP fetch with service role auth instead of supabase.functions.invoke()
+    // to avoid issues with function-to-function invocation
     EdgeRuntime.waitUntil(
       (async () => {
         try {
           console.log(`Triggering process-embeddings worker for job ${job.id}`);
-          const { error: invokeError } = await supabase.functions.invoke('process-embeddings', {
-            body: { job_id: job.id, batch_size: 10 },
+          const workerUrl = `${supabaseUrl}/functions/v1/process-embeddings`;
+          const response = await fetch(workerUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({ job_id: job.id, batch_size: 10 }),
           });
 
-          if (invokeError) {
-            console.error('Error invoking process-embeddings:', invokeError);
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`Error invoking process-embeddings: ${response.status} ${errorText}`);
           } else {
             console.log('Successfully triggered process-embeddings worker');
           }
