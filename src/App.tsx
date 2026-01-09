@@ -17,6 +17,7 @@ import SortingTagging from '@/pages/SortingTagging';
 import Settings from '@/pages/Settings';
 import LoopLayoutDemo from '@/pages/LoopLayoutDemo';
 import SharedWithMe from '@/pages/SharedWithMe';
+import CoachDashboard from '@/pages/CoachDashboard';
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -56,6 +57,9 @@ function App() {
 
                     {/* Shared with me page */}
                     <Route path="/shared-with-me" element={<ProtectedRoute><Layout><SharedWithMe /></Layout></ProtectedRoute>} />
+
+                    {/* Coach dashboard */}
+                    <Route path="/coach" element={<ProtectedRoute><Layout><CoachDashboard /></Layout></ProtectedRoute>} />
 
                     {/* Call detail route for search result navigation */}
                     <Route path="/call/:callId" element={<ProtectedRoute><Layout><CallDetailPage /></Layout></ProtectedRoute>} />
