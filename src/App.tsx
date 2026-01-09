@@ -16,6 +16,7 @@ import Chat from '@/pages/Chat';
 import SortingTagging from '@/pages/SortingTagging';
 import Settings from '@/pages/Settings';
 import LoopLayoutDemo from '@/pages/LoopLayoutDemo';
+import SharedWithMe from '@/pages/SharedWithMe';
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -52,6 +53,9 @@ function App() {
                     <Route path="/sorting-tagging" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
                     <Route path="/sorting-tagging/:category" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
                     <Route path="/loop" element={<Layout><LoopLayoutDemo /></Layout>} />
+
+                    {/* Shared with me page */}
+                    <Route path="/shared-with-me" element={<ProtectedRoute><Layout><SharedWithMe /></Layout></ProtectedRoute>} />
 
                     {/* Call detail route for search result navigation */}
                     <Route path="/call/:callId" element={<ProtectedRoute><Layout><CallDetailPage /></Layout></ProtectedRoute>} />
