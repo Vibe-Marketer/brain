@@ -12,7 +12,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
-  RiLinkLine,
+  RiLinksLine,
   RiTimeLine,
   RiUserLine,
   RiFileTextLine,
@@ -116,7 +116,7 @@ export const SharedCallView: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
-          <RiLinkLine className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <RiLinksLine className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
             Call Not Found
           </h2>
@@ -165,14 +165,14 @@ export const SharedCallView: React.FC = () => {
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Shared Call Banner */}
         <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 flex items-center gap-3">
-          <RiLinkLine className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+          <RiLinksLine className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
           <div className="flex-1">
             <p className="text-sm text-purple-700 dark:text-purple-300">
               Shared call from <span className="font-medium">{call.recorded_by_email}</span>
             </p>
           </div>
           <Badge variant="outline" className="text-purple-600 border-purple-600">
-            <RiLinkLine className="w-3 h-3 mr-1" />
+            <RiLinksLine className="w-3 h-3 mr-1" />
             SHARED
           </Badge>
         </div>

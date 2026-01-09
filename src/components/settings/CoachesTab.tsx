@@ -14,7 +14,7 @@ import {
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { useCoachRelationships } from "@/hooks/useCoachRelationships";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { CoachRelationshipWithUsers, RelationshipStatus } from "@/types/sharing";
 import {
   Dialog,

@@ -5,7 +5,7 @@ import {
   RiCalendarLine,
   RiTimeLine,
   RiLoader2Line,
-  RiLinkLine,
+  RiLinksLine,
   RiUserHeartLine,
   RiGroupLine,
   RiFileTextLine,
@@ -89,7 +89,7 @@ const formatDuration = (duration: string | null) => {
 const getSourceIcon = (sourceType: SharedCallBase["source_type"]) => {
   switch (sourceType) {
     case "share_link":
-      return RiLinkLine;
+      return RiLinksLine;
     case "coach":
       return RiUserHeartLine;
     case "team":
@@ -628,7 +628,7 @@ const SharedWithMe = () => {
         </p>
         <div className="flex flex-col gap-2 text-sm text-muted-foreground mt-4">
           <div className="flex items-center gap-2">
-            <RiLinkLine className="h-4 w-4 text-blue-500" />
+            <RiLinksLine className="h-4 w-4 text-blue-500" />
             <span>Direct share links</span>
           </div>
           <div className="flex items-center gap-2">
@@ -693,7 +693,7 @@ const SharedWithMe = () => {
                   value="share_link"
                   className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2"
                 >
-                  <RiLinkLine className="h-4 w-4 mr-1.5" />
+                  <RiLinksLine className="h-4 w-4 mr-1.5" />
                   Links
                   <Badge variant="secondary" className="ml-2 text-xs">
                     {counts.share_link}

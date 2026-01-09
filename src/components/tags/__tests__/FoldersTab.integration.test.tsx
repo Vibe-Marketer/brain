@@ -177,7 +177,9 @@ describe('FoldersTab Integration Tests', () => {
 
       expect(screen.getByText('No folders yet')).toBeInTheDocument();
       expect(screen.getByText(/Create folders to organize your calls/)).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /Create Folder/i })).toBeInTheDocument();
+      // There are two Create Folder buttons: one in header, one in empty state
+      const createButtons = screen.getAllByRole('button', { name: /Create Folder/i });
+      expect(createButtons.length).toBe(2);
     });
 
     it('should render loading skeleton when data is loading', () => {
@@ -197,8 +199,8 @@ describe('FoldersTab Integration Tests', () => {
 
       render(<FoldersTab />, { wrapper: createWrapper() });
 
-      // Should show skeleton loading state
-      const skeletons = document.querySelectorAll('[class*="skeleton"]');
+      // Should show skeleton loading state (Skeleton uses animate-pulse class)
+      const skeletons = document.querySelectorAll('.animate-pulse');
       expect(skeletons.length).toBeGreaterThan(0);
     });
 
@@ -752,16 +754,18 @@ describe('FoldersTab Integration Tests', () => {
     it('should show create folder button in header', () => {
       render(<FoldersTab />, { wrapper: createWrapper() });
 
-      const createButton = screen.getByRole('button', { name: /Create Folder/i });
-      expect(createButton).toBeInTheDocument();
+      // There are two Create Folder buttons (header + empty state), verify at least one exists
+      const createButtons = screen.getAllByRole('button', { name: /Create Folder/i });
+      expect(createButtons.length).toBeGreaterThan(0);
     });
 
     it('should open create dialog when clicking create button', async () => {
       const user = userEvent.setup();
       render(<FoldersTab />, { wrapper: createWrapper() });
 
-      const createButton = screen.getByRole('button', { name: /Create Folder/i });
-      await user.click(createButton);
+      // Click the first Create Folder button (header button)
+      const createButtons = screen.getAllByRole('button', { name: /Create Folder/i });
+      await user.click(createButtons[0]);
 
       // Dialog should open (QuickCreateFolderDialog is rendered)
       // Note: actual dialog content is in a separate component

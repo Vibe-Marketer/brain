@@ -117,26 +117,23 @@ describe('SidebarNav', () => {
     it('should show AI Chat as active on /chat path', () => {
       renderWithRouter({ isCollapsed: false }, ['/chat']);
 
-      // In expanded mode, active items have orange background and text color on button
+      // In expanded mode, active items have gray background on button
       const chatButton = screen.getByTitle('AI Chat');
-      expect(chatButton).toHaveClass('bg-cb-vibe-orange/10');
-      expect(chatButton).toHaveClass('text-cb-vibe-orange');
+      expect(chatButton).toHaveClass('bg-gray-100');
     });
 
     it('should show Settings as active on /settings path', () => {
       renderWithRouter({ isCollapsed: false }, ['/settings']);
 
       const settingsButton = screen.getByTitle('Settings');
-      expect(settingsButton).toHaveClass('bg-cb-vibe-orange/10');
-      expect(settingsButton).toHaveClass('text-cb-vibe-orange');
+      expect(settingsButton).toHaveClass('bg-gray-100');
     });
 
     it('should show Sorting as active on /sorting-tagging path', () => {
       renderWithRouter({ isCollapsed: false }, ['/sorting-tagging']);
 
       const sortingButton = screen.getByTitle('Sorting');
-      expect(sortingButton).toHaveClass('bg-cb-vibe-orange/10');
-      expect(sortingButton).toHaveClass('text-cb-vibe-orange');
+      expect(sortingButton).toHaveClass('bg-gray-100');
     });
   });
 
@@ -156,11 +153,11 @@ describe('SidebarNav', () => {
       expect(indicatorDot).toBeInTheDocument();
     });
 
-    it('should not show h-[80%] left-edge indicator in collapsed mode', () => {
+    it('should not show h-[60%] left-edge indicator in collapsed mode', () => {
       const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
 
-      // The h-[80%] left-edge indicator should not be present in collapsed mode
-      const leftIndicator = container.querySelector('.bg-cb-vibe-orange.h-\\[80\\%\\]');
+      // The h-[60%] left-edge indicator should not be present in collapsed mode
+      const leftIndicator = container.querySelector('.bg-cb-vibe-orange.h-\\[60\\%\\]');
       expect(leftIndicator).not.toBeInTheDocument();
     });
 
@@ -193,15 +190,15 @@ describe('SidebarNav', () => {
       renderWithRouter({ isCollapsed: false }, ['/chat']);
 
       const chatButton = screen.getByTitle('AI Chat');
-      // Active items have orange tinted background, not gray
-      expect(chatButton).toHaveClass('bg-cb-vibe-orange/10');
+      // Active items have gray background in expanded mode
+      expect(chatButton).toHaveClass('bg-gray-100');
     });
 
-    it('should render active indicator with h-[80%] height in expanded mode', () => {
+    it('should render active indicator with h-[60%] height in expanded mode', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
 
-      // Active indicator should have 80% height class
-      const indicator = container.querySelector('.bg-cb-vibe-orange.h-\\[80\\%\\]');
+      // Active indicator should have 60% height class
+      const indicator = container.querySelector('.bg-cb-vibe-orange.h-\\[60\\%\\]');
       expect(indicator).toBeInTheDocument();
     });
 
@@ -229,11 +226,11 @@ describe('SidebarNav', () => {
       expect(indicator).toBeInTheDocument();
     });
 
-    it('should have rounded-r-full class on indicator for pill shape', () => {
+    it('should have rounded-full class on indicator for pill shape', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
 
-      // Indicator should have rounded right edge
-      const indicator = container.querySelector('.bg-cb-vibe-orange.rounded-r-full');
+      // Indicator should have fully rounded pill shape
+      const indicator = container.querySelector('.bg-cb-vibe-orange.rounded-full');
       expect(indicator).toBeInTheDocument();
     });
   });
@@ -353,17 +350,15 @@ describe('SidebarNav', () => {
       renderWithRouter({ isCollapsed: false }, ['/chat/session-123']);
 
       const chatButton = screen.getByTitle('AI Chat');
-      // Active state is indicated by orange background/text on button
-      expect(chatButton).toHaveClass('bg-cb-vibe-orange/10');
-      expect(chatButton).toHaveClass('text-cb-vibe-orange');
+      // Active state is indicated by gray background on button
+      expect(chatButton).toHaveClass('bg-gray-100');
     });
 
     it('should match subpaths for settings', () => {
       renderWithRouter({ isCollapsed: false }, ['/settings/profile']);
 
       const settingsButton = screen.getByTitle('Settings');
-      expect(settingsButton).toHaveClass('bg-cb-vibe-orange/10');
-      expect(settingsButton).toHaveClass('text-cb-vibe-orange');
+      expect(settingsButton).toHaveClass('bg-gray-100');
     });
 
     it('should not match unrelated paths', () => {
@@ -375,11 +370,11 @@ describe('SidebarNav', () => {
       const settingsButton = screen.getByTitle('Settings');
 
       // None of these should be marked as active for an unknown path
-      // Active state is shown via orange background/text classes
-      expect(homeButton).not.toHaveClass('bg-cb-vibe-orange/10');
-      expect(chatButton).not.toHaveClass('bg-cb-vibe-orange/10');
-      expect(sortingButton).not.toHaveClass('bg-cb-vibe-orange/10');
-      expect(settingsButton).not.toHaveClass('bg-cb-vibe-orange/10');
+      // Active state is shown via gray background class
+      expect(homeButton).not.toHaveClass('bg-gray-100');
+      expect(chatButton).not.toHaveClass('bg-gray-100');
+      expect(sortingButton).not.toHaveClass('bg-gray-100');
+      expect(settingsButton).not.toHaveClass('bg-gray-100');
     });
   });
 
@@ -426,20 +421,20 @@ describe('SidebarNav', () => {
       expect(ringElements.length).toBe(1);
     });
 
-    it('should apply vibe-orange background on active item in expanded mode', () => {
+    it('should apply gray background on active item in expanded mode', () => {
       renderWithRouter({ isCollapsed: false }, ['/chat']);
 
-      // Active button should have orange background tint
+      // Active button should have gray background
       const chatButton = screen.getByTitle('AI Chat');
-      expect(chatButton).toHaveClass('bg-cb-vibe-orange/10');
+      expect(chatButton).toHaveClass('bg-gray-100');
     });
 
-    it('should not apply vibe-orange background on inactive items in expanded mode', () => {
+    it('should not apply gray background on inactive items in expanded mode', () => {
       renderWithRouter({ isCollapsed: false }, ['/chat']);
 
-      // Inactive buttons should not have orange background
+      // Inactive buttons should not have gray background
       const homeButton = screen.getByTitle('Home');
-      expect(homeButton).not.toHaveClass('bg-cb-vibe-orange/10');
+      expect(homeButton).not.toHaveClass('bg-gray-100');
     });
 
     it('should render glossy 3D icon wrapper in collapsed mode', () => {
