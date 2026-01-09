@@ -22,20 +22,29 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          # Validate required secrets are set
-          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
-            echo "Error: Required secrets SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set"
+          set -euo pipefail
+          # Explicitly check and report which secret(s) are missing (names only; values are masked)
+          missing=0
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "Error: SUPABASE_URL is not set"
+            missing=1
+          fi
+          if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "Error: SUPABASE_SERVICE_ROLE_KEY is not set"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
             exit 1
           fi
 
           echo "Triggering process-embeddings worker..."
 
-          response=$(curl -s -w "\n%{http_code}" \
+          response=$(curl -sS -w "\n%{http_code}" \
             -X POST \
             -H "Content-Type: application/json" \
             -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
             -d '{"batch_size": 10, "triggered_by": "github-actions"}' \
-            "${SUPABASE_URL}/functions/v1/process-embeddings")
+            "${SUPABASE_URL%/}/functions/v1/process-embeddings")
 
           # Extract status code from last line
           http_code=$(echo "$response" | tail -n1)
