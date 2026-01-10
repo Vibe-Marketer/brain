@@ -674,10 +674,7 @@ Deno.serve(async (req) => {
 
       return new Response(
         JSON.stringify({
-          error: 'Invalid signature',
-          verification_results: verificationResults,
-          signature_debug: signatureDebugInfo,
-          hint: 'Check logs for which secrets were tested and their results'
+          error: 'Invalid signature'
         }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
