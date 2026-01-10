@@ -118,6 +118,115 @@ CREATE TABLE IF NOT EXISTS public.automation_execution_history (
 );
 
 -- ============================================================================
+-- TABLE: automation_rule_conditions
+-- ============================================================================
+-- Junction table for rule conditions with support for nested AND/OR groups
+CREATE TABLE IF NOT EXISTS public.automation_rule_conditions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rule_id UUID NOT NULL REFERENCES automation_rules(id) ON DELETE CASCADE,
+
+  -- Position for ordering conditions
+  position INT NOT NULL DEFAULT 0,
+
+  -- Condition type and configuration
+  condition_type TEXT NOT NULL CHECK (condition_type IN (
+    'field',              -- Evaluate a call field (duration, title, etc.)
+    'transcript',         -- Search transcript content
+    'participant',        -- Match participant email/name
+    'category',           -- Check assigned category
+    'tag',                -- Check assigned tags
+    'sentiment',          -- Sentiment evaluation (requires AI)
+    'time',               -- Time-based conditions (day of week, hour, etc.)
+    'custom'              -- Custom condition with arbitrary logic
+  )),
+
+  -- Field to evaluate (for field/time conditions)
+  field_name TEXT, -- e.g., 'duration_minutes', 'title', 'participant_count'
+
+  -- Comparison operator
+  operator TEXT NOT NULL CHECK (operator IN (
+    '=', '!=', '>', '>=', '<', '<=',  -- Numeric/string comparisons
+    'contains', 'not_contains',        -- String containment
+    'starts_with', 'ends_with',        -- String patterns
+    'matches', 'not_matches',          -- Regex patterns
+    'in', 'not_in',                    -- Array membership
+    'is_empty', 'is_not_empty',        -- Null/empty checks
+    'between'                          -- Range checks
+  )),
+
+  -- Value to compare against (JSON for flexibility)
+  value JSONB NOT NULL DEFAULT '{}',
+  -- Examples:
+  -- Numeric: {"value": 30}
+  -- String: {"value": "sales"}
+  -- Array (in/not_in): {"values": ["team", "coaching"]}
+  -- Range (between): {"min": 30, "max": 60}
+  -- Regex (matches): {"pattern": "^pricing.*discussion$", "flags": "i"}
+
+  -- Nested group support (for AND/OR logic)
+  parent_condition_id UUID REFERENCES automation_rule_conditions(id) ON DELETE CASCADE,
+  logic_operator TEXT CHECK (logic_operator IN ('AND', 'OR')),
+  -- When logic_operator is set, this condition acts as a group container
+  -- Child conditions reference this via parent_condition_id
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================================
+-- TABLE: automation_rule_actions
+-- ============================================================================
+-- Junction table for rule actions with execution order
+CREATE TABLE IF NOT EXISTS public.automation_rule_actions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  rule_id UUID NOT NULL REFERENCES automation_rules(id) ON DELETE CASCADE,
+
+  -- Position for execution order
+  position INT NOT NULL DEFAULT 0,
+
+  -- Action type
+  action_type TEXT NOT NULL CHECK (action_type IN (
+    'email',                 -- Send email notification
+    'add_to_folder',         -- Add call to a folder
+    'remove_from_folder',    -- Remove call from a folder
+    'add_tag',               -- Add tag to call
+    'remove_tag',            -- Remove tag from call
+    'set_category',          -- Set call category
+    'run_ai_analysis',       -- Trigger AI analysis (summary, action items, etc.)
+    'update_client_health',  -- Update client health score
+    'webhook',               -- Send webhook to external URL
+    'create_task',           -- Create a task/todo item
+    'slack_notification',    -- Send Slack message
+    'custom'                 -- Custom action handler
+  )),
+
+  -- Action configuration (JSON for flexibility)
+  config JSONB NOT NULL DEFAULT '{}',
+  -- Examples by action_type:
+  -- email: {"to": "{{user.email}}", "subject": "Alert: {{call.title}}", "template": "alert", "body": "..."}
+  -- add_to_folder: {"folder_id": "uuid-here"}
+  -- add_tag: {"tag_id": "uuid-here"}
+  -- set_category: {"category_id": "uuid-here"}
+  -- run_ai_analysis: {"analysis_type": "extract_action_items", "model": "gpt-4o"}
+  -- update_client_health: {"adjustment": -10, "reason": "Negative sentiment detected"}
+  -- webhook: {"url": "https://...", "method": "POST", "headers": {...}, "body_template": "..."}
+  -- slack_notification: {"channel": "#alerts", "message": "{{call.title}} needs attention"}
+
+  -- Action state
+  enabled BOOLEAN NOT NULL DEFAULT true,
+
+  -- Error handling
+  continue_on_error BOOLEAN NOT NULL DEFAULT true, -- Continue to next action if this fails
+  retry_count INT NOT NULL DEFAULT 0,              -- Number of retries on failure
+  retry_delay_seconds INT NOT NULL DEFAULT 60,     -- Delay between retries
+
+  -- Timestamps
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================================
 -- INDEXES
 -- ============================================================================
 -- Performance indexes for common query patterns
@@ -154,11 +263,39 @@ CREATE INDEX IF NOT EXISTS idx_automation_execution_history_rule_triggered
 CREATE INDEX IF NOT EXISTS idx_automation_execution_history_user_triggered
   ON automation_execution_history(user_id, triggered_at DESC);
 
+-- automation_rule_conditions indexes
+CREATE INDEX IF NOT EXISTS idx_automation_rule_conditions_rule_id
+  ON automation_rule_conditions(rule_id);
+
+CREATE INDEX IF NOT EXISTS idx_automation_rule_conditions_rule_position
+  ON automation_rule_conditions(rule_id, position);
+
+CREATE INDEX IF NOT EXISTS idx_automation_rule_conditions_parent
+  ON automation_rule_conditions(parent_condition_id);
+
+CREATE INDEX IF NOT EXISTS idx_automation_rule_conditions_type
+  ON automation_rule_conditions(condition_type);
+
+-- automation_rule_actions indexes
+CREATE INDEX IF NOT EXISTS idx_automation_rule_actions_rule_id
+  ON automation_rule_actions(rule_id);
+
+CREATE INDEX IF NOT EXISTS idx_automation_rule_actions_rule_position
+  ON automation_rule_actions(rule_id, position);
+
+CREATE INDEX IF NOT EXISTS idx_automation_rule_actions_type
+  ON automation_rule_actions(action_type);
+
+CREATE INDEX IF NOT EXISTS idx_automation_rule_actions_enabled
+  ON automation_rule_actions(rule_id, enabled);
+
 -- ============================================================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================================================
 ALTER TABLE automation_rules ENABLE ROW LEVEL SECURITY;
 ALTER TABLE automation_execution_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE automation_rule_conditions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE automation_rule_actions ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
 -- RLS POLICIES: automation_rules
@@ -208,6 +345,106 @@ CREATE POLICY "Users can insert their own execution history"
   WITH CHECK (auth.uid() = user_id);
 
 -- ============================================================================
+-- RLS POLICIES: automation_rule_conditions
+-- ============================================================================
+-- Conditions are accessed via their parent rule's user_id
+
+-- Policy: Users can view conditions for their own rules
+CREATE POLICY "Users can view conditions for their own rules"
+  ON automation_rule_conditions
+  FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM automation_rules
+    WHERE automation_rules.id = automation_rule_conditions.rule_id
+    AND automation_rules.user_id = auth.uid()
+  ));
+
+-- Policy: Users can create conditions for their own rules
+CREATE POLICY "Users can create conditions for their own rules"
+  ON automation_rule_conditions
+  FOR INSERT
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM automation_rules
+    WHERE automation_rules.id = automation_rule_conditions.rule_id
+    AND automation_rules.user_id = auth.uid()
+  ));
+
+-- Policy: Users can update conditions for their own rules
+CREATE POLICY "Users can update conditions for their own rules"
+  ON automation_rule_conditions
+  FOR UPDATE
+  USING (EXISTS (
+    SELECT 1 FROM automation_rules
+    WHERE automation_rules.id = automation_rule_conditions.rule_id
+    AND automation_rules.user_id = auth.uid()
+  ))
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM automation_rules
+    WHERE automation_rules.id = automation_rule_conditions.rule_id
+    AND automation_rules.user_id = auth.uid()
+  ));
+
+-- Policy: Users can delete conditions for their own rules
+CREATE POLICY "Users can delete conditions for their own rules"
+  ON automation_rule_conditions
+  FOR DELETE
+  USING (EXISTS (
+    SELECT 1 FROM automation_rules
+    WHERE automation_rules.id = automation_rule_conditions.rule_id
+    AND automation_rules.user_id = auth.uid()
+  ));
+
+-- ============================================================================
+-- RLS POLICIES: automation_rule_actions
+-- ============================================================================
+-- Actions are accessed via their parent rule's user_id
+
+-- Policy: Users can view actions for their own rules
+CREATE POLICY "Users can view actions for their own rules"
+  ON automation_rule_actions
+  FOR SELECT
+  USING (EXISTS (
+    SELECT 1 FROM automation_rules
+    WHERE automation_rules.id = automation_rule_actions.rule_id
+    AND automation_rules.user_id = auth.uid()
+  ));
+
+-- Policy: Users can create actions for their own rules
+CREATE POLICY "Users can create actions for their own rules"
+  ON automation_rule_actions
+  FOR INSERT
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM automation_rules
+    WHERE automation_rules.id = automation_rule_actions.rule_id
+    AND automation_rules.user_id = auth.uid()
+  ));
+
+-- Policy: Users can update actions for their own rules
+CREATE POLICY "Users can update actions for their own rules"
+  ON automation_rule_actions
+  FOR UPDATE
+  USING (EXISTS (
+    SELECT 1 FROM automation_rules
+    WHERE automation_rules.id = automation_rule_actions.rule_id
+    AND automation_rules.user_id = auth.uid()
+  ))
+  WITH CHECK (EXISTS (
+    SELECT 1 FROM automation_rules
+    WHERE automation_rules.id = automation_rule_actions.rule_id
+    AND automation_rules.user_id = auth.uid()
+  ));
+
+-- Policy: Users can delete actions for their own rules
+CREATE POLICY "Users can delete actions for their own rules"
+  ON automation_rule_actions
+  FOR DELETE
+  USING (EXISTS (
+    SELECT 1 FROM automation_rules
+    WHERE automation_rules.id = automation_rule_actions.rule_id
+    AND automation_rules.user_id = auth.uid()
+  ));
+
+-- ============================================================================
 -- TRIGGERS: updated_at
 -- ============================================================================
 
@@ -227,11 +464,27 @@ CREATE TRIGGER update_automation_rules_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+-- Add updated_at trigger for automation_rule_conditions
+DROP TRIGGER IF EXISTS update_automation_rule_conditions_updated_at ON automation_rule_conditions;
+CREATE TRIGGER update_automation_rule_conditions_updated_at
+  BEFORE UPDATE ON automation_rule_conditions
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- Add updated_at trigger for automation_rule_actions
+DROP TRIGGER IF EXISTS update_automation_rule_actions_updated_at ON automation_rule_actions;
+CREATE TRIGGER update_automation_rule_actions_updated_at
+  BEFORE UPDATE ON automation_rule_actions
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
 -- ============================================================================
 -- GRANTS
 -- ============================================================================
 GRANT ALL ON public.automation_rules TO authenticated;
 GRANT ALL ON public.automation_execution_history TO authenticated;
+GRANT ALL ON public.automation_rule_conditions TO authenticated;
+GRANT ALL ON public.automation_rule_actions TO authenticated;
 
 -- ============================================================================
 -- COMMENTS
@@ -262,6 +515,45 @@ COMMENT ON COLUMN automation_execution_history.debug_info IS
 
 COMMENT ON COLUMN automation_execution_history.trigger_source IS
   'JSON object identifying what triggered the rule (recording_id, webhook_event, schedule, etc.)';
+
+COMMENT ON TABLE automation_rule_conditions IS
+  'Junction table storing individual conditions for automation rules with AND/OR logic support.';
+
+COMMENT ON COLUMN automation_rule_conditions.condition_type IS
+  'Type of condition: field, transcript, participant, category, tag, sentiment, time, custom';
+
+COMMENT ON COLUMN automation_rule_conditions.field_name IS
+  'Field name to evaluate (e.g., duration_minutes, title, participant_count)';
+
+COMMENT ON COLUMN automation_rule_conditions.operator IS
+  'Comparison operator: =, !=, >, >=, <, <=, contains, matches, in, between, etc.';
+
+COMMENT ON COLUMN automation_rule_conditions.value IS
+  'JSON value to compare against. Structure depends on operator (single value, array, range).';
+
+COMMENT ON COLUMN automation_rule_conditions.parent_condition_id IS
+  'Reference to parent condition for nested AND/OR groups. NULL for top-level conditions.';
+
+COMMENT ON COLUMN automation_rule_conditions.logic_operator IS
+  'Logic operator (AND/OR) when this condition acts as a group container.';
+
+COMMENT ON TABLE automation_rule_actions IS
+  'Junction table storing individual actions for automation rules with execution order.';
+
+COMMENT ON COLUMN automation_rule_actions.action_type IS
+  'Type of action: email, add_to_folder, add_tag, run_ai_analysis, update_client_health, webhook, etc.';
+
+COMMENT ON COLUMN automation_rule_actions.config IS
+  'JSON configuration for the action (to, subject, folder_id, etc.). Structure depends on action_type.';
+
+COMMENT ON COLUMN automation_rule_actions.position IS
+  'Execution order position. Actions are executed in ascending position order.';
+
+COMMENT ON COLUMN automation_rule_actions.continue_on_error IS
+  'Whether to continue executing subsequent actions if this action fails.';
+
+COMMENT ON COLUMN automation_rule_actions.retry_count IS
+  'Number of times to retry this action on failure.';
 
 -- ============================================================================
 -- END OF MIGRATION
