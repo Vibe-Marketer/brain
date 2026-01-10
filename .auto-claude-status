@@ -3,23 +3,23 @@
   "spec": "015-extend-search-filter-syntax-with-tag-folder-suppor",
   "state": "building",
   "subtasks": {
-    "completed": 5,
+    "completed": 12,
     "total": 15,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Implement Filter Conversion",
+    "current": "Unit Tests",
     "id": null,
-    "total": 2
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 7,
+    "number": 14,
     "started_at": "2026-01-10T02:03:37.247011"
   },
-  "last_update": "2026-01-10T02:13:06.648311"
+  "last_update": "2026-01-10T02:24:15.907101"
 }
