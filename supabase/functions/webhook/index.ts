@@ -502,8 +502,7 @@ Deno.serve(async (req) => {
     const clonedReq = req.clone();
     const rawBody = await clonedReq.text();
     console.log('Raw body length:', rawBody.length);
-    console.log('Raw body preview:', rawBody.substring(0, 200));
-    
+
     // Parse body to get meeting email for webhook secret lookup
     meeting = JSON.parse(rawBody);
     

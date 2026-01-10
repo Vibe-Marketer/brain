@@ -9,17 +9,17 @@
     "failed": 0
   },
   "phase": {
-    "current": "Remove Secret and Signature Logging",
+    "current": "Remove Raw Body and Headers Logging",
     "id": null,
-    "total": 4
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 5,
+    "number": 8,
     "started_at": "2026-01-10T03:06:27.617471"
   },
-  "last_update": "2026-01-10T03:14:30.888348"
+  "last_update": "2026-01-10T03:20:10.645135"
 }
