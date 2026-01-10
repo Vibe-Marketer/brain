@@ -3,11 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RiVideoLine, RiFlashlightLine } from "@remixicon/react";
+import { RiVideoLine, RiFlashlightLine, RiGoogleLine } from "@remixicon/react";
 import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
 import IntegrationStatusCard from "./IntegrationStatusCard";
 import FathomSetupWizard from "./FathomSetupWizard";
-import ZoomSetupWizard from "./ZoomSetupWizard";
+import GoogleMeetSetupWizard from "./GoogleMeetSetupWizard";
 import SourcePriorityModal from "./SourcePriorityModal";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl } from "@/lib/api-client";
@@ -17,11 +17,16 @@ import { getSafeUser } from "@/lib/auth-utils";
 
 export default function IntegrationsTab() {
   const [fathomConnected, setFathomConnected] = useState(false);
-  const [zoomConnected, setZoomConnected] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
-  const [showZoomWizard, setShowZoomWizard] = useState(false);
-  const [showSourcePriorityModal, setShowSourcePriorityModal] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Google Meet state
+  const [googleMeetConnected, setGoogleMeetConnected] = useState(false);
+  const [showGoogleMeetWizard, setShowGoogleMeetWizard] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState("");
+
+  // Source Priority Modal state (shown when 2nd integration connected)
+  const [showSourcePriorityModal, setShowSourcePriorityModal] = useState(false);
 
   // Edit credentials state
   const [showEditCredentials, setShowEditCredentials] = useState(false);
@@ -31,9 +36,6 @@ export default function IntegrationsTab() {
   const [savingCredentials, setSavingCredentials] = useState(false);
   const [oauthConnecting, setOauthConnecting] = useState(false);
   const [hasOAuth, setHasOAuth] = useState(false);
-
-  // Track if we should show source priority modal after connecting
-  const [pendingSourcePriorityCheck, setPendingSourcePriorityCheck] = useState(false);
 
   useEffect(() => {
     loadIntegrationStatus();
@@ -46,23 +48,25 @@ export default function IntegrationsTab() {
 
       const { data: settings } = await supabase
         .from("user_settings")
-        .select("fathom_api_key, webhook_secret, oauth_access_token, zoom_oauth_access_token, dedup_priority_mode")
+        .select("fathom_api_key, webhook_secret, oauth_access_token, google_oauth_access_token, google_oauth_email, dedup_platform_order")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      // Consider Fathom connected if either API key or OAuth token exists
+      // Consider connected if either API key or OAuth token exists
       const isFathomConnected = !!(settings?.fathom_api_key || settings?.oauth_access_token);
+      const isGoogleConnected = !!settings?.google_oauth_access_token;
+
+      // Track previous connection state before updating
+      const wasFathomConnected = fathomConnected;
+      const wasGoogleConnected = googleMeetConnected;
+
       setFathomConnected(isFathomConnected);
       setHasOAuth(!!settings?.oauth_access_token);
 
-      // Consider Zoom connected if OAuth token exists
-      const isZoomConnected = !!settings?.zoom_oauth_access_token;
-      setZoomConnected(isZoomConnected);
-
-      // Check if we need to show source priority modal (both connected, no preference set)
-      if (pendingSourcePriorityCheck && isFathomConnected && isZoomConnected && !settings?.dedup_priority_mode) {
-        setShowSourcePriorityModal(true);
-        setPendingSourcePriorityCheck(false);
+      // Check Google Meet connection status
+      setGoogleMeetConnected(isGoogleConnected);
+      if (settings?.google_oauth_email) {
+        setGoogleEmail(settings.google_oauth_email);
       }
 
       // Load current credentials (masked for display)
@@ -71,6 +75,16 @@ export default function IntegrationsTab() {
       }
       if (settings?.webhook_secret) {
         setWebhookSecret(settings.webhook_secret);
+      }
+
+      // Show SourcePriorityModal when both integrations are now connected for the first time
+      // This handles the case when user returns from OAuth callback
+      const bothNowConnected = isFathomConnected && isGoogleConnected;
+      const hasNoPreferences = !settings?.dedup_platform_order || settings.dedup_platform_order.length === 0;
+      const isSecondIntegrationJustConnected = bothNowConnected && (!wasFathomConnected || !wasGoogleConnected);
+
+      if (isSecondIntegrationJustConnected && hasNoPreferences) {
+        setShowSourcePriorityModal(true);
       }
     } catch (error) {
       logger.error("Error loading integration status", error);
@@ -83,26 +97,26 @@ export default function IntegrationsTab() {
     setShowWizard(true);
   };
 
-  const handleZoomConnect = () => {
-    // If Fathom is already connected, we'll need to show source priority modal after
-    if (fathomConnected) {
-      setPendingSourcePriorityCheck(true);
-    }
-    setShowZoomWizard(true);
-  };
-
   const handleWizardComplete = async () => {
     setShowWizard(false);
-    // If Zoom was already connected before this, check for source priority modal
-    if (zoomConnected) {
-      setPendingSourcePriorityCheck(true);
-    }
     await loadIntegrationStatus(); // Refresh status after wizard completion
+    // Show SourcePriorityModal if Google Meet is already connected (this is the 2nd integration)
+    if (googleMeetConnected) {
+      setShowSourcePriorityModal(true);
+    }
   };
 
-  const handleZoomWizardComplete = async () => {
-    setShowZoomWizard(false);
+  const handleGoogleMeetConnect = () => {
+    setShowGoogleMeetWizard(true);
+  };
+
+  const handleGoogleMeetWizardComplete = async () => {
+    setShowGoogleMeetWizard(false);
     await loadIntegrationStatus(); // Refresh status after wizard completion
+    // Show SourcePriorityModal if Fathom is already connected (this is the 2nd integration)
+    if (fathomConnected) {
+      setShowSourcePriorityModal(true);
+    }
   };
 
   const handleSaveCredentials = async () => {
@@ -202,29 +216,6 @@ export default function IntegrationsTab() {
             status={fathomConnected ? "connected" : "disconnected"}
             onConnect={handleFathomConnect}
             description="Automatic meeting sync and AI-powered insights"
-          />
-        </div>
-      </div>
-
-      <Separator className="my-16" />
-
-      {/* Zoom Integration Section */}
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-            Zoom Integration
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Sync cloud recordings directly from your Zoom account
-          </p>
-        </div>
-        <div className="lg:col-span-2">
-          <IntegrationStatusCard
-            name="Zoom"
-            icon={RiVideoLine}
-            status={zoomConnected ? "connected" : "disconnected"}
-            onConnect={handleZoomConnect}
-            description="Cloud recordings with native Zoom transcripts"
           />
         </div>
       </div>
@@ -345,6 +336,32 @@ export default function IntegrationsTab() {
         </>
       )}
 
+      {/* Google Meet Integration Section */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+            Google Meet Integration
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+            Sync recordings and transcripts from Google Meet
+          </p>
+        </div>
+        <div className="lg:col-span-2">
+          <IntegrationStatusCard
+            name="Google Meet"
+            icon={RiGoogleLine}
+            status={googleMeetConnected ? "connected" : "disconnected"}
+            onConnect={handleGoogleMeetConnect}
+            description={googleMeetConnected && googleEmail
+              ? `Connected as ${googleEmail}`
+              : "Calendar discovery and recording sync"
+            }
+          />
+        </div>
+      </div>
+
+      <Separator className="my-16" />
+
       {/* Coming Soon Integrations Section */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
@@ -356,6 +373,12 @@ export default function IntegrationsTab() {
           </p>
         </div>
         <div className="lg:col-span-2 space-y-0">
+          <IntegrationStatusCard
+            name="Zoom"
+            icon={RiVideoLine}
+            status="coming-soon"
+            description="Direct Zoom meeting integration"
+          />
           <IntegrationStatusCard
             name="GoHighLevel"
             icon={RiFlashlightLine}
@@ -374,19 +397,25 @@ export default function IntegrationsTab() {
         />
       )}
 
-      {showZoomWizard && (
-        <ZoomSetupWizard
-          open={showZoomWizard}
-          onComplete={handleZoomWizardComplete}
-          onDismiss={() => setShowZoomWizard(false)}
+      {showGoogleMeetWizard && (
+        <GoogleMeetSetupWizard
+          open={showGoogleMeetWizard}
+          onComplete={handleGoogleMeetWizardComplete}
+          onDismiss={() => setShowGoogleMeetWizard(false)}
         />
       )}
 
-      <SourcePriorityModal
-        open={showSourcePriorityModal}
-        onOpenChange={setShowSourcePriorityModal}
-        onComplete={() => loadIntegrationStatus()}
-      />
+      {showSourcePriorityModal && (
+        <SourcePriorityModal
+          open={showSourcePriorityModal}
+          onComplete={() => setShowSourcePriorityModal(false)}
+          onDismiss={() => setShowSourcePriorityModal(false)}
+          connectedPlatforms={[
+            ...(fathomConnected ? ["fathom"] : []),
+            ...(googleMeetConnected ? ["google_meet"] : []),
+          ]}
+        />
+      )}
     </div>
   );
 }

@@ -51,10 +51,15 @@ export interface Meeting {
   synced_at?: string;
   auto_tags?: string[] | null;
   // Multi-source deduplication fields
-  source_platform?: string | null;
-  merged_from?: number[] | null;
+  meeting_fingerprint?: string | null;
+  source_platform?: 'fathom' | 'google_meet' | null;
   is_primary?: boolean | null;
-  ai_generated_title?: string | null;
+  merged_from?: number[] | null;
+  fuzzy_match_score?: number | null;
+  // Google-specific source identifiers
+  google_calendar_event_id?: string | null;
+  google_drive_file_id?: string | null;
+  transcript_source?: 'native' | 'whisper' | null;
 }
 
 export interface MeetingWithTranscripts extends Meeting {

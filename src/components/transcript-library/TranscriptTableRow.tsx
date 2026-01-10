@@ -7,8 +7,7 @@ import {
   RiPriceTag3Line,
   RiDownloadLine,
   RiFolderLine,
-  RiStackLine,
-  RiVideoLine
+  RiStackLine
 } from "@remixicon/react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -90,35 +89,20 @@ export function TranscriptTableRow({
       </TableCell>
       <TableCell className="py-0.5 whitespace-nowrap">
         <div className="space-y-0">
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={onCallClick}
-              className="text-left hover:underline font-semibold text-xs md:text-sm truncate block max-w-[180px] md:max-w-[220px]"
-            >
-              {call.title}
-            </button>
-            {/* Source platform icon */}
-            {call.source_platform && (
-              <span
-                className="text-muted-foreground flex-shrink-0"
-                title={`Source: ${call.source_platform === 'zoom' ? 'Zoom' : 'Fathom'}`}
-              >
-                <RiVideoLine className="h-3 w-3" />
-              </span>
-            )}
-            {/* Merged sources badge */}
-            {call.merged_from && call.merged_from.length > 0 && (
-              <Badge
-                variant="outline"
-                className="text-[9px] md:text-[10px] px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0 flex items-center gap-0.5"
-                title={`This meeting was synced from ${call.merged_from.length + 1} sources`}
-              >
+          <button
+            onClick={onCallClick}
+            className="text-left hover:underline font-semibold text-xs md:text-sm truncate block max-w-[200px] md:max-w-[250px]"
+          >
+            {call.title}
+          </button>
+          <div className="flex items-center gap-1 mt-0.5">
+            {/* Sources badge for merged meetings - only show for primary records */}
+            {call.is_primary && call.merged_from && call.merged_from.length > 0 && (
+              <Badge variant="outline" className="text-[9px] md:text-[10px] px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0 flex items-center gap-0.5">
                 <RiStackLine className="h-2.5 w-2.5" />
-                <span>{call.merged_from.length + 1} sources</span>
+                {call.merged_from.length + 1} sources
               </Badge>
             )}
-          </div>
-          <div className="flex items-center gap-1 mt-0.5">
             {(() => {
               // Only show "NO TRANSCRIPT" badge for SYNCED meetings where we can verify
               if (!isUnsyncedView) {

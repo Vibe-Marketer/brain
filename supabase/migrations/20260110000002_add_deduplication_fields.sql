@@ -1,83 +1,68 @@
--- Migration: Add deduplication fields to fathom_calls table
--- Purpose: Enable multi-source meeting deduplication across Fathom, Zoom, etc.
--- Author: Claude Code
--- Date: 2026-01-10
+-- Add deduplication and Google Meet source fields to fathom_calls table
+-- This migration enables multi-source meeting deduplication per SPEC-multi-source-deduplication.md
 
--- ============================================================================
--- ADD DEDUPLICATION COLUMNS TO FATHOM_CALLS
--- ============================================================================
--- These columns enable identifying and merging duplicate meetings from multiple
--- recording sources (Fathom, Zoom, etc.) based on meeting characteristics.
-
--- Add meeting fingerprint
--- A computed hash/fingerprint based on normalized title, time bucket, and participants
--- Used to identify potential duplicate meetings across sources
+-- Deduplication core columns
 ALTER TABLE public.fathom_calls
-ADD COLUMN IF NOT EXISTS meeting_fingerprint TEXT;
-
--- Add source platform identifier
--- Indicates which platform the recording came from (fathom, zoom, etc.)
--- Defaults to 'fathom' for backwards compatibility with existing records
-ALTER TABLE public.fathom_calls
-ADD COLUMN IF NOT EXISTS source_platform TEXT DEFAULT 'fathom';
-
--- Add primary record flag
--- When duplicates are found, one record is marked as primary (visible in UI)
--- Secondary records are kept for data completeness but hidden from main views
-ALTER TABLE public.fathom_calls
-ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT true;
-
--- Add merged_from array
--- Stores recording_ids of duplicate meetings that were merged into this primary record
--- Allows tracing back to original sources and their metadata
-ALTER TABLE public.fathom_calls
-ADD COLUMN IF NOT EXISTS merged_from BIGINT[];
-
--- Add fuzzy match score
--- Stores the confidence score (0-100) of the duplicate detection algorithm
--- Higher scores indicate stronger match confidence
-ALTER TABLE public.fathom_calls
+ADD COLUMN IF NOT EXISTS meeting_fingerprint TEXT,
+ADD COLUMN IF NOT EXISTS source_platform TEXT DEFAULT 'fathom',
+ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT true,
+ADD COLUMN IF NOT EXISTS merged_from BIGINT[] DEFAULT '{}',
 ADD COLUMN IF NOT EXISTS fuzzy_match_score NUMERIC;
 
--- ============================================================================
--- INDEXES
--- ============================================================================
--- Create index for efficient fingerprint lookups on primary records
--- Most queries will filter for is_primary = true when checking for duplicates
+-- Google-specific source identifiers for correlation
+ALTER TABLE public.fathom_calls
+ADD COLUMN IF NOT EXISTS google_calendar_event_id TEXT,
+ADD COLUMN IF NOT EXISTS google_drive_file_id TEXT,
+ADD COLUMN IF NOT EXISTS transcript_source TEXT DEFAULT 'native';
 
-CREATE INDEX IF NOT EXISTS idx_meeting_fingerprint
-ON public.fathom_calls(meeting_fingerprint)
-WHERE is_primary = true;
+-- Add comments for documentation
+COMMENT ON COLUMN public.fathom_calls.meeting_fingerprint IS 'SHA-256 hash of normalized title + time bucket + participant hash for duplicate detection';
+COMMENT ON COLUMN public.fathom_calls.source_platform IS 'Origin platform of the meeting: fathom, google_meet, zoom, etc.';
+COMMENT ON COLUMN public.fathom_calls.is_primary IS 'True if this is the primary record for a deduplicated meeting group';
+COMMENT ON COLUMN public.fathom_calls.merged_from IS 'Array of recording_ids that were merged into this primary record';
+COMMENT ON COLUMN public.fathom_calls.fuzzy_match_score IS 'Confidence score (0-1) of the duplicate match when merged';
+COMMENT ON COLUMN public.fathom_calls.google_calendar_event_id IS 'Google Calendar event ID for Google Meet sourced meetings';
+COMMENT ON COLUMN public.fathom_calls.google_drive_file_id IS 'Google Drive file ID for the recording file';
+COMMENT ON COLUMN public.fathom_calls.transcript_source IS 'Source of transcript: native (from platform), whisper (AI-generated)';
 
--- Create index on source_platform for filtering by source
-CREATE INDEX IF NOT EXISTS idx_fathom_calls_source_platform
-ON public.fathom_calls(source_platform);
+-- Create indexes for fast duplicate lookups
+-- Partial index on fingerprint for primary records only - most common query pattern
+CREATE INDEX IF NOT EXISTS idx_meeting_fingerprint ON public.fathom_calls(meeting_fingerprint)
+  WHERE is_primary = true;
 
--- Create index on is_primary for filtering primary vs secondary records
-CREATE INDEX IF NOT EXISTS idx_fathom_calls_is_primary
-ON public.fathom_calls(is_primary)
-WHERE is_primary = false;
+-- Index for filtering by source platform
+CREATE INDEX IF NOT EXISTS idx_source_platform ON public.fathom_calls(source_platform);
 
--- ============================================================================
--- COMMENTS
--- ============================================================================
--- Add helpful comments to the new columns
+-- Index for Google Calendar event correlation
+CREATE INDEX IF NOT EXISTS idx_google_calendar_event ON public.fathom_calls(google_calendar_event_id)
+  WHERE google_calendar_event_id IS NOT NULL;
 
-COMMENT ON COLUMN public.fathom_calls.meeting_fingerprint IS
-  'Computed fingerprint for deduplication: hash of normalized title, time bucket, participants';
+-- Index for Google Drive file correlation
+CREATE INDEX IF NOT EXISTS idx_google_drive_file ON public.fathom_calls(google_drive_file_id)
+  WHERE google_drive_file_id IS NOT NULL;
 
-COMMENT ON COLUMN public.fathom_calls.source_platform IS
-  'Recording source platform identifier: fathom, zoom, etc. Defaults to fathom.';
+-- Add constraint to validate source_platform values
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fathom_calls_source_platform_check'
+    ) THEN
+        ALTER TABLE public.fathom_calls
+        ADD CONSTRAINT fathom_calls_source_platform_check
+        CHECK (source_platform IN ('fathom', 'google_meet', 'zoom', 'other'));
+    END IF;
+END $$;
 
-COMMENT ON COLUMN public.fathom_calls.is_primary IS
-  'Primary record flag for deduplication. Primary records show in UI, secondary are hidden.';
-
-COMMENT ON COLUMN public.fathom_calls.merged_from IS
-  'Array of recording_ids that were identified as duplicates and merged into this record.';
-
-COMMENT ON COLUMN public.fathom_calls.fuzzy_match_score IS
-  'Confidence score (0-100) from the duplicate detection algorithm.';
-
--- ============================================================================
--- END OF MIGRATION
--- ============================================================================
+-- Add constraint to validate transcript_source values
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint
+        WHERE conname = 'fathom_calls_transcript_source_check'
+    ) THEN
+        ALTER TABLE public.fathom_calls
+        ADD CONSTRAINT fathom_calls_transcript_source_check
+        CHECK (transcript_source IN ('native', 'whisper'));
+    END IF;
+END $$;

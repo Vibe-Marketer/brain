@@ -290,11 +290,12 @@ export function TranscriptsTab({
     },
   });
 
-  // Filter by selected folder and/or folder search syntax
+  // Filter by selected folder
+  // Note: Deduplication merged_from data is passed through to TranscriptTableRow
+  // which displays "X sources" badge for primary records with merged duplicates
   const validCalls = useMemo(() => {
     let filtered = calls.filter(c => c && c.recording_id != null);
 
-    // Sidebar folder selection filter
     if (selectedFolderId) {
       filtered = filtered.filter(call => {
         const callFolders = folderAssignments[call.recording_id] || [];
@@ -302,28 +303,8 @@ export function TranscriptsTab({
       });
     }
 
-    // Search syntax folder filter (e.g., folder:clients)
-    // Resolve folder names to IDs and filter transcripts
-    if (combinedFilters.folders && combinedFilters.folders.length > 0) {
-      // Map folder names to IDs (case-insensitive match)
-      const folderIds = combinedFilters.folders
-        .map(folderName => folders.find(f => f.name.toLowerCase() === folderName.toLowerCase())?.id)
-        .filter((id): id is string => id !== undefined);
-
-      if (folderIds.length > 0) {
-        filtered = filtered.filter(call => {
-          const callFolders = folderAssignments[call.recording_id] || [];
-          // Transcript must be in at least one of the specified folders
-          return folderIds.some(folderId => callFolders.includes(folderId));
-        });
-      } else {
-        // No valid folder names matched - return empty results
-        return [];
-      }
-    }
-
     return filtered;
-  }, [calls, selectedFolderId, folderAssignments, combinedFilters.folders, folders]);
+  }, [calls, selectedFolderId, folderAssignments]);
 
   // Fetch tag assignments for displayed calls
   const { data: tagAssignments = {} } = useQuery({
