@@ -29,11 +29,13 @@ export interface SearchSyntax {
 
 /**
  * Parse search query for syntax like:
- * - participant:john
- * - date:today | date:yesterday | date:week | date:2024-01-01
- * - category:sales
- * - duration:>30 | duration:<15 | duration:30-60
- * - status:synced | status:unsynced
+ * - participant:john (shortcut: p:john)
+ * - date:today | date:yesterday | date:week | date:2024-01-01 (shortcut: d:)
+ * - category:sales (shortcut: cat: or c:)
+ * - duration:>30 | duration:<15 | duration:30-60 (shortcut: dur:)
+ * - status:synced | status:unsynced (shortcut: s:)
+ * - tag:important | tag:followup (shortcut: t:important)
+ * - folder:clients | folder:personal (shortcut: f:clients)
  */
 export function parseSearchSyntax(query: string): SearchSyntax {
   const result: SearchSyntax = {
