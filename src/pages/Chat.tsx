@@ -70,6 +70,42 @@ import { cn } from "@/lib/utils";
 import { getUserFriendlyError, ErrorContexts } from "@/lib/user-friendly-errors";
 import { toast } from "sonner";
 
+// Helper to detect rate limit errors
+function isRateLimitError(error: unknown): boolean {
+  const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  return (
+    errorMessage.includes('rate limit') ||
+    errorMessage.includes('too many requests') ||
+    errorMessage.includes('429')
+  );
+}
+
+// Helper to extract retry-after seconds from error (default to 30 seconds if not specified)
+function extractRetryAfterSeconds(error: unknown): number {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+
+  // Try to extract retry-after from various formats
+  // e.g., "retry after 30 seconds", "retry-after: 30", "wait 30s"
+  const patterns = [
+    /retry[- ]?after[:\s]+(\d+)/i,
+    /wait\s+(\d+)\s*s/i,
+    /(\d+)\s*seconds?/i,
+  ];
+
+  for (const pattern of patterns) {
+    const match = errorMessage.match(pattern);
+    if (match && match[1]) {
+      const seconds = parseInt(match[1], 10);
+      if (!isNaN(seconds) && seconds > 0 && seconds <= 300) { // Cap at 5 minutes
+        return seconds;
+      }
+    }
+  }
+
+  // Default to 30 seconds if no retry-after specified
+  return 30;
+}
+
 interface ChatFilters {
   dateStart?: Date;
   dateEnd?: Date;
@@ -297,6 +333,11 @@ export default function Chat() {
     return [];
   });
 
+  // Rate limit cooldown state
+  const [rateLimitCooldownEnd, setRateLimitCooldownEnd] = React.useState<number | null>(null);
+  const [rateLimitSeconds, setRateLimitSeconds] = React.useState<number>(0);
+  const rateLimitToastIdRef = React.useRef<string | number | null>(null);
+
   // Ref to track current session ID for async callbacks (avoids stale closure)
   const currentSessionIdRef = React.useRef<string | null>(currentSessionId);
   React.useEffect(() => {
@@ -423,10 +464,34 @@ export default function Chat() {
   // Check if chat is ready (valid session + transport)
   const isChatReady = !!session?.access_token && !!transport;
 
-  // Monitor for auth errors and trigger re-login
+  // Check if rate limited (cooldown is active)
+  const isRateLimited = rateLimitCooldownEnd !== null && Date.now() < rateLimitCooldownEnd;
+
+  // Monitor for auth errors, rate limits, and trigger re-login
   React.useEffect(() => {
     if (error) {
       console.error('[Chat] Error occurred:', error.message);
+
+      // Check for rate limit error first
+      if (isRateLimitError(error)) {
+        const retryAfterSeconds = extractRetryAfterSeconds(error);
+        const cooldownEnd = Date.now() + retryAfterSeconds * 1000;
+
+        setRateLimitCooldownEnd(cooldownEnd);
+        setRateLimitSeconds(retryAfterSeconds);
+
+        // Show initial toast with countdown
+        const toastId = toast.error(
+          `Rate limit exceeded. Please wait ${retryAfterSeconds} seconds before trying again.`,
+          {
+            duration: retryAfterSeconds * 1000,
+            id: 'rate-limit-toast',
+          }
+        );
+        rateLimitToastIdRef.current = toastId;
+
+        return;
+      }
 
       // Get user-friendly error
       const friendlyError = getUserFriendlyError(error, ErrorContexts.CHAT);
@@ -453,6 +518,46 @@ export default function Chat() {
       }
     }
   }, [error, navigate]);
+
+  // Rate limit countdown timer - updates the toast message
+  React.useEffect(() => {
+    if (rateLimitCooldownEnd === null) return;
+
+    const updateCountdown = () => {
+      const remaining = Math.max(0, Math.ceil((rateLimitCooldownEnd - Date.now()) / 1000));
+      setRateLimitSeconds(remaining);
+
+      if (remaining <= 0) {
+        // Cooldown complete
+        setRateLimitCooldownEnd(null);
+        setRateLimitSeconds(0);
+
+        // Dismiss the rate limit toast and show success
+        if (rateLimitToastIdRef.current) {
+          toast.dismiss(rateLimitToastIdRef.current);
+          rateLimitToastIdRef.current = null;
+        }
+        toast.success('You can send messages again.', { duration: 3000 });
+      } else {
+        // Update the toast with remaining time
+        toast.error(
+          `Rate limit exceeded. Please wait ${remaining} second${remaining !== 1 ? 's' : ''} before trying again.`,
+          {
+            id: 'rate-limit-toast',
+            duration: remaining * 1000,
+          }
+        );
+      }
+    };
+
+    // Initial update
+    updateCountdown();
+
+    // Set up interval for countdown
+    const intervalId = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [rateLimitCooldownEnd]);
 
   // Ref to track messages for async callbacks
   const messagesRef = React.useRef<typeof messages>([]);
@@ -811,6 +916,15 @@ export default function Chat() {
         return;
       }
 
+      // Check for rate limit cooldown
+      if (isRateLimited && rateLimitSeconds > 0) {
+        toast.error(
+          `Please wait ${rateLimitSeconds} second${rateLimitSeconds !== 1 ? 's' : ''} before sending another message.`,
+          { id: 'rate-limit-warning' }
+        );
+        return;
+      }
+
       let inputToSubmit = input;
 
       // If there are context attachments, add them as @mentions
@@ -857,6 +971,8 @@ export default function Chat() {
       sendMessage,
       contextAttachments,
       isChatReady,
+      isRateLimited,
+      rateLimitSeconds,
     ]
   );
 
@@ -868,6 +984,15 @@ export default function Chat() {
         console.warn('[Chat] Attempted to send suggestion without valid session/transport');
         toast.error('Your session has expired. Please sign in again to continue.');
         setTimeout(() => navigate('/login', { replace: true }), 2000);
+        return;
+      }
+
+      // Check for rate limit cooldown
+      if (isRateLimited && rateLimitSeconds > 0) {
+        toast.error(
+          `Please wait ${rateLimitSeconds} second${rateLimitSeconds !== 1 ? 's' : ''} before sending another message.`,
+          { id: 'rate-limit-warning' }
+        );
         return;
       }
 
@@ -901,6 +1026,8 @@ export default function Chat() {
       navigate,
       sendMessage,
       isChatReady,
+      isRateLimited,
+      rateLimitSeconds,
     ]
   );
 
@@ -1659,9 +1786,11 @@ export default function Chat() {
                   placeholder={
                     !isChatReady
                       ? "Chat unavailable - please sign in"
+                      : isRateLimited
+                      ? `Rate limited - please wait ${rateLimitSeconds}s...`
                       : "Ask about your transcripts... (type @ to mention a call)"
                   }
-                  disabled={isLoading || !isChatReady}
+                  disabled={isLoading || !isChatReady || isRateLimited}
                   className="px-4 py-2"
                 />
 
@@ -1677,11 +1806,11 @@ export default function Chat() {
                     <Button
                       type="submit"
                       size="sm"
-                      disabled={!input || !input.trim() || isLoading || !isChatReady}
+                      disabled={!input || !input.trim() || isLoading || !isChatReady || isRateLimited}
                       className="gap-1"
                     >
                       <RiSendPlaneFill className="h-4 w-4" />
-                      Send
+                      {isRateLimited ? `Wait ${rateLimitSeconds}s` : 'Send'}
                     </Button>
                   </PromptInputFooterRight>
                 </PromptInputFooter>
