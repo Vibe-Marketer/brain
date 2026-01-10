@@ -22,6 +22,8 @@ export interface SearchSyntax {
     category?: string[];
     duration?: string;
     status?: string[];
+    tag?: string[];
+    folder?: string[];
   };
 }
 

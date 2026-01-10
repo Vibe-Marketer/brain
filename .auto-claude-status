@@ -3,8 +3,8 @@
   "spec": "015-extend-search-filter-syntax-with-tag-folder-suppor",
   "state": "building",
   "subtasks": {
-    "completed": 0,
-    "total": 0,
+    "completed": 1,
+    "total": 15,
     "in_progress": 1,
     "failed": 0
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 2,
+    "number": 3,
     "started_at": "2026-01-10T02:03:37.247011"
   },
-  "last_update": "2026-01-10T02:06:03.829280"
+  "last_update": "2026-01-10T02:07:16.390964"
 }
