@@ -496,26 +496,20 @@ Deno.serve(async (req) => {
     // ==========================================================================
     // PARALLEL VERIFICATION TEST - Try ALL methods and log results
     // ==========================================================================
+    // VerificationResult stores only boolean flags - no secrets or signatures (OWASP A09:2021)
     interface VerificationResult {
       available: boolean;
       verified: boolean;
-      secret_preview: string | null;
-      computed_signature?: string | null;
     }
 
     const verificationResults: {
       personal_by_email: VerificationResult;
       oauth_app_secret: VerificationResult;
       first_user_fallback: VerificationResult;
-      request_details: any;
     } = {
-      personal_by_email: { available: false, verified: false, secret_preview: null, computed_signature: null },
-      oauth_app_secret: { available: false, verified: false, secret_preview: null, computed_signature: null },
-      first_user_fallback: { available: false, verified: false, secret_preview: null, computed_signature: null },
-      request_details: {
-        header_signature: req.headers.get('webhook-signature') || req.headers.get('x-signature'),
-        webhook_id: req.headers.get('webhook-id')
-      }
+      personal_by_email: { available: false, verified: false },
+      oauth_app_secret: { available: false, verified: false },
+      first_user_fallback: { available: false, verified: false }
     };
     let matchedUserId = null;
     let successfulMethod: string | null = null;
@@ -539,14 +533,12 @@ Deno.serve(async (req) => {
         personalSecret = settings.webhook_secret;
         personalUserId = settings.user_id;
         verificationResults.personal_by_email.available = true;
-        verificationResults.personal_by_email.secret_preview = personalSecret.substring(0, 4) + '...' + personalSecret.substring(personalSecret.length - 4);
       }
     }
 
     // 2. Check OAuth app secret
     if (oauthAppSecret) {
       verificationResults.oauth_app_secret.available = true;
-      verificationResults.oauth_app_secret.secret_preview = oauthAppSecret.substring(0, 4) + '...' + oauthAppSecret.substring(oauthAppSecret.length - 4);
     }
 
     // 3. Check first user fallback
@@ -560,25 +552,21 @@ Deno.serve(async (req) => {
       firstUserSecret = firstSettings.webhook_secret;
       firstUserId = firstSettings.user_id;
       verificationResults.first_user_fallback.available = true;
-      verificationResults.first_user_fallback.secret_preview = firstUserSecret.substring(0, 4) + '...' + firstUserSecret.substring(firstUserSecret.length - 4);
     }
 
-    console.log('📋 VERIFICATION TEST - Available secrets:');
-    console.log('   - Personal (email match):', verificationResults.personal_by_email.available ? `YES (${verificationResults.personal_by_email.secret_preview})` : 'NO');
-    console.log('   - OAuth app secret:', verificationResults.oauth_app_secret.available ? `YES (${verificationResults.oauth_app_secret.secret_preview})` : 'NO');
-    console.log('   - First user fallback:', verificationResults.first_user_fallback.available ? `YES (${verificationResults.first_user_fallback.secret_preview})` : 'NO');
+    // Safe logging: indicate availability without exposing any secret data (OWASP A09:2021)
+    console.log('📋 Verification secrets availability:');
+    console.log('   - Personal (email match): ' + (verificationResults.personal_by_email.available ? 'configured' : 'not configured'));
+    console.log('   - OAuth app secret: ' + (verificationResults.oauth_app_secret.available ? 'configured' : 'not configured'));
+    console.log('   - First user fallback: ' + (verificationResults.first_user_fallback.available ? 'configured' : 'not configured'));
 
     // Now verify with EACH available secret
-    console.log('\n🔐 VERIFICATION TEST - Testing each secret:');
-
     // Test 1: Personal secret by email
     if (personalSecret) {
-      console.log('\n--- Testing PERSONAL secret (email match) ---');
-      const { isValid, computedSignature } = await verifyWebhookSignatureWithDebug(personalSecret, req.headers, rawBody);
+      console.log('🔐 Testing verification method: personal_by_email');
+      const { isValid } = await verifyWebhookSignatureWithDebug(personalSecret, req.headers, rawBody);
       verificationResults.personal_by_email.verified = isValid;
-      verificationResults.personal_by_email.computed_signature = computedSignature;
-      
-      console.log(`   Result: ${isValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      console.log(`   Verification method personal_by_email: ${isValid ? 'SUCCESS' : 'FAILED'}`);
       if (isValid && !successfulMethod) {
         successfulMethod = 'personal_by_email';
         matchedUserId = personalUserId;
@@ -587,12 +575,10 @@ Deno.serve(async (req) => {
 
     // Test 2: OAuth app secret
     if (oauthAppSecret) {
-      console.log('\n--- Testing OAUTH APP secret ---');
-      const { isValid, computedSignature } = await verifyWebhookSignatureWithDebug(oauthAppSecret, req.headers, rawBody);
+      console.log('🔐 Testing verification method: oauth_app_secret');
+      const { isValid } = await verifyWebhookSignatureWithDebug(oauthAppSecret, req.headers, rawBody);
       verificationResults.oauth_app_secret.verified = isValid;
-      verificationResults.oauth_app_secret.computed_signature = computedSignature;
-      
-      console.log(`   Result: ${isValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      console.log(`   Verification method oauth_app_secret: ${isValid ? 'SUCCESS' : 'FAILED'}`);
       if (isValid && !successfulMethod) {
         successfulMethod = 'oauth_app_secret';
         // For OAuth, still need to find user by email
@@ -611,11 +597,10 @@ Deno.serve(async (req) => {
 
     // Test 3: First user fallback (only if different from personal)
     if (firstUserSecret && firstUserSecret !== personalSecret) {
-      console.log('\n--- Testing FIRST USER FALLBACK secret ---');
-      const { isValid, computedSignature } = await verifyWebhookSignatureWithDebug(firstUserSecret, req.headers, rawBody);
+      console.log('🔐 Testing verification method: first_user_fallback');
+      const { isValid } = await verifyWebhookSignatureWithDebug(firstUserSecret, req.headers, rawBody);
       verificationResults.first_user_fallback.verified = isValid;
-      
-      console.log(`   Result: ${isValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      console.log(`   Verification method first_user_fallback: ${isValid ? 'SUCCESS' : 'FAILED'}`);
       if (isValid && !successfulMethod) {
         successfulMethod = 'first_user_fallback';
         matchedUserId = firstUserId;
@@ -623,7 +608,7 @@ Deno.serve(async (req) => {
     } else if (firstUserSecret === personalSecret) {
       // Same as personal, copy result
       verificationResults.first_user_fallback.verified = verificationResults.personal_by_email.verified;
-      console.log('\n--- FIRST USER FALLBACK: Same as personal secret, skipping ---');
+      console.log('   Verification method first_user_fallback: SKIPPED (same as personal)');
     }
 
     // Summary - log verification status only, no secrets or debug info (OWASP A09:2021)
