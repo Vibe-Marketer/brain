@@ -1,11 +1,11 @@
 {
   "active": true,
   "spec": "018-zoom-integration",
-  "state": "building",
+  "state": "complete",
   "subtasks": {
-    "completed": 23,
+    "completed": 24,
     "total": 24,
-    "in_progress": 1,
+    "in_progress": 0,
     "failed": 0
   },
   "phase": {
@@ -21,5 +21,5 @@
     "number": 279,
     "started_at": "2026-01-10T03:27:25.311676"
   },
-  "last_update": "2026-01-10T04:52:30.130631"
+  "last_update": "2026-01-10T04:58:04.935711"
 }
