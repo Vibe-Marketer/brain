@@ -305,18 +305,21 @@ ALTER TABLE automation_rule_actions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own automation rules"
   ON automation_rules
   FOR SELECT
+  TO authenticated
   USING (auth.uid() = user_id);
 
 -- Policy: Users can create automation rules for themselves
 CREATE POLICY "Users can create their own automation rules"
   ON automation_rules
   FOR INSERT
+  TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
 -- Policy: Users can update their own automation rules
 CREATE POLICY "Users can update their own automation rules"
   ON automation_rules
   FOR UPDATE
+  TO authenticated
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
 
@@ -324,6 +327,7 @@ CREATE POLICY "Users can update their own automation rules"
 CREATE POLICY "Users can delete their own automation rules"
   ON automation_rules
   FOR DELETE
+  TO authenticated
   USING (auth.uid() = user_id);
 
 -- ============================================================================
@@ -334,6 +338,7 @@ CREATE POLICY "Users can delete their own automation rules"
 CREATE POLICY "Users can view their own execution history"
   ON automation_execution_history
   FOR SELECT
+  TO authenticated
   USING (auth.uid() = user_id);
 
 -- Policy: Allow insert via service role (edge functions)
@@ -342,6 +347,7 @@ CREATE POLICY "Users can view their own execution history"
 CREATE POLICY "Users can insert their own execution history"
   ON automation_execution_history
   FOR INSERT
+  TO authenticated
   WITH CHECK (auth.uid() = user_id);
 
 -- ============================================================================
@@ -353,6 +359,7 @@ CREATE POLICY "Users can insert their own execution history"
 CREATE POLICY "Users can view conditions for their own rules"
   ON automation_rule_conditions
   FOR SELECT
+  TO authenticated
   USING (EXISTS (
     SELECT 1 FROM automation_rules
     WHERE automation_rules.id = automation_rule_conditions.rule_id
@@ -363,6 +370,7 @@ CREATE POLICY "Users can view conditions for their own rules"
 CREATE POLICY "Users can create conditions for their own rules"
   ON automation_rule_conditions
   FOR INSERT
+  TO authenticated
   WITH CHECK (EXISTS (
     SELECT 1 FROM automation_rules
     WHERE automation_rules.id = automation_rule_conditions.rule_id
@@ -373,6 +381,7 @@ CREATE POLICY "Users can create conditions for their own rules"
 CREATE POLICY "Users can update conditions for their own rules"
   ON automation_rule_conditions
   FOR UPDATE
+  TO authenticated
   USING (EXISTS (
     SELECT 1 FROM automation_rules
     WHERE automation_rules.id = automation_rule_conditions.rule_id
@@ -388,6 +397,7 @@ CREATE POLICY "Users can update conditions for their own rules"
 CREATE POLICY "Users can delete conditions for their own rules"
   ON automation_rule_conditions
   FOR DELETE
+  TO authenticated
   USING (EXISTS (
     SELECT 1 FROM automation_rules
     WHERE automation_rules.id = automation_rule_conditions.rule_id
@@ -403,6 +413,7 @@ CREATE POLICY "Users can delete conditions for their own rules"
 CREATE POLICY "Users can view actions for their own rules"
   ON automation_rule_actions
   FOR SELECT
+  TO authenticated
   USING (EXISTS (
     SELECT 1 FROM automation_rules
     WHERE automation_rules.id = automation_rule_actions.rule_id
@@ -413,6 +424,7 @@ CREATE POLICY "Users can view actions for their own rules"
 CREATE POLICY "Users can create actions for their own rules"
   ON automation_rule_actions
   FOR INSERT
+  TO authenticated
   WITH CHECK (EXISTS (
     SELECT 1 FROM automation_rules
     WHERE automation_rules.id = automation_rule_actions.rule_id
@@ -423,6 +435,7 @@ CREATE POLICY "Users can create actions for their own rules"
 CREATE POLICY "Users can update actions for their own rules"
   ON automation_rule_actions
   FOR UPDATE
+  TO authenticated
   USING (EXISTS (
     SELECT 1 FROM automation_rules
     WHERE automation_rules.id = automation_rule_actions.rule_id
@@ -438,6 +451,7 @@ CREATE POLICY "Users can update actions for their own rules"
 CREATE POLICY "Users can delete actions for their own rules"
   ON automation_rule_actions
   FOR DELETE
+  TO authenticated
   USING (EXISTS (
     SELECT 1 FROM automation_rules
     WHERE automation_rules.id = automation_rule_actions.rule_id
