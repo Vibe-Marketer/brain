@@ -55,7 +55,8 @@ import {
 import { ModelSelector } from "@/components/chat/model-selector";
 import { UserMessage, AssistantMessage } from "@/components/chat/message";
 import { ScrollButton } from "@/components/chat/scroll-button";
-import { ThinkingLoader } from "@/components/chat/loader";
+import { ThinkingLoader, Loader } from "@/components/chat/loader";
+import { ChatSkeleton, ChatLoading } from "@/components/chat/chat-skeleton";
 import { Sources } from "@/components/chat/source";
 import { ToolCalls } from "@/components/chat/tool-call";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
@@ -304,6 +305,9 @@ export default function Chat() {
   const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(
     sessionId || null
   );
+
+  // Loading state for fetching chat messages from database
+  const [isLoadingMessages, setIsLoadingMessages] = React.useState(false);
 
   // Input state - managed locally (AI SDK v5 doesn't manage input)
   const [input, setInput] = React.useState("");
@@ -819,6 +823,7 @@ export default function Chat() {
           setCurrentSessionId(null);
           currentSessionIdRef.current = null;
           setMessages([]);
+          setIsLoadingMessages(false);
           setFilters({
             speakers: [],
             categories: [],
@@ -827,6 +832,9 @@ export default function Chat() {
         }
         return;
       }
+
+      // Set loading state when starting to load a session
+      setIsLoadingMessages(true);
 
       try {
         // STEP 1: Load filters FIRST (before messages)
@@ -889,10 +897,11 @@ export default function Chat() {
           // Still need to set the session ID refs
           setCurrentSessionId(sessionId);
           currentSessionIdRef.current = sessionId;
+          setIsLoadingMessages(false);
 
           // Ensure filters are saved to the new session if they exist
           // This relies on saveMessages also saving session metadata, or a separate update
-          
+
           // Clear the newSession flag so subsequent refreshes/navigation work normally
           // We use replace to update state without adding a new history entry
           navigate(location.pathname, {
@@ -925,10 +934,12 @@ export default function Chat() {
         setMessages(uiMessages);
         setCurrentSessionId(sessionId);
         currentSessionIdRef.current = sessionId;
+        setIsLoadingMessages(false);
       } catch (err) {
         // Only log errors if component is still mounted
         if (isMounted) {
           console.error("Failed to load session:", err);
+          setIsLoadingMessages(false);
         }
       }
     }
@@ -1678,8 +1689,13 @@ export default function Chat() {
           <ChatInnerCardContent>
             <ChatContainerRoot className="h-full">
               <ChatContainerContent className="px-4 py-0">
+                {/* Loading skeleton while fetching chat history */}
+                {isLoadingMessages && (
+                  <ChatLoading />
+                )}
+
                 {/* Welcome/Empty State */}
-                {messages.length === 0 && (
+                {!isLoadingMessages && messages.length === 0 && (
                   availableCalls.length === 0 ? (
                     // Empty transcript database - show onboarding message
                     <ChatWelcome
@@ -1711,7 +1727,7 @@ export default function Chat() {
                 )}
 
                 {/* Messages */}
-                {messages.map((message) => {
+                {!isLoadingMessages && messages.map((message) => {
                   if (message.role === "user") {
                     const textContent = getMessageTextContent(message);
                     return (
