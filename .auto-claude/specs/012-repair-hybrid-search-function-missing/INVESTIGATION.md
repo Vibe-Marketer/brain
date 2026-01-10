@@ -237,3 +237,28 @@ After applying the fix, verify:
 
 **Investigation completed by:** auto-claude agent
 **Investigation status:** COMPLETE - Ready for Phase 3 (Apply Fix)
+
+---
+
+## 8. Verification Script
+
+A SQL verification script has been created to validate the function signature after the fix is applied:
+
+**Location:** `.auto-claude/specs/012-repair-hybrid-search-function-missing/verify-function-signature.sql`
+
+**How to use:**
+1. Open Supabase SQL Editor: https://supabase.com/dashboard/project/vltmrnjsubfzrgrtdqey/sql
+2. Copy/paste the entire script content
+3. Execute and review the VERIFICATION SUMMARY result
+
+**Expected Result After Fix:**
+```
+✅ ALL CHECKS PASSED - Function has correct 16-parameter signature
+```
+
+**Key Checks:**
+- pronargs = 16 (16 parameters)
+- filter_intent_signals parameter present
+- filter_user_tags parameter present
+- user_tags in return type
+- entities in return type

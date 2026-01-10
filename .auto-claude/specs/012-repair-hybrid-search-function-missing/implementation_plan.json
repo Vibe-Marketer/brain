@@ -144,7 +144,9 @@
             "type": "manual",
             "instructions": "Run SQL: SELECT pronargs FROM pg_proc WHERE proname = 'hybrid_search_transcripts'; - Must return 16"
           },
-          "status": "pending"
+          "status": "in_progress",
+          "notes": "Creating verification documentation for function signature check",
+          "updated_at": "2026-01-10T04:38:07.844168+00:00"
         }
       ]
     },
@@ -374,5 +376,5 @@
     ],
     "fix_approach": "Apply migration 20260108000004, refresh PostgREST cache, regenerate TypeScript types"
   },
-  "last_updated": "2026-01-10T04:36:44.215979+00:00"
+  "last_updated": "2026-01-10T04:38:07.844176+00:00"
 }

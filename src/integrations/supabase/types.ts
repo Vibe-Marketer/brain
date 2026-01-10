@@ -1258,6 +1258,13 @@ export type Database = {
         }[]
       }
       finalize_embedding_jobs: { Args: never; Returns: number }
+      get_available_metadata: {
+        Args: {
+          p_metadata_type: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       get_user_categories: {
         Args: { p_user_id: string }
         Returns: {
@@ -1290,12 +1297,13 @@ export type Database = {
           filter_categories?: string[]
           filter_date_end?: string
           filter_date_start?: string
-          filter_intent?: string[]
+          filter_intent_signals?: string[]
           filter_recording_ids?: number[]
           filter_sentiment?: string
           filter_speakers?: string[]
           filter_topics?: string[]
           filter_user_id?: string
+          filter_user_tags?: string[]
           full_text_weight?: number
           match_count?: number
           query_embedding: string
@@ -1310,6 +1318,7 @@ export type Database = {
           chunk_id: string
           chunk_index: number
           chunk_text: string
+          entities: Json
           fts_rank: number
           intent_signals: string[]
           recording_id: number
@@ -1319,6 +1328,7 @@ export type Database = {
           speaker_email: string
           speaker_name: string
           topics: string[]
+          user_tags: string[]
         }[]
       }
       increment_embedding_progress: {
