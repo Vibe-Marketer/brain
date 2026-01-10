@@ -372,10 +372,10 @@ export function FoldersTab() {
         <Skeleton className="h-10 w-36" />
 
         {/* Table skeleton */}
-        <div className="border border-cb-border rounded-sm overflow-hidden">
+        <div>
           <Table>
             <TableHeader>
-              <TableRow className="bg-cb-white dark:bg-card">
+              <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
                 <TableHead>Name</TableHead>
                 <TableHead className="w-24 text-right">Calls</TableHead>
                 <TableHead className="w-24 text-right">Actions</TableHead>
@@ -416,10 +416,10 @@ export function FoldersTab() {
         Create Folder
       </Button>
 
-      <div className="border border-cb-border rounded-sm overflow-hidden">
+      <div>
         <Table>
           <TableHeader>
-            <TableRow className="bg-cb-white dark:bg-card">
+            <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
               <TableHead>Name</TableHead>
               <TableHead className="w-24 text-right">Calls</TableHead>
               <TableHead className="w-24 text-right">Actions</TableHead>

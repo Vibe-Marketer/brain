@@ -93,11 +93,11 @@ export const UserTable = React.memo(({
   }
 
   return (
-    <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
+    <div>
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-t border-b-2 border-cb-black dark:border-cb-white">
+            <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
               <TableHead className="min-w-[200px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
                 <SortButton field="display_name">USER</SortButton>
               </TableHead>
