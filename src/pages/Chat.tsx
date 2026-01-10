@@ -361,6 +361,27 @@ export default function Chat() {
       hasFilters: !!apiFilters,
     });
 
+    // Custom fetch with extended timeout for mobile networks
+    const customFetch: typeof fetch = async (url, options) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+
+      try {
+        console.log('[Chat] Making request to:', url);
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        console.log('[Chat] Response status:', response.status);
+        return response;
+      } catch (error) {
+        clearTimeout(timeoutId);
+        console.error('[Chat] Fetch error:', error);
+        throw error;
+      }
+    };
+
     return new DefaultChatTransport({
       api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`,
       headers: {
@@ -372,6 +393,7 @@ export default function Chat() {
         model: selectedModel,
         sessionId: currentSessionId,
       },
+      fetch: customFetch,
     });
   }, [session?.access_token, apiFilters, selectedModel, currentSessionId]);
 
