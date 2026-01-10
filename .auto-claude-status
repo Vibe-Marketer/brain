@@ -3,23 +3,23 @@
   "spec": "029-persist-auto-processing-preferences",
   "state": "building",
   "subtasks": {
-    "completed": 1,
+    "completed": 4,
     "total": 7,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Zustand Preferences Store",
+    "current": "App Initialization & Preference Loading",
     "id": null,
-    "total": 2
+    "total": 1
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 2,
+    "number": 5,
     "started_at": "2026-01-10T06:06:43.415893"
   },
-  "last_update": "2026-01-10T06:07:59.050701"
+  "last_update": "2026-01-10T06:14:15.244934"
 }
