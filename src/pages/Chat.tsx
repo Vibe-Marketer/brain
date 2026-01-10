@@ -2,6 +2,7 @@ import * as React from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, type UIMessage } from "ai";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
+import * as Sentry from "@sentry/react";
 import {
   RiSendPlaneFill,
   RiFilterLine,
@@ -378,6 +379,21 @@ export default function Chat() {
       } catch (error) {
         clearTimeout(timeoutId);
         console.error('[Chat] Fetch error:', error);
+
+        // Capture to Sentry for remote debugging
+        Sentry.captureException(error, {
+          tags: {
+            component: 'Chat',
+            action: 'fetch_chat_stream',
+          },
+          extra: {
+            url,
+            model: selectedModel,
+            sessionId: currentSessionId,
+            hasFilters: !!apiFilters,
+          },
+        });
+
         throw error;
       }
     };
@@ -387,7 +403,7 @@ export default function Chat() {
       headers: {
         Authorization: `Bearer ${session.access_token}`,
       },
-      // Pass actual values directly - getters don't serialize properly
+      // Pass values directly as static object (simplest approach)
       body: {
         filters: apiFilters,
         model: selectedModel,
