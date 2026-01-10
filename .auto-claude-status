@@ -1,17 +1,17 @@
 {
   "active": true,
-  "spec": "012-repair-hybrid-search-function-missing",
+  "spec": "022-content-library-templates",
   "state": "building",
   "subtasks": {
     "completed": 3,
-    "total": 12,
+    "total": 22,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Root Cause Identification",
+    "current": "TypeScript Type Definitions",
     "id": null,
-    "total": 2
+    "total": 1
   },
   "workers": {
     "active": 0,
@@ -19,7 +19,7 @@
   },
   "session": {
     "number": 4,
-    "started_at": "2026-01-09T23:24:58.273255"
+    "started_at": "2026-01-10T03:20:07.157140"
   },
-  "last_update": "2026-01-09T23:32:18.024275"
+  "last_update": "2026-01-10T03:25:54.757622"
 }
