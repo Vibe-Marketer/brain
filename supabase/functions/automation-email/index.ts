@@ -7,10 +7,21 @@
  * Features:
  * - Resend API integration for reliable email delivery
  * - Support for to, cc, bcc recipients
- * - Template variable replacement
+ * - Template variable replacement with {{variable}} syntax
  * - Idempotency key support to prevent duplicate sends
  * - Rate limiting awareness
  * - Unsubscribe link support for compliance
+ *
+ * Template Variables:
+ * Subject and body support variable interpolation using {{variable}} syntax:
+ * - {{call.id}}, {{call.title}}, {{call.summary}}, {{call.duration_minutes}}
+ * - {{call.participant_count}}, {{call.sentiment}}, {{call.sentiment_confidence}}
+ * - {{call.created_at}}
+ * - {{category.id}}, {{category.name}}
+ * - {{tags}} - comma-separated list of tags
+ * - {{rule.id}}, {{rule.name}} - automation rule info
+ * - {{date}}, {{datetime}}, {{timestamp}} - current date/time
+ * - {{custom.variable_name}} - custom variables from context.custom
  *
  * Environment Variables:
  * - RESEND_API_KEY: API key from resend.com
@@ -40,6 +51,32 @@ const rateLimitTracker = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX = 95; // Leave buffer under 100/day free tier limit
 const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
+/**
+ * Template context for variable interpolation
+ * Supports {{variable}} syntax in subject and body
+ */
+interface TemplateContext {
+  // Call data
+  call_id?: number;
+  call_title?: string;
+  call_summary?: string;
+  call_duration_minutes?: number;
+  call_participant_count?: number;
+  call_sentiment?: string;
+  call_sentiment_confidence?: number;
+  call_created_at?: string;
+  // Category data
+  category_id?: string;
+  category_name?: string;
+  // Tags (comma-separated)
+  tags?: string;
+  // Automation rule data
+  automation_rule_id?: string;
+  automation_rule_name?: string;
+  // Custom variables
+  custom?: Record<string, string | number | boolean>;
+}
+
 interface EmailRequest {
   to: string | string[];
   cc?: string[];
@@ -49,12 +86,7 @@ interface EmailRequest {
   html?: string;
   reply_to?: string;
   user_id?: string;
-  context?: {
-    call_title?: string;
-    call_id?: number;
-    automation_rule_id?: string;
-    automation_rule_name?: string;
-  };
+  context?: TemplateContext;
   include_unsubscribe?: boolean;
   idempotency_key?: string;
   // Test mode: validates request without sending
@@ -204,6 +236,80 @@ function validateRequest(request: EmailRequest): { valid: boolean; errors: strin
   }
 
   return { valid: errors.length === 0, errors };
+}
+
+/**
+ * Replace template variables in strings with context values
+ * Supports syntax: {{variable.path}}
+ *
+ * Available variables:
+ * - {{call.id}}, {{call.title}}, {{call.summary}}, {{call.duration_minutes}}
+ * - {{call.participant_count}}, {{call.sentiment}}, {{call.sentiment_confidence}}
+ * - {{call.created_at}}
+ * - {{category.id}}, {{category.name}}
+ * - {{tags}} - comma-separated list of tags
+ * - {{rule.id}}, {{rule.name}} - automation rule info
+ * - {{date}}, {{datetime}}, {{timestamp}} - current date/time
+ * - {{custom.variable_name}} - custom variables from context.custom
+ */
+function replaceTemplateVariables(template: string, context?: TemplateContext): string {
+  if (!template || !context) {
+    return template || '';
+  }
+
+  let result = template;
+
+  // Call data variables
+  result = result
+    .replace(/\{\{call\.id\}\}/gi, String(context.call_id ?? ''))
+    .replace(/\{\{call\.title\}\}/gi, context.call_title ?? '')
+    .replace(/\{\{call\.summary\}\}/gi, context.call_summary ?? '')
+    .replace(/\{\{call\.duration_minutes\}\}/gi, String(context.call_duration_minutes ?? ''))
+    .replace(/\{\{call\.participant_count\}\}/gi, String(context.call_participant_count ?? ''))
+    .replace(/\{\{call\.sentiment\}\}/gi, context.call_sentiment ?? '')
+    .replace(/\{\{call\.sentiment_confidence\}\}/gi, String(context.call_sentiment_confidence ?? ''))
+    .replace(/\{\{call\.created_at\}\}/gi, context.call_created_at ?? '');
+
+  // Category variables
+  result = result
+    .replace(/\{\{category\.id\}\}/gi, context.category_id ?? '')
+    .replace(/\{\{category\.name\}\}/gi, context.category_name ?? '');
+
+  // Tags list
+  result = result.replace(/\{\{tags\}\}/gi, context.tags ?? '');
+
+  // Automation rule variables
+  result = result
+    .replace(/\{\{rule\.id\}\}/gi, context.automation_rule_id ?? '')
+    .replace(/\{\{rule\.name\}\}/gi, context.automation_rule_name ?? '');
+
+  // Date/time variables (generated at send time)
+  const now = new Date();
+  result = result
+    .replace(/\{\{date\}\}/gi, now.toISOString().split('T')[0])
+    .replace(/\{\{datetime\}\}/gi, now.toISOString())
+    .replace(/\{\{timestamp\}\}/gi, String(now.getTime()));
+
+  // Custom variables from context.custom
+  if (context.custom) {
+    for (const [key, value] of Object.entries(context.custom)) {
+      const regex = new RegExp(`\\{\\{custom\\.${escapeRegExp(key)}\\}\\}`, 'gi');
+      result = result.replace(regex, String(value ?? ''));
+    }
+  }
+
+  // Clean up any remaining unmatched template variables (replace with empty string)
+  // This prevents {{unknown.variable}} from appearing in the final email
+  result = result.replace(/\{\{[a-zA-Z_][a-zA-Z0-9_.]*\}\}/g, '');
+
+  return result;
+}
+
+/**
+ * Escape special regex characters in a string
+ */
+function escapeRegExp(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -365,9 +471,12 @@ Deno.serve(async (req) => {
       ? buildUnsubscribeLink(userId, request.context?.automation_rule_id)
       : null;
 
-    // Prepare email body with unsubscribe footer
-    let textBody = request.body;
-    let htmlBody = request.html;
+    // Apply template variable replacement to subject and body
+    // This replaces {{call.title}}, {{category.name}}, etc. with actual values
+    const templateContext = request.context;
+    const renderedSubject = replaceTemplateVariables(request.subject, templateContext);
+    let textBody = replaceTemplateVariables(request.body, templateContext);
+    let htmlBody = request.html ? replaceTemplateVariables(request.html, templateContext) : undefined;
 
     if (unsubscribeLink) {
       textBody = appendUnsubscribeFooter(textBody, unsubscribeLink);
@@ -380,7 +489,7 @@ Deno.serve(async (req) => {
     const emailPayload: ResendEmailPayload = {
       from: fromAddress,
       to: toRecipients,
-      subject: request.subject,
+      subject: renderedSubject,
       text: textBody,
     };
 
