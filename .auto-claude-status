@@ -3,13 +3,13 @@
   "spec": "019-google-meet-integration",
   "state": "building",
   "subtasks": {
-    "completed": 8,
+    "completed": 9,
     "total": 20,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Meeting Discovery from Calendar",
+    "current": "Recording and Transcript Sync",
     "id": null,
     "total": 1
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 263,
+    "number": 264,
     "started_at": "2026-01-10T03:26:25.062678"
   },
-  "last_update": "2026-01-10T04:08:15.513011"
+  "last_update": "2026-01-10T04:10:39.184409"
 }
