@@ -171,6 +171,9 @@ export function syntaxToFilters(syntax: SearchSyntax): Partial<FilterState> {
   if (syntax.filters.tag) {
     filters.tags = syntax.filters.tag;
   }
+  if (syntax.filters.folder) {
+    filters.folders = syntax.filters.folder;
+  }
 
   return filters;
 }
