@@ -158,7 +158,7 @@ export function syntaxToFilters(syntax: SearchSyntax): Partial<FilterState> {
     }
   }
 
-  // Set participants, categories, status directly
+  // Set participants, categories, status, tags directly
   if (syntax.filters.participant) {
     filters.participants = syntax.filters.participant;
   }
@@ -167,6 +167,9 @@ export function syntaxToFilters(syntax: SearchSyntax): Partial<FilterState> {
   }
   if (syntax.filters.status) {
     filters.status = syntax.filters.status;
+  }
+  if (syntax.filters.tag) {
+    filters.tags = syntax.filters.tag;
   }
 
   return filters;
