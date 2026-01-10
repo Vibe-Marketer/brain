@@ -9,17 +9,17 @@
     "failed": 0
   },
   "phase": {
-    "current": "Remove Raw Body and Headers Logging",
+    "current": "Sanitize Debug Info and Error Responses",
     "id": null,
-    "total": 3
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 8,
+    "number": 12,
     "started_at": "2026-01-10T03:06:27.617471"
   },
-  "last_update": "2026-01-10T03:20:10.645135"
+  "last_update": "2026-01-10T03:26:52.144542"
 }

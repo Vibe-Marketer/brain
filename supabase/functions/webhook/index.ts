@@ -651,7 +651,7 @@ Deno.serve(async (req) => {
       console.error('❌ Webhook signature verification FAILED - NO METHOD WORKED');
       console.error('   - Webhook ID:', req.headers.get('webhook-id'));
       console.error('   - Signature Header:', req.headers.get('webhook-signature'));
-      const errorMessage = `Invalid webhook signature - all methods failed. Results: ${JSON.stringify(verificationResults)}`;
+      const errorMessage = `Invalid webhook signature - all verification methods failed`;
 
       // Log failed delivery WITH verification results
       const logUserId = userId || firstUserId;
