@@ -23,7 +23,6 @@ import {
   RiUserFill,
   RiTeamLine,
   RiTeamFill,
-  RiGroupLine,
   RiWalletLine,
   RiWalletFill,
   RiPlugLine,
@@ -33,7 +32,6 @@ import {
   RiShieldLine,
   RiShieldFill,
   RiSettings3Line,
-  RiUserHeartLine,
 } from "@remixicon/react";
 
 /** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
@@ -42,8 +40,6 @@ const TRANSITION_DURATION = 250;
 export type SettingsCategory =
   | "account"
   | "users"
-  | "team"
-  | "coaches"
   | "billing"
   | "integrations"
   | "ai"
@@ -75,19 +71,6 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     icon: RiTeamLine,
     iconFill: RiTeamFill,
     requiredRoles: ["TEAM", "ADMIN"],
-  },
-  {
-    id: "team",
-    label: "Team",
-    description: "Team hierarchy and sharing",
-    icon: RiGroupLine,
-    requiredRoles: ["TEAM", "ADMIN"],
-  },
-  {
-    id: "coaches",
-    label: "Coaches",
-    description: "Manage coaching relationships",
-    icon: RiUserHeartLine,
   },
   {
     id: "billing",
