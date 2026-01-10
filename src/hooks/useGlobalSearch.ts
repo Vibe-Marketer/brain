@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { semanticSearch, type SemanticSearchResult } from '@/lib/embeddings';
 import type { SearchResult, SearchResultType } from '@/types/search';
 
 /**
@@ -53,71 +53,55 @@ interface UseGlobalSearchResult {
 }
 
 /**
- * Database row type for transcript_chunks
+ * Transform semantic search result to SearchResult
  */
-interface TranscriptChunkRow {
-  id: string;
-  recording_id: number;
-  chunk_text: string;
-  call_title: string | null;
-  call_date: string | null;
-  speaker_name: string | null;
-  speaker_email: string | null;
-  timestamp_start: string | null;
-  created_at: string | null;
-}
-
-/**
- * Transform database row to SearchResult
- */
-function transformChunkToSearchResult(chunk: TranscriptChunkRow): SearchResult {
-  const snippet = chunk.chunk_text.length > 200
-    ? chunk.chunk_text.substring(0, 200) + '...'
-    : chunk.chunk_text;
+function transformSemanticResult(result: SemanticSearchResult): SearchResult {
+  const snippet = result.chunk_text.length > 200
+    ? result.chunk_text.substring(0, 200) + '...'
+    : result.chunk_text;
 
   return {
-    id: chunk.id,
+    id: result.id,
     type: 'transcript',
-    title: chunk.speaker_name
-      ? `${chunk.speaker_name} in ${chunk.call_title || 'Untitled Call'}`
-      : chunk.call_title || 'Untitled Call',
+    title: result.speaker_name
+      ? `${result.speaker_name} in ${result.call_title || 'Untitled Call'}`
+      : result.call_title || 'Untitled Call',
     snippet,
-    timestamp: chunk.timestamp_start || chunk.created_at || undefined,
-    sourceCallId: String(chunk.recording_id),
-    sourceCallTitle: chunk.call_title || 'Untitled Call',
+    timestamp: result.call_date || undefined,
+    sourceCallId: String(result.recording_id),
+    sourceCallTitle: result.call_title || 'Untitled Call',
     metadata: {
-      speakerName: chunk.speaker_name || undefined,
-      speakerEmail: chunk.speaker_email,
+      speakerName: result.speaker_name || undefined,
+      speakerEmail: result.speaker_email,
+      // Include relevance score as confidence
+      confidence: Math.round(result.relevance_score * 100),
     },
   };
 }
 
 /**
- * Sanitize search query to prevent injection and handle edge cases
+ * Sanitize search query to handle edge cases
  */
 function sanitizeQuery(query: string): string {
   // Trim and limit length
   let sanitized = query.trim().substring(0, SEARCH_CONFIG.maxQueryLength);
 
-  // Escape special characters for Postgres full-text search
-  // Replace characters that have special meaning in to_tsquery
-  sanitized = sanitized
-    .replace(/[&|!():*<>'"\\]/g, ' ') // Replace special chars with space
-    .replace(/\s+/g, ' ') // Collapse multiple spaces
-    .trim();
+  // Collapse multiple spaces
+  sanitized = sanitized.replace(/\s+/g, ' ').trim();
 
   return sanitized;
 }
 
 /**
- * Custom hook for global search across transcripts
+ * Custom hook for global semantic search across transcripts
  *
  * Features:
  * - 300ms debouncing to reduce API calls
- * - Full-text search on transcript_chunks table
+ * - Hybrid semantic + keyword search using RRF
  * - Loading and error states
  * - Query sanitization
  * - Automatic user scoping via RLS
+ * - Relevance scoring
  *
  * @example
  * ```tsx
@@ -193,9 +177,8 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
   const isQueryTooShort = sanitizedQuery.length < SEARCH_CONFIG.minQueryLength;
 
   /**
-   * Supabase search query
-   * Uses ilike for simple text matching on chunk_text
-   * Full-text search (textSearch) requires proper FTS setup with tsvector
+   * Semantic search query
+   * Uses hybrid search (semantic + keyword) with RRF ranking
    */
   const {
     data: results = [],
@@ -209,40 +192,30 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
       }
 
       try {
-        // Search transcript_chunks using ilike for broad matching
-        // The fts column could be used for better performance with:
-        // .textSearch('fts', sanitizedQuery.split(' ').join(' & '))
-        const { data, error: queryError } = await supabase
-          .from('transcript_chunks')
-          .select('id, recording_id, chunk_text, call_title, call_date, speaker_name, speaker_email, timestamp_start, created_at')
-          .eq('user_id', user.id)
-          .ilike('chunk_text', `%${sanitizedQuery}%`)
-          .order('call_date', { ascending: false, nullsFirst: false })
-          .limit(limit);
+        // Call semantic search edge function
+        const { results: semanticResults, error: searchError } = await semanticSearch(
+          sanitizedQuery,
+          { limit }
+        );
 
-        if (queryError) {
-          throw new Error(queryError.message);
+        if (searchError) {
+          throw new Error(searchError);
         }
 
-        if (!data) {
-          return [];
-        }
-
-        // Transform and deduplicate results
         // Group by recording_id to avoid showing too many results from same call
         const seenRecordings = new Map<number, number>();
         const maxPerRecording = 3;
 
-        return data
-          .filter((chunk) => {
-            const count = seenRecordings.get(chunk.recording_id) || 0;
+        return semanticResults
+          .filter((result) => {
+            const count = seenRecordings.get(result.recording_id) || 0;
             if (count >= maxPerRecording) {
               return false;
             }
-            seenRecordings.set(chunk.recording_id, count + 1);
+            seenRecordings.set(result.recording_id, count + 1);
             return true;
           })
-          .map(transformChunkToSearchResult);
+          .map(transformSemanticResult);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Search failed';
         setError(errorMessage);
@@ -265,6 +238,3 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
     isQueryTooShort: query.trim().length > 0 && isQueryTooShort,
   };
 }
-
-// TODO: Add support for searching insights when insights table is available
-// TODO: Add support for searching quotes when quotes table is available

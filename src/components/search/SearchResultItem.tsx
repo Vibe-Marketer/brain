@@ -228,6 +228,12 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({
           >
             {config.label}
           </Badge>
+          {/* Relevance Score Badge */}
+          {result.metadata?.confidence !== undefined && (
+            <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+              {result.metadata.confidence}%
+            </span>
+          )}
         </div>
 
         {/* Snippet */}

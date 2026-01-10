@@ -208,8 +208,8 @@ async function rerankResults(
 
 function diversityFilter<T extends { recording_id: number }>(
   chunks: T[],
-  maxPerRecording: number = 5,
-  targetCount: number = 20
+  maxPerRecording: number = 2,
+  targetCount: number = 5
 ): T[] {
   const diverse: T[] = [];
   const recordingCounts = new Map<number, number>();
@@ -741,9 +741,9 @@ async function executeSearchTranscripts(
 
   const reranked = await rerankResults(query, candidates, limit * 2);
   
-  // Relaxed diversity filter: allow more chunks per recording (5) to capture full context
-  // This is especially important when user "chats with X calls" explicitly
-  const diverse = diversityFilter(reranked, 5, limit);
+  // Diversity filter: limit chunks per recording to ensure diverse results
+  // Max 2 chunks per call ensures we get results from multiple recordings
+  const diverse = diversityFilter(reranked, 2, limit);
 
   console.log(`Search pipeline complete: ${candidates.length} → ${reranked.length} → ${diverse.length} results`);
 
@@ -914,7 +914,8 @@ async function executeHybridSearch(
   console.log(`Hybrid search returned ${candidates.length} candidates in ${Date.now() - searchStartTime}ms`);
 
   const reranked = await rerankResults(query, candidates, limit * 2);
-  const diverse = diversityFilter(reranked, 5, limit);
+  // Diversity filter: max 2 chunks per recording to ensure diverse results across calls
+  const diverse = diversityFilter(reranked, 2, limit);
 
   console.log(`Search pipeline complete: ${candidates.length} → ${reranked.length} → ${diverse.length} results`);
 
@@ -1088,7 +1089,8 @@ async function executeSearchByEntity(
   }
 
   const reranked = await rerankResults(entity_name, filtered, limit * 2);
-  const diverse = diversityFilter(reranked, 5, limit);
+  // Diversity filter: max 2 chunks per recording to ensure diverse results across calls
+  const diverse = diversityFilter(reranked, 2, limit);
 
   return {
     results: diverse.map((r: RerankCandidate, i: number) => ({

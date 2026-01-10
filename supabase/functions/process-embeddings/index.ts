@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { logUsage } from '../_shared/usage-tracker.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -309,8 +310,16 @@ function chunkTranscript(
   return chunks;
 }
 
+interface EmbeddingResult {
+  embeddings: number[][];
+  usage: {
+    promptTokens: number;
+    totalTokens: number;
+  };
+}
+
 // Generate embeddings using OpenAI API directly (OpenRouter doesn't support embeddings)
-async function generateEmbeddings(texts: string[], openaiApiKey: string): Promise<number[][]> {
+async function generateEmbeddings(texts: string[], openaiApiKey: string): Promise<EmbeddingResult> {
   const response = await fetch('https://api.openai.com/v1/embeddings', {
     method: 'POST',
     headers: {
@@ -329,7 +338,13 @@ async function generateEmbeddings(texts: string[], openaiApiKey: string): Promis
   }
 
   const data = await response.json();
-  return data.data.map((item: { embedding: number[] }) => item.embedding);
+  return {
+    embeddings: data.data.map((item: { embedding: number[] }) => item.embedding),
+    usage: {
+      promptTokens: data.usage?.prompt_tokens || 0,
+      totalTokens: data.usage?.total_tokens || 0,
+    },
+  };
 }
 
 // Process a single recording and return chunks created count
@@ -390,13 +405,31 @@ async function processRecording(
   // Generate embeddings in batches of 100
   const batchSize = 100;
   const allChunksToInsert: TranscriptChunk[] = [];
+  let totalInputTokens = 0;
 
   for (let batchStart = 0; batchStart < chunks.length; batchStart += batchSize) {
     const batchEnd = Math.min(batchStart + batchSize, chunks.length);
     const batchChunks = chunks.slice(batchStart, batchEnd);
     const batchTexts = batchChunks.map(c => c.text);
 
-    const embeddings = await generateEmbeddings(batchTexts, openaiApiKey);
+    const startTime = Date.now();
+    const result = await generateEmbeddings(batchTexts, openaiApiKey);
+    const latencyMs = Date.now() - startTime;
+
+    // Accumulate token usage for logging
+    totalInputTokens += result.usage.promptTokens;
+
+    // Log embedding usage for this batch
+    await logUsage(supabase, {
+      userId: user_id,
+      operationType: 'embedding',
+      model: 'text-embedding-3-small',
+      inputTokens: result.usage.promptTokens,
+      jobId: task.job_id,
+      recordingId: recording_id,
+      batchSize: batchChunks.length,
+      latencyMs,
+    });
 
     for (let j = 0; j < batchChunks.length; j++) {
       const chunk = batchChunks[j];
@@ -418,11 +451,13 @@ async function processRecording(
         call_date: call.created_at,
         call_title: call.title,
         call_category: tagName,
-        embedding: embeddings[j],
+        embedding: result.embeddings[j],
         embedded_at: new Date().toISOString(),
       });
     }
   }
+
+  console.log(`Embedding usage for recording ${recording_id}: ${totalInputTokens} tokens`);
 
   // Delete existing chunks for this recording (for re-indexing)
   await supabase
