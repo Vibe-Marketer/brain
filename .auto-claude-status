@@ -1,15 +1,15 @@
 {
   "active": true,
-  "spec": "012-repair-hybrid-search-function-missing",
+  "spec": "015-extend-search-filter-syntax-with-tag-folder-suppor",
   "state": "building",
   "subtasks": {
-    "completed": 3,
-    "total": 12,
+    "completed": 0,
+    "total": 0,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Root Cause Identification",
+    "current": "Extend Filter Types",
     "id": null,
     "total": 2
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 4,
-    "started_at": "2026-01-09T23:24:58.273255"
+    "number": 2,
+    "started_at": "2026-01-10T02:03:37.247011"
   },
-  "last_update": "2026-01-09T23:32:18.024275"
+  "last_update": "2026-01-10T02:06:03.829280"
 }

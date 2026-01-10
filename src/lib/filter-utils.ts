@@ -10,6 +10,8 @@ export interface FilterState {
   durationMin?: number;
   durationMax?: number;
   status: string[];
+  tags?: string[];
+  folders?: string[];
 }
 
 export interface SearchSyntax {
