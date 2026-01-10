@@ -205,6 +205,12 @@ export function filtersToURLParams(filters: Partial<FilterState>): URLSearchPara
   if (filters.status && filters.status.length > 0) {
     params.set('status', filters.status.join(','));
   }
+  if (filters.tags && filters.tags.length > 0) {
+    params.set('tags', filters.tags.join(','));
+  }
+  if (filters.folders && filters.folders.length > 0) {
+    params.set('folders', filters.folders.join(','));
+  }
 
   return params;
 }
