@@ -3,7 +3,7 @@
   "spec": "013-implement-teams-coaches-navigation-and-functionali",
   "state": "building",
   "subtasks": {
-    "completed": 15,
+    "completed": 16,
     "total": 17,
     "in_progress": 1,
     "failed": 0
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 16,
+    "number": 17,
     "started_at": "2026-01-10T01:22:56.533632"
   },
-  "last_update": "2026-01-10T01:51:52.089903"
+  "last_update": "2026-01-10T01:54:42.393506"
 }
