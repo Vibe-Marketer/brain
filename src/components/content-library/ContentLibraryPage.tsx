@@ -4,6 +4,7 @@ import { RiLoader2Line, RiFileTextLine, RiMailLine, RiChat3Line, RiLightbulbLine
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ContentFilterBar } from "./ContentFilterBar";
 import type { ContentType, ContentLibraryItem } from "@/types/content-library";
 
 /**
@@ -186,8 +187,10 @@ export function ContentLibraryPage() {
         </p>
       </div>
 
-      {/* Filter bar placeholder - will be implemented in subtask-5-2 */}
-      {/* <ContentFilterBar /> */}
+      {/* Filter bar */}
+      <div className="px-4 mb-4">
+        <ContentFilterBar />
+      </div>
 
       <Separator className="my-6" />
 
