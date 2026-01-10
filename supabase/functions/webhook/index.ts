@@ -666,8 +666,7 @@ Deno.serve(async (req) => {
           request_body: meeting,
           signature_valid: false,
           payload: {
-            verification_results: verificationResults,
-            signature_debug: signatureDebugInfo
+            verification_results: verificationResults
           }
         });
       }
