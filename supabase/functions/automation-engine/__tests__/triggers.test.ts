@@ -597,6 +597,426 @@ describe('Transcript Phrase Trigger', () => {
   });
 });
 
+// ============================================================
+// Sentiment Trigger Evaluation Logic (re-implemented for testing)
+// ============================================================
+
+interface SentimentConfig {
+  sentiment: 'positive' | 'neutral' | 'negative';
+  confidence_threshold?: number;
+}
+
+/**
+ * Evaluate sentiment trigger
+ */
+function evaluateSentiment(
+  config: SentimentConfig,
+  context: EvaluationContext
+): TriggerResult {
+  const { sentiment: targetSentiment, confidence_threshold = 0 } = config;
+  const actualSentiment = context.call?.sentiment;
+  const actualConfidence = context.call?.sentiment_confidence || 0;
+
+  if (!targetSentiment) {
+    return {
+      fires: false,
+      reason: 'No target sentiment configured',
+    };
+  }
+
+  if (!actualSentiment) {
+    return {
+      fires: false,
+      reason: 'Call sentiment not analyzed yet',
+    };
+  }
+
+  const sentimentMatches = actualSentiment.toLowerCase() === targetSentiment.toLowerCase();
+  const confidenceOk = actualConfidence >= confidence_threshold;
+
+  if (sentimentMatches && confidenceOk) {
+    return {
+      fires: true,
+      reason: `Sentiment "${actualSentiment}" matches target "${targetSentiment}" with confidence ${actualConfidence.toFixed(2)} >= ${confidence_threshold}`,
+      matchDetails: {
+        threshold: confidence_threshold,
+        actual: actualConfidence,
+      },
+    };
+  }
+
+  return {
+    fires: false,
+    reason: sentimentMatches
+      ? `Confidence ${actualConfidence.toFixed(2)} below threshold ${confidence_threshold}`
+      : `Sentiment "${actualSentiment}" does not match target "${targetSentiment}"`,
+  };
+}
+
+// ============================================================
+// Sentiment Trigger Tests
+// ============================================================
+
+describe('Sentiment Trigger', () => {
+  describe('Basic Sentiment Matching', () => {
+    it('should fire when sentiment matches target (negative)', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'negative',
+          sentiment_confidence: 0.85,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(true);
+      expect(result.reason).toContain('matches target');
+      expect(result.matchDetails?.actual).toBe(0.85);
+    });
+
+    it('should fire when sentiment matches target (positive)', () => {
+      const config: SentimentConfig = {
+        sentiment: 'positive',
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'positive',
+          sentiment_confidence: 0.92,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(true);
+      expect(result.reason).toContain('matches target');
+    });
+
+    it('should fire when sentiment matches target (neutral)', () => {
+      const config: SentimentConfig = {
+        sentiment: 'neutral',
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'neutral',
+          sentiment_confidence: 0.78,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(true);
+    });
+
+    it('should not fire when sentiment does not match', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'positive',
+          sentiment_confidence: 0.9,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(false);
+      expect(result.reason).toContain('does not match');
+    });
+
+    it('should be case-insensitive', () => {
+      const config: SentimentConfig = {
+        sentiment: 'NEGATIVE',
+      } as SentimentConfig;
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'negative',
+          sentiment_confidence: 0.85,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(true);
+    });
+  });
+
+  describe('Confidence Threshold', () => {
+    it('should fire when confidence meets threshold', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+        confidence_threshold: 0.8,
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'negative',
+          sentiment_confidence: 0.85,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(true);
+      expect(result.matchDetails?.threshold).toBe(0.8);
+      expect(result.matchDetails?.actual).toBe(0.85);
+    });
+
+    it('should fire when confidence equals threshold exactly', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+        confidence_threshold: 0.8,
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'negative',
+          sentiment_confidence: 0.8,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(true);
+    });
+
+    it('should not fire when confidence is below threshold', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+        confidence_threshold: 0.8,
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'negative',
+          sentiment_confidence: 0.65,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(false);
+      expect(result.reason).toContain('below threshold');
+    });
+
+    it('should use 0 as default confidence threshold', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+        // No confidence_threshold specified
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'negative',
+          sentiment_confidence: 0.1, // Very low confidence
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(true); // Should still fire with default threshold of 0
+    });
+
+    it('should handle high confidence threshold (0.95)', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+        confidence_threshold: 0.95,
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'negative',
+          sentiment_confidence: 0.93,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(false);
+      expect(result.reason).toContain('0.93 below threshold 0.95');
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should not fire when call has no sentiment', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+      };
+      const context: EvaluationContext = {
+        call: {
+          // No sentiment or sentiment_confidence
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(false);
+      expect(result.reason).toContain('not analyzed yet');
+    });
+
+    it('should not fire when no target sentiment configured', () => {
+      const config = {} as SentimentConfig;
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'negative',
+          sentiment_confidence: 0.85,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(false);
+      expect(result.reason).toContain('No target sentiment configured');
+    });
+
+    it('should handle missing call data', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+      };
+      const context: EvaluationContext = {};
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(false);
+      expect(result.reason).toContain('not analyzed yet');
+    });
+
+    it('should handle zero confidence correctly', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+        confidence_threshold: 0,
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'negative',
+          sentiment_confidence: 0,
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(true);
+    });
+
+    it('should handle undefined sentiment_confidence with default of 0', () => {
+      const config: SentimentConfig = {
+        sentiment: 'negative',
+        confidence_threshold: 0.5,
+      };
+      const context: EvaluationContext = {
+        call: {
+          sentiment: 'negative',
+          // sentiment_confidence is undefined
+        },
+      };
+
+      const result = evaluateSentiment(config, context);
+
+      expect(result.fires).toBe(false);
+      expect(result.reason).toContain('below threshold');
+    });
+  });
+});
+
+describe('Integration Test: Sentiment Trigger Flow', () => {
+  /**
+   * Simulates the verification steps from subtask-8-2:
+   * 1. Create rule: sentiment = negative
+   * 2. Import call with negative sentiment
+   * 3. Verify sentiment API called (mocked with pre-analyzed data)
+   * 4. Verify rule fires and action executes
+   */
+
+  it('should correctly simulate rule firing for call with negative sentiment', () => {
+    // 1. Create rule: sentiment = negative
+    const ruleConfig: SentimentConfig = {
+      sentiment: 'negative',
+      confidence_threshold: 0.7,
+    };
+
+    // 2. Import call with negative sentiment (simulated post-AI analysis)
+    // In real flow, automation-sentiment would be called first
+    const callContext: EvaluationContext = {
+      call: {
+        recording_id: 12345,
+        title: 'Customer Complaint Call',
+        full_transcript: `
+          Customer: I'm very frustrated with your service. This is unacceptable.
+          Support: I understand your frustration and I apologize.
+          Customer: I've been waiting for weeks and nothing has been done.
+          Support: Let me escalate this immediately for you.
+          Customer: This is my third call about this issue!
+        `,
+        duration_minutes: 25,
+        participant_count: 2,
+        created_at: new Date().toISOString(),
+        // 3. Sentiment API was called and returned these results
+        sentiment: 'negative',
+        sentiment_confidence: 0.89,
+      },
+    };
+
+    // 4. Verify rule fires
+    const result = evaluateSentiment(ruleConfig, callContext);
+
+    expect(result.fires).toBe(true);
+    expect(result.reason).toContain('matches target "negative"');
+    expect(result.reason).toContain('0.89');
+    expect(result.matchDetails?.threshold).toBe(0.7);
+    expect(result.matchDetails?.actual).toBe(0.89);
+  });
+
+  it('should not fire for positive sentiment when rule targets negative', () => {
+    const ruleConfig: SentimentConfig = {
+      sentiment: 'negative',
+      confidence_threshold: 0.5,
+    };
+
+    const callContext: EvaluationContext = {
+      call: {
+        recording_id: 12346,
+        title: 'Successful Demo Call',
+        full_transcript: `
+          Sales: Great to meet you today!
+          Customer: Likewise! I'm really excited about this product.
+          Sales: Let me show you some features.
+          Customer: Wow, this is exactly what we've been looking for!
+        `,
+        duration_minutes: 35,
+        sentiment: 'positive',
+        sentiment_confidence: 0.95,
+      },
+    };
+
+    const result = evaluateSentiment(ruleConfig, callContext);
+
+    expect(result.fires).toBe(false);
+    expect(result.reason).toContain('does not match');
+  });
+
+  it('should correctly validate debug info for execution history', () => {
+    const ruleConfig: SentimentConfig = {
+      sentiment: 'negative',
+      confidence_threshold: 0.8,
+    };
+
+    const callContext: EvaluationContext = {
+      call: {
+        recording_id: 12347,
+        sentiment: 'negative',
+        sentiment_confidence: 0.92,
+      },
+    };
+
+    const result = evaluateSentiment(ruleConfig, callContext);
+
+    // Verify debug info contains all necessary fields for execution history
+    expect(result.fires).toBe(true);
+    expect(result.matchDetails).toBeDefined();
+    expect(result.matchDetails?.threshold).toBeDefined();
+    expect(result.matchDetails?.actual).toBeDefined();
+    expect(typeof result.reason).toBe('string');
+  });
+});
+
 describe('Integration Test: Transcript Phrase Trigger Flow', () => {
   it('should correctly simulate rule firing for call with pricing discussion', () => {
     // Simulate the verification steps from subtask-8-1:
