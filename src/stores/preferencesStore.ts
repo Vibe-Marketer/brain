@@ -178,3 +178,19 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     set({ error: null });
   },
 }));
+
+/**
+ * Cross-tab synchronization using storage events
+ *
+ * When one tab updates preferences, it sets PREFERENCES_UPDATED_KEY in localStorage.
+ * The 'storage' event fires in all OTHER tabs (not the tab that made the change).
+ * This listener reloads preferences from the database to sync the change.
+ */
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (event: StorageEvent) => {
+    if (event.key === PREFERENCES_UPDATED_KEY) {
+      // Another tab updated preferences - reload from database
+      usePreferencesStore.getState().loadPreferences();
+    }
+  });
+}
