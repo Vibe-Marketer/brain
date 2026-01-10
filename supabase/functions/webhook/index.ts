@@ -199,7 +199,6 @@ async function verifySvixSignature(
   // Base64 decode the secret
   const secretBytes = Uint8Array.from(atob(secretParts[1]), c => c.charCodeAt(0));
   console.log('Decoded secret length:', secretBytes.length);
-  console.log('Secret being used (first 10 chars):', secret.substring(0, 16) + '...');
 
   // Use Web Crypto API to sign the Svix format
   const encoder = new TextEncoder();
