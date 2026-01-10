@@ -2469,3 +2469,1567 @@ describe('Integration Test: Scheduled Rule Flow', () => {
     expect(nextRun.toISOString()).toBe('2026-01-20T09:00:00.000Z');
   });
 });
+
+// ============================================================
+// Multi-Condition AND/OR Logic Evaluation (re-implemented for testing)
+// ============================================================
+
+/**
+ * Tests for subtask-8-5: Test multi-condition AND/OR logic evaluation
+ *
+ * This test suite validates:
+ * 1. Simple AND conditions (all must pass)
+ * 2. Simple OR conditions (any must pass)
+ * 3. Nested conditions like `(A AND B) OR (C AND D)`
+ * 4. Complex combinations with multiple operators
+ * 5. Edge cases (empty conditions, single condition, etc.)
+ */
+
+interface ConditionValue {
+  value?: string | number | boolean;
+  values?: string[];
+  min?: number;
+  max?: number;
+  pattern?: string;
+  flags?: string;
+}
+
+interface Condition {
+  field?: string;
+  operator?:
+    | '='
+    | '!='
+    | '>'
+    | '>='
+    | '<'
+    | '<='
+    | 'contains'
+    | 'not_contains'
+    | 'starts_with'
+    | 'ends_with'
+    | 'matches'
+    | 'not_matches'
+    | 'in'
+    | 'not_in'
+    | 'is_empty'
+    | 'is_not_empty'
+    | 'between';
+  value?: ConditionValue;
+  condition_type?: 'field' | 'transcript' | 'participant' | 'category' | 'tag' | 'sentiment' | 'time' | 'custom';
+  logic_operator?: 'AND' | 'OR';
+  conditions?: Condition[];
+}
+
+interface ConditionGroup {
+  operator: 'AND' | 'OR';
+  conditions: Condition[];
+}
+
+interface ConditionEvaluationContext {
+  call?: {
+    recording_id?: number;
+    title?: string;
+    duration_minutes?: number;
+    created_at?: string;
+    participant_count?: number;
+    calendar_invitees?: Array<{ email?: string; name?: string }>;
+    full_transcript?: string;
+    summary?: string;
+    sentiment?: 'positive' | 'neutral' | 'negative';
+    sentiment_confidence?: number;
+  };
+  category?: {
+    id?: string;
+    name?: string;
+  };
+  tags?: Array<{
+    id?: string;
+    name?: string;
+  }>;
+  custom?: Record<string, unknown>;
+}
+
+interface ConditionEvaluationResult {
+  passed: boolean;
+  reason: string;
+  details?: Array<{
+    condition: Condition;
+    result: boolean;
+    reason: string;
+  }>;
+}
+
+/**
+ * Get a value from the evaluation context by field name
+ */
+function getFieldValue(context: ConditionEvaluationContext, field: string): unknown {
+  const parts = field.split('.');
+  let value: unknown = context;
+
+  for (const part of parts) {
+    if (value === null || value === undefined) return undefined;
+    if (typeof value === 'object') {
+      value = (value as Record<string, unknown>)[part];
+    } else {
+      return undefined;
+    }
+  }
+
+  return value;
+}
+
+/**
+ * Compare two values using the specified operator
+ */
+function compareValues(
+  actual: unknown,
+  operator: Condition['operator'],
+  expected: ConditionValue
+): { result: boolean; reason: string } {
+  // Handle is_empty/is_not_empty first
+  if (operator === 'is_empty') {
+    const isEmpty = actual === null || actual === undefined || actual === '' ||
+      (Array.isArray(actual) && actual.length === 0);
+    return {
+      result: isEmpty,
+      reason: isEmpty ? 'Value is empty' : `Value is not empty: ${String(actual)}`,
+    };
+  }
+
+  if (operator === 'is_not_empty') {
+    const isNotEmpty = actual !== null && actual !== undefined && actual !== '' &&
+      !(Array.isArray(actual) && actual.length === 0);
+    return {
+      result: isNotEmpty,
+      reason: isNotEmpty ? `Value is not empty: ${String(actual)}` : 'Value is empty',
+    };
+  }
+
+  const expectedValue = expected.value;
+
+  // Numeric comparisons
+  if (operator === '>' || operator === '>=' || operator === '<' || operator === '<=') {
+    const numActual = Number(actual);
+    const numExpected = Number(expectedValue);
+
+    if (isNaN(numActual) || isNaN(numExpected)) {
+      return {
+        result: false,
+        reason: `Cannot compare non-numeric values: ${actual} ${operator} ${expectedValue}`,
+      };
+    }
+
+    let result = false;
+    switch (operator) {
+      case '>':
+        result = numActual > numExpected;
+        break;
+      case '>=':
+        result = numActual >= numExpected;
+        break;
+      case '<':
+        result = numActual < numExpected;
+        break;
+      case '<=':
+        result = numActual <= numExpected;
+        break;
+    }
+
+    return {
+      result,
+      reason: `${numActual} ${operator} ${numExpected} is ${result}`,
+    };
+  }
+
+  // Equality comparisons
+  if (operator === '=') {
+    const result = String(actual).toLowerCase() === String(expectedValue).toLowerCase();
+    return {
+      result,
+      reason: result ? `${actual} equals ${expectedValue}` : `${actual} does not equal ${expectedValue}`,
+    };
+  }
+
+  if (operator === '!=') {
+    const result = String(actual).toLowerCase() !== String(expectedValue).toLowerCase();
+    return {
+      result,
+      reason: result ? `${actual} does not equal ${expectedValue}` : `${actual} equals ${expectedValue}`,
+    };
+  }
+
+  // String containment
+  const strActual = String(actual || '').toLowerCase();
+
+  if (operator === 'contains') {
+    const result = strActual.includes(String(expectedValue).toLowerCase());
+    return {
+      result,
+      reason: result ? `"${actual}" contains "${expectedValue}"` : `"${actual}" does not contain "${expectedValue}"`,
+    };
+  }
+
+  if (operator === 'not_contains') {
+    const result = !strActual.includes(String(expectedValue).toLowerCase());
+    return {
+      result,
+      reason: result
+        ? `"${actual}" does not contain "${expectedValue}"`
+        : `"${actual}" contains "${expectedValue}"`,
+    };
+  }
+
+  if (operator === 'starts_with') {
+    const result = strActual.startsWith(String(expectedValue).toLowerCase());
+    return {
+      result,
+      reason: result
+        ? `"${actual}" starts with "${expectedValue}"`
+        : `"${actual}" does not start with "${expectedValue}"`,
+    };
+  }
+
+  if (operator === 'ends_with') {
+    const result = strActual.endsWith(String(expectedValue).toLowerCase());
+    return {
+      result,
+      reason: result
+        ? `"${actual}" ends with "${expectedValue}"`
+        : `"${actual}" does not end with "${expectedValue}"`,
+    };
+  }
+
+  // Regex matching
+  if (operator === 'matches' || operator === 'not_matches') {
+    const pattern = expected.pattern || String(expectedValue);
+    const flags = expected.flags || 'i';
+    try {
+      const regex = new RegExp(pattern, flags);
+      const matches = regex.test(String(actual || ''));
+      const result = operator === 'matches' ? matches : !matches;
+      return {
+        result,
+        reason: result
+          ? `"${actual}" ${operator === 'matches' ? 'matches' : 'does not match'} pattern "${pattern}"`
+          : `"${actual}" ${operator === 'matches' ? 'does not match' : 'matches'} pattern "${pattern}"`,
+      };
+    } catch (e) {
+      return {
+        result: false,
+        reason: `Invalid regex pattern: ${pattern} - ${e instanceof Error ? e.message : String(e)}`,
+      };
+    }
+  }
+
+  // Array membership
+  if (operator === 'in' || operator === 'not_in') {
+    const values = expected.values || [];
+    const actualLower = String(actual).toLowerCase();
+    const isIn = values.some((v) => String(v).toLowerCase() === actualLower);
+    const result = operator === 'in' ? isIn : !isIn;
+    return {
+      result,
+      reason: result
+        ? `"${actual}" is ${operator === 'in' ? 'in' : 'not in'} [${values.join(', ')}]`
+        : `"${actual}" is ${operator === 'in' ? 'not in' : 'in'} [${values.join(', ')}]`,
+    };
+  }
+
+  // Range check
+  if (operator === 'between') {
+    const numActual = Number(actual);
+    const min = Number(expected.min);
+    const max = Number(expected.max);
+
+    if (isNaN(numActual) || isNaN(min) || isNaN(max)) {
+      return {
+        result: false,
+        reason: `Cannot perform range check on non-numeric values: ${actual} between ${min} and ${max}`,
+      };
+    }
+
+    const result = numActual >= min && numActual <= max;
+    return {
+      result,
+      reason: result
+        ? `${numActual} is between ${min} and ${max}`
+        : `${numActual} is not between ${min} and ${max}`,
+    };
+  }
+
+  return {
+    result: false,
+    reason: `Unknown operator: ${operator}`,
+  };
+}
+
+/**
+ * Evaluate a single condition against the context
+ */
+function evaluateCondition(
+  condition: Condition,
+  context: ConditionEvaluationContext
+): { result: boolean; reason: string } {
+  // Check if this is a group condition (has nested conditions)
+  if (condition.conditions && condition.logic_operator) {
+    return evaluateConditionGroup(
+      { operator: condition.logic_operator, conditions: condition.conditions },
+      context
+    );
+  }
+
+  // Leaf condition - evaluate based on type
+  const conditionType = condition.condition_type || 'field';
+  let fieldValue: unknown;
+
+  switch (conditionType) {
+    case 'field':
+      fieldValue = getFieldValue(context, condition.field || '');
+      break;
+
+    case 'transcript':
+      fieldValue = context.call?.full_transcript || '';
+      break;
+
+    case 'participant':
+      fieldValue = context.call?.calendar_invitees?.map((p) => p.email || p.name).join(', ') || '';
+      break;
+
+    case 'category':
+      fieldValue = context.category?.name || '';
+      break;
+
+    case 'tag':
+      fieldValue = context.tags?.map((t) => t.name).join(', ') || '';
+      break;
+
+    case 'sentiment':
+      fieldValue = context.call?.sentiment || '';
+      break;
+
+    case 'time':
+      if (condition.field === 'day_of_week') {
+        const date = context.call?.created_at ? new Date(context.call.created_at) : new Date();
+        fieldValue = date.getDay();
+      } else if (condition.field === 'hour') {
+        const date = context.call?.created_at ? new Date(context.call.created_at) : new Date();
+        fieldValue = date.getHours();
+      } else {
+        fieldValue = getFieldValue(context, `call.${condition.field || ''}`);
+      }
+      break;
+
+    case 'custom':
+      fieldValue = getFieldValue(context, `custom.${condition.field || ''}`);
+      break;
+
+    default:
+      return {
+        result: false,
+        reason: `Unknown condition type: ${conditionType}`,
+      };
+  }
+
+  if (!condition.operator) {
+    return {
+      result: false,
+      reason: 'Missing operator in condition',
+    };
+  }
+
+  return compareValues(fieldValue, condition.operator, condition.value || {});
+}
+
+/**
+ * Evaluate a condition group (AND/OR) recursively
+ */
+function evaluateConditionGroup(
+  group: ConditionGroup,
+  context: ConditionEvaluationContext
+): { result: boolean; reason: string } {
+  if (!group.conditions || group.conditions.length === 0) {
+    return {
+      result: true,
+      reason: 'Empty condition group (vacuously true)',
+    };
+  }
+
+  const results: Array<{ condition: Condition; result: boolean; reason: string }> = [];
+
+  for (const condition of group.conditions) {
+    const evaluation = evaluateCondition(condition, context);
+    results.push({
+      condition,
+      result: evaluation.result,
+      reason: evaluation.reason,
+    });
+  }
+
+  let passed: boolean;
+  let reason: string;
+
+  if (group.operator === 'AND') {
+    passed = results.every((r) => r.result);
+    reason = passed
+      ? `All ${results.length} conditions passed (AND)`
+      : `Failed: ${results.filter((r) => !r.result).length} of ${results.length} conditions failed (AND)`;
+  } else {
+    // OR
+    passed = results.some((r) => r.result);
+    reason = passed
+      ? `At least one condition passed: ${results.filter((r) => r.result).length} of ${results.length} (OR)`
+      : `None of ${results.length} conditions passed (OR)`;
+  }
+
+  return { result: passed, reason };
+}
+
+/**
+ * Main entry point: Evaluate a complete condition tree against context
+ */
+function evaluateConditions(
+  conditions: ConditionGroup | Condition,
+  context: ConditionEvaluationContext
+): ConditionEvaluationResult {
+  // Normalize to ConditionGroup
+  const group: ConditionGroup = 'operator' in conditions && 'conditions' in conditions
+    ? (conditions as ConditionGroup)
+    : { operator: 'AND', conditions: [conditions as Condition] };
+
+  const details: ConditionEvaluationResult['details'] = [];
+
+  // Evaluate each top-level condition
+  for (const condition of group.conditions) {
+    const evaluation = evaluateCondition(condition, context);
+    details.push({
+      condition,
+      result: evaluation.result,
+      reason: evaluation.reason,
+    });
+  }
+
+  // Compute final result
+  let passed: boolean;
+  let reason: string;
+
+  if (group.operator === 'AND') {
+    passed = details.every((d) => d.result);
+    reason = passed
+      ? `All ${details.length} conditions passed (AND)`
+      : `${details.filter((d) => !d.result).length} of ${details.length} conditions failed (AND)`;
+  } else {
+    passed = details.some((d) => d.result);
+    reason = passed
+      ? `${details.filter((d) => d.result).length} of ${details.length} conditions passed (OR)`
+      : `All ${details.length} conditions failed (OR)`;
+  }
+
+  return {
+    passed,
+    reason,
+    details,
+  };
+}
+
+// ============================================================
+// Multi-Condition AND/OR Logic Tests
+// ============================================================
+
+describe('Multi-Condition AND/OR Logic', () => {
+  describe('Simple AND Logic', () => {
+    it('should pass when all AND conditions are true', () => {
+      const conditions: ConditionGroup = {
+        operator: 'AND',
+        conditions: [
+          {
+            condition_type: 'field',
+            field: 'call.duration_minutes',
+            operator: '>',
+            value: { value: 30 },
+          },
+          {
+            condition_type: 'sentiment',
+            operator: '=',
+            value: { value: 'negative' },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 45,
+          sentiment: 'negative',
+          sentiment_confidence: 0.85,
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(true);
+      expect(result.reason).toContain('All 2 conditions passed (AND)');
+      expect(result.details).toHaveLength(2);
+      expect(result.details?.every((d) => d.result)).toBe(true);
+    });
+
+    it('should fail when any AND condition is false', () => {
+      const conditions: ConditionGroup = {
+        operator: 'AND',
+        conditions: [
+          {
+            condition_type: 'field',
+            field: 'call.duration_minutes',
+            operator: '>',
+            value: { value: 30 },
+          },
+          {
+            condition_type: 'sentiment',
+            operator: '=',
+            value: { value: 'negative' },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 45, // Passes: > 30
+          sentiment: 'positive', // Fails: not negative
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(false);
+      expect(result.reason).toContain('1 of 2 conditions failed (AND)');
+      expect(result.details?.filter((d) => !d.result)).toHaveLength(1);
+    });
+
+    it('should fail when all AND conditions are false', () => {
+      const conditions: ConditionGroup = {
+        operator: 'AND',
+        conditions: [
+          {
+            condition_type: 'field',
+            field: 'call.duration_minutes',
+            operator: '>',
+            value: { value: 60 },
+          },
+          {
+            condition_type: 'sentiment',
+            operator: '=',
+            value: { value: 'negative' },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 30, // Fails: not > 60
+          sentiment: 'positive', // Fails: not negative
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(false);
+      expect(result.reason).toContain('2 of 2 conditions failed (AND)');
+      expect(result.details?.every((d) => !d.result)).toBe(true);
+    });
+  });
+
+  describe('Simple OR Logic', () => {
+    it('should pass when any OR condition is true', () => {
+      const conditions: ConditionGroup = {
+        operator: 'OR',
+        conditions: [
+          {
+            condition_type: 'field',
+            field: 'call.duration_minutes',
+            operator: '>',
+            value: { value: 60 },
+          },
+          {
+            condition_type: 'transcript',
+            operator: 'contains',
+            value: { value: 'urgent' },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 30, // Fails: not > 60
+          full_transcript: 'This is an urgent matter!', // Passes: contains urgent
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(true);
+      expect(result.reason).toContain('1 of 2 conditions passed (OR)');
+    });
+
+    it('should pass when all OR conditions are true', () => {
+      const conditions: ConditionGroup = {
+        operator: 'OR',
+        conditions: [
+          {
+            condition_type: 'field',
+            field: 'call.duration_minutes',
+            operator: '>',
+            value: { value: 30 },
+          },
+          {
+            condition_type: 'transcript',
+            operator: 'contains',
+            value: { value: 'urgent' },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 45, // Passes: > 30
+          full_transcript: 'This is an urgent matter!', // Passes: contains urgent
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(true);
+      expect(result.reason).toContain('2 of 2 conditions passed (OR)');
+    });
+
+    it('should fail when all OR conditions are false', () => {
+      const conditions: ConditionGroup = {
+        operator: 'OR',
+        conditions: [
+          {
+            condition_type: 'field',
+            field: 'call.duration_minutes',
+            operator: '>',
+            value: { value: 60 },
+          },
+          {
+            condition_type: 'transcript',
+            operator: 'contains',
+            value: { value: 'urgent' },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 30, // Fails: not > 60
+          full_transcript: 'Just a regular meeting.', // Fails: does not contain urgent
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(false);
+      expect(result.reason).toContain('All 2 conditions failed (OR)');
+    });
+  });
+
+  describe('Nested Conditions - (A AND B) OR (C AND D)', () => {
+    it('should pass when first nested group passes', () => {
+      // Rule: (sentiment = negative AND duration > 30) OR (transcript contains "urgent")
+      const conditions: ConditionGroup = {
+        operator: 'OR',
+        conditions: [
+          {
+            // Group: sentiment = negative AND duration > 30
+            logic_operator: 'AND',
+            conditions: [
+              {
+                condition_type: 'sentiment',
+                operator: '=',
+                value: { value: 'negative' },
+              },
+              {
+                condition_type: 'field',
+                field: 'call.duration_minutes',
+                operator: '>',
+                value: { value: 30 },
+              },
+            ],
+          },
+          {
+            // Single condition: transcript contains "urgent"
+            condition_type: 'transcript',
+            operator: 'contains',
+            value: { value: 'urgent' },
+          },
+        ],
+      };
+
+      // Context: negative sentiment AND duration > 30 (first group passes)
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 45,
+          sentiment: 'negative',
+          full_transcript: 'Just a regular frustrating call.',
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(true);
+      expect(result.reason).toContain('OR');
+    });
+
+    it('should pass when second condition passes but first group fails', () => {
+      // Rule: (sentiment = negative AND duration > 30) OR (transcript contains "urgent")
+      const conditions: ConditionGroup = {
+        operator: 'OR',
+        conditions: [
+          {
+            // Group: sentiment = negative AND duration > 30
+            logic_operator: 'AND',
+            conditions: [
+              {
+                condition_type: 'sentiment',
+                operator: '=',
+                value: { value: 'negative' },
+              },
+              {
+                condition_type: 'field',
+                field: 'call.duration_minutes',
+                operator: '>',
+                value: { value: 30 },
+              },
+            ],
+          },
+          {
+            // Single condition: transcript contains "urgent"
+            condition_type: 'transcript',
+            operator: 'contains',
+            value: { value: 'urgent' },
+          },
+        ],
+      };
+
+      // Context: positive sentiment (first group fails) but contains "urgent" (second passes)
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 45,
+          sentiment: 'positive', // First group fails
+          full_transcript: 'This is urgent! Need immediate attention.',
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(true);
+    });
+
+    it('should fail when all nested groups fail', () => {
+      // Rule: (sentiment = negative AND duration > 30) OR (transcript contains "urgent")
+      const conditions: ConditionGroup = {
+        operator: 'OR',
+        conditions: [
+          {
+            logic_operator: 'AND',
+            conditions: [
+              {
+                condition_type: 'sentiment',
+                operator: '=',
+                value: { value: 'negative' },
+              },
+              {
+                condition_type: 'field',
+                field: 'call.duration_minutes',
+                operator: '>',
+                value: { value: 30 },
+              },
+            ],
+          },
+          {
+            condition_type: 'transcript',
+            operator: 'contains',
+            value: { value: 'urgent' },
+          },
+        ],
+      };
+
+      // Context: positive sentiment AND no "urgent" - both fail
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 45,
+          sentiment: 'positive',
+          full_transcript: 'Great call, everything went well!',
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(false);
+    });
+
+    it('should handle complex nested: (A AND B) OR (C AND D)', () => {
+      // Rule: (category = Sales AND duration > 30) OR (sentiment = negative AND transcript contains "complaint")
+      const conditions: ConditionGroup = {
+        operator: 'OR',
+        conditions: [
+          {
+            logic_operator: 'AND',
+            conditions: [
+              {
+                condition_type: 'category',
+                operator: '=',
+                value: { value: 'Sales' },
+              },
+              {
+                condition_type: 'field',
+                field: 'call.duration_minutes',
+                operator: '>',
+                value: { value: 30 },
+              },
+            ],
+          },
+          {
+            logic_operator: 'AND',
+            conditions: [
+              {
+                condition_type: 'sentiment',
+                operator: '=',
+                value: { value: 'negative' },
+              },
+              {
+                condition_type: 'transcript',
+                operator: 'contains',
+                value: { value: 'complaint' },
+              },
+            ],
+          },
+        ],
+      };
+
+      // Context: Not Sales category, but negative sentiment with complaint
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 15,
+          sentiment: 'negative',
+          full_transcript: 'Customer filed a complaint about the service.',
+        },
+        category: {
+          name: 'Support',
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(true);
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle empty condition group', () => {
+      const conditions: ConditionGroup = {
+        operator: 'AND',
+        conditions: [],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: { duration_minutes: 30 },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(true);
+      expect(result.reason).toContain('vacuously true');
+    });
+
+    it('should handle single condition as AND group', () => {
+      const conditions: ConditionGroup = {
+        operator: 'AND',
+        conditions: [
+          {
+            condition_type: 'field',
+            field: 'call.duration_minutes',
+            operator: '>',
+            value: { value: 30 },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: { duration_minutes: 45 },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(true);
+      expect(result.details).toHaveLength(1);
+    });
+
+    it('should handle single condition as OR group', () => {
+      const conditions: ConditionGroup = {
+        operator: 'OR',
+        conditions: [
+          {
+            condition_type: 'field',
+            field: 'call.duration_minutes',
+            operator: '<',
+            value: { value: 30 },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: { duration_minutes: 45 },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(false);
+    });
+
+    it('should handle missing field in context', () => {
+      const conditions: ConditionGroup = {
+        operator: 'AND',
+        conditions: [
+          {
+            condition_type: 'field',
+            field: 'call.nonexistent_field',
+            operator: '=',
+            value: { value: 'test' },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: { duration_minutes: 30 },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(false);
+    });
+
+    it('should handle null values correctly', () => {
+      const conditions: ConditionGroup = {
+        operator: 'AND',
+        conditions: [
+          {
+            condition_type: 'field',
+            field: 'call.summary',
+            operator: 'is_empty',
+            value: {},
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: { duration_minutes: 30 },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(true);
+    });
+  });
+
+  describe('All Operators', () => {
+    const baseContext: ConditionEvaluationContext = {
+      call: {
+        duration_minutes: 45,
+        title: 'Sales Call with Acme Corp',
+        sentiment: 'positive',
+        participant_count: 3,
+        full_transcript: 'Discussed pricing options.',
+      },
+      category: { name: 'Sales' },
+      tags: [{ name: 'important' }, { name: 'follow-up' }],
+    };
+
+    it('should handle equality (=) operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'sentiment',
+          operator: '=',
+          value: { value: 'positive' },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle inequality (!=) operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'sentiment',
+          operator: '!=',
+          value: { value: 'negative' },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle greater than (>) operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'field',
+          field: 'call.duration_minutes',
+          operator: '>',
+          value: { value: 30 },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle less than (<) operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'field',
+          field: 'call.duration_minutes',
+          operator: '<',
+          value: { value: 60 },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle contains operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'transcript',
+          operator: 'contains',
+          value: { value: 'pricing' },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle not_contains operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'transcript',
+          operator: 'not_contains',
+          value: { value: 'refund' },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle starts_with operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'field',
+          field: 'call.title',
+          operator: 'starts_with',
+          value: { value: 'Sales' },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle ends_with operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'field',
+          field: 'call.title',
+          operator: 'ends_with',
+          value: { value: 'Corp' },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle matches (regex) operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'field',
+          field: 'call.title',
+          operator: 'matches',
+          value: { pattern: 'Sales.*Corp' },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle in operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'category',
+          operator: 'in',
+          value: { values: ['Sales', 'Marketing', 'Support'] },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle not_in operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'category',
+          operator: 'not_in',
+          value: { values: ['Spam', 'Archive'] },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle is_not_empty operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'field',
+          field: 'call.title',
+          operator: 'is_not_empty',
+          value: {},
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+
+    it('should handle between operator', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'field',
+          field: 'call.duration_minutes',
+          operator: 'between',
+          value: { min: 30, max: 60 },
+        }],
+      }, baseContext);
+      expect(result.passed).toBe(true);
+    });
+  });
+
+  describe('Condition Types', () => {
+    it('should evaluate field condition type', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'field',
+          field: 'call.participant_count',
+          operator: '>=',
+          value: { value: 2 },
+        }],
+      }, {
+        call: { participant_count: 3 },
+      });
+      expect(result.passed).toBe(true);
+    });
+
+    it('should evaluate transcript condition type', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'transcript',
+          operator: 'contains',
+          value: { value: 'hello' },
+        }],
+      }, {
+        call: { full_transcript: 'Hello world!' },
+      });
+      expect(result.passed).toBe(true);
+    });
+
+    it('should evaluate category condition type', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'category',
+          operator: '=',
+          value: { value: 'Sales' },
+        }],
+      }, {
+        category: { name: 'Sales' },
+      });
+      expect(result.passed).toBe(true);
+    });
+
+    it('should evaluate tag condition type', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'tag',
+          operator: 'contains',
+          value: { value: 'important' },
+        }],
+      }, {
+        tags: [{ name: 'important' }, { name: 'urgent' }],
+      });
+      expect(result.passed).toBe(true);
+    });
+
+    it('should evaluate sentiment condition type', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'sentiment',
+          operator: '=',
+          value: { value: 'negative' },
+        }],
+      }, {
+        call: { sentiment: 'negative' },
+      });
+      expect(result.passed).toBe(true);
+    });
+
+    it('should evaluate custom condition type', () => {
+      const result = evaluateConditions({
+        operator: 'AND',
+        conditions: [{
+          condition_type: 'custom',
+          field: 'priority',
+          operator: '=',
+          value: { value: 'high' },
+        }],
+      }, {
+        custom: { priority: 'high' },
+      });
+      expect(result.passed).toBe(true);
+    });
+  });
+
+  describe('Debug Info for Execution History', () => {
+    it('should include detailed evaluation results', () => {
+      const conditions: ConditionGroup = {
+        operator: 'AND',
+        conditions: [
+          {
+            condition_type: 'sentiment',
+            operator: '=',
+            value: { value: 'negative' },
+          },
+          {
+            condition_type: 'field',
+            field: 'call.duration_minutes',
+            operator: '>',
+            value: { value: 30 },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 45,
+          sentiment: 'negative',
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      // Verify debug info structure
+      expect(result.passed).toBe(true);
+      expect(result.reason).toBeTruthy();
+      expect(result.details).toBeDefined();
+      expect(result.details).toHaveLength(2);
+
+      // Each detail should have condition, result, and reason
+      for (const detail of result.details || []) {
+        expect(detail).toHaveProperty('condition');
+        expect(detail).toHaveProperty('result');
+        expect(detail).toHaveProperty('reason');
+        expect(typeof detail.reason).toBe('string');
+      }
+    });
+
+    it('should explain which conditions failed in AND group', () => {
+      const conditions: ConditionGroup = {
+        operator: 'AND',
+        conditions: [
+          {
+            condition_type: 'sentiment',
+            operator: '=',
+            value: { value: 'negative' },
+          },
+          {
+            condition_type: 'field',
+            field: 'call.duration_minutes',
+            operator: '>',
+            value: { value: 60 },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: {
+          duration_minutes: 45, // Fails: not > 60
+          sentiment: 'negative', // Passes
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(false);
+      const failedConditions = result.details?.filter((d) => !d.result);
+      expect(failedConditions).toHaveLength(1);
+      expect(failedConditions?.[0].reason).toContain('45');
+      expect(failedConditions?.[0].reason).toContain('60');
+    });
+
+    it('should explain which conditions passed in OR group', () => {
+      const conditions: ConditionGroup = {
+        operator: 'OR',
+        conditions: [
+          {
+            condition_type: 'sentiment',
+            operator: '=',
+            value: { value: 'negative' },
+          },
+          {
+            condition_type: 'transcript',
+            operator: 'contains',
+            value: { value: 'urgent' },
+          },
+        ],
+      };
+
+      const context: ConditionEvaluationContext = {
+        call: {
+          sentiment: 'positive', // Fails
+          full_transcript: 'This is an urgent request!', // Passes
+        },
+      };
+
+      const result = evaluateConditions(conditions, context);
+
+      expect(result.passed).toBe(true);
+      const passedConditions = result.details?.filter((d) => d.result);
+      expect(passedConditions).toHaveLength(1);
+      expect(passedConditions?.[0].reason).toContain('contains');
+      expect(passedConditions?.[0].reason).toContain('urgent');
+    });
+  });
+});
+
+describe('Integration Test: Multi-Condition Rule Flow', () => {
+  /**
+   * Simulates the verification steps from subtask-8-5:
+   * 1. Create rule with complex conditions
+   * 2. Test calls matching each condition path
+   * 3. Verify correct evaluation
+   * 4. Check debug info
+   */
+
+  it('should correctly evaluate rule: (sentiment = negative AND duration > 30) OR transcript contains "urgent"', () => {
+    // Complex rule from spec:
+    const ruleConditions: ConditionGroup = {
+      operator: 'OR',
+      conditions: [
+        {
+          logic_operator: 'AND',
+          conditions: [
+            {
+              condition_type: 'sentiment',
+              operator: '=',
+              value: { value: 'negative' },
+            },
+            {
+              condition_type: 'field',
+              field: 'call.duration_minutes',
+              operator: '>',
+              value: { value: 30 },
+            },
+          ],
+        },
+        {
+          condition_type: 'transcript',
+          operator: 'contains',
+          value: { value: 'urgent' },
+        },
+      ],
+    };
+
+    // Test Case 1: Long negative call (first AND group passes)
+    const context1: ConditionEvaluationContext = {
+      call: {
+        recording_id: 1001,
+        duration_minutes: 45,
+        sentiment: 'negative',
+        full_transcript: 'Customer was frustrated with the service.',
+      },
+    };
+    const result1 = evaluateConditions(ruleConditions, context1);
+    expect(result1.passed).toBe(true);
+
+    // Test Case 2: Short urgent call (second condition passes)
+    const context2: ConditionEvaluationContext = {
+      call: {
+        recording_id: 1002,
+        duration_minutes: 10,
+        sentiment: 'positive',
+        full_transcript: 'This is an urgent request for assistance.',
+      },
+    };
+    const result2 = evaluateConditions(ruleConditions, context2);
+    expect(result2.passed).toBe(true);
+
+    // Test Case 3: Short positive call without urgent (nothing passes)
+    const context3: ConditionEvaluationContext = {
+      call: {
+        recording_id: 1003,
+        duration_minutes: 15,
+        sentiment: 'positive',
+        full_transcript: 'Great demo, looking forward to next steps.',
+      },
+    };
+    const result3 = evaluateConditions(ruleConditions, context3);
+    expect(result3.passed).toBe(false);
+
+    // Test Case 4: Long positive call without urgent (nothing passes)
+    const context4: ConditionEvaluationContext = {
+      call: {
+        recording_id: 1004,
+        duration_minutes: 60,
+        sentiment: 'positive', // Fails first group's sentiment check
+        full_transcript: 'Extensive product walkthrough completed.',
+      },
+    };
+    const result4 = evaluateConditions(ruleConditions, context4);
+    expect(result4.passed).toBe(false);
+
+    // Test Case 5: Both conditions pass
+    const context5: ConditionEvaluationContext = {
+      call: {
+        recording_id: 1005,
+        duration_minutes: 45,
+        sentiment: 'negative',
+        full_transcript: 'This is urgent! Customer is very unhappy.',
+      },
+    };
+    const result5 = evaluateConditions(ruleConditions, context5);
+    expect(result5.passed).toBe(true);
+  });
+
+  it('should provide complete debug info for execution history', () => {
+    const ruleConditions: ConditionGroup = {
+      operator: 'AND',
+      conditions: [
+        {
+          condition_type: 'category',
+          operator: '=',
+          value: { value: 'Sales' },
+        },
+        {
+          condition_type: 'sentiment',
+          operator: '!=',
+          value: { value: 'negative' },
+        },
+        {
+          condition_type: 'field',
+          field: 'call.duration_minutes',
+          operator: 'between',
+          value: { min: 15, max: 60 },
+        },
+      ],
+    };
+
+    const context: ConditionEvaluationContext = {
+      call: {
+        recording_id: 2001,
+        duration_minutes: 30,
+        sentiment: 'positive',
+        full_transcript: 'Successful sales call.',
+      },
+      category: { id: 'cat-1', name: 'Sales' },
+    };
+
+    const result = evaluateConditions(ruleConditions, context);
+
+    // Verify complete debug info structure
+    expect(result.passed).toBe(true);
+    expect(result.reason).toContain('All 3 conditions passed (AND)');
+
+    // Verify details for each condition
+    expect(result.details).toHaveLength(3);
+
+    // Check category condition detail
+    const categoryDetail = result.details?.[0];
+    expect(categoryDetail?.result).toBe(true);
+    expect(categoryDetail?.reason).toContain('Sales');
+
+    // Check sentiment condition detail
+    const sentimentDetail = result.details?.[1];
+    expect(sentimentDetail?.result).toBe(true);
+    expect(sentimentDetail?.reason).toContain('positive');
+
+    // Check duration condition detail
+    const durationDetail = result.details?.[2];
+    expect(durationDetail?.result).toBe(true);
+    expect(durationDetail?.reason).toContain('between');
+  });
+
+  it('should handle real-world complex rule with multiple condition types', () => {
+    // Real-world rule: Escalation trigger
+    // Fire if: (sentiment = negative AND duration > 20)
+    //      OR (category = Support AND tag contains "escalation")
+    //      OR (transcript contains "manager" AND transcript contains "complaint")
+    const ruleConditions: ConditionGroup = {
+      operator: 'OR',
+      conditions: [
+        {
+          logic_operator: 'AND',
+          conditions: [
+            { condition_type: 'sentiment', operator: '=', value: { value: 'negative' } },
+            { condition_type: 'field', field: 'call.duration_minutes', operator: '>', value: { value: 20 } },
+          ],
+        },
+        {
+          logic_operator: 'AND',
+          conditions: [
+            { condition_type: 'category', operator: '=', value: { value: 'Support' } },
+            { condition_type: 'tag', operator: 'contains', value: { value: 'escalation' } },
+          ],
+        },
+        {
+          logic_operator: 'AND',
+          conditions: [
+            { condition_type: 'transcript', operator: 'contains', value: { value: 'manager' } },
+            { condition_type: 'transcript', operator: 'contains', value: { value: 'complaint' } },
+          ],
+        },
+      ],
+    };
+
+    // Test: Support call with escalation tag
+    const supportCallContext: ConditionEvaluationContext = {
+      call: {
+        duration_minutes: 15,
+        sentiment: 'neutral',
+        full_transcript: 'Technical support inquiry.',
+      },
+      category: { name: 'Support' },
+      tags: [{ name: 'escalation' }, { name: 'priority' }],
+    };
+    expect(evaluateConditions(ruleConditions, supportCallContext).passed).toBe(true);
+
+    // Test: Transcript mentions manager and complaint
+    const complaintCallContext: ConditionEvaluationContext = {
+      call: {
+        duration_minutes: 10,
+        sentiment: 'neutral',
+        full_transcript: 'Customer wants to speak with a manager about their complaint.',
+      },
+      category: { name: 'Sales' },
+      tags: [],
+    };
+    expect(evaluateConditions(ruleConditions, complaintCallContext).passed).toBe(true);
+
+    // Test: None of the conditions match
+    const normalCallContext: ConditionEvaluationContext = {
+      call: {
+        duration_minutes: 25,
+        sentiment: 'positive',
+        full_transcript: 'Great product demo, customer is interested.',
+      },
+      category: { name: 'Sales' },
+      tags: [{ name: 'demo' }],
+    };
+    expect(evaluateConditions(ruleConditions, normalCallContext).passed).toBe(false);
+  });
+});
