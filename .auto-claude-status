@@ -1,15 +1,15 @@
 {
   "active": true,
-  "spec": "012-repair-hybrid-search-function-missing",
+  "spec": "019-google-meet-integration",
   "state": "building",
   "subtasks": {
     "completed": 3,
-    "total": 12,
+    "total": 20,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Root Cause Identification",
+    "current": "Shared Backend Utilities",
     "id": null,
     "total": 2
   },
@@ -19,7 +19,7 @@
   },
   "session": {
     "number": 4,
-    "started_at": "2026-01-09T23:24:58.273255"
+    "started_at": "2026-01-10T03:26:25.062678"
   },
-  "last_update": "2026-01-09T23:32:18.024275"
+  "last_update": "2026-01-10T03:30:24.624434"
 }
