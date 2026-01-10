@@ -67,3 +67,6 @@ verify_jwt = true
 
 [functions.automation-sentiment]
 verify_jwt = true
+
+[functions.automation-webhook]
+verify_jwt = false
