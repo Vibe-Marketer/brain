@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from "@/components/Layout";
 import Login from '@/pages/Login';
+import OAuthCallback from '@/pages/OAuthCallback';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { CallDetailPage } from '@/pages/CallDetailPage';
 import { SharedCallView } from '@/pages/SharedCallView';
@@ -42,7 +43,10 @@ function App() {
                     {/* Auth routes */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/auth" element={<Login />} />
-                    <Route path="/oauth/callback" element={<Login />} />
+
+                    {/* OAuth callback routes for integrations */}
+                    <Route path="/oauth/callback" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
+                    <Route path="/oauth/callback/google" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
 
                     {/* Main app routes */}
                     <Route path="/" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
