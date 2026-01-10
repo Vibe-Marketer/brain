@@ -81,6 +81,11 @@ export function parseSearchSyntax(query: string): SearchSyntax {
           if (!result.filters.tag) result.filters.tag = [];
           result.filters.tag.push(value);
           break;
+        case 'folder':
+        case 'f':
+          if (!result.filters.folder) result.filters.folder = [];
+          result.filters.folder.push(value);
+          break;
         default:
           plainTextParts.push(part);
       }
