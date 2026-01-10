@@ -7,13 +7,22 @@
  * Features:
  * - Uses Vercel AI SDK v5 with OpenRouter provider
  * - Structured output via Zod schemas
- * - Caching in fathom_calls.sentiment_cache to prevent duplicate API costs
+ * - Multi-layer caching to prevent duplicate API costs:
+ *   1. Database cache: fathom_calls.sentiment_cache for recording_id-based lookups
+ *   2. In-memory cache: SHA-256 transcript hash for same-content detection
  * - Supports both direct analysis and batch processing
+ * - Force refresh option to bypass cache when needed
+ *
+ * Caching Strategy:
+ * - When recording_id provided: Check/store in fathom_calls.sentiment_cache column
+ * - For all requests: Compute SHA-256 hash of transcript (first 10k chars)
+ * - In-memory cache persists during function lifetime (same edge function instance)
+ * - Response includes cache_type field: 'database' | 'in_memory' | undefined (fresh)
  *
  * Endpoints:
  * - POST /functions/v1/automation-sentiment
- *   Body: { transcript: string, recording_id?: number }
- *   Returns: { sentiment, confidence, reasoning }
+ *   Body: { transcript: string, recording_id?: number, force_refresh?: boolean }
+ *   Returns: { success, sentiment, confidence, reasoning, cached, cache_type?, analyzed_at }
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -70,6 +79,29 @@ interface SentimentCache {
   confidence: number;
   reasoning?: string;
   analyzed_at: string;
+}
+
+/**
+ * In-memory cache for transcript hashes during function lifetime
+ * Maps transcript hash -> sentiment result
+ * This prevents duplicate API calls within the same function invocation
+ */
+const transcriptHashCache = new Map<string, SentimentResult>();
+
+/**
+ * Compute SHA-256 hash of transcript content for cache lookup
+ * Uses first 10k characters to match the analysis limit
+ */
+async function computeTranscriptHash(transcript: string): Promise<string> {
+  const encoder = new TextEncoder();
+  // Use the same truncated content that would be analyzed
+  const contentToHash = transcript.length > 10000
+    ? transcript.substring(0, 10000)
+    : transcript;
+
+  const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(contentToHash));
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 /**
@@ -174,6 +206,7 @@ Deno.serve(async (req) => {
 
     let transcriptToAnalyze = transcript;
     let callData: { sentiment_cache: SentimentCache | null } | null = null;
+    let transcriptHash: string | null = null;
 
     // If recording_id is provided, fetch the call and check cache
     if (recording_id) {
@@ -205,6 +238,7 @@ Deno.serve(async (req) => {
               confidence: cachedResult.confidence,
               reasoning: cachedResult.reasoning,
               cached: true,
+              cache_type: 'database',
               analyzed_at: cachedResult.analyzed_at,
             }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -226,9 +260,37 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Perform sentiment analysis
+    // Compute transcript hash for cache lookup (unless force_refresh)
+    if (!force_refresh) {
+      transcriptHash = await computeTranscriptHash(transcriptToAnalyze);
+
+      // Check in-memory cache for transcript hash
+      const inMemoryCached = transcriptHashCache.get(transcriptHash);
+      if (inMemoryCached) {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            recording_id: recording_id || null,
+            sentiment: inMemoryCached.sentiment,
+            confidence: inMemoryCached.confidence,
+            reasoning: inMemoryCached.reasoning,
+            cached: true,
+            cache_type: 'in_memory',
+            analyzed_at: new Date().toISOString(),
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Perform sentiment analysis via AI
     const openrouter = createOpenRouterProvider(openrouterApiKey);
     const sentimentResult = await analyzeSentiment(transcriptToAnalyze, openrouter);
+
+    // Store in in-memory cache for subsequent calls with same transcript
+    if (transcriptHash) {
+      transcriptHashCache.set(transcriptHash, sentimentResult);
+    }
 
     // Cache the result if recording_id was provided
     if (recording_id) {
