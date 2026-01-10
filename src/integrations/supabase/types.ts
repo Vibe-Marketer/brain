@@ -1096,6 +1096,8 @@ export type Database = {
           ai_model_preset: string | null
           bulk_import_enabled: boolean | null
           created_at: string | null
+          dedup_platform_order: string[] | null
+          dedup_priority_mode: string | null
           fathom_api_key: string | null
           fathom_api_secret: string | null
           host_email: string | null
@@ -1113,11 +1115,17 @@ export type Database = {
           webhook_last_tested_at: string | null
           webhook_secret: string | null
           webhook_test_status: string | null
+          zoom_oauth_access_token: string | null
+          zoom_oauth_refresh_token: string | null
+          zoom_oauth_state: string | null
+          zoom_oauth_token_expires: number | null
         }
         Insert: {
           ai_model_preset?: string | null
           bulk_import_enabled?: boolean | null
           created_at?: string | null
+          dedup_platform_order?: string[] | null
+          dedup_priority_mode?: string | null
           fathom_api_key?: string | null
           fathom_api_secret?: string | null
           host_email?: string | null
@@ -1135,11 +1143,17 @@ export type Database = {
           webhook_last_tested_at?: string | null
           webhook_secret?: string | null
           webhook_test_status?: string | null
+          zoom_oauth_access_token?: string | null
+          zoom_oauth_refresh_token?: string | null
+          zoom_oauth_state?: string | null
+          zoom_oauth_token_expires?: number | null
         }
         Update: {
           ai_model_preset?: string | null
           bulk_import_enabled?: boolean | null
           created_at?: string | null
+          dedup_platform_order?: string[] | null
+          dedup_priority_mode?: string | null
           fathom_api_key?: string | null
           fathom_api_secret?: string | null
           host_email?: string | null
@@ -1157,6 +1171,10 @@ export type Database = {
           webhook_last_tested_at?: string | null
           webhook_secret?: string | null
           webhook_test_status?: string | null
+          zoom_oauth_access_token?: string | null
+          zoom_oauth_refresh_token?: string | null
+          zoom_oauth_state?: string | null
+          zoom_oauth_token_expires?: number | null
         }
         Relationships: []
       }
