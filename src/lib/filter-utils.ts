@@ -228,6 +228,8 @@ export function urlParamsToFilters(params: URLSearchParams): Partial<FilterState
   const durMin = params.get('durMin');
   const durMax = params.get('durMax');
   const status = params.get('status');
+  const tags = params.get('tags');
+  const folders = params.get('folders');
 
   if (from) filters.dateFrom = new Date(from);
   if (to) filters.dateTo = new Date(to);
@@ -236,6 +238,8 @@ export function urlParamsToFilters(params: URLSearchParams): Partial<FilterState
   if (durMin) filters.durationMin = parseInt(durMin);
   if (durMax) filters.durationMax = parseInt(durMax);
   if (status) filters.status = status.split(',');
+  if (tags) filters.tags = tags.split(',');
+  if (folders) filters.folders = folders.split(',');
 
   return filters;
 }
