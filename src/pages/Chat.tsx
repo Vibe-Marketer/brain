@@ -1524,7 +1524,11 @@ export default function Chat() {
                           <ToolCalls parts={toolParts} />
                         )}
                         {hasContent ? (
-                          <AssistantMessage markdown>
+                          <AssistantMessage
+                            markdown
+                            showSaveButton
+                            saveMetadata={{ source: 'chat', generated_at: new Date().toISOString() }}
+                          >
                             {textContent}
                           </AssistantMessage>
                         ) : isThinking ? (
