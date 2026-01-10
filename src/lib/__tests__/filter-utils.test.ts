@@ -66,6 +66,33 @@ describe('parseSearchSyntax', () => {
     expect(result.filters.date).toBe('today');
     expect(result.plainText).toBe('meeting');
   });
+
+  it('should parse folder filter with folder: prefix', () => {
+    const result = parseSearchSyntax('folder:clients meeting notes');
+    expect(result.filters.folder).toEqual(['clients']);
+    expect(result.plainText).toBe('meeting notes');
+  });
+
+  it('should parse folder filter with f: short alias', () => {
+    const result = parseSearchSyntax('f:projects project update');
+    expect(result.filters.folder).toEqual(['projects']);
+    expect(result.plainText).toBe('project update');
+  });
+
+  it('should parse multiple folders', () => {
+    const result = parseSearchSyntax('folder:clients folder:2024 f:active');
+    expect(result.filters.folder).toEqual(['clients', '2024', 'active']);
+    expect(result.plainText).toBe('');
+  });
+
+  it('should parse folders mixed with other filters', () => {
+    const result = parseSearchSyntax('meeting folder:clients participant:john date:today f:active tag:important');
+    expect(result.filters.folder).toEqual(['clients', 'active']);
+    expect(result.filters.participant).toEqual(['john']);
+    expect(result.filters.date).toBe('today');
+    expect(result.filters.tag).toEqual(['important']);
+    expect(result.plainText).toBe('meeting');
+  });
 });
 
 describe('syntaxToFilters - Date Filters', () => {
