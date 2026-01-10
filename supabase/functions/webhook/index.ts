@@ -40,9 +40,6 @@ async function verifyFathomSignature(
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
   const expected = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
-  console.log('Expected Fathom signature:', expected);
-  console.log('Received x-signature:', xSignature);
-
   return expected === xSignature;
 }
 
