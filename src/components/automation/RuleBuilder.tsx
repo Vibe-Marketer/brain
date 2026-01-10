@@ -47,6 +47,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { ConditionBuilder } from "./ConditionBuilder";
+import { ActionBuilder } from "./ActionBuilder";
 
 // ============================================================================
 // Types
@@ -762,6 +763,10 @@ export function RuleBuilder({ ruleId: propRuleId }: RuleBuilderProps) {
     updateFormData({ conditions });
   }, [updateFormData]);
 
+  const handleActionsChange = useCallback((actions: Array<Record<string, unknown>>) => {
+    updateFormData({ actions });
+  }, [updateFormData]);
+
   const handleSave = async () => {
     if (!user?.id) {
       toast.error("You must be logged in to save rules");
@@ -1048,20 +1053,19 @@ export function RuleBuilder({ ruleId: propRuleId }: RuleBuilderProps) {
               </CardContent>
             </Card>
 
-            {/* Actions Placeholder */}
-            <Card className="border-dashed">
+            {/* Actions */}
+            <Card>
               <CardHeader>
-                <CardTitle className="text-lg text-muted-foreground">
-                  Actions
-                </CardTitle>
+                <CardTitle className="text-lg">Actions</CardTitle>
                 <CardDescription>
-                  Define what happens when this rule is triggered (coming in next update)
+                  Define what happens when this rule is triggered. Actions are executed in order.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground italic">
-                  Action builder will be added here...
-                </p>
+                <ActionBuilder
+                  actions={formData.actions}
+                  onChange={handleActionsChange}
+                />
               </CardContent>
             </Card>
           </div>
