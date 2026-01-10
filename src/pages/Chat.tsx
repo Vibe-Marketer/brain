@@ -80,6 +80,32 @@ function isRateLimitError(error: unknown): boolean {
   );
 }
 
+// Helper to detect streaming interruption errors (network/connection issues)
+function isStreamingInterruptionError(error: unknown): boolean {
+  const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  const errorName = error instanceof Error ? error.name.toLowerCase() : '';
+
+  return (
+    // Abort errors (timeout or manual abort)
+    errorName === 'aborterror' ||
+    errorMessage.includes('aborted') ||
+    // Network errors
+    errorMessage.includes('network') ||
+    errorMessage.includes('failed to fetch') ||
+    errorMessage.includes('connection') ||
+    errorMessage.includes('econnreset') ||
+    errorMessage.includes('econnrefused') ||
+    errorMessage.includes('etimedout') ||
+    errorMessage.includes('socket') ||
+    // Stream errors
+    errorMessage.includes('stream') ||
+    errorMessage.includes('readable') ||
+    // Generic fetch failures
+    errorMessage.includes('fetch failed') ||
+    errorMessage.includes('load failed')
+  );
+}
+
 // Helper to extract retry-after seconds from error (default to 30 seconds if not specified)
 function extractRetryAfterSeconds(error: unknown): number {
   const errorMessage = error instanceof Error ? error.message : String(error);
@@ -338,6 +364,14 @@ export default function Chat() {
   const [rateLimitSeconds, setRateLimitSeconds] = React.useState<number>(0);
   const rateLimitToastIdRef = React.useRef<string | number | null>(null);
 
+  // Streaming reconnection state
+  const [reconnectAttempts, setReconnectAttempts] = React.useState(0);
+  const [isReconnecting, setIsReconnecting] = React.useState(false);
+  const lastUserMessageRef = React.useRef<string | null>(null);
+  const reconnectTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const MAX_RECONNECT_ATTEMPTS = 3;
+  const BASE_RECONNECT_DELAY = 1000; // 1 second base delay
+
   // Ref to track current session ID for async callbacks (avoids stale closure)
   const currentSessionIdRef = React.useRef<string | null>(currentSessionId);
   React.useEffect(() => {
@@ -467,7 +501,7 @@ export default function Chat() {
   // Check if rate limited (cooldown is active)
   const isRateLimited = rateLimitCooldownEnd !== null && Date.now() < rateLimitCooldownEnd;
 
-  // Monitor for auth errors, rate limits, and trigger re-login
+  // Monitor for auth errors, rate limits, streaming interruption, and trigger re-login/reconnect
   React.useEffect(() => {
     if (error) {
       console.error('[Chat] Error occurred:', error.message);
@@ -480,6 +514,10 @@ export default function Chat() {
         setRateLimitCooldownEnd(cooldownEnd);
         setRateLimitSeconds(retryAfterSeconds);
 
+        // Reset reconnection state on rate limit
+        setReconnectAttempts(0);
+        setIsReconnecting(false);
+
         // Show initial toast with countdown
         const toastId = toast.error(
           `Rate limit exceeded. Please wait ${retryAfterSeconds} seconds before trying again.`,
@@ -491,6 +529,56 @@ export default function Chat() {
         rateLimitToastIdRef.current = toastId;
 
         return;
+      }
+
+      // Check for streaming interruption error (network/connection issues)
+      if (isStreamingInterruptionError(error) && lastUserMessageRef.current) {
+        const currentAttempts = reconnectAttempts + 1;
+
+        if (currentAttempts <= MAX_RECONNECT_ATTEMPTS) {
+          setReconnectAttempts(currentAttempts);
+          setIsReconnecting(true);
+
+          // Exponential backoff: 1s, 2s, 4s
+          const delay = BASE_RECONNECT_DELAY * Math.pow(2, currentAttempts - 1);
+
+          console.log(`[Chat] Streaming interrupted, attempting reconnect ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
+
+          toast.loading(
+            `Connection interrupted. Reconnecting (attempt ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS})...`,
+            { id: 'reconnect-toast', duration: delay + 2000 }
+          );
+
+          // Clear any existing reconnect timeout
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
+          }
+
+          // Schedule reconnect attempt
+          reconnectTimeoutRef.current = setTimeout(() => {
+            const messageToRetry = lastUserMessageRef.current;
+            if (messageToRetry && isChatReady) {
+              console.log('[Chat] Retrying message after streaming interruption');
+              sendMessage({ text: messageToRetry });
+            }
+            setIsReconnecting(false);
+          }, delay);
+
+          return;
+        } else {
+          // Max reconnect attempts reached
+          console.log('[Chat] Max reconnect attempts reached');
+          setReconnectAttempts(0);
+          setIsReconnecting(false);
+          lastUserMessageRef.current = null;
+
+          toast.dismiss('reconnect-toast');
+          toast.error(
+            'Connection lost. Your message was preserved - please try again when your connection is stable.',
+            { duration: 5000 }
+          );
+          return;
+        }
       }
 
       // Get user-friendly error
@@ -517,7 +605,7 @@ export default function Chat() {
         toast.error(friendlyError.message);
       }
     }
-  }, [error, navigate]);
+  }, [error, navigate, reconnectAttempts, isChatReady, sendMessage]);
 
   // Rate limit countdown timer - updates the toast message
   React.useEffect(() => {
@@ -558,6 +646,27 @@ export default function Chat() {
 
     return () => clearInterval(intervalId);
   }, [rateLimitCooldownEnd]);
+
+  // Reset reconnection state when streaming completes successfully
+  React.useEffect(() => {
+    if (status === 'ready' && reconnectAttempts > 0) {
+      console.log('[Chat] Streaming completed successfully, resetting reconnection state');
+      setReconnectAttempts(0);
+      setIsReconnecting(false);
+      lastUserMessageRef.current = null;
+      toast.dismiss('reconnect-toast');
+      toast.success('Connection restored!', { duration: 2000 });
+    }
+  }, [status, reconnectAttempts]);
+
+  // Cleanup reconnect timeout on unmount
+  React.useEffect(() => {
+    return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Ref to track messages for async callbacks
   const messagesRef = React.useRef<typeof messages>([]);
@@ -958,6 +1067,9 @@ export default function Chat() {
         }
       }
 
+      // Track the message for potential reconnection
+      lastUserMessageRef.current = inputToSubmit;
+
       // Send message using AI SDK v5
       sendMessage({ text: inputToSubmit });
       setInput(""); // Clear input after sending
@@ -1015,6 +1127,9 @@ export default function Chat() {
           return;
         }
       }
+
+      // Track the message for potential reconnection
+      lastUserMessageRef.current = text;
 
       // Send the suggestion directly
       sendMessage({ text });
@@ -1149,8 +1264,8 @@ export default function Chat() {
     textareaRef,
   });
 
-  // Compute loading state from status
-  const isLoading = status === "submitted" || status === "streaming";
+  // Compute loading state from status (includes reconnecting state)
+  const isLoading = status === "submitted" || status === "streaming" || isReconnecting;
 
   // Close mobile overlays when breakpoint changes away from mobile
   React.useEffect(() => {
@@ -1788,9 +1903,11 @@ export default function Chat() {
                       ? "Chat unavailable - please sign in"
                       : isRateLimited
                       ? `Rate limited - please wait ${rateLimitSeconds}s...`
+                      : isReconnecting
+                      ? `Reconnecting (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`
                       : "Ask about your transcripts... (type @ to mention a call)"
                   }
-                  disabled={isLoading || !isChatReady || isRateLimited}
+                  disabled={isLoading || !isChatReady || isRateLimited || isReconnecting}
                   className="px-4 py-2"
                 />
 
@@ -1806,11 +1923,11 @@ export default function Chat() {
                     <Button
                       type="submit"
                       size="sm"
-                      disabled={!input || !input.trim() || isLoading || !isChatReady || isRateLimited}
+                      disabled={!input || !input.trim() || isLoading || !isChatReady || isRateLimited || isReconnecting}
                       className="gap-1"
                     >
                       <RiSendPlaneFill className="h-4 w-4" />
-                      {isRateLimited ? `Wait ${rateLimitSeconds}s` : 'Send'}
+                      {isRateLimited ? `Wait ${rateLimitSeconds}s` : isReconnecting ? 'Reconnecting...' : 'Send'}
                     </Button>
                   </PromptInputFooterRight>
                 </PromptInputFooter>
