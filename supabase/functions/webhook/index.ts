@@ -149,8 +149,6 @@ const signatureDebugInfo: {
   simple_no_prefix?: string;
   simple_base64_decoded?: string;
   raw_body_length?: number;
-  raw_body_first_100?: string;
-  raw_body_last_100?: string;
   webhook_id?: string;
   webhook_timestamp?: string;
 } = {};
@@ -182,8 +180,6 @@ async function verifySvixSignature(
   signatureDebugInfo.webhook_id = webhookId;
   signatureDebugInfo.webhook_timestamp = webhookTimestamp;
   signatureDebugInfo.raw_body_length = rawBody.length;
-  signatureDebugInfo.raw_body_first_100 = rawBody.substring(0, 100);
-  signatureDebugInfo.raw_body_last_100 = rawBody.substring(rawBody.length - 100);
 
   // Svix signs the format: webhook-id.webhook-timestamp.body
   const signedContent = `${webhookId}.${webhookTimestamp}.${rawBody}`;
