@@ -246,5 +246,58 @@ GRANT EXECUTE ON FUNCTION public.initialize_scheduled_rule_next_run() TO authent
 GRANT EXECUTE ON FUNCTION public.clear_next_run_at_on_disable() TO authenticated;
 
 -- ============================================================================
+-- PG_CRON: Scheduled Rule Execution
+-- ============================================================================
+-- Creates a pg_cron job that calls the automation-scheduler Edge Function
+-- every minute to check for and execute due scheduled rules.
+--
+-- The automation-scheduler function queries:
+--   WHERE trigger_type = 'scheduled' AND enabled = true AND next_run_at <= NOW()
+-- and processes all due rules, updating next_run_at after each execution.
+-- ============================================================================
+
+-- Enable pg_net extension for HTTP calls (needed for pg_cron to call Edge Functions)
+CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
+
+-- Enable pg_cron extension
+CREATE EXTENSION IF NOT EXISTS pg_cron WITH SCHEMA extensions;
+
+-- Remove existing automation-scheduler job if it exists
+DO $$
+BEGIN
+  PERFORM cron.unschedule('automation-scheduler');
+EXCEPTION
+  WHEN undefined_function THEN
+    -- pg_cron not available, skip
+    RAISE NOTICE 'pg_cron not available, skipping unschedule';
+  WHEN others THEN
+    -- Job might not exist, that's ok
+    NULL;
+END $$;
+
+-- Create the scheduled job to trigger automation-scheduler every minute
+-- Note: pg_cron minimum interval is 1 minute
+DO $outer$
+BEGIN
+  PERFORM cron.schedule(
+    'automation-scheduler',
+    '* * * * *',  -- Every minute
+    $body$
+    SELECT net.http_post(
+      url := 'https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/automation-scheduler',
+      headers := '{"Content-Type": "application/json"}'::jsonb,
+      body := '{"triggered_by": "cron"}'::jsonb
+    );
+    $body$
+  );
+  RAISE NOTICE 'Successfully scheduled automation-scheduler cron job';
+EXCEPTION
+  WHEN undefined_function THEN
+    RAISE NOTICE 'pg_cron not available - scheduled rule execution disabled.';
+  WHEN others THEN
+    RAISE NOTICE 'Could not schedule cron job: %. Scheduled rules will not execute automatically.', SQLERRM;
+END $outer$;
+
+-- ============================================================================
 -- END OF MIGRATION
 -- ============================================================================
