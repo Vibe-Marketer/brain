@@ -14,6 +14,7 @@ import {
   RiMenuLine,
   RiAtLine,
   RiVideoLine,
+  RiUploadCloud2Line,
 } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { CallDetailDialog } from "@/components/CallDetailDialog";
@@ -1437,13 +1438,34 @@ export default function Chat() {
               <ChatContainerContent className="px-4 py-0">
                 {/* Welcome/Empty State */}
                 {messages.length === 0 && (
-                  <ChatWelcome
-                    userName={
-                      session?.user?.user_metadata?.full_name?.split(" ")[0]
-                    }
-                    subtitle="Search across all your calls, find specific discussions, and uncover insights."
-                    onSuggestionClick={handleSuggestionClick}
-                  />
+                  availableCalls.length === 0 ? (
+                    // Empty transcript database - show onboarding message
+                    <ChatWelcome
+                      userName={
+                        session?.user?.user_metadata?.full_name?.split(" ")[0]
+                      }
+                      greeting="Upload transcripts to start chatting"
+                      subtitle="Once you have meeting transcripts, you can search, analyze, and get insights from your calls."
+                      suggestions={[]}
+                      quickActions={[
+                        {
+                          id: 'upload-transcripts',
+                          label: 'Upload Transcripts',
+                          icon: <RiUploadCloud2Line className="h-4 w-4" />,
+                          onClick: () => navigate('/transcripts'),
+                        },
+                      ]}
+                    />
+                  ) : (
+                    // Normal state - user has transcripts
+                    <ChatWelcome
+                      userName={
+                        session?.user?.user_metadata?.full_name?.split(" ")[0]
+                      }
+                      subtitle="Search across all your calls, find specific discussions, and uncover insights."
+                      onSuggestionClick={handleSuggestionClick}
+                    />
+                  )
                 )}
 
                 {/* Messages */}
