@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "014-complete-semantic-search-rag",
+  "spec": "015-extend-search-filter-syntax-with-tag-folder-suppor",
   "state": "complete",
   "subtasks": {
-    "completed": 14,
-    "total": 14,
+    "completed": 15,
+    "total": 15,
     "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "Integration & Verification",
+    "current": "Documentation Update",
     "id": null,
-    "total": 3
+    "total": 1
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 14,
-    "started_at": "2026-01-10T02:01:48.923130"
+    "number": 16,
+    "started_at": "2026-01-10T02:03:37.247011"
   },
-  "last_update": "2026-01-10T02:41:11.723414"
+  "last_update": "2026-01-10T02:29:00.900926"
 }

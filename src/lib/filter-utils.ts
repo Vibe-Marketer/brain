@@ -10,6 +10,8 @@ export interface FilterState {
   durationMin?: number;
   durationMax?: number;
   status: string[];
+  tags?: string[];
+  folders?: string[];
 }
 
 export interface SearchSyntax {
@@ -20,16 +22,20 @@ export interface SearchSyntax {
     category?: string[];
     duration?: string;
     status?: string[];
+    tag?: string[];
+    folder?: string[];
   };
 }
 
 /**
  * Parse search query for syntax like:
- * - participant:john
- * - date:today | date:yesterday | date:week | date:2024-01-01
- * - category:sales
- * - duration:>30 | duration:<15 | duration:30-60
- * - status:synced | status:unsynced
+ * - participant:john (shortcut: p:john)
+ * - date:today | date:yesterday | date:week | date:2024-01-01 (shortcut: d:)
+ * - category:sales (shortcut: cat: or c:)
+ * - duration:>30 | duration:<15 | duration:30-60 (shortcut: dur:)
+ * - status:synced | status:unsynced (shortcut: s:)
+ * - tag:important | tag:followup (shortcut: t:important)
+ * - folder:clients | folder:personal (shortcut: f:clients)
  */
 export function parseSearchSyntax(query: string): SearchSyntax {
   const result: SearchSyntax = {
@@ -71,6 +77,16 @@ export function parseSearchSyntax(query: string): SearchSyntax {
         case 's':
           if (!result.filters.status) result.filters.status = [];
           result.filters.status.push(value);
+          break;
+        case 'tag':
+        case 't':
+          if (!result.filters.tag) result.filters.tag = [];
+          result.filters.tag.push(value);
+          break;
+        case 'folder':
+        case 'f':
+          if (!result.filters.folder) result.filters.folder = [];
+          result.filters.folder.push(value);
           break;
         default:
           plainTextParts.push(part);
@@ -144,7 +160,7 @@ export function syntaxToFilters(syntax: SearchSyntax): Partial<FilterState> {
     }
   }
 
-  // Set participants, categories, status directly
+  // Set participants, categories, status, tags directly
   if (syntax.filters.participant) {
     filters.participants = syntax.filters.participant;
   }
@@ -153,6 +169,12 @@ export function syntaxToFilters(syntax: SearchSyntax): Partial<FilterState> {
   }
   if (syntax.filters.status) {
     filters.status = syntax.filters.status;
+  }
+  if (syntax.filters.tag) {
+    filters.tags = syntax.filters.tag;
+  }
+  if (syntax.filters.folder) {
+    filters.folders = syntax.filters.folder;
   }
 
   return filters;
@@ -185,6 +207,12 @@ export function filtersToURLParams(filters: Partial<FilterState>): URLSearchPara
   if (filters.status && filters.status.length > 0) {
     params.set('status', filters.status.join(','));
   }
+  if (filters.tags && filters.tags.length > 0) {
+    params.set('tags', filters.tags.join(','));
+  }
+  if (filters.folders && filters.folders.length > 0) {
+    params.set('folders', filters.folders.join(','));
+  }
 
   return params;
 }
@@ -202,6 +230,8 @@ export function urlParamsToFilters(params: URLSearchParams): Partial<FilterState
   const durMin = params.get('durMin');
   const durMax = params.get('durMax');
   const status = params.get('status');
+  const tags = params.get('tags');
+  const folders = params.get('folders');
 
   if (from) filters.dateFrom = new Date(from);
   if (to) filters.dateTo = new Date(to);
@@ -210,6 +240,8 @@ export function urlParamsToFilters(params: URLSearchParams): Partial<FilterState
   if (durMin) filters.durationMin = parseInt(durMin);
   if (durMax) filters.durationMax = parseInt(durMax);
   if (status) filters.status = status.split(',');
+  if (tags) filters.tags = tags.split(',');
+  if (folders) filters.folders = folders.split(',');
 
   return filters;
 }
