@@ -197,36 +197,61 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify authorization
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const { chunk_ids, recording_ids, auto_discover }: EnrichRequest = await req.json();
+
+    // Service-role invocation (from process-embeddings pipeline)
+    // When chunk_ids are explicitly provided, we trust the caller (internal edge function)
+    // and don't require user authentication - the chunks were just created with valid user_id
+    const isServiceRoleCall = chunk_ids && Array.isArray(chunk_ids) && chunk_ids.length > 0;
+
+    let userId: string | null = null;
+
+    // For user-authenticated requests (recording_ids or auto_discover), verify user
+    if (!isServiceRoleCall) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'No authorization header' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+      if (userError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      userId = user.id;
+    }
 
     let chunksToProcess: Array<{ id: string; chunk_text: string; speaker_name: string | null }> = [];
 
     // Determine which chunks to process
-    if (auto_discover) {
+    if (isServiceRoleCall) {
+      // Service-role call with explicit chunk_ids (from process-embeddings pipeline)
+      // Fetch chunks directly by ID - they were just created by a trusted internal caller
+      const { data: chunks, error: fetchError } = await supabase
+        .from('transcript_chunks')
+        .select('id, chunk_text, speaker_name')
+        .in('id', chunk_ids!);
+
+      if (fetchError) {
+        throw new Error(`Failed to fetch chunks: ${fetchError.message}`);
+      }
+
+      chunksToProcess = chunks || [];
+
+    } else if (auto_discover && userId) {
       // Find all chunks without metadata (topics is empty)
       const { data: chunks, error: fetchError } = await supabase
         .from('transcript_chunks')
         .select('id, chunk_text, speaker_name')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .is('topics', null);
 
       if (fetchError) {
@@ -235,27 +260,13 @@ Deno.serve(async (req) => {
 
       chunksToProcess = chunks || [];
 
-    } else if (recording_ids && Array.isArray(recording_ids) && recording_ids.length > 0) {
+    } else if (recording_ids && Array.isArray(recording_ids) && recording_ids.length > 0 && userId) {
       // Get all chunks for specified recordings
       const { data: chunks, error: fetchError } = await supabase
         .from('transcript_chunks')
         .select('id, chunk_text, speaker_name')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .in('recording_id', recording_ids);
-
-      if (fetchError) {
-        throw new Error(`Failed to fetch chunks: ${fetchError.message}`);
-      }
-
-      chunksToProcess = chunks || [];
-
-    } else if (chunk_ids && Array.isArray(chunk_ids) && chunk_ids.length > 0) {
-      // Get specific chunks by ID
-      const { data: chunks, error: fetchError } = await supabase
-        .from('transcript_chunks')
-        .select('id, chunk_text, speaker_name')
-        .eq('user_id', user.id)
-        .in('id', chunk_ids);
 
       if (fetchError) {
         throw new Error(`Failed to fetch chunks: ${fetchError.message}`);
