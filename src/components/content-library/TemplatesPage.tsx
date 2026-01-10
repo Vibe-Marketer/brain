@@ -16,6 +16,7 @@ import {
   RiTeamLine,
   RiUserLine,
   RiShareLine,
+  RiPlayLine,
 } from "@remixicon/react";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -31,6 +32,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "@/components/ui/sonner";
 import { TemplateEditorDialog } from "./TemplateEditorDialog";
+import { TemplateVariableInputDialog } from "./TemplateVariableInputDialog";
 import type { Template, ContentType } from "@/types/content-library";
 
 /**
@@ -94,16 +96,18 @@ function truncateText(text: string, maxLength: number = 100): string {
 interface TemplateCardProps {
   template: Template;
   onEdit?: (template: Template) => void;
+  onUse?: (template: Template) => void;
   isShared?: boolean;
 }
 
 /**
  * Template card component with actions
  *
- * Displays template preview with copy, edit, and delete functionality.
- * Copy button copies template content to clipboard and increments usage count.
+ * Displays template preview with use, copy, edit, and delete functionality.
+ * Use button opens the variable input dialog for personalization.
+ * Copy button copies raw template content to clipboard and increments usage count.
  */
-function TemplateCard({ template, onEdit, isShared = false }: TemplateCardProps) {
+function TemplateCard({ template, onEdit, onUse, isShared = false }: TemplateCardProps) {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCopying, setIsCopying] = useState(false);
@@ -179,12 +183,22 @@ function TemplateCard({ template, onEdit, isShared = false }: TemplateCardProps)
               )}
               {/* Action buttons - visible on hover */}
               <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
+                {/* Use button - opens variable input dialog */}
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => onUse?.(template)}
+                  title="Use template"
+                  className="text-primary hover:text-primary"
+                >
+                  <RiPlayLine className="w-4 h-4" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   onClick={handleCopy}
                   disabled={isCopying}
-                  title="Copy template"
+                  title="Copy raw template"
                 >
                   <RiFileCopyLine className="w-4 h-4" />
                 </Button>
@@ -301,10 +315,11 @@ interface TemplateSectionProps {
   templates: Template[];
   emptyMessage: string;
   onEdit?: (template: Template) => void;
+  onUse?: (template: Template) => void;
   isShared?: boolean;
 }
 
-function TemplateSection({ title, icon: SectionIcon, templates, emptyMessage, onEdit, isShared = false }: TemplateSectionProps) {
+function TemplateSection({ title, icon: SectionIcon, templates, emptyMessage, onEdit, onUse, isShared = false }: TemplateSectionProps) {
   if (templates.length === 0) {
     return (
       <div className="space-y-4">
@@ -331,6 +346,7 @@ function TemplateSection({ title, icon: SectionIcon, templates, emptyMessage, on
             key={template.id}
             template={template}
             onEdit={onEdit}
+            onUse={onUse}
             isShared={isShared}
           />
         ))}
@@ -357,6 +373,10 @@ export function TemplatesPage() {
   const [editorOpen, setEditorOpen] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
 
+  // Variable input dialog state
+  const [variableInputOpen, setVariableInputOpen] = useState(false);
+  const [usingTemplate, setUsingTemplate] = useState<Template | null>(null);
+
   // Fetch templates on mount
   useEffect(() => {
     fetchAllTemplates();
@@ -372,6 +392,12 @@ export function TemplatesPage() {
   const handleEditTemplate = (template: Template) => {
     setEditingTemplate(template);
     setEditorOpen(true);
+  };
+
+  // Handle using template (opens variable input dialog)
+  const handleUseTemplate = (template: Template) => {
+    setUsingTemplate(template);
+    setVariableInputOpen(true);
   };
 
   // Handle template saved
@@ -450,6 +476,13 @@ export function TemplatesPage() {
           template={editingTemplate}
           onTemplateSaved={handleTemplateSaved}
         />
+
+        {/* Template Variable Input Dialog */}
+        <TemplateVariableInputDialog
+          open={variableInputOpen}
+          onOpenChange={setVariableInputOpen}
+          template={usingTemplate}
+        />
       </div>
     );
   }
@@ -486,6 +519,7 @@ export function TemplatesPage() {
           templates={templates}
           emptyMessage="You haven't created any templates yet. Click 'New Template' to get started."
           onEdit={handleEditTemplate}
+          onUse={handleUseTemplate}
         />
 
         {/* Team/Shared Templates Section - only show if there are shared templates */}
@@ -497,6 +531,7 @@ export function TemplatesPage() {
               icon={RiTeamLine}
               templates={sharedTemplates}
               emptyMessage="No shared templates from your team."
+              onUse={handleUseTemplate}
               isShared={true}
             />
           </>
@@ -509,6 +544,13 @@ export function TemplatesPage() {
         onOpenChange={setEditorOpen}
         template={editingTemplate}
         onTemplateSaved={handleTemplateSaved}
+      />
+
+      {/* Template Variable Input Dialog */}
+      <TemplateVariableInputDialog
+        open={variableInputOpen}
+        onOpenChange={setVariableInputOpen}
+        template={usingTemplate}
       />
     </div>
   );
