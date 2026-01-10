@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { FathomClient } from '../_shared/fathom-client.ts';
+import { generateFingerprint, fingerprintToHash } from '../_shared/deduplication.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -134,6 +135,29 @@ async function syncMeeting(
       upsertData.summary = existingCall.summary;
       upsertData.summary_edited_by_user = true;
     }
+
+    // Generate meeting fingerprint for deduplication
+    // Extract participant emails from calendar_invitees
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const participantEmails = (meeting.calendar_invitees || []).map((inv: any) => inv.email).filter(Boolean);
+
+    // Calculate duration from start/end times
+    const startTime = new Date(meeting.recording_start_time);
+    const endTime = meeting.recording_end_time ? new Date(meeting.recording_end_time) : null;
+    const durationSeconds = endTime
+      ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
+      : undefined;
+
+    const fingerprint = generateFingerprint({
+      title: meeting.title,
+      started_at: meeting.recording_start_time,
+      ended_at: meeting.recording_end_time,
+      duration_seconds: durationSeconds,
+      participants: participantEmails,
+    });
+
+    upsertData.meeting_fingerprint = fingerprintToHash(fingerprint);
+    upsertData.source_platform = 'fathom';
 
     // Upsert call details (use composite primary key)
     const { error: callError } = await supabase
