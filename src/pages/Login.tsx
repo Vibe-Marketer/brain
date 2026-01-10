@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { getErrorToastMessage } from '@/lib/user-friendly-errors';
 
 const authSchema = z.object({
   email: z.string().email('Invalid email address').max(255),
@@ -54,8 +55,7 @@ export default function Login() {
         }
       }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to sign up';
-      toast.error(message);
+      toast.error(getErrorToastMessage(error));
     } finally {
       setLoading(false);
     }
@@ -82,8 +82,7 @@ export default function Login() {
       toast.success('Signed in successfully!');
       navigate('/');
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to sign in';
-      toast.error(message);
+      toast.error(getErrorToastMessage(error));
     } finally {
       setLoading(false);
     }
@@ -101,8 +100,7 @@ export default function Login() {
 
       if (error) throw error;
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Failed to sign in with Google';
-      toast.error(message);
+      toast.error(getErrorToastMessage(error));
       setLoading(false);
     }
   };

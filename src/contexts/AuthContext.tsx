@@ -21,16 +21,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+        console.log('[AuthContext] Auth state changed:', event, session ? 'Session valid' : 'No session');
+
+        // Handle specific auth events
+        if (event === 'SIGNED_OUT') {
+          console.log('[AuthContext] User signed out');
+          setSession(null);
+          setUser(null);
+        } else if (event === 'TOKEN_REFRESHED') {
+          console.log('[AuthContext] Token refreshed successfully');
+          setSession(session);
+          setUser(session?.user ?? null);
+        } else if (event === 'SIGNED_IN') {
+          console.log('[AuthContext] User signed in');
+          setSession(session);
+          setUser(session?.user ?? null);
+        } else {
+          // For other events (INITIAL_SESSION, etc.), update state
+          setSession(session);
+          setUser(session?.user ?? null);
+        }
+
         setLoading(false);
       }
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('[AuthContext] Error getting session:', error);
+        setSession(null);
+        setUser(null);
+      } else {
+        console.log('[AuthContext] Initial session loaded:', session ? 'Valid' : 'None');
+        setSession(session);
+        setUser(session?.user ?? null);
+      }
       setLoading(false);
     });
 

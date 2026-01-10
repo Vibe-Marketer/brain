@@ -65,6 +65,8 @@ import { useMentions } from "@/hooks/useMentions";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { getUserFriendlyError, ErrorContexts } from "@/lib/user-friendly-errors";
+import { toast } from "sonner";
 
 interface ChatFilters {
   dateStart?: Date;
@@ -348,10 +350,16 @@ export default function Chat() {
   // Create transport instance - ONLY recreate when auth token changes
   // Other values (filters, model, sessionId) are read from refs at request time
   const transport = React.useMemo(() => {
+    // Guard: Don't create transport without valid auth token
+    if (!session?.access_token) {
+      console.warn('Transport creation blocked: No valid auth token');
+      return null;
+    }
+
     return new DefaultChatTransport({
       api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`,
       headers: {
-        Authorization: `Bearer ${session?.access_token}`,
+        Authorization: `Bearer ${session.access_token}`,
       },
       // Use a function to get current values at request time from refs
       // This prevents transport recreation when these values change
@@ -370,9 +378,44 @@ export default function Chat() {
   }, [session?.access_token]); // ONLY depend on auth token - refs handle the rest
 
   // Use the AI SDK v5 chat hook
+  // Note: useChat can handle null transport - it won't make requests without a valid transport
   const { messages, sendMessage, status, error, setMessages } = useChat({
-    transport,
+    transport: transport || undefined, // Convert null to undefined for type safety
   });
+
+  // Check if chat is ready (valid session + transport)
+  const isChatReady = !!session?.access_token && !!transport;
+
+  // Monitor for auth errors and trigger re-login
+  React.useEffect(() => {
+    if (error) {
+      console.error('[Chat] Error occurred:', error.message);
+
+      // Get user-friendly error
+      const friendlyError = getUserFriendlyError(error, ErrorContexts.CHAT);
+
+      // Check if it's an auth error
+      if (friendlyError.title === 'Session Expired') {
+        console.log('[Chat] Auth error detected, attempting to refresh session...');
+
+        // Try to refresh the session
+        supabase.auth.getSession().then(({ data: { session: refreshedSession }, error: refreshError }) => {
+          if (refreshError || !refreshedSession) {
+            console.error('[Chat] Session refresh failed, redirecting to login');
+            toast.error(friendlyError.message);
+            // Session is truly dead - redirect to login
+            setTimeout(() => navigate('/login', { replace: true }), 2000);
+          } else {
+            console.log('[Chat] Session refreshed successfully');
+            toast.info('Session refreshed - please try again');
+          }
+        });
+      } else {
+        // Show user-friendly error for non-auth errors
+        toast.error(friendlyError.message);
+      }
+    }
+  }, [error, navigate]);
 
   // Ref to track messages for async callbacks
   const messagesRef = React.useRef<typeof messages>([]);
@@ -1448,10 +1491,11 @@ export default function Chat() {
                   })()
                 )}
 
-                {/* Error message */}
-                {error && (
-                  <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/20 p-4 text-red-600 dark:text-red-400">
-                    <p className="text-sm">Error: {error.message}</p>
+                {/* Session invalid warning - only show if NOT loading */}
+                {!isChatReady && !isLoading && (
+                  <div className="rounded-lg border border-yellow-200 bg-yellow-50 dark:bg-yellow-950/20 p-4 text-yellow-700 dark:text-yellow-400">
+                    <p className="text-sm font-medium">Session not ready</p>
+                    <p className="text-xs mt-1">Please sign in to use chat features.</p>
                   </div>
                 )}
               </ChatContainerContent>
@@ -1511,8 +1555,12 @@ export default function Chat() {
                 {/* Main textarea */}
                 <PromptInputTextarea
                   ref={textareaRef}
-                  placeholder="Ask about your transcripts... (type @ to mention a call)"
-                  disabled={isLoading}
+                  placeholder={
+                    !isChatReady
+                      ? "Chat unavailable - please sign in"
+                      : "Ask about your transcripts... (type @ to mention a call)"
+                  }
+                  disabled={isLoading || !isChatReady}
                   className="px-4 py-2"
                 />
 
@@ -1528,7 +1576,7 @@ export default function Chat() {
                     <Button
                       type="submit"
                       size="sm"
-                      disabled={!input || !input.trim() || isLoading}
+                      disabled={!input || !input.trim() || isLoading || !isChatReady}
                       className="gap-1"
                     >
                       <RiSendPlaneFill className="h-4 w-4" />
