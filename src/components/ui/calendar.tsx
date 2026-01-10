@@ -29,7 +29,7 @@ function Calendar({ className, classNames, showOutsideDays = true, startMonth, e
         caption_label: "text-sm font-medium hidden", // Hidden when using dropdown
         // Dropdown styling
         dropdowns: "flex items-center justify-center gap-2",
-        dropdown: "appearance-none bg-transparent border border-input rounded-md px-2 py-1 text-sm font-medium cursor-pointer hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring",
+        dropdown: "appearance-none bg-transparent border border-input rounded-md px-2 py-1 text-sm font-medium cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange",
         months_dropdown: "w-[110px]",
         years_dropdown: "w-[80px]",
         // Navigation
