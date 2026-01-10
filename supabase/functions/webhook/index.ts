@@ -534,7 +534,6 @@ Deno.serve(async (req) => {
       available: boolean;
       verified: boolean;
       secret_preview: string | null;
-      full_secret?: string | null;
       computed_signature?: string | null;
     }
 
@@ -544,8 +543,8 @@ Deno.serve(async (req) => {
       first_user_fallback: VerificationResult;
       request_details: any;
     } = {
-      personal_by_email: { available: false, verified: false, secret_preview: null, full_secret: null, computed_signature: null },
-      oauth_app_secret: { available: false, verified: false, secret_preview: null, full_secret: null, computed_signature: null },
+      personal_by_email: { available: false, verified: false, secret_preview: null, computed_signature: null },
+      oauth_app_secret: { available: false, verified: false, secret_preview: null, computed_signature: null },
       first_user_fallback: { available: false, verified: false, secret_preview: null, computed_signature: null },
       request_details: {
         header_signature: req.headers.get('webhook-signature') || req.headers.get('x-signature'),
@@ -575,7 +574,6 @@ Deno.serve(async (req) => {
         personalUserId = settings.user_id;
         verificationResults.personal_by_email.available = true;
         verificationResults.personal_by_email.secret_preview = personalSecret.substring(0, 4) + '...' + personalSecret.substring(personalSecret.length - 4);
-        verificationResults.personal_by_email.full_secret = personalSecret;
       }
     }
 
@@ -583,7 +581,6 @@ Deno.serve(async (req) => {
     if (oauthAppSecret) {
       verificationResults.oauth_app_secret.available = true;
       verificationResults.oauth_app_secret.secret_preview = oauthAppSecret.substring(0, 4) + '...' + oauthAppSecret.substring(oauthAppSecret.length - 4);
-      verificationResults.oauth_app_secret.full_secret = oauthAppSecret;
     }
 
     // 3. Check first user fallback
