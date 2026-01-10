@@ -130,24 +130,14 @@ export default function CollaborationPage() {
     }
 
     if (urlCategory) {
-      if (selectedCategory !== urlCategory) {
-        setSelectedCategory(urlCategory);
-      }
+      setSelectedCategory(urlCategory);
     } else {
       // No category in URL, navigate to default
       const defaultCategory = getDefaultCategory();
       setSelectedCategory(defaultCategory);
       navigate(`/${defaultCategory}`, { replace: true });
     }
-  }, [location.pathname, roleLoading, hasTeamAccess, getCategoryFromPath, getDefaultCategory, navigate, selectedCategory]);
-
-  // Sync URL when selectedCategory changes (for user interactions)
-  useEffect(() => {
-    const urlCategory = getCategoryFromPath();
-    if (selectedCategory && selectedCategory !== urlCategory) {
-      navigate(`/${selectedCategory}`, { replace: true });
-    }
-  }, [selectedCategory, getCategoryFromPath, navigate]);
+  }, [location.pathname, roleLoading, hasTeamAccess, getCategoryFromPath, getDefaultCategory, navigate]);
 
   // Sync tablet sidebar state
   useEffect(() => {
@@ -170,8 +160,9 @@ export default function CollaborationPage() {
       toast.info("Team management requires manager access");
       return;
     }
-    setSelectedCategory(category);
-  }, [hasTeamAccess]);
+    // Update URL which will trigger the useEffect to update selectedCategory
+    navigate(`/${category}`, { replace: true });
+  }, [hasTeamAccess, navigate]);
 
   const handleCloseDetailPane = useCallback(() => {
     setSelectedCategory(null);
@@ -436,8 +427,9 @@ function CollaborationDetailPane({
   // Track mount state for enter animations
   const [isMounted, setIsMounted] = React.useState(false);
   React.useEffect(() => {
-    const timer = setTimeout(() => setIsMounted(true), 10);
-    return () => clearTimeout(timer);
+    // Use requestAnimationFrame for smoother initial render
+    const frame = requestAnimationFrame(() => setIsMounted(true));
+    return () => cancelAnimationFrame(frame);
   }, []);
 
   // Render the appropriate content based on category
