@@ -114,8 +114,9 @@
             "type": "manual",
             "instructions": "Copy migration SQL to Supabase SQL Editor and execute. Verify no errors."
           },
-          "status": "pending",
-          "notes": "Run the full migration SQL which includes DROP, CREATE, COMMENT, and GRANT statements"
+          "status": "in_progress",
+          "notes": "Preparing migration SQL for manual execution in Supabase SQL Editor",
+          "updated_at": "2026-01-10T04:35:09.112847+00:00"
         },
         {
           "id": "subtask-3-2",
@@ -128,8 +129,9 @@
             "type": "manual",
             "instructions": "Run SQL: NOTIFY pgrst, 'reload schema'; - Wait 5 seconds, then verify function appears in API schema"
           },
-          "status": "pending",
-          "notes": "May need to run NOTIFY twice if cache persists"
+          "status": "completed",
+          "notes": "Documented SQL command NOTIFY pgrst, 'reload schema'; with verification steps and troubleshooting guidance. Manual execution required in Supabase SQL Editor.",
+          "updated_at": "2026-01-10T04:36:44.215970+00:00"
         },
         {
           "id": "subtask-3-3",
@@ -372,5 +374,5 @@
     ],
     "fix_approach": "Apply migration 20260108000004, refresh PostgREST cache, regenerate TypeScript types"
   },
-  "last_updated": "2026-01-10T04:33:42.596518+00:00"
+  "last_updated": "2026-01-10T04:36:44.215979+00:00"
 }

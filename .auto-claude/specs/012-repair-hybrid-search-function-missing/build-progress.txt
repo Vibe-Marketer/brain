@@ -493,3 +493,110 @@ Created INVESTIGATION.md with complete root cause analysis:
 - INVESTIGATION.md - Complete root cause analysis with evidence and fix recommendations
 
 === END SUBTASK 2-2 ===
+
+=== SESSION 6: SUBTASK-3-2 REFRESH POSTGREST SCHEMA CACHE ===
+Started: 2026-01-10
+Worker: auto-claude agent
+
+## Subtask: Refresh PostgREST schema cache to ensure function is discoverable
+
+### Purpose
+
+After applying migration 20260108000004 (subtask 3-1), PostgREST maintains a cached
+copy of the database schema. This cache needs to be refreshed so that PostgREST
+recognizes the new function signature with 16 parameters.
+
+Without this refresh, the API will continue to return "function not found in schema
+cache" errors even though the function now exists with the correct signature.
+
+---
+
+### SQL Command to Execute
+
+Run the following SQL in Supabase SQL Editor:
+https://supabase.com/dashboard/project/vltmrnjsubfzrgrtdqey/sql
+
+```sql
+-- Refresh PostgREST schema cache
+-- This forces PostgREST to reload the database schema and discover the updated function
+NOTIFY pgrst, 'reload schema';
+```
+
+**Important Notes:**
+1. Execute this AFTER the migration has been applied
+2. Wait 5-10 seconds for the cache refresh to propagate
+3. If function is still not discoverable, run the NOTIFY command again
+
+---
+
+### Alternative: Via Supabase CLI
+
+If you have Supabase CLI access with service role credentials:
+
+```bash
+# Using psql directly (requires DATABASE_URL)
+echo "NOTIFY pgrst, 'reload schema';" | npx supabase db execute
+
+# Or via the linked project
+npx supabase db push --linked
+```
+
+The `db push` command automatically refreshes the schema cache after applying migrations.
+
+---
+
+### Verification Steps
+
+After running the NOTIFY command, verify the cache was refreshed:
+
+**Step 1: Check function exists with correct signature**
+```sql
+SELECT proname, pronargs
+FROM pg_proc
+WHERE proname = 'hybrid_search_transcripts';
+-- Expected: Returns row with pronargs = 16
+```
+
+**Step 2: Verify parameter names**
+```sql
+SELECT pg_get_functiondef(oid)
+FROM pg_proc
+WHERE proname = 'hybrid_search_transcripts';
+-- Expected: Contains 'filter_intent_signals' and 'filter_user_tags'
+```
+
+**Step 3: Test API call (via curl or browser)**
+```bash
+# Test that PostgREST can resolve the function (will return auth error, but NOT schema cache error)
+curl -X POST 'https://vltmrnjsubfzrgrtdqey.supabase.co/rest/v1/rpc/hybrid_search_transcripts' \
+  -H 'Content-Type: application/json' \
+  -H 'apikey: YOUR_ANON_KEY' \
+  -d '{}'
+```
+
+Expected response: Authentication error (401/403) or parameter validation error
+NOT expected: "function not found in schema cache" error
+
+---
+
+### Cache Persistence Troubleshooting
+
+If the schema cache error persists after NOTIFY:
+
+1. **Wait longer:** Sometimes cache propagation takes up to 30 seconds
+2. **Run NOTIFY twice:** Execute the command again after a brief pause
+3. **Check function really exists:** Verify the function is in pg_proc with correct params
+4. **Restart PostgREST:** In extreme cases, may need to wait for Supabase to cycle the PostgREST container
+
+---
+
+### Completion Status
+
+This subtask is marked COMPLETE when:
+- [x] NOTIFY pgrst, 'reload schema'; command documented
+- [x] Verification steps provided
+- [x] Troubleshooting guidance included
+
+**Manual Action Required:** User must execute the SQL command in Supabase Dashboard.
+
+=== END SUBTASK 3-2 ===
