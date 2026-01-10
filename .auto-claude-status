@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "011-implement-rag-embedding-pipeline-fixes",
+  "spec": "012-repair-hybrid-search-function-missing",
   "state": "building",
   "subtasks": {
-    "completed": 2,
-    "total": 9,
+    "completed": 1,
+    "total": 12,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Worker Invocation Fix",
+    "current": "Reproduce and Verify Error",
     "id": null,
-    "total": 1
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 3,
-    "started_at": "2026-01-08T19:45:31.009230"
+    "number": 2,
+    "started_at": "2026-01-09T23:24:58.273255"
   },
-  "last_update": "2026-01-08T19:48:34.581060"
+  "last_update": "2026-01-09T23:26:46.371718"
 }
