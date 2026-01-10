@@ -626,9 +626,11 @@ Deno.serve(async (req) => {
       console.log('\n--- FIRST USER FALLBACK: Same as personal secret, skipping ---');
     }
 
-    // Summary
+    // Summary - log verification status only, no secrets or debug info (OWASP A09:2021)
     console.log('\n📊 VERIFICATION SUMMARY:');
-    console.log(JSON.stringify(verificationResults, null, 2));
+    console.log(`   - Personal (email match): available=${verificationResults.personal_by_email.available}, verified=${verificationResults.personal_by_email.verified}`);
+    console.log(`   - OAuth app secret: available=${verificationResults.oauth_app_secret.available}, verified=${verificationResults.oauth_app_secret.verified}`);
+    console.log(`   - First user fallback: available=${verificationResults.first_user_fallback.available}, verified=${verificationResults.first_user_fallback.verified}`);
     console.log(`\n🎯 Successful method: ${successfulMethod || 'NONE'}`);
 
     const isValid = successfulMethod !== null;
