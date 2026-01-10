@@ -1766,3 +1766,706 @@ describe('Integration Test: Webhook Trigger Flow', () => {
     // - actions_executed: [{ action_type: 'email', success: true, ... }]
   });
 });
+
+// ============================================================
+// Scheduled Trigger Evaluation Logic (re-implemented for testing)
+// ============================================================
+
+type ScheduleType = 'cron' | 'interval' | 'daily' | 'weekly' | 'monthly';
+
+interface ScheduleConfig {
+  schedule_type: ScheduleType;
+  cron_expression?: string;
+  interval_minutes?: number;
+  hour?: number;
+  minute?: number;
+  day_of_week?: number; // 0-6, 0 = Sunday
+  day_of_month?: number; // 1-31
+  timezone?: string;
+}
+
+interface ScheduledTriggerContext extends EvaluationContext {
+  custom?: {
+    scheduled?: {
+      triggered_at?: string;
+      schedule_name?: string;
+      is_due?: boolean;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+}
+
+/**
+ * Evaluate scheduled trigger
+ * Scheduled triggers fire when triggered by the automation-scheduler
+ */
+function evaluateScheduled(
+  config: ScheduleConfig,
+  context: ScheduledTriggerContext
+): TriggerResult {
+  const scheduledData = context.custom?.scheduled;
+
+  // If called by scheduler, it means the rule is due
+  if (scheduledData?.is_due === true || scheduledData?.triggered_at) {
+    return {
+      fires: true,
+      reason: `Scheduled trigger fired at ${scheduledData?.triggered_at || new Date().toISOString()}`,
+      matchDetails: {
+        matchType: config.schedule_type || 'scheduled',
+      },
+    };
+  }
+
+  // Manual check if schedule is due (for testing/dry-run)
+  return {
+    fires: false,
+    reason: 'Scheduled trigger not yet due',
+    matchDetails: {
+      matchType: config.schedule_type || 'scheduled',
+    },
+  };
+}
+
+/**
+ * Calculate the next run time based on schedule configuration.
+ * Re-implements the logic from automation-scheduler/index.ts for testing.
+ */
+function calculateNextRunAt(config: ScheduleConfig, fromTime: Date = new Date()): Date {
+  const scheduleType = config.schedule_type || 'interval';
+
+  switch (scheduleType) {
+    case 'interval': {
+      const intervalMinutes = config.interval_minutes || 60;
+      return new Date(fromTime.getTime() + intervalMinutes * 60 * 1000);
+    }
+
+    case 'daily': {
+      const hour = config.hour ?? 9;
+      const minute = config.minute ?? 0;
+      const next = new Date(fromTime);
+      next.setUTCHours(hour, minute, 0, 0);
+
+      // If the time has already passed today, schedule for tomorrow
+      if (next <= fromTime) {
+        next.setUTCDate(next.getUTCDate() + 1);
+      }
+      return next;
+    }
+
+    case 'weekly': {
+      const hour = config.hour ?? 9;
+      const minute = config.minute ?? 0;
+      const targetDay = config.day_of_week ?? 1; // Default to Monday
+
+      const next = new Date(fromTime);
+      next.setUTCHours(hour, minute, 0, 0);
+
+      // Calculate days until target day
+      const currentDay = next.getUTCDay();
+      let daysUntil = targetDay - currentDay;
+
+      if (daysUntil < 0 || (daysUntil === 0 && next <= fromTime)) {
+        daysUntil += 7;
+      }
+
+      next.setUTCDate(next.getUTCDate() + daysUntil);
+      return next;
+    }
+
+    case 'monthly': {
+      const hour = config.hour ?? 9;
+      const minute = config.minute ?? 0;
+      const targetDay = config.day_of_month ?? 1;
+
+      const next = new Date(fromTime);
+      next.setUTCHours(hour, minute, 0, 0);
+      next.setUTCDate(targetDay);
+
+      // If the date has already passed this month, schedule for next month
+      if (next <= fromTime) {
+        next.setUTCMonth(next.getUTCMonth() + 1);
+      }
+
+      // Handle months with fewer days (e.g., Feb 30 -> Feb 28)
+      const targetMonth = next.getUTCMonth();
+      if (next.getUTCDate() !== targetDay) {
+        // Day overflowed to next month, set to last day of target month
+        next.setUTCDate(0);
+      }
+      // Ensure we're still in the target month
+      if (next.getUTCMonth() !== targetMonth) {
+        next.setUTCMonth(targetMonth + 1, 0);
+      }
+
+      return next;
+    }
+
+    case 'cron': {
+      // For cron expressions, default to running again in 1 hour
+      // A full cron parser could be added as a future enhancement
+      return new Date(fromTime.getTime() + 60 * 60 * 1000);
+    }
+
+    default:
+      // Default: run again in 1 hour
+      return new Date(fromTime.getTime() + 60 * 60 * 1000);
+  }
+}
+
+// ============================================================
+// Scheduled Trigger Tests
+// ============================================================
+
+describe('Scheduled Trigger', () => {
+  describe('Basic Scheduled Trigger', () => {
+    it('should fire when scheduler indicates rule is due', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'weekly',
+        day_of_week: 1,
+        hour: 9,
+        minute: 0,
+      };
+      const context: ScheduledTriggerContext = {
+        custom: {
+          scheduled: {
+            is_due: true,
+            triggered_at: '2026-01-13T09:00:00.000Z',
+            schedule_name: 'Weekly Digest',
+          },
+        },
+      };
+
+      const result = evaluateScheduled(config, context);
+
+      expect(result.fires).toBe(true);
+      expect(result.reason).toContain('Scheduled trigger fired');
+    });
+
+    it('should fire when triggered_at is present', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'daily',
+        hour: 9,
+        minute: 0,
+      };
+      const context: ScheduledTriggerContext = {
+        custom: {
+          scheduled: {
+            triggered_at: '2026-01-10T09:00:00.000Z',
+          },
+        },
+      };
+
+      const result = evaluateScheduled(config, context);
+
+      expect(result.fires).toBe(true);
+      expect(result.reason).toContain('2026-01-10T09:00:00.000Z');
+    });
+
+    it('should not fire when rule is not due', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'weekly',
+        day_of_week: 1,
+        hour: 9,
+      };
+      const context: ScheduledTriggerContext = {
+        custom: {
+          scheduled: {
+            is_due: false,
+          },
+        },
+      };
+
+      const result = evaluateScheduled(config, context);
+
+      expect(result.fires).toBe(false);
+      expect(result.reason).toContain('not yet due');
+    });
+
+    it('should not fire when no scheduled context is provided', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'interval',
+        interval_minutes: 60,
+      };
+      const context: ScheduledTriggerContext = {};
+
+      const result = evaluateScheduled(config, context);
+
+      expect(result.fires).toBe(false);
+    });
+  });
+
+  describe('Match Details', () => {
+    it('should include schedule type in match details', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'weekly',
+        day_of_week: 1,
+      };
+      const context: ScheduledTriggerContext = {
+        custom: {
+          scheduled: {
+            is_due: true,
+            triggered_at: new Date().toISOString(),
+          },
+        },
+      };
+
+      const result = evaluateScheduled(config, context);
+
+      expect(result.matchDetails?.matchType).toBe('weekly');
+    });
+
+    it('should default to "scheduled" when no schedule type specified', () => {
+      const config = {} as ScheduleConfig;
+      const context: ScheduledTriggerContext = {
+        custom: {
+          scheduled: {
+            is_due: true,
+            triggered_at: new Date().toISOString(),
+          },
+        },
+      };
+
+      const result = evaluateScheduled(config, context);
+
+      expect(result.fires).toBe(true);
+      expect(result.matchDetails?.matchType).toBe('scheduled');
+    });
+  });
+});
+
+describe('calculateNextRunAt', () => {
+  describe('Interval Schedule', () => {
+    it('should calculate next run for interval in minutes', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'interval',
+        interval_minutes: 30,
+      };
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      expect(nextRun.toISOString()).toBe('2026-01-10T10:30:00.000Z');
+    });
+
+    it('should default to 60 minutes when interval not specified', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'interval',
+      };
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      expect(nextRun.toISOString()).toBe('2026-01-10T11:00:00.000Z');
+    });
+
+    it('should handle 5-minute intervals', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'interval',
+        interval_minutes: 5,
+      };
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      expect(nextRun.toISOString()).toBe('2026-01-10T10:05:00.000Z');
+    });
+
+    it('should handle large intervals (24 hours)', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'interval',
+        interval_minutes: 1440, // 24 hours
+      };
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      expect(nextRun.toISOString()).toBe('2026-01-11T10:00:00.000Z');
+    });
+  });
+
+  describe('Daily Schedule', () => {
+    it('should schedule for same day if time has not passed', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'daily',
+        hour: 15,
+        minute: 30,
+      };
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      expect(nextRun.toISOString()).toBe('2026-01-10T15:30:00.000Z');
+    });
+
+    it('should schedule for next day if time has passed', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'daily',
+        hour: 9,
+        minute: 0,
+      };
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      expect(nextRun.toISOString()).toBe('2026-01-11T09:00:00.000Z');
+    });
+
+    it('should default to 9:00 AM', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'daily',
+      };
+      const fromTime = new Date('2026-01-10T06:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      expect(nextRun.getUTCHours()).toBe(9);
+      expect(nextRun.getUTCMinutes()).toBe(0);
+    });
+  });
+
+  describe('Weekly Schedule', () => {
+    it('should schedule for next Monday when called on Friday', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'weekly',
+        day_of_week: 1, // Monday
+        hour: 9,
+        minute: 0,
+      };
+      // Friday, January 10, 2026
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      // Should be Monday, January 13, 2026
+      expect(nextRun.toISOString()).toBe('2026-01-13T09:00:00.000Z');
+      expect(nextRun.getUTCDay()).toBe(1); // Monday
+    });
+
+    it('should schedule for same day if time has not passed', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'weekly',
+        day_of_week: 5, // Friday
+        hour: 15,
+        minute: 0,
+      };
+      // Friday, January 10, 2026 at 10:00
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      // Should be same day at 15:00
+      expect(nextRun.toISOString()).toBe('2026-01-10T15:00:00.000Z');
+    });
+
+    it('should schedule for next week if time has passed on target day', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'weekly',
+        day_of_week: 5, // Friday
+        hour: 9,
+        minute: 0,
+      };
+      // Friday, January 10, 2026 at 10:00 (after 9:00)
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      // Should be next Friday, January 17, 2026
+      expect(nextRun.toISOString()).toBe('2026-01-17T09:00:00.000Z');
+    });
+
+    it('should default to Monday at 9:00', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'weekly',
+      };
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      expect(nextRun.getUTCDay()).toBe(1); // Monday
+      expect(nextRun.getUTCHours()).toBe(9);
+    });
+
+    it('should handle Sunday as day 0', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'weekly',
+        day_of_week: 0, // Sunday
+        hour: 10,
+        minute: 0,
+      };
+      // Friday, January 10, 2026
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      // Should be Sunday, January 12, 2026
+      expect(nextRun.toISOString()).toBe('2026-01-12T10:00:00.000Z');
+      expect(nextRun.getUTCDay()).toBe(0); // Sunday
+    });
+  });
+
+  describe('Monthly Schedule', () => {
+    it('should schedule for 1st of next month if date has passed', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'monthly',
+        day_of_month: 1,
+        hour: 9,
+        minute: 0,
+      };
+      // January 10, 2026
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      // Should be February 1, 2026
+      expect(nextRun.getUTCMonth()).toBe(1); // February
+      expect(nextRun.getUTCDate()).toBe(1);
+    });
+
+    it('should schedule for same month if date has not passed', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'monthly',
+        day_of_month: 15,
+        hour: 9,
+        minute: 0,
+      };
+      // January 10, 2026
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      // Should be January 15, 2026
+      expect(nextRun.getUTCMonth()).toBe(0); // January
+      expect(nextRun.getUTCDate()).toBe(15);
+    });
+
+    it('should default to 1st of month at 9:00', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'monthly',
+      };
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      expect(nextRun.getUTCDate()).toBe(1);
+      expect(nextRun.getUTCHours()).toBe(9);
+    });
+  });
+
+  describe('Cron Schedule', () => {
+    it('should default to 1 hour for cron type', () => {
+      const config: ScheduleConfig = {
+        schedule_type: 'cron',
+        cron_expression: '0 9 * * 1', // Every Monday at 9 AM
+      };
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      // Without a full cron parser, defaults to 1 hour
+      expect(nextRun.toISOString()).toBe('2026-01-10T11:00:00.000Z');
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle missing schedule type with default interval', () => {
+      const config = {} as ScheduleConfig;
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      // Defaults to 1 hour
+      expect(nextRun.toISOString()).toBe('2026-01-10T11:00:00.000Z');
+    });
+
+    it('should handle unknown schedule type with default interval', () => {
+      const config = {
+        schedule_type: 'unknown' as ScheduleType,
+      };
+      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+
+      const nextRun = calculateNextRunAt(config, fromTime);
+
+      // Defaults to 1 hour
+      expect(nextRun.toISOString()).toBe('2026-01-10T11:00:00.000Z');
+    });
+  });
+});
+
+describe('Integration Test: Scheduled Rule Flow', () => {
+  /**
+   * Simulates the verification steps from subtask-8-4:
+   * 1. Create scheduled rule (weekly digest)
+   * 2. Manually trigger pg_cron job
+   * 3. Verify digest generated
+   * 4. Verify execution history logged
+   *
+   * This test focuses on trigger evaluation after scheduler triggers the rule.
+   */
+
+  it('should correctly simulate weekly digest rule firing', () => {
+    // 1. Create scheduled rule: weekly digest on Mondays at 9 AM
+    const ruleConfig: ScheduleConfig = {
+      schedule_type: 'weekly',
+      day_of_week: 1, // Monday
+      hour: 9,
+      minute: 0,
+    };
+
+    // 2. Simulate pg_cron triggering the automation-scheduler
+    // The scheduler finds this rule is due and calls automation-engine
+    const scheduledContext: ScheduledTriggerContext = {
+      custom: {
+        scheduled: {
+          is_due: true,
+          triggered_at: '2026-01-13T09:00:00.000Z', // Monday at 9 AM
+          schedule_name: 'Weekly Digest Report',
+        },
+      },
+    };
+
+    // 3. Verify trigger fires (digest would be generated by action executor)
+    const result = evaluateScheduled(ruleConfig, scheduledContext);
+
+    expect(result.fires).toBe(true);
+    expect(result.reason).toContain('Scheduled trigger fired');
+    expect(result.reason).toContain('2026-01-13T09:00:00.000Z');
+
+    // 4. Validate debug info for execution history logging
+    expect(result.matchDetails).toBeDefined();
+    expect(result.matchDetails?.matchType).toBe('weekly');
+  });
+
+  it('should correctly calculate next run after execution', () => {
+    // Rule executed on Monday, January 13, 2026 at 9:00 AM
+    const ruleConfig: ScheduleConfig = {
+      schedule_type: 'weekly',
+      day_of_week: 1, // Monday
+      hour: 9,
+      minute: 0,
+    };
+    const executionTime = new Date('2026-01-13T09:00:00.000Z');
+
+    // Calculate next run time
+    const nextRun = calculateNextRunAt(ruleConfig, executionTime);
+
+    // Should be next Monday, January 20, 2026
+    expect(nextRun.toISOString()).toBe('2026-01-20T09:00:00.000Z');
+    expect(nextRun.getUTCDay()).toBe(1); // Monday
+  });
+
+  it('should handle daily digest rule with correct next run calculation', () => {
+    // Daily digest at 6 PM
+    const ruleConfig: ScheduleConfig = {
+      schedule_type: 'daily',
+      hour: 18,
+      minute: 0,
+    };
+
+    // Triggered at 6 PM on January 10
+    const scheduledContext: ScheduledTriggerContext = {
+      custom: {
+        scheduled: {
+          is_due: true,
+          triggered_at: '2026-01-10T18:00:00.000Z',
+        },
+      },
+    };
+
+    // Verify trigger fires
+    const result = evaluateScheduled(ruleConfig, scheduledContext);
+    expect(result.fires).toBe(true);
+
+    // Calculate next run (should be tomorrow at 6 PM)
+    const executionTime = new Date('2026-01-10T18:00:00.000Z');
+    const nextRun = calculateNextRunAt(ruleConfig, executionTime);
+
+    expect(nextRun.toISOString()).toBe('2026-01-11T18:00:00.000Z');
+  });
+
+  it('should handle interval rule with correct next run calculation', () => {
+    // Run every 2 hours
+    const ruleConfig: ScheduleConfig = {
+      schedule_type: 'interval',
+      interval_minutes: 120,
+    };
+
+    const scheduledContext: ScheduledTriggerContext = {
+      custom: {
+        scheduled: {
+          is_due: true,
+          triggered_at: '2026-01-10T10:00:00.000Z',
+        },
+      },
+    };
+
+    // Verify trigger fires
+    const result = evaluateScheduled(ruleConfig, scheduledContext);
+    expect(result.fires).toBe(true);
+
+    // Calculate next run (should be 2 hours later)
+    const executionTime = new Date('2026-01-10T10:00:00.000Z');
+    const nextRun = calculateNextRunAt(ruleConfig, executionTime);
+
+    expect(nextRun.toISOString()).toBe('2026-01-10T12:00:00.000Z');
+  });
+
+  it('should validate complete execution history debug info structure', () => {
+    const ruleConfig: ScheduleConfig = {
+      schedule_type: 'weekly',
+      day_of_week: 1,
+      hour: 9,
+      minute: 0,
+    };
+
+    const scheduledContext: ScheduledTriggerContext = {
+      custom: {
+        scheduled: {
+          is_due: true,
+          triggered_at: '2026-01-13T09:00:00.000Z',
+          schedule_name: 'Weekly Digest',
+        },
+      },
+    };
+
+    const result = evaluateScheduled(ruleConfig, scheduledContext);
+
+    // Verify all fields needed for execution history are present
+    expect(result.fires).toBe(true);
+    expect(typeof result.reason).toBe('string');
+    expect(result.reason.length).toBeGreaterThan(0);
+    expect(result.matchDetails).toBeDefined();
+    expect(result.matchDetails?.matchType).toBeDefined();
+  });
+
+  it('should simulate missed execution scenario', () => {
+    // Rule was due but scheduler timed out
+    const ruleConfig: ScheduleConfig = {
+      schedule_type: 'weekly',
+      day_of_week: 1,
+      hour: 9,
+    };
+
+    // Scheduler didn't mark it as due (timeout scenario)
+    const scheduledContext: ScheduledTriggerContext = {
+      custom: {
+        scheduled: {
+          is_due: false,
+        },
+      },
+    };
+
+    const result = evaluateScheduled(ruleConfig, scheduledContext);
+
+    // Rule should not fire
+    expect(result.fires).toBe(false);
+    expect(result.reason).toContain('not yet due');
+
+    // But next_run_at should still be calculated correctly
+    const missedTime = new Date('2026-01-13T09:05:00.000Z');
+    const nextRun = calculateNextRunAt(ruleConfig, missedTime);
+
+    // Next run should be the following Monday
+    expect(nextRun.toISOString()).toBe('2026-01-20T09:00:00.000Z');
+  });
+});
