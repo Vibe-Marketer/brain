@@ -1,0 +1,120 @@
+name: Retry Failed Embeddings
+
+# This workflow provides recovery for failed embeddings in the dead_letter queue.
+# It runs the retry-failed-embeddings Edge Function with ultra-small batch sizes
+# to handle recordings that timeout in the main pipeline.
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # Run every 6 hours to process dead_letter queue
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+    # Allow manual triggering for immediate recovery
+    inputs:
+      recording_id:
+        description: 'Specific recording ID to retry (optional)'
+        required: false
+        type: string
+      force_retry:
+        description: 'Force retry even if recently attempted'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  retry-failed-embeddings:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Retry failed embeddings from dead_letter queue
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+
+          # Validate required secrets
+          missing=0
+          if [ -z "${SUPABASE_URL:-}" ]; then
+            echo "Error: SUPABASE_URL is not set"
+            missing=1
+          fi
+          if [ -z "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+            echo "Error: SUPABASE_SERVICE_ROLE_KEY is not set"
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+          echo "Triggering retry-failed-embeddings worker..."
+
+          # Build request body based on inputs
+          if [ -n "${{ github.event.inputs.recording_id || '' }}" ]; then
+            request_body='{"recording_id": ${{ github.event.inputs.recording_id }}, "force_retry": ${{ github.event.inputs.force_retry || false }}}'
+            echo "Retrying specific recording: ${{ github.event.inputs.recording_id }}"
+          else
+            request_body='{"force_retry": false}'
+            echo "Processing dead_letter queue automatically"
+          fi
+
+          response=$(curl -sS -w "\n%{http_code}" \
+            -X POST \
+            -H "Content-Type: application/json" \
+            -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+            -d "$request_body" \
+            "${SUPABASE_URL%/}/functions/v1/retry-failed-embeddings")
+
+          # Extract status code and body
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response status: $http_code"
+          echo "Response body: $body"
+
+          # Check for success
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "Successfully triggered retry worker"
+
+            # Parse response to show details
+            processed=$(echo "$body" | grep -o '"processed":[0-9]*' | cut -d':' -f2 || echo "0")
+            remaining=$(echo "$body" | grep -o '"dead_letter_remaining":[0-9]*' | cut -d':' -f2 || echo "unknown")
+
+            echo "Processed: $processed recording(s)"
+            echo "Dead letter queue remaining: $remaining"
+
+            # If items remaining and this was automatic, trigger again
+            if [ "$processed" -gt 0 ] && [ "$remaining" != "0" ] && [ -z "${{ github.event.inputs.recording_id || '' }}" ]; then
+              echo "More items in dead_letter queue, triggering next worker..."
+
+              # Self-invoke for next item (up to 5 iterations per run)
+              for i in {1..4}; do
+                sleep 2
+
+                next_response=$(curl -sS -w "\n%{http_code}" \
+                  -X POST \
+                  -H "Content-Type: application/json" \
+                  -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
+                  -d '{"force_retry": false}' \
+                  "${SUPABASE_URL%/}/functions/v1/retry-failed-embeddings")
+
+                next_http_code=$(echo "$next_response" | tail -n1)
+                next_body=$(echo "$next_response" | sed '$d')
+
+                echo "Iteration $i - Status: $next_http_code"
+                echo "Iteration $i - Body: $next_body"
+
+                next_processed=$(echo "$next_body" | grep -o '"processed":[0-9]*' | cut -d':' -f2 || echo "0")
+
+                if [ "$next_processed" -eq 0 ]; then
+                  echo "No more items to process, stopping"
+                  break
+                fi
+              done
+            fi
+          else
+            echo "Failed to trigger retry worker"
+            exit 1
+          fi
