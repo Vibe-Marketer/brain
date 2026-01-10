@@ -283,7 +283,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   'rounded-xl transition-all duration-500 ease-in-out',
                   'hover:bg-gray-100 dark:hover:bg-white/10',
                   active && !isCollapsed && 'bg-gray-100 dark:bg-gray-800',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
                 )}
                 title={item.name}
               >
@@ -339,7 +339,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
                 'rounded-xl transition-all duration-500 ease-in-out',
                 'hover:bg-gray-100 dark:hover:bg-white/10',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
               )}
               title="Toggle Library Panel"
             >
@@ -370,7 +370,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
                 'rounded-xl transition-all duration-500 ease-in-out',
                 'hover:bg-gray-100 dark:hover:bg-white/10',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-cb-vibe-orange focus-visible:ring-offset-2'
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
               )}
               title="Sync & Import"
             >

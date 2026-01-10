@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "015-extend-search-filter-syntax-with-tag-folder-suppor",
+  "spec": "016-standardize-focus-ring-color-to-vibe-orange-across",
   "state": "complete",
   "subtasks": {
-    "completed": 15,
-    "total": 15,
+    "completed": 16,
+    "total": 16,
     "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "Documentation Update",
+    "current": "Verification",
     "id": null,
-    "total": 1
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 16,
-    "started_at": "2026-01-10T02:03:37.247011"
+    "number": 17,
+    "started_at": "2026-01-10T03:06:21.715340"
   },
-  "last_update": "2026-01-10T02:29:00.900926"
+  "last_update": "2026-01-10T03:28:58.018474"
 }
