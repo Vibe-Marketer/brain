@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "019-google-meet-integration",
+  "spec": "020-complete-chat-interface",
   "state": "complete",
   "subtasks": {
-    "completed": 20,
-    "total": 20,
+    "completed": 22,
+    "total": 22,
     "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "End-to-End Integration",
+    "current": "UI/UX Polish & Documentation",
     "id": null,
-    "total": 3
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 274,
-    "started_at": "2026-01-10T03:26:25.062678"
+    "number": 276,
+    "started_at": "2026-01-10T03:25:46.991101"
   },
-  "last_update": "2026-01-10T04:38:40.419535"
+  "last_update": "2026-01-10T05:01:50.091752"
 }

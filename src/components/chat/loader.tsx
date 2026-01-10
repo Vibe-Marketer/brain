@@ -139,7 +139,10 @@ interface ThinkingLoaderProps {
 
 export function ThinkingLoader({ className }: ThinkingLoaderProps) {
   return (
-    <div className={cn('flex items-center gap-2 text-cb-ink-muted', className)}>
+    <div
+      data-testid="thinking-loader"
+      className={cn('flex items-center gap-2 text-cb-ink-muted', className)}
+    >
       <Loader variant="dots" size="sm" />
       <span className="text-sm font-inter font-light">Thinking...</span>
     </div>

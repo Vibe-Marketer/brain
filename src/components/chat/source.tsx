@@ -31,7 +31,7 @@ function useCallSourceContext() {
 export interface SourceData {
   id: string;
   recording_id: number;
-  chunk_text: string;
+  chunk_text?: string;
   speaker_name?: string;
   call_date?: string;
   call_title?: string;
@@ -137,10 +137,16 @@ export function CallSourceContent({ source, className }: CallSourceContentProps)
       })
     : undefined;
 
-  const truncatedText =
-    source.chunk_text.length > 150
-      ? source.chunk_text.substring(0, 150) + '...'
-      : source.chunk_text;
+  // Gracefully handle missing chunk_text - degrade to showing call title info
+  const hasChunkText = source.chunk_text && source.chunk_text.trim().length > 0;
+  const truncatedText = hasChunkText
+    ? source.chunk_text!.length > 150
+      ? source.chunk_text!.substring(0, 150) + '...'
+      : source.chunk_text
+    : null;
+
+  // Check if we have any metadata to display
+  const hasMetadata = source.speaker_name || formattedDate;
 
   const handleClick = () => {
     onViewCall?.(recordingId);
@@ -160,33 +166,41 @@ export function CallSourceContent({ source, className }: CallSourceContentProps)
           <span className="text-sm font-medium text-foreground truncate flex-1">
             {source.call_title || 'Transcript'}
           </span>
-          {source.similarity_score && (
+          {source.similarity_score != null && source.similarity_score > 0 && (
             <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
               {Math.round(source.similarity_score * 100)}%
             </span>
           )}
         </div>
 
-        {/* Metadata row */}
-        <div className="flex items-center gap-3 text-xs text-muted-foreground">
-          {source.speaker_name && (
-            <div className="flex items-center gap-1">
-              <RiUser3Line className="h-3 w-3" />
-              <span className="truncate max-w-24">{source.speaker_name}</span>
-            </div>
-          )}
-          {formattedDate && (
-            <div className="flex items-center gap-1">
-              <RiCalendarLine className="h-3 w-3" />
-              <span>{formattedDate}</span>
-            </div>
-          )}
-        </div>
+        {/* Metadata row - only show if we have metadata */}
+        {hasMetadata && (
+          <div className="flex items-center gap-3 text-xs text-muted-foreground">
+            {source.speaker_name && (
+              <div className="flex items-center gap-1">
+                <RiUser3Line className="h-3 w-3" />
+                <span className="truncate max-w-24">{source.speaker_name}</span>
+              </div>
+            )}
+            {formattedDate && (
+              <div className="flex items-center gap-1">
+                <RiCalendarLine className="h-3 w-3" />
+                <span>{formattedDate}</span>
+              </div>
+            )}
+          </div>
+        )}
 
-        {/* Content preview */}
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-          "{truncatedText}"
-        </p>
+        {/* Content preview - show chunk text if available, otherwise show fallback message */}
+        {truncatedText ? (
+          <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+            "{truncatedText}"
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground/70 italic leading-relaxed">
+            Click to view the full call transcript
+          </p>
+        )}
 
         {/* View call action */}
         <div className="flex items-center gap-1 text-xs text-primary font-medium pt-1">

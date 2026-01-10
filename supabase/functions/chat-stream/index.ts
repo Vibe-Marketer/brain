@@ -734,7 +734,7 @@ async function executeSearchTranscripts(
       }
     }
 
-    return { message: 'No relevant transcripts or summaries found for this query.' };
+    return { message: 'I could not find relevant information in your transcripts for this query.' };
   }
 
   console.log(`Hybrid search returned ${candidates.length} candidates in ${Date.now() - searchStartTime}ms`);
@@ -836,7 +836,7 @@ async function executeSummarizeCalls(
   }
 
   if (!calls || calls.length === 0) {
-    return { message: 'No calls found matching the criteria.' };
+    return { message: 'I could not find any calls matching those criteria in your transcripts.' };
   }
 
   return {
@@ -908,7 +908,7 @@ async function executeHybridSearch(
   }
 
   if (!candidates || candidates.length === 0) {
-    return { message: 'No relevant transcripts found for this query with the specified filters.' };
+    return { message: 'I could not find relevant information in your transcripts for this query.' };
   }
 
   console.log(`Hybrid search returned ${candidates.length} candidates in ${Date.now() - searchStartTime}ms`);
@@ -1073,7 +1073,7 @@ async function executeSearchByEntity(
   }
 
   if (!candidates || candidates.length === 0) {
-    return { message: `No mentions of ${entity_type} "${entity_name}" found.` };
+    return { message: `I could not find any mentions of ${entity_type} "${entity_name}" in your transcripts.` };
   }
 
   // Filter candidates by entity in JSONB field (post-search filtering)
@@ -1085,7 +1085,7 @@ async function executeSearchByEntity(
   });
 
   if (filtered.length === 0) {
-    return { message: `No mentions of ${entity_type} "${entity_name}" found in entities.` };
+    return { message: `I could not find any mentions of ${entity_type} "${entity_name}" in your transcripts.` };
   }
 
   const reranked = await rerankResults(entity_name, filtered, limit * 2);
@@ -1142,7 +1142,7 @@ async function executeGetCallsList(
   }
 
   if (!calls || calls.length === 0) {
-    return { message: 'No calls found matching the criteria.' };
+    return { message: 'I could not find any calls matching those criteria in your transcripts.' };
   }
 
   // If speaker filter is provided, filter by speaker in transcript_chunks

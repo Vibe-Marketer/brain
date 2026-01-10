@@ -218,6 +218,7 @@ export function ModelSelector({
       <DropdownMenuTrigger asChild disabled={disabled}>
         <button
           type="button"
+          data-testid="model-selector"
           className={cn(
             'flex items-center gap-1.5 px-2.5 py-1.5 h-[28px] max-w-[200px]',
             'rounded-xl border border-cb-border-soft/50',
