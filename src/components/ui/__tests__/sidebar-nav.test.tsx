@@ -589,7 +589,7 @@ describe('SidebarNav', () => {
       const homeButton = screen.getByTitle('Home');
       // Button should have focus-visible ring classes with vibe-orange
       expect(homeButton.className).toContain('focus-visible:ring-2');
-      expect(homeButton.className).toContain('focus-visible:ring-cb-vibe-orange');
+      expect(homeButton.className).toContain('focus-visible:ring-vibe-orange');
       expect(homeButton.className).toContain('focus-visible:ring-offset-2');
     });
 
