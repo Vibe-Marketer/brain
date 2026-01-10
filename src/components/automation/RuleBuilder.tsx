@@ -46,6 +46,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
+import { ConditionBuilder } from "./ConditionBuilder";
 
 // ============================================================================
 // Types
@@ -95,13 +96,26 @@ interface TriggerConfig {
   timezone?: string;
 }
 
+interface ConditionGroup {
+  operator: "AND" | "OR";
+  conditions: Array<{
+    id?: string;
+    field?: string;
+    operator?: string;
+    value?: Record<string, unknown>;
+    condition_type?: string;
+    logic_operator?: "AND" | "OR";
+    conditions?: Array<Record<string, unknown>>;
+  }>;
+}
+
 interface RuleFormData {
   name: string;
   description: string;
   priority: number;
   trigger_type: TriggerType;
   trigger_config: TriggerConfig;
-  conditions: Record<string, unknown>;
+  conditions: ConditionGroup;
   actions: Array<Record<string, unknown>>;
   enabled: boolean;
 }
@@ -744,6 +758,10 @@ export function RuleBuilder({ ruleId: propRuleId }: RuleBuilderProps) {
     updateFormData({ trigger_config: config });
   }, [updateFormData]);
 
+  const handleConditionsChange = useCallback((conditions: ConditionGroup) => {
+    updateFormData({ conditions });
+  }, [updateFormData]);
+
   const handleSave = async () => {
     if (!user?.id) {
       toast.error("You must be logged in to save rules");
@@ -1013,20 +1031,20 @@ export function RuleBuilder({ ruleId: propRuleId }: RuleBuilderProps) {
               </CardContent>
             </Card>
 
-            {/* Conditions Placeholder */}
-            <Card className="border-dashed">
+            {/* Conditions */}
+            <Card>
               <CardHeader>
-                <CardTitle className="text-lg text-muted-foreground">
-                  Conditions
-                </CardTitle>
+                <CardTitle className="text-lg">Conditions</CardTitle>
                 <CardDescription>
-                  Add conditions to filter when this rule runs (coming in next update)
+                  Add conditions to filter when this rule runs. Conditions are checked
+                  after the trigger fires.
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground italic">
-                  Condition builder will be added here...
-                </p>
+                <ConditionBuilder
+                  conditions={formData.conditions}
+                  onChange={handleConditionsChange}
+                />
               </CardContent>
             </Card>
 
