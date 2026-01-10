@@ -15,6 +15,7 @@ import {
   RiGroupLine,
   RiUserLine,
   RiSettings4Line,
+  RiLinkM,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -26,6 +27,14 @@ import {
 } from "@/hooks/useTeamHierarchy";
 import { OrgChartView } from "@/components/sharing/OrgChartView";
 import { TeamInviteDialog } from "@/components/sharing/TeamInviteDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import type { TeamRole, TeamMembershipWithUser } from "@/types/sharing";
@@ -43,6 +52,8 @@ export default function TeamTab() {
   const [loadingTeamId, setLoadingTeamId] = useState(true);
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [inviteLinkDialogOpen, setInviteLinkDialogOpen] = useState(false);
+  const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
   const [createFormData, setCreateFormData] = useState<CreateTeamFormData>({
     name: "",
     admin_sees_all: false,
@@ -102,7 +113,9 @@ export default function TeamTab() {
     isLoading: teamLoading,
     createTeam,
     updateTeam,
+    generateTeamInvite,
     isUpdating: teamUpdating,
+    isGeneratingInvite,
   } = useTeamHierarchy({
     teamId: userTeamId || undefined,
     userId,
@@ -200,6 +213,26 @@ export default function TeamTab() {
     },
     [removeMember, refetchOrgChart]
   );
+
+  // Handle generating invite link
+  const handleGenerateInviteLink = useCallback(async () => {
+    try {
+      const result = await generateTeamInvite();
+      setGeneratedInviteLink(result.invite_url);
+      setInviteLinkDialogOpen(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to generate invite link";
+      toast.error(message);
+    }
+  }, [generateTeamInvite]);
+
+  // Handle copying invite link
+  const handleCopyInviteLink = useCallback(() => {
+    if (generatedInviteLink) {
+      navigator.clipboard.writeText(generatedInviteLink);
+      toast.success("Invite link copied to clipboard");
+    }
+  }, [generatedInviteLink]);
 
   // Get role badge styling
   const getRoleBadge = (role: TeamRole): { text: string; variant: "default" | "outline" | "destructive" } => {
@@ -384,10 +417,22 @@ export default function TeamTab() {
             </p>
           </div>
           {(isAdmin || isManager) && (
-            <Button onClick={() => setShowInviteDialog(true)} size="sm">
-              <RiUserAddLine className="h-4 w-4 mr-2" />
-              INVITE
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleGenerateInviteLink}
+                disabled={isGeneratingInvite}
+              >
+                {isGeneratingInvite && <RiLoader2Line className="h-4 w-4 mr-1 animate-spin" />}
+                <RiLinkM className="h-4 w-4 mr-1" />
+                Copy Link
+              </Button>
+              <Button onClick={() => setShowInviteDialog(true)} size="sm">
+                <RiUserAddLine className="h-4 w-4 mr-2" />
+                INVITE
+              </Button>
+            </div>
           )}
         </div>
 
@@ -480,6 +525,36 @@ export default function TeamTab() {
           teamId={userTeamId}
         />
       )}
+
+      {/* Invite Link Dialog */}
+      <Dialog open={inviteLinkDialogOpen} onOpenChange={setInviteLinkDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Invite Link Generated</DialogTitle>
+            <DialogDescription>
+              Share this link with someone to invite them to join your team.
+              The link expires in 30 days.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="flex gap-2">
+              <Input
+                readOnly
+                value={generatedInviteLink || ""}
+                className="font-mono text-sm"
+              />
+              <Button variant="outline" onClick={handleCopyInviteLink}>
+                Copy
+              </Button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setInviteLinkDialogOpen(false)}>
+              Done
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
