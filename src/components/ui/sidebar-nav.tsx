@@ -33,6 +33,8 @@ import {
   RiSparklingFill,
   RiPriceTag3Line,
   RiPriceTag3Fill,
+  RiTeamLine,
+  RiTeamFill,
   RiSettings3Line,
   RiSettings3Fill,
 } from '@remixicon/react';
@@ -157,6 +159,14 @@ const navItems: NavItem[] = [
     iconFill: RiPriceTag3Fill,
     path: '/sorting-tagging',
     matchPaths: ['/sorting-tagging'],
+  },
+  {
+    id: 'collaboration',
+    name: 'Collaboration',
+    iconLine: RiTeamLine,
+    iconFill: RiTeamFill,
+    path: '/team',
+    matchPaths: ['/team', '/coaches'],
   },
   {
     id: 'settings',

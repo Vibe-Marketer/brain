@@ -273,7 +273,7 @@ export function useCoachRelationships(options: UseCoachRelationshipsOptions): Us
         throw error;
       }
 
-      const inviteUrl = `${window.location.origin}/coach-invite/${inviteToken}`;
+      const inviteUrl = `${window.location.origin}/coach/join/${inviteToken}`;
 
       logger.info("Coachee invite created", { relationshipId: data.id });
 

@@ -1,8 +1,8 @@
 /**
- * Settings Category Pane (2nd Pane)
+ * Collaboration Category Pane (2nd Pane)
  *
- * Displays a list of settings categories for multi-pane navigation.
- * Categories are role-filtered - Users visible to TEAM/ADMIN, Admin visible to ADMIN only.
+ * Displays a list of collaboration categories for multi-pane navigation.
+ * Team category is role-filtered (TEAM/ADMIN), Coaches visible to all.
  *
  * ## Design Specification
  *
@@ -11,7 +11,7 @@
  * - **Purpose**: Category selection to trigger 3rd pane detail view
  * - **Pattern**: Microsoft Loop-inspired navigation
  *
- * @pattern settings-category-pane
+ * @pattern collaboration-category-pane
  * @see docs/planning/settings-pane-allocation.md
  */
 
@@ -19,34 +19,18 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
-  RiUserLine,
-  RiUserFill,
   RiTeamLine,
-  RiTeamFill,
-  RiWalletLine,
-  RiWalletFill,
-  RiPlugLine,
-  RiPlugFill,
-  RiRobot2Line,
-  RiRobot2Fill,
-  RiShieldLine,
-  RiShieldFill,
-  RiSettings3Line,
+  RiGroupLine,
+  RiUserHeartLine,
 } from "@remixicon/react";
 
 /** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
 const TRANSITION_DURATION = 250;
 
-export type SettingsCategory =
-  | "account"
-  | "users"
-  | "billing"
-  | "integrations"
-  | "ai"
-  | "admin";
+export type CollaborationCategory = "team" | "coaches";
 
 interface CategoryItem {
-  id: SettingsCategory;
+  id: CollaborationCategory;
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -56,67 +40,36 @@ interface CategoryItem {
   requiredRoles?: Array<"ADMIN" | "TEAM">;
 }
 
-export const SETTINGS_CATEGORIES: CategoryItem[] = [
+export const COLLABORATION_CATEGORIES: CategoryItem[] = [
   {
-    id: "account",
-    label: "Account",
-    description: "Profile and preferences",
-    icon: RiUserLine,
-    iconFill: RiUserFill,
-  },
-  {
-    id: "users",
-    label: "Users",
-    description: "Manage organization users",
-    icon: RiTeamLine,
-    iconFill: RiTeamFill,
+    id: "team",
+    label: "Team",
+    description: "Team hierarchy and sharing",
+    icon: RiGroupLine,
     requiredRoles: ["TEAM", "ADMIN"],
   },
   {
-    id: "billing",
-    label: "Billing",
-    description: "Plans and payments",
-    icon: RiWalletLine,
-    iconFill: RiWalletFill,
-  },
-  {
-    id: "integrations",
-    label: "Integrations",
-    description: "Connected services",
-    icon: RiPlugLine,
-    iconFill: RiPlugFill,
-  },
-  {
-    id: "ai",
-    label: "AI",
-    description: "Models and knowledge base",
-    icon: RiRobot2Line,
-    iconFill: RiRobot2Fill,
-  },
-  {
-    id: "admin",
-    label: "Admin",
-    description: "System administration",
-    icon: RiShieldLine,
-    iconFill: RiShieldFill,
-    requiredRoles: ["ADMIN"],
+    id: "coaches",
+    label: "Coaches",
+    description: "Manage coaching relationships",
+    icon: RiUserHeartLine,
   },
 ];
 
-interface SettingsCategoryPaneProps {
+interface CollaborationCategoryPaneProps {
   /** Currently selected category ID */
-  selectedCategory: SettingsCategory | null;
+  selectedCategory: CollaborationCategory | null;
   /** Callback when a category is clicked */
-  onCategorySelect: (category: SettingsCategory) => void;
+  onCategorySelect: (category: CollaborationCategory) => void;
   /** Additional CSS classes */
   className?: string;
 }
 
-export function SettingsCategoryPane({
+export function CollaborationCategoryPane({
   selectedCategory,
   onCategorySelect,
   className,
-}: SettingsCategoryPaneProps) {
+}: CollaborationCategoryPaneProps) {
   const { isAdmin, isTeam } = useUserRole();
 
   // Track mount state for enter animations
@@ -128,13 +81,13 @@ export function SettingsCategoryPane({
   }, []);
 
   // Refs for category buttons to enable focus management
-  const buttonRefs = React.useRef<Map<SettingsCategory, HTMLButtonElement>>(
+  const buttonRefs = React.useRef<Map<CollaborationCategory, HTMLButtonElement>>(
     new Map()
   );
 
   // Filter categories based on user role
   const visibleCategories = React.useMemo(() => {
-    return SETTINGS_CATEGORIES.filter((category) => {
+    return COLLABORATION_CATEGORIES.filter((category) => {
       // No role requirement = visible to all
       if (!category.requiredRoles || category.requiredRoles.length === 0) {
         return true;
@@ -172,7 +125,7 @@ export function SettingsCategoryPane({
 
   // Keyboard navigation handler for individual items
   const handleKeyDown = React.useCallback(
-    (event: React.KeyboardEvent, categoryId: SettingsCategory) => {
+    (event: React.KeyboardEvent, categoryId: CollaborationCategory) => {
       const currentIndex = visibleCategories.findIndex(
         (c) => c.id === categoryId
       );
@@ -216,7 +169,7 @@ export function SettingsCategoryPane({
         className
       )}
       role="navigation"
-      aria-label="Settings categories"
+      aria-label="Collaboration categories"
     >
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-4 border-b border-cb-border bg-cb-card/50">
@@ -224,17 +177,17 @@ export function SettingsCategoryPane({
           className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-cb-vibe-orange"
           aria-hidden="true"
         >
-          <RiSettings3Line className="h-5 w-5" />
+          <RiTeamLine className="h-5 w-5" />
         </div>
         <div className="min-w-0">
           <h2
             className="text-sm font-semibold text-cb-ink uppercase tracking-wide"
-            id="settings-category-title"
+            id="collaboration-category-title"
           >
-            Settings
+            Collaboration
           </h2>
           <p className="text-xs text-cb-ink-muted">
-            {visibleCategories.length} categories
+            {visibleCategories.length} {visibleCategories.length === 1 ? 'category' : 'categories'}
           </p>
         </div>
       </header>
@@ -243,7 +196,7 @@ export function SettingsCategoryPane({
       <div
         className="flex-1 overflow-y-auto py-2 px-2"
         role="list"
-        aria-labelledby="settings-category-title"
+        aria-labelledby="collaboration-category-title"
       >
         {visibleCategories.map((category) => {
           const isActive = selectedCategory === category.id;
@@ -361,4 +314,4 @@ export function SettingsCategoryPane({
   );
 }
 
-export default SettingsCategoryPane;
+export default CollaborationCategoryPane;

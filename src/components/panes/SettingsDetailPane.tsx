@@ -28,8 +28,6 @@ import {
   RiPushpinFill,
   RiUserLine,
   RiTeamLine,
-  RiGroupLine,
-  RiUserHeartLine,
   RiWalletLine,
   RiPlugLine,
   RiRobot2Line,
@@ -42,10 +40,9 @@ import type { SettingsCategory } from "./SettingsCategoryPane";
 const TRANSITION_DURATION = 250;
 
 // Lazy load settings tab components
+// Note: TeamTab and CoachesTab have moved to CollaborationPage
 const AccountTab = React.lazy(() => import("@/components/settings/AccountTab"));
 const UsersTab = React.lazy(() => import("@/components/settings/UsersTab"));
-const TeamTab = React.lazy(() => import("@/components/settings/TeamTab"));
-const CoachesTab = React.lazy(() => import("@/components/settings/CoachesTab"));
 const BillingTab = React.lazy(() => import("@/components/settings/BillingTab"));
 const IntegrationsTab = React.lazy(
   () => import("@/components/settings/IntegrationsTab")
@@ -71,16 +68,6 @@ const CATEGORY_META: Record<
     label: "Users",
     description: "Manage organization users",
     icon: RiTeamLine,
-  },
-  team: {
-    label: "Team",
-    description: "Team hierarchy and sharing",
-    icon: RiGroupLine,
-  },
-  coaches: {
-    label: "Coaches",
-    description: "Manage coaching relationships",
-    icon: RiUserHeartLine,
   },
   billing: {
     label: "Billing",
@@ -221,16 +208,13 @@ export function SettingsDetailPane({
   }, [category]);
 
   // Render the appropriate settings component based on category
+  // Note: Team and Coaches have moved to CollaborationPage (/team, /coaches routes)
   const renderContent = () => {
     switch (category) {
       case "account":
         return <AccountTab />;
       case "users":
         return <UsersTab />;
-      case "team":
-        return <TeamTab />;
-      case "coaches":
-        return <CoachesTab />;
       case "billing":
         return <BillingTab />;
       case "integrations":

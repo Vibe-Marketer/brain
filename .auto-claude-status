@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "012-repair-hybrid-search-function-missing",
+  "spec": "013-implement-teams-coaches-navigation-and-functionali",
   "state": "complete",
   "subtasks": {
-    "completed": 12,
-    "total": 12,
+    "completed": 17,
+    "total": 17,
     "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "End-to-End Verification",
+    "current": "Integration and End-to-End Verification",
     "id": null,
-    "total": 3
+    "total": 4
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 6,
-    "started_at": "2026-01-10T00:05:45.794074"
+    "number": 17,
+    "started_at": "2026-01-10T01:22:56.533632"
   },
-  "last_update": "2026-01-10T00:21:26.635514"
+  "last_update": "2026-01-10T01:57:36.450037"
 }

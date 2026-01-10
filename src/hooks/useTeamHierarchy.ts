@@ -39,7 +39,9 @@ interface UseTeamHierarchyResult {
   createTeam: (input: CreateTeamInput) => Promise<Team>;
   updateTeam: (input: Partial<CreateTeamInput>) => Promise<Team>;
   deleteTeam: () => Promise<void>;
+  generateTeamInvite: () => Promise<{ invite_token: string; invite_url: string }>;
   isUpdating: boolean;
+  isGeneratingInvite: boolean;
 }
 
 interface UseTeamMembersOptions {
@@ -332,13 +334,61 @@ export function useTeamHierarchy(options: UseTeamHierarchyOptions): UseTeamHiera
     },
   });
 
+  // Generate team invite link mutation
+  const generateTeamInviteMutation = useMutation({
+    mutationFn: async (): Promise<{ invite_token: string; invite_url: string }> => {
+      if (!teamId) {
+        throw new Error("Team ID is required to generate invite");
+      }
+      if (!userId) {
+        throw new Error("User ID is required to generate invite");
+      }
+
+      const inviteToken = generateInviteToken();
+      const inviteExpiresAt = getInviteExpiration();
+
+      // Create a pending membership that can be claimed by anyone with the link
+      const { data, error } = await supabase
+        .from("team_memberships")
+        .insert({
+          team_id: teamId,
+          user_id: userId, // Placeholder - will be updated when member accepts
+          role: 'member' as TeamRole,
+          status: 'pending' as MembershipStatus,
+          invite_token: inviteToken,
+          invite_expires_at: inviteExpiresAt,
+          invited_by_user_id: userId,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        logger.error("Error generating team invite", error);
+        throw error;
+      }
+
+      const inviteUrl = `${window.location.origin}/team/join/${inviteToken}`;
+
+      logger.info("Team invite generated", { teamId, membershipId: data.id });
+
+      return { invite_token: inviteToken, invite_url: inviteUrl };
+    },
+    onSuccess: () => {
+      if (teamId) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.teams.memberships(teamId) });
+      }
+    },
+  });
+
   return {
     team: team || null,
     isLoading,
     createTeam: createTeamMutation.mutateAsync,
     updateTeam: updateTeamMutation.mutateAsync,
     deleteTeam: deleteTeamMutation.mutateAsync,
+    generateTeamInvite: generateTeamInviteMutation.mutateAsync,
     isUpdating: createTeamMutation.isPending || updateTeamMutation.isPending || deleteTeamMutation.isPending,
+    isGeneratingInvite: generateTeamInviteMutation.isPending,
   };
 }
 

@@ -18,6 +18,9 @@ import Settings from '@/pages/Settings';
 import LoopLayoutDemo from '@/pages/LoopLayoutDemo';
 import SharedWithMe from '@/pages/SharedWithMe';
 import CoachDashboard from '@/pages/CoachDashboard';
+import CollaborationPage from '@/pages/CollaborationPage';
+import TeamJoin from '@/pages/TeamJoin';
+import CoachJoin from '@/pages/CoachJoin';
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -50,10 +53,17 @@ function App() {
                     <Route path="/chat" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
                     <Route path="/chat/:sessionId" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
                     <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
+                    {/* Redirects from old settings routes to new top-level routes */}
+                    <Route path="/settings/team" element={<Navigate to="/team" replace />} />
+                    <Route path="/settings/coaches" element={<Navigate to="/coaches" replace />} />
                     <Route path="/settings/:category" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
                     <Route path="/sorting-tagging" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
                     <Route path="/sorting-tagging/:category" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
                     <Route path="/loop" element={<Layout><LoopLayoutDemo /></Layout>} />
+
+                    {/* Collaboration routes (Team & Coaches) */}
+                    <Route path="/team" element={<ProtectedRoute><CollaborationPage /></ProtectedRoute>} />
+                    <Route path="/coaches" element={<ProtectedRoute><CollaborationPage /></ProtectedRoute>} />
 
                     {/* Shared with me page */}
                     <Route path="/shared-with-me" element={<ProtectedRoute><Layout><SharedWithMe /></Layout></ProtectedRoute>} />
@@ -66,6 +76,10 @@ function App() {
 
                     {/* Shared call view - public route with token-based access */}
                     <Route path="/s/:token" element={<SharedCallView />} />
+
+                    {/* Join pages - public routes with token-based access (auth handled internally) */}
+                    <Route path="/team/join/:token" element={<TeamJoin />} />
+                    <Route path="/coach/join/:token" element={<CoachJoin />} />
 
                     {/* 404 */}
                     <Route path="*" element={<Navigate to="/" replace />} />
