@@ -45,6 +45,9 @@ export function ToolCall({ toolPart, defaultOpen = false, className }: ToolCallP
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <div
+        data-testid="tool-call"
+        data-tool-status={status}
+        data-tool-name={toolPart.toolName}
         className={cn(
           'rounded-lg border border-cb-border-soft bg-card overflow-hidden',
           className
