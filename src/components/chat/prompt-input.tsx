@@ -285,6 +285,7 @@ export function PromptInputContextBar({
           <PopoverTrigger asChild>
             <button
               type="button"
+              data-testid="add-context-button"
               className={cn(
                 'group flex items-center gap-1 px-2 py-1 rounded-xl',
                 'border border-cb-border-soft/50 bg-transparent',
@@ -383,6 +384,8 @@ interface ContextAttachmentPillProps {
 function ContextAttachmentPill({ attachment, onRemove }: ContextAttachmentPillProps) {
   return (
     <div
+      data-testid="context-attachment-pill"
+      data-recording-id={attachment.id}
       className={cn(
         'group flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-full',
         'bg-cb-hover border border-cb-border',
@@ -396,6 +399,7 @@ function ContextAttachmentPill({ attachment, onRemove }: ContextAttachmentPillPr
         <button
           type="button"
           onClick={onRemove}
+          data-testid="remove-context-attachment"
           className={cn(
             'h-4 w-4 flex items-center justify-center rounded-full',
             'text-cb-ink-muted hover:text-cb-ink hover:bg-cb-border',
