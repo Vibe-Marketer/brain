@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "012-repair-hybrid-search-function-missing",
+  "spec": "013-implement-teams-coaches-navigation-and-functionali",
   "state": "building",
   "subtasks": {
-    "completed": 3,
-    "total": 12,
+    "completed": 0,
+    "total": 17,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Root Cause Identification",
+    "current": "Add Collaboration Navigation Item",
     "id": null,
-    "total": 2
+    "total": 1
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 4,
-    "started_at": "2026-01-09T23:24:58.273255"
+    "number": 1,
+    "started_at": "2026-01-10T01:22:56.533632"
   },
-  "last_update": "2026-01-09T23:32:18.024275"
+  "last_update": "2026-01-10T01:22:56.543045"
 }
