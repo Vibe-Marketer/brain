@@ -80,9 +80,6 @@ async function verifyFathomSimpleSignature(
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
   const computed = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
-  // Store computed signature
-  signatureDebugInfo.simple_full_secret = computed;
-
   if (signatures.includes(computed)) {
     return true;
   }
@@ -102,9 +99,6 @@ async function verifyFathomSimpleSignature(
 
     const signature2 = await crypto.subtle.sign('HMAC', cryptoKey2, messageData);
     const computed2 = btoa(String.fromCharCode(...new Uint8Array(signature2)));
-
-    // Store computed signature
-    signatureDebugInfo.simple_no_prefix = computed2;
 
     if (signatures.includes(computed2)) {
       return true;
@@ -127,9 +121,6 @@ async function verifyFathomSimpleSignature(
       const signature3 = await crypto.subtle.sign('HMAC', cryptoKey3, messageData);
       const computed3 = btoa(String.fromCharCode(...new Uint8Array(signature3)));
 
-      // Store computed signature
-      signatureDebugInfo.simple_base64_decoded = computed3;
-
       if (signatures.includes(computed3)) {
         return true;
       }
@@ -141,13 +132,9 @@ async function verifyFathomSimpleSignature(
   return false;
 }
 
-// Store debug info for signature verification
+// Store debug info for signature verification (non-sensitive data only)
 const signatureDebugInfo: {
   received_signature?: string;
-  svix_computed?: string;
-  simple_full_secret?: string;
-  simple_no_prefix?: string;
-  simple_base64_decoded?: string;
   raw_body_length?: number;
   webhook_id?: string;
   webhook_timestamp?: string;
@@ -211,48 +198,33 @@ async function verifySvixSignature(
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
   const expected = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
-  // Store computed signature
-  signatureDebugInfo.svix_computed = expected;
-
   const signatures = signatureBlock.split(' ');
   return signatures.includes(expected);
 }
 
 // Main verification function that tries all methods
-// Helper to verify and return the computed signature for debugging
+// Helper to verify webhook signature (computedSignature removed for security - OWASP A09:2021)
 async function verifyWebhookSignatureWithDebug(
   secret: string,
   headers: Headers,
   rawBody: string
 ): Promise<{ isValid: boolean; computedSignature: string | null }> {
-  // Capture the last computed signature from the inner calls
-  let computed = null;
-  
   if (headers.get('x-signature')) {
     const valid = await verifyFathomSignature(secret, headers, rawBody);
-    // Note: verifyFathomSignature doesn't set debug info global yet, rely on simple/svix for now
-    if (valid) return { isValid: true, computedSignature: "Matched Native" };
+    if (valid) return { isValid: true, computedSignature: null };
   }
 
   if (headers.get('webhook-signature')) {
     const valid = await verifyFathomSimpleSignature(secret, headers, rawBody);
-    // verifyFathomSimpleSignature writes to global signatureDebugInfo.simple_full_secret
-    // We grab it here immediately
-    computed = signatureDebugInfo.simple_full_secret || signatureDebugInfo.simple_no_prefix || null;
-    if (valid) return { isValid: true, computedSignature: computed };
+    if (valid) return { isValid: true, computedSignature: null };
   }
 
   if (headers.get('webhook-signature')) {
     const valid = await verifySvixSignature(secret, headers, rawBody);
-     // If svix was tried, it writes to signatureDebugInfo.svix_computed
-     // We prefer showing the svix one if simple failed
-     const svixComputed = signatureDebugInfo.svix_computed;
-     if (svixComputed) computed = svixComputed; 
-     
-    if (valid) return { isValid: true, computedSignature: computed };
+    if (valid) return { isValid: true, computedSignature: null };
   }
-  
-  return { isValid: false, computedSignature: computed };
+
+  return { isValid: false, computedSignature: null };
 }
 
 async function verifyWebhookSignature(
