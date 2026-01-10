@@ -441,6 +441,15 @@ Deno.serve(async (req) => {
   console.log('Method:', req.method);
   console.log('URL:', req.url);
 
+  // Safe header logging - only non-sensitive headers (OWASP A09:2021)
+  // Log values for non-sensitive headers, indicate presence only for signature headers
+  console.log('📋 Request Headers (safe subset):');
+  console.log('   content-type:', req.headers.get('content-type') || 'not set');
+  console.log('   webhook-id:', req.headers.get('webhook-id') || 'not set');
+  console.log('   webhook-timestamp:', req.headers.get('webhook-timestamp') || 'not set');
+  console.log('   webhook-signature:', req.headers.has('webhook-signature') ? '[PRESENT]' : '[NOT SET]');
+  console.log('   x-signature:', req.headers.has('x-signature') ? '[PRESENT]' : '[NOT SET]');
+
   // Handle health check / test requests
   if (req.method === 'GET') {
     console.log('GET request received - returning health check');
