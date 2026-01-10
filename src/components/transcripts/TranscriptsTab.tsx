@@ -291,6 +291,8 @@ export function TranscriptsTab({
   });
 
   // Filter by selected folder
+  // Note: Deduplication merged_from data is passed through to TranscriptTableRow
+  // which displays "X sources" badge for primary records with merged duplicates
   const validCalls = useMemo(() => {
     let filtered = calls.filter(c => c && c.recording_id != null);
 
