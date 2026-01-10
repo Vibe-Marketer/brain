@@ -95,6 +95,9 @@ export function SyncTab() {
         .from("fathom_calls")
         .select("*", { count: "exact" })
         .eq("user_id", user.id)
+        // Only show primary meetings (excludes duplicates that were merged)
+        // Use 'or' filter to include meetings where is_primary is true OR null (backward compatibility)
+        .or('is_primary.is.null,is_primary.eq.true')
         .order("created_at", { ascending: false });
 
       // Apply date range filter at database level
