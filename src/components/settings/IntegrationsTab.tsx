@@ -7,6 +7,8 @@ import { RiVideoLine, RiFlashlightLine } from "@remixicon/react";
 import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
 import IntegrationStatusCard from "./IntegrationStatusCard";
 import FathomSetupWizard from "./FathomSetupWizard";
+import ZoomSetupWizard from "./ZoomSetupWizard";
+import SourcePriorityModal from "./SourcePriorityModal";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -15,7 +17,10 @@ import { getSafeUser } from "@/lib/auth-utils";
 
 export default function IntegrationsTab() {
   const [fathomConnected, setFathomConnected] = useState(false);
+  const [zoomConnected, setZoomConnected] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
+  const [showZoomWizard, setShowZoomWizard] = useState(false);
+  const [showSourcePriorityModal, setShowSourcePriorityModal] = useState(false);
   const [loading, setLoading] = useState(true);
 
   // Edit credentials state
@@ -26,6 +31,9 @@ export default function IntegrationsTab() {
   const [savingCredentials, setSavingCredentials] = useState(false);
   const [oauthConnecting, setOauthConnecting] = useState(false);
   const [hasOAuth, setHasOAuth] = useState(false);
+
+  // Track if we should show source priority modal after connecting
+  const [pendingSourcePriorityCheck, setPendingSourcePriorityCheck] = useState(false);
 
   useEffect(() => {
     loadIntegrationStatus();
@@ -38,14 +46,24 @@ export default function IntegrationsTab() {
 
       const { data: settings } = await supabase
         .from("user_settings")
-        .select("fathom_api_key, webhook_secret, oauth_access_token")
+        .select("fathom_api_key, webhook_secret, oauth_access_token, zoom_oauth_access_token, dedup_priority_mode")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      // Consider connected if either API key or OAuth token exists
-      const isConnected = !!(settings?.fathom_api_key || settings?.oauth_access_token);
-      setFathomConnected(isConnected);
+      // Consider Fathom connected if either API key or OAuth token exists
+      const isFathomConnected = !!(settings?.fathom_api_key || settings?.oauth_access_token);
+      setFathomConnected(isFathomConnected);
       setHasOAuth(!!settings?.oauth_access_token);
+
+      // Consider Zoom connected if OAuth token exists
+      const isZoomConnected = !!settings?.zoom_oauth_access_token;
+      setZoomConnected(isZoomConnected);
+
+      // Check if we need to show source priority modal (both connected, no preference set)
+      if (pendingSourcePriorityCheck && isFathomConnected && isZoomConnected && !settings?.dedup_priority_mode) {
+        setShowSourcePriorityModal(true);
+        setPendingSourcePriorityCheck(false);
+      }
 
       // Load current credentials (masked for display)
       if (settings?.fathom_api_key) {
@@ -65,8 +83,25 @@ export default function IntegrationsTab() {
     setShowWizard(true);
   };
 
+  const handleZoomConnect = () => {
+    // If Fathom is already connected, we'll need to show source priority modal after
+    if (fathomConnected) {
+      setPendingSourcePriorityCheck(true);
+    }
+    setShowZoomWizard(true);
+  };
+
   const handleWizardComplete = async () => {
     setShowWizard(false);
+    // If Zoom was already connected before this, check for source priority modal
+    if (zoomConnected) {
+      setPendingSourcePriorityCheck(true);
+    }
+    await loadIntegrationStatus(); // Refresh status after wizard completion
+  };
+
+  const handleZoomWizardComplete = async () => {
+    setShowZoomWizard(false);
     await loadIntegrationStatus(); // Refresh status after wizard completion
   };
 
@@ -167,6 +202,29 @@ export default function IntegrationsTab() {
             status={fathomConnected ? "connected" : "disconnected"}
             onConnect={handleFathomConnect}
             description="Automatic meeting sync and AI-powered insights"
+          />
+        </div>
+      </div>
+
+      <Separator className="my-16" />
+
+      {/* Zoom Integration Section */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+            Zoom Integration
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+            Sync cloud recordings directly from your Zoom account
+          </p>
+        </div>
+        <div className="lg:col-span-2">
+          <IntegrationStatusCard
+            name="Zoom"
+            icon={RiVideoLine}
+            status={zoomConnected ? "connected" : "disconnected"}
+            onConnect={handleZoomConnect}
+            description="Cloud recordings with native Zoom transcripts"
           />
         </div>
       </div>
@@ -299,12 +357,6 @@ export default function IntegrationsTab() {
         </div>
         <div className="lg:col-span-2 space-y-0">
           <IntegrationStatusCard
-            name="Zoom"
-            icon={RiVideoLine}
-            status="coming-soon"
-            description="Direct Zoom meeting integration"
-          />
-          <IntegrationStatusCard
             name="GoHighLevel"
             icon={RiFlashlightLine}
             status="coming-soon"
@@ -322,14 +374,19 @@ export default function IntegrationsTab() {
         />
       )}
 
-      {/* Modals */}
-      {showWizard && (
-        <FathomSetupWizard
-          open={showWizard}
-          onComplete={handleWizardComplete}
-          onDismiss={() => setShowWizard(false)}
+      {showZoomWizard && (
+        <ZoomSetupWizard
+          open={showZoomWizard}
+          onComplete={handleZoomWizardComplete}
+          onDismiss={() => setShowZoomWizard(false)}
         />
       )}
+
+      <SourcePriorityModal
+        open={showSourcePriorityModal}
+        onOpenChange={setShowSourcePriorityModal}
+        onComplete={() => loadIntegrationStatus()}
+      />
     </div>
   );
 }

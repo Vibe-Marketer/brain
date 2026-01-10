@@ -465,12 +465,17 @@ export type Database = {
           calendar_invitees: Json | null
           created_at: string
           full_transcript: string | null
+          fuzzy_match_score: number | null
+          is_primary: boolean | null
+          meeting_fingerprint: string | null
+          merged_from: number[] | null
           recorded_by_email: string | null
           recorded_by_name: string | null
           recording_end_time: string | null
           recording_id: number
           recording_start_time: string | null
           share_url: string | null
+          source_platform: string | null
           summary: string | null
           summary_edited_by_user: boolean | null
           synced_at: string | null
@@ -487,12 +492,17 @@ export type Database = {
           calendar_invitees?: Json | null
           created_at: string
           full_transcript?: string | null
+          fuzzy_match_score?: number | null
+          is_primary?: boolean | null
+          meeting_fingerprint?: string | null
+          merged_from?: number[] | null
           recorded_by_email?: string | null
           recorded_by_name?: string | null
           recording_end_time?: string | null
           recording_id: number
           recording_start_time?: string | null
           share_url?: string | null
+          source_platform?: string | null
           summary?: string | null
           summary_edited_by_user?: boolean | null
           synced_at?: string | null
@@ -509,12 +519,17 @@ export type Database = {
           calendar_invitees?: Json | null
           created_at?: string
           full_transcript?: string | null
+          fuzzy_match_score?: number | null
+          is_primary?: boolean | null
+          meeting_fingerprint?: string | null
+          merged_from?: number[] | null
           recorded_by_email?: string | null
           recorded_by_name?: string | null
           recording_end_time?: string | null
           recording_id?: number
           recording_start_time?: string | null
           share_url?: string | null
+          source_platform?: string | null
           summary?: string | null
           summary_edited_by_user?: boolean | null
           synced_at?: string | null
@@ -1096,6 +1111,8 @@ export type Database = {
           ai_model_preset: string | null
           bulk_import_enabled: boolean | null
           created_at: string | null
+          dedup_platform_order: string[] | null
+          dedup_priority_mode: string | null
           fathom_api_key: string | null
           fathom_api_secret: string | null
           host_email: string | null
@@ -1113,11 +1130,17 @@ export type Database = {
           webhook_last_tested_at: string | null
           webhook_secret: string | null
           webhook_test_status: string | null
+          zoom_oauth_access_token: string | null
+          zoom_oauth_refresh_token: string | null
+          zoom_oauth_state: string | null
+          zoom_oauth_token_expires: number | null
         }
         Insert: {
           ai_model_preset?: string | null
           bulk_import_enabled?: boolean | null
           created_at?: string | null
+          dedup_platform_order?: string[] | null
+          dedup_priority_mode?: string | null
           fathom_api_key?: string | null
           fathom_api_secret?: string | null
           host_email?: string | null
@@ -1135,11 +1158,17 @@ export type Database = {
           webhook_last_tested_at?: string | null
           webhook_secret?: string | null
           webhook_test_status?: string | null
+          zoom_oauth_access_token?: string | null
+          zoom_oauth_refresh_token?: string | null
+          zoom_oauth_state?: string | null
+          zoom_oauth_token_expires?: number | null
         }
         Update: {
           ai_model_preset?: string | null
           bulk_import_enabled?: boolean | null
           created_at?: string | null
+          dedup_platform_order?: string[] | null
+          dedup_priority_mode?: string | null
           fathom_api_key?: string | null
           fathom_api_secret?: string | null
           host_email?: string | null
@@ -1157,6 +1186,10 @@ export type Database = {
           webhook_last_tested_at?: string | null
           webhook_secret?: string | null
           webhook_test_status?: string | null
+          zoom_oauth_access_token?: string | null
+          zoom_oauth_refresh_token?: string | null
+          zoom_oauth_state?: string | null
+          zoom_oauth_token_expires?: number | null
         }
         Relationships: []
       }

@@ -50,6 +50,11 @@ export interface Meeting {
   user_id?: string;
   synced_at?: string;
   auto_tags?: string[] | null;
+  // Multi-source deduplication fields
+  source_platform?: string | null;
+  merged_from?: number[] | null;
+  is_primary?: boolean | null;
+  ai_generated_title?: string | null;
 }
 
 export interface MeetingWithTranscripts extends Meeting {

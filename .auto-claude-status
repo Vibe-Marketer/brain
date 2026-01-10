@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "017-excessive-secret-logging-in-webhook-handler",
+  "spec": "018-zoom-integration",
   "state": "complete",
   "subtasks": {
-    "completed": 19,
-    "total": 19,
+    "completed": 24,
+    "total": 24,
     "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "",
-    "id": 0,
-    "total": 0
+    "current": "Integration and Polish",
+    "id": null,
+    "total": 5
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 0,
-    "started_at": "2026-01-10T05:30:28.330953"
+    "number": 279,
+    "started_at": "2026-01-10T03:27:25.311676"
   },
-  "last_update": "2026-01-10T05:30:28.332273"
+  "last_update": "2026-01-10T04:58:04.935711"
 }
