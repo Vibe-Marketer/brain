@@ -130,7 +130,7 @@ export const AccessLogViewer = React.memo(({
         <div className="overflow-x-auto" style={{ maxHeight }}>
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent border-t border-b-2 border-cb-black dark:border-cb-white">
+              <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
                 <TableHead className="min-w-[180px] h-10 whitespace-nowrap text-xs md:text-sm">
                   <SortButton field="user_email">USER</SortButton>
                 </TableHead>
