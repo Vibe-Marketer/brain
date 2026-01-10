@@ -40,6 +40,32 @@ describe('parseSearchSyntax', () => {
     const result = parseSearchSyntax('status:synced status:unsynced');
     expect(result.filters.status).toEqual(['synced', 'unsynced']);
   });
+
+  it('should parse tag filter with tag: prefix', () => {
+    const result = parseSearchSyntax('tag:important meeting notes');
+    expect(result.filters.tag).toEqual(['important']);
+    expect(result.plainText).toBe('meeting notes');
+  });
+
+  it('should parse tag filter with t: short alias', () => {
+    const result = parseSearchSyntax('t:urgent project update');
+    expect(result.filters.tag).toEqual(['urgent']);
+    expect(result.plainText).toBe('project update');
+  });
+
+  it('should parse multiple tags', () => {
+    const result = parseSearchSyntax('tag:important tag:follow-up t:client');
+    expect(result.filters.tag).toEqual(['important', 'follow-up', 'client']);
+    expect(result.plainText).toBe('');
+  });
+
+  it('should parse tags mixed with other filters', () => {
+    const result = parseSearchSyntax('meeting tag:important participant:john date:today t:urgent');
+    expect(result.filters.tag).toEqual(['important', 'urgent']);
+    expect(result.filters.participant).toEqual(['john']);
+    expect(result.filters.date).toBe('today');
+    expect(result.plainText).toBe('meeting');
+  });
 });
 
 describe('syntaxToFilters - Date Filters', () => {
