@@ -40,9 +40,6 @@ async function verifyFathomSignature(
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
   const expected = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
-  console.log('Expected Fathom signature:', expected);
-  console.log('Received x-signature:', xSignature);
-
   return expected === xSignature;
 }
 
@@ -83,12 +80,6 @@ async function verifyFathomSimpleSignature(
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
   const computed = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
-  // Store computed signature
-  signatureDebugInfo.simple_full_secret = computed;
-
-  console.log('Fathom simple - Computed signature:', computed);
-  console.log('Fathom simple - Received signatures:', signatures);
-
   if (signatures.includes(computed)) {
     return true;
   }
@@ -109,11 +100,6 @@ async function verifyFathomSimpleSignature(
     const signature2 = await crypto.subtle.sign('HMAC', cryptoKey2, messageData);
     const computed2 = btoa(String.fromCharCode(...new Uint8Array(signature2)));
 
-    // Store computed signature
-    signatureDebugInfo.simple_no_prefix = computed2;
-
-    console.log('Fathom simple (no prefix, as string) - Computed signature:', computed2);
-
     if (signatures.includes(computed2)) {
       return true;
     }
@@ -123,7 +109,6 @@ async function verifyFathomSimpleSignature(
     // but we HMAC just the body (not id.timestamp.body like Svix)
     try {
       const decodedSecretBytes = Uint8Array.from(atob(secretPart), c => c.charCodeAt(0));
-      console.log('Fathom simple (base64 decoded secret) - Decoded secret length:', decodedSecretBytes.length);
 
       const cryptoKey3 = await crypto.subtle.importKey(
         'raw',
@@ -136,35 +121,38 @@ async function verifyFathomSimpleSignature(
       const signature3 = await crypto.subtle.sign('HMAC', cryptoKey3, messageData);
       const computed3 = btoa(String.fromCharCode(...new Uint8Array(signature3)));
 
-      // Store computed signature
-      signatureDebugInfo.simple_base64_decoded = computed3;
-
-      console.log('Fathom simple (base64 decoded secret) - Computed signature:', computed3);
-
       if (signatures.includes(computed3)) {
         return true;
       }
-    } catch (decodeError) {
-      console.log('Failed to base64 decode secret part:', decodeError);
+    } catch {
+      // Failed to decode secret - log without error details to avoid potential secret exposure
+      console.log('Failed to base64 decode secret part');
     }
   }
 
   return false;
 }
 
-// Store debug info for signature verification
-const signatureDebugInfo: {
-  received_signature?: string;
-  svix_computed?: string;
-  simple_full_secret?: string;
-  simple_no_prefix?: string;
-  simple_base64_decoded?: string;
-  raw_body_length?: number;
-  raw_body_first_100?: string;
-  raw_body_last_100?: string;
-  webhook_id?: string;
-  webhook_timestamp?: string;
-} = {};
+// Sanitize headers for safe storage - removes sensitive values (OWASP A09:2021)
+function sanitizeHeadersForStorage(headers: Headers): Record<string, string> {
+  const sensitiveHeaders = new Set([
+    'webhook-signature',
+    'x-signature',
+    'authorization',
+    'x-api-key',
+    'cookie'
+  ]);
+
+  const sanitized: Record<string, string> = {};
+  for (const [key, value] of headers.entries()) {
+    if (sensitiveHeaders.has(key.toLowerCase())) {
+      sanitized[key] = '[REDACTED]';
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
 
 // Svix signature verification (for API Key webhooks)
 async function verifySvixSignature(
@@ -188,14 +176,6 @@ async function verifySvixSignature(
     return false;
   }
 
-  // Store debug info
-  signatureDebugInfo.received_signature = signatureBlock;
-  signatureDebugInfo.webhook_id = webhookId;
-  signatureDebugInfo.webhook_timestamp = webhookTimestamp;
-  signatureDebugInfo.raw_body_length = rawBody.length;
-  signatureDebugInfo.raw_body_first_100 = rawBody.substring(0, 100);
-  signatureDebugInfo.raw_body_last_100 = rawBody.substring(rawBody.length - 100);
-
   // Svix signs the format: webhook-id.webhook-timestamp.body
   const signedContent = `${webhookId}.${webhookTimestamp}.${rawBody}`;
   console.log('Verifying Svix signature for content, length:', signedContent.length);
@@ -210,7 +190,6 @@ async function verifySvixSignature(
   // Base64 decode the secret
   const secretBytes = Uint8Array.from(atob(secretParts[1]), c => c.charCodeAt(0));
   console.log('Decoded secret length:', secretBytes.length);
-  console.log('Secret being used (first 10 chars):', secret.substring(0, 16) + '...');
 
   // Use Web Crypto API to sign the Svix format
   const encoder = new TextEncoder();
@@ -227,60 +206,33 @@ async function verifySvixSignature(
   const signature = await crypto.subtle.sign('HMAC', cryptoKey, messageData);
   const expected = btoa(String.fromCharCode(...new Uint8Array(signature)));
 
-  // Store computed signature
-  signatureDebugInfo.svix_computed = expected;
-
-  console.log('🔐 SVIX SIGNATURE COMPARISON:');
-  console.log('   Computed signature:', expected);
-  console.log('   Received signature:', signatureBlock);
-  console.log('   Match:', expected === signatureBlock ? '✅ YES' : '❌ NO');
-
-  // Also compare character by character for debugging
-  if (expected !== signatureBlock) {
-    console.log('   First diff at position:', [...expected].findIndex((c, i) => c !== signatureBlock[i]));
-    console.log('   Expected length:', expected.length);
-    console.log('   Received length:', signatureBlock.length);
-  }
-
   const signatures = signatureBlock.split(' ');
   return signatures.includes(expected);
 }
 
 // Main verification function that tries all methods
-// Helper to verify and return the computed signature for debugging
+// Helper to verify webhook signature (computedSignature removed for security - OWASP A09:2021)
 async function verifyWebhookSignatureWithDebug(
   secret: string,
   headers: Headers,
   rawBody: string
 ): Promise<{ isValid: boolean; computedSignature: string | null }> {
-  // Capture the last computed signature from the inner calls
-  let computed = null;
-  
   if (headers.get('x-signature')) {
     const valid = await verifyFathomSignature(secret, headers, rawBody);
-    // Note: verifyFathomSignature doesn't set debug info global yet, rely on simple/svix for now
-    if (valid) return { isValid: true, computedSignature: "Matched Native" };
+    if (valid) return { isValid: true, computedSignature: null };
   }
 
   if (headers.get('webhook-signature')) {
     const valid = await verifyFathomSimpleSignature(secret, headers, rawBody);
-    // verifyFathomSimpleSignature writes to global signatureDebugInfo.simple_full_secret
-    // We grab it here immediately
-    computed = signatureDebugInfo.simple_full_secret || signatureDebugInfo.simple_no_prefix || null;
-    if (valid) return { isValid: true, computedSignature: computed };
+    if (valid) return { isValid: true, computedSignature: null };
   }
 
   if (headers.get('webhook-signature')) {
     const valid = await verifySvixSignature(secret, headers, rawBody);
-     // If svix was tried, it writes to signatureDebugInfo.svix_computed
-     // We prefer showing the svix one if simple failed
-     const svixComputed = signatureDebugInfo.svix_computed;
-     if (svixComputed) computed = svixComputed; 
-     
-    if (valid) return { isValid: true, computedSignature: computed };
+    if (valid) return { isValid: true, computedSignature: null };
   }
-  
-  return { isValid: false, computedSignature: computed };
+
+  return { isValid: false, computedSignature: null };
 }
 
 async function verifyWebhookSignature(
@@ -496,8 +448,16 @@ Deno.serve(async (req) => {
   console.log('Timestamp:', timestamp);
   console.log('Method:', req.method);
   console.log('URL:', req.url);
-  console.log('Headers:', Object.fromEntries(req.headers.entries()));
-  
+
+  // Safe header logging - only non-sensitive headers (OWASP A09:2021)
+  // Log values for non-sensitive headers, indicate presence only for signature headers
+  console.log('📋 Request Headers (safe subset):');
+  console.log('   content-type:', req.headers.get('content-type') || 'not set');
+  console.log('   webhook-id:', req.headers.get('webhook-id') || 'not set');
+  console.log('   webhook-timestamp:', req.headers.get('webhook-timestamp') || 'not set');
+  console.log('   webhook-signature:', req.headers.has('webhook-signature') ? '[PRESENT]' : '[NOT SET]');
+  console.log('   x-signature:', req.headers.has('x-signature') ? '[PRESENT]' : '[NOT SET]');
+
   // Handle health check / test requests
   if (req.method === 'GET') {
     console.log('GET request received - returning health check');
@@ -530,8 +490,7 @@ Deno.serve(async (req) => {
     const clonedReq = req.clone();
     const rawBody = await clonedReq.text();
     console.log('Raw body length:', rawBody.length);
-    console.log('Raw body preview:', rawBody.substring(0, 200));
-    
+
     // Parse body to get meeting email for webhook secret lookup
     meeting = JSON.parse(rawBody);
     
@@ -554,27 +513,20 @@ Deno.serve(async (req) => {
     // ==========================================================================
     // PARALLEL VERIFICATION TEST - Try ALL methods and log results
     // ==========================================================================
+    // VerificationResult stores only boolean flags - no secrets or signatures (OWASP A09:2021)
     interface VerificationResult {
       available: boolean;
       verified: boolean;
-      secret_preview: string | null;
-      full_secret?: string | null;
-      computed_signature?: string | null;
     }
 
     const verificationResults: {
       personal_by_email: VerificationResult;
       oauth_app_secret: VerificationResult;
       first_user_fallback: VerificationResult;
-      request_details: any;
     } = {
-      personal_by_email: { available: false, verified: false, secret_preview: null, full_secret: null, computed_signature: null },
-      oauth_app_secret: { available: false, verified: false, secret_preview: null, full_secret: null, computed_signature: null },
-      first_user_fallback: { available: false, verified: false, secret_preview: null, computed_signature: null },
-      request_details: {
-        header_signature: req.headers.get('webhook-signature') || req.headers.get('x-signature'),
-        webhook_id: req.headers.get('webhook-id')
-      }
+      personal_by_email: { available: false, verified: false },
+      oauth_app_secret: { available: false, verified: false },
+      first_user_fallback: { available: false, verified: false }
     };
     let matchedUserId = null;
     let successfulMethod: string | null = null;
@@ -598,16 +550,12 @@ Deno.serve(async (req) => {
         personalSecret = settings.webhook_secret;
         personalUserId = settings.user_id;
         verificationResults.personal_by_email.available = true;
-        verificationResults.personal_by_email.secret_preview = personalSecret.substring(0, 4) + '...' + personalSecret.substring(personalSecret.length - 4);
-        verificationResults.personal_by_email.full_secret = personalSecret;
       }
     }
 
     // 2. Check OAuth app secret
     if (oauthAppSecret) {
       verificationResults.oauth_app_secret.available = true;
-      verificationResults.oauth_app_secret.secret_preview = oauthAppSecret.substring(0, 4) + '...' + oauthAppSecret.substring(oauthAppSecret.length - 4);
-      verificationResults.oauth_app_secret.full_secret = oauthAppSecret;
     }
 
     // 3. Check first user fallback
@@ -621,25 +569,21 @@ Deno.serve(async (req) => {
       firstUserSecret = firstSettings.webhook_secret;
       firstUserId = firstSettings.user_id;
       verificationResults.first_user_fallback.available = true;
-      verificationResults.first_user_fallback.secret_preview = firstUserSecret.substring(0, 4) + '...' + firstUserSecret.substring(firstUserSecret.length - 4);
     }
 
-    console.log('📋 VERIFICATION TEST - Available secrets:');
-    console.log('   - Personal (email match):', verificationResults.personal_by_email.available ? `YES (${verificationResults.personal_by_email.secret_preview})` : 'NO');
-    console.log('   - OAuth app secret:', verificationResults.oauth_app_secret.available ? `YES (${verificationResults.oauth_app_secret.secret_preview})` : 'NO');
-    console.log('   - First user fallback:', verificationResults.first_user_fallback.available ? `YES (${verificationResults.first_user_fallback.secret_preview})` : 'NO');
+    // Safe logging: indicate availability without exposing any secret data (OWASP A09:2021)
+    console.log('📋 Verification secrets availability:');
+    console.log('   - Personal (email match): ' + (verificationResults.personal_by_email.available ? 'configured' : 'not configured'));
+    console.log('   - OAuth app secret: ' + (verificationResults.oauth_app_secret.available ? 'configured' : 'not configured'));
+    console.log('   - First user fallback: ' + (verificationResults.first_user_fallback.available ? 'configured' : 'not configured'));
 
     // Now verify with EACH available secret
-    console.log('\n🔐 VERIFICATION TEST - Testing each secret:');
-
     // Test 1: Personal secret by email
     if (personalSecret) {
-      console.log('\n--- Testing PERSONAL secret (email match) ---');
-      const { isValid, computedSignature } = await verifyWebhookSignatureWithDebug(personalSecret, req.headers, rawBody);
+      console.log('🔐 Testing verification method: personal_by_email');
+      const { isValid } = await verifyWebhookSignatureWithDebug(personalSecret, req.headers, rawBody);
       verificationResults.personal_by_email.verified = isValid;
-      verificationResults.personal_by_email.computed_signature = computedSignature;
-      
-      console.log(`   Result: ${isValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      console.log(`   Verification method personal_by_email: ${isValid ? 'SUCCESS' : 'FAILED'}`);
       if (isValid && !successfulMethod) {
         successfulMethod = 'personal_by_email';
         matchedUserId = personalUserId;
@@ -648,12 +592,10 @@ Deno.serve(async (req) => {
 
     // Test 2: OAuth app secret
     if (oauthAppSecret) {
-      console.log('\n--- Testing OAUTH APP secret ---');
-      const { isValid, computedSignature } = await verifyWebhookSignatureWithDebug(oauthAppSecret, req.headers, rawBody);
+      console.log('🔐 Testing verification method: oauth_app_secret');
+      const { isValid } = await verifyWebhookSignatureWithDebug(oauthAppSecret, req.headers, rawBody);
       verificationResults.oauth_app_secret.verified = isValid;
-      verificationResults.oauth_app_secret.computed_signature = computedSignature;
-      
-      console.log(`   Result: ${isValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      console.log(`   Verification method oauth_app_secret: ${isValid ? 'SUCCESS' : 'FAILED'}`);
       if (isValid && !successfulMethod) {
         successfulMethod = 'oauth_app_secret';
         // For OAuth, still need to find user by email
@@ -672,11 +614,10 @@ Deno.serve(async (req) => {
 
     // Test 3: First user fallback (only if different from personal)
     if (firstUserSecret && firstUserSecret !== personalSecret) {
-      console.log('\n--- Testing FIRST USER FALLBACK secret ---');
-      const { isValid, computedSignature } = await verifyWebhookSignatureWithDebug(firstUserSecret, req.headers, rawBody);
+      console.log('🔐 Testing verification method: first_user_fallback');
+      const { isValid } = await verifyWebhookSignatureWithDebug(firstUserSecret, req.headers, rawBody);
       verificationResults.first_user_fallback.verified = isValid;
-      
-      console.log(`   Result: ${isValid ? '✅ VERIFIED' : '❌ FAILED'}`);
+      console.log(`   Verification method first_user_fallback: ${isValid ? 'SUCCESS' : 'FAILED'}`);
       if (isValid && !successfulMethod) {
         successfulMethod = 'first_user_fallback';
         matchedUserId = firstUserId;
@@ -684,12 +625,14 @@ Deno.serve(async (req) => {
     } else if (firstUserSecret === personalSecret) {
       // Same as personal, copy result
       verificationResults.first_user_fallback.verified = verificationResults.personal_by_email.verified;
-      console.log('\n--- FIRST USER FALLBACK: Same as personal secret, skipping ---');
+      console.log('   Verification method first_user_fallback: SKIPPED (same as personal)');
     }
 
-    // Summary
+    // Summary - log verification status only, no secrets or debug info (OWASP A09:2021)
     console.log('\n📊 VERIFICATION SUMMARY:');
-    console.log(JSON.stringify(verificationResults, null, 2));
+    console.log(`   - Personal (email match): available=${verificationResults.personal_by_email.available}, verified=${verificationResults.personal_by_email.verified}`);
+    console.log(`   - OAuth app secret: available=${verificationResults.oauth_app_secret.available}, verified=${verificationResults.oauth_app_secret.verified}`);
+    console.log(`   - First user fallback: available=${verificationResults.first_user_fallback.available}, verified=${verificationResults.first_user_fallback.verified}`);
     console.log(`\n🎯 Successful method: ${successfulMethod || 'NONE'}`);
 
     const isValid = successfulMethod !== null;
@@ -709,34 +652,37 @@ Deno.serve(async (req) => {
     if (!isValid) {
       console.error('❌ Webhook signature verification FAILED - NO METHOD WORKED');
       console.error('   - Webhook ID:', req.headers.get('webhook-id'));
-      console.error('   - Signature Header:', req.headers.get('webhook-signature'));
-      const errorMessage = `Invalid webhook signature - all methods failed. Results: ${JSON.stringify(verificationResults)}`;
+      console.error('   - Signature Header:', req.headers.has('webhook-signature') ? '[PRESENT]' : '[NOT SET]');
+      const errorMessage = `Invalid webhook signature - all verification methods failed`;
 
-      // Log failed delivery WITH verification results
+      // Log failed delivery WITH sanitized verification results
+      // Only store boolean flags - no secrets, previews, or signatures (OWASP A09:2021)
       const logUserId = userId || firstUserId;
       if (logUserId) {
+        const sanitizedVerificationResults = {
+          personal_by_email: { available: verificationResults.personal_by_email.available, verified: verificationResults.personal_by_email.verified },
+          oauth_app_secret: { available: verificationResults.oauth_app_secret.available, verified: verificationResults.oauth_app_secret.verified },
+          first_user_fallback: { available: verificationResults.first_user_fallback.available, verified: verificationResults.first_user_fallback.verified }
+        };
+
         await supabase.from('webhook_deliveries').insert({
           user_id: logUserId,
           webhook_id: req.headers.get('webhook-id') || req.headers.get('svix-id') || 'unknown',
           recording_id: meeting.recording_id,
           status: 'failed',
           error_message: errorMessage,
-          request_headers: Object.fromEntries(req.headers.entries()),
+          request_headers: sanitizeHeadersForStorage(req.headers),
           request_body: meeting,
           signature_valid: false,
           payload: {
-            verification_results: verificationResults,
-            signature_debug: signatureDebugInfo
+            verification_results: sanitizedVerificationResults
           }
         });
       }
 
       return new Response(
         JSON.stringify({
-          error: 'Invalid signature',
-          verification_results: verificationResults,
-          signature_debug: signatureDebugInfo,
-          hint: 'Check logs for which secrets were tested and their results'
+          error: 'Invalid signature'
         }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -772,7 +718,7 @@ Deno.serve(async (req) => {
           webhook_id: webhookId,
           recording_id: meeting.recording_id,
           status: 'duplicate',
-          request_headers: Object.fromEntries(req.headers.entries()),
+          request_headers: sanitizeHeadersForStorage(req.headers),
           request_body: meeting,
           signature_valid: true
         });
@@ -850,18 +796,25 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Log successful delivery WITH verification results
+        // Log successful delivery WITH sanitized verification results
+        // Only store boolean flags - no secrets, previews, or signatures (OWASP A09:2021)
         if (userId) {
+          const sanitizedVerificationResults = {
+            personal_by_email: { available: verificationResults.personal_by_email.available, verified: verificationResults.personal_by_email.verified },
+            oauth_app_secret: { available: verificationResults.oauth_app_secret.available, verified: verificationResults.oauth_app_secret.verified },
+            first_user_fallback: { available: verificationResults.first_user_fallback.available, verified: verificationResults.first_user_fallback.verified }
+          };
+
           await supabase.from('webhook_deliveries').insert({
             user_id: userId,
             webhook_id: webhookId,
             recording_id: meeting.recording_id,
             status: 'success',
-            request_headers: Object.fromEntries(req.headers.entries()),
+            request_headers: sanitizeHeadersForStorage(req.headers),
             request_body: meeting,
             signature_valid: true,
             payload: {
-              verification_results: verificationResults,
+              verification_results: sanitizedVerificationResults,
               successful_method: successfulMethod,
               synced_user_ids: syncedUserIds,
               synced_user_count: syncedUserIds.length
@@ -882,7 +835,7 @@ Deno.serve(async (req) => {
             recording_id: meeting.recording_id,
             status: 'failed',
             error_message: errorMsg,
-            request_headers: Object.fromEntries(req.headers.entries()),
+            request_headers: sanitizeHeadersForStorage(req.headers),
             request_body: meeting,
             signature_valid: true
           });
