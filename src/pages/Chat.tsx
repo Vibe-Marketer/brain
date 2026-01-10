@@ -743,6 +743,14 @@ export default function Chat() {
     async (e?: React.FormEvent) => {
       e?.preventDefault();
 
+      // CRITICAL: Check if chat is ready before attempting to send
+      if (!isChatReady) {
+        console.warn('[Chat] Attempted to send message without valid session/transport');
+        toast.error('Your session has expired. Please sign in again to continue.');
+        setTimeout(() => navigate('/login', { replace: true }), 2000);
+        return;
+      }
+
       let inputToSubmit = input;
 
       // If there are context attachments, add them as @mentions
@@ -765,12 +773,13 @@ export default function Chat() {
           currentSessionIdRef.current = newSession.id;
           setCurrentSessionId(newSession.id);
           // Pass newSession: true to prevent loadSession from overwriting our optimistic message
-          navigate(`/chat/${newSession.id}`, { 
+          navigate(`/chat/${newSession.id}`, {
             replace: true,
             state: { newSession: true }
           });
         } catch (err) {
           console.error("Failed to create session:", err);
+          toast.error('Failed to create chat session. Please try again.');
           return;
         }
       }
@@ -787,12 +796,21 @@ export default function Chat() {
       navigate,
       sendMessage,
       contextAttachments,
+      isChatReady,
     ]
   );
 
   // Handle suggestion clicks
   const handleSuggestionClick = React.useCallback(
     async (text: string) => {
+      // CRITICAL: Check if chat is ready before attempting to send
+      if (!isChatReady) {
+        console.warn('[Chat] Attempted to send suggestion without valid session/transport');
+        toast.error('Your session has expired. Please sign in again to continue.');
+        setTimeout(() => navigate('/login', { replace: true }), 2000);
+        return;
+      }
+
       // Create session if needed first
       let sessionIdToUse = currentSessionId;
       if (!sessionIdToUse && session?.user?.id) {
@@ -802,12 +820,13 @@ export default function Chat() {
           currentSessionIdRef.current = newSession.id;
           setCurrentSessionId(newSession.id);
           // Pass newSession: true to prevent loadSession from overwriting our optimistic message
-          navigate(`/chat/${newSession.id}`, { 
+          navigate(`/chat/${newSession.id}`, {
             replace: true,
             state: { newSession: true }
           });
         } catch (err) {
           console.error("Failed to create session:", err);
+          toast.error('Failed to create chat session. Please try again.');
           return;
         }
       }
@@ -821,6 +840,7 @@ export default function Chat() {
       createNewSession,
       navigate,
       sendMessage,
+      isChatReady,
     ]
   );
 
