@@ -8,6 +8,7 @@ import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
 import IntegrationStatusCard from "./IntegrationStatusCard";
 import FathomSetupWizard from "./FathomSetupWizard";
 import GoogleMeetSetupWizard from "./GoogleMeetSetupWizard";
+import SourcePriorityModal from "./SourcePriorityModal";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -23,6 +24,9 @@ export default function IntegrationsTab() {
   const [googleMeetConnected, setGoogleMeetConnected] = useState(false);
   const [showGoogleMeetWizard, setShowGoogleMeetWizard] = useState(false);
   const [googleEmail, setGoogleEmail] = useState("");
+
+  // Source Priority Modal state (shown when 2nd integration connected)
+  const [showSourcePriorityModal, setShowSourcePriorityModal] = useState(false);
 
   // Edit credentials state
   const [showEditCredentials, setShowEditCredentials] = useState(false);
@@ -44,17 +48,23 @@ export default function IntegrationsTab() {
 
       const { data: settings } = await supabase
         .from("user_settings")
-        .select("fathom_api_key, webhook_secret, oauth_access_token, google_oauth_access_token, google_oauth_email")
+        .select("fathom_api_key, webhook_secret, oauth_access_token, google_oauth_access_token, google_oauth_email, dedup_platform_order")
         .eq("user_id", user.id)
         .maybeSingle();
 
       // Consider connected if either API key or OAuth token exists
-      const isConnected = !!(settings?.fathom_api_key || settings?.oauth_access_token);
-      setFathomConnected(isConnected);
+      const isFathomConnected = !!(settings?.fathom_api_key || settings?.oauth_access_token);
+      const isGoogleConnected = !!settings?.google_oauth_access_token;
+
+      // Track previous connection state before updating
+      const wasFathomConnected = fathomConnected;
+      const wasGoogleConnected = googleMeetConnected;
+
+      setFathomConnected(isFathomConnected);
       setHasOAuth(!!settings?.oauth_access_token);
 
       // Check Google Meet connection status
-      setGoogleMeetConnected(!!settings?.google_oauth_access_token);
+      setGoogleMeetConnected(isGoogleConnected);
       if (settings?.google_oauth_email) {
         setGoogleEmail(settings.google_oauth_email);
       }
@@ -65,6 +75,16 @@ export default function IntegrationsTab() {
       }
       if (settings?.webhook_secret) {
         setWebhookSecret(settings.webhook_secret);
+      }
+
+      // Show SourcePriorityModal when both integrations are now connected for the first time
+      // This handles the case when user returns from OAuth callback
+      const bothNowConnected = isFathomConnected && isGoogleConnected;
+      const hasNoPreferences = !settings?.dedup_platform_order || settings.dedup_platform_order.length === 0;
+      const isSecondIntegrationJustConnected = bothNowConnected && (!wasFathomConnected || !wasGoogleConnected);
+
+      if (isSecondIntegrationJustConnected && hasNoPreferences) {
+        setShowSourcePriorityModal(true);
       }
     } catch (error) {
       logger.error("Error loading integration status", error);
@@ -80,6 +100,10 @@ export default function IntegrationsTab() {
   const handleWizardComplete = async () => {
     setShowWizard(false);
     await loadIntegrationStatus(); // Refresh status after wizard completion
+    // Show SourcePriorityModal if Google Meet is already connected (this is the 2nd integration)
+    if (googleMeetConnected) {
+      setShowSourcePriorityModal(true);
+    }
   };
 
   const handleGoogleMeetConnect = () => {
@@ -89,6 +113,10 @@ export default function IntegrationsTab() {
   const handleGoogleMeetWizardComplete = async () => {
     setShowGoogleMeetWizard(false);
     await loadIntegrationStatus(); // Refresh status after wizard completion
+    // Show SourcePriorityModal if Fathom is already connected (this is the 2nd integration)
+    if (fathomConnected) {
+      setShowSourcePriorityModal(true);
+    }
   };
 
   const handleSaveCredentials = async () => {
@@ -374,6 +402,18 @@ export default function IntegrationsTab() {
           open={showGoogleMeetWizard}
           onComplete={handleGoogleMeetWizardComplete}
           onDismiss={() => setShowGoogleMeetWizard(false)}
+        />
+      )}
+
+      {showSourcePriorityModal && (
+        <SourcePriorityModal
+          open={showSourcePriorityModal}
+          onComplete={() => setShowSourcePriorityModal(false)}
+          onDismiss={() => setShowSourcePriorityModal(false)}
+          connectedPlatforms={[
+            ...(fathomConnected ? ["fathom"] : []),
+            ...(googleMeetConnected ? ["google_meet"] : []),
+          ]}
         />
       )}
     </div>
