@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "029-persist-auto-processing-preferences",
-  "state": "building",
+  "spec": "031-complete-table-ui-repair",
+  "state": "complete",
   "subtasks": {
-    "completed": 5,
+    "completed": 7,
     "total": 7,
-    "in_progress": 1,
+    "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "Cross-Tab Synchronization",
+    "current": "Visual Verification and Testing",
     "id": null,
-    "total": 1
+    "total": 2
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 6,
-    "started_at": "2026-01-10T06:06:43.415893"
+    "number": 7,
+    "started_at": "2026-01-10T07:25:12.544341"
   },
-  "last_update": "2026-01-10T06:15:42.311068"
+  "last_update": "2026-01-10T07:35:00.783419"
 }
