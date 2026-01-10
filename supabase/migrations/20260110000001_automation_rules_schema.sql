@@ -556,5 +556,26 @@ COMMENT ON COLUMN automation_rule_actions.retry_count IS
   'Number of times to retry this action on failure.';
 
 -- ============================================================================
+-- SCHEMA MODIFICATION: fathom_calls
+-- ============================================================================
+-- Add sentiment_cache column for caching AI sentiment analysis results
+-- Avoids redundant API calls when evaluating sentiment-based automation rules
+
+ALTER TABLE public.fathom_calls
+  ADD COLUMN IF NOT EXISTS sentiment_cache JSONB DEFAULT NULL;
+
+-- Index for efficient sentiment-based queries
+CREATE INDEX IF NOT EXISTS idx_fathom_calls_sentiment_cache_sentiment
+  ON public.fathom_calls((sentiment_cache->>'sentiment'));
+
+-- Index for finding calls that need sentiment analysis (NULL cache)
+CREATE INDEX IF NOT EXISTS idx_fathom_calls_sentiment_cache_null
+  ON public.fathom_calls(recording_id)
+  WHERE sentiment_cache IS NULL;
+
+COMMENT ON COLUMN public.fathom_calls.sentiment_cache IS
+  'Cached AI sentiment analysis result. Structure: {"sentiment": "positive"|"neutral"|"negative", "confidence": 0.0-1.0, "analyzed_at": "ISO timestamp", "reasoning": "optional explanation"}';
+
+-- ============================================================================
 -- END OF MIGRATION
 -- ============================================================================
