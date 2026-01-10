@@ -37,9 +37,13 @@ function createOpenRouterProvider(apiKey: string) {
   });
 }
 
+// Sentiment values - typed enum for structured output
+const SENTIMENT_VALUES = ['positive', 'neutral', 'negative'] as const;
+
 // Sentiment analysis schema - typed output from AI
+// Uses Zod for structured output validation with generateObject()
 const SentimentSchema = z.object({
-  sentiment: z.enum(['positive', 'neutral', 'negative']).describe(
+  sentiment: z.enum(SENTIMENT_VALUES).describe(
     'The overall sentiment of the transcript. positive = enthusiastic, happy, satisfied; neutral = matter-of-fact, balanced; negative = frustrated, unhappy, dissatisfied'
   ),
   confidence: z.number().min(0).max(1).describe(
