@@ -124,8 +124,9 @@ async function verifyFathomSimpleSignature(
       if (signatures.includes(computed3)) {
         return true;
       }
-    } catch (decodeError) {
-      console.log('Failed to base64 decode secret part:', decodeError);
+    } catch {
+      // Failed to decode secret - log without error details to avoid potential secret exposure
+      console.log('Failed to base64 decode secret part');
     }
   }
 
