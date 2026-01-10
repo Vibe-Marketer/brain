@@ -315,10 +315,129 @@ describe('URL Persistence', () => {
 
     const params = filtersToURLParams(original);
     const restored = urlParamsToFilters(params);
-    
+
     expect(restored.dateFrom?.toDateString()).toBe(original.dateFrom?.toDateString());
     expect(restored.participants).toEqual(original.participants);
     expect(restored.durationMin).toBe(original.durationMin);
+  });
+
+  it('should serialize tags to URL params', () => {
+    const filters: Partial<FilterState> = {
+      tags: ['important', 'follow-up'],
+    };
+
+    const params = filtersToURLParams(filters);
+
+    expect(params.get('tags')).toBe('important,follow-up');
+  });
+
+  it('should serialize folders to URL params', () => {
+    const filters: Partial<FilterState> = {
+      folders: ['clients', '2024', 'active'],
+    };
+
+    const params = filtersToURLParams(filters);
+
+    expect(params.get('folders')).toBe('clients,2024,active');
+  });
+
+  it('should deserialize tags from URL params', () => {
+    const params = new URLSearchParams();
+    params.set('tags', 'important,follow-up,urgent');
+
+    const filters = urlParamsToFilters(params);
+
+    expect(filters.tags).toEqual(['important', 'follow-up', 'urgent']);
+  });
+
+  it('should deserialize folders from URL params', () => {
+    const params = new URLSearchParams();
+    params.set('folders', 'clients,projects,2024');
+
+    const filters = urlParamsToFilters(params);
+
+    expect(filters.folders).toEqual(['clients', 'projects', '2024']);
+  });
+
+  it('should handle round-trip conversion for tags', () => {
+    const original: Partial<FilterState> = {
+      tags: ['important', 'follow-up', 'client'],
+    };
+
+    const params = filtersToURLParams(original);
+    const restored = urlParamsToFilters(params);
+
+    expect(restored.tags).toEqual(original.tags);
+  });
+
+  it('should handle round-trip conversion for folders', () => {
+    const original: Partial<FilterState> = {
+      folders: ['clients', 'projects', 'active'],
+    };
+
+    const params = filtersToURLParams(original);
+    const restored = urlParamsToFilters(params);
+
+    expect(restored.folders).toEqual(original.folders);
+  });
+
+  it('should handle round-trip conversion for tags and folders mixed with other filters', () => {
+    const original: Partial<FilterState> = {
+      dateFrom: new Date('2024-01-15'),
+      participants: ['john', 'jane'],
+      categories: ['sales'],
+      durationMin: 30,
+      status: ['synced'],
+      tags: ['important', 'urgent'],
+      folders: ['clients', '2024'],
+    };
+
+    const params = filtersToURLParams(original);
+    const restored = urlParamsToFilters(params);
+
+    expect(restored.dateFrom?.toDateString()).toBe(original.dateFrom?.toDateString());
+    expect(restored.participants).toEqual(original.participants);
+    expect(restored.categories).toEqual(original.categories);
+    expect(restored.durationMin).toBe(original.durationMin);
+    expect(restored.status).toEqual(original.status);
+    expect(restored.tags).toEqual(original.tags);
+    expect(restored.folders).toEqual(original.folders);
+  });
+
+  it('should not include tags or folders in URL when empty', () => {
+    const filters: Partial<FilterState> = {
+      participants: ['john'],
+      tags: [],
+      folders: [],
+    };
+
+    const params = filtersToURLParams(filters);
+
+    expect(params.get('participants')).toBe('john');
+    expect(params.has('tags')).toBe(false);
+    expect(params.has('folders')).toBe(false);
+  });
+
+  it('should handle single tag round-trip', () => {
+    const original: Partial<FilterState> = {
+      tags: ['important'],
+    };
+
+    const params = filtersToURLParams(original);
+    const restored = urlParamsToFilters(params);
+
+    expect(restored.tags).toEqual(['important']);
+  });
+
+  it('should handle single folder round-trip', () => {
+    const original: Partial<FilterState> = {
+      folders: ['clients'],
+    };
+
+    const params = filtersToURLParams(original);
+    const restored = urlParamsToFilters(params);
+
+    expect(restored.folders).toEqual(['clients']);
   });
 });
 
