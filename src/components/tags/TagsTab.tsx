@@ -194,10 +194,10 @@ export function TagsTab() {
         <Skeleton className="h-4 w-3/4" />
 
         {/* Table skeleton */}
-        <div className="border border-cb-border dark:border-cb-border-dark rounded-sm overflow-hidden">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="bg-cb-white dark:bg-card hover:bg-cb-white dark:hover:bg-card">
+              <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
                 <TableHead className="font-medium text-xs uppercase tracking-wider w-12">
                   Color
                 </TableHead>
@@ -249,10 +249,10 @@ export function TagsTab() {
         and analysis run on each call.
       </p>
 
-      <div className="border border-cb-border dark:border-cb-border-dark rounded-sm overflow-hidden">
+      <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-cb-white dark:bg-card hover:bg-cb-white dark:hover:bg-card">
+            <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
               <TableHead className="font-medium text-xs uppercase tracking-wider w-12">
                 Color
               </TableHead>
