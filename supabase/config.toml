@@ -70,3 +70,8 @@ verify_jwt = true
 
 [functions.automation-webhook]
 verify_jwt = false
+
+[functions.automation-scheduler]
+# Worker function called by pg_cron for scheduled rule execution
+# Needs to work without user JWT (uses service role)
+verify_jwt = false
