@@ -11,6 +11,8 @@ Time-stamped reports, root cause analyses, PDCA cycles, and code reviews from 20
 | `chat-persistence-fixes/` | PDCA Cycle | 2025-12-06 | Chat persistence issues | Completed |
 | `chat-persistence-rate-limit-review.md` | Code Review | 2025-12-06 | Rate limiting in chat persistence | Changes implemented |
 | `sentry-setup.md` | Setup Guide | 2025-12-05 | Sentry integration | Configured |
+| `click-count-analysis.md` | Verification Report | 2026-01-02 | Click count analysis for multi-pane navigation | Completed |
+| `qa-acceptance-report.md` | QA Report | 2026-01-02 | QA acceptance for Settings/Sorting multi-pane refactor | Passed |
 
 ---
 

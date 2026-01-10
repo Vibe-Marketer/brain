@@ -15,6 +15,9 @@ This directory contains planning documents for features that have been implement
 | `sorting-tagging-feature-audit.md` | 2026-01-10 | Audit completed, features implemented | Sorting/tagging system |
 | `sorting-tagging-pane-allocation.md` | 2026-01-10 | Pane allocation decided and implemented | 3-pane layout |
 | `sorting-tagging-pane-verification.md` | 2026-01-10 | Verification completed | Implementation verified |
+| `settings-feature-audit.md` | 2026-01-10 | Feature audit completed, multi-pane implemented | Settings refactored to 3-pane |
+| `settings-pane-allocation.md` | 2026-01-10 | Pane allocation decided and implemented | 3-pane layout for settings |
+| `sharing-teams-coach-outline.md` | 2026-01-10 | Sharing/teams/coach planning completed | Features implemented |
 
 ---
 
