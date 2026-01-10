@@ -653,9 +653,16 @@ Deno.serve(async (req) => {
       console.error('   - Signature Header:', req.headers.get('webhook-signature'));
       const errorMessage = `Invalid webhook signature - all verification methods failed`;
 
-      // Log failed delivery WITH verification results
+      // Log failed delivery WITH sanitized verification results
+      // Only store boolean flags - no secrets, previews, or signatures (OWASP A09:2021)
       const logUserId = userId || firstUserId;
       if (logUserId) {
+        const sanitizedVerificationResults = {
+          personal_by_email: { available: verificationResults.personal_by_email.available, verified: verificationResults.personal_by_email.verified },
+          oauth_app_secret: { available: verificationResults.oauth_app_secret.available, verified: verificationResults.oauth_app_secret.verified },
+          first_user_fallback: { available: verificationResults.first_user_fallback.available, verified: verificationResults.first_user_fallback.verified }
+        };
+
         await supabase.from('webhook_deliveries').insert({
           user_id: logUserId,
           webhook_id: req.headers.get('webhook-id') || req.headers.get('svix-id') || 'unknown',
@@ -666,7 +673,7 @@ Deno.serve(async (req) => {
           request_body: meeting,
           signature_valid: false,
           payload: {
-            verification_results: verificationResults
+            verification_results: sanitizedVerificationResults
           }
         });
       }
@@ -787,8 +794,15 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Log successful delivery WITH verification results
+        // Log successful delivery WITH sanitized verification results
+        // Only store boolean flags - no secrets, previews, or signatures (OWASP A09:2021)
         if (userId) {
+          const sanitizedVerificationResults = {
+            personal_by_email: { available: verificationResults.personal_by_email.available, verified: verificationResults.personal_by_email.verified },
+            oauth_app_secret: { available: verificationResults.oauth_app_secret.available, verified: verificationResults.oauth_app_secret.verified },
+            first_user_fallback: { available: verificationResults.first_user_fallback.available, verified: verificationResults.first_user_fallback.verified }
+          };
+
           await supabase.from('webhook_deliveries').insert({
             user_id: userId,
             webhook_id: webhookId,
@@ -798,7 +812,7 @@ Deno.serve(async (req) => {
             request_body: meeting,
             signature_valid: true,
             payload: {
-              verification_results: verificationResults,
+              verification_results: sanitizedVerificationResults,
               successful_method: successfulMethod,
               synced_user_ids: syncedUserIds,
               synced_user_count: syncedUserIds.length
