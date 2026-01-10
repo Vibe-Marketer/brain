@@ -1,25 +1,25 @@
 {
   "active": true,
   "spec": "012-repair-hybrid-search-function-missing",
-  "state": "building",
+  "state": "complete",
   "subtasks": {
-    "completed": 3,
+    "completed": 12,
     "total": 12,
-    "in_progress": 1,
+    "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "Root Cause Identification",
+    "current": "End-to-End Verification",
     "id": null,
-    "total": 2
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 4,
-    "started_at": "2026-01-09T23:24:58.273255"
+    "number": 6,
+    "started_at": "2026-01-10T00:05:45.794074"
   },
-  "last_update": "2026-01-09T23:32:18.024275"
+  "last_update": "2026-01-10T00:21:26.635514"
 }
