@@ -19,6 +19,10 @@ import LoopLayoutDemo from '@/pages/LoopLayoutDemo';
 import SharedWithMe from '@/pages/SharedWithMe';
 import CoachDashboard from '@/pages/CoachDashboard';
 
+// Content Library pages
+import { ContentLibraryPage } from '@/components/content-library/ContentLibraryPage';
+import { TemplatesPage } from '@/components/content-library/TemplatesPage';
+
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -60,6 +64,10 @@ function App() {
 
                     {/* Coach dashboard */}
                     <Route path="/coach" element={<ProtectedRoute><Layout><CoachDashboard /></Layout></ProtectedRoute>} />
+
+                    {/* Content Library routes */}
+                    <Route path="/library" element={<ProtectedRoute><Layout><ContentLibraryPage /></Layout></ProtectedRoute>} />
+                    <Route path="/templates" element={<ProtectedRoute><Layout><TemplatesPage /></Layout></ProtectedRoute>} />
 
                     {/* Call detail route for search result navigation */}
                     <Route path="/call/:callId" element={<ProtectedRoute><Layout><CallDetailPage /></Layout></ProtectedRoute>} />
