@@ -468,8 +468,7 @@ Deno.serve(async (req) => {
   console.log('Timestamp:', timestamp);
   console.log('Method:', req.method);
   console.log('URL:', req.url);
-  console.log('Headers:', Object.fromEntries(req.headers.entries()));
-  
+
   // Handle health check / test requests
   if (req.method === 'GET') {
     console.log('GET request received - returning health check');
