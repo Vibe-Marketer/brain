@@ -3,6 +3,8 @@ import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Markdown } from './markdown';
+import { SaveContentButton } from '@/components/content-library/SaveContentButton';
+import type { ContentMetadata } from '@/types/content-library';
 
 // Message container
 interface MessageProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -129,26 +131,65 @@ interface AssistantMessageProps {
   markdown?: boolean;
   className?: string;
   isLoading?: boolean;
+  /**
+   * Enable save to library button for this message.
+   * When true, a save button appears on hover.
+   */
+  showSaveButton?: boolean;
+  /**
+   * Optional metadata to attach when saving to library.
+   */
+  saveMetadata?: ContentMetadata;
+  /**
+   * Callback after content is saved.
+   */
+  onSaved?: () => void;
 }
 
-export function AssistantMessage({ children, markdown = true, className, isLoading }: AssistantMessageProps) {
+export function AssistantMessage({
+  children,
+  markdown = true,
+  className,
+  isLoading,
+  showSaveButton = false,
+  saveMetadata,
+  onSaved,
+}: AssistantMessageProps) {
+  // Get the text content for saving
+  const textContent = typeof children === 'string' ? children : '';
+  const canSave = showSaveButton && !isLoading && textContent.length > 0;
+
   return (
-    <div className={cn('flex justify-start py-3', className)}>
+    <div className={cn('flex justify-start py-3 group/message', className)}>
       <div className="max-w-[70%] flex flex-col items-start gap-1">
-        <div className="rounded-[18px] rounded-bl-[4px] bg-cb-hover dark:bg-cb-panel-dark px-4 py-2 text-cb-ink">
-          {isLoading ? (
-            <div className="flex items-center gap-1 py-1">
-              <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted [animation-delay:-0.3s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted [animation-delay:-0.15s]" />
-              <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted" />
-            </div>
-          ) : markdown && typeof children === 'string' ? (
-            <Markdown className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-[20px]">
-              {children}
-            </Markdown>
-          ) : (
-            <div className="text-[15px] leading-[20px]">
-              {children}
+        <div className="relative">
+          <div className="rounded-[18px] rounded-bl-[4px] bg-cb-hover dark:bg-cb-panel-dark px-4 py-2 text-cb-ink">
+            {isLoading ? (
+              <div className="flex items-center gap-1 py-1">
+                <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted [animation-delay:-0.3s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted [animation-delay:-0.15s]" />
+                <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted" />
+              </div>
+            ) : markdown && typeof children === 'string' ? (
+              <Markdown className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-[20px]">
+                {children}
+              </Markdown>
+            ) : (
+              <div className="text-[15px] leading-[20px]">
+                {children}
+              </div>
+            )}
+          </div>
+          {/* Save button - appears on hover */}
+          {canSave && (
+            <div className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover/message:opacity-100 transition-opacity">
+              <SaveContentButton
+                content={textContent}
+                metadata={saveMetadata}
+                variant="ghost"
+                size="icon-sm"
+                onSaved={onSaved}
+              />
             </div>
           )}
         </div>

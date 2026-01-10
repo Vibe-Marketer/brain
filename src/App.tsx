@@ -6,7 +6,6 @@ import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from "@/components/Layout";
 import Login from '@/pages/Login';
-import OAuthCallback from '@/pages/OAuthCallback';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { CallDetailPage } from '@/pages/CallDetailPage';
 import { SharedCallView } from '@/pages/SharedCallView';
@@ -19,9 +18,10 @@ import Settings from '@/pages/Settings';
 import LoopLayoutDemo from '@/pages/LoopLayoutDemo';
 import SharedWithMe from '@/pages/SharedWithMe';
 import CoachDashboard from '@/pages/CoachDashboard';
-import AutomationRules from '@/pages/AutomationRules';
-import RuleBuilder from '@/components/automation/RuleBuilder';
-import ExecutionHistory from '@/components/automation/ExecutionHistory';
+
+// Content Library pages
+import { ContentLibraryPage } from '@/components/content-library/ContentLibraryPage';
+import { TemplatesPage } from '@/components/content-library/TemplatesPage';
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -46,10 +46,7 @@ function App() {
                     {/* Auth routes */}
                     <Route path="/login" element={<Login />} />
                     <Route path="/auth" element={<Login />} />
-
-                    {/* OAuth callback routes for integrations */}
-                    <Route path="/oauth/callback" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
-                    <Route path="/oauth/callback/google" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
+                    <Route path="/oauth/callback" element={<Login />} />
 
                     {/* Main app routes */}
                     <Route path="/" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
@@ -68,11 +65,9 @@ function App() {
                     {/* Coach dashboard */}
                     <Route path="/coach" element={<ProtectedRoute><Layout><CoachDashboard /></Layout></ProtectedRoute>} />
 
-                    {/* Automation rules */}
-                    <Route path="/automation-rules" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
-                    <Route path="/automation-rules/new" element={<ProtectedRoute><Layout><RuleBuilder /></Layout></ProtectedRoute>} />
-                    <Route path="/automation-rules/:ruleId" element={<ProtectedRoute><Layout><RuleBuilder /></Layout></ProtectedRoute>} />
-                    <Route path="/automation-rules/:ruleId/history" element={<ProtectedRoute><Layout><ExecutionHistory /></Layout></ProtectedRoute>} />
+                    {/* Content Library routes */}
+                    <Route path="/library" element={<ProtectedRoute><Layout><ContentLibraryPage /></Layout></ProtectedRoute>} />
+                    <Route path="/templates" element={<ProtectedRoute><Layout><TemplatesPage /></Layout></ProtectedRoute>} />
 
                     {/* Call detail route for search result navigation */}
                     <Route path="/call/:callId" element={<ProtectedRoute><Layout><CallDetailPage /></Layout></ProtectedRoute>} />
