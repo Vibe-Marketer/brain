@@ -76,6 +76,11 @@ export function parseSearchSyntax(query: string): SearchSyntax {
           if (!result.filters.status) result.filters.status = [];
           result.filters.status.push(value);
           break;
+        case 'tag':
+        case 't':
+          if (!result.filters.tag) result.filters.tag = [];
+          result.filters.tag.push(value);
+          break;
         default:
           plainTextParts.push(part);
       }
