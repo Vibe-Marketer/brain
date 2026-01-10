@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "020-complete-chat-interface",
+  "spec": "021-advanced-automation-rules",
   "state": "complete",
   "subtasks": {
-    "completed": 22,
-    "total": 22,
+    "completed": 37,
+    "total": 37,
     "in_progress": 0,
     "failed": 0
   },
   "phase": {
-    "current": "UI/UX Polish & Documentation",
+    "current": "End-to-End Integration & Testing",
     "id": null,
-    "total": 4
+    "total": 6
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 276,
-    "started_at": "2026-01-10T03:25:46.991101"
+    "number": 291,
+    "started_at": "2026-01-10T02:33:31.777370"
   },
-  "last_update": "2026-01-10T05:01:50.091752"
+  "last_update": "2026-01-10T04:54:36.031667"
 }

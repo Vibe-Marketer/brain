@@ -19,6 +19,9 @@ import Settings from '@/pages/Settings';
 import LoopLayoutDemo from '@/pages/LoopLayoutDemo';
 import SharedWithMe from '@/pages/SharedWithMe';
 import CoachDashboard from '@/pages/CoachDashboard';
+import AutomationRules from '@/pages/AutomationRules';
+import RuleBuilder from '@/components/automation/RuleBuilder';
+import ExecutionHistory from '@/components/automation/ExecutionHistory';
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -64,6 +67,12 @@ function App() {
 
                     {/* Coach dashboard */}
                     <Route path="/coach" element={<ProtectedRoute><Layout><CoachDashboard /></Layout></ProtectedRoute>} />
+
+                    {/* Automation rules */}
+                    <Route path="/automation-rules" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
+                    <Route path="/automation-rules/new" element={<ProtectedRoute><Layout><RuleBuilder /></Layout></ProtectedRoute>} />
+                    <Route path="/automation-rules/:ruleId" element={<ProtectedRoute><Layout><RuleBuilder /></Layout></ProtectedRoute>} />
+                    <Route path="/automation-rules/:ruleId/history" element={<ProtectedRoute><Layout><ExecutionHistory /></Layout></ProtectedRoute>} />
 
                     {/* Call detail route for search result navigation */}
                     <Route path="/call/:callId" element={<ProtectedRoute><Layout><CallDetailPage /></Layout></ProtectedRoute>} />
