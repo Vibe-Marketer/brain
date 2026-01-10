@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { logUsage } from '../_shared/usage-tracker.ts';
 
 // ============================================================================
 // DIRECT OPENAI API IMPLEMENTATION
@@ -84,6 +85,16 @@ interface EnrichRequest {
   auto_discover?: boolean;
 }
 
+interface MetadataExtractionResult {
+  metadata: ChunkMetadata;
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  latencyMs: number;
+}
+
 /**
  * Extract metadata from a transcript chunk using OpenAI GPT-4o-mini with structured outputs
  */
@@ -91,7 +102,7 @@ async function extractMetadata(
   openaiApiKey: string,
   chunkText: string,
   speakerName: string | null
-): Promise<ChunkMetadata> {
+): Promise<MetadataExtractionResult> {
   const prompt = `Analyze this sales/meeting transcript excerpt and extract structured metadata.
 
 ${speakerName ? `Speaker: ${speakerName}` : 'Speaker: Unknown'}
@@ -126,6 +137,8 @@ Extract the following information:
 
 Be precise and only extract information that is clearly present in the text.`;
 
+  const startTime = Date.now();
+
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -156,6 +169,8 @@ Be precise and only extract information that is clearly present in the text.`;
     }),
   });
 
+  const latencyMs = Date.now() - startTime;
+
   if (!response.ok) {
     const errorText = await response.text();
     throw new Error(`OpenAI API error: ${response.status} - ${errorText}`);
@@ -177,7 +192,15 @@ Be precise and only extract information that is clearly present in the text.`;
     metadata.topics = metadata.topics.slice(0, 5);
   }
 
-  return metadata;
+  return {
+    metadata,
+    usage: {
+      promptTokens: data.usage?.prompt_tokens || 0,
+      completionTokens: data.usage?.completion_tokens || 0,
+      totalTokens: data.usage?.total_tokens || 0,
+    },
+    latencyMs,
+  };
 }
 
 Deno.serve(async (req) => {
@@ -229,7 +252,7 @@ Deno.serve(async (req) => {
       userId = user.id;
     }
 
-    let chunksToProcess: Array<{ id: string; chunk_text: string; speaker_name: string | null }> = [];
+    let chunksToProcess: Array<{ id: string; chunk_text: string; speaker_name: string | null; user_id: string; recording_id: number }> = [];
 
     // Determine which chunks to process
     if (isServiceRoleCall) {
@@ -237,7 +260,7 @@ Deno.serve(async (req) => {
       // Fetch chunks directly by ID - they were just created by a trusted internal caller
       const { data: chunks, error: fetchError } = await supabase
         .from('transcript_chunks')
-        .select('id, chunk_text, speaker_name')
+        .select('id, chunk_text, speaker_name, user_id, recording_id')
         .in('id', chunk_ids!);
 
       if (fetchError) {
@@ -250,7 +273,7 @@ Deno.serve(async (req) => {
       // Find all chunks without metadata (topics is empty)
       const { data: chunks, error: fetchError } = await supabase
         .from('transcript_chunks')
-        .select('id, chunk_text, speaker_name')
+        .select('id, chunk_text, speaker_name, user_id, recording_id')
         .eq('user_id', userId)
         .is('topics', null);
 
@@ -264,7 +287,7 @@ Deno.serve(async (req) => {
       // Get all chunks for specified recordings
       const { data: chunks, error: fetchError } = await supabase
         .from('transcript_chunks')
-        .select('id, chunk_text, speaker_name')
+        .select('id, chunk_text, speaker_name, user_id, recording_id')
         .eq('user_id', userId)
         .in('recording_id', recording_ids);
 
@@ -299,15 +322,33 @@ Deno.serve(async (req) => {
     const results = [];
     let successCount = 0;
     let failCount = 0;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
 
     for (const chunk of chunksToProcess) {
       try {
         // Extract metadata using OpenAI GPT-4o-mini
-        const metadata = await extractMetadata(
+        const { metadata, usage, latencyMs } = await extractMetadata(
           openaiApiKey,
           chunk.chunk_text,
           chunk.speaker_name
         );
+
+        // Track token usage
+        totalInputTokens += usage.promptTokens;
+        totalOutputTokens += usage.completionTokens;
+
+        // Log enrichment usage
+        await logUsage(supabase, {
+          userId: chunk.user_id,
+          operationType: 'enrichment',
+          model: 'gpt-4o-mini',
+          inputTokens: usage.promptTokens,
+          outputTokens: usage.completionTokens,
+          recordingId: chunk.recording_id,
+          chunkId: chunk.id,
+          latencyMs,
+        });
 
         // Update database with extracted metadata
         const { error: updateError } = await supabase
@@ -346,6 +387,8 @@ Deno.serve(async (req) => {
         });
       }
     }
+
+    console.log(`Enrichment usage: ${totalInputTokens} input tokens, ${totalOutputTokens} output tokens for ${chunksToProcess.length} chunks`);
 
     return new Response(
       JSON.stringify({
