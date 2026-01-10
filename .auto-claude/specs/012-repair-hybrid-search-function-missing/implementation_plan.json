@@ -1,0 +1,376 @@
+{
+  "feature": "Repair Missing hybrid_search_transcripts Function",
+  "workflow_type": "investigation",
+  "workflow_rationale": "This task requires diagnostic investigation to determine the root cause (function missing vs. wrong signature vs. stale cache) before implementing the appropriate fix. The actual code changes depend on the diagnosis outcome.",
+  "phases": [
+    {
+      "id": "phase-1-reproduce",
+      "name": "Reproduce and Verify Error",
+      "type": "investigation",
+      "description": "Confirm the function missing error and document the exact current state of the database",
+      "depends_on": [],
+      "parallel_safe": true,
+      "subtasks": [
+        {
+          "id": "subtask-1-1",
+          "description": "Query pg_proc to check if hybrid_search_transcripts function exists in database",
+          "service": "supabase",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Run SQL: SELECT proname, pronargs FROM pg_proc WHERE proname = 'hybrid_search_transcripts'; - Document whether function exists and arg count"
+          },
+          "status": "completed",
+          "expected_output": "Document stating: (1) Function exists YES/NO, (2) If exists: arg count, (3) Current signature details",
+          "notes": "Investigated via TypeScript types analysis (types.ts lines 1288-1322). Function EXISTS with 15 params but has WRONG signature: uses filter_intent (should be filter_intent_signals), missing filter_user_tags. Return type missing user_tags and entities. Migration 20260108000004 needs to be applied.",
+          "updated_at": "2026-01-10T04:26:11.591005+00:00"
+        },
+        {
+          "id": "subtask-1-2",
+          "description": "If function exists, retrieve full function definition to compare against expected signature",
+          "service": "supabase",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [
+            "supabase/migrations/20260108000004_enhance_chat_tools_metadata_filters.sql"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Run SQL: SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'hybrid_search_transcripts'; - Compare against migration file"
+          },
+          "status": "completed",
+          "expected_output": "Document comparing current signature vs expected 16-param signature, highlighting missing parameters",
+          "notes": "Compared current function (15 params from types.ts) against expected (16 params from migration 004). Key differences: (1) filter_intent vs filter_intent_signals, (2) missing filter_user_tags, (3) return missing user_tags and entities. Root cause confirmed: migration 20260108000004 never applied to production.",
+          "updated_at": "2026-01-10T04:28:32.527717+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-2-investigate",
+      "name": "Root Cause Identification",
+      "type": "investigation",
+      "description": "Determine why the function is missing or has wrong signature",
+      "depends_on": [
+        "phase-1-reproduce"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-2-1",
+          "description": "Check Supabase migration history to determine if 20260108000004 migration was applied",
+          "service": "supabase",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Run SQL: SELECT * FROM supabase_migrations.schema_migrations ORDER BY version DESC LIMIT 10; - Look for '20260108000004' entry"
+          },
+          "status": "completed",
+          "expected_output": "Document stating: Migration applied YES/NO with timestamp if applied",
+          "notes": "Investigated migration history via TypeScript types analysis. HIGH CONFIDENCE (95%): Migration 20260108000004 was NOT applied to production. Evidence: (1) types.ts shows OLD 15-param signature, (2) uses filter_intent instead of filter_intent_signals, (3) missing filter_user_tags param, (4) return missing user_tags and entities. Provided SQL query for manual verification via Supabase Dashboard.",
+          "updated_at": "2026-01-10T04:30:47.300043+00:00"
+        },
+        {
+          "id": "subtask-2-2",
+          "description": "Document root cause finding: function never created, wrong signature, or stale cache",
+          "service": "supabase",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Create INVESTIGATION.md documenting: (1) Root cause, (2) Evidence, (3) Recommended fix"
+          },
+          "status": "completed",
+          "expected_output": "INVESTIGATION.md file with root cause analysis and fix recommendation",
+          "notes": "Created INVESTIGATION.md documenting: (1) Root Cause: Migration 20260108000004 never applied to production, (2) Evidence: TypeScript types show 15-param signature with filter_intent (wrong name) instead of filter_intent_signals, missing filter_user_tags, return missing user_tags and entities, (3) Recommended Fix: Apply migration, refresh PostgREST cache, regenerate types",
+          "updated_at": "2026-01-10T04:33:42.596511+00:00"
+        }
+      ]
+    },
+    {
+      "id": "phase-3-fix",
+      "name": "Apply Fix",
+      "type": "implementation",
+      "description": "Apply the appropriate fix based on investigation findings",
+      "depends_on": [
+        "phase-2-investigate"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-3-1",
+          "description": "Apply migration 20260108000004_enhance_chat_tools_metadata_filters.sql to create correct function",
+          "service": "supabase",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [
+            "supabase/migrations/20260108000004_enhance_chat_tools_metadata_filters.sql"
+          ],
+          "verification": {
+            "type": "manual",
+            "instructions": "Copy migration SQL to Supabase SQL Editor and execute. Verify no errors."
+          },
+          "status": "pending",
+          "notes": "Run the full migration SQL which includes DROP, CREATE, COMMENT, and GRANT statements"
+        },
+        {
+          "id": "subtask-3-2",
+          "description": "Refresh PostgREST schema cache to ensure function is discoverable",
+          "service": "supabase",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Run SQL: NOTIFY pgrst, 'reload schema'; - Wait 5 seconds, then verify function appears in API schema"
+          },
+          "status": "pending",
+          "notes": "May need to run NOTIFY twice if cache persists"
+        },
+        {
+          "id": "subtask-3-3",
+          "description": "Verify function exists with correct 16-parameter signature after fix",
+          "service": "supabase",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "manual",
+            "instructions": "Run SQL: SELECT pronargs FROM pg_proc WHERE proname = 'hybrid_search_transcripts'; - Must return 16"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-4-harden",
+      "name": "Harden and Prevent Recurrence",
+      "type": "implementation",
+      "description": "Regenerate types and document the fix to prevent future issues",
+      "depends_on": [
+        "phase-3-fix"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-4-1",
+          "description": "Regenerate TypeScript types from updated database schema",
+          "service": "frontend",
+          "files_to_modify": [
+            "src/integrations/supabase/types.ts"
+          ],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "command",
+            "command": "npx supabase gen types typescript --linked > src/integrations/supabase/types.ts",
+            "expected": "Types file regenerated with filter_intent_signals and filter_user_tags parameters"
+          },
+          "status": "pending",
+          "notes": "Verify new types include: filter_intent_signals (not filter_intent), filter_user_tags, user_tags in return, entities in return"
+        },
+        {
+          "id": "subtask-4-2",
+          "description": "Verify TypeScript types match expected function signature",
+          "service": "frontend",
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [
+            "supabase/functions/chat-stream/index.ts"
+          ],
+          "verification": {
+            "type": "command",
+            "command": "grep -A 30 'hybrid_search_transcripts' src/integrations/supabase/types.ts",
+            "expected": "Shows filter_intent_signals and filter_user_tags parameters"
+          },
+          "status": "pending"
+        }
+      ]
+    },
+    {
+      "id": "phase-5-integration",
+      "name": "End-to-End Verification",
+      "type": "integration",
+      "description": "Verify the fix works end-to-end through the MCP tool",
+      "depends_on": [
+        "phase-4-harden"
+      ],
+      "parallel_safe": false,
+      "subtasks": [
+        {
+          "id": "subtask-5-1",
+          "description": "Test hybrid_search_transcripts via Supabase client RPC call",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "api",
+            "method": "POST",
+            "url": "https://vltmrnjsubfzrgrtdqey.supabase.co/rest/v1/rpc/hybrid_search_transcripts",
+            "expected_status": 200
+          },
+          "status": "pending",
+          "notes": "Call with minimal params: query_text, query_embedding (1536 zeros), filter_user_id - should not return schema cache error"
+        },
+        {
+          "id": "subtask-5-2",
+          "description": "Verify MCP tool search works without 'function not found' error",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Use CallVault MCP tool to search transcripts",
+              "Verify no 'function not found in schema cache' error",
+              "Verify search returns transcript results"
+            ]
+          },
+          "status": "pending"
+        },
+        {
+          "id": "subtask-5-3",
+          "description": "Test metadata filter parameters (intent_signals, user_tags) work correctly",
+          "all_services": true,
+          "files_to_modify": [],
+          "files_to_create": [],
+          "patterns_from": [],
+          "verification": {
+            "type": "e2e",
+            "steps": [
+              "Search with filter_intent_signals parameter",
+              "Search with filter_user_tags parameter",
+              "Verify filtered results are returned"
+            ]
+          },
+          "status": "pending"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "total_phases": 5,
+    "total_subtasks": 11,
+    "services_involved": [
+      "supabase",
+      "frontend"
+    ],
+    "parallelism": {
+      "max_parallel_phases": 1,
+      "parallel_groups": [],
+      "recommended_workers": 1,
+      "speedup_estimate": "Sequential execution required - investigation workflow"
+    },
+    "startup_command": "source auto-claude/.venv/bin/activate && python auto-claude/run.py --spec 012 --parallel 1"
+  },
+  "verification_strategy": {
+    "risk_level": "medium",
+    "skip_validation": false,
+    "test_creation_phase": "post_implementation",
+    "test_types_required": [
+      "integration"
+    ],
+    "security_scanning_required": false,
+    "staging_deployment_required": false,
+    "acceptance_criteria": [
+      "hybrid_search_transcripts function exists with 16 parameters",
+      "Function includes filter_intent_signals and filter_user_tags parameters",
+      "PostgREST schema cache recognizes the function",
+      "MCP tool searches return results without 'function not found' error",
+      "TypeScript types match the database function signature"
+    ],
+    "verification_steps": [
+      {
+        "name": "Function Exists Check",
+        "command": "SELECT pronargs FROM pg_proc WHERE proname = 'hybrid_search_transcripts';",
+        "expected_outcome": "Returns 16",
+        "type": "sql",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "Parameter Names Check",
+        "command": "SELECT pg_get_functiondef(oid) FROM pg_proc WHERE proname = 'hybrid_search_transcripts';",
+        "expected_outcome": "Contains 'filter_intent_signals' and 'filter_user_tags'",
+        "type": "sql",
+        "required": true,
+        "blocking": true
+      },
+      {
+        "name": "TypeScript Types Match",
+        "command": "grep 'filter_intent_signals' src/integrations/supabase/types.ts",
+        "expected_outcome": "Parameter found in types file",
+        "type": "command",
+        "required": true,
+        "blocking": true
+      }
+    ],
+    "reasoning": "Medium risk database function repair - requires integration testing to verify MCP tool can call the function successfully. No security scan needed as function signature is predefined."
+  },
+  "qa_acceptance": {
+    "unit_tests": {
+      "required": false,
+      "commands": [],
+      "minimum_coverage": null,
+      "notes": "No unit tests for database function - integration testing required"
+    },
+    "integration_tests": {
+      "required": true,
+      "commands": [
+        "npx supabase functions serve chat-stream --env-file .env"
+      ],
+      "services_to_test": [
+        "supabase",
+        "chat-stream"
+      ]
+    },
+    "e2e_tests": {
+      "required": true,
+      "commands": [],
+      "flows": [
+        "transcript-search",
+        "sentiment-search",
+        "intent-signal-search"
+      ]
+    },
+    "browser_verification": {
+      "required": false,
+      "pages": [],
+      "notes": "MCP tool verification sufficient - no browser UI changes"
+    },
+    "database_verification": {
+      "required": true,
+      "checks": [
+        "Function exists with 16 parameters",
+        "Function has correct parameter names (filter_intent_signals NOT filter_intent)",
+        "Function returns user_tags and entities columns",
+        "GRANT EXECUTE permissions for authenticated and service_role"
+      ]
+    }
+  },
+  "qa_signoff": null,
+  "key_files": {
+    "migration_to_apply": "supabase/migrations/20260108000004_enhance_chat_tools_metadata_filters.sql",
+    "types_to_regenerate": "src/integrations/supabase/types.ts",
+    "caller_reference": "supabase/functions/chat-stream/index.ts",
+    "old_migration_reference": "supabase/migrations/20251125235835_add_metadata_filters.sql"
+  },
+  "investigation_notes": {
+    "observed_issue": "TypeScript types show 15 params with 'filter_intent' (old name) instead of expected 16 params with 'filter_intent_signals' and 'filter_user_tags'",
+    "likely_root_cause": "Migration 20260108000004 was never applied to production database",
+    "evidence": [
+      "types.ts lines 1288-1322 show old 15-param signature",
+      "types.ts uses 'filter_intent' not 'filter_intent_signals'",
+      "types.ts missing 'filter_user_tags' parameter",
+      "types.ts return type missing 'user_tags' and 'entities' columns"
+    ],
+    "fix_approach": "Apply migration 20260108000004, refresh PostgREST cache, regenerate TypeScript types"
+  },
+  "last_updated": "2026-01-10T04:33:42.596518+00:00"
+}

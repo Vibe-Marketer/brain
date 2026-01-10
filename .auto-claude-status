@@ -3,7 +3,7 @@
   "spec": "012-repair-hybrid-search-function-missing",
   "state": "building",
   "subtasks": {
-    "completed": 2,
+    "completed": 3,
     "total": 12,
     "in_progress": 1,
     "failed": 0
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 3,
+    "number": 4,
     "started_at": "2026-01-09T23:24:58.273255"
   },
-  "last_update": "2026-01-09T23:29:28.870172"
+  "last_update": "2026-01-09T23:32:18.024275"
 }
