@@ -367,7 +367,7 @@ export function useTeamHierarchy(options: UseTeamHierarchyOptions): UseTeamHiera
         throw error;
       }
 
-      const inviteUrl = `${window.location.origin}/team-invite/${inviteToken}`;
+      const inviteUrl = `${window.location.origin}/team/join/${inviteToken}`;
 
       logger.info("Team invite generated", { teamId, membershipId: data.id });
 
