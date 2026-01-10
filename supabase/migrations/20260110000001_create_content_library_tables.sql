@@ -161,5 +161,156 @@ COMMENT ON COLUMN public.content_library.usage_count IS
   'Number of times this content has been used/copied';
 
 -- ============================================================================
+-- TABLE: templates
+-- ============================================================================
+-- Stores reusable content templates with variable placeholder support
+-- Templates can be personal or shared with team members
+CREATE TABLE IF NOT EXISTS public.templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  team_id UUID REFERENCES teams(id) ON DELETE SET NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  template_content TEXT NOT NULL,
+  variables JSONB DEFAULT '[]', -- Array of variable definitions: [{name: "firstName", required: true}]
+  content_type TEXT NOT NULL CHECK (content_type IN ('email', 'social', 'testimonial', 'insight', 'other')),
+  is_shared BOOLEAN DEFAULT FALSE,
+  usage_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+  -- Constraints for reasonable content limits
+  CONSTRAINT templates_name_length CHECK (char_length(name) <= 255),
+  CONSTRAINT templates_content_length CHECK (char_length(template_content) <= 50000)
+);
+
+-- ============================================================================
+-- INDEXES: templates
+-- ============================================================================
+-- Performance indexes for common query patterns
+
+-- Index for looking up templates by user
+CREATE INDEX IF NOT EXISTS idx_templates_user_id
+  ON public.templates(user_id);
+
+-- Index for looking up templates by team
+CREATE INDEX IF NOT EXISTS idx_templates_team_id
+  ON public.templates(team_id) WHERE team_id IS NOT NULL;
+
+-- Index for filtering by content type
+CREATE INDEX IF NOT EXISTS idx_templates_content_type
+  ON public.templates(content_type);
+
+-- Index for finding shared templates efficiently
+CREATE INDEX IF NOT EXISTS idx_templates_is_shared
+  ON public.templates(is_shared) WHERE is_shared = TRUE;
+
+-- Index for sorting by creation date (most recent first)
+CREATE INDEX IF NOT EXISTS idx_templates_created_at
+  ON public.templates(created_at DESC);
+
+-- Composite index for efficient user + shared lookups
+CREATE INDEX IF NOT EXISTS idx_templates_user_shared
+  ON public.templates(user_id, is_shared);
+
+-- ============================================================================
+-- TRIGGERS: templates
+-- ============================================================================
+-- Apply updated_at trigger to templates table (reuses existing function)
+DROP TRIGGER IF EXISTS update_templates_updated_at ON public.templates;
+CREATE TRIGGER update_templates_updated_at
+  BEFORE UPDATE ON public.templates
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS): templates
+-- ============================================================================
+-- Enable RLS on templates table
+ALTER TABLE public.templates ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================================
+-- RLS POLICIES: templates
+-- ============================================================================
+
+-- Policy: Users can view their own templates and shared team templates
+CREATE POLICY "Users can view their own templates and shared team templates"
+  ON public.templates
+  FOR SELECT
+  USING (
+    auth.uid() = user_id
+    OR (
+      is_shared = TRUE
+      AND team_id IS NOT NULL
+      AND EXISTS (
+        SELECT 1 FROM team_memberships
+        WHERE team_memberships.team_id = templates.team_id
+          AND team_memberships.user_id = auth.uid()
+          AND team_memberships.status = 'active'
+      )
+    )
+  );
+
+-- Policy: Users can insert their own templates
+CREATE POLICY "Users can insert their own templates"
+  ON public.templates
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Policy: Users can update their own templates
+CREATE POLICY "Users can update their own templates"
+  ON public.templates
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Policy: Users can delete their own templates
+CREATE POLICY "Users can delete their own templates"
+  ON public.templates
+  FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- ============================================================================
+-- PERMISSIONS: templates
+-- ============================================================================
+-- Grant permissions to authenticated users
+GRANT ALL ON public.templates TO authenticated;
+
+-- ============================================================================
+-- COMMENTS: templates
+-- ============================================================================
+-- Add helpful comments to table and columns
+
+COMMENT ON TABLE public.templates IS
+  'Stores reusable content templates with variable placeholder support. Supports personal and team-shared templates.';
+
+COMMENT ON COLUMN public.templates.user_id IS
+  'User who owns/created this template';
+
+COMMENT ON COLUMN public.templates.team_id IS
+  'Optional team association for shared templates. NULL means personal template only.';
+
+COMMENT ON COLUMN public.templates.name IS
+  'User-friendly name for the template (max 255 chars)';
+
+COMMENT ON COLUMN public.templates.description IS
+  'Optional description of what the template is for';
+
+COMMENT ON COLUMN public.templates.template_content IS
+  'The template text with {{variable}} placeholders (max 50,000 chars)';
+
+COMMENT ON COLUMN public.templates.variables IS
+  'JSONB array of variable definitions: [{name: "firstName", required: true, defaultValue: ""}]';
+
+COMMENT ON COLUMN public.templates.content_type IS
+  'Type of content this template generates: email, social, testimonial, insight, or other';
+
+COMMENT ON COLUMN public.templates.is_shared IS
+  'Whether this template is shared with team members (requires team_id)';
+
+COMMENT ON COLUMN public.templates.usage_count IS
+  'Number of times this template has been used';
+
+-- ============================================================================
 -- END OF MIGRATION
 -- ============================================================================
