@@ -1,15 +1,15 @@
 {
   "active": true,
-  "spec": "012-repair-hybrid-search-function-missing",
+  "spec": "029-persist-auto-processing-preferences",
   "state": "building",
   "subtasks": {
-    "completed": 3,
-    "total": 12,
+    "completed": 1,
+    "total": 7,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Root Cause Identification",
+    "current": "Zustand Preferences Store",
     "id": null,
     "total": 2
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 4,
-    "started_at": "2026-01-09T23:24:58.273255"
+    "number": 2,
+    "started_at": "2026-01-10T06:06:43.415893"
   },
-  "last_update": "2026-01-09T23:32:18.024275"
+  "last_update": "2026-01-10T06:07:59.050701"
 }
