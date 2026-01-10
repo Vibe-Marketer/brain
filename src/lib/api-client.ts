@@ -181,6 +181,49 @@ export async function createFathomWebhook() {
 }
 
 // =============================================
+// GOOGLE MEET OAUTH & SYNC FUNCTIONS
+// =============================================
+
+/**
+ * Get Google OAuth authorization URL
+ */
+export async function getGoogleOAuthUrl() {
+  return callEdgeFunction('google-oauth-url', undefined, { retry: false });
+}
+
+/**
+ * Complete Google OAuth flow
+ */
+export async function completeGoogleOAuth(code: string, state: string) {
+  return callEdgeFunction('google-oauth-callback', { code, state }, { retry: false });
+}
+
+/**
+ * Refresh Google OAuth token
+ */
+export async function refreshGoogleOAuth() {
+  return callEdgeFunction('google-oauth-refresh', undefined, { retry: false });
+}
+
+/**
+ * Fetch meetings from Google Calendar with Google Meet links
+ */
+export async function fetchGoogleMeetMeetings(params: {
+  timeMin?: string;
+  timeMax?: string;
+}) {
+  return callEdgeFunction('google-meet-fetch-meetings', params);
+}
+
+/**
+ * Sync Google Meet meetings to database
+ * Uses calendar event IDs (strings) instead of recording IDs
+ */
+export async function syncGoogleMeetMeetings(eventIds: string[]) {
+  return callEdgeFunction('google-meet-sync-meetings', { eventIds });
+}
+
+// =============================================
 // AI CHAT & RAG FUNCTIONS
 // =============================================
 
