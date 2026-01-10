@@ -465,12 +465,17 @@ export type Database = {
           calendar_invitees: Json | null
           created_at: string
           full_transcript: string | null
+          fuzzy_match_score: number | null
+          is_primary: boolean | null
+          meeting_fingerprint: string | null
+          merged_from: number[] | null
           recorded_by_email: string | null
           recorded_by_name: string | null
           recording_end_time: string | null
           recording_id: number
           recording_start_time: string | null
           share_url: string | null
+          source_platform: string | null
           summary: string | null
           summary_edited_by_user: boolean | null
           synced_at: string | null
@@ -487,12 +492,17 @@ export type Database = {
           calendar_invitees?: Json | null
           created_at: string
           full_transcript?: string | null
+          fuzzy_match_score?: number | null
+          is_primary?: boolean | null
+          meeting_fingerprint?: string | null
+          merged_from?: number[] | null
           recorded_by_email?: string | null
           recorded_by_name?: string | null
           recording_end_time?: string | null
           recording_id: number
           recording_start_time?: string | null
           share_url?: string | null
+          source_platform?: string | null
           summary?: string | null
           summary_edited_by_user?: boolean | null
           synced_at?: string | null
@@ -509,12 +519,17 @@ export type Database = {
           calendar_invitees?: Json | null
           created_at?: string
           full_transcript?: string | null
+          fuzzy_match_score?: number | null
+          is_primary?: boolean | null
+          meeting_fingerprint?: string | null
+          merged_from?: number[] | null
           recorded_by_email?: string | null
           recorded_by_name?: string | null
           recording_end_time?: string | null
           recording_id?: number
           recording_start_time?: string | null
           share_url?: string | null
+          source_platform?: string | null
           summary?: string | null
           summary_edited_by_user?: boolean | null
           synced_at?: string | null
