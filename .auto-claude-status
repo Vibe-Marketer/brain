@@ -3,7 +3,7 @@
   "spec": "018-zoom-integration",
   "state": "building",
   "subtasks": {
-    "completed": 16,
+    "completed": 17,
     "total": 24,
     "in_progress": 1,
     "failed": 0
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 272,
+    "number": 273,
     "started_at": "2026-01-10T03:27:25.311676"
   },
-  "last_update": "2026-01-10T04:34:21.995263"
+  "last_update": "2026-01-10T04:37:09.193850"
 }
