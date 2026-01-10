@@ -133,13 +133,26 @@ async function verifyFathomSimpleSignature(
   return false;
 }
 
-// Store debug info for signature verification (non-sensitive data only)
-const signatureDebugInfo: {
-  received_signature?: string;
-  raw_body_length?: number;
-  webhook_id?: string;
-  webhook_timestamp?: string;
-} = {};
+// Sanitize headers for safe storage - removes sensitive values (OWASP A09:2021)
+function sanitizeHeadersForStorage(headers: Headers): Record<string, string> {
+  const sensitiveHeaders = new Set([
+    'webhook-signature',
+    'x-signature',
+    'authorization',
+    'x-api-key',
+    'cookie'
+  ]);
+
+  const sanitized: Record<string, string> = {};
+  for (const [key, value] of headers.entries()) {
+    if (sensitiveHeaders.has(key.toLowerCase())) {
+      sanitized[key] = '[REDACTED]';
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
 
 // Svix signature verification (for API Key webhooks)
 async function verifySvixSignature(
@@ -162,12 +175,6 @@ async function verifySvixSignature(
     console.error('Invalid Svix signature version:', version);
     return false;
   }
-
-  // Store debug info
-  signatureDebugInfo.received_signature = signatureBlock;
-  signatureDebugInfo.webhook_id = webhookId;
-  signatureDebugInfo.webhook_timestamp = webhookTimestamp;
-  signatureDebugInfo.raw_body_length = rawBody.length;
 
   // Svix signs the format: webhook-id.webhook-timestamp.body
   const signedContent = `${webhookId}.${webhookTimestamp}.${rawBody}`;
@@ -645,7 +652,7 @@ Deno.serve(async (req) => {
     if (!isValid) {
       console.error('❌ Webhook signature verification FAILED - NO METHOD WORKED');
       console.error('   - Webhook ID:', req.headers.get('webhook-id'));
-      console.error('   - Signature Header:', req.headers.get('webhook-signature'));
+      console.error('   - Signature Header:', req.headers.has('webhook-signature') ? '[PRESENT]' : '[NOT SET]');
       const errorMessage = `Invalid webhook signature - all verification methods failed`;
 
       // Log failed delivery WITH sanitized verification results
@@ -664,7 +671,7 @@ Deno.serve(async (req) => {
           recording_id: meeting.recording_id,
           status: 'failed',
           error_message: errorMessage,
-          request_headers: Object.fromEntries(req.headers.entries()),
+          request_headers: sanitizeHeadersForStorage(req.headers),
           request_body: meeting,
           signature_valid: false,
           payload: {
@@ -711,7 +718,7 @@ Deno.serve(async (req) => {
           webhook_id: webhookId,
           recording_id: meeting.recording_id,
           status: 'duplicate',
-          request_headers: Object.fromEntries(req.headers.entries()),
+          request_headers: sanitizeHeadersForStorage(req.headers),
           request_body: meeting,
           signature_valid: true
         });
@@ -803,7 +810,7 @@ Deno.serve(async (req) => {
             webhook_id: webhookId,
             recording_id: meeting.recording_id,
             status: 'success',
-            request_headers: Object.fromEntries(req.headers.entries()),
+            request_headers: sanitizeHeadersForStorage(req.headers),
             request_body: meeting,
             signature_valid: true,
             payload: {
@@ -828,7 +835,7 @@ Deno.serve(async (req) => {
             recording_id: meeting.recording_id,
             status: 'failed',
             error_message: errorMsg,
-            request_headers: Object.fromEntries(req.headers.entries()),
+            request_headers: sanitizeHeadersForStorage(req.headers),
             request_body: meeting,
             signature_valid: true
           });
