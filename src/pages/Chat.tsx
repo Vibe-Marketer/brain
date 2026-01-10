@@ -347,8 +347,7 @@ export default function Chat() {
     selectedModelRef.current = selectedModel;
   }, [selectedModel]);
 
-  // Create transport instance - ONLY recreate when auth token changes
-  // Other values (filters, model, sessionId) are read from refs at request time
+  // Create transport instance - recreate when auth token or critical values change
   const transport = React.useMemo(() => {
     // Guard: Don't create transport without valid auth token
     if (!session?.access_token) {
@@ -356,26 +355,25 @@ export default function Chat() {
       return null;
     }
 
+    console.log('[Chat] Creating transport with:', {
+      model: selectedModel,
+      sessionId: currentSessionId,
+      hasFilters: !!apiFilters,
+    });
+
     return new DefaultChatTransport({
       api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`,
       headers: {
         Authorization: `Bearer ${session.access_token}`,
       },
-      // Use a function to get current values at request time from refs
-      // This prevents transport recreation when these values change
+      // Pass actual values directly - getters don't serialize properly
       body: {
-        get filters() {
-          return apiFiltersRef.current;
-        },
-        get model() {
-          return selectedModelRef.current;
-        },
-        get sessionId() {
-          return currentSessionIdRef.current;
-        },
+        filters: apiFilters,
+        model: selectedModel,
+        sessionId: currentSessionId,
       },
     });
-  }, [session?.access_token]); // ONLY depend on auth token - refs handle the rest
+  }, [session?.access_token, apiFilters, selectedModel, currentSessionId]);
 
   // Use the AI SDK v5 chat hook
   // Note: useChat can handle null transport - it won't make requests without a valid transport
