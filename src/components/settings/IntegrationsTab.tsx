@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RiVideoLine, RiFlashlightLine } from "@remixicon/react";
+import { RiVideoLine, RiFlashlightLine, RiGoogleLine } from "@remixicon/react";
 import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
 import IntegrationStatusCard from "./IntegrationStatusCard";
 import FathomSetupWizard from "./FathomSetupWizard";
+import GoogleMeetSetupWizard from "./GoogleMeetSetupWizard";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -17,6 +18,11 @@ export default function IntegrationsTab() {
   const [fathomConnected, setFathomConnected] = useState(false);
   const [showWizard, setShowWizard] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Google Meet state
+  const [googleMeetConnected, setGoogleMeetConnected] = useState(false);
+  const [showGoogleMeetWizard, setShowGoogleMeetWizard] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState("");
 
   // Edit credentials state
   const [showEditCredentials, setShowEditCredentials] = useState(false);
@@ -38,7 +44,7 @@ export default function IntegrationsTab() {
 
       const { data: settings } = await supabase
         .from("user_settings")
-        .select("fathom_api_key, webhook_secret, oauth_access_token")
+        .select("fathom_api_key, webhook_secret, oauth_access_token, google_oauth_access_token, google_oauth_email")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -46,6 +52,12 @@ export default function IntegrationsTab() {
       const isConnected = !!(settings?.fathom_api_key || settings?.oauth_access_token);
       setFathomConnected(isConnected);
       setHasOAuth(!!settings?.oauth_access_token);
+
+      // Check Google Meet connection status
+      setGoogleMeetConnected(!!settings?.google_oauth_access_token);
+      if (settings?.google_oauth_email) {
+        setGoogleEmail(settings.google_oauth_email);
+      }
 
       // Load current credentials (masked for display)
       if (settings?.fathom_api_key) {
@@ -67,6 +79,15 @@ export default function IntegrationsTab() {
 
   const handleWizardComplete = async () => {
     setShowWizard(false);
+    await loadIntegrationStatus(); // Refresh status after wizard completion
+  };
+
+  const handleGoogleMeetConnect = () => {
+    setShowGoogleMeetWizard(true);
+  };
+
+  const handleGoogleMeetWizardComplete = async () => {
+    setShowGoogleMeetWizard(false);
     await loadIntegrationStatus(); // Refresh status after wizard completion
   };
 
@@ -287,6 +308,32 @@ export default function IntegrationsTab() {
         </>
       )}
 
+      {/* Google Meet Integration Section */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+            Google Meet Integration
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+            Sync recordings and transcripts from Google Meet
+          </p>
+        </div>
+        <div className="lg:col-span-2">
+          <IntegrationStatusCard
+            name="Google Meet"
+            icon={RiGoogleLine}
+            status={googleMeetConnected ? "connected" : "disconnected"}
+            onConnect={handleGoogleMeetConnect}
+            description={googleMeetConnected && googleEmail
+              ? `Connected as ${googleEmail}`
+              : "Calendar discovery and recording sync"
+            }
+          />
+        </div>
+      </div>
+
+      <Separator className="my-16" />
+
       {/* Coming Soon Integrations Section */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
@@ -322,12 +369,11 @@ export default function IntegrationsTab() {
         />
       )}
 
-      {/* Modals */}
-      {showWizard && (
-        <FathomSetupWizard
-          open={showWizard}
-          onComplete={handleWizardComplete}
-          onDismiss={() => setShowWizard(false)}
+      {showGoogleMeetWizard && (
+        <GoogleMeetSetupWizard
+          open={showGoogleMeetWizard}
+          onComplete={handleGoogleMeetWizardComplete}
+          onDismiss={() => setShowGoogleMeetWizard(false)}
         />
       )}
     </div>
