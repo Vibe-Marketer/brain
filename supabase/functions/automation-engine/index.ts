@@ -1,11 +1,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import {
   evaluateConditions,
-  evaluateTrigger,
   type ConditionGroup,
   type EvaluationContext,
   type EvaluationResult,
 } from './condition-evaluator.ts';
+import { evaluateTrigger, type TriggerResult } from './triggers.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -86,7 +86,7 @@ interface ExecutionResult {
   actions_failed: number;
   error?: string;
   debug_info: {
-    trigger_result: { fires: boolean; reason: string };
+    trigger_result: TriggerResult;
     condition_result?: EvaluationResult;
     actions_executed: Array<{
       action: ActionConfig;
