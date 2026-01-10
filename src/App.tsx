@@ -19,6 +19,8 @@ import LoopLayoutDemo from '@/pages/LoopLayoutDemo';
 import SharedWithMe from '@/pages/SharedWithMe';
 import CoachDashboard from '@/pages/CoachDashboard';
 import CollaborationPage from '@/pages/CollaborationPage';
+import TeamJoin from '@/pages/TeamJoin';
+import CoachJoin from '@/pages/CoachJoin';
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -74,6 +76,10 @@ function App() {
 
                     {/* Shared call view - public route with token-based access */}
                     <Route path="/s/:token" element={<SharedCallView />} />
+
+                    {/* Join pages - public routes with token-based access (auth handled internally) */}
+                    <Route path="/team/join/:token" element={<TeamJoin />} />
+                    <Route path="/coach/join/:token" element={<CoachJoin />} />
 
                     {/* 404 */}
                     <Route path="*" element={<Navigate to="/" replace />} />
