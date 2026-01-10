@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { usePreferencesStore } from '@/stores/preferencesStore';
 
 interface AuthContextType {
   user: User | null;
@@ -36,6 +37,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           console.log('[AuthContext] User signed in');
           setSession(session);
           setUser(session?.user ?? null);
+          // Load user preferences after sign in
+          usePreferencesStore.getState().loadPreferences();
         } else {
           // For other events (INITIAL_SESSION, etc.), update state
           setSession(session);
@@ -56,6 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log('[AuthContext] Initial session loaded:', session ? 'Valid' : 'None');
         setSession(session);
         setUser(session?.user ?? null);
+        // Load user preferences if session exists
+        if (session) {
+          usePreferencesStore.getState().loadPreferences();
+        }
       }
       setLoading(false);
     });

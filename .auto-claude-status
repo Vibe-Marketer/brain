@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "022-content-library-templates",
+  "spec": "029-persist-auto-processing-preferences",
   "state": "building",
   "subtasks": {
-    "completed": 21,
-    "total": 22,
+    "completed": 5,
+    "total": 7,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Security & Access Control Validation",
+    "current": "Cross-Tab Synchronization",
     "id": null,
-    "total": 2
+    "total": 1
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 273,
-    "started_at": "2026-01-10T03:20:07.157140"
+    "number": 6,
+    "started_at": "2026-01-10T06:06:43.415893"
   },
-  "last_update": "2026-01-10T04:47:40.110718"
+  "last_update": "2026-01-10T06:15:42.311068"
 }

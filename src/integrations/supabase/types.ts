@@ -1051,6 +1051,7 @@ export type Database = {
       }
       user_profiles: {
         Row: {
+          auto_processing_preferences: Json | null
           created_at: string | null
           display_name: string | null
           email: string | null
@@ -1062,6 +1063,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          auto_processing_preferences?: Json | null
           created_at?: string | null
           display_name?: string | null
           email?: string | null
@@ -1073,6 +1075,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          auto_processing_preferences?: Json | null
           created_at?: string | null
           display_name?: string | null
           email?: string | null
