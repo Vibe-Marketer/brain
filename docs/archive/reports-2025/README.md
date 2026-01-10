@@ -13,6 +13,8 @@ Time-stamped reports, root cause analyses, PDCA cycles, and code reviews from 20
 | `sentry-setup.md` | Setup Guide | 2025-12-05 | Sentry integration | Configured |
 | `click-count-analysis.md` | Verification Report | 2026-01-02 | Click count analysis for multi-pane navigation | Completed |
 | `qa-acceptance-report.md` | QA Report | 2026-01-02 | QA acceptance for Settings/Sorting multi-pane refactor | Passed |
+| `white-screen-fixes-quick-ref.md` | Troubleshooting Guide | 2025-12-05 | Quick reference for white screen fixes | Issue resolved |
+| `white-screen-prevention.md` | Prevention Guide | 2025-12-05 | White screen error prevention strategies | Issue resolved |
 
 ---
 
