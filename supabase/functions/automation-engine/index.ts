@@ -235,41 +235,166 @@ async function processRule(
 }
 
 /**
- * Log execution to history
+ * Build a call snapshot from context for debugging purposes.
+ * This captures key call metadata at execution time for later review.
+ */
+function buildCallSnapshot(context: EvaluationContext): Record<string, unknown> {
+  const call = context.call || {};
+
+  return {
+    recording_id: call.recording_id,
+    title: call.title,
+    duration_minutes: call.duration_minutes,
+    participant_count: call.participant_count,
+    sentiment: call.sentiment,
+    sentiment_confidence: call.sentiment_confidence,
+    created_at: call.created_at,
+    has_transcript: !!call.full_transcript,
+    has_summary: !!call.summary,
+    category: context.category?.name || null,
+    tags: context.tags?.map((t) => t.name) || [],
+  };
+}
+
+/**
+ * Log execution to history.
+ *
+ * Records every rule execution with comprehensive debug information including:
+ * - Trigger evaluation result and reason
+ * - All condition evaluations with individual results
+ * - All action execution results with success/failure status
+ * - Call snapshot capturing key metadata at execution time
+ * - Timing information for performance analysis
+ *
+ * Errors during logging are caught to prevent breaking the main execution flow.
  */
 async function logExecution(
   supabase: ReturnType<typeof createClient>,
   ruleId: string,
+  ruleName: string,
   userId: string,
   triggerType: string,
   triggerSource: Record<string, unknown> | undefined,
   result: ExecutionResult,
+  context: EvaluationContext,
   startTime: number
 ): Promise<void> {
   const endTime = Date.now();
+  const executionTimeMs = endTime - startTime;
+
+  // Determine success: rule must trigger, conditions must pass, and all actions must succeed
   const success = result.triggered && result.conditions_passed && result.actions_failed === 0;
 
-  await supabase
-    .from('automation_execution_history')
-    .insert({
-      rule_id: ruleId,
-      user_id: userId,
-      trigger_type: triggerType,
-      trigger_source: triggerSource || {},
-      triggered_at: new Date(startTime).toISOString(),
-      completed_at: new Date(endTime).toISOString(),
-      execution_time_ms: endTime - startTime,
-      success,
-      error_message: result.error || (result.actions_failed > 0 ? 'Some actions failed' : null),
-      debug_info: {
-        trigger_result: result.debug_info.trigger_result,
-        conditions_evaluated: result.debug_info.condition_result?.details || [],
-        actions_executed: result.debug_info.actions_executed,
-        call_snapshot: {
-          title: result.debug_info.condition_result ? 'See conditions' : null,
-        },
+  // Build error message if there were failures
+  let errorMessage: string | null = null;
+  if (result.error) {
+    errorMessage = result.error;
+  } else if (!result.triggered) {
+    errorMessage = `Trigger did not fire: ${result.debug_info.trigger_result.reason}`;
+  } else if (!result.conditions_passed) {
+    errorMessage = `Conditions not met: ${result.debug_info.condition_result?.reason || 'Unknown reason'}`;
+  } else if (result.actions_failed > 0) {
+    const failedActions = result.debug_info.actions_executed
+      .filter((a) => a.result === 'failed')
+      .map((a) => `${a.action.type}: ${a.error || 'Unknown error'}`)
+      .join('; ');
+    errorMessage = `${result.actions_failed} action(s) failed: ${failedActions}`;
+  }
+
+  // Build comprehensive debug info
+  const debugInfo = {
+    // Rule metadata for easy identification
+    rule_name: ruleName,
+
+    // Trigger evaluation details
+    trigger_result: {
+      fires: result.debug_info.trigger_result.fires,
+      reason: result.debug_info.trigger_result.reason,
+      match_details: result.debug_info.trigger_result.matchDetails,
+    },
+
+    // Condition evaluation results with individual details
+    conditions_evaluated: result.debug_info.condition_result?.details?.map((d) => ({
+      condition: {
+        type: d.condition.condition_type || 'field',
+        field: d.condition.field,
+        operator: d.condition.operator,
+        value: d.condition.value,
       },
-    });
+      result: d.result,
+      reason: d.reason,
+    })) || [],
+    conditions_summary: result.debug_info.condition_result?.reason || 'Not evaluated',
+
+    // Action execution results
+    actions_executed: result.debug_info.actions_executed.map((a) => ({
+      action_type: a.action.type,
+      config: sanitizeActionConfig(a.action.config),
+      result: a.result,
+      details: a.details,
+      error: a.error,
+    })),
+    actions_summary: {
+      total: result.debug_info.actions_executed.length,
+      succeeded: result.actions_executed,
+      failed: result.actions_failed,
+      skipped: result.debug_info.actions_executed.filter((a) => a.result === 'skipped').length,
+    },
+
+    // Call snapshot for context
+    call_snapshot: buildCallSnapshot(context),
+
+    // Execution metadata
+    execution_metadata: {
+      execution_time_ms: executionTimeMs,
+      triggered: result.triggered,
+      conditions_passed: result.conditions_passed,
+    },
+  };
+
+  try {
+    const { error: insertError } = await supabase
+      .from('automation_execution_history')
+      .insert({
+        rule_id: ruleId,
+        user_id: userId,
+        trigger_type: triggerType,
+        trigger_source: triggerSource || {},
+        triggered_at: new Date(startTime).toISOString(),
+        completed_at: new Date(endTime).toISOString(),
+        execution_time_ms: executionTimeMs,
+        success,
+        error_message: errorMessage,
+        debug_info: debugInfo,
+      });
+
+    if (insertError) {
+      // Log error but don't throw - execution history logging should not break the main flow
+      // In production, this could be sent to an error tracking service
+    }
+  } catch {
+    // Silently catch logging errors to prevent breaking the main execution flow
+    // In production, this could be sent to an error tracking service
+  }
+}
+
+/**
+ * Sanitize action config for logging by removing sensitive data.
+ * Prevents storing API keys, passwords, or tokens in execution history.
+ */
+function sanitizeActionConfig(config: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!config) return {};
+
+  const sanitized = { ...config };
+  const sensitiveKeys = ['api_key', 'apikey', 'password', 'secret', 'token', 'authorization'];
+
+  for (const key of Object.keys(sanitized)) {
+    if (sensitiveKeys.some((sk) => key.toLowerCase().includes(sk))) {
+      sanitized[key] = '[REDACTED]';
+    }
+  }
+
+  return sanitized;
 }
 
 Deno.serve(async (req) => {
@@ -402,14 +527,16 @@ Deno.serve(async (req) => {
       const result = await processRule(supabase, rule, context, body.trigger_type);
       results.push(result);
 
-      // Log execution to history
+      // Log execution to history with full debug info
       await logExecution(
         supabase,
         rule.id,
+        rule.name,
         userId,
         body.trigger_type,
         body.trigger_source,
         result,
+        context,
         startTime
       );
     }
