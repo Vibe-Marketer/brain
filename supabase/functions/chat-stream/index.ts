@@ -588,8 +588,10 @@ const tools: OpenAITool[] = [
               },
               intent_signals: {
                 type: 'array',
-                items: { type: 'string' },
-                enum: [['buying_signal', 'objection', 'question', 'concern']],
+                items: {
+                  type: 'string',
+                  enum: ['buying_signal', 'objection', 'question', 'concern'],
+                },
                 description: 'Filter by intent signals',
               },
               user_tags: {
