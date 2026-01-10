@@ -83,9 +83,6 @@ async function verifyFathomSimpleSignature(
   // Store computed signature
   signatureDebugInfo.simple_full_secret = computed;
 
-  console.log('Fathom simple - Computed signature:', computed);
-  console.log('Fathom simple - Received signatures:', signatures);
-
   if (signatures.includes(computed)) {
     return true;
   }
@@ -109,8 +106,6 @@ async function verifyFathomSimpleSignature(
     // Store computed signature
     signatureDebugInfo.simple_no_prefix = computed2;
 
-    console.log('Fathom simple (no prefix, as string) - Computed signature:', computed2);
-
     if (signatures.includes(computed2)) {
       return true;
     }
@@ -120,7 +115,6 @@ async function verifyFathomSimpleSignature(
     // but we HMAC just the body (not id.timestamp.body like Svix)
     try {
       const decodedSecretBytes = Uint8Array.from(atob(secretPart), c => c.charCodeAt(0));
-      console.log('Fathom simple (base64 decoded secret) - Decoded secret length:', decodedSecretBytes.length);
 
       const cryptoKey3 = await crypto.subtle.importKey(
         'raw',
@@ -135,8 +129,6 @@ async function verifyFathomSimpleSignature(
 
       // Store computed signature
       signatureDebugInfo.simple_base64_decoded = computed3;
-
-      console.log('Fathom simple (base64 decoded secret) - Computed signature:', computed3);
 
       if (signatures.includes(computed3)) {
         return true;
