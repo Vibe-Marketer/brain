@@ -166,21 +166,26 @@ async function verifySvixSignature(
 
 /**
  * Constant-time string comparison to prevent timing attacks
+ *
+ * This implementation ensures:
+ * 1. Always iterates the same number of times (max of both lengths)
+ * 2. Length mismatch is detected via XOR (constant time operation)
+ * 3. Out-of-bounds access handled with || 0 to avoid early termination
  */
 function constantTimeCompare(a: string, b: string): boolean {
-  if (a.length !== b.length) {
-    // Still do the comparison to maintain constant time
-    let result = 0;
-    for (let i = 0; i < a.length; i++) {
-      result |= a.charCodeAt(i) ^ (b.charCodeAt(i % b.length) || 0);
-    }
-    return false;
+  // XOR lengths to detect mismatch - this is a constant-time operation
+  // Any non-zero value here will cause the final result to be non-zero
+  let result = a.length ^ b.length;
+
+  // Always iterate over the longer string to ensure constant time
+  const maxLength = Math.max(a.length, b.length);
+
+  for (let i = 0; i < maxLength; i++) {
+    // Use || 0 for out-of-bounds access to maintain constant-time behavior
+    // This ensures we don't short-circuit on undefined values
+    result |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
   }
 
-  let result = 0;
-  for (let i = 0; i < a.length; i++) {
-    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
   return result === 0;
 }
 
