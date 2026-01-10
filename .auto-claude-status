@@ -3,13 +3,13 @@
   "spec": "013-implement-teams-coaches-navigation-and-functionali",
   "state": "building",
   "subtasks": {
-    "completed": 7,
+    "completed": 9,
     "total": 17,
     "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Add Invite Link Generation Functions",
+    "current": "Wire Invite Link UI in Team and Coach Tabs",
     "id": null,
     "total": 2
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 8,
+    "number": 10,
     "started_at": "2026-01-10T01:22:56.533632"
   },
-  "last_update": "2026-01-10T01:36:46.862230"
+  "last_update": "2026-01-10T01:39:48.186077"
 }
