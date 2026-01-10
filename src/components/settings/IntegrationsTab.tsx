@@ -3,13 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
-import { RiVideoLine, RiFlashlightLine, RiBrainLine, RiLoader4Line, RiCheckLine } from "@remixicon/react";
+import { RiVideoLine, RiFlashlightLine } from "@remixicon/react";
 import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
 import IntegrationStatusCard from "./IntegrationStatusCard";
 import FathomSetupWizard from "./FathomSetupWizard";
 import { logger } from "@/lib/logger";
-import { getFathomOAuthUrl, embedAllUnindexedTranscripts } from "@/lib/api-client";
+import { getFathomOAuthUrl } from "@/lib/api-client";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
@@ -28,79 +27,9 @@ export default function IntegrationsTab() {
   const [oauthConnecting, setOauthConnecting] = useState(false);
   const [hasOAuth, setHasOAuth] = useState(false);
 
-  // AI Knowledge Base state
-  const [totalCalls, setTotalCalls] = useState(0);
-  const [indexedCalls, setIndexedCalls] = useState(0);
-  const [totalChunks, setTotalChunks] = useState(0);
-  const [isEmbedding, setIsEmbedding] = useState(false);
-  const [embeddingProgress, setEmbeddingProgress] = useState({ current: 0, total: 0 });
-
   useEffect(() => {
     loadIntegrationStatus();
-    loadKnowledgeBaseStatus();
   }, []);
-
-  const loadKnowledgeBaseStatus = async () => {
-    try {
-      const { user, error: authError } = await getSafeUser();
-      if (authError || !user) return;
-
-      // Get total calls with transcripts
-      const { count: callsCount } = await supabase
-        .from('fathom_calls')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .not('full_transcript', 'is', null);
-
-      setTotalCalls(callsCount || 0);
-
-      // Get indexed calls (distinct recording_ids in chunks)
-      const { data: indexedData } = await supabase
-        .from('transcript_chunks')
-        .select('recording_id')
-        .eq('user_id', user.id);
-
-      const uniqueIndexed = new Set(indexedData?.map(c => c.recording_id) || []);
-      setIndexedCalls(uniqueIndexed.size);
-
-      // Get total chunks
-      const { count: chunksCount } = await supabase
-        .from('transcript_chunks')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      setTotalChunks(chunksCount || 0);
-    } catch (error) {
-      logger.error("Error loading knowledge base status", error);
-    }
-  };
-
-  const handleEmbedAllTranscripts = async () => {
-    try {
-      setIsEmbedding(true);
-      setEmbeddingProgress({ current: 0, total: totalCalls - indexedCalls });
-
-      toast.info(`Starting to embed ${totalCalls - indexedCalls} transcripts...`);
-
-      const response = await embedAllUnindexedTranscripts();
-
-      if (response.error) {
-        throw new Error(response.error);
-      }
-
-      if (response.data) {
-        toast.success(
-          `Embedded ${response.data.recordings_processed} transcripts (${response.data.chunks_created} chunks created)`
-        );
-        await loadKnowledgeBaseStatus();
-      }
-    } catch (error) {
-      logger.error("Error embedding transcripts", error);
-      toast.error("Failed to embed transcripts: " + (error instanceof Error ? error.message : "Unknown error"));
-    } finally {
-      setIsEmbedding(false);
-    }
-  };
 
   const loadIntegrationStatus = async () => {
     try {
@@ -351,121 +280,6 @@ export default function IntegrationsTab() {
                   </div>
                 </div>
               )}
-            </div>
-          </div>
-
-          <Separator className="my-16" />
-        </>
-      )}
-
-
-
-      {/* AI Knowledge Base Section */}
-      {fathomConnected && (
-        <>
-          <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-            <div>
-              <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-                AI Knowledge Base
-              </h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-                Index your transcripts for AI-powered chat and search
-              </p>
-            </div>
-            <div className="lg:col-span-2">
-              <div className="rounded-lg border border-cb-border-primary bg-card p-6 space-y-6">
-                {/* Status */}
-                <div className="flex items-start gap-4">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-vibe-orange/10">
-                    <RiBrainLine className="h-5 w-5 text-cb-ink-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-50">
-                      Transcript Indexing Status
-                    </h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {indexedCalls === totalCalls && totalCalls > 0
-                        ? "All transcripts are indexed and ready for AI chat"
-                        : indexedCalls === 0
-                        ? "No transcripts indexed yet - click below to start"
-                        : `${indexedCalls} of ${totalCalls} transcripts indexed`}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-3 rounded-md bg-cb-ink-subtle/5">
-                    <p className="text-2xl font-bold text-cb-ink-primary tabular-nums">{totalCalls}</p>
-                    <p className="text-xs text-muted-foreground">Total Calls</p>
-                  </div>
-                  <div className="text-center p-3 rounded-md bg-cb-ink-subtle/5">
-                    <p className="text-2xl font-bold text-cb-ink-primary tabular-nums">{indexedCalls}</p>
-                    <p className="text-xs text-muted-foreground">Indexed</p>
-                  </div>
-                  <div className="text-center p-3 rounded-md bg-cb-ink-subtle/5">
-                    <p className="text-2xl font-bold text-cb-ink-primary tabular-nums">{totalChunks}</p>
-                    <p className="text-xs text-muted-foreground">Chunks</p>
-                  </div>
-                </div>
-
-                {/* Progress bar when indexing */}
-                {isEmbedding && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Indexing transcripts...</span>
-                      <span className="font-medium">
-                        {embeddingProgress.current} / {embeddingProgress.total}
-                      </span>
-                    </div>
-                    <Progress
-                      value={embeddingProgress.total > 0 ? (embeddingProgress.current / embeddingProgress.total) * 100 : 0}
-                      className="h-2"
-                    />
-                  </div>
-                )}
-
-                {/* Action button */}
-                <div className="flex items-center gap-3">
-                  {indexedCalls < totalCalls ? (
-                    <Button
-                      onClick={handleEmbedAllTranscripts}
-                      disabled={isEmbedding || totalCalls === 0}
-                    >
-                      {isEmbedding ? (
-                        <>
-                          <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
-                          Indexing...
-                        </>
-                      ) : (
-                        <>
-                          <RiBrainLine className="mr-2 h-4 w-4" />
-                          Index {totalCalls - indexedCalls} Transcript{totalCalls - indexedCalls !== 1 ? 's' : ''}
-                        </>
-                      )}
-                    </Button>
-                  ) : totalCalls > 0 ? (
-                    <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                      <RiCheckLine className="h-5 w-5" />
-                      <span className="text-sm font-medium">All transcripts indexed</span>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      Sync some calls first to enable AI chat
-                    </p>
-                  )}
-
-                  {totalCalls > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={loadKnowledgeBaseStatus}
-                    >
-                      Refresh Status
-                    </Button>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
 

@@ -143,12 +143,16 @@ export default function AITab() {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
-      // ... existing stats fetching logic ...
-      // Get total chunks
-      const { count: chunksCount } = await supabase
-        .from("transcript_chunks")
-        .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
+      // Get indexed count using RPC function (avoids Supabase 1000 row limit bug)
+      const { data: indexedStats, error: indexedError } = await supabase
+        .rpc("get_indexed_recording_count", { p_user_id: user.id });
+
+      if (indexedError) {
+        logger.error("Error getting indexed count", indexedError);
+      }
+
+      const indexedCount = indexedStats?.[0]?.indexed_count || 0;
+      const totalChunks = indexedStats?.[0]?.total_chunks || 0;
 
       // Get last indexed date
       const { data: lastChunk } = await supabase
@@ -159,27 +163,18 @@ export default function AITab() {
         .limit(1)
         .maybeSingle();
 
-      // Get total recordings
+      // Get total recordings WITH transcripts (only these can be indexed)
       const { count: totalRecordings } = await supabase
         .from("fathom_calls")
         .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id);
-
-      // Get recordings that have been indexed (have chunks)
-      const { data: indexedRecordingIds } = await supabase
-        .from("transcript_chunks")
-        .select("recording_id")
-        .eq("user_id", user.id);
-
-      const uniqueIndexedIds = new Set(
-        indexedRecordingIds?.map((r) => r.recording_id) || []
-      );
+        .eq("user_id", user.id)
+        .not("full_transcript", "is", null);
 
       setStats({
-        totalChunks: chunksCount || 0,
+        totalChunks: totalChunks,
         lastIndexedDate: lastChunk?.created_at || null,
         totalRecordings: totalRecordings || 0,
-        unindexedRecordings: (totalRecordings || 0) - uniqueIndexedIds.size,
+        unindexedRecordings: (totalRecordings || 0) - indexedCount,
       });
 
       // Check for active jobs
