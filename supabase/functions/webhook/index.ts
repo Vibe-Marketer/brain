@@ -219,18 +219,6 @@ async function verifySvixSignature(
   // Store computed signature
   signatureDebugInfo.svix_computed = expected;
 
-  console.log('🔐 SVIX SIGNATURE COMPARISON:');
-  console.log('   Computed signature:', expected);
-  console.log('   Received signature:', signatureBlock);
-  console.log('   Match:', expected === signatureBlock ? '✅ YES' : '❌ NO');
-
-  // Also compare character by character for debugging
-  if (expected !== signatureBlock) {
-    console.log('   First diff at position:', [...expected].findIndex((c, i) => c !== signatureBlock[i]));
-    console.log('   Expected length:', expected.length);
-    console.log('   Received length:', signatureBlock.length);
-  }
-
   const signatures = signatureBlock.split(' ');
   return signatures.includes(expected);
 }
