@@ -1260,8 +1260,8 @@ export type Database = {
       finalize_embedding_jobs: { Args: never; Returns: number }
       get_available_metadata: {
         Args: {
-          p_metadata_type: string
           p_user_id: string
+          p_metadata_type: string
         }
         Returns: Json
       }
