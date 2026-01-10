@@ -361,10 +361,10 @@ function RelationshipTable({
   formatDate,
 }: RelationshipTableProps) {
   return (
-    <div className="border border-cb-border dark:border-cb-border-dark rounded-lg overflow-hidden">
+    <div className="overflow-x-auto">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
             <TableHead>{role === "coachee" ? "Coach" : "Coachee"}</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Since</TableHead>
