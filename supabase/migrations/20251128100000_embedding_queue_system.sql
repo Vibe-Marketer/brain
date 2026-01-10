@@ -256,18 +256,18 @@ END $$;
 
 -- Create the scheduled job
 -- Note: pg_cron minimum interval is 1 minute, but the self-chain handles faster processing
-DO $$
+DO $outer$
 BEGIN
   PERFORM cron.schedule(
     'embedding-worker-backup',
     '* * * * *',  -- Every minute
-    $$
+    $body$
     SELECT net.http_post(
       url := 'https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/process-embeddings',
       headers := '{"Content-Type": "application/json"}'::jsonb,
       body := '{"triggered_by": "cron", "batch_size": 10}'::jsonb
     );
-    $$
+    $body$
   );
   RAISE NOTICE 'Successfully scheduled embedding-worker-backup cron job';
 EXCEPTION
@@ -275,4 +275,4 @@ EXCEPTION
     RAISE NOTICE 'pg_cron not available - cron backup disabled. Self-chain will handle processing.';
   WHEN others THEN
     RAISE NOTICE 'Could not schedule cron job: %. Self-chain will handle processing.', SQLERRM;
-END $$;
+END $outer$;

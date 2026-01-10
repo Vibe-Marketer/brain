@@ -1,26 +1,30 @@
 -- Add insights table for AI-extracted insights
 CREATE TABLE IF NOT EXISTS public.insights (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    call_id UUID NOT NULL REFERENCES public.calls(id) ON DELETE CASCADE,
+    recording_id BIGINT NOT NULL,
+    user_id UUID NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('pain', 'success', 'objection', 'question')),
     content TEXT NOT NULL,
     confidence NUMERIC(5,2) NOT NULL CHECK (confidence >= 0 AND confidence <= 100),
     context TEXT,
     tags TEXT[] DEFAULT '{}',
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    FOREIGN KEY (recording_id, user_id) REFERENCES public.fathom_calls(recording_id, user_id) ON DELETE CASCADE
 );
 
 -- Add quotes table for notable quotes
 CREATE TABLE IF NOT EXISTS public.quotes (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    call_id UUID NOT NULL REFERENCES public.calls(id) ON DELETE CASCADE,
+    recording_id BIGINT NOT NULL,
+    user_id UUID NOT NULL,
     text TEXT NOT NULL,
     speaker TEXT,
     timestamp TEXT,
     significance NUMERIC(5,2) CHECK (significance >= 0 AND significance <= 100),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    FOREIGN KEY (recording_id, user_id) REFERENCES public.fathom_calls(recording_id, user_id) ON DELETE CASCADE
 );
 
 -- Add workspaces table for organizing calls
@@ -49,54 +53,56 @@ CREATE TABLE IF NOT EXISTS public.workspace_members (
 CREATE TABLE IF NOT EXISTS public.workspace_calls (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     workspace_id UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
-    call_id UUID NOT NULL REFERENCES public.calls(id) ON DELETE CASCADE,
+    recording_id BIGINT NOT NULL,
+    user_id UUID NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(workspace_id, call_id)
+    FOREIGN KEY (recording_id, user_id) REFERENCES public.fathom_calls(recording_id, user_id) ON DELETE CASCADE,
+    UNIQUE(workspace_id, recording_id, user_id)
 );
 
 -- Add AI processing columns to calls table if they don't exist
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'calls' AND column_name = 'summary') THEN
-        ALTER TABLE public.calls ADD COLUMN summary TEXT;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'fathom_calls' AND column_name = 'summary') THEN
+        ALTER TABLE public.fathom_calls ADD COLUMN summary TEXT;
     END IF;
     
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'calls' AND column_name = 'sentiment') THEN
-        ALTER TABLE public.calls ADD COLUMN sentiment TEXT CHECK (sentiment IN ('positive', 'neutral', 'negative'));
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'fathom_calls' AND column_name = 'sentiment') THEN
+        ALTER TABLE public.fathom_calls ADD COLUMN sentiment TEXT CHECK (sentiment IN ('positive', 'neutral', 'negative'));
     END IF;
     
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'calls' AND column_name = 'sentiment_score') THEN
-        ALTER TABLE public.calls ADD COLUMN sentiment_score NUMERIC(5,2);
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'fathom_calls' AND column_name = 'sentiment_score') THEN
+        ALTER TABLE public.fathom_calls ADD COLUMN sentiment_score NUMERIC(5,2);
     END IF;
     
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'calls' AND column_name = 'key_topics') THEN
-        ALTER TABLE public.calls ADD COLUMN key_topics TEXT[] DEFAULT '{}';
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'fathom_calls' AND column_name = 'key_topics') THEN
+        ALTER TABLE public.fathom_calls ADD COLUMN key_topics TEXT[] DEFAULT '{}';
     END IF;
     
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'calls' AND column_name = 'action_items') THEN
-        ALTER TABLE public.calls ADD COLUMN action_items TEXT[] DEFAULT '{}';
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'fathom_calls' AND column_name = 'action_items') THEN
+        ALTER TABLE public.fathom_calls ADD COLUMN action_items TEXT[] DEFAULT '{}';
     END IF;
     
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'calls' AND column_name = 'profits_framework') THEN
-        ALTER TABLE public.calls ADD COLUMN profits_framework JSONB;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'fathom_calls' AND column_name = 'profits_framework') THEN
+        ALTER TABLE public.fathom_calls ADD COLUMN profits_framework JSONB;
     END IF;
     
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'calls' AND column_name = 'ai_processed') THEN
-        ALTER TABLE public.calls ADD COLUMN ai_processed BOOLEAN DEFAULT FALSE;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'fathom_calls' AND column_name = 'ai_processed') THEN
+        ALTER TABLE public.fathom_calls ADD COLUMN ai_processed BOOLEAN DEFAULT FALSE;
     END IF;
     
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'calls' AND column_name = 'ai_processed_at') THEN
-        ALTER TABLE public.calls ADD COLUMN ai_processed_at TIMESTAMPTZ;
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'fathom_calls' AND column_name = 'ai_processed_at') THEN
+        ALTER TABLE public.fathom_calls ADD COLUMN ai_processed_at TIMESTAMPTZ;
     END IF;
 END $$;
 
 -- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_insights_call_id ON public.insights(call_id);
+CREATE INDEX IF NOT EXISTS idx_insights_recording_user ON public.insights(recording_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_insights_type ON public.insights(type);
 CREATE INDEX IF NOT EXISTS idx_insights_confidence ON public.insights(confidence DESC);
 CREATE INDEX IF NOT EXISTS idx_insights_created_at ON public.insights(created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_quotes_call_id ON public.quotes(call_id);
+CREATE INDEX IF NOT EXISTS idx_quotes_recording_user ON public.quotes(recording_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_quotes_significance ON public.quotes(significance DESC);
 CREATE INDEX IF NOT EXISTS idx_quotes_created_at ON public.quotes(created_at DESC);
 
@@ -107,10 +113,10 @@ CREATE INDEX IF NOT EXISTS idx_workspace_members_workspace_id ON public.workspac
 CREATE INDEX IF NOT EXISTS idx_workspace_members_user_id ON public.workspace_members(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_workspace_calls_workspace_id ON public.workspace_calls(workspace_id);
-CREATE INDEX IF NOT EXISTS idx_workspace_calls_call_id ON public.workspace_calls(call_id);
+CREATE INDEX IF NOT EXISTS idx_workspace_calls_recording_user ON public.workspace_calls(recording_id, user_id);
 
-CREATE INDEX IF NOT EXISTS idx_calls_ai_processed ON public.calls(ai_processed);
-CREATE INDEX IF NOT EXISTS idx_calls_sentiment ON public.calls(sentiment);
+CREATE INDEX IF NOT EXISTS idx_calls_ai_processed ON public.fathom_calls(ai_processed);
+CREATE INDEX IF NOT EXISTS idx_calls_sentiment ON public.fathom_calls(sentiment);
 
 -- Enable Row Level Security
 ALTER TABLE public.insights ENABLE ROW LEVEL SECURITY;
@@ -122,44 +128,20 @@ ALTER TABLE public.workspace_calls ENABLE ROW LEVEL SECURITY;
 -- RLS Policies for insights
 CREATE POLICY "Users can view insights from their calls"
     ON public.insights FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.calls
-            WHERE calls.id = insights.call_id
-            AND calls.user_id = auth.uid()
-        )
-    );
+    USING (user_id = auth.uid());
 
 CREATE POLICY "Users can insert insights for their calls"
     ON public.insights FOR INSERT
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.calls
-            WHERE calls.id = insights.call_id
-            AND calls.user_id = auth.uid()
-        )
-    );
+    WITH CHECK (user_id = auth.uid());
 
 -- RLS Policies for quotes
 CREATE POLICY "Users can view quotes from their calls"
     ON public.quotes FOR SELECT
-    USING (
-        EXISTS (
-            SELECT 1 FROM public.calls
-            WHERE calls.id = quotes.call_id
-            AND calls.user_id = auth.uid()
-        )
-    );
+    USING (user_id = auth.uid());
 
 CREATE POLICY "Users can insert quotes for their calls"
     ON public.quotes FOR INSERT
-    WITH CHECK (
-        EXISTS (
-            SELECT 1 FROM public.calls
-            WHERE calls.id = quotes.call_id
-            AND calls.user_id = auth.uid()
-        )
-    );
+    WITH CHECK (user_id = auth.uid());
 
 -- RLS Policies for workspaces
 CREATE POLICY "Users can view their own workspaces"
@@ -220,12 +202,7 @@ CREATE POLICY "Workspace members can add calls to workspace"
             WHERE wm.workspace_id = workspace_calls.workspace_id
             AND wm.user_id = auth.uid()
         )
-        AND
-        EXISTS (
-            SELECT 1 FROM public.calls
-            WHERE calls.id = workspace_calls.call_id
-            AND calls.user_id = auth.uid()
-        )
+        AND workspace_calls.user_id = auth.uid()
     );
 
 -- Create updated_at trigger function if it doesn't exist

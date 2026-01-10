@@ -55,7 +55,7 @@ CREATE TABLE team_shares (
   recipient_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   share_type VARCHAR(20) NOT NULL CHECK (share_type IN ('folder', 'tag')),
   folder_id UUID REFERENCES folders(id) ON DELETE CASCADE,
-  tag_id UUID REFERENCES user_tags(id) ON DELETE CASCADE,
+  tag_id UUID REFERENCES call_tags(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
 
   -- Ensure folder_id is set when share_type is 'folder'

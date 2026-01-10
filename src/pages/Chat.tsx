@@ -522,6 +522,29 @@ export default function Chat() {
     selectedModel,
   ]);
 
+  // Cleanup empty sessions after workflow errors
+  // If status becomes "error" and the session has no messages, delete it
+  React.useEffect(() => {
+    const sessionIdToCheck = currentSessionIdRef.current;
+    if (
+      status === "error" &&
+      sessionIdToCheck &&
+      messages.length === 0
+    ) {
+      console.log('[Chat] Workflow error with empty session, cleaning up:', sessionIdToCheck);
+      // Delete the empty session after a short delay to allow error handling
+      setTimeout(async () => {
+        try {
+          await deleteSession(sessionIdToCheck);
+          // Navigate away from deleted session
+          navigate('/chat', { replace: true });
+        } catch (err) {
+          console.error('[Chat] Failed to cleanup empty session:', err);
+        }
+      }, 1000);
+    }
+  }, [status, messages.length, deleteSession, navigate]);
+
   // Fetch available filters on mount
   React.useEffect(() => {
     // Track if component is still mounted to prevent state updates after unmount

@@ -260,7 +260,10 @@ export function useChatSession(userId: string | undefined) {
         if (sessionData && !sessionData.title && typeof firstUserMessage.content === 'string') {
           // Clean up content for title generation
           let cleanContent = firstUserMessage.content.trim();
-          
+
+          // Remove [Context: @[call](recording:id) ...] prefix if present
+          cleanContent = cleanContent.replace(/^\[Context:\s*@\[.*?\]\(recording:\d+\)(?:\s+@\[.*?\]\(recording:\d+\))*\]\s*\n\n/, '');
+
           // Remove potential leading special chars or tool artifacts
           cleanContent = cleanContent.replace(/^[^a-zA-Z0-9]+/, '');
 

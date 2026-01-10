@@ -230,6 +230,7 @@ function diversityFilter<T extends { recording_id: number }>(
 // ============================================
 // TOOL DEFINITIONS (OpenAI Function Format)
 // ============================================
+// Fixed: All properties must be in required array per OpenAI validation
 
 // ============================================
 // GRANULAR TOOL DEFINITIONS
@@ -256,7 +257,7 @@ const tools: OpenAITool[] = [
             description: 'Maximum number of results to return (default: 10)',
           },
         },
-        required: ['query'],
+        required: ['query', 'limit'],
       },
     },
   },
@@ -281,7 +282,7 @@ const tools: OpenAITool[] = [
             description: 'Maximum number of results to return (default: 10)',
           },
         },
-        required: ['speaker'],
+        required: ['speaker', 'query', 'limit'],
       },
     },
   },
@@ -310,7 +311,7 @@ const tools: OpenAITool[] = [
             description: 'Maximum number of results to return (default: 10)',
           },
         },
-        required: ['date_start', 'date_end'],
+        required: ['date_start', 'date_end', 'query', 'limit'],
       },
     },
   },
@@ -335,7 +336,7 @@ const tools: OpenAITool[] = [
             description: 'Maximum number of results to return (default: 10)',
           },
         },
-        required: ['category'],
+        required: ['category', 'query', 'limit'],
       },
     },
   },
@@ -363,7 +364,7 @@ const tools: OpenAITool[] = [
             description: 'Maximum number of results to return (default: 10)',
           },
         },
-        required: ['intent'],
+        required: ['intent', 'query', 'limit'],
       },
     },
   },
@@ -389,7 +390,7 @@ const tools: OpenAITool[] = [
             description: 'Maximum number of results to return (default: 10)',
           },
         },
-        required: ['sentiment'],
+        required: ['sentiment', 'query', 'limit'],
       },
     },
   },
@@ -415,7 +416,7 @@ const tools: OpenAITool[] = [
             description: 'Maximum number of results to return (default: 10)',
           },
         },
-        required: ['topics'],
+        required: ['topics', 'query', 'limit'],
       },
     },
   },
@@ -441,7 +442,7 @@ const tools: OpenAITool[] = [
             description: 'Maximum number of results to return (default: 10)',
           },
         },
-        required: ['tags'],
+        required: ['tags', 'query', 'limit'],
       },
     },
   },
@@ -467,7 +468,7 @@ const tools: OpenAITool[] = [
             description: 'Maximum number of results to return (default: 10)',
           },
         },
-        required: ['entity_type', 'entity_name'],
+        required: ['entity_type', 'entity_name', 'limit'],
       },
     },
   },
@@ -519,7 +520,7 @@ const tools: OpenAITool[] = [
             description: 'Maximum calls to return (default: 20)',
           },
         },
-        required: [],
+        required: ['date_start', 'date_end', 'category', 'speaker', 'limit'],
       },
     },
   },
@@ -600,13 +601,14 @@ const tools: OpenAITool[] = [
                 description: 'Filter by user tags',
               },
             },
+            required: ['speakers', 'date_start', 'date_end', 'categories', 'topics', 'sentiment', 'intent_signals', 'user_tags'],
           },
           limit: {
             type: 'number',
             description: 'Maximum results (default: 10)',
           },
         },
-        required: [],
+        required: ['query', 'filters', 'limit'],
       },
     },
   },
@@ -630,7 +632,7 @@ const tools: OpenAITool[] = [
             description: 'Optional focus area for comparison (e.g., "objections", "pricing discussion", "customer concerns")',
           },
         },
-        required: ['recording_ids'],
+        required: ['recording_ids', 'focus'],
       },
     },
   },
@@ -1118,7 +1120,7 @@ async function executeGetCallsList(
 
   let callsQuery = supabase
     .from('fathom_calls')
-    .select('recording_id, title, created_at, summary, recorded_by_name, category')
+    .select('recording_id, title, created_at, summary, recorded_by_name')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
 
@@ -1129,9 +1131,7 @@ async function executeGetCallsList(
   if (date_end || filters?.date_end) {
     callsQuery = callsQuery.lte('created_at', date_end || filters?.date_end);
   }
-  if (category) {
-    callsQuery = callsQuery.eq('category', category);
-  }
+  // Category filter removed - column doesn't exist on fathom_calls table
 
   const { data: calls, error } = await callsQuery.limit(limit);
 
@@ -1160,11 +1160,10 @@ async function executeGetCallsList(
 
   return {
     total_calls: filteredCalls.length,
-    calls: filteredCalls.map((c: { recording_id: number; title: string; created_at: string; recorded_by_name: string; summary: string | null; category?: string }) => ({
+    calls: filteredCalls.map((c: { recording_id: number; title: string; created_at: string; recorded_by_name: string; summary: string | null }) => ({
       recording_id: c.recording_id,
       title: c.title,
       date: c.created_at,
-      category: c.category,
       recorded_by: c.recorded_by_name,
       summary_preview: c.summary ? c.summary.substring(0, 400) + (c.summary.length > 400 ? '...' : '') : 'No summary',
     })),
@@ -1247,7 +1246,7 @@ async function executeCompareCalls(
   // Fetch call details for all recordings
   const { data: calls, error: callsError } = await supabase
     .from('fathom_calls')
-    .select('recording_id, title, created_at, summary, recorded_by_name, category')
+    .select('recording_id, title, created_at, summary, recorded_by_name')
     .in('recording_id', recording_ids)
     .eq('user_id', user.id);
 
@@ -1295,11 +1294,10 @@ async function executeCompareCalls(
   return {
     comparison_type: focus ? 'focused' : 'general',
     focus_area: focus,
-    calls: calls.map((c: { recording_id: number; title: string; created_at: string; category?: string; recorded_by_name: string; summary: string | null }) => ({
+    calls: calls.map((c: { recording_id: number; title: string; created_at: string; recorded_by_name: string; summary: string | null }) => ({
       recording_id: c.recording_id,
       title: c.title,
       date: c.created_at,
-      category: c.category,
       recorded_by: c.recorded_by_name,
       summary: c.summary ? c.summary.substring(0, 800) : 'No summary',
     })),

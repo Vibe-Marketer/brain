@@ -36,6 +36,15 @@ CREATE POLICY "Users can delete their own generated content"
     ON public.generated_content FOR DELETE
     USING (user_id = auth.uid());
 
+-- Create updated_at trigger function if it doesn't exist
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- Add updated_at trigger
 DROP TRIGGER IF EXISTS update_generated_content_updated_at ON public.generated_content;
 CREATE TRIGGER update_generated_content_updated_at

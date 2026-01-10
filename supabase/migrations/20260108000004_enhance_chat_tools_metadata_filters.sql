@@ -148,7 +148,9 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION public.hybrid_search_transcripts IS 'Hybrid search using RRF (Reciprocal Rank Fusion) combining semantic and keyword search with flexible filtering including topics, sentiment, intent signals, and user tags';
+COMMENT ON FUNCTION public.hybrid_search_transcripts(
+  TEXT, vector(1536), INT, FLOAT, FLOAT, INT, UUID, TIMESTAMPTZ, TIMESTAMPTZ, TEXT[], TEXT[], BIGINT[], TEXT[], TEXT, TEXT[], TEXT[]
+) IS 'Hybrid search using RRF (Reciprocal Rank Fusion) combining semantic and keyword search with flexible filtering including topics, sentiment, intent signals, and user tags';
 
 -- =============================================
 -- PART 2: METADATA DISCOVERY FUNCTION
@@ -288,9 +290,13 @@ COMMENT ON FUNCTION public.get_available_metadata IS 'Retrieve distinct metadata
 -- =============================================
 
 -- Grant execute permissions for authenticated users
-GRANT EXECUTE ON FUNCTION public.hybrid_search_transcripts TO authenticated;
-GRANT EXECUTE ON FUNCTION public.get_available_metadata TO authenticated;
+GRANT EXECUTE ON FUNCTION public.hybrid_search_transcripts(
+  TEXT, vector(1536), INT, FLOAT, FLOAT, INT, UUID, TIMESTAMPTZ, TIMESTAMPTZ, TEXT[], TEXT[], BIGINT[], TEXT[], TEXT, TEXT[], TEXT[]
+) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_available_metadata(UUID, TEXT) TO authenticated;
 
 -- Grant execute permissions for service role (for Edge Functions)
-GRANT EXECUTE ON FUNCTION public.hybrid_search_transcripts TO service_role;
-GRANT EXECUTE ON FUNCTION public.get_available_metadata TO service_role;
+GRANT EXECUTE ON FUNCTION public.hybrid_search_transcripts(
+  TEXT, vector(1536), INT, FLOAT, FLOAT, INT, UUID, TIMESTAMPTZ, TIMESTAMPTZ, TEXT[], TEXT[], BIGINT[], TEXT[], TEXT, TEXT[], TEXT[]
+) TO service_role;
+GRANT EXECUTE ON FUNCTION public.get_available_metadata(UUID, TEXT) TO service_role;
