@@ -8,7 +8,7 @@
 -- ============================================================================
 -- Organizations that group users together with shared access controls
 -- Each team has an owner (admin) and optional settings for visibility
-CREATE TABLE teams (
+CREATE TABLE IF NOT EXISTS public.teams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   owner_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,

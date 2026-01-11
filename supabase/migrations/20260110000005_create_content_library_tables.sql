@@ -11,7 +11,7 @@
 CREATE TABLE IF NOT EXISTS public.content_library (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  team_id UUID REFERENCES teams(id) ON DELETE SET NULL,
+  team_id UUID REFERENCES public.teams(id) ON DELETE SET NULL,
   content_type TEXT NOT NULL CHECK (content_type IN ('email', 'social', 'testimonial', 'insight', 'other')),
   title TEXT NOT NULL,
   content TEXT NOT NULL,

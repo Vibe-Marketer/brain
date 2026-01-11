@@ -12,7 +12,7 @@
 CREATE TABLE IF NOT EXISTS public.insights (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  recording_id BIGINT NOT NULL REFERENCES public.fathom_calls(recording_id) ON DELETE CASCADE,
+  recording_id BIGINT NOT NULL,
 
   -- Insight classification
   category TEXT NOT NULL CHECK (category IN (
@@ -43,7 +43,13 @@ CREATE TABLE IF NOT EXISTS public.insights (
   CONSTRAINT insights_why_it_matters_length CHECK (why_it_matters IS NULL OR char_length(why_it_matters) <= 2000),
   CONSTRAINT insights_speaker_length CHECK (speaker IS NULL OR char_length(speaker) <= 255),
   CONSTRAINT insights_topic_hint_length CHECK (topic_hint IS NULL OR char_length(topic_hint) <= 500),
-  CONSTRAINT insights_emotion_category_length CHECK (emotion_category IS NULL OR char_length(emotion_category) <= 100)
+  CONSTRAINT insights_emotion_category_length CHECK (emotion_category IS NULL OR char_length(emotion_category) <= 100),
+
+  -- Composite foreign key to fathom_calls
+  CONSTRAINT insights_fathom_call_fkey
+    FOREIGN KEY (recording_id, user_id)
+    REFERENCES public.fathom_calls(recording_id, user_id)
+    ON DELETE CASCADE
 );
 
 -- ============================================================================
