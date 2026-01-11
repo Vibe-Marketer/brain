@@ -1,4 +1,4 @@
-# Hybrid RAG Implementation Plan for Conversion Brain Meeting Transcripts
+# Hybrid RAG Implementation Plan for CallVault Meeting Transcripts
 
 **Created:** 2025-11-25
 **Source:** AI Automators research + Current codebase analysis

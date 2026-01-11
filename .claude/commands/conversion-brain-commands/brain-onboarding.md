@@ -1,17 +1,17 @@
 ---
 name: brain-onboarding
 description: |
-  Onboard new developers to the Conversion Brain codebase with a comprehensive overview and first contribution guidance.
+  Onboard new developers to the CallVault codebase with a comprehensive overview and first contribution guidance.
 
   Usage: /brain-onboarding
 argument-hint: none
 ---
 
-You are helping a new developer get up and running with the Conversion Brain project! Your goal is to provide them with a personalized onboarding experience.
+You are helping a new developer get up and running with the CallVault project! Your goal is to provide them with a personalized onboarding experience.
 
-## What is Conversion Brain?
+## What is CallVault?
 
-Conversion Brain is a meeting intelligence platform that syncs with Fathom to process call transcripts, categorize meetings, and provide analytics. It helps users organize and analyze their sales calls.
+CallVault is a meeting intelligence platform that syncs with Fathom to process call transcripts, categorize meetings, and provide analytics. It helps users organize and analyze their sales calls.
 
 ## Quick Architecture Overview
 
@@ -50,7 +50,7 @@ First, read the README.md file to understand the setup process, then guide the u
 
 Ask the user to choose their focus area. Present these options clearly and wait for their response:
 
-"Which area of Conversion Brain would you like to explore first?"
+"Which area of CallVault would you like to explore first?"
 
 1. **UI Components (React)** - If you enjoy UI/UX work
 2. **Data Fetching (TanStack Query)** - If you like state management patterns

@@ -1,19 +1,19 @@
 ---
-description: Generate Root Cause Analysis report for Conversion Brain issues
+description: Generate Root Cause Analysis report for CallVault issues
 argument-hint: <issue description or error message>
 allowed-tools: Bash(*), Read, Grep, LS, Write
 thinking: auto
 ---
 
-# Root Cause Analysis for Conversion Brain
+# Root Cause Analysis for CallVault
 
 **Issue to investigate**: $ARGUMENTS
 
 Investigate this issue systematically and generate an RCA report saved to `RCA.md` in the project root.
 
-## Context About Conversion Brain
+## Context About CallVault
 
-You're working with Conversion Brain, a meeting intelligence platform:
+You're working with CallVault, a meeting intelligence platform:
 
 - **Frontend**: React + TypeScript + Vite + TanStack Query
 - **Backend**: Supabase Edge Functions (Deno runtime)

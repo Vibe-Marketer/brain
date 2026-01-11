@@ -1,7 +1,7 @@
 ---
 name: prime
 description: |
-  Prime Claude Code with deep context for a specific part of the Conversion Brain codebase.
+  Prime Claude Code with deep context for a specific part of the CallVault codebase.
 
   Usage: /prime "<area>" "<special focus>"
   Examples:
@@ -11,7 +11,7 @@ description: |
 argument-hint: <area> <Specific focus>
 ---
 
-You're about to work on the Conversion Brain codebase. This is a meeting intelligence platform with React frontend and Supabase Edge Functions backend.
+You're about to work on the CallVault codebase. This is a meeting intelligence platform with React frontend and Supabase Edge Functions backend.
 
 ## Today's Focus area
 

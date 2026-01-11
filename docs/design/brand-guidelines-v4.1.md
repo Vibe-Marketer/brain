@@ -3174,7 +3174,7 @@ This document follows semantic versioning to track changes:
 
 ### v4.0 - December 4, 2025
 
-- Major rebrand from "Conversion Brain" to "Call Vault"
+- Major rebrand from "CallVault" to "Call Vault"
 - Color system changed from Vibe Green (#D9FC67) to Vibe Orange (#FF8800)
 - Added new Vibe Orange variants: Dark (#FF3D00) and Light (#FFEB00)
 - Added Brand Identity & Logo section with new logo specifications
@@ -3207,7 +3207,7 @@ This version reference must match the title at the top of the document.
 
 **This document supersedes:**
 
-- All previous brand guideline versions (including Conversion Brain v3.3.9)
+- All previous brand guideline versions (including CallVault v3.3.9)
 - Any conflicting component documentation
 - Verbal instructions given during development
 - Legacy component implementations

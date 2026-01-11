@@ -1,7 +1,7 @@
 # Troubleshooting Session - 2025-12-03
 
 ## Session Summary
-Comprehensive troubleshooting session addressing multiple critical issues in the Conversion Brain application.
+Comprehensive troubleshooting session addressing multiple critical issues in the CallVault application.
 
 ## Issues Diagnosed & Fixed
 
