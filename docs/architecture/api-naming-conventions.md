@@ -556,5 +556,5 @@ For implementation examples, see:
 Related documentation for complete pattern enforcement:
 
 - **Brand Guidelines**: `BRAND_GUIDELINES.md` - Visual and UI naming conventions
-- **Design Principles**: `docs/design/design-principles-conversion-brain.md` - Component design patterns
+- **Design Principles**: `docs/design/design-principles-callvault.md` - Component design patterns
 - **Supabase Types**: `src/integrations/supabase/types.ts` - Database type definitions

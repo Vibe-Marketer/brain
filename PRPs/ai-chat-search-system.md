@@ -306,7 +306,7 @@ _"If someone knew nothing about this codebase, would they have everything needed
 ### Complete Codebase Tree
 
 ```bash
-conversion-brain/
+callvault/
 ├── README.md
 ├── package.json
 ├── tsconfig.json

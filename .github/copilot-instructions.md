@@ -49,7 +49,7 @@ Architecture Decision Records (ADRs):
 
 Key reference files:
 - Brand guidelines: `docs/design/brand-guidelines-v4.1.md` (UI/design rules)
-- Design principles: `docs/design/design-principles-conversion-brain.md` (world-class SaaS design)
+- Design principles: `docs/design/design-principles-callvault.md` (world-class SaaS design)
 - **API naming conventions: `docs/architecture/api-naming-conventions.md` (function/hook/type naming)**
 - AI SDK examples: `docs/ai-sdk-cookbook-examples/` (Vercel AI SDK patterns)
 - ADR system: `docs/adr/` (architectural decisions)
