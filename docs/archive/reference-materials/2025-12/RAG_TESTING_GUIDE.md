@@ -71,7 +71,7 @@ You can find your user ID in several ways:
 
 ### Option 2: From Browser Console
 
-1. Open your Conversion Brain app
+1. Open your CallVault app
 2. Open browser DevTools (F12)
 3. Run in console:
 

@@ -1315,7 +1315,7 @@ You’re now going for a tighter, more compact, “native app” feel with a **s
 
 ## Executive summary
 
-This document describes the **desktop-style chat layout** for Conversion Brain with a single dominant app card and an integrated sidebar.  The layout should feel like a modern Mac app: tight paddings, minimal separators, and precise, subtle depth.[1]
+This document describes the **desktop-style chat layout** for CallVault with a single dominant app card and an integrated sidebar.  The layout should feel like a modern Mac app: tight paddings, minimal separators, and precise, subtle depth.[1]
 
 **Key shifts from the old spec:**
 

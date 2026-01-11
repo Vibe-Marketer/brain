@@ -1,4 +1,4 @@
-# AI SDK Patterns - Conversion Brain
+# AI SDK Patterns - CallVault
 
 ## Last Updated: 2025-12-04
 
@@ -52,7 +52,7 @@ async function* streamOpenRouterChat(
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
       'HTTP-Referer': 'https://conversionbrain.ai',
-      'X-Title': 'Conversion Brain',
+      'X-Title': 'CallVault',
     },
     body: JSON.stringify({
       model,

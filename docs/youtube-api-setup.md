@@ -20,7 +20,7 @@
 
 ## Overview
 
-The Conversion Brain project has integrated YouTube API capabilities for video research, transcript extraction, and content analysis. This enables automated research workflows, content analysis pipelines, and integration with Fabric patterns for insights extraction.
+The CallVault project has integrated YouTube API capabilities for video research, transcript extraction, and content analysis. This enables automated research workflows, content analysis pipelines, and integration with Fabric patterns for insights extraction.
 
 ### What You Can Do
 
@@ -208,7 +208,7 @@ include_timestamp=true" \
 
 ### 3. Supabase Edge Functions
 
-For production workflows integrated with Conversion Brain database.
+For production workflows integrated with CallVault database.
 
 **Potential Edge Function:** `fetch-youtube-transcript/` (create as needed)
 
@@ -375,7 +375,7 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 2. Fetch top 10 video transcripts
 3. Run through `fabric --pattern sales`
 4. Extract common patterns and techniques
-5. Store insights in Conversion Brain database
+5. Store insights in CallVault database
 
 **Implementation:**
 
@@ -445,7 +445,7 @@ cat video_transcript.txt | fabric --pattern extract_wisdom
 2. Fetch transcripts with timestamps
 3. Extract key concepts using Fabric `extract_wisdom`
 4. Organize into training modules
-5. Store in Conversion Brain knowledge base
+5. Store in CallVault knowledge base
 
 **Implementation:**
 
@@ -743,5 +743,5 @@ echo $VIDEO_ID  # Should output: dQw4w9WgXcQ
 ---
 
 **Last Updated:** 2025-11-25
-**Maintainer:** Conversion Brain Development Team
-**Version:** 1.0.0
+**Maintainer:** vibe-marketer, claude code
+**Version:** 1.1.0

@@ -8,7 +8,7 @@
 
 ## Executive Summary
 
-This document outlines the requirements, approaches, and recommendations for expanding Conversion Brain's transcript/recording integration capabilities beyond the current Fathom-only support. The research covers **PLAUD**, **Zoom**, **Apple Voice Memos**, **YouTube**, and **custom video uploads**.
+This document outlines the requirements, approaches, and recommendations for expanding CallVault's transcript/recording integration capabilities beyond the current Fathom-only support. The research covers **PLAUD**, **Zoom**, **Apple Voice Memos**, **YouTube**, and **custom video uploads**.
 
 **Key Finding:** PLAUD has a full Developer Platform with SDK/API that can be integrated similarly to Fathom. Other sources will require varying levels of effort, from API integration (Zoom) to manual upload workflows (Voice Memos, custom videos).
 
@@ -131,7 +131,7 @@ PLAUD provides structured JSON output with:
 PLAUD now has Zapier integration (beta). Could be used for quick prototyping:
 
 - Trigger: New PLAUD recording
-- Action: Send to webhook → Process in Conversion Brain
+- Action: Send to webhook → Process in CallVault
 
 #### Export Formats (Manual Fallback)
 
@@ -247,7 +247,7 @@ Apple Voice Memos does **NOT** have a public API. Integration requires manual or
 
 #### Option A: Manual Upload (Recommended)
 
-Users export Voice Memos and upload to Conversion Brain:
+Users export Voice Memos and upload to CallVault:
 
 1. **Export from iOS/macOS**: Voice Memo → Share → Save to Files
 2. **Upload in CB**: Drag & drop M4A file
@@ -352,7 +352,7 @@ GET /youtube/v3/captions/{captionId}
 │                  YOUTUBE INTEGRATION                         │
 ├─────────────────────────────────────────────────────────────┤
 │                                                              │
-│  1. User pastes YouTube URL in Conversion Brain              │
+│  1. User pastes YouTube URL in CallVault              │
 │                                                              │
 │  2. Edge Function: fetch-youtube-transcript                  │
 │     └─► Extract video ID from URL                           │

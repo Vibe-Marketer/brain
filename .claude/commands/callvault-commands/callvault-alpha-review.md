@@ -1,11 +1,11 @@
 ---
-description: Perform comprehensive code review for Conversion Brain, saves report to `code-review.md`
+description: Perform comprehensive code review for CallVault, saves report to `code-review.md`
 argument-hint: <PR number, branch name, file path, or leave empty for staged changes>
 allowed-tools: Bash(*), Read, Grep, LS, Write
 thinking: auto
 ---
 
-# Code Review for Conversion Brain
+# Code Review for CallVault
 
 **Review scope**: $ARGUMENTS
 
@@ -13,7 +13,7 @@ I'll perform a comprehensive code review and generate a report saved to the root
 
 ## Context
 
-You're reviewing code for Conversion Brain, which uses:
+You're reviewing code for CallVault, which uses:
 
 - **Frontend**: React + TypeScript + Vite + TailwindCSS + TanStack Query
 - **Backend**: Supabase Edge Functions (Deno runtime)

@@ -29,7 +29,7 @@
 
 ## User Persona
 
-**Target User**: Product Manager / Sales Leader using Conversion Brain
+**Target User**: Product Manager / Sales Leader using CallVault
 
 **Demographics**:
 
@@ -66,7 +66,7 @@
   - For PMs: Quickly surface product feedback patterns across all customer calls
   - For Sales: Find objection handling examples from successful deals
   - For CS: Identify churn signals from recent support conversations
-- **Strategic Priority**: Differentiates Conversion Brain from transcript storage tools (Fireflies, Gong) by adding AI-powered insights layer
+- **Strategic Priority**: Differentiates CallVault from transcript storage tools (Fireflies, Gong) by adding AI-powered insights layer
 
 ---
 
@@ -1854,7 +1854,7 @@ export default async function handler(req: Request) {
 // FOLLOW pattern: RAG system prompt from AI SDK RAG guide
 // CRITICAL: Enforce citation requirement, no hallucination
 
-export const RAG_SYSTEM_PROMPT = `You are an AI assistant with access to the user's meeting transcripts and customer conversations from Conversion Brain.
+export const RAG_SYSTEM_PROMPT = `You are an AI assistant with access to the user's meeting transcripts and customer conversations from CallVault.
 
 CRITICAL RULES:
 1. ONLY use information from the provided transcript excerpts below

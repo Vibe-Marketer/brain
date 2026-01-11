@@ -48,7 +48,7 @@
 
 ## CORE DESIGN PHILOSOPHY
 
-Conversion Brain embodies **Apple-level precision** in a professional data-first tool.
+CallVault embodies **Apple-level precision** in a professional data-first tool.
 
 ### Guiding Principles
 
@@ -74,7 +74,7 @@ Information > Structure > Style > Decoration
 
 ### Background Hierarchy (CRITICAL)
 
-Conversion Brain uses **two-layer background system**:
+CallVault uses **two-layer background system**:
 
 **Light Mode:**
 

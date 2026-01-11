@@ -1223,7 +1223,7 @@ Deno.serve(async (req) => {
     const todayStr = today.toISOString().split('T')[0];
 
     // System prompt
-    const systemPrompt = `You are an intelligent assistant for Conversion Brain, helping users analyze their meeting transcripts and extract insights.
+    const systemPrompt = `You are an intelligent assistant for CallVault, helping users analyze their meeting transcripts and extract insights.
 
 Your capabilities:
 - Search through meeting transcripts to find relevant information

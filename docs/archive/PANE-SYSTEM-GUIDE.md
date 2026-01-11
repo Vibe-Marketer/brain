@@ -1,6 +1,6 @@
 # Pane System Guide
 
-The Conversion Brain pane system provides a flexible, non-overlay approach to displaying supplementary content alongside the main view. It supports two-pane and three-pane layouts with smooth CSS Grid transitions.
+The CallVault pane system provides a flexible, non-overlay approach to displaying supplementary content alongside the main view. It supports two-pane and three-pane layouts with smooth CSS Grid transitions.
 
 ## Core Principles
 

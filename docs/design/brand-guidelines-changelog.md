@@ -73,7 +73,7 @@ This file tracks all changes to `brand-guidelines-v4.1.md`.
 **Git Commit:** pending
 **Summary:** Major version - rebrand and comprehensive expansion
 
-- **RENAMED:** Product from "Conversion Brain" to "Call Vault"
+- **RENAMED:** Product from "CallVault" to "Call Vault"
 - **ADDED:** Brand Identity & Logo section with:
   - Brand name usage table (Call Vault, Call Vault AI, CALLVAULT)
   - Logo asset specifications (Full Logo, Wordmark Only, Icon Only)
@@ -82,7 +82,7 @@ This file tracks all changes to `brand-guidelines-v4.1.md`.
   - Logo clear space and misuse guidelines
 - **ADDED:** Gradient usage specifications ("White Hot to Lava" direction)
 - **UPDATED:** Color system with refined vibe orange gradient colors
-- **UPDATED:** Supersedes notice to reference "Conversion Brain v3.3.9"
+- **UPDATED:** Supersedes notice to reference "CallVault v3.3.9"
 
 ---
 

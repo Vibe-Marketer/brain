@@ -1,6 +1,6 @@
 # PRP: AI Chat Interface with Visual Agent Builder & Hybrid RAG Knowledge Base
 
-**Project:** Conversion Brain - AI Chat Agent System
+**Project:** CallVault - AI Chat Agent System
 **Status:** Planning
 **Created:** 2025-01-23
 **Last Updated:** 2025-01-23
@@ -11,14 +11,14 @@
 
 ## EXECUTIVE SUMMARY
 
-Implement a comprehensive AI chat system for Conversion Brain that enables users to interact with their transcript knowledge base through:
+Implement a comprehensive AI chat system for CallVault that enables users to interact with their transcript knowledge base through:
 
 1. **Prompt-Kit Chat Interface** - Modern streaming chat UI with Vercel AI SDK integration
 2. **Visual Agent Builder** - React Flow-based canvas for creating and configuring AI agents
 3. **Hybrid RAG Knowledge Base** - Temporal & relational semantic search over transcripts using pgvector
 4. **Agent Orchestration** - Multi-agent workflows with tool calling and state management
 
-This system transforms Conversion Brain from a passive transcript storage tool into an active conversational intelligence platform.
+This system transforms CallVault from a passive transcript storage tool into an active conversational intelligence platform.
 
 ---
 
@@ -40,7 +40,7 @@ This system transforms Conversion Brain from a passive transcript storage tool i
 
 ### Current State
 
-Conversion Brain currently:
+CallVault currently:
 
 - Stores meeting transcripts from Fathom/Zoom in `fathom_transcripts` table
 - Provides manual search and filtering capabilities
@@ -703,7 +703,7 @@ Deno.serve(async (req) => {
   // Create agent with RAG tool
   const agent = new ToolLoopAgent({
     model: openai('gpt-4-turbo'),
-    instructions: `You are a helpful assistant for Conversion Brain.
+    instructions: `You are a helpful assistant for CallVault.
     You help users analyze their meeting transcripts and extract insights.
     Always cite sources with recording IDs when providing information.`,
 
@@ -1434,4 +1434,4 @@ Use prompt-kit components built on shadcn/ui and Tailwind.
 
 **END OF PRP**
 
-*This PRP provides a comprehensive blueprint for implementing the AI Chat Interface with Visual Agent Builder and Hybrid RAG Knowledge Base. All architectural decisions, database schemas, component structures, and implementation phases are designed to integrate seamlessly with the existing Conversion Brain codebase while following established patterns and brand guidelines.*
+*This PRP provides a comprehensive blueprint for implementing the AI Chat Interface with Visual Agent Builder and Hybrid RAG Knowledge Base. All architectural decisions, database schemas, component structures, and implementation phases are designed to integrate seamlessly with the existing CallVault codebase while following established patterns and brand guidelines.*

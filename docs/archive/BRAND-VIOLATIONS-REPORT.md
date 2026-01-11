@@ -9,7 +9,7 @@
 
 ## EXECUTIVE SUMMARY
 
-The Conversion Brain codebase contains **significant violations** of the brand guidelines v3.3.7, affecting consistency, maintainability, and visual coherence. This report identifies violations categorized by severity.
+The CallVault codebase contains **significant violations** of the brand guidelines v3.3.7, affecting consistency, maintainability, and visual coherence. This report identifies violations categorized by severity.
 
 ### Quick Stats
 

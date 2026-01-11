@@ -1,12 +1,12 @@
 ---
 name: prime-simple
-description: Quick context priming for Conversion Brain development - reads essential files and provides project overview
+description: Quick context priming for CallVault development - reads essential files and provides project overview
 argument-hint: none
 ---
 
-## Prime Context for Conversion Brain Development
+## Prime Context for CallVault Development
 
-You need to quickly understand the Conversion Brain codebase. Follow these steps:
+You need to quickly understand the CallVault codebase. Follow these steps:
 
 ### 1. Read Project Documentation
 
@@ -48,7 +48,7 @@ Read these essential files in `supabase/functions/`:
 
 After reading these files, explain to the user:
 
-1. **Project Purpose**: One sentence about what Conversion Brain does
+1. **Project Purpose**: One sentence about what CallVault does
 2. **Architecture**: One sentence about React + TanStack Query + Supabase Edge Functions
 3. **Key Patterns**: One sentence about data fetching and UI patterns
 4. **Tech Stack**: One sentence about the tech stack
