@@ -583,14 +583,16 @@ supabase functions deploy fetch-youtube-data
 import { supabase } from '@/lib/supabase';
 
 // Get transcript
-const { data: transcript } = await supabase.functions.invoke('fetch-youtube-data', {
-  body: { videoId: 'dQw4w9WgXcQ', action: 'transcript' },
-});
+const { data: transcript } = await supabase.functions.invoke(
+  'fetch-youtube-data',
+  { body: { videoId: 'dQw4w9WgXcQ' } }
+);
 
 // Get metadata
-const { data: metadata } = await supabase.functions.invoke('fetch-youtube-data', {
-  body: { videoId: 'dQw4w9WgXcQ', action: 'metadata' },
-});
+const { data: metadata } = await supabase.functions.invoke(
+  'fetch-youtube-data',
+  { body: { videoId: 'dQw4w9WgXcQ', action: 'metadata' } }
+);
 ```
 
 ---
@@ -599,149 +601,41 @@ const { data: metadata } = await supabase.functions.invoke('fetch-youtube-data',
 
 ### Common Issues
 
-#### 1. "API key not valid" Error
+#### "Invalid API Key"
 
-**YouTube Data API:**
+- Verify key is correct in `.env.local`
+- Check that key hasn't been revoked in Google Cloud Console
+- Ensure key is set for YouTube Data API v3
 
-- Verify key is correct in `.env` or `.env.local`
-- Check that API is enabled in Google Cloud Console
-- Ensure billing is enabled (even for free tier)
-- Confirm no IP restrictions on API key
+#### "Quota Exceeded"
 
-**Transcript API:**
+- Check current quota usage in Google Cloud Console
+- Wait for daily reset (midnight PST/PDT)
+- Optimize requests to use fewer quota units
+- Consider enabling paid quota
 
-- Verify Bearer token format: `Bearer sk_...`
-- Check subscription status at transcriptapi.com
-- Ensure key hasn't expired
+#### "Transcript Not Available"
 
-#### 2. "Quota exceeded" Error
+- Not all YouTube videos have transcripts
+- Check Transcript API documentation for supported languages
+- Verify video ID is correct
+- Some videos may have disabled transcript access
 
-**YouTube Data API:**
+#### "CORS Error in Browser"
 
-- Check daily quota usage in Google Cloud Console
-- Wait until midnight PST for quota reset
-- Optimize queries to use fewer quota units
-- Consider upgrading to paid tier
+- Ensure Supabase Edge Function is properly deployed
+- Check CORS headers in Edge Function response
+- Verify frontend is calling the correct endpoint
 
-**Transcript API:**
+#### Rate Limiting (429 errors)
 
-- Check monthly usage on account dashboard
-- Wait for monthly reset or upgrade plan
-- Implement caching to reduce API calls
-
-#### 3. "Transcript not available" Error
-
-**Causes:**
-
-- Video doesn't have captions/transcripts
-- Video is private or deleted
-- Language not supported
-- Recent upload (transcripts may take time)
-
-**Solutions:**
-
-- Check `send_metadata=true` to verify availability
-- Try different video from same channel
-- Wait 24 hours for recent uploads
-
-#### 4. Rate Limiting (429 Error)
-
-**Transcript API:**
-
-- Implement exponential backoff
-- Add delays between requests (100-500ms)
-- Batch requests with proper spacing
-- Check rate limits in API docs
-
-**YouTube Data API:**
-
-- Less common, usually quota issue
+- Implement exponential backoff in retry logic
 - Reduce request frequency
-- Use `maxResults` parameter efficiently
+- Check rate limits for both APIs
 
-#### 5. CORS Errors (in browser)
+### Getting Help
 
-**Edge Function:**
-
-- Ensure CORS headers are set correctly
-- Handle OPTIONS preflight requests
-- Check Supabase function CORS config
-
-**Direct API calls:**
-
-- Use Edge Function as proxy
-- Don't call APIs directly from browser
-- YouTube Data API supports CORS, Transcript API may not
-
-### Debugging Tips
-
-**Test API keys directly:**
-
-```bash
-# Test YouTube Data API
-curl -s "https://www.googleapis.com/youtube/v3/videos?part=snippet&id=dQw4w9WgXcQ&key=${YOUTUBE_DATA_API_KEY}" | jq
-
-# Test Transcript API
-curl -s "https://transcriptapi.com/api/v2/youtube/transcript?video_url=dQw4w9WgXcQ&format=text" \
-  -H "Authorization: Bearer ${TRANSCRIPT_API_KEY}" | jq
-```
-
-**Check environment variables:**
-
-```bash
-# In project root
-source .env
-echo $YOUTUBE_DATA_API_KEY
-echo $TRANSCRIPT_API_KEY
-
-# In Edge Function
-supabase secrets list
-```
-
-**Monitor quota usage:**
-
-- Google Cloud Console → APIs & Services → Quotas
-- YouTube Data API v3 → Queries per day
-
-**Verify video ID extraction:**
-
-```bash
-# Valid formats:
-# https://www.youtube.com/watch?v=VIDEO_ID
-# https://youtu.be/VIDEO_ID
-# VIDEO_ID (11 characters)
-
-VIDEO_URL="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-VIDEO_ID=$(echo "$VIDEO_URL" | sed -n 's/.*v=\([^&]*\).*/\1/p')
-echo $VIDEO_ID  # Should output: dQw4w9WgXcQ
-```
-
----
-
-## Additional Resources
-
-### Documentation
-
-- [YouTube Data API v3 Reference](https://developers.google.com/youtube/v3/docs)
-- [Transcript API Documentation](https://transcriptapi.com/docs)
-- [Supabase Edge Functions Guide](https://supabase.com/docs/guides/functions)
-- [Fabric Patterns Repository](https://github.com/danielmiessler/fabric)
-
-### Related Files
-
-- Slash command: `.claude/commands/youtube.md`
-- Environment config: `.env`, `.env.local`
-- Supabase functions: `supabase/functions/`
-- API client: `src/lib/api-client.ts`
-
-### Support
-
-- YouTube API Quota Issues: Google Cloud Support
-- Transcript API Issues: <support@transcriptapi.com>
-- Edge Function Issues: Supabase Discord/Support
-
----
-
-**Last Updated:** 2025-11-25
-**Maintainer:** vibe-marketer, claude code
-**Version:** 1.1.0
+- YouTube Data API: <https://developers.google.com/youtube/v3/docs>
+- Transcript API: <https://transcriptapi.com/docs>
+- Supabase: <https://supabase.com/docs>
+- Check API error responses for specific error details
