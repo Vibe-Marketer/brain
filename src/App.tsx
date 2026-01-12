@@ -25,6 +25,14 @@ import CollaborationPage from '@/pages/CollaborationPage';
 import { ContentLibraryPage } from '@/components/content-library/ContentLibraryPage';
 import { TemplatesPage } from '@/components/content-library/TemplatesPage';
 
+// Content Hub pages
+import ContentHub from '@/pages/ContentHub';
+import ContentGenerators from '@/pages/ContentGenerators';
+import CallContentGenerator from '@/pages/CallContentGenerator';
+import HooksLibrary from '@/pages/HooksLibrary';
+import PostsLibrary from '@/pages/PostsLibrary';
+import EmailsLibrary from '@/pages/EmailsLibrary';
+
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,7 +59,8 @@ function App() {
 
                     {/* OAuth callback routes */}
                     <Route path="/oauth/callback" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
-                    <Route path="/oauth/callback/google" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
+                    <Route path="/oauth/callback/meet" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
+                    <Route path="/oauth/callback/zoom" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
 
                     {/* Main app routes */}
                     <Route path="/" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
@@ -77,6 +86,14 @@ function App() {
                     {/* Content Library routes */}
                     <Route path="/library" element={<ProtectedRoute><Layout><ContentLibraryPage /></Layout></ProtectedRoute>} />
                     <Route path="/templates" element={<ProtectedRoute><Layout><TemplatesPage /></Layout></ProtectedRoute>} />
+
+                    {/* Content Hub routes */}
+                    <Route path="/content" element={<ProtectedRoute><Layout><ContentHub /></Layout></ProtectedRoute>} />
+                    <Route path="/content/generators" element={<ProtectedRoute><Layout><ContentGenerators /></Layout></ProtectedRoute>} />
+                    <Route path="/content/generators/call-content" element={<ProtectedRoute><Layout><CallContentGenerator /></Layout></ProtectedRoute>} />
+                    <Route path="/content/library/hooks" element={<ProtectedRoute><Layout><HooksLibrary /></Layout></ProtectedRoute>} />
+                    <Route path="/content/library/posts" element={<ProtectedRoute><Layout><PostsLibrary /></Layout></ProtectedRoute>} />
+                    <Route path="/content/library/emails" element={<ProtectedRoute><Layout><EmailsLibrary /></Layout></ProtectedRoute>} />
 
                     {/* Call detail route for search result navigation */}
                     <Route path="/call/:callId" element={<ProtectedRoute><Layout><CallDetailPage /></Layout></ProtectedRoute>} />

@@ -1021,6 +1021,32 @@ Task({
 
 ---
 
+# TESTING & BROWSER AUTOMATION
+
+## Test Credentials Location
+
+**IMPORTANT**: When using MCP browser automation (claude-in-chrome, chrome-devtools) to test the app:
+
+1. **Test credentials are stored in `.env.local`**:
+   - `CALLVAULTAI_LOGIN` - Test account email
+   - `CALLVAULTAI_LOGIN_PASSWORD` - Test account password
+
+2. **Before testing**, read these values:
+   ```bash
+   grep -E "CALLVAULTAI_LOGIN" .env.local
+   ```
+
+3. **Local dev server** runs at `http://localhost:8080`
+
+## Testing Workflow
+
+1. Read credentials from `.env.local`
+2. Navigate to `http://localhost:8080`
+3. Sign in with test credentials
+4. Proceed with feature testing
+
+---
+
 **END OF CLAUDE INSTRUCTIONS**
 
 This document represents the complete development guide for CallVault. All implementations must follow these standards exactly.

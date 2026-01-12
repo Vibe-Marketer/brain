@@ -18,10 +18,12 @@ import {
   RiTrophyLine,
   RiAlertLine,
   RiQuestionLine,
+  RiVideoLine,
+  RiGoogleLine,
 } from '@remixicon/react';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import type { SearchResult, SearchInsightType } from '@/types/search';
+import type { SearchResult, SearchInsightType, SourcePlatform } from '@/types/search';
 
 export interface SearchResultItemProps {
   /** The search result data */
@@ -56,6 +58,29 @@ const RESULT_TYPE_CONFIG = {
     color: 'text-indigo-600 dark:text-indigo-400',
     bgColor: 'bg-indigo-50 dark:bg-indigo-900/20',
     badgeClass: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300',
+  },
+};
+
+/**
+ * Configuration for source platform badges
+ */
+const SOURCE_PLATFORM_CONFIG: Record<
+  SourcePlatform,
+  {
+    icon: typeof RiVideoLine;
+    label: string;
+    colorClass: string;
+  }
+> = {
+  fathom: {
+    icon: RiVideoLine,
+    label: 'Fathom',
+    colorClass: 'text-purple-600 dark:text-purple-400 border-purple-300 dark:border-purple-600',
+  },
+  google_meet: {
+    icon: RiGoogleLine,
+    label: 'GMeet',
+    colorClass: 'text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600',
   },
 };
 
@@ -228,6 +253,21 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({
           >
             {config.label}
           </Badge>
+          {/* Source Platform Badge */}
+          {result.sourcePlatform && SOURCE_PLATFORM_CONFIG[result.sourcePlatform] && (
+            <Badge
+              variant="outline"
+              className={cn(
+                'shrink-0 text-[10px] px-1.5 py-0 flex items-center gap-0.5',
+                SOURCE_PLATFORM_CONFIG[result.sourcePlatform].colorClass
+              )}
+            >
+              {React.createElement(SOURCE_PLATFORM_CONFIG[result.sourcePlatform].icon, {
+                className: 'h-2.5 w-2.5',
+              })}
+              {SOURCE_PLATFORM_CONFIG[result.sourcePlatform].label}
+            </Badge>
+          )}
           {/* Relevance Score Badge */}
           {result.metadata?.confidence !== undefined && (
             <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">

@@ -31,6 +31,11 @@ export interface SearchResultMetadata {
 }
 
 /**
+ * Source platform for search filtering
+ */
+export type SourcePlatform = 'fathom' | 'google_meet';
+
+/**
  * A unified search result that can represent transcripts, insights, or quotes
  */
 export interface SearchResult {
@@ -48,6 +53,8 @@ export interface SearchResult {
   sourceCallId: string;
   /** Title of the source call/recording */
   sourceCallTitle: string;
+  /** Source platform (fathom, google_meet) */
+  sourcePlatform?: SourcePlatform | null;
   /** Additional metadata specific to the result type */
   metadata?: SearchResultMetadata;
 }
@@ -92,6 +99,8 @@ export interface SearchState {
   isLoading: boolean;
   /** Error message if search failed */
   error: string | null;
+  /** Source platform filters (empty = all sources) */
+  sourceFilters: SourcePlatform[];
 }
 
 /**
@@ -110,6 +119,8 @@ export interface SearchActions {
   setLoading: (isLoading: boolean) => void;
   /** Set error state */
   setError: (error: string | null) => void;
+  /** Set source platform filters */
+  setSourceFilters: (filters: SourcePlatform[]) => void;
   /** Reset search state (query, results, error) */
   resetSearch: () => void;
 }

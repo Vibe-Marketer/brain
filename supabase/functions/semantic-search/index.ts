@@ -57,6 +57,7 @@ interface HybridSearchResult {
   topics: string[] | null;
   sentiment: string | null;
   intent_signals: string[] | null;
+  source_platform: string;
   similarity_score: number;
   fts_rank: number;
   rrf_score: number;
@@ -76,6 +77,7 @@ interface SearchResultForUI {
   call_category: string | null;
   topics: string[] | null;
   sentiment: string | null;
+  source_platform: string;
   relevance_score: number;
   similarity_score: number;
 }
@@ -117,7 +119,17 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { query, limit = 20 } = body;
+    const { query, limit = 20, sourcePlatforms } = body;
+
+    // Validate sourcePlatforms if provided
+    const validPlatforms = ['fathom', 'google_meet', 'zoom', 'other'];
+    let filterSourcePlatforms: string[] | null = null;
+    if (sourcePlatforms && Array.isArray(sourcePlatforms)) {
+      filterSourcePlatforms = sourcePlatforms.filter(p => validPlatforms.includes(p));
+      if (filterSourcePlatforms.length === 0) {
+        filterSourcePlatforms = null; // Search all platforms if none are valid
+      }
+    }
 
     if (!query || typeof query !== 'string') {
       return new Response(
@@ -141,7 +153,7 @@ Deno.serve(async (req) => {
 
     // Call hybrid search RPC
     const searchStartTime = Date.now();
-    const { data: candidates, error: searchError } = await supabase.rpc('hybrid_search_transcripts', {
+    const rpcParams: Record<string, unknown> = {
       query_text: trimmedQuery,
       query_embedding: queryEmbedding,
       match_count: limit,
@@ -149,7 +161,14 @@ Deno.serve(async (req) => {
       semantic_weight: 1.0,
       rrf_k: 60,
       filter_user_id: user.id,
-    });
+    };
+
+    // Add source platform filter if specified
+    if (filterSourcePlatforms) {
+      rpcParams.filter_source_platforms = filterSourcePlatforms;
+    }
+
+    const { data: candidates, error: searchError } = await supabase.rpc('hybrid_search_transcripts', rpcParams);
 
     if (searchError) {
       console.error('Hybrid search error:', searchError);
@@ -173,6 +192,7 @@ Deno.serve(async (req) => {
       call_category: r.call_category,
       topics: r.topics,
       sentiment: r.sentiment,
+      source_platform: r.source_platform || 'fathom',
       relevance_score: r.rrf_score,
       similarity_score: r.similarity_score,
     }));

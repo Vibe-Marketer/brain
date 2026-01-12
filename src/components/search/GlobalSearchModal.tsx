@@ -27,6 +27,7 @@ import { useSearchStore } from '@/stores/searchStore';
 import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 import { useSearchShortcut } from '@/hooks/useKeyboardShortcut';
 import { SearchResultItem, getResultRoute } from './SearchResultItem';
+import { SourceFilterCheckboxes, type SourcePlatform } from './SourceFilterCheckboxes';
 import { cn } from '@/lib/utils';
 import type { SearchResult } from '@/types/search';
 
@@ -111,8 +112,8 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Search store for modal state
-  const { isModalOpen, openModal, closeModal } = useSearchStore();
+  // Search store for modal state and source filters
+  const { isModalOpen, openModal, closeModal, sourceFilters, setSourceFilters } = useSearchStore();
 
   // Global search hook for querying
   const {
@@ -265,6 +266,14 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
             </kbd>
             <span className="text-xs text-gray-400">to close</span>
           </div>
+        </div>
+
+        {/* Source Filter Checkboxes */}
+        <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50">
+          <SourceFilterCheckboxes
+            selectedSources={sourceFilters as SourcePlatform[]}
+            onChange={(sources) => setSourceFilters(sources)}
+          />
         </div>
 
         {/* Results Area */}

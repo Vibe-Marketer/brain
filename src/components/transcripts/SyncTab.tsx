@@ -11,6 +11,7 @@ import { UnsyncedMeetingsSection } from "./UnsyncedMeetingsSection";
 import { SyncedTranscriptsSection } from "./SyncedTranscriptsSection";
 import { ActiveSyncJobsCard } from "./ActiveSyncJobsCard";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
+import { IntegrationSyncPane } from "@/components/sync";
 import { useMeetingsSync, type Meeting, type CalendarInvitee } from "@/hooks/useMeetingsSync";
 import { useSyncTabState } from "@/hooks/useSyncTabState";
 import { DateRange } from "react-day-picker";
@@ -490,6 +491,11 @@ export function SyncTab() {
           />
         </div>
       )}
+
+      {/* Integration Status Pane - Shows connected integrations */}
+      <div className="mb-6">
+        <IntegrationSyncPane onIntegrationChange={loadExistingTranscripts} />
+      </div>
 
       {/* Date Range and Fetch Controls - Single Row */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-4 border-b border-cb-gray-light dark:border-cb-gray-dark">

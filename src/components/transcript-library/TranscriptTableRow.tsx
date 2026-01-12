@@ -7,7 +7,9 @@ import {
   RiPriceTag3Line,
   RiDownloadLine,
   RiFolderLine,
-  RiStackLine
+  RiStackLine,
+  RiVideoLine,
+  RiGoogleLine,
 } from "@remixicon/react";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -96,6 +98,24 @@ export function TranscriptTableRow({
             {call.title}
           </button>
           <div className="flex items-center gap-1 mt-0.5">
+            {/* Source platform badge */}
+            {call.source_platform && (
+              <Badge
+                variant="outline"
+                className={`text-[9px] md:text-[10px] px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0 flex items-center gap-0.5 ${
+                  call.source_platform === 'fathom'
+                    ? 'text-purple-600 dark:text-purple-400 border-purple-300 dark:border-purple-600'
+                    : 'text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600'
+                }`}
+              >
+                {call.source_platform === 'fathom' ? (
+                  <RiVideoLine className="h-2.5 w-2.5" />
+                ) : (
+                  <RiGoogleLine className="h-2.5 w-2.5" />
+                )}
+                {call.source_platform === 'fathom' ? 'Fathom' : 'GMeet'}
+              </Badge>
+            )}
             {/* Sources badge for merged meetings - only show for primary records */}
             {call.is_primary && call.merged_from && call.merged_from.length > 0 && (
               <Badge variant="outline" className="text-[9px] md:text-[10px] px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0 flex items-center gap-0.5">

@@ -126,6 +126,9 @@ Deno.serve(async (req) => {
         google_oauth_token_expires: expiresAt,
         google_oauth_state: null, // Clear the state
         google_oauth_email: googleEmail,
+        // Clear any previous sync token to trigger full 30-day initial sync
+        google_sync_token: null,
+        google_last_poll_at: null,
       })
       .eq('user_id', user.id);
 
@@ -134,11 +137,75 @@ Deno.serve(async (req) => {
       throw updateError;
     }
 
+    // Trigger initial 30-day sync in the background
+    // This fetches all Google Meet events from the last 30 days and creates sync jobs
+    const triggerInitialSync = async () => {
+      try {
+        console.log(`Triggering initial Google Meet sync for user ${user.id}`);
+
+        // Calculate 30-day time range
+        const timeMin = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const timeMax = new Date().toISOString();
+
+        // Fetch Google Meet events from calendar
+        const { data: fetchResult, error: fetchError } = await supabase.functions.invoke(
+          'google-meet-fetch-meetings',
+          {
+            body: { timeMin, timeMax },
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (fetchError) {
+          console.error('Initial fetch failed:', fetchError);
+          return;
+        }
+
+        const meetings = fetchResult?.meetings || [];
+        const unsyncedMeetings = meetings.filter((m: { synced: boolean }) => !m.synced);
+
+        if (unsyncedMeetings.length === 0) {
+          console.log('No unsynced Google Meet meetings found for initial sync');
+          return;
+        }
+
+        console.log(`Found ${unsyncedMeetings.length} unsynced meetings, triggering sync...`);
+
+        // Trigger sync for unsynced meetings
+        const eventIds = unsyncedMeetings.map((m: { google_calendar_event_id: string }) => m.google_calendar_event_id);
+
+        const { error: syncError } = await supabase.functions.invoke(
+          'google-meet-sync-meetings',
+          {
+            body: { eventIds },
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        if (syncError) {
+          console.error('Initial sync failed:', syncError);
+        } else {
+          console.log(`Initial sync triggered for ${eventIds.length} Google Meet meetings`);
+        }
+      } catch (error) {
+        console.error('Error in initial sync:', error);
+      }
+    };
+
+    // Start background sync (don't wait for it)
+    // @ts-expect-error - EdgeRuntime is available in Deno Deploy
+    EdgeRuntime.waitUntil(triggerInitialSync());
+
     return new Response(
       JSON.stringify({
         success: true,
         message: 'Successfully connected to Google Meet',
         email: googleEmail,
+        initialSyncTriggered: true,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

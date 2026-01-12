@@ -31,6 +31,8 @@ import {
   RiHome4Fill,
   RiSparklingLine,
   RiSparklingFill,
+  RiArticleLine,
+  RiArticleFill,
   RiPriceTag3Line,
   RiPriceTag3Fill,
   RiTeamLine,
@@ -151,6 +153,14 @@ const navItems: NavItem[] = [
     iconFill: RiSparklingFill,
     path: '/chat',
     matchPaths: ['/chat'],
+  },
+  {
+    id: 'content',
+    name: 'Content',
+    iconLine: RiArticleLine,
+    iconFill: RiArticleFill,
+    path: '/content',
+    matchPaths: ['/content', '/content/generators', '/content/library'],
   },
   {
     id: 'sorting',

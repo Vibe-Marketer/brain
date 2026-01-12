@@ -13,6 +13,11 @@
 import { supabase } from '@/integrations/supabase/client';
 
 /**
+ * Source platform type for filtering
+ */
+export type SourcePlatform = 'fathom' | 'google_meet';
+
+/**
  * Result from semantic search
  */
 export interface SemanticSearchResult {
@@ -28,6 +33,7 @@ export interface SemanticSearchResult {
   sentiment: string | null;
   relevance_score: number;
   similarity_score: number;
+  source_platform?: SourcePlatform | null;
 }
 
 /**
@@ -52,6 +58,8 @@ export interface SemanticSearchResponse {
 export interface SemanticSearchOptions {
   /** Maximum number of results to return (default: 20) */
   limit?: number;
+  /** Filter by source platforms (empty/undefined = all sources) */
+  sourcePlatforms?: SourcePlatform[];
 }
 
 /**
@@ -80,11 +88,16 @@ export async function semanticSearch(
   query: string,
   options: SemanticSearchOptions = {}
 ): Promise<{ results: SemanticSearchResult[]; error: string | null; timing?: SemanticSearchResponse['timing'] }> {
-  const { limit = 20 } = options;
+  const { limit = 20, sourcePlatforms } = options;
 
   try {
     const { data, error } = await supabase.functions.invoke('semantic-search', {
-      body: { query, limit },
+      body: {
+        query,
+        limit,
+        // Only include sourcePlatforms if it has items
+        ...(sourcePlatforms && sourcePlatforms.length > 0 && { sourcePlatforms }),
+      },
     });
 
     if (error) {

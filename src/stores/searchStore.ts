@@ -25,6 +25,7 @@ export const useSearchStore = create<SearchState & SearchActions>((set) => ({
   results: [],
   isLoading: false,
   error: null,
+  sourceFilters: [], // Empty means show all sources
 
   // Actions
   openModal: () => {
@@ -38,6 +39,7 @@ export const useSearchStore = create<SearchState & SearchActions>((set) => ({
       results: [],
       isLoading: false,
       error: null,
+      // Don't reset sourceFilters - persist user preference
     });
   },
 
@@ -57,12 +59,17 @@ export const useSearchStore = create<SearchState & SearchActions>((set) => ({
     set({ error, isLoading: false });
   },
 
+  setSourceFilters: (sourceFilters) => {
+    set({ sourceFilters });
+  },
+
   resetSearch: () => {
     set({
       query: '',
       results: [],
       isLoading: false,
       error: null,
+      // Don't reset sourceFilters - persist user preference
     });
   },
 }));

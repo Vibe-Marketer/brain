@@ -4,6 +4,7 @@ import { RiLoader4Line, RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { completeFathomOAuth, completeGoogleOAuth } from "@/lib/api-client";
+import { completeZoomOAuth } from "@/lib/zoom-api-client";
 
 type CallbackState = "loading" | "success" | "error";
 
@@ -12,7 +13,8 @@ type CallbackState = "loading" | "success" | "error";
  *
  * Routes:
  *   /oauth/callback/ - Fathom OAuth callback
- *   /oauth/callback/google - Google Meet OAuth callback
+ *   /oauth/callback/meet - Google Meet OAuth callback
+ *   /oauth/callback/zoom - Zoom OAuth callback
  *
  * Process:
  * 1. Extract code and state from URL params
@@ -47,8 +49,9 @@ export default function OAuthCallback() {
         }
 
         // Determine provider from path
-        const isGoogleCallback = location.pathname.includes("/google");
-        const provider = isGoogleCallback ? "Google Meet" : "Fathom";
+        const isGoogleCallback = location.pathname.includes("/meet");
+        const isZoomCallback = location.pathname.includes("/zoom");
+        const provider = isGoogleCallback ? "Google Meet" : isZoomCallback ? "Zoom" : "Fathom";
 
         setMessage(`Completing ${provider} connection...`);
         logger.info(`Processing ${provider} OAuth callback`);
@@ -57,6 +60,8 @@ export default function OAuthCallback() {
         let response;
         if (isGoogleCallback) {
           response = await completeGoogleOAuth(code, stateParam);
+        } else if (isZoomCallback) {
+          response = await completeZoomOAuth(code, stateParam);
         } else {
           response = await completeFathomOAuth(code, stateParam);
         }

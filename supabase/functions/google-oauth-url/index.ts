@@ -36,9 +36,10 @@ Deno.serve(async (req) => {
 
     // Get production OAuth credentials
     const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
-    const redirectUri = 'https://app.callvaultai.com/oauth/callback/google';
+    const redirectUri = 'https://app.callvaultai.com/oauth/callback/meet';
 
     if (!clientId) {
+      console.error('GOOGLE_OAUTH_CLIENT_ID not configured in environment');
       return new Response(
         JSON.stringify({ error: 'OAuth not configured. Contact administrator.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

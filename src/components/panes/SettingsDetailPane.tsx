@@ -33,6 +33,7 @@ import {
   RiRobot2Line,
   RiShieldLine,
   RiArrowLeftLine,
+  RiBuilding4Line,
 } from "@remixicon/react";
 import type { SettingsCategory } from "./SettingsCategoryPane";
 
@@ -42,6 +43,7 @@ const TRANSITION_DURATION = 250;
 // Lazy load settings tab components
 // Note: TeamTab and CoachesTab have moved to CollaborationPage
 const AccountTab = React.lazy(() => import("@/components/settings/AccountTab"));
+const BusinessProfileTab = React.lazy(() => import("@/components/settings/BusinessProfileTab"));
 const UsersTab = React.lazy(() => import("@/components/settings/UsersTab"));
 const BillingTab = React.lazy(() => import("@/components/settings/BillingTab"));
 const IntegrationsTab = React.lazy(
@@ -63,6 +65,11 @@ const CATEGORY_META: Record<
     label: "Account",
     description: "Profile and preferences",
     icon: RiUserLine,
+  },
+  business: {
+    label: "Business Profile",
+    description: "AI content personalization",
+    icon: RiBuilding4Line,
   },
   users: {
     label: "Users",
@@ -213,6 +220,8 @@ export function SettingsDetailPane({
     switch (category) {
       case "account":
         return <AccountTab />;
+      case "business":
+        return <BusinessProfileTab />;
       case "users":
         return <UsersTab />;
       case "billing":

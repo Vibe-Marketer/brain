@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { semanticSearch, type SemanticSearchResult } from '@/lib/embeddings';
+import { semanticSearch, type SemanticSearchResult, type SourcePlatform } from '@/lib/embeddings';
 import type { SearchResult, SearchResultType } from '@/types/search';
+import { useSearchStore } from '@/stores/searchStore';
 
 /**
  * Default search configuration
@@ -70,6 +71,7 @@ function transformSemanticResult(result: SemanticSearchResult): SearchResult {
     timestamp: result.call_date || undefined,
     sourceCallId: String(result.recording_id),
     sourceCallTitle: result.call_title || 'Untitled Call',
+    sourcePlatform: result.source_platform || null,
     metadata: {
       speakerName: result.speaker_name || undefined,
       speakerEmail: result.speaker_email,
@@ -121,6 +123,7 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
   } = options;
 
   const { user } = useAuth();
+  const { sourceFilters } = useSearchStore();
 
   // Raw query input (updates immediately on user input)
   const [query, setQueryRaw] = useState('');
@@ -185,17 +188,20 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
     isLoading,
     isFetching,
   } = useQuery({
-    queryKey: ['global-search', sanitizedQuery, limit],
+    queryKey: ['global-search', sanitizedQuery, limit, sourceFilters],
     queryFn: async (): Promise<SearchResult[]> => {
       if (!user?.id || isQueryTooShort) {
         return [];
       }
 
       try {
-        // Call semantic search edge function
+        // Call semantic search edge function with source platform filters
         const { results: semanticResults, error: searchError } = await semanticSearch(
           sanitizedQuery,
-          { limit }
+          {
+            limit,
+            sourcePlatforms: sourceFilters.length > 0 ? sourceFilters as SourcePlatform[] : undefined,
+          }
         );
 
         if (searchError) {
