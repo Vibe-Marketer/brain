@@ -8,6 +8,7 @@ import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
 import IntegrationStatusCard from "./IntegrationStatusCard";
 import FathomSetupWizard from "./FathomSetupWizard";
 import GoogleMeetSetupWizard from "./GoogleMeetSetupWizard";
+import ZoomSetupWizard from "./ZoomSetupWizard";
 import SourcePriorityModal from "./SourcePriorityModal";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl } from "@/lib/api-client";
@@ -24,6 +25,10 @@ export default function IntegrationsTab() {
   const [googleMeetConnected, setGoogleMeetConnected] = useState(false);
   const [showGoogleMeetWizard, setShowGoogleMeetWizard] = useState(false);
   const [googleEmail, setGoogleEmail] = useState("");
+
+  // Zoom state
+  const [zoomConnected, setZoomConnected] = useState(false);
+  const [showZoomWizard, setShowZoomWizard] = useState(false);
 
   // Source Priority Modal state (shown when 2nd integration connected)
   const [showSourcePriorityModal, setShowSourcePriorityModal] = useState(false);
@@ -48,7 +53,7 @@ export default function IntegrationsTab() {
 
       const { data: settings } = await supabase
         .from("user_settings")
-        .select("fathom_api_key, webhook_secret, oauth_access_token, google_oauth_access_token, google_oauth_email, dedup_platform_order")
+        .select("fathom_api_key, webhook_secret, oauth_access_token, google_oauth_access_token, google_oauth_email, zoom_oauth_access_token, dedup_platform_order")
         .eq("user_id", user.id)
         .maybeSingle();
 
@@ -68,6 +73,10 @@ export default function IntegrationsTab() {
       if (settings?.google_oauth_email) {
         setGoogleEmail(settings.google_oauth_email);
       }
+
+      // Check Zoom connection status
+      const isZoomConnected = !!settings?.zoom_oauth_access_token;
+      setZoomConnected(isZoomConnected);
 
       // Load current credentials (masked for display)
       if (settings?.fathom_api_key) {
@@ -115,6 +124,19 @@ export default function IntegrationsTab() {
     await loadIntegrationStatus(); // Refresh status after wizard completion
     // Show SourcePriorityModal if Fathom is already connected (this is the 2nd integration)
     if (fathomConnected) {
+      setShowSourcePriorityModal(true);
+    }
+  };
+
+  const handleZoomConnect = () => {
+    setShowZoomWizard(true);
+  };
+
+  const handleZoomWizardComplete = async () => {
+    setShowZoomWizard(false);
+    await loadIntegrationStatus(); // Refresh status after wizard completion
+    // Show SourcePriorityModal if another integration is already connected
+    if (fathomConnected || googleMeetConnected) {
       setShowSourcePriorityModal(true);
     }
   };
@@ -376,8 +398,9 @@ export default function IntegrationsTab() {
           <IntegrationStatusCard
             name="Zoom"
             icon={RiVideoLine}
-            status="coming-soon"
-            description="Direct Zoom meeting integration"
+            status={zoomConnected ? "connected" : "disconnected"}
+            onConnect={handleZoomConnect}
+            description={zoomConnected ? "Cloud recordings synced" : "Direct Zoom meeting integration"}
           />
           <IntegrationStatusCard
             name="GoHighLevel"
@@ -405,6 +428,14 @@ export default function IntegrationsTab() {
         />
       )}
 
+      {showZoomWizard && (
+        <ZoomSetupWizard
+          open={showZoomWizard}
+          onComplete={handleZoomWizardComplete}
+          onDismiss={() => setShowZoomWizard(false)}
+        />
+      )}
+
       {showSourcePriorityModal && (
         <SourcePriorityModal
           open={showSourcePriorityModal}
@@ -413,6 +444,7 @@ export default function IntegrationsTab() {
           connectedPlatforms={[
             ...(fathomConnected ? ["fathom"] : []),
             ...(googleMeetConnected ? ["google_meet"] : []),
+            ...(zoomConnected ? ["zoom"] : []),
           ]}
         />
       )}

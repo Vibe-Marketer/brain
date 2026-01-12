@@ -9,10 +9,11 @@
  * 4. Create Content - Run Agent 4 (Content Builder) with streaming
  */
 
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { RiCheckLine, RiLoader4Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import {
   useContentWizardStore,
   useCurrentStep,
@@ -48,25 +49,65 @@ const STEPS: StepConfig[] = [
 const STEP_ORDER: WizardStep[] = ['select-sources', 'extract-analyze', 'generate-hooks', 'create-content'];
 
 export function CallContentWizard({ onComplete, onCancel }: CallContentWizardProps) {
+  const { toast } = useToast();
   const currentStep = useCurrentStep();
   const isProcessing = useIsProcessing();
   const canProceed = useCanProceed();
+  const [isSaving, setIsSaving] = useState(false);
 
   const nextStep = useContentWizardStore((state) => state.nextStep);
   const prevStep = useContentWizardStore((state) => state.prevStep);
   const goToStep = useContentWizardStore((state) => state.goToStep);
+  const saveAllContent = useContentWizardStore((state) => state.saveAllContent);
 
   const currentIndex = STEP_ORDER.indexOf(currentStep);
   const isFirstStep = currentIndex === 0;
   const isLastStep = currentIndex === STEP_ORDER.length - 1;
 
-  const handleNext = useCallback(() => {
-    if (isLastStep && onComplete) {
-      onComplete();
+  const handleNext = useCallback(async () => {
+    if (isLastStep) {
+      // Save content before completing wizard
+      setIsSaving(true);
+      try {
+        const saveResult = await saveAllContent();
+
+        if (saveResult.success) {
+          toast({
+            title: 'Content Saved!',
+            description: `Saved ${saveResult.savedHookIds.length} hook${saveResult.savedHookIds.length !== 1 ? 's' : ''} and ${saveResult.savedContentIds.length} content item${saveResult.savedContentIds.length !== 1 ? 's' : ''} to your library.`,
+          });
+
+          // Partial success warning if there were some errors
+          if (saveResult.errors.length > 0) {
+            toast({
+              title: 'Some items had issues',
+              description: saveResult.errors.join(', '),
+              variant: 'destructive',
+            });
+          }
+        } else {
+          toast({
+            title: 'Save Failed',
+            description: saveResult.errors.join(', ') || 'Unable to save content. Please try again.',
+            variant: 'destructive',
+          });
+        }
+      } catch (error) {
+        toast({
+          title: 'Save Error',
+          description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsSaving(false);
+      }
+
+      // Call onComplete callback after save attempt
+      onComplete?.();
     } else {
       nextStep();
     }
-  }, [isLastStep, onComplete, nextStep]);
+  }, [isLastStep, onComplete, nextStep, saveAllContent, toast]);
 
   const handleBack = useCallback(() => {
     prevStep();
@@ -165,10 +206,10 @@ export function CallContentWizard({ onComplete, onCancel }: CallContentWizardPro
 
           <Button
             onClick={handleNext}
-            disabled={!canProceed || isProcessing}
+            disabled={!canProceed || isProcessing || isSaving}
           >
-            {isProcessing && <RiLoader4Line className="w-4 h-4 mr-2 animate-spin" />}
-            {isLastStep ? 'Done' : 'Continue'}
+            {(isProcessing || isSaving) && <RiLoader4Line className="w-4 h-4 mr-2 animate-spin" />}
+            {isSaving ? 'Saving...' : isLastStep ? 'Done' : 'Continue'}
           </Button>
         </div>
       </div>

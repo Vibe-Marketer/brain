@@ -9,6 +9,7 @@ import type {
   StreamingContent,
 } from '@/types/content-hub';
 import { initialWizardState } from '@/types/content-hub';
+import { saveWizardContent, type SaveResult } from '@/lib/content-persistence';
 
 /**
  * Step order for navigation
@@ -93,6 +94,9 @@ interface ContentWizardActions {
   setError: (error: string | null) => void;
   resetToStep: (step: WizardStep) => void;
   reset: () => void;
+
+  // Persistence actions
+  saveAllContent: () => Promise<SaveResult>;
 }
 
 /**
@@ -373,6 +377,27 @@ export const useContentWizardStore = create<ContentWizardStoreState & ContentWiz
 
     reset: () => {
       set(getInitialState());
+    },
+
+    // Persistence actions
+    saveAllContent: async (): Promise<SaveResult> => {
+      const { selected_hook_ids, generated_hooks, generated_content, markContentSaved } = get();
+
+      // Call the save function
+      const result = await saveWizardContent(
+        selected_hook_ids,
+        generated_hooks,
+        generated_content
+      );
+
+      // Mark saved hooks as saved in local state
+      if (result.success) {
+        for (const hookId of selected_hook_ids) {
+          markContentSaved(hookId);
+        }
+      }
+
+      return result;
     },
   })
 );
