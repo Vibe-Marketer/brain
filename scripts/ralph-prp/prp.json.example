@@ -1,0 +1,189 @@
+{
+  "project": "CallVault",
+  "branchName": "ralph-prp/task-priority",
+  "description": "Task Priority System - Add priority levels to tasks",
+  "prpSource": "PRPs/task-priority.md",
+  "tasks": [
+    {
+      "id": "PRP-001",
+      "title": "Add priority field to database",
+      "description": "Add priority column to tasks table for persistent storage",
+      "priority": 1,
+      "passes": false,
+      "context": {
+        "files": [
+          {
+            "path": "supabase/migrations/existing_migration.sql",
+            "pattern": "migration structure and naming",
+            "why": "Follow existing migration patterns"
+          }
+        ],
+        "urls": [
+          {
+            "url": "https://supabase.com/docs/guides/database/migrations",
+            "why": "Supabase migration best practices"
+          }
+        ],
+        "gotchas": [
+          "Always use IF NOT EXISTS for new columns",
+          "Default value must be set for existing rows"
+        ]
+      },
+      "implementation": [
+        "CREATE supabase/migrations/[timestamp]_add_priority.sql",
+        "ADD priority column: 'high' | 'medium' | 'low' DEFAULT 'medium'",
+        "RUN supabase db push to apply migration"
+      ],
+      "validation": {
+        "level1": ["npm run typecheck"],
+        "level2": null,
+        "level3": ["supabase db push --dry-run"],
+        "level4": null
+      },
+      "acceptanceCriteria": [
+        "Priority column exists in tasks table",
+        "Default value is 'medium'",
+        "Migration runs without errors"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "PRP-002",
+      "title": "Display priority indicator on task cards",
+      "description": "Show colored priority badge on each task card",
+      "priority": 2,
+      "passes": false,
+      "dependsOn": ["PRP-001"],
+      "context": {
+        "files": [
+          {
+            "path": "src/components/ui/badge.tsx",
+            "pattern": "badge component variants",
+            "why": "Use existing badge component"
+          },
+          {
+            "path": "src/components/TaskCard.tsx",
+            "pattern": "task card layout",
+            "why": "Where to add priority badge"
+          }
+        ],
+        "urls": [],
+        "gotchas": [
+          "Follow brand guidelines for colors",
+          "Badge must be visible without hovering"
+        ]
+      },
+      "implementation": [
+        "UPDATE src/components/TaskCard.tsx",
+        "ADD priority badge using existing Badge component",
+        "USE colors: red=high, yellow=medium, gray=low"
+      ],
+      "validation": {
+        "level1": ["npm run typecheck", "npm run lint"],
+        "level2": ["npm run test -- --grep TaskCard"],
+        "level3": ["npm run build"],
+        "level4": ["Verify in browser using dev-browser skill"]
+      },
+      "acceptanceCriteria": [
+        "Each task card shows colored priority badge",
+        "Colors match: red=high, yellow=medium, gray=low",
+        "Priority visible without hovering",
+        "Typecheck passes",
+        "Browser verification passes"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "PRP-003",
+      "title": "Add priority selector to task edit",
+      "description": "Allow users to change priority when editing a task",
+      "priority": 3,
+      "passes": false,
+      "dependsOn": ["PRP-001"],
+      "context": {
+        "files": [
+          {
+            "path": "src/components/TaskEditModal.tsx",
+            "pattern": "modal form structure",
+            "why": "Where to add priority dropdown"
+          },
+          {
+            "path": "src/components/ui/select.tsx",
+            "pattern": "select component usage",
+            "why": "Use existing select component"
+          }
+        ],
+        "urls": [],
+        "gotchas": [
+          "Save immediately on selection change",
+          "Show current priority as selected"
+        ]
+      },
+      "implementation": [
+        "UPDATE src/components/TaskEditModal.tsx",
+        "ADD priority Select component",
+        "WIRE onChange to save action"
+      ],
+      "validation": {
+        "level1": ["npm run typecheck", "npm run lint"],
+        "level2": ["npm run test -- --grep TaskEdit"],
+        "level3": ["npm run build"],
+        "level4": ["Verify in browser using dev-browser skill"]
+      },
+      "acceptanceCriteria": [
+        "Priority dropdown in task edit modal",
+        "Shows current priority as selected",
+        "Saves immediately on selection change",
+        "Typecheck passes",
+        "Browser verification passes"
+      ],
+      "notes": ""
+    },
+    {
+      "id": "PRP-004",
+      "title": "Filter tasks by priority",
+      "description": "Add filter dropdown to filter task list by priority",
+      "priority": 4,
+      "passes": false,
+      "dependsOn": ["PRP-002"],
+      "context": {
+        "files": [
+          {
+            "path": "src/components/TaskList.tsx",
+            "pattern": "list header and filtering",
+            "why": "Where to add filter dropdown"
+          },
+          {
+            "path": "src/hooks/useTaskFilters.ts",
+            "pattern": "filter state management",
+            "why": "How filters are managed"
+          }
+        ],
+        "urls": [],
+        "gotchas": [
+          "Filter should persist in URL params",
+          "Show empty state when no tasks match"
+        ]
+      },
+      "implementation": [
+        "UPDATE src/hooks/useTaskFilters.ts - add priority filter",
+        "UPDATE src/components/TaskList.tsx - add filter dropdown",
+        "ADD URL param persistence for filter"
+      ],
+      "validation": {
+        "level1": ["npm run typecheck", "npm run lint"],
+        "level2": ["npm run test -- --grep TaskList", "npm run test -- --grep useTaskFilters"],
+        "level3": ["npm run test", "npm run build"],
+        "level4": ["Verify in browser using dev-browser skill"]
+      },
+      "acceptanceCriteria": [
+        "Filter dropdown with options: All | High | Medium | Low",
+        "Filter persists in URL params",
+        "Empty state message when no tasks match filter",
+        "Typecheck passes",
+        "Browser verification passes"
+      ],
+      "notes": ""
+    }
+  ]
+}
