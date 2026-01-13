@@ -179,7 +179,7 @@ export function SortingCategoryPane({
       aria-label="Sorting and tagging categories"
     >
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-4 border-b border-cb-border bg-cb-card/50">
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
         <div
           className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-cb-vibe-orange"
           aria-hidden="true"
