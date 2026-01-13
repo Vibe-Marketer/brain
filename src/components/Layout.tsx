@@ -25,8 +25,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const isSharedWithMePage = location.pathname === '/shared-with-me';
   const isCoachDashboardPage = location.pathname === '/coach';
   const isTeamManagementPage = location.pathname === '/team-management';
+  // Content Hub uses AppShell with 3-pane layout
+  const isContentHubPage = location.pathname.startsWith('/content');
   const usesCustomLayout = isChatPage || isTranscriptsPage || isSortingPage || isSettingsPage ||
-    isSharedWithMePage || isCoachDashboardPage || isTeamManagementPage;
+    isSharedWithMePage || isCoachDashboardPage || isTeamManagementPage || isContentHubPage;
 
   return (
     <div

@@ -20,12 +20,52 @@
  */
 
 import * as React from 'react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useBreakpointFlags } from '@/hooks/useBreakpoint';
 import { SidebarNav } from '@/components/ui/sidebar-nav';
 import { SidebarToggle } from './SidebarToggle';
 import { DetailPaneOutlet } from './DetailPaneOutlet';
+
+/**
+ * DEV-MODE CHECK: Detects if AppShell is incorrectly wrapped in Layout.tsx's card container.
+ *
+ * If you see this warning, add your page's route to the `usesCustomLayout` check in
+ * src/components/Layout.tsx to bypass the card wrapper.
+ *
+ * Example: const isMyNewPage = location.pathname.startsWith('/my-new-page');
+ * Then add it to: const usesCustomLayout = ... || isMyNewPage;
+ */
+function useCardWrapperDetection(containerRef: React.RefObject<HTMLDivElement | null>) {
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return;
+    if (!containerRef.current) return;
+
+    // Check parent elements for the card wrapper signature from Layout.tsx
+    // The wrapper has: bg-card rounded-2xl shadow-lg border border-border
+    let parent = containerRef.current.parentElement;
+    while (parent) {
+      const classList = parent.classList;
+      // Detect Layout.tsx's card wrapper by its distinctive class combination
+      if (
+        classList.contains('bg-card') &&
+        classList.contains('rounded-2xl') &&
+        classList.contains('shadow-lg')
+      ) {
+        console.warn(
+          `[AppShell] ⚠️ Detected card wrapper around AppShell!\n\n` +
+          `This page is missing from the usesCustomLayout check in Layout.tsx.\n` +
+          `Add this page's route to bypass the card wrapper.\n\n` +
+          `Fix: Edit src/components/Layout.tsx and add your route to usesCustomLayout.\n` +
+          `Example: const isMyPage = location.pathname.startsWith('/my-route');\n` +
+          `         const usesCustomLayout = ... || isMyPage;`
+        );
+        break;
+      }
+      parent = parent.parentElement;
+    }
+  }, [containerRef]);
+}
 
 export interface AppShellConfig {
   /** Show navigation rail (default: true) */
@@ -99,6 +139,10 @@ export function AppShell({
   // Mobile overlay states
   const [showMobileNav, setShowMobileNav] = useState(false);
   const [showMobileSecondary, setShowMobileSecondary] = useState(false);
+
+  // Dev-mode check: Warn if AppShell is wrapped in Layout.tsx's card container
+  const containerRef = useRef<HTMLDivElement>(null);
+  useCardWrapperDetection(containerRef);
 
   // Auto-collapse sidebar on tablet
   useEffect(() => {
@@ -196,7 +240,7 @@ export function AppShell({
       )}
 
       {/* Main pane container */}
-      <div className="h-full flex gap-3 overflow-hidden p-1">
+      <div ref={containerRef} className="h-full flex gap-3 overflow-hidden p-1">
         {/* PANE 1: Navigation Rail (Sidebar) - Hidden on mobile */}
         {!isMobile && showNavRail && (
           <nav
