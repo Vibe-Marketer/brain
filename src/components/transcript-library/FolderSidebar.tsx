@@ -587,14 +587,28 @@ export function FolderSidebar({
         aria-label="Folder navigation"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 pb-2">
-          <h1 className="font-display text-base md:text-lg font-extrabold uppercase text-cb-ink">
-            Folders
-          </h1>
-          <Button variant="ghost" size="icon" onClick={onNewFolder} aria-label="New folder">
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
+          <div
+            className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-cb-vibe-orange"
+            aria-hidden="true"
+          >
+            <RiFolderLine className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2
+              className="text-sm font-semibold text-cb-ink uppercase tracking-wide"
+              id="folder-sidebar-title"
+            >
+              Library
+            </h2>
+            <p className="text-xs text-cb-ink-muted">
+              {folders.length} {folders.length === 1 ? 'folder' : 'folders'}
+            </p>
+          </div>
+          <Button variant="ghost" size="icon" onClick={onNewFolder} aria-label="New folder" className="flex-shrink-0">
             <RiAddLine className="h-4 w-4" />
           </Button>
-        </div>
+        </header>
 
         {/* Search input - only when >10 folders */}
         {folders.length > 10 && (

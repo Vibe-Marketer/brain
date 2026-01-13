@@ -60,33 +60,35 @@ export function ContentLibraryPage() {
   }
 
   return (
-    <div className="bg-white dark:bg-card">
-      {/* Top separator for breathing room */}
-      <Separator className="mb-8" />
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 bg-card rounded-2xl border border-border shadow-sm overflow-auto m-1">
+        {/* Top separator for breathing room */}
+        <Separator className="mb-8" />
 
-      {/* Page header */}
-      <div className="px-4 mb-6">
-        <h1 className="font-display text-2xl font-bold text-cb-black dark:text-cb-white">
-          Content Library
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          {items.length} {items.length === 1 ? "item" : "items"} saved
-        </p>
-      </div>
+        {/* Page header */}
+        <div className="px-4 md:px-10 mb-6">
+          <h1 className="font-display text-2xl font-bold text-cb-black dark:text-cb-white">
+            Content Library
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            {items.length} {items.length === 1 ? "item" : "items"} saved
+          </p>
+        </div>
 
-      {/* Filter bar */}
-      <div className="px-4 mb-4">
-        <ContentFilterBar />
-      </div>
+        {/* Filter bar */}
+        <div className="px-4 md:px-10 mb-4">
+          <ContentFilterBar />
+        </div>
 
-      <Separator className="my-6" />
+        <Separator className="my-6" />
 
-      {/* Content grid */}
-      <div className="px-4 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((item) => (
-            <ContentItemCard key={item.id} item={item} />
-          ))}
+        {/* Content grid */}
+        <div className="px-4 md:px-10 pb-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {items.map((item) => (
+              <ContentItemCard key={item.id} item={item} />
+            ))}
+          </div>
         </div>
       </div>
     </div>

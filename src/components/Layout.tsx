@@ -1,3 +1,16 @@
+/**
+ * Layout - Top-level layout wrapper
+ *
+ * Provides:
+ * - Viewport background with brand gradient
+ * - TopBar navigation header
+ * - Main content area (no card wrapper - pages handle their own layout)
+ *
+ * All pages now use AppShell for the 3-pane architecture.
+ * The legacy card wrapper has been removed - pages that need card
+ * styling should add it themselves.
+ */
+
 import { TopBar } from "@/components/ui/top-bar";
 import { useLocation } from "react-router-dom";
 
@@ -9,26 +22,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     if (location.pathname.startsWith('/chat')) return 'AI CHAT';
     if (location.pathname.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
     if (location.pathname.startsWith('/settings')) return 'SETTINGS';
-    // Sharing pages
     if (location.pathname === '/shared-with-me') return 'SHARED WITH ME';
     if (location.pathname === '/coach') return 'COACH DASHBOARD';
-    if (location.pathname === '/team-management') return 'TEAM MANAGEMENT';
+    if (location.pathname.startsWith('/team')) return 'COLLABORATION';
+    if (location.pathname.startsWith('/content')) return 'CONTENT HUB';
     return 'HOME';
   };
-
-  // Pages that provide their own container/layout (no card wrapper)
-  const isChatPage = location.pathname.startsWith('/chat');
-  const isTranscriptsPage = location.pathname === '/' || location.pathname === '/transcripts';
-  const isSortingPage = location.pathname.startsWith('/sorting-tagging');
-  const isSettingsPage = location.pathname.startsWith('/settings');
-  // Sharing pages provide their own layout
-  const isSharedWithMePage = location.pathname === '/shared-with-me';
-  const isCoachDashboardPage = location.pathname === '/coach';
-  const isTeamManagementPage = location.pathname === '/team-management';
-  // Content Hub uses AppShell with 3-pane layout
-  const isContentHubPage = location.pathname.startsWith('/content');
-  const usesCustomLayout = isChatPage || isTranscriptsPage || isSortingPage || isSettingsPage ||
-    isSharedWithMePage || isCoachDashboardPage || isTeamManagementPage || isContentHubPage;
 
   return (
     <div
@@ -39,15 +38,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     >
       <TopBar pageLabel={getPageLabel()} />
       <main className="fixed inset-2.5 top-[52px]">
-        {usesCustomLayout ? (
-          // Chat and Transcripts pages provide their own layout - no wrapper
-          children
-        ) : (
-          // Other pages get the standard card wrapper
-          <div className="bg-card rounded-2xl px-4 md:px-10 pb-20 md:pb-10 pt-2 shadow-lg border border-border h-full overflow-auto">
-            {children}
-          </div>
-        )}
+        {children}
       </main>
     </div>
   );

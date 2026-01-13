@@ -432,41 +432,43 @@ export function TemplatesPage() {
   // Empty state - no templates at all
   if (totalTemplates === 0) {
     return (
-      <div className="bg-white dark:bg-card">
-        {/* Top separator for breathing room */}
-        <Separator className="mb-8" />
+      <div className="h-full flex flex-col overflow-hidden">
+        <div className="flex-1 min-h-0 bg-card rounded-2xl border border-border shadow-sm overflow-auto m-1">
+          {/* Top separator for breathing room */}
+          <Separator className="mb-8" />
 
-        {/* Page header with new template button */}
-        <div className="px-4 mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-cb-black dark:text-cb-white">
-              Templates
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Create reusable templates with variable placeholders
-            </p>
+          {/* Page header with new template button */}
+          <div className="px-4 md:px-10 mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="font-display text-2xl font-bold text-cb-black dark:text-cb-white">
+                Templates
+              </h1>
+              <p className="text-sm text-muted-foreground mt-1">
+                Create reusable templates with variable placeholders
+              </p>
+            </div>
+            <Button onClick={handleNewTemplate}>
+              <RiAddLine className="w-4 h-4 mr-2" />
+              New Template
+            </Button>
           </div>
-          <Button onClick={handleNewTemplate}>
-            <RiAddLine className="w-4 h-4 mr-2" />
-            New Template
-          </Button>
-        </div>
 
-        <Separator className="my-6" />
+          <Separator className="my-6" />
 
-        {/* Empty state */}
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <RiFileList3Line className="w-12 h-12 text-muted-foreground" />
-          <p className="text-lg text-cb-gray-dark dark:text-cb-gray-light">
-            No templates yet
-          </p>
-          <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
-            Create your first template to save time on repetitive content
-          </p>
-          <Button onClick={handleNewTemplate} className="mt-4">
-            <RiAddLine className="w-4 h-4 mr-2" />
-            Create Your First Template
-          </Button>
+          {/* Empty state */}
+          <div className="flex flex-col items-center justify-center py-20 space-y-4">
+            <RiFileList3Line className="w-12 h-12 text-muted-foreground" />
+            <p className="text-lg text-cb-gray-dark dark:text-cb-gray-light">
+              No templates yet
+            </p>
+            <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+              Create your first template to save time on repetitive content
+            </p>
+            <Button onClick={handleNewTemplate} className="mt-4">
+              <RiAddLine className="w-4 h-4 mr-2" />
+              Create Your First Template
+            </Button>
+          </div>
         </div>
 
         {/* Template Editor Dialog */}
@@ -488,54 +490,56 @@ export function TemplatesPage() {
   }
 
   return (
-    <div className="bg-white dark:bg-card">
-      {/* Top separator for breathing room */}
-      <Separator className="mb-8" />
+    <div className="h-full flex flex-col overflow-hidden">
+      <div className="flex-1 min-h-0 bg-card rounded-2xl border border-border shadow-sm overflow-auto m-1">
+        {/* Top separator for breathing room */}
+        <Separator className="mb-8" />
 
-      {/* Page header with new template button */}
-      <div className="px-4 mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-cb-black dark:text-cb-white">
-            Templates
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalTemplates} {totalTemplates === 1 ? "template" : "templates"} available
-          </p>
+        {/* Page header with new template button */}
+        <div className="px-4 md:px-10 mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-cb-black dark:text-cb-white">
+              Templates
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {totalTemplates} {totalTemplates === 1 ? "template" : "templates"} available
+            </p>
+          </div>
+          <Button onClick={handleNewTemplate}>
+            <RiAddLine className="w-4 h-4 mr-2" />
+            New Template
+          </Button>
         </div>
-        <Button onClick={handleNewTemplate}>
-          <RiAddLine className="w-4 h-4 mr-2" />
-          New Template
-        </Button>
-      </div>
 
-      <Separator className="my-6" />
+        <Separator className="my-6" />
 
-      {/* Templates sections */}
-      <div className="px-4 pb-8 space-y-8">
-        {/* Personal Templates Section */}
-        <TemplateSection
-          title="My Templates"
-          icon={RiUserLine}
-          templates={templates}
-          emptyMessage="You haven't created any templates yet. Click 'New Template' to get started."
-          onEdit={handleEditTemplate}
-          onUse={handleUseTemplate}
-        />
+        {/* Templates sections */}
+        <div className="px-4 md:px-10 pb-8 space-y-8">
+          {/* Personal Templates Section */}
+          <TemplateSection
+            title="My Templates"
+            icon={RiUserLine}
+            templates={templates}
+            emptyMessage="You haven't created any templates yet. Click 'New Template' to get started."
+            onEdit={handleEditTemplate}
+            onUse={handleUseTemplate}
+          />
 
-        {/* Team/Shared Templates Section - only show if there are shared templates */}
-        {sharedTemplates.length > 0 && (
-          <>
-            <Separator />
-            <TemplateSection
-              title="Team Templates"
-              icon={RiTeamLine}
-              templates={sharedTemplates}
-              emptyMessage="No shared templates from your team."
-              onUse={handleUseTemplate}
-              isShared={true}
-            />
-          </>
-        )}
+          {/* Team/Shared Templates Section - only show if there are shared templates */}
+          {sharedTemplates.length > 0 && (
+            <>
+              <Separator />
+              <TemplateSection
+                title="Team Templates"
+                icon={RiTeamLine}
+                templates={sharedTemplates}
+                emptyMessage="No shared templates from your team."
+                onUse={handleUseTemplate}
+                isShared={true}
+              />
+            </>
+          )}
+        </div>
       </div>
 
       {/* Template Editor Dialog */}
