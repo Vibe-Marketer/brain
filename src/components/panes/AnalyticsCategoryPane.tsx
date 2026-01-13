@@ -1,41 +1,51 @@
 /**
- * Sorting Category Pane (2nd Pane)
+ * Analytics Category Pane (2nd Pane)
  *
- * Displays a list of sorting/tagging categories for multi-pane navigation.
- * Categories: Folders, Tags, Rules, Recurring Titles
+ * Displays a list of analytics categories for multi-pane navigation.
+ * All categories are visible to all users (no role filtering).
  *
  * ## Design Specification
  *
  * - **Position**: 2nd pane in the multi-pane layout (after sidebar)
- * - **Width**: 260px (fixed)
- * - **Purpose**: Category selection to trigger 3rd pane management view
+ * - **Width**: 280px (fixed)
+ * - **Purpose**: Category selection to trigger 3rd pane detail view
  * - **Pattern**: Microsoft Loop-inspired navigation
  *
- * @pattern sorting-category-pane
- * @see docs/planning/sorting-tagging-pane-allocation.md
+ * @pattern analytics-category-pane
+ * @see docs/planning/settings-pane-allocation.md
  */
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
 import {
-  RiFolderLine,
-  RiFolderFill,
+  RiDashboardLine,
+  RiDashboardFill,
+  RiTimeLine,
+  RiTimeFill,
+  RiGroupLine,
+  RiGroupFill,
+  RiSpeakLine,
+  RiSpeakFill,
   RiPriceTag3Line,
   RiPriceTag3Fill,
-  RiFlowChart,
-  RiRepeatLine,
-  RiRepeatFill,
-  RiOrganizationChart,
-  RiLightbulbLine,
+  RiFilmLine,
+  RiFilmFill,
+  RiPieChart2Line,
 } from "@remixicon/react";
 
 /** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
 const TRANSITION_DURATION = 250;
 
-export type SortingCategory = "folders" | "tags" | "rules" | "recurring";
+export type AnalyticsCategory =
+  | "overview"
+  | "duration"
+  | "participation"
+  | "talktime"
+  | "tags"
+  | "content";
 
 interface CategoryItem {
-  id: SortingCategory;
+  id: AnalyticsCategory;
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
@@ -43,65 +53,65 @@ interface CategoryItem {
   iconFill?: React.ComponentType<{ className?: string }>;
 }
 
-const SORTING_CATEGORIES: CategoryItem[] = [
+export const ANALYTICS_CATEGORIES: CategoryItem[] = [
   {
-    id: "folders",
-    label: "Folders",
-    description: "Manage folder hierarchy",
-    icon: RiFolderLine,
-    iconFill: RiFolderFill,
+    id: "overview",
+    label: "Overview",
+    description: "KPIs and call volume trends",
+    icon: RiDashboardLine,
+    iconFill: RiDashboardFill,
+  },
+  {
+    id: "duration",
+    label: "Call Duration",
+    description: "Duration distribution and averages",
+    icon: RiTimeLine,
+    iconFill: RiTimeFill,
+  },
+  {
+    id: "participation",
+    label: "Participation & Speakers",
+    description: "Attendee metrics and trends",
+    icon: RiGroupLine,
+    iconFill: RiGroupFill,
+  },
+  {
+    id: "talktime",
+    label: "Talk Time & Engagement",
+    description: "Talk time and monologue analysis",
+    icon: RiSpeakLine,
+    iconFill: RiSpeakFill,
   },
   {
     id: "tags",
-    label: "Tags",
-    description: "View and edit call tags",
+    label: "Tags & Categories",
+    description: "Calls and minutes by tag",
     icon: RiPriceTag3Line,
     iconFill: RiPriceTag3Fill,
   },
   {
-    id: "rules",
-    label: "Rules",
-    description: "Configure auto-sorting",
-    icon: RiFlowChart,
-    // Note: RiFlowChart has no fill variant - handled gracefully with color change only
-  },
-  {
-    id: "recurring",
-    label: "Recurring Titles",
-    description: "Create rules from patterns",
-    icon: RiRepeatLine,
-    iconFill: RiRepeatFill,
+    id: "content",
+    label: "Content Created",
+    description: "Clips tracking and performance",
+    icon: RiFilmLine,
+    iconFill: RiFilmFill,
   },
 ];
 
-/** Contextual tips that change based on selected category */
-const QUICK_TIPS: Record<SortingCategory, string> = {
-  folders:
-    "Folders organize calls for browsing. They don't affect AI analysis.",
-  tags: "Tags classify calls and control AI behavior. System tags cannot be modified.",
-  rules:
-    "Rules automatically tag and sort incoming calls. Higher priority rules run first.",
-  recurring:
-    "Recurring titles show your most common calls. Create rules to automate sorting.",
-};
-
-interface SortingCategoryPaneProps {
+interface AnalyticsCategoryPaneProps {
   /** Currently selected category ID */
-  selectedCategory: SortingCategory | null;
+  selectedCategory: AnalyticsCategory | null;
   /** Callback when a category is clicked */
-  onCategorySelect: (category: SortingCategory) => void;
-  /** Optional counts per category */
-  categoryCounts?: Partial<Record<SortingCategory, number>>;
+  onCategorySelect: (category: AnalyticsCategory) => void;
   /** Additional CSS classes */
   className?: string;
 }
 
-export function SortingCategoryPane({
+export function AnalyticsCategoryPane({
   selectedCategory,
   onCategorySelect,
-  categoryCounts = {},
   className,
-}: SortingCategoryPaneProps) {
+}: AnalyticsCategoryPaneProps) {
   // Track mount state for enter animations
   const [isMounted, setIsMounted] = React.useState(false);
   React.useEffect(() => {
@@ -111,13 +121,20 @@ export function SortingCategoryPane({
   }, []);
 
   // Refs for category buttons to enable focus management
-  const buttonRefs = React.useRef<Map<SortingCategory, HTMLButtonElement>>(
+  const buttonRefs = React.useRef<Map<AnalyticsCategory, HTMLButtonElement>>(
     new Map()
   );
 
+  // Get the current focused category index
+  const getFocusedIndex = React.useCallback(() => {
+    const focused = document.activeElement as HTMLElement;
+    const entries = Array.from(buttonRefs.current.entries());
+    return entries.findIndex(([, el]) => el === focused);
+  }, []);
+
   // Focus a category by index (wraps around)
   const focusCategoryByIndex = React.useCallback((index: number) => {
-    const categoryIds = SORTING_CATEGORIES.map((c) => c.id);
+    const categoryIds = ANALYTICS_CATEGORIES.map((c) => c.id);
     const wrappedIndex =
       ((index % categoryIds.length) + categoryIds.length) % categoryIds.length;
     const categoryId = categoryIds[wrappedIndex];
@@ -127,8 +144,8 @@ export function SortingCategoryPane({
 
   // Keyboard navigation handler for individual items
   const handleKeyDown = React.useCallback(
-    (event: React.KeyboardEvent, categoryId: SortingCategory) => {
-      const currentIndex = SORTING_CATEGORIES.findIndex(
+    (event: React.KeyboardEvent, categoryId: AnalyticsCategory) => {
+      const currentIndex = ANALYTICS_CATEGORIES.findIndex(
         (c) => c.id === categoryId
       );
 
@@ -152,17 +169,12 @@ export function SortingCategoryPane({
           break;
         case "End":
           event.preventDefault();
-          focusCategoryByIndex(SORTING_CATEGORIES.length - 1);
+          focusCategoryByIndex(ANALYTICS_CATEGORIES.length - 1);
           break;
       }
     },
     [onCategorySelect, focusCategoryByIndex]
   );
-
-  // Get current quick tip based on selected category
-  const currentTip = selectedCategory
-    ? QUICK_TIPS[selectedCategory]
-    : QUICK_TIPS.folders;
 
   return (
     <div
@@ -176,7 +188,7 @@ export function SortingCategoryPane({
         className
       )}
       role="navigation"
-      aria-label="Sorting and tagging categories"
+      aria-label="Analytics categories"
     >
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
@@ -184,18 +196,16 @@ export function SortingCategoryPane({
           className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-cb-vibe-orange"
           aria-hidden="true"
         >
-          <RiOrganizationChart className="h-5 w-5" />
+          <RiPieChart2Line className="h-5 w-5" />
         </div>
         <div className="min-w-0">
           <h2
             className="text-sm font-semibold text-cb-ink uppercase tracking-wide"
-            id="sorting-category-title"
+            id="analytics-category-title"
           >
-            Organization
+            Analytics
           </h2>
-          <p className="text-xs text-cb-ink-muted">
-            {SORTING_CATEGORIES.length} categories
-          </p>
+          <p className="text-xs text-cb-ink-muted">6 categories</p>
         </div>
       </header>
 
@@ -203,28 +213,22 @@ export function SortingCategoryPane({
       <div
         className="flex-1 overflow-y-auto py-2 px-2"
         role="list"
-        aria-labelledby="sorting-category-title"
+        aria-labelledby="analytics-category-title"
       >
-        {SORTING_CATEGORIES.map((category) => {
+        {ANALYTICS_CATEGORIES.map((category) => {
           const isActive = selectedCategory === category.id;
           // Use filled icon variant when active, fall back to line icon
-          const IconComponent = isActive && category.iconFill ? category.iconFill : category.icon;
-          const count = categoryCounts[category.id];
+          const IconComponent =
+            isActive && category.iconFill ? category.iconFill : category.icon;
 
           return (
-            <div
-              key={category.id}
-              role="listitem"
-              className="relative mb-1"
-            >
+            <div key={category.id} role="listitem" className="relative mb-1">
               {/* Active indicator - pill shape (Loop-style) with smooth transition */}
               <div
                 className={cn(
                   "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full",
                   "transition-all duration-200 ease-in-out",
-                  isActive
-                    ? "opacity-100 scale-y-100"
-                    : "opacity-0 scale-y-0"
+                  isActive ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0"
                 )}
                 aria-hidden="true"
               />
@@ -250,7 +254,7 @@ export function SortingCategoryPane({
                   ]
                 )}
                 aria-current={isActive ? "true" : undefined}
-                aria-label={`${category.label}: ${category.description}${count !== undefined ? `, ${count} items` : ""}`}
+                aria-label={`${category.label}: ${category.description}`}
               >
                 {/* Icon - with smooth transition on state change */}
                 <div
@@ -265,35 +269,22 @@ export function SortingCategoryPane({
                   <IconComponent
                     className={cn(
                       "h-4 w-4 transition-colors duration-200 ease-in-out",
-                      isActive ? "text-vibe-orange" : "text-cb-ink-muted"
+                      isActive ? "text-cb-vibe-orange" : "text-cb-ink-muted"
                     )}
                   />
                 </div>
 
-                {/* Label, Description, and Count */}
+                {/* Label and Description */}
                 <div className="flex-1 min-w-0 pt-0.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={cn(
-                        "block text-sm font-medium truncate",
-                        "transition-colors duration-200 ease-in-out",
-                        isActive ? "text-vibe-orange" : "text-cb-ink"
-                      )}
-                    >
-                      {category.label}
-                    </span>
-                    {count !== undefined && (
-                      <span
-                        className={cn(
-                          "flex-shrink-0 text-xs tabular-nums",
-                          isActive ? "text-vibe-orange/70" : "text-cb-ink-muted"
-                        )}
-                        aria-hidden="true"
-                      >
-                        ({count})
-                      </span>
+                  <span
+                    className={cn(
+                      "block text-sm font-medium truncate",
+                      "transition-colors duration-200 ease-in-out",
+                      isActive ? "text-cb-vibe-orange" : "text-cb-ink"
                     )}
-                  </div>
+                  >
+                    {category.label}
+                  </span>
                   <span className="block text-xs text-cb-ink-muted truncate">
                     {category.description}
                   </span>
@@ -311,7 +302,7 @@ export function SortingCategoryPane({
                   aria-hidden="true"
                 >
                   <svg
-                    className="h-4 w-4 text-vibe-orange"
+                    className="h-4 w-4 text-cb-vibe-orange"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -329,26 +320,8 @@ export function SortingCategoryPane({
           );
         })}
       </div>
-
-      {/* Quick Tips Section */}
-      <div className="flex-shrink-0 border-t border-cb-border bg-cb-card/30 px-4 py-3">
-        <div className="flex items-start gap-2">
-          <RiLightbulbLine
-            className="h-4 w-4 text-cb-ink-muted flex-shrink-0 mt-0.5"
-            aria-hidden="true"
-          />
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-cb-ink-muted uppercase tracking-wide mb-1">
-              Quick Tip
-            </p>
-            <p className="text-xs text-cb-ink-muted leading-relaxed">
-              {currentTip}
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
 
-export default SortingCategoryPane;
+export default AnalyticsCategoryPane;

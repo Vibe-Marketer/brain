@@ -39,6 +39,8 @@ import {
   RiTeamFill,
   RiSettings3Line,
   RiSettings3Fill,
+  RiPieChart2Line,
+  RiPieChart2Fill,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
@@ -67,6 +69,8 @@ interface SidebarNavProps {
   onSettingsClick?: () => void;
   /** Optional callback when Sorting nav item is clicked (to open category pane) */
   onSortingClick?: () => void;
+  /** Optional callback when Analytics nav item is clicked (to open category pane) */
+  onAnalyticsClick?: () => void;
 }
 
 /**
@@ -186,9 +190,17 @@ const navItems: NavItem[] = [
     path: '/settings',
     matchPaths: ['/settings'],
   },
+  {
+    id: 'analytics',
+    name: 'Analytics',
+    iconLine: RiPieChart2Line,
+    iconFill: RiPieChart2Fill,
+    path: '/analytics',
+    matchPaths: ['/analytics'],
+  },
 ];
 
-export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggle, onSettingsClick, onSortingClick }: SidebarNavProps) {
+export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggle, onSettingsClick, onSortingClick, onAnalyticsClick }: SidebarNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -285,6 +297,10 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   if (item.id === 'sorting' && onSortingClick) {
                     onSortingClick();
                   }
+                  // Call analytics callback when Analytics nav item is clicked
+                  if (item.id === 'analytics' && onAnalyticsClick) {
+                    onAnalyticsClick();
+                  }
                 }}
                 onKeyDown={(e) => handleKeyDown(e, item.id)}
                 className={cn(
@@ -369,7 +385,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
           </div>
         )}
 
-        {/* Optional Sync/Add Action */}
+        {/* Optional Sync/Add Action - Vibe Orange Gradient CTA */}
         {onSyncClick && (
           <div className="relative flex flex-col mt-1">
              <button
@@ -379,22 +395,33 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 'relative flex items-center',
                 isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
                 'rounded-xl transition-all duration-500 ease-in-out',
-                'hover:bg-gray-100 dark:hover:bg-white/10',
+                'hover:opacity-90 hover:scale-[1.02]',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
               )}
               title="Sync & Import"
             >
-               <div className={cn(
-                      "flex-shrink-0 flex items-center justify-center",
-                       isCollapsed ? "w-11 h-11" : "w-5 h-5 text-cb-vibe-orange"
-                  )}>
-                   {isCollapsed ? (
-                       <NavIcon icon={RiAddLine} />
-                   ) : (
-                    <RiAddLine className="w-5 h-5" />
-                   )}
-              </div>
-              {!isCollapsed && <span className="text-sm font-medium text-cb-vibe-orange truncate">Sync & Import</span>}
+               {/* Collapsed mode: Gradient icon container */}
+               {isCollapsed ? (
+                 <div
+                   className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl shadow-lg"
+                   style={{
+                     background: 'linear-gradient(135deg, #FFEB00 0%, #FF8800 50%, #FF3D00 100%)',
+                   }}
+                 >
+                   <RiAddLine className="w-5 h-5 text-white" />
+                 </div>
+               ) : (
+                 /* Expanded mode: Gradient container with icon and text */
+                 <div
+                   className="flex items-center gap-2 px-3 py-2 rounded-xl shadow-lg w-full"
+                   style={{
+                     background: 'linear-gradient(135deg, #FFEB00 0%, #FF8800 50%, #FF3D00 100%)',
+                   }}
+                 >
+                   <RiAddLine className="w-5 h-5 text-white flex-shrink-0" />
+                   <span className="text-sm font-semibold text-white uppercase tracking-wide">Import</span>
+                 </div>
+               )}
             </button>
           </div>
         )}

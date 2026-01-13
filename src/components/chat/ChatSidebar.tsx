@@ -253,10 +253,23 @@ export function ChatSidebar({
         className="h-full flex flex-col"
         data-component="SIDEBAR"
       >
-        {/* Header - matches Library panel styling */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-white/50 dark:bg-black/20">
-          <h2 className="text-sm font-semibold text-foreground tracking-tight uppercase">AI Chat</h2>
-          <div className="flex items-center gap-1">
+        {/* Header - standardized pattern matching other category panes */}
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
+          <div
+            className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-cb-vibe-orange"
+            aria-hidden="true"
+          >
+            <RiChat3Line className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-sm font-semibold text-cb-ink uppercase tracking-wide">
+              AI Chat
+            </h2>
+            <p className="text-xs text-cb-ink-muted">
+              {sessions.length} {sessions.length === 1 ? 'conversation' : 'conversations'}
+            </p>
+          </div>
+          <div className="flex items-center gap-1 flex-shrink-0">
              {/* Bulk Selection Toggle */}
              {sessions.length > 0 && (
               <Button
@@ -276,7 +289,7 @@ export function ChatSidebar({
               <RiAddLine className="w-4 h-4 opacity-70" />
             </Button>
           </div>
-        </div>
+        </header>
         
         {/* Bulk Actions Header */}
         {isSelectionMode && (

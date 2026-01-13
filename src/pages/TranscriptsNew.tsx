@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { TranscriptsTab } from "@/components/transcripts/TranscriptsTab";
 import { SyncTab } from "@/components/transcripts/SyncTab";
-import { AnalyticsTab } from "@/components/transcripts/AnalyticsTab";
 import { FolderSidebar } from "@/components/transcript-library/FolderSidebar";
 import { AppShell } from "@/components/layout/AppShell";
 import { useFolders } from "@/hooks/useFolders";
@@ -20,7 +19,7 @@ import EditAllTranscriptsDialog from "@/components/EditAllTranscriptsDialog";
 import { FolderManagementDialog } from "@/components/transcript-library/FolderManagementDialog";
 import { FOCUS_INLINE_SEARCH_EVENT } from "@/stores/searchStore";
 
-type TabValue = "transcripts" | "sync" | "analytics";
+type TabValue = "transcripts" | "sync";
 
 const tabConfig = {
   transcripts: {
@@ -31,10 +30,6 @@ const tabConfig = {
     title: "SYNC & IMPORT",
     description: "Search and sync transcripts from your connected sources.",
   },
-  analytics: {
-    title: "ANALYTICS",
-    description: "Insights and metrics about your call patterns and performance.",
-  },
 };
 
 const TranscriptsNew = () => {
@@ -43,7 +38,7 @@ const TranscriptsNew = () => {
   // Derive initial tab from URL, defaulting to "transcripts"
   const getTabFromUrl = (): TabValue => {
     const urlTab = searchParams.get("tab") as TabValue;
-    if (urlTab && ["transcripts", "sync", "analytics"].includes(urlTab)) {
+    if (urlTab && ["transcripts", "sync"].includes(urlTab)) {
       return urlTab;
     }
     return "transcripts";
@@ -168,7 +163,7 @@ const TranscriptsNew = () => {
                   onSelectFolder={(id) => {
                     setSelectedFolderId(id);
                     // If we select a folder, ensure we are on the transcripts tab
-                    if (activeTab === "sync" || activeTab === "analytics") {
+                    if (activeTab === "sync") {
                       handleTabChange("transcripts");
                     }
                   }}
@@ -193,7 +188,6 @@ const TranscriptsNew = () => {
               <TabsList>
                 <TabsTrigger value="transcripts">TRANSCRIPTS</TabsTrigger>
                 {/* Sync is hidden here on desktop, triggered by Plus Icon in Nav Rail */}
-                <TabsTrigger value="analytics">ANALYTICS</TabsTrigger>
               </TabsList>
             </div>
           </div>
@@ -249,10 +243,6 @@ const TranscriptsNew = () => {
 
             <TabsContent value="sync" className="mt-0 h-full overflow-auto absolute inset-0 p-4 md:p-10">
               <SyncTab />
-            </TabsContent>
-
-            <TabsContent value="analytics" className="mt-0 h-full overflow-auto absolute inset-0 p-4 md:p-10">
-              <AnalyticsTab />
             </TabsContent>
           </div>
         </Tabs>

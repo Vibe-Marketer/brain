@@ -16,7 +16,7 @@ import TranscriptsNew from '@/pages/TranscriptsNew';
 import Chat from '@/pages/Chat';
 import SortingTagging from '@/pages/SortingTagging';
 import Settings from '@/pages/Settings';
-import LoopLayoutDemo from '@/pages/LoopLayoutDemo';
+import Analytics from '@/pages/Analytics';
 import SharedWithMe from '@/pages/SharedWithMe';
 import CoachDashboard from '@/pages/CoachDashboard';
 import CollaborationPage from '@/pages/CollaborationPage';
@@ -71,8 +71,8 @@ function App() {
                     <Route path="/settings/:category" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
                     <Route path="/sorting-tagging" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
                     <Route path="/sorting-tagging/:category" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
-                    <Route path="/loop" element={<Layout><LoopLayoutDemo /></Layout>} />
-
+                    <Route path="/analytics" element={<ProtectedRoute><Layout><Analytics /></Layout></ProtectedRoute>} />
+                    <Route path="/analytics/:category" element={<ProtectedRoute><Layout><Analytics /></Layout></ProtectedRoute>} />
                     {/* Shared with me page */}
                     <Route path="/shared-with-me" element={<ProtectedRoute><Layout><SharedWithMe /></Layout></ProtectedRoute>} />
 
