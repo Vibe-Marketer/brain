@@ -40,7 +40,7 @@ function AgentProgress({ title, description, status, icon, resultSummary }: Agen
     <div
       className={cn(
         'flex items-start gap-4 p-4 rounded-lg border transition-colors',
-        status === 'running' && 'border-cb-vibe-orange bg-orange-50/50 dark:bg-orange-950/10',
+        status === 'running' && 'border-vibe-orange bg-orange-50/50 dark:bg-orange-950/10',
         status === 'completed' && 'border-green-500 bg-green-50/50 dark:bg-green-950/10',
         status === 'error' && 'border-destructive bg-destructive/10',
         status === 'idle' && 'border-muted'
@@ -51,7 +51,7 @@ function AgentProgress({ title, description, status, icon, resultSummary }: Agen
         className={cn(
           'flex items-center justify-center w-10 h-10 rounded-full',
           status === 'idle' && 'bg-muted text-muted-foreground',
-          status === 'running' && 'bg-cb-vibe-orange/20 text-cb-vibe-orange',
+          status === 'running' && 'bg-vibe-orange/20 text-vibe-orange',
           status === 'completed' && 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
           status === 'error' && 'bg-destructive/20 text-destructive'
         )}

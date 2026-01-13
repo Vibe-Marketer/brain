@@ -231,7 +231,7 @@ export function SettingsCategoryPane({
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
         <div
-          className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-cb-vibe-orange"
+          className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
           aria-hidden="true"
         >
           <RiSettings3Line className="h-5 w-5" />
@@ -315,7 +315,7 @@ export function SettingsCategoryPane({
                     className={cn(
                       "h-4 w-4 transition-colors duration-200 ease-in-out",
                       isActive
-                        ? "text-cb-vibe-orange"
+                        ? "text-vibe-orange"
                         : "text-cb-ink-muted"
                     )}
                   />
@@ -327,7 +327,7 @@ export function SettingsCategoryPane({
                     className={cn(
                       "block text-sm font-medium truncate",
                       "transition-colors duration-200 ease-in-out",
-                      isActive ? "text-cb-vibe-orange" : "text-cb-ink"
+                      isActive ? "text-vibe-orange" : "text-cb-ink"
                     )}
                   >
                     {category.label}
@@ -349,7 +349,7 @@ export function SettingsCategoryPane({
                   aria-hidden="true"
                 >
                   <svg
-                    className="h-4 w-4 text-cb-vibe-orange"
+                    className="h-4 w-4 text-vibe-orange"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

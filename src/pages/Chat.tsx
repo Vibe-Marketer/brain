@@ -14,6 +14,7 @@ import {
   RiAtLine,
   RiVideoLine,
   RiUploadCloud2Line,
+  RiChat3Line,
 } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { CallDetailDialog } from "@/components/CallDetailDialog";
@@ -1349,8 +1350,29 @@ export default function Chat() {
           )
         }}
       >
-        {/* Main Chat Content */}
-        <ChatInnerCard className="min-w-0 h-full relative z-0 transition-all duration-300">
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Header - standardized detail pane pattern */}
+          <header className="flex items-center justify-between px-4 py-3 border-b border-cb-border bg-cb-card/50 flex-shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+                aria-hidden="true"
+              >
+                <RiChat3Line className="h-4 w-4 text-vibe-orange" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-cb-ink">
+                  AI Chat
+                </h2>
+                <p className="text-xs text-cb-ink-muted">
+                  Ask questions about your calls
+                </p>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Chat Content */}
+          <ChatInnerCard className="min-w-0 flex-1 relative z-0 transition-all duration-300">
           {/* Header */}
           <ChatInnerCardHeader>
             <div className="flex items-center justify-between">
@@ -1874,6 +1896,7 @@ export default function Chat() {
             </div>
           </ChatInnerCardInputArea>
         </ChatInnerCard>
+        </div>
       </AppShell>
 
       {/* Call Detail Dialog */}

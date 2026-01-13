@@ -15,6 +15,7 @@ import {
   RiPhoneLine,
   RiArrowRightLine,
   RiTimeLine,
+  RiSparklingLine,
 } from '@remixicon/react';
 import { AppShell } from '@/components/layout/AppShell';
 import { ContentCategoryPane } from '@/components/panes/ContentCategoryPane';
@@ -62,23 +63,36 @@ export default function ContentGenerators() {
         secondaryPane: <ContentCategoryPane />,
       }}
     >
-      <div className="flex flex-col h-full p-6 space-y-6 overflow-auto">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold uppercase tracking-wide font-montserrat">
-          Content Generators
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Choose a generator to create content from your sources
-        </p>
-      </div>
+      <div className="flex flex-col h-full overflow-auto">
+        {/* Header - standardized detail pane pattern */}
+        <header className="flex items-center justify-between px-4 py-3 border-b border-cb-border bg-cb-card/50 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+              aria-hidden="true"
+            >
+              <RiSparklingLine className="h-4 w-4 text-vibe-orange" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-cb-ink">
+                Generators
+              </h2>
+              <p className="text-xs text-cb-ink-muted">
+                Create new content
+              </p>
+            </div>
+          </div>
+        </header>
 
-      {/* Generator Cards */}
+        {/* Content */}
+        <div className="flex-1 p-6 space-y-6 overflow-auto">
+          {/* Generator Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {generators.map((generator) => (
           <GeneratorCardComponent key={generator.id} generator={generator} />
         ))}
-      </div>
+        </div>
+        </div>
       </div>
     </AppShell>
   );
@@ -111,21 +125,21 @@ function GeneratorCardComponent({ generator }: { generator: GeneratorCard }) {
   return (
     <Link
       to={generator.path}
-      className="group bg-card border rounded-lg p-6 hover:border-cb-vibe-orange/50 transition-colors"
+      className="group bg-card border rounded-lg p-6 hover:border-vibe-orange/50 transition-colors"
     >
       <div className="flex items-start gap-4">
-        <div className="p-3 bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/30 dark:to-orange-900/10 rounded-lg text-cb-vibe-orange">
+        <div className="p-3 bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-900/30 dark:to-orange-900/10 rounded-lg text-vibe-orange">
           {generator.icon}
         </div>
         <div className="flex-1">
-          <h3 className="font-semibold group-hover:text-cb-vibe-orange transition-colors">
+          <h3 className="font-semibold group-hover:text-vibe-orange transition-colors">
             {generator.title}
           </h3>
           <p className="text-sm text-muted-foreground mt-1">
             {generator.description}
           </p>
         </div>
-        <RiArrowRightLine className="w-5 h-5 text-muted-foreground group-hover:text-cb-vibe-orange transition-colors" />
+        <RiArrowRightLine className="w-5 h-5 text-muted-foreground group-hover:text-vibe-orange transition-colors" />
       </div>
     </Link>
   );

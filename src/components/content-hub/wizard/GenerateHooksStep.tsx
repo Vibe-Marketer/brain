@@ -181,7 +181,7 @@ export function GenerateHooksStep() {
       {generatedHooks.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 text-center">
           <div className="p-4 bg-orange-100 dark:bg-orange-900/20 rounded-full mb-4">
-            <RiSparklingLine className="w-8 h-8 text-cb-vibe-orange" />
+            <RiSparklingLine className="w-8 h-8 text-vibe-orange" />
           </div>
           <h4 className="font-medium">Ready to Generate Hooks</h4>
           <p className="text-sm text-muted-foreground mt-1 max-w-md">
@@ -237,8 +237,8 @@ export function GenerateHooksStep() {
                   className={cn(
                     'w-full text-left p-4 rounded-lg border transition-colors',
                     isSelected
-                      ? 'border-cb-vibe-orange bg-orange-50 dark:bg-orange-950/20'
-                      : 'border-border hover:border-cb-vibe-orange/50'
+                      ? 'border-vibe-orange bg-orange-50 dark:bg-orange-950/20'
+                      : 'border-border hover:border-vibe-orange/50'
                   )}
                 >
                   <div className="flex items-start gap-3">
@@ -247,7 +247,7 @@ export function GenerateHooksStep() {
                       className={cn(
                         'flex items-center justify-center w-5 h-5 rounded border-2 mt-0.5 flex-shrink-0 transition-colors',
                         isSelected
-                          ? 'bg-cb-vibe-orange border-cb-vibe-orange'
+                          ? 'bg-vibe-orange border-vibe-orange'
                           : 'border-muted-foreground'
                       )}
                     >

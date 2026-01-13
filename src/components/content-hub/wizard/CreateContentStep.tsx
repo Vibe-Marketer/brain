@@ -80,14 +80,14 @@ function HookContentCard({ hook, content, onCopy }: HookContentCardProps) {
         <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0">
           <TabsTrigger
             value="post"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-cb-vibe-orange data-[state=active]:bg-transparent px-4 py-2"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-vibe-orange data-[state=active]:bg-transparent px-4 py-2"
           >
             <RiFileTextLine className="w-4 h-4 mr-2" />
             Social Post
           </TabsTrigger>
           <TabsTrigger
             value="email"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-cb-vibe-orange data-[state=active]:bg-transparent px-4 py-2"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-vibe-orange data-[state=active]:bg-transparent px-4 py-2"
           >
             <RiMailLine className="w-4 h-4 mr-2" />
             Email
@@ -128,7 +128,7 @@ function HookContentCard({ hook, content, onCopy }: HookContentCardProps) {
               <div className="relative">
                 <p className="whitespace-pre-wrap">{content?.social_post_text}</p>
                 {isStreaming && (
-                  <span className="inline-block w-2 h-4 bg-cb-vibe-orange animate-pulse ml-1" />
+                  <span className="inline-block w-2 h-4 bg-vibe-orange animate-pulse ml-1" />
                 )}
               </div>
               {!isStreaming && (
@@ -197,7 +197,7 @@ function HookContentCard({ hook, content, onCopy }: HookContentCardProps) {
                 <p className="text-sm font-medium text-muted-foreground">Body:</p>
                 <p className="whitespace-pre-wrap">{content?.email_body_opening}</p>
                 {isStreaming && (
-                  <span className="inline-block w-2 h-4 bg-cb-vibe-orange animate-pulse ml-1" />
+                  <span className="inline-block w-2 h-4 bg-vibe-orange animate-pulse ml-1" />
                 )}
               </div>
               {!isStreaming && (
@@ -341,7 +341,7 @@ Would you have 15 minutes this week to chat about it?`;
           <div className="flex items-center gap-3">
             <div className="w-32 h-2 bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-cb-vibe-orange transition-all duration-300"
+                className="h-full bg-vibe-orange transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>

@@ -146,7 +146,7 @@ export function SelectSourcesStep() {
         <p className="text-sm text-muted-foreground">
           Select one or more calls to extract insights from.
           {selectedCalls.length > 0 && (
-            <span className="ml-2 text-cb-vibe-orange font-medium">
+            <span className="ml-2 text-vibe-orange font-medium">
               ({selectedCalls.length} selected)
             </span>
           )}
@@ -180,15 +180,15 @@ export function SelectSourcesStep() {
                   className={cn(
                     'w-full flex items-center gap-3 p-4 rounded-lg border text-left transition-colors',
                     isSelected
-                      ? 'border-cb-vibe-orange bg-orange-50 dark:bg-orange-950/20'
-                      : 'border-border hover:border-cb-vibe-orange/50'
+                      ? 'border-vibe-orange bg-orange-50 dark:bg-orange-950/20'
+                      : 'border-border hover:border-vibe-orange/50'
                   )}
                 >
                   <div
                     className={cn(
                       'flex items-center justify-center w-5 h-5 rounded border-2 transition-colors',
                       isSelected
-                        ? 'bg-cb-vibe-orange border-cb-vibe-orange'
+                        ? 'bg-vibe-orange border-vibe-orange'
                         : 'border-muted-foreground'
                     )}
                   >

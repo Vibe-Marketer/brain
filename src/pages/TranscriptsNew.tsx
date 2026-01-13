@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { RiSearchLine, RiAddLine } from "@remixicon/react";
+import { RiSearchLine, RiAddLine, RiHome4Line } from "@remixicon/react";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -147,15 +147,7 @@ const TranscriptsNew = () => {
       <AppShell
         config={{
           secondaryPane: (
-            <>
-              <div className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-white/50 dark:bg-black/20">
-                <h2 className="text-sm font-semibold text-foreground tracking-tight uppercase">Library</h2>
-                <Button variant="ghost" size="icon" className="h-6 w-6 rounded-full" onClick={() => setQuickCreateFolderOpen(true)}>
-                  <RiAddLine className="w-4 h-4 opacity-70" />
-                </Button>
-              </div>
-              <div className="flex-1 overflow-hidden pt-2">
-                <FolderSidebar
+            <FolderSidebar
                   folders={folders}
                   folderCounts={folderCounts}
                   totalCount={totalCount}
@@ -176,54 +168,45 @@ const TranscriptsNew = () => {
                   onEditAllTranscripts={() => setEditAllTranscriptsOpen(true)}
                   isCollapsed={false}
                 />
-              </div>
-            </>
           ),
           onSyncClick: () => handleTabChange("sync")
         }}
       >
-        <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabValue)} className="h-full flex flex-col">
-          <div className="px-4 md:px-10 pt-2 flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <TabsList>
-                <TabsTrigger value="transcripts">TRANSCRIPTS</TabsTrigger>
-                {/* Sync is hidden here on desktop, triggered by Plus Icon in Nav Rail */}
-              </TabsList>
-            </div>
-          </div>
-
-          <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
-
-          {/* Dynamic Page Header */}
-          <div className="px-4 md:px-10 flex-shrink-0">
-            <div className="mt-2 mb-2 flex items-end justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-cb-gray-dark dark:text-cb-gray-light uppercase tracking-wider mb-0.5">
-                  LIBRARY
-                </p>
-                <h1 className="font-display text-2xl md:text-4xl font-extrabold text-cb-black dark:text-cb-white uppercase tracking-wide mb-0.5">
-                  {currentConfig.title}
-                </h1>
-                <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">{currentConfig.description}</p>
+        <div className="flex flex-col h-full overflow-hidden">
+          {/* Header - standardized detail pane pattern */}
+          <header className="flex items-center justify-between px-4 py-3 border-b border-cb-border bg-cb-card/50 flex-shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+                aria-hidden="true"
+              >
+                <RiHome4Line className="h-4 w-4 text-vibe-orange" />
               </div>
-              {/* Search Bar - Only for Transcripts (Cmd/Ctrl+K focuses this) */}
-              {activeTab === "transcripts" && (
-                <div className="relative w-64 flex-shrink-0 hidden md:block">
-                  <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cb-ink-muted" />
-                  <Input
-                    ref={searchInputRef}
-                    placeholder="Search transcripts... (⌘K)"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="h-9 pl-8 text-sm bg-white dark:bg-cb-card border-cb-border"
-                  />
-                </div>
-              )}
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold text-cb-ink">
+                  Transcripts
+                </h2>
+                <p className="text-xs text-cb-ink-muted">
+                  {totalCount} transcript{totalCount !== 1 ? 's' : ''}
+                </p>
+              </div>
             </div>
-          </div>
+            {/* Search Bar */}
+            <div className="relative w-64 flex-shrink-0 hidden md:block">
+              <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cb-ink-muted" />
+              <Input
+                ref={searchInputRef}
+                placeholder="Search transcripts... (⌘K)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-9 pl-8 text-sm bg-white dark:bg-cb-card border-cb-border"
+              />
+            </div>
+          </header>
 
-          {/* Tab Content Areas */}
-          <div className="flex-1 min-h-0 overflow-hidden relative">
+          {/* Content */}
+          <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabValue)} className="flex-1 min-h-0 overflow-hidden">
+            <div className="flex-1 min-h-0 overflow-hidden relative h-full">
             <TabsContent value="transcripts" className="mt-0 h-full absolute inset-0">
               <TranscriptsTab
                 searchQuery={searchQuery}
@@ -246,6 +229,7 @@ const TranscriptsNew = () => {
             </TabsContent>
           </div>
         </Tabs>
+        </div>
       </AppShell>
 
       {/* Dialogs */}

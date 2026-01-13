@@ -148,7 +148,7 @@ export default function SortingTagging() {
               "animate-in slide-in-from-left duration-300"
             )}
           >
-            <div className="w-full px-2 mb-2 flex items-center justify-between">
+            <div className="w-full px-2 mb-2 flex items-center justify-end">
               <Button
                 variant="ghost"
                 size="icon"
@@ -161,7 +161,6 @@ export default function SortingTagging() {
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </Button>
-              <span className="text-sm font-semibold mr-auto ml-2">Menu</span>
             </div>
             <div className="w-full flex-1" />
           </nav>

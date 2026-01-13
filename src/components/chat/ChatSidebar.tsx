@@ -256,7 +256,7 @@ export function ChatSidebar({
         {/* Header - standardized pattern matching other category panes */}
         <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
           <div
-            className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-cb-vibe-orange"
+            className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
             aria-hidden="true"
           >
             <RiChat3Line className="h-5 w-5" />

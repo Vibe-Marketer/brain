@@ -135,7 +135,7 @@ export function CallContentWizard({ onComplete, onCancel }: CallContentWizardPro
                 className={cn(
                   'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors',
                   status === 'completed' && 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 cursor-pointer hover:bg-green-200',
-                  status === 'current' && 'bg-cb-vibe-orange text-white',
+                  status === 'current' && 'bg-vibe-orange text-white',
                   status === 'upcoming' && 'bg-muted text-muted-foreground'
                 )}
               >

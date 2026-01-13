@@ -193,7 +193,7 @@ export default function BusinessProfileTab() {
                       <SelectItem key={profile.id} value={profile.id}>
                         <div className="flex items-center gap-2">
                           {profile.is_default && (
-                            <RiStarFill className="h-3 w-3 text-cb-vibe-orange" />
+                            <RiStarFill className="h-3 w-3 text-vibe-orange" />
                           )}
                           <span>{profile.company_name || 'Untitled Profile'}</span>
                           <span className="text-xs text-muted-foreground ml-1">
@@ -240,7 +240,7 @@ export default function BusinessProfileTab() {
               )}
               {selectedProfile.is_default && (
                 <span className="text-sm text-muted-foreground flex items-center gap-2">
-                  <RiStarFill className="h-4 w-4 text-cb-vibe-orange" />
+                  <RiStarFill className="h-4 w-4 text-vibe-orange" />
                   Default Profile
                 </span>
               )}

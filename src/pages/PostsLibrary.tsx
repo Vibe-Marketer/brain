@@ -148,7 +148,7 @@ export default function PostsLibrary() {
     return (
       <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
         <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cb-vibe-orange" />
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vibe-orange" />
         </div>
       </AppShell>
     );
@@ -167,20 +167,30 @@ export default function PostsLibrary() {
 
   return (
     <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
-      <div className="flex flex-col h-full p-6 space-y-4 overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold uppercase tracking-wide font-montserrat">
-            Posts Library
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {posts.length} post{posts.length !== 1 ? 's' : ''} saved
-          </p>
-        </div>
-      </div>
+      <div className="flex flex-col h-full overflow-hidden">
+        {/* Header - standardized detail pane pattern */}
+        <header className="flex items-center justify-between px-4 py-3 border-b border-cb-border bg-cb-card/50 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+              aria-hidden="true"
+            >
+              <RiFileTextLine className="h-4 w-4 text-vibe-orange" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-semibold text-cb-ink">
+                Posts
+              </h2>
+              <p className="text-xs text-cb-ink-muted">
+                {posts.length} post{posts.length !== 1 ? 's' : ''} saved
+              </p>
+            </div>
+          </div>
+        </header>
 
-      {/* Filters */}
+        {/* Content */}
+        <div className="flex-1 p-6 space-y-4 overflow-hidden">
+          {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <RiFilterLine className="w-4 h-4 text-muted-foreground" />
@@ -329,6 +339,7 @@ export default function PostsLibrary() {
           </Table>
         </div>
       )}
+        </div>
       </div>
     </AppShell>
   );

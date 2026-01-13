@@ -124,9 +124,9 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
         depth > 0 && 'ml-3',
         // Drag feedback
         isDragging && 'ring-1 ring-cb-border ring-inset',
-        isOver && 'bg-cb-vibe-orange/10 ring-2 ring-cb-vibe-orange',
+        isOver && 'bg-vibe-orange/10 ring-2 ring-vibe-orange',
         // Keyboard focus
-        isFocused && 'ring-2 ring-cb-vibe-orange ring-inset'
+        isFocused && 'ring-2 ring-vibe-orange ring-inset'
       )}
       onClick={() => onSelect(folder.id)}
       role="option"
@@ -213,7 +213,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
               className={cn(
                 "h-6 w-6 flex items-center justify-center rounded transition-colors",
                 isHidden
-                  ? "text-cb-vibe-orange bg-cb-vibe-orange/10 hover:bg-cb-vibe-orange/20"
+                  ? "text-vibe-orange bg-vibe-orange/10 hover:bg-vibe-orange/20"
                   : "text-cb-ink-muted hover:bg-cb-border/50 hover:text-cb-ink"
               )}
               aria-label={isHidden ? `Show ${folder.name} in All Transcripts` : `Hide ${folder.name} from All Transcripts`}
@@ -543,7 +543,7 @@ export function FolderSidebar({
                     )}
                     {/* Hidden indicator dot */}
                     {isHidden && (
-                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-cb-vibe-orange rounded-full" />
+                      <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-vibe-orange rounded-full" />
                     )}
                   </button>
                 );
@@ -589,7 +589,7 @@ export function FolderSidebar({
         {/* Header - standardized pattern matching other category panes */}
         <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
           <div
-            className="w-8 h-8 rounded-lg bg-cb-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-cb-vibe-orange"
+            className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
             aria-hidden="true"
           >
             <RiFolderLine className="h-5 w-5" />
@@ -639,7 +639,7 @@ export function FolderSidebar({
                     'group relative flex items-center h-10 w-full px-2 rounded-lg cursor-pointer',
                     'transition-colors duration-150 overflow-hidden',
                     selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
-                    focusedIndex === 0 && 'ring-2 ring-cb-vibe-orange ring-inset'
+                    focusedIndex === 0 && 'ring-2 ring-vibe-orange ring-inset'
                   )}
                   onClick={() => onSelectFolder(null)}
                   role="option"

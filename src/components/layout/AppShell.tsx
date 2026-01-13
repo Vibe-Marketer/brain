@@ -190,7 +190,7 @@ export function AppShell({
             "animate-in slide-in-from-left duration-300"
           )}
         >
-          <div className="w-full px-2 mb-2 flex items-center justify-between">
+          <div className="w-full px-2 mb-2 flex items-center justify-end">
             <button
               onClick={() => setShowMobileNav(false)}
               className="text-muted-foreground hover:text-foreground"
@@ -200,7 +200,6 @@ export function AppShell({
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
             </button>
-            <span className="text-sm font-semibold mr-auto ml-2">Menu</span>
           </div>
           <SidebarNav
             isCollapsed={false}
@@ -272,12 +271,6 @@ export function AppShell({
               onToggle={() => setIsSidebarExpanded(!isSidebarExpanded)}
             />
 
-            {/* Header */}
-            <div className="w-full px-2 mb-2 flex items-center justify-between relative z-10">
-              {isSidebarExpanded && (
-                <span className="text-sm font-semibold ml-2">Menu</span>
-              )}
-            </div>
 
             {/* Navigation items */}
             <SidebarNav

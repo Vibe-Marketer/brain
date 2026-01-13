@@ -102,7 +102,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
 
       // In collapsed mode, active items have an orange indicator dot
-      const dots = container.querySelectorAll('.bg-cb-vibe-orange');
+      const dots = container.querySelectorAll('.bg-vibe-orange');
       expect(dots.length).toBeGreaterThan(0);
     });
 
@@ -110,7 +110,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: true }, ['/transcripts']);
 
       // Home should be active since /transcripts is in its matchPaths
-      const dots = container.querySelectorAll('.bg-cb-vibe-orange');
+      const dots = container.querySelectorAll('.bg-vibe-orange');
       expect(dots.length).toBeGreaterThan(0);
     });
 
@@ -149,7 +149,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
 
       // Active indicator dot should be present
-      const indicatorDot = container.querySelector('.bg-cb-vibe-orange.rounded-full');
+      const indicatorDot = container.querySelector('.bg-vibe-orange.rounded-full');
       expect(indicatorDot).toBeInTheDocument();
     });
 
@@ -157,7 +157,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
 
       // The h-[60%] left-edge indicator should not be present in collapsed mode
-      const leftIndicator = container.querySelector('.bg-cb-vibe-orange.h-\\[60\\%\\]');
+      const leftIndicator = container.querySelector('.bg-vibe-orange.h-\\[60\\%\\]');
       expect(leftIndicator).not.toBeInTheDocument();
     });
 
@@ -198,7 +198,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
 
       // Active indicator should have 60% height class
-      const indicator = container.querySelector('.bg-cb-vibe-orange.h-\\[60\\%\\]');
+      const indicator = container.querySelector('.bg-vibe-orange.h-\\[60\\%\\]');
       expect(indicator).toBeInTheDocument();
     });
 
@@ -206,7 +206,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/chat']);
 
       // Find the active indicator with visible state classes
-      const activeIndicators = container.querySelectorAll('.bg-cb-vibe-orange.opacity-100.scale-y-100');
+      const activeIndicators = container.querySelectorAll('.bg-vibe-orange.opacity-100.scale-y-100');
       expect(activeIndicators.length).toBeGreaterThan(0);
     });
 
@@ -214,7 +214,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/chat']);
 
       // Find inactive indicators with hidden state classes
-      const inactiveIndicators = container.querySelectorAll('.bg-cb-vibe-orange.opacity-0.scale-y-0');
+      const inactiveIndicators = container.querySelectorAll('.bg-vibe-orange.opacity-0.scale-y-0');
       expect(inactiveIndicators.length).toBeGreaterThan(0);
     });
 
@@ -222,7 +222,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
 
       // Indicator should have transition classes
-      const indicator = container.querySelector('.bg-cb-vibe-orange.transition-all.duration-200');
+      const indicator = container.querySelector('.bg-vibe-orange.transition-all.duration-200');
       expect(indicator).toBeInTheDocument();
     });
 
@@ -230,7 +230,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
 
       // Indicator should have fully rounded pill shape
-      const indicator = container.querySelector('.bg-cb-vibe-orange.rounded-full');
+      const indicator = container.querySelector('.bg-vibe-orange.rounded-full');
       expect(indicator).toBeInTheDocument();
     });
   });
@@ -383,7 +383,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
 
       // Active icon should have vibe-orange text color
-      const activeIcon = container.querySelector('.text-cb-vibe-orange');
+      const activeIcon = container.querySelector('.text-vibe-orange');
       expect(activeIcon).toBeInTheDocument();
     });
 
@@ -408,8 +408,8 @@ describe('SidebarNav', () => {
     it('should have orange ring on active NavIcon in collapsed mode', () => {
       const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
 
-      // Active NavIcon should have ring-cb-vibe-orange class (via ring-2 ring-cb-vibe-orange/50)
-      const activeNavIconWrapper = container.querySelector('.ring-cb-vibe-orange\\/50');
+      // Active NavIcon should have ring-vibe-orange class (via ring-2 ring-vibe-orange/50)
+      const activeNavIconWrapper = container.querySelector('.ring-vibe-orange\\/50');
       expect(activeNavIconWrapper).toBeInTheDocument();
     });
 
@@ -417,7 +417,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
 
       // Count elements with ring styling - only active item should have it
-      const ringElements = container.querySelectorAll('.ring-cb-vibe-orange\\/50');
+      const ringElements = container.querySelectorAll('.ring-vibe-orange\\/50');
       expect(ringElements.length).toBe(1);
     });
 
@@ -450,7 +450,7 @@ describe('SidebarNav', () => {
 
       // Home label should have vibe-orange text
       const homeLabel = screen.getByText('Home');
-      expect(homeLabel).toHaveClass('text-cb-vibe-orange');
+      expect(homeLabel).toHaveClass('text-vibe-orange');
     });
 
     it('should show foreground text color on label when inactive in expanded mode', () => {
@@ -459,7 +459,7 @@ describe('SidebarNav', () => {
       // Home label should have default foreground text (not vibe-orange)
       const homeLabel = screen.getByText('Home');
       expect(homeLabel).toHaveClass('text-foreground');
-      expect(homeLabel).not.toHaveClass('text-cb-vibe-orange');
+      expect(homeLabel).not.toHaveClass('text-vibe-orange');
     });
   });
 

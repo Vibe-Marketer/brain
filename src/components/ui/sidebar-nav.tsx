@@ -107,7 +107,7 @@ const NavIcon = React.memo(({ icon: IconLine, iconFill: IconFill, isActive, chil
           <IconComponent
             className={cn(
               iconClass,
-              isActive && "text-cb-vibe-orange"
+              isActive && "text-vibe-orange"
             )}
           />
         );
@@ -130,7 +130,7 @@ const NavIcon = React.memo(({ icon: IconLine, iconFill: IconFill, isActive, chil
         'dark:border-gray-600/80',
         'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
         // Active state
-        isActive && 'ring-2 ring-cb-vibe-orange/50'
+        isActive && 'ring-2 ring-vibe-orange/50'
       )}
     >
       {renderIcon()}
@@ -269,7 +269,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
               {!isCollapsed && (
                 <div
                   className={cn(
-                    "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-cb-vibe-orange rounded-full",
+                    "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full",
                     "transition-all duration-200 ease-in-out",
                     active
                       ? "opacity-100 scale-y-100"
@@ -329,7 +329,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                        // Expanded mode: Render icon directly
                        (() => {
                          const IconComponent = active ? item.iconFill : item.iconLine;
-                         return <IconComponent className={cn(iconClass, active && "text-cb-vibe-orange")} />;
+                         return <IconComponent className={cn(iconClass, active && "text-vibe-orange")} />;
                        })()
                      )}
                   </div>
@@ -338,14 +338,14 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   {!isCollapsed && (
                       <span className={cn(
                         "text-sm truncate transition-colors",
-                        active ? "font-semibold text-cb-vibe-orange" : "text-foreground"
+                        active ? "font-semibold text-vibe-orange" : "text-foreground"
                       )}>{item.name}</span>
                   )}
               </button>
 
                {/* Active indicator dot (Only in collapsed mode) */}
               {active && isCollapsed && (
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-cb-vibe-orange" />
+                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-vibe-orange" />
               )}
             </div>
           );

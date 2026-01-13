@@ -30,7 +30,7 @@ export function CallInviteesTab({ calendarInvitees }: CallInviteesTabProps) {
                   <div key={idx} className="relative flex items-start gap-3 py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
                     {/* Vibe orange angled marker - STANDARDIZED DIMENSIONS */}
                     <div
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-cb-vibe-orange"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                       style={{
                         clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
                       }}
