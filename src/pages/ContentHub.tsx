@@ -3,6 +3,11 @@
  *
  * Landing page for the Content Hub section.
  * Shows stats and quick links to generators and libraries.
+ *
+ * Uses the 3-pane architecture:
+ * - Pane 1: Navigation rail (via AppShell)
+ * - Pane 2: ContentCategoryPane for content navigation
+ * - Pane 3: Main content (this component's content)
  */
 
 import { useEffect } from 'react';
@@ -14,6 +19,8 @@ import {
   RiMailLine,
   RiArrowRightLine,
 } from '@remixicon/react';
+import { AppShell } from '@/components/layout/AppShell';
+import { ContentCategoryPane } from '@/components/panes/ContentCategoryPane';
 import { useBusinessProfileStore, useProfiles } from '@/stores/businessProfileStore';
 import { useHooksLibraryStore, useHooks } from '@/stores/hooksLibraryStore';
 import { useContentItemsStore, usePosts, useEmails } from '@/stores/contentItemsStore';
@@ -38,17 +45,29 @@ export default function ContentHub() {
 
   const hasProfiles = profiles.length > 0;
 
+  // Category counts for the secondary pane
+  const categoryCounts = {
+    hooks: hooks.length,
+    posts: posts.length,
+    emails: emails.length,
+  };
+
   return (
-    <div className="flex flex-col h-full p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold uppercase tracking-wide font-montserrat">
-          Content Hub
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Transform your call transcripts into ready-to-use marketing content
-        </p>
-      </div>
+    <AppShell
+      config={{
+        secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} />,
+      }}
+    >
+      <div className="flex flex-col h-full p-6 space-y-6 overflow-auto">
+        {/* Header */}
+        <div>
+          <h1 className="text-2xl font-bold uppercase tracking-wide font-montserrat">
+            Content Hub
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Transform your call transcripts into ready-to-use marketing content
+          </p>
+        </div>
 
       {/* Setup Banner - Show if no profiles */}
       {!hasProfiles && (
@@ -156,6 +175,7 @@ export default function ContentHub() {
           </div>
         </Link>
       </div>
-    </div>
+      </div>
+    </AppShell>
   );
 }

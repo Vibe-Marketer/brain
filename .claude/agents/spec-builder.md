@@ -1,7 +1,7 @@
 ---
 name: spec-builder
 description: Gap-filling clarity agent for feature specs. Use proactively when user describes a feature, change, or update they want to build. Extracts what's unclear, asks targeted questions referencing actual code, and outputs SPEC.md ready for implementation. Invoke when user says "spec this out", "I want to build", "add a feature", describes any rough idea, or needs clarity before implementation.
-tools: Read, Glob, Grep, Bash, Write
+tools: AskUserQuestion, Read, Glob, Grep, Bash, Write
 model: sonnet
 ---
 

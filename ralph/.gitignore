@@ -1,0 +1,9 @@
+# Runtime files (created during execution)
+config.json
+prd.json
+progress.txt
+.last-branch
+archive/
+
+# Keep these templates
+!prd.json.example

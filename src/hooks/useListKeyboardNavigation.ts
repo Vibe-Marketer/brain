@@ -239,7 +239,7 @@ export function useListKeyboardNavigationWithState<T extends { id: string }>({
     (direction: "up" | "down") => {
       if (items.length === 0) return;
 
-      let currentIndex = getFocusedIndex();
+      const currentIndex = getFocusedIndex();
       let newIndex: number;
 
       if (direction === "up") {

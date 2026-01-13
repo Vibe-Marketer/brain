@@ -2,6 +2,11 @@
  * Hooks Library Page
  *
  * Displays all generated hooks with filtering and actions.
+ *
+ * Uses the 3-pane architecture:
+ * - Pane 1: Navigation rail (via AppShell)
+ * - Pane 2: ContentCategoryPane for content navigation
+ * - Pane 3: Main content (this component's content)
  */
 
 import { useEffect, useState } from 'react';
@@ -34,6 +39,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { AppShell } from '@/components/layout/AppShell';
+import { ContentCategoryPane } from '@/components/panes/ContentCategoryPane';
 import {
   useHooksLibraryStore,
   useHooks,
@@ -116,25 +123,35 @@ export default function HooksLibrary() {
 
   const hasActiveFilters = filters.emotion_category || filters.is_starred || searchTerm;
 
+  // Category counts for the secondary pane
+  const categoryCounts = {
+    hooks: hooks.length,
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cb-vibe-orange" />
-      </div>
+      <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cb-vibe-orange" />
+        </div>
+      </AppShell>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p className="text-destructive">{error}</p>
-        <Button onClick={() => fetchHooks()}>Retry</Button>
-      </div>
+      <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
+        <div className="flex flex-col items-center justify-center h-full gap-4">
+          <p className="text-destructive">{error}</p>
+          <Button onClick={() => fetchHooks()}>Retry</Button>
+        </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="flex flex-col h-full p-6 space-y-4">
+    <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
+      <div className="flex flex-col h-full p-6 space-y-4 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -305,6 +322,7 @@ export default function HooksLibrary() {
           </Table>
         </div>
       )}
-    </div>
+      </div>
+    </AppShell>
   );
 }

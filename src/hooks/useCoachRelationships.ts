@@ -674,7 +674,7 @@ export function useSharedCalls(options: UseSharedCallsOptions): UseSharedCallsRe
         // Check if sharing all
         const sharingAll = shares.some(s => s.share_type === 'all');
 
-        let callsQuery = supabase
+        const callsQuery = supabase
           .from("fathom_calls")
           .select("recording_id, call_name, recording_start_time, duration")
           .eq("user_id", rel.coachee_user_id)

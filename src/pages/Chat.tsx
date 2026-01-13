@@ -11,7 +11,6 @@ import {
   RiFolder3Line,
   RiCloseLine,
   RiAddLine,
-  RiMenuLine,
   RiAtLine,
   RiVideoLine,
   RiUploadCloud2Line,
@@ -60,7 +59,7 @@ import { ChatSkeleton, ChatLoading } from "@/components/chat/chat-skeleton";
 import { Sources } from "@/components/chat/source";
 import { ToolCalls } from "@/components/chat/tool-call";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
-import { SidebarNav } from "@/components/ui/sidebar-nav";
+import { AppShell } from "@/components/layout/AppShell";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { useChatSession } from "@/hooks/useChatSession";
@@ -295,12 +294,9 @@ export default function Chat() {
   const [showFilters, setShowFilters] = React.useState(false);
   const [showSidebar, setShowSidebar] = React.useState(false);
 
-  // --- Layout State (3-pane) ---
+  // --- Layout State ---
   const breakpoint = useBreakpoint();
   const isMobile = breakpoint === "mobile";
-  const [isSidebarExpanded, setIsSidebarExpanded] = React.useState(true); // Control Nav Rail width (Icon vs Text)
-  const [isLibraryOpen, setIsLibraryOpen] = React.useState(true); // Control Middle Panel visibility
-  const [showMobileNav, setShowMobileNav] = React.useState(false); // Mobile nav overlay
 
   const [currentSessionId, setCurrentSessionId] = React.useState<string | null>(
     sessionId || null
@@ -1281,111 +1277,21 @@ export default function Chat() {
   // Close mobile overlays when breakpoint changes away from mobile
   React.useEffect(() => {
     if (!isMobile) {
-      setShowMobileNav(false);
       setShowSidebar(false);
     }
   }, [isMobile]);
 
   return (
     <>
-      {/* Mobile overlay backdrop - covers both nav and sidebar overlays */}
-      {isMobile && (showSidebar || showMobileNav) && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
-          onClick={() => {
-            setShowSidebar(false);
-            setShowMobileNav(false);
-          }}
-        />
-      )}
-
-      {/* Mobile navigation overlay */}
-      {isMobile && showMobileNav && (
-        <div
-          className={cn(
-            "fixed top-0 left-0 bottom-0 w-[280px] bg-card rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col py-2",
-            "animate-in slide-in-from-left duration-300"
-          )}
-        >
-          <div className="w-full px-2 mb-2 flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowMobileNav(false)}
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </Button>
-            <span className="text-sm font-semibold mr-auto ml-2">Menu</span>
-          </div>
-          <SidebarNav
-            isCollapsed={false}
-            className="w-full flex-1"
-            onLibraryToggle={() => {
-              setShowMobileNav(false);
-              setShowSidebar(true);
-            }}
+      {/* Mobile Chat Sessions overlay */}
+      {isMobile && showSidebar && (
+        <>
+          {/* Mobile overlay backdrop */}
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+            onClick={() => setShowSidebar(false)}
           />
-        </div>
-      )}
 
-      {/* 3-Pane Layout Container */}
-      <div className="h-full flex gap-3 overflow-hidden p-1">
-
-        {/* PANE 1: Navigation Rail (Hidden on mobile, shown as overlay) */}
-        {!isMobile && (
-          <div
-            className={cn(
-              "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col py-2 h-full z-10 transition-all duration-300 ease-in-out",
-              isSidebarExpanded ? "w-[240px]" : "w-[72px] items-center"
-            )}
-          >
-            <div className="w-full px-2 mb-2 flex items-center justify-between">
-              {/* Toggle Sidebar Button (Hamburger/Menu) */}
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-panel-left"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
-              </Button>
-              {isSidebarExpanded && <span className="text-sm font-semibold mr-auto ml-2">Menu</span>}
-            </div>
-
-            <SidebarNav
-              isCollapsed={!isSidebarExpanded}
-              className="w-full flex-1"
-              onLibraryToggle={() => setIsLibraryOpen(!isLibraryOpen)}
-            />
-          </div>
-        )}
-
-        {/* PANE 2: Chat Sessions Panel (Hidden on mobile, shown as overlay) */}
-        {!isMobile && (
-          <div
-            className={cn(
-              "flex-shrink-0 bg-card/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden transition-all duration-500 ease-in-out",
-              isLibraryOpen ? "w-[280px] opacity-100 ml-0" : "w-0 opacity-0 -ml-3 border-0"
-            )}
-          >
-            <ChatSidebar
-              sessions={sessions}
-              activeSessionId={currentSessionId}
-              onSessionSelect={handleSessionSelect}
-              onNewChat={handleNewChat}
-              onDeleteSession={handleDeleteSession}
-              onTogglePin={handleTogglePin}
-              onToggleArchive={handleToggleArchive}
-            />
-          </div>
-        )}
-
-        {/* Mobile Chat Sessions overlay */}
-        {isMobile && showSidebar && (
           <div
             className={cn(
               "fixed top-0 left-0 bottom-0 w-[280px] bg-card/95 backdrop-blur-md rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col",
@@ -1424,24 +1330,31 @@ export default function Chat() {
               />
             </div>
           </div>
-        )}
+        </>
+      )}
 
-        {/* PANE 3: Main Chat Content */}
+      {/* AppShell with ChatSidebar as secondaryPane */}
+      <AppShell
+        config={{
+          secondaryPane: (
+            <ChatSidebar
+              sessions={sessions}
+              activeSessionId={currentSessionId}
+              onSessionSelect={handleSessionSelect}
+              onNewChat={handleNewChat}
+              onDeleteSession={handleDeleteSession}
+              onTogglePin={handleTogglePin}
+              onToggleArchive={handleToggleArchive}
+            />
+          )
+        }}
+      >
+        {/* Main Chat Content */}
         <ChatInnerCard className="min-w-0 h-full relative z-0 transition-all duration-300">
           {/* Header */}
           <ChatInnerCardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 md:gap-3">
-                {/* Mobile navigation menu toggle */}
-                {isMobile && (
-                  <Button
-                    variant="hollow"
-                    className="h-8 w-8 p-0"
-                    onClick={() => setShowMobileNav(true)}
-                  >
-                    <RiMenuLine className="h-5 w-5" />
-                  </Button>
-                )}
                 {/* Mobile chat sessions toggle */}
                 {isMobile && (
                   <Button
@@ -1961,8 +1874,7 @@ export default function Chat() {
             </div>
           </ChatInnerCardInputArea>
         </ChatInnerCard>
-
-      </div>
+      </AppShell>
 
       {/* Call Detail Dialog */}
       <CallDetailDialog

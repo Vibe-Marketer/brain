@@ -3,6 +3,11 @@
  *
  * Shows available content generators as cards.
  * Currently only Call Content Generator is available.
+ *
+ * Uses the 3-pane architecture:
+ * - Pane 1: Navigation rail (via AppShell)
+ * - Pane 2: ContentCategoryPane for content navigation
+ * - Pane 3: Main content (this component's content)
  */
 
 import { Link } from 'react-router-dom';
@@ -11,6 +16,8 @@ import {
   RiArrowRightLine,
   RiTimeLine,
 } from '@remixicon/react';
+import { AppShell } from '@/components/layout/AppShell';
+import { ContentCategoryPane } from '@/components/panes/ContentCategoryPane';
 
 interface GeneratorCard {
   id: string;
@@ -50,7 +57,12 @@ const generators: GeneratorCard[] = [
 
 export default function ContentGenerators() {
   return (
-    <div className="flex flex-col h-full p-6 space-y-6">
+    <AppShell
+      config={{
+        secondaryPane: <ContentCategoryPane />,
+      }}
+    >
+      <div className="flex flex-col h-full p-6 space-y-6 overflow-auto">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold uppercase tracking-wide font-montserrat">
@@ -67,7 +79,8 @@ export default function ContentGenerators() {
           <GeneratorCardComponent key={generator.id} generator={generator} />
         ))}
       </div>
-    </div>
+      </div>
+    </AppShell>
   );
 }
 

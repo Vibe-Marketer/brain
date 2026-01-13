@@ -2,6 +2,11 @@
  * Posts Library Page
  *
  * Displays all generated social posts with filtering, editing, and actions.
+ *
+ * Uses the 3-pane architecture:
+ * - Pane 1: Navigation rail (via AppShell)
+ * - Pane 2: ContentCategoryPane for content navigation
+ * - Pane 3: Main content (this component's content)
  */
 
 import { useEffect, useState } from 'react';
@@ -34,6 +39,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { AppShell } from '@/components/layout/AppShell';
+import { ContentCategoryPane } from '@/components/panes/ContentCategoryPane';
 import {
   useContentItemsStore,
   usePosts,
@@ -132,25 +139,35 @@ export default function PostsLibrary() {
 
   const hasActiveFilters = statusFilter !== 'all' || searchTerm;
 
+  // Category counts for the secondary pane
+  const categoryCounts = {
+    posts: posts.length,
+  };
+
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cb-vibe-orange" />
-      </div>
+      <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cb-vibe-orange" />
+        </div>
+      </AppShell>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <p className="text-destructive">{error}</p>
-        <Button onClick={() => fetchPosts()}>Retry</Button>
-      </div>
+      <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
+        <div className="flex flex-col items-center justify-center h-full gap-4">
+          <p className="text-destructive">{error}</p>
+          <Button onClick={() => fetchPosts()}>Retry</Button>
+        </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="flex flex-col h-full p-6 space-y-4">
+    <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
+      <div className="flex flex-col h-full p-6 space-y-4 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -312,6 +329,7 @@ export default function PostsLibrary() {
           </Table>
         </div>
       )}
-    </div>
+      </div>
+    </AppShell>
   );
 }

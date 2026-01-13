@@ -1,9 +1,12 @@
 # SPEC: Chat Context Library Integration
 
-**Version:** 1.0
+**Version:** 1.1
 **Status:** Draft
 **Created:** 2026-01-12
+**Updated:** 2026-01-12
 **Author:** Claude (from user requirements)
+
+> **v1.1 Updates:** Added Recents tab, full CRUD operations (rename, delete, bulk delete, replace), clarified context persistence behavior.
 
 ---
 
@@ -364,10 +367,20 @@ interface DocumentsState {
 }
 
 interface DocumentsActions {
+  // Read
   fetchDocuments: () => Promise<void>;
-  uploadDocument: (file: File) => Promise<UserDocument>;
-  deleteDocument: (id: string) => Promise<void>;
   getDocumentText: (id: string) => string | null;
+
+  // Create
+  uploadDocument: (file: File) => Promise<UserDocument>;
+
+  // Update
+  renameDocument: (id: string, newName: string) => Promise<void>;
+  replaceDocument: (id: string, file: File) => Promise<UserDocument>; // Re-upload
+
+  // Delete
+  deleteDocument: (id: string) => Promise<void>;
+  bulkDeleteDocuments: (ids: string[]) => Promise<void>;
 }
 ```
 
@@ -399,11 +412,21 @@ interface ImagesState {
 }
 
 interface ImagesActions {
+  // Read
   fetchImages: () => Promise<void>;
-  uploadImage: (file: File) => Promise<UserImage>;
-  deleteImage: (id: string) => Promise<void>;
   getImageUrl: (id: string) => string;
   getImageText: (id: string) => string | null;
+
+  // Create
+  uploadImage: (file: File) => Promise<UserImage>;
+
+  // Update
+  renameImage: (id: string, newName: string) => Promise<void>;
+  replaceImage: (id: string, file: File) => Promise<UserImage>; // Re-upload
+
+  // Delete
+  deleteImage: (id: string) => Promise<void>;
+  bulkDeleteImages: (ids: string[]) => Promise<void>;
 }
 ```
 
@@ -417,16 +440,20 @@ interface ImagesActions {
  *
  * Structure:
  * - Header with "Add to Chat" title and close button
- * - Tabs: Calls | Documents | Images | Hooks | Content
+ * - Tabs: Recent | Calls | Documents | Images | Hooks | Content
  * - Search input within each tab
  * - Scrollable list of items with checkboxes
  * - Footer with "Add Selected (X)" button
+ * - Context menu on items: Rename, Delete, Add to Chat
  *
  * Behavior:
  * - Slides in from right (280px width)
+ * - Default tab: Recent (shows recently used/uploaded across all types)
  * - Multi-select via checkboxes
  * - Click "Add Selected" to add to context bar
  * - Auto-closes after adding
+ * - Right-click or kebab menu for item actions (rename, delete)
+ * - Bulk actions when multiple selected (Delete Selected)
  *
  * State:
  * - Uses panelStore for open/close
@@ -507,8 +534,8 @@ interface ImagesActions {
 2. User clicks "📚" button
    └── Library Browser pane slides in from right (280px)
 
-3. User sees tabs: [Calls] [Documents] [Images] [Hooks] [Content]
-   └── Default tab: Calls (most common)
+3. User sees tabs: [Recent] [Calls] [Documents] [Images] [Hooks] [Content]
+   └── Default tab: Recent (shows recently used/uploaded items across all types)
 
 4. User clicks "Documents" tab
    └── Shows list of uploaded documents
@@ -589,6 +616,39 @@ interface ImagesActions {
 8. After ~5 seconds, badge changes to ready
    └── extraction_status = 'completed'
    └── Document now selectable for context
+```
+
+### Managing Documents/Images (CRUD)
+
+```
+RENAME:
+1. User hovers over document/image in list
+2. Kebab menu (⋮) appears on right
+3. User clicks menu → "Rename"
+4. Inline edit mode activates (or small dialog)
+5. User types new name, presses Enter
+6. Name updated
+
+DELETE (Single):
+1. User clicks kebab menu → "Delete"
+2. Confirmation dialog: "Delete 'filename.pdf'?"
+3. User confirms
+4. Item removed from list
+
+BULK DELETE:
+1. User selects multiple items via checkboxes
+2. Footer shows: "3 selected" + [Delete] [Add to Chat]
+3. User clicks "Delete"
+4. Confirmation: "Delete 3 items?"
+5. User confirms
+6. Items removed
+
+REPLACE (Re-upload):
+1. User clicks kebab menu → "Replace"
+2. File picker opens
+3. User selects new file (same type)
+4. Upload replaces old file
+5. Text re-extracted for new content
 ```
 
 ---
@@ -805,6 +865,7 @@ async function resolveContextReferences(
 - [ ] Text is automatically extracted from documents
 - [ ] OCR text is extracted from images via OpenAI Vision
 - [ ] Library Browser pane slides in showing all content types
+- [ ] **Recent tab shows recently used/uploaded items across all types (default tab)**
 - [ ] User can select multiple items from any library
 - [ ] Selected items appear as pills in chat context bar
 - [ ] @ mentions work for all content types (sectioned dropdown)
@@ -814,6 +875,13 @@ async function resolveContextReferences(
 - [ ] Chat AI receives text content from all attached items
 - [ ] User can remove context items by clicking X on pill
 - [ ] Libraries persist for future chat sessions
+- [ ] **Context persists within same chat thread, clears on new chat**
+
+### CRUD Operations (Documents & Images)
+- [ ] User can rename documents/images via kebab menu
+- [ ] User can delete individual documents/images with confirmation
+- [ ] User can bulk delete multiple selected items
+- [ ] User can replace (re-upload) a document/image
 
 ### UI/UX
 - [ ] Library Browser follows existing pane patterns (280px, slide animation)
@@ -877,12 +945,18 @@ Not in scope for v1, but design should accommodate:
 
 ---
 
-## 16. Open Questions
+## 16. Resolved Questions
 
-1. **Should documents be editable after upload?** (Rename only? Or re-upload?)
-2. **Should there be a "Recent" tab in Library Browser?** (Across all types)
-3. **Should context persist across chat sessions?** (Currently cleared on new session)
-4. **Should there be bulk delete for documents/images?**
+1. **Document management**: Full CRUD - users can rename, delete, and re-upload (replace) documents. We're not adding in-document editing (like editing a PDF), just library management.
+
+2. **Recents tab**: YES - Add a "Recent" tab as the default tab in Library Browser showing recently used/uploaded items across all types.
+
+3. **Context persistence**:
+   - **Within same chat thread**: Context persists in memory for the conversation
+   - **Across different chats**: NO automatic persistence - context clears when starting new chat
+   - **Library items**: Always persist and can be added to any chat session
+
+4. **Bulk operations**: YES - Include bulk delete for documents/images (standard functionality). Select multiple → Delete selected.
 
 ---
 

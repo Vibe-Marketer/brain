@@ -230,7 +230,8 @@ function diversityFilter<T extends { recording_id: number }>(
 // ============================================
 // TOOL DEFINITIONS (OpenAI Function Format)
 // ============================================
-// Fixed: All properties must be in required array per OpenAI validation
+// Note: Only REQUIRED parameters should be in the required array.
+// Optional parameters (like limit, query refinements) should NOT be required.
 
 // ============================================
 // GRANULAR TOOL DEFINITIONS
@@ -632,7 +633,7 @@ const tools: OpenAITool[] = [
             description: 'Optional focus area for comparison (e.g., "objections", "pricing discussion", "customer concerns")',
           },
         },
-        required: ['recording_ids', 'focus'],
+        required: ['recording_ids'],
       },
     },
   },

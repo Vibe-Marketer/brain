@@ -17,9 +17,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { RiLoader2Line, RiCloseLine } from "@remixicon/react";
+import { RiLoader2Line, RiCloseLine, RiGroupLine, RiUserHeartLine, RiArrowLeftLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
-import { SidebarNav } from "@/components/ui/sidebar-nav";
+import { AppShell } from "@/components/layout/AppShell";
 import { useBreakpointFlags } from "@/hooks/useBreakpoint";
 import { useUserRole } from "@/hooks/useUserRole";
 import { toast } from "sonner";
@@ -29,11 +29,6 @@ import {
 } from "@/components/panes/CollaborationCategoryPane";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  RiGroupLine,
-  RiUserHeartLine,
-  RiArrowLeftLine,
-} from "@remixicon/react";
 
 // Lazy load tab components
 const TeamTab = React.lazy(() => import("@/components/settings/TeamTab"));
@@ -83,15 +78,10 @@ export default function CollaborationPage() {
   const { loading: roleLoading, isAdmin, isTeam } = useUserRole();
 
   // --- Responsive Breakpoint ---
-  const { isMobile, isTablet } = useBreakpointFlags();
-
-  // --- Sidebar Logic ---
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(!isTablet);
-  const [showMobileNav, setShowMobileNav] = useState(false);
+  const { isMobile } = useBreakpointFlags();
 
   // --- Pane System Logic ---
   const [selectedCategory, setSelectedCategory] = useState<CollaborationCategory | null>(null);
-  const [isCategoryPaneOpen, setIsCategoryPaneOpen] = useState(true);
 
   // Determine if user has access to Team category
   const hasTeamAccess = isAdmin || isTeam;
@@ -139,20 +129,6 @@ export default function CollaborationPage() {
     }
   }, [location.pathname, roleLoading, hasTeamAccess, getCategoryFromPath, getDefaultCategory, navigate]);
 
-  // Sync tablet sidebar state
-  useEffect(() => {
-    if (isTablet) {
-      setIsSidebarExpanded(false);
-    }
-  }, [isTablet]);
-
-  // Close mobile overlays when breakpoint changes
-  useEffect(() => {
-    if (!isMobile) {
-      setShowMobileNav(false);
-    }
-  }, [isMobile]);
-
   // --- Pane System Handlers ---
   const handleCategorySelect = useCallback((category: CollaborationCategory) => {
     // Check access for Team category
@@ -180,223 +156,59 @@ export default function CollaborationPage() {
     );
   }
 
-  return (
-    <>
-      {/* Mobile overlay backdrop */}
-      {isMobile && showMobileNav && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-200"
-          onClick={() => setShowMobileNav(false)}
-          aria-hidden="true"
-        />
-      )}
-
-      {/* Mobile navigation overlay */}
-      {isMobile && showMobileNav && (
-        <nav
-          role="navigation"
-          aria-label="Mobile navigation menu"
-          className={cn(
-            "fixed top-0 left-0 bottom-0 w-[280px] bg-card rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col py-2",
-            "animate-in slide-in-from-left duration-300"
-          )}
-        >
-          <div className="w-full px-2 mb-2 flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowMobileNav(false)}
-              className="text-muted-foreground hover:text-foreground"
-              aria-label="Close navigation menu"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-            </Button>
-            <span className="text-sm font-semibold mr-auto ml-2">Menu</span>
-          </div>
-          <SidebarNav
-            isCollapsed={false}
-            className="w-full flex-1"
-          />
-        </nav>
-      )}
-
-      <div className="h-full flex gap-3 overflow-hidden p-1">
-
-        {/* MOBILE: Single-pane view with category list or detail */}
-        {isMobile && (
-          <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
-            {/* Mobile: Show category pane when no category selected */}
-            {!selectedCategory && (
-              <div
-                className="flex-1 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full overflow-hidden"
-                role="navigation"
-                aria-label="Collaboration categories"
-              >
-                {/* Mobile header */}
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowMobileNav(true)}
-                    className="text-muted-foreground hover:text-foreground h-10 w-10"
-                    aria-label="Open navigation menu"
-                    aria-expanded={showMobileNav}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="4" y1="6" x2="20" y2="6" />
-                      <line x1="4" y1="12" x2="20" y2="12" />
-                      <line x1="4" y1="18" x2="20" y2="18" />
-                    </svg>
-                  </Button>
-                  <span className="text-sm font-semibold">Collaboration</span>
-                </div>
-                <CollaborationCategoryPane
-                  selectedCategory={selectedCategory}
-                  onCategorySelect={handleCategorySelect}
-                  className="flex-1 min-h-0"
-                />
-              </div>
-            )}
-
-            {/* Mobile: Show detail pane when category is selected */}
-            {selectedCategory && (
-              <div
-                className="flex-1 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full overflow-hidden"
-                role="region"
-                aria-label="Collaboration detail"
-              >
-                {/* Mobile header */}
-                <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setShowMobileNav(true)}
-                    className="text-muted-foreground hover:text-foreground h-10 w-10"
-                    aria-label="Open navigation menu"
-                    aria-expanded={showMobileNav}
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <line x1="4" y1="6" x2="20" y2="6" />
-                      <line x1="4" y1="12" x2="20" y2="12" />
-                      <line x1="4" y1="18" x2="20" y2="18" />
-                    </svg>
-                  </Button>
-                  <span className="text-sm font-semibold">Collaboration</span>
-                </div>
-                <CollaborationDetailPane
-                  category={selectedCategory}
-                  onBack={handleBackFromDetail}
-                  showBackButton={true}
-                  className="flex-1 min-h-0"
-                />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* PANE 1: Navigation Rail (Hidden on mobile) */}
-        {!isMobile && (
-          <nav
-            role="navigation"
-            aria-label="Main navigation"
-            tabIndex={0}
-            className={cn(
-              "relative flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col py-2 h-full z-10 transition-all duration-500 ease-in-out",
-              "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
-              isSidebarExpanded ? "w-[240px]" : "w-[72px] items-center"
-            )}
-          >
-            {/* Click-to-toggle background overlay */}
-            <div
-              className="absolute inset-0 cursor-pointer z-0"
-              onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-              aria-hidden="true"
-            />
-
-            {/* Floating collapse/expand toggle on right edge */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsSidebarExpanded(!isSidebarExpanded);
-              }}
-              className={cn(
-                "absolute top-1/2 -translate-y-1/2 -right-3 z-20 w-6 h-6 rounded-full bg-card border border-border shadow-sm",
-                "flex items-center justify-center hover:bg-muted transition-colors"
-              )}
-              aria-label={isSidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
-              aria-expanded={isSidebarExpanded}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className={cn(
-                  "transition-transform duration-500",
-                  isSidebarExpanded ? "rotate-0" : "rotate-180"
-                )}
-                aria-hidden="true"
-              >
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-
-            <div className="w-full px-2 mb-2 flex items-center justify-between relative z-10">
-              {isSidebarExpanded && <span className="text-sm font-semibold ml-2">Menu</span>}
+  // Mobile behavior: Show category pane or detail pane based on selection
+  if (isMobile) {
+    return (
+      <AppShell config={{ showNavRail: false }}>
+        {!selectedCategory ? (
+          // Mobile: Show category list
+          <div className="h-full flex flex-col overflow-hidden">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
+              <span className="text-sm font-semibold">Collaboration</span>
             </div>
-
-            <SidebarNav
-              isCollapsed={!isSidebarExpanded}
-              className="w-full flex-1 relative z-10"
-            />
-          </nav>
-        )}
-
-        {/* PANE 2: Collaboration Category List */}
-        {!isMobile && isCategoryPaneOpen && (
-          <div
-            className={cn(
-              "flex-shrink-0 bg-card/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
-              "transition-all duration-500 ease-in-out",
-              "w-[280px] opacity-100"
-            )}
-            role="navigation"
-            aria-label="Collaboration categories"
-          >
             <CollaborationCategoryPane
               selectedCategory={selectedCategory}
               onCategorySelect={handleCategorySelect}
+              className="flex-1 min-h-0"
             />
           </div>
+        ) : (
+          // Mobile: Show detail pane
+          <CollaborationDetailPane
+            category={selectedCategory}
+            onBack={handleBackFromDetail}
+            showBackButton={true}
+            className="flex-1 min-h-0"
+          />
         )}
+      </AppShell>
+    );
+  }
 
-        {/* PANE 3: Collaboration Detail (shown when category is selected) */}
-        {!isMobile && selectedCategory && (
-          <div
-            className={cn(
-              "flex-1 min-w-0 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full z-10 overflow-hidden",
-              "transition-all duration-500 ease-in-out"
-            )}
-            role="region"
-            aria-label="Collaboration detail"
-          >
-            <CollaborationDetailPane
-              category={selectedCategory}
-              onClose={handleCloseDetailPane}
-              showBackButton={false}
-            />
-          </div>
-        )}
-      </div>
-    </>
+  // Desktop/Tablet: Full 3-pane layout with AppShell
+  return (
+    <AppShell
+      config={{
+        secondaryPane: (
+          <CollaborationCategoryPane
+            selectedCategory={selectedCategory}
+            onCategorySelect={handleCategorySelect}
+          />
+        ),
+      }}
+    >
+      {selectedCategory ? (
+        <CollaborationDetailPane
+          category={selectedCategory}
+          onClose={handleCloseDetailPane}
+          showBackButton={false}
+        />
+      ) : (
+        <div className="flex items-center justify-center h-full text-muted-foreground">
+          Select a category to view details
+        </div>
+      )}
+    </AppShell>
   );
 }
 

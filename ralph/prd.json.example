@@ -1,0 +1,59 @@
+{
+  "projectName": "My Project",
+  "featureName": "Task Priority System",
+  "branchName": "feature/task-priority",
+  "description": "Add priority levels to tasks so users can focus on what matters most",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Add priority field to database",
+      "priority": 1,
+      "description": "As a developer, I need to store task priority so it persists across sessions.",
+      "acceptanceCriteria": [
+        "Add priority column to tasks table: 'high' | 'medium' | 'low' (default 'medium')",
+        "Generate and run migration successfully",
+        "npm run typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "Display priority indicator on task cards",
+      "priority": 2,
+      "description": "As a user, I want to see task priority at a glance so I know what needs attention first.",
+      "acceptanceCriteria": [
+        "Each task card shows colored priority badge (red=high, yellow=medium, gray=low)",
+        "Badge includes icon or text indicator",
+        "Priority visible without hovering or clicking",
+        "npm run typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "Add priority selector to task edit",
+      "priority": 3,
+      "description": "As a user, I want to change a task's priority when editing it.",
+      "acceptanceCriteria": [
+        "Priority dropdown in task edit modal/form",
+        "Shows current priority as selected",
+        "Saves on selection change",
+        "npm run typecheck passes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "title": "Filter tasks by priority",
+      "priority": 4,
+      "description": "As a user, I want to filter the task list to see only high-priority items when I'm focused.",
+      "acceptanceCriteria": [
+        "Filter dropdown with options: All | High | Medium | Low",
+        "Filter updates the displayed list",
+        "Empty state message when no tasks match filter",
+        "npm run typecheck passes"
+      ],
+      "passes": false
+    }
+  ]
+}
