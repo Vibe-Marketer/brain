@@ -412,7 +412,7 @@
         "No silent failures",
         "Team appears in team list after creation"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-032.1",

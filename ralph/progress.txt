@@ -615,3 +615,38 @@ Started: Wed Jan 14 12:19:39 EST 2026
   
 ---
 
+## 2026-01-14 - US-031.1: Team creation works completely
+
+- What was verified:
+  - Team creation feature is fully implemented and functional
+  - Complete end-to-end flow from UI to Edge Function to database
+  - TeamTab component (src/components/settings/TeamTab.tsx) handles team creation with proper form
+  - useTeamHierarchy hook (src/hooks/useTeamHierarchy.ts) calls Edge Function with correct payload
+  - Edge Function (supabase/functions/teams/index.ts) creates team and admin membership atomically
+  - Comprehensive error handling at all levels (Edge Function validates input, hook catches errors, component shows toasts)
+  - Success confirmation via toast message "Team created successfully" (line 165 in TeamTab.tsx)
+  - Error messages shown via toast on any failure (line 168 in TeamTab.tsx)
+  - No silent failures - all errors are caught and displayed to user
+  - Team appears immediately after creation via state update (setUserTeamId triggers re-render and data fetch)
+  - Empty state provides clear guidance with "CREATE TEAM" button (lines 269-292 in TeamTab.tsx)
+  
+- Files verified (no code changes needed):
+  - src/components/settings/TeamTab.tsx - Complete team creation form with error handling
+  - src/hooks/useTeamHierarchy.ts - createTeam mutation with proper Edge Function call
+  - supabase/functions/teams/index.ts - handleCreateTeam with atomicity (creates team + membership)
+  - src/pages/CollaborationPage.tsx - Routes to TeamTab correctly
+  
+- **Learnings for future iterations:**
+  - Team creation is a multi-step process: create team record → create admin membership → update UI state
+  - The Edge Function uses SUPABASE_SERVICE_ROLE_KEY for elevated permissions to create both team and membership
+  - Atomicity is handled via rollback: if membership creation fails, team is deleted (lines 162-172 in Edge Function)
+  - React Query mutations automatically invalidate and refetch data on success (line 267 in hook)
+  - The useTeamHierarchy hook is enabled conditionally: enabled: !!userId && !!userTeamId
+  - Setting userTeamId state in handleCreateTeam triggers the query to fetch the new team
+  - One team per user limit is enforced in Edge Function (lines 107-127) - prevents duplicate teams
+  - CollaborationPage.tsx lazy loads TeamTab via React.lazy for better performance
+  - Team creation works from both /team route (CollaborationPage) and Settings > Team tab
+  - This story was already implemented correctly - no bugs found, all acceptance criteria met
+  
+---
+
