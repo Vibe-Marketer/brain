@@ -220,27 +220,6 @@ export async function fetchGoogleMeetMeetings(params: {
 // =============================================
 
 /**
- * Get Zoom OAuth authorization URL
- */
-export async function getZoomOAuthUrl() {
-  return callEdgeFunction('zoom-oauth-url', undefined, { retry: false });
-}
-
-/**
- * Complete Zoom OAuth flow
- */
-export async function completeZoomOAuth(code: string, state: string) {
-  return callEdgeFunction('zoom-oauth-callback', { code, state }, { retry: false });
-}
-
-/**
- * Refresh Zoom OAuth token
- */
-export async function refreshZoomOAuth() {
-  return callEdgeFunction('zoom-oauth-refresh', undefined, { retry: false });
-}
-
-/**
  * Sync Google Meet meetings to database
  * Uses calendar event IDs (strings) instead of recording IDs
  */
