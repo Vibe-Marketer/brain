@@ -465,7 +465,7 @@
         "No console errors",
         "Empty states instead of errors when no data"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-036.1",
