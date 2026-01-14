@@ -650,3 +650,27 @@ Started: Wed Jan 14 12:19:39 EST 2026
   
 ---
 
+
+## 2026-01-14 - US-032.1: Clear guidance for users without a team
+
+- What was verified:
+  - This story was already fully implemented in the codebase
+  - TeamTab component (src/components/settings/TeamTab.tsx) has comprehensive empty state (lines 269-292)
+  - Empty state includes: team icon, clear heading "Start collaborating with your team", descriptive text about team features
+  - Prominent "CREATE TEAM" button with icon for easy access
+  - Additional "About Teams" section (lines 377-401) explains team features with icons: hierarchy, manager visibility, folder/tag sharing
+  - All acceptance criteria met without code changes
+
+- Files verified (no changes needed):
+  - src/components/settings/TeamTab.tsx - Empty state UI (lines 262-403)
+
+- **Learnings for future iterations:**
+  - Empty state design follows CallVault pattern: centered content with icon, heading, description, and prominent CTA
+  - Educational content appears after CTA section to help users understand features before committing
+  - The empty state conditionally renders when `!userTeamId` (line 262)
+  - Clicking "CREATE TEAM" toggles `showCreateForm` state to reveal the team creation form
+  - Form appears inline (lines 293-372) with fields for: team name, admin visibility toggle, auto-join domain
+  - Sometimes stories are already implemented and just need verification rather than new code
+
+---
+

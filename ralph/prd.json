@@ -424,7 +424,7 @@
         "Create team CTA is prominent",
         "User understands available actions"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-033.1",
