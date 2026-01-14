@@ -84,11 +84,11 @@ export function TranscriptTableRow({
     : "Not recorded";
 
   return (
-    <TableRow key={call.recording_id} className="group h-10 md:h-12">
-      <TableCell className="align-middle py-0.5">
+    <TableRow key={call.recording_id} className="group h-8 md:h-9">
+      <TableCell className="align-middle py-0">
         <Checkbox checked={isSelected} onCheckedChange={onSelect} />
       </TableCell>
-      <TableCell className="py-0.5 whitespace-nowrap">
+      <TableCell className="py-0 whitespace-nowrap">
         <div className="space-y-0">
           {/* First line: Title + Source Platform Icons */}
           <div className="flex items-center gap-1.5">
@@ -105,7 +105,7 @@ export function TranscriptTableRow({
             />
           </div>
           {/* Second line: Metadata badges and subtitle */}
-          <div className="flex items-center gap-1 mt-0.5">
+          <div className="flex items-center gap-1 mt-0">
             {/* Sources count badge for merged meetings - only show for primary records with 3+ sources */}
             {call.is_primary && call.merged_from && call.merged_from.length > 1 && (
               <Badge variant="outline" className="text-[9px] md:text-[10px] px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0 flex items-center gap-0.5">
@@ -139,8 +139,8 @@ export function TranscriptTableRow({
         </div>
       </TableCell>
       {visibleColumns.date !== false && (
-        <TableCell className="py-0.5 whitespace-nowrap">
-          <div className="flex flex-col gap-0.5 w-[95px]">
+        <TableCell className="py-0 whitespace-nowrap">
+          <div className="flex flex-col gap-0 w-[95px]">
             {/* Top row: Day left, Date right - monospace for alignment */}
             <div className="flex items-center justify-between text-xs font-medium">
               <span className="text-left font-mono">{dayOfWeek}</span>
@@ -182,12 +182,12 @@ export function TranscriptTableRow({
           </div>
         </TableCell>
       )}
-      <TableCell className="hidden xl:table-cell text-center align-middle py-0.5 whitespace-nowrap">
+      <TableCell className="hidden xl:table-cell text-center align-middle py-0 whitespace-nowrap">
         <InviteesCountCircle invitees={call.calendar_invitees} />
       </TableCell>
       {visibleColumns.tags !== false && (
-        <TableCell className="hidden xl:table-cell py-1.5 whitespace-nowrap">
-        <div className="flex flex-col justify-center h-full gap-1 py-0.5">
+        <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
+        <div className="flex flex-col justify-center h-full gap-0.5 py-0">
           {/* Primary tag - only render if assigned */}
           {tagAssignments.length > 0 && (() => {
             const tag = tags.find((t) => t.id === tagAssignments[0]);
@@ -229,8 +229,8 @@ export function TranscriptTableRow({
       )}
       {/* Folders column */}
       {visibleColumns.folders !== false && (
-        <TableCell className="hidden xl:table-cell py-1.5 whitespace-nowrap">
-          <div className="flex flex-col justify-center h-full gap-1 py-0.5">
+        <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
+          <div className="flex flex-col justify-center h-full gap-0.5 py-0">
             {folderAssignments.length > 0 ? (
               folderAssignments.slice(0, 2).map((folderId) => {
                 const folder = folders.find((f) => f.id === folderId);
@@ -260,7 +260,7 @@ export function TranscriptTableRow({
       )}
       {/* Shared With column */}
       {visibleColumns.sharedWith !== false && (
-        <TableCell className="hidden xl:table-cell py-1.5 whitespace-nowrap">
+        <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
           <SharedWithIndicator
             sharingStatus={sharingStatus}
             accessLevel={accessLevel}
@@ -268,7 +268,7 @@ export function TranscriptTableRow({
           />
         </TableCell>
       )}
-      <TableCell className="align-middle py-0.5">
+      <TableCell className="align-middle py-0">
         <div className="flex items-center justify-center gap-0.5 md:gap-1">
           <button
             onClick={onCallClick}

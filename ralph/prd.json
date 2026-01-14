@@ -343,7 +343,7 @@
         "Text remains readable",
         "Spacing consistent with other components"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-027.1",

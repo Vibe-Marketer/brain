@@ -481,3 +481,27 @@ Started: Wed Jan 14 12:19:39 EST 2026
 
 ---
 
+## 2026-01-14 - US-026.1: Compact call cards for better browsing
+
+- What was implemented:
+  - Reduced TranscriptTableRow height from h-10 md:h-12 (40px/48px) to h-8 md:h-9 (32px/36px) - approximately 20-25% reduction
+  - Removed all vertical padding from table cells (py-0.5 → py-0, py-1.5 → py-0)
+  - Tightened spacing in multi-line columns: gap-1 → gap-0.5, gap-0.5 → gap-0, mt-0.5 → mt-0
+  - All essential information remains visible and readable
+  - Significantly more rows visible per screen without sacrificing readability
+
+- Files changed:
+  - `src/components/transcript-library/TranscriptTableRow.tsx` - reduced row height, cell padding, and internal spacing
+
+- **Learnings for future iterations:**
+  - TranscriptTableRow is the actual "call card" component - it renders table rows, not traditional card components
+  - Row height is controlled by the TableRow className (line 87): `h-8 md:h-9` for compact, responsive sizing
+  - Cell padding uses `py-0` to remove vertical padding while maintaining horizontal spacing
+  - Multi-line content columns (tags, folders, date) use `gap-X` on flex containers to control internal spacing
+  - Reducing `gap-1` to `gap-0.5` and `gap-0.5` to `gap-0` creates tighter spacing without cramping
+  - The table uses responsive breakpoints: mobile, md (medium), lg (large), xl (extra-large) to show/hide columns
+  - All spacing changes maintain readability - text sizes unchanged, just whitespace reduced
+  - Compact design makes table more scannable and efficient for browsing large call lists
+
+---
+
