@@ -134,7 +134,7 @@
         "Button accessible on all screen sizes",
         "No content cut off or inaccessible"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-011.1",

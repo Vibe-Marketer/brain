@@ -152,3 +152,19 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - The date range applies consistently to all integration types (Zoom, Google Meet, Fathom) since it filters by meeting date
 ---
 
+## 2026-01-14 - US-010.1: Fetch Meetings button visible and accessible
+- What was implemented:
+  - Moved "Fetch Meetings" button outside the DateRangePicker popover to the main form row
+  - Button is now always visible next to the date picker (no need to open the popover to find it)
+  - Added proper alignment with `sm:self-end sm:pb-0.5` to align button with the date picker input
+  - Button remains disabled until a valid date range is selected (same logic as before)
+  - Button shows "Fetching..." state while loading
+  - Works on all screen sizes with responsive flex layout (stacks on mobile, row on desktop)
+- Files changed:
+  - `src/components/transcripts/SyncTab.tsx` - moved Fetch Meetings button outside DateRangePicker, added as standalone Button component
+- **Learnings for future iterations:**
+  - DateRangePicker has an optional `onFetch` prop that adds a button inside the popover - don't use this for important actions that should be visible at all times
+  - For important CTA buttons, keep them outside popovers/dropdowns so users can find them immediately
+  - Use `sm:self-end` to align buttons at the bottom of flex containers when paired with elements that have labels
+---
+

@@ -503,14 +503,20 @@ export function SyncTab() {
             dateRange={dateRange || { from: undefined, to: undefined }}
             onDateRangeChange={(range) => setDateRange(range as DateRange)}
             className="w-full"
-            onFetch={fetchMeetings}
-            fetchButtonText={loading ? "Fetching..." : "Fetch Meetings"}
             disabled={loading}
             extendedQuickSelect={true}
           />
         </div>
 
-        <div className="flex items-center gap-2 sm:flex-shrink-0">
+        <div className="flex items-center gap-2 sm:flex-shrink-0 sm:self-end sm:pb-0.5">
+          <Button
+            variant="default"
+            onClick={fetchMeetings}
+            disabled={loading || !dateRange?.from || !dateRange?.to}
+            className="h-9 px-4"
+          >
+            {loading ? "Fetching..." : "Fetch Meetings"}
+          </Button>
           <Button
             variant="hollow"
             onClick={handleClearDateRange}
