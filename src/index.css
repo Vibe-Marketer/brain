@@ -42,49 +42,6 @@ CallVault Brand System v4.2
     --text-dark-secondary: 0 0% 69%; /* #B0B0B0 - Dark secondary text */
     --text-dark-muted: 0 0% 42%;     /* #6B6B6B - Dark muted text */
 
-    /* ============================================
-       DEPRECATED ALIASES - Remove in PRD-010
-       These exist for backwards compatibility only
-       ============================================ */
-
-    /* cv-* aliases (deprecated) */
-    --cv-white: var(--white);
-    --cv-black: var(--black);
-    --cv-ink: var(--ink);
-    --cv-ink-soft: var(--ink-soft);
-    --cv-ink-muted: var(--ink-muted);
-    --cv-border: var(--border-color);
-    --cv-border-soft: var(--border-soft);
-    --cv-hover: var(--hover-bg);
-    --cv-viewport-dark: var(--viewport-dark);
-    --cv-card-dark: var(--card-dark);
-    --cv-panel-dark: var(--panel-dark);
-    --cv-border-dark: var(--border-dark);
-    --cv-text-dark-primary: var(--text-dark-primary);
-    --cv-text-dark-secondary: var(--text-dark-secondary);
-    --cv-text-dark-muted: var(--text-dark-muted);
-
-    /* cb-* aliases (deprecated) */
-    --cb-white: var(--white);
-    --cb-black: var(--black);
-    --cb-ink: var(--ink);
-    --cb-ink-soft: var(--ink-soft);
-    --cb-ink-muted: var(--ink-muted);
-    --cb-border: var(--border-color);
-    --cb-border-soft: var(--border-soft);
-    --cb-hover: var(--hover-bg);
-    --cb-viewport-dark: var(--viewport-dark);
-    --cb-card-dark: var(--card-dark);
-    --cb-panel-dark: var(--panel-dark);
-    --cb-border-dark: var(--border-dark);
-    --cb-text-dark-primary: var(--text-dark-primary);
-    --cb-text-dark-secondary: var(--text-dark-secondary);
-    --cb-text-dark-muted: var(--text-dark-muted);
-
-    /* Legacy vibe-green aliases (deprecated - will be removed) */
-    --vibe-green: var(--vibe-orange);
-    --vibe-green-light: var(--vibe-orange-light);
-    --vibe-green-dark: var(--vibe-orange-dark);
 
     /* ============================================
        BUTTON SYSTEM TOKENS
@@ -157,22 +114,6 @@ CallVault Brand System v4.2
     --neutral-text: 0 0% 40%;        /* #666666 - Text */
     --neutral-border: 0 0% 90%;      /* #E5E5E5 - Border */
 
-    /* Status color aliases (deprecated - remove in PRD-010) */
-    --cb-success-bg: var(--success-bg);
-    --cb-success-text: var(--success-text);
-    --cb-success-border: var(--success-border);
-    --cb-warning-bg: var(--warning-bg);
-    --cb-warning-text: var(--warning-text);
-    --cb-warning-border: var(--warning-border);
-    --cb-danger-bg: var(--danger-bg);
-    --cb-danger-text: var(--danger-text);
-    --cb-danger-border: var(--danger-border);
-    --cb-info-bg: var(--info-bg);
-    --cb-info-text: var(--info-text);
-    --cb-info-border: var(--info-border);
-    --cb-neutral-bg: var(--neutral-bg);
-    --cb-neutral-text: var(--neutral-text);
-    --cb-neutral-border: var(--neutral-border);
 
     /* ============================================
        PREMIUM BUTTON GRADIENTS
@@ -181,15 +122,6 @@ CallVault Brand System v4.2
     --gradient-premium-hover: linear-gradient(135deg, hsl(var(--vibe-orange-dark)), hsl(var(--vibe-orange)));
     --gradient-premium-disabled: linear-gradient(135deg, hsl(var(--border-color)), hsl(var(--border-soft)));
 
-    /* Legacy gray variables (deprecated - remove in PRD-010) */
-    --vibe-black: 0 0% 9%;
-    --vibe-gray: 0 0% 13%;
-    --vibe-gray-100: 0 0% 95%;
-    --vibe-gray-200: 0 0% 80%;
-    --vibe-gray-400: 0 0% 60%;
-    --vibe-gray-500: 0 0% 40%;
-    --vibe-off-white: 40 33% 97%;
-    --vibe-white: 0 0% 100%;
 
     /* Purple - Gradient Partner */
     --vibe-purple: 270 81% 56%;         /* #9333ea */
@@ -243,9 +175,6 @@ CallVault Brand System v4.2
     --background: 0 0% 100%;    /* #FFFFFF - pure white for content */
     --card: 0 0% 100%;          /* #FFFFFF - same as background */
 
-    /* Keep for backwards compatibility (deprecated - remove in PRD-010) */
-    --cb-viewport: var(--viewport);
-    --cb-card: var(--card);
 
     --foreground: 0 0% 9%;
     --card-foreground: 0 0% 9%;
@@ -285,14 +214,13 @@ CallVault Brand System v4.2
 
   /* Dark mode */
   .dark {
-    /* Apple Design System - Dark Surfaces */
     /* Dark Mode Semantic Colors */
-    --cv-ink: 0 0% 100%;
-    --cv-ink-soft: 0 0% 69%;
-    --cv-ink-muted: 0 0% 42%;
-    --cv-border: 0 0% 23%;
-    --cv-border-soft: 0 0% 30%;
-    --cv-hover: 0 0% 16%;
+    --ink: 0 0% 100%;
+    --ink-soft: 0 0% 69%;
+    --ink-muted: 0 0% 42%;
+    --border-color: 0 0% 23%;
+    --border-soft: 0 0% 30%;
+    --hover-bg: 0 0% 16%;
 
     --surface-primary: 0 0% 9%;         /* #161616 - Background (viewport-dark) */
     --surface-secondary: 0 0% 13%;      /* #202020 - Cards (card-dark) */
@@ -310,9 +238,6 @@ CallVault Brand System v4.2
     --background: 0 0% 13%;     /* #202020 - off-black for content */
     --card: 0 0% 13%;           /* #202020 - same as background */
 
-    /* Keep for backwards compatibility (deprecated - remove in PRD-010) */
-    --cb-viewport: var(--viewport);
-    --cb-card: var(--card);
 
     --foreground: 0 0% 98%;
     --card-foreground: 0 0% 98%;
