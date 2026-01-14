@@ -68,7 +68,7 @@
         "Spacing consistent with sidebar patterns",
         "No layout shift or overflow issues"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-006.1",
