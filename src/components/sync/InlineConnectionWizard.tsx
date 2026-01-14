@@ -267,7 +267,7 @@ export function InlineConnectionWizard({
               {hasTimeout ? "Connection Timed Out" : "Connection Failed"}
             </h3>
           </div>
-          <Button variant="ghost" size="sm" onClick={onCancel} className="h-8 w-8 p-0">
+          <Button variant="ghost" size="sm" onClick={handleCancel} className="h-8 w-8 p-0">
             <RiCloseLine className="h-4 w-4" />
           </Button>
         </div>
@@ -307,7 +307,7 @@ export function InlineConnectionWizard({
 
         {/* Actions */}
         <div className="flex items-center justify-between">
-          <Button variant="hollow" size="sm" onClick={onCancel}>
+          <Button variant="hollow" size="sm" onClick={handleCancel}>
             <RiArrowLeftLine className="mr-1 h-4 w-4" />
             Cancel
           </Button>
@@ -401,15 +401,13 @@ export function InlineConnectionWizard({
           : "You'll authorize via OAuth, then return here."}
       </p>
 
-      {/* Cancel link for non-loading state */}
-      {!isConnecting && (
-        <button
-          onClick={handleCancel}
-          className="w-full text-xs text-ink-muted hover:text-ink underline"
-        >
-          Cancel
-        </button>
-      )}
+      {/* Cancel button - always visible (PRD-020) */}
+      <button
+        onClick={handleCancel}
+        className="w-full text-xs text-ink-muted hover:text-ink underline"
+      >
+        {isConnecting ? "Cancel Connection" : "Cancel"}
+      </button>
     </div>
   );
 }

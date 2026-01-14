@@ -338,3 +338,21 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - Sometimes user stories are already implemented - verify all acceptance criteria are met rather than implementing duplicate code
 ---
 
+## 2026-01-14 - US-020.1: Cancel button works during connection
+- What was implemented:
+  - Fixed cancel button to remain visible during loading state instead of hiding
+  - Changed cancel link from conditional `{!isConnecting && ...}` to always visible with dynamic text
+  - Cancel button now shows "Cancel Connection" during loading, "Cancel" otherwise
+  - Updated all cancel button handlers to consistently use `handleCancel` for proper cleanup
+  - Error/timeout state X button and Cancel button now both use `handleCancel` instead of just `onCancel`
+- Files changed:
+  - `src/components/sync/InlineConnectionWizard.tsx` - made cancel link always visible (line 405-410), updated error state buttons to use handleCancel (lines 270, 310)
+- **Learnings for future iterations:**
+  - Cancel/close UI must remain accessible in ALL states, not just idle state
+  - The `handleCancel` function (lines 67-93) is the robust cancel handler that cleans up timeouts, aborts requests, and resets state
+  - Always use `handleCancel` for cancel actions, not just `onCancel`, to ensure proper cleanup of pending operations
+  - During loading, users need TWO ways to cancel: X button in header AND cancel link/button at bottom
+  - PRD-020 is a P0 critical bug fix - users should never be trapped in a modal or connection flow
+  - Use conditional text (`{isConnecting ? "Cancel Connection" : "Cancel"}`) to provide clear context during different states
+---
+

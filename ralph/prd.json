@@ -265,7 +265,7 @@
         "User can always exit",
         "No stuck states"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-021.1",
