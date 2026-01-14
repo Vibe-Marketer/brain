@@ -301,3 +301,125 @@ import { Button } from "../../components/ui/button";
 4. Stores (`@/stores/`)
 5. Utilities (`@/lib/`)
 6. Types (`@/types/`)
+
+---
+
+# UI/UX STANDARDS
+
+## Brand Guidelines Reference
+
+**CRITICAL: The authoritative design system is `docs/design/brand-guidelines-v4.2.md`**
+
+Before ANY UI/design work:
+
+1. READ the relevant section of brand guidelines
+2. VERIFY your implementation aligns with documented patterns
+3. ASK USER before deviating from guidelines
+
+## Button System (6 Variants)
+
+```tsx
+import { Button } from "@/components/ui/button";
+
+// Primary - Slate gradient glossy (main CTAs)
+<Button variant="default">Save</Button>
+
+// Hollow - Plain bordered (secondary actions)
+<Button variant="hollow">Cancel</Button>
+
+// Destructive - Red gradient glossy (dangerous actions)
+<Button variant="destructive">Delete</Button>
+
+// Link - Text-only (tertiary actions)
+<Button variant="link">Learn more</Button>
+
+// Outline - Subtle bordered (toggleable items)
+<Button variant="outline">Option</Button>
+
+// Ghost - Transparent (icon toolbars)
+<Button variant="ghost" size="icon">
+  <RiMenuLine />
+</Button>
+```
+
+**Dark Mode Rule:** Primary and destructive buttons NEVER change colors in dark mode. Only hollow/outline/ghost adapt.
+
+## Icon System
+
+**Library:** Remix Icon (`@remixicon/react`) - MANDATORY
+
+```tsx
+// GOOD - Remix Icon
+import { RiFolderLine, RiSettingsLine } from "@remixicon/react";
+
+<RiFolderLine className="h-4 w-4 text-cb-ink-muted" />
+
+// BAD - Do NOT use other icon libraries
+import { Folder } from "lucide-react";      // WRONG
+import { FaFolder } from "react-icons/fa";  // WRONG
+```
+
+**Icon Standards:**
+
+- Use `-line` (outlined) variants for consistency
+- Default size: 16px (`h-4 w-4`)
+- Default color: `text-cb-ink-muted` (#7A7A7A light / #6B6B6B dark)
+
+## Vibe Orange (#FF8800) - 9 Approved Uses ONLY
+
+**CRITICAL: Vibe orange may ONLY be used for these 9 specific purposes:**
+
+1. **Active tab underlines** - 6px height, angular/parallelogram shape
+2. **Left-edge indicators on metric cards** - 6px width x 56px height, angular
+3. **Table column headers** - 3px underline on sortable columns only
+4. **Focus states** - 3px left border on inputs, 2px outline on buttons
+5. **Circular progress indicators** - Filled portion only
+6. **Progress trackers** - Linear/circular for onboarding
+7. **Wayfinding step indicators** - Current step marker
+8. **Section dividers** - Onboarding/instructional content only
+9. **Contextual info banners** - Subtle accent only
+
+**NEVER use vibe orange for:**
+
+- Text (fails WCAG contrast)
+- Button backgrounds
+- Card backgrounds
+- Icons
+- Large filled areas
+
+## Typography
+
+**Headings:**
+
+- Font: Montserrat Extra Bold
+- Case: ALL CAPS
+- Usage: Page titles, section headers
+
+**Body Text:**
+
+- Font: Inter Light (300) or Regular (400)
+- Usage: Paragraphs, descriptions
+
+**Interactive Elements:**
+
+- Font: Inter Medium (500)
+- Usage: Buttons, labels, table headers
+
+```tsx
+// Heading
+<h1 className="font-montserrat font-extrabold text-xl uppercase tracking-wide">
+  PAGE TITLE
+</h1>
+
+// Body
+<p className="font-inter font-light text-sm">
+  Description text here
+</p>
+
+// Interactive
+<span className="font-inter font-medium text-sm">
+  Button Label
+</span>
+```
+
+**Numbers:** Always use `tabular-nums` class for aligned numerical data.
