@@ -538,3 +538,66 @@ function MyComponent() {
   );
 }
 ```
+
+---
+
+# VISUAL DEVELOPMENT PROTOCOL
+
+## Mandatory Verification After UI Changes
+
+**CRITICAL: ALWAYS verify UI changes with browser automation immediately after implementing.**
+
+### Step-by-Step Verification Workflow
+
+1. **Identify Changed Pages**
+   - Review which components/pages were modified
+   - List all routes that need verification
+
+2. **Start Dev Server (if not running)**
+   ```bash
+   npm run dev  # Runs on http://localhost:8080
+   ```
+
+3. **Navigate to Changed Pages**
+   ```
+   Use mcp__playwright__browser_navigate to visit each route
+   ```
+
+4. **Take Screenshots at Desktop Viewport (1440px)**
+   ```
+   Use mcp__playwright__browser_screenshot with width: 1440
+   ```
+
+5. **Check Console for Errors**
+   ```
+   Use mcp__playwright__browser_console_messages
+   ```
+
+6. **Verify Against Brand Guidelines**
+   - Check color usage matches approved patterns
+   - Verify button variants are correct
+   - Confirm typography follows Montserrat/Inter rules
+   - Ensure spacing uses 4px grid
+   - Validate dark mode behavior
+
+### Design Review Checklist
+
+Before considering UI work complete:
+
+- [ ] Screenshot captured at 1440px width
+- [ ] No console errors present
+- [ ] Colors match brand guidelines
+- [ ] Correct button variants used
+- [ ] Typography follows Montserrat (headings) / Inter (body) rules
+- [ ] Spacing uses 4px grid (Tailwind defaults)
+- [ ] Dark mode tested and working
+- [ ] Focus states visible (vibe orange outline)
+- [ ] Touch targets >= 44px on mobile
+
+### When to Request Design Review
+
+Use `/design-review` command for:
+
+- Completing significant UI/UX features
+- Before finalizing PRs with visual changes
+- When needing comprehensive accessibility testing
