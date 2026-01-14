@@ -5,7 +5,7 @@
 
 This document defines conventions and patterns for Supabase Edge Functions, database schema, and backend API development.
 
----
+
 
 ## TABLE OF CONTENTS
 
@@ -14,7 +14,7 @@ This document defines conventions and patterns for Supabase Edge Functions, data
 3. [Database Patterns](#database-patterns)
 4. [Security Requirements](#security-requirements)
 
----
+
 
 # FUNCTION ORGANIZATION
 
@@ -137,7 +137,9 @@ supabase/functions/
     fathom-client.ts     # Shared API client
 ```
 
----
+
+
+
 
 # API CONVENTIONS
 
@@ -245,7 +247,8 @@ if (req.method === 'OPTIONS') {
 }
 ```
 
----
+
+
 
 # DATABASE PATTERNS
 
@@ -399,7 +402,8 @@ CREATE TABLE example_table (
 );
 ```
 
----
+
+
 
 # SECURITY REQUIREMENTS
 
