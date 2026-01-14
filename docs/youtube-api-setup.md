@@ -635,7 +635,87 @@ const { data: metadata } = await supabase.functions.invoke(
 
 ### Getting Help
 
-- YouTube Data API: <https://developers.google.com/youtube/v3/docs>
-- Transcript API: <https://transcriptapi.com/docs>
-- Supabase: <https://supabase.com/docs>
-- Check API error responses for specific error details
+**Edge Function:**
+
+- Ensure CORS headers are set correctly
+- Handle OPTIONS preflight requests
+- Check Supabase function CORS config
+
+**Direct API calls:**
+
+- Use Edge Function as proxy
+- Don't call APIs directly from browser
+- YouTube Data API supports CORS, Transcript API may not
+
+### Debugging Tips
+
+**Test API keys directly:**
+
+```bash
+# Test YouTube Data API
+curl -s "https://www.googleapis.com/youtube/v3/videos?part=snippet&id=dQw4w9WgXcQ&key=${YOUTUBE_DATA_API_KEY}" | jq
+
+# Test Transcript API
+curl -s "https://transcriptapi.com/api/v2/youtube/transcript?video_url=dQw4w9WgXcQ&format=text" \
+  -H "Authorization: Bearer ${TRANSCRIPT_API_KEY}" | jq
+```
+
+**Check environment variables:**
+
+```bash
+# In project root
+source .env
+echo $YOUTUBE_DATA_API_KEY
+echo $TRANSCRIPT_API_KEY
+
+# In Edge Function
+supabase secrets list
+```
+
+**Monitor quota usage:**
+
+- Google Cloud Console → APIs & Services → Quotas
+- YouTube Data API v3 → Queries per day
+
+**Verify video ID extraction:**
+
+```bash
+# Valid formats:
+# https://www.youtube.com/watch?v=VIDEO_ID
+# https://youtu.be/VIDEO_ID
+# VIDEO_ID (11 characters)
+
+VIDEO_URL="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+VIDEO_ID=$(echo "$VIDEO_URL" | sed -n 's/.*v=\([^&]*\).*/\1/p')
+echo $VIDEO_ID  # Should output: dQw4w9WgXcQ
+```
+
+---
+
+## Additional Resources
+
+### Documentation
+
+- [YouTube Data API v3 Reference](https://developers.google.com/youtube/v3/docs)
+- [Transcript API Documentation](https://transcriptapi.com/docs)
+- [Supabase Edge Functions Guide](https://supabase.com/docs/guides/functions)
+- [Fabric Patterns Repository](https://github.com/danielmiessler/fabric)
+
+### Related Files
+
+- Slash command: `.claude/commands/youtube.md`
+- Environment config: `.env`, `.env.local`
+- Supabase functions: `supabase/functions/`
+- API client: `src/lib/api-client.ts`
+
+### Support
+
+- YouTube API Quota Issues: Google Cloud Support
+- Transcript API Issues: <support@transcriptapi.com>
+- Edge Function Issues: Supabase Discord/Support
+
+---
+
+**Last Updated:** 2025-11-25
+**Maintainer:** CallVault Development Team
+**Version:** 1.0.0
