@@ -13,6 +13,7 @@
 - IntegrationStatusRow supports `compact` prop for reduced visual weight (smaller icons, no badges, less padding)
 - **Integration icons**: Use branded icons from `src/components/transcript-library/SourcePlatformIcons.tsx` (FathomIcon, GoogleMeetIcon, ZoomIcon) - NOT generic Remix icons. These icons support both `size` prop and Tailwind `className` (h-X w-X)
 - **Disconnected/disabled states**: Apply opacity to descriptive content only, NOT to CTA buttons - keeps buttons looking clickable
+- **Content transitions**: When fading between different content, render the OLD content during fade-out using a delayed state variable, not the new prop directly - prevents flickering
 
 ---
 
@@ -588,5 +589,29 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - Sometimes stories are about verifying existing implementations rather than writing new code
   - Good documentation is critical for features that require special permissions or setup
 
+---
+
+
+## 2026-01-14 - US-030.1: Sorting & Tagging page now works completely
+
+- What was implemented:
+  - Fixed tab switching flickering by using displayedCategory instead of category in renderContent()
+  - The transition animation was correctly implemented but content was rendering with the new category prop before the transition completed
+  - Now content properly syncs with the transition state (displayedCategory) for smooth, flicker-free tab switches
+  - All previous fixes (US-027.1, US-028.1, US-029.1) already resolved the core functionality issues
+  
+- Files changed:
+  - `src/components/panes/SortingDetailPane.tsx` - Fixed renderContent() to use displayedCategory
+
+- **Learnings for future iterations:**
+  - When implementing content transitions with fade/slide animations, always render the OLD content during the fade-out phase
+  - The pattern: isContentVisible controls opacity, displayedCategory controls what content is shown
+  - Use a state variable (displayedCategory) that updates AFTER the transition delay, not immediately with props
+  - This prevents users from seeing a brief flash of the new content before the animation starts
+  - The SortingDetailPane uses a 250ms transition with proper timing: fade out → switch content → fade in
+  - All lazy-loaded tabs (FoldersTab, TagsTab, RulesTab, RecurringTitlesTab, DebugTool) work correctly with React.Suspense
+  - Error boundary in SortingDetailPane catches any render errors in individual tabs
+  - Build and TypeScript checks pass - no errors in Sorting & Tagging components
+  
 ---
 

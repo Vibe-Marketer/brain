@@ -398,7 +398,7 @@
         "No console errors",
         "Stable after multiple tab switches"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-031.1",
