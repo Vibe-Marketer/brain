@@ -98,10 +98,14 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
         success: {
+          bg: "hsl(var(--cb-success-bg))",
+          text: "hsl(var(--cb-success-text))",
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
         },
         warning: {
+          bg: "hsl(var(--cb-warning-bg))",
+          text: "hsl(var(--cb-warning-text))",
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
         },
