@@ -9,11 +9,30 @@ async function verifyGoogleMeetWizard() {
     console.log('Step 1: Navigate to login page...');
     await page.goto('http://localhost:8080/login');
     await page.waitForLoadState('networkidle');
+    await page.waitForTimeout(2000);
 
-    console.log('Step 2: Log in...');
-    await page.fill('input[type="email"]', 'a@vibeos.com');
-    await page.fill('input[type="password"]', 'Naegele1');
-    await page.click('button[type="submit"]');
+    // Debug - take screenshot to see current state
+    await page.screenshot({ path: 'tmp/login-page-debug.png', fullPage: true });
+    console.log('DEBUG: Login page screenshot saved to tmp/login-page-debug.png');
+    console.log('DEBUG: Current URL:', page.url());
+
+    // Check if we're already logged in or redirected
+    if (!page.url().includes('/login')) {
+      console.log('Already logged in, proceeding to sync tab...');
+    } else {
+      console.log('Step 2: Log in...');
+      // Click Sign In tab if not already active
+      const signInTab = page.getByRole('tab', { name: /sign in/i });
+      if (await signInTab.isVisible()) {
+        await signInTab.click();
+        await page.waitForTimeout(500);
+      }
+
+      await page.waitForSelector('#signin-email', { timeout: 10000 });
+      await page.fill('#signin-email', 'a@vibeos.com');
+      await page.fill('#signin-password', 'Naegele1');
+      await page.click('button[type="submit"]');
+    }
 
     console.log('Step 3: Wait for navigation...');
     await page.waitForURL('**/transcripts**', { timeout: 10000 });
