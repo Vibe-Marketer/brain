@@ -192,6 +192,22 @@ Layer 2: Content Cards     -> #202020 (off-black)
 | **Border Soft** | #F2F2F2 (0 0% 95%) | #2A2A2A (0 0% 16%) | Very light dividers |
 | **Hover** | #F8F8F8 (0 0% 97%) | #2A2A2A (0 0% 16%) | Row hover states |
 
+**Tailwind Usage:**
+
+```tsx
+{/* Text colors */}
+<p className="text-ink">Primary text</p>
+<p className="text-ink-soft">Secondary text</p>
+<p className="text-ink-muted">Tertiary text, icons</p>
+
+{/* Borders */}
+<div className="border border-border">Standard border</div>
+<div className="border border-border-soft">Subtle border</div>
+
+{/* Hover states */}
+<tr className="hover:bg-hover">Hoverable row</tr>
+```
+
 ### Vibe Orange (Structural Use Only)
 
 | Name | Hex | HSL | Usage |
@@ -223,6 +239,27 @@ Professional indicators with subtle backgrounds (2-3% opacity):
 | **Neutral** | #F9FAFB | #4B5563 | #E5E7EB | Inactive, archived, offline |
 
 **Design Principle:** Backgrounds barely perceptible, text provides 7:1+ contrast.
+
+**Tailwind Usage:**
+
+```tsx
+{/* Status badges */}
+<span className="bg-success-bg text-success-text border border-success-border">
+  Active
+</span>
+<span className="bg-warning-bg text-warning-text border border-warning-border">
+  Pending
+</span>
+<span className="bg-danger-bg text-danger-text border border-danger-border">
+  Error
+</span>
+<span className="bg-info-bg text-info-text border border-info-border">
+  Info
+</span>
+<span className="bg-neutral-bg text-neutral-text border border-neutral-border">
+  Offline
+</span>
+```
 
 ---
 
