@@ -109,7 +109,7 @@
         "Design feels cleaner and less boxy",
         "Still clearly grouped as a section"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-009.1",

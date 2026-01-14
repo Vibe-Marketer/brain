@@ -9,6 +9,8 @@
 - FolderSidebar (`src/components/transcript-library/FolderSidebar.tsx`) handles the folder list with toggleable search box
 - Search box in FolderSidebar: only visible when `folders.length > 10`, hidden by default, toggled via search icon in header
 - For height animations use `max-h-X` with `overflow-hidden` and `transition-all duration-300` (can't animate height: auto)
+- IntegrationSyncPane (`src/components/sync/IntegrationSyncPane.tsx`) - integration management section, uses compact prop for cleaner display
+- IntegrationStatusRow supports `compact` prop for reduced visual weight (smaller icons, no badges, less padding)
 
 ---
 
@@ -112,5 +114,26 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - SyncTab is rendered inside `TabsContent` which already has padding (`p-4 md:p-10`)
   - The `TranscriptsNew.tsx` page wraps SyncTab and provides the overall layout context
   - Integration section (`IntegrationSyncPane`) is at the top of SyncTab, no separator needed above it
+---
+
+## 2026-01-14 - US-008.1: Cleaner integrations section
+- What was implemented:
+  - Removed Card wrapper from IntegrationSyncPane for reduced visual weight (follows "90% No Containers" principle)
+  - Replaced with simple section element with subtle header border
+  - Changed section header from large CardTitle to smaller `text-sm font-medium text-ink-soft uppercase` style
+  - Added `compact` prop to IntegrationStatusRow for reduced padding (py-2 px-2 vs py-3 px-4)
+  - Compact mode: smaller icons (h-7 w-7 vs h-8 w-8), lighter backgrounds (bg-muted/50)
+  - Compact mode: hides status badges and last sync info for cleaner look
+  - Moved opacity-50 styling for disconnected integrations to the row level (was on wrapper div)
+  - Added hover:bg-hover/50 transition for compact rows
+  - Rows use space-y-1 gap instead of border-b separators for cleaner stacking
+- Files changed:
+  - `src/components/sync/IntegrationSyncPane.tsx` - restructured from Card to section
+  - `src/components/sync/IntegrationStatusRow.tsx` - added compact prop with conditional styling
+- **Learnings for future iterations:**
+  - IntegrationSyncPane is used in Import tab (SyncTab.tsx) and Settings page - compact mode ideal for Import
+  - The Card wrapper can be removed for "cleaner" sections following brand guidelines "90% No Containers"
+  - Use props like `compact` to share components between contexts with different visual density needs
+  - Browser verification blocked by 429 rate limiting - pre-existing infrastructure issue
 ---
 

@@ -3,7 +3,6 @@ import { IntegrationStatusRow } from "./IntegrationStatusRow";
 import { AddIntegrationButton } from "./AddIntegrationButton";
 import { InlineConnectionWizard } from "./InlineConnectionWizard";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { useIntegrationSync, type IntegrationStatus } from "@/hooks/useIntegrationSync";
 
 export type IntegrationPlatform = "fathom" | "google_meet" | "zoom";
@@ -41,6 +40,11 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
   const connectedPlatforms = integrations.filter((i: IntegrationStatus) => i.connected);
   const disconnectedPlatforms = integrations.filter((i: IntegrationStatus) => !i.connected);
 
+  // Get current email for the connecting platform (for reconnection notice)
+  const connectingIntegrationEmail = connectingIntegration
+    ? integrations.find((i) => i.platform === connectingIntegration)?.email
+    : undefined;
+
   if (connectingIntegration) {
     return (
       <Card className="border-border dark:border-cb-border-dark">
@@ -54,6 +58,7 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
             platform={connectingIntegration}
             onComplete={handleConnectionComplete}
             onCancel={handleConnectionCancel}
+            currentEmail={connectingIntegrationEmail}
           />
         </CardContent>
       </Card>
@@ -61,59 +66,51 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
   }
 
   return (
-    <Card className="border-border dark:border-cb-border-dark">
-      <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="text-lg font-montserrat font-extrabold uppercase tracking-wide">
+    <section>
+      {/* Section header - cleaner, no card border */}
+      <div className="flex items-center justify-between pb-2 border-b border-border">
+        <h3 className="text-sm font-medium text-ink-soft uppercase tracking-wide">
           Integrations
-        </CardTitle>
+        </h3>
         <AddIntegrationButton
           integrations={integrations}
           onConnect={handleConnect}
         />
-      </CardHeader>
-      <CardContent className="px-0 pb-0">
+      </div>
+
+      {/* Compact integration list */}
+      <div className="pt-2">
         {isLoading ? (
-          <div className="p-4 text-center text-ink-muted">
+          <div className="py-3 text-center text-ink-muted text-sm">
             Loading integrations...
           </div>
         ) : (
-          <div>
+          <div className="space-y-1">
             {/* Connected Integrations */}
-            {connectedPlatforms.length > 0 && (
-              <div>
-                {connectedPlatforms.map((integration: IntegrationStatus) => (
-                  <IntegrationStatusRow
-                    key={integration.platform}
-                    integration={integration}
-                    onManualSync={() => handleManualSync(integration.platform)}
-                    onReconnect={() => handleConnect(integration.platform)}
-                  />
-                ))}
-              </div>
-            )}
-
-            {/* Separator between connected and disconnected */}
-            {connectedPlatforms.length > 0 && disconnectedPlatforms.length > 0 && (
-              <Separator className="my-0" />
-            )}
+            {connectedPlatforms.map((integration: IntegrationStatus) => (
+              <IntegrationStatusRow
+                key={integration.platform}
+                integration={integration}
+                onManualSync={() => handleManualSync(integration.platform)}
+                onReconnect={() => handleConnect(integration.platform)}
+                compact
+              />
+            ))}
 
             {/* Disconnected Integrations */}
-            {disconnectedPlatforms.length > 0 && (
-              <div className="opacity-60">
-                {disconnectedPlatforms.map((integration: IntegrationStatus) => (
-                  <IntegrationStatusRow
-                    key={integration.platform}
-                    integration={integration}
-                    onConnect={() => handleConnect(integration.platform)}
-                  />
-                ))}
-              </div>
-            )}
+            {disconnectedPlatforms.map((integration: IntegrationStatus) => (
+              <IntegrationStatusRow
+                key={integration.platform}
+                integration={integration}
+                onConnect={() => handleConnect(integration.platform)}
+                compact
+              />
+            ))}
 
             {/* Empty state */}
             {integrations.length === 0 && (
-              <div className="p-6 text-center">
-                <p className="text-ink-muted mb-4">
+              <div className="py-4 text-center">
+                <p className="text-ink-muted text-sm mb-3">
                   No integrations configured yet.
                 </p>
                 <AddIntegrationButton
@@ -125,7 +122,7 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
             )}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }
