@@ -527,3 +527,31 @@ Started: Wed Jan 14 12:19:39 EST 2026
 
 ---
 
+
+## 2026-01-14 - US-028.1: Rules tab now works without errors
+
+- What was verified:
+  - Rules tab was already fixed by the US-027.1 fix (duplicate FathomIcon import removal)
+  - The duplicate import in InlineConnectionWizard.tsx was causing a JavaScript error that broke the entire application bundle
+  - This affected multiple tabs including both Tags (US-027.1) and Rules (US-028.1)
+  - Build verification: RulesTab successfully compiles to lazy-loaded chunk (dist/assets/RulesTab-CgpXkg9T.js - 14KB)
+  - No duplicate imports found in the codebase
+  - No JavaScript syntax or module resolution errors
+  
+- Files verified (no changes needed):
+  - `src/components/tags/RulesTab.tsx` - No errors, compiles successfully
+  - `src/components/sync/InlineConnectionWizard.tsx` - Duplicate FathomIcon already removed
+  - `src/components/panes/SortingDetailPane.tsx` - Lazy loading correctly configured
+  - `src/components/QuickCreateTagDialog.tsx` - Exports correctly as default
+  - `src/components/QuickCreateFolderDialog.tsx` - Exports correctly as default with recursive self-reference (valid pattern)
+
+- **Learnings for future iterations:**
+  - Module-level JavaScript errors (like duplicate imports) break the ENTIRE application bundle, not just the affected component
+  - A single fix (removing duplicate import) can resolve multiple related issues across different tabs
+  - When diagnosing "tab not working" issues, check for global JavaScript errors first before diving into tab-specific code
+  - The lazy loading pattern in SortingDetailPane: `React.lazy(() => import("@/components/tags/RulesTab").then((module) => ({ default: module.RulesTab })))` correctly handles named exports
+  - Build success + successful chunk generation = code is working (verified by checking dist/assets/)
+  - US-027.1 and US-028.1 had the same root cause and were both fixed by the same duplicate import removal
+
+---
+

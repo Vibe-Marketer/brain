@@ -369,7 +369,7 @@
         "Rules management works",
         "Console shows no errors"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-029.1",
