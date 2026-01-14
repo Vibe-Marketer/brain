@@ -251,7 +251,7 @@
         "Reconnect attempt handled gracefully",
         "No silent failures or confusing states"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-020.1",

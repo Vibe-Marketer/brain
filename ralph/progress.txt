@@ -319,3 +319,22 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - Error/timeout UI shows actionable suggestions (check internet, disable ad blockers, try again)
 ---
 
+## 2026-01-14 - US-019.1: Clear visibility into which Google account is connected
+- What was implemented:
+  - This story was already fully implemented in the codebase
+  - Google OAuth callback fetches user email from Google's userinfo endpoint (google-oauth-callback/index.ts lines 103-118)
+  - Email is stored in `google_oauth_email` field in user_settings table (line 128)
+  - useIntegrationSync hook loads the email from database (useIntegrationSync.ts line 104)
+  - IntegrationStatusRow component displays the email next to integration name (IntegrationStatusRow.tsx lines 111-115)
+  - Email display works in both Import (compact) and Settings (full) screens via IntegrationManager component
+- Files changed:
+  - No code changes required - feature already implemented
+  - ralph/prd.json - marked US-019.1 as passing
+- **Learnings for future iterations:**
+  - Google OAuth email is fetched during token exchange by calling https://www.googleapis.com/oauth2/v2/userinfo with the access token
+  - The email field in IntegrationStatus interface is optional (email?: string) and only populated for platforms that support it (Google Meet has email, Zoom/Fathom don't)
+  - IntegrationStatusRow shows email inline with integration name using: `<span className="text-xs text-ink-muted truncate max-w-[120px]">({integration.email})</span>`
+  - Email truncates at 120px to prevent layout issues with long email addresses
+  - Sometimes user stories are already implemented - verify all acceptance criteria are met rather than implementing duplicate code
+---
+
