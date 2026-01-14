@@ -13,8 +13,9 @@ import {
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { getGoogleOAuthUrl, getFathomOAuthUrl } from "@/lib/api-client";
+import { getGoogleOAuthUrl, getFathomOAuthUrl, getZoomOAuthUrl } from "@/lib/api-client";
 import { type IntegrationPlatform } from "./IntegrationSyncPane";
+import { FathomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 
 interface InlineConnectionWizardProps {
   platform: IntegrationPlatform;
@@ -58,6 +59,8 @@ export function InlineConnectionWizard({
         response = await getGoogleOAuthUrl();
       } else if (platform === "fathom") {
         response = await getFathomOAuthUrl();
+      } else if (platform === "zoom") {
+        response = await getZoomOAuthUrl();
       } else {
         throw new Error(`Unsupported platform: ${platform}`);
       }
@@ -73,7 +76,8 @@ export function InlineConnectionWizard({
       }
     } catch (error) {
       logger.error(`Failed to get ${platform} OAuth URL`, error);
-      toast.error(`Failed to connect to ${platform === 'google_meet' ? 'Google' : 'Fathom'}`);
+      const platformName = platform === 'google_meet' ? 'Google' : platform === 'zoom' ? 'Zoom' : 'Fathom';
+      toast.error(`Failed to connect to ${platformName}`);
       setConnecting(false);
     }
   };
@@ -144,6 +148,21 @@ export function InlineConnectionWizard({
           <p className="text-sm text-muted-foreground">
             Personal accounts can sync meeting data but won't have recordings.
           </p>
+          <div className="mt-3 pt-3 border-t border-border">
+            <p className="text-sm font-medium">Have a personal Google account?</p>
+            <p className="text-sm text-muted-foreground mt-1">
+              Connect Fathom instead - it's free and works with any account.
+            </p>
+            <a
+              href="https://vibelinks.co/fathom"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 text-sm font-medium rounded-md border border-border bg-card hover:bg-muted transition-colors"
+            >
+              <FathomIcon size={16} />
+              Sign up for Fathom (Free)
+            </a>
+          </div>
         </div>
       ),
     },
@@ -151,9 +170,38 @@ export function InlineConnectionWizard({
       name: "Zoom",
       icon: <RiVideoLine className="h-6 w-6" />,
       color: "text-sky-600 dark:text-sky-400",
-      features: [],
-      warningTitle: "",
-      warningContent: null,
+      features: [
+        {
+          icon: <RiVideoLine className="h-4 w-4" />,
+          title: "Cloud Recordings",
+          description: "Access your Zoom cloud recordings",
+        },
+        {
+          icon: <RiFlashlightLine className="h-4 w-4" />,
+          title: "Transcripts",
+          description: "Import Zoom's auto-generated transcripts",
+        },
+        {
+          icon: <RiCalendarLine className="h-4 w-4" />,
+          title: "Meeting Details",
+          description: "Sync participants, dates, and duration",
+        },
+      ],
+      warningTitle: "Cloud Recording Required",
+      warningContent: (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Zoom cloud recording is required for importing recordings. This feature is available on:
+          </p>
+          <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+            <li>Zoom Pro, Business, Education, or Enterprise plans</li>
+            <li>Accounts with cloud recording enabled by admin</li>
+          </ul>
+          <p className="text-sm text-muted-foreground">
+            Local recordings cannot be imported automatically.
+          </p>
+        </div>
+      ),
     },
   };
 

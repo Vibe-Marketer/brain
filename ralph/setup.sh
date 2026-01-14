@@ -1,6 +1,12 @@
 #!/bin/bash
 # Ralph Setup - Prepares a project for Ralph autonomous development
 # Run this once after copying ralph/ into a new project
+#
+# Features:
+# - Session logging to logs/YYYY-MM-DD-HHMMSS.log (auto-purges old logs)
+# - State persistence in logs/state.json (for resume after crashes)
+# - Status dashboard with ./ralph.sh --status
+# - Resume capability with ./ralph.sh --resume
 
 set -e
 
@@ -259,10 +265,12 @@ echo "Next steps:"
 echo "  1. Review and edit CLAUDE.md with project-specific patterns"
 echo "  2. Review ralph/config.json and adjust commands if needed"
 echo ""
-echo "To use Ralph, just say:"
-echo "  ralph add [feature]"
+echo "Ralph Commands:"
+echo "  cd ralph && ./ralph.sh              # Run normally (10 iterations)"
+echo "  cd ralph && ./ralph.sh 20           # Run with 20 iterations"
+echo "  cd ralph && ./ralph.sh --resume     # Resume from crash"
+echo "  cd ralph && ./ralph.sh --status     # Show status dashboard"
 echo ""
-echo "Or manually:"
-echo "  /prd [feature]     - Create PRD only"
-echo "  cd ralph && ./ralph.sh  - Run the loop"
+echo "All logs saved to: ralph/logs/"
+echo "State file: ralph/logs/state.json"
 echo ""

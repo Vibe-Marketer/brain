@@ -1,0 +1,6 @@
+{
+  "qualityCommands": "npm run lint",
+  "testCommands": "npm test",
+  "buildCommands": "npm run build",
+  "defaultBranch": "main"
+}

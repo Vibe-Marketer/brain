@@ -49,7 +49,7 @@ const availableIntegrations: Array<{
     name: "Zoom",
     icon: RiVideoChatLine,
     colorClass: "text-sky-600 dark:text-sky-400",
-    available: false, // Coming soon
+    available: true,
   },
 ];
 
