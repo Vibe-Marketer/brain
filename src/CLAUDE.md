@@ -601,3 +601,188 @@ Use `/design-review` command for:
 - Completing significant UI/UX features
 - Before finalizing PRs with visual changes
 - When needing comprehensive accessibility testing
+
+---
+
+# COMMON PATTERNS
+
+## Loading States (Skeleton Pattern)
+
+```tsx
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Table skeleton
+function TableSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <Skeleton key={i} className="h-12 w-full" />
+      ))}
+    </div>
+  );
+}
+
+// Card skeleton
+function CardSkeleton() {
+  return (
+    <div className="p-4 space-y-3">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-1/2" />
+      <Skeleton className="h-20 w-full" />
+    </div>
+  );
+}
+
+// Usage with React Query
+function MyComponent() {
+  const { data, isLoading } = useQuery({ /* ... */ });
+
+  if (isLoading) {
+    return <CardSkeleton />;
+  }
+
+  return <ActualContent data={data} />;
+}
+```
+
+## Error Handling
+
+```tsx
+// Error boundary pattern for pages
+import { ErrorBoundary } from "react-error-boundary";
+
+function ErrorFallback({ error, resetErrorBoundary }) {
+  return (
+    <div className="p-4 text-center">
+      <h2 className="text-lg font-semibold text-destructive">Something went wrong</h2>
+      <p className="text-sm text-muted-foreground">{error.message}</p>
+      <Button onClick={resetErrorBoundary} className="mt-4">
+        Try again
+      </Button>
+    </div>
+  );
+}
+
+// Wrap pages/sections
+<ErrorBoundary FallbackComponent={ErrorFallback}>
+  <MyComponent />
+</ErrorBoundary>
+```
+
+## Toast Notifications
+
+```tsx
+import { toast } from "sonner";
+
+// Success
+toast.success("Folder created successfully");
+
+// Error
+toast.error("Failed to delete folder");
+
+// With description
+toast.success("Changes saved", {
+  description: "Your settings have been updated"
+});
+```
+
+## Dark Mode Behavior
+
+**Primary/Destructive buttons:** NEVER change colors in dark mode
+
+```tsx
+// Button stays the same in light/dark
+<Button variant="default">Save</Button>     // Slate gradient - same
+<Button variant="destructive">Delete</Button> // Red gradient - same
+```
+
+**Hollow/Ghost buttons:** Adapt to dark mode
+
+```tsx
+// These adapt
+<Button variant="hollow">Cancel</Button>  // bg-white -> bg-card
+<Button variant="ghost">Icon</Button>     // text adapts
+```
+
+**Background hierarchy:**
+
+```tsx
+// Light mode -> Dark mode
+bg-viewport: #FCFCFC -> #161616  // Page background
+bg-card:     #FFFFFF -> #202020  // Card/content background
+```
+
+## Keyboard Shortcuts
+
+```tsx
+import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
+
+function MyComponent() {
+  const handleEscape = useCallback(() => {
+    closePanel();
+  }, [closePanel]);
+
+  useKeyboardShortcut(handleEscape, {
+    key: 'Escape',
+    cmdOrCtrl: false,
+    enabled: isPanelOpen
+  });
+
+  // Cmd/Ctrl + K for search
+  useKeyboardShortcut(openSearch, {
+    key: 'k',
+    cmdOrCtrl: true,
+    enabled: true
+  });
+}
+```
+
+## Responsive Breakpoints
+
+```tsx
+import { useBreakpointFlags } from "@/hooks/useBreakpoint";
+
+function MyComponent() {
+  const { isMobile, isTablet, isDesktop } = useBreakpointFlags();
+
+  if (isMobile) {
+    return <MobileLayout />;
+  }
+
+  return <DesktopLayout />;
+}
+```
+
+**Breakpoint Values:**
+
+- Mobile: < 768px
+- Tablet: 768px - 1024px
+- Desktop: > 1024px
+
+---
+
+# QUICK REFERENCE
+
+## Must-Use Libraries
+
+| Purpose | Library | Import |
+|---------|---------|--------|
+| Icons | Remix Icon | `@remixicon/react` |
+| State (server) | Tanstack Query | `@tanstack/react-query` |
+| State (client) | Zustand | `zustand` |
+| Toasts | Sonner | `sonner` |
+| Styling utility | cn helper | `@/lib/utils` |
+
+## Critical Rules Summary
+
+1. **ALL pages use AppShell** - No exceptions
+2. **Sidebar toggle is circular button** - NOT hamburger
+3. **Transitions are 500ms** - NOT 300ms
+4. **Icons from Remix Icon ONLY** - No Lucide/FontAwesome
+5. **Vibe orange for 9 uses ONLY** - Never for text/backgrounds
+6. **Verify UI with browser** - After every change
+7. **Query keys in kebab-case** - Use queryKeys factory
+
+---
+
+**END OF FRONTEND CLAUDE INSTRUCTIONS**
