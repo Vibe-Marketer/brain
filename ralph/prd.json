@@ -211,7 +211,7 @@
         "Working affiliate link",
         "Doesn't feel like a dead end"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-017.1",

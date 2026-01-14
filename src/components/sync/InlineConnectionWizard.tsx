@@ -8,6 +8,7 @@ import {
   RiArrowLeftLine,
   RiCheckLine,
   RiRefreshLine,
+  RiExternalLinkLine,
 } from "@remixicon/react";
 import { FathomIcon, GoogleMeetIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 import { toast } from "sonner";
@@ -200,6 +201,29 @@ export function InlineConnectionWizard({
           </p>
         </div>
       ),
+      alternativeContent: (
+        <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border">
+          <div className="flex items-start gap-2">
+            <FathomIcon className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Have a personal Google account?</p>
+              <p className="text-xs text-muted-foreground">
+                Use Fathom to record and transcribe any meeting - it's free for individuals
+                and works with Google Meet, Zoom, and other platforms.
+              </p>
+              <a
+                href="https://fathom.video/?ref=callvault"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                Sign up for Fathom (Free)
+                <RiExternalLinkLine className="h-3 w-3" />
+              </a>
+            </div>
+          </div>
+        </div>
+      ),
     },
     zoom: {
       name: "Zoom",
@@ -366,6 +390,9 @@ export function InlineConnectionWizard({
           </div>
         </div>
       </div>
+
+      {/* Alternative option (e.g., Fathom for Google Meet restricted users) */}
+      {"alternativeContent" in config && config.alternativeContent}
 
       {/* Help text */}
       <p className="text-xs text-ink-muted text-center">

@@ -259,3 +259,20 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - The `zoom-sync-meetings` edge function handles manual sync for Zoom
 ---
 
+## 2026-01-14 - US-016.1: Fathom alternative for restricted Google Meet users
+- What was implemented:
+  - Added Fathom as an alternative option in the Google Meet connection wizard for users with personal accounts
+  - Shows a visually distinct section below the Google Meet requirements warning
+  - Includes clear messaging: "Have a personal Google account?" with explanation of Fathom as free alternative
+  - Added affiliate/referral link to Fathom signup (https://fathom.video/?ref=callvault)
+  - Uses external link icon (RiExternalLinkLine) to indicate opens in new tab
+  - Styled consistently with the rest of the wizard using muted background and border
+- Files changed:
+  - `src/components/sync/InlineConnectionWizard.tsx` - added `alternativeContent` to google_meet config, added RiExternalLinkLine import, added rendering of alternativeContent
+- **Learnings for future iterations:**
+  - The `platformConfig` object in InlineConnectionWizard.tsx can have optional `alternativeContent` field for platforms that need to offer alternatives
+  - Use `"alternativeContent" in config && config.alternativeContent` pattern to conditionally render optional fields
+  - For affiliate links, use `?ref=callvault` query parameter for tracking
+  - FathomIcon is available from SourcePlatformIcons.tsx and can be used at any size via className (e.g., h-5 w-5)
+---
+
