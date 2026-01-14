@@ -437,7 +437,7 @@
         "Error message on failure",
         "Coach receives proper invite email"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-034.1",

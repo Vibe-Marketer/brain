@@ -674,3 +674,34 @@ Started: Wed Jan 14 12:19:39 EST 2026
 
 ---
 
+
+## 2026-01-14 - US-033.1: Coach invite email sending functionality
+
+- What was implemented:
+  - **ROOT CAUSE**: The coach invite system was creating self-referencing relationships (coach_user_id = coachee_user_id = current user)
+  - This caused the UNIQUE constraint `UNIQUE(coach_user_id, coachee_user_id)` to prevent sending multiple invites
+  - First invite would succeed, but subsequent invites would fail with constraint violation
+  - Users saw "invitation sent" but email never actually went out due to database error being caught
+  
+- **The Fix**:
+  - Changed both invite flows (coach inviting coachee, coachee inviting coach) to use `crypto.randomUUID()` for placeholder user IDs
+  - Removed broken duplicate check that used `.ilike("coach_user_id", "%")` which matched ALL rows
+  - Now each pending invite gets a unique random UUID, preventing UNIQUE constraint violations
+  - When invite is accepted, the placeholder UUID is replaced with the actual accepting user's ID (existing logic unchanged)
+
+- Files changed:
+  - `src/hooks/useCoachRelationships.ts` - Fixed both `inviteCoachMutation` and `inviteCoacheeMutation` to use random placeholder UUIDs
+
+- **Learnings for future iterations:**
+  - The coach_relationships table has `UNIQUE(coach_user_id, coachee_user_id)` constraint
+  - Both `coach_user_id` and `coachee_user_id` are `NOT NULL` with foreign key constraints to `auth.users(id)`
+  - When creating pending invites for users who don't exist yet, use `crypto.randomUUID()` as placeholder
+  - The `get_user_email()` RPC will return NULL for placeholder UUIDs (handled correctly by the code)
+  - Edge function `/functions/v1/send-coach-invite` sends emails via Resend API with invite token in URL
+  - The accept flow (line 354-359 in hook) updates the correct user_id field based on `invited_by` value
+  - Self-referencing relationships (user_id == coach_id) violate logical constraints and break the invite system
+  - Always trace through the FULL flow (create → email → accept) when debugging multi-step features
+  - Database constraints like UNIQUE can cause silent failures if error handling swallows the errors
+
+---
+
