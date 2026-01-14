@@ -423,3 +423,118 @@ import { FaFolder } from "react-icons/fa";  // WRONG
 ```
 
 **Numbers:** Always use `tabular-nums` class for aligned numerical data.
+
+---
+
+# STATE MANAGEMENT PATTERNS
+
+## Tanstack Query (React Query)
+
+**Query Key Convention:** Use kebab-case arrays from `lib/query-config.ts`
+
+```tsx
+import { queryKeys } from "@/lib/query-config";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+// Fetching data
+const { data, isLoading } = useQuery({
+  queryKey: queryKeys.folders.list(),  // ["folders", "list"]
+  queryFn: async () => { /* fetch */ },
+  staleTime: 1000 * 60 * 5,  // 5 minutes
+});
+
+// Mutations with optimistic updates
+const mutation = useMutation({
+  mutationFn: async (data) => { /* mutate */ },
+  onMutate: async (newData) => {
+    // Cancel outgoing refetches
+    await queryClient.cancelQueries({ queryKey: queryKeys.folders.list() });
+
+    // Snapshot previous value
+    const previous = queryClient.getQueryData(queryKeys.folders.list());
+
+    // Optimistically update
+    queryClient.setQueryData(queryKeys.folders.list(), (old) => /* update */);
+
+    return { previous };
+  },
+  onError: (err, variables, context) => {
+    // Rollback on error
+    queryClient.setQueryData(queryKeys.folders.list(), context?.previous);
+  },
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.folders.list() });
+  },
+});
+```
+
+**Query Key Factory Pattern:**
+
+```tsx
+// lib/query-config.ts
+export const queryKeys = {
+  folders: {
+    all: ['folders'] as const,
+    list: () => ['folders', 'list'] as const,
+    detail: (id: string) => ['folders', 'detail', id] as const,
+    assignments: () => ['folder-assignments'] as const,
+  },
+  // ... other domains
+};
+```
+
+## Zustand Stores
+
+**Store Naming:** `{domain}Store.ts` in `/src/stores/`
+
+**Panel Store Pattern (for detail panels):**
+
+```tsx
+// stores/panelStore.ts
+import { create } from 'zustand';
+
+export type PanelType =
+  | 'folder-detail'
+  | 'tag-detail'
+  | 'setting-help'
+  | null;
+
+interface PanelState {
+  isPanelOpen: boolean;
+  panelType: PanelType;
+  panelData: any;
+
+  openPanel: (type: PanelType, data?: any) => void;
+  closePanel: () => void;
+}
+
+export const usePanelStore = create<PanelState>((set, get) => ({
+  isPanelOpen: false,
+  panelType: null,
+  panelData: null,
+
+  openPanel: (type, data = null) => {
+    set({ isPanelOpen: true, panelType: type, panelData: data });
+  },
+
+  closePanel: () => {
+    set({ isPanelOpen: false, panelType: null, panelData: null });
+  },
+}));
+```
+
+**Usage in Components:**
+
+```tsx
+import { usePanelStore } from "@/stores/panelStore";
+
+function MyComponent() {
+  const { openPanel, closePanel, isPanelOpen } = usePanelStore();
+
+  return (
+    <button onClick={() => openPanel('folder-detail', { folderId: '123' })}>
+      Open Detail
+    </button>
+  );
+}
+```
