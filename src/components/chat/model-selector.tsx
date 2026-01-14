@@ -222,7 +222,7 @@ export function ModelSelector({
           className={cn(
             'flex items-center gap-1.5 px-2.5 py-1.5 h-[28px] max-w-[200px]',
             'rounded-xl border border-cb-border-soft/50',
-            'bg-transparent hover:bg-cb-hover',
+            'bg-transparent hover:bg-hover',
             'text-xs text-ink-soft hover:text-ink',
             'transition-all duration-150 cursor-pointer select-none',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-1',
@@ -249,7 +249,7 @@ export function ModelSelector({
                 onClick={() => onValueChange?.(model.id)}
                 className={cn(
                   'flex items-center justify-between gap-2 cursor-pointer ml-2',
-                  model.id === selectedModel.id && 'bg-cb-hover'
+                  model.id === selectedModel.id && 'bg-hover'
                 )}
               >
                 <span className="text-sm font-medium truncate">{model.name}</span>
@@ -292,7 +292,7 @@ export function ModelBadge({ modelId, className }: ModelBadgeProps) {
     <div
       className={cn(
         'flex items-center gap-1.5 px-2.5 py-1 h-[26px]',
-        'rounded-xl border border-cb-border-soft/50 bg-cb-hover/50',
+        'rounded-xl border border-cb-border-soft/50 bg-hover/50',
         'text-xs text-ink-soft select-none',
         className
       )}

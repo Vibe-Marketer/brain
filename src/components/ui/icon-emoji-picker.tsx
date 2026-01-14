@@ -86,7 +86,7 @@ export function IconEmojiPicker({ value, onChange, color = '#6B7280' }: IconEmoj
       {/* Preview of selected icon/emoji */}
       <div className="flex items-center gap-3 p-3 rounded-lg border border-cb-border bg-cb-card">
         <div
-          className="flex items-center justify-center w-10 h-10 rounded-lg bg-cb-hover"
+          className="flex items-center justify-center w-10 h-10 rounded-lg bg-hover"
           style={{ color }}
         >
           {isEmoji ? (
@@ -127,8 +127,8 @@ export function IconEmojiPicker({ value, onChange, color = '#6B7280' }: IconEmoj
                 className={cn(
                   'px-2 py-1 text-xs rounded-md transition-colors border',
                   selectedCategory === category.id
-                    ? 'border-cb-ink bg-cb-hover text-ink font-medium'
-                    : 'border-transparent bg-cb-hover/50 text-ink-soft hover:bg-cb-hover hover:border-cb-border'
+                    ? 'border-cb-ink bg-hover text-ink font-medium'
+                    : 'border-transparent bg-hover/50 text-ink-soft hover:bg-hover hover:border-cb-border'
                 )}
               >
                 {category.label}
@@ -150,8 +150,8 @@ export function IconEmojiPicker({ value, onChange, color = '#6B7280' }: IconEmoj
                     className={cn(
                       'flex items-center justify-center p-2 rounded-md transition-colors border',
                       isSelected
-                        ? 'border-cb-ink bg-cb-hover text-ink'
-                        : 'border-transparent hover:bg-cb-hover hover:border-cb-border text-ink-muted'
+                        ? 'border-cb-ink bg-hover text-ink'
+                        : 'border-transparent hover:bg-hover hover:border-cb-border text-ink-muted'
                     )}
                     title={icon.label}
                   >

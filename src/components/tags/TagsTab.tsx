@@ -297,10 +297,10 @@ export function TagsTab() {
                       ref={getRowRef(tag.id) as React.Ref<HTMLTableRowElement>}
                       className={`cursor-pointer transition-colors ${
                         isSelected
-                          ? "bg-cb-hover dark:bg-cb-hover-dark"
+                          ? "bg-hover dark:bg-cb-hover-dark"
                           : isFocused
-                          ? "bg-cb-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
-                          : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
+                          ? "bg-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
+                          : "hover:bg-hover/50 dark:hover:bg-cb-hover-dark/50"
                       }`}
                       onClick={() => {
                         handleRowClick(tag);

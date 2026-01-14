@@ -74,7 +74,7 @@ function ChartPlaceholder({ title }: { title: string }) {
       <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
         {title}
       </h4>
-      <div className="h-48 flex items-center justify-center bg-cb-bg-gray dark:bg-cb-panel-dark rounded-md">
+      <div className="h-48 flex items-center justify-center bg-gray dark:bg-cb-panel-dark rounded-md">
         <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
           Chart coming soon
         </p>
@@ -164,7 +164,7 @@ export function ContentTab({ isLoading = false }: ContentTabProps) {
 
         {analytics.clips.length === 0 ? (
           // Empty state
-          <div className="flex flex-col items-center justify-center py-16 bg-cb-bg-gray dark:bg-cb-panel-dark rounded-lg">
+          <div className="flex flex-col items-center justify-center py-16 bg-gray dark:bg-cb-panel-dark rounded-lg">
             <RiFilmLine className="h-12 w-12 text-ink-muted mb-4" />
             <p className="text-lg font-medium text-cb-black dark:text-cb-white mb-2">
               No clips created yet
@@ -213,7 +213,7 @@ export function ContentTab({ isLoading = false }: ContentTabProps) {
                       {clip.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-cb-bg-gray dark:bg-cb-panel-dark text-cb-gray-dark dark:text-cb-gray-light"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray dark:bg-cb-panel-dark text-cb-gray-dark dark:text-cb-gray-light"
                         >
                           {tag}
                         </span>

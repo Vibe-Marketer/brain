@@ -121,7 +121,7 @@ export const UserTable = React.memo(({
             {sortedUsers.map((user) => (
               <TableRow
                 key={user.user_id}
-                className="group h-10 md:h-12 hover:bg-cb-bg-gray dark:hover:bg-cb-panel-dark"
+                className="group h-10 md:h-12 hover:bg-gray dark:hover:bg-cb-panel-dark"
               >
                 <TableCell className="py-0.5">
                   <div className="flex flex-col">

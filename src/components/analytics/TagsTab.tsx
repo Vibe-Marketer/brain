@@ -160,7 +160,7 @@ export function TagsTab() {
           {sortedData.map((tag) => (
             <TableRow
               key={tag.name}
-              className="h-[30px] border-b border-cb-gray-dark/30 dark:border-cb-gray-light/30 hover:bg-cb-bg-gray dark:hover:bg-cb-panel-dark"
+              className="h-[30px] border-b border-cb-gray-dark/30 dark:border-cb-gray-light/30 hover:bg-gray dark:hover:bg-cb-panel-dark"
             >
               <TableCell className="py-2 px-4 font-medium text-sm text-cb-black dark:text-cb-white">
                 {tag.name}

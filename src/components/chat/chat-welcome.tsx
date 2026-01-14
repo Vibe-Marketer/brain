@@ -190,7 +190,7 @@ function SuggestedPromptItem({ suggestion, onClick }: SuggestedPromptItemProps) 
         'text-sm font-normal text-ink-soft dark:text-cb-text-dark-secondary',
         // Kortex-style hover effect
         'transition-all duration-150 ease-out',
-        'hover:bg-cb-hover dark:hover:bg-cb-border-dark',
+        'hover:bg-hover dark:hover:bg-cb-border-dark',
         'hover:border-l-vibe-orange',
         'hover:text-ink dark:hover:text-white',
         'hover:pl-5', // Subtle shift on hover

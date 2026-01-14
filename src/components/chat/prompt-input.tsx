@@ -289,7 +289,7 @@ export function PromptInputContextBar({
               className={cn(
                 'group flex items-center gap-1 px-2 py-1 rounded-xl',
                 'border border-cb-border-soft/50 bg-transparent',
-                'hover:bg-cb-hover hover:border-cb-border',
+                'hover:bg-hover hover:border-cb-border',
                 'transition-all duration-150 cursor-pointer select-none'
               )}
             >
@@ -341,8 +341,8 @@ export function PromptInputContextBar({
                           className={cn(
                             'w-full flex items-start gap-2 rounded-lg px-2.5 py-2 text-left transition-colors',
                             attached
-                              ? 'opacity-50 cursor-not-allowed bg-cb-hover'
-                              : 'hover:bg-cb-hover cursor-pointer'
+                              ? 'opacity-50 cursor-not-allowed bg-hover'
+                              : 'hover:bg-hover cursor-pointer'
                           )}
                         >
                           <RiVideoLine className="h-4 w-4 text-ink-muted flex-shrink-0 mt-0.5" />
@@ -388,7 +388,7 @@ function ContextAttachmentPill({ attachment, onRemove }: ContextAttachmentPillPr
       data-recording-id={attachment.id}
       className={cn(
         'group flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-full',
-        'bg-cb-hover border border-cb-border',
+        'bg-hover border border-cb-border',
         'text-xs text-ink',
         'transition-all duration-150'
       )}
@@ -492,7 +492,7 @@ export function KeyboardHint({ label, shortcut, className }: KeyboardHintProps) 
   return (
     <span className={cn('flex items-center gap-1', className)}>
       <span>{label}</span>
-      <kbd className="px-1.5 py-0.5 text-[9px] bg-cb-hover rounded-md border border-cb-border-soft font-mono">
+      <kbd className="px-1.5 py-0.5 text-[9px] bg-hover rounded-md border border-cb-border-soft font-mono">
         {shortcut}
       </kbd>
     </span>

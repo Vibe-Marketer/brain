@@ -133,7 +133,7 @@ function ContentTypeFilter({
     >
       <SelectTrigger
         className={cn(
-          "h-8 text-xs bg-cb-black dark:bg-white text-white dark:text-cb-black hover:bg-cb-hover dark:hover:bg-gray-100 border-none",
+          "h-8 text-xs bg-cb-black dark:bg-white text-white dark:text-cb-black hover:bg-hover dark:hover:bg-gray-100 border-none",
           isMobile ? "w-[100px]" : "w-[130px]",
           selectedType && "ring-2 ring-vibe-orange ring-offset-2"
         )}

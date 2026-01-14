@@ -120,7 +120,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
       className={cn(
         'group relative flex items-center h-10 w-full px-2 rounded-lg cursor-pointer',
         'transition-colors duration-150 overflow-hidden',
-        isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+        isSelected ? 'bg-hover' : 'hover:bg-hover/50',
         depth > 0 && 'ml-3',
         // Drag feedback
         isDragging && 'ring-1 ring-cb-border ring-inset',
@@ -485,7 +485,7 @@ export function FolderSidebar({
             onClick={() => onSelectFolder(null)}
             className={cn(
               'w-9 h-9 flex items-center justify-center rounded-lg mb-1 transition-colors',
-              selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50'
+              selectedFolderId === null ? 'bg-hover' : 'hover:bg-hover/50'
             )}
             title={allTranscriptsSettings?.name || 'All Transcripts'}
           >
@@ -517,7 +517,7 @@ export function FolderSidebar({
                     onClick={() => onSelectFolder(folder.id)}
                     className={cn(
                       'relative w-9 h-9 flex items-center justify-center rounded-lg transition-colors',
-                      isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+                      isSelected ? 'bg-hover' : 'hover:bg-hover/50',
                       isHidden && 'opacity-40'
                     )}
                     title={isHidden ? `${folder.name} (hidden)` : folder.name}
@@ -556,7 +556,7 @@ export function FolderSidebar({
             <button
               type="button"
               onClick={onNewFolder}
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-cb-hover/50 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-hover/50 transition-colors"
               title="New folder"
             >
               <RiAddLine className="h-4 w-4 text-ink-muted" />
@@ -564,7 +564,7 @@ export function FolderSidebar({
             <button
               type="button"
               onClick={onManageFolders}
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-cb-hover/50 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-hover/50 transition-colors"
               title="Manage folders"
             >
               <RiSettings3Line className="h-4 w-4 text-ink-muted" />
@@ -638,7 +638,7 @@ export function FolderSidebar({
                   className={cn(
                     'group relative flex items-center h-10 w-full px-2 rounded-lg cursor-pointer',
                     'transition-colors duration-150 overflow-hidden',
-                    selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+                    selectedFolderId === null ? 'bg-hover' : 'hover:bg-hover/50',
                     focusedIndex === 0 && 'ring-2 ring-vibe-orange ring-inset'
                   )}
                   onClick={() => onSelectFolder(null)}
@@ -774,7 +774,7 @@ export function FolderSidebar({
         <div className="p-2 pt-1">
           <button
             onClick={onManageFolders}
-            className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-ink-muted hover:text-ink rounded-lg hover:bg-cb-hover/50 transition-colors"
+            className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-ink-muted hover:text-ink rounded-lg hover:bg-hover/50 transition-colors"
           >
             <RiSettings3Line className="h-4 w-4" />
             Manage Folders

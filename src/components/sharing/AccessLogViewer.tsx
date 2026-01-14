@@ -146,7 +146,7 @@ export const AccessLogViewer = React.memo(({
               {sortedLogs.map((log) => (
                 <TableRow
                   key={log.id}
-                  className="group h-10 hover:bg-cb-bg-gray dark:hover:bg-cb-panel-dark"
+                  className="group h-10 hover:bg-gray dark:hover:bg-cb-panel-dark"
                 >
                   <TableCell className="py-0.5">
                     <div className="flex items-center gap-2">

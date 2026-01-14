@@ -61,8 +61,8 @@ export function EmojiPickerInline({ value, onChange, className }: EmojiPickerInl
           onClick={() => handleEmojiSelect(emoji)}
           className={cn(
             "w-7 h-7 flex-shrink-0 flex items-center justify-center rounded text-base transition-all",
-            "hover:bg-cb-hover border border-transparent",
-            value === emoji && "border-cb-ink bg-cb-hover scale-105"
+            "hover:bg-hover border border-transparent",
+            value === emoji && "border-cb-ink bg-hover scale-105"
           )}
           title={emoji}
         >
@@ -77,7 +77,7 @@ export function EmojiPickerInline({ value, onChange, className }: EmojiPickerInl
             type="button"
             className={cn(
               "h-7 px-2 flex-shrink-0 flex items-center gap-0.5 rounded text-xs",
-              "bg-cb-hover hover:bg-cb-border text-ink-soft transition-colors"
+              "bg-hover hover:bg-cb-border text-ink-soft transition-colors"
             )}
           >
             More

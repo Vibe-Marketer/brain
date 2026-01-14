@@ -78,7 +78,7 @@ export function ParticipationTab() {
             className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
               timeRange === range
                 ? "bg-cb-black dark:bg-cb-white text-white dark:text-cb-black font-medium"
-                : "text-cb-gray-dark dark:text-cb-gray-light hover:bg-cb-hover dark:hover:bg-cb-hover-dark"
+                : "text-cb-gray-dark dark:text-cb-gray-light hover:bg-hover dark:hover:bg-cb-hover-dark"
             }`}
           >
             {range === "all" ? "All Time" : range}
@@ -157,7 +157,7 @@ export function ParticipationTab() {
             <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
               Attendees Over Time
             </h4>
-            <div className="flex flex-col items-center justify-center h-[200px] bg-cb-hover dark:bg-cb-hover-dark rounded-lg">
+            <div className="flex flex-col items-center justify-center h-[200px] bg-hover dark:bg-cb-hover-dark rounded-lg">
               <RiLineChartLine className="w-12 h-12 text-ink-muted mb-2" />
               <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
                 Trend chart placeholder
@@ -180,7 +180,7 @@ export function ParticipationTab() {
               <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
                 Solo vs Multi-Speaker Calls
               </h4>
-              <div className="flex flex-col items-center justify-center h-[200px] bg-cb-hover dark:bg-cb-hover-dark rounded-lg">
+              <div className="flex flex-col items-center justify-center h-[200px] bg-hover dark:bg-cb-hover-dark rounded-lg">
                 <RiPieChartLine className="w-12 h-12 text-ink-muted mb-2" />
                 <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
                   Pie chart placeholder

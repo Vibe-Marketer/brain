@@ -53,7 +53,7 @@ export function ToolCall({ toolPart, defaultOpen = false, className }: ToolCallP
           className
         )}
       >
-        <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 hover:bg-cb-hover">
+        <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 hover:bg-hover">
           <div className="flex items-center gap-2">
             <RiToolsFill className="h-4 w-4 text-ink-muted" />
             <span className="text-sm font-medium text-ink">
@@ -83,7 +83,7 @@ export function ToolCall({ toolPart, defaultOpen = false, className }: ToolCallP
             {toolPart.args && Object.keys(toolPart.args).length > 0 && (
               <div>
                 <div className="text-xs font-medium text-ink-muted uppercase mb-1">Input</div>
-                <pre className="text-xs bg-cb-hover rounded p-2 overflow-x-auto">
+                <pre className="text-xs bg-hover rounded p-2 overflow-x-auto">
                   <code>{JSON.stringify(toolPart.args, null, 2)}</code>
                 </pre>
               </div>
@@ -93,7 +93,7 @@ export function ToolCall({ toolPart, defaultOpen = false, className }: ToolCallP
             {toolPart.result && (
               <div>
                 <div className="text-xs font-medium text-ink-muted uppercase mb-1">Output</div>
-                <pre className="text-xs bg-cb-hover rounded p-2 overflow-x-auto">
+                <pre className="text-xs bg-hover rounded p-2 overflow-x-auto">
                   <code>{JSON.stringify(toolPart.result, null, 2)}</code>
                 </pre>
               </div>

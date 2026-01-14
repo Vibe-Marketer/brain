@@ -272,7 +272,7 @@ export function TranscriptTableRow({
         <div className="flex items-center justify-center gap-0.5 md:gap-1">
           <button
             onClick={onCallClick}
-            className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors"
+            className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-hover dark:hover:bg-cb-panel-dark transition-colors"
             title="View details"
           >
             <RiEyeLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
@@ -281,7 +281,7 @@ export function TranscriptTableRow({
           {onFolder && (
             <button
               onClick={onFolder}
-              className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors"
+              className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-hover dark:hover:bg-cb-panel-dark transition-colors"
               title="Assign to folder"
             >
               <RiFolderLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
@@ -290,7 +290,7 @@ export function TranscriptTableRow({
           {onCustomDownload ? (
             <button
               onClick={() => onCustomDownload(call.recording_id, call.title)}
-              className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-cb-hover dark:hover:bg-cb-panel-dark transition-colors"
+              className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-hover dark:hover:bg-cb-panel-dark transition-colors"
               title="Download transcript"
             >
               <RiDownloadLine className="h-3 w-3 md:h-3.5 md:w-3.5" />

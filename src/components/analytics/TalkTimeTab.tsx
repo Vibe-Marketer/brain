@@ -57,7 +57,7 @@ function CategoryRow({ category, hostPercent, othersPercent }: { category: strin
     <div className="flex items-center py-2 border-b border-cb-border dark:border-cb-border-dark last:border-0">
       <div className="w-40 text-sm text-ink dark:text-cb-white truncate">{category}</div>
       <div className="flex-1 flex items-center gap-2">
-        <div className="flex-1 h-6 bg-cb-hover dark:bg-cb-border-dark rounded overflow-hidden flex">
+        <div className="flex-1 h-6 bg-hover dark:bg-cb-border-dark rounded overflow-hidden flex">
           <div
             className="h-full bg-vibe-orange transition-all"
             style={{ width: `${hostPercent}%` }}

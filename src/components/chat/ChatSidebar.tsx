@@ -94,8 +94,8 @@ const SessionItem = React.memo(function SessionItem({
         group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer
         transition-colors duration-150 overflow-hidden
         ${isActive && !isSelectionMode
-          ? 'bg-cb-hover'
-          : 'hover:bg-cb-hover/50'
+          ? 'bg-hover'
+          : 'hover:bg-hover/50'
         }
       `}
       onClick={handleClick}
@@ -279,7 +279,7 @@ export function ChatSidebar({
                   setIsSelectionMode(!isSelectionMode);
                   setSelectedSessions([]);
                 }}
-                className={`h-6 w-6 rounded-full ${isSelectionMode ? "bg-cb-hover text-ink" : ""}`}
+                className={`h-6 w-6 rounded-full ${isSelectionMode ? "bg-hover text-ink" : ""}`}
                 aria-label={isSelectionMode ? "Cancel selection" : "Select chats"}
               >
                 {isSelectionMode ? <RiCloseLine className="w-4 h-4 opacity-70" /> : <RiListCheck className="w-4 h-4 opacity-70" />}
