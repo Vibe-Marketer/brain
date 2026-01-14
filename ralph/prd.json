@@ -238,7 +238,7 @@
         "Cancel button works during loading",
         "User can retry after failure"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-019.1",

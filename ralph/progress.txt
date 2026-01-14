@@ -294,3 +294,28 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - When a story is already implemented, just verify all acceptance criteria are met and mark it as passing
 ---
 
+## 2026-01-14 - US-018.1: Clear feedback on Google connection status
+- What was implemented:
+  - Verified this story was already completed with comprehensive connection status handling
+  - InlineConnectionWizard implements all acceptance criteria:
+    - 30-second timeout via `CONNECTION_TIMEOUT_MS = 30000` constant (line 20)
+    - Timeout handler triggers at 30s, shows timeout state and toast (lines 113-121)
+    - Success message shown in OAuthCallback.tsx via toast and success UI (lines 74-76, 110-113)
+    - Error messages shown for failures with detailed UI (lines 256-322 in wizard, lines 84-88 in callback)
+    - Cancel button works ALWAYS via handleCancel that clears timeouts and aborts requests (lines 65-93)
+    - Retry functionality via handleRetry and "Try Again" button (lines 95-98, 315-318)
+  - Connection flow properly handles all states: idle, loading, success, error, timeout
+  - Error/timeout states show helpful suggestions and clear retry path
+  - User can never get stuck - cancel always works and closes the modal
+- Files changed:
+  - `ralph/prd.json` - marked US-018.1 as passing
+- **Learnings for future iterations:**
+  - InlineConnectionWizard (`src/components/sync/InlineConnectionWizard.tsx`) handles OAuth connections for all platforms (Google, Zoom, Fathom)
+  - OAuthCallback (`src/pages/OAuthCallback.tsx`) handles the OAuth redirect and completes the connection
+  - Connection state is typed as union: `idle | loading | success | error | timeout` for clear state management
+  - Timeout and abort controller refs are cleaned up on unmount via useEffect cleanup (lines 49-58)
+  - The wizard uses `sessionStorage.setItem("pendingOAuthPlatform", platform)` to track OAuth in progress
+  - Cancel button uses `handleCancel` that ALWAYS works regardless of state - no dependencies on state to avoid stale closures
+  - Error/timeout UI shows actionable suggestions (check internet, disable ad blockers, try again)
+---
+
