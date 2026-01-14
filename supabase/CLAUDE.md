@@ -139,7 +139,7 @@ supabase/functions/
 
 
 
-**END OF SUPABASE BACKEND INSTRUCTIONS**
+
 
 # API CONVENTIONS
 
@@ -245,6 +245,161 @@ const corsHeaders = {
 if (req.method === 'OPTIONS') {
   return new Response(null, { headers: corsHeaders });
 }
+```
+
+
+
+
+# DATABASE PATTERNS
+
+## RLS Policy Requirements
+
+**All tables MUST have Row Level Security (RLS) enabled:**
+
+```sql
+ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;
+```
+
+**Standard RLS policy patterns:**
+
+```sql
+-- Users can view their own data
+CREATE POLICY "Users can view their own records"
+  ON table_name
+  FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Users can insert their own data
+CREATE POLICY "Users can insert their own records"
+  ON table_name
+  FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can update their own data
+CREATE POLICY "Users can update their own records"
+  ON table_name
+  FOR UPDATE
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can delete their own data
+CREATE POLICY "Users can delete their own records"
+  ON table_name
+  FOR DELETE
+  USING (auth.uid() = user_id);
+```
+
+## Common Query Patterns
+
+**Select with user isolation:**
+```typescript
+const { data, error } = await supabase
+  .from('table_name')
+  .select('*')
+  .eq('user_id', user.id)
+  .order('created_at', { ascending: false });
+```
+
+**Upsert with conflict handling:**
+```typescript
+const { error } = await supabase
+  .from('user_settings')
+  .upsert({
+    user_id: user.id,
+    setting_name: value,
+    updated_at: new Date().toISOString(),
+  }, {
+    onConflict: 'user_id'
+  });
+```
+
+**Composite key operations:**
+```typescript
+const { error } = await supabase
+  .from('fathom_calls')
+  .upsert(data, {
+    onConflict: 'recording_id,user_id'
+  });
+```
+
+**Single record with maybeSingle():**
+```typescript
+const { data: settings, error } = await supabase
+  .from('user_settings')
+  .select('*')
+  .eq('user_id', user.id)
+  .maybeSingle();  // Returns null if not found, no error
+```
+
+## Migration Conventions
+
+**Migration file naming:**
+```
+YYYYMMDDHHMMSS_descriptive_name.sql
+```
+
+Example: `20260108000001_create_single_call_share_tables.sql`
+
+**Migration file structure:**
+```sql
+-- Migration: Short description
+-- Purpose: Detailed explanation
+-- Author: Author name
+-- Date: YYYY-MM-DD
+
+-- ============================================================================
+-- TABLE: table_name
+-- ============================================================================
+-- Description of what this table stores
+CREATE TABLE table_name (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  -- other columns...
+);
+
+-- ============================================================================
+-- INDEXES
+-- ============================================================================
+CREATE INDEX idx_table_column ON table_name(column_name);
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS)
+-- ============================================================================
+ALTER TABLE table_name ENABLE ROW LEVEL SECURITY;
+
+-- ============================================================================
+-- RLS POLICIES
+-- ============================================================================
+CREATE POLICY "policy_name" ON table_name
+  FOR SELECT USING (auth.uid() = user_id);
+
+-- ============================================================================
+-- COMMENTS
+-- ============================================================================
+COMMENT ON TABLE table_name IS 'Description';
+COMMENT ON COLUMN table_name.column IS 'Description';
+
+-- ============================================================================
+-- END OF MIGRATION
+-- ============================================================================
+```
+
+## Database Field Naming
+
+**All database fields use snake_case:**
+
+```sql
+CREATE TABLE example_table (
+  id UUID PRIMARY KEY,
+  user_id UUID NOT NULL,
+  recording_id BIGINT NOT NULL,
+  created_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ,
+  full_transcript TEXT,
+  recording_start_time TIMESTAMPTZ,
+  calendar_invitees JSONB
+);
 ```
 
 ---
