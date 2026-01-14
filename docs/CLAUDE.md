@@ -112,3 +112,110 @@ After editing, add an entry to `/docs/brand-guidelines-changelog.md`:
 - **Archive old version**: Move to `/docs/archive/` with original filename
 
 ---
+
+## ADR Writing Standards
+
+Architecture Decision Records capture significant technical choices.
+
+### When to Create an ADR
+
+**Create an ADR for:**
+- Database or backend selection/changes
+- AI model or provider choices
+- Integration platform decisions (n8n, Zapier, etc.)
+- Major schema or API changes
+- Technical constraints or limitations
+- Deployment/infrastructure changes
+- New SDK or library adoption for core features
+
+**Do NOT create an ADR for:**
+- UI component choices (covered by brand guidelines)
+- Bug fixes or refactoring
+- Reversible implementation details
+- Anything taking less than 4 hours to change later
+
+### Template Location
+
+Use the template at `/docs/adr/adr-template.md`.
+
+### How to Create
+
+1. Copy `docs/adr/adr-template.md`
+2. Check `docs/adr/README.md` for the latest ADR number
+3. Number sequentially (e.g., `adr-006-...`)
+4. Fill in: Context, Decision, Consequences
+5. Save as `docs/adr/adr-XXX-short-title.md`
+6. Update `docs/adr/README.md` with new entry
+7. Commit with message: `docs: add ADR-XXX for [decision]`
+
+### Time Limit
+
+**10-15 minutes max** - ADRs should be concise, not exhaustive.
+
+### ADR Trigger Checklist
+
+Before implementing a significant technical choice, ask:
+- Will this affect how we build 3+ future features?
+- Would a new developer ask "why did we do this?"
+- Is this hard to reverse (more than 4 hours of work)?
+
+If YES to 2+ questions, write an ADR.
+
+---
+
+## Archive Policy
+
+Guidelines for archiving documentation that is no longer actively needed.
+
+### When to Archive
+
+**Archive documents when:**
+- Feature is fully implemented and merged to main
+- All acceptance criteria met
+- No outstanding issues or gaps
+- Implementation has been verified and is stable
+- Document is superseded by a newer version
+- Research/planning phase is complete
+
+**Do NOT archive:**
+- Documents with active references from other files
+- Specs that are partially implemented
+- Documents with active GAPS analysis
+- Templates or reference materials still in use
+
+### Archive Locations
+
+| Document Type | Archive Location |
+|--------------|------------------|
+| Implemented specs | `/docs/archive/specs-implemented/{YYYY-MM}/` |
+| Completed planning | `/docs/archive/planning-completed/` |
+| Completed research | `/docs/archive/research-completed/` |
+| Superseded brand guidelines | `/docs/archive/` (with version in filename) |
+| Old reference materials | `/docs/archive/reference-materials/{YYYY-MM}/` |
+| Time-stamped reports | `/docs/archive/reports-{YYYY}/` |
+
+### Naming Conventions for Archived Files
+
+- **Keep original filename** when moving to archive
+- **Add date prefix** only if multiple versions exist: `2026-01-SPEC-feature.md`
+- **Never rename** brand guidelines files (version is in filename)
+
+### Archive README Updates
+
+When archiving specs, update `/docs/archive/specs-implemented/README.md`:
+
+```markdown
+| Spec | Archived Date | Implementation Date | Related Commits/PRs | Notes |
+|------|---------------|---------------------|---------------------|-------|
+| `SPEC-feature-name.md` | 2026-01-14 | 2026-01-10 | commit-hash | Brief note |
+```
+
+### Retention Policy
+
+- **Archived docs**: Indefinite (preserved in git history)
+- **Value**: Historical reference for design decisions, future enhancements, onboarding
+- **Git history**: Always available for full context
+
+---
+
+**End of Documentation Standards**
