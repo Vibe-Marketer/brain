@@ -6,7 +6,7 @@
  * Provides profile selector with create/delete functionality.
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -64,6 +64,9 @@ export default function BusinessProfileTab() {
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Ref for auto-scroll to form after creation
+  const formSectionRef = useRef<HTMLDivElement>(null);
+
   // Load profiles on mount
   useEffect(() => {
     fetchProfiles();
@@ -93,6 +96,14 @@ export default function BusinessProfileTab() {
     if (newProfile) {
       setSelectedProfileId(newProfile.id);
       toast.success('Profile created');
+
+      // Auto-scroll to form after a brief delay to allow rendering
+      setTimeout(() => {
+        formSectionRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start',
+        });
+      }, 100);
     }
     setIsCreating(false);
   };
@@ -289,12 +300,14 @@ export default function BusinessProfileTab() {
       <Separator className="my-12" />
 
       {/* Profile Form or Empty State */}
-      {selectedProfile ? (
-        <BusinessProfileForm
-          profile={selectedProfile}
-          onUpdate={updateProfile}
-        />
-      ) : profiles.length === 0 ? (
+      <div ref={formSectionRef}>
+        {selectedProfile ? (
+          <BusinessProfileForm
+            key={selectedProfile.id}
+            profile={selectedProfile}
+            onUpdate={updateProfile}
+          />
+        ) : profiles.length === 0 ? (
         <div className="text-center py-16">
           <RiBuilding4Line className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">No Business Profiles</h3>
@@ -312,6 +325,7 @@ export default function BusinessProfileTab() {
           </Button>
         </div>
       ) : null}
+      </div>
     </div>
   );
 }
