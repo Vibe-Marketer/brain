@@ -101,3 +101,16 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - The `filteredRootFolders` memo is used in both expanded AND collapsed views for consistent filtering
 ---
 
+## 2026-01-14 - US-007.1: Remove extra line at top of import screen
+- What was implemented:
+  - Removed the `<Separator className="mb-12" />` from the top of SyncTab component
+  - Removed unused `Separator` import
+  - The separator was marked as "Top separator for breathing room" but was creating an unwanted horizontal line
+- Files changed:
+  - `src/components/transcripts/SyncTab.tsx` - removed separator and unused import
+- **Learnings for future iterations:**
+  - SyncTab is rendered inside `TabsContent` which already has padding (`p-4 md:p-10`)
+  - The `TranscriptsNew.tsx` page wraps SyncTab and provides the overall layout context
+  - Integration section (`IntegrationSyncPane`) is at the top of SyncTab, no separator needed above it
+---
+

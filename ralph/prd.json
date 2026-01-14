@@ -96,7 +96,7 @@
         "Header remains properly styled",
         "No layout regressions"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-008.1",

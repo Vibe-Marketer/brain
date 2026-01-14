@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { RiCloseLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SyncTabDialogs } from "./SyncTabDialogs";
 import { UnsyncedMeetingsSection } from "./UnsyncedMeetingsSection";
@@ -478,9 +477,6 @@ export function SyncTab() {
 
   return (
     <div>
-      {/* Top separator for breathing room */}
-      <Separator className="mb-12" />
-
       {/* Persistent Sync Status Indicator - Always visible when syncing */}
       {(activeSyncJobs.length > 0 || recentlyCompletedJobs.length > 0) && (
         <div className="flex items-center justify-between mb-4">
