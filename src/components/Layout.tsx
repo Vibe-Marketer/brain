@@ -13,6 +13,7 @@
 
 import { TopBar } from "@/components/ui/top-bar";
 import { useLocation } from "react-router-dom";
+import { DebugPanel } from "@/components/debug-panel";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -40,6 +41,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <main className="fixed inset-2.5 top-[52px]">
         {children}
       </main>
+      <DebugPanel />
     </div>
   );
 }

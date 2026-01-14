@@ -1,9 +1,10 @@
 import { useEffect } from "react";
 import { useContentLibraryStore } from "@/stores/contentLibraryStore";
-import { RiLoader2Line, RiFileTextLine } from "@remixicon/react";
+import { RiFileTextLine } from "@remixicon/react";
 import { Separator } from "@/components/ui/separator";
 import { ContentFilterBar } from "./ContentFilterBar";
 import { ContentItemCard } from "./ContentItemCard";
+import { ContentLibrarySkeleton } from "./ContentLibrarySkeleton";
 
 /**
  * Content Library Browser Page
@@ -24,13 +25,9 @@ export function ContentLibraryPage() {
     fetchTags();
   }, [fetchItems, fetchTags]);
 
-  // Loading state
+  // Loading state - show skeleton for smooth UX
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <RiLoader2Line className="w-8 h-8 animate-spin text-vibe-orange" />
-      </div>
-    );
+    return <ContentLibrarySkeleton />;
   }
 
   // Error state

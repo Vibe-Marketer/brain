@@ -1,58 +1,125 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  RiGoogleLine,
-  RiVideoLine,
-  RiCalendarLine,
-  RiFlashlightLine,
   RiLoader4Line,
   RiAlertLine,
   RiCloseLine,
   RiArrowLeftLine,
+  RiCheckLine,
+  RiRefreshLine,
+  RiExternalLinkLine,
 } from "@remixicon/react";
+import { FathomIcon, GoogleMeetIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getGoogleOAuthUrl, getFathomOAuthUrl, getZoomOAuthUrl } from "@/lib/api-client";
 import { type IntegrationPlatform } from "./IntegrationSyncPane";
 import { FathomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 
+// Connection timeout in milliseconds (30 seconds per PRD-018 requirement)
+const CONNECTION_TIMEOUT_MS = 30000;
+
+// Connection state for proper state management and user feedback
+type ConnectionState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "success" }
+  | { status: "error"; message: string }
+  | { status: "timeout" };
+
 interface InlineConnectionWizardProps {
   platform: IntegrationPlatform;
   onComplete: () => void;
   onCancel: () => void;
-}
-
-interface StepCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}
-
-function StepCard({ icon, title, description }: StepCardProps) {
-  return (
-    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border dark:border-cb-border-dark">
-      <div className="text-vibe-orange">{icon}</div>
-      <div>
-        <p className="font-medium text-sm">{title}</p>
-        <p className="text-xs text-ink-muted">{description}</p>
-      </div>
-    </div>
-  );
+  /** Email of currently connected account, if any - shows reconnection notice */
+  currentEmail?: string;
 }
 
 export function InlineConnectionWizard({
   platform,
   onComplete: _onComplete,
   onCancel,
+  currentEmail,
 }: InlineConnectionWizardProps) {
-  const [currentStep, setCurrentStep] = useState(0);
-  const [connecting, setConnecting] = useState(false);
-  const [acknowledgedWarning, setAcknowledgedWarning] = useState(false);
+  const [connectionState, setConnectionState] = useState<ConnectionState>({ status: "idle" });
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Cleanup timeout and abort controller on unmount
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  // Get platform display name
+  const getPlatformName = useCallback(() => {
+    return platform === "google_meet" ? "Google" : platform === "zoom" ? "Zoom" : "Fathom";
+  }, [platform]);
+
+  // Handle cancellation - ALWAYS works regardless of state (PRD-020)
+  // Removed dependency on connectionState.status to avoid stale closure issues
+  const handleCancel = useCallback(() => {
+    // Track if we had an active connection attempt
+    const wasConnecting = abortControllerRef.current !== null;
+
+    // Always clear timeout (safe to call even if not set)
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+
+    // Always abort pending requests (safe to call even if not set)
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    // Always reset state to idle (no-op if already idle)
+    setConnectionState({ status: "idle" });
+
+    // Show toast only if we actually cancelled an active connection
+    if (wasConnecting) {
+      toast.info("Connection cancelled");
+    }
+
+    // Always close the modal - NEVER trap the user
+    onCancel();
+  }, [onCancel]);
+
+  // Handle retry after error or timeout
+  const handleRetry = useCallback(() => {
+    setConnectionState({ status: "idle" });
+  }, []);
 
   const handleOAuthConnect = async () => {
+    // Clear any previous timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // Create new abort controller for this request
+    abortControllerRef.current = new AbortController();
+
     try {
-      setConnecting(true);
+      setConnectionState({ status: "loading" });
+
+      // Set up timeout (30 seconds)
+      timeoutRef.current = setTimeout(() => {
+        logger.warn(`OAuth connection timeout for ${platform}`);
+        setConnectionState({ status: "timeout" });
+        toast.error(`Connection timed out. Please try again.`);
+        // Abort any pending request
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+      }, CONNECTION_TIMEOUT_MS);
 
       let response;
       if (platform === "google_meet") {
@@ -65,9 +132,16 @@ export function InlineConnectionWizard({
         throw new Error(`Unsupported platform: ${platform}`);
       }
 
+      // Clear timeout since we got a response
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
       if (response.data?.authUrl) {
         // Store a flag to indicate we're completing OAuth and should refresh
-        sessionStorage.setItem('pendingOAuthPlatform', platform);
+        sessionStorage.setItem("pendingOAuthPlatform", platform);
+        // Redirect to OAuth provider
         window.location.href = response.data.authUrl;
       } else if (response.error) {
         throw new Error(response.error);
@@ -75,36 +149,31 @@ export function InlineConnectionWizard({
         throw new Error("No OAuth URL returned");
       }
     } catch (error) {
+      // Clear timeout on error
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+
+      // Check if aborted (cancelled by user or timeout)
+      if (error instanceof Error && error.name === "AbortError") {
+        return; // Already handled
+      }
+
+      const errorMessage = error instanceof Error ? error.message : "Connection failed";
       logger.error(`Failed to get ${platform} OAuth URL`, error);
-      const platformName = platform === 'google_meet' ? 'Google' : platform === 'zoom' ? 'Zoom' : 'Fathom';
-      toast.error(`Failed to connect to ${platformName}`);
-      setConnecting(false);
+
+      setConnectionState({ status: "error", message: errorMessage });
+      toast.error(`Failed to connect to ${getPlatformName()}: ${errorMessage}`);
     }
   };
 
-  // Platform-specific configurations
+  // Platform-specific configurations (streamlined - no features list)
   const platformConfig = {
     fathom: {
       name: "Fathom",
-      icon: <RiVideoLine className="h-6 w-6" />,
+      icon: <FathomIcon className="h-6 w-6" />,
       color: "text-purple-600 dark:text-purple-400",
-      features: [
-        {
-          icon: <RiVideoLine className="h-4 w-4" />,
-          title: "Meeting Recordings",
-          description: "Access your recorded meetings",
-        },
-        {
-          icon: <RiFlashlightLine className="h-4 w-4" />,
-          title: "AI Transcripts",
-          description: "Import Fathom's AI-generated transcripts",
-        },
-        {
-          icon: <RiCalendarLine className="h-4 w-4" />,
-          title: "Meeting Metadata",
-          description: "Sync attendees, dates, and summaries",
-        },
-      ],
       warningTitle: "API Access Required",
       warningContent: (
         <p className="text-sm text-muted-foreground">
@@ -115,25 +184,8 @@ export function InlineConnectionWizard({
     },
     google_meet: {
       name: "Google Meet",
-      icon: <RiGoogleLine className="h-6 w-6" />,
+      icon: <GoogleMeetIcon className="h-6 w-6" />,
       color: "text-blue-600 dark:text-blue-400",
-      features: [
-        {
-          icon: <RiCalendarLine className="h-4 w-4" />,
-          title: "Calendar Discovery",
-          description: "Find meetings with Google Meet links",
-        },
-        {
-          icon: <RiVideoLine className="h-4 w-4" />,
-          title: "Recording Retrieval",
-          description: "Download recordings from Google Drive",
-        },
-        {
-          icon: <RiFlashlightLine className="h-4 w-4" />,
-          title: "Transcript Sync",
-          description: "Import native or generate AI transcripts",
-        },
-      ],
       warningTitle: "Recording Requirements",
       warningContent: (
         <div className="space-y-2">
@@ -165,28 +217,34 @@ export function InlineConnectionWizard({
           </div>
         </div>
       ),
+      alternativeContent: (
+        <div className="mt-3 p-3 bg-muted/50 rounded-lg border border-border">
+          <div className="flex items-start gap-2">
+            <FathomIcon className="h-5 w-5 shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Have a personal Google account?</p>
+              <p className="text-xs text-muted-foreground">
+                Use Fathom to record and transcribe any meeting - it's free for individuals
+                and works with Google Meet, Zoom, and other platforms.
+              </p>
+              <a
+                href="https://fathom.video/?ref=callvault"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
+              >
+                Sign up for Fathom (Free)
+                <RiExternalLinkLine className="h-3 w-3" />
+              </a>
+            </div>
+          </div>
+        </div>
+      ),
     },
     zoom: {
       name: "Zoom",
-      icon: <RiVideoLine className="h-6 w-6" />,
+      icon: <ZoomIcon className="h-6 w-6" />,
       color: "text-sky-600 dark:text-sky-400",
-      features: [
-        {
-          icon: <RiVideoLine className="h-4 w-4" />,
-          title: "Cloud Recordings",
-          description: "Access your Zoom cloud recordings",
-        },
-        {
-          icon: <RiFlashlightLine className="h-4 w-4" />,
-          title: "Transcripts",
-          description: "Import Zoom's auto-generated transcripts",
-        },
-        {
-          icon: <RiCalendarLine className="h-4 w-4" />,
-          title: "Meeting Details",
-          description: "Sync participants, dates, and duration",
-        },
-      ],
       warningTitle: "Cloud Recording Required",
       warningContent: (
         <div className="space-y-2">
@@ -206,168 +264,166 @@ export function InlineConnectionWizard({
   };
 
   const config = platformConfig[platform];
+  const isConnecting = connectionState.status === "loading";
+  const hasError = connectionState.status === "error";
+  const hasTimeout = connectionState.status === "timeout";
+  const showRetry = hasError || hasTimeout;
 
-  // Step content renderers
-  const renderWelcomeStep = () => (
-    <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">
-        Sync your {config.name} recordings and transcripts automatically:
-      </p>
-      <div className="space-y-2">
-        {config.features.map((feature, idx) => (
-          <StepCard
-            key={idx}
-            icon={feature.icon}
-            title={feature.title}
-            description={feature.description}
-          />
-        ))}
-      </div>
-      <p className="text-xs text-ink-muted">
-        Just 2 quick steps - review requirements and authorize.
-      </p>
-    </div>
-  );
+  // Render error or timeout state
+  if (showRetry) {
+    return (
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="text-destructive">
+              <RiAlertLine className="h-6 w-6" />
+            </div>
+            <h3 className="font-medium">
+              {hasTimeout ? "Connection Timed Out" : "Connection Failed"}
+            </h3>
+          </div>
+          <Button variant="ghost" size="sm" onClick={handleCancel} className="h-8 w-8 p-0">
+            <RiCloseLine className="h-4 w-4" />
+          </Button>
+        </div>
 
-  const renderRequirementsStep = () => (
-    <div className="space-y-4">
-      <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
-        <div className="flex items-start gap-3">
-          <RiAlertLine className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-          <div className="space-y-2">
-            <p className="font-medium text-amber-500">{config.warningTitle}</p>
-            {config.warningContent}
+        <Separator />
+
+        {/* Error message */}
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4">
+          <div className="flex items-start gap-3">
+            <RiAlertLine className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="font-medium text-destructive">
+                {hasTimeout ? "The connection took too long" : "Unable to connect"}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                {hasTimeout
+                  ? "The server didn't respond within 30 seconds. This could be due to network issues or server problems."
+                  : connectionState.status === "error"
+                    ? connectionState.message
+                    : "An unexpected error occurred."}
+              </p>
+            </div>
           </div>
         </div>
+
+        {/* Suggestions */}
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p className="font-medium">Try these steps:</p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Check your internet connection</li>
+            <li>Disable any ad blockers or VPNs temporarily</li>
+            <li>Try again in a few minutes</li>
+          </ul>
+        </div>
+
+        <Separator />
+
+        {/* Actions */}
+        <div className="flex items-center justify-between">
+          <Button variant="hollow" size="sm" onClick={handleCancel}>
+            <RiArrowLeftLine className="mr-1 h-4 w-4" />
+            Cancel
+          </Button>
+
+          <Button onClick={handleRetry} size="sm">
+            <RiRefreshLine className="mr-2 h-4 w-4" />
+            Try Again
+          </Button>
+        </div>
       </div>
-
-      <div className="flex items-center gap-3">
-        <input
-          type="checkbox"
-          id="acknowledge-warning"
-          checked={acknowledgedWarning}
-          onChange={(e) => setAcknowledgedWarning(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-        />
-        <label htmlFor="acknowledge-warning" className="text-sm text-muted-foreground">
-          I understand the requirements
-        </label>
-      </div>
-
-      <div className="flex justify-center pt-2">
-        <Button
-          onClick={handleOAuthConnect}
-          disabled={!acknowledgedWarning || connecting}
-          size="lg"
-          className="px-8"
-        >
-          {connecting ? (
-            <>
-              <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
-              Connecting...
-            </>
-          ) : (
-            <>
-              {config.icon}
-              <span className="ml-2">Connect with {config.name}</span>
-            </>
-          )}
-        </Button>
-      </div>
-
-      <p className="text-xs text-ink-muted text-center">
-        You'll sign in, authorize CallVault, then return here.
-      </p>
-    </div>
-  );
-
-  const steps = [
-    { title: `Connect ${config.name}`, render: renderWelcomeStep },
-    { title: "Review & Connect", render: renderRequirementsStep },
-  ];
-
-  const canProceed = () => {
-    // Step 0 (welcome) can always proceed
-    return true;
-  };
-
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-    } else {
-      onCancel();
-    }
-  };
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
+    <div className="space-y-3">
+      {/* Compact Header with CTA */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className={config.color}>{config.icon}</div>
           <div>
-            <h3 className="font-medium">{steps[currentStep].title}</h3>
-            <p className="text-xs text-ink-muted">
-              Step {currentStep + 1} of {steps.length}
+            <h3 className="font-medium text-sm">
+              {currentEmail ? `Reconnect ${config.name}` : `Connect ${config.name}`}
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Sync recordings and transcripts
             </p>
           </div>
         </div>
         <Button
           variant="ghost"
           size="sm"
-          onClick={onCancel}
+          onClick={handleCancel}
           className="h-8 w-8 p-0"
-          disabled={connecting}
+          aria-label={isConnecting ? "Cancel connection" : "Close"}
         >
           <RiCloseLine className="h-4 w-4" />
         </Button>
       </div>
 
-      {/* Progress bar */}
-      <div className="w-full bg-muted/50 h-2 rounded-full overflow-hidden">
-        <div
-          className="h-full transition-all duration-300 rounded-full bg-vibe-orange"
-          style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-        />
-      </div>
+      {/* Currently Connected Notice - compact, shown when reconnecting */}
+      {currentEmail && (
+        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <RiCheckLine className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground">
+              <span className="font-medium text-blue-600 dark:text-blue-400">{currentEmail}</span>
+              {" "}will be replaced
+            </p>
+          </div>
+        </div>
+      )}
 
-      <Separator />
-
-      {/* Step content */}
-      <div className="py-2">
-        {steps[currentStep].render()}
-      </div>
-
-      <Separator />
-
-      {/* Navigation */}
-      <div className="flex items-center justify-between">
-        <Button
-          variant="hollow"
-          size="sm"
-          onClick={handleBack}
-          disabled={connecting}
-        >
-          <RiArrowLeftLine className="mr-1 h-4 w-4" />
-          {currentStep === 0 ? "Cancel" : "Back"}
-        </Button>
-
-        {currentStep < steps.length - 1 && (
-          <Button
-            size="sm"
-            onClick={handleNext}
-            disabled={!canProceed() || connecting}
-          >
-            Next
-          </Button>
+      {/* Primary CTA - Prominent */}
+      <Button onClick={handleOAuthConnect} disabled={isConnecting} className="w-full">
+        {isConnecting ? (
+          <>
+            <RiLoader4Line className="mr-2 h-4 w-4 animate-spin" />
+            Connecting...
+          </>
+        ) : currentEmail ? (
+          <>
+            <RiRefreshLine className="mr-2 h-4 w-4" />
+            Switch Account
+          </>
+        ) : (
+          <>
+            {config.icon}
+            <span className="ml-2">Connect with {config.name}</span>
+          </>
         )}
+      </Button>
+
+      {/* Requirements - visible if they exist, no acknowledgment needed */}
+      <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+        <div className="flex items-start gap-2">
+          <RiAlertLine className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-medium text-amber-600 dark:text-amber-400 text-sm">{config.warningTitle}</p>
+            {config.warningContent}
+          </div>
+        </div>
       </div>
+
+      {/* Alternative option (e.g., Fathom for Google Meet restricted users) */}
+      {"alternativeContent" in config && config.alternativeContent}
+
+      {/* Help text */}
+      <p className="text-xs text-ink-muted text-center">
+        {isConnecting
+          ? "Please wait..."
+          : "You'll authorize via OAuth, then return here."}
+      </p>
+
+      {/* Cancel button - always visible (PRD-020) */}
+      <button
+        onClick={handleCancel}
+        className="w-full text-xs text-ink-muted hover:text-ink underline"
+      >
+        {isConnecting ? "Cancel Connection" : "Cancel"}
+      </button>
     </div>
   );
 }

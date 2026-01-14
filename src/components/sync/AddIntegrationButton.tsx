@@ -8,14 +8,12 @@ import {
 import {
   RiAddLine,
   RiCheckboxCircleLine,
-  RiVideoLine,
-  RiGoogleLine,
-  RiVideoChatLine,
   RiTimeLine,
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { type IntegrationStatus } from "@/hooks/useIntegrationSync";
 import { type IntegrationPlatform } from "./IntegrationSyncPane";
+import { FathomIcon, GoogleMeetIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 
 interface AddIntegrationButtonProps {
   integrations: IntegrationStatus[];
@@ -26,29 +24,25 @@ interface AddIntegrationButtonProps {
 const availableIntegrations: Array<{
   platform: IntegrationPlatform;
   name: string;
-  icon: typeof RiVideoLine;
-  colorClass: string;
+  Icon: typeof FathomIcon;
   available: boolean;
 }> = [
   {
     platform: "fathom",
     name: "Fathom",
-    icon: RiVideoLine,
-    colorClass: "text-purple-600 dark:text-purple-400",
+    Icon: FathomIcon,
     available: true,
   },
   {
     platform: "google_meet",
     name: "Google Meet",
-    icon: RiGoogleLine,
-    colorClass: "text-blue-600 dark:text-blue-400",
+    Icon: GoogleMeetIcon,
     available: true,
   },
   {
     platform: "zoom",
     name: "Zoom",
-    icon: RiVideoChatLine,
-    colorClass: "text-sky-600 dark:text-sky-400",
+    Icon: ZoomIcon,
     available: true,
   },
 ];
@@ -85,7 +79,7 @@ export function AddIntegrationButton({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         {availableIntegrations.map((integration) => {
-          const Icon = integration.icon;
+          const Icon = integration.Icon;
           const isConnected = connectedPlatforms.has(integration.platform);
           const isDisabled = !integration.available;
 
@@ -103,12 +97,7 @@ export function AddIntegrationButton({
                 isConnected && "opacity-50 cursor-default"
               )}
             >
-              <div className={cn(
-                "h-6 w-6 rounded flex items-center justify-center bg-muted",
-                integration.colorClass
-              )}>
-                <Icon className="h-3.5 w-3.5" />
-              </div>
+              <Icon className="h-6 w-6" />
               <span className="flex-1">{integration.name}</span>
               {isConnected && (
                 <RiCheckboxCircleLine className="h-4 w-4 text-success" />

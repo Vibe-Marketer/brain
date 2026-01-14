@@ -36,20 +36,22 @@ function getContentTypeIcon(type: ContentType) {
 
 /**
  * Get badge color variant for content type
+ * Using semantic status colors per brand guidelines v4.2
+ * Subtle backgrounds (2-3% opacity) with high-contrast text
  */
 function getContentTypeBadgeClass(type: ContentType): string {
   switch (type) {
     case "email":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      return "bg-info-bg text-info-text border-info-border";
     case "social":
-      return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      return "bg-purple/10 text-purple border-purple/30 dark:bg-purple/20 dark:border-purple/40";
     case "testimonial":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      return "bg-success-bg text-success-text border-success-border";
     case "insight":
-      return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+      return "bg-warning-bg text-warning-text border-warning-border";
     case "other":
     default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+      return "bg-muted text-muted-foreground border-border";
   }
 }
 
@@ -141,45 +143,52 @@ export function ContentItemCard({ item }: ContentItemCardProps) {
 
   return (
     <>
-      <Card className="hover:shadow-md transition-shadow group">
-        <CardHeader className="pb-2">
+      <Card className="hover:shadow-md transition-all duration-200 group border-border">
+        <CardHeader className="pb-2 pt-2.5 px-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Icon className="w-4 h-4 shrink-0 text-muted-foreground" />
-              <CardTitle className="text-base font-medium truncate">{item.title}</CardTitle>
-            </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <Badge className={`${badgeClass}`} variant="outline">
-                {item.content_type}
-              </Badge>
-              {/* Action buttons - visible on hover */}
-              <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity ml-1">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={handleCopy}
-                  disabled={isCopying}
-                  title="Copy to clipboard"
-                >
-                  <RiFileCopyLine className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => setIsDeleteDialogOpen(true)}
-                  disabled={isDeleting}
-                  title="Delete"
-                  className="hover:text-destructive"
-                >
-                  <RiDeleteBinLine className="w-4 h-4" />
-                </Button>
+              <div className="flex-shrink-0 w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center">
+                <Icon className="w-3.5 h-3.5 text-ink-muted" />
               </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <CardTitle className="text-sm font-medium text-ink truncate leading-tight">
+                    {item.title}
+                  </CardTitle>
+                  <Badge className={`${badgeClass} text-[10px] font-medium px-1.5 py-0 shrink-0`} variant="outline">
+                    {item.content_type}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+            {/* Action buttons - visible on hover */}
+            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={handleCopy}
+                disabled={isCopying}
+                title="Copy to clipboard"
+                className="text-ink-muted hover:text-ink hover:bg-hover"
+              >
+                <RiFileCopyLine className="w-3.5 h-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setIsDeleteDialogOpen(true)}
+                disabled={isDeleting}
+                title="Delete"
+                className="text-ink-muted hover:text-destructive hover:bg-destructive/10"
+              >
+                <RiDeleteBinLine className="w-3.5 h-3.5" />
+              </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-3">
+        <CardContent className="space-y-2 px-3 pb-3 pt-0">
           {/* Content preview */}
-          <p className="text-sm text-muted-foreground line-clamp-3">
+          <p className="text-sm font-light text-ink-soft leading-normal line-clamp-2">
             {truncateContent(item.content)}
           </p>
 
@@ -187,12 +196,12 @@ export function ContentItemCard({ item }: ContentItemCardProps) {
           {item.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {item.tags.slice(0, 3).map((tag) => (
-                <Badge key={tag} variant="secondary" className="text-xs">
+                <Badge key={tag} variant="hollow" className="text-[9px] font-normal px-1.5 py-0 text-ink-muted">
                   {tag}
                 </Badge>
               ))}
               {item.tags.length > 3 && (
-                <Badge variant="secondary" className="text-xs">
+                <Badge variant="hollow" className="text-[9px] font-normal px-1.5 py-0 text-ink-muted">
                   +{item.tags.length - 3}
                 </Badge>
               )}
@@ -200,8 +209,8 @@ export function ContentItemCard({ item }: ContentItemCardProps) {
           )}
 
           {/* Footer: usage count and date */}
-          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t">
-            <span>Used {item.usage_count} {item.usage_count === 1 ? "time" : "times"}</span>
+          <div className="flex items-center justify-between text-[11px] font-light text-ink-muted pt-2 border-t border-border-soft">
+            <span className="tabular-nums">Used {item.usage_count}×</span>
             <span>{formatDate(item.created_at)}</span>
           </div>
         </CardContent>

@@ -1,6 +1,6 @@
 # PRD-017: Google Meet Extra Confirmation Step
 
-**Status:** Ready for Implementation
+**Status:** Implemented
 **Priority:** P2 - UX Friction
 **Category:** Import/Integrations
 **Spec:** [SPEC-017](../../specs/spec-017-google-meet-extra-confirmation.md)
@@ -45,10 +45,10 @@ Combine requirements step with connect button:
 
 ## Acceptance Criteria
 
-- [ ] No separate confirmation screen
-- [ ] Connect button on requirements page
-- [ ] Button disabled until acknowledgment
-- [ ] Single step from requirements to OAuth
+- [x] No separate confirmation screen
+- [x] Connect button on requirements page
+- [x] ~~Button disabled until acknowledgment~~ (Improved: no acknowledgment needed - requirements are collapsible)
+- [x] Single step from requirements to OAuth
 
 ---
 

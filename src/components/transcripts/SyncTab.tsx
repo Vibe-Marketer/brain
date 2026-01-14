@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { RiCloseLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { Separator } from "@/components/ui/separator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SyncTabDialogs } from "./SyncTabDialogs";
 import { UnsyncedMeetingsSection } from "./UnsyncedMeetingsSection";
@@ -478,9 +477,6 @@ export function SyncTab() {
 
   return (
     <div>
-      {/* Top separator for breathing room */}
-      <Separator className="mb-12" />
-
       {/* Persistent Sync Status Indicator - Always visible when syncing */}
       {(activeSyncJobs.length > 0 || recentlyCompletedJobs.length > 0) && (
         <div className="flex items-center justify-between mb-4">
@@ -500,18 +496,27 @@ export function SyncTab() {
       {/* Date Range and Fetch Controls - Single Row */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-4 border-b border-cb-gray-light dark:border-cb-gray-dark">
         <div className="flex-1 min-w-[240px]">
+          <label className="text-xs font-medium text-ink-muted uppercase mb-2 block">
+            Import meetings from
+          </label>
           <DateRangePicker
             dateRange={dateRange || { from: undefined, to: undefined }}
             onDateRangeChange={(range) => setDateRange(range as DateRange)}
             className="w-full"
-            onFetch={fetchMeetings}
-            fetchButtonText={loading ? "Fetching..." : "Fetch Meetings"}
             disabled={loading}
             extendedQuickSelect={true}
           />
         </div>
 
-        <div className="flex items-center gap-2 sm:flex-shrink-0">
+        <div className="flex items-center gap-2 sm:flex-shrink-0 sm:self-end sm:pb-0.5">
+          <Button
+            variant="default"
+            onClick={fetchMeetings}
+            disabled={loading || !dateRange?.from || !dateRange?.to}
+            className="h-9 px-4"
+          >
+            {loading ? "Fetching..." : "Fetch Meetings"}
+          </Button>
           <Button
             variant="hollow"
             onClick={handleClearDateRange}

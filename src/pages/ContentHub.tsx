@@ -22,9 +22,10 @@ import {
 } from '@remixicon/react';
 import { AppShell } from '@/components/layout/AppShell';
 import { ContentCategoryPane } from '@/components/panes/ContentCategoryPane';
+import { ContentHubStatsSkeleton } from '@/components/content-library/ContentHubStatsSkeleton';
 import { useBusinessProfileStore, useProfiles } from '@/stores/businessProfileStore';
-import { useHooksLibraryStore, useHooks } from '@/stores/hooksLibraryStore';
-import { useContentItemsStore, usePosts, useEmails } from '@/stores/contentItemsStore';
+import { useHooksLibraryStore, useHooks, useHooksLoading } from '@/stores/hooksLibraryStore';
+import { useContentItemsStore, usePosts, useEmails, usePostsLoading } from '@/stores/contentItemsStore';
 
 export default function ContentHub() {
   const fetchProfiles = useBusinessProfileStore((state) => state.fetchProfiles);
@@ -36,6 +37,11 @@ export default function ContentHub() {
   const hooks = useHooks();
   const posts = usePosts();
   const emails = useEmails();
+  const hooksLoading = useHooksLoading();
+  const postsLoading = usePostsLoading();
+
+  // Combined loading state for all content data
+  const isContentLoading = hooksLoading || postsLoading;
 
   useEffect(() => {
     fetchProfiles();
@@ -107,43 +113,47 @@ export default function ContentHub() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
-              <RiLightbulbLine className="w-5 h-5 text-vibe-orange" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tabular-nums">{hooks.length}</p>
-              <p className="text-sm text-muted-foreground">Hooks</p>
+      {isContentLoading ? (
+        <ContentHubStatsSkeleton />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-card border rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-orange-100 dark:bg-orange-900/20 rounded-lg">
+                <RiLightbulbLine className="w-5 h-5 text-vibe-orange" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{hooks.length}</p>
+                <p className="text-sm text-muted-foreground">Hooks</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="bg-card border rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-              <RiFileTextLine className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tabular-nums">{posts.length}</p>
-              <p className="text-sm text-muted-foreground">Posts</p>
+          <div className="bg-card border rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
+                <RiFileTextLine className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{posts.length}</p>
+                <p className="text-sm text-muted-foreground">Posts</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="bg-card border rounded-lg p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-              <RiMailLine className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold tabular-nums">{emails.length}</p>
-              <p className="text-sm text-muted-foreground">Emails</p>
+          <div className="bg-card border rounded-lg p-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
+                <RiMailLine className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold tabular-nums">{emails.length}</p>
+                <p className="text-sm text-muted-foreground">Emails</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

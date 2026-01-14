@@ -5,6 +5,7 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Layout } from "@/components/Layout";
+import { DebugPanelProvider } from '@/components/debug-panel';
 import Login from '@/pages/Login';
 import OAuthCallback from '@/pages/OAuthCallback';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -49,9 +50,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
-        <AuthProvider>
-          <ThemeProvider>
-            <Router>
+        <DebugPanelProvider>
+          <AuthProvider>
+            <ThemeProvider>
+              <Router>
                   <Routes>
                     {/* Auth routes */}
                     <Route path="/login" element={<Login />} />
@@ -104,11 +106,12 @@ function App() {
                     {/* 404 */}
                     <Route path="*" element={<Navigate to="/" replace />} />
                   </Routes>
-              <Toaster />
-            </Router>
-          </ThemeProvider>
-        </AuthProvider>
-      </ErrorBoundary>
+                  <Toaster />
+                </Router>
+              </ThemeProvider>
+            </AuthProvider>
+          </DebugPanelProvider>
+        </ErrorBoundary>
     </QueryClientProvider>
   );
 }

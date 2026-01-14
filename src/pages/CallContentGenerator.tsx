@@ -1,5 +1,5 @@
 /**
- * Call Content Generator Page
+ * Social Post Generator Page
  *
  * Wrapper page for the 4-step wizard.
  * Manages wizard lifecycle and navigation.
@@ -56,7 +56,7 @@ export default function CallContentGenerator() {
             Back
           </Button>
           <div>
-            <h1 className="text-lg font-semibold">Call Content Generator</h1>
+            <h1 className="text-lg font-semibold">Social Post Generator</h1>
             <p className="text-sm text-muted-foreground">
               Transform call transcripts into viral content
             </p>

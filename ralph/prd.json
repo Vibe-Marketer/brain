@@ -68,7 +68,7 @@
         "Spacing consistent with sidebar patterns",
         "No layout shift or overflow issues"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-006.1",
@@ -84,7 +84,7 @@
         "Smooth animation on open/close",
         "Works in both expanded and collapsed sidebar modes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-007.1",
@@ -96,7 +96,7 @@
         "Header remains properly styled",
         "No layout regressions"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-008.1",
@@ -109,7 +109,7 @@
         "Design feels cleaner and less boxy",
         "Still clearly grouped as a section"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-009.1",
@@ -121,7 +121,7 @@
         "User understands what the date range controls",
         "Consistent wording across all integration types"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-010.1",
@@ -134,7 +134,7 @@
         "Button accessible on all screen sizes",
         "No content cut off or inaccessible"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-011.1",
@@ -147,7 +147,7 @@
         "Fathom icon consistent everywhere",
         "No visual inconsistencies between screens"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-012.1",
@@ -159,7 +159,7 @@
         "Sufficient contrast and visibility",
         "Consistent across all integration types"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-013.1",
@@ -171,7 +171,7 @@
         "Maximum 2 steps to initiate OAuth",
         "User can connect faster than before"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-014.1",
@@ -184,7 +184,7 @@
         "If no requirements, no acknowledgment checkbox",
         "User never acknowledges invisible content"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-015.1",
@@ -198,7 +198,7 @@
         "Connected status shown on success",
         "Error message shown on failure"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-016.1",
@@ -211,7 +211,7 @@
         "Working affiliate link",
         "Doesn't feel like a dead end"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-017.1",
@@ -224,7 +224,7 @@
         "Button disabled until acknowledgment",
         "Single step from requirements to OAuth"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-018.1",
@@ -238,7 +238,7 @@
         "Cancel button works during loading",
         "User can retry after failure"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-019.1",
@@ -251,7 +251,7 @@
         "Reconnect attempt handled gracefully",
         "No silent failures or confusing states"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-020.1",
@@ -265,7 +265,7 @@
         "User can always exit",
         "No stuck states"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-021.1",

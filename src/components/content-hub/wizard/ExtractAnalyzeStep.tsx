@@ -1,7 +1,7 @@
 /**
  * Extract & Analyze Step
  *
- * Step 2 of the Call Content Generator wizard.
+ * Step 2 of the Social Post Generator wizard.
  * Automatically runs Agent 1 (Classifier) and Agent 2 (Insight Miner).
  * Shows progress indicators for each agent.
  */

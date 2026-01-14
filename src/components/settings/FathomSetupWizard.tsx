@@ -199,7 +199,7 @@ export default function FathomSetupWizard({ open, onComplete: _onComplete, onDis
 
   const steps = [
     {
-      title: "CONNECT FATHOM TO CONVERSION BRAIN™",
+      title: "CONNECT FATHOM TO CALLVAULT™",
       stepNumber: null,
       icon: <RiBrainLine className="h-8 w-8 text-primary" />,
       content: <WelcomeStep />,

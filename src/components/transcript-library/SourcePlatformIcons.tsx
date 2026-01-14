@@ -6,13 +6,29 @@ interface IconProps {
 }
 
 /**
+ * Helper to extract size from Tailwind className
+ * Parses h-X w-X classes to get pixel size
+ */
+function getSizeFromClassName(className?: string): number | undefined {
+  if (!className) return undefined;
+  const match = className.match(/(?:^|\s)h-(\d+(?:\.\d+)?)/);
+  if (match) {
+    const value = parseFloat(match[1]);
+    // Tailwind h-4 = 16px, h-5 = 20px, h-6 = 24px, etc.
+    return value * 4;
+  }
+  return undefined;
+}
+
+/**
  * Fathom icon - white "F" arrows on black circular background
  */
-export function FathomIcon({ className, size = 16 }: IconProps) {
+export function FathomIcon({ className, size }: IconProps) {
+  const computedSize = size ?? getSizeFromClassName(className) ?? 16;
   return (
     <svg
-      width={size}
-      height={size}
+      width={computedSize}
+      height={computedSize}
       viewBox="0 0 100 100"
       className={className}
       xmlns="http://www.w3.org/2000/svg"
@@ -41,11 +57,12 @@ export function FathomIcon({ className, size = 16 }: IconProps) {
 /**
  * Google Meet icon - Google "G" on white circular background with subtle border
  */
-export function GoogleMeetIcon({ className, size = 16 }: IconProps) {
+export function GoogleMeetIcon({ className, size }: IconProps) {
+  const computedSize = size ?? getSizeFromClassName(className) ?? 16;
   return (
     <svg
-      width={size}
-      height={size}
+      width={computedSize}
+      height={computedSize}
       viewBox="0 0 100 100"
       className={className}
       xmlns="http://www.w3.org/2000/svg"
@@ -78,11 +95,12 @@ export function GoogleMeetIcon({ className, size = 16 }: IconProps) {
 /**
  * Zoom icon - video camera on blue circular background (already circular in original)
  */
-export function ZoomIcon({ className, size = 16 }: IconProps) {
+export function ZoomIcon({ className, size }: IconProps) {
+  const computedSize = size ?? getSizeFromClassName(className) ?? 16;
   return (
     <svg
-      width={size}
-      height={size}
+      width={computedSize}
+      height={computedSize}
       viewBox="0 0 50.667 50.667"
       className={className}
       xmlns="http://www.w3.org/2000/svg"

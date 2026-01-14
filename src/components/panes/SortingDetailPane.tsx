@@ -31,6 +31,7 @@ import {
   RiFlowChart,
   RiRepeatLine,
   RiArrowLeftLine,
+  RiBugLine,
 } from "@remixicon/react";
 import type { SortingCategory } from "./SortingCategoryPane";
 
@@ -56,6 +57,11 @@ const RulesTab = React.lazy(() =>
 const RecurringTitlesTab = React.lazy(() =>
   import("@/components/tags/RecurringTitlesTab").then((module) => ({
     default: module.RecurringTitlesTab,
+  }))
+);
+const DebugTool = React.lazy(() =>
+  import("@/components/tags/DebugTool").then((module) => ({
+    default: module.DebugTool,
   }))
 );
 
@@ -87,6 +93,11 @@ const CATEGORY_META: Record<
     label: "Recurring Titles",
     description: "Create rules from patterns",
     icon: RiRepeatLine,
+  },
+  debug: {
+    label: "Debug Tool",
+    description: "Admin diagnostic tools",
+    icon: RiBugLine,
   },
 };
 
@@ -217,6 +228,8 @@ export function SortingDetailPane({
         return <RulesTab />;
       case "recurring":
         return <RecurringTitlesTab />;
+      case "debug":
+        return <DebugTool />;
       default:
         return (
           <div className="p-6 text-center text-muted-foreground">

@@ -1,7 +1,7 @@
 /**
  * Create Content Step
  *
- * Step 4 of the Call Content Generator wizard.
+ * Step 4 of the Social Post Generator wizard.
  * Generates content for each selected hook using Agent 4 (streaming).
  * Shows real-time streaming output and allows editing/saving.
  */

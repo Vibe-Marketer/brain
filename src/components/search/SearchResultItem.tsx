@@ -18,9 +18,8 @@ import {
   RiTrophyLine,
   RiAlertLine,
   RiQuestionLine,
-  RiVideoLine,
-  RiGoogleLine,
 } from '@remixicon/react';
+import { FathomIcon, GoogleMeetIcon } from '@/components/transcript-library/SourcePlatformIcons';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { SearchResult, SearchInsightType, SourcePlatform } from '@/types/search';
@@ -67,20 +66,17 @@ const RESULT_TYPE_CONFIG = {
 const SOURCE_PLATFORM_CONFIG: Record<
   SourcePlatform,
   {
-    icon: typeof RiVideoLine;
+    Icon: typeof FathomIcon;
     label: string;
-    colorClass: string;
   }
 > = {
   fathom: {
-    icon: RiVideoLine,
+    Icon: FathomIcon,
     label: 'Fathom',
-    colorClass: 'text-purple-600 dark:text-purple-400 border-purple-300 dark:border-purple-600',
   },
   google_meet: {
-    icon: RiGoogleLine,
+    Icon: GoogleMeetIcon,
     label: 'GMeet',
-    colorClass: 'text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-600',
   },
 };
 
@@ -257,12 +253,9 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({
           {result.sourcePlatform && SOURCE_PLATFORM_CONFIG[result.sourcePlatform] && (
             <Badge
               variant="outline"
-              className={cn(
-                'shrink-0 text-[10px] px-1.5 py-0 flex items-center gap-0.5',
-                SOURCE_PLATFORM_CONFIG[result.sourcePlatform].colorClass
-              )}
+              className="shrink-0 text-[10px] px-1.5 py-0 flex items-center gap-0.5"
             >
-              {React.createElement(SOURCE_PLATFORM_CONFIG[result.sourcePlatform].icon, {
+              {React.createElement(SOURCE_PLATFORM_CONFIG[result.sourcePlatform].Icon, {
                 className: 'h-2.5 w-2.5',
               })}
               {SOURCE_PLATFORM_CONFIG[result.sourcePlatform].label}

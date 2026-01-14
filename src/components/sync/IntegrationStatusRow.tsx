@@ -5,25 +5,24 @@ import {
   RiCheckboxCircleLine,
   RiLoader4Line,
   RiErrorWarningLine,
-  RiVideoLine,
-  RiGoogleLine,
-  RiVideoChatLine,
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { type IntegrationStatus } from "@/hooks/useIntegrationSync";
 import { formatDistanceToNow } from "date-fns";
+import { FathomIcon, GoogleMeetIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 
 interface IntegrationStatusRowProps {
   integration: IntegrationStatus;
   onManualSync?: () => void;
   onConnect?: () => void;
   onReconnect?: () => void;
+  compact?: boolean;
 }
 
 const platformIcons = {
-  fathom: RiVideoLine,
-  google_meet: RiGoogleLine,
-  zoom: RiVideoChatLine,
+  fathom: FathomIcon,
+  google_meet: GoogleMeetIcon,
+  zoom: ZoomIcon,
 };
 
 const platformNames = {
@@ -32,21 +31,15 @@ const platformNames = {
   zoom: "Zoom",
 };
 
-const platformColors = {
-  fathom: "text-purple-600 dark:text-purple-400",
-  google_meet: "text-blue-600 dark:text-blue-400",
-  zoom: "text-sky-600 dark:text-sky-400",
-};
-
 export function IntegrationStatusRow({
   integration,
   onManualSync,
   onConnect,
   onReconnect,
+  compact = false,
 }: IntegrationStatusRowProps) {
   const Icon = platformIcons[integration.platform];
   const name = platformNames[integration.platform];
-  const colorClass = platformColors[integration.platform];
 
   const renderStatus = () => {
     if (!integration.connected) {
@@ -99,26 +92,34 @@ export function IntegrationStatusRow({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-cb-border-dark last:border-b-0">
-      <div className="flex items-center gap-3">
-        <div className={cn("h-8 w-8 rounded-lg bg-muted flex items-center justify-center", colorClass)}>
-          <Icon className="h-4 w-4" />
+    <div className={cn(
+      "flex items-center justify-between rounded-lg transition-colors",
+      compact
+        ? "px-2 py-2 hover:bg-hover/50"
+        : "px-4 py-3 border-b border-border dark:border-cb-border-dark last:border-b-0"
+    )}>
+      <div className={cn(
+        "flex items-center gap-2.5",
+        !integration.connected && "opacity-50"
+      )}>
+        <div className="flex items-center justify-center">
+          <Icon className={compact ? "h-7 w-7" : "h-8 w-8"} />
         </div>
         <div className="flex flex-col">
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-sm">{name}</span>
+          <div className="flex items-center gap-1.5">
+            <span className={cn("font-medium", compact ? "text-sm" : "text-sm")}>{name}</span>
             {integration.email && (
-              <span className="text-xs text-ink-muted">
+              <span className="text-xs text-ink-muted truncate max-w-[120px]">
                 ({integration.email})
               </span>
             )}
           </div>
-          {renderLastSync()}
+          {!compact && renderLastSync()}
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        {renderStatus()}
+      <div className="flex items-center gap-1.5">
+        {!compact && renderStatus()}
 
         {integration.connected && onManualSync && (
           <Button
@@ -126,10 +127,10 @@ export function IntegrationStatusRow({
             size="sm"
             onClick={onManualSync}
             disabled={integration.syncStatus === "syncing"}
-            className="h-7 px-2"
+            className={compact ? "h-6 w-6 p-0" : "h-7 px-2"}
           >
             <RiRefreshLine className={cn(
-              "h-4 w-4",
+              compact ? "h-3.5 w-3.5" : "h-4 w-4",
               integration.syncStatus === "syncing" && "animate-spin"
             )} />
           </Button>
@@ -140,7 +141,7 @@ export function IntegrationStatusRow({
             variant="default"
             size="sm"
             onClick={onConnect}
-            className="h-7 text-xs"
+            className={compact ? "h-6 text-xs px-2" : "h-7 text-xs"}
           >
             Connect
           </Button>
@@ -151,7 +152,7 @@ export function IntegrationStatusRow({
             variant="hollow"
             size="sm"
             onClick={onReconnect}
-            className="h-7 text-xs"
+            className={compact ? "h-6 text-xs px-2" : "h-7 text-xs"}
           >
             Reconnect
           </Button>

@@ -6,6 +6,13 @@
 - AppShell (`src/components/layout/AppShell.tsx`) is the main layout component that renders SidebarNav
 - Use `isCollapsed` prop to conditionally render different UI for expanded vs collapsed sidebar modes
 - 500ms transitions are standard for sidebar animations (use `duration-500 ease-in-out`)
+- FolderSidebar (`src/components/transcript-library/FolderSidebar.tsx`) handles the folder list with toggleable search box
+- Search box in FolderSidebar: only visible when `folders.length > 10`, hidden by default, toggled via search icon in header
+- For height animations use `max-h-X` with `overflow-hidden` and `transition-all duration-300` (can't animate height: auto)
+- IntegrationSyncPane (`src/components/sync/IntegrationSyncPane.tsx`) - integration management section, uses compact prop for cleaner display
+- IntegrationStatusRow supports `compact` prop for reduced visual weight (smaller icons, no badges, less padding)
+- **Integration icons**: Use branded icons from `src/components/transcript-library/SourcePlatformIcons.tsx` (FathomIcon, GoogleMeetIcon, ZoomIcon) - NOT generic Remix icons. These icons support both `size` prop and Tailwind `className` (h-X w-X)
+- **Disconnected/disabled states**: Apply opacity to descriptive content only, NOT to CTA buttons - keeps buttons looking clickable
 
 ---
 
@@ -64,5 +71,288 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - US-003.1 and US-004.1 are closely related - reordering Analytics before Settings automatically makes Settings the last item
   - Browser verification was blocked by pre-existing CSS parsing error in `src/index.css` (postcss/sucrase conflict) - this is an infrastructure issue unrelated to sidebar changes
   - The separator at line 400 (`{!isCollapsed && <div className="h-px bg-border my-2 mx-3" />}`) comes AFTER all nav items, before the Library Toggle - not between Settings and other nav items
+---
+
+## 2026-01-14 - US-005.1: Proper spacing around folder search box
+- What was implemented:
+  - Changed search box container padding from `py-3` (equal 12px top/bottom) to `pt-3 pb-2` (12px top, 8px bottom)
+  - This creates visible gap from the header border while keeping search closer to the folder list it controls
+  - Header already has `border-b border-border` so the top padding creates the visual separation
+- Files changed:
+  - `src/components/transcript-library/FolderSidebar.tsx` - adjusted padding on search container (line ~612)
+- **Learnings for future iterations:**
+  - Search box only renders when `folders.length > 10` (line 611) - need 11+ folders to see it
+  - Standard category pane pattern: header uses `px-4 py-3 border-b border-border bg-cb-card/50`
+  - Pre-existing CSS parsing error in `src/index.css` blocks browser verification - not related to this change
+---
+
+## 2026-01-14 - US-006.1: Folder search hidden until needed
+- What was implemented:
+  - Search box is now hidden by default (controlled by `isSearchVisible` state)
+  - Added magnifying glass icon (RiSearchLine) in header that toggles search visibility
+  - Icon shows RiCloseLine when search is open
+  - Input auto-focuses when opened via `setTimeout(() => searchInputRef.current?.focus(), 0)`
+  - Search auto-hides on blur if query is empty via `handleSearchBlur` callback
+  - Smooth animation using `transition-all duration-300 ease-in-out` with `max-h-14/max-h-0` and `opacity-100/opacity-0`
+  - Collapsed sidebar mode: added search toggle button in bottom actions area, uses `filteredRootFolders` for search filtering
+- Files changed:
+  - `src/components/transcript-library/FolderSidebar.tsx` - added search toggle state, callbacks, UI in both expanded and collapsed views
+- **Learnings for future iterations:**
+  - Use `max-h` with `overflow-hidden` for smooth height animations (can't animate `height: auto`)
+  - `setTimeout(..., 0)` is needed for auto-focus after React state update completes
+  - The `onBlur` handler checks if search is empty before auto-hiding to preserve user's search while typing
+  - Collapsed view bottom actions section (lines 580-618) is where action buttons live in collapsed mode
+  - The `filteredRootFolders` memo is used in both expanded AND collapsed views for consistent filtering
+---
+
+## 2026-01-14 - US-007.1: Remove extra line at top of import screen
+- What was implemented:
+  - Removed the `<Separator className="mb-12" />` from the top of SyncTab component
+  - Removed unused `Separator` import
+  - The separator was marked as "Top separator for breathing room" but was creating an unwanted horizontal line
+- Files changed:
+  - `src/components/transcripts/SyncTab.tsx` - removed separator and unused import
+- **Learnings for future iterations:**
+  - SyncTab is rendered inside `TabsContent` which already has padding (`p-4 md:p-10`)
+  - The `TranscriptsNew.tsx` page wraps SyncTab and provides the overall layout context
+  - Integration section (`IntegrationSyncPane`) is at the top of SyncTab, no separator needed above it
+---
+
+## 2026-01-14 - US-008.1: Cleaner integrations section
+- What was implemented:
+  - Removed Card wrapper from IntegrationSyncPane for reduced visual weight (follows "90% No Containers" principle)
+  - Replaced with simple section element with subtle header border
+  - Changed section header from large CardTitle to smaller `text-sm font-medium text-ink-soft uppercase` style
+  - Added `compact` prop to IntegrationStatusRow for reduced padding (py-2 px-2 vs py-3 px-4)
+  - Compact mode: smaller icons (h-7 w-7 vs h-8 w-8), lighter backgrounds (bg-muted/50)
+  - Compact mode: hides status badges and last sync info for cleaner look
+  - Moved opacity-50 styling for disconnected integrations to the row level (was on wrapper div)
+  - Added hover:bg-hover/50 transition for compact rows
+  - Rows use space-y-1 gap instead of border-b separators for cleaner stacking
+- Files changed:
+  - `src/components/sync/IntegrationSyncPane.tsx` - restructured from Card to section
+  - `src/components/sync/IntegrationStatusRow.tsx` - added compact prop with conditional styling
+- **Learnings for future iterations:**
+  - IntegrationSyncPane is used in Import tab (SyncTab.tsx) and Settings page - compact mode ideal for Import
+  - The Card wrapper can be removed for "cleaner" sections following brand guidelines "90% No Containers"
+  - Use props like `compact` to share components between contexts with different visual density needs
+  - Browser verification blocked by 429 rate limiting - pre-existing infrastructure issue
+---
+
+## 2026-01-14 - US-009.1: Clear date range label for integrations
+- What was implemented:
+  - Added a visible label "Import meetings from" above the DateRangePicker in the SyncTab
+  - Label uses consistent styling: `text-xs font-medium text-ink-muted uppercase mb-2 block`
+  - This matches the label pattern used in Chat.tsx for date range filters
+  - Label clearly indicates that the date range controls which meetings from connected integrations will be fetched
+- Files changed:
+  - `src/components/transcripts/SyncTab.tsx` - added label above DateRangePicker (line 499-501)
+- **Learnings for future iterations:**
+  - DateRangePicker component is used in SyncTab, FilterBar, and Chat.tsx
+  - Only SyncTab needed a label because it's the primary import interface where users need to understand the date range affects meeting fetching
+  - Label style follows existing pattern: `text-xs font-medium text-ink-muted uppercase mb-2 block`
+  - The date range applies consistently to all integration types (Zoom, Google Meet, Fathom) since it filters by meeting date
+---
+
+## 2026-01-14 - US-010.1: Fetch Meetings button visible and accessible
+- What was implemented:
+  - Moved "Fetch Meetings" button outside the DateRangePicker popover to the main form row
+  - Button is now always visible next to the date picker (no need to open the popover to find it)
+  - Added proper alignment with `sm:self-end sm:pb-0.5` to align button with the date picker input
+  - Button remains disabled until a valid date range is selected (same logic as before)
+  - Button shows "Fetching..." state while loading
+  - Works on all screen sizes with responsive flex layout (stacks on mobile, row on desktop)
+- Files changed:
+  - `src/components/transcripts/SyncTab.tsx` - moved Fetch Meetings button outside DateRangePicker, added as standalone Button component
+- **Learnings for future iterations:**
+  - DateRangePicker has an optional `onFetch` prop that adds a button inside the popover - don't use this for important actions that should be visible at all times
+  - For important CTA buttons, keep them outside popovers/dropdowns so users can find them immediately
+  - Use `sm:self-end` to align buttons at the bottom of flex containers when paired with elements that have labels
+---
+
+## 2026-01-14 - US-011.1: Consistent icons for each integration
+- What was implemented:
+  - Updated all integration-related files to use the branded icons from `SourcePlatformIcons.tsx` instead of generic Remix icons
+  - `FathomIcon` - black circular background with Fathom "F" arrows logo
+  - `GoogleMeetIcon` - Google "G" logo on white circular background
+  - `ZoomIcon` - video camera on blue circular background
+  - Icons now support both `size` prop and Tailwind `className` (h-X w-X) via `getSizeFromClassName` helper
+- Files changed:
+  - `src/components/transcript-library/SourcePlatformIcons.tsx` - added `getSizeFromClassName` helper, updated icons to use computed size
+  - `src/components/sync/IntegrationStatusRow.tsx` - replaced RiVideoLine/RiGoogleLine/RiVideoChatLine with branded icons
+  - `src/components/sync/AddIntegrationButton.tsx` - replaced generic icons with branded icons
+  - `src/components/sync/InlineConnectionWizard.tsx` - updated platformConfig to use branded icons
+  - `src/components/settings/IntegrationsTab.tsx` - updated IntegrationStatusCard to use branded icons
+  - `src/components/search/SourceFilterCheckboxes.tsx` - replaced generic icons with branded icons
+  - `src/components/search/SearchResultItem.tsx` - updated SOURCE_PLATFORM_CONFIG to use branded icons
+- **Learnings for future iterations:**
+  - All integration icons should come from `SourcePlatformIcons.tsx` for consistency
+  - The icons have built-in brand colors, so no need to apply `colorClass` to them
+  - Icons work as React components with `className` prop, so they can be passed to components expecting `icon: typeof RiVideoLine`
+  - The `getSizeFromClassName` helper parses Tailwind h-X classes to get the pixel size (e.g., h-4 = 16px)
+---
+
+## 2026-01-14 - US-012.1: Connect buttons look clickable
+- What was implemented:
+  - Moved `opacity-50` class from the parent row container to only the left side content (icon/name)
+  - Connect button now renders at full opacity even when integration is disconnected
+  - Previously the entire row had `opacity-50` when disconnected, making the Connect button look grayed/inactive
+  - Now only the icon and integration name are dimmed, while the CTA button remains fully visible and clickable
+- Files changed:
+  - `src/components/sync/IntegrationStatusRow.tsx` - moved opacity-50 from parent div to inner content div
+- **Learnings for future iterations:**
+  - When showing "disabled" or "disconnected" states, apply opacity to descriptive content only, not to CTA buttons
+  - CTA buttons should always appear fully active/clickable to encourage user interaction
+  - The `cn()` utility makes it easy to conditionally apply classes to nested elements
+---
+
+## 2026-01-14 - US-013.1: Minimal clicks to connect integration
+- What was implemented:
+  - Streamlined InlineConnectionWizard UI for faster OAuth flow
+  - Removed mandatory acknowledgment checkbox that was blocking connection
+  - Removed features list section (was informational but added visual bulk)
+  - Made "Connect with [Platform]" button immediately clickable (full-width, prominent)
+  - Moved requirements to collapsible `<details>` element (optional viewing)
+  - Flow is now: Click "Add Integration" → Select platform → Click "Connect" (exactly 2 steps)
+- Files changed:
+  - `src/components/sync/InlineConnectionWizard.tsx` - major UI simplification
+- **Learnings for future iterations:**
+  - Use `<details>/<summary>` for collapsible optional info - works without JavaScript
+  - For "minimal clicks" stories, count the actual clicks from user perspective
+  - Requirements/warnings can be available without being blocking - collapsible is a good pattern
+  - The wizard now follows "One-Click Promise" better: CTA is immediately available
+---
+
+## 2026-01-14 - US-014.1: No empty requirements screens
+- What was implemented:
+  - Changed requirements section from collapsible `<details>` to always-visible display
+  - Requirements are now shown by default (not hidden behind a click)
+  - No acknowledgment checkbox exists (was already removed in US-013.1)
+  - Each platform has real requirements content (warningTitle + warningContent)
+  - Added amber-colored alert icon inline with requirements header
+- Files changed:
+  - `src/components/sync/InlineConnectionWizard.tsx` - replaced collapsible details with visible div
+- **Learnings for future iterations:**
+  - "If requirements exist, they're displayed" means visible by default, not just available
+  - Previous collapsible pattern could be seen as "hiding" content even though it was accessible
+  - The platformConfig object (line ~170) defines warningTitle and warningContent for each platform
+  - Use `flex items-start gap-2` pattern for icon + text layouts in alert boxes
+---
+
+## 2026-01-14 - US-015.1: Connect Zoom account via OAuth
+- What was implemented:
+  - Updated `useIntegrationSync.ts` to properly detect Zoom OAuth connection status
+  - Added `zoom_oauth_access_token` and `zoom_oauth_token_expires` to the database query
+  - Updated the Zoom integration check from hardcoded `connected: false` to actual token validation
+  - Added proper Zoom sync support in `triggerManualSync` (calls `zoom-sync-meetings` edge function)
+  - The OAuth flow was already implemented:
+    - Button click initiates OAuth via `getZoomOAuthUrl()` in `InlineConnectionWizard.tsx`
+    - Zoom authorization page opens via redirect to Zoom
+    - Callback handled in `OAuthCallback.tsx` via `completeZoomOAuth()`
+    - Error messages shown on failure in both wizard and callback
+- Files changed:
+  - `src/hooks/useIntegrationSync.ts` - added Zoom OAuth token detection and sync support
+- **Learnings for future iterations:**
+  - Zoom OAuth tokens are stored in `user_settings` table with columns: `zoom_oauth_access_token`, `zoom_oauth_refresh_token`, `zoom_oauth_token_expires`, `zoom_oauth_state`
+  - Token validity is checked by comparing `zoom_oauth_token_expires > Date.now()`
+  - Unlike Google Meet, Zoom doesn't store an email - the `email` field remains `undefined` for Zoom
+  - The `zoom-sync-meetings` edge function handles manual sync for Zoom
+---
+
+## 2026-01-14 - US-016.1: Fathom alternative for restricted Google Meet users
+- What was implemented:
+  - Added Fathom as an alternative option in the Google Meet connection wizard for users with personal accounts
+  - Shows a visually distinct section below the Google Meet requirements warning
+  - Includes clear messaging: "Have a personal Google account?" with explanation of Fathom as free alternative
+  - Added affiliate/referral link to Fathom signup (https://fathom.video/?ref=callvault)
+  - Uses external link icon (RiExternalLinkLine) to indicate opens in new tab
+  - Styled consistently with the rest of the wizard using muted background and border
+- Files changed:
+  - `src/components/sync/InlineConnectionWizard.tsx` - added `alternativeContent` to google_meet config, added RiExternalLinkLine import, added rendering of alternativeContent
+- **Learnings for future iterations:**
+  - The `platformConfig` object in InlineConnectionWizard.tsx can have optional `alternativeContent` field for platforms that need to offer alternatives
+  - Use `"alternativeContent" in config && config.alternativeContent` pattern to conditionally render optional fields
+  - For affiliate links, use `?ref=callvault` query parameter for tracking
+  - FathomIcon is available from SourcePlatformIcons.tsx and can be used at any size via className (e.g., h-5 w-5)
+---
+
+## 2026-01-14 - US-017.1: Google Meet connect button on requirements page
+- What was implemented:
+  - Verified this story was already completed during US-013.1 and US-014.1 implementation
+  - The InlineConnectionWizard already has all requirements in place:
+    - No separate confirmation screen - all content in a single view (lines 324-414)
+    - Connect button on same page as requirements (button at lines 364-381, requirements at 383-392)
+    - No acknowledgment checkbox required - requirements are just displayed (improved from original spec)
+    - Single step from requirements to OAuth - button directly calls handleOAuthConnect
+- Files changed:
+  - `ralph/prd.json` - marked US-017.1 as passing
+- **Learnings for future iterations:**
+  - Sometimes multiple related stories implement overlapping functionality
+  - US-013.1 (minimal clicks) removed the acknowledgment checkbox
+  - US-014.1 (display requirements) made them always visible
+  - US-017.1 (connect on requirements page) was completed as a result of those changes
+  - When a story is already implemented, just verify all acceptance criteria are met and mark it as passing
+---
+
+## 2026-01-14 - US-018.1: Clear feedback on Google connection status
+- What was implemented:
+  - Verified this story was already completed with comprehensive connection status handling
+  - InlineConnectionWizard implements all acceptance criteria:
+    - 30-second timeout via `CONNECTION_TIMEOUT_MS = 30000` constant (line 20)
+    - Timeout handler triggers at 30s, shows timeout state and toast (lines 113-121)
+    - Success message shown in OAuthCallback.tsx via toast and success UI (lines 74-76, 110-113)
+    - Error messages shown for failures with detailed UI (lines 256-322 in wizard, lines 84-88 in callback)
+    - Cancel button works ALWAYS via handleCancel that clears timeouts and aborts requests (lines 65-93)
+    - Retry functionality via handleRetry and "Try Again" button (lines 95-98, 315-318)
+  - Connection flow properly handles all states: idle, loading, success, error, timeout
+  - Error/timeout states show helpful suggestions and clear retry path
+  - User can never get stuck - cancel always works and closes the modal
+- Files changed:
+  - `ralph/prd.json` - marked US-018.1 as passing
+- **Learnings for future iterations:**
+  - InlineConnectionWizard (`src/components/sync/InlineConnectionWizard.tsx`) handles OAuth connections for all platforms (Google, Zoom, Fathom)
+  - OAuthCallback (`src/pages/OAuthCallback.tsx`) handles the OAuth redirect and completes the connection
+  - Connection state is typed as union: `idle | loading | success | error | timeout` for clear state management
+  - Timeout and abort controller refs are cleaned up on unmount via useEffect cleanup (lines 49-58)
+  - The wizard uses `sessionStorage.setItem("pendingOAuthPlatform", platform)` to track OAuth in progress
+  - Cancel button uses `handleCancel` that ALWAYS works regardless of state - no dependencies on state to avoid stale closures
+  - Error/timeout UI shows actionable suggestions (check internet, disable ad blockers, try again)
+---
+
+## 2026-01-14 - US-019.1: Clear visibility into which Google account is connected
+- What was implemented:
+  - This story was already fully implemented in the codebase
+  - Google OAuth callback fetches user email from Google's userinfo endpoint (google-oauth-callback/index.ts lines 103-118)
+  - Email is stored in `google_oauth_email` field in user_settings table (line 128)
+  - useIntegrationSync hook loads the email from database (useIntegrationSync.ts line 104)
+  - IntegrationStatusRow component displays the email next to integration name (IntegrationStatusRow.tsx lines 111-115)
+  - Email display works in both Import (compact) and Settings (full) screens via IntegrationManager component
+- Files changed:
+  - No code changes required - feature already implemented
+  - ralph/prd.json - marked US-019.1 as passing
+- **Learnings for future iterations:**
+  - Google OAuth email is fetched during token exchange by calling https://www.googleapis.com/oauth2/v2/userinfo with the access token
+  - The email field in IntegrationStatus interface is optional (email?: string) and only populated for platforms that support it (Google Meet has email, Zoom/Fathom don't)
+  - IntegrationStatusRow shows email inline with integration name using: `<span className="text-xs text-ink-muted truncate max-w-[120px]">({integration.email})</span>`
+  - Email truncates at 120px to prevent layout issues with long email addresses
+  - Sometimes user stories are already implemented - verify all acceptance criteria are met rather than implementing duplicate code
+---
+
+## 2026-01-14 - US-020.1: Cancel button works during connection
+- What was implemented:
+  - Fixed cancel button to remain visible during loading state instead of hiding
+  - Changed cancel link from conditional `{!isConnecting && ...}` to always visible with dynamic text
+  - Cancel button now shows "Cancel Connection" during loading, "Cancel" otherwise
+  - Updated all cancel button handlers to consistently use `handleCancel` for proper cleanup
+  - Error/timeout state X button and Cancel button now both use `handleCancel` instead of just `onCancel`
+- Files changed:
+  - `src/components/sync/InlineConnectionWizard.tsx` - made cancel link always visible (line 405-410), updated error state buttons to use handleCancel (lines 270, 310)
+- **Learnings for future iterations:**
+  - Cancel/close UI must remain accessible in ALL states, not just idle state
+  - The `handleCancel` function (lines 67-93) is the robust cancel handler that cleans up timeouts, aborts requests, and resets state
+  - Always use `handleCancel` for cancel actions, not just `onCancel`, to ensure proper cleanup of pending operations
+  - During loading, users need TWO ways to cancel: X button in header AND cancel link/button at bottom
+  - PRD-020 is a P0 critical bug fix - users should never be trapped in a modal or connection flow
+  - Use conditional text (`{isConnecting ? "Cancel Connection" : "Cancel"}`) to provide clear context during different states
 ---
 

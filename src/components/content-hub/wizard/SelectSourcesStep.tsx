@@ -1,15 +1,16 @@
 /**
  * Select Sources Step
  *
- * Step 1 of the Call Content Generator wizard.
+ * Step 1 of the Social Post Generator wizard.
  * Allows users to select call transcripts and a business profile.
  */
 
 import { useEffect, useState, useMemo } from 'react';
-import { RiPhoneLine, RiBriefcaseLine, RiCheckLine, RiLoader4Line } from '@remixicon/react';
+import { RiPhoneLine, RiBriefcaseLine, RiCheckLine, RiLoader4Line, RiEditLine } from '@remixicon/react';
 import { useQuery } from '@tanstack/react-query';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 import {
   Select,
   SelectContent,
@@ -20,6 +21,7 @@ import {
 import { useContentWizardStore, useSelectedCalls, useSelectedProfile } from '@/stores/contentWizardStore';
 import { useBusinessProfileStore, useProfiles, useDefaultProfile } from '@/stores/businessProfileStore';
 import { supabase } from '@/integrations/supabase/client';
+import { BusinessProfileDialog } from '@/components/settings/BusinessProfileDialog';
 
 interface FathomCall {
   recording_id: number;
@@ -40,6 +42,10 @@ export function SelectSourcesStep() {
   const fetchProfiles = useBusinessProfileStore((state) => state.fetchProfiles);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
+
+  // Get the currently selected profile object
+  const selectedProfile = profiles.find((p) => p.id === selectedProfileId);
 
   // Fetch profiles on mount
   useEffect(() => {
@@ -118,22 +124,35 @@ export function SelectSourcesStep() {
             </p>
           </div>
         ) : (
-          <Select
-            value={selectedProfileId || ''}
-            onValueChange={(value) => setSelectedProfile(value)}
-          >
-            <SelectTrigger className="w-full max-w-md">
-              <SelectValue placeholder="Select a profile" />
-            </SelectTrigger>
-            <SelectContent>
-              {profiles.map((profile) => (
-                <SelectItem key={profile.id} value={profile.id}>
-                  {profile.company_name || 'Unnamed Profile'}
-                  {profile.is_default && ' (Default)'}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <div className="flex items-center gap-3">
+            <Select
+              value={selectedProfileId || ''}
+              onValueChange={(value) => setSelectedProfile(value)}
+            >
+              <SelectTrigger className="w-full max-w-md">
+                <SelectValue placeholder="Select a profile" />
+              </SelectTrigger>
+              <SelectContent>
+                {profiles.map((profile) => (
+                  <SelectItem key={profile.id} value={profile.id}>
+                    {profile.company_name || 'Unnamed Profile'}
+                    {profile.is_default && ' (Default)'}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {selectedProfile && (
+              <Button
+                variant="hollow"
+                size="sm"
+                onClick={() => setIsProfileDialogOpen(true)}
+                className="flex items-center gap-2"
+              >
+                <RiEditLine className="h-4 w-4" />
+                Edit Profile
+              </Button>
+            )}
+          </div>
         )}
       </div>
 
@@ -214,6 +233,15 @@ export function SelectSourcesStep() {
         <div className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-4">
           Select at least one call transcript to continue.
         </div>
+      )}
+
+      {/* Profile Edit Dialog */}
+      {selectedProfile && (
+        <BusinessProfileDialog
+          open={isProfileDialogOpen}
+          onOpenChange={setIsProfileDialogOpen}
+          profile={selectedProfile}
+        />
       )}
     </div>
   );
