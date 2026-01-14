@@ -171,7 +171,7 @@
         "Maximum 2 steps to initiate OAuth",
         "User can connect faster than before"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-014.1",

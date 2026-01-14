@@ -206,3 +206,20 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - The `cn()` utility makes it easy to conditionally apply classes to nested elements
 ---
 
+## 2026-01-14 - US-013.1: Minimal clicks to connect integration
+- What was implemented:
+  - Streamlined InlineConnectionWizard UI for faster OAuth flow
+  - Removed mandatory acknowledgment checkbox that was blocking connection
+  - Removed features list section (was informational but added visual bulk)
+  - Made "Connect with [Platform]" button immediately clickable (full-width, prominent)
+  - Moved requirements to collapsible `<details>` element (optional viewing)
+  - Flow is now: Click "Add Integration" → Select platform → Click "Connect" (exactly 2 steps)
+- Files changed:
+  - `src/components/sync/InlineConnectionWizard.tsx` - major UI simplification
+- **Learnings for future iterations:**
+  - Use `<details>/<summary>` for collapsible optional info - works without JavaScript
+  - For "minimal clicks" stories, count the actual clicks from user perspective
+  - Requirements/warnings can be available without being blocking - collapsible is a good pattern
+  - The wizard now follows "One-Click Promise" better: CTA is immediately available
+---
+
