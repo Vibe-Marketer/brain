@@ -5,7 +5,7 @@
 
 This document defines conventions and patterns for Supabase Edge Functions, database schema, and backend API development.
 
----
+
 
 ## TABLE OF CONTENTS
 
@@ -14,7 +14,7 @@ This document defines conventions and patterns for Supabase Edge Functions, data
 3. [Database Patterns](#database-patterns)
 4. [Security Requirements](#security-requirements)
 
----
+
 
 # FUNCTION ORGANIZATION
 
@@ -135,6 +135,116 @@ supabase/functions/
   _shared/
     cors.ts              # Shared CORS utilities
     fathom-client.ts     # Shared API client
+```
+
+
+
+**END OF SUPABASE BACKEND INSTRUCTIONS**
+
+# API CONVENTIONS
+
+## Function Prefix Standards
+
+| Prefix | Purpose | Example Functions |
+|--------|---------|-------------------|
+| `fetch*` | Retrieve data from external APIs | `fetch-meetings`, `fetch-single-meeting` |
+| `sync*` | Synchronize data to database | `sync-meetings`, `sync-openrouter-models` |
+| `save*` | Persist user settings/config | `save-fathom-key`, `save-webhook-secret` |
+| `get*` | Retrieve configuration/status | `get-config-status`, `get-available-models` |
+| `test*` | Verify connections/configs | `test-fathom-connection`, `test-env-vars` |
+| `create*` | Create new resources | `create-fathom-webhook` |
+| `delete*` | Remove data/resources | `delete-all-calls` |
+| `load*` | Load internal data | Internal functions only |
+| `check*` | Verify status/state | Internal functions only |
+| `generate*` | Create derived data | `generate-ai-titles`, `generate-content` |
+| `process*` | Process/transform data | `process-embeddings` |
+| `embed*` | Create embeddings | `embed-chunks` |
+| `enrich*` | Add metadata to data | `enrich-chunk-metadata` |
+
+## Standard Response Format
+
+**Success Response:**
+```typescript
+return new Response(
+  JSON.stringify({
+    success: true,
+    data: result,           // Optional: response data
+    message: 'Operation completed'  // Optional: human-readable message
+  }),
+  { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+);
+```
+
+**Error Response:**
+```typescript
+return new Response(
+  JSON.stringify({
+    error: 'Error message here',
+    details: errorDetails   // Optional: additional context
+  }),
+  { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+);
+```
+
+**Standard HTTP Status Codes:**
+- `200` - Success
+- `400` - Bad Request (invalid input)
+- `401` - Unauthorized (missing/invalid auth)
+- `403` - Forbidden (insufficient permissions)
+- `404` - Not Found
+- `429` - Rate Limited
+- `500` - Internal Server Error
+
+## Error Handling Patterns
+
+**Standard try-catch pattern:**
+```typescript
+try {
+  // Main logic
+} catch (error) {
+  console.error('Error in function-name:', error);
+  const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+  return new Response(
+    JSON.stringify({ error: errorMessage }),
+    { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+```
+
+**Specific error handling:**
+```typescript
+if (configError) {
+  return new Response(
+    JSON.stringify({ error: 'Configuration not found' }),
+    { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+```
+
+## CORS Configuration Requirements
+
+**Standard CORS headers (required for all functions):**
+```typescript
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
+};
+```
+
+**Extended CORS (when needed):**
+```typescript
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+};
+```
+
+**CORS preflight handler (required at start of every function):**
+```typescript
+if (req.method === 'OPTIONS') {
+  return new Response(null, { headers: corsHeaders });
+}
 ```
 
 ---
