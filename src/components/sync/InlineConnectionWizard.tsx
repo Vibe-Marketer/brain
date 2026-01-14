@@ -356,19 +356,16 @@ export function InlineConnectionWizard({
         )}
       </Button>
 
-      {/* Requirements - collapsible, not blocking */}
-      <details className="group">
-        <summary className="flex items-center gap-2 cursor-pointer text-xs text-ink-muted hover:text-ink py-1">
-          <RiAlertLine className="h-3 w-3 text-amber-500" />
-          <span>View requirements</span>
-        </summary>
-        <div className="mt-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
-          <div className="space-y-2">
-            <p className="font-medium text-amber-500 text-sm">{config.warningTitle}</p>
+      {/* Requirements - visible if they exist, no acknowledgment needed */}
+      <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+        <div className="flex items-start gap-2">
+          <RiAlertLine className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <p className="font-medium text-amber-600 dark:text-amber-400 text-sm">{config.warningTitle}</p>
             {config.warningContent}
           </div>
         </div>
-      </details>
+      </div>
 
       {/* Help text */}
       <p className="text-xs text-ink-muted text-center">

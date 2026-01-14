@@ -223,3 +223,19 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - The wizard now follows "One-Click Promise" better: CTA is immediately available
 ---
 
+## 2026-01-14 - US-014.1: No empty requirements screens
+- What was implemented:
+  - Changed requirements section from collapsible `<details>` to always-visible display
+  - Requirements are now shown by default (not hidden behind a click)
+  - No acknowledgment checkbox exists (was already removed in US-013.1)
+  - Each platform has real requirements content (warningTitle + warningContent)
+  - Added amber-colored alert icon inline with requirements header
+- Files changed:
+  - `src/components/sync/InlineConnectionWizard.tsx` - replaced collapsible details with visible div
+- **Learnings for future iterations:**
+  - "If requirements exist, they're displayed" means visible by default, not just available
+  - Previous collapsible pattern could be seen as "hiding" content even though it was accessible
+  - The platformConfig object (line ~170) defines warningTitle and warningContent for each platform
+  - Use `flex items-start gap-2` pattern for icon + text layouts in alert boxes
+---
+

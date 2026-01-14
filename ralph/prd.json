@@ -184,7 +184,7 @@
         "If no requirements, no acknowledgment checkbox",
         "User never acknowledges invisible content"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-015.1",
