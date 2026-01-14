@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { RiFileCopyLine, RiDeleteBinLine, RiMailLine, RiChat3Line, RiFileTextLine, RiLightbulbLine, RiMoreLine, RiAlertLine } from "@remixicon/react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -143,78 +142,77 @@ export function ContentItemCard({ item }: ContentItemCardProps) {
 
   return (
     <>
-      <Card className="hover:shadow-md transition-all duration-200 group border-border">
-        <CardHeader className="pb-2 pt-2.5 px-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <div className="flex-shrink-0 w-6 h-6 rounded-md bg-muted/50 flex items-center justify-center">
-                <Icon className="w-3.5 h-3.5 text-ink-muted" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-sm font-medium text-ink truncate leading-tight">
-                    {item.title}
-                  </CardTitle>
-                  <Badge className={`${badgeClass} text-[10px] font-medium px-1.5 py-0 shrink-0`} variant="outline">
-                    {item.content_type}
-                  </Badge>
-                </div>
-              </div>
+      {/* Professional layout using borders and whitespace - follows "90% No Containers" principle */}
+      <div className="group bg-card border border-border hover:border-ink-muted/30 transition-all duration-200 py-3 px-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-2.5 flex-1 min-w-0">
+            <div className="flex-shrink-0 w-7 h-7 rounded-md bg-muted/50 flex items-center justify-center">
+              <Icon className="w-4 h-4 text-ink-muted" />
             </div>
-            {/* Action buttons - visible on hover */}
-            <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={handleCopy}
-                disabled={isCopying}
-                title="Copy to clipboard"
-                className="text-ink-muted hover:text-ink hover:bg-hover"
-              >
-                <RiFileCopyLine className="w-3.5 h-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon-sm"
-                onClick={() => setIsDeleteDialogOpen(true)}
-                disabled={isDeleting}
-                title="Delete"
-                className="text-ink-muted hover:text-destructive hover:bg-destructive/10"
-              >
-                <RiDeleteBinLine className="w-3.5 h-3.5" />
-              </Button>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <h3 className="font-inter font-medium text-sm text-ink truncate leading-tight">
+                  {item.title}
+                </h3>
+                <Badge className={`${badgeClass} text-[10px] font-medium px-2 py-0.5 shrink-0`} variant="outline">
+                  {item.content_type}
+                </Badge>
+              </div>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-2 px-3 pb-3 pt-0">
-          {/* Content preview */}
-          <p className="text-sm font-light text-ink-soft leading-normal line-clamp-2">
-            {truncateContent(item.content)}
-          </p>
-
-          {/* Tags */}
-          {item.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {item.tags.slice(0, 3).map((tag) => (
-                <Badge key={tag} variant="hollow" className="text-[9px] font-normal px-1.5 py-0 text-ink-muted">
-                  {tag}
-                </Badge>
-              ))}
-              {item.tags.length > 3 && (
-                <Badge variant="hollow" className="text-[9px] font-normal px-1.5 py-0 text-ink-muted">
-                  +{item.tags.length - 3}
-                </Badge>
-              )}
-            </div>
-          )}
-
-          {/* Footer: usage count and date */}
-          <div className="flex items-center justify-between text-[11px] font-light text-ink-muted pt-2 border-t border-border-soft">
-            <span className="tabular-nums">Used {item.usage_count}×</span>
-            <span>{formatDate(item.created_at)}</span>
+          {/* Action buttons - visible on hover */}
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleCopy}
+              disabled={isCopying}
+              title="Copy to clipboard"
+              className="h-7 w-7 text-ink-muted hover:text-ink hover:bg-hover"
+            >
+              <RiFileCopyLine className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsDeleteDialogOpen(true)}
+              disabled={isDeleting}
+              title="Delete"
+              className="h-7 w-7 text-ink-muted hover:text-destructive hover:bg-destructive/10"
+            >
+              <RiDeleteBinLine className="w-4 h-4" />
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Content preview */}
+        <p className="font-inter font-light text-sm text-ink-soft leading-relaxed line-clamp-3 mb-3">
+          {truncateContent(item.content, 200)}
+        </p>
+
+        {/* Tags */}
+        {item.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {item.tags.slice(0, 3).map((tag) => (
+              <Badge key={tag} variant="hollow" className="text-[10px] font-normal px-2 py-0.5 text-ink-muted border-border">
+                {tag}
+              </Badge>
+            ))}
+            {item.tags.length > 3 && (
+              <Badge variant="hollow" className="text-[10px] font-normal px-2 py-0.5 text-ink-muted border-border">
+                +{item.tags.length - 3}
+              </Badge>
+            )}
+          </div>
+        )}
+
+        {/* Footer: usage count and date */}
+        <div className="flex items-center justify-between text-xs font-light text-ink-muted pt-3 border-t border-border">
+          <span className="tabular-nums">Used {item.usage_count}×</span>
+          <span>{formatDate(item.created_at)}</span>
+        </div>
+      </div>
 
       {/* Delete confirmation dialog */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
