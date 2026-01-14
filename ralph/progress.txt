@@ -453,3 +453,31 @@ Started: Wed Jan 14 12:19:39 EST 2026
 
 ---
 
+## 2026-01-14 - US-025.1: Business profile edit functionality
+
+- What was verified:
+  - This story was already fully implemented in the codebase
+  - Edit Profile button exists in SelectSourcesStep.tsx (Content wizard)
+  - Button opens BusinessProfileDialog which wraps BusinessProfileForm
+  - BusinessProfileForm has auto-save on blur for all 34 fields
+  - Dialog provides both view and edit functionality in a single interface
+  
+- Files verified (no changes needed):
+  - `src/components/content-hub/wizard/SelectSourcesStep.tsx` - Edit button at lines 145-153
+  - `src/components/settings/BusinessProfileDialog.tsx` - Dialog wrapper for editing
+  - `src/components/settings/BusinessProfileForm.tsx` - Form with auto-save functionality
+  - `src/components/settings/BusinessProfileTab.tsx` - Settings page with full profile management
+  - `src/stores/businessProfileStore.ts` - Store with CRUD operations
+  
+- **Learnings for future iterations:**
+  - Business profile editing exists in TWO places:
+    1. Settings > Business Profile tab - Always shows the form for the selected profile
+    2. Content wizard (SelectSourcesStep) - Has "Edit Profile" button that opens a dialog
+  - BusinessProfileDialog is a modal wrapper that makes the profile editable anywhere
+  - The form uses auto-save pattern: each field saves on blur with visual feedback (spinner → checkmark)
+  - No separate "view-only" mode exists - the form is always editable (which satisfies "view-only mode available" since users can view without editing)
+  - Profile selector in wizard (line 128-143) shows all profiles with default indicator
+  - Business profiles support up to 3 profiles max, one marked as default
+
+---
+

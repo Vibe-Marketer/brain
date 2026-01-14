@@ -329,7 +329,7 @@
         "Changes can be saved",
         "View-only mode available"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-026.1",
