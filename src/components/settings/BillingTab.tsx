@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RiBankCardLine, RiSparkling2Line, RiCpuLine } from "@remixicon/react";
 import { BarChart } from "@tremor/react";
 import { useEmbeddingCosts } from "@/hooks/useEmbeddingCosts";
+import { useUserRole } from "@/hooks/useUserRole";
 
 /**
  * Format USD with appropriate precision
@@ -29,6 +30,39 @@ function formatTokens(tokens: number): string {
   return tokens.toString();
 }
 
+/**
+ * Get plan details based on user role
+ */
+function getPlanDetails(role: string) {
+  switch (role) {
+    case "ADMIN":
+      return {
+        name: "Admin",
+        description: "Full system access with administrative privileges and all features.",
+        badgeVariant: "default" as const,
+      };
+    case "TEAM":
+      return {
+        name: "Team",
+        description: "Multi-user access with team collaboration features.",
+        badgeVariant: "default" as const,
+      };
+    case "PRO":
+      return {
+        name: "PRO",
+        description: "Advanced features including custom integrations and priority support.",
+        badgeVariant: "default" as const,
+      };
+    case "FREE":
+    default:
+      return {
+        name: "Free",
+        description: "Unlimited access to core features.",
+        badgeVariant: "outline" as const,
+      };
+  }
+}
+
 export default function BillingTab() {
   const {
     totalCostUsd,
@@ -40,6 +74,8 @@ export default function BillingTab() {
     isLoading,
     error,
   } = useEmbeddingCosts(6);
+
+  const { role, loading: roleLoading, isPro, isTeam, isAdmin } = useUserRole();
 
   return (
     <div>
@@ -179,70 +215,138 @@ export default function BillingTab() {
           </p>
         </div>
         <div className="lg:col-span-2">
-          <div className="flex items-start gap-4">
-            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-              <RiBankCardLine className="h-6 w-6 text-primary" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-lg font-semibold">Free Plan</h3>
-                <Badge variant="outline">Active</Badge>
+          {roleLoading ? (
+            <div className="flex items-start gap-4">
+              <Skeleton className="h-12 w-12 rounded-lg" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-full" />
               </div>
-              <p className="text-sm text-muted-foreground">
-                You're currently on the Free plan with unlimited access to core features.
-              </p>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                <RiBankCardLine className="h-6 w-6 text-primary" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-lg font-semibold">{getPlanDetails(role).name} Plan</h3>
+                  <Badge variant={getPlanDetails(role).badgeVariant}>Active</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {getPlanDetails(role).description}
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
-      <Separator className="my-16" />
-
-      {/* Pro Plan Coming Soon */}
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-            PRO Plan
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Advanced features for power users
-          </p>
-        </div>
-        <div className="lg:col-span-2">
-          <div className="flex items-start gap-4">
-            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-vibe-orange/20 to-vibe-orange/10 flex items-center justify-center">
-              <RiSparkling2Line className="h-6 w-6 text-vibe-orange" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-2">
-                <h3 className="text-lg font-semibold">PRO Features</h3>
-                <Badge variant="outline">Coming Soon</Badge>
-              </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Advanced analytics, custom integrations, priority support, and more.
+      {/* Premium Features - Show for PRO/TEAM/ADMIN users */}
+      {!roleLoading && (isPro || isTeam || isAdmin) && (
+        <>
+          <Separator className="my-16" />
+          <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+            <div>
+              <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+                Premium Features
+              </h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+                Features included in your plan
               </p>
-              <ul className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Advanced AI insights and sentiment analysis
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Custom CRM integrations
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Team collaboration features
-                </li>
-                <li className="flex items-center gap-2">
-                  <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                  Priority support
-                </li>
-              </ul>
+            </div>
+            <div className="lg:col-span-2">
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-vibe-orange/20 to-vibe-orange/10 flex items-center justify-center">
+                  <RiSparkling2Line className="h-6 w-6 text-vibe-orange" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-4">
+                    <h3 className="text-lg font-semibold">Active Features</h3>
+                  </div>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Advanced AI insights and sentiment analysis
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Custom CRM integrations
+                    </li>
+                    {(isTeam || isAdmin) && (
+                      <li className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        Team collaboration features
+                      </li>
+                    )}
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Priority support
+                    </li>
+                    {isAdmin && (
+                      <li className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                        Full administrative access
+                      </li>
+                    )}
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
+
+      {/* Pro Plan Coming Soon - Only show for FREE users */}
+      {!roleLoading && role === "FREE" && (
+        <>
+          <Separator className="my-16" />
+          <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+            <div>
+              <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+                PRO Plan
+              </h2>
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+                Advanced features for power users
+              </p>
+            </div>
+            <div className="lg:col-span-2">
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-vibe-orange/20 to-vibe-orange/10 flex items-center justify-center">
+                  <RiSparkling2Line className="h-6 w-6 text-vibe-orange" />
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <h3 className="text-lg font-semibold">PRO Features</h3>
+                    <Badge variant="outline">Coming Soon</Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Advanced analytics, custom integrations, priority support, and more.
+                  </p>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Advanced AI insights and sentiment analysis
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Custom CRM integrations
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Team collaboration features
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      Priority support
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
