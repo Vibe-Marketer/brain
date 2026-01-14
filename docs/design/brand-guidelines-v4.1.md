@@ -2932,14 +2932,14 @@ toast.success("Sync complete. Your vault is up to date.");
   /* ============================================
      PRIMARY NEUTRALS (Light Mode)
      ============================================ */
-  --cv-white: 0 0% 100%;              /* #FFFFFF */
-  --cv-black: 0 0% 7%;                /* #111111 */
-  --cv-ink: 210 17% 7%;               /* #111111 - Primary text */
-  --cv-ink-soft: 0 0% 27%;            /* #444444 - Secondary text */
-  --cv-ink-muted: 0 0% 48%;           /* #7A7A7A - Tertiary text */
-  --cv-border: 0 0% 90%;              /* #E5E5E5 - Borders */
-  --cv-border-soft: 0 0% 95%;         /* #F2F2F2 - Light dividers */
-  --cv-hover: 0 0% 97%;               /* #F8F8F8 - Hover states */
+  --white: 0 0% 100%;                 /* #FFFFFF */
+  --black: 0 0% 7%;                   /* #111111 */
+  --ink: 210 17% 7%;                  /* #111111 - Primary text */
+  --ink-soft: 0 0% 27%;               /* #444444 - Secondary text */
+  --ink-muted: 0 0% 48%;              /* #7A7A7A - Tertiary text */
+  --border: 0 0% 90%;                 /* #E5E5E5 - Borders */
+  --border-soft: 0 0% 95%;            /* #F2F2F2 - Light dividers */
+  --hover: 0 0% 97%;                  /* #F8F8F8 - Hover states */
 
   /* ============================================
      VIBE ORANGE (Structural indicators only)
@@ -2951,25 +2951,25 @@ toast.success("Sync complete. Your vault is up to date.");
   /* ============================================
      SEMANTIC STATUS COLORS
      ============================================ */
-  --cv-success-bg: 142 71% 96%;       /* #F0F9F4 */
-  --cv-success-text: 142 76% 29%;     /* #166534 */
-  --cv-success-border: 142 76% 84%;   /* #BBF7D0 */
+  --success-bg: 142 71% 96%;          /* #F0F9F4 */
+  --success-text: 142 76% 29%;        /* #166534 */
+  --success-border: 142 76% 84%;      /* #BBF7D0 */
 
-  --cv-warning-bg: 48 100% 96%;       /* #FFFBEB */
-  --cv-warning-text: 30 78% 27%;      /* #78350F */
-  --cv-warning-border: 48 96% 77%;    /* #FDE68A */
+  --warning-bg: 48 100% 96%;          /* #FFFBEB */
+  --warning-text: 30 78% 27%;         /* #78350F */
+  --warning-border: 48 96% 77%;       /* #FDE68A */
 
-  --cv-danger-bg: 0 86% 97%;          /* #FEF2F2 */
-  --cv-danger-text: 0 74% 42%;        /* #B91C1C */
-  --cv-danger-border: 0 91% 71%;      /* #FCA5A5 */
+  --danger-bg: 0 86% 97%;             /* #FEF2F2 */
+  --danger-text: 0 74% 42%;           /* #B91C1C */
+  --danger-border: 0 91% 71%;         /* #FCA5A5 */
 
-  --cv-info-bg: 199 89% 95%;          /* #E0F2FE */
-  --cv-info-text: 199 89% 35%;        /* #0C4A6E */
-  --cv-info-border: 199 89% 67%;      /* #5AC8FA */
+  --info-bg: 199 89% 95%;             /* #E0F2FE */
+  --info-text: 199 89% 35%;           /* #0C4A6E */
+  --info-border: 199 89% 67%;         /* #5AC8FA */
 
-  --cv-neutral-bg: 0 0% 97%;          /* #F8F8F8 */
-  --cv-neutral-text: 0 0% 40%;        /* #666666 */
-  --cv-neutral-border: 0 0% 90%;      /* #E5E5E5 */
+  --neutral-bg: 0 0% 97%;             /* #F8F8F8 */
+  --neutral-text: 0 0% 40%;           /* #666666 */
+  --neutral-border: 0 0% 90%;         /* #E5E5E5 */
 }
 
 .dark {
@@ -2983,13 +2983,13 @@ toast.success("Sync complete. Your vault is up to date.");
   /* ============================================
      DARK MODE NEUTRALS
      ============================================ */
-  --cv-viewport-dark: 0 0% 9%;        /* #161616 */
-  --cv-card-dark: 0 0% 13%;           /* #202020 */
-  --cv-panel-dark: 0 0% 16%;          /* #2A2A2A */
-  --cv-border-dark: 0 0% 23%;         /* #3A3A3A */
-  --cv-text-dark-primary: 0 0% 100%;  /* #FFFFFF */
-  --cv-text-dark-secondary: 0 0% 69%; /* #B0B0B0 */
-  --cv-text-dark-muted: 0 0% 42%;     /* #6B6B6B */
+  --viewport-dark: 0 0% 9%;           /* #161616 */
+  --card-dark: 0 0% 13%;              /* #202020 */
+  --panel-dark: 0 0% 16%;             /* #2A2A2A */
+  --border-dark: 0 0% 23%;            /* #3A3A3A */
+  --text-dark-primary: 0 0% 100%;     /* #FFFFFF */
+  --text-dark-secondary: 0 0% 69%;    /* #B0B0B0 */
+  --text-dark-muted: 0 0% 42%;        /* #6B6B6B */
 
   /* Vibe orange stays same in dark mode */
   --vibe-orange: 32 100% 50%;         /* #FF8800 */
@@ -3007,26 +3007,77 @@ colors: {
   background: "hsl(var(--background))",
   card: "hsl(var(--card))",
 
-  // CV color system (Call Vault)
-  cv: {
-    white: "hsl(var(--cv-white))",
-    black: "hsl(var(--cv-black))",
-    ink: "hsl(var(--cv-ink))",
-    "ink-soft": "hsl(var(--cv-ink-soft))",
-    "ink-muted": "hsl(var(--cv-ink-muted))",
-    border: "hsl(var(--cv-border))",
-    "border-soft": "hsl(var(--cv-border-soft))",
-    "border-dark": "hsl(var(--cv-border-dark))",
-    hover: "hsl(var(--cv-hover))",
-    "text-dark-primary": "hsl(var(--cv-text-dark-primary))",
-  },
+  // Semantic color system (unprefixed)
+  white: "hsl(var(--white))",
+  black: "hsl(var(--black))",
+  ink: "hsl(var(--ink))",
+  "ink-soft": "hsl(var(--ink-soft))",
+  "ink-muted": "hsl(var(--ink-muted))",
+  border: "hsl(var(--border))",
+  "border-soft": "hsl(var(--border-soft))",
+  "border-dark": "hsl(var(--border-dark))",
+  hover: "hsl(var(--hover))",
+  "text-dark-primary": "hsl(var(--text-dark-primary))",
 
   "vibe-orange": {
     DEFAULT: "hsl(var(--vibe-orange))",
     light: "hsl(var(--vibe-orange-light))",
     dark: "hsl(var(--vibe-orange-dark))",
   },
+
+  // Status colors (unprefixed)
+  success: {
+    bg: "hsl(var(--success-bg))",
+    text: "hsl(var(--success-text))",
+    border: "hsl(var(--success-border))",
+  },
+  warning: {
+    bg: "hsl(var(--warning-bg))",
+    text: "hsl(var(--warning-text))",
+    border: "hsl(var(--warning-border))",
+  },
+  danger: {
+    bg: "hsl(var(--danger-bg))",
+    text: "hsl(var(--danger-text))",
+    border: "hsl(var(--danger-border))",
+  },
+  info: {
+    bg: "hsl(var(--info-bg))",
+    text: "hsl(var(--info-text))",
+    border: "hsl(var(--info-border))",
+  },
+  neutral: {
+    bg: "hsl(var(--neutral-bg))",
+    text: "hsl(var(--neutral-text))",
+    border: "hsl(var(--neutral-border))",
+  },
 }
+```
+
+**Usage examples with unprefixed classes:**
+
+```tsx
+// Text colors
+<p className="text-ink">Primary text</p>
+<p className="text-ink-soft">Secondary text</p>
+<p className="text-ink-muted">Tertiary/muted text</p>
+
+// Backgrounds
+<div className="bg-viewport">Viewport background</div>
+<div className="bg-card">Card background</div>
+<div className="bg-hover">Hover state</div>
+
+// Borders
+<div className="border border-border">Standard border</div>
+<div className="border border-border-soft">Light divider</div>
+
+// Status badges
+<span className="bg-success-bg text-success-text border-success-border">Success</span>
+<span className="bg-warning-bg text-warning-text border-warning-border">Warning</span>
+<span className="bg-danger-bg text-danger-text border-danger-border">Error</span>
+
+// Dark mode (automatic with CSS variables)
+<p className="text-ink dark:text-text-dark-primary">Adapts to theme</p>
 ```
 
 ---
