@@ -112,3 +112,53 @@ After editing, add an entry to `/docs/brand-guidelines-changelog.md`:
 - **Archive old version**: Move to `/docs/archive/` with original filename
 
 ---
+
+## ADR Writing Standards
+
+Architecture Decision Records capture significant technical choices.
+
+### When to Create an ADR
+
+**Create an ADR for:**
+- Database or backend selection/changes
+- AI model or provider choices
+- Integration platform decisions (n8n, Zapier, etc.)
+- Major schema or API changes
+- Technical constraints or limitations
+- Deployment/infrastructure changes
+- New SDK or library adoption for core features
+
+**Do NOT create an ADR for:**
+- UI component choices (covered by brand guidelines)
+- Bug fixes or refactoring
+- Reversible implementation details
+- Anything taking less than 4 hours to change later
+
+### Template Location
+
+Use the template at `/docs/adr/adr-template.md`.
+
+### How to Create
+
+1. Copy `docs/adr/adr-template.md`
+2. Check `docs/adr/README.md` for the latest ADR number
+3. Number sequentially (e.g., `adr-006-...`)
+4. Fill in: Context, Decision, Consequences
+5. Save as `docs/adr/adr-XXX-short-title.md`
+6. Update `docs/adr/README.md` with new entry
+7. Commit with message: `docs: add ADR-XXX for [decision]`
+
+### Time Limit
+
+**10-15 minutes max** - ADRs should be concise, not exhaustive.
+
+### ADR Trigger Checklist
+
+Before implementing a significant technical choice, ask:
+- Will this affect how we build 3+ future features?
+- Would a new developer ask "why did we do this?"
+- Is this hard to reverse (more than 4 hours of work)?
+
+If YES to 2+ questions, write an ADR.
+
+---
