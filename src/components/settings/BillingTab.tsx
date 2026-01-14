@@ -32,33 +32,86 @@ function formatTokens(tokens: number): string {
 
 /**
  * Get plan details based on user role
+ * Maps database roles to actual pricing tiers
  */
 function getPlanDetails(role: string) {
   switch (role) {
     case "ADMIN":
       return {
         name: "Admin",
+        displayName: "Admin",
+        price: null,
         description: "Full system access with administrative privileges and all features.",
         badgeVariant: "default" as const,
+        features: [
+          "All Business features",
+          "Full administrative access",
+          "System configuration",
+          "User management",
+        ],
       };
     case "TEAM":
       return {
         name: "Team",
-        description: "Multi-user access with team collaboration features.",
+        displayName: "Team",
+        price: "$99/mo",
+        annualPrice: "$950/yr (save $238)",
+        description: "Up to 5 users with team hierarchy and shared collaboration.",
         badgeVariant: "default" as const,
+        features: [
+          "Up to 5 full users",
+          "Team hierarchy & manager auto-access",
+          "Shared folders",
+          "2 coaches / 3 coachees",
+          "Unlimited coach notes",
+        ],
+        nextTier: {
+          name: "Business",
+          price: "$249/mo",
+          benefits: ["Up to 20 users", "Advanced admin controls", "5 coaches / 10 coachees", "Priority support"],
+        },
       };
     case "PRO":
       return {
-        name: "PRO",
-        description: "Advanced features including custom integrations and priority support.",
+        name: "Solo",
+        displayName: "Solo",
+        price: "$29/mo",
+        annualPrice: "$278/yr (save $70)",
+        description: "Perfect for individuals with unlimited calls and AI features.",
         badgeVariant: "default" as const,
+        features: [
+          "1 user",
+          "Unlimited calls & AI summaries",
+          "Folders, tags, AI search",
+          "1 coach + 1 coachee",
+          "10 notes per call",
+        ],
+        nextTier: {
+          name: "Team",
+          price: "$99/mo",
+          benefits: ["Up to 5 users", "Team hierarchy", "Shared folders", "More coaching capacity"],
+        },
       };
     case "FREE":
     default:
       return {
         name: "Free",
-        description: "Unlimited access to core features.",
+        displayName: "Free",
+        price: "$0",
+        description: "Limited usage with core features. Can view shared calls from paid users.",
         badgeVariant: "outline" as const,
+        features: [
+          "1 user",
+          "300 minutes/month limit",
+          "Limited storage",
+          "View-only for shared calls",
+          "No Teams or coaching",
+        ],
+        nextTier: {
+          name: "Solo",
+          price: "$29/mo",
+          benefits: ["Unlimited calls", "AI summaries", "Coaching features", "Advanced AI search"],
+        },
       };
   }
 }
@@ -224,90 +277,124 @@ export default function BillingTab() {
               </div>
             </div>
           ) : (
-            <div className="flex items-start gap-4">
-              <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                <RiBankCardLine className="h-6 w-6 text-primary" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-lg font-semibold">{getPlanDetails(role).name} Plan</h3>
-                  <Badge variant={getPlanDetails(role).badgeVariant}>Active</Badge>
+            <div className="space-y-6">
+              {/* Plan Header */}
+              <div className="flex items-start gap-4">
+                <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+                  <RiBankCardLine className="h-6 w-6 text-primary" />
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {getPlanDetails(role).description}
-                </p>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1">
+                    <h3 className="text-lg font-semibold">{getPlanDetails(role).displayName} Plan</h3>
+                    <Badge variant={getPlanDetails(role).badgeVariant}>Active</Badge>
+                    {getPlanDetails(role).price && (
+                      <span className="text-sm font-medium text-muted-foreground">
+                        {getPlanDetails(role).price}
+                      </span>
+                    )}
+                  </div>
+                  {getPlanDetails(role).annualPrice && (
+                    <p className="text-xs text-muted-foreground mb-2">
+                      Or {getPlanDetails(role).annualPrice}
+                    </p>
+                  )}
+                  <p className="text-sm text-muted-foreground">
+                    {getPlanDetails(role).description}
+                  </p>
+                </div>
+              </div>
+
+              {/* Plan Features */}
+              <div className="pl-16">
+                <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                  What's included
+                </h4>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  {getPlanDetails(role).features?.map((feature, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Premium Features - Show for PRO/TEAM/ADMIN users */}
-      {!roleLoading && (isPro || isTeam || isAdmin) && (
-        <>
-          <Separator className="my-16" />
-          <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-            <div>
-              <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-                Premium Features
-              </h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-                Features included in your plan
-              </p>
-            </div>
-            <div className="lg:col-span-2">
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-vibe-orange/20 to-vibe-orange/10 flex items-center justify-center">
-                  <RiSparkling2Line className="h-6 w-6 text-vibe-orange" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-4">
-                    <h3 className="text-lg font-semibold">Active Features</h3>
-                  </div>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Advanced AI insights and sentiment analysis
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Custom CRM integrations
-                    </li>
-                    {(isTeam || isAdmin) && (
-                      <li className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        Team collaboration features
-                      </li>
-                    )}
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Priority support
-                    </li>
-                    {isAdmin && (
-                      <li className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                        Full administrative access
-                      </li>
-                    )}
-                  </ul>
-                </div>
+      {/* All Plans - Show pricing table for reference */}
+      <Separator className="my-16" />
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+            All Plans
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+            Compare features across all tiers
+          </p>
+        </div>
+        <div className="lg:col-span-2">
+          <div className="space-y-4">
+            {/* Free Tier */}
+            <div className="p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Free</h4>
+                <span className="text-sm text-muted-foreground">$0</span>
               </div>
+              <p className="text-xs text-muted-foreground">300 min/month • View shared calls • Limited storage</p>
+            </div>
+
+            {/* Solo Tier */}
+            <div className="p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Solo</h4>
+                <span className="text-sm text-muted-foreground">$29/mo or $278/yr</span>
+              </div>
+              <p className="text-xs text-muted-foreground">1 user • Unlimited calls • 1 coach/coachee • AI search</p>
+            </div>
+
+            {/* Team Tier */}
+            <div className="p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Team</h4>
+                <span className="text-sm text-muted-foreground">$99/mo or $950/yr</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Up to 5 users • Team hierarchy • Shared folders • 2 coaches/3 coachees</p>
+            </div>
+
+            {/* Business Tier */}
+            <div className="p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Business</h4>
+                <span className="text-sm text-muted-foreground">$249/mo or $2,390/yr</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Up to 20 users • Advanced admin • 5 coaches/10 coachees • Priority support</p>
+            </div>
+
+            {/* Enterprise Tier */}
+            <div className="p-4 bg-muted/30 rounded-lg">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium">Enterprise</h4>
+                <span className="text-sm text-muted-foreground">Custom pricing</span>
+              </div>
+              <p className="text-xs text-muted-foreground">Unlimited users • SSO • Dedicated CSM • SLA • Custom security</p>
             </div>
           </div>
-        </>
-      )}
+        </div>
+      </div>
 
-      {/* Pro Plan Coming Soon - Only show for FREE users */}
-      {!roleLoading && role === "FREE" && (
+      {/* Upgrade to Next Tier - Show for FREE, PRO, and TEAM users */}
+      {!roleLoading && getPlanDetails(role).nextTier && (
         <>
           <Separator className="my-16" />
           <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
             <div>
               <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-                PRO Plan
+                Upgrade to {getPlanDetails(role).nextTier.name}
               </h2>
               <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-                Advanced features for power users
+                Unlock more features and capacity
               </p>
             </div>
             <div className="lg:col-span-2">
@@ -317,30 +404,28 @@ export default function BillingTab() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold">PRO Features</h3>
-                    <Badge variant="outline">Coming Soon</Badge>
+                    <h3 className="text-lg font-semibold">{getPlanDetails(role).nextTier.name} Plan</h3>
+                    <Badge variant="outline">Upgrade</Badge>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {getPlanDetails(role).nextTier.price}
+                    </span>
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">
-                    Advanced analytics, custom integrations, priority support, and more.
+                    Get access to these additional features:
                   </p>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Advanced AI insights and sentiment analysis
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Custom CRM integrations
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Team collaboration features
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary" />
-                      Priority support
-                    </li>
+                  <ul className="space-y-2 text-sm text-muted-foreground mb-6">
+                    {getPlanDetails(role).nextTier.benefits.map((benefit, index) => (
+                      <li key={index} className="flex items-center gap-2">
+                        <div className="h-1.5 w-1.5 rounded-full bg-vibe-orange" />
+                        {benefit}
+                      </li>
+                    ))}
                   </ul>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="outline" className="text-xs">
+                      Coming Soon - Stripe Integration
+                    </Badge>
+                  </div>
                 </div>
               </div>
             </div>
