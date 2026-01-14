@@ -356,7 +356,7 @@
         "Tag management works",
         "Console shows no errors"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-028.1",

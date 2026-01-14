@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getGoogleOAuthUrl, getFathomOAuthUrl, getZoomOAuthUrl } from "@/lib/api-client";
 import { type IntegrationPlatform } from "./IntegrationSyncPane";
-import { FathomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 
 // Connection timeout in milliseconds (30 seconds per PRD-018 requirement)
 const CONNECTION_TIMEOUT_MS = 30000;

@@ -505,3 +505,25 @@ Started: Wed Jan 14 12:19:39 EST 2026
 
 ---
 
+## 2026-01-14 - US-027.1: Tags tab now works without errors
+
+- What was implemented:
+  - Fixed duplicate import of `FathomIcon` in InlineConnectionWizard.tsx
+  - The component was importing FathomIcon twice (line 13 and line 18), causing a JavaScript error
+  - Removed the duplicate import on line 18, keeping only the grouped import on line 13
+  - This JavaScript error was preventing the entire Sorting & Tagging page from loading
+
+- Files changed:
+  - `src/components/sync/InlineConnectionWizard.tsx` - removed duplicate FathomIcon import (line 18)
+
+- **Learnings for future iterations:**
+  - Duplicate imports cause "Identifier 'X' has already been declared" errors that break the entire page
+  - This type of error prevents React from rendering anything, resulting in a blank page
+  - The error was introduced during US-011.1 when updating all integration icons to use branded icons
+  - InlineConnectionWizard imports FathomIcon twice because line 13 has the main integration icons and line 18 was an accidental duplicate
+  - Always check for duplicate imports when refactoring import statements across multiple files
+  - JavaScript module errors appear in browser console but can be hard to spot without explicit console monitoring
+  - Tags tab (and all other tabs in Sorting & Tagging) now load correctly without flickering or errors
+
+---
+
