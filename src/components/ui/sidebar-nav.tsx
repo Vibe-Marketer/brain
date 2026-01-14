@@ -183,20 +183,20 @@ const navItems: NavItem[] = [
     matchPaths: ['/team', '/coaches'],
   },
   {
-    id: 'settings',
-    name: 'Settings',
-    iconLine: RiSettings3Line,
-    iconFill: RiSettings3Fill,
-    path: '/settings',
-    matchPaths: ['/settings'],
-  },
-  {
     id: 'analytics',
     name: 'Analytics',
     iconLine: RiPieChart2Line,
     iconFill: RiPieChart2Fill,
     path: '/analytics',
     matchPaths: ['/analytics'],
+  },
+  {
+    id: 'settings',
+    name: 'Settings',
+    iconLine: RiSettings3Line,
+    iconFill: RiSettings3Fill,
+    path: '/settings',
+    matchPaths: ['/settings'],
   },
 ];
 
@@ -260,24 +260,74 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
         role="navigation"
         aria-label="Main navigation"
       >
+        {/* Import Button - Primary CTA at top */}
+        {onSyncClick && (
+          <div className="relative flex flex-col">
+             <button
+              type="button"
+              onClick={onSyncClick}
+              className={cn(
+                'relative flex items-center',
+                isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
+                'rounded-xl transition-all duration-500 ease-in-out',
+                'hover:opacity-90 hover:scale-[1.02]',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
+              )}
+              title="Sync & Import"
+            >
+               {/* Collapsed mode: Gradient icon container */}
+               {isCollapsed ? (
+                 <div
+                   className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl shadow-lg"
+                   style={{
+                     background: 'linear-gradient(135deg, #FFEB00 0%, #FF8800 50%, #FF3D00 100%)',
+                   }}
+                 >
+                   <RiAddLine className="w-5 h-5 text-white" />
+                 </div>
+               ) : (
+                 /* Expanded mode: Gradient container with icon and text */
+                 <div
+                   className="flex items-center gap-2 px-3 py-2 rounded-xl shadow-lg w-full"
+                   style={{
+                     background: 'linear-gradient(135deg, #FFEB00 0%, #FF8800 50%, #FF3D00 100%)',
+                   }}
+                 >
+                   <RiAddLine className="w-5 h-5 text-white flex-shrink-0" />
+                   <span className="text-sm font-semibold text-white uppercase tracking-wide">Import</span>
+                 </div>
+               )}
+            </button>
+          </div>
+        )}
+
+        {/* Separator between Import and nav items */}
+        {onSyncClick && (
+          isCollapsed ? (
+            <div className="w-8 h-px bg-border my-1 mx-auto" />
+          ) : (
+            <div className="h-px bg-border my-2 mx-3" />
+          )
+        )}
+
         {/* Main Nav Items */}
         {navItems.map((item) => {
           const active = isActive(item);
           return (
             <div key={item.id} className="relative flex flex-col mb-1">
-              {/* Active indicator - pill shape (Loop-style) with smooth transition - visible in expanded mode */}
-              {!isCollapsed && (
-                <div
-                  className={cn(
-                    "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full",
-                    "transition-all duration-200 ease-in-out",
-                    active
-                      ? "opacity-100 scale-y-100"
-                      : "opacity-0 scale-y-0"
-                  )}
-                  aria-hidden="true"
-                />
-              )}
+              {/* Active indicator - left-side orange pill with smooth scale-y transition - visible in both modes */}
+              <div
+                className={cn(
+                  "absolute top-1/2 -translate-y-1/2 w-1 bg-vibe-orange rounded-full",
+                  "transition-all duration-200 ease-in-out",
+                  // Position and size based on mode
+                  isCollapsed ? "left-0 h-[50%]" : "left-1 h-[60%]",
+                  active
+                    ? "opacity-100 scale-y-100"
+                    : "opacity-0 scale-y-0"
+                )}
+                aria-hidden="true"
+              />
               <button
                 ref={(el) => {
                   if (el) {
@@ -342,11 +392,6 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                       )}>{item.name}</span>
                   )}
               </button>
-
-               {/* Active indicator dot (Only in collapsed mode) */}
-              {active && isCollapsed && (
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-vibe-orange" />
-              )}
             </div>
           );
         })}
@@ -385,46 +430,6 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
           </div>
         )}
 
-        {/* Optional Sync/Add Action - Vibe Orange Gradient CTA */}
-        {onSyncClick && (
-          <div className="relative flex flex-col mt-1">
-             <button
-              type="button"
-              onClick={onSyncClick}
-              className={cn(
-                'relative flex items-center',
-                isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
-                'rounded-xl transition-all duration-500 ease-in-out',
-                'hover:opacity-90 hover:scale-[1.02]',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
-              )}
-              title="Sync & Import"
-            >
-               {/* Collapsed mode: Gradient icon container */}
-               {isCollapsed ? (
-                 <div
-                   className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl shadow-lg"
-                   style={{
-                     background: 'linear-gradient(135deg, #FFEB00 0%, #FF8800 50%, #FF3D00 100%)',
-                   }}
-                 >
-                   <RiAddLine className="w-5 h-5 text-white" />
-                 </div>
-               ) : (
-                 /* Expanded mode: Gradient container with icon and text */
-                 <div
-                   className="flex items-center gap-2 px-3 py-2 rounded-xl shadow-lg w-full"
-                   style={{
-                     background: 'linear-gradient(135deg, #FFEB00 0%, #FF8800 50%, #FF3D00 100%)',
-                   }}
-                 >
-                   <RiAddLine className="w-5 h-5 text-white flex-shrink-0" />
-                   <span className="text-sm font-semibold text-white uppercase tracking-wide">Import</span>
-                 </div>
-               )}
-            </button>
-          </div>
-        )}
       </nav>
 
       {/* Separator line */}

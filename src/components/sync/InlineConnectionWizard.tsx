@@ -229,7 +229,7 @@ export function InlineConnectionWizard({
     </div>
   );
 
-  const renderWarningStep = () => (
+  const renderRequirementsStep = () => (
     <div className="space-y-4">
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
         <div className="flex items-start gap-3">
@@ -253,30 +253,11 @@ export function InlineConnectionWizard({
           I understand the requirements
         </label>
       </div>
-    </div>
-  );
 
-  const renderConnectStep = () => (
-    <div className="space-y-4">
-      <div className="space-y-2 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span className="text-success">✓</span>
-          <span>Requirements reviewed</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-success">✓</span>
-          <span>Permissions understood</span>
-        </div>
-      </div>
-
-      <p className="text-sm text-muted-foreground">
-        Click below to authorize CallVault. You'll be redirected to {config.name}'s login page.
-      </p>
-
-      <div className="flex justify-center py-2">
+      <div className="flex justify-center pt-2">
         <Button
           onClick={handleOAuthConnect}
-          disabled={connecting}
+          disabled={!acknowledgedWarning || connecting}
           size="lg"
           className="px-8"
         >
@@ -302,14 +283,11 @@ export function InlineConnectionWizard({
 
   const steps = [
     { title: `Connect ${config.name}`, render: renderWelcomeStep },
-    { title: "Important Information", render: renderWarningStep },
-    { title: "Authorize", render: renderConnectStep },
+    { title: "Review & Connect", render: renderRequirementsStep },
   ];
 
   const canProceed = () => {
-    if (currentStep === 1) {
-      return acknowledgedWarning;
-    }
+    // Step 0 (welcome) can always proceed
     return true;
   };
 

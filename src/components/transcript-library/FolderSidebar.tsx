@@ -609,7 +609,7 @@ export function FolderSidebar({
 
         {/* Search input - only when >10 folders */}
         {folders.length > 10 && (
-          <div className="px-4 pb-2">
+          <div className="px-4 py-3">
             <Input
               placeholder="Search folders..."
               value={searchQuery}

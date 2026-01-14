@@ -1,0 +1,68 @@
+# Ralph Progress Log
+
+## Codebase Patterns
+- Sidebar navigation is in `src/components/ui/sidebar-nav.tsx` - handles both expanded and collapsed modes
+- SidebarNav receives `onSyncClick` callback for the Import button - this is passed from AppShell
+- AppShell (`src/components/layout/AppShell.tsx`) is the main layout component that renders SidebarNav
+- Use `isCollapsed` prop to conditionally render different UI for expanded vs collapsed sidebar modes
+- 500ms transitions are standard for sidebar animations (use `duration-500 ease-in-out`)
+
+---
+
+Started: Wed Jan 14 12:19:39 EST 2026
+
+## 2026-01-14 - US-001.1: Import button at top of sidebar
+- What was implemented:
+  - Moved Import button (onSyncClick action) from bottom to top of SidebarNav
+  - Added visual separator between Import button and nav items
+  - Works in both expanded and collapsed sidebar modes
+  - Maintains 500ms transitions and existing styling
+- Files changed:
+  - `src/components/ui/sidebar-nav.tsx` - restructured nav element ordering
+- **Learnings for future iterations:**
+  - Import button uses a gradient background with inline styles (`linear-gradient(135deg, #FFEB00 0%, #FF8800 50%, #FF3D00 100%)`)
+  - Collapsed mode uses `w-8 h-px bg-border` separator, expanded mode uses `h-px bg-border my-2 mx-3`
+  - The `onSyncClick` prop controls whether Import button is rendered
+---
+
+## 2026-01-14 - US-002.1: Collapsed sidebar left-side orange pill indicator
+- What was implemented:
+  - Modified the active indicator to show in both expanded AND collapsed modes
+  - Changed from conditional rendering (`!isCollapsed &&`) to always rendering with mode-specific positioning
+  - Removed the bottom dot indicator that was only shown in collapsed mode
+  - Left-side pill in collapsed mode uses `left-0 h-[50%]`, expanded uses `left-1 h-[60%]`
+- Files changed:
+  - `src/components/ui/sidebar-nav.tsx` - updated active indicator logic
+- **Learnings for future iterations:**
+  - Active indicator uses `transition-all duration-200 ease-in-out` for smooth scale-y transitions
+  - The indicator scales from 0 to 100% on the Y axis when becoming active (`scale-y-0` to `scale-y-100`)
+  - Use conditional CSS classes based on `isCollapsed` prop rather than conditional rendering when element should exist in both modes
+---
+
+## 2026-01-14 - US-003.1: Analytics appears before Settings in nav
+- What was implemented:
+  - Reordered `navItems` array to place Analytics before Settings
+  - Settings is now the last nav item in the array
+  - Keyboard navigation (ArrowDown/Up) automatically follows the new order (uses array index)
+- Files changed:
+  - `src/components/ui/sidebar-nav.tsx` - swapped Analytics and Settings position in navItems array
+- **Learnings for future iterations:**
+  - Nav item order is controlled by the `navItems` array at the top of sidebar-nav.tsx (around line 144)
+  - Keyboard navigation uses `focusNavItemByIndex` which iterates based on array order - no code changes needed when reordering
+  - The array handles: id, name, iconLine, iconFill, path, and optional matchPaths
+---
+
+## 2026-01-14 - US-004.1: Settings at bottom of navigation
+- What was implemented:
+  - Verified Settings is already the last nav item (already done in US-003.1)
+  - Settings appears after Analytics in the navItems array (index 6, after Analytics at index 5)
+  - All Settings functionality unchanged (same path, icons, onSettingsClick callback)
+  - No visual separation - Settings renders identically to other nav items in the map loop
+- Files changed:
+  - No code changes required - this was already completed by US-003.1
+- **Learnings for future iterations:**
+  - US-003.1 and US-004.1 are closely related - reordering Analytics before Settings automatically makes Settings the last item
+  - Browser verification was blocked by pre-existing CSS parsing error in `src/index.css` (postcss/sucrase conflict) - this is an infrastructure issue unrelated to sidebar changes
+  - The separator at line 400 (`{!isCollapsed && <div className="h-px bg-border my-2 mx-3" />}`) comes AFTER all nav items, before the Library Toggle - not between Settings and other nav items
+---
+
