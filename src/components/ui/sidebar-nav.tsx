@@ -315,19 +315,19 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
           const active = isActive(item);
           return (
             <div key={item.id} className="relative flex flex-col mb-1">
-              {/* Active indicator - pill shape (Loop-style) with smooth transition - visible in expanded mode */}
-              {!isCollapsed && (
-                <div
-                  className={cn(
-                    "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full",
-                    "transition-all duration-200 ease-in-out",
-                    active
-                      ? "opacity-100 scale-y-100"
-                      : "opacity-0 scale-y-0"
-                  )}
-                  aria-hidden="true"
-                />
-              )}
+              {/* Active indicator - left-side orange pill with smooth scale-y transition - visible in both modes */}
+              <div
+                className={cn(
+                  "absolute top-1/2 -translate-y-1/2 w-1 bg-vibe-orange rounded-full",
+                  "transition-all duration-200 ease-in-out",
+                  // Position and size based on mode
+                  isCollapsed ? "left-0 h-[50%]" : "left-1 h-[60%]",
+                  active
+                    ? "opacity-100 scale-y-100"
+                    : "opacity-0 scale-y-0"
+                )}
+                aria-hidden="true"
+              />
               <button
                 ref={(el) => {
                   if (el) {
@@ -392,11 +392,6 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                       )}>{item.name}</span>
                   )}
               </button>
-
-               {/* Active indicator dot (Only in collapsed mode) */}
-              {active && isCollapsed && (
-                <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-vibe-orange" />
-              )}
             </div>
           );
         })}
