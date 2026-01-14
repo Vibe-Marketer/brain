@@ -198,7 +198,7 @@
         "Connected status shown on success",
         "Error message shown on failure"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-016.1",

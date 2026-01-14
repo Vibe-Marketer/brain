@@ -24,6 +24,8 @@ interface UserSettings {
   google_oauth_token_expires: number | null;
   google_oauth_email: string | null;
   google_last_poll_at: string | null;
+  zoom_oauth_access_token: string | null;
+  zoom_oauth_token_expires: number | null;
 }
 
 interface UseIntegrationSyncReturn {
@@ -59,7 +61,9 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
           google_oauth_access_token,
           google_oauth_token_expires,
           google_oauth_email,
-          google_last_poll_at
+          google_last_poll_at,
+          zoom_oauth_access_token,
+          zoom_oauth_token_expires
         `)
         .eq("user_id", user.id)
         .maybeSingle();
@@ -100,12 +104,18 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
         email: (settings as UserSettings)?.google_oauth_email || undefined,
       });
 
-      // Zoom - coming soon
+      // Check Zoom connection
+      const zoomConnected = !!(
+        settings?.zoom_oauth_access_token &&
+        settings?.zoom_oauth_token_expires &&
+        settings.zoom_oauth_token_expires > now
+      );
+
       result.push({
         platform: "zoom",
-        connected: false,
+        connected: zoomConnected,
         lastSyncAt: null,
-        syncStatus: "idle",
+        syncStatus: syncingPlatforms.has("zoom") ? "syncing" : "idle",
         email: undefined,
       });
 
@@ -125,11 +135,6 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
   }, [loadIntegrations]);
 
   const triggerManualSync = useCallback(async (platform: IntegrationPlatform) => {
-    if (platform === "zoom") {
-      toast.info("Zoom integration coming soon");
-      return;
-    }
-
     setSyncingPlatforms(prev => new Set([...prev, platform]));
 
     try {
@@ -144,6 +149,17 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
         }
 
         toast.success("Google Meet sync triggered");
+      } else if (platform === "zoom") {
+        // Trigger zoom-sync-meetings for this user
+        const { error: invokeError } = await supabase.functions.invoke("zoom-sync-meetings", {
+          body: {},
+        });
+
+        if (invokeError) {
+          throw invokeError;
+        }
+
+        toast.success("Zoom sync triggered");
       } else if (platform === "fathom") {
         // For Fathom, we don't have a background poll - users use the SyncTab
         toast.info("Use the date picker above to fetch Fathom meetings");

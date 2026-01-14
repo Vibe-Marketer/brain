@@ -239,3 +239,23 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - Use `flex items-start gap-2` pattern for icon + text layouts in alert boxes
 ---
 
+## 2026-01-14 - US-015.1: Connect Zoom account via OAuth
+- What was implemented:
+  - Updated `useIntegrationSync.ts` to properly detect Zoom OAuth connection status
+  - Added `zoom_oauth_access_token` and `zoom_oauth_token_expires` to the database query
+  - Updated the Zoom integration check from hardcoded `connected: false` to actual token validation
+  - Added proper Zoom sync support in `triggerManualSync` (calls `zoom-sync-meetings` edge function)
+  - The OAuth flow was already implemented:
+    - Button click initiates OAuth via `getZoomOAuthUrl()` in `InlineConnectionWizard.tsx`
+    - Zoom authorization page opens via redirect to Zoom
+    - Callback handled in `OAuthCallback.tsx` via `completeZoomOAuth()`
+    - Error messages shown on failure in both wizard and callback
+- Files changed:
+  - `src/hooks/useIntegrationSync.ts` - added Zoom OAuth token detection and sync support
+- **Learnings for future iterations:**
+  - Zoom OAuth tokens are stored in `user_settings` table with columns: `zoom_oauth_access_token`, `zoom_oauth_refresh_token`, `zoom_oauth_token_expires`, `zoom_oauth_state`
+  - Token validity is checked by comparing `zoom_oauth_token_expires > Date.now()`
+  - Unlike Google Meet, Zoom doesn't store an email - the `email` field remains `undefined` for Zoom
+  - The `zoom-sync-meetings` edge function handles manual sync for Zoom
+---
+
