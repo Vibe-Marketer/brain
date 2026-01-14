@@ -244,7 +244,7 @@ export function TagsTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-cb-ink-muted">
+      <p className="text-sm text-ink-muted">
         These are the system-wide tags that classify calls by type. Tags control which AI prompts
         and analysis run on each call.
       </p>
@@ -314,7 +314,7 @@ export function TagsTab() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{tag.name}</TableCell>
-                      <TableCell className="text-cb-ink-muted">
+                      <TableCell className="text-ink-muted">
                         {tag.description || "-"}
                       </TableCell>
                       <TableCell>

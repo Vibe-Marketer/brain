@@ -601,7 +601,7 @@ export function RulesTab() {
                     <div>
                       <div className="font-medium">{rule.name}</div>
                       {rule.description && (
-                        <div className="text-sm text-cb-ink-muted">{rule.description}</div>
+                        <div className="text-sm text-ink-muted">{rule.description}</div>
                       )}
                     </div>
                   </TableCell>
@@ -620,7 +620,7 @@ export function RulesTab() {
                         {getTagName(rule.tag_id)}
                       </div>
                     ) : (
-                      <span className="text-cb-ink-muted">—</span>
+                      <span className="text-ink-muted">—</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -633,7 +633,7 @@ export function RulesTab() {
                         {getFolderName(rule.folder_id)}
                       </div>
                     ) : (
-                      <span className="text-cb-ink-muted">—</span>
+                      <span className="text-ink-muted">—</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">

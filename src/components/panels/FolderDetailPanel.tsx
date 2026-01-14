@@ -222,12 +222,12 @@ export function FolderDetailPanel({
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-cb-ink">Folder Not Found</h3>
+          <h3 className="font-semibold text-ink">Folder Not Found</h3>
           <Button variant="ghost" size="sm" onClick={closePanel}>
             <RiCloseLine className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-sm text-cb-ink-muted">
+        <p className="text-sm text-ink-muted">
           The selected folder could not be found. It may have been deleted.
         </p>
       </div>
@@ -267,9 +267,9 @@ export function FolderDetailPanel({
             )}
           </div>
           <div className="min-w-0">
-            <h3 className="font-semibold text-cb-ink truncate" id="folder-panel-title">{folder.name}</h3>
+            <h3 className="font-semibold text-ink truncate" id="folder-panel-title">{folder.name}</h3>
             {folder.description && (
-              <p className="text-xs text-cb-ink-muted truncate">{folder.description}</p>
+              <p className="text-xs text-ink-muted truncate">{folder.description}</p>
             )}
           </div>
         </div>
@@ -282,7 +282,7 @@ export function FolderDetailPanel({
             aria-pressed={isPinned}
           >
             {isPinned ? (
-              <RiPushpinFill className="h-4 w-4 text-cb-ink" aria-hidden="true" />
+              <RiPushpinFill className="h-4 w-4 text-ink" aria-hidden="true" />
             ) : (
               <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
             )}
@@ -303,20 +303,20 @@ export function FolderDetailPanel({
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3" role="group" aria-label="Folder statistics">
           <div className="bg-cb-card rounded-lg p-3 border border-cb-border" aria-label={`${callCount} calls in this folder`}>
-            <div className="flex items-center gap-2 text-cb-ink-muted mb-1">
+            <div className="flex items-center gap-2 text-ink-muted mb-1">
               <RiPhoneLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Calls</span>
             </div>
-            <div className="text-2xl font-semibold text-cb-ink tabular-nums" aria-hidden="true">
+            <div className="text-2xl font-semibold text-ink tabular-nums" aria-hidden="true">
               {callCount}
             </div>
           </div>
           <div className="bg-cb-card rounded-lg p-3 border border-cb-border" aria-label={`Created on ${formatDate(folder.created_at)}`}>
-            <div className="flex items-center gap-2 text-cb-ink-muted mb-1">
+            <div className="flex items-center gap-2 text-ink-muted mb-1">
               <RiCalendarLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Created</span>
             </div>
-            <div className="text-sm font-medium text-cb-ink" aria-hidden="true">
+            <div className="text-sm font-medium text-ink" aria-hidden="true">
               {formatDate(folder.created_at)}
             </div>
           </div>
@@ -324,7 +324,7 @@ export function FolderDetailPanel({
 
         {/* Edit Form */}
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }} aria-label="Edit folder form">
-          <h4 className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide" id="edit-folder-heading">
+          <h4 className="text-xs font-semibold text-ink-soft uppercase tracking-wide" id="edit-folder-heading">
             Edit Folder
           </h4>
 
@@ -412,10 +412,10 @@ export function FolderDetailPanel({
 
         {/* Metadata */}
         <div className="space-y-2 pt-4 border-t border-cb-border">
-          <h4 className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
+          <h4 className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
             Details
           </h4>
-          <div className="text-sm text-cb-ink-muted space-y-1">
+          <div className="text-sm text-ink-muted space-y-1">
             <p>Created: {formatDate(folder.created_at)}</p>
             <p>Updated: {formatDate(folder.updated_at)}</p>
           </div>

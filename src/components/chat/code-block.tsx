@@ -88,7 +88,7 @@ export function CodeBlockCode({
         {copied ? (
           <RiCheckLine className="h-4 w-4 text-vibe-orange" />
         ) : (
-          <RiFileCopyLine className="h-4 w-4 text-cb-ink-muted" />
+          <RiFileCopyLine className="h-4 w-4 text-ink-muted" />
         )}
       </Button>
 
@@ -130,7 +130,7 @@ export function CodeBlockHeader({ language, filename, children, className, ...pr
       )}
       {...props}
     >
-      <div className="flex items-center gap-2 text-xs text-cb-ink-muted">
+      <div className="flex items-center gap-2 text-xs text-ink-muted">
         {filename && <span className="font-medium">{filename}</span>}
         {language && !filename && <span>{language}</span>}
       </div>

@@ -114,7 +114,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               'inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium',
               'border border-cb-border dark:border-cb-border-dark',
               'bg-white dark:bg-card',
-              'text-cb-ink dark:text-white',
+              'text-ink dark:text-white',
               'hover:bg-cb-hover dark:hover:bg-cb-panel-dark',
               'ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
               'disabled:pointer-events-none disabled:opacity-50',
@@ -136,8 +136,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               'inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium',
               'border border-cb-border-soft dark:border-cb-border-dark',
               'bg-transparent',
-              'text-cb-ink-soft dark:text-cb-text-dark-secondary',
-              'hover:bg-cb-hover hover:text-cb-ink hover:border-cb-border',
+              'text-ink-soft dark:text-cb-text-dark-secondary',
+              'hover:bg-cb-hover hover:text-ink hover:border-cb-border',
               'dark:hover:bg-cb-panel-dark dark:hover:text-white',
               'ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
               'disabled:pointer-events-none disabled:opacity-50',
@@ -157,8 +157,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             size === 'icon-sm' ? 'h-6 w-6' : 'h-8 w-8',
             'inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium',
             'bg-transparent',
-            'text-cb-ink-muted dark:text-cb-text-dark-secondary',
-            'hover:bg-cb-hover hover:text-cb-ink',
+            'text-ink-muted dark:text-cb-text-dark-secondary',
+            'hover:bg-cb-hover hover:text-ink',
             'dark:hover:bg-cb-panel-dark dark:hover:text-white',
             'ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
             'disabled:pointer-events-none disabled:opacity-50',
@@ -177,7 +177,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           ref={ref}
           className={cn(
             'bg-transparent border-none underline-offset-4 cursor-pointer font-medium p-0 h-auto',
-            'text-cb-ink dark:text-white',
+            'text-ink dark:text-white',
             'hover:underline inline-flex items-center justify-center',
             className
           )}
@@ -194,7 +194,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           className={cn(
             'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors',
             'border bg-white dark:bg-card',
-            'text-cb-ink dark:text-white',
+            'text-ink dark:text-white',
             'border-cb-border dark:border-cb-border-dark',
             'hover:bg-cb-hover dark:hover:bg-cb-panel-dark',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
@@ -219,9 +219,9 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           className={cn(
             'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-all',
             'border bg-transparent',
-            'text-cb-ink-soft dark:text-cb-text-dark-secondary',
+            'text-ink-soft dark:text-cb-text-dark-secondary',
             'border-cb-border-soft dark:border-cb-border-dark',
-            'hover:bg-cb-hover hover:text-cb-ink hover:border-cb-border',
+            'hover:bg-cb-hover hover:text-ink hover:border-cb-border',
             'dark:hover:bg-cb-panel-dark dark:hover:text-white dark:hover:border-cb-border-dark',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
             'disabled:pointer-events-none disabled:opacity-50',
@@ -245,8 +245,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           className={cn(
             'inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium transition-colors',
             'bg-transparent',
-            'text-cb-ink-muted dark:text-cb-text-dark-secondary',
-            'hover:bg-cb-hover hover:text-cb-ink',
+            'text-ink-muted dark:text-cb-text-dark-secondary',
+            'hover:bg-cb-hover hover:text-ink',
             'dark:hover:bg-cb-panel-dark dark:hover:text-white',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
             'disabled:pointer-events-none disabled:opacity-50',

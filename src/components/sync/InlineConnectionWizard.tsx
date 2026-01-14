@@ -34,7 +34,7 @@ function StepCard({ icon, title, description }: StepCardProps) {
       <div className="text-vibe-orange">{icon}</div>
       <div>
         <p className="font-medium text-sm">{title}</p>
-        <p className="text-xs text-cb-ink-muted">{description}</p>
+        <p className="text-xs text-ink-muted">{description}</p>
       </div>
     </div>
   );
@@ -175,7 +175,7 @@ export function InlineConnectionWizard({
           />
         ))}
       </div>
-      <p className="text-xs text-cb-ink-muted">
+      <p className="text-xs text-ink-muted">
         Just 2 quick steps - review requirements and authorize.
       </p>
     </div>
@@ -246,7 +246,7 @@ export function InlineConnectionWizard({
         </Button>
       </div>
 
-      <p className="text-xs text-cb-ink-muted text-center">
+      <p className="text-xs text-ink-muted text-center">
         You'll sign in, authorize CallVault, then return here.
       </p>
     </div>
@@ -287,7 +287,7 @@ export function InlineConnectionWizard({
           <div className={config.color}>{config.icon}</div>
           <div>
             <h3 className="font-medium">{steps[currentStep].title}</h3>
-            <p className="text-xs text-cb-ink-muted">
+            <p className="text-xs text-ink-muted">
               Step {currentStep + 1} of {steps.length}
             </p>
           </div>

@@ -304,7 +304,7 @@ export function FoldersTab() {
                     </span>
                   )}
                   {!isEditing && folder.description && (
-                    <span className="text-cb-ink-muted text-xs">- {folder.description}</span>
+                    <span className="text-ink-muted text-xs">- {folder.description}</span>
                   )}
                 </div>
               </TableCell>
@@ -407,7 +407,7 @@ export function FoldersTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-cb-ink-muted">
+      <p className="text-sm text-ink-muted">
         Folders organize your calls for easy browsing. Folder assignment has no effect on AI analysis - only tags control that.
       </p>
 

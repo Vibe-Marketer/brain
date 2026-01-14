@@ -201,7 +201,7 @@ export default function AdminTab() {
                 }}
               />
               <div className="flex items-center gap-3 mb-2">
-                <RiGroupLine className="h-5 w-5 text-cb-ink-muted" />
+                <RiGroupLine className="h-5 w-5 text-ink-muted" />
                 <p className="text-xs font-medium text-muted-foreground">Total Users</p>
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.totalUsers}</p>
@@ -214,7 +214,7 @@ export default function AdminTab() {
                 }}
               />
               <div className="flex items-center gap-3 mb-2">
-                <RiPulseLine className="h-5 w-5 text-cb-ink-muted" />
+                <RiPulseLine className="h-5 w-5 text-ink-muted" />
                 <p className="text-xs font-medium text-muted-foreground">Active Users</p>
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.activeUsers}</p>
@@ -227,7 +227,7 @@ export default function AdminTab() {
                 }}
               />
               <div className="flex items-center gap-3 mb-2">
-                <RiCheckboxCircleLine className="h-5 w-5 text-cb-ink-muted" />
+                <RiCheckboxCircleLine className="h-5 w-5 text-ink-muted" />
                 <p className="text-xs font-medium text-muted-foreground">Setup Complete</p>
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.completedSetup}</p>

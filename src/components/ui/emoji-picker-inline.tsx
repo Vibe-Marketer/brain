@@ -77,7 +77,7 @@ export function EmojiPickerInline({ value, onChange, className }: EmojiPickerInl
             type="button"
             className={cn(
               "h-7 px-2 flex-shrink-0 flex items-center gap-0.5 rounded text-xs",
-              "bg-cb-hover hover:bg-cb-border text-cb-ink-soft transition-colors"
+              "bg-cb-hover hover:bg-cb-border text-ink-soft transition-colors"
             )}
           >
             More

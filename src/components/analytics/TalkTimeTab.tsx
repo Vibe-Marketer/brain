@@ -55,7 +55,7 @@ function RoleCard({ role, percentage, label }: TalkTimeRoleCard) {
 function CategoryRow({ category, hostPercent, othersPercent }: { category: string; hostPercent: number; othersPercent: number }) {
   return (
     <div className="flex items-center py-2 border-b border-cb-border dark:border-cb-border-dark last:border-0">
-      <div className="w-40 text-sm text-cb-ink dark:text-cb-white truncate">{category}</div>
+      <div className="w-40 text-sm text-ink dark:text-cb-white truncate">{category}</div>
       <div className="flex-1 flex items-center gap-2">
         <div className="flex-1 h-6 bg-cb-hover dark:bg-cb-border-dark rounded overflow-hidden flex">
           <div
@@ -67,7 +67,7 @@ function CategoryRow({ category, hostPercent, othersPercent }: { category: strin
             style={{ width: `${othersPercent}%` }}
           />
         </div>
-        <div className="w-20 text-right text-sm tabular-nums text-cb-ink-soft dark:text-cb-gray-light">
+        <div className="w-20 text-right text-sm tabular-nums text-ink-soft dark:text-cb-gray-light">
           {hostPercent}% / {othersPercent}%
         </div>
       </div>
@@ -97,9 +97,9 @@ export function TalkTimeTab() {
   if (!analytics || analytics.totalCalls === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <RiMicLine className="w-12 h-12 text-cb-ink-muted" />
+        <RiMicLine className="w-12 h-12 text-ink-muted" />
         <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">No call data available yet</p>
-        <p className="text-xs text-cb-ink-muted">Sync your calls to see talk time analytics</p>
+        <p className="text-xs text-ink-muted">Sync your calls to see talk time analytics</p>
       </div>
     );
   }
@@ -117,7 +117,7 @@ export function TalkTimeTab() {
       {/* KPI Section */}
       <div className="px-2 pb-2">
         <h3 className="font-display text-sm font-bold text-cb-black dark:text-cb-white uppercase tracking-wider mb-4 flex items-center gap-2">
-          <RiTimeLine className="w-4 h-4 text-cb-ink-muted" />
+          <RiTimeLine className="w-4 h-4 text-ink-muted" />
           KEY METRICS
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -144,7 +144,7 @@ export function TalkTimeTab() {
       {/* Talk Time by Role Section */}
       <div className="px-2 pb-2">
         <h3 className="font-display text-sm font-bold text-cb-black dark:text-cb-white uppercase tracking-wider mb-4 flex items-center gap-2">
-          <RiUserLine className="w-4 h-4 text-cb-ink-muted" />
+          <RiUserLine className="w-4 h-4 text-ink-muted" />
           TALK TIME BY ROLE
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -159,11 +159,11 @@ export function TalkTimeTab() {
       {/* Talk Time by Category Section */}
       <div className="px-2 pb-2">
         <h3 className="font-display text-sm font-bold text-cb-black dark:text-cb-white uppercase tracking-wider mb-4 flex items-center gap-2">
-          <RiBarChartLine className="w-4 h-4 text-cb-ink-muted" />
+          <RiBarChartLine className="w-4 h-4 text-ink-muted" />
           TALK TIME BY CATEGORY
         </h3>
         <div className="bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg p-4">
-          <div className="flex items-center gap-4 mb-4 text-xs text-cb-ink-muted">
+          <div className="flex items-center gap-4 mb-4 text-xs text-ink-muted">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-vibe-orange" />
               <span>Host</span>
@@ -184,17 +184,17 @@ export function TalkTimeTab() {
       {/* Stacked Bar Chart Placeholder */}
       <div className="px-2 pb-6">
         <h3 className="font-display text-sm font-bold text-cb-black dark:text-cb-white uppercase tracking-wider mb-4 flex items-center gap-2">
-          <RiBarChartLine className="w-4 h-4 text-cb-ink-muted" />
+          <RiBarChartLine className="w-4 h-4 text-ink-muted" />
           TALK TIME DISTRIBUTION
         </h3>
         <div className="bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg p-6">
           <div className="h-[200px] flex items-center justify-center">
             <div className="text-center">
-              <RiBarChartLine className="w-12 h-12 text-cb-ink-muted mx-auto mb-3" />
+              <RiBarChartLine className="w-12 h-12 text-ink-muted mx-auto mb-3" />
               <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
                 Stacked Bar Chart
               </p>
-              <p className="text-xs text-cb-ink-muted mt-1">
+              <p className="text-xs text-ink-muted mt-1">
                 Talk time distribution by role over time
               </p>
             </div>

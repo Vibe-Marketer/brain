@@ -21,7 +21,7 @@ export function CallParticipantsTab({ callSpeakers, hasTranscripts }: CallPartic
           <div className="space-y-6">
             <div>
               <h3 className="font-display text-sm font-extrabold uppercase mb-2">PARTICIPANTS ({callSpeakers?.length || 0})</h3>
-              <p className="text-sm text-cb-ink-muted mb-4">People who actually spoke during this meeting</p>
+              <p className="text-sm text-ink-muted mb-4">People who actually spoke during this meeting</p>
             </div>
             {callSpeakers && callSpeakers.length > 0 ? (
               <div className="space-y-3">
@@ -42,7 +42,7 @@ export function CallParticipantsTab({ callSpeakers, hasTranscripts }: CallPartic
                     <div className="flex-1">
                       <p className="font-medium">{speaker.speaker_name || "Unknown"}</p>
                       {speaker.speaker_email && (
-                        <p className="text-sm text-cb-ink-muted">{speaker.speaker_email}</p>
+                        <p className="text-sm text-ink-muted">{speaker.speaker_email}</p>
                       )}
                       <Badge variant="secondary" className="mt-2">Spoke in Meeting</Badge>
                     </div>
@@ -51,7 +51,7 @@ export function CallParticipantsTab({ callSpeakers, hasTranscripts }: CallPartic
               </div>
             ) : (
               <div className="text-center py-8">
-                <p className="text-cb-ink-muted">
+                <p className="text-ink-muted">
                   {hasTranscripts
                     ? "Unable to identify speakers for this call"
                     : "No transcript data available for this meeting"}

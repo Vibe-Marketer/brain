@@ -23,7 +23,7 @@ export function CallInviteesTab({ calendarInvitees }: CallInviteesTabProps) {
             <div className="space-y-6">
               <div>
                 <h3 className="font-display text-sm font-extrabold uppercase mb-2">MEETING INVITEES ({calendarInvitees.length})</h3>
-                <p className="text-sm text-cb-ink-muted mb-4">People who were invited to this meeting via calendar invite</p>
+                <p className="text-sm text-ink-muted mb-4">People who were invited to this meeting via calendar invite</p>
               </div>
               <div className="space-y-3">
                 {calendarInvitees.map((invitee, idx) => (
@@ -42,7 +42,7 @@ export function CallInviteesTab({ calendarInvitees }: CallInviteesTabProps) {
                     </Avatar>
                     <div className="flex-1">
                       <p className="font-medium">{invitee.name}</p>
-                      <p className="text-sm text-cb-ink-muted">{invitee.email}</p>
+                      <p className="text-sm text-ink-muted">{invitee.email}</p>
                       <div className="flex gap-2 mt-2">
                         {invitee.is_external ? (
                           <Badge variant="hollow">External</Badge>
@@ -60,7 +60,7 @@ export function CallInviteesTab({ calendarInvitees }: CallInviteesTabProps) {
             </div>
           ) : (
             <div className="text-center py-8">
-              <p className="text-cb-ink-muted">No invitee data available for this meeting</p>
+              <p className="text-ink-muted">No invitee data available for this meeting</p>
             </div>
           )}
         </div>

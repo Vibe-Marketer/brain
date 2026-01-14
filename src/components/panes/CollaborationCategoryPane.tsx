@@ -181,12 +181,12 @@ export function CollaborationCategoryPane({
         </div>
         <div className="min-w-0">
           <h2
-            className="text-sm font-semibold text-cb-ink uppercase tracking-wide"
+            className="text-sm font-semibold text-ink uppercase tracking-wide"
             id="collaboration-category-title"
           >
             Collaboration
           </h2>
-          <p className="text-xs text-cb-ink-muted">
+          <p className="text-xs text-ink-muted">
             {visibleCategories.length} {visibleCategories.length === 1 ? 'category' : 'categories'}
           </p>
         </div>
@@ -259,7 +259,7 @@ export function CollaborationCategoryPane({
                       "h-4 w-4 transition-colors duration-200 ease-in-out",
                       isActive
                         ? "text-vibe-orange"
-                        : "text-cb-ink-muted"
+                        : "text-ink-muted"
                     )}
                   />
                 </div>
@@ -270,12 +270,12 @@ export function CollaborationCategoryPane({
                     className={cn(
                       "block text-sm font-medium truncate",
                       "transition-colors duration-200 ease-in-out",
-                      isActive ? "text-vibe-orange" : "text-cb-ink"
+                      isActive ? "text-vibe-orange" : "text-ink"
                     )}
                   >
                     {category.label}
                   </span>
-                  <span className="block text-xs text-cb-ink-muted truncate">
+                  <span className="block text-xs text-ink-muted truncate">
                     {category.description}
                   </span>
                 </div>

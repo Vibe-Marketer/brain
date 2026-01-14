@@ -152,7 +152,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
         <div className="flex items-center justify-center min-h-[200px] p-8">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vibe-orange mx-auto mb-4" />
-            <p className="text-cb-ink-muted">
+            <p className="text-ink-muted">
               Reloading updated content... (attempt {this.state.retryCount + 1}/{this.maxRetries})
             </p>
           </div>

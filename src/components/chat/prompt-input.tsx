@@ -133,7 +133,7 @@ export const PromptInputTextarea = React.forwardRef<HTMLTextAreaElement, PromptI
       className={cn(
         'w-full resize-none bg-transparent px-5 py-4 min-h-[52px]',
         'border-0 outline-none ring-0',
-        'text-sm text-cb-ink placeholder:text-cb-ink-muted',
+        'text-sm text-ink placeholder:text-ink-muted',
         'focus:outline-none focus:ring-0 focus:border-0',
         'disabled:cursor-not-allowed disabled:opacity-50',
         'font-sans font-light',
@@ -293,8 +293,8 @@ export function PromptInputContextBar({
                 'transition-all duration-150 cursor-pointer select-none'
               )}
             >
-              <RiAddLine className="h-3.5 w-3.5 text-cb-ink-muted group-hover:text-cb-ink transition-colors" />
-              <span className="text-xs text-cb-ink-muted group-hover:text-cb-ink transition-colors">
+              <RiAddLine className="h-3.5 w-3.5 text-ink-muted group-hover:text-ink transition-colors" />
+              <span className="text-xs text-ink-muted group-hover:text-ink transition-colors">
                 Add context
               </span>
             </button>
@@ -307,7 +307,7 @@ export function PromptInputContextBar({
           >
             <div className="p-3 border-b border-cb-border">
               <div className="relative">
-                <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cb-ink-muted" />
+                <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
                 <input
                   type="text"
                   id="context-search-input"
@@ -318,7 +318,7 @@ export function PromptInputContextBar({
                   className={cn(
                     'w-full pl-8 pr-3 py-2 rounded-lg',
                     'border border-cb-border bg-card',
-                    'text-sm text-cb-ink placeholder:text-cb-ink-muted',
+                    'text-sm text-ink placeholder:text-ink-muted',
                     'focus:outline-none focus:ring-2 focus:ring-vibe-orange/50 focus:border-transparent',
                     'transition-all duration-150'
                   )}
@@ -345,12 +345,12 @@ export function PromptInputContextBar({
                               : 'hover:bg-cb-hover cursor-pointer'
                           )}
                         >
-                          <RiVideoLine className="h-4 w-4 text-cb-ink-muted flex-shrink-0 mt-0.5" />
+                          <RiVideoLine className="h-4 w-4 text-ink-muted flex-shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm text-cb-ink truncate font-medium">
+                            <p className="text-sm text-ink truncate font-medium">
                               {call.title}
                             </p>
-                            <p className="text-xs text-cb-ink-muted">
+                            <p className="text-xs text-ink-muted">
                               {format(new Date(call.created_at), 'MMM d, yyyy')}
                               {attached && ' • Already added'}
                             </p>
@@ -361,7 +361,7 @@ export function PromptInputContextBar({
                   </div>
                 ) : (
                   <div className="py-6 text-center">
-                    <p className="text-sm text-cb-ink-muted">
+                    <p className="text-sm text-ink-muted">
                       {searchQuery ? 'No calls found' : 'No calls available'}
                     </p>
                   </div>
@@ -389,11 +389,11 @@ function ContextAttachmentPill({ attachment, onRemove }: ContextAttachmentPillPr
       className={cn(
         'group flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-full',
         'bg-cb-hover border border-cb-border',
-        'text-xs text-cb-ink',
+        'text-xs text-ink',
         'transition-all duration-150'
       )}
     >
-      <RiVideoLine className="h-3 w-3 text-cb-ink-muted flex-shrink-0" />
+      <RiVideoLine className="h-3 w-3 text-ink-muted flex-shrink-0" />
       <span className="max-w-[150px] truncate font-medium">{attachment.title}</span>
       {onRemove && (
         <button
@@ -402,7 +402,7 @@ function ContextAttachmentPill({ attachment, onRemove }: ContextAttachmentPillPr
           data-testid="remove-context-attachment"
           className={cn(
             'h-4 w-4 flex items-center justify-center rounded-full',
-            'text-cb-ink-muted hover:text-cb-ink hover:bg-cb-border',
+            'text-ink-muted hover:text-ink hover:bg-cb-border',
             'transition-colors duration-150'
           )}
           aria-label={`Remove ${attachment.title}`}
@@ -470,7 +470,7 @@ export function PromptInputHintBar({ children, className, ...props }: PromptInpu
     <div
       className={cn(
         'flex items-center justify-between w-full',
-        'text-[11px] text-cb-ink-muted select-none',
+        'text-[11px] text-ink-muted select-none',
         'pt-1.5 px-1',
         className
       )}

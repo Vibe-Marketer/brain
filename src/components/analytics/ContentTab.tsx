@@ -58,7 +58,7 @@ function StatCard({
         <div className="text-xs font-medium text-cb-gray-dark dark:text-cb-gray-light">
           {label}
         </div>
-        <Icon className="h-4 w-4 text-cb-ink-muted" />
+        <Icon className="h-4 w-4 text-ink-muted" />
       </div>
       <div className="font-display text-2xl font-extrabold text-cb-black dark:text-cb-white">
         {value}
@@ -165,7 +165,7 @@ export function ContentTab({ isLoading = false }: ContentTabProps) {
         {analytics.clips.length === 0 ? (
           // Empty state
           <div className="flex flex-col items-center justify-center py-16 bg-cb-bg-gray dark:bg-cb-panel-dark rounded-lg">
-            <RiFilmLine className="h-12 w-12 text-cb-ink-muted mb-4" />
+            <RiFilmLine className="h-12 w-12 text-ink-muted mb-4" />
             <p className="text-lg font-medium text-cb-black dark:text-cb-white mb-2">
               No clips created yet
             </p>

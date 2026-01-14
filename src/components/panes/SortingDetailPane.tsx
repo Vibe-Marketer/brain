@@ -269,12 +269,12 @@ export function SortingDetailPane({
           {/* Category title and description */}
           <div className="min-w-0">
             <h2
-              className="text-sm font-semibold text-cb-ink truncate"
+              className="text-sm font-semibold text-ink truncate"
               id="sorting-detail-title"
             >
               {meta.label}
             </h2>
-            <p className="text-xs text-cb-ink-muted truncate">
+            <p className="text-xs text-ink-muted truncate">
               {meta.description}
             </p>
           </div>

@@ -73,7 +73,7 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
       </CardHeader>
       <CardContent className="px-0 pb-0">
         {isLoading ? (
-          <div className="p-4 text-center text-cb-ink-muted">
+          <div className="p-4 text-center text-ink-muted">
             Loading integrations...
           </div>
         ) : (
@@ -113,7 +113,7 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
             {/* Empty state */}
             {integrations.length === 0 && (
               <div className="p-6 text-center">
-                <p className="text-cb-ink-muted mb-4">
+                <p className="text-ink-muted mb-4">
                   No integrations configured yet.
                 </p>
                 <AddIntegrationButton

@@ -225,7 +225,7 @@ export function FilterBar({
             variant="link"
             size="sm"
             onClick={handleClearAll}
-            className="h-8 text-xs text-cb-ink-soft hover:text-cb-ink dark:text-cb-text-dark-secondary dark:hover:text-white px-2"
+            className="h-8 text-xs text-ink-soft hover:text-ink dark:text-cb-text-dark-secondary dark:hover:text-white px-2"
           >
             Clear all
           </Button>

@@ -228,12 +228,12 @@ export function ContentCategoryPane({
         </div>
         <div className="min-w-0">
           <h2
-            className="text-sm font-semibold text-cb-ink uppercase tracking-wide"
+            className="text-sm font-semibold text-ink uppercase tracking-wide"
             id="content-category-title"
           >
             Content Hub
           </h2>
-          <p className="text-xs text-cb-ink-muted">
+          <p className="text-xs text-ink-muted">
             Create & manage content
           </p>
         </div>
@@ -302,7 +302,7 @@ export function ContentCategoryPane({
                   <IconComponent
                     className={cn(
                       "h-4 w-4 transition-colors duration-200 ease-in-out",
-                      isActive ? "text-vibe-orange" : "text-cb-ink-muted"
+                      isActive ? "text-vibe-orange" : "text-ink-muted"
                     )}
                   />
                 </div>
@@ -314,7 +314,7 @@ export function ContentCategoryPane({
                       className={cn(
                         "block text-sm font-medium truncate",
                         "transition-colors duration-200 ease-in-out",
-                        isActive ? "text-vibe-orange" : "text-cb-ink"
+                        isActive ? "text-vibe-orange" : "text-ink"
                       )}
                     >
                       {category.label}
@@ -323,7 +323,7 @@ export function ContentCategoryPane({
                       <span
                         className={cn(
                           "flex-shrink-0 text-xs tabular-nums",
-                          isActive ? "text-vibe-orange/70" : "text-cb-ink-muted"
+                          isActive ? "text-vibe-orange/70" : "text-ink-muted"
                         )}
                         aria-hidden="true"
                       >
@@ -331,7 +331,7 @@ export function ContentCategoryPane({
                       </span>
                     )}
                   </div>
-                  <span className="block text-xs text-cb-ink-muted truncate">
+                  <span className="block text-xs text-ink-muted truncate">
                     {category.description}
                   </span>
                 </div>
@@ -371,14 +371,14 @@ export function ContentCategoryPane({
       <div className="flex-shrink-0 border-t border-cb-border bg-cb-card/30 px-4 py-3">
         <div className="flex items-start gap-2">
           <RiLightbulbLine
-            className="h-4 w-4 text-cb-ink-muted flex-shrink-0 mt-0.5"
+            className="h-4 w-4 text-ink-muted flex-shrink-0 mt-0.5"
             aria-hidden="true"
           />
           <div className="min-w-0">
-            <p className="text-xs font-medium text-cb-ink-muted uppercase tracking-wide mb-1">
+            <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
               Quick Tip
             </p>
-            <p className="text-xs text-cb-ink-muted leading-relaxed">
+            <p className="text-xs text-ink-muted leading-relaxed">
               {currentTip}
             </p>
           </div>

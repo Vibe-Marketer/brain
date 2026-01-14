@@ -65,7 +65,7 @@ interface ChatLoadingProps {
 export function ChatLoading({ className }: ChatLoadingProps) {
   return (
     <div className={cn('flex flex-col items-center justify-center py-12', className)}>
-      <div className="flex items-center gap-2 text-cb-ink-muted">
+      <div className="flex items-center gap-2 text-ink-muted">
         <div className="flex items-center gap-1">
           {[0, 1, 2].map((i) => (
             <span

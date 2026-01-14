@@ -191,7 +191,7 @@ export function ModelSelector({
       <div className={cn(
         'flex items-center gap-1.5 px-2.5 py-1.5 h-[28px]',
         'rounded-xl border border-cb-border-soft/50',
-        'bg-transparent text-xs text-cb-ink-muted',
+        'bg-transparent text-xs text-ink-muted',
         className
       )}>
         <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
@@ -205,7 +205,7 @@ export function ModelSelector({
       <div className={cn(
         'flex items-center gap-1.5 px-2.5 py-1.5 h-[28px]',
         'rounded-xl border border-cb-border-soft/50',
-        'bg-transparent text-xs text-cb-ink-muted',
+        'bg-transparent text-xs text-ink-muted',
         className
       )}>
         <span>{error || 'No models available'}</span>
@@ -223,7 +223,7 @@ export function ModelSelector({
             'flex items-center gap-1.5 px-2.5 py-1.5 h-[28px] max-w-[200px]',
             'rounded-xl border border-cb-border-soft/50',
             'bg-transparent hover:bg-cb-hover',
-            'text-xs text-cb-ink-soft hover:text-cb-ink',
+            'text-xs text-ink-soft hover:text-ink',
             'transition-all duration-150 cursor-pointer select-none',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-1',
             'disabled:cursor-not-allowed disabled:opacity-50',
@@ -232,14 +232,14 @@ export function ModelSelector({
         >
           <ProviderIcon provider={selectedModel.provider} />
           <span className="truncate font-medium">{selectedModel.name}</span>
-          <RiArrowDownSLine className="h-3.5 w-3.5 text-cb-ink-muted flex-shrink-0" />
+          <RiArrowDownSLine className="h-3.5 w-3.5 text-ink-muted flex-shrink-0" />
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[240px] max-h-[400px] overflow-y-auto">
         {providers.map((provider, idx) => (
           <React.Fragment key={provider}>
             {idx > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuLabel className="flex items-center gap-2 text-[10px] uppercase text-cb-ink-muted">
+            <DropdownMenuLabel className="flex items-center gap-2 text-[10px] uppercase text-ink-muted">
               <ProviderIcon provider={provider} className="h-3 w-3" />
               {providerDisplayNames[provider] || provider}
             </DropdownMenuLabel>
@@ -293,7 +293,7 @@ export function ModelBadge({ modelId, className }: ModelBadgeProps) {
       className={cn(
         'flex items-center gap-1.5 px-2.5 py-1 h-[26px]',
         'rounded-xl border border-cb-border-soft/50 bg-cb-hover/50',
-        'text-xs text-cb-ink-soft select-none',
+        'text-xs text-ink-soft select-none',
         className
       )}
     >

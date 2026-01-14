@@ -383,7 +383,7 @@ export default function AITab() {
 
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 mt-1">
-              <RiRobot2Line className="h-6 w-6 text-cb-ink-muted" />
+              <RiRobot2Line className="h-6 w-6 text-ink-muted" />
             </div>
 
             <div className="flex-1 space-y-4">
@@ -475,7 +475,7 @@ export default function AITab() {
 
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 mt-1">
-              <RiSparklingLine className="h-6 w-6 text-cb-ink-muted" />
+              <RiSparklingLine className="h-6 w-6 text-ink-muted" />
             </div>
 
             <div className="flex-1 space-y-4">

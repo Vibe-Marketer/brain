@@ -158,7 +158,7 @@ export function ParticipationTab() {
               Attendees Over Time
             </h4>
             <div className="flex flex-col items-center justify-center h-[200px] bg-cb-hover dark:bg-cb-hover-dark rounded-lg">
-              <RiLineChartLine className="w-12 h-12 text-cb-ink-muted mb-2" />
+              <RiLineChartLine className="w-12 h-12 text-ink-muted mb-2" />
               <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
                 Trend chart placeholder
               </p>
@@ -181,7 +181,7 @@ export function ParticipationTab() {
                 Solo vs Multi-Speaker Calls
               </h4>
               <div className="flex flex-col items-center justify-center h-[200px] bg-cb-hover dark:bg-cb-hover-dark rounded-lg">
-                <RiPieChartLine className="w-12 h-12 text-cb-ink-muted mb-2" />
+                <RiPieChartLine className="w-12 h-12 text-ink-muted mb-2" />
                 <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
                   Pie chart placeholder
                 </p>
