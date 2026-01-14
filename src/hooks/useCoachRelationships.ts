@@ -287,6 +287,35 @@ export function useCoachRelationships(options: UseCoachRelationshipsOptions): Us
         throw new Error("User ID is required to invite coachee");
       }
 
+      // Check if there's already a pending invite from this coach
+      const { data: existingInvite } = await supabase
+        .from("coach_relationships")
+        .select("id, invite_token, invite_expires_at")
+        .eq("coach_user_id", userId)
+        .eq("coachee_user_id", userId)
+        .eq("status", "pending")
+        .eq("invited_by", "coach")
+        .maybeSingle();
+
+      // If there's a valid existing invite, return it
+      if (existingInvite && existingInvite.invite_token) {
+        const expiresAt = existingInvite.invite_expires_at ? new Date(existingInvite.invite_expires_at) : null;
+        const isExpired = expiresAt && expiresAt < new Date();
+
+        if (!isExpired) {
+          const inviteUrl = `${window.location.origin}/coach/join/${existingInvite.invite_token}`;
+          logger.info("Returning existing coachee invite", { relationshipId: existingInvite.id });
+          return { invite_token: existingInvite.invite_token, invite_url: inviteUrl };
+        }
+
+        // Delete expired invite
+        await supabase
+          .from("coach_relationships")
+          .delete()
+          .eq("id", existingInvite.id);
+      }
+
+      // Create new invite
       const inviteToken = generateInviteToken();
       const inviteExpiresAt = getInviteExpiration();
 
