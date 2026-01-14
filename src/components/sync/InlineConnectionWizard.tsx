@@ -13,7 +13,7 @@ import {
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { getGoogleOAuthUrl, getFathomOAuthUrl } from "@/lib/api-client";
+import { getGoogleOAuthUrl, getFathomOAuthUrl, getZoomOAuthUrl } from "@/lib/api-client";
 import { type IntegrationPlatform } from "./IntegrationSyncPane";
 
 interface InlineConnectionWizardProps {
@@ -58,6 +58,8 @@ export function InlineConnectionWizard({
         response = await getGoogleOAuthUrl();
       } else if (platform === "fathom") {
         response = await getFathomOAuthUrl();
+      } else if (platform === "zoom") {
+        response = await getZoomOAuthUrl();
       } else {
         throw new Error(`Unsupported platform: ${platform}`);
       }
@@ -73,7 +75,8 @@ export function InlineConnectionWizard({
       }
     } catch (error) {
       logger.error(`Failed to get ${platform} OAuth URL`, error);
-      toast.error(`Failed to connect to ${platform === 'google_meet' ? 'Google' : 'Fathom'}`);
+      const platformName = platform === 'google_meet' ? 'Google' : platform === 'zoom' ? 'Zoom' : 'Fathom';
+      toast.error(`Failed to connect to ${platformName}`);
       setConnecting(false);
     }
   };
@@ -151,9 +154,38 @@ export function InlineConnectionWizard({
       name: "Zoom",
       icon: <RiVideoLine className="h-6 w-6" />,
       color: "text-sky-600 dark:text-sky-400",
-      features: [],
-      warningTitle: "",
-      warningContent: null,
+      features: [
+        {
+          icon: <RiVideoLine className="h-4 w-4" />,
+          title: "Cloud Recordings",
+          description: "Access your Zoom cloud recordings",
+        },
+        {
+          icon: <RiFlashlightLine className="h-4 w-4" />,
+          title: "Transcripts",
+          description: "Import Zoom's auto-generated transcripts",
+        },
+        {
+          icon: <RiCalendarLine className="h-4 w-4" />,
+          title: "Meeting Details",
+          description: "Sync participants, dates, and duration",
+        },
+      ],
+      warningTitle: "Cloud Recording Required",
+      warningContent: (
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Zoom cloud recording is required for importing recordings. This feature is available on:
+          </p>
+          <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+            <li>Zoom Pro, Business, Education, or Enterprise plans</li>
+            <li>Accounts with cloud recording enabled by admin</li>
+          </ul>
+          <p className="text-sm text-muted-foreground">
+            Local recordings cannot be imported automatically.
+          </p>
+        </div>
+      ),
     },
   };
 
@@ -181,7 +213,7 @@ export function InlineConnectionWizard({
     </div>
   );
 
-  const renderWarningStep = () => (
+  const renderRequirementsStep = () => (
     <div className="space-y-4">
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4">
         <div className="flex items-start gap-3">
@@ -205,30 +237,11 @@ export function InlineConnectionWizard({
           I understand the requirements
         </label>
       </div>
-    </div>
-  );
 
-  const renderConnectStep = () => (
-    <div className="space-y-4">
-      <div className="space-y-2 text-sm text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span className="text-success">✓</span>
-          <span>Requirements reviewed</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-success">✓</span>
-          <span>Permissions understood</span>
-        </div>
-      </div>
-
-      <p className="text-sm text-muted-foreground">
-        Click below to authorize CallVault. You'll be redirected to {config.name}'s login page.
-      </p>
-
-      <div className="flex justify-center py-2">
+      <div className="flex justify-center pt-2">
         <Button
           onClick={handleOAuthConnect}
-          disabled={connecting}
+          disabled={!acknowledgedWarning || connecting}
           size="lg"
           className="px-8"
         >
@@ -254,14 +267,11 @@ export function InlineConnectionWizard({
 
   const steps = [
     { title: `Connect ${config.name}`, render: renderWelcomeStep },
-    { title: "Important Information", render: renderWarningStep },
-    { title: "Authorize", render: renderConnectStep },
+    { title: "Review & Connect", render: renderRequirementsStep },
   ];
 
   const canProceed = () => {
-    if (currentStep === 1) {
-      return acknowledgedWarning;
-    }
+    // Step 0 (welcome) can always proceed
     return true;
   };
 
