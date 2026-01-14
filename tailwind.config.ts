@@ -128,7 +128,6 @@ export default {
           bg: "hsl(var(--cb-warning-bg))",
           text: "hsl(var(--cb-warning-text))",
           border: "hsl(var(--cb-warning-border))",
-          border: "hsl(var(--cb-warning-border))",
         },
         error: {
           DEFAULT: "hsl(var(--destructive))",
