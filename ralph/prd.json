@@ -224,7 +224,7 @@
         "Button disabled until acknowledgment",
         "Single step from requirements to OAuth"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-018.1",

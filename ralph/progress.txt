@@ -276,3 +276,21 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - FathomIcon is available from SourcePlatformIcons.tsx and can be used at any size via className (e.g., h-5 w-5)
 ---
 
+## 2026-01-14 - US-017.1: Google Meet connect button on requirements page
+- What was implemented:
+  - Verified this story was already completed during US-013.1 and US-014.1 implementation
+  - The InlineConnectionWizard already has all requirements in place:
+    - No separate confirmation screen - all content in a single view (lines 324-414)
+    - Connect button on same page as requirements (button at lines 364-381, requirements at 383-392)
+    - No acknowledgment checkbox required - requirements are just displayed (improved from original spec)
+    - Single step from requirements to OAuth - button directly calls handleOAuthConnect
+- Files changed:
+  - `ralph/prd.json` - marked US-017.1 as passing
+- **Learnings for future iterations:**
+  - Sometimes multiple related stories implement overlapping functionality
+  - US-013.1 (minimal clicks) removed the acknowledgment checkbox
+  - US-014.1 (display requirements) made them always visible
+  - US-017.1 (connect on requirements page) was completed as a result of those changes
+  - When a story is already implemented, just verify all acceptance criteria are met and mark it as passing
+---
+
