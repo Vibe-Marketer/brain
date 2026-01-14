@@ -213,11 +213,11 @@ export function useCoachRelationships(options: UseCoachRelationshipsOptions): Us
         throw new Error("You already have an active relationship with this coach");
       }
 
-      // For now, we create a pending relationship
-      // In production, this would send an email invitation
+      // Generate invite token and expiration
       const inviteToken = generateInviteToken();
       const inviteExpiresAt = getInviteExpiration();
 
+      // Create pending relationship in database
       const { data, error } = await supabase
         .from("coach_relationships")
         .insert({
@@ -237,6 +237,41 @@ export function useCoachRelationships(options: UseCoachRelationshipsOptions): Us
       }
 
       logger.info("Coach invite created", { relationshipId: data.id, email });
+
+      // Send invitation email via edge function
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          throw new Error("No active session");
+        }
+
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const response = await fetch(`${supabaseUrl}/functions/v1/send-coach-invite`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            coach_email: email,
+            invite_token: inviteToken,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          logger.error("Error sending coach invite email", errorData);
+          throw new Error(errorData.error || "Failed to send invitation email");
+        }
+
+        const emailResult = await response.json();
+        logger.info("Coach invite email sent", { messageId: emailResult.message_id });
+      } catch (emailError) {
+        // Log the email error but don't fail the entire operation
+        // The relationship is created, user can retry sending the email
+        logger.error("Failed to send coach invite email", emailError);
+        throw new Error("Invitation created but email failed to send. Please try again.");
+      }
 
       return data as CoachRelationship;
     },

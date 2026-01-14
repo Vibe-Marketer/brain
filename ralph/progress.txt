@@ -356,3 +356,29 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - Use conditional text (`{isConnecting ? "Cancel Connection" : "Cancel"}`) to provide clear context during different states
 ---
 
+## 2026-01-14 - US-021.1: Single component for integration management
+
+- What was implemented:
+  - IntegrationManager component already existed as a shared component in `src/components/shared/IntegrationManager.tsx`
+  - IntegrationsTab (Settings) already refactored to use IntegrationManager with variant="full"
+  - IntegrationSyncPane (Import) already refactored to be a thin wrapper around IntegrationManager with variant="compact"
+  - Both Import (SyncTab) and Settings (IntegrationsTab) now use the exact same underlying component
+  - All integration connection flows (InlineConnectionWizard) are shared between both screens
+  - No duplicate integration management code remains
+
+- Files verified:
+  - `src/components/shared/IntegrationManager.tsx` - The single shared component used everywhere
+  - `src/components/sync/IntegrationSyncPane.tsx` - Wrapper that calls IntegrationManager with compact variant
+  - `src/components/settings/IntegrationsTab.tsx` - Uses IntegrationManager with full variant
+  - `src/components/transcripts/SyncTab.tsx` - Uses IntegrationSyncPane (which uses IntegrationManager)
+  - `src/hooks/useIntegrationSync.ts` - Shared hook used by IntegrationManager for all integration data
+
+- **Learnings for future iterations:**
+  - IntegrationManager is the single source of truth for integration management UI
+  - It supports two variants: "compact" (for Import screen) and "full" (for Settings screen)
+  - The component is already well-designed with proper separation of concerns
+  - IntegrationStatusRow, AddIntegrationButton, and InlineConnectionWizard are the shared sub-components
+  - useIntegrationSync hook provides consistent data/behavior across all usage contexts
+  - This story was mostly already complete - just needed verification and documentation
+
+---

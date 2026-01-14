@@ -231,43 +231,37 @@ export function useTeamHierarchy(options: UseTeamHierarchyOptions): UseTeamHiera
         throw new Error("User ID is required to create team");
       }
 
-      const { data, error } = await supabase
-        .from("teams")
-        .insert({
+      // Use the Edge Function to create team with proper business logic
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        throw new Error("Not authenticated");
+      }
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/teams`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           name: input.name,
-          owner_user_id: userId,
+          user_id: userId,
           admin_sees_all: input.admin_sees_all ?? false,
           domain_auto_join: input.domain_auto_join || null,
-        })
-        .select()
-        .single();
+        }),
+      });
 
-      if (error) {
-        logger.error("Error creating team", error);
-        throw error;
+      if (!response.ok) {
+        const errorData = await response.json();
+        logger.error("Error creating team", errorData);
+        throw new Error(errorData.error || "Failed to create team");
       }
 
-      // Also create membership for the creator as admin
-      const { error: membershipError } = await supabase
-        .from("team_memberships")
-        .insert({
-          team_id: data.id,
-          user_id: userId,
-          role: 'admin' as TeamRole,
-          status: 'active' as MembershipStatus,
-          joined_at: new Date().toISOString(),
-        });
+      const result = await response.json();
+      logger.info("Team created", { teamId: result.team.id, name: result.team.name });
 
-      if (membershipError) {
-        logger.error("Error creating admin membership", membershipError);
-        // Clean up the team if membership creation fails
-        await supabase.from("teams").delete().eq("id", data.id);
-        throw membershipError;
-      }
-
-      logger.info("Team created", { teamId: data.id, name: data.name });
-
-      return data as Team;
+      return result.team as Team;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.teams.all });

@@ -272,15 +272,20 @@ export default function TeamTab() {
               Team Management
             </h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-              You&apos;re not part of a team yet. Create one to collaborate with colleagues.
+              Ready to collaborate? Create a team to unlock Call Vault&apos;s full potential.
             </p>
           </div>
 
           {!showCreateForm ? (
-            <div className="flex flex-col items-center justify-center py-12 border border-border dark:border-cb-border-dark rounded-lg">
-              <RiTeamLine className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-sm text-muted-foreground mb-4">No team found</p>
-              <Button onClick={() => setShowCreateForm(true)}>
+            <div className="flex flex-col items-center justify-center py-12 px-6 border border-border dark:border-cb-border-dark rounded-lg">
+              <RiTeamLine className="h-12 w-12 text-muted-foreground mb-6" />
+              <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-2">
+                Start collaborating with your team
+              </h3>
+              <p className="text-sm text-center text-gray-500 dark:text-gray-500 mb-6 max-w-md">
+                Organize your team in hierarchies, share calls automatically with managers, and collaborate on folders and tags.
+              </p>
+              <Button onClick={() => setShowCreateForm(true)} size="lg">
                 <RiAddLine className="h-4 w-4 mr-2" />
                 CREATE TEAM
               </Button>

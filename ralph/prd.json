@@ -278,7 +278,7 @@
         "No duplicate integration management code",
         "Both screens use same connection flows"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-022.1",
