@@ -197,7 +197,7 @@ export default function CoachesTab() {
 
         <div>
           {asCoachee.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="flex flex-col items-center justify-center py-12 border border-border dark:border-cb-border-dark rounded-lg">
               <RiUserHeartLine className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground">No coaches yet</p>
               <p className="text-xs text-muted-foreground mt-1">
@@ -241,7 +241,7 @@ export default function CoachesTab() {
 
         <div>
           {asCoach.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="flex flex-col items-center justify-center py-12 border border-border dark:border-cb-border-dark rounded-lg">
               <RiUserHeartLine className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground">No coachees yet</p>
               <p className="text-xs text-muted-foreground mt-1">

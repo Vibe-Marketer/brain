@@ -258,7 +258,7 @@ export function SettingsDetailPane({
       tabIndex={-1}
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-cb-border bg-cb-card/50 flex-shrink-0">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-cb-card/50 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {/* Back button for mobile navigation */}
           {showBackButton && onBack && (
@@ -284,12 +284,12 @@ export function SettingsDetailPane({
           {/* Category title and description */}
           <div className="min-w-0">
             <h2
-              className="text-sm font-semibold text-cb-ink truncate"
+              className="text-sm font-semibold text-ink truncate"
               id="settings-detail-title"
             >
               {meta.label}
             </h2>
-            <p className="text-xs text-cb-ink-muted truncate">
+            <p className="text-xs text-ink-muted truncate">
               {meta.description}
             </p>
           </div>

@@ -31,7 +31,7 @@ export function Loader({ variant = 'dots', size = 'md', text, className }: Loade
       return (
         <div className={cn('flex items-center gap-2', className)}>
           <svg
-            className={cn('animate-spin text-cb-ink-muted', sizes.circular)}
+            className={cn('animate-spin text-ink-muted', sizes.circular)}
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -50,7 +50,7 @@ export function Loader({ variant = 'dots', size = 'md', text, className }: Loade
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             />
           </svg>
-          {text && <span className="text-sm text-cb-ink-muted">{text}</span>}
+          {text && <span className="text-sm text-ink-muted">{text}</span>}
         </div>
       );
 
@@ -67,7 +67,7 @@ export function Loader({ variant = 'dots', size = 'md', text, className }: Loade
               style={{ animationDelay: `${i * 0.15}s` }}
             />
           ))}
-          {text && <span className="ml-2 text-sm text-cb-ink-muted">{text}</span>}
+          {text && <span className="ml-2 text-sm text-ink-muted">{text}</span>}
         </div>
       );
 
@@ -87,7 +87,7 @@ export function Loader({ variant = 'dots', size = 'md', text, className }: Loade
               }}
             />
           ))}
-          {text && <span className="ml-2 text-sm text-cb-ink-muted">{text}</span>}
+          {text && <span className="ml-2 text-sm text-ink-muted">{text}</span>}
         </div>
       );
 
@@ -103,7 +103,7 @@ export function Loader({ variant = 'dots', size = 'md', text, className }: Loade
               animation: 'pulse-dot 1.5s ease-in-out infinite',
             }}
           />
-          {text && <span className="text-sm text-cb-ink-muted">{text}</span>}
+          {text && <span className="text-sm text-ink-muted">{text}</span>}
         </div>
       );
 
@@ -123,7 +123,7 @@ export function Loader({ variant = 'dots', size = 'md', text, className }: Loade
               }}
             />
           ))}
-          {text && <span className="ml-2 text-sm text-cb-ink-muted">{text}</span>}
+          {text && <span className="ml-2 text-sm text-ink-muted">{text}</span>}
         </div>
       );
 
@@ -141,7 +141,7 @@ export function ThinkingLoader({ className }: ThinkingLoaderProps) {
   return (
     <div
       data-testid="thinking-loader"
-      className={cn('flex items-center gap-2 text-cb-ink-muted', className)}
+      className={cn('flex items-center gap-2 text-ink-muted', className)}
     >
       <Loader variant="dots" size="sm" />
       <span className="text-sm font-inter font-light">Thinking...</span>

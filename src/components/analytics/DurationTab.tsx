@@ -82,7 +82,7 @@ export function DurationTab() {
             analytics.durationBreakdown.map((bucket) => (
               <div
                 key={bucket.name}
-                className="relative py-4 px-4 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg"
+                className="relative py-4 px-4 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg"
               >
                 {/* Vibe orange wedge accent */}
                 <div
@@ -133,7 +133,7 @@ export function DurationTab() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Duration by Call Type/Category Placeholder */}
-          <div className="border border-cb-border dark:border-cb-border-dark rounded-lg p-6">
+          <div className="border border-border dark:border-cb-border-dark rounded-lg p-6">
             <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
               Duration by Call Type/Category
             </h4>
@@ -145,7 +145,7 @@ export function DurationTab() {
           </div>
 
           {/* Duration by Tag Placeholder */}
-          <div className="border border-cb-border dark:border-cb-border-dark rounded-lg p-6">
+          <div className="border border-border dark:border-cb-border-dark rounded-lg p-6">
             <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
               Duration by Tag
             </h4>

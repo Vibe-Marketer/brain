@@ -46,7 +46,7 @@ function StatCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="relative py-2 px-4 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+    <div className="relative py-2 px-4 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
       {/* Vibe orange wedge accent - trapezoid shape per brand guidelines */}
       <div
         className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange"
@@ -58,7 +58,7 @@ function StatCard({
         <div className="text-xs font-medium text-cb-gray-dark dark:text-cb-gray-light">
           {label}
         </div>
-        <Icon className="h-4 w-4 text-cb-ink-muted" />
+        <Icon className="h-4 w-4 text-ink-muted" />
       </div>
       <div className="font-display text-2xl font-extrabold text-cb-black dark:text-cb-white">
         {value}
@@ -70,11 +70,11 @@ function StatCard({
 // Placeholder chart component
 function ChartPlaceholder({ title }: { title: string }) {
   return (
-    <div className="bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg p-6">
+    <div className="bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg p-6">
       <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
         {title}
       </h4>
-      <div className="h-48 flex items-center justify-center bg-cb-bg-gray dark:bg-cb-panel-dark rounded-md">
+      <div className="h-48 flex items-center justify-center bg-gray dark:bg-cb-panel-dark rounded-md">
         <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
           Chart coming soon
         </p>
@@ -164,8 +164,8 @@ export function ContentTab({ isLoading = false }: ContentTabProps) {
 
         {analytics.clips.length === 0 ? (
           // Empty state
-          <div className="flex flex-col items-center justify-center py-16 bg-cb-bg-gray dark:bg-cb-panel-dark rounded-lg">
-            <RiFilmLine className="h-12 w-12 text-cb-ink-muted mb-4" />
+          <div className="flex flex-col items-center justify-center py-16 bg-gray dark:bg-cb-panel-dark rounded-lg">
+            <RiFilmLine className="h-12 w-12 text-ink-muted mb-4" />
             <p className="text-lg font-medium text-cb-black dark:text-cb-white mb-2">
               No clips created yet
             </p>
@@ -213,7 +213,7 @@ export function ContentTab({ isLoading = false }: ContentTabProps) {
                       {clip.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-cb-bg-gray dark:bg-cb-panel-dark text-cb-gray-dark dark:text-cb-gray-light"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray dark:bg-cb-panel-dark text-cb-gray-dark dark:text-cb-gray-light"
                         >
                           {tag}
                         </span>

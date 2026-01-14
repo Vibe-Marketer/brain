@@ -172,7 +172,7 @@ export function CollaborationCategoryPane({
       aria-label="Collaboration categories"
     >
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-4 border-b border-cb-border bg-cb-card/50">
+      <header className="flex items-center gap-3 px-4 py-4 border-b border-border bg-cb-card/50">
         <div
           className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
           aria-hidden="true"
@@ -181,12 +181,12 @@ export function CollaborationCategoryPane({
         </div>
         <div className="min-w-0">
           <h2
-            className="text-sm font-semibold text-cb-ink uppercase tracking-wide"
+            className="text-sm font-semibold text-ink uppercase tracking-wide"
             id="collaboration-category-title"
           >
             Collaboration
           </h2>
-          <p className="text-xs text-cb-ink-muted">
+          <p className="text-xs text-ink-muted">
             {visibleCategories.length} {visibleCategories.length === 1 ? 'category' : 'categories'}
           </p>
         </div>
@@ -248,7 +248,7 @@ export function CollaborationCategoryPane({
                 <div
                   className={cn(
                     "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
-                    "bg-cb-card border border-cb-border",
+                    "bg-cb-card border border-border",
                     "transition-all duration-200 ease-in-out",
                     isActive && "border-vibe-orange/30 bg-vibe-orange/10"
                   )}
@@ -259,7 +259,7 @@ export function CollaborationCategoryPane({
                       "h-4 w-4 transition-colors duration-200 ease-in-out",
                       isActive
                         ? "text-vibe-orange"
-                        : "text-cb-ink-muted"
+                        : "text-ink-muted"
                     )}
                   />
                 </div>
@@ -270,12 +270,12 @@ export function CollaborationCategoryPane({
                     className={cn(
                       "block text-sm font-medium truncate",
                       "transition-colors duration-200 ease-in-out",
-                      isActive ? "text-vibe-orange" : "text-cb-ink"
+                      isActive ? "text-vibe-orange" : "text-ink"
                     )}
                   >
                     {category.label}
                   </span>
-                  <span className="block text-xs text-cb-ink-muted truncate">
+                  <span className="block text-xs text-ink-muted truncate">
                     {category.description}
                   </span>
                 </div>

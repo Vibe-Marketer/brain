@@ -50,7 +50,7 @@ const INITIAL_COMPONENTS: Partial<Components> = {
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className="text-cb-ink-primary underline underline-offset-2 hover:text-cb-ink-secondary"
+      className="text-ink underline underline-offset-2 hover:text-ink-soft"
       {...props}
     >
       {children}
@@ -68,7 +68,7 @@ const INITIAL_COMPONENTS: Partial<Components> = {
 
   th: ({ children, ...props }) => (
     <th
-      className="border-b border-cb-border-primary px-4 py-2 text-left font-inter font-medium text-cb-ink-primary"
+      className="border-b border-cb-border-primary px-4 py-2 text-left font-inter font-medium text-ink"
       {...props}
     >
       {children}
@@ -97,7 +97,7 @@ const INITIAL_COMPONENTS: Partial<Components> = {
   // Blockquotes
   blockquote: ({ children, ...props }) => (
     <blockquote
-      className="my-4 border-l-4 border-vibe-orange pl-4 italic text-cb-ink-muted"
+      className="my-4 border-l-4 border-vibe-orange pl-4 italic text-ink-muted"
       {...props}
     >
       {children}
@@ -106,19 +106,19 @@ const INITIAL_COMPONENTS: Partial<Components> = {
 
   // Headings
   h1: ({ children, ...props }) => (
-    <h1 className="mb-4 mt-6 font-montserrat text-2xl font-extrabold uppercase text-cb-ink-primary" {...props}>
+    <h1 className="mb-4 mt-6 font-montserrat text-2xl font-extrabold uppercase text-ink" {...props}>
       {children}
     </h1>
   ),
 
   h2: ({ children, ...props }) => (
-    <h2 className="mb-3 mt-5 font-montserrat text-xl font-extrabold uppercase text-cb-ink-primary" {...props}>
+    <h2 className="mb-3 mt-5 font-montserrat text-xl font-extrabold uppercase text-ink" {...props}>
       {children}
     </h2>
   ),
 
   h3: ({ children, ...props }) => (
-    <h3 className="mb-2 mt-4 font-montserrat text-lg font-extrabold uppercase text-cb-ink-primary" {...props}>
+    <h3 className="mb-2 mt-4 font-montserrat text-lg font-extrabold uppercase text-ink" {...props}>
       {children}
     </h3>
   ),
@@ -132,7 +132,7 @@ const INITIAL_COMPONENTS: Partial<Components> = {
 
   // Strong/bold
   strong: ({ children, ...props }) => (
-    <strong className="font-medium text-cb-ink-primary" {...props}>
+    <strong className="font-medium text-ink" {...props}>
       {children}
     </strong>
   ),
@@ -148,7 +148,7 @@ export function Markdown({ children, className, components, ...props }: Markdown
   );
 
   return (
-    <div className={cn('font-inter font-light text-cb-ink-primary', className)} {...props}>
+    <div className={cn('font-inter font-light text-ink', className)} {...props}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm, remarkBreaks]}
         components={mergedComponents}

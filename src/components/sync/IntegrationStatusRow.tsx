@@ -92,14 +92,14 @@ export function IntegrationStatusRow({
     const timeAgo = formatDistanceToNow(lastSync, { addSuffix: true });
 
     return (
-      <span className="text-xs text-cb-ink-muted">
+      <span className="text-xs text-ink-muted">
         Last sync: {timeAgo}
       </span>
     );
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-cb-border dark:border-cb-border-dark last:border-b-0">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-cb-border-dark last:border-b-0">
       <div className="flex items-center gap-3">
         <div className={cn("h-8 w-8 rounded-lg bg-muted flex items-center justify-center", colorClass)}>
           <Icon className="h-4 w-4" />
@@ -108,7 +108,7 @@ export function IntegrationStatusRow({
           <div className="flex items-center gap-2">
             <span className="font-medium text-sm">{name}</span>
             {integration.email && (
-              <span className="text-xs text-cb-ink-muted">
+              <span className="text-xs text-ink-muted">
                 ({integration.email})
               </span>
             )}

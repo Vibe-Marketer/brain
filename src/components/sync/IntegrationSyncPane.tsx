@@ -43,7 +43,7 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
 
   if (connectingIntegration) {
     return (
-      <Card className="border-cb-border dark:border-cb-border-dark">
+      <Card className="border-border dark:border-cb-border-dark">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-montserrat font-extrabold uppercase tracking-wide">
             Connect Integration
@@ -61,7 +61,7 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
   }
 
   return (
-    <Card className="border-cb-border dark:border-cb-border-dark">
+    <Card className="border-border dark:border-cb-border-dark">
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <CardTitle className="text-lg font-montserrat font-extrabold uppercase tracking-wide">
           Integrations
@@ -73,7 +73,7 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
       </CardHeader>
       <CardContent className="px-0 pb-0">
         {isLoading ? (
-          <div className="p-4 text-center text-cb-ink-muted">
+          <div className="p-4 text-center text-ink-muted">
             Loading integrations...
           </div>
         ) : (
@@ -113,7 +113,7 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
             {/* Empty state */}
             {integrations.length === 0 && (
               <div className="p-6 text-center">
-                <p className="text-cb-ink-muted mb-4">
+                <p className="text-ink-muted mb-4">
                   No integrations configured yet.
                 </p>
                 <AddIntegrationButton

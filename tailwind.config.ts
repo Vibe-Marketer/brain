@@ -17,11 +17,10 @@ const tailwindColors = Object.keys(colors)
 export default {
   darkMode: ["class"],
   content: [
-    "./pages/**/*.{ts,tsx}", 
-    "./components/**/*.{ts,tsx}", 
-    "./app/**/*.{ts,tsx}", 
+    "./pages/**/*.{ts,tsx}",
+    "./components/**/*.{ts,tsx}",
+    "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
-    // Path to Tremor module
     "./node_modules/@tremor/**/*.{js,ts,jsx,tsx}",
   ],
   prefix: "",
@@ -39,11 +38,30 @@ export default {
         display: ['Montserrat', 'system-ui', 'sans-serif'],
       },
       colors: {
-        viewport: "hsl(var(--viewport))",      // NEW: Gutter/body background
-        border: "hsl(var(--border))",
+        /**
+         * CallVault Semantic Color System
+         * Use these classes directly (e.g., text-ink, bg-hover, border-soft).
+         * For full documentation, see: docs/design/brand-guidelines-v4.2.md
+         */
+        ink: {
+          DEFAULT: "hsl(var(--cv-ink))",
+          soft: "hsl(var(--cv-ink-soft))",
+          muted: "hsl(var(--cv-ink-muted))",
+        },
+        border: {
+          DEFAULT: "hsl(var(--cv-border))",
+          soft: "hsl(var(--cv-border-soft))",
+        },
+        hover: "hsl(var(--cv-hover))",
+        gray: {
+          light: "hsl(var(--cb-gray-light))",
+          medium: "hsl(var(--cb-gray-medium))",
+          dark: "hsl(var(--cb-gray-dark))",
+        },
+        viewport: "hsl(var(--viewport))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",  // NOW correctly points to white/#202020
+        background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
@@ -102,12 +120,31 @@ export default {
           text: "hsl(var(--cb-success-text))",
           DEFAULT: "hsl(var(--success))",
           foreground: "hsl(var(--success-foreground))",
+          bg: "hsl(var(--cb-success-bg))",
+          text: "hsl(var(--cb-success-text))",
+          border: "hsl(var(--cb-success-border))",
         },
         warning: {
           bg: "hsl(var(--cb-warning-bg))",
           text: "hsl(var(--cb-warning-text))",
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))",
+          bg: "hsl(var(--cb-warning-bg))",
+          text: "hsl(var(--cb-warning-text))",
+          border: "hsl(var(--cb-warning-border))",
+        },
+        error: {
+          DEFAULT: "hsl(var(--destructive))",
+          bg: "hsl(var(--cb-danger-bg))",
+          text: "hsl(var(--cb-danger-text))",
+          border: "hsl(var(--cb-danger-border))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info))",
+          foreground: "hsl(var(--info-foreground))",
+          bg: "hsl(var(--cb-info-bg))",
+          text: "hsl(var(--cb-info-text))",
+          border: "hsl(var(--cb-info-border))",
         },
         surface: {
           primary: "hsl(var(--surface-primary))",
@@ -121,6 +158,7 @@ export default {
           competitive: "hsl(var(--intel-competitive))",
           action: "hsl(var(--intel-action))",
         },
+        /** @deprecated Use semantic names: text-ink, border-soft, bg-hover, etc. */
         cb: {
           black: "hsl(var(--cb-black))",
           white: "hsl(var(--cb-white))",
@@ -155,93 +193,72 @@ export default {
           light: "hsl(var(--vibe-orange-light))",
           dark: "hsl(var(--vibe-orange-dark))",
         },
-        // Legacy alias - will be removed
         "vibe-green": {
           DEFAULT: "hsl(var(--vibe-orange))",
           light: "hsl(var(--vibe-orange-light))",
           dark: "hsl(var(--vibe-orange-dark))",
         },
-        // Tremor Color System (customized for CV - Vibe Orange)
         tremor: {
           brand: {
-            faint: "hsl(32, 100%, 95%)",      // Very light vibe orange
-            muted: "hsl(32, 100%, 85%)",      // Light vibe orange
-            subtle: "hsl(32, 100%, 70%)",     // Medium vibe orange
-            DEFAULT: "hsl(32, 100%, 50%)",    // #FF8800 - Vibe orange
-            emphasis: "hsl(14, 100%, 50%)",   // Dark vibe orange
+            faint: "hsl(32, 100%, 95%)",
+            muted: "hsl(32, 100%, 85%)",
+            subtle: "hsl(32, 100%, 70%)",
+            DEFAULT: "hsl(32, 100%, 50%)",
+            emphasis: "hsl(14, 100%, 50%)",
             inverted: colors.white,
           },
           background: {
-            muted: "hsl(0, 0%, 98%)",        // #FAFAFA - Light gray
-            subtle: "hsl(0, 0%, 96%)",       // #F5F5F5 - Lighter gray
-            DEFAULT: "hsl(0, 0%, 100%)",     // #FFFFFF - White
-            emphasis: "hsl(0, 0%, 27%)",     // Dark text
+            muted: "hsl(0, 0%, 98%)",
+            subtle: "hsl(0, 0%, 96%)",
+            DEFAULT: "hsl(0, 0%, 100%)",
+            emphasis: "hsl(0, 0%, 27%)",
           },
-          border: {
-            DEFAULT: "hsl(0, 0%, 90%)",      // #E5E5E5 - CB border
-          },
-          ring: {
-            DEFAULT: "hsl(0, 0%, 90%)",      // #E5E5E5 - CB border
-          },
+          border: { DEFAULT: "hsl(0, 0%, 90%)" },
+          ring: { DEFAULT: "hsl(0, 0%, 90%)" },
           content: {
-            subtle: "hsl(0, 0%, 60%)",       // Medium gray
-            DEFAULT: "hsl(0, 0%, 48%)",      // CB ink-muted
-            emphasis: "hsl(0, 0%, 27%)",     // CB ink-soft
-            strong: "hsl(0, 0%, 7%)",        // CB ink
-            inverted: "hsl(0, 0%, 100%)",    // White
+            subtle: "hsl(0, 0%, 60%)",
+            DEFAULT: "hsl(0, 0%, 48%)",
+            emphasis: "hsl(0, 0%, 27%)",
+            strong: "hsl(0, 0%, 7%)",
+            inverted: "hsl(0, 0%, 100%)",
           },
         },
         "dark-tremor": {
           brand: {
-            faint: "hsl(32, 50%, 15%)",      // Very dark vibe orange
-            muted: "hsl(32, 60%, 25%)",      // Dark vibe orange
-            subtle: "hsl(32, 70%, 50%)",     // Medium vibe orange
-            DEFAULT: "hsl(32, 100%, 50%)",   // #FF8800 - Vibe orange
-            emphasis: "hsl(55, 100%, 50%)",  // Light vibe orange
+            faint: "hsl(32, 50%, 15%)",
+            muted: "hsl(32, 60%, 25%)",
+            subtle: "hsl(32, 70%, 50%)",
+            DEFAULT: "hsl(32, 100%, 50%)",
+            emphasis: "hsl(55, 100%, 50%)",
             inverted: "hsl(32, 50%, 15%)",
           },
           background: {
-            muted: "hsl(0, 0%, 9%)",         // #161616 - CB viewport-dark
-            subtle: "hsl(0, 0%, 13%)",       // #202020 - CB card-dark
-            DEFAULT: "hsl(0, 0%, 13%)",      // #202020 - CB card-dark
-            emphasis: "hsl(0, 0%, 98%)",     // Light text
+            muted: "hsl(0, 0%, 9%)",
+            subtle: "hsl(0, 0%, 13%)",
+            DEFAULT: "hsl(0, 0%, 13%)",
+            emphasis: "hsl(0, 0%, 98%)",
           },
-          border: {
-            DEFAULT: "hsl(0, 0%, 23%)",      // #3A3A3A - CB border-dark
-          },
-          ring: {
-            DEFAULT: "hsl(0, 0%, 23%)",      // #3A3A3A - CB border-dark
-          },
+          border: { DEFAULT: "hsl(0, 0%, 23%)" },
+          ring: { DEFAULT: "hsl(0, 0%, 23%)" },
           content: {
-            subtle: "hsl(0, 0%, 42%)",       // #6B6B6B - CB text-dark-muted
-            DEFAULT: "hsl(0, 0%, 69%)",      // #B0B0B0 - CB text-dark-secondary
-            emphasis: "hsl(0, 0%, 98%)",     // Light text
-            strong: "hsl(0, 0%, 100%)",      // White text
-            inverted: "hsl(0, 0%, 9%)",      // Dark bg
+            subtle: "hsl(0, 0%, 42%)",
+            DEFAULT: "hsl(0, 0%, 69%)",
+            emphasis: "hsl(0, 0%, 98%)",
+            strong: "hsl(0, 0%, 100%)",
+            inverted: "hsl(0, 0%, 9%)",
           },
         },
-        // Override Tremor's default color palette with vibe orange
         colors: {
-          // Use Tailwind's colors but drop deprecated palettes (lightBlue, warmGray, trueGray, coolGray, blueGray)
           ...tailwindColors,
-          // Override Tremor's orange to use vibe orange
           orange: {
-            50: '#fff7ed',
-            100: '#ffedd5',
-            200: '#fed7aa',
-            300: '#FFEB00',  // vibe-orange-light (yellow)
-            400: '#FF8800',  // vibe-orange DEFAULT
-            500: '#FF8800',  // vibe-orange DEFAULT
-            600: '#FF3D00',  // vibe-orange-dark
-            700: '#c2410c',
-            800: '#9a3412',
-            900: '#7c2d12',
-            950: '#431407',
+            50: '#fff7ed', 100: '#ffedd5', 200: '#fed7aa',
+            300: '#FFEB00', 400: '#FF8800', 500: '#FF8800',
+            600: '#FF3D00', 700: '#c2410c', 800: '#9a3412',
+            900: '#7c2d12', 950: '#431407',
           },
         },
       },
       boxShadow: {
-        // Tremor shadows
         "tremor-input": "0 1px 2px 0 rgb(0 0 0 / 0.05)",
         "tremor-card": "0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)",
         "tremor-dropdown": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
@@ -253,71 +270,32 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        // Tremor border radius
         "tremor-small": "0.375rem",
         "tremor-default": "0.5rem",
         "tremor-full": "9999px",
       },
       fontSize: {
-        // Tremor font sizes
         "tremor-label": ["0.75rem", { lineHeight: "1rem" }],
         "tremor-default": ["0.875rem", { lineHeight: "1.25rem" }],
         "tremor-title": ["1.125rem", { lineHeight: "1.75rem" }],
         "tremor-metric": ["1.875rem", { lineHeight: "2.25rem" }],
       },
       keyframes: {
-        // Shadcn animations
-        "accordion-down": {
-          from: { height: "0" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        "accordion-up": {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0" },
-        },
-        // Tremor animations
-        hide: {
-          from: { opacity: "1" },
-          to: { opacity: "0" },
-        },
-        slideDownAndFade: {
-          from: { opacity: "0", transform: "translateY(-6px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
-        },
-        slideLeftAndFade: {
-          from: { opacity: "0", transform: "translateX(6px)" },
-          to: { opacity: "1", transform: "translateX(0)" },
-        },
-        slideUpAndFade: {
-          from: { opacity: "0", transform: "translateY(6px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
-        },
-        slideRightAndFade: {
-          from: { opacity: "0", transform: "translateX(-6px)" },
-          to: { opacity: "1", transform: "translateX(0)" },
-        },
-        accordionOpen: {
-          from: { height: "0px" },
-          to: { height: "var(--radix-accordion-content-height)" },
-        },
-        accordionClose: {
-          from: { height: "var(--radix-accordion-content-height)" },
-          to: { height: "0px" },
-        },
-        dialogOverlayShow: {
-          from: { opacity: "0" },
-          to: { opacity: "1" },
-        },
-        dialogContentShow: {
-          from: { opacity: "0", transform: "translate(-50%, -45%) scale(0.95)" },
-          to: { opacity: "1", transform: "translate(-50%, -50%) scale(1)" },
-        },
+        "accordion-down": { from: { height: "0" }, to: { height: "var(--radix-accordion-content-height)" } },
+        "accordion-up": { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0" } },
+        hide: { from: { opacity: "1" }, to: { opacity: "0" } },
+        slideDownAndFade: { from: { opacity: "0", transform: "translateY(-6px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        slideLeftAndFade: { from: { opacity: "0", transform: "translateX(6px)" }, to: { opacity: "1", transform: "translateX(0)" } },
+        slideUpAndFade: { from: { opacity: "0", transform: "translateY(6px)" }, to: { opacity: "1", transform: "translateY(0)" } },
+        slideRightAndFade: { from: { opacity: "0", transform: "translateX(-6px)" }, to: { opacity: "1", transform: "translateX(0)" } },
+        accordionOpen: { from: { height: "0px" }, to: { height: "var(--radix-accordion-content-height)" } },
+        accordionClose: { from: { height: "var(--radix-accordion-content-height)" }, to: { height: "0px" } },
+        dialogOverlayShow: { from: { opacity: "0" }, to: { opacity: "1" } },
+        dialogContentShow: { from: { opacity: "0", transform: "translate(-50%, -45%) scale(0.95)" }, to: { opacity: "1", transform: "translate(-50%, -50%) scale(1)" } },
       },
       animation: {
-        // Shadcn animations
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        // Tremor animations
         hide: "hide 150ms cubic-bezier(0.16, 1, 0.3, 1)",
         slideDownAndFade: "slideDownAndFade 150ms cubic-bezier(0.16, 1, 0.3, 1)",
         slideLeftAndFade: "slideLeftAndFade 150ms cubic-bezier(0.16, 1, 0.3, 1)",
@@ -331,37 +309,11 @@ export default {
     },
   },
   safelist: [
-    {
-      pattern:
-        /^(bg-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
-      variants: ["hover", "ui-selected"],
-    },
-    {
-      pattern:
-        /^(text-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
-      variants: ["hover", "ui-selected"],
-    },
-    {
-      pattern:
-        /^(border-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
-      variants: ["hover", "ui-selected"],
-    },
-    {
-      pattern:
-        /^(ring-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
-    },
-    {
-      pattern:
-        /^(stroke-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
-    },
-    {
-      pattern:
-        /^(fill-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/,
-    },
+    { pattern: /^(bg-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/, variants: ["hover", "ui-selected"] },
+    { pattern: /^(text-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/, variants: ["hover", "ui-selected"] },
+    { pattern: /^(border-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/, variants: ["hover", "ui-selected"] },
+    { pattern: /^(ring-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/ },
+    { pattern: /^(stroke-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/ },
+    { pattern: /^(fill-(?:slate|gray|zinc|neutral|stone|red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose)-(?:50|100|200|300|400|500|600|700|800|900|950))$/ },
   ],
-  plugins: [
-    tailwindcssAnimate,
-    headlessuiTailwindcss,
-    tailwindcssForms
-  ],
-} satisfies Config;
+  plugins: [tailwindcssAnimate, headlessuiTailwindcss, tailwindcssForms],

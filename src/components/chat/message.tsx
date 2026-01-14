@@ -47,7 +47,7 @@ export function MessageContent({ children, markdown = false, className, ...props
   if (markdown && typeof children === 'string') {
     return (
       <div className={cn('flex-1 space-y-2 overflow-hidden', className)} {...props}>
-        <Markdown className="prose prose-sm dark:prose-invert max-w-none font-sans font-light text-cb-ink">
+        <Markdown className="prose prose-sm dark:prose-invert max-w-none font-sans font-light text-ink">
           {children}
         </Markdown>
       </div>
@@ -56,7 +56,7 @@ export function MessageContent({ children, markdown = false, className, ...props
 
   return (
     <div
-      className={cn('flex-1 space-y-2 overflow-hidden font-sans font-light text-cb-ink', className)}
+      className={cn('flex-1 space-y-2 overflow-hidden font-sans font-light text-ink', className)}
       {...props}
     >
       {children}
@@ -163,7 +163,7 @@ export function AssistantMessage({
     <div className={cn('flex justify-start py-3 group/message', className)}>
       <div className="max-w-[70%] flex flex-col items-start gap-1">
         <div className="relative">
-          <div className="rounded-[18px] rounded-bl-[4px] bg-cb-hover dark:bg-cb-panel-dark px-4 py-2 text-cb-ink">
+          <div className="rounded-[18px] rounded-bl-[4px] bg-hover dark:bg-cb-panel-dark px-4 py-2 text-ink">
             {isLoading ? (
               <div className="flex items-center gap-1 py-1">
                 <span className="h-2 w-2 animate-bounce rounded-full bg-cb-ink-muted [animation-delay:-0.3s]" />

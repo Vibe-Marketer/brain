@@ -120,7 +120,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
       className={cn(
         'group relative flex items-center h-10 w-full px-2 rounded-lg cursor-pointer',
         'transition-colors duration-150 overflow-hidden',
-        isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+        isSelected ? 'bg-hover' : 'hover:bg-hover/50',
         depth > 0 && 'ml-3',
         // Drag feedback
         isDragging && 'ring-1 ring-cb-border ring-inset',
@@ -154,9 +154,9 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
           className="flex-shrink-0 h-5 w-5 flex items-center justify-center rounded hover:bg-cb-border/50 mr-1"
         >
           {isExpanded ? (
-            <RiArrowDownSLine className="h-4 w-4 text-cb-ink-muted" />
+            <RiArrowDownSLine className="h-4 w-4 text-ink-muted" />
           ) : (
-            <RiArrowRightSLine className="h-4 w-4 text-cb-ink-muted" />
+            <RiArrowRightSLine className="h-4 w-4 text-ink-muted" />
           )}
         </button>
       ) : (
@@ -188,8 +188,8 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
       <span
         className={cn(
           'flex-1 min-w-0 truncate text-sm',
-          isSelected ? 'text-cb-ink font-medium' : 'text-cb-ink-soft',
-          isOver && 'text-cb-ink font-medium',
+          isSelected ? 'text-ink font-medium' : 'text-ink-soft',
+          isOver && 'text-ink font-medium',
           isHidden && 'opacity-50 line-through'
         )}
       >
@@ -214,7 +214,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
                 "h-6 w-6 flex items-center justify-center rounded transition-colors",
                 isHidden
                   ? "text-vibe-orange bg-vibe-orange/10 hover:bg-vibe-orange/20"
-                  : "text-cb-ink-muted hover:bg-cb-border/50 hover:text-cb-ink"
+                  : "text-ink-muted hover:bg-cb-border/50 hover:text-ink"
               )}
               aria-label={isHidden ? `Show ${folder.name} in All Transcripts` : `Hide ${folder.name} from All Transcripts`}
               title={isHidden ? "Click to show in All Transcripts" : "Click to hide from All Transcripts"}
@@ -230,7 +230,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
                 e.stopPropagation();
                 onEditFolder(folder);
               }}
-              className="h-6 w-6 flex items-center justify-center rounded hover:bg-cb-border/50 text-cb-ink-muted hover:text-cb-ink"
+              className="h-6 w-6 flex items-center justify-center rounded hover:bg-cb-border/50 text-ink-muted hover:text-ink"
               aria-label={`Edit ${folder.name}`}
             >
               <RiPencilLine className="h-3.5 w-3.5" />
@@ -243,7 +243,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
                 e.stopPropagation();
                 onDeleteFolder(folder);
               }}
-              className="h-6 w-6 flex items-center justify-center rounded hover:bg-destructive/10 text-cb-ink-muted hover:text-destructive"
+              className="h-6 w-6 flex items-center justify-center rounded hover:bg-destructive/10 text-ink-muted hover:text-destructive"
               aria-label={`Delete ${folder.name}`}
             >
               <RiDeleteBinLine className="h-3.5 w-3.5" />
@@ -485,16 +485,16 @@ export function FolderSidebar({
             onClick={() => onSelectFolder(null)}
             className={cn(
               'w-9 h-9 flex items-center justify-center rounded-lg mb-1 transition-colors',
-              selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50'
+              selectedFolderId === null ? 'bg-hover' : 'hover:bg-hover/50'
             )}
             title={allTranscriptsSettings?.name || 'All Transcripts'}
           >
             {allIsEmoji ? (
               <span className="text-base">{allIcon}</span>
             ) : AllIconComponent ? (
-              <AllIconComponent className="h-4 w-4 text-cb-ink-muted" />
+              <AllIconComponent className="h-4 w-4 text-ink-muted" />
             ) : (
-              <RiFileTextLine className="h-4 w-4 text-cb-ink-muted" />
+              <RiFileTextLine className="h-4 w-4 text-ink-muted" />
             )}
           </button>
 
@@ -517,7 +517,7 @@ export function FolderSidebar({
                     onClick={() => onSelectFolder(folder.id)}
                     className={cn(
                       'relative w-9 h-9 flex items-center justify-center rounded-lg transition-colors',
-                      isSelected ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+                      isSelected ? 'bg-hover' : 'hover:bg-hover/50',
                       isHidden && 'opacity-40'
                     )}
                     title={isHidden ? `${folder.name} (hidden)` : folder.name}
@@ -556,18 +556,18 @@ export function FolderSidebar({
             <button
               type="button"
               onClick={onNewFolder}
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-cb-hover/50 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-hover/50 transition-colors"
               title="New folder"
             >
-              <RiAddLine className="h-4 w-4 text-cb-ink-muted" />
+              <RiAddLine className="h-4 w-4 text-ink-muted" />
             </button>
             <button
               type="button"
               onClick={onManageFolders}
-              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-cb-hover/50 transition-colors"
+              className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-hover/50 transition-colors"
               title="Manage folders"
             >
-              <RiSettings3Line className="h-4 w-4 text-cb-ink-muted" />
+              <RiSettings3Line className="h-4 w-4 text-ink-muted" />
             </button>
           </div>
         </div>
@@ -587,7 +587,7 @@ export function FolderSidebar({
         aria-label="Folder navigation"
       >
         {/* Header - standardized pattern matching other category panes */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-cb-card/50">
           <div
             className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
             aria-hidden="true"
@@ -595,10 +595,10 @@ export function FolderSidebar({
             <RiFolderLine className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-cb-ink uppercase tracking-wide">
+            <h2 className="text-sm font-semibold text-ink uppercase tracking-wide">
               Library
             </h2>
-            <p className="text-xs text-cb-ink-muted">
+            <p className="text-xs text-ink-muted">
               {folders.length} {folders.length === 1 ? 'folder' : 'folders'}
             </p>
           </div>
@@ -638,7 +638,7 @@ export function FolderSidebar({
                   className={cn(
                     'group relative flex items-center h-10 w-full px-2 rounded-lg cursor-pointer',
                     'transition-colors duration-150 overflow-hidden',
-                    selectedFolderId === null ? 'bg-cb-hover' : 'hover:bg-cb-hover/50',
+                    selectedFolderId === null ? 'bg-hover' : 'hover:bg-hover/50',
                     focusedIndex === 0 && 'ring-2 ring-vibe-orange ring-inset'
                   )}
                   onClick={() => onSelectFolder(null)}
@@ -660,14 +660,14 @@ export function FolderSidebar({
                   {allIsEmoji ? (
                     <span className="text-base flex-shrink-0 mr-2">{allIcon}</span>
                   ) : AllIconComponent ? (
-                    <AllIconComponent className="h-4 w-4 flex-shrink-0 mr-2 text-cb-ink-muted" />
+                    <AllIconComponent className="h-4 w-4 flex-shrink-0 mr-2 text-ink-muted" />
                   ) : (
-                    <RiFileTextLine className="h-4 w-4 flex-shrink-0 mr-2 text-cb-ink-muted" />
+                    <RiFileTextLine className="h-4 w-4 flex-shrink-0 mr-2 text-ink-muted" />
                   )}
                   <span
                     className={cn(
                       'flex-1 min-w-0 truncate text-sm',
-                      selectedFolderId === null ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'
+                      selectedFolderId === null ? 'text-ink font-medium' : 'text-ink-soft'
                     )}
                   >
                     {allName}
@@ -681,7 +681,7 @@ export function FolderSidebar({
                           e.stopPropagation();
                           onEditAllTranscripts();
                         }}
-                        className="h-6 w-6 flex items-center justify-center rounded hover:bg-cb-border/50 text-cb-ink-muted hover:text-cb-ink"
+                        className="h-6 w-6 flex items-center justify-center rounded hover:bg-cb-border/50 text-ink-muted hover:text-ink"
                         aria-label="Customize All Transcripts"
                       >
                         <RiPaletteLine className="h-3.5 w-3.5" />
@@ -717,7 +717,7 @@ export function FolderSidebar({
             {/* Folders section header */}
             {folders.length > 0 && (
               <div className="px-2 py-2 mt-2">
-                <span className="text-[11px] text-cb-ink-muted uppercase tracking-wider">
+                <span className="text-[11px] text-ink-muted uppercase tracking-wider">
                   {isDragging ? 'Drop on a folder' : 'Folders'}
                 </span>
               </div>
@@ -761,9 +761,9 @@ export function FolderSidebar({
             {/* Empty state */}
             {folders.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <RiFolderLine className="h-10 w-10 text-cb-ink-muted mb-3" aria-hidden="true" />
-                <p className="text-sm text-cb-ink-soft mb-1">No folders yet</p>
-                <p className="text-xs text-cb-ink-muted">Create a folder to organize calls</p>
+                <RiFolderLine className="h-10 w-10 text-ink-muted mb-3" aria-hidden="true" />
+                <p className="text-sm text-ink-soft mb-1">No folders yet</p>
+                <p className="text-xs text-ink-muted">Create a folder to organize calls</p>
               </div>
             )}
             </div>
@@ -774,7 +774,7 @@ export function FolderSidebar({
         <div className="p-2 pt-1">
           <button
             onClick={onManageFolders}
-            className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-cb-ink-muted hover:text-cb-ink rounded-lg hover:bg-cb-hover/50 transition-colors"
+            className="flex items-center gap-2 w-full px-2 py-1.5 text-sm text-ink-muted hover:text-ink rounded-lg hover:bg-hover/50 transition-colors"
           >
             <RiSettings3Line className="h-4 w-4" />
             Manage Folders

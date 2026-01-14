@@ -170,8 +170,8 @@ export function FilterBar({
           align="start"
           triggerClassName={cn(
             isMobile
-              ? "h-8 w-8 p-0 justify-center border border-border bg-cb-black dark:bg-white text-white dark:text-cb-black hover:bg-cb-hover dark:hover:bg-gray-100"
-              : "h-8 gap-1.5 text-xs bg-cb-black dark:bg-white text-white dark:text-cb-black hover:bg-cb-hover dark:hover:bg-gray-100",
+              ? "h-8 w-8 p-0 justify-center border border-border bg-cb-black dark:bg-white text-white dark:text-cb-black hover:bg-hover dark:hover:bg-gray-100"
+              : "h-8 gap-1.5 text-xs bg-cb-black dark:bg-white text-white dark:text-cb-black hover:bg-hover dark:hover:bg-gray-100",
             (filters.dateFrom || filters.dateTo) && !isMobile && "ring-2 ring-cb-black ring-offset-2"
           )}
         />
@@ -225,7 +225,7 @@ export function FilterBar({
             variant="link"
             size="sm"
             onClick={handleClearAll}
-            className="h-8 text-xs text-cb-ink-soft hover:text-cb-ink dark:text-cb-text-dark-secondary dark:hover:text-white px-2"
+            className="h-8 text-xs text-ink-soft hover:text-ink dark:text-cb-text-dark-secondary dark:hover:text-white px-2"
           >
             Clear all
           </Button>

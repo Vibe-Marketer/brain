@@ -104,7 +104,7 @@ export function ChatWelcome({
           className={cn(
             'font-display text-2xl md:text-3xl lg:text-4xl',
             'font-extrabold uppercase tracking-wider',
-            'text-cb-ink dark:text-white',
+            'text-ink dark:text-white',
             'mb-3'
           )}
         >
@@ -115,7 +115,7 @@ export function ChatWelcome({
         <p
           className={cn(
             'text-sm md:text-base',
-            'font-light text-cb-ink-soft dark:text-cb-text-dark-secondary',
+            'font-light text-ink-soft dark:text-cb-text-dark-secondary',
             'mb-8 md:mb-10'
           )}
         >
@@ -133,7 +133,7 @@ export function ChatWelcome({
                 onClick={action.onClick}
                 className={cn(
                   'gap-2 px-4 py-2',
-                  'border-cb-border dark:border-cb-border-dark',
+                  'border-border dark:border-cb-border-dark',
                   'hover:border-cb-ink-muted dark:hover:border-cb-text-dark-secondary',
                   'transition-all duration-150'
                 )}
@@ -147,7 +147,7 @@ export function ChatWelcome({
 
         {/* Suggested Prompts Section */}
         <div className="w-full">
-          <div className="text-xs font-medium text-cb-ink-muted uppercase mb-3 tracking-wide">
+          <div className="text-xs font-medium text-ink-muted uppercase mb-3 tracking-wide">
             Try asking
           </div>
           <div className="space-y-2">
@@ -187,12 +187,12 @@ function SuggestedPromptItem({ suggestion, onClick }: SuggestedPromptItemProps) 
         // Border styling - left border for accent (hidden by default)
         'border-l-2 border-l-transparent',
         // Text
-        'text-sm font-normal text-cb-ink-soft dark:text-cb-text-dark-secondary',
+        'text-sm font-normal text-ink-soft dark:text-cb-text-dark-secondary',
         // Kortex-style hover effect
         'transition-all duration-150 ease-out',
-        'hover:bg-cb-hover dark:hover:bg-cb-border-dark',
+        'hover:bg-hover dark:hover:bg-cb-border-dark',
         'hover:border-l-vibe-orange',
-        'hover:text-cb-ink dark:hover:text-white',
+        'hover:text-ink dark:hover:text-white',
         'hover:pl-5', // Subtle shift on hover
         // Focus
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
@@ -202,7 +202,7 @@ function SuggestedPromptItem({ suggestion, onClick }: SuggestedPromptItemProps) 
     >
       <div className="flex items-center gap-3">
         {suggestion.icon && (
-          <span className="flex-shrink-0 text-cb-ink-muted transition-colors group-hover:text-cb-ink">
+          <span className="flex-shrink-0 text-ink-muted transition-colors group-hover:text-ink">
             {suggestion.icon}
           </span>
         )}

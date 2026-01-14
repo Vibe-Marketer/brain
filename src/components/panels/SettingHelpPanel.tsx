@@ -170,7 +170,7 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
       aria-label={`Help for ${content.title}`}
     >
       {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b border-cb-border">
+      <header className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
@@ -179,8 +179,8 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
             {content.icon}
           </div>
           <div className="min-w-0">
-            <h3 className="font-semibold text-cb-ink truncate" id="help-panel-title">{content.title}</h3>
-            <p className="text-xs text-cb-ink-muted">Help & Tips</p>
+            <h3 className="font-semibold text-ink truncate" id="help-panel-title">{content.title}</h3>
+            <p className="text-xs text-ink-muted">Help & Tips</p>
           </div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0" role="toolbar" aria-label="Panel actions">
@@ -192,7 +192,7 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
             aria-pressed={isPinned}
           >
             {isPinned ? (
-              <RiPushpinFill className="h-4 w-4 text-cb-ink" aria-hidden="true" />
+              <RiPushpinFill className="h-4 w-4 text-ink" aria-hidden="true" />
             ) : (
               <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
             )}
@@ -213,12 +213,12 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
         {/* Description */}
         <section className="space-y-2" aria-labelledby="about-heading">
           <div className="flex items-center gap-2">
-            <RiQuestionLine className="h-4 w-4 text-cb-ink-muted" aria-hidden="true" />
-            <h4 id="about-heading" className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
+            <RiQuestionLine className="h-4 w-4 text-ink-muted" aria-hidden="true" />
+            <h4 id="about-heading" className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
               About
             </h4>
           </div>
-          <p className="text-sm text-cb-ink leading-relaxed">
+          <p className="text-sm text-ink leading-relaxed">
             {content.description}
           </p>
         </section>
@@ -226,12 +226,12 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
         {/* Tips */}
         {content.tips && content.tips.length > 0 && (
           <section className="space-y-3" aria-labelledby="tips-heading">
-            <h4 id="tips-heading" className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
+            <h4 id="tips-heading" className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
               Tips & Best Practices
             </h4>
             <ul className="space-y-2" role="list" aria-label="Tips and best practices">
               {content.tips.map((tip, index) => (
-                <li key={index} className="flex items-start gap-2 text-sm text-cb-ink-muted">
+                <li key={index} className="flex items-start gap-2 text-sm text-ink-muted">
                   <span
                     className="w-5 h-5 rounded-full bg-cb-accent/10 text-cb-accent flex items-center justify-center flex-shrink-0 text-xs font-medium mt-0.5"
                     aria-hidden="true"
@@ -246,12 +246,12 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
         )}
 
         {/* Quick Help Section */}
-        <section className="space-y-3 pt-4 border-t border-cb-border" aria-labelledby="more-help-heading">
-          <h4 id="more-help-heading" className="text-xs font-semibold text-cb-ink-soft uppercase tracking-wide">
+        <section className="space-y-3 pt-4 border-t border-border" aria-labelledby="more-help-heading">
+          <h4 id="more-help-heading" className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
             Need More Help?
           </h4>
-          <div className="bg-cb-card rounded-lg p-3 border border-cb-border">
-            <p className="text-sm text-cb-ink-muted">
+          <div className="bg-cb-card rounded-lg p-3 border border-border">
+            <p className="text-sm text-ink-muted">
               If you need additional assistance with this setting, please contact our support team
               or visit our documentation.
             </p>

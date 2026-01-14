@@ -193,7 +193,7 @@ export default function AdminTab() {
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
-            <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
               <div
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
@@ -201,12 +201,12 @@ export default function AdminTab() {
                 }}
               />
               <div className="flex items-center gap-3 mb-2">
-                <RiGroupLine className="h-5 w-5 text-cb-ink-muted" />
+                <RiGroupLine className="h-5 w-5 text-ink-muted" />
                 <p className="text-xs font-medium text-muted-foreground">Total Users</p>
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.totalUsers}</p>
             </div>
-            <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
               <div
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
@@ -214,12 +214,12 @@ export default function AdminTab() {
                 }}
               />
               <div className="flex items-center gap-3 mb-2">
-                <RiPulseLine className="h-5 w-5 text-cb-ink-muted" />
+                <RiPulseLine className="h-5 w-5 text-ink-muted" />
                 <p className="text-xs font-medium text-muted-foreground">Active Users</p>
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.activeUsers}</p>
             </div>
-            <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
               <div
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
@@ -227,12 +227,12 @@ export default function AdminTab() {
                 }}
               />
               <div className="flex items-center gap-3 mb-2">
-                <RiCheckboxCircleLine className="h-5 w-5 text-cb-ink-muted" />
+                <RiCheckboxCircleLine className="h-5 w-5 text-ink-muted" />
                 <p className="text-xs font-medium text-muted-foreground">Setup Complete</p>
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.completedSetup}</p>
             </div>
-            <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
               <div
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
@@ -245,7 +245,7 @@ export default function AdminTab() {
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.adminUsers}</p>
             </div>
-            <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
               <div
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
@@ -258,7 +258,7 @@ export default function AdminTab() {
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.teamUsers}</p>
             </div>
-            <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
               <div
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
@@ -271,7 +271,7 @@ export default function AdminTab() {
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.proUsers}</p>
             </div>
-            <div className="relative py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
               <div
                 className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
                 style={{
@@ -335,7 +335,7 @@ export default function AdminTab() {
 
           {/* User Table */}
           {filteredUsers.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 border border-cb-border dark:border-cb-border-dark">
+            <div className="flex flex-col items-center justify-center py-12 border border-border dark:border-cb-border-dark">
               <RiGroupLine className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground">
                 {searchQuery || roleFilter !== "all" ? "No users match your filters" : "No users found"}

@@ -35,10 +35,10 @@ const TabsTrigger = React.forwardRef<
       "relative inline-flex items-center justify-center whitespace-nowrap",
       "text-sm font-light uppercase",
       // Inactive state
-      "text-cb-ink-muted transition-all duration-200",
+      "text-ink-muted transition-all duration-200",
       // Active state - font weight and color
       "data-[state=active]:font-semibold",
-      "data-[state=active]:text-cb-ink dark:data-[state=active]:text-white",
+      "data-[state=active]:text-ink dark:data-[state=active]:text-white",
       // Active state - 6px vibe green underline (angular shape via CSS)
       "data-[state=active]:after:absolute",
       "data-[state=active]:after:bottom-0",
@@ -48,7 +48,7 @@ const TabsTrigger = React.forwardRef<
       "data-[state=active]:after:bg-vibe-orange",
       "data-[state=active]:after:content-['']",
       // Hover state
-      "hover:text-cb-ink dark:hover:text-white",
+      "hover:text-ink dark:hover:text-white",
       // Focus state
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
       "disabled:pointer-events-none disabled:opacity-50",

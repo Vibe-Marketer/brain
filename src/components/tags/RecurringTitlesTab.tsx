@@ -226,7 +226,7 @@ export function RecurringTitlesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="border border-cb-border dark:border-cb-border-dark rounded-sm overflow-hidden">
+      <div className="border border-border dark:border-cb-border-dark rounded-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-cb-white dark:bg-card hover:bg-cb-white dark:hover:bg-card">
@@ -254,7 +254,7 @@ export function RecurringTitlesTab() {
                 <TableRow key={item.title}>
                   <TableCell className="font-medium">{item.title}</TableCell>
                   <TableCell className="text-right tabular-nums">{item.occurrence_count}</TableCell>
-                  <TableCell className="text-cb-ink-muted">
+                  <TableCell className="text-ink-muted">
                     {item.last_occurrence
                       ? format(new Date(item.last_occurrence), "MMM d, yyyy")
                       : "-"}
@@ -266,7 +266,7 @@ export function RecurringTitlesTab() {
                         Has Rule
                       </Badge>
                     ) : (
-                      <Badge variant="outline" className="text-cb-ink-muted">
+                      <Badge variant="outline" className="text-ink-muted">
                         No Rule
                       </Badge>
                     )}
@@ -316,7 +316,7 @@ export function RecurringTitlesTab() {
 
             <div className="space-y-2">
               <Label>
-                Tag <span className="text-cb-ink-muted font-normal">(optional)</span>
+                Tag <span className="text-ink-muted font-normal">(optional)</span>
               </Label>
               <Select
                 value={selectedTagId || "none"}
@@ -340,12 +340,12 @@ export function RecurringTitlesTab() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-cb-ink-muted">Tags control AI analysis behavior</p>
+              <p className="text-xs text-ink-muted">Tags control AI analysis behavior</p>
             </div>
 
             <div className="space-y-2">
               <Label>
-                Folder <span className="text-cb-ink-muted font-normal">(optional)</span>
+                Folder <span className="text-ink-muted font-normal">(optional)</span>
               </Label>
               <Select
                 value={selectedFolderId || "none"}
@@ -376,7 +376,7 @@ export function RecurringTitlesTab() {
                   })}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-cb-ink-muted">Folders organize calls for browsing only</p>
+              <p className="text-xs text-ink-muted">Folders organize calls for browsing only</p>
             </div>
 
             {!selectedTagId && !selectedFolderId && (

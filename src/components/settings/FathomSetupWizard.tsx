@@ -292,7 +292,7 @@ export default function FathomSetupWizard({ open, onComplete: _onComplete, onDis
             </div>
 
             {currentStepData.stepNumber && (
-              <div className="w-full bg-muted/50 h-3 rounded-full overflow-hidden border border-cb-border dark:border-cb-border-dark">
+              <div className="w-full bg-muted/50 h-3 rounded-full overflow-hidden border border-border dark:border-cb-border-dark">
                 <div
                   className="h-full transition-all duration-300 rounded-full bg-vibe-orange"
                   style={{ width: `${progress}%` }}

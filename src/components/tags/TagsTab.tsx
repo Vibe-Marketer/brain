@@ -244,7 +244,7 @@ export function TagsTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-cb-ink-muted">
+      <p className="text-sm text-ink-muted">
         These are the system-wide tags that classify calls by type. Tags control which AI prompts
         and analysis run on each call.
       </p>
@@ -297,10 +297,10 @@ export function TagsTab() {
                       ref={getRowRef(tag.id) as React.Ref<HTMLTableRowElement>}
                       className={`cursor-pointer transition-colors ${
                         isSelected
-                          ? "bg-cb-hover dark:bg-cb-hover-dark"
+                          ? "bg-hover dark:bg-cb-hover-dark"
                           : isFocused
-                          ? "bg-cb-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
-                          : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
+                          ? "bg-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
+                          : "hover:bg-hover/50 dark:hover:bg-cb-hover-dark/50"
                       }`}
                       onClick={() => {
                         handleRowClick(tag);
@@ -314,7 +314,7 @@ export function TagsTab() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{tag.name}</TableCell>
-                      <TableCell className="text-cb-ink-muted">
+                      <TableCell className="text-ink-muted">
                         {tag.description || "-"}
                       </TableCell>
                       <TableCell>

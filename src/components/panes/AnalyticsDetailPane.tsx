@@ -157,10 +157,10 @@ function AnalyticsPlaceholder({ category }: { category: AnalyticsCategory }) {
       >
         <meta.icon className="h-8 w-8 text-vibe-orange" />
       </div>
-      <h3 className="text-lg font-semibold text-cb-ink mb-2">
+      <h3 className="text-lg font-semibold text-ink mb-2">
         {meta.label} Analytics
       </h3>
-      <p className="text-sm text-cb-ink-muted max-w-sm">
+      <p className="text-sm text-ink-muted max-w-sm">
         Analytics content for {category} coming soon
       </p>
     </div>
@@ -260,7 +260,7 @@ export function AnalyticsDetailPane({
       tabIndex={-1}
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-cb-border bg-cb-card/50 flex-shrink-0">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-cb-card/50 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {/* Back button for mobile navigation */}
           {showBackButton && onBack && (
@@ -286,12 +286,12 @@ export function AnalyticsDetailPane({
           {/* Category title and description */}
           <div className="min-w-0">
             <h2
-              className="text-sm font-semibold text-cb-ink truncate"
+              className="text-sm font-semibold text-ink truncate"
               id="analytics-detail-title"
             >
               {meta.label}
             </h2>
-            <p className="text-xs text-cb-ink-muted truncate">
+            <p className="text-xs text-ink-muted truncate">
               {meta.description}
             </p>
           </div>

@@ -263,10 +263,10 @@ export function FoldersTab() {
             ref={getRowRef(folder.id) as React.Ref<HTMLTableRowElement>}
             className={`cursor-pointer transition-colors ${
               isSelected
-                ? "bg-cb-hover dark:bg-cb-hover-dark"
+                ? "bg-hover dark:bg-cb-hover-dark"
                 : isFocused
-                ? "bg-cb-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
-                : "hover:bg-cb-hover/50 dark:hover:bg-cb-hover-dark/50"
+                ? "bg-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
+                : "hover:bg-hover/50 dark:hover:bg-cb-hover-dark/50"
             }`}
             style={isVirtualized ? { height: ROW_HEIGHT } : undefined}
             onClick={() => {
@@ -304,7 +304,7 @@ export function FoldersTab() {
                     </span>
                   )}
                   {!isEditing && folder.description && (
-                    <span className="text-cb-ink-muted text-xs">- {folder.description}</span>
+                    <span className="text-ink-muted text-xs">- {folder.description}</span>
                   )}
                 </div>
               </TableCell>
@@ -407,7 +407,7 @@ export function FoldersTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-cb-ink-muted">
+      <p className="text-sm text-ink-muted">
         Folders organize your calls for easy browsing. Folder assignment has no effect on AI analysis - only tags control that.
       </p>
 

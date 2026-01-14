@@ -94,8 +94,8 @@ const SessionItem = React.memo(function SessionItem({
         group relative flex items-center h-9 w-full px-2 rounded-lg cursor-pointer
         transition-colors duration-150 overflow-hidden
         ${isActive && !isSelectionMode
-          ? 'bg-cb-hover'
-          : 'hover:bg-cb-hover/50'
+          ? 'bg-hover'
+          : 'hover:bg-hover/50'
         }
       `}
       onClick={handleClick}
@@ -115,7 +115,7 @@ const SessionItem = React.memo(function SessionItem({
       <span
         className={`
           flex-1 min-w-0 truncate text-sm
-          ${isActive && !isSelectionMode ? 'text-cb-ink font-medium' : 'text-cb-ink-soft'}
+          ${isActive && !isSelectionMode ? 'text-ink font-medium' : 'text-ink-soft'}
         `}
         dir="auto"
       >
@@ -124,7 +124,7 @@ const SessionItem = React.memo(function SessionItem({
 
       {/* Pin indicator (small, inline) */}
       {session.is_pinned && (
-        <RiPushpinFill className="h-3 w-3 text-cb-ink-muted flex-shrink-0 mr-1" aria-label="Pinned" />
+        <RiPushpinFill className="h-3 w-3 text-ink-muted flex-shrink-0 mr-1" aria-label="Pinned" />
       )}
 
       {/* 3-dot menu - ALWAYS visible */}
@@ -136,7 +136,7 @@ const SessionItem = React.memo(function SessionItem({
             onClick={(e) => e.stopPropagation()}
             aria-label="Options"
           >
-            <RiMoreLine className="h-5 w-5 text-cb-ink-muted" />
+            <RiMoreLine className="h-5 w-5 text-ink-muted" />
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
@@ -254,7 +254,7 @@ export function ChatSidebar({
         data-component="SIDEBAR"
       >
         {/* Header - standardized pattern matching other category panes */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-cb-card/50">
           <div
             className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
             aria-hidden="true"
@@ -262,10 +262,10 @@ export function ChatSidebar({
             <RiChat3Line className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-cb-ink uppercase tracking-wide">
+            <h2 className="text-sm font-semibold text-ink uppercase tracking-wide">
               AI Chat
             </h2>
-            <p className="text-xs text-cb-ink-muted">
+            <p className="text-xs text-ink-muted">
               {sessions.length} {sessions.length === 1 ? 'conversation' : 'conversations'}
             </p>
           </div>
@@ -279,7 +279,7 @@ export function ChatSidebar({
                   setIsSelectionMode(!isSelectionMode);
                   setSelectedSessions([]);
                 }}
-                className={`h-6 w-6 rounded-full ${isSelectionMode ? "bg-cb-hover text-cb-ink" : ""}`}
+                className={`h-6 w-6 rounded-full ${isSelectionMode ? "bg-hover text-ink" : ""}`}
                 aria-label={isSelectionMode ? "Cancel selection" : "Select chats"}
               >
                 {isSelectionMode ? <RiCloseLine className="w-4 h-4 opacity-70" /> : <RiListCheck className="w-4 h-4 opacity-70" />}
@@ -301,7 +301,7 @@ export function ChatSidebar({
                   className="h-4 w-4"
                   aria-label="Select all"
                />
-               <span className="text-xs font-medium text-cb-ink-soft">{selectedSessions.length} selected</span>
+               <span className="text-xs font-medium text-ink-soft">{selectedSessions.length} selected</span>
             </div>
              {selectedSessions.length > 0 && (
                <Button 
@@ -324,7 +324,7 @@ export function ChatSidebar({
             {pinnedSessions.length > 0 && (
               <div className="mb-2">
                 <div className="px-2 py-1">
-                  <span className="text-[11px] text-cb-ink-muted">Pinned</span>
+                  <span className="text-[11px] text-ink-muted">Pinned</span>
                 </div>
                 {pinnedSessions.map((session) => (
                   <SessionItem
@@ -348,7 +348,7 @@ export function ChatSidebar({
               <div>
                 {pinnedSessions.length > 0 && (
                   <div className="px-2 py-1">
-                    <span className="text-[11px] text-cb-ink-muted">Recent</span>
+                    <span className="text-[11px] text-ink-muted">Recent</span>
                   </div>
                 )}
                 {unpinnedSessions.map((session) => (
@@ -371,9 +371,9 @@ export function ChatSidebar({
             {/* Empty state */}
             {sessions.length === 0 && (
               <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
-                <RiChat3Line className="h-10 w-10 text-cb-ink-muted mb-3" aria-hidden="true" />
-                <p className="text-sm text-cb-ink-soft mb-1">No conversations yet</p>
-                <p className="text-xs text-cb-ink-muted">Start a new chat</p>
+                <RiChat3Line className="h-10 w-10 text-ink-muted mb-3" aria-hidden="true" />
+                <p className="text-sm text-ink-soft mb-1">No conversations yet</p>
+                <p className="text-xs text-ink-muted">Start a new chat</p>
               </div>
             )}
             </div>

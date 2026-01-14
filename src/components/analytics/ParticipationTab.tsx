@@ -78,7 +78,7 @@ export function ParticipationTab() {
             className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
               timeRange === range
                 ? "bg-cb-black dark:bg-cb-white text-white dark:text-cb-black font-medium"
-                : "text-cb-gray-dark dark:text-cb-gray-light hover:bg-cb-hover dark:hover:bg-cb-hover-dark"
+                : "text-cb-gray-dark dark:text-cb-gray-light hover:bg-hover dark:hover:bg-cb-hover-dark"
             }`}
           >
             {range === "all" ? "All Time" : range}
@@ -119,7 +119,7 @@ export function ParticipationTab() {
             {analytics.inviteesVsParticipants.map((item) => (
               <div
                 key={item.name}
-                className="relative py-4 px-6 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg"
+                className="relative py-4 px-6 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg"
               >
                 {/* Vibe orange wedge accent */}
                 <div
@@ -153,12 +153,12 @@ export function ParticipationTab() {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Attendees over time - Placeholder */}
-          <div className="p-6 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+          <div className="p-6 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
             <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
               Attendees Over Time
             </h4>
-            <div className="flex flex-col items-center justify-center h-[200px] bg-cb-hover dark:bg-cb-hover-dark rounded-lg">
-              <RiLineChartLine className="w-12 h-12 text-cb-ink-muted mb-2" />
+            <div className="flex flex-col items-center justify-center h-[200px] bg-hover dark:bg-cb-hover-dark rounded-lg">
+              <RiLineChartLine className="w-12 h-12 text-ink-muted mb-2" />
               <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
                 Trend chart placeholder
               </p>
@@ -176,12 +176,12 @@ export function ParticipationTab() {
               colors={["slate", "green"]}
             />
           ) : (
-            <div className="p-6 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="p-6 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
               <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
                 Solo vs Multi-Speaker Calls
               </h4>
-              <div className="flex flex-col items-center justify-center h-[200px] bg-cb-hover dark:bg-cb-hover-dark rounded-lg">
-                <RiPieChartLine className="w-12 h-12 text-cb-ink-muted mb-2" />
+              <div className="flex flex-col items-center justify-center h-[200px] bg-hover dark:bg-cb-hover-dark rounded-lg">
+                <RiPieChartLine className="w-12 h-12 text-ink-muted mb-2" />
                 <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
                   Pie chart placeholder
                 </p>
