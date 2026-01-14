@@ -496,6 +496,9 @@ export function SyncTab() {
       {/* Date Range and Fetch Controls - Single Row */}
       <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-4 border-b border-cb-gray-light dark:border-cb-gray-dark">
         <div className="flex-1 min-w-[240px]">
+          <label className="text-xs font-medium text-ink-muted uppercase mb-2 block">
+            Import meetings from
+          </label>
           <DateRangePicker
             dateRange={dateRange || { from: undefined, to: undefined }}
             onDateRangeChange={(range) => setDateRange(range as DateRange)}

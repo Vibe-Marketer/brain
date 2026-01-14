@@ -137,3 +137,18 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - Browser verification blocked by 429 rate limiting - pre-existing infrastructure issue
 ---
 
+## 2026-01-14 - US-009.1: Clear date range label for integrations
+- What was implemented:
+  - Added a visible label "Import meetings from" above the DateRangePicker in the SyncTab
+  - Label uses consistent styling: `text-xs font-medium text-ink-muted uppercase mb-2 block`
+  - This matches the label pattern used in Chat.tsx for date range filters
+  - Label clearly indicates that the date range controls which meetings from connected integrations will be fetched
+- Files changed:
+  - `src/components/transcripts/SyncTab.tsx` - added label above DateRangePicker (line 499-501)
+- **Learnings for future iterations:**
+  - DateRangePicker component is used in SyncTab, FilterBar, and Chat.tsx
+  - Only SyncTab needed a label because it's the primary import interface where users need to understand the date range affects meeting fetching
+  - Label style follows existing pattern: `text-xs font-medium text-ink-muted uppercase mb-2 block`
+  - The date range applies consistently to all integration types (Zoom, Google Meet, Fathom) since it filters by meeting date
+---
+

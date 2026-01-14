@@ -121,7 +121,7 @@
         "User understands what the date range controls",
         "Consistent wording across all integration types"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-010.1",
