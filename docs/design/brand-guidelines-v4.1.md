@@ -462,13 +462,13 @@ const toggleSidebar = () => {
 | Background | `bg-card` (matches sidebar) |
 | Border | `border border-border` |
 | Shadow | `shadow-sm` |
-| Hover | `bg-cb-hover` |
+| Hover | `bg-hover` |
 
 **Icon Behavior:**
 
 - **When collapsed:** Right chevron (`RiArrowRightSLine`) - indicates expand action
 - **When expanded:** Left chevron (`RiArrowLeftSLine`) - indicates collapse action
-- Icon color: `text-cb-ink-muted`
+- Icon color: `text-ink-muted`
 - Icon size: `w-4 h-4`
 
 ```tsx
@@ -518,23 +518,23 @@ The sidebar includes 4 primary navigation icons at the top, styled with a glossy
 | Button size | 44x44px (`w-11 h-11`) |
 | Border radius | `rounded-xl` (12px) |
 | Icon size | 20x20px (`w-5 h-5`) |
-| Icon color (light) | `text-cb-black` |
-| Icon color (dark) | `text-cb-white` |
+| Icon color (light) | `text-ink` |
+| Icon color (dark) | `text-white` |
 | Hover effect | `scale-105` |
-| Active state | `ring-2 ring-cb-vibe-orange/50` |
+| Active state | `ring-2 ring-vibe-orange/50` |
 
 **Active Indicator:**
 
 - Small orange dot below active icon
 - Size: 6x6px (`w-1.5 h-1.5`)
-- Color: `bg-cb-vibe-orange`
+- Color: `bg-vibe-orange`
 - Position: Centered, -2px below button
 
 **Layout Behavior:**
 
 - **Expanded sidebar:** Icons in horizontal row, centered with 8px gap
 - **Collapsed sidebar:** Icons in vertical column, centered
-- Separator line below: `border-t border-cb-border` with 12px horizontal margin
+- Separator line below: `border-t border-border` with 12px horizontal margin
 
 ```tsx
 import { SidebarNav } from '@/components/ui/sidebar-nav';
@@ -727,11 +727,11 @@ if (size === 'icon') {
         'h-8 w-8 inline-flex items-center justify-center gap-1',
         'whitespace-nowrap rounded-md text-sm font-medium',
         // Border: black in light mode, white in dark mode
-        'border border-cv-ink dark:border-cv-text-dark-primary',
+        'border border-ink dark:border-white',
         // Background and text
-        'bg-cv-white text-cv-black dark:bg-cv-black dark:text-cv-white',
+        'bg-white text-ink dark:bg-black dark:text-white',
         // Hover: light gray in light mode, darker gray in dark
-        'hover:bg-cv-hover dark:hover:bg-cv-border',
+        'hover:bg-hover dark:hover:bg-border',
         'ring-offset-background transition-colors',
         'focus-visible:outline-none focus-visible:ring-2',
         'focus-visible:ring-ring focus-visible:ring-offset-2',
@@ -877,8 +877,8 @@ focus: {
 
 ```css
 background: transparent;
-color: #6B6B6B;  /* cv-ink-soft */
-border: 1px solid #E8E8E8;  /* cv-border-soft */
+color: #6B6B6B;  /* ink-soft */
+border: 1px solid #E8E8E8;  /* border-soft */
 border-radius: 8px;
 ```
 
@@ -886,8 +886,8 @@ border-radius: 8px;
 
 ```css
 background: transparent;
-color: #9A9A9A;  /* cv-text-dark-secondary */
-border: 1px solid #3A3A3A;  /* cv-border-dark */
+color: #9A9A9A;  /* ink-muted in dark mode */
+border: 1px solid #3A3A3A;  /* border in dark mode */
 border-radius: 8px;
 ```
 
@@ -955,7 +955,7 @@ focus: {
 
 ```css
 background: transparent;
-color: #7A7A7A;  /* cv-ink-muted */
+color: #7A7A7A;  /* ink-muted */
 border: none;
 border-radius: 8px;
 ```
@@ -964,7 +964,7 @@ border-radius: 8px;
 
 ```css
 background: transparent;
-color: #9A9A9A;  /* cv-text-dark-secondary */
+color: #9A9A9A;  /* ink-muted in dark mode */
 border: none;
 border-radius: 8px;
 ```
@@ -1098,13 +1098,13 @@ Ri{IconName}{Style}
 
 ### Standard Styling
 
-**Color:** Icons use `text-cv-ink-muted` (#7A7A7A light / #6B6B6B dark)
+**Color:** Icons use `text-ink-muted` (#7A7A7A light / #6B6B6B dark)
 
 ```tsx
 import { RiEditLine, RiDeleteBinLine, RiDownloadLine } from "@remixicon/react";
 
 // Standard inline icon
-<RiEditLine className="h-4 w-4 text-cv-ink-muted" />
+<RiEditLine className="h-4 w-4 text-ink-muted" />
 
 // Icon in button
 <Button variant="hollow" size="icon">
@@ -1113,7 +1113,7 @@ import { RiEditLine, RiDeleteBinLine, RiDownloadLine } from "@remixicon/react";
 
 // Icon with text (use gap-2)
 <button className="flex items-center gap-2">
-  <RiDownloadLine className="h-4 w-4 text-cv-ink-muted" />
+  <RiDownloadLine className="h-4 w-4 text-ink-muted" />
   <span>Download</span>
 </button>
 ```
@@ -1280,7 +1280,7 @@ When a navigation item is active, it combines:
 
 // Decorative icon (text provides meaning)
 <span className="flex items-center gap-2">
-  <RiCheckLine className="h-4 w-4 text-cv-ink-muted" aria-hidden="true" />
+  <RiCheckLine className="h-4 w-4 text-ink-muted" aria-hidden="true" />
   Completed
 </span>
 ```
@@ -1313,7 +1313,7 @@ When a navigation item is active, it combines:
 
 **Full-Width Black Underline:**
 
-- TabsList wrapped in div with `border-b border-cv-ink dark:border-white`
+- TabsList wrapped in div with `border-b border-ink dark:border-white`
 - Provides visual separation between tabs and content
 
 **CSS Implementation:**
@@ -1331,8 +1331,8 @@ The clip-path is applied via global CSS in `src/index.css`:
 
 | State | Font | Size | Weight | Color |
 |-------|------|------|--------|-------|
-| **Inactive** | Inter | 14px | Light (300) | #7A7A7A (cv-ink-muted) |
-| **Active** | Inter | 14px | Semibold (600) | #111111 (cv-ink) / #FFFFFF dark |
+| **Inactive** | Inter | 14px | Light (300) | #7A7A7A (ink-muted) |
+| **Active** | Inter | 14px | Semibold (600) | #111111 (ink) / #FFFFFF dark |
 
 **Exact Component Implementation** (`src/components/ui/tabs.tsx`):
 
@@ -1342,7 +1342,7 @@ const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
 >(({ className, ...props }, ref) => (
-  <div className="w-full border-b border-cv-ink dark:border-white">
+  <div className="w-full border-b border-ink dark:border-white">
     <TabsPrimitive.List
       ref={ref}
       className={cn(
@@ -1368,10 +1368,10 @@ const TabsTrigger = React.forwardRef<
       "relative inline-flex items-center justify-center whitespace-nowrap",
       "text-sm font-light uppercase",
       // Inactive state
-      "text-cv-ink-muted transition-all duration-200",
+      "text-ink-muted transition-all duration-200",
       // Active state - font weight and color
       "data-[state=active]:font-semibold",
-      "data-[state=active]:text-cv-ink dark:data-[state=active]:text-white",
+      "data-[state=active]:text-ink dark:data-[state=active]:text-white",
       // Active state - 6px vibe orange underline (clip-path via CSS)
       "data-[state=active]:after:absolute",
       "data-[state=active]:after:bottom-0",
@@ -1381,7 +1381,7 @@ const TabsTrigger = React.forwardRef<
       "data-[state=active]:after:bg-vibe-orange",
       "data-[state=active]:after:content-['']",
       // Hover state
-      "hover:text-cv-ink dark:hover:text-white",
+      "hover:text-ink dark:hover:text-white",
       // Focus state
       "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
       "disabled:pointer-events-none disabled:opacity-50",
@@ -1989,10 +1989,10 @@ border-bottom: 1px solid #E5E5E5 (light) / #3A3A3A (dark);
 ```tsx
 <td className="py-2.5">
   <div className="flex flex-col gap-1">
-    <div className="text-sm font-medium text-cv-ink">
+    <div className="text-sm font-medium text-ink">
       Primary content
     </div>
-    <div className="text-xs font-light text-cv-ink-muted">
+    <div className="text-xs font-light text-ink-muted">
       Secondary metadata
     </div>
   </div>
@@ -2088,7 +2088,7 @@ clip-path: polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)  <- 10%/90% angle
 **Complete Implementation:**
 
 ```tsx
-<div className="relative py-2 px-4 bg-card border border-cv-border dark:border-cv-border-dark rounded-lg">
+<div className="relative py-2 px-4 bg-card border border-border dark:border-border rounded-lg">
   {/* Vibe orange angled marker - STANDARDIZED DIMENSIONS */}
   <div
     className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14"
@@ -2100,16 +2100,16 @@ clip-path: polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)  <- 10%/90% angle
 
   {/* Card content */}
   <div className="flex items-center justify-between mb-1">
-    <div className="text-xs font-medium text-cv-ink-muted">
+    <div className="text-xs font-medium text-ink-muted">
       Total recording time
     </div>
-    <div className="text-[10px] text-cv-ink-muted">current</div>
+    <div className="text-[10px] text-ink-muted">current</div>
   </div>
   <div className="flex items-center justify-between">
-    <div className="font-display text-2xl font-extrabold text-cv-ink">
+    <div className="font-display text-2xl font-extrabold text-ink">
       62h 7m
     </div>
-    <div className="text-lg font-semibold text-cv-ink-soft">
+    <div className="text-lg font-semibold text-ink-soft">
       62h 7m
     </div>
   </div>
@@ -2356,7 +2356,7 @@ Limited-duration alerts for new feature rollout, action-required messages during
 Linear or circular progress bars for onboarding, setup, or feature completion journeys:
 
 ```tsx
-<div className="h-1 bg-cv-border rounded-full">
+<div className="h-1 bg-border rounded-full">
   <div className="h-1 bg-vibe-orange rounded-full" style={{ width: '60%' }} />
 </div>
 ```
@@ -2368,7 +2368,7 @@ Active step markers or micro-dividers in onboarding flows, navigation progress, 
 ```tsx
 <div className="flex items-center gap-2">
   <div className="w-2 h-2 rounded-full bg-vibe-orange" /> {/* Active step */}
-  <div className="w-2 h-2 rounded-full bg-cv-border" />   {/* Inactive */}
+  <div className="w-2 h-2 rounded-full bg-border" />      {/* Inactive */}
 </div>
 ```
 
@@ -2476,8 +2476,8 @@ background: linear-gradient(180deg, #FFEB00 0%, #FF8800 50%, #FF3D00 100%);
 
 **Other Participants:**
 
-- Background: bg-cv-hover
-- Text: text-cv-ink
+- Background: bg-hover
+- Text: text-ink
 
 **User/Host Messages (Exception to Monochromatic Rule):**
 
@@ -2494,13 +2494,13 @@ className="bg-[#007AFF] dark:bg-[#0A84FF] text-white rounded-2xl p-3"
 **Other Participant Messages:**
 
 ```tsx
-className="bg-cv-hover text-cv-ink rounded-2xl p-3 border border-cv-border-soft"
+className="bg-hover text-ink rounded-2xl p-3 border border-border-soft"
 ```
 
-- Light Mode: #F8F8F8 background (bg-cv-hover)
+- Light Mode: #F8F8F8 background (bg-hover)
 - Dark Mode: #2A2A2A background
-- Text: #111111 (text-cv-ink)
-- Border: Optional 1px border-cv-border-soft for extra definition
+- Text: #111111 (text-ink)
+- Border: Optional 1px border-border-soft for extra definition
 - Border-radius: 16px (rounded-2xl)
 
 **When to Use:**
@@ -2578,7 +2578,7 @@ All spacing uses 4px increments (Tailwind's default):
 **Structure:**
 
 ```tsx
-<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-cv-success-bg text-cv-success-text border border-cv-success-border">
+<span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-bg text-success-text border border-success-border">
   Active
 </span>
 ```
@@ -2642,7 +2642,7 @@ box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
 ```tsx
 <div className="bg-white dark:bg-[#202020]">
-  <p className="text-cv-ink dark:text-cv-text-dark-primary">
+  <p className="text-ink dark:text-white">
     Text content
   </p>
 </div>
@@ -2914,7 +2914,7 @@ System microcopy, notifications, onboarding messages, empty states, and system f
 ```tsx
 // Empty state
 <div className="text-center py-12">
-  <p className="text-cv-ink-soft font-light">
+  <p className="text-ink-soft font-light">
     Nothing here yet-let's record some magic
   </p>
 </div>
@@ -2923,7 +2923,7 @@ System microcopy, notifications, onboarding messages, empty states, and system f
 toast.success("Sync complete. Your vault is up to date.");
 
 // Onboarding tip
-<p className="text-sm text-cv-ink-soft">
+<p className="text-sm text-ink-soft">
   Pro tip: Keyboard shortcuts make everything faster
 </p>
 ```
@@ -3266,7 +3266,7 @@ This document follows semantic versioning to track changes:
 - Color system changed from Vibe Green (#D9FC67) to Vibe Orange (#FF8800)
 - Added new Vibe Orange variants: Dark (#FF3D00) and Light (#FFEB00)
 - Added Brand Identity & Logo section with new logo specifications
-- Updated all CSS variables from `cb-` prefix to `cv-` prefix
+- Updated all CSS variables from `cb-` prefix to semantic names (e.g., `ink`, `border`, `hover`)
 - Updated all component examples to use new color system
 - Added gradient usage guidelines (White Hot to Lava)
 - Updated microcopy examples to reflect new brand voice
