@@ -1,8 +1,8 @@
-# CALLVAULT BRAND GUIDELINES v4.1.3
+# CALLVAULT BRAND GUIDELINES v4.2
 
 ## Authoritative Design System Reference
 
-**Last Updated:** January 8, 2026
+**Last Updated:** January 14, 2026
 **Status:** Complete & Accurate - Supersedes ALL previous versions
 **Purpose:** Single source of truth for all design and development decisions
 
@@ -3277,7 +3277,7 @@ Full changelog: [brand-guidelines-changelog.md](./brand-guidelines-changelog.md)
 
 ## DOCUMENT VERSION
 
-**Current Version:** v4.1.3
+**Current Version:** v4.2
 
 This version reference must match the title at the top of the document.
 
@@ -3309,7 +3309,7 @@ This version reference must match the title at the top of the document.
 
 ---
 
-*END OF BRAND GUIDELINES v4.1.3*
+*END OF BRAND GUIDELINES v4.2*
 
-This document is complete and accurate as of December 9, 2025.
+This document is complete and accurate as of January 14, 2026.
 All implementations must follow these specifications exactly.
