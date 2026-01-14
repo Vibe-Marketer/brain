@@ -373,7 +373,7 @@ export default function AITab() {
         </div>
 
         {/* Model Selection Card */}
-        <div className="relative py-6 px-6 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+        <div className="relative py-6 px-6 bg-card border border-border dark:border-cb-border-dark rounded-lg">
           <div
             className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-orange"
             style={{
@@ -441,7 +441,7 @@ export default function AITab() {
               </div>
 
               {currentModelDetails && (
-                <div className="pt-3 border-t border-cb-border dark:border-cb-border-dark">
+                <div className="pt-3 border-t border-border dark:border-cb-border-dark">
                   <p className="text-xs text-muted-foreground">
                     <strong>Current:</strong> {currentModelDetails.name} ({currentModelDetails.provider})
                      {currentModelDetails.pricing && ` · $${currentModelDetails.pricing.prompt}/1M input`}
@@ -465,7 +465,7 @@ export default function AITab() {
         </div>
 
         {/* Indexing Action Card */}
-        <div className="relative py-6 px-6 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+        <div className="relative py-6 px-6 bg-card border border-border dark:border-cb-border-dark rounded-lg">
           <div
             className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-orange"
             style={{
@@ -577,7 +577,7 @@ export default function AITab() {
                 )}
               </div>
 
-              <div className="pt-3 border-t border-cb-border dark:border-cb-border-dark">
+              <div className="pt-3 border-t border-border dark:border-cb-border-dark">
                 <p className="text-xs text-muted-foreground">
                   <strong>How it works:</strong> The indexing process breaks transcripts into
                   searchable chunks and creates vector embeddings for semantic search. This

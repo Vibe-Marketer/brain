@@ -46,7 +46,7 @@ export default function IntegrationStatusCard({
   };
 
   return (
-    <div className="flex items-center justify-between p-4 border-b border-cb-border dark:border-cb-border-dark">
+    <div className="flex items-center justify-between p-4 border-b border-border dark:border-cb-border-dark">
       <div className="flex items-center gap-4">
         <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center">
           <Icon className="h-5 w-5 text-ink-muted" />

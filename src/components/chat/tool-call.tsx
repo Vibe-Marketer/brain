@@ -49,7 +49,7 @@ export function ToolCall({ toolPart, defaultOpen = false, className }: ToolCallP
         data-tool-status={status}
         data-tool-name={toolPart.toolName}
         className={cn(
-          'rounded-lg border border-cb-border-soft bg-card overflow-hidden',
+          'rounded-lg border border-soft bg-card overflow-hidden',
           className
         )}
       >
@@ -78,7 +78,7 @@ export function ToolCall({ toolPart, defaultOpen = false, className }: ToolCallP
         </CollapsibleTrigger>
 
         <CollapsibleContent>
-          <div className="border-t border-cb-border-soft p-3 space-y-3">
+          <div className="border-t border-soft p-3 space-y-3">
             {/* Input/Args */}
             {toolPart.args && Object.keys(toolPart.args).length > 0 && (
               <div>

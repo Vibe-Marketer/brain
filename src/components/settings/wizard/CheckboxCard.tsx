@@ -26,7 +26,7 @@ export function CheckboxCard({
   };
 
   return (
-    <div className="relative py-2 px-4 pl-6 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+    <div className="relative py-2 px-4 pl-6 bg-card border border-border dark:border-cb-border-dark rounded-lg">
       <div
         className={cn(
           "absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6",

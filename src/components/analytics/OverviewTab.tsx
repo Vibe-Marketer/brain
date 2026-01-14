@@ -8,7 +8,7 @@ interface StatBoxProps {
 
 function StatBox({ label, value }: StatBoxProps) {
   return (
-    <div className="relative py-2 px-4 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+    <div className="relative py-2 px-4 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
       {/* Vibe orange wedge accent - trapezoid shape */}
       <div
         className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange"
@@ -108,7 +108,7 @@ export function OverviewTab() {
       {/* Charts Section - Placeholders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Calls per day/week placeholder */}
-        <div className="bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg p-6">
+        <div className="bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg p-6">
           <h4 className="font-display text-sm font-semibold text-cb-black dark:text-cb-white uppercase tracking-wide mb-4">
             Calls Per Day/Week
           </h4>
@@ -120,7 +120,7 @@ export function OverviewTab() {
         </div>
 
         {/* Minutes per day/week placeholder */}
-        <div className="bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg p-6">
+        <div className="bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg p-6">
           <h4 className="font-display text-sm font-semibold text-cb-black dark:text-cb-white uppercase tracking-wide mb-4">
             Minutes Per Day/Week
           </h4>

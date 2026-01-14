@@ -244,7 +244,7 @@ export function FolderDetailPanel({
       aria-label={`Folder details: ${folder.name}`}
     >
       {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b border-cb-border">
+      <header className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
@@ -302,7 +302,7 @@ export function FolderDetailPanel({
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3" role="group" aria-label="Folder statistics">
-          <div className="bg-cb-card rounded-lg p-3 border border-cb-border" aria-label={`${callCount} calls in this folder`}>
+          <div className="bg-cb-card rounded-lg p-3 border border-border" aria-label={`${callCount} calls in this folder`}>
             <div className="flex items-center gap-2 text-ink-muted mb-1">
               <RiPhoneLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Calls</span>
@@ -311,7 +311,7 @@ export function FolderDetailPanel({
               {callCount}
             </div>
           </div>
-          <div className="bg-cb-card rounded-lg p-3 border border-cb-border" aria-label={`Created on ${formatDate(folder.created_at)}`}>
+          <div className="bg-cb-card rounded-lg p-3 border border-border" aria-label={`Created on ${formatDate(folder.created_at)}`}>
             <div className="flex items-center gap-2 text-ink-muted mb-1">
               <RiCalendarLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Created</span>
@@ -333,7 +333,7 @@ export function FolderDetailPanel({
             <Label htmlFor="folder-name">Folder Name</Label>
             <div className="flex items-center gap-2">
               <span
-                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-cb-border bg-cb-card flex-shrink-0"
+                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-border bg-cb-card flex-shrink-0"
                 aria-label={`Selected icon: ${emoji}`}
                 role="img"
               >
@@ -411,7 +411,7 @@ export function FolderDetailPanel({
         </form>
 
         {/* Metadata */}
-        <div className="space-y-2 pt-4 border-t border-cb-border">
+        <div className="space-y-2 pt-4 border-t border-border">
           <h4 className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
             Details
           </h4>
@@ -423,7 +423,7 @@ export function FolderDetailPanel({
       </div>
 
       {/* Footer Actions */}
-      <footer className="p-4 border-t border-cb-border space-y-2" role="group" aria-label="Folder actions">
+      <footer className="p-4 border-t border-border space-y-2" role="group" aria-label="Folder actions">
         <Button
           className="w-full"
           onClick={handleSave}

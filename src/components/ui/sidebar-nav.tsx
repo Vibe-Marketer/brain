@@ -428,7 +428,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
       </nav>
 
       {/* Separator line */}
-      <div className="mx-3 border-t border-cb-border" />
+      <div className="mx-3 border-t border-border" />
     </div>
   );
 }

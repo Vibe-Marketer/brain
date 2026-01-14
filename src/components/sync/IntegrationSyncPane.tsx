@@ -43,7 +43,7 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
 
   if (connectingIntegration) {
     return (
-      <Card className="border-cb-border dark:border-cb-border-dark">
+      <Card className="border-border dark:border-cb-border-dark">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-montserrat font-extrabold uppercase tracking-wide">
             Connect Integration
@@ -61,7 +61,7 @@ export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPane
   }
 
   return (
-    <Card className="border-cb-border dark:border-cb-border-dark">
+    <Card className="border-border dark:border-cb-border-dark">
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
         <CardTitle className="text-lg font-montserrat font-extrabold uppercase tracking-wide">
           Integrations

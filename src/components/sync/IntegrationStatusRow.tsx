@@ -99,7 +99,7 @@ export function IntegrationStatusRow({
   };
 
   return (
-    <div className="flex items-center justify-between px-4 py-3 border-b border-cb-border dark:border-cb-border-dark last:border-b-0">
+    <div className="flex items-center justify-between px-4 py-3 border-b border-border dark:border-cb-border-dark last:border-b-0">
       <div className="flex items-center gap-3">
         <div className={cn("h-8 w-8 rounded-lg bg-muted flex items-center justify-center", colorClass)}>
           <Icon className="h-4 w-4" />

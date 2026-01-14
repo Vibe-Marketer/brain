@@ -102,7 +102,7 @@ export function SettingsStep({
 
       {/* Helper text */}
       <div className="flex justify-center">
-        <div className="bg-muted/30 border border-cb-border dark:border-cb-border-dark rounded-lg px-6 py-4 text-center">
+        <div className="bg-muted/30 border border-border dark:border-cb-border-dark rounded-lg px-6 py-4 text-center">
           <p className="text-sm text-muted-foreground">
             These boxes confirm you enabled settings in Fathom.<br />
             Checking them here doesn't change your Fathom account.

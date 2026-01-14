@@ -30,7 +30,7 @@ interface StepCardProps {
 
 function StepCard({ icon, title, description }: StepCardProps) {
   return (
-    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-cb-border dark:border-cb-border-dark">
+    <div className="flex items-start gap-3 p-3 rounded-lg bg-muted/50 border border-border dark:border-cb-border-dark">
       <div className="text-vibe-orange">{icon}</div>
       <div>
         <p className="font-medium text-sm">{title}</p>

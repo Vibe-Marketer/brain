@@ -108,7 +108,7 @@ export default function EditAllTranscriptsDialog({
           {/* Preview */}
           <div className="space-y-2">
             <Label>Preview</Label>
-            <div className="flex items-center gap-2 p-3 rounded-md border border-cb-border bg-cb-card">
+            <div className="flex items-center gap-2 p-3 rounded-md border border-border bg-cb-card">
               {isEmoji ? (
                 <span className="text-xl">{icon}</span>
               ) : IconComponent ? (

@@ -170,7 +170,7 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
       aria-label={`Help for ${content.title}`}
     >
       {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b border-cb-border">
+      <header className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
@@ -246,11 +246,11 @@ export function SettingHelpPanel({ topic = "profile" }: SettingHelpPanelProps) {
         )}
 
         {/* Quick Help Section */}
-        <section className="space-y-3 pt-4 border-t border-cb-border" aria-labelledby="more-help-heading">
+        <section className="space-y-3 pt-4 border-t border-border" aria-labelledby="more-help-heading">
           <h4 id="more-help-heading" className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
             Need More Help?
           </h4>
-          <div className="bg-cb-card rounded-lg p-3 border border-cb-border">
+          <div className="bg-cb-card rounded-lg p-3 border border-border">
             <p className="text-sm text-ink-muted">
               If you need additional assistance with this setting, please contact our support team
               or visit our documentation.

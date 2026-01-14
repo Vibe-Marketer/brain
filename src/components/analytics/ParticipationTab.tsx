@@ -119,7 +119,7 @@ export function ParticipationTab() {
             {analytics.inviteesVsParticipants.map((item) => (
               <div
                 key={item.name}
-                className="relative py-4 px-6 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg"
+                className="relative py-4 px-6 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg"
               >
                 {/* Vibe orange wedge accent */}
                 <div
@@ -153,7 +153,7 @@ export function ParticipationTab() {
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Attendees over time - Placeholder */}
-          <div className="p-6 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+          <div className="p-6 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
             <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
               Attendees Over Time
             </h4>
@@ -176,7 +176,7 @@ export function ParticipationTab() {
               colors={["slate", "green"]}
             />
           ) : (
-            <div className="p-6 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="p-6 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
               <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
                 Solo vs Multi-Speaker Calls
               </h4>

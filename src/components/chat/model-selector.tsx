@@ -190,7 +190,7 @@ export function ModelSelector({
     return (
       <div className={cn(
         'flex items-center gap-1.5 px-2.5 py-1.5 h-[28px]',
-        'rounded-xl border border-cb-border-soft/50',
+        'rounded-xl border border-soft/50',
         'bg-transparent text-xs text-ink-muted',
         className
       )}>
@@ -204,7 +204,7 @@ export function ModelSelector({
     return (
       <div className={cn(
         'flex items-center gap-1.5 px-2.5 py-1.5 h-[28px]',
-        'rounded-xl border border-cb-border-soft/50',
+        'rounded-xl border border-soft/50',
         'bg-transparent text-xs text-ink-muted',
         className
       )}>
@@ -221,7 +221,7 @@ export function ModelSelector({
           data-testid="model-selector"
           className={cn(
             'flex items-center gap-1.5 px-2.5 py-1.5 h-[28px] max-w-[200px]',
-            'rounded-xl border border-cb-border-soft/50',
+            'rounded-xl border border-soft/50',
             'bg-transparent hover:bg-hover',
             'text-xs text-ink-soft hover:text-ink',
             'transition-all duration-150 cursor-pointer select-none',
@@ -292,7 +292,7 @@ export function ModelBadge({ modelId, className }: ModelBadgeProps) {
     <div
       className={cn(
         'flex items-center gap-1.5 px-2.5 py-1 h-[26px]',
-        'rounded-xl border border-cb-border-soft/50 bg-hover/50',
+        'rounded-xl border border-soft/50 bg-hover/50',
         'text-xs text-ink-soft select-none',
         className
       )}

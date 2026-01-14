@@ -267,7 +267,7 @@ export function TagDetailPanel({
       aria-label={`Tag details: ${tag.name}`}
     >
       {/* Header */}
-      <header className="flex items-center justify-between p-4 border-b border-cb-border">
+      <header className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-3 min-w-0">
           <div
             className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
@@ -323,7 +323,7 @@ export function TagDetailPanel({
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3" role="group" aria-label="Tag statistics">
-          <div className="bg-cb-card rounded-lg p-3 border border-cb-border" aria-label={`${callCount} calls with this tag`}>
+          <div className="bg-cb-card rounded-lg p-3 border border-border" aria-label={`${callCount} calls with this tag`}>
             <div className="flex items-center gap-2 text-ink-muted mb-1">
               <RiPhoneLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Calls</span>
@@ -332,7 +332,7 @@ export function TagDetailPanel({
               {callCount}
             </div>
           </div>
-          <div className="bg-cb-card rounded-lg p-3 border border-cb-border" aria-label={`Created on ${formatDate(tag.created_at)}`}>
+          <div className="bg-cb-card rounded-lg p-3 border border-border" aria-label={`Created on ${formatDate(tag.created_at)}`}>
             <div className="flex items-center gap-2 text-ink-muted mb-1">
               <RiCalendarLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Created</span>
@@ -429,7 +429,7 @@ export function TagDetailPanel({
         )}
 
         {/* Metadata */}
-        <div className="space-y-2 pt-4 border-t border-cb-border">
+        <div className="space-y-2 pt-4 border-t border-border">
           <h4 className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
             Details
           </h4>
@@ -443,7 +443,7 @@ export function TagDetailPanel({
 
       {/* Footer Actions - only for non-system tags */}
       {isEditable && (
-        <footer className="p-4 border-t border-cb-border space-y-2" role="group" aria-label="Tag actions">
+        <footer className="p-4 border-t border-border space-y-2" role="group" aria-label="Tag actions">
           <Button
             className="w-full"
             onClick={handleSave}

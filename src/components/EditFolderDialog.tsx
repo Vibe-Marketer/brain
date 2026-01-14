@@ -279,7 +279,7 @@ export default function EditFolderDialog({
             <div className="flex items-center gap-2">
               {/* Emoji indicator (non-interactive, just shows current selection) */}
               <div
-                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-cb-border bg-cb-card"
+                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-border bg-cb-card"
                 aria-label={`Selected icon: ${emoji}`}
                 aria-hidden="true"
               >

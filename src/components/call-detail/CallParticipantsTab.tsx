@@ -26,7 +26,7 @@ export function CallParticipantsTab({ callSpeakers, hasTranscripts }: CallPartic
             {callSpeakers && callSpeakers.length > 0 ? (
               <div className="space-y-3">
                 {callSpeakers.map((speaker, index) => (
-                  <div key={index} className="relative flex items-start gap-3 py-2 px-4 bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+                  <div key={index} className="relative flex items-start gap-3 py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
                     {/* Vibe orange angled marker - STANDARDIZED DIMENSIONS */}
                     <div
                       className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"

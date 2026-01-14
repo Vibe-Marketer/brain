@@ -62,7 +62,7 @@ describe('SidebarNav', () => {
     it('should render separator line', () => {
       const { container } = renderWithRouter();
 
-      const separator = container.querySelector('.border-t.border-cb-border');
+      const separator = container.querySelector('.border-t.border-border');
       expect(separator).toBeInTheDocument();
     });
   });

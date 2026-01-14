@@ -27,7 +27,7 @@ const TALK_TIME_CATEGORIES = [
 
 function RoleCard({ role, percentage, label }: TalkTimeRoleCard) {
   return (
-    <div className="relative py-3 px-4 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+    <div className="relative py-3 px-4 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
       {/* Vibe orange wedge accent */}
       <div
         className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange"
@@ -54,7 +54,7 @@ function RoleCard({ role, percentage, label }: TalkTimeRoleCard) {
 
 function CategoryRow({ category, hostPercent, othersPercent }: { category: string; hostPercent: number; othersPercent: number }) {
   return (
-    <div className="flex items-center py-2 border-b border-cb-border dark:border-cb-border-dark last:border-0">
+    <div className="flex items-center py-2 border-b border-border dark:border-cb-border-dark last:border-0">
       <div className="w-40 text-sm text-ink dark:text-cb-white truncate">{category}</div>
       <div className="flex-1 flex items-center gap-2">
         <div className="flex-1 h-6 bg-hover dark:bg-cb-border-dark rounded overflow-hidden flex">
@@ -162,7 +162,7 @@ export function TalkTimeTab() {
           <RiBarChartLine className="w-4 h-4 text-ink-muted" />
           TALK TIME BY CATEGORY
         </h3>
-        <div className="bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg p-4">
+        <div className="bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg p-4">
           <div className="flex items-center gap-4 mb-4 text-xs text-ink-muted">
             <div className="flex items-center gap-1.5">
               <div className="w-3 h-3 rounded-sm bg-vibe-orange" />
@@ -187,7 +187,7 @@ export function TalkTimeTab() {
           <RiBarChartLine className="w-4 h-4 text-ink-muted" />
           TALK TIME DISTRIBUTION
         </h3>
-        <div className="bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg p-6">
+        <div className="bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg p-6">
           <div className="h-[200px] flex items-center justify-center">
             <div className="text-center">
               <RiBarChartLine className="w-12 h-12 text-ink-muted mx-auto mb-3" />

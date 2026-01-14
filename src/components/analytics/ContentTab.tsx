@@ -46,7 +46,7 @@ function StatCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="relative py-2 px-4 bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg">
+    <div className="relative py-2 px-4 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
       {/* Vibe orange wedge accent - trapezoid shape per brand guidelines */}
       <div
         className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange"
@@ -70,7 +70,7 @@ function StatCard({
 // Placeholder chart component
 function ChartPlaceholder({ title }: { title: string }) {
   return (
-    <div className="bg-white dark:bg-card border border-cb-border dark:border-cb-border-dark rounded-lg p-6">
+    <div className="bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg p-6">
       <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
         {title}
       </h4>

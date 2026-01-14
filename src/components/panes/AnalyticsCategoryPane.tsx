@@ -191,7 +191,7 @@ export function AnalyticsCategoryPane({
       aria-label="Analytics categories"
     >
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-cb-card/50">
         <div
           className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
           aria-hidden="true"
@@ -260,7 +260,7 @@ export function AnalyticsCategoryPane({
                 <div
                   className={cn(
                     "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
-                    "bg-cb-card border border-cb-border",
+                    "bg-cb-card border border-border",
                     "transition-all duration-200 ease-in-out",
                     isActive && "border-vibe-orange/30 bg-vibe-orange/10"
                   )}

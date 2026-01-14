@@ -133,7 +133,7 @@ export function ChatWelcome({
                 onClick={action.onClick}
                 className={cn(
                   'gap-2 px-4 py-2',
-                  'border-cb-border dark:border-cb-border-dark',
+                  'border-border dark:border-cb-border-dark',
                   'hover:border-cb-ink-muted dark:hover:border-cb-text-dark-secondary',
                   'transition-all duration-150'
                 )}

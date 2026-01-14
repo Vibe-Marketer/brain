@@ -179,7 +179,7 @@ export function SortingCategoryPane({
       aria-label="Sorting and tagging categories"
     >
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50">
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-cb-card/50">
         <div
           className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
           aria-hidden="true"
@@ -256,7 +256,7 @@ export function SortingCategoryPane({
                 <div
                   className={cn(
                     "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
-                    "bg-cb-card border border-cb-border",
+                    "bg-cb-card border border-border",
                     "transition-all duration-200 ease-in-out",
                     isActive && "border-vibe-orange/30 bg-vibe-orange/10"
                   )}
@@ -331,7 +331,7 @@ export function SortingCategoryPane({
       </div>
 
       {/* Quick Tips Section */}
-      <div className="flex-shrink-0 border-t border-cb-border bg-cb-card/30 px-4 py-3">
+      <div className="flex-shrink-0 border-t border-border bg-cb-card/30 px-4 py-3">
         <div className="flex items-start gap-2">
           <RiLightbulbLine
             className="h-4 w-4 text-ink-muted flex-shrink-0 mt-0.5"

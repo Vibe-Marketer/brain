@@ -226,7 +226,7 @@ export function RecurringTitlesTab() {
 
   return (
     <div className="space-y-4">
-      <div className="border border-cb-border dark:border-cb-border-dark rounded-sm overflow-hidden">
+      <div className="border border-border dark:border-cb-border-dark rounded-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-cb-white dark:bg-card hover:bg-cb-white dark:hover:bg-card">

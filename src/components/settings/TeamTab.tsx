@@ -277,7 +277,7 @@ export default function TeamTab() {
           </div>
 
           {!showCreateForm ? (
-            <div className="flex flex-col items-center justify-center py-12 border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="flex flex-col items-center justify-center py-12 border border-border dark:border-cb-border-dark rounded-lg">
               <RiTeamLine className="h-12 w-12 text-muted-foreground mb-4" />
               <p className="text-sm text-muted-foreground mb-4">No team found</p>
               <Button onClick={() => setShowCreateForm(true)}>
@@ -286,7 +286,7 @@ export default function TeamTab() {
               </Button>
             </div>
           ) : (
-            <div className="space-y-4 p-4 border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="space-y-4 p-4 border border-border dark:border-cb-border-dark rounded-lg">
               <div className="space-y-2">
                 <Label htmlFor="team-name">Team Name</Label>
                 <Input
@@ -437,7 +437,7 @@ export default function TeamTab() {
         </div>
 
         {/* Org Chart */}
-        <div className="border border-cb-border dark:border-cb-border-dark rounded-lg p-4">
+        <div className="border border-border dark:border-cb-border-dark rounded-lg p-4">
           <OrgChartView
             orgChart={orgChart}
             isLoading={orgChartLoading}
@@ -465,7 +465,7 @@ export default function TeamTab() {
                 Manage team configuration and settings
               </p>
             </div>
-            <div className="space-y-3 p-4 border border-cb-border dark:border-cb-border-dark rounded-lg">
+            <div className="space-y-3 p-4 border border-border dark:border-cb-border-dark rounded-lg">
               <div className="flex justify-between items-center">
                 <span className="text-sm text-muted-foreground">Team Name</span>
                 <span className="text-sm font-medium">{team.name}</span>

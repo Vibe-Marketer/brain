@@ -71,7 +71,7 @@ export function PromptInput({
       <form
         onSubmit={handleSubmit}
         className={cn(
-          'relative flex w-full flex-col rounded-2xl border border-cb-border bg-card shadow-sm',
+          'relative flex w-full flex-col rounded-2xl border border-border bg-card shadow-sm',
           'transition-all duration-200',
           'focus-within:border-cb-ink-muted focus-within:shadow-md',
           className
@@ -158,7 +158,7 @@ export function PromptInputActions({ children, className, ...props }: PromptInpu
     <TooltipProvider>
       <div
         className={cn(
-          'flex items-center gap-1 border-t border-cb-border-soft/50 px-3 py-2',
+          'flex items-center gap-1 border-t border-soft/50 px-3 py-2',
           '[&_button]:transition-all [&_button]:duration-150',
           '[&_button:hover]:scale-105',
           className
@@ -288,8 +288,8 @@ export function PromptInputContextBar({
               data-testid="add-context-button"
               className={cn(
                 'group flex items-center gap-1 px-2 py-1 rounded-xl',
-                'border border-cb-border-soft/50 bg-transparent',
-                'hover:bg-hover hover:border-cb-border',
+                'border border-soft/50 bg-transparent',
+                'hover:bg-hover hover:border-border',
                 'transition-all duration-150 cursor-pointer select-none'
               )}
             >
@@ -305,7 +305,7 @@ export function PromptInputContextBar({
             sideOffset={8}
             className="w-80 p-0"
           >
-            <div className="p-3 border-b border-cb-border">
+            <div className="p-3 border-b border-border">
               <div className="relative">
                 <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
                 <input
@@ -317,7 +317,7 @@ export function PromptInputContextBar({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className={cn(
                     'w-full pl-8 pr-3 py-2 rounded-lg',
-                    'border border-cb-border bg-card',
+                    'border border-border bg-card',
                     'text-sm text-ink placeholder:text-ink-muted',
                     'focus:outline-none focus:ring-2 focus:ring-vibe-orange/50 focus:border-transparent',
                     'transition-all duration-150'
@@ -388,7 +388,7 @@ function ContextAttachmentPill({ attachment, onRemove }: ContextAttachmentPillPr
       data-recording-id={attachment.id}
       className={cn(
         'group flex items-center gap-1.5 pl-2 pr-1 py-1 rounded-full',
-        'bg-hover border border-cb-border',
+        'bg-hover border border-border',
         'text-xs text-ink',
         'transition-all duration-150'
       )}
@@ -424,7 +424,7 @@ export function PromptInputFooter({ children, className, ...props }: PromptInput
     <div
       className={cn(
         'flex items-center justify-between gap-2 px-3 py-2 h-[44px]',
-        'border-t border-cb-border-soft/30',
+        'border-t border-soft/30',
         className
       )}
       {...props}
@@ -492,7 +492,7 @@ export function KeyboardHint({ label, shortcut, className }: KeyboardHintProps) 
   return (
     <span className={cn('flex items-center gap-1', className)}>
       <span>{label}</span>
-      <kbd className="px-1.5 py-0.5 text-[9px] bg-hover rounded-md border border-cb-border-soft font-mono">
+      <kbd className="px-1.5 py-0.5 text-[9px] bg-hover rounded-md border border-soft font-mono">
         {shortcut}
       </kbd>
     </span>
