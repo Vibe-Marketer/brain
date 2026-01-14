@@ -66,3 +66,49 @@ SPEC-{feature-name}-GAPS.md
 This documents missing requirements discovered during development.
 
 ---
+
+## Brand Guidelines Versioning
+
+The authoritative design system is `/docs/design/brand-guidelines-v{X.Y}.md`.
+
+### Version Increment Rules
+
+| Change Type | Version Bump | File Rename? | Example |
+|-------------|--------------|--------------|---------|
+| **Patch** (1-2 sections) | v4.1.1 -> v4.1.2 | NO | Fix typo, clarify wording |
+| **Minor** (3+ sections) | v4.1 -> v4.2 | YES | Add new component, update color system |
+| **Major** (v4.x -> v5.0) | NEVER by Claude | YES | Only user decides major versions |
+
+### Three Places to Update Version
+
+When editing brand guidelines, update the version in **exactly 3 places**:
+
+1. **Title (line 1)** - `# CallVault Brand Guidelines v4.2`
+2. **DOCUMENT VERSION section** - Version number in header metadata
+3. **END OF BRAND GUIDELINES (last line)** - `--- END OF BRAND GUIDELINES v4.2 ---`
+
+### Changelog Requirements
+
+After editing, add an entry to `/docs/brand-guidelines-changelog.md`:
+
+```markdown
+## v4.2 - January 14, 2026
+
+**Time:** 15:30 UTC
+**Git Commit:** (add after commit)
+
+### Changes
+
+#### US-001: [Section Name] Update
+- Description of change 1
+- Description of change 2
+```
+
+### File Renaming Rules
+
+- **Patch versions**: Keep same filename (e.g., `brand-guidelines-v4.1.md`)
+- **Minor versions**: Rename file (e.g., `brand-guidelines-v4.1.md` -> `brand-guidelines-v4.2.md`)
+- **After renaming**: Update symlink at `/BRAND_GUIDELINES.md`
+- **Archive old version**: Move to `/docs/archive/` with original filename
+
+---
