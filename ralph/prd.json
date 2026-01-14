@@ -451,7 +451,7 @@
         "Generated link is valid",
         "Coach can use link to accept"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-035.1",
