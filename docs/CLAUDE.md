@@ -162,3 +162,60 @@ Before implementing a significant technical choice, ask:
 If YES to 2+ questions, write an ADR.
 
 ---
+
+## Archive Policy
+
+Guidelines for archiving documentation that is no longer actively needed.
+
+### When to Archive
+
+**Archive documents when:**
+- Feature is fully implemented and merged to main
+- All acceptance criteria met
+- No outstanding issues or gaps
+- Implementation has been verified and is stable
+- Document is superseded by a newer version
+- Research/planning phase is complete
+
+**Do NOT archive:**
+- Documents with active references from other files
+- Specs that are partially implemented
+- Documents with active GAPS analysis
+- Templates or reference materials still in use
+
+### Archive Locations
+
+| Document Type | Archive Location |
+|--------------|------------------|
+| Implemented specs | `/docs/archive/specs-implemented/{YYYY-MM}/` |
+| Completed planning | `/docs/archive/planning-completed/` |
+| Completed research | `/docs/archive/research-completed/` |
+| Superseded brand guidelines | `/docs/archive/` (with version in filename) |
+| Old reference materials | `/docs/archive/reference-materials/{YYYY-MM}/` |
+| Time-stamped reports | `/docs/archive/reports-{YYYY}/` |
+
+### Naming Conventions for Archived Files
+
+- **Keep original filename** when moving to archive
+- **Add date prefix** only if multiple versions exist: `2026-01-SPEC-feature.md`
+- **Never rename** brand guidelines files (version is in filename)
+
+### Archive README Updates
+
+When archiving specs, update `/docs/archive/specs-implemented/README.md`:
+
+```markdown
+| Spec | Archived Date | Implementation Date | Related Commits/PRs | Notes |
+|------|---------------|---------------------|---------------------|-------|
+| `SPEC-feature-name.md` | 2026-01-14 | 2026-01-10 | commit-hash | Brief note |
+```
+
+### Retention Policy
+
+- **Archived docs**: Indefinite (preserved in git history)
+- **Value**: Historical reference for design decisions, future enhancements, onboarding
+- **Git history**: Always available for full context
+
+---
+
+**End of Documentation Standards**
