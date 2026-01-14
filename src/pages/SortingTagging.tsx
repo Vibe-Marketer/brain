@@ -36,34 +36,32 @@ export default function SortingTagging() {
     if (urlCategory) {
       // Validate the category from URL
       if (VALID_CATEGORY_IDS.includes(urlCategory as SortingCategory)) {
-        if (selectedCategory !== urlCategory) {
-          setSelectedCategory(urlCategory as SortingCategory);
-        }
+        // Only update if different to prevent unnecessary re-renders
+        setSelectedCategory((prev) =>
+          prev !== urlCategory ? (urlCategory as SortingCategory) : prev
+        );
       } else {
         // Invalid category in URL, redirect to base sorting-tagging
+        setSelectedCategory(null);
         navigate("/sorting-tagging", { replace: true });
       }
     } else {
       // Auto-select first category if no URL category
       const firstCategory = VALID_CATEGORY_IDS[0];
-      if (firstCategory && selectedCategory !== firstCategory) {
-        setSelectedCategory(firstCategory);
+      if (firstCategory) {
+        setSelectedCategory((prev) =>
+          prev !== firstCategory ? firstCategory : prev
+        );
         navigate(`/sorting-tagging/${firstCategory}`, { replace: true });
       }
     }
-  }, [urlCategory, navigate, selectedCategory]);
+    // Note: selectedCategory removed from deps to prevent circular updates
+    // URL is the source of truth, handled by urlCategory changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlCategory, navigate]);
 
-  // Sync URL when selectedCategory changes (for user interactions)
-  useEffect(() => {
-    // Skip URL sync on initial load (handled by urlCategory effect above)
-    // Only sync when category changes via user interaction
-    if (selectedCategory && selectedCategory !== urlCategory) {
-      navigate(`/sorting-tagging/${selectedCategory}`, { replace: true });
-    } else if (!selectedCategory && urlCategory) {
-      // If category is deselected, go back to base sorting-tagging URL
-      navigate("/sorting-tagging", { replace: true });
-    }
-  }, [selectedCategory, urlCategory, navigate]);
+  // Note: URL sync is handled by user interaction handlers below
+  // This prevents infinite re-render loop between URL and state effects
 
   // --- Panel Store ---
   const { isPanelOpen, panelType, panelData, closePanel } = usePanelStore();
@@ -110,17 +108,20 @@ export default function SortingTagging() {
   // Handle category selection from the 2nd pane
   const handleCategorySelect = useCallback((category: SortingCategory) => {
     setSelectedCategory(category);
-  }, []);
+    navigate(`/sorting-tagging/${category}`, { replace: true });
+  }, [navigate]);
 
   // Handle closing the detail pane (3rd pane)
   const handleCloseDetailPane = useCallback(() => {
     setSelectedCategory(null);
-  }, []);
+    navigate("/sorting-tagging", { replace: true });
+  }, [navigate]);
 
   // Handle back navigation (for mobile)
   const handleBackFromDetail = useCallback(() => {
     setSelectedCategory(null);
-  }, []);
+    navigate("/sorting-tagging", { replace: true });
+  }, [navigate]);
 
   // Mobile-only: Render custom layout with category/detail toggle
   if (isMobile) {
