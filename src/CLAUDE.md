@@ -216,3 +216,88 @@ If your page uses AppShell, you MUST add it to the `usesCustomLayout` check in `
 const isMyPage = location.pathname.startsWith('/my-page');
 const usesCustomLayout = ... || isMyPage;  // Add here
 ```
+
+---
+
+# COMPONENT ARCHITECTURE
+
+## File Organization
+
+```text
+src/
+  components/
+    {domain}/              # Domain-specific components
+      {ComponentName}.tsx  # Component file
+      __tests__/           # Tests alongside components
+    layout/                # Layout components (AppShell, etc.)
+    panels/                # Detail panel components
+    panes/                 # Secondary pane components
+    ui/                    # Shared UI primitives (Button, etc.)
+  hooks/                   # Custom hooks
+  stores/                  # Zustand stores
+  pages/                   # Page components (route entry points)
+  lib/                     # Utility functions
+  types/                   # TypeScript type definitions
+```
+
+## Naming Conventions
+
+| Pattern | Convention | Example |
+|---------|------------|---------|
+| Components | PascalCase | `FolderDetailPanel.tsx` |
+| Hooks | camelCase with `use` prefix | `useFolders.ts` |
+| Stores | camelCase with `Store` suffix | `panelStore.ts` |
+| Utilities | camelCase | `formatDate.ts` |
+| Types/Interfaces | PascalCase | `Folder`, `PanelType` |
+| Constants | SCREAMING_SNAKE_CASE | `MAX_FILE_SIZE` |
+
+## Component Structure
+
+```tsx
+/**
+ * ComponentName - Brief description
+ *
+ * @pattern pattern-name (if applicable)
+ * @brand-version v4.2
+ */
+
+import * as React from 'react';
+import { cn } from '@/lib/utils';
+
+export interface ComponentNameProps {
+  /** Prop description */
+  propName: string;
+}
+
+export function ComponentName({ propName }: ComponentNameProps) {
+  // Implementation
+  return (
+    <div className={cn("base-classes")}>
+      {/* Content */}
+    </div>
+  );
+}
+```
+
+## Import Patterns
+
+**Use path aliases:**
+
+```tsx
+// GOOD - Path aliases
+import { Button } from "@/components/ui/button";
+import { useFolders } from "@/hooks/useFolders";
+import { cn } from "@/lib/utils";
+
+// BAD - Relative paths
+import { Button } from "../../components/ui/button";
+```
+
+**Import order:**
+
+1. React and external libraries
+2. Internal components (`@/components/`)
+3. Hooks (`@/hooks/`)
+4. Stores (`@/stores/`)
+5. Utilities (`@/lib/`)
+6. Types (`@/types/`)
