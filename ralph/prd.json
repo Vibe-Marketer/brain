@@ -382,7 +382,7 @@
         "Tool functionality intact",
         "Hidden from regular users (if by design)"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-030.1",

@@ -555,3 +555,38 @@ Started: Wed Jan 14 12:19:39 EST 2026
 
 ---
 
+## 2026-01-14 - US-029.1: Debug tool access for admin accounts
+
+- What was implemented:
+  - Verified debug tool is fully implemented with proper admin-only access control
+  - Debug tool uses `useUserRole` hook which calls secure `get_user_role()` database function
+  - Permission checks working: component returns `null` for non-admin users
+  - Tool functionality intact: statistics dashboard, test rules (dry run), cache clearing, refresh stats
+  - Hidden from regular users by design: `isAdmin` check in both DebugTool component and SortingCategoryPane
+  - Created comprehensive documentation for granting admin access (docs/admin-access-setup.md)
+  
+- Files changed:
+  - `docs/admin-access-setup.md` - New documentation for admin role setup and testing
+  
+- Files verified (no changes needed):
+  - `src/components/tags/DebugTool.tsx` - Component properly checks `isAdmin` and returns `null` if not admin
+  - `src/hooks/useUserRole.ts` - Hook calls secure `get_user_role()` function from database
+  - `src/components/panes/SortingCategoryPane.tsx` - Conditionally includes debug category only for admins (lines 117-123)
+  - `src/components/panes/SortingDetailPane.tsx` - Renders DebugTool when category is "debug"
+  - `src/pages/SortingTagging.tsx` - Includes "debug" in valid category IDs for routing
+  - `supabase/migrations/00000000000000_consolidated_schema.sql` - Database schema has proper user_roles table, app_role enum, get_user_role() function, and RLS policies
+  
+- **Learnings for future iterations:**
+  - Debug tool is at `/sorting-tagging/debug` route - only accessible to users with ADMIN role
+  - The `useUserRole` hook returns `{ isAdmin, isTeam, isPro, isFree, role, loading }` for role-based UI rendering
+  - Admin access is granted by inserting a row into `public.user_roles` table with `role = 'ADMIN'`
+  - The `get_user_role()` function returns the highest priority role (ADMIN > TEAM > PRO > FREE)
+  - Database uses SECURITY DEFINER functions to prevent privilege escalation attacks
+  - Row Level Security (RLS) policies ensure only admins can modify roles
+  - The debug tool provides: stats dashboard, dry-run rule testing, cache clearing, and system health monitoring
+  - For testing admin features, use the SQL scripts in `docs/admin-access-setup.md` to grant admin role
+  - Sometimes stories are about verifying existing implementations rather than writing new code
+  - Good documentation is critical for features that require special permissions or setup
+
+---
+
