@@ -84,7 +84,7 @@
         "Smooth animation on open/close",
         "Works in both expanded and collapsed sidebar modes"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-007.1",

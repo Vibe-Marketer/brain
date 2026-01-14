@@ -6,8 +6,9 @@
 - AppShell (`src/components/layout/AppShell.tsx`) is the main layout component that renders SidebarNav
 - Use `isCollapsed` prop to conditionally render different UI for expanded vs collapsed sidebar modes
 - 500ms transitions are standard for sidebar animations (use `duration-500 ease-in-out`)
-- FolderSidebar (`src/components/transcript-library/FolderSidebar.tsx`) handles the folder list with optional search box
-- Search box in FolderSidebar only appears when `folders.length > 10` - uses conditional rendering
+- FolderSidebar (`src/components/transcript-library/FolderSidebar.tsx`) handles the folder list with toggleable search box
+- Search box in FolderSidebar: only visible when `folders.length > 10`, hidden by default, toggled via search icon in header
+- For height animations use `max-h-X` with `overflow-hidden` and `transition-all duration-300` (can't animate height: auto)
 
 ---
 
@@ -79,5 +80,24 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - Search box only renders when `folders.length > 10` (line 611) - need 11+ folders to see it
   - Standard category pane pattern: header uses `px-4 py-3 border-b border-border bg-cb-card/50`
   - Pre-existing CSS parsing error in `src/index.css` blocks browser verification - not related to this change
+---
+
+## 2026-01-14 - US-006.1: Folder search hidden until needed
+- What was implemented:
+  - Search box is now hidden by default (controlled by `isSearchVisible` state)
+  - Added magnifying glass icon (RiSearchLine) in header that toggles search visibility
+  - Icon shows RiCloseLine when search is open
+  - Input auto-focuses when opened via `setTimeout(() => searchInputRef.current?.focus(), 0)`
+  - Search auto-hides on blur if query is empty via `handleSearchBlur` callback
+  - Smooth animation using `transition-all duration-300 ease-in-out` with `max-h-14/max-h-0` and `opacity-100/opacity-0`
+  - Collapsed sidebar mode: added search toggle button in bottom actions area, uses `filteredRootFolders` for search filtering
+- Files changed:
+  - `src/components/transcript-library/FolderSidebar.tsx` - added search toggle state, callbacks, UI in both expanded and collapsed views
+- **Learnings for future iterations:**
+  - Use `max-h` with `overflow-hidden` for smooth height animations (can't animate `height: auto`)
+  - `setTimeout(..., 0)` is needed for auto-focus after React state update completes
+  - The `onBlur` handler checks if search is empty before auto-hiding to preserve user's search while typing
+  - Collapsed view bottom actions section (lines 580-618) is where action buttons live in collapsed mode
+  - The `filteredRootFolders` memo is used in both expanded AND collapsed views for consistent filtering
 ---
 

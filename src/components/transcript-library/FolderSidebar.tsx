@@ -13,6 +13,8 @@ import {
   RiPaletteLine,
   RiEyeLine,
   RiEyeOffLine,
+  RiSearchLine,
+  RiCloseLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -369,6 +371,30 @@ export function FolderSidebar({
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(new Set());
   const [focusedIndex, setFocusedIndex] = React.useState<number>(-1);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [isSearchVisible, setIsSearchVisible] = React.useState(false);
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
+
+  // Toggle search visibility and auto-focus when opened
+  const handleToggleSearch = React.useCallback(() => {
+    setIsSearchVisible(prev => {
+      const newValue = !prev;
+      if (newValue) {
+        // Focus input after state update (next tick)
+        setTimeout(() => searchInputRef.current?.focus(), 0);
+      } else {
+        // Clear search when closing
+        setSearchQuery("");
+      }
+      return newValue;
+    });
+  }, []);
+
+  // Auto-hide search when cleared and unfocused
+  const handleSearchBlur = React.useCallback(() => {
+    if (!searchQuery.trim()) {
+      setIsSearchVisible(false);
+    }
+  }, [searchQuery]);
 
   // Build folder hierarchy
   const rootFolders = React.useMemo(() =>
@@ -504,7 +530,7 @@ export function FolderSidebar({
           {/* Folder icons - no scroll needed with smaller icons */}
           <div className="flex-1 w-full overflow-y-auto">
             <div className="flex flex-col items-center gap-0.5 px-1">
-              {rootFolders.map((folder) => {
+              {filteredRootFolders.map((folder) => {
                 const FolderIcon = getIconComponent(folder.icon);
                 const folderIsEmoji = isEmojiIcon(folder.icon);
                 const isSelected = selectedFolderId === folder.id;
@@ -553,6 +579,26 @@ export function FolderSidebar({
 
           {/* Bottom actions */}
           <div className="flex flex-col items-center gap-0.5 pt-1 mt-1">
+            {/* Search toggle - only when >10 folders */}
+            {folders.length > 10 && (
+              <button
+                type="button"
+                onClick={handleToggleSearch}
+                className={cn(
+                  "w-9 h-9 flex items-center justify-center rounded-lg transition-colors",
+                  isSearchVisible || searchQuery
+                    ? "bg-hover text-ink"
+                    : "hover:bg-hover/50 text-ink-muted"
+                )}
+                title={isSearchVisible ? "Close search" : "Search folders"}
+              >
+                {isSearchVisible ? (
+                  <RiCloseLine className="h-4 w-4" />
+                ) : (
+                  <RiSearchLine className="h-4 w-4" />
+                )}
+              </button>
+            )}
             <button
               type="button"
               onClick={onNewFolder}
@@ -602,20 +648,49 @@ export function FolderSidebar({
               {folders.length} {folders.length === 1 ? 'folder' : 'folders'}
             </p>
           </div>
+          {/* Search toggle button - only shown when >10 folders */}
+          {folders.length > 10 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "h-6 w-6 flex-shrink-0 transition-colors",
+                isSearchVisible && "bg-hover text-ink"
+              )}
+              onClick={handleToggleSearch}
+              aria-label={isSearchVisible ? "Close search" : "Search folders"}
+              aria-expanded={isSearchVisible}
+            >
+              {isSearchVisible ? (
+                <RiCloseLine className="h-4 w-4" />
+              ) : (
+                <RiSearchLine className="h-4 w-4" />
+              )}
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={onNewFolder} aria-label="New folder">
             <RiAddLine className="h-4 w-4" />
           </Button>
         </header>
 
-        {/* Search input - only when >10 folders */}
+        {/* Search input - hidden by default, toggleable via search icon */}
         {folders.length > 10 && (
-          <div className="px-4 pt-3 pb-2">
-            <Input
-              placeholder="Search folders..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-8 text-xs"
-            />
+          <div
+            className={cn(
+              "overflow-hidden transition-all duration-300 ease-in-out",
+              isSearchVisible ? "max-h-14 opacity-100" : "max-h-0 opacity-0"
+            )}
+          >
+            <div className="px-4 pt-3 pb-2">
+              <Input
+                ref={searchInputRef}
+                placeholder="Search folders..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onBlur={handleSearchBlur}
+                className="h-8 text-xs"
+              />
+            </div>
           </div>
         )}
 
