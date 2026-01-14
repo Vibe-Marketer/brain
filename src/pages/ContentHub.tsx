@@ -61,7 +61,7 @@ export default function ContentHub() {
     >
       <div className="flex flex-col h-full overflow-auto">
         {/* Header - standardized detail pane pattern */}
-        <header className="flex items-center justify-between px-4 py-3 border-b border-cb-border bg-cb-card/50 flex-shrink-0">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <div
               className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
@@ -70,10 +70,10 @@ export default function ContentHub() {
               <RiHome4Line className="h-4 w-4 text-vibe-orange" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-cb-ink">
+              <h2 className="text-sm font-semibold text-ink">
                 Overview
               </h2>
-              <p className="text-xs text-cb-ink-muted">
+              <p className="text-xs text-ink-muted">
                 Content Hub home
               </p>
             </div>

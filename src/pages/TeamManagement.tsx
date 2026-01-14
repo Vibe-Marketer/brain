@@ -783,7 +783,7 @@ export default function TeamManagement() {
         {/* Main Content */}
         <div className="flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col h-full">
           {/* Header */}
-          <div className="w-full border-b border-cb-black dark:border-cb-white flex-shrink-0" />
+          <div className="w-full border-b border-black dark:border-white flex-shrink-0" />
           <div className="px-4 md:px-10 pt-4 flex-shrink-0 border-b border-border">
             <div className="flex items-center gap-2 mb-4">
               <RiTeamLine className="h-5 w-5 text-muted-foreground" />

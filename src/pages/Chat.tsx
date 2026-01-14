@@ -1352,7 +1352,7 @@ export default function Chat() {
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header - standardized detail pane pattern */}
-          <header className="flex items-center justify-between px-4 py-3 border-b border-cb-border bg-cb-card/50 flex-shrink-0">
+          <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div
                 className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
@@ -1361,10 +1361,10 @@ export default function Chat() {
                 <RiChat3Line className="h-4 w-4 text-vibe-orange" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-cb-ink">
+                <h2 className="text-sm font-semibold text-ink">
                   AI Chat
                 </h2>
-                <p className="text-xs text-cb-ink-muted">
+                <p className="text-xs text-ink-muted">
                   Ask questions about your calls
                 </p>
               </div>
@@ -1464,13 +1464,13 @@ export default function Chat() {
                   </PopoverTrigger>
                   <PopoverContent className="w-80 p-0" align="end">
                     <div className="p-4">
-                      <h3 className="font-display text-sm font-bold uppercase text-cb-ink mb-3">
+                      <h3 className="font-display text-sm font-bold uppercase text-ink mb-3">
                         Filter Transcripts
                       </h3>
 
                       {/* Date Range */}
                       <div className="mb-4">
-                        <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
+                        <label className="text-xs font-medium text-ink-muted uppercase mb-2 block">
                           Date Range
                         </label>
                         <DateRangePicker
@@ -1497,7 +1497,7 @@ export default function Chat() {
 
                       {/* Speakers */}
                       <div className="mb-4">
-                        <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
+                        <label className="text-xs font-medium text-ink-muted uppercase mb-2 block">
                           Speakers ({availableSpeakers.length})
                         </label>
                         <ScrollArea className="h-32">
@@ -1514,20 +1514,20 @@ export default function Chat() {
                                   filters.speakers.includes(
                                     speaker.speaker_name
                                   )
-                                    ? "bg-vibe-orange/10 text-cb-ink"
-                                    : "hover:bg-cb-hover text-cb-ink-soft"
+                                    ? "bg-vibe-orange/10 text-ink"
+                                    : "hover:bg-hover text-ink-soft"
                                 }`}
                               >
                                 <span className="truncate">
                                   {speaker.speaker_name}
                                 </span>
-                                <span className="text-xs text-cb-ink-muted">
+                                <span className="text-xs text-ink-muted">
                                   {speaker.call_count} calls
                                 </span>
                               </button>
                             ))}
                             {availableSpeakers.length === 0 && (
-                              <p className="text-sm text-cb-ink-muted py-2">
+                              <p className="text-sm text-ink-muted py-2">
                                 No speakers indexed yet
                               </p>
                             )}
@@ -1539,7 +1539,7 @@ export default function Chat() {
 
                       {/* Categories */}
                       <div className="mb-4">
-                        <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
+                        <label className="text-xs font-medium text-ink-muted uppercase mb-2 block">
                           Categories ({availableCategories.length})
                         </label>
                         <div className="flex flex-wrap gap-1">
@@ -1558,7 +1558,7 @@ export default function Chat() {
                             </Badge>
                           ))}
                           {availableCategories.length === 0 && (
-                            <p className="text-sm text-cb-ink-muted py-2">
+                            <p className="text-sm text-ink-muted py-2">
                               No categories indexed yet
                             </p>
                           )}
@@ -1569,7 +1569,7 @@ export default function Chat() {
 
                       {/* Specific Calls */}
                       <div>
-                        <label className="text-xs font-medium text-cb-ink-muted uppercase mb-2 block">
+                        <label className="text-xs font-medium text-ink-muted uppercase mb-2 block">
                           Specific Calls ({availableCalls.length})
                         </label>
                         <ScrollArea className="h-[150px]">
@@ -1577,7 +1577,7 @@ export default function Chat() {
                             {availableCalls.map((call) => (
                               <div
                                 key={call.recording_id}
-                                className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-cb-hover transition-colors"
+                                className="flex items-start gap-2 rounded-md px-2 py-1.5 hover:bg-hover transition-colors"
                               >
                                 <Checkbox
                                   id={`call-${call.recording_id}`}
@@ -1593,10 +1593,10 @@ export default function Chat() {
                                   htmlFor={`call-${call.recording_id}`}
                                   className="flex-1 cursor-pointer text-sm"
                                 >
-                                  <div className="text-cb-ink font-medium truncate">
+                                  <div className="text-ink font-medium truncate">
                                     {call.title || "Untitled Call"}
                                   </div>
-                                  <div className="text-xs text-cb-ink-muted">
+                                  <div className="text-xs text-ink-muted">
                                     {format(
                                       new Date(call.created_at),
                                       "MMM d, yyyy"
@@ -1606,7 +1606,7 @@ export default function Chat() {
                               </div>
                             ))}
                             {availableCalls.length === 0 && (
-                              <p className="text-sm text-cb-ink-muted py-2">
+                              <p className="text-sm text-ink-muted py-2">
                                 No calls found
                               </p>
                             )}
@@ -1807,9 +1807,9 @@ export default function Chat() {
             <div className="relative w-full">
               {/* Mentions popover */}
               {showMentions && filteredCalls.length > 0 && (
-                <div className="absolute bottom-full left-0 right-0 mb-2 bg-card rounded-lg border border-cb-border shadow-lg max-h-64 overflow-y-auto z-50">
+                <div className="absolute bottom-full left-0 right-0 mb-2 bg-card rounded-lg border border-border shadow-lg max-h-64 overflow-y-auto z-50">
                   <div className="p-2">
-                    <div className="text-xs font-medium text-cb-ink-muted uppercase mb-2 px-2">
+                    <div className="text-xs font-medium text-ink-muted uppercase mb-2 px-2">
                       <RiAtLine className="inline h-3 w-3 mr-1" />
                       Mention a call
                     </div>
@@ -1818,14 +1818,14 @@ export default function Chat() {
                         <button
                           key={call.recording_id}
                           onClick={() => handleMentionSelect(call)}
-                          className="w-full flex items-start gap-2 rounded-md px-2 py-2 hover:bg-cb-hover transition-colors text-left"
+                          className="w-full flex items-start gap-2 rounded-md px-2 py-2 hover:bg-hover transition-colors text-left"
                         >
-                          <RiVideoLine className="h-4 w-4 text-cb-ink-muted flex-shrink-0 mt-0.5" />
+                          <RiVideoLine className="h-4 w-4 text-ink-muted flex-shrink-0 mt-0.5" />
                           <div className="flex-1 min-w-0">
-                            <div className="text-sm text-cb-ink font-medium truncate">
+                            <div className="text-sm text-ink font-medium truncate">
                               {call.title || "Untitled Call"}
                             </div>
-                            <div className="text-xs text-cb-ink-muted">
+                            <div className="text-xs text-ink-muted">
                               {format(new Date(call.created_at), "MMM d, yyyy")}
                             </div>
                           </div>

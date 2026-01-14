@@ -174,7 +174,7 @@ const TranscriptsNew = () => {
       >
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header - standardized detail pane pattern */}
-          <header className="flex items-center justify-between px-4 py-3 border-b border-cb-border bg-cb-card/50 flex-shrink-0">
+          <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
             <div className="flex items-center gap-3 min-w-0">
               <div
                 className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
@@ -183,23 +183,23 @@ const TranscriptsNew = () => {
                 <RiHome4Line className="h-4 w-4 text-vibe-orange" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-cb-ink">
+                <h2 className="text-sm font-semibold text-ink">
                   Transcripts
                 </h2>
-                <p className="text-xs text-cb-ink-muted">
+                <p className="text-xs text-ink-muted">
                   {totalCount} transcript{totalCount !== 1 ? 's' : ''}
                 </p>
               </div>
             </div>
             {/* Search Bar */}
             <div className="relative w-64 flex-shrink-0 hidden md:block">
-              <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-cb-ink-muted" />
+              <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
               <Input
                 ref={searchInputRef}
                 placeholder="Search transcripts... (⌘K)"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 pl-8 text-sm bg-white dark:bg-cb-card border-cb-border"
+                className="h-9 pl-8 text-sm bg-white dark:bg-card border-border"
               />
             </div>
           </header>
