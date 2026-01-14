@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getGoogleOAuthUrl } from "@/lib/api-client";
 import { StepCard } from "./wizard/StepCard";
+import { FathomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 
 interface GoogleMeetSetupWizardProps {
   open: boolean;
@@ -115,6 +116,21 @@ export default function GoogleMeetSetupWizard({
               Personal Google accounts can sync meeting data from Calendar, but recordings
               won't be available unless you have a qualifying Workspace subscription.
             </p>
+            <div className="mt-3 pt-3 border-t border-amber-500/20">
+              <p className="text-sm font-medium text-foreground">Have a personal Google account?</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                Connect Fathom instead - it's free and works with any account.
+              </p>
+              <a
+                href="https://vibelinks.co/fathom"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 text-sm font-medium rounded-md border border-border bg-card hover:bg-muted transition-colors"
+              >
+                <FathomIcon size={16} />
+                Sign up for Fathom (Free)
+              </a>
+            </div>
           </div>
         </div>
       </div>

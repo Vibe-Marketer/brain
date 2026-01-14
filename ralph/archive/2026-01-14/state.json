@@ -1,0 +1,9 @@
+{
+  "currentIteration": 1,
+  "maxIterations": 10,
+  "status": "running",
+  "startTime": "2026-01-14T11:09:26-05:00",
+  "lastUpdate": "2026-01-14T11:09:26-05:00",
+  "remainingStories": 46,
+  "currentStory": "PRD-001-import-button-position"
+}
