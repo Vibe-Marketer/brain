@@ -382,3 +382,28 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - This story was mostly already complete - just needed verification and documentation
 
 ---
+## 2026-01-14 - US-022.1: Loading feedback in Content section
+
+- What was implemented:
+  - Created ContentTableSkeleton component for table-based content libraries
+  - Added skeleton loading states to HooksLibrary, PostsLibrary, and EmailsLibrary pages
+  - Replaced spinner loading states with proper skeleton UI that matches actual content layout
+  - Skeletons show header, filters, and table structure with 5 rows by default
+  - Column widths match the actual table columns for consistent visual flow
+
+- Files changed:
+  - `src/components/content-library/ContentTableSkeleton.tsx` - new shared skeleton component
+  - `src/pages/HooksLibrary.tsx` - replaced spinner with ContentTableSkeleton (6 columns)
+  - `src/pages/PostsLibrary.tsx` - replaced spinner with ContentTableSkeleton (4 columns)
+  - `src/pages/EmailsLibrary.tsx` - replaced spinner with ContentTableSkeleton (5 columns)
+
+- **Learnings for future iterations:**
+  - Content libraries use table-based layout, not card-based, so they need table skeletons not card skeletons
+  - The existing ContentLibrarySkeleton is for a different page (ContentLibraryPage) which uses cards
+  - All three content libraries (Hooks, Posts, Emails) follow identical structure patterns but different column counts
+  - Use reusable components with props (rowCount, columnCount, columnWidths) for consistency
+  - The Skeleton component from `@/components/ui/skeleton` is the base primitive for all loading states
+  - Table skeletons should match the actual header and row structure for smooth visual transition when data loads
+  
+---
+

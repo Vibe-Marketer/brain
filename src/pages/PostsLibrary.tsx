@@ -41,6 +41,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { AppShell } from '@/components/layout/AppShell';
 import { ContentCategoryPane } from '@/components/panes/ContentCategoryPane';
+import { ContentTableSkeleton } from '@/components/content-library/ContentTableSkeleton';
 import {
   useContentItemsStore,
   usePosts,
@@ -147,9 +148,11 @@ export default function PostsLibrary() {
   if (isLoading) {
     return (
       <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
-        <div className="flex items-center justify-center h-full">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-vibe-orange" />
-        </div>
+        <ContentTableSkeleton
+          rowCount={5}
+          columnCount={4}
+          columnWidths={['', 'w-[100px]', 'w-[120px]', 'w-[150px]']}
+        />
       </AppShell>
     );
   }

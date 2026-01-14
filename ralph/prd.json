@@ -291,7 +291,7 @@
         "Smooth transition to actual content",
         "Loading state for each content type"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-023.1",
