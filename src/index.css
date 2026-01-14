@@ -286,6 +286,14 @@ CallVault Brand System v4.2
   /* Dark mode */
   .dark {
     /* Apple Design System - Dark Surfaces */
+    /* Dark Mode Semantic Colors */
+    --cv-ink: 0 0% 100%;
+    --cv-ink-soft: 0 0% 69%;
+    --cv-ink-muted: 0 0% 42%;
+    --cv-border: 0 0% 23%;
+    --cv-border-soft: 0 0% 30%;
+    --cv-hover: 0 0% 16%;
+
     --surface-primary: 0 0% 9%;         /* #161616 - Background (viewport-dark) */
     --surface-secondary: 0 0% 13%;      /* #202020 - Cards (card-dark) */
     --surface-tertiary: 0 0% 16%;       /* #2A2A2A - Sections (panel-dark) */
