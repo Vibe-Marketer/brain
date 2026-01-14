@@ -402,6 +402,198 @@ CREATE TABLE example_table (
 );
 ```
 
+
+
+
+# SECURITY REQUIREMENTS
+
+## Environment Variable Handling
+
+**Required environment variables for Edge Functions:**
+- `SUPABASE_URL` - Supabase project URL
+- `SUPABASE_SERVICE_ROLE_KEY` - Service role key (server-side only)
+- `SUPABASE_ANON_KEY` - Anonymous key (client-side)
+
+**Accessing environment variables:**
+```typescript
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+```
+
+**NEVER expose in responses:**
+```typescript
+// BAD - Never do this
+return new Response(JSON.stringify({
+  key: Deno.env.get('API_KEY')  // NEVER expose secrets
+}));
+
+// GOOD - Only expose non-sensitive info
+return new Response(JSON.stringify({
+  configured: !!Deno.env.get('API_KEY')
+}));
+```
+
+## Authentication Verification Patterns
+
+**Standard JWT authentication:**
+```typescript
+const authHeader = req.headers.get('Authorization');
+if (!authHeader) {
+  return new Response(
+    JSON.stringify({ error: 'No authorization header' }),
+    { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+const token = authHeader.replace('Bearer ', '');
+const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+if (userError || !user) {
+  return new Response(
+    JSON.stringify({ error: 'Unauthorized' }),
+    { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+```
+
+**Service role for admin operations:**
+```typescript
+// Use service role when RLS needs to be bypassed
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+```
+
+## Input Validation Requirements
+
+**Use Zod for input validation:**
+```typescript
+import { z } from 'https://esm.sh/zod@3.23.8';
+
+const inputSchema = z.object({
+  apiKey: z.string()
+    .trim()
+    .min(20, 'API key appears to be invalid (too short)')
+    .max(500, 'API key is too long'),
+  email: z.string().email('Invalid email format'),
+});
+
+const body = await req.json();
+const validation = inputSchema.safeParse(body);
+
+if (!validation.success) {
+  const errorMessage = validation.error.errors[0]?.message || 'Invalid input';
+  return new Response(
+    JSON.stringify({ error: errorMessage }),
+    { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+  );
+}
+
+const { apiKey, email } = validation.data;
+```
+
+**Validate all user input before processing:**
+- String lengths
+- Email formats
+- Numeric ranges
+- Array contents
+- JSON structure
+
+## OWASP Top 10 Concerns
+
+**1. Injection Prevention:**
+```typescript
+// GOOD - Use parameterized queries (Supabase handles this)
+const { data } = await supabase
+  .from('table')
+  .select('*')
+  .eq('user_id', userId);  // Parameterized
+
+// BAD - Never interpolate user input into queries
+const query = `SELECT * FROM table WHERE user_id = '${userId}'`;  // SQL injection risk
+```
+
+**2. Broken Authentication:**
+- Always verify JWT tokens
+- Use Supabase auth, never roll your own
+- Validate user ownership before operations
+
+**3. Sensitive Data Exposure:**
+- Never log sensitive data (API keys, tokens)
+- Mask secrets in responses (show only prefix/suffix)
+- Use HTTPS for all communications
+
+**4. Security Misconfiguration:**
+- Enable RLS on all tables
+- Use restrictive CORS in production
+- Remove debug endpoints
+
+**5. Cross-Site Scripting (XSS):**
+- Sanitize any HTML content before storage
+- Use Content-Type: application/json for API responses
+
+**6. Insecure Direct Object References:**
+```typescript
+// GOOD - Always verify ownership
+const { data } = await supabase
+  .from('calls')
+  .select('*')
+  .eq('recording_id', recordingId)
+  .eq('user_id', user.id);  // Verify ownership
+
+// BAD - Never trust client-provided IDs alone
+const { data } = await supabase
+  .from('calls')
+  .select('*')
+  .eq('recording_id', recordingId);  // No ownership check
+```
+
+**7. Rate Limiting:**
+```typescript
+// Implement rate limiting for external API calls
+class RateLimiter {
+  private requestCount = 0;
+  private windowStart = Date.now();
+  private readonly maxRequests = 55;
+  private readonly windowMs = 60000;
+
+  async throttle(): Promise<void> {
+    // ... rate limiting logic
+  }
+}
+```
+
+**8. Logging Security Events:**
+```typescript
+// Log security-relevant events
+console.log('User authentication:', user.id);
+console.error('Authorization failed for user:', user.id);
+// Never log: passwords, API keys, tokens, PII
+```
+
+---
+
+# QUICK REFERENCE
+
+## Naming Conventions Summary
+
+| Item | Convention | Example |
+|------|------------|---------|
+| Function folders | kebab-case | `fetch-meetings/` |
+| Internal functions | camelCase | `processMeetingWebhook()` |
+| Database tables | snake_case | `user_settings` |
+| Database columns | snake_case | `recording_id` |
+| Types/Interfaces | PascalCase | `Meeting`, `ApiResponse` |
+
+## Checklist Before Deploying
+
+- [ ] CORS preflight handler present
+- [ ] JWT authentication verified
+- [ ] User ownership checked in queries
+- [ ] Input validated with Zod
+- [ ] Errors logged (without sensitive data)
+- [ ] RLS policies created for new tables
+- [ ] Migration file follows naming convention
+- [ ] No secrets exposed in responses
+
 ---
 
 **END OF SUPABASE BACKEND INSTRUCTIONS**
