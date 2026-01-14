@@ -17,6 +17,7 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import { useUserRole } from "@/hooks/useUserRole";
 import {
   RiFolderLine,
   RiFolderFill,
@@ -27,12 +28,13 @@ import {
   RiRepeatFill,
   RiOrganizationChart,
   RiLightbulbLine,
+  RiBugLine,
 } from "@remixicon/react";
 
 /** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
 const TRANSITION_DURATION = 250;
 
-export type SortingCategory = "folders" | "tags" | "rules" | "recurring";
+export type SortingCategory = "folders" | "tags" | "rules" | "recurring" | "debug";
 
 interface CategoryItem {
   id: SortingCategory;
@@ -43,7 +45,7 @@ interface CategoryItem {
   iconFill?: React.ComponentType<{ className?: string }>;
 }
 
-const SORTING_CATEGORIES: CategoryItem[] = [
+const SORTING_CATEGORIES_BASE: CategoryItem[] = [
   {
     id: "folders",
     label: "Folders",
@@ -74,6 +76,14 @@ const SORTING_CATEGORIES: CategoryItem[] = [
   },
 ];
 
+// Admin-only category
+const DEBUG_CATEGORY: CategoryItem = {
+  id: "debug",
+  label: "Debug Tool",
+  description: "Admin diagnostic tools",
+  icon: RiBugLine,
+};
+
 /** Contextual tips that change based on selected category */
 const QUICK_TIPS: Record<SortingCategory, string> = {
   folders:
@@ -83,6 +93,8 @@ const QUICK_TIPS: Record<SortingCategory, string> = {
     "Rules automatically tag and sort incoming calls. Higher priority rules run first.",
   recurring:
     "Recurring titles show your most common calls. Create rules to automate sorting.",
+  debug:
+    "Debug tools are only visible to administrators for diagnostics and testing.",
 };
 
 interface SortingCategoryPaneProps {
@@ -102,6 +114,14 @@ export function SortingCategoryPane({
   categoryCounts = {},
   className,
 }: SortingCategoryPaneProps) {
+  // Check if user is admin to show debug category
+  const { isAdmin } = useUserRole();
+
+  // Build categories list (include debug if admin)
+  const SORTING_CATEGORIES = React.useMemo(() => {
+    return isAdmin ? [...SORTING_CATEGORIES_BASE, DEBUG_CATEGORY] : SORTING_CATEGORIES_BASE;
+  }, [isAdmin]);
+
   // Track mount state for enter animations
   const [isMounted, setIsMounted] = React.useState(false);
   React.useEffect(() => {

@@ -13,7 +13,7 @@ import { SortingCategoryPane, type SortingCategory } from "@/components/panes/So
 import { SortingDetailPane } from "@/components/panes/SortingDetailPane";
 
 // Valid category IDs for URL validation
-const VALID_CATEGORY_IDS: SortingCategory[] = ["folders", "tags", "rules", "recurring"];
+const VALID_CATEGORY_IDS: SortingCategory[] = ["folders", "tags", "rules", "recurring", "debug"];
 
 export default function SortingTagging() {
   const { category: urlCategory } = useParams<{ category?: string }>();
