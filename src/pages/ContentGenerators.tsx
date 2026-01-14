@@ -2,7 +2,7 @@
  * Content Generators Page
  *
  * Shows available content generators as cards.
- * Currently only Call Content Generator is available.
+ * Currently only Social Post Generator is available.
  *
  * Uses the 3-pane architecture:
  * - Pane 1: Navigation rail (via AppShell)
@@ -32,7 +32,7 @@ interface GeneratorCard {
 const generators: GeneratorCard[] = [
   {
     id: 'call-content',
-    title: 'Call Content Generator',
+    title: 'Social Post Generator',
     description: 'Transform call transcripts into viral hooks, social posts, and email drafts using AI.',
     icon: <RiPhoneLine className="w-6 h-6" />,
     path: '/content/generators/call-content',

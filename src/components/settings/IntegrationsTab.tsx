@@ -3,38 +3,24 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RiFlashlightLine } from "@remixicon/react";
 import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
-import { FathomIcon, GoogleMeetIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
-import IntegrationStatusCard from "./IntegrationStatusCard";
-import FathomSetupWizard from "./FathomSetupWizard";
-import GoogleMeetSetupWizard from "./GoogleMeetSetupWizard";
-import ZoomSetupWizard from "./ZoomSetupWizard";
+import { IntegrationManager } from "@/components/shared/IntegrationManager";
 import SourcePriorityModal from "./SourcePriorityModal";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl } from "@/lib/api-client";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { useIntegrationSync } from "@/hooks/useIntegrationSync";
 
 export default function IntegrationsTab() {
-  const [fathomConnected, setFathomConnected] = useState(false);
-  const [showWizard, setShowWizard] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  // Google Meet state
-  const [googleMeetConnected, setGoogleMeetConnected] = useState(false);
-  const [showGoogleMeetWizard, setShowGoogleMeetWizard] = useState(false);
-  const [googleEmail, setGoogleEmail] = useState("");
-
-  // Zoom state
-  const [zoomConnected, setZoomConnected] = useState(false);
-  const [showZoomWizard, setShowZoomWizard] = useState(false);
+  // Use shared hook for integration status
+  const { integrations, refreshIntegrations } = useIntegrationSync();
 
   // Source Priority Modal state (shown when 2nd integration connected)
   const [showSourcePriorityModal, setShowSourcePriorityModal] = useState(false);
 
-  // Edit credentials state
+  // Edit credentials state (Fathom-specific settings feature)
   const [showEditCredentials, setShowEditCredentials] = useState(false);
   const [apiKey, setApiKey] = useState("");
   const [webhookSecret, setWebhookSecret] = useState("");
@@ -42,103 +28,78 @@ export default function IntegrationsTab() {
   const [savingCredentials, setSavingCredentials] = useState(false);
   const [oauthConnecting, setOauthConnecting] = useState(false);
   const [hasOAuth, setHasOAuth] = useState(false);
+  const [hasCredentialsLoaded, setHasCredentialsLoaded] = useState(false);
 
+  // Derived connection states from shared hook
+  const fathomConnected = integrations.find((i) => i.platform === "fathom")?.connected ?? false;
+  const googleMeetConnected = integrations.find((i) => i.platform === "google_meet")?.connected ?? false;
+  const zoomConnected = integrations.find((i) => i.platform === "zoom")?.connected ?? false;
+
+  // Get connected platforms for modal
+  const connectedPlatforms = [
+    ...(fathomConnected ? ["fathom"] : []),
+    ...(googleMeetConnected ? ["google_meet"] : []),
+    ...(zoomConnected ? ["zoom"] : []),
+  ];
+
+  // Load credential settings (for Fathom credential management UI)
   useEffect(() => {
-    loadIntegrationStatus();
+    loadCredentialSettings();
   }, []);
 
-  const loadIntegrationStatus = async () => {
+  const loadCredentialSettings = async () => {
     try {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
       const { data: settings } = await supabase
         .from("user_settings")
-        .select("fathom_api_key, webhook_secret, oauth_access_token, google_oauth_access_token, google_oauth_email, zoom_oauth_access_token, dedup_platform_order")
+        .select("fathom_api_key, webhook_secret, oauth_access_token")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      // Consider connected if either API key or OAuth token exists
-      const isFathomConnected = !!(settings?.fathom_api_key || settings?.oauth_access_token);
-      const isGoogleConnected = !!settings?.google_oauth_access_token;
-
-      // Track previous connection state before updating
-      const wasFathomConnected = fathomConnected;
-      const wasGoogleConnected = googleMeetConnected;
-
-      setFathomConnected(isFathomConnected);
       setHasOAuth(!!settings?.oauth_access_token);
 
-      // Check Google Meet connection status
-      setGoogleMeetConnected(isGoogleConnected);
-      if (settings?.google_oauth_email) {
-        setGoogleEmail(settings.google_oauth_email);
-      }
-
-      // Check Zoom connection status
-      const isZoomConnected = !!settings?.zoom_oauth_access_token;
-      setZoomConnected(isZoomConnected);
-
-      // Load current credentials (masked for display)
       if (settings?.fathom_api_key) {
         setApiKey(settings.fathom_api_key);
       }
       if (settings?.webhook_secret) {
         setWebhookSecret(settings.webhook_secret);
       }
+      setHasCredentialsLoaded(true);
+    } catch (error) {
+      logger.error("Error loading credential settings", error);
+      setHasCredentialsLoaded(true);
+    }
+  };
 
-      // Show SourcePriorityModal when both integrations are now connected for the first time
-      // This handles the case when user returns from OAuth callback
-      const bothNowConnected = isFathomConnected && isGoogleConnected;
+  // Handle integration change - check for source priority modal
+  const handleIntegrationChange = async () => {
+    await refreshIntegrations();
+    await checkSourcePriorityModal();
+  };
+
+  const checkSourcePriorityModal = async () => {
+    try {
+      const { user, error: authError } = await getSafeUser();
+      if (authError || !user) return;
+
+      const { data: settings } = await supabase
+        .from("user_settings")
+        .select("dedup_platform_order")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      // Count currently connected integrations
+      const connectedCount = connectedPlatforms.length;
+
+      // Show modal if 2+ integrations and no preferences set
       const hasNoPreferences = !settings?.dedup_platform_order || settings.dedup_platform_order.length === 0;
-      const isSecondIntegrationJustConnected = bothNowConnected && (!wasFathomConnected || !wasGoogleConnected);
-
-      if (isSecondIntegrationJustConnected && hasNoPreferences) {
+      if (connectedCount >= 2 && hasNoPreferences) {
         setShowSourcePriorityModal(true);
       }
     } catch (error) {
-      logger.error("Error loading integration status", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFathomConnect = () => {
-    setShowWizard(true);
-  };
-
-  const handleWizardComplete = async () => {
-    setShowWizard(false);
-    await loadIntegrationStatus(); // Refresh status after wizard completion
-    // Show SourcePriorityModal if Google Meet is already connected (this is the 2nd integration)
-    if (googleMeetConnected) {
-      setShowSourcePriorityModal(true);
-    }
-  };
-
-  const handleGoogleMeetConnect = () => {
-    setShowGoogleMeetWizard(true);
-  };
-
-  const handleGoogleMeetWizardComplete = async () => {
-    setShowGoogleMeetWizard(false);
-    await loadIntegrationStatus(); // Refresh status after wizard completion
-    // Show SourcePriorityModal if Fathom is already connected (this is the 2nd integration)
-    if (fathomConnected) {
-      setShowSourcePriorityModal(true);
-    }
-  };
-
-  const handleZoomConnect = () => {
-    setShowZoomWizard(true);
-  };
-
-  const handleZoomWizardComplete = async () => {
-    setShowZoomWizard(false);
-    await loadIntegrationStatus(); // Refresh status after wizard completion
-    // Show SourcePriorityModal if another integration is already connected
-    if (fathomConnected || googleMeetConnected) {
-      setShowSourcePriorityModal(true);
+      logger.error("Error checking source priority", error);
     }
   };
 
@@ -152,8 +113,6 @@ export default function IntegrationsTab() {
         return;
       }
 
-      // Basic validation - only validate webhook secret format
-      // Note: Fathom API keys don't have a consistent prefix requirement
       if (!apiKey.trim()) {
         toast.error("API key is required");
         return;
@@ -182,7 +141,7 @@ export default function IntegrationsTab() {
 
       toast.success("Credentials updated successfully");
       setShowEditCredentials(false);
-      await loadIntegrationStatus();
+      await refreshIntegrations();
     } catch (error) {
       logger.error("Error saving credentials", error);
       toast.error("Failed to save credentials");
@@ -209,45 +168,35 @@ export default function IntegrationsTab() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <p className="text-sm text-muted-foreground">Loading integrations...</p>
-      </div>
-    );
-  }
-
   return (
     <div>
       {/* Top separator for breathing room */}
       <Separator className="mb-12" />
 
-      {/* Fathom Integration Section */}
+      {/* All Integrations Section - Uses shared component */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
           <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-            Fathom Integration
+            Integrations
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Connect your Fathom account to sync meetings and transcripts
+            Connect your meeting platforms to sync recordings and transcripts
           </p>
         </div>
         <div className="lg:col-span-2">
-          <IntegrationStatusCard
-            name="Fathom"
-            icon={FathomIcon}
-            status={fathomConnected ? "connected" : "disconnected"}
-            onConnect={handleFathomConnect}
-            description="Automatic meeting sync and AI-powered insights"
+          <IntegrationManager
+            onIntegrationChange={handleIntegrationChange}
+            variant="full"
+            title="Connected Platforms"
           />
         </div>
       </div>
 
-      <Separator className="my-16" />
-
-      {/* Manage Credentials Section */}
-      {fathomConnected && (
+      {/* Manage Fathom Credentials Section - Settings-specific feature */}
+      {fathomConnected && hasCredentialsLoaded && (
         <>
+          <Separator className="my-16" />
+
           <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
             <div>
               <h2 className="font-semibold text-gray-900 dark:text-gray-50">
@@ -344,7 +293,7 @@ export default function IntegrationsTab() {
                       variant="hollow"
                       onClick={() => {
                         setShowEditCredentials(false);
-                        loadIntegrationStatus(); // Reset to original values
+                        loadCredentialSettings(); // Reset to original values
                       }}
                     >
                       Cancel
@@ -354,99 +303,16 @@ export default function IntegrationsTab() {
               )}
             </div>
           </div>
-
-          <Separator className="my-16" />
         </>
       )}
 
-      {/* Google Meet Integration Section */}
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-            Google Meet Integration
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Sync recordings and transcripts from Google Meet
-          </p>
-        </div>
-        <div className="lg:col-span-2">
-          <IntegrationStatusCard
-            name="Google Meet"
-            icon={GoogleMeetIcon}
-            status={googleMeetConnected ? "connected" : "disconnected"}
-            onConnect={handleGoogleMeetConnect}
-            description={googleMeetConnected && googleEmail
-              ? `Connected as ${googleEmail}`
-              : "Calendar discovery and recording sync"
-            }
-          />
-        </div>
-      </div>
-
-      <Separator className="my-16" />
-
-      {/* Coming Soon Integrations Section */}
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-            More Integrations
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Additional integrations coming soon
-          </p>
-        </div>
-        <div className="lg:col-span-2 space-y-0">
-          <IntegrationStatusCard
-            name="Zoom"
-            icon={ZoomIcon}
-            status={zoomConnected ? "connected" : "disconnected"}
-            onConnect={handleZoomConnect}
-            description={zoomConnected ? "Cloud recordings synced" : "Direct Zoom meeting integration"}
-          />
-          <IntegrationStatusCard
-            name="GoHighLevel"
-            icon={RiFlashlightLine}
-            status="coming-soon"
-            description="CRM and workflow automation"
-          />
-        </div>
-      </div>
-
-      {/* Modals */}
-      {showWizard && (
-        <FathomSetupWizard
-          open={showWizard}
-          onComplete={handleWizardComplete}
-          onDismiss={() => setShowWizard(false)}
-        />
-      )}
-
-      {showGoogleMeetWizard && (
-        <GoogleMeetSetupWizard
-          open={showGoogleMeetWizard}
-          onComplete={handleGoogleMeetWizardComplete}
-          onDismiss={() => setShowGoogleMeetWizard(false)}
-        />
-      )}
-
-      {showZoomWizard && (
-        <ZoomSetupWizard
-          open={showZoomWizard}
-          onComplete={handleZoomWizardComplete}
-          onDismiss={() => setShowZoomWizard(false)}
-        />
-      )}
-
+      {/* Source Priority Modal */}
       {showSourcePriorityModal && (
         <SourcePriorityModal
           open={showSourcePriorityModal}
           onComplete={() => setShowSourcePriorityModal(false)}
           onDismiss={() => setShowSourcePriorityModal(false)}
-          connectedPlatforms={[
-            ...(fathomConnected ? ["fathom"] : []),
-            ...(googleMeetConnected ? ["google_meet"] : []),
-            ...(zoomConnected ? ["zoom"] : []),
-          ]}
+          connectedPlatforms={connectedPlatforms}
         />
       )}
     </div>

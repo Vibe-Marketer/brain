@@ -1,7 +1,7 @@
 /**
  * Generate Hooks Step
  *
- * Step 3 of the Call Content Generator wizard.
+ * Step 3 of the Social Post Generator wizard.
  * Allows users to generate hooks from insights and select which ones to use.
  */
 
