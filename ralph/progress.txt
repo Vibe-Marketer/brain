@@ -52,3 +52,17 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - The array handles: id, name, iconLine, iconFill, path, and optional matchPaths
 ---
 
+## 2026-01-14 - US-004.1: Settings at bottom of navigation
+- What was implemented:
+  - Verified Settings is already the last nav item (already done in US-003.1)
+  - Settings appears after Analytics in the navItems array (index 6, after Analytics at index 5)
+  - All Settings functionality unchanged (same path, icons, onSettingsClick callback)
+  - No visual separation - Settings renders identically to other nav items in the map loop
+- Files changed:
+  - No code changes required - this was already completed by US-003.1
+- **Learnings for future iterations:**
+  - US-003.1 and US-004.1 are closely related - reordering Analytics before Settings automatically makes Settings the last item
+  - Browser verification was blocked by pre-existing CSS parsing error in `src/index.css` (postcss/sucrase conflict) - this is an infrastructure issue unrelated to sidebar changes
+  - The separator at line 400 (`{!isCollapsed && <div className="h-px bg-border my-2 mx-3" />}`) comes AFTER all nav items, before the Library Toggle - not between Settings and other nav items
+---
+

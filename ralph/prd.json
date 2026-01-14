@@ -56,7 +56,7 @@
         "All Settings functionality unchanged",
         "No visual separation from other nav items"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-005.1",
