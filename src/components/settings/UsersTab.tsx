@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { RiLoader2Line, RiGroupLine } from "@remixicon/react";
 import { toast } from "sonner";
@@ -8,6 +7,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { UserTable } from "@/components/settings/UserTable";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { usePanelStore } from "@/stores/panelStore";
 
 interface UserProfile {
   user_id: string;
@@ -15,13 +15,13 @@ interface UserProfile {
   email: string;
   role: "FREE" | "PRO" | "TEAM" | "ADMIN";
   last_login_at: string | null;
-  setup_wizard_completed: boolean;
   onboarding_completed: boolean;
   created_at: string;
 }
 
 export default function UsersTab() {
   const { isAdmin } = useUserRole();
+  const { openPanel } = usePanelStore();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
@@ -68,7 +68,8 @@ export default function UsersTab() {
         display_name: profile.display_name,
         role: roleMap.get(profile.user_id) || "FREE",
         last_login_at: null, // TODO: Track in separate table
-        setup_wizard_completed: profile.onboarding_completed || false,
+        onboarding_completed: profile.onboarding_completed || false,
+        created_at: profile.created_at,
       }));
 
       setUsers(profilesWithData as UserProfile[]);
@@ -126,9 +127,6 @@ export default function UsersTab() {
 
   return (
     <div>
-      {/* Top separator for breathing room */}
-      <Separator className="mb-12" />
-
       {/* Organization Users Section */}
       <div className="space-y-4">
         <div>
@@ -153,8 +151,8 @@ export default function UsersTab() {
               isAdmin={isAdmin}
               updatingUserId={updatingUserId}
               onRoleChange={handleRoleChange}
-              onManageUser={() => {
-                toast.info("User management actions coming soon");
+              onManageUser={(userId) => {
+                openPanel('user-detail', { userId });
               }}
               showActions={isAdmin}
             />
@@ -162,10 +160,8 @@ export default function UsersTab() {
         </div>
       </div>
 
-      <Separator className="my-16" />
-
       {/* Information Section */}
-      <div className="space-y-4">
+      <div className="space-y-4 mt-12">
         <div>
           <h2 className="font-semibold text-gray-900 dark:text-gray-50">
             User Management
