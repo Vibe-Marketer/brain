@@ -96,10 +96,12 @@ export function IntegrationStatusRow({
       "flex items-center justify-between rounded-lg transition-colors",
       compact
         ? "px-2 py-2 hover:bg-hover/50"
-        : "px-4 py-3 border-b border-border dark:border-cb-border-dark last:border-b-0",
-      !integration.connected && "opacity-50"
+        : "px-4 py-3 border-b border-border dark:border-cb-border-dark last:border-b-0"
     )}>
-      <div className="flex items-center gap-2.5">
+      <div className={cn(
+        "flex items-center gap-2.5",
+        !integration.connected && "opacity-50"
+      )}>
         <div className="flex items-center justify-center">
           <Icon className={compact ? "h-7 w-7" : "h-8 w-8"} />
         </div>

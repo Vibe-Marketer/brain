@@ -159,7 +159,7 @@
         "Sufficient contrast and visibility",
         "Consistent across all integration types"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-013.1",

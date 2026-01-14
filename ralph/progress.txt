@@ -12,6 +12,7 @@
 - IntegrationSyncPane (`src/components/sync/IntegrationSyncPane.tsx`) - integration management section, uses compact prop for cleaner display
 - IntegrationStatusRow supports `compact` prop for reduced visual weight (smaller icons, no badges, less padding)
 - **Integration icons**: Use branded icons from `src/components/transcript-library/SourcePlatformIcons.tsx` (FathomIcon, GoogleMeetIcon, ZoomIcon) - NOT generic Remix icons. These icons support both `size` prop and Tailwind `className` (h-X w-X)
+- **Disconnected/disabled states**: Apply opacity to descriptive content only, NOT to CTA buttons - keeps buttons looking clickable
 
 ---
 
@@ -189,5 +190,19 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - The icons have built-in brand colors, so no need to apply `colorClass` to them
   - Icons work as React components with `className` prop, so they can be passed to components expecting `icon: typeof RiVideoLine`
   - The `getSizeFromClassName` helper parses Tailwind h-X classes to get the pixel size (e.g., h-4 = 16px)
+---
+
+## 2026-01-14 - US-012.1: Connect buttons look clickable
+- What was implemented:
+  - Moved `opacity-50` class from the parent row container to only the left side content (icon/name)
+  - Connect button now renders at full opacity even when integration is disconnected
+  - Previously the entire row had `opacity-50` when disconnected, making the Connect button look grayed/inactive
+  - Now only the icon and integration name are dimmed, while the CTA button remains fully visible and clickable
+- Files changed:
+  - `src/components/sync/IntegrationStatusRow.tsx` - moved opacity-50 from parent div to inner content div
+- **Learnings for future iterations:**
+  - When showing "disabled" or "disconnected" states, apply opacity to descriptive content only, not to CTA buttons
+  - CTA buttons should always appear fully active/clickable to encourage user interaction
+  - The `cn()` utility makes it easy to conditionally apply classes to nested elements
 ---
 
