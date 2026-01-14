@@ -43,7 +43,7 @@
         "All nav functionality unchanged",
         "Keyboard navigation (ArrowDown/Up) follows new order"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-004.1",

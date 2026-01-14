@@ -183,20 +183,20 @@ const navItems: NavItem[] = [
     matchPaths: ['/team', '/coaches'],
   },
   {
-    id: 'settings',
-    name: 'Settings',
-    iconLine: RiSettings3Line,
-    iconFill: RiSettings3Fill,
-    path: '/settings',
-    matchPaths: ['/settings'],
-  },
-  {
     id: 'analytics',
     name: 'Analytics',
     iconLine: RiPieChart2Line,
     iconFill: RiPieChart2Fill,
     path: '/analytics',
     matchPaths: ['/analytics'],
+  },
+  {
+    id: 'settings',
+    name: 'Settings',
+    iconLine: RiSettings3Line,
+    iconFill: RiSettings3Fill,
+    path: '/settings',
+    matchPaths: ['/settings'],
   },
 ];
 

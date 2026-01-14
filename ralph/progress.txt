@@ -39,3 +39,16 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - Use conditional CSS classes based on `isCollapsed` prop rather than conditional rendering when element should exist in both modes
 ---
 
+## 2026-01-14 - US-003.1: Analytics appears before Settings in nav
+- What was implemented:
+  - Reordered `navItems` array to place Analytics before Settings
+  - Settings is now the last nav item in the array
+  - Keyboard navigation (ArrowDown/Up) automatically follows the new order (uses array index)
+- Files changed:
+  - `src/components/ui/sidebar-nav.tsx` - swapped Analytics and Settings position in navItems array
+- **Learnings for future iterations:**
+  - Nav item order is controlled by the `navItems` array at the top of sidebar-nav.tsx (around line 144)
+  - Keyboard navigation uses `focusNavItemByIndex` which iterates based on array order - no code changes needed when reordering
+  - The array handles: id, name, iconLine, iconFill, path, and optional matchPaths
+---
+
