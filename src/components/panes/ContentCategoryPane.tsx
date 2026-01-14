@@ -70,7 +70,7 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
   },
   {
     id: "call-content",
-    label: "Call Content",
+    label: "Social Posts",
     description: "From transcripts",
     icon: RiPhoneLine,
     path: "/content/generators/call-content",
@@ -106,7 +106,7 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
 const QUICK_TIPS: Record<ContentCategory, string> = {
   overview: "Your Content Hub dashboard shows stats and quick access to all content features.",
   generators: "Content generators transform your source material into ready-to-use marketing content.",
-  "call-content": "Extract hooks, posts, and emails from your call transcripts using AI.",
+  "call-content": "Generate social media posts from your call transcripts using AI.",
   hooks: "Hooks are attention-grabbing opening lines. Star your favorites for quick access.",
   posts: "Social posts are ready to share. Copy directly or edit before posting.",
   emails: "Email drafts are formatted for your email client. Customize before sending.",

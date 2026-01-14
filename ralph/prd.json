@@ -304,7 +304,7 @@
         "Good typography and spacing",
         "Consistent visual language"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-024.1",
@@ -316,7 +316,7 @@
         "Name consistent across all locations",
         "Name clearly indicates output type"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-025.1",

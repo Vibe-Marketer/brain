@@ -407,3 +407,49 @@ Started: Wed Jan 14 12:19:39 EST 2026
   
 ---
 
+## 2026-01-14 - US-023.1: Professional content cards following brand guidelines
+
+- What was implemented:
+  - Removed Card wrapper component from ContentItemCard (follows "90% No Containers" principle from brand guidelines v4.2)
+  - Replaced with clean div layout using borders and whitespace for professional appearance
+  - Applied proper Inter typography: font-medium for titles, font-light for body text
+  - Enhanced spacing and visual hierarchy: py-3 px-4 padding, mb-3 gaps between sections
+  - Increased content preview from 150 to 200 characters with line-clamp-3 for better readability
+  - Professional hover state: border-ink-muted/30 with smooth transition
+  - Improved button sizing (h-7 w-7) and spacing (gap-1) for cleaner action area
+  - Consistent border-border usage following brand guidelines
+
+- Files changed:
+  - `src/components/content-library/ContentItemCard.tsx` - removed Card/CardHeader/CardContent, applied brand-compliant layout
+
+- **Learnings for future iterations:**
+  - Brand guidelines v4.2 specify "90% No Containers" - cards should ONLY be used for modals, dropdowns, search bars, and metric/stat cards
+  - Content cards displaying generated content do NOT fall into the approved 10% - use div with borders instead
+  - Typography standards: Montserrat for headings (ALL CAPS), Inter for body (font-light) and interactive (font-medium)
+  - Professional appearance comes from whitespace, proper borders (border-border), and typography - not from shadow effects
+  - The ContentItemCard is used in ContentLibraryPage which displays saved generated content items
+  - Always check brand guidelines before implementing UI components to ensure compliance
+
+---
+
+## 2026-01-14 - US-024.1: Clear name for content generator
+
+- What was implemented:
+  - Updated ContentCategoryPane navigation label from "Call Content" to "Social Posts"
+  - Updated quick tip text to emphasize "social media posts" generation
+  - Generator card already showed "Social Post Generator" (was previously updated)
+  - Generator page header already showed "Social Post Generator" (was previously updated)
+  - Name now consistently describes output as social posts/content across all user-facing locations
+  
+- Files changed:
+  - `src/components/panes/ContentCategoryPane.tsx` - updated label and quick tip text
+
+- **Learnings for future iterations:**
+  - Generator naming was mostly already updated to "Social Post Generator" in ContentGenerators.tsx and CallContentGenerator.tsx
+  - Only the ContentCategoryPane navigation needed updating from "Call Content" to "Social Posts"
+  - Technical IDs (like `call-content` in routes, component names) should remain unchanged for consistency
+  - User-facing labels should be descriptive and clearly indicate what the feature produces
+  - When renaming features, check navigation panes, page headers, and card titles for consistency
+
+---
+
