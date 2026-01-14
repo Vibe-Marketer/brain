@@ -5,13 +5,11 @@ import {
   RiCheckboxCircleLine,
   RiLoader4Line,
   RiErrorWarningLine,
-  RiVideoLine,
-  RiGoogleLine,
-  RiVideoChatLine,
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { type IntegrationStatus } from "@/hooks/useIntegrationSync";
 import { formatDistanceToNow } from "date-fns";
+import { FathomIcon, GoogleMeetIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 
 interface IntegrationStatusRowProps {
   integration: IntegrationStatus;
@@ -22,21 +20,15 @@ interface IntegrationStatusRowProps {
 }
 
 const platformIcons = {
-  fathom: RiVideoLine,
-  google_meet: RiGoogleLine,
-  zoom: RiVideoChatLine,
+  fathom: FathomIcon,
+  google_meet: GoogleMeetIcon,
+  zoom: ZoomIcon,
 };
 
 const platformNames = {
   fathom: "Fathom",
   google_meet: "Google Meet",
   zoom: "Zoom",
-};
-
-const platformColors = {
-  fathom: "text-purple-600 dark:text-purple-400",
-  google_meet: "text-blue-600 dark:text-blue-400",
-  zoom: "text-sky-600 dark:text-sky-400",
 };
 
 export function IntegrationStatusRow({
@@ -48,7 +40,6 @@ export function IntegrationStatusRow({
 }: IntegrationStatusRowProps) {
   const Icon = platformIcons[integration.platform];
   const name = platformNames[integration.platform];
-  const colorClass = platformColors[integration.platform];
 
   const renderStatus = () => {
     if (!integration.connected) {
@@ -109,12 +100,8 @@ export function IntegrationStatusRow({
       !integration.connected && "opacity-50"
     )}>
       <div className="flex items-center gap-2.5">
-        <div className={cn(
-          "rounded-md flex items-center justify-center",
-          compact ? "h-7 w-7 bg-muted/50" : "h-8 w-8 bg-muted",
-          colorClass
-        )}>
-          <Icon className={compact ? "h-3.5 w-3.5" : "h-4 w-4"} />
+        <div className="flex items-center justify-center">
+          <Icon className={compact ? "h-7 w-7" : "h-8 w-8"} />
         </div>
         <div className="flex flex-col">
           <div className="flex items-center gap-1.5">

@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RiVideoLine, RiFlashlightLine, RiGoogleLine } from "@remixicon/react";
+import { RiFlashlightLine } from "@remixicon/react";
 import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
+import { FathomIcon, GoogleMeetIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 import IntegrationStatusCard from "./IntegrationStatusCard";
 import FathomSetupWizard from "./FathomSetupWizard";
 import GoogleMeetSetupWizard from "./GoogleMeetSetupWizard";
@@ -234,7 +235,7 @@ export default function IntegrationsTab() {
         <div className="lg:col-span-2">
           <IntegrationStatusCard
             name="Fathom"
-            icon={RiVideoLine}
+            icon={FathomIcon}
             status={fathomConnected ? "connected" : "disconnected"}
             onConnect={handleFathomConnect}
             description="Automatic meeting sync and AI-powered insights"
@@ -371,7 +372,7 @@ export default function IntegrationsTab() {
         <div className="lg:col-span-2">
           <IntegrationStatusCard
             name="Google Meet"
-            icon={RiGoogleLine}
+            icon={GoogleMeetIcon}
             status={googleMeetConnected ? "connected" : "disconnected"}
             onConnect={handleGoogleMeetConnect}
             description={googleMeetConnected && googleEmail
@@ -397,7 +398,7 @@ export default function IntegrationsTab() {
         <div className="lg:col-span-2 space-y-0">
           <IntegrationStatusCard
             name="Zoom"
-            icon={RiVideoLine}
+            icon={ZoomIcon}
             status={zoomConnected ? "connected" : "disconnected"}
             onConnect={handleZoomConnect}
             description={zoomConnected ? "Cloud recordings synced" : "Direct Zoom meeting integration"}

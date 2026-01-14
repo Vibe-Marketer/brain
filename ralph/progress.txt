@@ -11,6 +11,7 @@
 - For height animations use `max-h-X` with `overflow-hidden` and `transition-all duration-300` (can't animate height: auto)
 - IntegrationSyncPane (`src/components/sync/IntegrationSyncPane.tsx`) - integration management section, uses compact prop for cleaner display
 - IntegrationStatusRow supports `compact` prop for reduced visual weight (smaller icons, no badges, less padding)
+- **Integration icons**: Use branded icons from `src/components/transcript-library/SourcePlatformIcons.tsx` (FathomIcon, GoogleMeetIcon, ZoomIcon) - NOT generic Remix icons. These icons support both `size` prop and Tailwind `className` (h-X w-X)
 
 ---
 
@@ -166,5 +167,27 @@ Started: Wed Jan 14 12:19:39 EST 2026
   - DateRangePicker has an optional `onFetch` prop that adds a button inside the popover - don't use this for important actions that should be visible at all times
   - For important CTA buttons, keep them outside popovers/dropdowns so users can find them immediately
   - Use `sm:self-end` to align buttons at the bottom of flex containers when paired with elements that have labels
+---
+
+## 2026-01-14 - US-011.1: Consistent icons for each integration
+- What was implemented:
+  - Updated all integration-related files to use the branded icons from `SourcePlatformIcons.tsx` instead of generic Remix icons
+  - `FathomIcon` - black circular background with Fathom "F" arrows logo
+  - `GoogleMeetIcon` - Google "G" logo on white circular background
+  - `ZoomIcon` - video camera on blue circular background
+  - Icons now support both `size` prop and Tailwind `className` (h-X w-X) via `getSizeFromClassName` helper
+- Files changed:
+  - `src/components/transcript-library/SourcePlatformIcons.tsx` - added `getSizeFromClassName` helper, updated icons to use computed size
+  - `src/components/sync/IntegrationStatusRow.tsx` - replaced RiVideoLine/RiGoogleLine/RiVideoChatLine with branded icons
+  - `src/components/sync/AddIntegrationButton.tsx` - replaced generic icons with branded icons
+  - `src/components/sync/InlineConnectionWizard.tsx` - updated platformConfig to use branded icons
+  - `src/components/settings/IntegrationsTab.tsx` - updated IntegrationStatusCard to use branded icons
+  - `src/components/search/SourceFilterCheckboxes.tsx` - replaced generic icons with branded icons
+  - `src/components/search/SearchResultItem.tsx` - updated SOURCE_PLATFORM_CONFIG to use branded icons
+- **Learnings for future iterations:**
+  - All integration icons should come from `SourcePlatformIcons.tsx` for consistency
+  - The icons have built-in brand colors, so no need to apply `colorClass` to them
+  - Icons work as React components with `className` prop, so they can be passed to components expecting `icon: typeof RiVideoLine`
+  - The `getSizeFromClassName` helper parses Tailwind h-X classes to get the pixel size (e.g., h-4 = 16px)
 ---
 

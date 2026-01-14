@@ -147,7 +147,7 @@
         "Fathom icon consistent everywhere",
         "No visual inconsistencies between screens"
       ],
-      "passes": false
+      "passes": true
     },
     {
       "id": "US-012.1",

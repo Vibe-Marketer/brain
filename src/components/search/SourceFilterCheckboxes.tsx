@@ -1,7 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { RiVideoLine, RiGoogleLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
+import { FathomIcon, GoogleMeetIcon } from "@/components/transcript-library/SourcePlatformIcons";
 
 export type SourcePlatform = "fathom" | "google_meet";
 
@@ -14,20 +14,17 @@ interface SourceFilterCheckboxesProps {
 const sourceOptions: Array<{
   platform: SourcePlatform;
   label: string;
-  icon: typeof RiVideoLine;
-  colorClass: string;
+  Icon: typeof FathomIcon;
 }> = [
   {
     platform: "fathom",
     label: "Fathom",
-    icon: RiVideoLine,
-    colorClass: "text-purple-600 dark:text-purple-400",
+    Icon: FathomIcon,
   },
   {
     platform: "google_meet",
     label: "Google Meet",
-    icon: RiGoogleLine,
-    colorClass: "text-blue-600 dark:text-blue-400",
+    Icon: GoogleMeetIcon,
   },
 ];
 
@@ -53,7 +50,7 @@ export function SourceFilterCheckboxes({
     <div className={cn("flex items-center gap-4", className)}>
       <span className="text-xs text-muted-foreground">Filter:</span>
       {sourceOptions.map((option) => {
-        const Icon = option.icon;
+        const Icon = option.Icon;
         const isChecked = allSelected || selectedSources.includes(option.platform);
 
         return (
@@ -66,10 +63,7 @@ export function SourceFilterCheckboxes({
             />
             <Label
               htmlFor={`source-filter-${option.platform}`}
-              className={cn(
-                "flex items-center gap-1 text-xs cursor-pointer",
-                option.colorClass
-              )}
+              className="flex items-center gap-1 text-xs cursor-pointer"
             >
               <Icon className="h-3 w-3" />
               {option.label}
