@@ -34,6 +34,7 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 - [ ] **SEC-03**: Add admin auth check to `test-env-vars` and `test-secrets` edge functions
 - [ ] **SEC-04**: Remove sensitive logging (console.log with PII in `AuthContext.tsx`, `Chat.tsx`, `useChatSession.ts`)
 - [ ] **SEC-05**: Fix type safety bypasses in exports (`BulkActionToolbarEnhanced.tsx` forcing types to `any`)
+- [ ] **SEC-06**: Migrate Edge Functions from wildcard CORS (`*`) to `getCorsHeaders()` with dynamic origin checking
 
 **Store Reliability**
 - [ ] **STORE-01**: Fix silent store failures (return meaningful errors instead of null in `contentLibraryStore.ts`, `contentItemsStore.ts`, `businessProfileStore.ts`)
@@ -50,6 +51,11 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 - [ ] **FIX-03**: Fix Analytics tabs crashes (spec-035)
 - [ ] **FIX-04**: Fix Users tab non-functional elements (spec-042)
 - [ ] **FIX-05**: Fix Billing section if charging (spec-043)
+- [ ] **FIX-06**: Move bulk action toolbar from bottom Mac-style bar to right-side 4th pane (consistency with app-wide slide-in pane pattern)
+
+**Documentation**
+- [ ] **DOC-01**: Document export system (13+ formats, 4 bundle modes, 3 advanced formats) for marketing/onboarding/help
+- [ ] **DOC-02**: Document multi-source deduplication for user-facing help (fuzzy matching, priority modes)
 
 **Code Cleanup**
 - [ ] **CLEAN-01**: Consolidate duplicate deduplication code (`deduplication.ts` vs `dedup-fingerprint.ts`)
@@ -158,11 +164,12 @@ Which phases cover which requirements.
 | SEC-03 | Phase 1: Security Lockdown | Pending |
 | SEC-04 | Phase 1: Security Lockdown | Pending |
 | SEC-05 | Phase 1: Security Lockdown | Pending |
-| CHAT-05 | Phase 2: Chat Foundation | Pending |
-| CHAT-03 | Phase 2: Chat Foundation | Pending |
+| SEC-06 | Phase 1: Security Lockdown | Pending |
 | CHAT-01 | Phase 2: Chat Foundation | Pending |
 | CHAT-02 | Phase 2: Chat Foundation | Pending |
+| CHAT-03 | Phase 2: Chat Foundation | Pending |
 | CHAT-04 | Phase 2: Chat Foundation | Pending |
+| CHAT-05 | Phase 2: Chat Foundation | Pending |
 | STORE-01 | Phase 2: Chat Foundation | Pending |
 | INT-01 | Phase 3: Integration OAuth | Pending |
 | INT-02 | Phase 3: Integration OAuth | Pending |
@@ -179,30 +186,40 @@ Which phases cover which requirements.
 | FIX-03 | Phase 6: Demo Polish | Pending |
 | FIX-04 | Phase 6: Demo Polish | Pending |
 | FIX-05 | Phase 6: Demo Polish | Pending |
+| FIX-06 | Phase 6: Demo Polish | Pending |
+| REFACTOR-04 | Phase 6: Demo Polish | Pending |
+| IMPL-03 | Phase 6: Demo Polish | Pending |
+| DOC-01 | Phase 6: Demo Polish | Pending |
+| DOC-02 | Phase 6: Demo Polish | Pending |
 | REFACTOR-01 | Phase 7: Code Health | Pending |
 | REFACTOR-02 | Phase 7: Code Health | Pending |
 | REFACTOR-03 | Phase 7: Code Health | Pending |
+| REFACTOR-05 | Phase 7: Code Health | Pending |
+| REFACTOR-06 | Phase 7: Code Health | Pending |
+| REFACTOR-07 | Phase 7: Code Health | Pending |
 | CLEAN-01 | Phase 7: Code Health | Pending |
 | CLEAN-02 | Phase 7: Code Health | Pending |
+| IMPL-01 | Phase 7: Code Health | Pending |
+| IMPL-02 | Phase 7: Code Health | Pending |
+| INFRA-01 | Phase 7: Code Health | Pending |
+| INFRA-02 | Phase 7: Code Health | Pending |
+| INFRA-03 | Phase 7: Code Health | Pending |
 | DIFF-01 | Phase 8: Differentiators | Pending |
 | DIFF-02 | Phase 8: Differentiators | Pending |
 | DIFF-03 | Phase 8: Differentiators | Pending |
 | DIFF-04 | Phase 8: Differentiators | Pending |
 | DIFF-05 | Phase 8: Differentiators | Pending |
-| GROW-01 | Phase 9: Growth Infrastructure | Pending |
-| GROW-02 | Phase 9: Growth Infrastructure | Pending |
-| GROW-03 | Phase 9: Growth Infrastructure | Pending |
-| GROW-04 | Phase 9: Growth Infrastructure | Pending |
-| GROW-05 | Phase 9: Growth Infrastructure | Pending |
+| GROW-01 | Phase 9: Growth | Pending |
+| GROW-02 | Phase 9: Growth | Pending |
+| GROW-03 | Phase 9: Growth | Pending |
+| GROW-04 | Phase 9: Growth | Pending |
+| GROW-05 | Phase 9: Growth | Pending |
 
 **Coverage:**
-- v1 requirements: 54 total (41 original + 6 from CONCERNS.md + 10 from feature-audit-report.md technical debt)
-- Mapped to phases: 41 (original roadmap)
-- Unmapped: 13 ⚠️ **NEEDS ROADMAP UPDATE**
-  - REFACTOR-04, REFACTOR-05, REFACTOR-06, REFACTOR-07
-  - IMPL-01, IMPL-02, IMPL-03
-  - INFRA-01, INFRA-02, INFRA-03
+- v1 requirements: 55 total
+- Mapped to phases: 55/55 ✓
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 (added 13 more critical requirements from feature-audit-report.md technical debt section - roadmap needs updating)*
+*Last updated: 2026-01-27 (finalized — all 55 requirements mapped to 9 phases)*

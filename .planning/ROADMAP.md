@@ -2,8 +2,8 @@
 
 **Created:** 2026-01-27
 **Depth:** Comprehensive (9 phases)
-**Coverage:** 41/41 requirements mapped ✓
-**Last Updated:** 2026-01-27 (added 6 critical requirements from CONCERNS.md)
+**Coverage:** 55/55 requirements mapped ✓
+**Last Updated:** 2026-01-27 (full rebuild — all requirements mapped)
 
 ## Overview
 
@@ -22,6 +22,7 @@ Stabilize CallVault for public launch by fixing core chat reliability, enabling 
 - SEC-03: Add admin auth check to test functions
 - SEC-04: Remove sensitive logging (PII exposure in console.log)
 - SEC-05: Fix type safety bypasses in exports
+- SEC-06: Migrate Edge Functions from wildcard CORS to dynamic origin checking
 
 **Success Criteria:**
 1. No API keys visible in browser DevTools or source code
@@ -29,7 +30,8 @@ Stabilize CallVault for public launch by fixing core chat reliability, enabling 
 3. Test/debug endpoints only accessible to admin users
 4. No console.log statements exposing PII (session data, auth tokens, message content)
 5. Export functions use properly typed interfaces (no `any` casting)
-6. Security audit passes with zero critical findings
+6. All production Edge Functions use `getCorsHeaders()` with dynamic origin checking (no wildcard `*`)
+7. Security audit passes with zero critical findings
 
 ---
 
@@ -109,8 +111,8 @@ Stabilize CallVault for public launch by fixing core chat reliability, enabling 
 
 ---
 
-### Phase 6: Demo Polish - Wiring & Fixes
-**Goal:** All built features are accessible and functional (no broken pages or crashes)
+### Phase 6: Demo Polish — Wiring, Fixes & UI Consistency
+**Goal:** All built features are accessible, functional, and visually consistent (no broken pages, crashes, or inconsistent UI patterns)
 
 **Dependencies:** Phase 1-5 (core features must work first)
 
@@ -122,6 +124,11 @@ Stabilize CallVault for public launch by fixing core chat reliability, enabling 
 - FIX-03: Fix Analytics tabs crashes (spec-035)
 - FIX-04: Fix Users tab non-functional elements (spec-042)
 - FIX-05: Fix Billing section if charging (spec-043)
+- FIX-06: Move bulk action toolbar from bottom Mac-style bar to right-side 4th pane
+- REFACTOR-04: Fix type mismatches in AutomationRules.tsx with Supabase schema
+- IMPL-03: Fix CallDetailPage to query `fathom_calls` instead of legacy `calls` table
+- DOC-01: Document export system for marketing/onboarding/help
+- DOC-02: Document multi-source deduplication for user-facing help
 
 **Success Criteria:**
 1. Automation Rules page accessible at `/automation-rules` route
@@ -129,11 +136,17 @@ Stabilize CallVault for public launch by fixing core chat reliability, enabling 
 3. Tags tab loads without error in settings
 4. Rules tab loads without error in settings
 5. Users tab shows functional elements (no placeholder buttons)
+6. Billing section functional if payments are active
+7. Bulk action toolbar appears as right-side slide-in pane (not bottom Mac-style bar)
+8. AutomationRules.tsx compiles cleanly with current Supabase types
+9. CallDetailPage queries `fathom_calls` table (not legacy `calls`)
+10. Export system documentation live in help/onboarding materials
+11. Deduplication documentation live in user-facing help
 
 ---
 
-### Phase 7: Code Health
-**Goal:** Technical debt cleaned up, monolithic components refactored, types tightened
+### Phase 7: Code Health & Infrastructure
+**Goal:** Technical debt cleaned up, monolithic components refactored, types tightened, infrastructure hardened
 
 **Dependencies:** Phase 6 (ensure features work before refactoring)
 
@@ -141,19 +154,34 @@ Stabilize CallVault for public launch by fixing core chat reliability, enabling 
 - REFACTOR-01: Break down Chat.tsx (1900+ lines monolith)
 - REFACTOR-02: Break down useTeamHierarchy.ts (1200+ lines god hook)
 - REFACTOR-03: Tighten types in stores (remove any types)
+- REFACTOR-05: Fix AI SDK outdated property (maxTokens in ai-agent.ts)
+- REFACTOR-06: Tighten types in SyncTab.tsx (Meetings/Jobs loose types)
+- REFACTOR-07: Consolidate inline diversity filter (chat-stream/index.ts duplication)
 - CLEAN-01: Consolidate duplicate deduplication code
-- CLEAN-02: Delete dead code
+- CLEAN-02: Delete dead code (legacy ai-agent.ts, Real-Time Coach stub, orphaned TeamManagement.tsx)
+- IMPL-01: Create or delete missing automation functions (summarize-call, extract-action-items)
+- IMPL-02: Handle non-existent table references (tasks, clients, client_health_history)
+- INFRA-01: Complete cost tracking for all OpenRouter models
+- INFRA-02: Fix cron expression parsing (placeholder defaulting to 1-hour)
+- INFRA-03: Move rate limiting to database (in-memory limits reset on cold starts)
 
 **Success Criteria:**
 1. Chat.tsx under 500 lines with extracted sub-components (MessageList, InputArea, ConnectionHandler)
 2. Chat streaming logic extracted to custom hooks (testable in isolation)
 3. useTeamHierarchy broken into focused hooks (useTeamPermissions, useTeamData)
 4. All store interfaces properly typed (zero `any` types in store definitions)
-5. Single deduplication implementation used across codebase
-6. Legacy `ai-agent.ts` removed (replaced by Vercel AI SDK)
-7. Real-Time Coach stub removed if unused
-8. Orphaned `TeamManagement.tsx` removed if redundant
-9. Codebase passes dead code analysis with zero warnings
+5. SyncTab.tsx Meetings/Jobs types defined with proper interfaces
+6. Single diversity filter implementation imported by chat-stream (no inline duplication)
+7. Single deduplication implementation used across codebase
+8. Legacy `ai-agent.ts` removed (replaced by Vercel AI SDK in Phase 2)
+9. Real-Time Coach stub removed if unused
+10. Orphaned `TeamManagement.tsx` removed if redundant
+11. Automation functions either implemented or references removed (no silent failures)
+12. Non-existent table references handled gracefully or tables created
+13. Cost tracking covers all OpenRouter models used in production
+14. Cron expression parsing produces correct intervals (not hardcoded 1-hour)
+15. Rate limiting persists across cold starts (database-backed)
+16. Codebase passes dead code analysis with zero warnings
 
 ---
 
@@ -203,17 +231,17 @@ Stabilize CallVault for public launch by fixing core chat reliability, enabling 
 
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
-| 1 - Security Lockdown | Pending | 5 | 0% |
+| 1 - Security Lockdown | Pending | 6 | 0% |
 | 2 - Chat Foundation | Pending | 6 | 0% |
 | 3 - Integration OAuth | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
-| 6 - Demo Polish | Pending | 7 | 0% |
-| 7 - Code Health | Pending | 5 | 0% |
+| 6 - Demo Polish | Pending | 12 | 0% |
+| 7 - Code Health & Infrastructure | Pending | 13 | 0% |
 | 8 - Differentiators | Pending | 5 | 0% |
 | 9 - Growth Infrastructure | Pending | 5 | 0% |
 
-**Overall Progress:** 0/41 requirements complete (0%)
+**Overall Progress:** 0/55 requirements complete (0%)
 
 ---
 
@@ -224,20 +252,86 @@ Phase 1: Security Lockdown (blocks all)
     ↓
 Phase 2: Chat Foundation
     ↓
-Phase 3: Integration OAuth
-    ↓
-Phase 4: Team Collaboration
-    ↓
-Phase 5: Coach Collaboration
+Phase 3: Integration OAuth ──┐
+    ↓                         │
+Phase 4: Team Collaboration   │ (Phases 3-5 can partially overlap)
+    ↓                         │
+Phase 5: Coach Collaboration ─┘
     ↓
 Phase 6: Demo Polish
     ↓
-Phase 7: Code Health
+Phase 7: Code Health & Infrastructure
     ↓
 Phase 8: Differentiators
     ↓
 Phase 9: Growth Infrastructure
 ```
+
+**Note:** Phases 3, 4, and 5 are sequentially dependent (coach builds on team) but Phase 3 (OAuth) can run in parallel with Phase 4 (Teams) since they touch different code.
+
+---
+
+## Requirement-to-Phase Mapping (Full Traceability)
+
+| Requirement | Phase |
+|-------------|-------|
+| SEC-01 | 1 - Security Lockdown |
+| SEC-02 | 1 - Security Lockdown |
+| SEC-03 | 1 - Security Lockdown |
+| SEC-04 | 1 - Security Lockdown |
+| SEC-05 | 1 - Security Lockdown |
+| SEC-06 | 1 - Security Lockdown |
+| CHAT-01 | 2 - Chat Foundation |
+| CHAT-02 | 2 - Chat Foundation |
+| CHAT-03 | 2 - Chat Foundation |
+| CHAT-04 | 2 - Chat Foundation |
+| CHAT-05 | 2 - Chat Foundation |
+| STORE-01 | 2 - Chat Foundation |
+| INT-01 | 3 - Integration OAuth |
+| INT-02 | 3 - Integration OAuth |
+| INT-03 | 3 - Integration OAuth |
+| TEAM-01 | 4 - Team Collaboration |
+| TEAM-02 | 4 - Team Collaboration |
+| COACH-01 | 5 - Coach Collaboration |
+| COACH-02 | 5 - Coach Collaboration |
+| COACH-03 | 5 - Coach Collaboration |
+| WIRE-01 | 6 - Demo Polish |
+| WIRE-02 | 6 - Demo Polish |
+| FIX-01 | 6 - Demo Polish |
+| FIX-02 | 6 - Demo Polish |
+| FIX-03 | 6 - Demo Polish |
+| FIX-04 | 6 - Demo Polish |
+| FIX-05 | 6 - Demo Polish |
+| FIX-06 | 6 - Demo Polish |
+| REFACTOR-04 | 6 - Demo Polish |
+| IMPL-03 | 6 - Demo Polish |
+| DOC-01 | 6 - Demo Polish |
+| DOC-02 | 6 - Demo Polish |
+| REFACTOR-01 | 7 - Code Health |
+| REFACTOR-02 | 7 - Code Health |
+| REFACTOR-03 | 7 - Code Health |
+| REFACTOR-05 | 7 - Code Health |
+| REFACTOR-06 | 7 - Code Health |
+| REFACTOR-07 | 7 - Code Health |
+| CLEAN-01 | 7 - Code Health |
+| CLEAN-02 | 7 - Code Health |
+| IMPL-01 | 7 - Code Health |
+| IMPL-02 | 7 - Code Health |
+| INFRA-01 | 7 - Code Health |
+| INFRA-02 | 7 - Code Health |
+| INFRA-03 | 7 - Code Health |
+| DIFF-01 | 8 - Differentiators |
+| DIFF-02 | 8 - Differentiators |
+| DIFF-03 | 8 - Differentiators |
+| DIFF-04 | 8 - Differentiators |
+| DIFF-05 | 8 - Differentiators |
+| GROW-01 | 9 - Growth |
+| GROW-02 | 9 - Growth |
+| GROW-03 | 9 - Growth |
+| GROW-04 | 9 - Growth |
+| GROW-05 | 9 - Growth |
+
+**Coverage:** 55/55 requirements mapped ✓
 
 ---
 
@@ -251,4 +345,4 @@ Phase 9: Growth Infrastructure
 
 ---
 
-*Last updated: 2026-01-27 (added 6 critical requirements from CONCERNS.md audit)*
+*Last updated: 2026-01-27 (full rebuild — all 55 requirements mapped across 9 phases)*
