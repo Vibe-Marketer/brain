@@ -1,15 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 // DIRECT OpenAI API Implementation
 // The AI SDK has zod bundling issues with esm.sh that cause "safeParseAsync is not a function" errors
 // when tool calls are returned. We bypass the AI SDK entirely and use native fetch with OpenAI API.
-
-// CORS headers for API responses
-// Note: sentry-trace and baggage are needed for Sentry distributed tracing
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};
 
 // UIMessage format from AI SDK v5 frontend
 interface UIMessagePart {
@@ -1610,7 +1604,9 @@ function convertUIMessagesToOpenAI(messages: UIMessage[]): OpenAIMessage[] {
 // ============================================
 
 Deno.serve(async (req: Request) => {
-  // Handle CORS preflight
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

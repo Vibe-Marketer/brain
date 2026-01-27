@@ -7,11 +7,7 @@ import {
 } from './condition-evaluator.ts';
 import { evaluateTrigger, type TriggerResult } from './triggers.ts';
 import { executeAction, type ActionConfig } from './actions.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
  * AUTOMATION ENGINE - Core Rule Processor
@@ -398,7 +394,9 @@ function sanitizeActionConfig(config: Record<string, unknown> | undefined): Reco
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

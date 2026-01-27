@@ -29,21 +29,16 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, sentry-trace, baggage, x-idempotency-key',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 // Resend API configuration
 const RESEND_API_URL = 'https://api.resend.com/emails';
 
 // Default sender addresses
 // Use onboarding@resend.dev for testing (per Resend docs)
-// Use noreply@callvaultai.com after domain verification in production
+// Use noreply@mail.callvaultai.com after domain verification in production
 const DEFAULT_FROM_ADDRESS = 'CallVault AI <onboarding@resend.dev>';
-const PRODUCTION_FROM_ADDRESS = 'CallVault AI <noreply@callvaultai.com>';
+const PRODUCTION_FROM_ADDRESS = 'CallVault AI <noreply@mail.callvaultai.com>';
 
 // Rate limit tracking (in-memory, resets on function cold start)
 // For production, this should be stored in Redis or database
@@ -362,6 +357,9 @@ async function logEmailSend(
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

@@ -24,11 +24,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
  * - webhook-timestamp: Unix timestamp
  */
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-webhook-signature, x-webhook-timestamp, x-webhook-user-id, webhook-id, webhook-signature, webhook-timestamp',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 // Maximum age of webhook in milliseconds (5 minutes per spec)
 const MAX_WEBHOOK_AGE_MS = 5 * 60 * 1000;
@@ -228,6 +224,8 @@ interface WebhookPayload {
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
   const requestId = crypto.randomUUID();
   const requestTimestamp = new Date().toISOString();
 
