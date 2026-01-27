@@ -142,11 +142,14 @@ Which phases cover which requirements.
 | SEC-01 | Phase 1: Security Lockdown | Pending |
 | SEC-02 | Phase 1: Security Lockdown | Pending |
 | SEC-03 | Phase 1: Security Lockdown | Pending |
+| SEC-04 | Phase 1: Security Lockdown | Pending |
+| SEC-05 | Phase 1: Security Lockdown | Pending |
 | CHAT-05 | Phase 2: Chat Foundation | Pending |
 | CHAT-03 | Phase 2: Chat Foundation | Pending |
 | CHAT-01 | Phase 2: Chat Foundation | Pending |
 | CHAT-02 | Phase 2: Chat Foundation | Pending |
 | CHAT-04 | Phase 2: Chat Foundation | Pending |
+| STORE-01 | Phase 2: Chat Foundation | Pending |
 | INT-01 | Phase 3: Integration OAuth | Pending |
 | INT-02 | Phase 3: Integration OAuth | Pending |
 | INT-03 | Phase 3: Integration OAuth | Pending |
@@ -162,6 +165,9 @@ Which phases cover which requirements.
 | FIX-03 | Phase 6: Demo Polish | Pending |
 | FIX-04 | Phase 6: Demo Polish | Pending |
 | FIX-05 | Phase 6: Demo Polish | Pending |
+| REFACTOR-01 | Phase 7: Code Health | Pending |
+| REFACTOR-02 | Phase 7: Code Health | Pending |
+| REFACTOR-03 | Phase 7: Code Health | Pending |
 | CLEAN-01 | Phase 7: Code Health | Pending |
 | CLEAN-02 | Phase 7: Code Health | Pending |
 | DIFF-01 | Phase 8: Differentiators | Pending |
@@ -176,11 +182,10 @@ Which phases cover which requirements.
 | GROW-05 | Phase 9: Growth Infrastructure | Pending |
 
 **Coverage:**
-- v1 requirements: 46 total (6 critical additions from CONCERNS.md audit)
-- Mapped to phases: 40 (original roadmap)
-- Unmapped: 6 ⚠️ **NEEDS ROADMAP UPDATE**
-  - SEC-04, SEC-05, STORE-01, REFACTOR-01, REFACTOR-02, REFACTOR-03
+- v1 requirements: 41 total (including 6 critical additions from CONCERNS.md audit)
+- Mapped to phases: 41 ✓
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 (added 6 critical requirements from CONCERNS.md - roadmap needs updating)*
+*Last updated: 2026-01-27 (mapped 6 new requirements to phases - 100% coverage restored)*
