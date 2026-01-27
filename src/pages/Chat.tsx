@@ -69,6 +69,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { getUserFriendlyError, ErrorContexts } from "@/lib/user-friendly-errors";
+import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 
 // Helper to detect rate limit errors
@@ -429,11 +430,11 @@ export default function Chat() {
   const transport = React.useMemo(() => {
     // Guard: Don't create transport without valid auth token
     if (!session?.access_token) {
-      console.warn('Transport creation blocked: No valid auth token');
+      logger.warn('Transport creation blocked: No valid auth token');
       return null;
     }
 
-    console.log('[Chat] Creating transport with:', {
+    logger.debug('[Chat] Creating transport with:', {
       model: selectedModel,
       sessionId: currentSessionId,
       hasFilters: !!apiFilters,
@@ -445,17 +446,17 @@ export default function Chat() {
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
 
       try {
-        console.log('[Chat] Making request to:', url);
+        logger.debug('[Chat] Making request to:', url);
         const response = await fetch(url, {
           ...options,
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
-        console.log('[Chat] Response status:', response.status);
+        logger.debug('[Chat] Response status:', response.status);
         return response;
       } catch (error) {
         clearTimeout(timeoutId);
-        console.error('[Chat] Fetch error:', error);
+        logger.error('[Chat] Fetch error:', error);
 
         // Capture to Sentry for remote debugging
         Sentry.captureException(error, {
@@ -505,7 +506,7 @@ export default function Chat() {
   // Monitor for auth errors, rate limits, streaming interruption, and trigger re-login/reconnect
   React.useEffect(() => {
     if (error) {
-      console.error('[Chat] Error occurred:', error.message);
+      logger.error('[Chat] Error occurred:', error.message);
 
       // Check for rate limit error first
       if (isRateLimitError(error)) {
@@ -543,7 +544,7 @@ export default function Chat() {
           // Exponential backoff: 1s, 2s, 4s
           const delay = BASE_RECONNECT_DELAY * Math.pow(2, currentAttempts - 1);
 
-          console.log(`[Chat] Streaming interrupted, attempting reconnect ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
+          logger.debug(`[Chat] Streaming interrupted, attempting reconnect ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
 
           toast.loading(
             `Connection interrupted. Reconnecting (attempt ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS})...`,
@@ -559,7 +560,7 @@ export default function Chat() {
           reconnectTimeoutRef.current = setTimeout(() => {
             const messageToRetry = lastUserMessageRef.current;
             if (messageToRetry && isChatReady) {
-              console.log('[Chat] Retrying message after streaming interruption');
+              logger.debug('[Chat] Retrying message after streaming interruption');
               sendMessage({ text: messageToRetry });
             }
             setIsReconnecting(false);
@@ -568,7 +569,7 @@ export default function Chat() {
           return;
         } else {
           // Max reconnect attempts reached
-          console.log('[Chat] Max reconnect attempts reached');
+          logger.debug('[Chat] Max reconnect attempts reached');
           setReconnectAttempts(0);
           setIsReconnecting(false);
           lastUserMessageRef.current = null;
@@ -587,17 +588,17 @@ export default function Chat() {
 
       // Check if it's an auth error
       if (friendlyError.title === 'Session Expired') {
-        console.log('[Chat] Auth error detected, attempting to refresh session...');
+        logger.debug('[Chat] Auth error detected, attempting to refresh session...');
 
         // Try to refresh the session
         supabase.auth.getSession().then(({ data: { session: refreshedSession }, error: refreshError }) => {
           if (refreshError || !refreshedSession) {
-            console.error('[Chat] Session refresh failed, redirecting to login');
+            logger.error('[Chat] Session refresh failed, redirecting to login');
             toast.error(friendlyError.message);
             // Session is truly dead - redirect to login
             setTimeout(() => navigate('/login', { replace: true }), 2000);
           } else {
-            console.log('[Chat] Session refreshed successfully');
+            logger.debug('[Chat] Session refreshed successfully');
             toast.info('Session refreshed - please try again');
           }
         });
@@ -651,7 +652,7 @@ export default function Chat() {
   // Reset reconnection state when streaming completes successfully
   React.useEffect(() => {
     if (status === 'ready' && reconnectAttempts > 0) {
-      console.log('[Chat] Streaming completed successfully, resetting reconnection state');
+      logger.debug('[Chat] Streaming completed successfully, resetting reconnection state');
       setReconnectAttempts(0);
       setIsReconnecting(false);
       lastUserMessageRef.current = null;
@@ -702,7 +703,7 @@ export default function Chat() {
             model,
           });
         } catch (err) {
-          console.error("Failed to save messages:", err);
+          logger.error("Failed to save messages:", err);
         }
       }, 500);
     };
@@ -747,7 +748,7 @@ export default function Chat() {
       sessionIdToCheck &&
       messages.length === 0
     ) {
-      console.log('[Chat] Workflow error with empty session, cleaning up:', sessionIdToCheck);
+      logger.debug('[Chat] Workflow error with empty session, cleaning up:', sessionIdToCheck);
       // Delete the empty session after a short delay to allow error handling
       setTimeout(async () => {
         try {
@@ -755,7 +756,7 @@ export default function Chat() {
           // Navigate away from deleted session
           navigate('/chat', { replace: true });
         } catch (err) {
-          console.error('[Chat] Failed to cleanup empty session:', err);
+          logger.error('[Chat] Failed to cleanup empty session:', err);
         }
       }, 1000);
     }
@@ -793,7 +794,7 @@ export default function Chat() {
       } catch (error) {
         // Only log errors if component is still mounted (ignore abort errors)
         if (isMounted) {
-          console.error("Failed to fetch filter options:", error);
+          logger.error("Failed to fetch filter options:", error);
         }
       }
     }
@@ -887,7 +888,7 @@ export default function Chat() {
         // If so, we skip fetching messages from DB to avoid overwriting the optimistic local state
         // with an empty array from the DB (race condition fix)
         if (locationState?.newSession) {
-          console.log(
+          logger.debug(
             "New session detected, skipping initial DB fetch to preserve optimistic state"
           );
 
@@ -913,7 +914,7 @@ export default function Chat() {
         // Only update state if still mounted
         if (!isMounted) return;
 
-        console.log(
+        logger.debug(
           `Loaded ${loadedMessages.length} messages for session ${sessionId}`
         );
 
@@ -935,7 +936,7 @@ export default function Chat() {
       } catch (err) {
         // Only log errors if component is still mounted
         if (isMounted) {
-          console.error("Failed to load session:", err);
+          logger.error("Failed to load session:", err);
           setIsLoadingMessages(false);
         }
       }
@@ -968,7 +969,7 @@ export default function Chat() {
       const newSession = await createNewSession();
       navigate(`/chat/${newSession.id}`);
     } catch (err) {
-      console.error("Failed to create session:", err);
+      logger.error("Failed to create session:", err);
     }
   }, [createNewSession, navigate]);
 
@@ -990,7 +991,7 @@ export default function Chat() {
           navigate("/chat");
         }
       } catch (err) {
-        console.error("Failed to delete session:", err);
+        logger.error("Failed to delete session:", err);
       }
     },
     [deleteSession, currentSessionId, navigate]
@@ -1002,7 +1003,7 @@ export default function Chat() {
       try {
         await togglePin({ sessionId, isPinned });
       } catch (err) {
-        console.error("Failed to toggle pin:", err);
+        logger.error("Failed to toggle pin:", err);
       }
     },
     [togglePin]
@@ -1014,7 +1015,7 @@ export default function Chat() {
       try {
         await toggleArchive({ sessionId, isArchived });
       } catch (err) {
-        console.error("Failed to toggle archive:", err);
+        logger.error("Failed to toggle archive:", err);
       }
     },
     [toggleArchive]
@@ -1027,7 +1028,7 @@ export default function Chat() {
 
       // CRITICAL: Check if chat is ready before attempting to send
       if (!isChatReady) {
-        console.warn('[Chat] Attempted to send message without valid session/transport');
+        logger.warn('[Chat] Attempted to send message without valid session/transport');
         toast.error('Your session has expired. Please sign in again to continue.');
         setTimeout(() => navigate('/login', { replace: true }), 2000);
         return;
@@ -1069,7 +1070,7 @@ export default function Chat() {
             state: { newSession: true }
           });
         } catch (err) {
-          console.error("Failed to create session:", err);
+          logger.error("Failed to create session:", err);
           toast.error('Failed to create chat session. Please try again.');
           return;
         }
@@ -1101,7 +1102,7 @@ export default function Chat() {
     async (text: string) => {
       // CRITICAL: Check if chat is ready before attempting to send
       if (!isChatReady) {
-        console.warn('[Chat] Attempted to send suggestion without valid session/transport');
+        logger.warn('[Chat] Attempted to send suggestion without valid session/transport');
         toast.error('Your session has expired. Please sign in again to continue.');
         setTimeout(() => navigate('/login', { replace: true }), 2000);
         return;
@@ -1130,7 +1131,7 @@ export default function Chat() {
             state: { newSession: true }
           });
         } catch (err) {
-          console.error("Failed to create session:", err);
+          logger.error("Failed to create session:", err);
           toast.error('Failed to create chat session. Please try again.');
           return;
         }
@@ -1158,7 +1159,7 @@ export default function Chat() {
   const handleViewCall = React.useCallback(
     async (recordingId: number) => {
       if (!session?.user?.id) {
-        console.error("No user session");
+        logger.error("No user session");
         return;
       }
 
@@ -1172,14 +1173,14 @@ export default function Chat() {
           .single();
 
         if (error) {
-          console.error("Failed to fetch call:", error);
+          logger.error("Failed to fetch call:", error);
           return;
         }
 
         setSelectedCall(callData as unknown as Meeting);
         setShowCallDialog(true);
       } catch (err) {
-        console.error("Error fetching call:", err);
+        logger.error("Error fetching call:", err);
       }
     },
     [session?.user?.id]
