@@ -32,9 +32,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { useAIProcessing } from '@/hooks/useAIProcessing';
-import { type ExtractedInsight } from '@/lib/ai-agent';
 import { cn } from '@/lib/utils';
+
+/** Inline type definition — formerly from deleted ai-agent.ts */
+export interface ExtractedInsight {
+  type: 'pain' | 'success' | 'objection' | 'question';
+  content: string;
+  confidence: number;
+  context: string;
+  tags: string[];
+}
 import { toast } from 'sonner';
 
 type ContentType = 'email' | 'social-post' | 'blog-outline' | 'case-study';
@@ -84,33 +91,11 @@ export const ContentGenerator: React.FC<ContentGeneratorProps> = ({
   const [additionalContext, setAdditionalContext] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
 
-  const { createContent, isProcessing } = useAIProcessing();
+  const isProcessing = false;
 
   const handleGenerate = async () => {
-    if (insights.length === 0) {
-      toast.error('No insights selected');
-      return;
-    }
-
-    try {
-      const stream = await createContent(contentType, insights, {
-        tone,
-        targetAudience: targetAudience || undefined,
-        additionalContext: additionalContext || undefined,
-      });
-
-      // Handle streaming response
-      let content = '';
-      for await (const chunk of stream.textStream) {
-        content += chunk;
-        setGeneratedContent(content);
-      }
-
-      toast.success('Content generated successfully!');
-    } catch (error) {
-      console.error('Generation error:', error);
-      toast.error('Failed to generate content');
-    }
+    // TODO: Re-wire to edge function once content generation pipeline is connected
+    toast.error('Content generation is being migrated to server-side processing');
   };
 
   const handleCopy = () => {
