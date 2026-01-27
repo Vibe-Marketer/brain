@@ -16,6 +16,21 @@ import { autoTagCalls, generateAiTitles } from "@/lib/api-client";
 import { logger } from "@/lib/logger";
 import type { Meeting } from "@/types";
 
+/** Response shape from bulk AI operations (generate-ai-titles, auto-tag-calls) */
+interface BulkAIOperationResponse {
+  success: boolean;
+  totalProcessed: number;
+  successCount: number;
+  failureCount: number;
+  results: Array<{
+    recording_id: number;
+    success: boolean;
+    error?: string;
+    title?: string;
+    tag?: string;
+  }>;
+}
+
 interface BulkActionToolbarEnhancedProps {
   selectedCount: number;
   selectedCalls: Meeting[];
@@ -52,19 +67,19 @@ export function BulkActionToolbarEnhanced({
     try {
       switch (format) {
         case 'pdf':
-          await exportToPDF(selectedCalls as any[]);
+          await exportToPDF(selectedCalls);
           break;
         case 'docx':
-          await exportToDOCX(selectedCalls as any[]);
+          await exportToDOCX(selectedCalls);
           break;
         case 'txt':
-          await exportToTXT(selectedCalls as any[]);
+          await exportToTXT(selectedCalls);
           break;
         case 'json':
-          await exportToJSON(selectedCalls as any[]);
+          await exportToJSON(selectedCalls);
           break;
         case 'zip':
-          await exportToZIP(selectedCalls as any[]);
+          await exportToZIP(selectedCalls);
           break;
       }
       toast.success(`Successfully exported ${selectedCount} transcript${selectedCount > 1 ? 's' : ''}`, { id: loadingToast });
@@ -128,8 +143,7 @@ export function BulkActionToolbarEnhanced({
       }
 
       // Report results with appropriate feedback
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const responseData = data as any;
+      const responseData = data as BulkAIOperationResponse;
       if (responseData.successCount > 0) {
         if (responseData.failureCount > 0) {
           toast.success(
@@ -144,7 +158,7 @@ export function BulkActionToolbarEnhanced({
         }
       } else if (responseData.failureCount > 0) {
         // All failed - show error with details
-        const firstError = responseData.results?.find((r: { success: boolean; error?: string }) => !r.success)?.error;
+        const firstError = responseData.results?.find((r) => !r.success)?.error;
         toast.error(
           `Failed to generate titles: ${firstError || 'Unknown error'}`,
           { id: loadingToast }
@@ -183,8 +197,7 @@ export function BulkActionToolbarEnhanced({
         throw new Error(error);
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const responseData = data as any;
+      const responseData = data as BulkAIOperationResponse;
       toast.success(
         `Tagged ${responseData.successCount} call${responseData.successCount > 1 ? 's' : ''} successfully`,
         { id: loadingToast }

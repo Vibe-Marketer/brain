@@ -2,19 +2,26 @@ import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 import JSZip from 'jszip';
+import type { Meeting } from '@/types/meetings';
 
-interface Call {
-  recording_id: number;
-  title: string;
-  created_at: string;
-  recorded_by_name?: string;
-  recorded_by_email?: string;
-  full_transcript?: string;
-  summary?: string;
-  recording_start_time?: string;
-  recording_end_time?: string;
-  url?: string;
-}
+/**
+ * ExportableCall: Subset of Meeting fields used by export functions.
+ * Uses Pick to maintain type-safety with the canonical Meeting type.
+ * recording_id is string | number (Meeting type) — export functions handle both.
+ */
+type ExportableCall = Pick<Meeting,
+  | 'recording_id'
+  | 'title'
+  | 'created_at'
+  | 'recorded_by_name'
+  | 'recorded_by_email'
+  | 'full_transcript'
+  | 'summary'
+  | 'recording_start_time'
+  | 'recording_end_time'
+  | 'url'
+  | 'calendar_invitees'
+>;
 
 interface _TranscriptSegment {
   speaker_name?: string;
@@ -23,12 +30,7 @@ interface _TranscriptSegment {
   timestamp?: string;
 }
 
-interface CalendarInvitee {
-  name?: string;
-  email?: string;
-}
-
-export async function exportToPDF(calls: Call[]) {
+export async function exportToPDF(calls: ExportableCall[]) {
   const pdf = new jsPDF();
   let yPosition = 20;
 
@@ -102,7 +104,7 @@ export async function exportToPDF(calls: Call[]) {
   pdf.save(fileName);
 }
 
-export async function exportToDOCX(calls: Call[]) {
+export async function exportToDOCX(calls: ExportableCall[]) {
   const children: Paragraph[] = [];
 
   calls.forEach((call, index) => {
@@ -198,7 +200,7 @@ export async function exportToDOCX(calls: Call[]) {
   saveAs(blob, fileName);
 }
 
-export async function exportToTXT(calls: Call[]) {
+export async function exportToTXT(calls: ExportableCall[]) {
   let content = '';
 
   calls.forEach((call, index) => {
@@ -234,7 +236,7 @@ export async function exportToTXT(calls: Call[]) {
   saveAs(blob, fileName);
 }
 
-export async function exportToJSON(calls: Call[]) {
+export async function exportToJSON(calls: ExportableCall[]) {
   const exportData = calls.map(call => ({
     id: call.recording_id,
     title: call.title,
@@ -261,7 +263,7 @@ export async function exportToJSON(calls: Call[]) {
   saveAs(blob, fileName);
 }
 
-export async function exportToZIP(calls: Call[]) {
+export async function exportToZIP(calls: ExportableCall[]) {
   const zip = new JSZip();
 
   // Add each transcript as a separate text file
@@ -343,7 +345,7 @@ function getWeekInfo(dateStr: string): { week: number; year: number; weekStart: 
 }
 
 // Helper: Calculate duration in minutes
-function calculateDurationMinutes(call: Call): number | null {
+function calculateDurationMinutes(call: ExportableCall): number | null {
   if (call.recording_start_time && call.recording_end_time) {
     return Math.round(
       (new Date(call.recording_end_time).getTime() - new Date(call.recording_start_time).getTime()) / (1000 * 60)
@@ -353,13 +355,13 @@ function calculateDurationMinutes(call: Call): number | null {
 }
 
 // Helper: Get participant names from call
-function getParticipantNames(call: Call & { calendar_invitees?: CalendarInvitee[] }): string[] {
+function getParticipantNames(call: ExportableCall): string[] {
   const participants: string[] = [];
   if (call.recorded_by_name) {
     participants.push(call.recorded_by_name);
   }
   if (call.calendar_invitees && Array.isArray(call.calendar_invitees)) {
-    call.calendar_invitees.forEach((inv: CalendarInvitee) => {
+    call.calendar_invitees.forEach((inv) => {
       if (inv?.name && !participants.includes(inv.name)) {
         participants.push(inv.name);
       }
@@ -407,7 +409,7 @@ function transcriptToMarkdown(transcript: string): string {
 }
 
 // Generate markdown content for a single call
-function generateMarkdownContent(call: Call, includeYamlFrontmatter: boolean = true): string {
+function generateMarkdownContent(call: ExportableCall, includeYamlFrontmatter: boolean = true): string {
   let content = '';
 
   // YAML frontmatter (for Obsidian/Notion compatibility)
@@ -473,7 +475,7 @@ function generateMarkdownContent(call: Call, includeYamlFrontmatter: boolean = t
 }
 
 // Export to Markdown (single file or ZIP of individual files)
-export async function exportToMarkdown(calls: Call[], asZip: boolean = false) {
+export async function exportToMarkdown(calls: ExportableCall[], asZip: boolean = false) {
   if (asZip || calls.length > 1) {
     const zip = new JSZip();
 
@@ -511,7 +513,7 @@ export async function exportToMarkdown(calls: Call[], asZip: boolean = false) {
 }
 
 // Export to CSV (flat table for spreadsheet analysis)
-export async function exportToCSV(calls: Call[]) {
+export async function exportToCSV(calls: ExportableCall[]) {
   const headers = [
     'ID',
     'Title',
@@ -558,7 +560,7 @@ export async function exportToCSV(calls: Call[]) {
 }
 
 // Export by Week (ZIP with weekly subfolders)
-export async function exportByWeek(calls: Call[], format: 'md' | 'txt' = 'md') {
+export async function exportByWeek(calls: ExportableCall[], format: 'md' | 'txt' = 'md') {
   const zip = new JSZip();
 
   // Sort calls chronologically
@@ -567,7 +569,7 @@ export async function exportByWeek(calls: Call[], format: 'md' | 'txt' = 'md') {
   );
 
   // Group by week
-  const weekGroups = new Map<string, Call[]>();
+  const weekGroups = new Map<string, ExportableCall[]>();
 
   sortedCalls.forEach(call => {
     const { week, year, weekStart: _weekStart, weekEnd: _weekEnd } = getWeekInfo(call.created_at);
@@ -664,7 +666,7 @@ export async function exportByWeek(calls: Call[], format: 'md' | 'txt' = 'md') {
 
 // Export by Folder (respects folder structure)
 export async function exportByFolder(
-  calls: Call[],
+  calls: ExportableCall[],
   folderAssignments: Record<string, string[]>,
   folders: Array<{ id: string; name: string; color: string }>,
   format: 'md' | 'txt' = 'md'
@@ -672,8 +674,8 @@ export async function exportByFolder(
   const zip = new JSZip();
 
   // Group calls by folder
-  const folderGroups = new Map<string, Call[]>();
-  const unassignedCalls: Call[] = [];
+  const folderGroups = new Map<string, ExportableCall[]>();
+  const unassignedCalls: ExportableCall[] = [];
 
   calls.forEach(call => {
     const callFolders = folderAssignments[call.recording_id] || [];
@@ -763,7 +765,7 @@ export async function exportByFolder(
 
 // Export by Tag
 export async function exportByTag(
-  calls: Call[],
+  calls: ExportableCall[],
   tagAssignments: Record<string, string[]>,
   tags: Array<{ id: string; name: string }>,
   format: 'md' | 'txt' = 'md'
@@ -771,8 +773,8 @@ export async function exportByTag(
   const zip = new JSZip();
 
   // Group calls by tag
-  const tagGroups = new Map<string, Call[]>();
-  const untaggedCalls: Call[] = [];
+  const tagGroups = new Map<string, ExportableCall[]>();
+  const untaggedCalls: ExportableCall[] = [];
 
   calls.forEach(call => {
     const callTags = tagAssignments[call.recording_id] || [];
