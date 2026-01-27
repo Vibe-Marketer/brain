@@ -16,15 +16,15 @@
 
 **Phase:** 1 of 9 (Security Lockdown)
 
-**Plan:** 1 of 6 in current phase
+**Plan:** 2 of 6 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-01-27 — Completed 01-01-PLAN.md
+**Last activity:** 2026-01-27 — Completed 01-02-PLAN.md
 
 **Progress:**
 ```
-[█░░░░░░░░░░░░░░░░░░░] 1/55 requirements complete (2%)
+[██░░░░░░░░░░░░░░░░░░] 2/55 requirements complete (4%)
 ```
 
 ---
@@ -34,16 +34,16 @@
 ### Execution Stats
 
 - **Total Requirements:** 55
-- **Completed:** 3 (SEC-01, SEC-02, SEC-03)
-- **In Progress:** 3 (SEC-04, SEC-05, SEC-06 — remaining Phase 1 plans)
+- **Completed:** 5 (SEC-01, SEC-02, SEC-03, SEC-04, SEC-05)
+- **In Progress:** 1 (SEC-06 — remaining Phase 1 plans 03-06)
 - **Blocked:** 0
-- **Remaining:** 52
+- **Remaining:** 50
 
 ### Phase Progress
 
 | Phase | Requirements | Complete | Status |
 |-------|--------------|----------|--------|
-| Phase 1: Security Lockdown | 6 | 3 | In progress (1/6 plans) |
+| Phase 1: Security Lockdown | 6 | 5 | In progress (2/6 plans) |
 | Phase 2: Chat Foundation | 6 | 0 | Pending |
 | Phase 3: Integration OAuth | 3 | 0 | Pending |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
@@ -55,7 +55,7 @@
 
 ### Velocity
 
-- **Plans/Session:** 1 (first execution)
+- **Plans/Session:** 2 (2 plans in 2 sessions)
 - **Estimated Completion:** TBD after more data points
 
 ---
@@ -72,11 +72,14 @@
 | 2026-01-27 | Deleted test-env-vars entirely (not secured) | Exposed full credentials + DB export mode, self-documented as DELETE AFTER USE | Eliminates most dangerous endpoint |
 | 2026-01-27 | Kept ContentGenerator.tsx, stubbed AI handler | Component is active in CallDetailPage route — not dead code | Will need rewiring when content pipeline connected |
 | 2026-01-27 | ExtractedInsight type defined inline (not shared) | Minimal change, type may change when content generation is rewired | Avoids premature abstraction |
+| 2026-01-27 | ExportableCall = Pick<Meeting, ...> for exports | Export functions use subset of Meeting fields, decoupled via Pick type | Type-safe without tight coupling to full Meeting |
+| 2026-01-27 | BulkAIOperationResponse defined inline | Only used in one component, shared type premature | Can be extracted to api-client.ts if reused elsewhere |
+| 2026-01-27 | Replaced console.error too (not just log/warn) | console.error also exposed internal state in production | Complete logging hygiene across auth/chat paths |
 
 ### Active TODOs
 
 - [x] Execute 01-01-PLAN.md (SEC-01, SEC-02, SEC-03)
-- [ ] Execute 01-02-PLAN.md (SEC-04, SEC-05)
+- [x] Execute 01-02-PLAN.md (SEC-04, SEC-05)
 - [ ] Execute 01-03 through 01-06 (SEC-06 CORS + audit)
 - [ ] Verify Phase 1 success criteria
 
@@ -88,19 +91,22 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-01-27T23:10:42Z
-**Stopped at:** Completed 01-01-PLAN.md
+**Last session:** 2026-01-27T23:20:51Z
+**Stopped at:** Completed 01-02-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Plan 01-01 complete. SEC-01/02/03 eliminated. 5 remaining plans in Phase 1.
+Plans 01-01 and 01-02 complete. SEC-01 through SEC-05 eliminated. 4 remaining plans (01-03 through 01-06) for SEC-06 CORS migration + security audit.
 
 **What to remember:**
 - ContentGenerator.tsx AI handler is stubbed (TODO for future rewiring)
 - Admin role check pattern established in test-secrets — reuse for future admin gates
 - test-env-vars is gone forever (good riddance)
+- logger pattern established: `import { logger } from '@/lib/logger'` for all frontend logging
+- ExportableCall = Pick<Meeting, ...> pattern established for export function typing
+- SmartExportDialog.tsx still has its own local `Call` interface — should be updated when touched next
 
 ---
 
@@ -110,12 +116,12 @@ Plan 01-01 complete. SEC-01/02/03 eliminated. 5 remaining plans in Phase 1.
 |--------|-------|
 | Total Phases | 9 |
 | Total Requirements | 55 |
-| Requirements Complete | 3 (5%) |
+| Requirements Complete | 5 (9%) |
 | Current Phase | 1 - Security Lockdown |
-| Plans Complete | 1/6 in phase |
+| Plans Complete | 2/6 in phase |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-27 (completed 01-01-PLAN.md — SEC-01, SEC-02, SEC-03)*
+*Last updated: 2026-01-27 (completed 01-02-PLAN.md — SEC-04, SEC-05)*

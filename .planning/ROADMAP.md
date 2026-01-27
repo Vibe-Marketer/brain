@@ -20,7 +20,7 @@ Stabilize CallVault for public launch by fixing core chat reliability, enabling 
 
 Plans:
 - [x] 01-01-PLAN.md — Delete dangerous code & secure test endpoints (SEC-01, SEC-02, SEC-03)
-- [ ] 01-02-PLAN.md — Replace PII logging & fix type safety bypasses (SEC-04, SEC-05)
+- [x] 01-02-PLAN.md — Replace PII logging & fix type safety bypasses (SEC-04, SEC-05)
 - [ ] 01-03-PLAN.md — CORS migration: Group B functions (14 functions, SEC-06 part 1)
 - [ ] 01-04-PLAN.md — CORS migration: Group C batch 1 (24 functions, SEC-06 part 2)
 - [ ] 01-05-PLAN.md — CORS migration: Group C batch 2 (23 functions, SEC-06 part 3)
