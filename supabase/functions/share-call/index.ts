@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { corsHeaders } from '../_shared/cors.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
+
+// Dynamic CORS headers - set per-request from origin
+let corsHeaders: Record<string, string> = {};
 
 /**
  * Share Call Edge Function
@@ -37,6 +40,9 @@ function generateShareToken(): string {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
