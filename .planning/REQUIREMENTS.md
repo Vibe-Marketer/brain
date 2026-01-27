@@ -59,6 +59,20 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 - [ ] **REFACTOR-01**: Break down Chat.tsx (1900+ lines → smaller sub-components: MessageList, InputArea, ConnectionHandler + custom hooks)
 - [ ] **REFACTOR-02**: Break down useTeamHierarchy.ts (1200+ lines → smaller focused hooks: useTeamPermissions, useTeamData)
 - [ ] **REFACTOR-03**: Tighten types in stores (replace `any` types in `panelStore.ts` with proper interfaces)
+- [ ] **REFACTOR-04**: Fix type mismatches in AutomationRules.tsx with current Supabase schema
+- [ ] **REFACTOR-05**: Fix AI SDK outdated property (replace `maxTokens` in ai-agent.ts with current API)
+- [ ] **REFACTOR-06**: Tighten types in SyncTab.tsx (Meetings/Jobs loose types)
+- [ ] **REFACTOR-07**: Consolidate inline diversity filter (remove duplication in chat-stream/index.ts)
+
+**Missing Implementations**
+- [ ] **IMPL-01**: Create or delete missing automation functions (`summarize-call`, `extract-action-items` referenced in actions.ts but don't exist)
+- [ ] **IMPL-02**: Handle non-existent table references gracefully (`tasks`, `clients`, `client_health_history` in automation actions)
+- [ ] **IMPL-03**: Fix CallDetailPage to query `fathom_calls` instead of legacy `calls` table
+
+**Infrastructure Fixes**
+- [ ] **INFRA-01**: Complete cost tracking for all OpenRouter models (currently only tracks 2: text-embedding-3-small, gpt-4o-mini)
+- [ ] **INFRA-02**: Fix cron expression parsing (currently placeholder defaulting to 1-hour regardless of expression)
+- [ ] **INFRA-03**: Move rate limiting to database (in-memory limits in automation-webhook/email reset on cold starts)
 
 ### TIER 3: HIGH-VALUE DIFFERENTIATORS (Ship After Stable)
 
@@ -182,10 +196,13 @@ Which phases cover which requirements.
 | GROW-05 | Phase 9: Growth Infrastructure | Pending |
 
 **Coverage:**
-- v1 requirements: 41 total (including 6 critical additions from CONCERNS.md audit)
-- Mapped to phases: 41 ✓
-- Unmapped: 0 ✓
+- v1 requirements: 54 total (41 original + 6 from CONCERNS.md + 10 from feature-audit-report.md technical debt)
+- Mapped to phases: 41 (original roadmap)
+- Unmapped: 13 ⚠️ **NEEDS ROADMAP UPDATE**
+  - REFACTOR-04, REFACTOR-05, REFACTOR-06, REFACTOR-07
+  - IMPL-01, IMPL-02, IMPL-03
+  - INFRA-01, INFRA-02, INFRA-03
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 (mapped 6 new requirements to phases - 100% coverage restored)*
+*Last updated: 2026-01-27 (added 13 more critical requirements from feature-audit-report.md technical debt section - roadmap needs updating)*
