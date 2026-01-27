@@ -56,6 +56,21 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Admin role check — only admins can view secret diagnostics
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const isAdmin = roleData?.role === 'ADMIN';
+    if (!isAdmin) {
+      return new Response(
+        JSON.stringify({ error: 'Admin access required' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // List of all secrets to test
     const secretsToTest = [
       // Core Supabase
