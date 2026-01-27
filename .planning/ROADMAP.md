@@ -16,6 +16,16 @@ Stabilize CallVault for public launch by fixing core chat reliability, enabling 
 
 **Dependencies:** None (prerequisite for everything)
 
+**Plans:** 6 plans in 3 waves
+
+Plans:
+- [ ] 01-01-PLAN.md — Delete dangerous code & secure test endpoints (SEC-01, SEC-02, SEC-03)
+- [ ] 01-02-PLAN.md — Replace PII logging & fix type safety bypasses (SEC-04, SEC-05)
+- [ ] 01-03-PLAN.md — CORS migration: Group B functions (14 functions, SEC-06 part 1)
+- [ ] 01-04-PLAN.md — CORS migration: Group C batch 1 (24 functions, SEC-06 part 2)
+- [ ] 01-05-PLAN.md — CORS migration: Group C batch 2 (23 functions, SEC-06 part 3)
+- [ ] 01-06-PLAN.md — Security audit & human verification
+
 **Requirements:**
 - SEC-01: Remove client-side exposed API keys
 - SEC-02: Delete legacy unauthenticated edge functions
@@ -231,7 +241,7 @@ Stabilize CallVault for public launch by fixing core chat reliability, enabling 
 
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
-| 1 - Security Lockdown | Pending | 6 | 0% |
+| 1 - Security Lockdown | Planned (6 plans) | 6 | 0% |
 | 2 - Chat Foundation | Pending | 6 | 0% |
 | 3 - Integration OAuth | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
