@@ -34,15 +34,15 @@ function Calendar({ className, classNames, showOutsideDays = true, startMonth, e
         dropdown: "appearance-none bg-transparent border border-input rounded-md px-2 py-1 text-xs font-medium cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange",
         months_dropdown: "w-[90px]",
         years_dropdown: "w-[65px]",
-        // Navigation - hollow buttons like pagination
+        // Navigation - hollow buttons with rounded corners
         nav: "flex items-center",
         button_previous: cn(
           buttonVariants({ variant: "hollow" }),
-          "h-7 w-7 p-0 border border-input",
+          "h-7 w-7 p-0 rounded-md",
         ),
         button_next: cn(
           buttonVariants({ variant: "hollow" }),
-          "h-7 w-7 p-0 border border-input",
+          "h-7 w-7 p-0 rounded-md",
         ),
         // Calendar grid
         month_grid: "w-full border-collapse",
