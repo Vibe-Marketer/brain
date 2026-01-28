@@ -16,15 +16,15 @@
 
 **Phase:** 1 of 9 (Security Lockdown)
 
-**Plan:** 3 of 6 in current phase
+**Plan:** 4 of 6 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-01-27 — Completed 01-03-PLAN.md
+**Last activity:** 2026-01-27 — Completed 01-04-PLAN.md
 
 **Progress:**
 ```
-[███░░░░░░░░░░░░░░░░░] 3/55 requirements complete (5%)
+[███░░░░░░░░░░░░░░░░░] 4/55 requirements complete (7%)
 ```
 
 ---
@@ -35,7 +35,7 @@
 
 - **Total Requirements:** 55
 - **Completed:** 5 (SEC-01, SEC-02, SEC-03, SEC-04, SEC-05)
-- **In Progress:** 1 (SEC-06 — remaining Phase 1 plans 04-06)
+- **In Progress:** 1 (SEC-06 — remaining Phase 1 plans 05-06)
 - **Blocked:** 0
 - **Remaining:** 50
 
@@ -43,7 +43,7 @@
 
 | Phase | Requirements | Complete | Status |
 |-------|--------------|----------|--------|
-| Phase 1: Security Lockdown | 6 | 5 | In progress (3/6 plans) |
+| Phase 1: Security Lockdown | 6 | 5 | In progress (4/6 plans) |
 | Phase 2: Chat Foundation | 6 | 0 | Pending |
 | Phase 3: Integration OAuth | 3 | 0 | Pending |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
@@ -55,7 +55,7 @@
 
 ### Velocity
 
-- **Plans/Session:** 3 (3 plans in 3 sessions)
+- **Plans/Session:** 4 (4 plans in 4 sessions)
 - **Estimated Completion:** TBD after more data points
 
 ---
@@ -77,13 +77,14 @@
 | 2026-01-27 | Replaced console.error too (not just log/warn) | console.error also exposed internal state in production | Complete logging hygiene across auth/chat paths |
 | 2026-01-27 | Two CORS migration patterns for Group B | Functions with helpers use module-level let, inline-only use const | Minimal diff while achieving dynamic CORS for all 14 functions |
 | 2026-01-27 | Removed backward-compatible corsHeaders export | No function imports it after migration; prevents accidental wildcard CORS | Only getCorsHeaders() remains as CORS API |
+| 2026-01-27 | Skipped backfill-chunk-metadata in Group C | No CORS handling at all — server-side batch utility | 23 functions migrated instead of 24 (correct behavior) |
 
 ### Active TODOs
 
 - [x] Execute 01-01-PLAN.md (SEC-01, SEC-02, SEC-03)
 - [x] Execute 01-02-PLAN.md (SEC-04, SEC-05)
 - [x] Execute 01-03-PLAN.md (SEC-06 part 1 — Group B)
-- [ ] Execute 01-04-PLAN.md (SEC-06 part 2 — Group C batch 1)
+- [x] Execute 01-04-PLAN.md (SEC-06 part 2 — Group C batch 1)
 - [ ] Execute 01-05-PLAN.md (SEC-06 part 3 — Group C batch 2)
 - [ ] Execute 01-06-PLAN.md (Security audit)
 - [ ] Verify Phase 1 success criteria
@@ -96,14 +97,14 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-01-27T23:31:40Z
-**Stopped at:** Completed 01-03-PLAN.md
+**Last session:** 2026-01-27T23:41:00Z
+**Stopped at:** Completed 01-04-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Plans 01-01, 01-02, and 01-03 complete. SEC-01 through SEC-05 eliminated. Group B (14 functions) migrated to dynamic CORS. 3 remaining plans (01-04 through 01-06) for Group C CORS migration + security audit.
+Plans 01-01 through 01-04 complete. SEC-01 through SEC-05 eliminated. Group B (14 functions) and Group C batch 1 (23 functions) migrated to dynamic CORS — 37 total. 2 remaining plans (01-05, 01-06) for Group C batch 2 CORS migration + security audit.
 
 **What to remember:**
 - ContentGenerator.tsx AI handler is stubbed (TODO for future rewiring)
@@ -113,9 +114,10 @@ Plans 01-01, 01-02, and 01-03 complete. SEC-01 through SEC-05 eliminated. Group 
 - ExportableCall = Pick<Meeting, ...> pattern established for export function typing
 - SmartExportDialog.tsx still has its own local `Call` interface — should be updated when touched next
 - CORS Pattern B (module-level let): used for functions with external helpers (coach-notes, teams, etc.)
-- CORS Pattern A (const in handler): used for functions with inline-only logic (content-builder, etc.)
+- CORS Pattern A (const in handler): used for all Group C functions (inline-only logic)
 - corsHeaders export removed from _shared/cors.ts — only getCorsHeaders() remains
-- Group C functions (plans 04/05) have INLINE cors headers — they DON'T import from _shared/cors.ts
+- backfill-chunk-metadata has NO CORS handling — correctly skipped in plan 04
+- 37 functions now use getCorsHeaders(); remaining functions are in Group C batch 2 (plan 05)
 
 ---
 
@@ -127,10 +129,10 @@ Plans 01-01, 01-02, and 01-03 complete. SEC-01 through SEC-05 eliminated. Group 
 | Total Requirements | 55 |
 | Requirements Complete | 5 (9%) |
 | Current Phase | 1 - Security Lockdown |
-| Plans Complete | 3/6 in phase |
+| Plans Complete | 4/6 in phase |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-27 (completed 01-03-PLAN.md — SEC-06 part 1, Group B CORS migration)*
+*Last updated: 2026-01-27 (completed 01-04-PLAN.md — SEC-06 part 2, Group C batch 1 CORS migration)*
