@@ -3,7 +3,7 @@
 **Created:** 2026-01-27
 **Depth:** Comprehensive (9 phases)
 **Coverage:** 55/55 requirements mapped ✓
-**Last Updated:** 2026-01-28 (Phase 2 gap closure plans added)
+**Last Updated:** 2026-01-28 (Phase 2 complete with gap closures)
 
 ## Overview
 
@@ -62,9 +62,9 @@ Plans:
 - [x] 02-07-PLAN.md — Inline citations with hover preview + bottom source list
 - [x] 02-08-PLAN.md — Streaming error handling, retry UX, connection stability
 - [x] 02-09-PLAN.md — Switchover: /chat → v2, legacy rename, final verification
-- [ ] 02-10-PLAN.md — **[GAP FIX]** Call detail panel instead of popup dialog
-- [ ] 02-11-PLAN.md — **[GAP FIX]** Fix model hallucinating recording IDs
-- [ ] 02-12-PLAN.md — **[GAP FIX]** Error toast notifications + throttled logging
+- [x] 02-10-PLAN.md — **[GAP FIX]** Call detail panel instead of popup dialog
+- [x] 02-11-PLAN.md — **[GAP FIX]** Fix model hallucinating recording IDs
+- [x] 02-12-PLAN.md — **[GAP FIX]** Error toast notifications + throttled logging
 
 **Requirements:**
 - CHAT-05: Migrate to Vercel AI SDK + OpenRouter
@@ -264,7 +264,7 @@ Plans:
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
 | 1 - Security Lockdown | Complete ✅ | 6 | 100% |
-| 2 - Chat Foundation | Gap Closure 🔧 | 6 | 75% (9/12 plans) |
+| 2 - Chat Foundation | Complete ✅ | 6 | 100% (12/12 plans) |
 | 3 - Integration OAuth | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
@@ -370,11 +370,11 @@ Phase 9: Growth Infrastructure
 ## Next Steps
 
 1. ~~Phase 1: Security Lockdown~~ ✅ Complete
-2. Phase 2: Chat Foundation — **Execute gap closure plans (02-10, 02-11, 02-12)**
-3. Re-run UAT to verify gaps are closed
-4. Run `/gsd-plan-phase 3` to plan Integration OAuth Flows
+2. ~~Phase 2: Chat Foundation~~ ✅ Complete (12/12 plans, all gap closures verified)
+3. Run `/gsd:discuss-phase 3` to gather context for Integration OAuth Flows
+4. Run `/gsd:plan-phase 3` to create phase plans
 5. Continue to Phase 3
 
 ---
 
-*Last updated: 2026-01-28 (Phase 2 gap closure plans 02-10, 02-11, 02-12 created)*
+*Last updated: 2026-01-28 (Phase 2 complete with all gap closures executed and verified)*
