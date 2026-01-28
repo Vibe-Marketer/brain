@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 2 in progress — Chat Foundation (plan 6 of 9 complete)
+**Current Focus:** Phase 2 in progress — Chat Foundation (plan 8 of 9 complete)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 2 of 9 (Chat Foundation) — IN PROGRESS
 
-**Plan:** 6 of 9 in current phase
+**Plan:** 8 of 9 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-01-28 — Completed 02-05-PLAN.md (define all 14 RAG tools with zod schemas + system prompt)
+**Last activity:** 2026-01-28 — Completed 02-08-PLAN.md (streaming error handling, retry UX, connection stability)
 
 **Progress:**
 ```
-[████████████░░░░░░░░] 12/55 plans complete (22%)
+[██████████████░░░░░░] 14/55 plans complete (25%)
 ```
 
 ---
@@ -44,7 +44,7 @@
 | Phase | Requirements | Complete | Status |
 |-------|--------------|----------|--------|
 | Phase 1: Security Lockdown | 6 | 6 | Complete ✅ (6/6 plans) |
-| Phase 2: Chat Foundation | 6 | 1 | In progress (6/9 plans, 02-01 through 02-06 done) |
+| Phase 2: Chat Foundation | 6 | 1 | In progress (8/9 plans, 02-01 through 02-08 done) |
 | Phase 3: Integration OAuth | 3 | 0 | Pending |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
@@ -84,6 +84,8 @@
 | 2026-01-28 | createTools() factory pattern for RAG tools | All 14 tools need closure access to supabase/user/apiKeys — factory pattern cleanest | Established pattern for chat-stream-v2 tool architecture |
 | 2026-01-28 | mergeFilters() for session + tool filter combination | Session filters provide base context, tool args override/extend | Clean separation of session vs per-query filtering |
 | 2026-01-28 | Entity search uses direct RPC not shared pipeline | searchByEntity needs JSONB post-filtering on entities column | Tool 9 is the exception to shared pipeline pattern |
+| 2026-01-28 | handleRetryRef pattern for error effect ↔ retry handler | Breaks circular dependency between useEffect and handleRetry callback | Allows toast retry actions without stale closure issues |
+| 2026-01-28 | Retry removes incomplete message before resend | Prevents duplicate messages — new response replaces failed one | Clean conversation flow on retry |
 
 ### Active TODOs
 
@@ -94,7 +96,8 @@
 - [x] Execute 02-04-PLAN.md (tool call three-state transparency UI)
 - [x] Execute 02-06-PLAN.md (frontend /chat2 test path)
 - [x] Execute 02-05-PLAN.md (define all 14 RAG tools + system prompt)
-- [ ] Execute 02-07 through 02-09 (remaining Phase 2 plans)
+- [x] Execute 02-08-PLAN.md (streaming error handling, retry UX, connection stability)
+- [ ] Execute 02-07 and 02-09 (remaining Phase 2 plans)
 
 ### Known Blockers
 
@@ -105,13 +108,13 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-28
-**Stopped at:** Completed 02-05-PLAN.md — define all 14 RAG tools with zod schemas + system prompt
+**Stopped at:** Completed 02-08-PLAN.md — streaming error handling, retry UX, connection stability
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-06 all complete. Ready for 02-07-PLAN.md (inline citations with hover preview + bottom source list).
+Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-08 all complete. Ready for 02-09-PLAN.md (switchover: /chat → v2, legacy rename, final verification).
 
 **What to remember:**
 - chat-stream-v2 is now a complete 855-line backend with all 14 RAG tools
@@ -129,6 +132,9 @@ Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-06 all complete. 
 - Import versions pinned: ai@5.0.102, @openrouter/ai-sdk-provider@1.2.8, zod@3.23.8
 - Store error notification pattern: rollback state → `toast.error(message)` → return null/false
 - CORS: 60 functions use getCorsHeaders(), only getCorsHeaders() remains
+- Streaming error handling: toast with Retry action, partial response preservation, inline retry button
+- handleRetryRef pattern: error effect uses ref to call handleRetry without circular dependency
+- incompleteMessageIds: Set<string> tracks which assistant messages were interrupted mid-stream
 - `tsc --noEmit` passes clean (zero errors)
 
 ---
@@ -141,11 +147,11 @@ Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-06 all complete. 
 | Total Requirements | 55 |
 | Requirements Complete | 7 (13%) |
 | Current Phase | 2 - Chat Foundation (IN PROGRESS) |
-| Plans Complete | 6/9 in Phase 2 (12/55 overall) |
-| Next Plan | 02-07-PLAN.md (inline citations) |
+| Plans Complete | 8/9 in Phase 2 (14/55 overall) |
+| Next Plan | 02-09-PLAN.md (switchover) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-28 (completed 02-05-PLAN.md — define all 14 RAG tools with zod schemas + system prompt)*
+*Last updated: 2026-01-28 (completed 02-08-PLAN.md — streaming error handling, retry UX, connection stability)*
