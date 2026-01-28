@@ -1,11 +1,21 @@
-// PoC Status: PENDING
-// streamText + tool: PENDING
-// toUIMessageStreamResponse: PENDING
+// PoC Status: AWAITING_DEPLOY (Docker unavailable for local `supabase functions serve`)
+// streamText + tool: EXPECTED_PASS — Same SDK (ai@5.0.102) + provider (@openrouter/ai-sdk-provider@1.2.8)
+//   + zod (3.23.8) proven in generate-ai-titles (generateText) and auto-tag-calls (generateObject + zod)
+// toUIMessageStreamResponse: EXPECTED_PASS — Returns Web Standard Response (Deno-compatible),
+//   produces AI SDK v5 Data Stream Protocol consumed by frontend DefaultChatTransport
+// Frontend compatibility: VERIFIED — Chat.tsx uses DefaultChatTransport + useChat from @ai-sdk/react,
+//   which natively consumes toUIMessageStreamResponse() output. URL switch is the only change needed.
 // Date: 2026-01-28
 //
 // Purpose: Proof-of-concept Edge Function to verify that streamText() + tool() +
 // toUIMessageStreamResponse() works on Deno/Supabase Edge Functions via esm.sh.
 // This is the single highest-risk item in the Chat Foundation phase.
+//
+// Next step: Deploy to Supabase (remote) or start Docker locally, then test with:
+//   curl -X POST http://localhost:54321/functions/v1/chat-stream-v2 \
+//     -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+//     -H "Content-Type: application/json" \
+//     -d '{"messages":[{"id":"1","role":"user","content":"Hello, what can you help me with?"}]}'
 //
 // If toUIMessageStreamResponse() fails on Deno, fall back to result.fullStream
 // with manual SSE construction (see FALLBACK section at bottom of file).
