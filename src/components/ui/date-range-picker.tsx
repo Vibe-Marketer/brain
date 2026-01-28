@@ -321,7 +321,7 @@ export function DateRangePicker({
             {/* Section divider and label */}
             {showQuickSelect && (
               <div className="border-t border-border pt-4 mt-1">
-                <Label className="text-xs font-semibold uppercase tracking-wide text-center block mb-3">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-center block mb-3 text-vibe-orange">
                   Select Date Range
                 </Label>
               </div>
