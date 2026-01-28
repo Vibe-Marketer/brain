@@ -8,21 +8,28 @@ updated: 2026-01-28T16:15:00Z
 
 ## Current Test
 
-number: 1
-name: Send Chat Message and Receive Response
+number: 2
+name: Tool Calls Fire and Show Results
 expected: |
-  Go to /chat. Type a question about your calls (e.g., "What calls do I have?") and send.
-  The message streams in progressively, completing without errors.
-  You see a full response from the AI.
-awaiting: user response (retry with legacy endpoint - v2 deferred)
+  Ask a question that requires searching your calls (e.g., "What did we discuss about pricing in recent calls?").
+  You see tool call indicators appearing during response.
+  Tools show results count (e.g., "Searched Transcripts (3 results)") — not just a spinner or empty checkmark.
+awaiting: user response
 
 ## Tests
 
 ### 1. Send Chat Message and Receive Response
 expected: Go to /chat. Type a question about your calls (e.g., "What calls do I have?") and send. The message streams in progressively, completing without errors. You see a full response from the AI.
-result: issue
-reported: "non-stop failures - Failed to fetch, then 'Provider returned error' after deployment"
-severity: blocker
+result: pass (with legacy endpoint)
+note: |
+  PASSED after switching to legacy chat-stream endpoint.
+  Data/indexing issues found (separate from chat UI):
+  - Date calculation wrong: Model sent 2023-07-28 instead of 2025-07-28 (thinks it's 2024)
+  - Intent signal search returns 0 results (intent_signals not indexed)
+  - Sentiment search returns 0 results (sentiment not indexed)
+  - Speaker search for non-primary speakers returns 0 (Ray Langdon, Caleb not found)
+  - Low relevance results (2%) with garbage/transcription errors
+  These are DATA ISSUES tracked separately from Phase 2 Chat UI.
 
 ### 2. Tool Calls Fire and Show Results
 expected: Ask a question that requires searching your calls (e.g., "What did we discuss about pricing in recent calls?"). You see tool call indicators appearing during response. Tools show results count (e.g., "Searched Transcripts (3 results)") — not just a spinner or empty checkmark.
@@ -55,8 +62,8 @@ result: [pending]
 ## Summary
 
 total: 8
-passed: 0
-issues: 1
+passed: 1
+issues: 0
 pending: 7
 skipped: 0
 
