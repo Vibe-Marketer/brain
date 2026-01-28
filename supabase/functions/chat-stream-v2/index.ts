@@ -106,7 +106,7 @@ AVAILABLE TOOLS:
 9. searchByEntity — Find mentions of specific companies, people, or products. Uses JSONB entity post-filtering.
 
 **Analytical Tools (direct database queries, no search pipeline):**
-10. getCallDetails — Get complete details about a specific call by recording_id. Returns title, date, duration, speakers, summary, URL.
+10. getCallDetails — Get complete details about a specific call. IMPORTANT: You must use an actual recording_id from your search results, never a made-up number. Returns title, date, duration, speakers, summary, URL.
 11. getCallsList — Get a paginated list of calls with optional filters. Good for overview queries like "show me all sales calls from last month".
 12. getAvailableMetadata — Discover what metadata values are available (speakers, categories, topics, tags). Use when user asks "what categories do I have?" or wants to explore filters.
 
@@ -124,6 +124,18 @@ Examples of query expansion:
 - "What's the status with Acme Corp?" → Use searchByEntity(entity_type='companies', entity_name='Acme Corp'), searchTranscriptsByQuery('Acme Corp updates and progress'), AND getCallsList with relevant date filters
 
 Fire 3-5 parallel searches with different query formulations for broad questions. For narrow, specific questions, 1-2 targeted searches may suffice.
+
+RECORDING ID RULES (CRITICAL):
+- Every search result includes a recording_id field — this is the unique identifier for that call
+- When you need call details, you MUST use the recording_id from your search results
+- NEVER invent, guess, or use placeholder recording_ids like 1, 2, 3
+- If you want details about a call mentioned in search results, extract its recording_id from those results
+- Example flow:
+  1. User asks "Tell me about my call with John"
+  2. You call searchBySpeaker(query='meeting discussion', speaker='John')
+  3. Results include: { recording_id: 847291, call_title: "Sales Call with John" }
+  4. To get full details, call getCallDetails(recording_id='847291') — NOT getCallDetails(recording_id='1')
+- If no search results exist yet, search first before trying to get call details
 
 TEMPORAL REFERENCE:
 Today's date: ${todayStr}
