@@ -266,10 +266,9 @@ export default function Chat() {
   const location = useLocation();
   const { sessionId } = useParams<{ sessionId: string }>();
 
-  // Detect /chat2 path to use v2 backend (chat-stream-v2)
-  const isV2 = location.pathname.startsWith('/chat2');
-  const chatEndpoint = isV2 ? 'chat-stream-v2' : 'chat-stream';
-  const chatBasePath = isV2 ? '/chat2' : '/chat';
+  // Always use v2 backend (chat-stream-v2)
+  const chatEndpoint = 'chat-stream-v2';
+  const chatBasePath = '/chat';
 
   // Filter state - Initialize from location state if available (prevents race condition)
   const [filters, setFilters] = React.useState<ChatFilters>(() => {
@@ -500,7 +499,7 @@ export default function Chat() {
       },
       fetch: customFetch,
     });
-  }, [session?.access_token, apiFilters, selectedModel, currentSessionId, chatEndpoint]);
+  }, [session?.access_token, apiFilters, selectedModel, currentSessionId]);
 
   // Use the AI SDK v5 chat hook
   // Note: useChat can handle null transport - it won't make requests without a valid transport
@@ -1021,7 +1020,7 @@ export default function Chat() {
     } catch (err) {
       logger.error("Failed to create session:", err);
     }
-  }, [createNewSession, navigate, chatBasePath]);
+  }, [createNewSession, navigate]);
 
   // Handle session selection
   const handleSessionSelect = React.useCallback(
@@ -1029,7 +1028,7 @@ export default function Chat() {
       navigate(`${chatBasePath}/${selectedSessionId}`);
       setShowSidebar(false);
     },
-    [navigate, chatBasePath]
+    [navigate]
   );
 
   // Handle session deletion
@@ -1044,7 +1043,7 @@ export default function Chat() {
         logger.error("Failed to delete session:", err);
       }
     },
-    [deleteSession, currentSessionId, navigate, chatBasePath]
+    [deleteSession, currentSessionId, navigate]
   );
 
   // Handle toggle pin
@@ -1144,7 +1143,6 @@ export default function Chat() {
       isChatReady,
       isRateLimited,
       rateLimitSeconds,
-      chatBasePath,
     ]
   );
 
@@ -1203,7 +1201,6 @@ export default function Chat() {
       isChatReady,
       isRateLimited,
       rateLimitSeconds,
-      chatBasePath,
     ]
   );
 
@@ -1453,16 +1450,9 @@ export default function Chat() {
                 <RiChat3Line className="h-4 w-4 text-vibe-orange" />
               </div>
               <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-semibold text-ink">
+                <h2 className="text-sm font-semibold text-ink">
                     AI Chat
-                  </h2>
-                  {isV2 && (
-                    <span className="inline-flex items-center rounded-full border border-purple-300 bg-purple-50 px-2 py-0.5 text-[10px] font-semibold text-purple-700 dark:border-purple-600 dark:bg-purple-950/40 dark:text-purple-300">
-                      v2 backend
-                    </span>
-                  )}
-                </div>
+                </h2>
                 <p className="text-xs text-ink-muted">
                   Ask questions about your calls
                 </p>
