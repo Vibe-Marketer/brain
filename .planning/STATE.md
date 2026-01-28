@@ -88,6 +88,7 @@
 | 2026-01-28 | Renamed chat-stream to chat-stream-legacy (not deleted) | Preserves deployable fallback for rollback if v2 has issues | Legacy available at chat-stream-legacy |
 | 2026-01-28 | RECORDING ID RULES as CRITICAL section in system prompt | Model was hallucinating recording_ids (1, 2) instead of using real IDs from search | Prevents getCallDetails failures from invalid IDs |
 | 2026-01-28 | throttledErrorLog with 5s interval per error type | Prevents console spam during network issues while preserving debugging capability | Pattern for rate-limited error logging |
+| 2026-01-28 | CallDetailPanel is read-only (no transcript editing) | Panel context is for quick reference; full editing stays in CallDetailDialog | Simpler panel component, preserves full editing in dialog |
 
 ### Active TODOs
 
@@ -101,7 +102,7 @@
 - [x] Execute 02-07-PLAN.md (inline citations with hover preview + bottom source list)
 - [x] Execute 02-08-PLAN.md (streaming error handling, retry UX, connection stability)
 - [x] Execute 02-09-PLAN.md (switchover: /chat -> v2, legacy rename, final verification)
-- [x] Execute 02-10-PLAN.md (gap closure - category display fix)
+- [x] Execute 02-10-PLAN.md (gap closure - call detail panel instead of popup dialog)
 - [x] Execute 02-11-PLAN.md (recording ID hallucination fix)
 - [x] Execute 02-12-PLAN.md (error toast notifications and throttled logging)
 
