@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 2 Gap Closures — executing plans 02-10, 02-11, 02-12
+**Current Focus:** Phase 2 Gap Closures COMPLETE - All 12 plans done
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 2 of 9 (Chat Foundation) — Gap Closure
+**Phase:** 2 of 9 (Chat Foundation) - COMPLETE (including gap closures)
 
-**Plan:** 11 of 12 (gap closure plans complete)
+**Plan:** 12 of 12 (all gap closure plans complete)
 
-**Status:** Gap closure in progress
+**Status:** Phase 2 fully complete, ready for Phase 3
 
-**Last activity:** 2026-01-28 — Completed 02-11-PLAN.md (recording ID hallucination fix)
+**Last activity:** 2026-01-28 - Completed 02-12-PLAN.md (error toast notifications and throttled logging)
 
 **Progress:**
 ```
-[████████████████░░░░] 16/55 plans complete (29%)
+[████████████████░░░░] 17/55 plans complete (31%)
 ```
 
 ---
@@ -44,7 +44,7 @@
 | Phase | Requirements | Complete | Status |
 |-------|--------------|----------|--------|
 | Phase 1: Security Lockdown | 6 | 6 | Complete (6/6 plans) |
-| Phase 2: Chat Foundation | 6 | 6 | Gap closure (9/9 base + 2/3 gap plans) |
+| Phase 2: Chat Foundation | 6 | 6 | Complete (9/9 base + 3/3 gap plans = 12/12) |
 | Phase 3: Integration OAuth | 3 | 0 | Pending |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
@@ -70,7 +70,7 @@
 | 2026-01-27 | Comprehensive depth (9 phases) | Requirements naturally cluster into distinct delivery boundaries | Clear phase goals, easier verification |
 | 2026-01-27 | Chat before integrations | Chat is core value - integrations only valuable if chat works | Prioritizes user retention over acquisition |
 | 2026-01-27 | Deleted test-env-vars entirely (not secured) | Exposed full credentials + DB export mode, self-documented as DELETE AFTER USE | Eliminates most dangerous endpoint |
-| 2026-01-27 | Kept ContentGenerator.tsx, stubbed AI handler | Component is active in CallDetailPage route — not dead code | Will need rewiring when content pipeline connected |
+| 2026-01-27 | Kept ContentGenerator.tsx, stubbed AI handler | Component is active in CallDetailPage route - not dead code | Will need rewiring when content pipeline connected |
 | 2026-01-27 | ExportableCall = Pick<Meeting, ...> for exports | Export functions use subset of Meeting fields, decoupled via Pick type | Type-safe without tight coupling to full Meeting |
 | 2026-01-27 | Two CORS migration patterns for Group B | Functions with helpers use module-level let, inline-only use const | Minimal diff while achieving dynamic CORS for all 14 functions |
 | 2026-01-27 | Removed backward-compatible corsHeaders export | No function imports it after migration; prevents accidental wildcard CORS | Only getCorsHeaders() remains as CORS API |
@@ -79,14 +79,15 @@
 | 2026-01-28 | toast.error() placed after optimistic rollback | User sees error after state reverts, preserving UX flow | Pattern for all store error notifications |
 | 2026-01-28 | rerankResults takes hfApiKey as parameter | Enables testability, avoids hidden Deno.env dependency in shared module | Shared modules don't read env directly |
 | 2026-01-28 | Simple diversityFilter over existing _shared version | Exact match to chat-stream production logic (max-per-recording only) | No behavior change risk |
-| 2026-01-28 | Five visual states for tool calls (pending/running/success/empty/error) | Distinguishes empty results from success — core CHAT-02 fix | Users no longer see green checkmarks on empty/failed results |
-| 2026-01-28 | createTools() factory pattern for RAG tools | All 14 tools need closure access to supabase/user/apiKeys — factory pattern cleanest | Established pattern for chat-stream-v2 tool architecture |
+| 2026-01-28 | Five visual states for tool calls (pending/running/success/empty/error) | Distinguishes empty results from success - core CHAT-02 fix | Users no longer see green checkmarks on empty/failed results |
+| 2026-01-28 | createTools() factory pattern for RAG tools | All 14 tools need closure access to supabase/user/apiKeys - factory pattern cleanest | Established pattern for chat-stream-v2 tool architecture |
 | 2026-01-28 | mergeFilters() for session + tool filter combination | Session filters provide base context, tool args override/extend | Clean separation of session vs per-query filtering |
 | 2026-01-28 | Entity search uses direct RPC not shared pipeline | searchByEntity needs JSONB post-filtering on entities column | Tool 9 is the exception to shared pipeline pattern |
 | 2026-01-28 | handleRetryRef pattern for error effect -> retry handler | Breaks circular dependency between useEffect and handleRetry callback | Allows toast retry actions without stale closure issues |
-| 2026-01-28 | Retry removes incomplete message before resend | Prevents duplicate messages — new response replaces failed one | Clean conversation flow on retry |
+| 2026-01-28 | Retry removes incomplete message before resend | Prevents duplicate messages - new response replaces failed one | Clean conversation flow on retry |
 | 2026-01-28 | Renamed chat-stream to chat-stream-legacy (not deleted) | Preserves deployable fallback for rollback if v2 has issues | Legacy available at chat-stream-legacy |
 | 2026-01-28 | RECORDING ID RULES as CRITICAL section in system prompt | Model was hallucinating recording_ids (1, 2) instead of using real IDs from search | Prevents getCallDetails failures from invalid IDs |
+| 2026-01-28 | throttledErrorLog with 5s interval per error type | Prevents console spam during network issues while preserving debugging capability | Pattern for rate-limited error logging |
 
 ### Active TODOs
 
@@ -100,10 +101,10 @@
 - [x] Execute 02-07-PLAN.md (inline citations with hover preview + bottom source list)
 - [x] Execute 02-08-PLAN.md (streaming error handling, retry UX, connection stability)
 - [x] Execute 02-09-PLAN.md (switchover: /chat -> v2, legacy rename, final verification)
+- [x] Execute 02-10-PLAN.md (gap closure - category display fix)
 - [x] Execute 02-11-PLAN.md (recording ID hallucination fix)
+- [x] Execute 02-12-PLAN.md (error toast notifications and throttled logging)
 
-- [ ] Execute 02-10-PLAN.md (gap closure)
-- [ ] Execute 02-12-PLAN.md (gap closure)
 - [ ] Plan and execute Phase 3: Integration OAuth Flows
 
 ### Known Blockers
@@ -115,21 +116,22 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-28
-**Stopped at:** Completed 02-11-PLAN.md — Recording ID hallucination fix
+**Stopped at:** Completed 02-12-PLAN.md - Phase 2 Chat Foundation fully complete (all gap closures done)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 2 gap closure in progress. Plan 11 (recording ID hallucination fix) complete. Plans 10 and 12 remaining.
+Phase 2 Chat Foundation is FULLY COMPLETE including all gap closures. 12/12 plans executed. Ready for Phase 3 (Integration OAuth Flows).
 
 **What to remember:**
 - /chat now always uses chat-stream-v2 backend (AI SDK streamText + tool)
 - Legacy chat-stream renamed to chat-stream-legacy as deployable fallback
-- chat-stream-v2 now has RECORDING ID RULES (CRITICAL) section in system prompt
-- Model explicitly instructed to NEVER invent/guess recording_ids
-- Example flow in prompt shows correct search -> getCallDetails pattern
+- chat-stream-v2 has RECORDING ID RULES (CRITICAL) section in system prompt
+- Error logging is throttled to prevent console spam (throttledErrorLog pattern)
+- Immediate toast on first connection interruption, catch-all for network errors
 - `tsc --noEmit` passes clean (zero errors)
+- All UAT gaps (1, 2, 3) have been addressed
 
 ---
 
@@ -140,12 +142,12 @@ Phase 2 gap closure in progress. Plan 11 (recording ID hallucination fix) comple
 | Total Phases | 9 |
 | Total Requirements | 55 |
 | Requirements Complete | 12 (22%) |
-| Current Phase | 2 - Chat Foundation (gap closure) |
-| Plans Complete | 11/12 in Phase 2 (16/55 overall) |
-| Next Plan | 02-10 or 02-12 gap closure |
+| Current Phase | 2 - Chat Foundation (COMPLETE) |
+| Plans Complete | 12/12 in Phase 2 (17/55 overall) |
+| Next Plan | Phase 3 - Integration OAuth |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-28 (completed 02-11-PLAN.md — recording ID hallucination fix)*
+*Last updated: 2026-01-28 (completed 02-12-PLAN.md - Phase 2 Chat Foundation fully complete)*
