@@ -54,8 +54,8 @@ Plans:
 
 Plans:
 - [x] 02-01-PLAN.md — Proof-of-concept: streamText + tool on Deno Edge Function
-- [ ] 02-02-PLAN.md — Fix silent store failures (STORE-01: toast.error on 16 methods)
-- [ ] 02-03-PLAN.md — Extract search pipeline to shared modules
+- [x] 02-02-PLAN.md — Fix silent store failures (STORE-01: toast.error on 16 methods)
+- [x] 02-03-PLAN.md — Extract search pipeline to shared modules
 - [ ] 02-04-PLAN.md — Tool call three-state transparency UI (success/empty/error)
 - [ ] 02-05-PLAN.md — Define all 14 RAG tools with zod schemas + system prompt
 - [ ] 02-06-PLAN.md — Frontend /chat2 test path for parallel development
@@ -255,7 +255,7 @@ Plans:
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
 | 1 - Security Lockdown | Complete ✅ | 6 | 100% |
-| 2 - Chat Foundation | In progress (1/9 plans) | 6 | 11% |
+| 2 - Chat Foundation | In progress (3/9 plans) | 6 | 33% |
 | 3 - Integration OAuth | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
