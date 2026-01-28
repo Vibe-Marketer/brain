@@ -32,11 +32,13 @@ export const AIProcessingProgress = ({ onJobsComplete }: AIProcessingProgressPro
 
     const checkActiveJobs = async () => {
       try {
+        // Select only needed columns and limit results for performance
         const { data, error } = await supabase
           .from('ai_processing_jobs')
-          .select('*')
+          .select('id, job_type, status, progress_current, progress_total, success_count, error_message, created_at')
           .in('status', ['pending', 'processing'])
-          .order('created_at', { ascending: false });
+          .order('created_at', { ascending: false })
+          .limit(10);
 
         if (error) throw error;
 
