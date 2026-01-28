@@ -22,9 +22,9 @@ Plans:
 - [x] 01-01-PLAN.md — Delete dangerous code & secure test endpoints (SEC-01, SEC-02, SEC-03)
 - [x] 01-02-PLAN.md — Replace PII logging & fix type safety bypasses (SEC-04, SEC-05)
 - [x] 01-03-PLAN.md — CORS migration: Group B functions (14 functions, SEC-06 part 1)
-- [ ] 01-04-PLAN.md — CORS migration: Group C batch 1 (24 functions, SEC-06 part 2)
-- [ ] 01-05-PLAN.md — CORS migration: Group C batch 2 (23 functions, SEC-06 part 3)
-- [ ] 01-06-PLAN.md — Security audit & human verification
+- [x] 01-04-PLAN.md — CORS migration: Group C batch 1 (24 functions, SEC-06 part 2)
+- [x] 01-05-PLAN.md — CORS migration: Group C batch 2 (23 functions, SEC-06 part 3)
+- [x] 01-06-PLAN.md — Security audit & human verification
 
 **Requirements:**
 - SEC-01: Remove client-side exposed API keys
@@ -241,7 +241,7 @@ Plans:
 
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
-| 1 - Security Lockdown | In progress (3/6 plans) | 6 | 83% |
+| 1 - Security Lockdown | Complete ✅ | 6 | 100% |
 | 2 - Chat Foundation | Pending | 6 | 0% |
 | 3 - Integration OAuth | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
@@ -251,7 +251,7 @@ Plans:
 | 8 - Differentiators | Pending | 5 | 0% |
 | 9 - Growth Infrastructure | Pending | 5 | 0% |
 
-**Overall Progress:** 5/55 requirements complete (9%)
+**Overall Progress:** 6/55 requirements complete (11%)
 
 ---
 
@@ -355,4 +355,4 @@ Phase 9: Growth Infrastructure
 
 ---
 
-*Last updated: 2026-01-27 (full rebuild — all 55 requirements mapped across 9 phases)*
+*Last updated: 2026-01-28 (Phase 1 Security Lockdown complete — all 6 plans executed, audit passed)*
