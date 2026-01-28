@@ -69,6 +69,9 @@ function App() {
                     <Route path="/transcripts" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
                     <Route path="/chat" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
                     <Route path="/chat/:sessionId" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
+                    {/* V2 test path — uses chat-stream-v2 backend while /chat stays on legacy */}
+                    <Route path="/chat2" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
+                    <Route path="/chat2/:sessionId" element={<ProtectedRoute><Layout><Chat /></Layout></ProtectedRoute>} />
                     <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
                     <Route path="/settings/:category" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
                     <Route path="/sorting-tagging" element={<ProtectedRoute><Layout><SortingTagging /></Layout></ProtectedRoute>} />
