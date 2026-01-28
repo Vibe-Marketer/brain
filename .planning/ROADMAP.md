@@ -58,7 +58,7 @@ Plans:
 - [x] 02-03-PLAN.md — Extract search pipeline to shared modules
 - [ ] 02-04-PLAN.md — Tool call three-state transparency UI (success/empty/error)
 - [ ] 02-05-PLAN.md — Define all 14 RAG tools with zod schemas + system prompt
-- [ ] 02-06-PLAN.md — Frontend /chat2 test path for parallel development
+- [x] 02-06-PLAN.md — Frontend /chat2 test path for parallel development
 - [ ] 02-07-PLAN.md — Inline citations with hover preview + bottom source list
 - [ ] 02-08-PLAN.md — Streaming error handling, retry UX, connection stability
 - [ ] 02-09-PLAN.md — Switchover: /chat → v2, legacy rename, final verification
@@ -255,7 +255,7 @@ Plans:
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
 | 1 - Security Lockdown | Complete ✅ | 6 | 100% |
-| 2 - Chat Foundation | In progress (3/9 plans) | 6 | 33% |
+| 2 - Chat Foundation | In progress (6/9 plans) | 6 | 33% |
 | 3 - Integration OAuth | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
@@ -368,4 +368,4 @@ Phase 9: Growth Infrastructure
 
 ---
 
-*Last updated: 2026-01-28 (Phase 2 plan 02-01 complete — PoC streamText + tool on Deno)*
+*Last updated: 2026-01-28 (Phase 2 plan 02-06 complete — Frontend /chat2 test path)*

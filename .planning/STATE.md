@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 2 in progress — Chat Foundation (plan 4 of 9 complete)
+**Current Focus:** Phase 2 in progress — Chat Foundation (plan 6 of 9 complete)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 2 of 9 (Chat Foundation) — IN PROGRESS
 
-**Plan:** 4 of 9 in current phase
+**Plan:** 6 of 9 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-01-28 — Completed 02-04-PLAN.md (tool call three-state transparency UI)
+**Last activity:** 2026-01-28 — Completed 02-06-PLAN.md (frontend /chat2 test path for parallel development)
 
 **Progress:**
 ```
-[██████████░░░░░░░░░░] 10/55 plans complete (18%)
+[████████████░░░░░░░░] 12/55 plans complete (22%)
 ```
 
 ---
@@ -44,7 +44,7 @@
 | Phase | Requirements | Complete | Status |
 |-------|--------------|----------|--------|
 | Phase 1: Security Lockdown | 6 | 6 | Complete ✅ (6/6 plans) |
-| Phase 2: Chat Foundation | 6 | 1 | In progress (4/9 plans) |
+| Phase 2: Chat Foundation | 6 | 1 | In progress (6/9 plans) |
 | Phase 3: Integration OAuth | 3 | 0 | Pending |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
@@ -80,6 +80,7 @@
 | 2026-01-28 | rerankResults takes hfApiKey as parameter | Enables testability, avoids hidden Deno.env dependency in shared module | Shared modules don't read env directly |
 | 2026-01-28 | Simple diversityFilter over existing _shared version | Exact match to chat-stream production logic (max-per-recording only) | No behavior change risk |
 | 2026-01-28 | Five visual states for tool calls (pending/running/success/empty/error) | Distinguishes empty results from success — core CHAT-02 fix | Users no longer see green checkmarks on empty/failed results |
+| 2026-01-28 | chatBasePath for route-aware navigation in Chat.tsx | All navigate() calls use chatBasePath to stay within /chat or /chat2 context | Prevents accidental backend switching during session management |
 
 ### Active TODOs
 
@@ -88,7 +89,8 @@
 - [x] Execute 02-02-PLAN.md (STORE-01: toast.error on 16 methods)
 - [x] Execute 02-03-PLAN.md (extract search pipeline to shared modules)
 - [x] Execute 02-04-PLAN.md (tool call three-state transparency UI)
-- [ ] Execute 02-05 through 02-09 (remaining Phase 2 plans)
+- [x] Execute 02-06-PLAN.md (frontend /chat2 test path)
+- [ ] Execute 02-05, 02-07 through 02-09 (remaining Phase 2 plans)
 
 ### Known Blockers
 
@@ -98,14 +100,14 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-01-28T06:08:47Z
-**Stopped at:** Completed 02-04-PLAN.md — three-state tool call transparency UI
+**Last session:** 2026-01-28T06:15:31Z
+**Stopped at:** Completed 02-06-PLAN.md — frontend /chat2 test path for parallel development
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-04 complete. Ready for 02-05-PLAN.md (define all 14 RAG tools with zod schemas).
+Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-04 and 02-06 complete. Ready for 02-05-PLAN.md (define all 14 RAG tools) or 02-07-PLAN.md (inline citations).
 
 **What to remember:**
 - chat-stream-v2 uses streamText() + tool() + toUIMessageStreamResponse() — AI SDK native approach
@@ -115,6 +117,8 @@ Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-04 complete. Read
 - Tool call UI now has 5 visual states: pending/running/success/empty/error with distinct colors
 - getToolStatus() inspects result data to distinguish success vs empty — core CHAT-02 fix
 - TOOL_LABELS map provides human-readable names for all 14 RAG tools
+- /chat2 route uses chat-stream-v2 backend, /chat stays on legacy chat-stream
+- chatBasePath pattern: all navigate() calls use chatBasePath to stay in /chat or /chat2 context
 - ContentGenerator.tsx AI handler is stubbed (TODO for future rewiring)
 - logger pattern: `import { logger } from '@/lib/logger'` for all frontend logging
 - CORS: 60 functions use getCorsHeaders(), only getCorsHeaders() remains
@@ -130,11 +134,11 @@ Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-04 complete. Read
 | Total Requirements | 55 |
 | Requirements Complete | 7 (13%) |
 | Current Phase | 2 - Chat Foundation (IN PROGRESS) |
-| Plans Complete | 4/9 in phase |
-| Next Plan | 02-05-PLAN.md |
+| Plans Complete | 6/9 in phase |
+| Next Plan | 02-07-PLAN.md |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-28 (completed 02-04-PLAN.md — three-state tool call transparency UI)*
+*Last updated: 2026-01-28 (completed 02-06-PLAN.md — frontend /chat2 test path for parallel development)*
