@@ -389,10 +389,16 @@ export default function Chat() {
   const rateLimitToastIdRef = React.useRef<string | number | null>(null);
 
   // Streaming reconnection state
-  const [reconnectAttempts, setReconnectAttempts] = React.useState(0);
+  // CRITICAL: Use refs for reconnect attempts to avoid infinite loop in error effect
+  // Using state causes effect to re-fire when attempts change, creating runaway loop
+  const reconnectAttemptsRef = React.useRef(0);
+  // Display-only state for UI (NOT used in error effect deps)
+  const [reconnectAttemptDisplay, setReconnectAttemptDisplay] = React.useState(0);
   const [isReconnecting, setIsReconnecting] = React.useState(false);
   const lastUserMessageRef = React.useRef<string | null>(null);
   const reconnectTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  // Track error we're currently handling to prevent re-processing same error
+  const handledErrorRef = React.useRef<Error | null>(null);
   const MAX_RECONNECT_ATTEMPTS = 3;
   const BASE_RECONNECT_DELAY = 1000; // 1 second base delay
 
@@ -532,161 +538,176 @@ export default function Chat() {
   const isRateLimited = rateLimitCooldownEnd !== null && Date.now() < rateLimitCooldownEnd;
 
   // Monitor for auth errors, rate limits, streaming interruption, and trigger re-login/reconnect
+  // CRITICAL: This effect must NOT have reconnectAttempts in deps or it creates infinite loop
   React.useEffect(() => {
-    if (error) {
-      throttledErrorLog('general', '[Chat] Error occurred:', error.message);
+    if (!error) {
+      // Error cleared - reset handled error tracking
+      handledErrorRef.current = null;
+      return;
+    }
 
-      // Check for rate limit error first
-      if (isRateLimitError(error)) {
-        const retryAfterSeconds = extractRetryAfterSeconds(error);
-        const cooldownEnd = Date.now() + retryAfterSeconds * 1000;
+    // Prevent re-processing the same error object (breaks infinite loop)
+    if (handledErrorRef.current === error) {
+      return;
+    }
+    handledErrorRef.current = error;
 
-        setRateLimitCooldownEnd(cooldownEnd);
-        setRateLimitSeconds(retryAfterSeconds);
+    throttledErrorLog('general', '[Chat] Error occurred:', error.message);
 
-        // Reset reconnection state on rate limit
-        setReconnectAttempts(0);
-        setIsReconnecting(false);
+    // Check for rate limit error first
+    if (isRateLimitError(error)) {
+      const retryAfterSeconds = extractRetryAfterSeconds(error);
+      const cooldownEnd = Date.now() + retryAfterSeconds * 1000;
 
-        // Show initial toast with countdown
-        const toastId = toast.error(
-          `Rate limit exceeded. Please wait ${retryAfterSeconds} seconds before trying again.`,
-          {
-            duration: retryAfterSeconds * 1000,
-            id: 'rate-limit-toast',
-          }
-        );
-        rateLimitToastIdRef.current = toastId;
+      setRateLimitCooldownEnd(cooldownEnd);
+      setRateLimitSeconds(retryAfterSeconds);
 
-        return;
-      }
+      // Reset reconnection state on rate limit
+      reconnectAttemptsRef.current = 0;
+      setReconnectAttemptDisplay(0);
+      setIsReconnecting(false);
 
-      // Check for streaming interruption error (network/connection issues)
-      if (isStreamingInterruptionError(error) && lastUserMessageRef.current) {
-        // Mark the last assistant message as incomplete (preserve partial content)
-        const currentMessages = messagesRef.current;
-        const lastMsg = currentMessages[currentMessages.length - 1];
-        if (lastMsg?.role === 'assistant') {
-          setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
+      // Show initial toast with countdown
+      const toastId = toast.error(
+        `Rate limit exceeded. Please wait ${retryAfterSeconds} seconds before trying again.`,
+        {
+          duration: retryAfterSeconds * 1000,
+          id: 'rate-limit-toast',
         }
+      );
+      rateLimitToastIdRef.current = toastId;
 
-        const currentAttempts = reconnectAttempts + 1;
+      return;
+    }
 
-        if (currentAttempts <= MAX_RECONNECT_ATTEMPTS) {
-          setReconnectAttempts(currentAttempts);
-          setIsReconnecting(true);
-
-          // Exponential backoff: 1s, 2s, 4s
-          const delay = BASE_RECONNECT_DELAY * Math.pow(2, currentAttempts - 1);
-
-          logger.debug(`[Chat] Streaming interrupted, attempting reconnect ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
-
-          // First interruption - show brief error toast before reconnect toast
-          if (currentAttempts === 1) {
-            toast.error('Connection interrupted. Attempting to reconnect...', {
-              id: 'connection-error-toast',
-              duration: 2000,
-            });
-          }
-
-          toast.loading(
-            `Connection interrupted. Reconnecting (attempt ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS})...`,
-            { id: 'reconnect-toast', duration: delay + 2000 }
-          );
-
-          // Clear any existing reconnect timeout
-          if (reconnectTimeoutRef.current) {
-            clearTimeout(reconnectTimeoutRef.current);
-          }
-
-          // Schedule reconnect attempt
-          reconnectTimeoutRef.current = setTimeout(() => {
-            const messageToRetry = lastUserMessageRef.current;
-            if (messageToRetry && isChatReady) {
-              logger.debug('[Chat] Retrying message after streaming interruption');
-              sendMessage({ text: messageToRetry });
-            }
-            setIsReconnecting(false);
-          }, delay);
-
-          return;
-        } else {
-          // Max reconnect attempts reached — show actionable toast with retry
-          logger.debug('[Chat] Max reconnect attempts reached');
-          setReconnectAttempts(0);
-          setIsReconnecting(false);
-
-          toast.dismiss('reconnect-toast');
-          toast.error(
-            'Connection lost. Your partial response has been saved.',
-            {
-              id: 'streaming-error-toast',
-              duration: 10000,
-              action: {
-                label: 'Retry',
-                onClick: () => handleRetryRef.current(),
-              },
-            }
-          );
-          return;
-        }
-      }
-
-      // For non-streaming network errors (no lastUserMessage), also show toast
-      if (error instanceof Error &&
-          (error.message.toLowerCase().includes('network') ||
-           error.message.toLowerCase().includes('failed to fetch'))) {
-        toast.error('Network error. Please check your connection.', {
-          id: 'network-error-toast',
-          duration: 5000,
-        });
-      }
-
-      // For non-streaming errors that still have a partial assistant message,
-      // mark the last assistant message as incomplete
+    // Check for streaming interruption error (network/connection issues)
+    if (isStreamingInterruptionError(error) && lastUserMessageRef.current) {
+      // Mark the last assistant message as incomplete (preserve partial content)
       const currentMessages = messagesRef.current;
       const lastMsg = currentMessages[currentMessages.length - 1];
-      if (lastMsg?.role === 'assistant' && getMessageTextContent(lastMsg).trim().length > 0) {
+      if (lastMsg?.role === 'assistant') {
         setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
       }
 
-      // Get user-friendly error
-      const friendlyError = getUserFriendlyError(error, ErrorContexts.CHAT);
+      // Use ref for attempts to avoid dependency loop
+      const currentAttempts = reconnectAttemptsRef.current + 1;
+      reconnectAttemptsRef.current = currentAttempts;
+      setReconnectAttemptDisplay(currentAttempts); // Update display state
 
-      // Check if it's an auth error
-      if (friendlyError.title === 'Session Expired') {
-        logger.debug('[Chat] Auth error detected, attempting to refresh session...');
+      if (currentAttempts <= MAX_RECONNECT_ATTEMPTS) {
+        setIsReconnecting(true);
 
-        // Try to refresh the session
-        supabase.auth.getSession().then(({ data: { session: refreshedSession }, error: refreshError }) => {
-          if (refreshError || !refreshedSession) {
-            throttledErrorLog('session', '[Chat] Session refresh failed, redirecting to login');
-            toast.error(friendlyError.message);
-            // Session is truly dead - redirect to login
-            setTimeout(() => navigate('/login', { replace: true }), 2000);
-          } else {
-            logger.debug('[Chat] Session refreshed successfully');
-            toast.info('Session refreshed - please try again');
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = BASE_RECONNECT_DELAY * Math.pow(2, currentAttempts - 1);
+
+        logger.debug(`[Chat] Streaming interrupted, attempting reconnect ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
+
+        // First interruption - show brief error toast before reconnect toast
+        if (currentAttempts === 1) {
+          toast.error('Connection interrupted. Attempting to reconnect...', {
+            id: 'connection-error-toast',
+            duration: 2000,
+          });
+        }
+
+        toast.loading(
+          `Connection interrupted. Reconnecting (attempt ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS})...`,
+          { id: 'reconnect-toast', duration: delay + 2000 }
+        );
+
+        // Clear any existing reconnect timeout
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
+        }
+
+        // Schedule reconnect attempt
+        reconnectTimeoutRef.current = setTimeout(() => {
+          const messageToRetry = lastUserMessageRef.current;
+          if (messageToRetry && isChatReady) {
+            logger.debug('[Chat] Retrying message after streaming interruption');
+            sendMessage({ text: messageToRetry });
           }
-        });
+          setIsReconnecting(false);
+        }, delay);
+
+        return;
       } else {
-        // Show user-friendly error for non-auth errors
-        // Include retry action if we have a message to retry
-        if (lastUserMessageRef.current) {
-          toast.error(friendlyError.message, {
+        // Max reconnect attempts reached — show actionable toast with retry
+        logger.debug('[Chat] Max reconnect attempts reached');
+        reconnectAttemptsRef.current = 0;
+        setReconnectAttemptDisplay(0);
+        setIsReconnecting(false);
+
+        toast.dismiss('reconnect-toast');
+        toast.error(
+          'Connection lost. Your partial response has been saved.',
+          {
             id: 'streaming-error-toast',
             duration: 10000,
             action: {
               label: 'Retry',
               onClick: () => handleRetryRef.current(),
             },
-          });
-        } else {
-          toast.error(friendlyError.message);
-        }
+          }
+        );
+        return;
       }
     }
-  }, [error, navigate, reconnectAttempts, isChatReady, sendMessage]);
+
+    // For non-streaming network errors (no lastUserMessage), also show toast
+    if (error instanceof Error &&
+        (error.message.toLowerCase().includes('network') ||
+         error.message.toLowerCase().includes('failed to fetch'))) {
+      toast.error('Network error. Please check your connection.', {
+        id: 'network-error-toast',
+        duration: 5000,
+      });
+    }
+
+    // For non-streaming errors that still have a partial assistant message,
+    // mark the last assistant message as incomplete
+    const currentMessages = messagesRef.current;
+    const lastMsg = currentMessages[currentMessages.length - 1];
+    if (lastMsg?.role === 'assistant' && getMessageTextContent(lastMsg).trim().length > 0) {
+      setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
+    }
+
+    // Get user-friendly error
+    const friendlyError = getUserFriendlyError(error, ErrorContexts.CHAT);
+
+    // Check if it's an auth error
+    if (friendlyError.title === 'Session Expired') {
+      logger.debug('[Chat] Auth error detected, attempting to refresh session...');
+
+      // Try to refresh the session
+      supabase.auth.getSession().then(({ data: { session: refreshedSession }, error: refreshError }) => {
+        if (refreshError || !refreshedSession) {
+          throttledErrorLog('session', '[Chat] Session refresh failed, redirecting to login');
+          toast.error(friendlyError.message);
+          // Session is truly dead - redirect to login
+          setTimeout(() => navigate('/login', { replace: true }), 2000);
+        } else {
+          logger.debug('[Chat] Session refreshed successfully');
+          toast.info('Session refreshed - please try again');
+        }
+      });
+    } else {
+      // Show user-friendly error for non-auth errors
+      // Include retry action if we have a message to retry
+      if (lastUserMessageRef.current) {
+        toast.error(friendlyError.message, {
+          id: 'streaming-error-toast',
+          duration: 10000,
+          action: {
+            label: 'Retry',
+            onClick: () => handleRetryRef.current(),
+          },
+        });
+      } else {
+        toast.error(friendlyError.message);
+      }
+    }
+  }, [error, navigate, isChatReady, sendMessage]); // REMOVED reconnectAttempts - using ref instead
 
   // Rate limit countdown timer - updates the toast message
   React.useEffect(() => {
@@ -730,21 +751,27 @@ export default function Chat() {
 
   // Reset reconnection state and incomplete markers when streaming completes successfully
   React.useEffect(() => {
-    if (status === 'ready' && reconnectAttempts > 0) {
+    if (status === 'ready' && reconnectAttemptsRef.current > 0) {
       logger.debug('[Chat] Streaming completed successfully, resetting reconnection state');
-      setReconnectAttempts(0);
+      reconnectAttemptsRef.current = 0;
+      setReconnectAttemptDisplay(0);
       setIsReconnecting(false);
       setIncompleteMessageIds(new Set());
       lastUserMessageRef.current = null;
+      // Clear any pending reconnect timeout
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       toast.dismiss('reconnect-toast');
       toast.dismiss('streaming-error-toast');
       toast.success('Connection restored!', { duration: 2000 });
     }
     // Also clear incomplete markers when new streaming completes without reconnect
-    if (status === 'ready' && incompleteMessageIds.size > 0 && reconnectAttempts === 0) {
+    if (status === 'ready' && incompleteMessageIds.size > 0 && reconnectAttemptsRef.current === 0) {
       setIncompleteMessageIds(new Set());
     }
-  }, [status, reconnectAttempts, incompleteMessageIds.size]);
+  }, [status, incompleteMessageIds.size]); // Removed reconnectAttempts - using ref
 
   // Cleanup reconnect timeout on unmount
   React.useEffect(() => {
@@ -1254,6 +1281,12 @@ export default function Chat() {
       return;
     }
 
+    // CRITICAL: Clear any pending automatic reconnect timeout to prevent double-send
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
     // Remove incomplete assistant messages from the conversation
     setMessages((prev) => {
       const cleaned = prev.filter((m) => !incompleteMessageIds.has(m.id));
@@ -1261,13 +1294,17 @@ export default function Chat() {
     });
     setIncompleteMessageIds(new Set());
 
-    // Reset reconnection state
-    setReconnectAttempts(0);
+    // Reset reconnection state (using refs to avoid triggering effects)
+    reconnectAttemptsRef.current = 0;
+    setReconnectAttemptDisplay(0);
+    handledErrorRef.current = null; // Allow next error to be processed
     setIsReconnecting(false);
 
     // Dismiss any existing error/reconnect toasts
     toast.dismiss('reconnect-toast');
     toast.dismiss('streaming-error-toast');
+    toast.dismiss('connection-error-toast');
+    toast.dismiss('network-error-toast');
 
     // Resend the message
     logger.debug('[Chat] Retrying message:', lastUserMessage);
@@ -1934,7 +1971,7 @@ export default function Chat() {
                       : isRateLimited
                       ? `Rate limited - please wait ${rateLimitSeconds}s...`
                       : isReconnecting
-                      ? `Reconnecting (attempt ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`
+                      ? `Reconnecting (attempt ${reconnectAttemptDisplay}/${MAX_RECONNECT_ATTEMPTS})...`
                       : "Ask about your transcripts... (type @ to mention a call)"
                   }
                   disabled={isLoading || !isChatReady || isRateLimited || isReconnecting}
