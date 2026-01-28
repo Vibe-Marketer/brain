@@ -29,12 +29,12 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 - [ ] **COACH-03**: Coach join page accessible via route (`/join/coach/:token`)
 
 **Security**
-- [ ] **SEC-01**: Remove client-side exposed API keys (`src/lib/ai-agent.ts` with `VITE_OPENAI_API_KEY`)
-- [ ] **SEC-02**: Delete legacy unauthenticated edge functions (`extract-knowledge`, `generate-content`)
-- [ ] **SEC-03**: Add admin auth check to `test-env-vars` and `test-secrets` edge functions
-- [ ] **SEC-04**: Remove sensitive logging (console.log with PII in `AuthContext.tsx`, `Chat.tsx`, `useChatSession.ts`)
-- [ ] **SEC-05**: Fix type safety bypasses in exports (`BulkActionToolbarEnhanced.tsx` forcing types to `any`)
-- [ ] **SEC-06**: Migrate Edge Functions from wildcard CORS (`*`) to `getCorsHeaders()` with dynamic origin checking
+- [x] **SEC-01**: Remove client-side exposed API keys (`src/lib/ai-agent.ts` with `VITE_OPENAI_API_KEY`)
+- [x] **SEC-02**: Delete legacy unauthenticated edge functions (`extract-knowledge`, `generate-content`)
+- [x] **SEC-03**: Add admin auth check to `test-env-vars` and `test-secrets` edge functions
+- [x] **SEC-04**: Remove sensitive logging (console.log with PII in `AuthContext.tsx`, `Chat.tsx`, `useChatSession.ts`)
+- [x] **SEC-05**: Fix type safety bypasses in exports (`BulkActionToolbarEnhanced.tsx` forcing types to `any`)
+- [x] **SEC-06**: Migrate Edge Functions from wildcard CORS (`*`) to `getCorsHeaders()` with dynamic origin checking
 
 **Store Reliability**
 - [ ] **STORE-01**: Fix silent store failures (return meaningful errors instead of null in `contentLibraryStore.ts`, `contentItemsStore.ts`, `businessProfileStore.ts`)
