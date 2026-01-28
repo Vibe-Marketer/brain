@@ -1,11 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
 import { refreshZoomOAuthTokens } from '../zoom-oauth-refresh/index.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
  * RATE LIMITING CONFIGURATION
@@ -115,6 +111,9 @@ interface ZoomMeetingWithSyncStatus {
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
