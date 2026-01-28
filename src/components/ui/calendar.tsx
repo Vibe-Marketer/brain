@@ -20,8 +20,8 @@ function Calendar({ className, classNames, showOutsideDays = true, startMonth, e
       endMonth={endMonth ?? defaultEndMonth}
       className={cn("p-3", className)}
       classNames={{
-        // Layout
-        months: "flex flex-col",
+        // Layout - centered
+        months: "flex flex-col items-center",
         month: "flex flex-col gap-2",
         // Hide built-in caption when using custom navigation
         month_caption: "hidden",
@@ -30,11 +30,11 @@ function Calendar({ className, classNames, showOutsideDays = true, startMonth, e
         nav: "hidden",
         button_previous: "hidden",
         button_next: "hidden",
-        // Calendar grid
-        month_grid: "w-full border-collapse",
-        weekdays: "flex",
-        weekday: "text-muted-foreground w-9 font-normal text-[0.8rem]",
-        week: "flex w-full mt-2",
+        // Calendar grid - centered
+        month_grid: "border-collapse",
+        weekdays: "flex justify-center",
+        weekday: "text-muted-foreground w-9 font-normal text-[0.8rem] text-center",
+        week: "flex justify-center mt-2",
         day: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
         day_button: cn(
           buttonVariants({ variant: "hollow" }),
