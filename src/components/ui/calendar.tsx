@@ -17,22 +17,22 @@ function Calendar({ className, classNames, showOutsideDays = true, startMonth, e
     <DayPicker
       showOutsideDays={showOutsideDays}
       captionLayout="dropdown" // Enable month/year dropdown navigation
-      navLayout="around" // Navigation arrows on both sides
       reverseYears // Most recent years at top of dropdown
       startMonth={startMonth ?? defaultStartMonth}
       endMonth={endMonth ?? defaultEndMonth}
       className={cn("p-3", className)}
       classNames={{
-        months: "flex flex-col sm:flex-row gap-4",
-        month: "flex flex-col gap-4",
-        month_caption: "flex justify-center items-center h-7 relative",
+        // Multi-month layout: side-by-side with shared nav at ends
+        months: "flex flex-row gap-4 relative",
+        month: "flex flex-col gap-2",
+        month_caption: "flex justify-center items-center h-8 relative",
         caption_label: "text-sm font-medium hidden", // Hidden when using dropdown
-        // Dropdown styling
-        dropdowns: "flex items-center justify-center gap-2",
-        dropdown: "appearance-none bg-transparent border border-input rounded-md px-2 py-1 text-sm font-medium cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange",
-        months_dropdown: "w-[110px]",
-        years_dropdown: "w-[80px]",
-        // Navigation
+        // Dropdown styling - compact for clean inline display
+        dropdowns: "flex items-center gap-1",
+        dropdown: "appearance-none bg-transparent border border-input rounded-md px-2 py-1 text-xs font-medium cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange",
+        months_dropdown: "w-[90px]",
+        years_dropdown: "w-[65px]",
+        // Navigation - at outer edges
         nav: "flex items-center gap-1",
         button_previous: cn(
           buttonVariants({ variant: "hollow" }),
