@@ -3,7 +3,7 @@
 **Created:** 2026-01-27
 **Depth:** Comprehensive (9 phases)
 **Coverage:** 55/55 requirements mapped ✓
-**Last Updated:** 2026-01-27 (full rebuild — all requirements mapped)
+**Last Updated:** 2026-01-28 (Phase 2 gap closure plans added)
 
 ## Overview
 
@@ -50,7 +50,7 @@ Plans:
 
 **Dependencies:** Phase 1 (security must be locked down first)
 
-**Plans:** 9 plans in 5 waves
+**Plans:** 12 plans (9 original + 3 gap closures)
 
 Plans:
 - [x] 02-01-PLAN.md — Proof-of-concept: streamText + tool on Deno Edge Function
@@ -62,6 +62,9 @@ Plans:
 - [x] 02-07-PLAN.md — Inline citations with hover preview + bottom source list
 - [x] 02-08-PLAN.md — Streaming error handling, retry UX, connection stability
 - [x] 02-09-PLAN.md — Switchover: /chat → v2, legacy rename, final verification
+- [ ] 02-10-PLAN.md — **[GAP FIX]** Call detail panel instead of popup dialog
+- [ ] 02-11-PLAN.md — **[GAP FIX]** Fix model hallucinating recording IDs
+- [ ] 02-12-PLAN.md — **[GAP FIX]** Error toast notifications + throttled logging
 
 **Requirements:**
 - CHAT-05: Migrate to Vercel AI SDK + OpenRouter
@@ -78,6 +81,12 @@ Plans:
 4. Citations appear inline in chat responses linking back to source transcripts
 5. Chat connection stays stable for 10+ consecutive messages without reconnection
 6. Store errors surface to user with actionable error messages (no silent null returns)
+
+**UAT Gap Closures (02-10 through 02-12):**
+- Gap 1: Call links open in popup instead of panel — fixed by 02-10
+- Gap 2: No error toast on network failures — fixed by 02-12
+- Gap 3: Console spam on network errors — fixed by 02-12
+- Bug: Model uses fabricated recording_ids — fixed by 02-11
 
 ---
 
@@ -255,7 +264,7 @@ Plans:
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
 | 1 - Security Lockdown | Complete ✅ | 6 | 100% |
-| 2 - Chat Foundation | Complete ✅ | 6 | 100% |
+| 2 - Chat Foundation | Gap Closure 🔧 | 6 | 75% (9/12 plans) |
 | 3 - Integration OAuth | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
@@ -361,11 +370,11 @@ Phase 9: Growth Infrastructure
 ## Next Steps
 
 1. ~~Phase 1: Security Lockdown~~ ✅ Complete
-2. ~~Phase 2: Chat Foundation~~ ✅ Complete
-3. Run `/gsd-plan-phase 3` to plan Integration OAuth Flows
-4. Execute Phase 3 plans
-5. Continue to Phase 4
+2. Phase 2: Chat Foundation — **Execute gap closure plans (02-10, 02-11, 02-12)**
+3. Re-run UAT to verify gaps are closed
+4. Run `/gsd-plan-phase 3` to plan Integration OAuth Flows
+5. Continue to Phase 3
 
 ---
 
-*Last updated: 2026-01-28 (Phase 2 Chat Foundation complete — 9/9 plans, 6/6 criteria verified)*
+*Last updated: 2026-01-28 (Phase 2 gap closure plans 02-10, 02-11, 02-12 created)*
