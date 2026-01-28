@@ -1,5 +1,5 @@
 ---
-status: testing
+status: diagnosed
 phase: 02-chat-foundation
 source: 02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-03-SUMMARY.md, 02-04-SUMMARY.md, 02-05-SUMMARY.md, 02-06-SUMMARY.md, 02-07-SUMMARY.md, 02-08-SUMMARY.md, 02-09-SUMMARY.md
 started: 2026-01-28T07:00:00Z
