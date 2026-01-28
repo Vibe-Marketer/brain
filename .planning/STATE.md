@@ -1,6 +1,6 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-01-27
+**Last Updated:** 2026-01-28
 
 ## Project Reference
 
@@ -16,15 +16,15 @@
 
 **Phase:** 1 of 9 (Security Lockdown)
 
-**Plan:** 4 of 6 in current phase
+**Plan:** 5 of 6 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-01-27 — Completed 01-04-PLAN.md
+**Last activity:** 2026-01-28 — Completed 01-05-PLAN.md
 
 **Progress:**
 ```
-[███░░░░░░░░░░░░░░░░░] 4/55 requirements complete (7%)
+[█████░░░░░░░░░░░░░░░] 5/55 requirements complete (9%)
 ```
 
 ---
@@ -34,16 +34,16 @@
 ### Execution Stats
 
 - **Total Requirements:** 55
-- **Completed:** 5 (SEC-01, SEC-02, SEC-03, SEC-04, SEC-05)
-- **In Progress:** 1 (SEC-06 — remaining Phase 1 plans 05-06)
+- **Completed:** 6 (SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06)
+- **In Progress:** 0
 - **Blocked:** 0
-- **Remaining:** 50
+- **Remaining:** 49
 
 ### Phase Progress
 
 | Phase | Requirements | Complete | Status |
 |-------|--------------|----------|--------|
-| Phase 1: Security Lockdown | 6 | 5 | In progress (4/6 plans) |
+| Phase 1: Security Lockdown | 6 | 6 | In progress (5/6 plans — audit remaining) |
 | Phase 2: Chat Foundation | 6 | 0 | Pending |
 | Phase 3: Integration OAuth | 3 | 0 | Pending |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
@@ -55,7 +55,7 @@
 
 ### Velocity
 
-- **Plans/Session:** 4 (4 plans in 4 sessions)
+- **Plans/Session:** ~1 per session (5 plans in 5 sessions)
 - **Estimated Completion:** TBD after more data points
 
 ---
@@ -78,6 +78,7 @@
 | 2026-01-27 | Two CORS migration patterns for Group B | Functions with helpers use module-level let, inline-only use const | Minimal diff while achieving dynamic CORS for all 14 functions |
 | 2026-01-27 | Removed backward-compatible corsHeaders export | No function imports it after migration; prevents accidental wildcard CORS | Only getCorsHeaders() remains as CORS API |
 | 2026-01-27 | Skipped backfill-chunk-metadata in Group C | No CORS handling at all — server-side batch utility | 23 functions migrated instead of 24 (correct behavior) |
+| 2026-01-28 | Webhook functions migrated with standard getCorsHeaders() | Custom Allow-Headers in webhook/zoom-webhook handled by signature logic, not CORS | Consistent CORS pattern across all functions |
 
 ### Active TODOs
 
@@ -85,7 +86,7 @@
 - [x] Execute 01-02-PLAN.md (SEC-04, SEC-05)
 - [x] Execute 01-03-PLAN.md (SEC-06 part 1 — Group B)
 - [x] Execute 01-04-PLAN.md (SEC-06 part 2 — Group C batch 1)
-- [ ] Execute 01-05-PLAN.md (SEC-06 part 3 — Group C batch 2)
+- [x] Execute 01-05-PLAN.md (SEC-06 part 3 — Group C batch 2)
 - [ ] Execute 01-06-PLAN.md (Security audit)
 - [ ] Verify Phase 1 success criteria
 
@@ -97,14 +98,14 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-01-27T23:41:00Z
-**Stopped at:** Completed 01-04-PLAN.md
+**Last session:** 2026-01-28T00:33:47Z
+**Stopped at:** Completed 01-05-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Plans 01-01 through 01-04 complete. SEC-01 through SEC-05 eliminated. Group B (14 functions) and Group C batch 1 (23 functions) migrated to dynamic CORS — 37 total. 2 remaining plans (01-05, 01-06) for Group C batch 2 CORS migration + security audit.
+Plans 01-01 through 01-05 complete. All 6 security requirements (SEC-01 through SEC-06) are satisfied. SEC-06 completed across plans 03-05: 14 Group B + 23 Group C batch 1 + 23 Group C batch 2 = 60 functions migrated to dynamic CORS. 1 remaining plan (01-06) for security audit to verify the entire phase.
 
 **What to remember:**
 - ContentGenerator.tsx AI handler is stubbed (TODO for future rewiring)
@@ -117,7 +118,8 @@ Plans 01-01 through 01-04 complete. SEC-01 through SEC-05 eliminated. Group B (1
 - CORS Pattern A (const in handler): used for all Group C functions (inline-only logic)
 - corsHeaders export removed from _shared/cors.ts — only getCorsHeaders() remains
 - backfill-chunk-metadata has NO CORS handling — correctly skipped in plan 04
-- 37 functions now use getCorsHeaders(); remaining functions are in Group C batch 2 (plan 05)
+- 60 functions now use getCorsHeaders() — SEC-06 is COMPLETE
+- webhook/index.ts and zoom-webhook/index.ts had custom Allow-Headers — migrated cleanly
 
 ---
 
@@ -127,12 +129,12 @@ Plans 01-01 through 01-04 complete. SEC-01 through SEC-05 eliminated. Group B (1
 |--------|-------|
 | Total Phases | 9 |
 | Total Requirements | 55 |
-| Requirements Complete | 5 (9%) |
+| Requirements Complete | 6 (11%) |
 | Current Phase | 1 - Security Lockdown |
-| Plans Complete | 4/6 in phase |
+| Plans Complete | 5/6 in phase |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-27 (completed 01-04-PLAN.md — SEC-06 part 2, Group C batch 1 CORS migration)*
+*Last updated: 2026-01-28 (completed 01-05-PLAN.md — SEC-06 part 3, Group C batch 2 CORS migration — SEC-06 COMPLETE)*
