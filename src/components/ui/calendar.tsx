@@ -17,7 +17,6 @@ function Calendar({ className, classNames, showOutsideDays = true, startMonth, e
     <DayPicker
       showOutsideDays={showOutsideDays}
       captionLayout="dropdown" // Enable month/year dropdown navigation
-      navLayout="around" // Navigation arrows flank the dropdowns
       reverseYears // Most recent years at top of dropdown
       startMonth={startMonth ?? defaultStartMonth}
       endMonth={endMonth ?? defaultEndMonth}

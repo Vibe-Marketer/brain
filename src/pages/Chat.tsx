@@ -1578,7 +1578,7 @@ export default function Chat() {
                           }}
                           placeholder="Select date range"
                           showQuickSelect={true}
-                          numberOfMonths={2}
+                          numberOfMonths={1}
                           disableFuture={false}
                           triggerClassName="w-full"
                         />

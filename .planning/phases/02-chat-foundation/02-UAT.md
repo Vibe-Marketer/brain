@@ -8,12 +8,12 @@ updated: 2026-01-28T16:15:00Z
 
 ## Current Test
 
-number: 2
-name: Tool Calls Fire and Show Results
+number: 5
+name: Source List at Bottom of Message
 expected: |
-  Ask a question that requires searching your calls (e.g., "What did we discuss about pricing in recent calls?").
-  You see tool call indicators appearing during response.
-  Tools show results count (e.g., "Searched Transcripts (3 results)") — not just a spinner or empty checkmark.
+  Messages with citations show a "Sources" section at the bottom
+  listing all referenced calls. Clicking a source opens the call
+  detail view.
 awaiting: user response
 
 ## Tests
@@ -33,15 +33,40 @@ note: |
 
 ### 2. Tool Calls Fire and Show Results
 expected: Ask a question that requires searching your calls (e.g., "What did we discuss about pricing in recent calls?"). You see tool call indicators appearing during response. Tools show results count (e.g., "Searched Transcripts (3 results)") — not just a spinner or empty checkmark.
-result: [pending]
+result: pass
 
 ### 3. Tool Call Three-State Display
 expected: Tools that find data show green checkmark with result count. Tools that find nothing show amber indicator with "0 results". If a tool fails, it shows red indicator with "Failed". You can distinguish between success, empty, and error.
-result: [pending]
+result: pass (partial - can't test failed state)
+note: |
+  Two-state verified: green checkmarks (success with count), amber triangles (0 results)
+  Failed state untestable - all tools currently working, no way to force a failure
 
 ### 4. Inline Citations with Hover Preview
 expected: Ask about specific content in your calls. The AI response includes numbered citations like [1], [2] inline in the text. Hover over a citation number — a tooltip shows call title, speaker, date, and snippet from that source.
-result: [pending]
+result: FAIL
+note: |
+  TWO ISSUES FOUND:
+
+  1. MODEL OUTPUT FORMAT CHANGED
+     - BEFORE: AI included "Listen Here" links inline after each call reference
+     - NOW: Only underlined call titles, no action links
+     - Root cause: Model decides response format based on system prompt
+     - Fix needed: Update system prompt to instruct model to include inline action links
+
+  2. CALL LINKS OPEN IN POPUP DIALOG INSTEAD OF PANEL
+     - Clicking call title opens CallDetailDialog (modal popup)
+     - User expects it to open in Pane 4 (detail panel) like other items
+     - Root cause: No CallDetailPanel exists - only CallDetailDialog
+     - DetailPaneOutlet.tsx doesn't support 'call-detail' panel type
+     - Fix needed: Create CallDetailPanel component and wire up panel store
+
+  ARCHITECTURAL GAP:
+  - DetailPaneOutlet only supports: folder-detail, tag-detail, setting-help, user-detail
+  - 'call-detail' panel type is defined in panelStore but never implemented
+  - Need to create src/components/panels/CallDetailPanel.tsx
+  - Then add case to DetailPaneOutlet.tsx
+  - Then change Chat.tsx to use openPanel('call-detail', { recordingId }) instead of dialog
 
 ### 5. Source List at Bottom of Message
 expected: Messages with citations show a "Sources" section at the bottom listing all referenced calls. Clicking a source opens the call detail view.
@@ -62,9 +87,9 @@ result: [pending]
 ## Summary
 
 total: 8
-passed: 1
-issues: 0
-pending: 7
+passed: 3
+issues: 1
+pending: 4
 skipped: 0
 
 ## Gaps
@@ -103,6 +128,41 @@ skipped: 0
     - "Retest chat after enhanced logging deployment"
     - "If AI SDK bundling is the issue, may need to rewrite v2 to use direct API calls like legacy"
   debug_session: ""
+
+- truth: "Clicking sources opens call details in panel (not popup)"
+  status: failed
+  reason: "User reported: call links open in popup dialog instead of side panel; 'Listen Here' inline links are gone"
+  severity: major
+  test: 4
+  root_cause: |
+    TWO ISSUES:
+
+    1. INLINE ACTION LINKS MISSING
+       - BEFORE: Model output included "Listen Here" links inline
+       - NOW: Only underlined call titles (model response format changed)
+       - May be model variation or system prompt issue
+
+    2. POPUP VS PANEL ARCHITECTURE
+       - CallDetailDialog (popup) is the only implementation
+       - No CallDetailPanel exists for Pane 4
+       - DetailPaneOutlet.tsx only supports: folder-detail, tag-detail, setting-help, user-detail
+       - 'call-detail' type is in panelStore but never wired up
+
+  artifacts:
+    - path: "src/components/CallDetailDialog.tsx"
+      issue: "Only exists as Dialog - needs Panel version for Pane 4"
+    - path: "src/components/layout/DetailPaneOutlet.tsx"
+      issue: "Missing 'call-detail' case"
+    - path: "src/stores/panelStore.ts"
+      issue: "Has 'call-detail' type but nothing renders it"
+    - path: "src/pages/Chat.tsx"
+      issue: "Uses setSelectedCall/setShowCallDialog instead of openPanel"
+
+  fix_required:
+    - "Create src/components/panels/CallDetailPanel.tsx (extract from Dialog)"
+    - "Add 'call-detail' case to DetailPaneOutlet.tsx"
+    - "Change Chat.tsx to use openPanel('call-detail', { recordingId })"
+    - "Consider system prompt update for inline action links"
 
 ## Investigation Notes
 

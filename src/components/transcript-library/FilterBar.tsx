@@ -164,7 +164,7 @@ export function FilterBar({
             onFiltersChange({ ...filters, dateFrom: range.from, dateTo: range.to });
           }}
           showQuickSelect={true}
-          numberOfMonths={2}
+          numberOfMonths={1}
           disableFuture={true}
           placeholder={isMobile ? "" : "Date"}
           align="start"

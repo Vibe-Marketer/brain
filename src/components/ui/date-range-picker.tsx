@@ -212,7 +212,7 @@ export function DateRangePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className={cn("!w-auto min-w-[600px] p-0 max-h-[90vh]", className)} align={align}>
+      <PopoverContent className={cn("!w-auto p-0 max-h-[90vh]", className)} align={align}>
         <div className="p-4 space-y-4 pointer-events-auto overflow-y-auto max-h-[calc(90vh-2rem)]">
           {showQuickSelect && (
             <div>
