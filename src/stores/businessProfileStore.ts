@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast } from 'sonner';
 import type { BusinessProfile, BusinessProfileInput } from '@/types/content-hub';
 import {
   fetchBusinessProfiles,
@@ -156,6 +157,7 @@ export const useBusinessProfileStore = create<
         profiles: existingProfiles,
         profilesError: error.message,
       });
+      toast.error("Couldn't create business profile. Please try again.");
       return null;
     }
 
@@ -199,6 +201,7 @@ export const useBusinessProfileStore = create<
         profiles: previousProfiles,
         profilesError: error.message,
       });
+      toast.error("Couldn't update business profile. Please try again.");
       return null;
     }
 
@@ -244,6 +247,7 @@ export const useBusinessProfileStore = create<
         profiles: previousProfiles,
         profilesError: error.message,
       });
+      toast.error("Couldn't delete business profile. Please try again.");
       return false;
     }
 
@@ -270,6 +274,7 @@ export const useBusinessProfileStore = create<
         profiles: previousProfiles,
         profilesError: error.message,
       });
+      toast.error("Couldn't set default profile. Please try again.");
       return null;
     }
 
