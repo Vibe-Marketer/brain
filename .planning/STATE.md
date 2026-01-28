@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 2 in progress — Chat Foundation (plan 2 of 9 complete)
+**Current Focus:** Phase 2 in progress — Chat Foundation (plan 4 of 9 complete)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 2 of 9 (Chat Foundation) — IN PROGRESS
 
-**Plan:** 2 of 9 in current phase
+**Plan:** 4 of 9 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-01-28 — Completed 02-02-PLAN.md (fix silent store failures)
+**Last activity:** 2026-01-28 — Completed 02-04-PLAN.md (tool call three-state transparency UI)
 
 **Progress:**
 ```
-[████████░░░░░░░░░░░░] 8/55 plans complete (15%)
+[██████████░░░░░░░░░░] 10/55 plans complete (18%)
 ```
 
 ---
@@ -44,7 +44,7 @@
 | Phase | Requirements | Complete | Status |
 |-------|--------------|----------|--------|
 | Phase 1: Security Lockdown | 6 | 6 | Complete ✅ (6/6 plans) |
-| Phase 2: Chat Foundation | 6 | 1 | In progress (2/9 plans) |
+| Phase 2: Chat Foundation | 6 | 1 | In progress (4/9 plans) |
 | Phase 3: Integration OAuth | 3 | 0 | Pending |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
@@ -77,13 +77,18 @@
 | 2026-01-28 | VITE_SUPABASE_PUBLISHABLE_KEY is expected client-side | Public anon key, RLS policies protect data | Not a security issue |
 | 2026-01-28 | maxSteps over stopWhen/stepCountIs for streamText | Simpler API, well-documented, same behavior | Established pattern for chat-stream-v2 |
 | 2026-01-28 | toast.error() placed after optimistic rollback | User sees error after state reverts, preserving UX flow | Pattern for all store error notifications |
+| 2026-01-28 | rerankResults takes hfApiKey as parameter | Enables testability, avoids hidden Deno.env dependency in shared module | Shared modules don't read env directly |
+| 2026-01-28 | Simple diversityFilter over existing _shared version | Exact match to chat-stream production logic (max-per-recording only) | No behavior change risk |
+| 2026-01-28 | Five visual states for tool calls (pending/running/success/empty/error) | Distinguishes empty results from success — core CHAT-02 fix | Users no longer see green checkmarks on empty/failed results |
 
 ### Active TODOs
 
 - [x] Execute 01-01 through 01-06 (Phase 1 complete)
 - [x] Execute 02-01-PLAN.md (PoC streamText + tool on Deno)
 - [x] Execute 02-02-PLAN.md (STORE-01: toast.error on 16 methods)
-- [ ] Execute 02-03 through 02-09 (remaining Phase 2 plans)
+- [x] Execute 02-03-PLAN.md (extract search pipeline to shared modules)
+- [x] Execute 02-04-PLAN.md (tool call three-state transparency UI)
+- [ ] Execute 02-05 through 02-09 (remaining Phase 2 plans)
 
 ### Known Blockers
 
@@ -93,20 +98,23 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-01-28T06:03:24Z
-**Stopped at:** Completed 02-02-PLAN.md — STORE-01 requirement satisfied
+**Last session:** 2026-01-28T06:08:47Z
+**Stopped at:** Completed 02-04-PLAN.md — three-state tool call transparency UI
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 and 02-02 complete. Ready for 02-03-PLAN.md (extract search pipeline to shared modules).
+Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-04 complete. Ready for 02-05-PLAN.md (define all 14 RAG tools with zod schemas).
 
 **What to remember:**
 - chat-stream-v2 uses streamText() + tool() + toUIMessageStreamResponse() — AI SDK native approach
 - Tool definitions must be inside Deno.serve handler for closure access to supabase/user context
 - Import versions pinned: ai@5.0.102, @openrouter/ai-sdk-provider@1.2.8, zod@3.23.8
 - Store error notification pattern: rollback state → `toast.error(message)` → return null/false
+- Tool call UI now has 5 visual states: pending/running/success/empty/error with distinct colors
+- getToolStatus() inspects result data to distinguish success vs empty — core CHAT-02 fix
+- TOOL_LABELS map provides human-readable names for all 14 RAG tools
 - ContentGenerator.tsx AI handler is stubbed (TODO for future rewiring)
 - logger pattern: `import { logger } from '@/lib/logger'` for all frontend logging
 - CORS: 60 functions use getCorsHeaders(), only getCorsHeaders() remains
@@ -122,11 +130,11 @@ Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 and 02-02 complete. Ready fo
 | Total Requirements | 55 |
 | Requirements Complete | 7 (13%) |
 | Current Phase | 2 - Chat Foundation (IN PROGRESS) |
-| Plans Complete | 2/9 in phase |
-| Next Plan | 02-03-PLAN.md |
+| Plans Complete | 4/9 in phase |
+| Next Plan | 02-05-PLAN.md |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-28 (completed 02-02-PLAN.md — STORE-01 silent store failures fixed)*
+*Last updated: 2026-01-28 (completed 02-04-PLAN.md — three-state tool call transparency UI)*
