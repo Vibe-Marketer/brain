@@ -10,11 +10,11 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 ### TIER 1: CRITICAL (Blocks Launch)
 
 **Chat Reliability**
-- [ ] **CHAT-01**: Chat works reliably with all 14 RAG tools firing consistently
-- [ ] **CHAT-02**: Tool calls return results (no silent failures with green checkmarks on empty data)
-- [ ] **CHAT-03**: Streaming doesn't error out mid-response
-- [ ] **CHAT-04**: Citations work consistently
-- [ ] **CHAT-05**: Migrate to Vercel AI SDK + OpenRouter (replace manual streaming implementation)
+- [x] **CHAT-01**: Chat works reliably with all 14 RAG tools firing consistently
+- [x] **CHAT-02**: Tool calls return results (no silent failures with green checkmarks on empty data)
+- [x] **CHAT-03**: Streaming doesn't error out mid-response
+- [x] **CHAT-04**: Citations work consistently
+- [x] **CHAT-05**: Migrate to Vercel AI SDK + OpenRouter (replace manual streaming implementation)
 
 **Integration OAuth Flows**
 - [ ] **INT-01**: Zoom OAuth connection flow works (currently button does nothing)
@@ -37,7 +37,7 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 - [x] **SEC-06**: Migrate Edge Functions from wildcard CORS (`*`) to `getCorsHeaders()` with dynamic origin checking
 
 **Store Reliability**
-- [ ] **STORE-01**: Fix silent store failures (return meaningful errors instead of null in `contentLibraryStore.ts`, `contentItemsStore.ts`, `businessProfileStore.ts`)
+- [x] **STORE-01**: Fix silent store failures (return meaningful errors instead of null in `contentLibraryStore.ts`, `contentItemsStore.ts`, `businessProfileStore.ts`)
 
 ### TIER 2: DEMO POLISH (Looks Unfinished)
 
@@ -159,18 +159,18 @@ Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SEC-01 | Phase 1: Security Lockdown | Pending |
-| SEC-02 | Phase 1: Security Lockdown | Pending |
-| SEC-03 | Phase 1: Security Lockdown | Pending |
-| SEC-04 | Phase 1: Security Lockdown | Pending |
-| SEC-05 | Phase 1: Security Lockdown | Pending |
-| SEC-06 | Phase 1: Security Lockdown | Pending |
-| CHAT-01 | Phase 2: Chat Foundation | Pending |
-| CHAT-02 | Phase 2: Chat Foundation | Pending |
-| CHAT-03 | Phase 2: Chat Foundation | Pending |
-| CHAT-04 | Phase 2: Chat Foundation | Pending |
-| CHAT-05 | Phase 2: Chat Foundation | Pending |
-| STORE-01 | Phase 2: Chat Foundation | Pending |
+| SEC-01 | Phase 1: Security Lockdown | Complete |
+| SEC-02 | Phase 1: Security Lockdown | Complete |
+| SEC-03 | Phase 1: Security Lockdown | Complete |
+| SEC-04 | Phase 1: Security Lockdown | Complete |
+| SEC-05 | Phase 1: Security Lockdown | Complete |
+| SEC-06 | Phase 1: Security Lockdown | Complete |
+| CHAT-01 | Phase 2: Chat Foundation | Complete |
+| CHAT-02 | Phase 2: Chat Foundation | Complete |
+| CHAT-03 | Phase 2: Chat Foundation | Complete |
+| CHAT-04 | Phase 2: Chat Foundation | Complete |
+| CHAT-05 | Phase 2: Chat Foundation | Complete |
+| STORE-01 | Phase 2: Chat Foundation | Complete |
 | INT-01 | Phase 3: Integration OAuth | Pending |
 | INT-02 | Phase 3: Integration OAuth | Pending |
 | INT-03 | Phase 3: Integration OAuth | Pending |
@@ -222,4 +222,4 @@ Which phases cover which requirements.
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-27 (finalized — all 55 requirements mapped to 9 phases)*
+*Last updated: 2026-01-28 (Phase 2 complete — CHAT-01 through CHAT-05 + STORE-01 marked Complete)*

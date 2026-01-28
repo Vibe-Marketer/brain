@@ -100,6 +100,8 @@
 - [x] Execute 02-08-PLAN.md (streaming error handling, retry UX, connection stability)
 - [x] Execute 02-09-PLAN.md (switchover: /chat → v2, legacy rename, final verification)
 
+- [ ] Plan and execute Phase 3: Integration OAuth Flows
+
 ### Known Blockers
 
 None
