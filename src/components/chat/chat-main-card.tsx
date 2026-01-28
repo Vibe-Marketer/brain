@@ -61,7 +61,7 @@ interface ChatInnerCardProps extends React.HTMLAttributes<HTMLDivElement> {
  * BG-CARD-INNER: The nested card containing the actual chat interface.
  * Contains: Header → Messages → Input (vertical flex layout)
  *
- * Styling: flex-1 bg-card rounded-2xl shadow-lg border border-border overflow-hidden flex flex-col
+ * Styling: flex-1 bg-card rounded-2xl shadow-lg overflow-hidden flex flex-col
  */
 export function ChatInnerCard({ children, className, ...props }: ChatInnerCardProps) {
   return (
@@ -69,7 +69,6 @@ export function ChatInnerCard({ children, className, ...props }: ChatInnerCardPr
       className={cn(
         // BG-CARD-INNER styling (IDENTICAL to BG-CARD-MAIN except flex-1 and flex-col)
         'flex-1 bg-card rounded-2xl shadow-lg',
-        'border border-border',
         'overflow-hidden flex flex-col',
         className
       )}
