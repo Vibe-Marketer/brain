@@ -53,7 +53,7 @@ Plans:
 **Plans:** 9 plans in 5 waves
 
 Plans:
-- [ ] 02-01-PLAN.md — Proof-of-concept: streamText + tool on Deno Edge Function
+- [x] 02-01-PLAN.md — Proof-of-concept: streamText + tool on Deno Edge Function
 - [ ] 02-02-PLAN.md — Fix silent store failures (STORE-01: toast.error on 16 methods)
 - [ ] 02-03-PLAN.md — Extract search pipeline to shared modules
 - [ ] 02-04-PLAN.md — Tool call three-state transparency UI (success/empty/error)
@@ -255,7 +255,7 @@ Plans:
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
 | 1 - Security Lockdown | Complete ✅ | 6 | 100% |
-| 2 - Chat Foundation | Planned (9 plans, 5 waves) | 6 | 0% |
+| 2 - Chat Foundation | In progress (1/9 plans) | 6 | 11% |
 | 3 - Integration OAuth | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
@@ -264,7 +264,7 @@ Plans:
 | 8 - Differentiators | Pending | 5 | 0% |
 | 9 - Growth Infrastructure | Pending | 5 | 0% |
 
-**Overall Progress:** 6/55 requirements complete (11%)
+**Overall Progress:** 7/55 requirements complete (13%)
 
 ---
 
@@ -368,4 +368,4 @@ Phase 9: Growth Infrastructure
 
 ---
 
-*Last updated: 2026-01-28 (Phase 1 Security Lockdown complete — all 6 plans executed, audit passed)*
+*Last updated: 2026-01-28 (Phase 2 plan 02-01 complete — PoC streamText + tool on Deno)*
