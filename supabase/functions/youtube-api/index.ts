@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 // YouTube Data API v3 base URL
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
@@ -213,6 +209,9 @@ async function getBatchTranscripts(videoIds: string[], transcriptApiKey: string)
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

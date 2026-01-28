@@ -34,10 +34,7 @@ interface ExistingMeeting {
   synced_at: string | null;
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 // Rate limiter for API calls - conservative to avoid 429 errors
 class RateLimiter {
@@ -650,6 +647,9 @@ async function updateMergedFrom(
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

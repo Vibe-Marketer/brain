@@ -1,11 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
 import { generateText } from 'https://esm.sh/ai@5.0.102';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 // OpenRouter configuration - using official AI SDK v5 provider
 function createOpenRouterProvider(apiKey: string) {
@@ -148,6 +144,9 @@ IF the call involves an external party (Sales, Coaching, Discovery, 1:1) AND has
 Return ONLY the title string.`;
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

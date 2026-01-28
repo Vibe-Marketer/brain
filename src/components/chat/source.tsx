@@ -278,3 +278,143 @@ export function InlineCitation({ index, source, onViewCall, className }: InlineC
     </CallSource>
   );
 }
+
+// ============================================================================
+// CitationMarker - Superscript inline citation for use within markdown text
+// ============================================================================
+
+export interface CitationMarkerProps {
+  /** The source data for hover tooltip */
+  source: SourceData;
+  /** The display number (1-based) */
+  index: number;
+  /** Callback when clicked — opens CallDetailDialog */
+  onSourceClick?: (recordingId: number) => void;
+  className?: string;
+}
+
+/**
+ * Renders a small superscript [N] marker inline within text.
+ * Hover: shows call title + speaker + date tooltip via HoverCard.
+ * Click: calls onSourceClick(recording_id) to open CallDetailDialog.
+ */
+export function CitationMarker({
+  source,
+  index,
+  onSourceClick,
+  className,
+}: CitationMarkerProps) {
+  return (
+    <CallSource source={source} onViewCall={onSourceClick}>
+      <HoverCardTrigger asChild>
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onSourceClick?.(source.recording_id);
+          }}
+          className={cn(
+            'inline-flex items-center justify-center',
+            'text-[10px] font-semibold text-primary/80 hover:text-primary',
+            'cursor-pointer transition-colors duration-150',
+            'align-super leading-none',
+            'px-0.5 -mx-0.5',
+            'hover:bg-primary/10 rounded',
+            className
+          )}
+          aria-label={`Citation ${index}: ${source.call_title || 'Source'}`}
+        >
+          [{index}]
+        </button>
+      </HoverCardTrigger>
+      <CallSourceContent source={source} />
+    </CallSource>
+  );
+}
+
+// ============================================================================
+// SourceList - Bottom-of-message citation list
+// ============================================================================
+
+export interface SourceListProps {
+  /** Citation sources to display */
+  sources: SourceData[];
+  /** Display indices (1-based) matching CitationSource.index */
+  indices?: number[];
+  /** Callback when a source is clicked */
+  onSourceClick?: (recordingId: number) => void;
+  className?: string;
+}
+
+/**
+ * Renders a compact source list at the bottom of an assistant message.
+ * Shows:
+ *   Sources
+ *   [1] Call Title — Speaker — Date
+ *   [2] Another Call — Speaker — Date
+ *
+ * Each source is clickable (opens CallDetailDialog).
+ * Only renders when sources exist.
+ */
+export function SourceList({
+  sources,
+  indices,
+  onSourceClick,
+  className,
+}: SourceListProps) {
+  if (sources.length === 0) {
+    return null;
+  }
+
+  return (
+    <div
+      className={cn(
+        'bg-muted/50 dark:bg-muted/30 rounded-lg p-3 mt-2',
+        'border border-border/40',
+        className
+      )}
+    >
+      <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
+        Sources
+      </div>
+      <div className="space-y-1">
+        {sources.map((source, i) => {
+          const displayIndex = indices ? indices[i] : i + 1;
+          const formattedDate = source.call_date
+            ? new Date(source.call_date).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: 'numeric',
+              })
+            : undefined;
+
+          return (
+            <button
+              key={source.id}
+              onClick={() => onSourceClick?.(source.recording_id)}
+              className={cn(
+                'flex items-baseline gap-1.5 w-full text-left',
+                'text-xs text-muted-foreground hover:text-foreground',
+                'transition-colors duration-150 rounded px-1 -mx-1 py-0.5',
+                'hover:bg-muted/80'
+              )}
+            >
+              <span className="text-primary/70 font-semibold shrink-0 tabular-nums">
+                [{displayIndex}]
+              </span>
+              <span className="truncate">
+                {source.call_title || 'Untitled Call'}
+                {source.speaker_name && (
+                  <span className="text-muted-foreground/70"> — {source.speaker_name}</span>
+                )}
+                {formattedDate && (
+                  <span className="text-muted-foreground/70"> — {formattedDate}</span>
+                )}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

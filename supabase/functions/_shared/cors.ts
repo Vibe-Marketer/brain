@@ -19,9 +19,3 @@ export function getCorsHeaders(requestOrigin?: string | null): Record<string, st
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
   };
 }
-
-// Backwards compatible export for existing code
-export const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};

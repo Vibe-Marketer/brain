@@ -22,6 +22,7 @@ import { usePanelStore } from '@/stores/panelStore';
 import { FolderDetailPanel } from '@/components/panels/FolderDetailPanel';
 import { TagDetailPanel } from '@/components/panels/TagDetailPanel';
 import { SettingHelpPanel } from '@/components/panels/SettingHelpPanel';
+import { UserDetailPanel } from '@/components/panels/UserDetailPanel';
 
 export interface DetailPaneOutletProps {
   /** Whether we're on tablet breakpoint (affects width) */
@@ -40,6 +41,7 @@ export interface DetailPaneOutletProps {
  * - 'folder-detail': FolderDetailPanel
  * - 'tag-detail': TagDetailPanel
  * - 'setting-help': SettingHelpPanel
+ * - 'user-detail': UserDetailPanel
  *
  * @example
  * ```tsx
@@ -70,6 +72,14 @@ export function DetailPaneOutlet({
       case 'setting-help':
         return <SettingHelpPanel />;
 
+      case 'user-detail':
+        return panelData?.userId ? (
+          <UserDetailPanel
+            userId={panelData.userId}
+            onUserUpdated={panelData?.onUserUpdated}
+          />
+        ) : null;
+
       default:
         // Unsupported panel type
         console.warn(`DetailPaneOutlet: Unsupported panel type "${panelType}"`);
@@ -86,6 +96,8 @@ export function DetailPaneOutlet({
         return 'Tag detail panel';
       case 'setting-help':
         return 'Settings help panel';
+      case 'user-detail':
+        return 'User detail panel';
       default:
         return 'Detail panel';
     }

@@ -201,27 +201,20 @@ export function useCoachRelationships(options: UseCoachRelationshipsOptions): Us
         throw new Error("User ID is required to invite coach");
       }
 
-      // Check if relationship already exists
-      const { data: existing } = await supabase
-        .from("coach_relationships")
-        .select("id, status")
-        .eq("coachee_user_id", userId)
-        .ilike("coach_user_id", `%`) // Will check coach email separately
-        .single();
-
-      if (existing && existing.status === 'active') {
-        throw new Error("You already have an active relationship with this coach");
-      }
-
       // Generate invite token and expiration
       const inviteToken = generateInviteToken();
       const inviteExpiresAt = getInviteExpiration();
+
+      // Generate a random placeholder UUID for coach_user_id
+      // This will be replaced with the actual coach's user_id when they accept
+      // Using a random UUID prevents UNIQUE constraint violations when sending multiple invites
+      const placeholderCoachId = crypto.randomUUID();
 
       // Create pending relationship in database
       const { data, error } = await supabase
         .from("coach_relationships")
         .insert({
-          coach_user_id: userId, // Placeholder - will be updated when coach accepts
+          coach_user_id: placeholderCoachId, // Temporary UUID - will be updated when coach accepts
           coachee_user_id: userId,
           status: 'pending',
           invited_by: 'coachee',
@@ -319,11 +312,16 @@ export function useCoachRelationships(options: UseCoachRelationshipsOptions): Us
       const inviteToken = generateInviteToken();
       const inviteExpiresAt = getInviteExpiration();
 
+      // Generate a random placeholder UUID for coachee_user_id
+      // This will be replaced with the actual coachee's user_id when they accept
+      // Using a random UUID prevents UNIQUE constraint violations when generating multiple invite links
+      const placeholderCoacheeId = crypto.randomUUID();
+
       const { data, error } = await supabase
         .from("coach_relationships")
         .insert({
           coach_user_id: userId,
-          coachee_user_id: userId, // Placeholder - will be updated when coachee accepts
+          coachee_user_id: placeholderCoacheeId, // Temporary UUID - will be updated when coachee accepts
           status: 'pending',
           invited_by: 'coach',
           invite_token: inviteToken,

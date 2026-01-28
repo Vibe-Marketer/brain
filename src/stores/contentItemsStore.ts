@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast } from 'sonner';
 import type {
   ContentItem,
   ContentItemInput,
@@ -206,6 +207,7 @@ export const useContentItemsStore = create<ContentItemsState & ContentItemsActio
             itemsError: error.message,
           }));
         }
+        toast.error("Couldn't add item. Please try again.");
         return null;
       }
 
@@ -279,6 +281,7 @@ export const useContentItemsStore = create<ContentItemsState & ContentItemsActio
             itemsError: error.message,
           }));
         }
+        toast.error("Couldn't update item. Please try again.");
         return null;
       }
 
@@ -332,6 +335,7 @@ export const useContentItemsStore = create<ContentItemsState & ContentItemsActio
           emails: previousEmails,
           itemsError: error.message,
         });
+        toast.error("Couldn't remove item. Please try again.");
         return false;
       }
 
@@ -386,6 +390,7 @@ export const useContentItemsStore = create<ContentItemsState & ContentItemsActio
             ),
           }));
         }
+        toast.error("Couldn't mark item as used.");
       }
     },
 
@@ -440,6 +445,7 @@ export const useContentItemsStore = create<ContentItemsState & ContentItemsActio
             ),
           }));
         }
+        toast.error("Couldn't update item status.");
       }
     },
 

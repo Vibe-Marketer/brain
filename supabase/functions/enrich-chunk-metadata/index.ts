@@ -1,16 +1,12 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { logUsage } from '../_shared/usage-tracker.ts';
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 // ============================================================================
 // DIRECT OPENAI API IMPLEMENTATION
 // The AI SDK has zod bundling issues with esm.sh that cause "safeParseAsync is not a function" errors.
 // We bypass the AI SDK entirely and use native fetch with OpenAI API structured outputs.
 // ============================================================================
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};
 
 // Metadata schema as JSON Schema for OpenAI structured outputs
 const MetadataJsonSchema = {
@@ -204,7 +200,9 @@ Be precise and only extract information that is clearly present in the text.`;
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

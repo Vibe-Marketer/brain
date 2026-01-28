@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/lib/logger';
 import type { Message } from '@ai-sdk/react';
 
 interface ChatSession {
@@ -159,7 +160,7 @@ export function useChatSession(userId: string | undefined) {
 
       // Guard against undefined or empty messages
       if (!messages || !Array.isArray(messages) || messages.length === 0) {
-        console.log('No messages to save (empty or undefined)');
+        logger.debug('No messages to save (empty or undefined)');
         return;
       }
 
@@ -196,7 +197,7 @@ export function useChatSession(userId: string | undefined) {
           // Round-trip through JSON to strip non-serializable data
           return JSON.parse(JSON.stringify(parts));
         } catch {
-          console.warn('Failed to serialize message parts, skipping');
+          logger.warn('Failed to serialize message parts, skipping');
           return null;
         }
       };
@@ -208,7 +209,7 @@ export function useChatSession(userId: string | undefined) {
         .filter((msg) => {
           // Skip messages with invalid roles
           if (!validRoles.includes(msg.role as typeof validRoles[number])) {
-            console.warn('Skipping message with invalid role:', msg.role);
+            logger.warn('Skipping message with invalid role:', msg.role);
             return false;
           }
           return true;
@@ -225,24 +226,25 @@ export function useChatSession(userId: string | undefined) {
         }));
 
       if (messagesToInsert.length === 0) {
-        console.log('No valid messages to insert');
+        logger.debug('No valid messages to insert');
         return;
       }
 
-      console.log('Saving messages:', JSON.stringify(messagesToInsert, null, 2));
+      logger.debug('Saving messages:', messagesToInsert.length);
 
       const { error, data } = await supabase.from('chat_messages').insert(messagesToInsert).select();
 
       if (error) {
-        console.error('Supabase insert error:', JSON.stringify(error, null, 2));
-        console.error('Error code:', error.code);
-        console.error('Error message:', error.message);
-        console.error('Error details:', error.details);
-        console.error('Error hint:', error.hint);
+        logger.error('Supabase insert error:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
         throw new Error(`Failed to save messages: ${error.message}`);
       }
 
-      console.log('Saved messages successfully:', data?.length);
+      logger.debug('Saved messages successfully:', data?.length);
 
       // Note: message_count, last_message_at, and updated_at are handled by database trigger
       // We only need to update the title here if this is the first user message

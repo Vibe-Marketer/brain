@@ -1,11 +1,10 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -38,7 +37,7 @@ Deno.serve(async (req) => {
 
     if (!code || !state) {
       return new Response(
-        JSON.stringify({ error: 'Missing code or state' }),
+        JSON.stringify({ error: 'Invalid OAuth response from Google. Please try connecting again.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -52,7 +51,7 @@ Deno.serve(async (req) => {
 
     if (!settings || settings.google_oauth_state !== state) {
       return new Response(
-        JSON.stringify({ error: 'Invalid state parameter' }),
+        JSON.stringify({ error: 'Security verification failed. Please try connecting to Google again.' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -60,11 +59,11 @@ Deno.serve(async (req) => {
     // Get production OAuth credentials
     const clientId = Deno.env.get('GOOGLE_OAUTH_CLIENT_ID');
     const clientSecret = Deno.env.get('GOOGLE_OAUTH_CLIENT_SECRET');
-    const redirectUri = 'https://app.callvaultai.com/oauth/callback/google';
+    const redirectUri = 'https://app.callvaultai.com/oauth/callback/meet';
 
     if (!clientId || !clientSecret) {
       return new Response(
-        JSON.stringify({ error: 'OAuth not configured' }),
+        JSON.stringify({ error: 'Google integration is not configured. Please contact support.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -88,7 +87,7 @@ Deno.serve(async (req) => {
       const errorText = await tokenResponse.text();
       console.error('Google token exchange failed:', tokenResponse.status, errorText);
       return new Response(
-        JSON.stringify({ error: 'Failed to exchange authorization code' }),
+        JSON.stringify({ error: 'Unable to connect to Google. Please try again or contact support if the issue persists.' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -211,11 +210,15 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error('Google OAuth callback error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    const userFriendlyMessage = errorMessage.includes('database') || errorMessage.includes('stored')
+      ? 'Unable to save Google connection. Please try again.'
+      : 'Failed to connect to Google. Please try again or contact support if the issue persists.';
+
     return new Response(
       JSON.stringify({
         success: false,
-        error: errorMessage
+        error: userFriendlyMessage
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -9,10 +9,7 @@ import {
   MatchResult,
 } from '../_shared/dedup-fingerprint.ts';
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-zm-signature, x-zm-request-timestamp',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
  * Zoom webhook signature verification.
@@ -650,6 +647,9 @@ async function processZoomWebhook(
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   const requestId = crypto.randomUUID();
   const timestamp = new Date().toISOString();
 

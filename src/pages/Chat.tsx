@@ -53,11 +53,11 @@ import {
   type ContextAttachment,
 } from "@/components/chat/prompt-input";
 import { ModelSelector } from "@/components/chat/model-selector";
-import { UserMessage, AssistantMessage } from "@/components/chat/message";
+import { UserMessage, AssistantMessage, extractSourcesFromParts, citationSourcesToSourceData } from "@/components/chat/message";
 import { ScrollButton } from "@/components/chat/scroll-button";
 import { ThinkingLoader, Loader } from "@/components/chat/loader";
 import { ChatSkeleton, ChatLoading } from "@/components/chat/chat-skeleton";
-import { Sources } from "@/components/chat/source";
+import { Sources, SourceList } from "@/components/chat/source";
 import { ToolCalls } from "@/components/chat/tool-call";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { AppShell } from "@/components/layout/AppShell";
@@ -69,6 +69,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { getUserFriendlyError, ErrorContexts } from "@/lib/user-friendly-errors";
+import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 
 // Helper to detect rate limit errors
@@ -265,6 +266,12 @@ export default function Chat() {
   const location = useLocation();
   const { sessionId } = useParams<{ sessionId: string }>();
 
+  // TODO: Switch back to chat-stream-v2 after fixing AI SDK error
+  // See .planning/phases/02-chat-foundation/02-UAT.md for investigation notes
+  // v2 fails with "Provider returned error" - likely AI SDK + Deno/esm.sh bundling issue
+  const chatEndpoint = 'chat-stream';
+  const chatBasePath = '/chat';
+
   // Filter state - Initialize from location state if available (prevents race condition)
   const [filters, setFilters] = React.useState<ChatFilters>(() => {
     const state = location.state as ChatLocationState | undefined;
@@ -373,6 +380,12 @@ export default function Chat() {
   const MAX_RECONNECT_ATTEMPTS = 3;
   const BASE_RECONNECT_DELAY = 1000; // 1 second base delay
 
+  // Track incomplete assistant messages (streaming failed mid-response)
+  const [incompleteMessageIds, setIncompleteMessageIds] = React.useState<Set<string>>(new Set());
+
+  // Ref to hold retry handler (avoids circular dependency with error effect)
+  const handleRetryRef = React.useRef<() => void>(() => {});
+
   // Ref to track current session ID for async callbacks (avoids stale closure)
   const currentSessionIdRef = React.useRef<string | null>(currentSessionId);
   React.useEffect(() => {
@@ -429,11 +442,11 @@ export default function Chat() {
   const transport = React.useMemo(() => {
     // Guard: Don't create transport without valid auth token
     if (!session?.access_token) {
-      console.warn('Transport creation blocked: No valid auth token');
+      logger.warn('Transport creation blocked: No valid auth token');
       return null;
     }
 
-    console.log('[Chat] Creating transport with:', {
+    logger.debug('[Chat] Creating transport with:', {
       model: selectedModel,
       sessionId: currentSessionId,
       hasFilters: !!apiFilters,
@@ -445,17 +458,17 @@ export default function Chat() {
       const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
 
       try {
-        console.log('[Chat] Making request to:', url);
+        logger.debug('[Chat] Making request to:', url);
         const response = await fetch(url, {
           ...options,
           signal: controller.signal,
         });
         clearTimeout(timeoutId);
-        console.log('[Chat] Response status:', response.status);
+        logger.debug('[Chat] Response status:', response.status);
         return response;
       } catch (error) {
         clearTimeout(timeoutId);
-        console.error('[Chat] Fetch error:', error);
+        logger.error('[Chat] Fetch error:', error);
 
         // Capture to Sentry for remote debugging
         Sentry.captureException(error, {
@@ -476,7 +489,7 @@ export default function Chat() {
     };
 
     return new DefaultChatTransport({
-      api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat-stream`,
+      api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${chatEndpoint}`,
       headers: {
         Authorization: `Bearer ${session.access_token}`,
       },
@@ -505,7 +518,7 @@ export default function Chat() {
   // Monitor for auth errors, rate limits, streaming interruption, and trigger re-login/reconnect
   React.useEffect(() => {
     if (error) {
-      console.error('[Chat] Error occurred:', error.message);
+      logger.error('[Chat] Error occurred:', error.message);
 
       // Check for rate limit error first
       if (isRateLimitError(error)) {
@@ -534,6 +547,13 @@ export default function Chat() {
 
       // Check for streaming interruption error (network/connection issues)
       if (isStreamingInterruptionError(error) && lastUserMessageRef.current) {
+        // Mark the last assistant message as incomplete (preserve partial content)
+        const currentMessages = messagesRef.current;
+        const lastMsg = currentMessages[currentMessages.length - 1];
+        if (lastMsg?.role === 'assistant') {
+          setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
+        }
+
         const currentAttempts = reconnectAttempts + 1;
 
         if (currentAttempts <= MAX_RECONNECT_ATTEMPTS) {
@@ -543,7 +563,7 @@ export default function Chat() {
           // Exponential backoff: 1s, 2s, 4s
           const delay = BASE_RECONNECT_DELAY * Math.pow(2, currentAttempts - 1);
 
-          console.log(`[Chat] Streaming interrupted, attempting reconnect ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
+          logger.debug(`[Chat] Streaming interrupted, attempting reconnect ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
 
           toast.loading(
             `Connection interrupted. Reconnecting (attempt ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS})...`,
@@ -559,7 +579,7 @@ export default function Chat() {
           reconnectTimeoutRef.current = setTimeout(() => {
             const messageToRetry = lastUserMessageRef.current;
             if (messageToRetry && isChatReady) {
-              console.log('[Chat] Retrying message after streaming interruption');
+              logger.debug('[Chat] Retrying message after streaming interruption');
               sendMessage({ text: messageToRetry });
             }
             setIsReconnecting(false);
@@ -567,19 +587,33 @@ export default function Chat() {
 
           return;
         } else {
-          // Max reconnect attempts reached
-          console.log('[Chat] Max reconnect attempts reached');
+          // Max reconnect attempts reached — show actionable toast with retry
+          logger.debug('[Chat] Max reconnect attempts reached');
           setReconnectAttempts(0);
           setIsReconnecting(false);
-          lastUserMessageRef.current = null;
 
           toast.dismiss('reconnect-toast');
           toast.error(
-            'Connection lost. Your message was preserved - please try again when your connection is stable.',
-            { duration: 5000 }
+            'Connection lost. Your partial response has been saved.',
+            {
+              id: 'streaming-error-toast',
+              duration: 10000,
+              action: {
+                label: 'Retry',
+                onClick: () => handleRetryRef.current(),
+              },
+            }
           );
           return;
         }
+      }
+
+      // For non-streaming errors that still have a partial assistant message,
+      // mark the last assistant message as incomplete
+      const currentMessages = messagesRef.current;
+      const lastMsg = currentMessages[currentMessages.length - 1];
+      if (lastMsg?.role === 'assistant' && getMessageTextContent(lastMsg).trim().length > 0) {
+        setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
       }
 
       // Get user-friendly error
@@ -587,23 +621,35 @@ export default function Chat() {
 
       // Check if it's an auth error
       if (friendlyError.title === 'Session Expired') {
-        console.log('[Chat] Auth error detected, attempting to refresh session...');
+        logger.debug('[Chat] Auth error detected, attempting to refresh session...');
 
         // Try to refresh the session
         supabase.auth.getSession().then(({ data: { session: refreshedSession }, error: refreshError }) => {
           if (refreshError || !refreshedSession) {
-            console.error('[Chat] Session refresh failed, redirecting to login');
+            logger.error('[Chat] Session refresh failed, redirecting to login');
             toast.error(friendlyError.message);
             // Session is truly dead - redirect to login
             setTimeout(() => navigate('/login', { replace: true }), 2000);
           } else {
-            console.log('[Chat] Session refreshed successfully');
+            logger.debug('[Chat] Session refreshed successfully');
             toast.info('Session refreshed - please try again');
           }
         });
       } else {
         // Show user-friendly error for non-auth errors
-        toast.error(friendlyError.message);
+        // Include retry action if we have a message to retry
+        if (lastUserMessageRef.current) {
+          toast.error(friendlyError.message, {
+            id: 'streaming-error-toast',
+            duration: 10000,
+            action: {
+              label: 'Retry',
+              onClick: () => handleRetryRef.current(),
+            },
+          });
+        } else {
+          toast.error(friendlyError.message);
+        }
       }
     }
   }, [error, navigate, reconnectAttempts, isChatReady, sendMessage]);
@@ -648,17 +694,23 @@ export default function Chat() {
     return () => clearInterval(intervalId);
   }, [rateLimitCooldownEnd]);
 
-  // Reset reconnection state when streaming completes successfully
+  // Reset reconnection state and incomplete markers when streaming completes successfully
   React.useEffect(() => {
     if (status === 'ready' && reconnectAttempts > 0) {
-      console.log('[Chat] Streaming completed successfully, resetting reconnection state');
+      logger.debug('[Chat] Streaming completed successfully, resetting reconnection state');
       setReconnectAttempts(0);
       setIsReconnecting(false);
+      setIncompleteMessageIds(new Set());
       lastUserMessageRef.current = null;
       toast.dismiss('reconnect-toast');
+      toast.dismiss('streaming-error-toast');
       toast.success('Connection restored!', { duration: 2000 });
     }
-  }, [status, reconnectAttempts]);
+    // Also clear incomplete markers when new streaming completes without reconnect
+    if (status === 'ready' && incompleteMessageIds.size > 0 && reconnectAttempts === 0) {
+      setIncompleteMessageIds(new Set());
+    }
+  }, [status, reconnectAttempts, incompleteMessageIds.size]);
 
   // Cleanup reconnect timeout on unmount
   React.useEffect(() => {
@@ -702,7 +754,7 @@ export default function Chat() {
             model,
           });
         } catch (err) {
-          console.error("Failed to save messages:", err);
+          logger.error("Failed to save messages:", err);
         }
       }, 500);
     };
@@ -747,15 +799,15 @@ export default function Chat() {
       sessionIdToCheck &&
       messages.length === 0
     ) {
-      console.log('[Chat] Workflow error with empty session, cleaning up:', sessionIdToCheck);
+      logger.debug('[Chat] Workflow error with empty session, cleaning up:', sessionIdToCheck);
       // Delete the empty session after a short delay to allow error handling
       setTimeout(async () => {
         try {
           await deleteSession(sessionIdToCheck);
           // Navigate away from deleted session
-          navigate('/chat', { replace: true });
+          navigate(chatBasePath, { replace: true });
         } catch (err) {
-          console.error('[Chat] Failed to cleanup empty session:', err);
+          logger.error('[Chat] Failed to cleanup empty session:', err);
         }
       }, 1000);
     }
@@ -793,7 +845,7 @@ export default function Chat() {
       } catch (error) {
         // Only log errors if component is still mounted (ignore abort errors)
         if (isMounted) {
-          console.error("Failed to fetch filter options:", error);
+          logger.error("Failed to fetch filter options:", error);
         }
       }
     }
@@ -887,7 +939,7 @@ export default function Chat() {
         // If so, we skip fetching messages from DB to avoid overwriting the optimistic local state
         // with an empty array from the DB (race condition fix)
         if (locationState?.newSession) {
-          console.log(
+          logger.debug(
             "New session detected, skipping initial DB fetch to preserve optimistic state"
           );
 
@@ -913,7 +965,7 @@ export default function Chat() {
         // Only update state if still mounted
         if (!isMounted) return;
 
-        console.log(
+        logger.debug(
           `Loaded ${loadedMessages.length} messages for session ${sessionId}`
         );
 
@@ -935,7 +987,7 @@ export default function Chat() {
       } catch (err) {
         // Only log errors if component is still mounted
         if (isMounted) {
-          console.error("Failed to load session:", err);
+          logger.error("Failed to load session:", err);
           setIsLoadingMessages(false);
         }
       }
@@ -966,16 +1018,16 @@ export default function Chat() {
   const handleNewChat = React.useCallback(async () => {
     try {
       const newSession = await createNewSession();
-      navigate(`/chat/${newSession.id}`);
+      navigate(`${chatBasePath}/${newSession.id}`);
     } catch (err) {
-      console.error("Failed to create session:", err);
+      logger.error("Failed to create session:", err);
     }
   }, [createNewSession, navigate]);
 
   // Handle session selection
   const handleSessionSelect = React.useCallback(
     (selectedSessionId: string) => {
-      navigate(`/chat/${selectedSessionId}`);
+      navigate(`${chatBasePath}/${selectedSessionId}`);
       setShowSidebar(false);
     },
     [navigate]
@@ -987,10 +1039,10 @@ export default function Chat() {
       try {
         await deleteSession(sessionIdToDelete);
         if (sessionIdToDelete === currentSessionId) {
-          navigate("/chat");
+          navigate(chatBasePath);
         }
       } catch (err) {
-        console.error("Failed to delete session:", err);
+        logger.error("Failed to delete session:", err);
       }
     },
     [deleteSession, currentSessionId, navigate]
@@ -1002,7 +1054,7 @@ export default function Chat() {
       try {
         await togglePin({ sessionId, isPinned });
       } catch (err) {
-        console.error("Failed to toggle pin:", err);
+        logger.error("Failed to toggle pin:", err);
       }
     },
     [togglePin]
@@ -1014,7 +1066,7 @@ export default function Chat() {
       try {
         await toggleArchive({ sessionId, isArchived });
       } catch (err) {
-        console.error("Failed to toggle archive:", err);
+        logger.error("Failed to toggle archive:", err);
       }
     },
     [toggleArchive]
@@ -1027,7 +1079,7 @@ export default function Chat() {
 
       // CRITICAL: Check if chat is ready before attempting to send
       if (!isChatReady) {
-        console.warn('[Chat] Attempted to send message without valid session/transport');
+        logger.warn('[Chat] Attempted to send message without valid session/transport');
         toast.error('Your session has expired. Please sign in again to continue.');
         setTimeout(() => navigate('/login', { replace: true }), 2000);
         return;
@@ -1064,12 +1116,12 @@ export default function Chat() {
           currentSessionIdRef.current = newSession.id;
           setCurrentSessionId(newSession.id);
           // Pass newSession: true to prevent loadSession from overwriting our optimistic message
-          navigate(`/chat/${newSession.id}`, {
+          navigate(`${chatBasePath}/${newSession.id}`, {
             replace: true,
             state: { newSession: true }
           });
         } catch (err) {
-          console.error("Failed to create session:", err);
+          logger.error("Failed to create session:", err);
           toast.error('Failed to create chat session. Please try again.');
           return;
         }
@@ -1101,7 +1153,7 @@ export default function Chat() {
     async (text: string) => {
       // CRITICAL: Check if chat is ready before attempting to send
       if (!isChatReady) {
-        console.warn('[Chat] Attempted to send suggestion without valid session/transport');
+        logger.warn('[Chat] Attempted to send suggestion without valid session/transport');
         toast.error('Your session has expired. Please sign in again to continue.');
         setTimeout(() => navigate('/login', { replace: true }), 2000);
         return;
@@ -1125,12 +1177,12 @@ export default function Chat() {
           currentSessionIdRef.current = newSession.id;
           setCurrentSessionId(newSession.id);
           // Pass newSession: true to prevent loadSession from overwriting our optimistic message
-          navigate(`/chat/${newSession.id}`, {
+          navigate(`${chatBasePath}/${newSession.id}`, {
             replace: true,
             state: { newSession: true }
           });
         } catch (err) {
-          console.error("Failed to create session:", err);
+          logger.error("Failed to create session:", err);
           toast.error('Failed to create chat session. Please try again.');
           return;
         }
@@ -1154,11 +1206,50 @@ export default function Chat() {
     ]
   );
 
+  // Handle retry after streaming failure
+  // Removes the incomplete assistant message, then resends the last user message
+  const handleRetry = React.useCallback(() => {
+    const lastUserMessage = lastUserMessageRef.current;
+    if (!lastUserMessage) {
+      toast.error('No message to retry.');
+      return;
+    }
+
+    if (!isChatReady) {
+      toast.error('Your session has expired. Please sign in again to continue.');
+      return;
+    }
+
+    // Remove incomplete assistant messages from the conversation
+    setMessages((prev) => {
+      const cleaned = prev.filter((m) => !incompleteMessageIds.has(m.id));
+      return cleaned;
+    });
+    setIncompleteMessageIds(new Set());
+
+    // Reset reconnection state
+    setReconnectAttempts(0);
+    setIsReconnecting(false);
+
+    // Dismiss any existing error/reconnect toasts
+    toast.dismiss('reconnect-toast');
+    toast.dismiss('streaming-error-toast');
+
+    // Resend the message
+    logger.debug('[Chat] Retrying message:', lastUserMessage);
+    sendMessage({ text: lastUserMessage });
+  }, [isChatReady, sendMessage, setMessages, incompleteMessageIds]);
+
+  // Keep retry ref in sync
+  React.useEffect(() => {
+    handleRetryRef.current = handleRetry;
+  }, [handleRetry]);
+
   // Handler to view a call from a source citation
   const handleViewCall = React.useCallback(
     async (recordingId: number) => {
       if (!session?.user?.id) {
-        console.error("No user session");
+        logger.error("No user session");
         return;
       }
 
@@ -1172,14 +1263,14 @@ export default function Chat() {
           .single();
 
         if (error) {
-          console.error("Failed to fetch call:", error);
+          logger.error("Failed to fetch call:", error);
           return;
         }
 
         setSelectedCall(callData as unknown as Meeting);
         setShowCallDialog(true);
       } catch (err) {
-        console.error("Error fetching call:", err);
+        logger.error("Error fetching call:", err);
       }
     },
     [session?.user?.id]
@@ -1362,7 +1453,7 @@ export default function Chat() {
               </div>
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-ink">
-                  AI Chat
+                    AI Chat
                 </h2>
                 <p className="text-xs text-ink-muted">
                   Ask questions about your calls
@@ -1674,64 +1765,16 @@ export default function Chat() {
                     const toolParts = getToolInvocations(message);
                     const textContent = getMessageTextContent(message);
 
-                    // Extract sources from tool results
-                    const sources: Array<{
-                      recording_id: number;
-                      text: string;
-                      speaker: string;
-                      call_date: string;
-                      call_title: string;
-                      relevance: string;
-                    }> = [];
-
-                    toolParts.forEach((p) => {
-                      if (p.type === "tool-result" && p.result) {
-                        if (
-                          p.result.results &&
-                          Array.isArray(p.result.results)
-                        ) {
-                          sources.push(...p.result.results);
-                        } else if (
-                          p.result.calls &&
-                          Array.isArray(p.result.calls)
-                        ) {
-                          // Handle summarizeCalls tool results
-                          sources.push(...p.result.calls.map((c: any) => ({
-                            recording_id: c.recording_id,
-                            text: c.summary_preview || c.summary || "",
-                            speaker: c.recorded_by || "Unknown",
-                            call_date: c.date || c.created_at,
-                            call_title: c.title,
-                            relevance: "100", // Summarized calls are implicitly relevant
-                          })));
-                        } else if (
-                          p.result.recording_id &&
-                          p.result.title &&
-                          !p.result.error
-                        ) {
-                          sources.push({
-                            recording_id: p.result.recording_id as number,
-                            text: (p.result.summary as string) || "",
-                            speaker: (p.result.recorded_by as string) || "",
-                            call_date: (p.result.date as string) || "",
-                            call_title: (p.result.title as string) || "",
-                            relevance: "100",
-                          });
-                        }
-                      }
-                    });
-
-                    const uniqueSources = sources
-                      .filter(
-                        (s, i, arr) =>
-                          arr.findIndex(
-                            (x) => x.recording_id === s.recording_id
-                          ) === i
-                      )
-                      .slice(0, 20);
+                    // Extract citation sources from tool result parts
+                    const citationSources = extractSourcesFromParts(
+                      toolParts.filter((p) => p.type === "tool-result" && p.result)
+                    );
+                    const sourceDataList = citationSourcesToSourceData(citationSources, message.id);
 
                     const hasContent = textContent.trim().length > 0;
                     const isThinking = !hasContent && toolParts.length > 0;
+                    const hasCitations = citationSources.length > 0;
+                    const isIncomplete = incompleteMessageIds.has(message.id);
 
                     return (
                       <div key={message.id} className="space-y-2">
@@ -1739,33 +1782,48 @@ export default function Chat() {
                           <ToolCalls parts={toolParts} />
                         )}
                         {hasContent ? (
-                          <AssistantMessage
-                            markdown
-                            showSaveButton
-                            saveMetadata={{ source: 'chat', generated_at: new Date().toISOString() }}
-                          >
-                            {textContent}
-                          </AssistantMessage>
+                          <div>
+                            <AssistantMessage
+                              markdown
+                              showSaveButton
+                              saveMetadata={{ source: 'chat', generated_at: new Date().toISOString() }}
+                              citations={hasCitations ? citationSources : undefined}
+                              onCitationClick={handleViewCall}
+                            >
+                              {textContent}
+                            </AssistantMessage>
+                            {isIncomplete && (
+                              <div className="ml-11 mt-1 flex items-center gap-2">
+                                <span className="text-xs text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                                    <line x1="12" y1="9" x2="12" y2="13"/>
+                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                                  </svg>
+                                  Incomplete response
+                                </span>
+                                <button
+                                  onClick={handleRetry}
+                                  className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium transition-colors"
+                                >
+                                  ↻ Retry
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         ) : isThinking ? (
                           <AssistantMessage>
                             <ThinkingLoader />
                           </AssistantMessage>
                         ) : null}
-                        {uniqueSources.length > 0 && (
-                          <Sources
-                            sources={uniqueSources.map((s, i) => ({
-                              id: `${message.id}-source-${i}`,
-                              recording_id: s.recording_id,
-                              chunk_text: s.text,
-                              speaker_name: s.speaker,
-                              call_date: s.call_date,
-                              call_title: s.call_title,
-                              similarity_score: parseFloat(s.relevance) / 100,
-                            }))}
-                            onViewCall={handleViewCall}
-                            className="ml-11"
+                        {hasCitations ? (
+                          <SourceList
+                            sources={sourceDataList}
+                            indices={citationSources.map((s) => s.index)}
+                            onSourceClick={handleViewCall}
+                            className="ml-0"
                           />
-                        )}
+                        ) : null}
                       </div>
                     );
                   }

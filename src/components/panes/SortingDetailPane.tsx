@@ -217,9 +217,10 @@ export function SortingDetailPane({
     }
   }, [category]);
 
-  // Render the appropriate sorting component based on category
+  // Render the appropriate sorting component based on displayedCategory (not category)
+  // This ensures content matches the transition state and prevents flickering
   const renderContent = () => {
-    switch (category) {
+    switch (displayedCategory) {
       case "folders":
         return <FoldersTab />;
       case "tags":

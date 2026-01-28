@@ -52,6 +52,32 @@ export function DateRangePicker({
   // Use 1 month on mobile, otherwise use the prop value
   const displayMonths = isMobile ? 1 : numberOfMonths;
 
+  /**
+   * Normalize date range to ensure same-day selections span the full day.
+   * When from and to are the same calendar day, set from to 00:00:00 and to to 23:59:59.999
+   * This prevents zero-width time ranges when querying databases.
+   */
+  const normalizeDateRange = (range: { from?: Date; to?: Date }): { from?: Date; to?: Date } => {
+    if (!range.from || !range.to) return range;
+
+    // Check if from and to are the same calendar day
+    const isSameDay =
+      range.from.getFullYear() === range.to.getFullYear() &&
+      range.from.getMonth() === range.to.getMonth() &&
+      range.from.getDate() === range.to.getDate();
+
+    if (!isSameDay) return range;
+
+    // Same day - normalize times to span full day
+    const normalizedFrom = new Date(range.from);
+    normalizedFrom.setHours(0, 0, 0, 0);
+
+    const normalizedTo = new Date(range.to);
+    normalizedTo.setHours(23, 59, 59, 999);
+
+    return { from: normalizedFrom, to: normalizedTo };
+  };
+
   const getQuickSelectRange = (preset: string): { from: Date; to: Date } => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -60,10 +86,16 @@ export function DateRangePicker({
     yesterday.setDate(yesterday.getDate() - 1);
 
     switch (preset) {
-      case 'today':
-        return { from: today, to: today };
-      case 'yesterday':
-        return { from: yesterday, to: yesterday };
+      case 'today': {
+        const endOfToday = new Date(today);
+        endOfToday.setHours(23, 59, 59, 999);
+        return { from: today, to: endOfToday };
+      }
+      case 'yesterday': {
+        const endOfYesterday = new Date(yesterday);
+        endOfYesterday.setHours(23, 59, 59, 999);
+        return { from: yesterday, to: endOfYesterday };
+      }
       case 'last7': {
         const last7 = new Date(today);
         last7.setDate(last7.getDate() - 7);
@@ -148,10 +180,24 @@ export function DateRangePicker({
           <RiCalendarLine className="mr-2 h-4 w-4" />
           {dateRange?.from ? (
             dateRange.to ? (
-              <>
-                {format(dateRange.from, "MMM d, yyyy")} -{" "}
-                {format(dateRange.to, "MMM d, yyyy")}
-              </>
+              (() => {
+                // Check if same calendar day to show cleaner single-day format
+                const isSameDay =
+                  dateRange.from.getFullYear() === dateRange.to.getFullYear() &&
+                  dateRange.from.getMonth() === dateRange.to.getMonth() &&
+                  dateRange.from.getDate() === dateRange.to.getDate();
+
+                if (isSameDay) {
+                  return format(dateRange.from, "MMM d, yyyy");
+                }
+
+                return (
+                  <>
+                    {format(dateRange.from, "MMM d, yyyy")} -{" "}
+                    {format(dateRange.to, "MMM d, yyyy")}
+                  </>
+                );
+              })()
             ) : (
               format(dateRange.from, "MMM d, yyyy")
             )
@@ -166,7 +212,7 @@ export function DateRangePicker({
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className={cn("w-auto p-0 max-h-[90vh]", className)} align={align}>
+      <PopoverContent className={cn("!w-auto p-0 max-h-[90vh]", className)} align={align}>
         <div className="p-4 space-y-4 pointer-events-auto overflow-y-auto max-h-[calc(90vh-2rem)]">
           {showQuickSelect && (
             <div>
@@ -266,7 +312,15 @@ export function DateRangePicker({
             <Calendar
               mode="range"
               selected={dateRange as DateRange}
-              onSelect={onDateRangeChange}
+              onSelect={(range) => {
+                if (range) {
+                  // Normalize same-day selections to span full day
+                  const normalized = normalizeDateRange(range);
+                  onDateRangeChange(normalized);
+                } else {
+                  onDateRangeChange(range);
+                }
+              }}
               numberOfMonths={displayMonths}
               defaultMonth={getDefaultMonth()}
               disabled={disableFuture ? (date) => date > new Date() : undefined}
