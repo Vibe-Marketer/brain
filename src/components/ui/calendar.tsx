@@ -16,32 +16,20 @@ function Calendar({ className, classNames, showOutsideDays = true, startMonth, e
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      captionLayout="dropdown" // Enable month/year dropdown navigation
-      navLayout="around" // Arrows flank the date: [ < ] January 2026 [ > ]
-      reverseYears // Most recent years at top of dropdown
       startMonth={startMonth ?? defaultStartMonth}
       endMonth={endMonth ?? defaultEndMonth}
       className={cn("p-3", className)}
       classNames={{
-        // Single month layout
+        // Layout
         months: "flex flex-col",
         month: "flex flex-col gap-2",
-        // Caption row with nav buttons on either side of dropdowns
-        month_caption: "flex justify-center items-center gap-2 h-10",
-        caption_label: "text-sm font-medium hidden", // Hidden when using dropdown
-        // Dropdown styling
-        dropdowns: "flex items-center gap-1",
-        dropdown: "appearance-none bg-transparent border border-input rounded-lg px-2 py-1 text-sm font-medium cursor-pointer hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange",
-        months_dropdown: "w-[100px]",
-        years_dropdown: "w-[70px]",
-        // Navigation buttons - styled hollow buttons with border
-        nav: "flex items-center",
-        button_previous: cn(
-          "h-8 w-8 p-0 rounded-lg border border-input bg-background hover:bg-muted inline-flex items-center justify-center",
-        ),
-        button_next: cn(
-          "h-8 w-8 p-0 rounded-lg border border-input bg-background hover:bg-muted inline-flex items-center justify-center",
-        ),
+        // Hide built-in caption when using custom navigation
+        month_caption: "hidden",
+        caption_label: "hidden",
+        // Hide built-in nav when using custom navigation
+        nav: "hidden",
+        button_previous: "hidden",
+        button_next: "hidden",
         // Calendar grid
         month_grid: "w-full border-collapse",
         weekdays: "flex",

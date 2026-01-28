@@ -1,6 +1,6 @@
 import * as React from "react";
-import { format } from "date-fns";
-import { RiCalendarLine, RiCloseLine, RiRefreshLine } from "@remixicon/react";
+import { format, addMonths, subMonths } from "date-fns";
+import { RiCalendarLine, RiCloseLine, RiRefreshLine, RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import { DateRange } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
@@ -47,6 +47,7 @@ export function DateRangePicker({
   extendedQuickSelect = false,
 }: DateRangePickerProps) {
   const [open, setOpen] = React.useState(false);
+  const [month, setMonth] = React.useState<Date>(new Date());
   const isMobile = useIsMobile();
 
   // Use 1 month on mobile, otherwise use the prop value
@@ -150,19 +151,31 @@ export function DateRangePicker({
     onDateRangeChange({});
   };
 
+  const handlePrevMonth = () => {
+    setMonth(prev => subMonths(prev, 1));
+  };
+
+  const handleNextMonth = () => {
+    if (disableFuture) {
+      const nextMonth = addMonths(month, 1);
+      const now = new Date();
+      if (nextMonth.getFullYear() > now.getFullYear() ||
+          (nextMonth.getFullYear() === now.getFullYear() && nextMonth.getMonth() > now.getMonth())) {
+        return; // Don't go past current month
+      }
+    }
+    setMonth(prev => addMonths(prev, 1));
+  };
+
   const hasSelection = dateRange?.from || dateRange?.to;
 
-  // Calculate the default month to display
-  // When disableFuture is true and showing multiple months, offset backward
-  // so the current month appears on the right side
-  const getDefaultMonth = () => {
-    if (disableFuture && displayMonths > 1) {
-      const today = new Date();
-      const defaultMonth = new Date(today.getFullYear(), today.getMonth() - (displayMonths - 1), 1);
-      return defaultMonth;
-    }
-    return undefined; // Let react-day-picker use default behavior
-  };
+  // Check if next month button should be disabled
+  const isNextDisabled = disableFuture && (() => {
+    const nextMonth = addMonths(month, 1);
+    const now = new Date();
+    return nextMonth.getFullYear() > now.getFullYear() ||
+           (nextMonth.getFullYear() === now.getFullYear() && nextMonth.getMonth() > now.getMonth());
+  })();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -309,6 +322,29 @@ export function DateRangePicker({
             {showQuickSelect && (
               <Label className="text-xs font-medium mb-2 block">Select Date Range</Label>
             )}
+            {/* Custom navigation header: [ < ] Month Year [ > ] */}
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <Button
+                variant="hollow"
+                size="sm"
+                onClick={handlePrevMonth}
+                className="h-8 w-8 p-0"
+              >
+                <RiArrowLeftSLine className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium min-w-[120px] text-center">
+                {format(month, "MMMM yyyy")}
+              </span>
+              <Button
+                variant="hollow"
+                size="sm"
+                onClick={handleNextMonth}
+                disabled={isNextDisabled}
+                className="h-8 w-8 p-0"
+              >
+                <RiArrowRightSLine className="h-4 w-4" />
+              </Button>
+            </div>
             <Calendar
               mode="range"
               selected={dateRange as DateRange}
@@ -321,12 +357,14 @@ export function DateRangePicker({
                   onDateRangeChange(range);
                 }
               }}
+              month={month}
+              onMonthChange={setMonth}
               numberOfMonths={displayMonths}
-              defaultMonth={getDefaultMonth()}
               disabled={disableFuture ? (date) => date > new Date() : undefined}
               endMonth={disableFuture ? new Date() : undefined}
+              hideNavigation
               autoFocus
-              className={cn("p-3 pointer-events-auto")}
+              className={cn("p-0 pointer-events-auto")}
             />
           </div>
           {onFetch && (
