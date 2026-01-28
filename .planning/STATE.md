@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 2 in progress — Chat Foundation (plan 8 of 9 complete)
+**Current Focus:** Phase 2 COMPLETE — Chat Foundation (9/9 plans done, all 6 success criteria pass)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 2 of 9 (Chat Foundation) — IN PROGRESS
+**Phase:** 2 of 9 (Chat Foundation) — COMPLETE ✅
 
-**Plan:** 8 of 9 in current phase
+**Plan:** 9 of 9 in current phase
 
-**Status:** In progress
+**Status:** Phase complete
 
-**Last activity:** 2026-01-28 — Completed 02-08-PLAN.md (streaming error handling, retry UX, connection stability)
+**Last activity:** 2026-01-28 — Completed 02-09-PLAN.md (switchover: /chat → v2, legacy rename, final verification)
 
 **Progress:**
 ```
-[██████████████░░░░░░] 14/55 plans complete (25%)
+[███████████████░░░░░] 15/55 plans complete (27%)
 ```
 
 ---
@@ -34,17 +34,17 @@
 ### Execution Stats
 
 - **Total Requirements:** 55
-- **Completed:** 7 (SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06, STORE-01)
+- **Completed:** 12 (SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06, CHAT-01, CHAT-02, CHAT-03, CHAT-04, CHAT-05, STORE-01)
 - **In Progress:** 0
 - **Blocked:** 0
-- **Remaining:** 48
+- **Remaining:** 43
 
 ### Phase Progress
 
 | Phase | Requirements | Complete | Status |
 |-------|--------------|----------|--------|
 | Phase 1: Security Lockdown | 6 | 6 | Complete ✅ (6/6 plans) |
-| Phase 2: Chat Foundation | 6 | 1 | In progress (8/9 plans, 02-01 through 02-08 done) |
+| Phase 2: Chat Foundation | 6 | 6 | Complete ✅ (9/9 plans, all criteria pass) |
 | Phase 3: Integration OAuth | 3 | 0 | Pending |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
@@ -80,12 +80,12 @@
 | 2026-01-28 | rerankResults takes hfApiKey as parameter | Enables testability, avoids hidden Deno.env dependency in shared module | Shared modules don't read env directly |
 | 2026-01-28 | Simple diversityFilter over existing _shared version | Exact match to chat-stream production logic (max-per-recording only) | No behavior change risk |
 | 2026-01-28 | Five visual states for tool calls (pending/running/success/empty/error) | Distinguishes empty results from success — core CHAT-02 fix | Users no longer see green checkmarks on empty/failed results |
-| 2026-01-28 | chatBasePath for route-aware navigation in Chat.tsx | All navigate() calls use chatBasePath to stay within /chat or /chat2 context | Prevents accidental backend switching during session management |
 | 2026-01-28 | createTools() factory pattern for RAG tools | All 14 tools need closure access to supabase/user/apiKeys — factory pattern cleanest | Established pattern for chat-stream-v2 tool architecture |
 | 2026-01-28 | mergeFilters() for session + tool filter combination | Session filters provide base context, tool args override/extend | Clean separation of session vs per-query filtering |
 | 2026-01-28 | Entity search uses direct RPC not shared pipeline | searchByEntity needs JSONB post-filtering on entities column | Tool 9 is the exception to shared pipeline pattern |
 | 2026-01-28 | handleRetryRef pattern for error effect ↔ retry handler | Breaks circular dependency between useEffect and handleRetry callback | Allows toast retry actions without stale closure issues |
 | 2026-01-28 | Retry removes incomplete message before resend | Prevents duplicate messages — new response replaces failed one | Clean conversation flow on retry |
+| 2026-01-28 | Renamed chat-stream to chat-stream-legacy (not deleted) | Preserves deployable fallback for rollback if v2 has issues | Legacy available at chat-stream-legacy |
 
 ### Active TODOs
 
@@ -96,8 +96,9 @@
 - [x] Execute 02-04-PLAN.md (tool call three-state transparency UI)
 - [x] Execute 02-06-PLAN.md (frontend /chat2 test path)
 - [x] Execute 02-05-PLAN.md (define all 14 RAG tools + system prompt)
+- [x] Execute 02-07-PLAN.md (inline citations with hover preview + bottom source list)
 - [x] Execute 02-08-PLAN.md (streaming error handling, retry UX, connection stability)
-- [ ] Execute 02-07 and 02-09 (remaining Phase 2 plans)
+- [x] Execute 02-09-PLAN.md (switchover: /chat → v2, legacy rename, final verification)
 
 ### Known Blockers
 
@@ -108,33 +109,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-28
-**Stopped at:** Completed 02-08-PLAN.md — streaming error handling, retry UX, connection stability
+**Stopped at:** Completed 02-09-PLAN.md — Phase 2 Chat Foundation complete
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-08 all complete. Ready for 02-09-PLAN.md (switchover: /chat → v2, legacy rename, final verification).
+Phase 2 Chat Foundation is COMPLETE. All 9 plans executed, all 6 success criteria pass. Ready for Phase 3 (Integration OAuth Flows).
 
 **What to remember:**
-- chat-stream-v2 is now a complete 855-line backend with all 14 RAG tools
-- createTools() factory pattern: closure-based access to supabase/user/apiKeys/sessionFilters
-- mergeFilters() utility: session filters as base, tool-specific filters override
-- buildSystemPrompt() with query expansion guidance, citation instructions, temporal context
-- 9 search tools use shared executeHybridSearch(), 5 analytical tools use direct Supabase queries
-- Entity search (tool 9) uses direct RPC + JSONB post-filter instead of shared pipeline
-- recording_ids typed as z.string() — LLMs may send as string or number
-- HuggingFace API key defaults to empty string — re-ranking gracefully skips
-- streamText configured with maxSteps: 5, toolChoice: 'auto', toUIMessageStreamResponse()
-- Tool call UI has 5 visual states: pending/running/success/empty/error with distinct colors
-- /chat2 route uses chat-stream-v2 backend, /chat stays on legacy chat-stream
-- chatBasePath pattern: all navigate() calls use chatBasePath to stay in /chat or /chat2 context
-- Import versions pinned: ai@5.0.102, @openrouter/ai-sdk-provider@1.2.8, zod@3.23.8
-- Store error notification pattern: rollback state → `toast.error(message)` → return null/false
-- CORS: 60 functions use getCorsHeaders(), only getCorsHeaders() remains
-- Streaming error handling: toast with Retry action, partial response preservation, inline retry button
-- handleRetryRef pattern: error effect uses ref to call handleRetry without circular dependency
-- incompleteMessageIds: Set<string> tracks which assistant messages were interrupted mid-stream
+- /chat now always uses chat-stream-v2 backend (AI SDK streamText + tool)
+- Legacy chat-stream renamed to chat-stream-legacy as deployable fallback
+- /chat2 test route removed — no longer needed
+- chat-stream-v2: 855-line backend with 14 RAG tools, zod schemas, createTools() factory
+- All Phase 2 requirements addressed: CHAT-01, CHAT-02, CHAT-03, CHAT-04, CHAT-05, STORE-01
 - `tsc --noEmit` passes clean (zero errors)
 
 ---
@@ -145,13 +133,13 @@ Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-08 all complete. 
 |--------|-------|
 | Total Phases | 9 |
 | Total Requirements | 55 |
-| Requirements Complete | 7 (13%) |
-| Current Phase | 2 - Chat Foundation (IN PROGRESS) |
-| Plans Complete | 8/9 in Phase 2 (14/55 overall) |
-| Next Plan | 02-09-PLAN.md (switchover) |
+| Requirements Complete | 12 (22%) |
+| Current Phase | 2 - Chat Foundation (COMPLETE ✅) |
+| Plans Complete | 9/9 in Phase 2 (15/55 overall) |
+| Next Plan | Phase 3 - Integration OAuth |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-28 (completed 02-08-PLAN.md — streaming error handling, retry UX, connection stability)*
+*Last updated: 2026-01-28 (completed 02-09-PLAN.md — Phase 2 Chat Foundation complete)*

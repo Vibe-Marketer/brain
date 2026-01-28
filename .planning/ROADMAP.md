@@ -59,9 +59,9 @@ Plans:
 - [x] 02-04-PLAN.md — Tool call three-state transparency UI (success/empty/error)
 - [x] 02-05-PLAN.md — Define all 14 RAG tools with zod schemas + system prompt
 - [x] 02-06-PLAN.md — Frontend /chat2 test path for parallel development
-- [ ] 02-07-PLAN.md — Inline citations with hover preview + bottom source list
+- [x] 02-07-PLAN.md — Inline citations with hover preview + bottom source list
 - [x] 02-08-PLAN.md — Streaming error handling, retry UX, connection stability
-- [ ] 02-09-PLAN.md — Switchover: /chat → v2, legacy rename, final verification
+- [x] 02-09-PLAN.md — Switchover: /chat → v2, legacy rename, final verification
 
 **Requirements:**
 - CHAT-05: Migrate to Vercel AI SDK + OpenRouter
@@ -255,7 +255,7 @@ Plans:
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
 | 1 - Security Lockdown | Complete ✅ | 6 | 100% |
-| 2 - Chat Foundation | In progress (8/9 plans) | 6 | 50% |
+| 2 - Chat Foundation | Complete ✅ | 6 | 100% |
 | 3 - Integration OAuth | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
@@ -264,7 +264,7 @@ Plans:
 | 8 - Differentiators | Pending | 5 | 0% |
 | 9 - Growth Infrastructure | Pending | 5 | 0% |
 
-**Overall Progress:** 7/55 requirements complete (13%)
+**Overall Progress:** 12/55 requirements complete (22%)
 
 ---
 
@@ -368,4 +368,4 @@ Phase 9: Growth Infrastructure
 
 ---
 
-*Last updated: 2026-01-28 (Phase 2 plan 02-08 complete — 8/9 Phase 2 plans done)*
+*Last updated: 2026-01-28 (Phase 2 complete — all 9/9 plans done, all 6 success criteria pass)*
