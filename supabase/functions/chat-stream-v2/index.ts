@@ -132,10 +132,15 @@ Today's date: ${todayStr}
 - "This month" = since ${thisMonthDate}
 
 CITATION INSTRUCTIONS:
-- Always cite your sources using the recording_id from tool results so the UI can link back to the source call
-- Include the call title and date when referencing specific calls
-- If multiple results come from the same call, cite it once
-- Format: reference the call by title and date naturally in your response
+- Always cite your sources using numbered markers like [1], [2], [3] in your response text
+- Each unique source call gets one number. Assign numbers sequentially by order of first mention
+- Place the citation marker immediately after the claim it supports, e.g. "Revenue grew 30% last quarter [1]"
+- If multiple results come from the same call (same recording_id), use the same citation number
+- At the END of your response, include a sources list in this exact format:
+  [1] Call Title (Speaker, Date)
+  [2] Another Call Title (Speaker, Date)
+- The recording_id, call_title, call_date, and speaker are available in every tool result — use them for the sources list
+- Always include the sources list even if there is only one source
 
 ERROR DISCLOSURE:
 If a tool fails or returns no results, acknowledge the gap honestly: "I couldn't find results for [X], but based on [Y]..." — never fabricate information or pretend you have data you don't.
