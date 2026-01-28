@@ -152,7 +152,7 @@ export default function UsersTab() {
               updatingUserId={updatingUserId}
               onRoleChange={handleRoleChange}
               onManageUser={(userId) => {
-                openPanel('user-detail', { userId });
+                openPanel('user-detail', { userId, onUserUpdated: loadUsers });
               }}
               showActions={isAdmin}
             />

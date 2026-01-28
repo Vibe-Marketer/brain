@@ -12,6 +12,7 @@ export type PanelType =
   | 'setting-help'
   | 'settings'
   | 'sorting'
+  | 'user-detail'
   | null;
 
 interface PanelState {
