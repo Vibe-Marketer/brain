@@ -20,7 +20,7 @@
 
 **Status:** In progress
 
-**Last activity:** 2026-01-28 — Completed 02-06-PLAN.md (frontend /chat2 test path for parallel development)
+**Last activity:** 2026-01-28 — Completed 02-05-PLAN.md (define all 14 RAG tools with zod schemas + system prompt)
 
 **Progress:**
 ```
@@ -44,7 +44,7 @@
 | Phase | Requirements | Complete | Status |
 |-------|--------------|----------|--------|
 | Phase 1: Security Lockdown | 6 | 6 | Complete ✅ (6/6 plans) |
-| Phase 2: Chat Foundation | 6 | 1 | In progress (6/9 plans) |
+| Phase 2: Chat Foundation | 6 | 1 | In progress (6/9 plans, 02-01 through 02-06 done) |
 | Phase 3: Integration OAuth | 3 | 0 | Pending |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
@@ -81,6 +81,9 @@
 | 2026-01-28 | Simple diversityFilter over existing _shared version | Exact match to chat-stream production logic (max-per-recording only) | No behavior change risk |
 | 2026-01-28 | Five visual states for tool calls (pending/running/success/empty/error) | Distinguishes empty results from success — core CHAT-02 fix | Users no longer see green checkmarks on empty/failed results |
 | 2026-01-28 | chatBasePath for route-aware navigation in Chat.tsx | All navigate() calls use chatBasePath to stay within /chat or /chat2 context | Prevents accidental backend switching during session management |
+| 2026-01-28 | createTools() factory pattern for RAG tools | All 14 tools need closure access to supabase/user/apiKeys — factory pattern cleanest | Established pattern for chat-stream-v2 tool architecture |
+| 2026-01-28 | mergeFilters() for session + tool filter combination | Session filters provide base context, tool args override/extend | Clean separation of session vs per-query filtering |
+| 2026-01-28 | Entity search uses direct RPC not shared pipeline | searchByEntity needs JSONB post-filtering on entities column | Tool 9 is the exception to shared pipeline pattern |
 
 ### Active TODOs
 
@@ -90,7 +93,8 @@
 - [x] Execute 02-03-PLAN.md (extract search pipeline to shared modules)
 - [x] Execute 02-04-PLAN.md (tool call three-state transparency UI)
 - [x] Execute 02-06-PLAN.md (frontend /chat2 test path)
-- [ ] Execute 02-05, 02-07 through 02-09 (remaining Phase 2 plans)
+- [x] Execute 02-05-PLAN.md (define all 14 RAG tools + system prompt)
+- [ ] Execute 02-07 through 02-09 (remaining Phase 2 plans)
 
 ### Known Blockers
 
@@ -100,27 +104,30 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-01-28T06:15:31Z
-**Stopped at:** Completed 02-06-PLAN.md — frontend /chat2 test path for parallel development
+**Last session:** 2026-01-28
+**Stopped at:** Completed 02-05-PLAN.md — define all 14 RAG tools with zod schemas + system prompt
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-04 and 02-06 complete. Ready for 02-05-PLAN.md (define all 14 RAG tools) or 02-07-PLAN.md (inline citations).
+Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-06 all complete. Ready for 02-07-PLAN.md (inline citations with hover preview + bottom source list).
 
 **What to remember:**
-- chat-stream-v2 uses streamText() + tool() + toUIMessageStreamResponse() — AI SDK native approach
-- Tool definitions must be inside Deno.serve handler for closure access to supabase/user context
-- Import versions pinned: ai@5.0.102, @openrouter/ai-sdk-provider@1.2.8, zod@3.23.8
-- Store error notification pattern: rollback state → `toast.error(message)` → return null/false
-- Tool call UI now has 5 visual states: pending/running/success/empty/error with distinct colors
-- getToolStatus() inspects result data to distinguish success vs empty — core CHAT-02 fix
-- TOOL_LABELS map provides human-readable names for all 14 RAG tools
+- chat-stream-v2 is now a complete 855-line backend with all 14 RAG tools
+- createTools() factory pattern: closure-based access to supabase/user/apiKeys/sessionFilters
+- mergeFilters() utility: session filters as base, tool-specific filters override
+- buildSystemPrompt() with query expansion guidance, citation instructions, temporal context
+- 9 search tools use shared executeHybridSearch(), 5 analytical tools use direct Supabase queries
+- Entity search (tool 9) uses direct RPC + JSONB post-filter instead of shared pipeline
+- recording_ids typed as z.string() — LLMs may send as string or number
+- HuggingFace API key defaults to empty string — re-ranking gracefully skips
+- streamText configured with maxSteps: 5, toolChoice: 'auto', toUIMessageStreamResponse()
+- Tool call UI has 5 visual states: pending/running/success/empty/error with distinct colors
 - /chat2 route uses chat-stream-v2 backend, /chat stays on legacy chat-stream
 - chatBasePath pattern: all navigate() calls use chatBasePath to stay in /chat or /chat2 context
-- ContentGenerator.tsx AI handler is stubbed (TODO for future rewiring)
-- logger pattern: `import { logger } from '@/lib/logger'` for all frontend logging
+- Import versions pinned: ai@5.0.102, @openrouter/ai-sdk-provider@1.2.8, zod@3.23.8
+- Store error notification pattern: rollback state → `toast.error(message)` → return null/false
 - CORS: 60 functions use getCorsHeaders(), only getCorsHeaders() remains
 - `tsc --noEmit` passes clean (zero errors)
 
@@ -134,11 +141,11 @@ Phase 2 Chat Foundation is IN PROGRESS. Plans 02-01 through 02-04 and 02-06 comp
 | Total Requirements | 55 |
 | Requirements Complete | 7 (13%) |
 | Current Phase | 2 - Chat Foundation (IN PROGRESS) |
-| Plans Complete | 6/9 in phase |
-| Next Plan | 02-07-PLAN.md |
+| Plans Complete | 6/9 in Phase 2 (12/55 overall) |
+| Next Plan | 02-07-PLAN.md (inline citations) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-28 (completed 02-06-PLAN.md — frontend /chat2 test path for parallel development)*
+*Last updated: 2026-01-28 (completed 02-05-PLAN.md — define all 14 RAG tools with zod schemas + system prompt)*
