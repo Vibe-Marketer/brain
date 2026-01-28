@@ -53,11 +53,11 @@ import {
   type ContextAttachment,
 } from "@/components/chat/prompt-input";
 import { ModelSelector } from "@/components/chat/model-selector";
-import { UserMessage, AssistantMessage } from "@/components/chat/message";
+import { UserMessage, AssistantMessage, extractSourcesFromParts, citationSourcesToSourceData } from "@/components/chat/message";
 import { ScrollButton } from "@/components/chat/scroll-button";
 import { ThinkingLoader, Loader } from "@/components/chat/loader";
 import { ChatSkeleton, ChatLoading } from "@/components/chat/chat-skeleton";
-import { Sources } from "@/components/chat/source";
+import { Sources, SourceList } from "@/components/chat/source";
 import { ToolCalls } from "@/components/chat/tool-call";
 import { ChatSidebar } from "@/components/chat/ChatSidebar";
 import { AppShell } from "@/components/layout/AppShell";
@@ -379,6 +379,12 @@ export default function Chat() {
   const MAX_RECONNECT_ATTEMPTS = 3;
   const BASE_RECONNECT_DELAY = 1000; // 1 second base delay
 
+  // Track incomplete assistant messages (streaming failed mid-response)
+  const [incompleteMessageIds, setIncompleteMessageIds] = React.useState<Set<string>>(new Set());
+
+  // Ref to hold retry handler (avoids circular dependency with error effect)
+  const handleRetryRef = React.useRef<() => void>(() => {});
+
   // Ref to track current session ID for async callbacks (avoids stale closure)
   const currentSessionIdRef = React.useRef<string | null>(currentSessionId);
   React.useEffect(() => {
@@ -540,6 +546,13 @@ export default function Chat() {
 
       // Check for streaming interruption error (network/connection issues)
       if (isStreamingInterruptionError(error) && lastUserMessageRef.current) {
+        // Mark the last assistant message as incomplete (preserve partial content)
+        const currentMessages = messagesRef.current;
+        const lastMsg = currentMessages[currentMessages.length - 1];
+        if (lastMsg?.role === 'assistant') {
+          setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
+        }
+
         const currentAttempts = reconnectAttempts + 1;
 
         if (currentAttempts <= MAX_RECONNECT_ATTEMPTS) {
@@ -573,19 +586,33 @@ export default function Chat() {
 
           return;
         } else {
-          // Max reconnect attempts reached
+          // Max reconnect attempts reached — show actionable toast with retry
           logger.debug('[Chat] Max reconnect attempts reached');
           setReconnectAttempts(0);
           setIsReconnecting(false);
-          lastUserMessageRef.current = null;
 
           toast.dismiss('reconnect-toast');
           toast.error(
-            'Connection lost. Your message was preserved - please try again when your connection is stable.',
-            { duration: 5000 }
+            'Connection lost. Your partial response has been saved.',
+            {
+              id: 'streaming-error-toast',
+              duration: 10000,
+              action: {
+                label: 'Retry',
+                onClick: () => handleRetryRef.current(),
+              },
+            }
           );
           return;
         }
+      }
+
+      // For non-streaming errors that still have a partial assistant message,
+      // mark the last assistant message as incomplete
+      const currentMessages = messagesRef.current;
+      const lastMsg = currentMessages[currentMessages.length - 1];
+      if (lastMsg?.role === 'assistant' && getMessageTextContent(lastMsg).trim().length > 0) {
+        setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
       }
 
       // Get user-friendly error
@@ -609,7 +636,19 @@ export default function Chat() {
         });
       } else {
         // Show user-friendly error for non-auth errors
-        toast.error(friendlyError.message);
+        // Include retry action if we have a message to retry
+        if (lastUserMessageRef.current) {
+          toast.error(friendlyError.message, {
+            id: 'streaming-error-toast',
+            duration: 10000,
+            action: {
+              label: 'Retry',
+              onClick: () => handleRetryRef.current(),
+            },
+          });
+        } else {
+          toast.error(friendlyError.message);
+        }
       }
     }
   }, [error, navigate, reconnectAttempts, isChatReady, sendMessage]);
@@ -654,17 +693,23 @@ export default function Chat() {
     return () => clearInterval(intervalId);
   }, [rateLimitCooldownEnd]);
 
-  // Reset reconnection state when streaming completes successfully
+  // Reset reconnection state and incomplete markers when streaming completes successfully
   React.useEffect(() => {
     if (status === 'ready' && reconnectAttempts > 0) {
       logger.debug('[Chat] Streaming completed successfully, resetting reconnection state');
       setReconnectAttempts(0);
       setIsReconnecting(false);
+      setIncompleteMessageIds(new Set());
       lastUserMessageRef.current = null;
       toast.dismiss('reconnect-toast');
+      toast.dismiss('streaming-error-toast');
       toast.success('Connection restored!', { duration: 2000 });
     }
-  }, [status, reconnectAttempts]);
+    // Also clear incomplete markers when new streaming completes without reconnect
+    if (status === 'ready' && incompleteMessageIds.size > 0 && reconnectAttempts === 0) {
+      setIncompleteMessageIds(new Set());
+    }
+  }, [status, reconnectAttempts, incompleteMessageIds.size]);
 
   // Cleanup reconnect timeout on unmount
   React.useEffect(() => {
@@ -1161,6 +1206,45 @@ export default function Chat() {
       chatBasePath,
     ]
   );
+
+  // Handle retry after streaming failure
+  // Removes the incomplete assistant message, then resends the last user message
+  const handleRetry = React.useCallback(() => {
+    const lastUserMessage = lastUserMessageRef.current;
+    if (!lastUserMessage) {
+      toast.error('No message to retry.');
+      return;
+    }
+
+    if (!isChatReady) {
+      toast.error('Your session has expired. Please sign in again to continue.');
+      return;
+    }
+
+    // Remove incomplete assistant messages from the conversation
+    setMessages((prev) => {
+      const cleaned = prev.filter((m) => !incompleteMessageIds.has(m.id));
+      return cleaned;
+    });
+    setIncompleteMessageIds(new Set());
+
+    // Reset reconnection state
+    setReconnectAttempts(0);
+    setIsReconnecting(false);
+
+    // Dismiss any existing error/reconnect toasts
+    toast.dismiss('reconnect-toast');
+    toast.dismiss('streaming-error-toast');
+
+    // Resend the message
+    logger.debug('[Chat] Retrying message:', lastUserMessage);
+    sendMessage({ text: lastUserMessage });
+  }, [isChatReady, sendMessage, setMessages, incompleteMessageIds]);
+
+  // Keep retry ref in sync
+  React.useEffect(() => {
+    handleRetryRef.current = handleRetry;
+  }, [handleRetry]);
 
   // Handler to view a call from a source citation
   const handleViewCall = React.useCallback(
@@ -1689,64 +1773,15 @@ export default function Chat() {
                     const toolParts = getToolInvocations(message);
                     const textContent = getMessageTextContent(message);
 
-                    // Extract sources from tool results
-                    const sources: Array<{
-                      recording_id: number;
-                      text: string;
-                      speaker: string;
-                      call_date: string;
-                      call_title: string;
-                      relevance: string;
-                    }> = [];
-
-                    toolParts.forEach((p) => {
-                      if (p.type === "tool-result" && p.result) {
-                        if (
-                          p.result.results &&
-                          Array.isArray(p.result.results)
-                        ) {
-                          sources.push(...p.result.results);
-                        } else if (
-                          p.result.calls &&
-                          Array.isArray(p.result.calls)
-                        ) {
-                          // Handle summarizeCalls tool results
-                          sources.push(...p.result.calls.map((c: any) => ({
-                            recording_id: c.recording_id,
-                            text: c.summary_preview || c.summary || "",
-                            speaker: c.recorded_by || "Unknown",
-                            call_date: c.date || c.created_at,
-                            call_title: c.title,
-                            relevance: "100", // Summarized calls are implicitly relevant
-                          })));
-                        } else if (
-                          p.result.recording_id &&
-                          p.result.title &&
-                          !p.result.error
-                        ) {
-                          sources.push({
-                            recording_id: p.result.recording_id as number,
-                            text: (p.result.summary as string) || "",
-                            speaker: (p.result.recorded_by as string) || "",
-                            call_date: (p.result.date as string) || "",
-                            call_title: (p.result.title as string) || "",
-                            relevance: "100",
-                          });
-                        }
-                      }
-                    });
-
-                    const uniqueSources = sources
-                      .filter(
-                        (s, i, arr) =>
-                          arr.findIndex(
-                            (x) => x.recording_id === s.recording_id
-                          ) === i
-                      )
-                      .slice(0, 20);
+                    // Extract citation sources from tool result parts
+                    const citationSources = extractSourcesFromParts(
+                      toolParts.filter((p) => p.type === "tool-result" && p.result)
+                    );
+                    const sourceDataList = citationSourcesToSourceData(citationSources, message.id);
 
                     const hasContent = textContent.trim().length > 0;
                     const isThinking = !hasContent && toolParts.length > 0;
+                    const hasCitations = citationSources.length > 0;
 
                     return (
                       <div key={message.id} className="space-y-2">
@@ -1758,6 +1793,8 @@ export default function Chat() {
                             markdown
                             showSaveButton
                             saveMetadata={{ source: 'chat', generated_at: new Date().toISOString() }}
+                            citations={hasCitations ? citationSources : undefined}
+                            onCitationClick={handleViewCall}
                           >
                             {textContent}
                           </AssistantMessage>
@@ -1766,21 +1803,14 @@ export default function Chat() {
                             <ThinkingLoader />
                           </AssistantMessage>
                         ) : null}
-                        {uniqueSources.length > 0 && (
-                          <Sources
-                            sources={uniqueSources.map((s, i) => ({
-                              id: `${message.id}-source-${i}`,
-                              recording_id: s.recording_id,
-                              chunk_text: s.text,
-                              speaker_name: s.speaker,
-                              call_date: s.call_date,
-                              call_title: s.call_title,
-                              similarity_score: parseFloat(s.relevance) / 100,
-                            }))}
-                            onViewCall={handleViewCall}
-                            className="ml-11"
+                        {hasCitations ? (
+                          <SourceList
+                            sources={sourceDataList}
+                            indices={citationSources.map((s) => s.index)}
+                            onSourceClick={handleViewCall}
+                            className="ml-0"
                           />
-                        )}
+                        ) : null}
                       </div>
                     );
                   }
