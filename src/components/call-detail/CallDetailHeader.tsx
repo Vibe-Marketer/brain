@@ -43,9 +43,6 @@ export function CallDetailHeader({
   return (
     <>
       <DialogHeader className="flex-shrink-0">
-        <span id="call-detail-description" className="sr-only">
-          Detailed view of the meeting including transcript, participants, and speakers
-        </span>
         <div className="flex items-center justify-between">
           <DialogTitle>
             <div className="flex items-center gap-2">
