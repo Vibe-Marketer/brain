@@ -72,6 +72,20 @@ import { getUserFriendlyError, ErrorContexts } from "@/lib/user-friendly-errors"
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
 
+// Throttle error logging to prevent console spam during network issues
+const ERROR_LOG_INTERVAL_MS = 5000; // Log at most once per 5 seconds per error type
+const lastErrorLogTime = { current: new Map<string, number>() };
+
+function throttledErrorLog(errorType: string, message: string, ...args: unknown[]) {
+  const now = Date.now();
+  const lastLog = lastErrorLogTime.current.get(errorType) || 0;
+
+  if (now - lastLog >= ERROR_LOG_INTERVAL_MS) {
+    lastErrorLogTime.current.set(errorType, now);
+    logger.error(message, ...args);
+  }
+}
+
 // Helper to detect rate limit errors
 function isRateLimitError(error: unknown): boolean {
   const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
@@ -518,7 +532,7 @@ export default function Chat() {
   // Monitor for auth errors, rate limits, streaming interruption, and trigger re-login/reconnect
   React.useEffect(() => {
     if (error) {
-      logger.error('[Chat] Error occurred:', error.message);
+      throttledErrorLog('general', '[Chat] Error occurred:', error.message);
 
       // Check for rate limit error first
       if (isRateLimitError(error)) {
@@ -565,6 +579,14 @@ export default function Chat() {
 
           logger.debug(`[Chat] Streaming interrupted, attempting reconnect ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
 
+          // First interruption - show brief error toast before reconnect toast
+          if (currentAttempts === 1) {
+            toast.error('Connection interrupted. Attempting to reconnect...', {
+              id: 'connection-error-toast',
+              duration: 2000,
+            });
+          }
+
           toast.loading(
             `Connection interrupted. Reconnecting (attempt ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS})...`,
             { id: 'reconnect-toast', duration: delay + 2000 }
@@ -608,6 +630,16 @@ export default function Chat() {
         }
       }
 
+      // For non-streaming network errors (no lastUserMessage), also show toast
+      if (error instanceof Error &&
+          (error.message.toLowerCase().includes('network') ||
+           error.message.toLowerCase().includes('failed to fetch'))) {
+        toast.error('Network error. Please check your connection.', {
+          id: 'network-error-toast',
+          duration: 5000,
+        });
+      }
+
       // For non-streaming errors that still have a partial assistant message,
       // mark the last assistant message as incomplete
       const currentMessages = messagesRef.current;
@@ -626,7 +658,7 @@ export default function Chat() {
         // Try to refresh the session
         supabase.auth.getSession().then(({ data: { session: refreshedSession }, error: refreshError }) => {
           if (refreshError || !refreshedSession) {
-            logger.error('[Chat] Session refresh failed, redirecting to login');
+            throttledErrorLog('session', '[Chat] Session refresh failed, redirecting to login');
             toast.error(friendlyError.message);
             // Session is truly dead - redirect to login
             setTimeout(() => navigate('/login', { replace: true }), 2000);
