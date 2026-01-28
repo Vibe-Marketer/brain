@@ -15,18 +15,14 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 // Resend API configuration
 const RESEND_API_URL = 'https://api.resend.com/emails';
 
 // Default sender addresses
 const DEFAULT_FROM_ADDRESS = 'CallVault AI <onboarding@resend.dev>';
-const PRODUCTION_FROM_ADDRESS = 'CallVault AI <noreply@callvaultai.com>';
+const PRODUCTION_FROM_ADDRESS = 'CallVault AI <noreply@mail.callvaultai.com>';
 
 interface InviteRequest {
   coach_email: string;
@@ -134,6 +130,9 @@ CallVault AI - AI-powered call analysis and coaching
 }
 
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

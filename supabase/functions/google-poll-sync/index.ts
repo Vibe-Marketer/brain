@@ -1,11 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { GoogleClient } from '../_shared/google-client.ts';
 import { refreshGoogleOAuthTokens } from '../google-oauth-refresh/index.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
-};
+import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
  * RATE LIMITING CONFIGURATION
@@ -280,6 +276,9 @@ async function pollUserMeetings(supabase: any, user: UserSettings): Promise<{
  * 4. Invoke google-meet-sync-meetings to process
  */
 Deno.serve(async (req) => {
+  const origin = req.headers.get('Origin');
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
