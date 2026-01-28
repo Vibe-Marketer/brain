@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast } from 'sonner';
 import type {
   ContentLibraryItem,
   ContentLibraryInput,
@@ -157,6 +158,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
           items: state.items.filter((item) => item.id !== tempId),
           itemsError: error.message,
         }));
+        toast.error("Couldn't save content item. Please try again.");
         return null;
       }
 
@@ -191,6 +193,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
           items: previousItems,
           itemsError: error.message,
         });
+        toast.error("Couldn't delete item. Please try again.");
         return false;
       }
 
@@ -218,6 +221,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
               : item
           ),
         }));
+        toast.error("Couldn't update usage count.");
       }
     },
 
@@ -279,6 +283,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
           templates: state.templates.filter((t) => t.id !== tempId),
           templatesError: error.message,
         }));
+        toast.error("Couldn't save template. Please try again.");
         return null;
       }
 
@@ -308,6 +313,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
           templates: previousTemplates,
           templatesError: error.message,
         });
+        toast.error("Couldn't delete template. Please try again.");
         return false;
       }
 
@@ -341,6 +347,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
               : t
           ),
         }));
+        toast.error("Couldn't update template usage.");
       }
     },
 
@@ -373,6 +380,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
 
       if (error) {
         set({ tagsLoading: false });
+        toast.error("Couldn't load tags.");
         return;
       }
 
