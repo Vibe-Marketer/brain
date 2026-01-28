@@ -229,7 +229,6 @@ export function DateRangePicker({
         <div className="p-4 space-y-4 pointer-events-auto overflow-y-auto max-h-[calc(90vh-2rem)]">
           {showQuickSelect && (
             <div>
-              <Label className="text-xs font-medium mb-2 block">Quick Select</Label>
               <div className="grid grid-cols-3 gap-2">
                 <Button
                   variant="hollow"
@@ -319,20 +318,25 @@ export function DateRangePicker({
             </div>
           )}
           <div>
+            {/* Section divider and label */}
             {showQuickSelect && (
-              <Label className="text-xs font-medium mb-2 block">Select Date Range</Label>
+              <div className="border-t border-border pt-4 mt-1">
+                <Label className="text-xs font-semibold uppercase tracking-wide text-center block mb-3">
+                  Select Date Range
+                </Label>
+              </div>
             )}
             {/* Custom navigation header: [ < ] Month Year [ > ] */}
-            <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="flex items-center justify-center gap-3 mb-3 py-1">
               <Button
                 variant="hollow"
                 size="sm"
                 onClick={handlePrevMonth}
                 className="h-8 w-8 p-0"
               >
-                <RiArrowLeftSLine className="h-4 w-4" />
+                <RiArrowLeftSLine className="h-5 w-5" />
               </Button>
-              <span className="text-sm font-medium min-w-[120px] text-center">
+              <span className="text-base font-semibold min-w-[140px] text-center">
                 {format(month, "MMMM yyyy")}
               </span>
               <Button
@@ -342,7 +346,7 @@ export function DateRangePicker({
                 disabled={isNextDisabled}
                 className="h-8 w-8 p-0"
               >
-                <RiArrowRightSLine className="h-4 w-4" />
+                <RiArrowRightSLine className="h-5 w-5" />
               </Button>
             </div>
             <Calendar

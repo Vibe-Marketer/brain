@@ -71,6 +71,7 @@ import { cn } from "@/lib/utils";
 import { getUserFriendlyError, ErrorContexts } from "@/lib/user-friendly-errors";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
+import { usePanelStore } from "@/stores/panelStore";
 
 // Throttle error logging to prevent console spam during network issues
 const ERROR_LOG_INTERVAL_MS = 5000; // Log at most once per 5 seconds per error type
@@ -279,6 +280,7 @@ export default function Chat() {
   const navigate = useNavigate();
   const location = useLocation();
   const { sessionId } = useParams<{ sessionId: string }>();
+  const { openPanel } = usePanelStore();
 
   // TODO: Switch back to chat-stream-v2 after fixing AI SDK error
   // See .planning/phases/02-chat-foundation/02-UAT.md for investigation notes
@@ -1277,35 +1279,18 @@ export default function Chat() {
     handleRetryRef.current = handleRetry;
   }, [handleRetry]);
 
-  // Handler to view a call from a source citation
+  // Handler to view a call from a source citation - opens in Pane 4 side panel
   const handleViewCall = React.useCallback(
-    async (recordingId: number) => {
+    (recordingId: number) => {
       if (!session?.user?.id) {
         logger.error("No user session");
         return;
       }
 
-      try {
-        // Use composite key (recording_id, user_id) for the lookup
-        const { data: callData, error } = await supabase
-          .from("fathom_calls")
-          .select("*")
-          .eq("recording_id", recordingId)
-          .eq("user_id", session.user.id)
-          .single();
-
-        if (error) {
-          logger.error("Failed to fetch call:", error);
-          return;
-        }
-
-        setSelectedCall(callData as unknown as Meeting);
-        setShowCallDialog(true);
-      } catch (err) {
-        logger.error("Error fetching call:", err);
-      }
+      // Open call detail panel instead of dialog
+      openPanel('call-detail', { recordingId });
     },
-    [session?.user?.id]
+    [session?.user?.id, openPanel]
   );
 
   const hasActiveFilters =

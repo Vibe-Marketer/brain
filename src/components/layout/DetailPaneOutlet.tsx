@@ -23,6 +23,7 @@ import { FolderDetailPanel } from '@/components/panels/FolderDetailPanel';
 import { TagDetailPanel } from '@/components/panels/TagDetailPanel';
 import { SettingHelpPanel } from '@/components/panels/SettingHelpPanel';
 import { UserDetailPanel } from '@/components/panels/UserDetailPanel';
+import { CallDetailPanel } from '@/components/panels/CallDetailPanel';
 
 export interface DetailPaneOutletProps {
   /** Whether we're on tablet breakpoint (affects width) */
@@ -80,6 +81,11 @@ export function DetailPaneOutlet({
           />
         ) : null;
 
+      case 'call-detail':
+        return panelData?.recordingId ? (
+          <CallDetailPanel recordingId={panelData.recordingId} />
+        ) : null;
+
       default:
         // Unsupported panel type
         console.warn(`DetailPaneOutlet: Unsupported panel type "${panelType}"`);
@@ -98,6 +104,8 @@ export function DetailPaneOutlet({
         return 'Settings help panel';
       case 'user-detail':
         return 'User detail panel';
+      case 'call-detail':
+        return 'Call detail panel';
       default:
         return 'Detail panel';
     }
