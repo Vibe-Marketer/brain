@@ -50,6 +50,19 @@ Plans:
 
 **Dependencies:** Phase 1 (security must be locked down first)
 
+**Plans:** 9 plans in 5 waves
+
+Plans:
+- [ ] 02-01-PLAN.md — Proof-of-concept: streamText + tool on Deno Edge Function
+- [ ] 02-02-PLAN.md — Fix silent store failures (STORE-01: toast.error on 16 methods)
+- [ ] 02-03-PLAN.md — Extract search pipeline to shared modules
+- [ ] 02-04-PLAN.md — Tool call three-state transparency UI (success/empty/error)
+- [ ] 02-05-PLAN.md — Define all 14 RAG tools with zod schemas + system prompt
+- [ ] 02-06-PLAN.md — Frontend /chat2 test path for parallel development
+- [ ] 02-07-PLAN.md — Inline citations with hover preview + bottom source list
+- [ ] 02-08-PLAN.md — Streaming error handling, retry UX, connection stability
+- [ ] 02-09-PLAN.md — Switchover: /chat → v2, legacy rename, final verification
+
 **Requirements:**
 - CHAT-05: Migrate to Vercel AI SDK + OpenRouter
 - CHAT-03: Streaming doesn't error out mid-response
@@ -242,7 +255,7 @@ Plans:
 | Phase | Status | Requirements | Progress |
 |-------|--------|--------------|----------|
 | 1 - Security Lockdown | Complete ✅ | 6 | 100% |
-| 2 - Chat Foundation | Pending | 6 | 0% |
+| 2 - Chat Foundation | Planned (9 plans, 5 waves) | 6 | 0% |
 | 3 - Integration OAuth | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
