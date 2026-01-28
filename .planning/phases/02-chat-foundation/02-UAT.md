@@ -3,7 +3,7 @@ status: testing
 phase: 02-chat-foundation
 source: 02-01-SUMMARY.md, 02-02-SUMMARY.md, 02-03-SUMMARY.md, 02-04-SUMMARY.md, 02-05-SUMMARY.md, 02-06-SUMMARY.md, 02-07-SUMMARY.md, 02-08-SUMMARY.md, 02-09-SUMMARY.md
 started: 2026-01-28T07:00:00Z
-updated: 2026-01-28T16:10:00Z
+updated: 2026-01-28T16:15:00Z
 ---
 
 ## Current Test
@@ -14,14 +14,14 @@ expected: |
   Go to /chat. Type a question about your calls (e.g., "What calls do I have?") and send.
   The message streams in progressively, completing without errors.
   You see a full response from the AI.
-awaiting: user response
+awaiting: user response (retry with legacy endpoint - v2 deferred)
 
 ## Tests
 
 ### 1. Send Chat Message and Receive Response
 expected: Go to /chat. Type a question about your calls (e.g., "What calls do I have?") and send. The message streams in progressively, completing without errors. You see a full response from the AI.
 result: issue
-reported: "non-stop failures - Failed to fetch (vltmrnjsubfzrgrtdqey.supabase.co) - POST to /functions/v1/chat-stream-v2 fails after 129ms with 281 repeated errors in 8 seconds"
+reported: "non-stop failures - Failed to fetch, then 'Provider returned error' after deployment"
 severity: blocker
 
 ### 2. Tool Calls Fire and Show Results
@@ -64,13 +64,78 @@ skipped: 0
 
 - truth: "Chat sends message and receives streamed response"
   status: failed
-  reason: "User reported: non-stop failures - Failed to fetch (vltmrnjsubfzrgrtdqey.supabase.co) - POST to /functions/v1/chat-stream-v2 fails after 129ms with 281 repeated errors in 8 seconds"
+  reason: "User reported: non-stop failures - chat-stream-v2 not deployed initially, then 'Provider returned error' after deployment"
   severity: blocker
   test: 1
-  root_cause: "chat-stream-v2 Edge Function exists locally but was never deployed to Supabase. Function created 2026-01-28, last deployment 2026-01-14."
+  root_cause: |
+    TWO ISSUES FOUND:
+
+    1. DEPLOYMENT GAP (FIXED): chat-stream-v2 was never deployed to Supabase.
+       - Function existed locally (39KB) but not in production
+       - Fixed by running: supabase functions deploy chat-stream-v2
+       - Now deployed as v2
+
+    2. AI SDK/OPENROUTER ERROR (INVESTIGATING): After deployment, "Provider returned error"
+       - Error is generic - AI SDK wrapping an OpenRouter API error
+       - Legacy chat-stream explicitly bypasses AI SDK due to known zod bundling issues:
+         "The AI SDK has zod bundling issues with esm.sh that cause 'safeParseAsync is not a function' errors when tool calls are returned"
+       - v2 uses: ai@5.0.102, @openrouter/ai-sdk-provider@1.2.8, zod@3.23.8
+       - Working generate-ai-titles uses generateText (no tools), not streamText with tools
+
+    ENHANCED LOGGING DEPLOYED: Added detailed error logging to chat-stream-v2/index.ts
+    to capture actual error from OpenRouter/AI SDK. Retest needed.
   artifacts:
     - path: "supabase/functions/chat-stream-v2/index.ts"
-      issue: "Function exists locally (39KB) but not deployed"
+      issue: "AI SDK streamText + tool on Deno/esm.sh may have bundling issues"
+    - path: "supabase/functions/chat-stream-legacy/index.ts"
+      issue: "Legacy function works but bypasses AI SDK entirely - uses direct OpenAI fetch"
+    - path: "src/pages/Chat.tsx:270"
+      issue: "chatEndpoint hardcoded to 'chat-stream-v2'"
   missing:
-    - "Deploy chat-stream-v2 to Supabase with: supabase functions deploy chat-stream-v2"
+    - "Check Supabase dashboard logs for detailed error: https://supabase.com/dashboard/project/vltmrnjsubfzrgrtdqey/functions"
+    - "Retest chat after enhanced logging deployment"
+    - "If AI SDK bundling is the issue, may need to rewrite v2 to use direct API calls like legacy"
   debug_session: ""
+
+## Investigation Notes
+
+### Timeline
+1. Initial test: "Failed to fetch" - function not deployed
+2. Deployed chat-stream-v2: `supabase functions deploy chat-stream-v2`
+3. Second test: "Provider returned error" - function runs but OpenRouter/AI SDK fails
+4. Added enhanced error logging to capture actual error
+5. Redeployed with logging - error still generic on client (logs are server-side)
+6. **TEMPORARY FIX**: Switched src/pages/Chat.tsx to use 'chat-stream' (legacy) to unblock UAT
+   - Edit at line 270: `const chatEndpoint = 'chat-stream';`
+   - Legacy endpoint works (bypasses AI SDK, uses direct OpenAI API)
+
+### Key Files
+- `supabase/functions/chat-stream-v2/index.ts` - New AI SDK backend (855 lines)
+- `supabase/functions/chat-stream-legacy/index.ts` - Working legacy (direct OpenAI API)
+- `src/pages/Chat.tsx:270` - Endpoint selection (`const chatEndpoint = 'chat-stream-v2'`)
+
+### Potential Fixes
+1. **Quick fix**: Switch chatEndpoint back to 'chat-stream' (legacy works) ✅ APPLIED
+2. **Proper fix**: Diagnose AI SDK error via logs, fix the v2 implementation → DEFERRED
+3. **Alternative**: Rewrite v2 to use direct OpenRouter API like legacy does with OpenAI
+
+### V2 Fix Deferred
+The AI SDK + Deno + esm.sh bundling issue needs investigation via Supabase function logs.
+This is tracked as technical debt - legacy endpoint works for UAT.
+To fix v2 later:
+1. Check logs: https://supabase.com/dashboard/project/vltmrnjsubfzrgrtdqey/functions
+2. Look for the detailed error output from enhanced logging
+3. Fix based on actual error (likely zod/bundling or OpenRouter request format)
+4. Switch Chat.tsx back to 'chat-stream-v2' when fixed
+
+### Commands to Resume
+```bash
+# Check function logs in Supabase dashboard
+open https://supabase.com/dashboard/project/vltmrnjsubfzrgrtdqey/functions
+
+# If need to switch to legacy temporarily:
+# Edit src/pages/Chat.tsx line 270: const chatEndpoint = 'chat-stream';
+
+# Redeploy after fixes:
+supabase functions deploy chat-stream-v2
+```

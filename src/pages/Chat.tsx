@@ -266,8 +266,10 @@ export default function Chat() {
   const location = useLocation();
   const { sessionId } = useParams<{ sessionId: string }>();
 
-  // Always use v2 backend (chat-stream-v2)
-  const chatEndpoint = 'chat-stream-v2';
+  // TODO: Switch back to chat-stream-v2 after fixing AI SDK error
+  // See .planning/phases/02-chat-foundation/02-UAT.md for investigation notes
+  // v2 fails with "Provider returned error" - likely AI SDK + Deno/esm.sh bundling issue
+  const chatEndpoint = 'chat-stream';
   const chatBasePath = '/chat';
 
   // Filter state - Initialize from location state if available (prevents race condition)

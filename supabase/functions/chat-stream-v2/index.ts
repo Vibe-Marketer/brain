@@ -834,26 +834,53 @@ Deno.serve(async (req: Request) => {
     const convertedMessages = convertToModelMessages(messages);
 
     // ---- Stream response ----
-    const result = streamText({
-      model: openrouter(selectedModel),
-      system: systemPrompt,
-      messages: convertedMessages,
-      tools: allTools,
-      toolChoice: 'auto',
-      maxSteps: 5,
-      onError: ({ error }) => {
-        console.error('[chat-stream-v2] Stream error:', error);
-      },
-    });
+    try {
+      console.log('[chat-stream-v2] Starting streamText with model:', selectedModel);
+      console.log('[chat-stream-v2] Message count:', convertedMessages.length);
+      console.log('[chat-stream-v2] Tools count:', Object.keys(allTools).length);
 
-    return result.toUIMessageStreamResponse({
-      headers: corsHeaders,
-    });
+      const result = streamText({
+        model: openrouter(selectedModel),
+        system: systemPrompt,
+        messages: convertedMessages,
+        tools: allTools,
+        toolChoice: 'auto',
+        maxSteps: 5,
+        onError: ({ error }) => {
+          console.error('[chat-stream-v2] Stream onError callback:', error);
+          console.error('[chat-stream-v2] Error details:', JSON.stringify(error, null, 2));
+        },
+      });
+
+      console.log('[chat-stream-v2] streamText result created, returning stream response');
+      return result.toUIMessageStreamResponse({
+        headers: corsHeaders,
+      });
+    } catch (streamError) {
+      console.error('[chat-stream-v2] streamText threw error:', streamError);
+      console.error('[chat-stream-v2] Error type:', streamError?.constructor?.name);
+      console.error('[chat-stream-v2] Error message:', streamError instanceof Error ? streamError.message : String(streamError));
+      console.error('[chat-stream-v2] Error stack:', streamError instanceof Error ? streamError.stack : 'no stack');
+
+      // Return detailed error for debugging
+      return new Response(
+        JSON.stringify({
+          error: streamError instanceof Error ? streamError.message : 'Stream creation failed',
+          type: streamError?.constructor?.name,
+          details: String(streamError)
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
 
   } catch (error) {
     console.error('[chat-stream-v2] Handler error:', error);
+    console.error('[chat-stream-v2] Handler error type:', error?.constructor?.name);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
+      JSON.stringify({
+        error: error instanceof Error ? error.message : 'Internal server error',
+        type: error?.constructor?.name
+      }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
