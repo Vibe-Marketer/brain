@@ -22,8 +22,8 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 - [ ] **INT-03**: Integration connection errors surface to user (no silent failures)
 
 **Collaboration Features**
-- [ ] **TEAM-01**: Team creation works (currently fails silently)
-- [ ] **TEAM-02**: Team join page accessible via route (`/join/team/:token`)
+- [x] **TEAM-01**: Team creation works (currently fails silently)
+- [x] **TEAM-02**: Team join page accessible via route (`/join/team/:token`)
 - [ ] **COACH-01**: Coach invite emails send successfully
 - [ ] **COACH-02**: Coach invite links generate correctly
 - [ ] **COACH-03**: Coach join page accessible via route (`/join/coach/:token`)
@@ -174,8 +174,8 @@ Which phases cover which requirements.
 | INT-01 | Phase 3: Integration OAuth | Pending |
 | INT-02 | Phase 3: Integration OAuth | Pending |
 | INT-03 | Phase 3: Integration OAuth | Pending |
-| TEAM-01 | Phase 4: Team Collaboration | Pending |
-| TEAM-02 | Phase 4: Team Collaboration | Pending |
+| TEAM-01 | Phase 4: Team Collaboration | Complete |
+| TEAM-02 | Phase 4: Team Collaboration | Complete |
 | COACH-01 | Phase 5: Coach Collaboration | Pending |
 | COACH-02 | Phase 5: Coach Collaboration | Pending |
 | COACH-03 | Phase 5: Coach Collaboration | Pending |
@@ -222,4 +222,4 @@ Which phases cover which requirements.
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-28 (Phase 2 complete — CHAT-01 through CHAT-05 + STORE-01 marked Complete)*
+*Last updated: 2026-01-29 (Phase 4 complete — TEAM-01 and TEAM-02 marked Complete)*
