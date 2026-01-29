@@ -136,6 +136,7 @@ export interface TeamMembershipWithUser extends TeamMembership {
   user_email?: string | null;
   user_name?: string | null;
   manager_name?: string | null;
+  onboarding_complete?: boolean;
 }
 
 export interface TeamShare {

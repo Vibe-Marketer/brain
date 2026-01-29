@@ -22,6 +22,7 @@ import {
   RiDeleteBinLine,
   RiUserSettingsLine,
   RiOrganizationChart,
+  RiTimeLine,
 } from "@remixicon/react";
 import type {
   OrgChart,
@@ -205,6 +206,12 @@ function OrgChartNodeComponent({
             <Badge variant={roleBadge.variant} className="shrink-0">
               {roleBadge.text}
             </Badge>
+            {membership.onboarding_complete === false && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 shrink-0">
+                <RiTimeLine className="h-3 w-3" />
+                Pending setup
+              </span>
+            )}
           </div>
 
           {/* Secondary info */}
