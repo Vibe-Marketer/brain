@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_models: {
+        Row: {
+          context_length: number | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_default: boolean
+          is_enabled: boolean | null
+          is_featured: boolean | null
+          min_tier: Database["public"]["Enums"]["app_role"]
+          name: string
+          pricing: Json | null
+          provider: string
+          supports_tools: boolean
+          updated_at: string | null
+        }
+        Insert: {
+          context_length?: number | null
+          created_at?: string | null
+          description?: string | null
+          id: string
+          is_default?: boolean
+          is_enabled?: boolean | null
+          is_featured?: boolean | null
+          min_tier?: Database["public"]["Enums"]["app_role"]
+          name: string
+          pricing?: Json | null
+          provider: string
+          supports_tools?: boolean
+          updated_at?: string | null
+        }
+        Update: {
+          context_length?: number | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_default?: boolean
+          is_enabled?: boolean | null
+          is_featured?: boolean | null
+          min_tier?: Database["public"]["Enums"]["app_role"]
+          name?: string
+          pricing?: Json | null
+          provider?: string
+          supports_tools?: boolean
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       ai_processing_jobs: {
         Row: {
           created_at: string
@@ -50,6 +98,352 @@ export type Database = {
           success_count?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      automation_execution_history: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          debug_info: Json
+          error_message: string | null
+          execution_time_ms: number | null
+          id: string
+          rule_id: string
+          success: boolean
+          trigger_source: Json | null
+          trigger_type: string
+          triggered_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          debug_info?: Json
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          rule_id: string
+          success?: boolean
+          trigger_source?: Json | null
+          trigger_type: string
+          triggered_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          debug_info?: Json
+          error_message?: string | null
+          execution_time_ms?: number | null
+          id?: string
+          rule_id?: string
+          success?: boolean
+          trigger_source?: Json | null
+          trigger_type?: string
+          triggered_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_execution_history_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_rule_actions: {
+        Row: {
+          action_type: string
+          config: Json
+          continue_on_error: boolean
+          created_at: string | null
+          enabled: boolean
+          id: string
+          position: number
+          retry_count: number
+          retry_delay_seconds: number
+          rule_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          action_type: string
+          config?: Json
+          continue_on_error?: boolean
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          position?: number
+          retry_count?: number
+          retry_delay_seconds?: number
+          rule_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          config?: Json
+          continue_on_error?: boolean
+          created_at?: string | null
+          enabled?: boolean
+          id?: string
+          position?: number
+          retry_count?: number
+          retry_delay_seconds?: number
+          rule_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_rule_actions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_rule_conditions: {
+        Row: {
+          condition_type: string
+          created_at: string | null
+          field_name: string | null
+          id: string
+          logic_operator: string | null
+          operator: string
+          parent_condition_id: string | null
+          position: number
+          rule_id: string
+          updated_at: string | null
+          value: Json
+        }
+        Insert: {
+          condition_type: string
+          created_at?: string | null
+          field_name?: string | null
+          id?: string
+          logic_operator?: string | null
+          operator: string
+          parent_condition_id?: string | null
+          position?: number
+          rule_id: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Update: {
+          condition_type?: string
+          created_at?: string | null
+          field_name?: string | null
+          id?: string
+          logic_operator?: string | null
+          operator?: string
+          parent_condition_id?: string | null
+          position?: number
+          rule_id?: string
+          updated_at?: string | null
+          value?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_rule_conditions_parent_condition_id_fkey"
+            columns: ["parent_condition_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rule_conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "automation_rule_conditions_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_rules: {
+        Row: {
+          actions: Json
+          conditions: Json
+          created_at: string | null
+          description: string | null
+          enabled: boolean
+          id: string
+          last_applied_at: string | null
+          name: string
+          next_run_at: string | null
+          priority: number
+          schedule_config: Json | null
+          times_applied: number
+          trigger_config: Json
+          trigger_type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_applied_at?: string | null
+          name: string
+          next_run_at?: string | null
+          priority?: number
+          schedule_config?: Json | null
+          times_applied?: number
+          trigger_config?: Json
+          trigger_type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          actions?: Json
+          conditions?: Json
+          created_at?: string | null
+          description?: string | null
+          enabled?: boolean
+          id?: string
+          last_applied_at?: string | null
+          name?: string
+          next_run_at?: string | null
+          priority?: number
+          schedule_config?: Json | null
+          times_applied?: number
+          trigger_config?: Json
+          trigger_type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      business_profiles: {
+        Row: {
+          average_order_value: number | null
+          biggest_growth_constraint: string | null
+          brand_voice: string | null
+          business_model: string | null
+          common_sayings_trust_signals: string | null
+          company_name: string | null
+          created_at: string | null
+          current_tech_status: string | null
+          customer_acquisition_process: string | null
+          customer_average_order_value: number | null
+          customer_lifetime_value: number | null
+          customer_onboarding_process: string | null
+          employees_count: number | null
+          guarantees: string | null
+          icp_customer_segments: string | null
+          id: string
+          industry: string | null
+          is_default: boolean | null
+          marketing_channels: string | null
+          messaging_angles: string | null
+          other_products: string | null
+          primary_advertising_mode: string | null
+          primary_delivery_method: string | null
+          primary_lead_getter: string | null
+          primary_marketing_channel: string | null
+          primary_pain_points: string | null
+          primary_product_service: string | null
+          primary_selling_mechanism: string | null
+          primary_social_platforms: string | null
+          product_service_delivery: string | null
+          prohibited_terms: string | null
+          promotions_offers: string | null
+          proof_assets_social_proof: string | null
+          sales_cycle_length: number | null
+          top_decision_drivers: string | null
+          top_objections: string | null
+          updated_at: string | null
+          user_id: string
+          value_prop_differentiators: string | null
+          website: string | null
+        }
+        Insert: {
+          average_order_value?: number | null
+          biggest_growth_constraint?: string | null
+          brand_voice?: string | null
+          business_model?: string | null
+          common_sayings_trust_signals?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          current_tech_status?: string | null
+          customer_acquisition_process?: string | null
+          customer_average_order_value?: number | null
+          customer_lifetime_value?: number | null
+          customer_onboarding_process?: string | null
+          employees_count?: number | null
+          guarantees?: string | null
+          icp_customer_segments?: string | null
+          id?: string
+          industry?: string | null
+          is_default?: boolean | null
+          marketing_channels?: string | null
+          messaging_angles?: string | null
+          other_products?: string | null
+          primary_advertising_mode?: string | null
+          primary_delivery_method?: string | null
+          primary_lead_getter?: string | null
+          primary_marketing_channel?: string | null
+          primary_pain_points?: string | null
+          primary_product_service?: string | null
+          primary_selling_mechanism?: string | null
+          primary_social_platforms?: string | null
+          product_service_delivery?: string | null
+          prohibited_terms?: string | null
+          promotions_offers?: string | null
+          proof_assets_social_proof?: string | null
+          sales_cycle_length?: number | null
+          top_decision_drivers?: string | null
+          top_objections?: string | null
+          updated_at?: string | null
+          user_id: string
+          value_prop_differentiators?: string | null
+          website?: string | null
+        }
+        Update: {
+          average_order_value?: number | null
+          biggest_growth_constraint?: string | null
+          brand_voice?: string | null
+          business_model?: string | null
+          common_sayings_trust_signals?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          current_tech_status?: string | null
+          customer_acquisition_process?: string | null
+          customer_average_order_value?: number | null
+          customer_lifetime_value?: number | null
+          customer_onboarding_process?: string | null
+          employees_count?: number | null
+          guarantees?: string | null
+          icp_customer_segments?: string | null
+          id?: string
+          industry?: string | null
+          is_default?: boolean | null
+          marketing_channels?: string | null
+          messaging_angles?: string | null
+          other_products?: string | null
+          primary_advertising_mode?: string | null
+          primary_delivery_method?: string | null
+          primary_lead_getter?: string | null
+          primary_marketing_channel?: string | null
+          primary_pain_points?: string | null
+          primary_product_service?: string | null
+          primary_selling_mechanism?: string | null
+          primary_social_platforms?: string | null
+          product_service_delivery?: string | null
+          prohibited_terms?: string | null
+          promotions_offers?: string | null
+          proof_assets_social_proof?: string | null
+          sales_cycle_length?: number | null
+          top_decision_drivers?: string | null
+          top_objections?: string | null
+          updated_at?: string | null
+          user_id?: string
+          value_prop_differentiators?: string | null
+          website?: string | null
         }
         Relationships: []
       }
@@ -343,6 +737,103 @@ export type Database = {
           },
         ]
       }
+      content_items: {
+        Row: {
+          content_text: string
+          content_type: string
+          created_at: string | null
+          email_subject: string | null
+          hook_id: string | null
+          id: string
+          status: string | null
+          updated_at: string | null
+          used_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content_text: string
+          content_type: string
+          created_at?: string | null
+          email_subject?: string | null
+          hook_id?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          used_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content_text?: string
+          content_type?: string
+          created_at?: string | null
+          email_subject?: string | null
+          hook_id?: string | null
+          id?: string
+          status?: string | null
+          updated_at?: string | null
+          used_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_items_hook_id_fkey"
+            columns: ["hook_id"]
+            isOneToOne: false
+            referencedRelation: "hooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_library: {
+        Row: {
+          content: string
+          content_type: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          tags: string[] | null
+          team_id: string | null
+          title: string
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          content_type: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          tags?: string[] | null
+          team_id?: string | null
+          title: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          content_type?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          tags?: string[] | null
+          team_id?: string | null
+          title?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_library_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       embedding_jobs: {
         Row: {
           chunks_created: number | null
@@ -456,6 +947,88 @@ export type Database = {
           },
         ]
       }
+      embedding_usage_logs: {
+        Row: {
+          batch_size: number | null
+          chunk_id: string | null
+          cost_cents: number
+          created_at: string | null
+          error_message: string | null
+          id: string
+          input_tokens: number
+          job_id: string | null
+          latency_ms: number | null
+          model: string
+          operation_type: string
+          output_tokens: number | null
+          recording_id: number | null
+          request_id: string | null
+          session_id: string | null
+          total_tokens: number | null
+          user_id: string
+        }
+        Insert: {
+          batch_size?: number | null
+          chunk_id?: string | null
+          cost_cents?: number
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_tokens?: number
+          job_id?: string | null
+          latency_ms?: number | null
+          model: string
+          operation_type: string
+          output_tokens?: number | null
+          recording_id?: number | null
+          request_id?: string | null
+          session_id?: string | null
+          total_tokens?: number | null
+          user_id: string
+        }
+        Update: {
+          batch_size?: number | null
+          chunk_id?: string | null
+          cost_cents?: number
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_tokens?: number
+          job_id?: string | null
+          latency_ms?: number | null
+          model?: string
+          operation_type?: string
+          output_tokens?: number | null
+          recording_id?: number | null
+          request_id?: string | null
+          session_id?: string | null
+          total_tokens?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "embedding_usage_logs_chunk_id_fkey"
+            columns: ["chunk_id"]
+            isOneToOne: false
+            referencedRelation: "transcript_chunks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "embedding_usage_logs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "embedding_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "embedding_usage_logs_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fathom_calls: {
         Row: {
           ai_generated_title: string | null
@@ -466,6 +1039,8 @@ export type Database = {
           created_at: string
           full_transcript: string | null
           fuzzy_match_score: number | null
+          google_calendar_event_id: string | null
+          google_drive_file_id: string | null
           is_primary: boolean | null
           meeting_fingerprint: string | null
           merged_from: number[] | null
@@ -474,6 +1049,7 @@ export type Database = {
           recording_end_time: string | null
           recording_id: number
           recording_start_time: string | null
+          sentiment_cache: Json | null
           share_url: string | null
           source_platform: string | null
           summary: string | null
@@ -481,6 +1057,7 @@ export type Database = {
           synced_at: string | null
           title: string
           title_edited_by_user: boolean | null
+          transcript_source: string | null
           url: string | null
           user_id: string
         }
@@ -493,6 +1070,8 @@ export type Database = {
           created_at: string
           full_transcript?: string | null
           fuzzy_match_score?: number | null
+          google_calendar_event_id?: string | null
+          google_drive_file_id?: string | null
           is_primary?: boolean | null
           meeting_fingerprint?: string | null
           merged_from?: number[] | null
@@ -501,6 +1080,7 @@ export type Database = {
           recording_end_time?: string | null
           recording_id: number
           recording_start_time?: string | null
+          sentiment_cache?: Json | null
           share_url?: string | null
           source_platform?: string | null
           summary?: string | null
@@ -508,6 +1088,7 @@ export type Database = {
           synced_at?: string | null
           title: string
           title_edited_by_user?: boolean | null
+          transcript_source?: string | null
           url?: string | null
           user_id: string
         }
@@ -520,6 +1101,8 @@ export type Database = {
           created_at?: string
           full_transcript?: string | null
           fuzzy_match_score?: number | null
+          google_calendar_event_id?: string | null
+          google_drive_file_id?: string | null
           is_primary?: boolean | null
           meeting_fingerprint?: string | null
           merged_from?: number[] | null
@@ -528,6 +1111,7 @@ export type Database = {
           recording_end_time?: string | null
           recording_id?: number
           recording_start_time?: string | null
+          sentiment_cache?: Json | null
           share_url?: string | null
           source_platform?: string | null
           summary?: string | null
@@ -535,6 +1119,7 @@ export type Database = {
           synced_at?: string | null
           title?: string
           title_edited_by_user?: boolean | null
+          transcript_source?: string | null
           url?: string | null
           user_id?: string
         }
@@ -685,6 +1270,153 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "folders"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      hooks: {
+        Row: {
+          created_at: string | null
+          emotion_category: string | null
+          hook_text: string
+          id: string
+          insight_ids: string[] | null
+          is_starred: boolean | null
+          recording_id: number | null
+          status: string | null
+          topic_hint: string | null
+          updated_at: string | null
+          user_id: string
+          virality_score: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          emotion_category?: string | null
+          hook_text: string
+          id?: string
+          insight_ids?: string[] | null
+          is_starred?: boolean | null
+          recording_id?: number | null
+          status?: string | null
+          topic_hint?: string | null
+          updated_at?: string | null
+          user_id: string
+          virality_score?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          emotion_category?: string | null
+          hook_text?: string
+          id?: string
+          insight_ids?: string[] | null
+          is_starred?: boolean | null
+          recording_id?: number | null
+          status?: string | null
+          topic_hint?: string | null
+          updated_at?: string | null
+          user_id?: string
+          virality_score?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hooks_fathom_call_fkey"
+            columns: ["recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls"
+            referencedColumns: ["recording_id", "user_id"]
+          },
+        ]
+      }
+      insights: {
+        Row: {
+          category: string
+          created_at: string | null
+          emotion_category: string | null
+          exact_quote: string
+          id: string
+          recording_id: number
+          score: number
+          speaker: string | null
+          timestamp: string | null
+          topic_hint: string | null
+          user_id: string
+          virality_score: number | null
+          why_it_matters: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          emotion_category?: string | null
+          exact_quote: string
+          id?: string
+          recording_id: number
+          score: number
+          speaker?: string | null
+          timestamp?: string | null
+          topic_hint?: string | null
+          user_id: string
+          virality_score?: number | null
+          why_it_matters?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          emotion_category?: string | null
+          exact_quote?: string
+          id?: string
+          recording_id?: number
+          score?: number
+          speaker?: string | null
+          timestamp?: string | null
+          topic_hint?: string | null
+          user_id?: string
+          virality_score?: number | null
+          why_it_matters?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insights_fathom_call_fkey"
+            columns: ["recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls"
+            referencedColumns: ["recording_id", "user_id"]
+          },
+        ]
+      }
+      manager_notes: {
+        Row: {
+          call_recording_id: number
+          created_at: string | null
+          id: string
+          manager_user_id: string
+          note: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          call_recording_id: number
+          created_at?: string | null
+          id?: string
+          manager_user_id: string
+          note: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          call_recording_id?: number
+          created_at?: string | null
+          id?: string
+          manager_user_id?: string
+          note?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "manager_notes_call_recording_id_user_id_fkey"
+            columns: ["call_recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls"
+            referencedColumns: ["recording_id", "user_id"]
           },
         ]
       }
@@ -846,13 +1578,14 @@ export type Database = {
           conditions: Json
           created_at: string | null
           description: string | null
+          folder_id: string | null
           id: string
           is_active: boolean | null
           last_applied_at: string | null
           name: string
           priority: number
           rule_type: string
-          tag_id: string
+          tag_id: string | null
           times_applied: number | null
           updated_at: string | null
           user_id: string
@@ -861,13 +1594,14 @@ export type Database = {
           conditions: Json
           created_at?: string | null
           description?: string | null
+          folder_id?: string | null
           id?: string
           is_active?: boolean | null
           last_applied_at?: string | null
           name: string
           priority?: number
           rule_type: string
-          tag_id: string
+          tag_id?: string | null
           times_applied?: number | null
           updated_at?: string | null
           user_id: string
@@ -876,13 +1610,14 @@ export type Database = {
           conditions?: Json
           created_at?: string | null
           description?: string | null
+          folder_id?: string | null
           id?: string
           is_active?: boolean | null
           last_applied_at?: string | null
           name?: string
           priority?: number
           rule_type?: string
-          tag_id?: string
+          tag_id?: string | null
           times_applied?: number | null
           updated_at?: string | null
           user_id?: string
@@ -893,6 +1628,208 @@ export type Database = {
             columns: ["tag_id"]
             isOneToOne: false
             referencedRelation: "call_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tag_rules_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_memberships: {
+        Row: {
+          created_at: string | null
+          id: string
+          invite_expires_at: string | null
+          invite_token: string | null
+          invited_by_user_id: string | null
+          joined_at: string | null
+          manager_membership_id: string | null
+          role: string | null
+          status: string | null
+          team_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
+          invited_by_user_id?: string | null
+          joined_at?: string | null
+          manager_membership_id?: string | null
+          role?: string | null
+          status?: string | null
+          team_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
+          invited_by_user_id?: string | null
+          joined_at?: string | null
+          manager_membership_id?: string | null
+          role?: string | null
+          status?: string | null
+          team_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_memberships_manager_membership_id_fkey"
+            columns: ["manager_membership_id"]
+            isOneToOne: false
+            referencedRelation: "team_memberships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_memberships_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_shares: {
+        Row: {
+          created_at: string | null
+          folder_id: string | null
+          id: string
+          owner_user_id: string
+          recipient_user_id: string
+          share_type: string
+          tag_id: string | null
+          team_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          folder_id?: string | null
+          id?: string
+          owner_user_id: string
+          recipient_user_id: string
+          share_type: string
+          tag_id?: string | null
+          team_id: string
+        }
+        Update: {
+          created_at?: string | null
+          folder_id?: string | null
+          id?: string
+          owner_user_id?: string
+          recipient_user_id?: string
+          share_type?: string
+          tag_id?: string | null
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_shares_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_shares_tag_id_fkey"
+            columns: ["tag_id"]
+            isOneToOne: false
+            referencedRelation: "call_tags"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_shares_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          admin_sees_all: boolean | null
+          created_at: string | null
+          domain_auto_join: string | null
+          id: string
+          name: string
+          owner_user_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          admin_sees_all?: boolean | null
+          created_at?: string | null
+          domain_auto_join?: string | null
+          id?: string
+          name: string
+          owner_user_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          admin_sees_all?: boolean | null
+          created_at?: string | null
+          domain_auto_join?: string | null
+          id?: string
+          name?: string
+          owner_user_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      templates: {
+        Row: {
+          content_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_shared: boolean | null
+          name: string
+          team_id: string | null
+          template_content: string
+          updated_at: string | null
+          usage_count: number | null
+          user_id: string
+          variables: Json | null
+        }
+        Insert: {
+          content_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name: string
+          team_id?: string | null
+          template_content: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id: string
+          variables?: Json | null
+        }
+        Update: {
+          content_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_shared?: boolean | null
+          name?: string
+          team_id?: string | null
+          template_content?: string
+          updated_at?: string | null
+          usage_count?: number | null
+          user_id?: string
+          variables?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "templates_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -914,6 +1851,7 @@ export type Database = {
           intent_signals: string[] | null
           recording_id: number
           sentiment: string | null
+          source_platform: string | null
           speaker_email: string | null
           speaker_name: string | null
           timestamp_end: string | null
@@ -939,6 +1877,7 @@ export type Database = {
           intent_signals?: string[] | null
           recording_id: number
           sentiment?: string | null
+          source_platform?: string | null
           speaker_email?: string | null
           speaker_name?: string | null
           timestamp_end?: string | null
@@ -964,6 +1903,7 @@ export type Database = {
           intent_signals?: string[] | null
           recording_id?: number
           sentiment?: string | null
+          source_platform?: string | null
           speaker_email?: string | null
           speaker_name?: string | null
           timestamp_end?: string | null
@@ -1112,12 +2052,21 @@ export type Database = {
       user_settings: {
         Row: {
           ai_model_preset: string | null
+          automation_webhook_secret: string | null
+          automation_webhook_secret_created_at: string | null
           bulk_import_enabled: boolean | null
           created_at: string | null
           dedup_platform_order: string[] | null
           dedup_priority_mode: string | null
           fathom_api_key: string | null
           fathom_api_secret: string | null
+          google_last_poll_at: string | null
+          google_oauth_access_token: string | null
+          google_oauth_email: string | null
+          google_oauth_refresh_token: string | null
+          google_oauth_state: string | null
+          google_oauth_token_expires: number | null
+          google_sync_token: string | null
           host_email: string | null
           id: string
           oauth_access_token: string | null
@@ -1127,6 +2076,7 @@ export type Database = {
           oauth_test_status: string | null
           oauth_token_expires: number | null
           setup_completed_at: string | null
+          sync_source_filter: string[] | null
           timezone: string | null
           updated_at: string | null
           user_id: string
@@ -1140,12 +2090,21 @@ export type Database = {
         }
         Insert: {
           ai_model_preset?: string | null
+          automation_webhook_secret?: string | null
+          automation_webhook_secret_created_at?: string | null
           bulk_import_enabled?: boolean | null
           created_at?: string | null
           dedup_platform_order?: string[] | null
           dedup_priority_mode?: string | null
           fathom_api_key?: string | null
           fathom_api_secret?: string | null
+          google_last_poll_at?: string | null
+          google_oauth_access_token?: string | null
+          google_oauth_email?: string | null
+          google_oauth_refresh_token?: string | null
+          google_oauth_state?: string | null
+          google_oauth_token_expires?: number | null
+          google_sync_token?: string | null
           host_email?: string | null
           id?: string
           oauth_access_token?: string | null
@@ -1155,6 +2114,7 @@ export type Database = {
           oauth_test_status?: string | null
           oauth_token_expires?: number | null
           setup_completed_at?: string | null
+          sync_source_filter?: string[] | null
           timezone?: string | null
           updated_at?: string | null
           user_id: string
@@ -1168,12 +2128,21 @@ export type Database = {
         }
         Update: {
           ai_model_preset?: string | null
+          automation_webhook_secret?: string | null
+          automation_webhook_secret_created_at?: string | null
           bulk_import_enabled?: boolean | null
           created_at?: string | null
           dedup_platform_order?: string[] | null
           dedup_priority_mode?: string | null
           fathom_api_key?: string | null
           fathom_api_secret?: string | null
+          google_last_poll_at?: string | null
+          google_oauth_access_token?: string | null
+          google_oauth_email?: string | null
+          google_oauth_refresh_token?: string | null
+          google_oauth_state?: string | null
+          google_oauth_token_expires?: number | null
+          google_sync_token?: string | null
           host_email?: string | null
           id?: string
           oauth_access_token?: string | null
@@ -1183,6 +2152,7 @@ export type Database = {
           oauth_test_status?: string | null
           oauth_token_expires?: number | null
           setup_completed_at?: string | null
+          sync_source_filter?: string[] | null
           timezone?: string | null
           updated_at?: string | null
           user_id?: string
@@ -1259,6 +2229,7 @@ export type Database = {
       apply_tag_rules: {
         Args: { p_dry_run?: boolean; p_recording_id: number; p_user_id: string }
         Returns: {
+          folder_name: string
           match_reason: string
           matched_rule_id: string
           matched_rule_name: string
@@ -1268,6 +2239,7 @@ export type Database = {
       apply_tag_rules_to_untagged: {
         Args: { p_dry_run?: boolean; p_limit?: number; p_user_id: string }
         Returns: {
+          folder_name: string
           match_reason: string
           matched_rule: string
           recording_id: number
@@ -1294,12 +2266,44 @@ export type Database = {
         }[]
       }
       finalize_embedding_jobs: { Args: never; Returns: number }
-      get_available_metadata: {
-        Args: {
-          p_user_id: string
-          p_metadata_type: string
-        }
-        Returns: Json
+      generate_automation_webhook_secret: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
+      get_embedding_cost_summary: {
+        Args: { p_months?: number; p_user_id: string }
+        Returns: {
+          avg_tokens_per_request: number
+          month: string
+          operation_type: string
+          request_count: number
+          total_cost_cents: number
+          total_tokens: number
+        }[]
+      }
+      get_indexed_recording_count: {
+        Args: { p_user_id: string }
+        Returns: {
+          indexed_count: number
+          total_chunks: number
+        }[]
+      }
+      get_recording_embedding_costs: {
+        Args: { p_limit?: number; p_user_id: string }
+        Returns: {
+          created_at: string
+          embedding_tokens: number
+          enrichment_tokens: number
+          recording_id: number
+          total_cost_cents: number
+          total_tokens: number
+        }[]
+      }
+      get_unindexed_recording_ids: {
+        Args: { p_user_id: string }
+        Returns: {
+          recording_id: string
+        }[]
       }
       get_user_categories: {
         Args: { p_user_id: string }
@@ -1328,45 +2332,84 @@ export type Database = {
         }
         Returns: boolean
       }
-      hybrid_search_transcripts: {
-        Args: {
-          filter_categories?: string[]
-          filter_date_end?: string
-          filter_date_start?: string
-          filter_intent_signals?: string[]
-          filter_recording_ids?: number[]
-          filter_sentiment?: string
-          filter_speakers?: string[]
-          filter_topics?: string[]
-          filter_user_id?: string
-          filter_user_tags?: string[]
-          full_text_weight?: number
-          match_count?: number
-          query_embedding: string
-          query_text: string
-          rrf_k?: number
-          semantic_weight?: number
-        }
-        Returns: {
-          call_category: string
-          call_date: string
-          call_title: string
-          chunk_id: string
-          chunk_index: number
-          chunk_text: string
-          entities: Json
-          fts_rank: number
-          intent_signals: string[]
-          recording_id: number
-          rrf_score: number
-          sentiment: string
-          similarity_score: number
-          speaker_email: string
-          speaker_name: string
-          topics: string[]
-          user_tags: string[]
-        }[]
-      }
+      hybrid_search_transcripts:
+        | {
+            Args: {
+              filter_categories?: string[]
+              filter_date_end?: string
+              filter_date_start?: string
+              filter_intent?: string[]
+              filter_recording_ids?: number[]
+              filter_sentiment?: string
+              filter_speakers?: string[]
+              filter_topics?: string[]
+              filter_user_id?: string
+              full_text_weight?: number
+              match_count?: number
+              query_embedding: string
+              query_text: string
+              rrf_k?: number
+              semantic_weight?: number
+            }
+            Returns: {
+              call_category: string
+              call_date: string
+              call_title: string
+              chunk_id: string
+              chunk_index: number
+              chunk_text: string
+              fts_rank: number
+              intent_signals: string[]
+              recording_id: number
+              rrf_score: number
+              sentiment: string
+              similarity_score: number
+              speaker_email: string
+              speaker_name: string
+              topics: string[]
+            }[]
+          }
+        | {
+            Args: {
+              filter_categories?: string[]
+              filter_date_end?: string
+              filter_date_start?: string
+              filter_intent_signals?: string[]
+              filter_recording_ids?: number[]
+              filter_sentiment?: string
+              filter_source_platforms?: string[]
+              filter_speakers?: string[]
+              filter_topics?: string[]
+              filter_user_id?: string
+              filter_user_tags?: string[]
+              full_text_weight?: number
+              match_count?: number
+              query_embedding: string
+              query_text: string
+              rrf_k?: number
+              semantic_weight?: number
+            }
+            Returns: {
+              call_category: string
+              call_date: string
+              call_title: string
+              chunk_id: string
+              chunk_index: number
+              chunk_text: string
+              entities: Json
+              fts_rank: number
+              intent_signals: string[]
+              recording_id: number
+              rrf_score: number
+              sentiment: string
+              similarity_score: number
+              source_platform: string
+              speaker_email: string
+              speaker_name: string
+              topics: string[]
+              user_tags: string[]
+            }[]
+          }
       increment_embedding_progress: {
         Args: {
           p_chunks_created?: number
@@ -1375,9 +2418,31 @@ export type Database = {
         }
         Returns: undefined
       }
+      is_active_team_member: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      is_manager_of: {
+        Args: { p_manager_user_id: string; p_report_user_id: string }
+        Returns: boolean
+      }
+      is_team_admin: {
+        Args: { p_team_id: string; p_user_id: string }
+        Returns: boolean
+      }
+      manual_google_poll_sync: { Args: never; Returns: string }
       parse_transcript_to_segments: {
         Args: { p_full_transcript: string; p_recording_id: number }
         Returns: number
+      }
+      revoke_automation_webhook_secret: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
+      trigger_google_poll_sync: { Args: never; Returns: undefined }
+      would_create_circular_hierarchy: {
+        Args: { p_membership_id: string; p_new_manager_membership_id: string }
+        Returns: boolean
       }
     }
     Enums: {
@@ -1513,3 +2578,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.72.7 (currently installed v2.67.1)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
