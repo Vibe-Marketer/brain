@@ -15,7 +15,7 @@ export interface SyncJob {
   started_at?: string | null;
   completed_at: string | null;
   error: string | null;
-  metadata?: Record<string, unknown>;
+  metadata?: unknown; // Json type from Supabase can be string | number | boolean | null | object | array
   recording_ids: number[];
   progress_current: number;
   progress_total: number;
@@ -44,6 +44,18 @@ export function useSyncTabState({
   const realtimeChannelRef = useRef<RealtimeChannel | null>(null);
   const completedJobTimeoutsRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const processedSyncedIdsRef = useRef<Set<number>>(new Set());
+  
+  // Refs for callbacks to avoid dependency loops in useEffect
+  const loadExistingTranscriptsRef = useRef(loadExistingTranscripts);
+  const checkSyncStatusRef = useRef(checkSyncStatus);
+  const setMeetingsRef = useRef(setMeetings);
+  const meetingsRef = useRef(meetings);
+  
+  // Keep refs updated
+  loadExistingTranscriptsRef.current = loadExistingTranscripts;
+  checkSyncStatusRef.current = checkSyncStatus;
+  setMeetingsRef.current = setMeetings;
+  meetingsRef.current = meetings;
 
   // Load user timezone from user_settings
   const loadUserTimezone = async () => {
@@ -101,8 +113,10 @@ export function useSyncTabState({
   };
 
   // Progressively remove synced meetings as they complete
+  // Uses refs to avoid being a dependency that triggers effect re-runs
   const removeNewlySyncedMeetings = useCallback((job: SyncJob) => {
-    if (!setMeetings || !job.synced_ids) return;
+    const setMeetingsFn = setMeetingsRef.current;
+    if (!setMeetingsFn || !job.synced_ids) return;
 
     // Find IDs that are newly synced (not already processed)
     const newlySyncedIds = job.synced_ids.filter(id => !processedSyncedIdsRef.current.has(id));
@@ -113,13 +127,14 @@ export function useSyncTabState({
 
       // Remove from unsynced list
       const syncedIdStrings = new Set(newlySyncedIds.map(id => String(id)));
-      setMeetings(prev => prev.filter(m => !syncedIdStrings.has(m.recording_id)));
+      setMeetingsFn(prev => prev.filter(m => !syncedIdStrings.has(m.recording_id)));
 
       logger.debug(`Removed ${newlySyncedIds.length} newly synced meetings from unsynced list`);
     }
-  }, [setMeetings]);
+  }, []); // No dependencies - uses refs
 
   // Handle job completion - show success state and refresh data
+  // Uses refs to avoid being a dependency that triggers effect re-runs
   const handleJobCompleted = useCallback(async (job: SyncJob) => {
     logger.info(`Sync job ${job.id} completed with status: ${job.status}`);
 
@@ -139,20 +154,22 @@ export function useSyncTabState({
     }, 8000);
     completedJobTimeoutsRef.current.set(job.id, timeoutId);
 
-    // Refresh the data
-    await loadExistingTranscripts();
+    // Refresh the data using ref
+    await loadExistingTranscriptsRef.current();
 
-    // Remove synced meetings from unsynced list
-    if (setMeetings && job.synced_ids && job.synced_ids.length > 0) {
+    // Remove synced meetings from unsynced list using ref
+    const setMeetingsFn = setMeetingsRef.current;
+    if (setMeetingsFn && job.synced_ids && job.synced_ids.length > 0) {
       const syncedIdStrings = new Set(job.synced_ids.map(id => String(id)));
-      setMeetings(prev => prev.filter(m => !syncedIdStrings.has(m.recording_id)));
+      setMeetingsFn(prev => prev.filter(m => !syncedIdStrings.has(m.recording_id)));
     }
 
-    // Check sync status for remaining meetings
-    if (meetings.length > 0) {
-      await checkSyncStatus(meetings.map(m => m.recording_id));
+    // Check sync status for remaining meetings using ref
+    const currentMeetings = meetingsRef.current;
+    if (currentMeetings.length > 0) {
+      await checkSyncStatusRef.current(currentMeetings.map(m => m.recording_id));
     }
-  }, [loadExistingTranscripts, checkSyncStatus, meetings, setMeetings]);
+  }, []); // No dependencies - uses refs
 
   // Hybrid approach: Try realtime with polling fallback
   useEffect(() => {
@@ -298,7 +315,7 @@ export function useSyncTabState({
       completedJobTimeoutsRef.current.forEach(timeout => clearTimeout(timeout));
       completedJobTimeoutsRef.current.clear();
     };
-  }, [handleJobCompleted, recentlyCompletedJobs, removeNewlySyncedMeetings]);
+  }, []); // Empty deps - callbacks use refs to avoid infinite loops
 
   // Load initial data on mount
   useEffect(() => {
