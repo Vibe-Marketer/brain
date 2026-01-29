@@ -513,7 +513,7 @@ export function TranscriptsTab({
       <div className="h-full flex flex-col">
         {/* Filter bar - compact mode (no search, search is in page header) */}
         {/* No border separator - clean transition from header to filters */}
-        <div className="flex-shrink-0 px-4 md:px-10 py-2">
+        <div className="flex-shrink-0 px-4 md:px-10 pt-2 pb-3">
           <div className="flex items-center gap-2">
             <div className="flex-1 min-w-0">
               <FilterBar
