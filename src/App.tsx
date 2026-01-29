@@ -11,6 +11,7 @@ import OAuthCallback from '@/pages/OAuthCallback';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { CallDetailPage } from '@/pages/CallDetailPage';
 import { SharedCallView } from '@/pages/SharedCallView';
+import TeamJoin from '@/pages/TeamJoin';
 
 // Import existing pages
 import TranscriptsNew from '@/pages/TranscriptsNew';
@@ -102,6 +103,9 @@ function App() {
 
                     {/* Shared call view - public route with token-based access */}
                     <Route path="/s/:token" element={<SharedCallView />} />
+
+                    {/* Team join page - public-ish route (redirects to login if not authenticated) */}
+                    <Route path="/join/team/:token" element={<TeamJoin />} />
 
                     {/* 404 */}
                     <Route path="*" element={<Navigate to="/" replace />} />
