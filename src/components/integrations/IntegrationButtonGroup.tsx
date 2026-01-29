@@ -18,7 +18,7 @@ export function IntegrationButtonGroup({
       <span className="text-sm font-medium text-ink-soft uppercase tracking-wide">
         Integrations
       </span>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3">
         {isLoading ? (
           <RiLoader4Line className="h-5 w-5 animate-spin text-ink-muted" />
         ) : (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
@@ -40,7 +40,10 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
   const [integrations, setIntegrations] = useState<IntegrationStatus[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [syncingPlatforms, setSyncingPlatforms] = useState<Set<IntegrationPlatform>>(new Set());
+  // Use ref for syncing platforms to avoid recreating loadIntegrations on every sync
+  const syncingPlatformsRef = useRef<Set<IntegrationPlatform>>(new Set());
+  // Trigger re-render when syncing state changes
+  const [, forceUpdate] = useState({});
 
   const loadIntegrations = useCallback(async () => {
     try {
@@ -74,6 +77,7 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
 
       const now = Date.now();
       const result: IntegrationStatus[] = [];
+      const syncingPlatforms = syncingPlatformsRef.current;
 
       // Check Fathom connection (API key or OAuth)
       const fathomConnected = !!(
@@ -127,7 +131,7 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [syncingPlatforms]);
+  }, []); // No dependencies - uses ref for syncing state
 
   const refreshIntegrations = useCallback(async () => {
     setIsLoading(true);
@@ -135,7 +139,9 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
   }, [loadIntegrations]);
 
   const triggerManualSync = useCallback(async (platform: IntegrationPlatform) => {
-    setSyncingPlatforms(prev => new Set([...prev, platform]));
+    // Add to syncing set and force re-render
+    syncingPlatformsRef.current.add(platform);
+    forceUpdate({});
 
     try {
       if (platform === "google_meet") {
@@ -177,11 +183,9 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
         )
       );
     } finally {
-      setSyncingPlatforms(prev => {
-        const next = new Set(prev);
-        next.delete(platform);
-        return next;
-      });
+      // Remove from syncing set and force re-render
+      syncingPlatformsRef.current.delete(platform);
+      forceUpdate({});
 
       // Refresh to get updated last sync time
       await loadIntegrations();
