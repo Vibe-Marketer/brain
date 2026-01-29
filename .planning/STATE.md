@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 3.1 Compact Integration UI
+**Current Focus:** Phase 3.2 Integration Import Controls
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 3.1 of 9 (Compact Integration UI)
+**Phase:** 3.2 of 9 (Integration Import Controls)
 
-**Plan:** 2 of 3 in current phase
+**Plan:** 1 of 2 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-01-29 - Completed 03.1-02-PLAN.md (Composite components)
+**Last activity:** 2026-01-29 - Completed 03.2-01-PLAN.md (Database + Filter Hook)
 
 **Progress:**
 ```
-[███████████████████░] 21/58 plans complete (36%)
+[████████████████████░] 22/58 plans complete (38%)
 ```
 
 ---
@@ -47,7 +47,8 @@
 | Phase 1: Security Lockdown | 6 | 6 | Complete (6/6 plans) |
 | Phase 2: Chat Foundation | 6 | 6 | Complete (12/12 plans) |
 | Phase 3: Integration OAuth | 3 | 2 | Complete (2/2 plans) - INT-02 partial |
-| Phase 3.1: Compact Integration UI | 3 | 0 | In progress (2/3 plans) |
+| Phase 3.1: Compact Integration UI | 3 | 3 | Complete (3/3 plans) |
+| Phase 3.2: Integration Import Controls | 3 | 0 | In progress (1/2 plans) |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
 | Phase 6: Demo Polish | 12 | 0 | Pending |
@@ -101,6 +102,8 @@
 | 2026-01-29 | OAuth redirect to Sync tab | Better UX - after OAuth success, go to `/?tab=sync` not `/settings?tab=integrations` | Users land where they need to be |
 | 2026-01-29 | 56px compact button size | Fits 6-8 buttons per row at top of Sync page | Established size for integration buttons |
 | 2026-01-29 | Ring-based connection state | Green ring = connected, red ring = disconnected with opacity | Visual pattern for integration state |
+| 2026-01-29 | NULL = all enabled for sync filter | When all connected platforms enabled, save NULL to auto-enable new integrations | Simpler default behavior |
+| 2026-01-29 | Intersection filter for orphaned state | Intersect saved filter with connected platforms to handle disconnected integrations | Prevents invalid filter states |
 
 ### Active TODOs
 
@@ -110,8 +113,10 @@
 - [x] Execute 03-02-PLAN.md (OAuth verification - Zoom verified, Google skipped)
 - [x] Execute 03.1-01-PLAN.md (Core primitives - modal store + compact button)
 - [x] Execute 03.1-02-PLAN.md (Composite components - modal + button group)
+- [x] Execute 03.1-03-PLAN.md (Wire up Sync page)
+- [x] Execute 03.2-01-PLAN.md (Database + Filter Hook)
 
-- [ ] Execute 03.1-03-PLAN.md (Wire up Sync page)
+- [ ] Execute 03.2-02-PLAN.md (SourcesFilterPopover + SyncTab integration)
 - [ ] Plan and execute Phase 4: Team Collaboration
 
 ### Pending Todos
@@ -134,19 +139,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** Completed 03.1-02-PLAN.md - Composite components created
+**Stopped at:** Completed 03.2-01-PLAN.md - Database + Filter Hook
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 3.1 Compact Integration UI in progress. 2/3 plans executed. Ready for 03.1-03 (wire up Sync page).
+Phase 3.2 Integration Import Controls in progress. 1/2 plans executed. Ready for 03.2-02 (SourcesFilterPopover).
 
 **What to remember:**
-- integrationModalStore, CompactIntegrationButton from Plan 01
-- IntegrationConnectModal, ConnectedContent, IntegrationButtonGroup from Plan 02
-- All components in src/components/integrations/ directory
-- Next: Wire up IntegrationButtonGroup + IntegrationConnectModal in SyncTab
+- sync_source_filter column added to user_settings table
+- useSyncSourceFilter hook created in src/hooks/
+- Hook takes connectedPlatforms as prop from useIntegrationSync
+- NULL in database = all connected platforms enabled
+- Next: Create SourcesFilterPopover UI component
 
 ---
 
@@ -157,12 +163,12 @@ Phase 3.1 Compact Integration UI in progress. 2/3 plans executed. Ready for 03.1
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 61 |
 | Requirements Complete | 15 (25%) |
-| Current Phase | 3.1 - Compact Integration UI |
-| Plans Complete | 2/3 in Phase 3.1 (21/58 overall) |
-| Next Plan | 03.1-03 - Wire up Sync page |
+| Current Phase | 3.2 - Integration Import Controls |
+| Plans Complete | 1/2 in Phase 3.2 (22/58 overall) |
+| Next Plan | 03.2-02 - SourcesFilterPopover + SyncTab integration |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-29 (Completed 03.1-02-PLAN.md - Composite components)*
+*Last updated: 2026-01-29 (Completed 03.2-01-PLAN.md - Database + Filter Hook)*
