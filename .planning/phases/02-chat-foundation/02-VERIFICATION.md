@@ -1,18 +1,27 @@
 ---
 phase: 02-chat-foundation
-verified: 2026-01-28T21:59:00Z
+verified: 2026-01-29T00:45:00Z
 status: passed
-score: 6/6 must-haves verified + 3/3 gap closures verified
+score: 6/6 must-haves verified + 3/4 gap closures verified + 1 deferred
 re_verification:
   previous_status: passed
   previous_score: 6/6
   gaps_closed:
-    - "Gap 1: Call links open in popup instead of panel"
-    - "Gap 2: No error toast on network failures"
-    - "Gap 3: Console spam on network errors"
-    - "Bug: Model uses fabricated recording_ids"
+    - "Gap 2: No error toast on network failures - FIXED via 3 commits"
+    - "Gap 3: Console spam on network errors - FIXED (same root cause)"
+    - "Bug: Model uses fabricated recording_ids - FIXED in 02-11"
+  gaps_deferred:
+    - "Gap 1: Call detail panel vs popup - User prefers original popup dialog (UX preference)"
   gaps_remaining: []
   regressions: []
+  post_uat_fixes:
+    - commit: "198d197"
+      message: "fix(chat): resolve infinite reconnect loop and duplicate message bug"
+      root_cause: "reconnectAttempts state in useEffect dependency array"
+    - commit: "e015180"
+      message: "fix(chat): remove auto-retry and prevent duplicate user messages"
+    - commit: "3c24dbe"
+      message: "fix(chat): don't remove user message on retry"
 must_haves:
   truths:
     - "User can send chat message and receive complete streamed response without errors"
@@ -137,18 +146,32 @@ All gap closures are structural code changes that can be verified programmatical
 
 **Phase 2 Chat Foundation: PASSED**
 
-All 6 original success criteria remain verified. All 4 UAT-identified gaps have been closed:
+All 6 original success criteria verified. 3 of 4 UAT-identified gaps closed, 1 deferred by user preference:
 
-1. **CallDetailPanel (02-10):** Citation clicks now open call details in Pane 4 side panel instead of popup dialog. 578-line panel component with Overview/Transcript tabs, proper header with close/pin buttons.
+### CLOSED
 
-2. **Error Toast Notifications (02-12):** Network errors now immediately show toast to user. First interruption shows "Connection interrupted. Attempting to reconnect..." before loading toast. Catch-all for general network errors.
+1. **Error Toast Notifications (02-12 + post-UAT fixes):** Network errors now show toast. The original implementation had a critical bug where `reconnectAttempts` state in useEffect dependency array caused an infinite re-render loop. Fixed via 3 commits that changed to refs, removed auto-retry, and properly handle retry flow.
 
-3. **Throttled Error Logging (02-12):** `throttledErrorLog()` function limits console output to 1 log per 5 seconds per error type. Prevents the 500+ error message spam seen in UAT.
+2. **Throttled Error Logging (02-12 + post-UAT fixes):** `throttledErrorLog()` now works correctly. The infinite loop was calling it 500+/sec; with the ref-based fix, throttling works as designed.
 
-4. **Recording ID Rules (02-11):** System prompt now includes RECORDING ID RULES (CRITICAL) section explicitly instructing model to use real recording_ids from search results, never fabricated numbers like 1, 2, 3.
+3. **Recording ID Rules (02-11):** System prompt includes RECORDING ID RULES (CRITICAL) section explicitly instructing model to use real recording_ids from search results, never fabricated numbers.
+
+### DEFERRED (User Preference)
+
+4. **CallDetailPanel (02-10):** Panel infrastructure exists and works (578-line CallDetailPanel.tsx), but user expressed preference for the original popup dialog pattern. This is a UX design decision, not a bug. Can be revisited in future UX polish phase if desired.
+
+### Post-UAT Bug Fixes (2026-01-29)
+
+Critical bugs found during UAT testing and fixed same session:
+
+| Commit | Fix |
+|--------|-----|
+| 198d197 | Changed `reconnectAttempts` from state to ref to break infinite loop |
+| e015180 | Removed auto-retry, added `handledErrorRef` guard |
+| 3c24dbe | handleRetry keeps user messages (only removes incomplete assistant messages) |
 
 ---
 
-_Verified: 2026-01-28T21:59:00Z_
+_Verified: 2026-01-29T00:45:00Z_
 _Verifier: Claude (gsd-verifier)_
-_Re-verification: Gap closures from UAT (02-10, 02-11, 02-12)_
+_Re-verification: Gap closures + post-UAT bug fixes (02-10, 02-11, 02-12 + 3 hotfix commits)_
