@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -60,7 +60,16 @@ export function SyncTab() {
   // Get connected integrations and filter state
   const { integrations } = useIntegrationSync();
   const connectedIntegrations = integrations.filter((i) => i.connected);
-  const connectedPlatforms = connectedIntegrations.map((i) => i.platform);
+  // Memoize to prevent useSyncSourceFilter from resetting on every render
+  // Using JSON.stringify for stable dependency - only recomputes when platforms actually change
+  const connectedPlatformsKey = JSON.stringify(
+    connectedIntegrations.map((i) => i.platform).sort()
+  );
+  const connectedPlatforms = useMemo(
+    () => connectedIntegrations.map((i) => i.platform),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [connectedPlatformsKey]
+  );
   const {
     enabledSources,
     toggleSource,

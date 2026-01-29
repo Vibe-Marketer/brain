@@ -38,11 +38,23 @@ export function useSyncSourceFilter({
 }: UseSyncSourceFilterProps): UseSyncSourceFilterReturn {
   const [enabledSources, setEnabledSourcesState] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const hasLoadedRef = useRef(false);
+  
+  // Track loading state to prevent re-fetching
+  const hasLoadedFromDbRef = useRef(false);
+  const isLoadingRef = useRef(false);
   const previousConnectedRef = useRef<string[]>([]);
+  // Store the raw DB value to apply when connectedPlatforms arrives
+  const savedFilterRef = useRef<string[] | null>(null);
 
-  // Load filter preferences from database
+  // Load filter preferences from database - only once
   const loadFilterPreferences = useCallback(async () => {
+    // Prevent concurrent or duplicate loads
+    if (isLoadingRef.current || hasLoadedFromDbRef.current) {
+      return;
+    }
+    
+    isLoadingRef.current = true;
+    
     try {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) {
@@ -62,34 +74,55 @@ export function useSyncSourceFilter({
       }
 
       const savedFilter = settings?.sync_source_filter;
-
+      
+      // Store the raw DB value
       if (savedFilter && Array.isArray(savedFilter) && savedFilter.length > 0) {
-        // Intersect saved filter with currently connected platforms
-        // This handles the case where a user disconnects an integration
-        const validSources = savedFilter.filter((platform) =>
-          connectedPlatforms.includes(platform as IntegrationPlatform)
-        );
-
-        // If intersection results in empty, fall back to all connected
-        if (validSources.length > 0) {
-          setEnabledSourcesState(validSources);
-        } else {
-          setEnabledSourcesState([...connectedPlatforms]);
-        }
+        savedFilterRef.current = savedFilter;
       } else {
-        // NULL or empty = all connected platforms enabled (default)
-        setEnabledSourcesState([...connectedPlatforms]);
+        savedFilterRef.current = null; // NULL means "all enabled"
       }
 
-      hasLoadedRef.current = true;
+      hasLoadedFromDbRef.current = true;
+      
+      // Apply the filter with current connectedPlatforms
+      applyFilter(connectedPlatforms);
+      
     } catch (err) {
       logger.error("Failed to load sync source filter preferences", err);
       // Fall back to all connected platforms on error
       setEnabledSourcesState([...connectedPlatforms]);
     } finally {
       setIsLoading(false);
+      isLoadingRef.current = false;
     }
   }, [connectedPlatforms]);
+
+  // Apply saved filter to current connected platforms
+  const applyFilter = useCallback((platforms: IntegrationPlatform[]) => {
+    if (platforms.length === 0) {
+      setEnabledSourcesState([]);
+      return;
+    }
+    
+    const savedFilter = savedFilterRef.current;
+    
+    if (savedFilter && savedFilter.length > 0) {
+      // Intersect saved filter with currently connected platforms
+      const validSources = savedFilter.filter((platform) =>
+        platforms.includes(platform as IntegrationPlatform)
+      );
+
+      // If intersection results in empty, fall back to all connected
+      if (validSources.length > 0) {
+        setEnabledSourcesState(validSources);
+      } else {
+        setEnabledSourcesState([...platforms]);
+      }
+    } else {
+      // NULL or empty = all connected platforms enabled (default)
+      setEnabledSourcesState([...platforms]);
+    }
+  }, []);
 
   // Save filter preferences to database
   const saveFilterPreferences = useCallback(
@@ -107,6 +140,9 @@ export function useSyncSourceFilter({
           connectedPlatforms.every((p) => platforms.includes(p));
 
         const filterValue = allEnabled ? null : platforms;
+        
+        // Update our ref to match what we're saving
+        savedFilterRef.current = filterValue;
 
         const { error: upsertError } = await supabase
           .from("user_settings")
@@ -122,6 +158,8 @@ export function useSyncSourceFilter({
         if (upsertError) {
           throw upsertError;
         }
+        
+        logger.debug("Saved sync source filter", { filterValue });
       } catch (err) {
         logger.error("Failed to save sync source filter preferences", err);
         toast.error("Failed to save filter preferences");
@@ -184,20 +222,27 @@ export function useSyncSourceFilter({
     [enabledSources, saveFilterPreferences]
   );
 
-  // Initial load when connected platforms are available
+  // Initial load - only fetch from DB once
   useEffect(() => {
-    if (connectedPlatforms.length > 0) {
+    if (!hasLoadedFromDbRef.current && !isLoadingRef.current) {
       loadFilterPreferences();
-    } else {
-      // No connected platforms - set empty and stop loading
-      setEnabledSourcesState([]);
-      setIsLoading(false);
     }
-  }, [connectedPlatforms, loadFilterPreferences]);
+  }, [loadFilterPreferences]);
 
-  // Auto-enable newly connected integrations
+  // When connectedPlatforms changes AFTER initial load, re-apply filter
   useEffect(() => {
-    if (!hasLoadedRef.current) return;
+    // Skip if we haven't loaded from DB yet
+    if (!hasLoadedFromDbRef.current) {
+      return;
+    }
+    
+    // Skip if platforms haven't actually changed (compare values, not reference)
+    const prevSorted = [...previousConnectedRef.current].sort().join(",");
+    const currSorted = [...connectedPlatforms].sort().join(",");
+    
+    if (prevSorted === currSorted) {
+      return;
+    }
 
     const previousConnected = previousConnectedRef.current;
     const newlyConnected = connectedPlatforms.filter(
@@ -215,7 +260,7 @@ export function useSyncSourceFilter({
       });
     }
 
-    // Also handle disconnected platforms - remove from enabled
+    // Handle disconnected platforms - remove from enabled
     const disconnected = previousConnected.filter(
       (p) => !connectedPlatforms.includes(p as IntegrationPlatform)
     );
@@ -231,6 +276,13 @@ export function useSyncSourceFilter({
 
     previousConnectedRef.current = [...connectedPlatforms];
   }, [connectedPlatforms, enabledSources, saveFilterPreferences]);
+
+  // Initialize previousConnectedRef when connectedPlatforms first arrives
+  useEffect(() => {
+    if (connectedPlatforms.length > 0 && previousConnectedRef.current.length === 0) {
+      previousConnectedRef.current = [...connectedPlatforms];
+    }
+  }, [connectedPlatforms]);
 
   return {
     enabledSources,
