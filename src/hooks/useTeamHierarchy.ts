@@ -141,11 +141,11 @@ function generateInviteToken(): string {
 }
 
 /**
- * Calculates invite expiration date (30 days from now)
+ * Calculates invite expiration date (7 days from now)
  */
 function getInviteExpiration(): string {
   const date = new Date();
-  date.setDate(date.getDate() + 30);
+  date.setDate(date.getDate() + 7);
   return date.toISOString();
 }
 
@@ -361,7 +361,7 @@ export function useTeamHierarchy(options: UseTeamHierarchyOptions): UseTeamHiera
         throw error;
       }
 
-      const inviteUrl = `${window.location.origin}/team/join/${inviteToken}`;
+      const inviteUrl = `${window.location.origin}/join/team/${inviteToken}`;
 
       logger.info("Team invite generated", { teamId, membershipId: data.id });
 
