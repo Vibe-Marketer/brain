@@ -71,7 +71,6 @@ import { cn } from "@/lib/utils";
 import { getUserFriendlyError, ErrorContexts } from "@/lib/user-friendly-errors";
 import { logger } from "@/lib/logger";
 import { toast } from "sonner";
-import { usePanelStore } from "@/stores/panelStore";
 
 // Throttle error logging to prevent console spam during network issues
 const ERROR_LOG_INTERVAL_MS = 5000; // Log at most once per 5 seconds per error type
@@ -280,7 +279,6 @@ export default function Chat() {
   const navigate = useNavigate();
   const location = useLocation();
   const { sessionId } = useParams<{ sessionId: string }>();
-  const { openPanel } = usePanelStore();
 
   // TODO: Switch back to chat-stream-v2 after fixing AI SDK error
   // See .planning/phases/02-chat-foundation/02-UAT.md for investigation notes
@@ -1277,18 +1275,44 @@ export default function Chat() {
     handleRetryRef.current = handleRetry;
   }, [handleRetry]);
 
-  // Handler to view a call from a source citation - opens in Pane 4 side panel
+  // Handler to view a call from a source citation - opens call detail dialog
   const handleViewCall = React.useCallback(
-    (recordingId: number) => {
+    async (recordingId: number) => {
       if (!session?.user?.id) {
         logger.error("No user session");
         return;
       }
 
-      // Open call detail panel instead of dialog
-      openPanel('call-detail', { recordingId });
+      try {
+        // Fetch the full call data
+        const { data: callData, error } = await supabase
+          .from("fathom_calls")
+          .select("*")
+          .eq("recording_id", recordingId)
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+        if (error) {
+          logger.error("Failed to fetch call data:", error);
+          toast.error("Failed to load call details");
+          return;
+        }
+
+        if (!callData) {
+          logger.error("Call not found:", recordingId);
+          toast.error("Call not found");
+          return;
+        }
+
+        // Open the dialog with the fetched call data
+        setSelectedCall(callData as unknown as Meeting);
+        setShowCallDialog(true);
+      } catch (err) {
+        logger.error("Error fetching call:", err);
+        toast.error("Failed to load call details");
+      }
     },
-    [session?.user?.id, openPanel]
+    [session?.user?.id]
   );
 
   const hasActiveFilters =
