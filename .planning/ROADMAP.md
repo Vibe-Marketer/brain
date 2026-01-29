@@ -183,6 +183,12 @@ Plans:
 
 **Dependencies:** Phase 1 (secure team data), Phase 2 (teams need chat to be valuable)
 
+**Plans:** 2 plans in 1 wave
+
+Plans:
+- [ ] 04-01-PLAN.md — Route registration + URL/expiry fixes
+- [ ] 04-02-PLAN.md — Multi-team support + UX simplification
+
 **Requirements:**
 - TEAM-01: Team creation works
 - TEAM-02: Team join page accessible via route
