@@ -126,7 +126,7 @@ export const AccessLogViewer = React.memo(({
         </div>
       )}
 
-      <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
+      <div className="border-cb-gray-light dark:border-cb-gray-dark">
         <div className="overflow-x-auto" style={{ maxHeight }}>
           <Table>
             <TableHeader>

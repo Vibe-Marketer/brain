@@ -84,7 +84,7 @@ export function TranscriptTableRow({
     : "Not recorded";
 
   return (
-    <TableRow key={call.recording_id} className="group h-8 md:h-9">
+    <TableRow key={call.recording_id} className="group h-7 md:h-8">
       <TableCell className="align-middle py-0">
         <Checkbox checked={isSelected} onCheckedChange={onSelect} />
       </TableCell>

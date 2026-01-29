@@ -529,7 +529,7 @@ export function TranscriptsTab({
         </div>
 
         {/* Content area with scroll */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-10 py-4 space-y-4">
+        <div className="flex-1 overflow-y-auto px-4 md:px-4 py-0 space-y-4">
 
           {/* Bulk Actions Toolbar */}
           {selectedCalls.length > 0 && (
@@ -577,7 +577,7 @@ export function TranscriptsTab({
               <AIProcessingProgress onJobsComplete={() => queryClient.invalidateQueries({ queryKey: ["transcript-calls"] })} />
 
               <ErrorBoundary>
-                <div className="border-t border-cb-gray-light dark:border-cb-gray-dark">
+                <div className="border-cb-gray-light dark:border-cb-gray-dark">
                   <TranscriptTable
                     calls={validCalls}
                     selectedCalls={selectedCalls}
