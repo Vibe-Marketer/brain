@@ -183,24 +183,26 @@ export function Markdown({ children, className, components, onViewCall, ...props
 
       if (isViewLink) {
         const recordingId = extractRecordingId(href);
+        const isClickable = recordingId !== null && onViewCall;
 
         // Always render as pill button for "View ..." links
-        // If we can extract recording_id, open dialog. Otherwise pill is visual-only for now.
+        // White background with black border to stand out against gray bubble
         return (
           <Badge
             variant="outline"
             className={cn(
               "text-[10px] px-2 py-0.5 font-medium inline-flex items-center",
-              recordingId !== null && onViewCall
-                ? "cursor-pointer hover:bg-cb-ink-subtle/10"
+              "bg-white dark:bg-card border-black dark:border-white",
+              isClickable
+                ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
                 : "opacity-60 cursor-default"
             )}
             onClick={(e) => {
               e.preventDefault();
-              if (recordingId !== null && onViewCall) {
+              e.stopPropagation();
+              if (isClickable) {
                 onViewCall(recordingId);
               }
-              // If no recording_id, pill is non-functional (visual consistency only)
             }}
           >
             VIEW
