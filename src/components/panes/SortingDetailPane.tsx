@@ -28,10 +28,9 @@ import {
   RiPushpinFill,
   RiFolderLine,
   RiPriceTag3Line,
-  RiFlowChart,
+  RiSettings3Line,
   RiRepeatLine,
   RiArrowLeftLine,
-  RiBugLine,
 } from "@remixicon/react";
 import type { SortingCategory } from "./SortingCategoryPane";
 
@@ -59,11 +58,6 @@ const RecurringTitlesTab = React.lazy(() =>
     default: module.RecurringTitlesTab,
   }))
 );
-const DebugTool = React.lazy(() =>
-  import("@/components/tags/DebugTool").then((module) => ({
-    default: module.DebugTool,
-  }))
-);
 
 /** Category metadata for display */
 const CATEGORY_META: Record<
@@ -87,17 +81,12 @@ const CATEGORY_META: Record<
   rules: {
     label: "Rules",
     description: "Auto-sort incoming calls",
-    icon: RiFlowChart,
+    icon: RiSettings3Line,
   },
   recurring: {
     label: "Recurring Titles",
     description: "Create rules from patterns",
     icon: RiRepeatLine,
-  },
-  debug: {
-    label: "Debug Tool",
-    description: "Admin diagnostic tools",
-    icon: RiBugLine,
   },
 };
 
@@ -229,8 +218,6 @@ export function SortingDetailPane({
         return <RulesTab />;
       case "recurring":
         return <RecurringTitlesTab />;
-      case "debug":
-        return <DebugTool />;
       default:
         return (
           <div className="p-6 text-center text-muted-foreground">
@@ -283,7 +270,7 @@ export function SortingDetailPane({
           {/* Category title and description */}
           <div className="min-w-0">
             <h2
-              className="text-sm font-semibold text-ink truncate"
+              className="text-sm font-bold text-ink uppercase tracking-wide truncate"
               id="sorting-detail-title"
             >
               {meta.label}

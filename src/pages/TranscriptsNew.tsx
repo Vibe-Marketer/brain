@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { RiSearchLine, RiAddLine, RiHome4Line } from "@remixicon/react";
+import { RiSearchLine, RiFileTextLine, RiPlayCircleLine } from "@remixicon/react";
+import type { RemixiconComponentType } from "@remixicon/react";
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
@@ -21,14 +22,20 @@ import { FOCUS_INLINE_SEARCH_EVENT } from "@/stores/searchStore";
 
 type TabValue = "transcripts" | "sync";
 
-const tabConfig = {
+const tabConfig: Record<TabValue, {
+  title: string;
+  subtitle: string;
+  icon: RemixiconComponentType;
+}> = {
   transcripts: {
-    title: "TRANSCRIPTS",
-    description: "Organize, search, and manage all your transcripts in one place.",
+    title: "Transcripts",
+    subtitle: "Search and manage your calls",
+    icon: RiFileTextLine,
   },
   sync: {
-    title: "SYNC & IMPORT",
-    description: "Search and sync transcripts from your connected sources.",
+    title: "Import Meetings",
+    subtitle: "Sync from connected sources",
+    icon: RiPlayCircleLine,
   },
 };
 
@@ -180,14 +187,14 @@ const TranscriptsNew = () => {
                 className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
                 aria-hidden="true"
               >
-                <RiHome4Line className="h-4 w-4 text-vibe-orange" />
+                <currentConfig.icon className="h-4 w-4 text-vibe-orange" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-ink">
-                  Transcripts
+                <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                  {currentConfig.title}
                 </h2>
                 <p className="text-xs text-ink-muted">
-                  {totalCount} transcript{totalCount !== 1 ? 's' : ''}
+                  {currentConfig.subtitle}
                 </p>
               </div>
             </div>

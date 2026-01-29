@@ -238,7 +238,7 @@ export function SettingsCategoryPane({
         </div>
         <div className="min-w-0">
           <h2
-            className="text-sm font-semibold text-ink uppercase tracking-wide"
+            className="text-sm font-bold text-ink uppercase tracking-wide"
             id="settings-category-title"
           >
             Settings

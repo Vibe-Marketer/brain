@@ -286,7 +286,7 @@ export function AnalyticsDetailPane({
           {/* Category title and description */}
           <div className="min-w-0">
             <h2
-              className="text-sm font-semibold text-ink truncate"
+              className="text-sm font-bold text-ink uppercase tracking-wide truncate"
               id="analytics-detail-title"
             >
               {meta.label}

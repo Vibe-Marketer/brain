@@ -262,8 +262,8 @@ export function ChatSidebar({
             <RiChat3Line className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-ink uppercase tracking-wide">
-              AI Chat
+            <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+              Conversations
             </h2>
             <p className="text-xs text-ink-muted">
               {sessions.length} {sessions.length === 1 ? 'conversation' : 'conversations'}

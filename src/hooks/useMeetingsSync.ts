@@ -22,6 +22,12 @@ export interface Meeting {
   calendar_invitees?: CalendarInvitee[];
   recording_end_time?: string;
   full_transcript?: string;
+  recorded_by_email?: string;
+  recorded_by_name?: string;
+  url?: string;
+  share_url?: string;
+  summary?: string | null;
+  unsyncedTranscripts?: any[];
 }
 
 interface SyncJob {

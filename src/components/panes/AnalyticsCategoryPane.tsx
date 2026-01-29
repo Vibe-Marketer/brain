@@ -200,7 +200,7 @@ export function AnalyticsCategoryPane({
         </div>
         <div className="min-w-0">
           <h2
-            className="text-sm font-semibold text-ink uppercase tracking-wide"
+            className="text-sm font-bold text-ink uppercase tracking-wide"
             id="analytics-category-title"
           >
             Analytics

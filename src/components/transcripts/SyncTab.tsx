@@ -1,16 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { RiCloseLine } from "@remixicon/react";
+
 import { Button } from "@/components/ui/button";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { SyncTabDialogs } from "./SyncTabDialogs";
 import { UnsyncedMeetingsSection } from "./UnsyncedMeetingsSection";
 import { SyncedTranscriptsSection } from "./SyncedTranscriptsSection";
 import { ActiveSyncJobsCard } from "./ActiveSyncJobsCard";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
-import { IntegrationSyncPane } from "@/components/sync";
+import { DatePresetBar, SyncEmptyState, StepLabel, IntegrationSourceGroup } from "@/components/sync";
 import { SourcesFilterPopover } from "@/components/sync/SourcesFilterPopover";
 import { useMeetingsSync, type Meeting, type CalendarInvitee } from "@/hooks/useMeetingsSync";
 import { useIntegrationSync } from "@/hooks/useIntegrationSync";
@@ -21,7 +19,6 @@ import { logger } from "@/lib/logger";
 import { getSafeUser, requireUser } from "@/lib/auth-utils";
 
 export function SyncTab() {
-  const isMobile = useIsMobile();
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [existingTranscripts, setExistingTranscripts] = useState<Meeting[]>([]);
@@ -165,7 +162,7 @@ export function SyncTab() {
           recorded_by_name: t.recorded_by_name,
           recorded_by_email: t.recorded_by_email,
           synced: true,
-          calendar_invitees: t.calendar_invitees as CalendarInvitee[],
+          calendar_invitees: t.calendar_invitees as unknown as CalendarInvitee[],
         }))
       );
 
@@ -255,7 +252,7 @@ export function SyncTab() {
 
       if (data?.meeting) {
         // Format the meeting data for the dialog - convert Fathom API format to DB format
-        const formattedMeeting = {
+        const formattedMeeting: Meeting = {
           recording_id: data.meeting.recording_id,
           title: data.meeting.title || data.meeting.meeting_title,
           created_at: data.meeting.created_at,
@@ -267,6 +264,7 @@ export function SyncTab() {
           share_url: data.meeting.share_url,
           summary: data.meeting.default_summary?.markdown_formatted || null,
           calendar_invitees: data.meeting.calendar_invitees,
+          synced: false,
           // Convert transcript to match DB format that CallDetailDialog expects
           unsyncedTranscripts: data.meeting.transcript
             ? data.meeting.transcript.map((t: { speaker?: { display_name?: string; matched_calendar_invitee_email?: string }; text: string; timestamp: string }, idx: number) => ({
@@ -388,7 +386,7 @@ export function SyncTab() {
     setSyncing(true);
 
     try {
-      const user = await requireUser();
+      await requireUser();
 
       // Convert dates to UTC to match the fetch filter
       const createdAfter = dateRange?.from
@@ -453,12 +451,12 @@ export function SyncTab() {
     }
   };
 
-  const handleClearDateRange = () => {
+  const handleClearFilters = () => {
     setDateRange(undefined);
     setMeetings([]);
     setSelectedMeetings(new Set());
     setHasFetchedResults(false);
-    toast.success("Date range cleared");
+    toast.success("Filters cleared");
   };
 
   const handleCategorizeClick = (callId: string) => {
@@ -495,155 +493,167 @@ export function SyncTab() {
   void selectedCallId;
   void filterLoading;
 
+  // Determine if we should show the empty state
+  const showEmptyState = !hasFetchedResults && meetings.length === 0;
+  const hasConnectedIntegrations = connectedIntegrations.length > 0;
+  const hasDateRange = !!(dateRange?.from && dateRange?.to);
+
   return (
-    <div>
+    <div className="space-y-6">
       {/* Persistent Sync Status Indicator - Always visible when syncing */}
       {(activeSyncJobs.length > 0 || recentlyCompletedJobs.length > 0) && (
-        <div className="flex items-center justify-between mb-4">
-          <SyncStatusIndicator
-            activeSyncJobs={activeSyncJobs}
-            recentlyCompletedJobs={recentlyCompletedJobs}
-            onViewSynced={scrollToSyncedSection}
-          />
-        </div>
-      )}
-
-      {/* Integration Status Pane - Shows connected integrations */}
-      <div className="mb-6">
-        <IntegrationSyncPane onIntegrationChange={loadExistingTranscripts} />
-      </div>
-
-      {/* Date Range and Fetch Controls - Single Row */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pb-4 border-b border-cb-gray-light dark:border-cb-gray-dark">
-        <div className="flex-1 min-w-[240px]">
-          <label className="text-xs font-medium text-ink-muted uppercase mb-2 block">
-            Import meetings from
-          </label>
-          <DateRangePicker
-            dateRange={dateRange || { from: undefined, to: undefined }}
-            onDateRangeChange={(range) => setDateRange(range as DateRange)}
-            className="w-full"
-            disabled={loading}
-            extendedQuickSelect={true}
-          />
-        </div>
-
-        <div className="flex items-center gap-2 sm:flex-shrink-0 sm:self-end sm:pb-0.5">
-          {/* Sources filter - only show when integrations are connected */}
-          {connectedIntegrations.length > 0 && (
-            <SourcesFilterPopover
-              connectedIntegrations={connectedIntegrations}
-              enabledSources={enabledSources}
-              onSourceToggle={toggleSource}
-            />
-          )}
-          <Button
-            variant="default"
-            onClick={fetchMeetings}
-            disabled={loading || !dateRange?.from || !dateRange?.to}
-            className="h-9 px-4"
-          >
-            {loading ? "Fetching..." : "Fetch Meetings"}
-          </Button>
-          <Button
-            variant="hollow"
-            onClick={handleClearDateRange}
-            disabled={!dateRange}
-            className="h-9 px-3 gap-2"
-          >
-            <RiCloseLine className="h-4 w-4" />
-            {!isMobile && <span className="text-xs">Clear</span>}
-          </Button>
-        </div>
-      </div>
-
-      {/* Active Sync Jobs Status - Shows real-time progress */}
-      <ActiveSyncJobsCard
-        activeSyncJobs={activeSyncJobs}
-        recentlyCompletedJobs={recentlyCompletedJobs}
-        onCancelJob={cancelSyncJob}
-        onViewSynced={scrollToSyncedSection}
-      />
-
-      {/* Unsynced Meetings Section */}
-      {hasFetchedResults && (
-        <UnsyncedMeetingsSection
-          meetings={meetings}
-          selectedMeetings={selectedMeetings}
-          syncing={syncing}
-          categories={categories}
-          hostEmail={hostEmail}
-          syncingMeetings={syncingMeetings}
-          loadingUnsyncedMeeting={loadingUnsyncedMeeting}
-          onSelectCall={(id) => {
-            const newSelected = new Set(selectedMeetings);
-            if (newSelected.has(id)) {
-              newSelected.delete(id);
-            } else {
-              newSelected.add(id);
-            }
-            setSelectedMeetings(newSelected);
-          }}
-          onSelectAll={() => {
-            if (selectedMeetings.size === meetings.length) {
-              setSelectedMeetings(new Set());
-            } else {
-              setSelectedMeetings(new Set(meetings.map(m => m.recording_id)));
-            }
-          }}
-          onSync={syncMeetings}
-          onClearSelection={() => setSelectedMeetings(new Set())}
-          onViewCall={viewUnsyncedMeeting}
-          onDirectCategorize={async (callId, categoryId) => {
-            await hookSyncSingleMeeting(String(callId), categoryId);
-            setMeetings(prev => prev.filter(m => m.recording_id !== String(callId)));
-            await loadExistingTranscripts();
-          }}
-          onDownload={hookDownloadUnsyncedTranscript}
+        <SyncStatusIndicator
+          activeSyncJobs={activeSyncJobs}
+          recentlyCompletedJobs={recentlyCompletedJobs}
+          onViewSynced={scrollToSyncedSection}
         />
       )}
 
-      {/* Synced Transcripts Section */}
+      {/* === STEP 1: CHOOSE SOURCE === */}
+      <section>
+        <StepLabel step={1} label="Choose source" />
+        <IntegrationSourceGroup onIntegrationChange={loadExistingTranscripts} />
+      </section>
+
+      {/* === STEP 2: CHOOSE DATE RANGE === */}
+      <section>
+        <StepLabel step={2} label="Choose date range" />
+        <DatePresetBar
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          disabled={loading}
+        />
+      </section>
+
+      {/* === STEP 3: FETCH & SYNC CALLS === */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <StepLabel step={3} label="Fetch & sync calls" className="mb-0" />
+          <div className="flex items-center gap-2">
+            {/* Sources filter - only show when integrations are connected */}
+            {connectedIntegrations.length > 0 && (
+              <SourcesFilterPopover
+                connectedIntegrations={connectedIntegrations}
+                enabledSources={enabledSources}
+                onSourceToggle={toggleSource}
+              />
+            )}
+            <Button
+              variant="hollow"
+              onClick={fetchMeetings}
+              disabled={loading || !hasDateRange || !hasConnectedIntegrations}
+              className="h-9 px-4"
+            >
+              {loading ? "Fetching..." : "Fetch calls"}
+            </Button>
+            {(hasDateRange || hasFetchedResults) && (
+              <Button
+                variant="ghost"
+                onClick={handleClearFilters}
+                className="h-9 px-3 text-ink-muted"
+              >
+                Clear filters
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Active Sync Jobs Status - Shows real-time progress */}
+        <ActiveSyncJobsCard
+          activeSyncJobs={activeSyncJobs}
+          recentlyCompletedJobs={recentlyCompletedJobs}
+          onCancelJob={cancelSyncJob}
+          onViewSynced={scrollToSyncedSection}
+        />
+
+        {/* Empty state - before first fetch */}
+        {showEmptyState && (
+          <SyncEmptyState
+            hasConnectedIntegrations={hasConnectedIntegrations}
+            hasDateRange={hasDateRange}
+          />
+        )}
+
+        {/* Unsynced Meetings Section */}
+        {hasFetchedResults && (
+          <UnsyncedMeetingsSection
+            meetings={meetings}
+            selectedMeetings={selectedMeetings}
+            syncing={syncing}
+            categories={categories}
+            hostEmail={hostEmail}
+            syncingMeetings={syncingMeetings}
+            loadingUnsyncedMeeting={loadingUnsyncedMeeting}
+            onSelectCall={(id) => {
+              const newSelected = new Set(selectedMeetings);
+              if (newSelected.has(id)) {
+                newSelected.delete(id);
+              } else {
+                newSelected.add(id);
+              }
+              setSelectedMeetings(newSelected);
+            }}
+            onSelectAll={() => {
+              if (selectedMeetings.size === meetings.length) {
+                setSelectedMeetings(new Set());
+              } else {
+                setSelectedMeetings(new Set(meetings.map(m => m.recording_id)));
+              }
+            }}
+            onSync={syncMeetings}
+            onClearSelection={() => setSelectedMeetings(new Set())}
+            onViewCall={viewUnsyncedMeeting}
+            onDirectCategorize={async (callId, categoryId) => {
+              await hookSyncSingleMeeting(String(callId), categoryId);
+              setMeetings(prev => prev.filter(m => m.recording_id !== String(callId)));
+              await loadExistingTranscripts();
+            }}
+            onDownload={hookDownloadUnsyncedTranscript}
+          />
+        )}
+      </section>
+
+      {/* Synced Transcripts Section - Always visible for reference */}
       <div ref={syncedSectionRef}>
-      <SyncedTranscriptsSection
-        existingTranscripts={existingTranscripts}
-        filteredExistingTranscripts={filteredExistingTranscripts}
-        selectedExistingTranscripts={selectedExistingTranscripts}
-        existingPage={existingPage}
-        existingPageSize={existingPageSize}
-        existingTotalCount={existingTotalCount}
-        categories={categories}
-        categoryAssignments={tagAssignments}
-        hostEmail={hostEmail}
-        dateRange={dateRange}
-        onSelectCall={(id) => {
-          if (selectedExistingTranscripts.includes(id)) {
-            setSelectedExistingTranscripts(selectedExistingTranscripts.filter((i) => i !== id));
-          } else {
-            setSelectedExistingTranscripts([...selectedExistingTranscripts, id]);
-          }
-        }}
-        onSelectAll={() => {
-          if (selectedExistingTranscripts.length === filteredExistingTranscripts.length) {
-            setSelectedExistingTranscripts([]);
-          } else {
-            setSelectedExistingTranscripts(
-              filteredExistingTranscripts.map((t) => Number(t.recording_id))
-            );
-          }
-        }}
-        onCallClick={(call) => {
-          setViewingUnsyncedMeeting(call);
-          setSelectedCallId(String(call.recording_id));
-          setDialogOpen(true);
-        }}
-        onCategorizeCall={(callId) => handleCategorizeClick(String(callId))}
-        onPageChange={setExistingPage}
-        onPageSizeChange={setExistingPageSize}
-        onClearSelection={() => setSelectedExistingTranscripts([])}
-        onDelete={() => setShowDeleteDialog(true)}
-        onBulkCategorize={handleBulkCategorize}
-      />
+        <SyncedTranscriptsSection
+          existingTranscripts={existingTranscripts}
+          filteredExistingTranscripts={filteredExistingTranscripts}
+          selectedExistingTranscripts={selectedExistingTranscripts}
+          existingPage={existingPage}
+          existingPageSize={existingPageSize}
+          existingTotalCount={existingTotalCount}
+          categories={categories}
+          categoryAssignments={tagAssignments}
+          hostEmail={hostEmail}
+          dateRange={dateRange}
+          onSelectCall={(id) => {
+            if (selectedExistingTranscripts.includes(id)) {
+              setSelectedExistingTranscripts(selectedExistingTranscripts.filter((i) => i !== id));
+            } else {
+              setSelectedExistingTranscripts([...selectedExistingTranscripts, id]);
+            }
+          }}
+          onSelectAll={() => {
+            if (selectedExistingTranscripts.length === filteredExistingTranscripts.length) {
+              setSelectedExistingTranscripts([]);
+            } else {
+              setSelectedExistingTranscripts(
+                filteredExistingTranscripts.map((t) => Number(t.recording_id))
+              );
+            }
+          }}
+          onCallClick={(call) => {
+            setViewingUnsyncedMeeting(call);
+            setSelectedCallId(String(call.recording_id));
+            setDialogOpen(true);
+          }}
+          onCategorizeCall={(callId) => handleCategorizeClick(String(callId))}
+          onPageChange={setExistingPage}
+          onPageSizeChange={setExistingPageSize}
+          onClearSelection={() => setSelectedExistingTranscripts([])}
+          onDelete={() => setShowDeleteDialog(true)}
+          onBulkCategorize={handleBulkCategorize}
+        />
       </div>
 
       {/* Dialogs */}
@@ -654,14 +664,14 @@ export function SyncTab() {
         setSelectedCallId={setSelectedCallId}
         setViewingUnsyncedMeeting={setViewingUnsyncedMeeting}
         loadExistingTranscripts={loadExistingTranscripts}
-        categorizeDialogOpen={categorizeDialogOpen}
-        setCategorizeDialogOpen={setCategorizeDialogOpen}
-        categorizingCallId={categorizingCallId}
-        bulkCategorizingIds={bulkCategorizingIds}
-        setCategorizingCallId={setCategorizingCallId}
-        setBulkCategorizingIds={setBulkCategorizingIds}
-        createCategoryDialogOpen={createCategoryDialogOpen}
-        setCreateCategoryDialogOpen={setCreateCategoryDialogOpen}
+        tagDialogOpen={categorizeDialogOpen}
+        setTagDialogOpen={setCategorizeDialogOpen}
+        taggingCallId={categorizingCallId}
+        bulkTaggingIds={bulkCategorizingIds}
+        setTaggingCallId={setCategorizingCallId}
+        setBulkTaggingIds={setBulkCategorizingIds}
+        createTagDialogOpen={createCategoryDialogOpen}
+        setCreateTagDialogOpen={setCreateCategoryDialogOpen}
         showDeleteDialog={showDeleteDialog}
         setShowDeleteDialog={setShowDeleteDialog}
         selectedExistingTranscripts={selectedExistingTranscripts}

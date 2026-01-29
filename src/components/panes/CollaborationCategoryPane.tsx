@@ -181,7 +181,7 @@ export function CollaborationCategoryPane({
         </div>
         <div className="min-w-0">
           <h2
-            className="text-sm font-semibold text-ink uppercase tracking-wide"
+            className="text-sm font-bold text-ink uppercase tracking-wide"
             id="collaboration-category-title"
           >
             Collaboration

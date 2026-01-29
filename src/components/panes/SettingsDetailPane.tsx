@@ -284,7 +284,7 @@ export function SettingsDetailPane({
           {/* Category title and description */}
           <div className="min-w-0">
             <h2
-              className="text-sm font-semibold text-ink truncate"
+              className="text-sm font-bold text-ink uppercase tracking-wide truncate"
               id="settings-detail-title"
             >
               {meta.label}

@@ -1491,8 +1491,8 @@ export default function Chat() {
                 <RiChat3Line className="h-4 w-4 text-vibe-orange" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-ink">
-                    AI Chat
+                <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                  AI Chat
                 </h2>
                 <p className="text-xs text-ink-muted">
                   Ask questions about your calls
