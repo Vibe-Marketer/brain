@@ -9,7 +9,6 @@ import { SyncedTranscriptsSection } from "./SyncedTranscriptsSection";
 import { ActiveSyncJobsCard } from "./ActiveSyncJobsCard";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
 import { DatePresetBar, SyncEmptyState, StepLabel, IntegrationSourceGroup } from "@/components/sync";
-import { SourcesFilterPopover } from "@/components/sync/SourcesFilterPopover";
 import { useMeetingsSync, type Meeting, type CalendarInvitee } from "@/hooks/useMeetingsSync";
 import { useIntegrationSync } from "@/hooks/useIntegrationSync";
 import { useSyncSourceFilter } from "@/hooks/useSyncSourceFilter";
@@ -512,7 +511,11 @@ export function SyncTab() {
       {/* === STEP 1: CHOOSE SOURCE === */}
       <section>
         <StepLabel step={1} label="Choose source" />
-        <IntegrationSourceGroup onIntegrationChange={loadExistingTranscripts} />
+        <IntegrationSourceGroup
+          onIntegrationChange={loadExistingTranscripts}
+          enabledSources={enabledSources}
+          onSourceToggle={toggleSource}
+        />
       </section>
 
       {/* === STEP 2: CHOOSE DATE RANGE === */}
@@ -530,14 +533,6 @@ export function SyncTab() {
         <div className="flex items-center justify-between mb-4">
           <StepLabel step={3} label="Fetch & sync calls" className="mb-0" />
           <div className="flex items-center gap-2">
-            {/* Sources filter - only show when integrations are connected */}
-            {connectedIntegrations.length > 0 && (
-              <SourcesFilterPopover
-                connectedIntegrations={connectedIntegrations}
-                enabledSources={enabledSources}
-                onSourceToggle={toggleSource}
-              />
-            )}
             <Button
               variant="hollow"
               onClick={fetchMeetings}
