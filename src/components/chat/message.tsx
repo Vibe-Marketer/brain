@@ -249,13 +249,20 @@ export function MessageAvatar({ src, alt, fallback, delayMs, className }: Messag
 interface MessageContentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   markdown?: boolean;
+  /**
+   * Callback when a "View Details" link in markdown is clicked.
+   */
+  onViewCall?: (recordingId: number) => void;
 }
 
-export function MessageContent({ children, markdown = false, className, ...props }: MessageContentProps) {
+export function MessageContent({ children, markdown = false, onViewCall, className, ...props }: MessageContentProps) {
   if (markdown && typeof children === 'string') {
     return (
       <div className={cn('flex-1 space-y-2 overflow-hidden', className)} {...props}>
-        <Markdown className="prose prose-sm dark:prose-invert max-w-none font-sans font-light text-ink">
+        <Markdown
+          className="prose prose-sm dark:prose-invert max-w-none font-sans font-light text-ink"
+          onViewCall={onViewCall}
+        >
           {children}
         </Markdown>
       </div>
@@ -476,6 +483,11 @@ interface AssistantMessageProps {
    */
   onCitationClick?: (recordingId: number) => void;
   /**
+   * Callback when a "View Details" link in markdown is clicked.
+   * Opens CallDetailDialog for the specified recording.
+   */
+  onViewCall?: (recordingId: number) => void;
+  /**
    * Enable save to library button for this message.
    * When true, a save button appears on hover.
    */
@@ -497,6 +509,7 @@ export function AssistantMessage({
   isLoading,
   citations,
   onCitationClick,
+  onViewCall,
   showSaveButton = false,
   saveMetadata,
   onSaved,
@@ -525,7 +538,10 @@ export function AssistantMessage({
                 className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-[20px]"
               />
             ) : markdown && typeof children === 'string' ? (
-              <Markdown className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-[20px]">
+              <Markdown
+                className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-[20px]"
+                onViewCall={onViewCall}
+              >
                 {children}
               </Markdown>
             ) : (

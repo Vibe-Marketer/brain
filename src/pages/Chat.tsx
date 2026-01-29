@@ -1828,6 +1828,7 @@ export default function Chat() {
                               saveMetadata={{ source: 'chat', generated_at: new Date().toISOString() }}
                               citations={hasCitations ? citationSources : undefined}
                               onCitationClick={handleViewCall}
+                              onViewCall={handleViewCall}
                             >
                               {textContent}
                             </AssistantMessage>

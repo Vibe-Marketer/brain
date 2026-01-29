@@ -4,10 +4,16 @@ import remarkGfm from 'remark-gfm';
 import remarkBreaks from 'remark-breaks';
 import { cn } from '@/lib/utils';
 import { CodeBlock, CodeBlockCode } from './code-block';
+import { Badge } from '@/components/ui/badge';
 
 interface MarkdownProps extends React.HTMLAttributes<HTMLDivElement> {
   children: string;
   components?: Partial<Components>;
+  /**
+   * Callback when a "View Details" link is clicked.
+   * Receives the recording_id extracted from the link href.
+   */
+  onViewCall?: (recordingId: number) => void;
 }
 
 // Default component overrides for markdown rendering
@@ -44,18 +50,18 @@ const INITIAL_COMPONENTS: Partial<Components> = {
   // Pre tags (wrapper for code blocks)
   pre: ({ children }) => <>{children}</>,
 
-  // Links with proper styling
-  a: ({ href, children, ...props }) => (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-ink underline underline-offset-2 hover:text-ink-soft"
-      {...props}
-    >
-      {children}
-    </a>
-  ),
+  // Links with proper styling - NO LONGER USED, replaced by factory function below
+  // a: ({ href, children, ...props }) => (
+  //   <a
+  //     href={href}
+  //     target="_blank"
+  //     rel="noopener noreferrer"
+  //     className="text-ink underline underline-offset-2 hover:text-ink-soft"
+  //     {...props}
+  //   >
+  //     {children}
+  //   </a>
+  // ),
 
   // Tables with proper styling
   table: ({ children, ...props }) => (
@@ -141,10 +147,79 @@ const INITIAL_COMPONENTS: Partial<Components> = {
   hr: ({ ...props }) => <hr className="my-6 border-cb-border-primary" {...props} />,
 };
 
-export function Markdown({ children, className, components, ...props }: MarkdownProps) {
+/**
+ * Extract recording_id from a link href.
+ * Supports:
+ * - Direct numeric ID: "123456"
+ * - Fathom URL: "https://app.fathom.video/recordings/123456"
+ */
+function extractRecordingId(href: string | undefined): number | null {
+  if (!href) return null;
+
+  // Try parsing as direct numeric ID
+  const directId = parseInt(href, 10);
+  if (!isNaN(directId)) return directId;
+
+  // Try extracting from Fathom URL pattern
+  const fathomMatch = href.match(/\/recordings\/(\d+)/);
+  if (fathomMatch) {
+    const id = parseInt(fathomMatch[1], 10);
+    if (!isNaN(id)) return id;
+  }
+
+  return null;
+}
+
+export function Markdown({ children, className, components, onViewCall, ...props }: MarkdownProps) {
+  // Create link component with access to onViewCall
+  const linkComponent = React.useMemo(() => {
+    return ({ href, children: linkChildren, ...linkProps }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { children?: React.ReactNode }) => {
+      // Check if this is a "View Details" link
+      const isViewDetails = typeof linkChildren === 'string' &&
+        (linkChildren === 'View Details' || linkChildren.toLowerCase() === 'view details');
+
+      if (isViewDetails && onViewCall) {
+        const recordingId = extractRecordingId(href);
+
+        if (recordingId !== null) {
+          // Render as hollow pill button
+          return (
+            <Badge
+              variant="outline"
+              className="cursor-pointer hover:bg-cb-ink-subtle/10 text-[10px] px-2 py-0.5 font-medium"
+              onClick={(e) => {
+                e.preventDefault();
+                onViewCall(recordingId);
+              }}
+            >
+              VIEW
+            </Badge>
+          );
+        }
+      }
+
+      // Default link rendering
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-ink underline underline-offset-2 hover:text-ink-soft"
+          {...linkProps}
+        >
+          {linkChildren}
+        </a>
+      );
+    };
+  }, [onViewCall]);
+
   const mergedComponents = React.useMemo(
-    () => ({ ...INITIAL_COMPONENTS, ...components }),
-    [components]
+    () => ({
+      ...INITIAL_COMPONENTS,
+      a: linkComponent, // Override the commented-out link component
+      ...components
+    }),
+    [components, linkComponent]
   );
 
   return (

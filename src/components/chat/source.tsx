@@ -4,6 +4,7 @@ import * as React from 'react';
 import { createContext, useContext } from 'react';
 import { cn } from '@/lib/utils';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Badge } from '@/components/ui/badge';
 import { RiMicLine, RiCalendarLine, RiUser3Line, RiPlayCircleLine } from '@remixicon/react';
 
 // ============================================================================
@@ -154,10 +155,7 @@ export function CallSourceContent({ source, className }: CallSourceContentProps)
 
   return (
     <HoverCardContent className={cn('w-80 p-0 shadow-md', className)} side="top" align="start">
-      <button
-        onClick={handleClick}
-        className="flex w-full flex-col gap-2 p-3 text-left hover:bg-muted/50 transition-colors rounded-lg"
-      >
+      <div className="flex flex-col gap-2 p-3">
         {/* Header with icon and title */}
         <div className="flex items-center gap-2">
           <span className="flex h-5 w-5 items-center justify-center rounded-full bg-vibe-orange/20 flex-shrink-0">
@@ -202,12 +200,16 @@ export function CallSourceContent({ source, className }: CallSourceContentProps)
           </p>
         )}
 
-        {/* View call action */}
-        <div className="flex items-center gap-1 text-xs text-primary font-medium pt-1">
-          <RiPlayCircleLine className="h-3.5 w-3.5" />
-          <span>View full call</span>
-        </div>
-      </button>
+        {/* VIEW pill button */}
+        <Badge
+          variant="outline"
+          className="text-[10px] px-1.5 py-0 h-4 w-fit leading-none flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={handleClick}
+        >
+          <RiPlayCircleLine className="h-3 w-3 flex-shrink-0" />
+          VIEW
+        </Badge>
+      </div>
     </HoverCardContent>
   );
 }
