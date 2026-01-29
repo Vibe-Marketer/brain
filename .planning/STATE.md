@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 4 Team Collaboration (04-01 complete)
+**Current Focus:** Phase 4 Team Collaboration (04-02 complete)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 4 of 9 (Team Collaboration)
 
-**Plan:** 1 of 6 in current phase
+**Plan:** 2 of 6 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-01-29 - Completed 04-01-PLAN.md (Team Invite Route Fix)
+**Last activity:** 2026-01-29 - Completed 04-02-PLAN.md (Multi-Team & Simplified Creation)
 
 **Progress:**
 ```
-[████████████████████░] 24/58 plans complete (41%)
+[█████████████████████░] 25/58 plans complete (43%)
 ```
 
 ---
@@ -49,7 +49,7 @@
 | Phase 3: Integration OAuth | 3 | 2 | Complete (2/2 plans) - INT-02 partial |
 | Phase 3.1: Compact Integration UI | 3 | 3 | Complete (3/3 plans) |
 | Phase 3.2: Integration Import Controls | 3 | 3 | Complete (2/2 plans) |
-| Phase 4: Team Collaboration | 2 | 0 | In progress (1/6 plans) |
+| Phase 4: Team Collaboration | 2 | 0 | In progress (2/6 plans) |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
 | Phase 6: Demo Polish | 12 | 0 | Pending |
 | Phase 7: Code Health & Infrastructure | 13 | 0 | Pending |
@@ -104,6 +104,8 @@
 | 2026-01-29 | Ring-based connection state | Green ring = connected, red ring = disconnected with opacity | Visual pattern for integration state |
 | 2026-01-29 | NULL = all enabled for sync filter | When all connected platforms enabled, save NULL to auto-enable new integrations | Simpler default behavior |
 | 2026-01-29 | Intersection filter for orphaned state | Intersect saved filter with connected platforms to handle disconnected integrations | Prevents invalid filter states |
+| 2026-01-29 | Multi-team membership enabled | Per CONTEXT.md - users can belong to multiple teams | Removed MVP single-team restriction |
+| 2026-01-29 | Team creation name-only | Per CONTEXT.md "minimal friction" - admin_sees_all and domain can be set later | Simplified team creation UX |
 
 ### Active TODOs
 
@@ -118,7 +120,8 @@
 - [x] Execute 03.2-02-PLAN.md (SourcesFilterPopover + SyncTab integration)
 
 - [x] Execute 04-01-PLAN.md (Team Invite Route Fix)
-- [ ] Execute 04-02 through 04-06 (Phase 4: Team Collaboration)
+- [x] Execute 04-02-PLAN.md (Multi-Team & Simplified Creation)
+- [ ] Execute 04-03 through 04-06 (Phase 4: Team Collaboration)
 
 ### Pending Todos
 
@@ -140,20 +143,21 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** Completed 04-01-PLAN.md - Team Invite Route Fix
+**Stopped at:** Completed 04-02-PLAN.md - Multi-Team & Simplified Creation
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 4 Team Collaboration started. Plan 01 complete - team join route now accessible at /join/team/:token.
+Phase 4 Team Collaboration in progress. Plan 02 complete - multi-team enabled and team creation simplified.
 
 **What to remember:**
-- TeamJoin route registered at /join/team/:token in App.tsx
-- Invite URL generation fixed to use /join/team/ pattern
-- Invite expiration changed from 30 days to 7 days
-- TEAM-02 requirement "Team join page accessible via route /join/team/:token" is now met
-- Next: Execute 04-02-PLAN.md
+- Single-team restriction removed from teams and team-memberships Edge Functions
+- CreateTeamDialog now collects only team name (minimal friction)
+- admin_sees_all and domain_auto_join can be configured later via settings
+- TEAM-01 requirement met: Team creation works without silent failures
+- CONTEXT.md decisions honored: Multi-team + minimal friction
+- Next: Execute 04-03-PLAN.md
 
 ---
 
@@ -164,12 +168,12 @@ Phase 4 Team Collaboration started. Plan 01 complete - team join route now acces
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 61 |
 | Requirements Complete | 18 (30%) |
-| Current Phase | 4 - Team Collaboration (1/6 plans) |
-| Plans Complete | 1/6 in Phase 4 (24/58 overall) |
-| Next Plan | 04-02-PLAN.md |
+| Current Phase | 4 - Team Collaboration (2/6 plans) |
+| Plans Complete | 2/6 in Phase 4 (25/58 overall) |
+| Next Plan | 04-03-PLAN.md |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-29 (Completed 04-01-PLAN.md - Team Invite Route Fix)*
+*Last updated: 2026-01-29 (Completed 04-02-PLAN.md - Multi-Team & Simplified Creation)*
