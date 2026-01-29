@@ -11,7 +11,10 @@ import { SyncedTranscriptsSection } from "./SyncedTranscriptsSection";
 import { ActiveSyncJobsCard } from "./ActiveSyncJobsCard";
 import { SyncStatusIndicator } from "./SyncStatusIndicator";
 import { IntegrationSyncPane } from "@/components/sync";
+import { SourcesFilterPopover } from "@/components/sync/SourcesFilterPopover";
 import { useMeetingsSync, type Meeting, type CalendarInvitee } from "@/hooks/useMeetingsSync";
+import { useIntegrationSync } from "@/hooks/useIntegrationSync";
+import { useSyncSourceFilter } from "@/hooks/useSyncSourceFilter";
 import { useSyncTabState } from "@/hooks/useSyncTabState";
 import { DateRange } from "react-day-picker";
 import { logger } from "@/lib/logger";
@@ -57,6 +60,16 @@ export function SyncTab() {
     syncSingleMeeting: hookSyncSingleMeeting,
     downloadUnsyncedTranscript: hookDownloadUnsyncedTranscript,
   } = useMeetingsSync();
+
+  // Get connected integrations and filter state
+  const { integrations } = useIntegrationSync();
+  const connectedIntegrations = integrations.filter((i) => i.connected);
+  const connectedPlatforms = connectedIntegrations.map((i) => i.platform);
+  const {
+    enabledSources,
+    toggleSource,
+    isLoading: filterLoading,
+  } = useSyncSourceFilter({ connectedPlatforms });
 
   // Pagination state for existing transcripts
   const [existingPage, setExistingPage] = useState(1);
@@ -463,6 +476,12 @@ export function SyncTab() {
   };
 
   const filteredExistingTranscripts = existingTranscripts.filter(t => {
+    // Source platform filter - default to 'fathom' if not set
+    const platform = (t as any).source_platform || 'fathom';
+    if (!enabledSources.includes(platform)) {
+      return false;
+    }
+
     // Category filter (date range and search are now applied at DB level)
     if (selectedCategory !== "all" && !tagAssignments[t.recording_id]?.includes(selectedCategory)) {
       return false;
@@ -474,6 +493,7 @@ export function SyncTab() {
   // Suppress unused variable warnings for state that may be used later
   void perMeetingTags;
   void selectedCallId;
+  void filterLoading;
 
   return (
     <div>
@@ -509,6 +529,14 @@ export function SyncTab() {
         </div>
 
         <div className="flex items-center gap-2 sm:flex-shrink-0 sm:self-end sm:pb-0.5">
+          {/* Sources filter - only show when integrations are connected */}
+          {connectedIntegrations.length > 0 && (
+            <SourcesFilterPopover
+              connectedIntegrations={connectedIntegrations}
+              enabledSources={enabledSources}
+              onSourceToggle={toggleSource}
+            />
+          )}
           <Button
             variant="default"
             onClick={fetchMeetings}
