@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 4 Team Collaboration (Phase 3.2 complete)
+**Current Focus:** Phase 4 Team Collaboration (04-01 complete)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 3.2 of 9 (Integration Import Controls)
+**Phase:** 4 of 9 (Team Collaboration)
 
-**Plan:** 2 of 2 in current phase (Phase 3.2 Complete)
+**Plan:** 1 of 6 in current phase
 
-**Status:** Phase complete
+**Status:** In progress
 
-**Last activity:** 2026-01-29 - Completed 03.2-02-PLAN.md (SourcesFilterPopover + SyncTab)
+**Last activity:** 2026-01-29 - Completed 04-01-PLAN.md (Team Invite Route Fix)
 
 **Progress:**
 ```
-[████████████████████░] 23/58 plans complete (40%)
+[████████████████████░] 24/58 plans complete (41%)
 ```
 
 ---
@@ -49,7 +49,7 @@
 | Phase 3: Integration OAuth | 3 | 2 | Complete (2/2 plans) - INT-02 partial |
 | Phase 3.1: Compact Integration UI | 3 | 3 | Complete (3/3 plans) |
 | Phase 3.2: Integration Import Controls | 3 | 3 | Complete (2/2 plans) |
-| Phase 4: Team Collaboration | 2 | 0 | Pending |
+| Phase 4: Team Collaboration | 2 | 0 | In progress (1/6 plans) |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
 | Phase 6: Demo Polish | 12 | 0 | Pending |
 | Phase 7: Code Health & Infrastructure | 13 | 0 | Pending |
@@ -117,7 +117,8 @@
 - [x] Execute 03.2-01-PLAN.md (Database + Filter Hook)
 - [x] Execute 03.2-02-PLAN.md (SourcesFilterPopover + SyncTab integration)
 
-- [ ] Plan and execute Phase 4: Team Collaboration
+- [x] Execute 04-01-PLAN.md (Team Invite Route Fix)
+- [ ] Execute 04-02 through 04-06 (Phase 4: Team Collaboration)
 
 ### Pending Todos
 
@@ -139,20 +140,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** Completed 03.2-02-PLAN.md - SourcesFilterPopover + SyncTab (Phase 3.2 complete)
+**Stopped at:** Completed 04-01-PLAN.md - Team Invite Route Fix
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 3.2 Integration Import Controls complete. All UI-INT-04, UI-INT-05, UI-INT-06 requirements met. Ready for Phase 4: Team Collaboration.
+Phase 4 Team Collaboration started. Plan 01 complete - team join route now accessible at /join/team/:token.
 
 **What to remember:**
-- SourcesFilterPopover component created in src/components/sync/
-- SyncTab integrated with client-side filtering by source_platform
-- Filter only shows when integrations are connected
-- Filter state persists to database via useSyncSourceFilter hook
-- Next: Plan and execute Phase 4: Team Collaboration
+- TeamJoin route registered at /join/team/:token in App.tsx
+- Invite URL generation fixed to use /join/team/ pattern
+- Invite expiration changed from 30 days to 7 days
+- TEAM-02 requirement "Team join page accessible via route /join/team/:token" is now met
+- Next: Execute 04-02-PLAN.md
 
 ---
 
@@ -163,12 +164,12 @@ Phase 3.2 Integration Import Controls complete. All UI-INT-04, UI-INT-05, UI-INT
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 61 |
 | Requirements Complete | 18 (30%) |
-| Current Phase | 3.2 Complete - Ready for Phase 4 |
-| Plans Complete | 2/2 in Phase 3.2 (23/58 overall) |
-| Next Plan | Phase 4: Team Collaboration |
+| Current Phase | 4 - Team Collaboration (1/6 plans) |
+| Plans Complete | 1/6 in Phase 4 (24/58 overall) |
+| Next Plan | 04-02-PLAN.md |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-29 (Completed 03.2-02-PLAN.md - SourcesFilterPopover + SyncTab - Phase 3.2 Complete)*
+*Last updated: 2026-01-29 (Completed 04-01-PLAN.md - Team Invite Route Fix)*
