@@ -1,8 +1,8 @@
 ---
-status: verifying
+status: resolved
 trigger: "Fix inline 'View Details' links in chat AI responses to be hollow pill buttons that open the dialog."
 created: 2026-01-28T00:00:00Z
-updated: 2026-01-28T00:07:00Z
+updated: 2026-01-28T00:08:00Z
 ---
 
 ## Current Focus
@@ -61,7 +61,20 @@ fix:
 5. ✅ Wire up onClick to call onViewCall(recording_id)
 6. ✅ Passed handleViewCall from Chat.tsx → AssistantMessage → Markdown
 
-verification: Testing with dev server
+verification:
+✅ TypeScript compilation successful - no errors
+✅ Dev server started successfully on http://localhost:8080
+✅ Badge styling matches requirements:
+  - variant="outline" for hollow pill
+  - text-[10px] for small text
+  - px-2 py-0.5 for minimal padding
+  - cursor-pointer for clickability
+  - hover:bg-cb-ink-subtle/10 for hover effect
+  - "VIEW" text label
+✅ extractRecordingId helper supports both numeric IDs and Fathom URLs
+✅ Case-insensitive detection of "View Details" text
+✅ onClick handler calls onViewCall(recordingId) which triggers CallDetailDialog
+
 files_changed:
 - src/components/chat/markdown.tsx (added onViewCall prop, extractRecordingId helper, conditional link rendering)
 - src/components/chat/message.tsx (added onViewCall to MessageContent and AssistantMessage interfaces and implementations)
