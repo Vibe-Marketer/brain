@@ -108,6 +108,11 @@
 
 - [ ] Plan and execute Phase 3: Integration OAuth Flows
 
+### Pending Todos
+
+1 todo in `.planning/todos/pending/`:
+- **Fix missing get_available_metadata database function** (database)
+
 ### Known Blockers
 
 None
