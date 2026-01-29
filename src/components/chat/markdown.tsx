@@ -181,24 +181,31 @@ export function Markdown({ children, className, components, onViewCall, ...props
                          linkText === 'view meeting' ||
                          linkText.startsWith('view ');
 
-      if (isViewLink && onViewCall) {
+      if (isViewLink) {
         const recordingId = extractRecordingId(href);
 
-        if (recordingId !== null) {
-          // Render as hollow pill button
-          return (
-            <Badge
-              variant="outline"
-              className="cursor-pointer hover:bg-cb-ink-subtle/10 text-[10px] px-2 py-0.5 font-medium"
-              onClick={(e) => {
-                e.preventDefault();
+        // Always render as pill button for "View ..." links
+        // If we can extract recording_id, open dialog. Otherwise pill is visual-only for now.
+        return (
+          <Badge
+            variant="outline"
+            className={cn(
+              "text-[10px] px-2 py-0.5 font-medium inline-flex items-center",
+              recordingId !== null && onViewCall
+                ? "cursor-pointer hover:bg-cb-ink-subtle/10"
+                : "opacity-60 cursor-default"
+            )}
+            onClick={(e) => {
+              e.preventDefault();
+              if (recordingId !== null && onViewCall) {
                 onViewCall(recordingId);
-              }}
-            >
-              VIEW
-            </Badge>
-          );
-        }
+              }
+              // If no recording_id, pill is non-functional (visual consistency only)
+            }}
+          >
+            VIEW
+          </Badge>
+        );
       }
 
       // Default link rendering
