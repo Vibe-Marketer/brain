@@ -155,8 +155,8 @@ Plans:
 **Plans:** 2 plans in 2 waves
 
 Plans:
-- [ ] 03.2-01-PLAN.md — Database migration + useSyncSourceFilter hook
-- [ ] 03.2-02-PLAN.md — SourcesFilterPopover component + SyncTab integration
+- [x] 03.2-01-PLAN.md — Database migration + useSyncSourceFilter hook
+- [x] 03.2-02-PLAN.md — SourcesFilterPopover component + SyncTab integration
 
 **Requirements:**
 - UI-INT-04: Redesigned "Import meetings from" section higher on Sync page
@@ -344,7 +344,7 @@ Plans:
 | 3 - Integration OAuth | Complete ✅ | 3 | 100% (2/2 plans) |
 | 3.1 - Compact Integration UI | Complete ✅ | 3 | 100% (3/3 plans) |
 | 3.2 - Integration Import Controls | Complete ✅ | 3 | 100% (2/2 plans) |
-| 4 - Team Collaboration | Pending | 2 | 0% |
+| 4 - Team Collaboration | Planned | 2 | 0% (0/2 plans) |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
 | 6 - Demo Polish | Pending | 12 | 0% |
 | 7 - Code Health & Infrastructure | Pending | 13 | 0% |
@@ -456,11 +456,11 @@ Phase 9: Growth Infrastructure
 1. ~~Phase 1: Security Lockdown~~ ✅ Complete
 2. ~~Phase 2: Chat Foundation~~ ✅ Complete (12/12 plans, all gap closures verified)
 3. ~~Phase 3: Integration OAuth~~ ✅ Complete (Zoom verified, Google marked Beta)
-4. Run `/gsd-plan-phase 3.1` to plan Compact Integration UI
-5. Run `/gsd-discuss-phase 4` to gather context for Team Collaboration
-6. Run `/gsd-plan-phase 4` to create phase plans
-7. Continue to Phase 4
+4. ~~Phase 3.1: Compact Integration UI~~ ✅ Complete (3/3 plans)
+5. ~~Phase 3.2: Integration Import Controls~~ ✅ Complete (2/2 plans)
+6. Run `/gsd-discuss-phase 4` to gather context for Team Collaboration
+7. Run `/gsd-execute-phase 4` to execute Phase 4
 
 ---
 
-*Last updated: 2026-01-29 (Phase 3.2 inserted - Integration Import Controls)*
+*Last updated: 2026-01-29 (Phase 3.2 complete - Integration Import Controls)*
