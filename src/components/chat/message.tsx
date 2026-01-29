@@ -356,11 +356,13 @@ function MarkdownWithCitations({
   text,
   citations,
   onCitationClick,
+  onViewCall,
   className,
 }: {
   text: string;
   citations: CitationSource[];
   onCitationClick?: (recordingId: number) => void;
+  onViewCall?: (recordingId: number) => void;
   className?: string;
 }) {
   // Build a lookup from index → CitationSource
@@ -457,6 +459,7 @@ function MarkdownWithCitations({
     <Markdown
       className={className}
       components={citationComponents}
+      onViewCall={onViewCall}
     >
       {cleanedText}
     </Markdown>
@@ -535,6 +538,7 @@ export function AssistantMessage({
                 text={children as string}
                 citations={citations!}
                 onCitationClick={onCitationClick}
+                onViewCall={onViewCall}
                 className="prose prose-sm dark:prose-invert max-w-none text-[15px] leading-[20px]"
               />
             ) : markdown && typeof children === 'string' ? (
