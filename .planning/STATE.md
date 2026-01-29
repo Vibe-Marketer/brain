@@ -105,8 +105,9 @@
 
 ### Pending Todos
 
-1 todo in `.planning/todos/pending/`:
+2 todos in `.planning/todos/pending/`:
 - **Fix missing get_available_metadata database function** (database)
+- **Make chat sources section collapsible** (ui)
 
 ### Known Blockers
 
