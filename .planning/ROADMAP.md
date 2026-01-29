@@ -178,7 +178,7 @@ Plans:
 
 ---
 
-### Phase 4: Team Collaboration
+### Phase 4: Team Collaboration ✓ COMPLETE
 **Goal:** Teams can be created, users can join teams, team switcher shows current context, and team features work end-to-end
 
 **Dependencies:** Phase 1 (secure team data), Phase 2 (teams need chat to be valuable)
@@ -186,12 +186,12 @@ Plans:
 **Plans:** 6 plans in 4 waves
 
 Plans:
-- [ ] 04-01-PLAN.md — Route registration + URL/expiry fixes (TEAM-02)
-- [ ] 04-02-PLAN.md — Multi-team support + UX simplification (TEAM-01)
-- [ ] 04-03-PLAN.md — Team context store + DB migration
-- [ ] 04-04-PLAN.md — Team switcher in header
-- [ ] 04-05-PLAN.md — Pending setup tracking for members
-- [ ] 04-06-PLAN.md — Human verification of full flow
+- [x] 04-01-PLAN.md — Route registration + URL/expiry fixes (TEAM-02)
+- [x] 04-02-PLAN.md — Multi-team support + UX simplification (TEAM-01)
+- [x] 04-03-PLAN.md — Team context store + DB migration
+- [x] 04-04-PLAN.md — Team switcher in header
+- [x] 04-05-PLAN.md — Pending setup tracking for members
+- [x] 04-06-PLAN.md — Automated E2E verification of full flow
 
 **Requirements:**
 - TEAM-01: Team creation works
