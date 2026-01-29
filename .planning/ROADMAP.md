@@ -179,25 +179,40 @@ Plans:
 ---
 
 ### Phase 4: Team Collaboration
-**Goal:** Teams can be created, users can join teams, and team features work end-to-end
+**Goal:** Teams can be created, users can join teams, team switcher shows current context, and team features work end-to-end
 
 **Dependencies:** Phase 1 (secure team data), Phase 2 (teams need chat to be valuable)
 
-**Plans:** 2 plans in 1 wave
+**Plans:** 6 plans in 4 waves
 
 Plans:
-- [ ] 04-01-PLAN.md — Route registration + URL/expiry fixes
-- [ ] 04-02-PLAN.md — Multi-team support + UX simplification
+- [ ] 04-01-PLAN.md — Route registration + URL/expiry fixes (TEAM-02)
+- [ ] 04-02-PLAN.md — Multi-team support + UX simplification (TEAM-01)
+- [ ] 04-03-PLAN.md — Team context store + DB migration
+- [ ] 04-04-PLAN.md — Team switcher in header
+- [ ] 04-05-PLAN.md — Pending setup tracking for members
+- [ ] 04-06-PLAN.md — Human verification of full flow
 
 **Requirements:**
 - TEAM-01: Team creation works
 - TEAM-02: Team join page accessible via route
+
+**CONTEXT.md Decisions (locked):**
+- Collect only team name (minimal friction)
+- Users can belong to multiple teams
+- Invite links expire after 7 days
+- Teams appear in top-right dropdown (team switcher)
+- Personal workspace exists alongside team workspaces
+- Clear team badge in header shows current context
+- Admins can see "pending setup" status badge
 
 **Success Criteria:**
 1. User can create team and see it in their team list
 2. Team creator receives shareable join link
 3. Team join link opens accessible join page at `/join/team/:token`
 4. New user can accept team invite and appear in team members list
+5. Team switcher visible in header with current context
+6. Can switch between Personal workspace and teams
 
 ---
 
@@ -344,7 +359,7 @@ Plans:
 | 3 - Integration OAuth | Complete ✅ | 3 | 100% (2/2 plans) |
 | 3.1 - Compact Integration UI | Complete ✅ | 3 | 100% (3/3 plans) |
 | 3.2 - Integration Import Controls | Complete ✅ | 3 | 100% (2/2 plans) |
-| 4 - Team Collaboration | Planned | 2 | 0% (0/2 plans) |
+| 4 - Team Collaboration | Planned | 2 | 0% (0/6 plans) |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
 | 6 - Demo Polish | Pending | 12 | 0% |
 | 7 - Code Health & Infrastructure | Pending | 13 | 0% |
