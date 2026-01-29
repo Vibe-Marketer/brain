@@ -95,6 +95,12 @@ Plans:
 
 **Dependencies:** Phase 1 (secure auth flows), Phase 2 (chat must work to make imports valuable)
 
+**Plans:** 2 plans in 2 waves
+
+Plans:
+- [ ] 03-01-PLAN.md — Fix Zoom OAuth redirect URI mismatch (INT-01)
+- [ ] 03-02-PLAN.md — Verify both OAuth flows end-to-end (INT-01, INT-02, INT-03)
+
 **Requirements:**
 - INT-01: Zoom OAuth connection flow works
 - INT-02: Google OAuth connection flow works
