@@ -581,6 +581,8 @@ export default function Chat() {
     }
 
     // Check for streaming interruption error (network/connection issues)
+    // NO AUTO-RETRY: Just mark as incomplete and let user manually retry
+    // Auto-retry was causing duplicate user messages in the chat
     if (isStreamingInterruptionError(error) && lastUserMessageRef.current) {
       // Mark the last assistant message as incomplete (preserve partial content)
       const currentMessages = messagesRef.current;
@@ -589,69 +591,21 @@ export default function Chat() {
         setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
       }
 
-      // Use ref for attempts to avoid dependency loop
-      const currentAttempts = reconnectAttemptsRef.current + 1;
-      reconnectAttemptsRef.current = currentAttempts;
-      setReconnectAttemptDisplay(currentAttempts); // Update display state
+      logger.debug('[Chat] Streaming interrupted - showing retry option');
 
-      if (currentAttempts <= MAX_RECONNECT_ATTEMPTS) {
-        setIsReconnecting(true);
-
-        // Exponential backoff: 1s, 2s, 4s
-        const delay = BASE_RECONNECT_DELAY * Math.pow(2, currentAttempts - 1);
-
-        logger.debug(`[Chat] Streaming interrupted, attempting reconnect ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS} in ${delay}ms`);
-
-        // First interruption - show brief error toast before reconnect toast
-        if (currentAttempts === 1) {
-          toast.error('Connection interrupted. Attempting to reconnect...', {
-            id: 'connection-error-toast',
-            duration: 2000,
-          });
+      // Show error toast with retry action immediately (no auto-retry)
+      toast.error(
+        'Connection lost. Click Retry to continue.',
+        {
+          id: 'streaming-error-toast',
+          duration: 10000,
+          action: {
+            label: 'Retry',
+            onClick: () => handleRetryRef.current(),
+          },
         }
-
-        toast.loading(
-          `Connection interrupted. Reconnecting (attempt ${currentAttempts}/${MAX_RECONNECT_ATTEMPTS})...`,
-          { id: 'reconnect-toast', duration: delay + 2000 }
-        );
-
-        // Clear any existing reconnect timeout
-        if (reconnectTimeoutRef.current) {
-          clearTimeout(reconnectTimeoutRef.current);
-        }
-
-        // Schedule reconnect attempt
-        reconnectTimeoutRef.current = setTimeout(() => {
-          const messageToRetry = lastUserMessageRef.current;
-          if (messageToRetry && isChatReady) {
-            logger.debug('[Chat] Retrying message after streaming interruption');
-            sendMessage({ text: messageToRetry });
-          }
-          setIsReconnecting(false);
-        }, delay);
-
-        return;
-      } else {
-        // Max reconnect attempts reached — show actionable toast with retry
-        logger.debug('[Chat] Max reconnect attempts reached');
-        reconnectAttemptsRef.current = 0;
-        setReconnectAttemptDisplay(0);
-        setIsReconnecting(false);
-
-        toast.dismiss('reconnect-toast');
-        toast.error(
-          'Connection lost. Your partial response has been saved.',
-          {
-            id: 'streaming-error-toast',
-            duration: 10000,
-            action: {
-              label: 'Retry',
-              onClick: () => handleRetryRef.current(),
-            },
-          }
-        );
-        return;
-      }
+      );
+      return;
     }
 
     // For non-streaming network errors (no lastUserMessage), also show toast
@@ -1268,7 +1222,8 @@ export default function Chat() {
   );
 
   // Handle retry after streaming failure
-  // Removes the incomplete assistant message, then resends the last user message
+  // Removes the incomplete assistant message AND the last user message (since sendMessage will re-add it)
+  // This prevents duplicate user messages in the chat
   const handleRetry = React.useCallback(() => {
     const lastUserMessage = lastUserMessageRef.current;
     if (!lastUserMessage) {
@@ -1287,9 +1242,28 @@ export default function Chat() {
       reconnectTimeoutRef.current = null;
     }
 
-    // Remove incomplete assistant messages from the conversation
+    // Remove incomplete assistant messages AND the last user message from the conversation
+    // We remove the last user message because sendMessage() will re-add it
+    // This prevents duplicate user messages appearing in the chat
     setMessages((prev) => {
-      const cleaned = prev.filter((m) => !incompleteMessageIds.has(m.id));
+      // Find the last user message index
+      let lastUserMsgIndex = -1;
+      for (let i = prev.length - 1; i >= 0; i--) {
+        if (prev[i].role === 'user') {
+          lastUserMsgIndex = i;
+          break;
+        }
+      }
+
+      // Remove: incomplete assistant messages + the last user message
+      const cleaned = prev.filter((m, index) => {
+        // Remove incomplete assistant messages
+        if (incompleteMessageIds.has(m.id)) return false;
+        // Remove the last user message (will be re-added by sendMessage)
+        if (index === lastUserMsgIndex) return false;
+        return true;
+      });
+
       return cleaned;
     });
     setIncompleteMessageIds(new Set());
@@ -1306,7 +1280,7 @@ export default function Chat() {
     toast.dismiss('connection-error-toast');
     toast.dismiss('network-error-toast');
 
-    // Resend the message
+    // Resend the message (this will add the user message back to the chat)
     logger.debug('[Chat] Retrying message:', lastUserMessage);
     sendMessage({ text: lastUserMessage });
   }, [isChatReady, sendMessage, setMessages, incompleteMessageIds]);
