@@ -10,7 +10,7 @@ interface MarkdownProps extends React.HTMLAttributes<HTMLDivElement> {
   children: string;
   components?: Partial<Components>;
   /**
-   * Callback when a "View Details" link is clicked.
+   * Callback when a "View" link is clicked (View Details, View Call, View Meeting, etc.).
    * Receives the recording_id extracted from the link href.
    */
   onViewCall?: (recordingId: number) => void;
@@ -174,11 +174,14 @@ export function Markdown({ children, className, components, onViewCall, ...props
   // Create link component with access to onViewCall
   const linkComponent = React.useMemo(() => {
     return ({ href, children: linkChildren, ...linkProps }: React.AnchorHTMLAttributes<HTMLAnchorElement> & { children?: React.ReactNode }) => {
-      // Check if this is a "View Details" link
-      const isViewDetails = typeof linkChildren === 'string' &&
-        (linkChildren === 'View Details' || linkChildren.toLowerCase() === 'view details');
+      // Check if this is a "View Details" or "View Call" link (any variation)
+      const linkText = typeof linkChildren === 'string' ? linkChildren.toLowerCase() : '';
+      const isViewLink = linkText === 'view details' ||
+                         linkText === 'view call' ||
+                         linkText === 'view meeting' ||
+                         linkText.startsWith('view ');
 
-      if (isViewDetails && onViewCall) {
+      if (isViewLink && onViewCall) {
         const recordingId = extractRecordingId(href);
 
         if (recordingId !== null) {
