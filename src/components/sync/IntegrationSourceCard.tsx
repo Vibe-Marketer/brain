@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   FathomIcon,
   GoogleMeetIcon,
@@ -24,11 +25,11 @@ interface IntegrationSourceCardProps {
   connected: boolean;
   enabled: boolean;
   onCardClick: () => void;
-  onToggle: (enabled: boolean) => void;
+  onToggle: (enabled: boolean) => Promise<boolean>;
 }
 
 /**
- * IntegrationSourceCard - Compact card with toggle for sync flow
+ * IntegrationSourceCard - Card with toggle for sync flow
  * 
  * Shows platform icon, name, connection status, and on/off toggle
  * Toggle controls whether this source is included in searches
@@ -44,17 +45,40 @@ export function IntegrationSourceCard({
 }: IntegrationSourceCardProps) {
   const Icon = platformIcons[platform];
   const name = platformNames[platform];
+  
+  // Local state to prevent flicker during async toggle
+  const [isToggling, setIsToggling] = useState(false);
+  const [localEnabled, setLocalEnabled] = useState(enabled);
+  
+  // Sync local state when prop changes (from parent)
+  if (!isToggling && localEnabled !== enabled) {
+    setLocalEnabled(enabled);
+  }
+
+  const handleToggle = async (newEnabled: boolean) => {
+    setIsToggling(true);
+    setLocalEnabled(newEnabled); // Optimistic update
+    
+    const success = await onToggle(newEnabled);
+    
+    if (!success) {
+      // Revert if failed
+      setLocalEnabled(!newEnabled);
+    }
+    
+    setIsToggling(false);
+  };
 
   return (
-    <div className="flex flex-col items-center gap-1.5">
+    <div className="flex flex-col items-center gap-2">
       {/* Card button */}
       <button
         onClick={onCardClick}
         className={cn(
-          // Size and shape - very compact
-          "w-[72px] px-2 py-2",
-          "rounded-lg",
-          "flex flex-col items-center justify-center gap-1",
+          // Size and shape
+          "w-[100px] px-3 py-3",
+          "rounded-xl",
+          "flex flex-col items-center justify-center gap-1.5",
           "transition-all duration-200",
           // Border and background
           "bg-card border",
@@ -70,26 +94,26 @@ export function IntegrationSourceCard({
         {/* Platform icon */}
         <div
           className={cn(
-            "w-8 h-8 rounded flex items-center justify-center",
+            "w-10 h-10 rounded-lg flex items-center justify-center",
             connected ? "bg-success/10" : "bg-muted"
           )}
         >
-          <Icon size={20} className={cn(!connected && "grayscale opacity-60")} />
+          <Icon size={24} className={cn(!connected && "grayscale opacity-60")} />
         </div>
 
         {/* Platform name */}
-        <span className="text-[10px] font-medium text-ink dark:text-white leading-tight">
+        <span className="text-xs font-medium text-ink dark:text-white leading-tight">
           {name}
         </span>
 
         {/* Connection status */}
         {connected ? (
-          <span className="text-[9px] font-medium text-success flex items-center gap-0.5">
-            <span className="w-1 h-1 rounded-full bg-success" />
+          <span className="text-[10px] font-medium text-success flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-success" />
             Connected
           </span>
         ) : (
-          <span className="text-[9px] font-medium text-vibe-orange">
+          <span className="text-[10px] font-medium text-vibe-orange">
             Connect →
           </span>
         )}
@@ -97,21 +121,22 @@ export function IntegrationSourceCard({
 
       {/* Toggle switch - only show when connected */}
       {connected && (
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <span className={cn(
-            "text-[9px] font-medium transition-colors",
-            !enabled ? "text-ink-muted" : "text-ink-muted/50"
+            "text-[10px] font-medium uppercase transition-colors",
+            !localEnabled ? "text-ink-muted" : "text-ink-muted/40"
           )}>
             off
           </span>
           <Switch
-            checked={enabled}
-            onCheckedChange={onToggle}
-            className="h-4 w-7 data-[state=checked]:bg-success"
+            checked={localEnabled}
+            onCheckedChange={handleToggle}
+            disabled={isToggling}
+            className="data-[state=checked]:bg-success"
           />
           <span className={cn(
-            "text-[9px] font-medium transition-colors",
-            enabled ? "text-success" : "text-ink-muted/50"
+            "text-[10px] font-medium uppercase transition-colors",
+            localEnabled ? "text-success" : "text-ink-muted/40"
           )}>
             on
           </span>
