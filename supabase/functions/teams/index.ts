@@ -110,27 +110,7 @@ async function handleCreateTeam(
     );
   }
 
-  // Check if user is already in a team (one team per user in MVP)
-  const { data: existingMembership, error: membershipError } = await supabaseClient
-    .from('team_memberships')
-    .select('id, team_id')
-    .eq('user_id', user_id)
-    .eq('status', 'active')
-    .maybeSingle();
-
-  if (membershipError) {
-    return new Response(
-      JSON.stringify({ error: 'Error checking existing membership' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  if (existingMembership) {
-    return new Response(
-      JSON.stringify({ error: 'User is already a member of a team. Users can only belong to one team.' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
+  // Per CONTEXT.md: Users can belong to multiple teams (no single-team restriction)
 
   // Create the team
   const { data: team, error: teamError } = await supabaseClient

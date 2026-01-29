@@ -258,7 +258,8 @@ async function handleInviteMember(
     .eq('email', email.toLowerCase())
     .maybeSingle();
 
-  // If user exists, check if they're already in the team or another team
+  // Per CONTEXT.md: Users can belong to multiple teams (no single-team restriction)
+  // Only check if user is already in THIS specific team
   if (invitedUser) {
     // Check if already in this team
     const { data: existingMembership } = await supabaseClient
@@ -281,22 +282,6 @@ async function handleInviteMember(
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-    }
-
-    // Check if user is in another team (one team per user constraint)
-    const { data: otherMembership } = await supabaseClient
-      .from('team_memberships')
-      .select('id, team_id')
-      .eq('user_id', invitedUser.user_id)
-      .eq('status', 'active')
-      .neq('team_id', team_id)
-      .maybeSingle();
-
-    if (otherMembership) {
-      return new Response(
-        JSON.stringify({ error: 'User is already a member of another team. Users can only belong to one team.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
     }
   }
 
@@ -448,20 +433,7 @@ async function handleAcceptInvite(
     );
   }
 
-  // Check if user is already in another team
-  const { data: existingMembership } = await supabaseClient
-    .from('team_memberships')
-    .select('id, team_id')
-    .eq('user_id', user_id)
-    .eq('status', 'active')
-    .maybeSingle();
-
-  if (existingMembership && existingMembership.id !== membership.id) {
-    return new Response(
-      JSON.stringify({ error: 'You are already a member of a team. Leave your current team first.' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
+  // Per CONTEXT.md: Users can belong to multiple teams (no single-team restriction)
 
   // Accept the invitation
   const { data: updatedMembership, error: updateError } = await supabaseClient
