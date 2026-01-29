@@ -329,6 +329,7 @@ export function useTeamHierarchy(options: UseTeamHierarchyOptions): UseTeamHiera
   });
 
   // Generate team invite link mutation
+  // Stores invite token on the teams table for shareable links
   const generateTeamInviteMutation = useMutation({
     mutationFn: async (): Promise<{ invite_token: string; invite_url: string }> => {
       if (!teamId) {
@@ -338,23 +339,34 @@ export function useTeamHierarchy(options: UseTeamHierarchyOptions): UseTeamHiera
         throw new Error("User ID is required to generate invite");
       }
 
+      // First check if team already has a valid invite token
+      const { data: existingTeam } = await supabase
+        .from("teams")
+        .select("invite_token, invite_expires_at")
+        .eq("id", teamId)
+        .single();
+
+      // If there's an existing valid token, return it
+      if (existingTeam?.invite_token && existingTeam?.invite_expires_at) {
+        const expiresAt = new Date(existingTeam.invite_expires_at);
+        if (expiresAt > new Date()) {
+          const inviteUrl = `${window.location.origin}/join/team/${existingTeam.invite_token}`;
+          logger.info("Returning existing team invite", { teamId });
+          return { invite_token: existingTeam.invite_token, invite_url: inviteUrl };
+        }
+      }
+
+      // Generate new token and store on teams table
       const inviteToken = generateInviteToken();
       const inviteExpiresAt = getInviteExpiration();
 
-      // Create a pending membership that can be claimed by anyone with the link
-      const { data, error } = await supabase
-        .from("team_memberships")
-        .insert({
-          team_id: teamId,
-          user_id: userId, // Placeholder - will be updated when member accepts
-          role: 'member' as TeamRole,
-          status: 'pending' as MembershipStatus,
+      const { error } = await supabase
+        .from("teams")
+        .update({
           invite_token: inviteToken,
           invite_expires_at: inviteExpiresAt,
-          invited_by_user_id: userId,
         })
-        .select()
-        .single();
+        .eq("id", teamId);
 
       if (error) {
         logger.error("Error generating team invite", error);
@@ -363,13 +375,13 @@ export function useTeamHierarchy(options: UseTeamHierarchyOptions): UseTeamHiera
 
       const inviteUrl = `${window.location.origin}/join/team/${inviteToken}`;
 
-      logger.info("Team invite generated", { teamId, membershipId: data.id });
+      logger.info("Team invite generated", { teamId });
 
       return { invite_token: inviteToken, invite_url: inviteUrl };
     },
     onSuccess: () => {
       if (teamId) {
-        queryClient.invalidateQueries({ queryKey: queryKeys.teams.memberships(teamId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.teams.detail(teamId) });
       }
     },
   });
@@ -509,26 +521,26 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
   });
 
   // Accept invite mutation
+  // Now looks up team by invite_token on teams table and creates a new membership
   const acceptInviteMutation = useMutation({
     mutationFn: async (token: string): Promise<TeamMembership> => {
       if (!userId) {
         throw new Error("User ID is required to accept invite");
       }
 
-      // Find the membership by token
-      const { data: membership, error: findError } = await supabase
-        .from("team_memberships")
-        .select("*")
+      // Find the team by invite token (now stored on teams table)
+      const { data: team, error: findError } = await supabase
+        .from("teams")
+        .select("id, name, invite_token, invite_expires_at")
         .eq("invite_token", token)
-        .eq("status", "pending")
         .single();
 
-      if (findError || !membership) {
+      if (findError || !team) {
         throw new Error("Invalid or expired invite");
       }
 
       // Check if invite expired
-      if (membership.invite_expires_at && new Date(membership.invite_expires_at) < new Date()) {
+      if (team.invite_expires_at && new Date(team.invite_expires_at) < new Date()) {
         throw new Error("This invite has expired");
       }
 
@@ -536,26 +548,25 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
       const { data: existingMembership } = await supabase
         .from("team_memberships")
         .select("id")
-        .eq("team_id", membership.team_id)
+        .eq("team_id", team.id)
         .eq("user_id", userId)
-        .eq("status", "active")
+        .neq("status", "removed")
         .maybeSingle();
 
       if (existingMembership) {
         throw new Error("You are already a member of this team");
       }
 
-      // Update the membership
+      // Create a new membership for the joining user
       const { data, error } = await supabase
         .from("team_memberships")
-        .update({
+        .insert({
+          team_id: team.id,
           user_id: userId,
+          role: 'member' as TeamRole,
           status: 'active' as MembershipStatus,
           joined_at: new Date().toISOString(),
-          invite_token: null,
-          invite_expires_at: null,
         })
-        .eq("id", membership.id)
         .select()
         .single();
 
@@ -564,7 +575,7 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
         throw error;
       }
 
-      logger.info("Team invite accepted", { membershipId: data.id });
+      logger.info("Team invite accepted", { teamId: team.id, membershipId: data.id });
 
       return data as TeamMembership;
     },

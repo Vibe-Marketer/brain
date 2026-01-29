@@ -216,10 +216,40 @@ Plans:
 
 ---
 
+### Phase 4.5: Team Content Segregation (INSERTED)
+**Goal:** Calls can be assigned to teams, creating workspace segregation between Personal and Team contexts
+
+**Dependencies:** Phase 4 (team infrastructure must exist)
+
+**Plans:** TBD
+
+**Requirements:**
+- TEAM-03: Calls can be assigned/tagged to a team
+- TEAM-04: Personal workspace shows only non-team calls
+- TEAM-05: Team workspace shows only that team's calls
+- TEAM-06: Team members can see each other's team calls (based on visibility)
+- TEAM-07: Hierarchical sharing (members share up, managers share down)
+
+**Success Criteria:**
+1. User can assign a call to a team (moves it from Personal to Team workspace)
+2. Personal workspace no longer shows team-assigned calls
+3. Team workspace shows all calls assigned to that team
+4. Team members see calls based on visibility settings (admin_sees_all, manager visibility)
+5. Members can share calls "up" to managers
+6. Managers can share calls "down" to their reports
+
+**User-Defined Behavior:**
+- Calls tagged to a team move OUT of Personal, INTO Team workspace
+- If multiple teams, each team has its own tag/assignment
+- Visibility controlled by team settings + org hierarchy
+- Sharing flows both directions in the hierarchy
+
+---
+
 ### Phase 5: Coach Collaboration
 **Goal:** Coaches can be invited, accept invites, and access coachee data
 
-**Dependencies:** Phase 4 (coach system builds on team infrastructure)
+**Dependencies:** Phase 4.5 (coach needs team content model), Phase 4 (coach system builds on team infrastructure)
 
 **Requirements:**
 - COACH-01: Coach invite emails send successfully
@@ -360,13 +390,14 @@ Plans:
 | 3.1 - Compact Integration UI | Complete ✅ | 3 | 100% (3/3 plans) |
 | 3.2 - Integration Import Controls | Complete ✅ | 3 | 100% (2/2 plans) |
 | 4 - Team Collaboration | Complete ✅ | 2 | 100% (6/6 plans) |
+| 4.5 - Team Content Segregation | Pending | 5 | 0% |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
 | 6 - Demo Polish | Pending | 12 | 0% |
 | 7 - Code Health & Infrastructure | Pending | 13 | 0% |
 | 8 - Differentiators | Pending | 5 | 0% |
 | 9 - Growth Infrastructure | Pending | 5 | 0% |
 
-**Overall Progress:** 23/61 requirements complete (38%)
+**Overall Progress:** 23/66 requirements complete (35%)
 
 ---
 
@@ -381,6 +412,8 @@ Phase 3: Integration OAuth ──┐
     ↓                         │
 Phase 4: Team Collaboration   │ (Phases 3-5 can partially overlap)
     ↓                         │
+Phase 4.5: Team Content Segregation
+    ↓                         │
 Phase 5: Coach Collaboration ─┘
     ↓
 Phase 6: Demo Polish
@@ -392,7 +425,7 @@ Phase 8: Differentiators
 Phase 9: Growth Infrastructure
 ```
 
-**Note:** Phases 3, 4, and 5 are sequentially dependent (coach builds on team) but Phase 3 (OAuth) can run in parallel with Phase 4 (Teams) since they touch different code.
+**Note:** Phase 4.5 inserted for team content segregation (calls assigned to teams, workspace filtering). Coach collaboration (Phase 5) depends on this content model.
 
 ---
 
@@ -417,6 +450,11 @@ Phase 9: Growth Infrastructure
 | INT-03 | 3 - Integration OAuth |
 | TEAM-01 | 4 - Team Collaboration |
 | TEAM-02 | 4 - Team Collaboration |
+| TEAM-03 | 4.5 - Team Content Segregation |
+| TEAM-04 | 4.5 - Team Content Segregation |
+| TEAM-05 | 4.5 - Team Content Segregation |
+| TEAM-06 | 4.5 - Team Content Segregation |
+| TEAM-07 | 4.5 - Team Content Segregation |
 | COACH-01 | 5 - Coach Collaboration |
 | COACH-02 | 5 - Coach Collaboration |
 | COACH-03 | 5 - Coach Collaboration |

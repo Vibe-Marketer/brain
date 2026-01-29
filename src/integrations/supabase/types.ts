@@ -1648,6 +1648,7 @@ export type Database = {
           invited_by_user_id: string | null
           joined_at: string | null
           manager_membership_id: string | null
+          onboarding_complete: boolean | null
           role: string | null
           status: string | null
           team_id: string
@@ -1661,6 +1662,7 @@ export type Database = {
           invited_by_user_id?: string | null
           joined_at?: string | null
           manager_membership_id?: string | null
+          onboarding_complete?: boolean | null
           role?: string | null
           status?: string | null
           team_id: string
@@ -1674,6 +1676,7 @@ export type Database = {
           invited_by_user_id?: string | null
           joined_at?: string | null
           manager_membership_id?: string | null
+          onboarding_complete?: boolean | null
           role?: string | null
           status?: string | null
           team_id?: string
@@ -1757,6 +1760,8 @@ export type Database = {
           created_at: string | null
           domain_auto_join: string | null
           id: string
+          invite_expires_at: string | null
+          invite_token: string | null
           name: string
           owner_user_id: string
           updated_at: string | null
@@ -1766,6 +1771,8 @@ export type Database = {
           created_at?: string | null
           domain_auto_join?: string | null
           id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
           name: string
           owner_user_id: string
           updated_at?: string | null
@@ -1775,6 +1782,8 @@ export type Database = {
           created_at?: string | null
           domain_auto_join?: string | null
           id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
           name?: string
           owner_user_id?: string
           updated_at?: string | null
@@ -2051,6 +2060,7 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          active_team_id: string | null
           ai_model_preset: string | null
           automation_webhook_secret: string | null
           automation_webhook_secret_created_at: string | null
@@ -2089,6 +2099,7 @@ export type Database = {
           zoom_oauth_token_expires: number | null
         }
         Insert: {
+          active_team_id?: string | null
           ai_model_preset?: string | null
           automation_webhook_secret?: string | null
           automation_webhook_secret_created_at?: string | null
@@ -2127,6 +2138,7 @@ export type Database = {
           zoom_oauth_token_expires?: number | null
         }
         Update: {
+          active_team_id?: string | null
           ai_model_preset?: string | null
           automation_webhook_secret?: string | null
           automation_webhook_secret_created_at?: string | null
@@ -2164,7 +2176,15 @@ export type Database = {
           zoom_oauth_state?: string | null
           zoom_oauth_token_expires?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_settings_active_team_id_fkey"
+            columns: ["active_team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       webhook_deliveries: {
         Row: {
@@ -2578,3 +2598,5 @@ export const Constants = {
     },
   },
 } as const
+A new version of Supabase CLI is available: v2.72.7 (currently installed v2.67.1)
+We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli

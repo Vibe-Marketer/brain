@@ -46,6 +46,7 @@ export default function TeamJoin() {
   const [error, setError] = useState<string | null>(null);
 
   // Fetch invite data when component mounts
+  // Now looks up team by invite_token on teams table (shareable links)
   useEffect(() => {
     const fetchInviteData = async () => {
       if (!token) {
@@ -55,55 +56,61 @@ export default function TeamJoin() {
       }
 
       try {
-        // Find the pending membership by token
-        const { data: membership, error: membershipError } = await supabase
-          .from('team_memberships')
-          .select('id, team_id, invited_by_user_id, invite_expires_at, status')
+        // Find the team by invite token (stored on teams table for shareable links)
+        const { data: team, error: teamError } = await supabase
+          .from('teams')
+          .select('id, name, owner_user_id, invite_token, invite_expires_at')
           .eq('invite_token', token)
           .single();
 
-        if (membershipError || !membership) {
+        if (teamError || !team) {
           setError('This invite link is invalid or has already been used');
           setIsLoading(false);
           return;
         }
 
-        // Check if already accepted
-        if (membership.status !== 'pending') {
-          setError('This invitation has already been accepted');
-          setIsLoading(false);
-          return;
-        }
-
         // Check if expired
-        if (membership.invite_expires_at && new Date(membership.invite_expires_at) < new Date()) {
+        if (team.invite_expires_at && new Date(team.invite_expires_at) < new Date()) {
           setError('This invitation has expired');
           setIsLoading(false);
           return;
         }
 
-        // Get team details
-        const { data: team } = await supabase
-          .from('teams')
-          .select('name')
-          .eq('id', membership.team_id)
-          .single();
+        // Check if user is already a member of this team
+        if (user) {
+          const { data: existingMembership } = await supabase
+            .from('team_memberships')
+            .select('id')
+            .eq('team_id', team.id)
+            .eq('user_id', user.id)
+            .neq('status', 'removed')
+            .maybeSingle();
 
-        // Get inviter email
+          if (existingMembership) {
+            setError("You're already a member of this team");
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        // Get owner display name as inviter
         let inviterEmail: string | null = null;
-        if (membership.invited_by_user_id) {
-          const { data: email } = await supabase.rpc('get_user_email', {
-            user_id: membership.invited_by_user_id
-          });
-          inviterEmail = email || null;
+        if (team.owner_user_id) {
+          // Use user_settings table to get display name
+          const { data: settings } = await supabase
+            .from('user_settings')
+            .select('display_name')
+            .eq('user_id', team.owner_user_id)
+            .maybeSingle();
+          inviterEmail = settings?.display_name || 'A team admin';
         }
 
         setInviteData({
-          id: membership.id,
-          team_id: membership.team_id,
+          id: team.id, // Using team ID since we no longer have a membership ID
+          team_id: team.id,
           inviter_email: inviterEmail,
-          team_name: team?.name || null,
-          expires_at: membership.invite_expires_at,
+          team_name: team.name || null,
+          expires_at: team.invite_expires_at,
         });
         setIsLoading(false);
       } catch (err) {
@@ -122,6 +129,7 @@ export default function TeamJoin() {
   }, [token, user, authLoading, navigate]);
 
   // Handle accepting the invite
+  // Creates a new membership for the joining user
   const handleAcceptInvite = async () => {
     if (!inviteData || !user) return;
 
@@ -133,7 +141,7 @@ export default function TeamJoin() {
         .select('id')
         .eq('team_id', inviteData.team_id)
         .eq('user_id', user.id)
-        .eq('status', 'active')
+        .neq('status', 'removed')
         .maybeSingle();
 
       if (existingMembership) {
@@ -142,20 +150,19 @@ export default function TeamJoin() {
         return;
       }
 
-      // Accept the invite by updating the membership
-      const { error: updateError } = await supabase
+      // Create a new membership for the joining user
+      const { error: insertError } = await supabase
         .from('team_memberships')
-        .update({
+        .insert({
+          team_id: inviteData.team_id,
           user_id: user.id,
+          role: 'member',
           status: 'active',
           joined_at: new Date().toISOString(),
-          invite_token: null,
-          invite_expires_at: null,
-        })
-        .eq('id', inviteData.id);
+        });
 
-      if (updateError) {
-        throw updateError;
+      if (insertError) {
+        throw insertError;
       }
 
       const teamName = inviteData.team_name || 'the team';

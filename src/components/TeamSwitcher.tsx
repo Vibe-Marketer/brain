@@ -1,6 +1,7 @@
 import * as React from 'react';
-import { RiTeamLine, RiUserLine, RiCheckLine, RiArrowDownSLine } from '@remixicon/react';
+import { RiTeamLine, RiUserLine, RiCheckLine, RiArrowDownSLine, RiAddLine, RiSettingsLine } from '@remixicon/react';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveTeam } from '@/hooks/useActiveTeam';
@@ -37,6 +38,7 @@ interface TeamMembership {
  */
 export function TeamSwitcher() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { activeTeamId, isLoading: contextLoading, switchTeam, switchToPersonal } = useActiveTeam();
 
   // Fetch user's teams via their memberships
@@ -74,10 +76,8 @@ export function TeamSwitcher() {
   const activeTeam = teams.find(t => t.id === activeTeamId);
   const isPersonal = !activeTeamId;
 
-  // Don't render if user has no teams (just personal workspace)
-  if (!isLoading && !hasTeams) {
-    return null;
-  }
+  // Always show the TeamSwitcher - even without teams, show "Personal" workspace
+  // This allows admins to access team features and test team functionality
 
   if (isLoading) {
     return (
@@ -143,6 +143,17 @@ export function TeamSwitcher() {
             {activeTeamId === team.id && <RiCheckLine className="h-4 w-4 text-vibe-orange" />}
           </DropdownMenuItem>
         ))}
+        
+        <DropdownMenuSeparator />
+        
+        {/* Manage Teams link */}
+        <DropdownMenuItem 
+          onClick={() => navigate('/settings/team')}
+          className="cursor-pointer flex items-center gap-2 text-muted-foreground"
+        >
+          <RiSettingsLine className="h-4 w-4" />
+          <span>Manage Teams</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
