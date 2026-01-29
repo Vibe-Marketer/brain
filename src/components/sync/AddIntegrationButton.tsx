@@ -35,7 +35,7 @@ const availableIntegrations: Array<{
   },
   {
     platform: "google_meet",
-    name: "Google Meet",
+    name: "Google Meet (Beta)",
     Icon: GoogleMeetIcon,
     available: true,
   },

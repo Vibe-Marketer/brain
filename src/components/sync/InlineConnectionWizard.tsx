@@ -182,7 +182,7 @@ export function InlineConnectionWizard({
       ),
     },
     google_meet: {
-      name: "Google Meet",
+      name: "Google Meet (Beta)",
       icon: <GoogleMeetIcon className="h-6 w-6" />,
       color: "text-blue-600 dark:text-blue-400",
       warningTitle: "Recording Requirements",

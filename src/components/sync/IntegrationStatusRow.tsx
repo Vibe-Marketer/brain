@@ -27,7 +27,7 @@ const platformIcons = {
 
 const platformNames = {
   fathom: "Fathom",
-  google_meet: "Google Meet",
+  google_meet: "Google Meet (Beta)",
   zoom: "Zoom",
 };
 
