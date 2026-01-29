@@ -148,14 +148,15 @@ Plans:
 ---
 
 ### Phase 3.2: Integration Import Controls (INSERTED)
-**Goal:** Redesign "Import meetings from" section and add per-integration search toggle
+**Goal:** Add Sources filter control to Sync page for toggling which integrations' meetings are shown
 
 **Dependencies:** Phase 3.1 (compact integration UI must be in place)
 
-**Plans:** 0 plans
+**Plans:** 2 plans in 2 waves
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 3.2 to break down)
+- [ ] 03.2-01-PLAN.md — Database migration + useSyncSourceFilter hook
+- [ ] 03.2-02-PLAN.md — SourcesFilterPopover component + SyncTab integration
 
 **Requirements:**
 - UI-INT-04: Redesigned "Import meetings from" section higher on Sync page
