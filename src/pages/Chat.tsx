@@ -1222,8 +1222,7 @@ export default function Chat() {
   );
 
   // Handle retry after streaming failure
-  // Removes the incomplete assistant message AND the last user message (since sendMessage will re-add it)
-  // This prevents duplicate user messages in the chat
+  // Only removes the incomplete assistant message, keeps user message intact
   const handleRetry = React.useCallback(() => {
     const lastUserMessage = lastUserMessageRef.current;
     if (!lastUserMessage) {
@@ -1242,31 +1241,17 @@ export default function Chat() {
       reconnectTimeoutRef.current = null;
     }
 
-    // Remove incomplete assistant messages AND the last user message from the conversation
-    // We remove the last user message because sendMessage() will re-add it
-    // This prevents duplicate user messages appearing in the chat
+    // Only remove incomplete assistant messages - keep user messages intact
+    // We don't remove the user message because if sendMessage fails, we'd lose it
     setMessages((prev) => {
-      // Find the last user message index
-      let lastUserMsgIndex = -1;
-      for (let i = prev.length - 1; i >= 0; i--) {
-        if (prev[i].role === 'user') {
-          lastUserMsgIndex = i;
-          break;
-        }
-      }
-
-      // Remove: incomplete assistant messages + the last user message
-      const cleaned = prev.filter((m, index) => {
-        // Remove incomplete assistant messages
-        if (incompleteMessageIds.has(m.id)) return false;
-        // Remove the last user message (will be re-added by sendMessage)
-        if (index === lastUserMsgIndex) return false;
-        return true;
-      });
-
+      const cleaned = prev.filter((m) => !incompleteMessageIds.has(m.id));
       return cleaned;
     });
     setIncompleteMessageIds(new Set());
+
+    // Clear the lastUserMessageRef so we don't keep retrying the same thing
+    // The new message from sendMessage will set this again
+    lastUserMessageRef.current = null;
 
     // Reset reconnection state (using refs to avoid triggering effects)
     reconnectAttemptsRef.current = 0;
@@ -1280,7 +1265,9 @@ export default function Chat() {
     toast.dismiss('connection-error-toast');
     toast.dismiss('network-error-toast');
 
-    // Resend the message (this will add the user message back to the chat)
+    // Resend the message
+    // Note: This will create a new user message in the chat (may appear as duplicate)
+    // But better to have a duplicate than lose the message entirely
     logger.debug('[Chat] Retrying message:', lastUserMessage);
     sendMessage({ text: lastUserMessage });
   }, [isChatReady, sendMessage, setMessages, incompleteMessageIds]);
