@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 3 Integration OAuth Flows - Plan 1 of 2 complete
+**Current Focus:** Phase 3 Integration OAuth Flows COMPLETE
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 3 of 9 (Integration OAuth Flows) - In Progress
+**Phase:** 3 of 9 (Integration OAuth Flows) - COMPLETE
 
-**Plan:** 1 of 2 in current phase
+**Plan:** 2 of 2 in current phase (all complete)
 
-**Status:** In progress
+**Status:** Phase 3 complete, ready for Phase 4
 
-**Last activity:** 2026-01-29 - Completed 03-01-PLAN.md (Zoom OAuth fix & Google Meet Beta badge)
+**Last activity:** 2026-01-29 - Completed 03-02-PLAN.md (OAuth verification - Zoom works, Google skipped as Beta)
 
 **Progress:**
 ```
-[█████████████████░░░] 18/55 plans complete (33%)
+[██████████████████░░] 19/55 plans complete (35%)
 ```
 
 ---
@@ -34,10 +34,11 @@
 ### Execution Stats
 
 - **Total Requirements:** 55
-- **Completed:** 12 (SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06, CHAT-01, CHAT-02, CHAT-03, CHAT-04, CHAT-05, STORE-01)
-- **In Progress:** 3 (INT-01, INT-02, INT-03)
+- **Completed:** 15 (SEC-01 through SEC-06, CHAT-01 through CHAT-05, STORE-01, INT-01, INT-03)
+- **Partial:** 1 (INT-02 - Google Meet marked Beta, not fully tested)
+- **In Progress:** 0
 - **Blocked:** 0
-- **Remaining:** 40
+- **Remaining:** 39
 
 ### Phase Progress
 
@@ -45,7 +46,7 @@
 |-------|--------------|----------|--------|
 | Phase 1: Security Lockdown | 6 | 6 | Complete (6/6 plans) |
 | Phase 2: Chat Foundation | 6 | 6 | Complete (12/12 plans) |
-| Phase 3: Integration OAuth | 3 | 0 | In Progress (1/2 plans) |
+| Phase 3: Integration OAuth | 3 | 2 | Complete (2/2 plans) - INT-02 partial |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
 | Phase 6: Demo Polish | 12 | 0 | Pending |
@@ -55,7 +56,7 @@
 
 ### Velocity
 
-- **Plans/Session:** ~1 per session
+- **Plans/Session:** ~2-3 per session
 - **Estimated Completion:** TBD after more data points
 
 ---
@@ -95,13 +96,17 @@
 | 2026-01-29 | Call panel vs popup dialog deferred | User expressed preference for original popup dialog pattern | Panel infrastructure exists, can revisit in UX polish |
 | 2026-01-29 | Exact redirect URI match for OAuth 2.0 | OAuth spec requires character-for-character match between auth URL and token exchange | Fixed Zoom redirect_uri_mismatch error |
 | 2026-01-29 | Beta badge text for Google Meet | Simple "(Beta)" suffix rather than component - consistent across contexts | Sets user expectations for paid Workspace requirement |
+| 2026-01-29 | Zoom Production credentials required | Supabase secrets must use Production Client ID/Secret, not Development | Root cause of Zoom OAuth 500 errors |
+| 2026-01-29 | OAuth redirect to Sync tab | Better UX - after OAuth success, go to `/?tab=sync` not `/settings?tab=integrations` | Users land where they need to be |
 
 ### Active TODOs
 
 - [x] Execute 01-01 through 01-06 (Phase 1 complete)
 - [x] Execute 02-01 through 02-12 (Phase 2 complete)
 - [x] Execute 03-01-PLAN.md (Zoom OAuth fix & Google Meet Beta badge)
-- [ ] Execute 03-02-PLAN.md (End-to-end verification of OAuth flows)
+- [x] Execute 03-02-PLAN.md (OAuth verification - Zoom verified, Google skipped)
+
+- [ ] Plan and execute Phase 4: Team Collaboration
 
 ### Pending Todos
 
@@ -118,18 +123,19 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-29
-**Stopped at:** Completed 03-01-PLAN.md - Zoom OAuth redirect URI fixed, Google Meet marked Beta
+**Stopped at:** Completed 03-02-PLAN.md - Phase 3 complete (Zoom verified, Google skipped as Beta)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 3 Integration OAuth Flows is in progress. Plan 03-01 complete (code fixes), Plan 03-02 pending (end-to-end verification).
+Phase 3 Integration OAuth Flows is COMPLETE. 2/2 plans executed. Ready for Phase 4 (Team Collaboration).
 
 **What to remember:**
-- Zoom OAuth callback redirect URI now matches URL generator: `/oauth/callback/zoom`
-- Google Meet integration shows "(Beta)" in all UI surfaces
-- Plan 03-02 will verify both OAuth flows end-to-end
+- Zoom OAuth works end-to-end (credentials fixed in Supabase)
+- Google Meet marked as "(Beta)" - not fully tested (requires paid Workspace)
+- OAuth success redirects to `/?tab=sync` for better UX
+- Detailed logging added to zoom-oauth-callback for future debugging
 - TypeScript still passes clean
 - Deno function LSP errors are expected (not real errors)
 
@@ -141,13 +147,13 @@ Phase 3 Integration OAuth Flows is in progress. Plan 03-01 complete (code fixes)
 |--------|-------|
 | Total Phases | 9 |
 | Total Requirements | 55 |
-| Requirements Complete | 12 (22%) |
-| Current Phase | 3 - Integration OAuth (In Progress) |
-| Plans Complete | 1/2 in Phase 3 (18/55 overall) |
-| Next Plan | 03-02-PLAN.md |
+| Requirements Complete | 15 (27%) |
+| Current Phase | 3 - Integration OAuth (COMPLETE) |
+| Plans Complete | 2/2 in Phase 3 (19/55 overall) |
+| Next Phase | Phase 4 - Team Collaboration |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-29 (completed 03-01-PLAN.md - Zoom OAuth fix & Google Meet Beta badge)*
+*Last updated: 2026-01-29 (completed 03-02-PLAN.md - Phase 3 Integration OAuth complete)*
