@@ -1,12 +1,12 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-01-28
+**Last Updated:** 2026-01-29
 
 ## Project Reference
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 2 Gap Closures COMPLETE - All 12 plans done
+**Current Focus:** Phase 3 Integration OAuth Flows - Plan 1 of 2 complete
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 2 of 9 (Chat Foundation) - COMPLETE (including gap closures)
+**Phase:** 3 of 9 (Integration OAuth Flows) - In Progress
 
-**Plan:** 12 of 12 (all gap closure plans complete)
+**Plan:** 1 of 2 in current phase
 
-**Status:** Phase 2 fully complete, ready for Phase 3
+**Status:** In progress
 
-**Last activity:** 2026-01-28 - Completed 02-12-PLAN.md (error toast notifications and throttled logging)
+**Last activity:** 2026-01-29 - Completed 03-01-PLAN.md (Zoom OAuth fix & Google Meet Beta badge)
 
 **Progress:**
 ```
-[████████████████░░░░] 17/55 plans complete (31%)
+[█████████████████░░░] 18/55 plans complete (33%)
 ```
 
 ---
@@ -35,17 +35,17 @@
 
 - **Total Requirements:** 55
 - **Completed:** 12 (SEC-01, SEC-02, SEC-03, SEC-04, SEC-05, SEC-06, CHAT-01, CHAT-02, CHAT-03, CHAT-04, CHAT-05, STORE-01)
-- **In Progress:** 0
+- **In Progress:** 3 (INT-01, INT-02, INT-03)
 - **Blocked:** 0
-- **Remaining:** 43
+- **Remaining:** 40
 
 ### Phase Progress
 
 | Phase | Requirements | Complete | Status |
 |-------|--------------|----------|--------|
 | Phase 1: Security Lockdown | 6 | 6 | Complete (6/6 plans) |
-| Phase 2: Chat Foundation | 6 | 6 | Complete (9/9 base + 3/3 gap plans = 12/12) |
-| Phase 3: Integration OAuth | 3 | 0 | Pending |
+| Phase 2: Chat Foundation | 6 | 6 | Complete (12/12 plans) |
+| Phase 3: Integration OAuth | 3 | 0 | In Progress (1/2 plans) |
 | Phase 4: Team Collaboration | 2 | 0 | Pending |
 | Phase 5: Coach Collaboration | 3 | 0 | Pending |
 | Phase 6: Demo Polish | 12 | 0 | Pending |
@@ -89,24 +89,15 @@
 | 2026-01-28 | RECORDING ID RULES as CRITICAL section in system prompt | Model was hallucinating recording_ids (1, 2) instead of using real IDs from search | Prevents getCallDetails failures from invalid IDs |
 | 2026-01-28 | throttledErrorLog with 5s interval per error type | Prevents console spam during network issues while preserving debugging capability | Pattern for rate-limited error logging |
 | 2026-01-28 | CallDetailPanel is read-only (no transcript editing) | Panel context is for quick reference; full editing stays in CallDetailDialog | Simpler panel component, preserves full editing in dialog |
+| 2026-01-29 | Exact redirect URI match for OAuth 2.0 | OAuth spec requires character-for-character match between auth URL and token exchange | Fixed Zoom redirect_uri_mismatch error |
+| 2026-01-29 | Beta badge text for Google Meet | Simple "(Beta)" suffix rather than component - consistent across contexts | Sets user expectations for paid Workspace requirement |
 
 ### Active TODOs
 
 - [x] Execute 01-01 through 01-06 (Phase 1 complete)
-- [x] Execute 02-01-PLAN.md (PoC streamText + tool on Deno)
-- [x] Execute 02-02-PLAN.md (STORE-01: toast.error on 16 methods)
-- [x] Execute 02-03-PLAN.md (extract search pipeline to shared modules)
-- [x] Execute 02-04-PLAN.md (tool call three-state transparency UI)
-- [x] Execute 02-06-PLAN.md (frontend /chat2 test path)
-- [x] Execute 02-05-PLAN.md (define all 14 RAG tools + system prompt)
-- [x] Execute 02-07-PLAN.md (inline citations with hover preview + bottom source list)
-- [x] Execute 02-08-PLAN.md (streaming error handling, retry UX, connection stability)
-- [x] Execute 02-09-PLAN.md (switchover: /chat -> v2, legacy rename, final verification)
-- [x] Execute 02-10-PLAN.md (gap closure - call detail panel instead of popup dialog)
-- [x] Execute 02-11-PLAN.md (recording ID hallucination fix)
-- [x] Execute 02-12-PLAN.md (error toast notifications and throttled logging)
-
-- [ ] Plan and execute Phase 3: Integration OAuth Flows
+- [x] Execute 02-01 through 02-12 (Phase 2 complete)
+- [x] Execute 03-01-PLAN.md (Zoom OAuth fix & Google Meet Beta badge)
+- [ ] Execute 03-02-PLAN.md (End-to-end verification of OAuth flows)
 
 ### Pending Todos
 
@@ -121,23 +112,21 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-01-28
-**Stopped at:** Completed 02-12-PLAN.md - Phase 2 Chat Foundation fully complete (all gap closures done)
+**Last session:** 2026-01-29
+**Stopped at:** Completed 03-01-PLAN.md - Zoom OAuth redirect URI fixed, Google Meet marked Beta
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 2 Chat Foundation is FULLY COMPLETE including all gap closures. 12/12 plans executed. Ready for Phase 3 (Integration OAuth Flows).
+Phase 3 Integration OAuth Flows is in progress. Plan 03-01 complete (code fixes), Plan 03-02 pending (end-to-end verification).
 
 **What to remember:**
-- /chat now always uses chat-stream-v2 backend (AI SDK streamText + tool)
-- Legacy chat-stream renamed to chat-stream-legacy as deployable fallback
-- chat-stream-v2 has RECORDING ID RULES (CRITICAL) section in system prompt
-- Error logging is throttled to prevent console spam (throttledErrorLog pattern)
-- Immediate toast on first connection interruption, catch-all for network errors
-- `tsc --noEmit` passes clean (zero errors)
-- All UAT gaps (1, 2, 3) have been addressed
+- Zoom OAuth callback redirect URI now matches URL generator: `/oauth/callback/zoom`
+- Google Meet integration shows "(Beta)" in all UI surfaces
+- Plan 03-02 will verify both OAuth flows end-to-end
+- TypeScript still passes clean
+- Deno function LSP errors are expected (not real errors)
 
 ---
 
@@ -148,12 +137,12 @@ Phase 2 Chat Foundation is FULLY COMPLETE including all gap closures. 12/12 plan
 | Total Phases | 9 |
 | Total Requirements | 55 |
 | Requirements Complete | 12 (22%) |
-| Current Phase | 2 - Chat Foundation (COMPLETE) |
-| Plans Complete | 12/12 in Phase 2 (17/55 overall) |
-| Next Plan | Phase 3 - Integration OAuth |
+| Current Phase | 3 - Integration OAuth (In Progress) |
+| Plans Complete | 1/2 in Phase 3 (18/55 overall) |
+| Next Plan | 03-02-PLAN.md |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-28 (completed 02-12-PLAN.md - Phase 2 Chat Foundation fully complete)*
+*Last updated: 2026-01-29 (completed 03-01-PLAN.md - Zoom OAuth fix & Google Meet Beta badge)*
