@@ -1,4 +1,5 @@
-import { IntegrationManager } from "@/components/shared/IntegrationManager";
+import { IntegrationButtonGroup } from "@/components/integrations/IntegrationButtonGroup";
+import { IntegrationConnectModal } from "@/components/integrations/IntegrationConnectModal";
 
 export type IntegrationPlatform = "fathom" | "google_meet" | "zoom";
 
@@ -7,18 +8,18 @@ interface IntegrationSyncPaneProps {
 }
 
 /**
- * IntegrationSyncPane - Integration management for the Import screen
+ * IntegrationSyncPane - Compact integration buttons for the Sync page
  *
- * Uses the shared IntegrationManager component with compact variant
- * to ensure consistent behavior across Import and Settings screens.
+ * Displays integrations as compact 56px buttons in a horizontal row.
+ * Clicking any button opens the IntegrationConnectModal for connect/disconnect.
+ *
+ * @brand-version v4.2
  */
 export function IntegrationSyncPane({ onIntegrationChange }: IntegrationSyncPaneProps) {
   return (
-    <IntegrationManager
-      onIntegrationChange={onIntegrationChange}
-      variant="compact"
-      showCard={true}
-      title="Integrations"
-    />
+    <>
+      <IntegrationButtonGroup onIntegrationChange={onIntegrationChange} />
+      <IntegrationConnectModal onConnectionChange={onIntegrationChange} />
+    </>
   );
 }
