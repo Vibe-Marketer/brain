@@ -114,6 +114,69 @@ Plans:
 
 ---
 
+### Phase 3.1: Compact Integration UI (INSERTED)
+**Goal:** Redesign integration cards to compact button/icon format with reusable connection modal
+
+**Dependencies:** Phase 3 (OAuth flows must work first)
+
+**Plans:** 3 plans in 3 waves
+
+Plans:
+- [ ] 03.1-01-PLAN.md — Core primitives (modal store + compact button component)
+- [ ] 03.1-02-PLAN.md — Composite components (connect modal + button group)
+- [ ] 03.1-03-PLAN.md — Wire up Sync page + visual verification
+
+**Requirements:**
+- UI-INT-01: Compact integration buttons replace large cards on Sync page
+- UI-INT-02: Reusable IntegrationConnectModal component
+- UI-INT-03: Same modal works in Sync, Settings > Integrations, and onboarding
+
+**Success Criteria:**
+1. Integrations on Sync page display as compact buttons/icons (not large cards)
+2. Connected/disconnected state clearly visible at a glance
+3. Clicking integration opens modal for connection flow
+4. Same IntegrationConnectModal component used across Sync, Settings, and onboarding
+5. Room for 6+ integrations in a single row at top of Sync page
+
+**Details:**
+- Replace current large integration cards with compact button/icon representation
+- Clear visual indicator for connected vs not connected state
+- Modal-based connection flow (not inline at top of page)
+- Single reusable component importable anywhere integrations are shown
+- Supports future expansion to many more integrations
+
+---
+
+### Phase 3.2: Integration Import Controls (INSERTED)
+**Goal:** Redesign "Import meetings from" section and add per-integration search toggle
+
+**Dependencies:** Phase 3.1 (compact integration UI must be in place)
+
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 3.2 to break down)
+
+**Requirements:**
+- UI-INT-04: Redesigned "Import meetings from" section higher on Sync page
+- UI-INT-05: Per-integration on/off toggle for search inclusion
+- UI-INT-06: Clear visual state for which integrations are included in search
+
+**Success Criteria:**
+1. "Import meetings from" section prominently placed, better laid out
+2. Each connected integration has airplane-mode style on/off switch
+3. Toggle controls whether integration's calls appear in search results
+4. Toggle state persists across sessions
+5. Clear visual feedback when integration is excluded from search
+
+**Details:**
+- Leverage compact integration layout from Phase 3.1
+- On/off toggle per integration controls search inclusion
+- Users can connect an integration but exclude it from search
+- Clean, intuitive layout that scales with more integrations
+
+---
+
 ### Phase 4: Team Collaboration
 **Goal:** Teams can be created, users can join teams, and team features work end-to-end
 
@@ -272,6 +335,8 @@ Plans:
 | 1 - Security Lockdown | Complete ✅ | 6 | 100% |
 | 2 - Chat Foundation | Complete ✅ | 6 | 100% (12/12 plans) |
 | 3 - Integration OAuth | Complete ✅ | 3 | 100% (2/2 plans) |
+| 3.1 - Compact Integration UI | Planned | 3 | 0% (0/3 plans) |
+| 3.2 - Integration Import Controls | Pending | 3 | 0% |
 | 4 - Team Collaboration | Pending | 2 | 0% |
 | 5 - Coach Collaboration | Pending | 3 | 0% |
 | 6 - Demo Polish | Pending | 12 | 0% |
@@ -279,7 +344,7 @@ Plans:
 | 8 - Differentiators | Pending | 5 | 0% |
 | 9 - Growth Infrastructure | Pending | 5 | 0% |
 
-**Overall Progress:** 15/55 requirements complete (27%)
+**Overall Progress:** 15/61 requirements complete (25%)
 
 ---
 
@@ -368,8 +433,14 @@ Phase 9: Growth Infrastructure
 | GROW-03 | 9 - Growth |
 | GROW-04 | 9 - Growth |
 | GROW-05 | 9 - Growth |
+| UI-INT-01 | 3.1 - Compact Integration UI |
+| UI-INT-02 | 3.1 - Compact Integration UI |
+| UI-INT-03 | 3.1 - Compact Integration UI |
+| UI-INT-04 | 3.2 - Integration Import Controls |
+| UI-INT-05 | 3.2 - Integration Import Controls |
+| UI-INT-06 | 3.2 - Integration Import Controls |
 
-**Coverage:** 55/55 requirements mapped ✓
+**Coverage:** 61/61 requirements mapped ✓
 
 ---
 
@@ -378,10 +449,11 @@ Phase 9: Growth Infrastructure
 1. ~~Phase 1: Security Lockdown~~ ✅ Complete
 2. ~~Phase 2: Chat Foundation~~ ✅ Complete (12/12 plans, all gap closures verified)
 3. ~~Phase 3: Integration OAuth~~ ✅ Complete (Zoom verified, Google marked Beta)
-4. Run `/gsd-discuss-phase 4` to gather context for Team Collaboration
-5. Run `/gsd-plan-phase 4` to create phase plans
-6. Continue to Phase 4
+4. Run `/gsd-plan-phase 3.1` to plan Compact Integration UI
+5. Run `/gsd-discuss-phase 4` to gather context for Team Collaboration
+6. Run `/gsd-plan-phase 4` to create phase plans
+7. Continue to Phase 4
 
 ---
 
-*Last updated: 2026-01-29 (Phase 3 complete - Zoom OAuth verified, Google Meet marked Beta)*
+*Last updated: 2026-01-29 (Phase 3.2 inserted - Integration Import Controls)*
