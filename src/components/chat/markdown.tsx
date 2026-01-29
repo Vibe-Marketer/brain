@@ -182,31 +182,20 @@ export function Markdown({ children, className, components, onViewCall, ...props
                          linkText.startsWith('view ');
 
       if (isViewLink) {
-        const recordingId = extractRecordingId(href);
-        const isClickable = recordingId !== null && onViewCall;
-
-        // Always render as pill button for "View ..." links
-        // White background with black border to stand out against gray bubble
+        // Render as a styled link that opens the Fathom share URL
         return (
-          <Badge
-            variant="outline"
+          <a
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
             className={cn(
-              "text-[10px] px-2 py-0.5 font-medium inline-flex items-center",
+              "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium no-underline",
               "bg-white dark:bg-card border-black dark:border-white",
-              isClickable
-                ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800 active:scale-95 transition-all"
-                : "opacity-60 cursor-default"
+              "hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
             )}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (isClickable) {
-                onViewCall(recordingId);
-              }
-            }}
           >
             VIEW
-          </Badge>
+          </a>
         );
       }
 
