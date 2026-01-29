@@ -75,9 +75,9 @@ export default function OAuthCallback() {
         setMessage(`Successfully connected to ${provider}!`);
         toast.success(`Successfully connected to ${provider}!`);
 
-        // Redirect to integrations settings after a brief delay
+        // Redirect to Sync tab after a brief delay
         setTimeout(() => {
-          navigate("/settings?tab=integrations", { replace: true });
+          navigate("/?tab=sync", { replace: true });
         }, 1500);
 
       } catch (error) {
@@ -87,9 +87,9 @@ export default function OAuthCallback() {
         setMessage(errorMessage);
         toast.error(errorMessage);
 
-        // Redirect to settings after error display
+        // Redirect to Sync tab after error display
         setTimeout(() => {
-          navigate("/settings?tab=integrations", { replace: true });
+          navigate("/?tab=sync", { replace: true });
         }, 3000);
       }
     };
