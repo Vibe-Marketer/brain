@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+
 import {
   RiLoader2Line,
   RiTeamLine,
@@ -41,8 +41,6 @@ import type { TeamRole, TeamMembershipWithUser } from "@/types/sharing";
 
 interface CreateTeamFormData {
   name: string;
-  admin_sees_all: boolean;
-  domain_auto_join: string;
 }
 
 export default function TeamTab() {
@@ -56,8 +54,6 @@ export default function TeamTab() {
   const [generatedInviteLink, setGeneratedInviteLink] = useState<string | null>(null);
   const [createFormData, setCreateFormData] = useState<CreateTeamFormData>({
     name: "",
-    admin_sees_all: false,
-    domain_auto_join: "",
   });
 
   // Get current user ID on mount
@@ -156,12 +152,10 @@ export default function TeamTab() {
     try {
       const newTeam = await createTeam({
         name: createFormData.name,
-        admin_sees_all: createFormData.admin_sees_all,
-        domain_auto_join: createFormData.domain_auto_join || undefined,
       });
       setUserTeamId(newTeam.id);
       setShowCreateForm(false);
-      setCreateFormData({ name: "", admin_sees_all: false, domain_auto_join: "" });
+      setCreateFormData({ name: "" });
       toast.success("Team created successfully");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create team";
@@ -305,47 +299,12 @@ export default function TeamTab() {
                 />
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div className="space-y-0.5">
-                  <Label htmlFor="admin-sees-all" className="text-sm font-medium">
-                    Admin Visibility
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Admins can see all team members&apos; calls
-                  </p>
-                </div>
-                <Switch
-                  id="admin-sees-all"
-                  checked={createFormData.admin_sees_all}
-                  onCheckedChange={(checked) =>
-                    setCreateFormData({ ...createFormData, admin_sees_all: checked })
-                  }
-                  disabled={teamUpdating}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="domain-auto-join">Auto-Join Domain (Optional)</Label>
-                <Input
-                  id="domain-auto-join"
-                  placeholder="e.g., company.com"
-                  value={createFormData.domain_auto_join}
-                  onChange={(e) =>
-                    setCreateFormData({ ...createFormData, domain_auto_join: e.target.value })
-                  }
-                  disabled={teamUpdating}
-                />
-                <p className="text-xs text-muted-foreground">
-                  Users with this email domain can automatically join the team.
-                </p>
-              </div>
-
               <div className="flex justify-end gap-2">
                 <Button
                   variant="hollow"
                   onClick={() => {
                     setShowCreateForm(false);
-                    setCreateFormData({ name: "", admin_sees_all: false, domain_auto_join: "" });
+                    setCreateFormData({ name: "" });
                   }}
                   disabled={teamUpdating}
                 >

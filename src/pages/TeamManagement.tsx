@@ -62,8 +62,6 @@ import type { TeamRole, TeamMembershipWithUser } from "@/types/sharing";
 
 interface CreateTeamFormData {
   name: string;
-  admin_sees_all: boolean;
-  domain_auto_join: string;
 }
 
 // ============================================================================
@@ -88,8 +86,6 @@ function CreateTeamDialog({
 }: CreateTeamDialogProps) {
   const [formData, setFormData] = useState<CreateTeamFormData>({
     name: "",
-    admin_sees_all: false,
-    domain_auto_join: "",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -99,7 +95,7 @@ function CreateTeamDialog({
       return;
     }
     await onCreateTeam(formData);
-    setFormData({ name: "", admin_sees_all: false, domain_auto_join: "" });
+    setFormData({ name: "" });
   };
 
   return (
@@ -111,7 +107,7 @@ function CreateTeamDialog({
             Create Team
           </DialogTitle>
           <DialogDescription>
-            Create a new team to collaborate with colleagues and manage call visibility.
+            Create a new team to collaborate with your colleagues.
           </DialogDescription>
         </DialogHeader>
 
@@ -127,41 +123,6 @@ function CreateTeamDialog({
               }
               disabled={isCreating}
             />
-          </div>
-
-          <div className="flex items-center justify-between rounded-lg border p-3">
-            <div className="space-y-0.5">
-              <Label htmlFor="admin-sees-all" className="text-sm font-medium">
-                Admin Visibility
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Admins can see all team members&apos; calls
-              </p>
-            </div>
-            <Switch
-              id="admin-sees-all"
-              checked={formData.admin_sees_all}
-              onCheckedChange={(checked) =>
-                setFormData({ ...formData, admin_sees_all: checked })
-              }
-              disabled={isCreating}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="domain-auto-join">Auto-Join Domain (Optional)</Label>
-            <Input
-              id="domain-auto-join"
-              placeholder="e.g., company.com"
-              value={formData.domain_auto_join}
-              onChange={(e) =>
-                setFormData({ ...formData, domain_auto_join: e.target.value })
-              }
-              disabled={isCreating}
-            />
-            <p className="text-xs text-muted-foreground">
-              Users with this email domain can automatically join the team.
-            </p>
           </div>
 
           <DialogFooter>
@@ -651,8 +612,6 @@ export default function TeamManagement() {
       try {
         const newTeam = await createTeam({
           name: data.name,
-          admin_sees_all: data.admin_sees_all,
-          domain_auto_join: data.domain_auto_join || undefined,
         });
         setUserTeamId(newTeam.id);
         setShowCreateDialog(false);
