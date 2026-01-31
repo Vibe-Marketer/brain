@@ -23,6 +23,7 @@ import { getSafeUser } from "@/lib/auth-utils";
 import { AdminModelManager } from "./AdminModelManager";
 import { Label } from "@/components/ui/label";
 import { useAvailableModels } from "@/components/chat/model-selector";
+import { CostDashboard } from "./CostDashboard";
 
 interface IndexingStats {
   totalChunks: number;
@@ -589,6 +590,10 @@ export default function AITab() {
           </div>
         </div>
       </div>
+
+      {/* Cost Dashboard Section */}
+      <Separator className="my-12" />
+      <CostDashboard />
 
       {isAdmin && (
         <div className="mt-12 pt-12 border-t border-border">
