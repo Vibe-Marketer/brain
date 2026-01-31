@@ -29,8 +29,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { InsightCard } from '@/components/loop/InsightCard';
 import { ContentGenerator } from '@/components/loop/ContentGenerator';
+import { PROFITSReport } from '@/components/profits/PROFITSReport';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import type { PROFITSCitation } from '@/hooks/usePROFITS';
 
 export const CallDetailPage: React.FC = () => {
   const { callId } = useParams<{ callId: string }>();
@@ -250,11 +252,20 @@ export const CallDetailPage: React.FC = () => {
 
           {/* PROFITS Framework Tab */}
           <TabsContent value="profits">
-            <div className="text-center py-16">
-              <RiPriceTag3Line className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 dark:text-gray-400">
-                PROFITS framework not applied yet
-              </p>
+            <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800">
+              <PROFITSReport
+                recordingId={recordingId}
+                onCitationClick={(citation: PROFITSCitation) => {
+                  // Navigate to transcript moment
+                  // For now, scroll to transcript tab - can be enhanced to scroll to specific segment
+                  const transcriptTab = document.querySelector('[value="transcript"]');
+                  if (transcriptTab instanceof HTMLElement) {
+                    transcriptTab.click();
+                  }
+                  // TODO: Enhance to scroll to specific timestamp/segment in transcript
+                  console.log('Citation clicked:', citation);
+                }}
+              />
             </div>
           </TabsContent>
 
