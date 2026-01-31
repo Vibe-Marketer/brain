@@ -43,11 +43,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { useTableSort } from "@/hooks/useTableSort";
+import type { Database, Json } from "@/integrations/supabase/types";
 
 // ============================================================================
 // Types
 // ============================================================================
 
+// Use Supabase-generated type directly
+type AutomationRule = Database['public']['Tables']['automation_rules']['Row'];
+
+// Keep TriggerType for UI display purposes, but it's just a type guard
 type TriggerType =
   | "call_created"
   | "transcript_phrase"
@@ -56,27 +61,16 @@ type TriggerType =
   | "webhook"
   | "scheduled";
 
-interface AutomationRule {
-  id: string;
-  name: string;
-  description: string | null;
-  priority: number;
-  trigger_type: TriggerType;
-  trigger_config: Record<string, unknown>;
-  conditions: Record<string, unknown>;
-  actions: Array<Record<string, unknown>>;
-  enabled: boolean;
-  times_applied: number;
-  last_applied_at: string | null;
-  created_at: string;
-  updated_at: string;
+// Type guard for trigger_type since DB stores as string
+function isTriggerType(value: string): value is TriggerType {
+  return ["call_created", "transcript_phrase", "sentiment", "duration", "webhook", "scheduled"].includes(value);
 }
 
 // ============================================================================
 // Helper Functions
 // ============================================================================
 
-const getTriggerIcon = (triggerType: TriggerType) => {
+const getTriggerIcon = (triggerType: string) => {
   switch (triggerType) {
     case "call_created":
       return RiPlayCircleLine;
@@ -95,7 +89,7 @@ const getTriggerIcon = (triggerType: TriggerType) => {
   }
 };
 
-const getTriggerLabel = (triggerType: TriggerType): string => {
+const getTriggerLabel = (triggerType: string): string => {
   switch (triggerType) {
     case "call_created":
       return "Call Created";
@@ -114,7 +108,7 @@ const getTriggerLabel = (triggerType: TriggerType): string => {
   }
 };
 
-const getTriggerColor = (triggerType: TriggerType): string => {
+const getTriggerColor = (triggerType: string): string => {
   switch (triggerType) {
     case "call_created":
       return "bg-green-500/10 text-green-600 dark:text-green-400";
