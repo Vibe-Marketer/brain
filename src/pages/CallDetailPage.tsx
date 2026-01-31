@@ -38,20 +38,23 @@ export const CallDetailPage: React.FC = () => {
   const [showContentGenerator, setShowContentGenerator] = useState(false);
   const [selectedInsights, setSelectedInsights] = useState<any[]>([]);
 
+  // Parse callId to number for recording_id query
+  const recordingId = callId ? parseInt(callId, 10) : undefined;
+  
   // Fetch call details
   const { data: call, isLoading: callLoading } = useQuery({
     queryKey: ['call', callId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('calls')
+        .from('fathom_calls')
         .select('*')
-        .eq('id', callId)
+        .eq('recording_id', recordingId!)
         .single();
 
       if (error) throw error;
       return data;
     },
-    enabled: !!callId,
+    enabled: !!recordingId && !isNaN(recordingId),
   });
 
   // Fetch insights for this call
@@ -61,29 +64,13 @@ export const CallDetailPage: React.FC = () => {
       const { data, error } = await supabase
         .from('insights')
         .select('*')
-        .eq('call_id', callId)
-        .order('confidence', { ascending: false });
+        .eq('recording_id', recordingId!)
+        .order('score', { ascending: false });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!callId,
-  });
-
-  // Fetch quotes for this call
-  const { data: quotes } = useQuery({
-    queryKey: ['call-quotes', callId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('quotes')
-        .select('*')
-        .eq('call_id', callId)
-        .order('significance', { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!callId,
+    enabled: !!recordingId && !isNaN(recordingId),
   });
 
   if (callLoading) {
@@ -110,12 +97,16 @@ export const CallDetailPage: React.FC = () => {
     );
   }
 
-  const profitsData = call.profits_framework as any;
+  // Extract sentiment from sentiment_cache if available
+  const sentimentCache = call.sentiment_cache as { sentiment?: string; score?: number } | null;
+  const sentiment = sentimentCache?.sentiment;
+  const sentimentScore = sentimentCache?.score;
+  
   const sentimentColor = {
     positive: 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/20',
     neutral: 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800',
     negative: 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/20',
-  }[call.sentiment || 'neutral'];
+  }[sentiment || 'neutral'];
 
   return (
     <div className="min-h-full bg-gray-50 dark:bg-gray-950">
@@ -138,13 +129,13 @@ export const CallDetailPage: React.FC = () => {
               </h1>
               <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
                 <span>{new Date(call.created_at).toLocaleDateString()}</span>
-                {call.sentiment && (
+                {sentiment && (
                   <Badge className={sentimentColor}>
-                    {call.sentiment}
-                    {call.sentiment_score && ` (${Math.round(call.sentiment_score)}%)`}
+                    {sentiment}
+                    {sentimentScore && ` (${Math.round(sentimentScore)}%)`}
                   </Badge>
                 )}
-                {call.ai_processed && (
+                {call.ai_generated_title && (
                   <Badge variant="outline" className="text-purple-600 border-purple-600">
                     <RiSparklingLine className="w-3 h-3 mr-1" />
                     AI Processed
@@ -204,7 +195,7 @@ export const CallDetailPage: React.FC = () => {
             </TabsTrigger>
             <TabsTrigger value="actions">
               <RiCheckboxCircleLine className="w-4 h-4 mr-2" />
-              Action Items ({call.action_items?.length || 0})
+              Action Items (0)
             </TabsTrigger>
           </TabsList>
 
@@ -221,15 +212,15 @@ export const CallDetailPage: React.FC = () => {
                   <InsightCard
                     key={insight.id}
                     id={insight.id}
-                    type={insight.type}
-                    content={insight.content}
+                    type={insight.category}
+                    content={insight.exact_quote}
                     source={{
-                      callId: call.id,
+                      callId: String(call.recording_id),
                       callTitle: call.title || 'Untitled Call',
                       date: new Date(call.created_at),
                     }}
-                    confidence={insight.confidence}
-                    tags={insight.tags || []}
+                    confidence={insight.score}
+                    tags={[]}
                     onUse={() => {
                       setSelectedInsights([insight]);
                       setShowContentGenerator(true);
@@ -252,76 +243,29 @@ export const CallDetailPage: React.FC = () => {
           <TabsContent value="transcript">
             <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
               <pre className="whitespace-pre-wrap font-sans text-gray-900 dark:text-white">
-                {call.transcript || 'No transcript available'}
+                {call.full_transcript || 'No transcript available'}
               </pre>
             </div>
           </TabsContent>
 
           {/* PROFITS Framework Tab */}
           <TabsContent value="profits">
-            {profitsData ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {Object.entries(profitsData).map(([key, values]: [string, any]) => (
-                  <div
-                    key={key}
-                    className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6"
-                  >
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 capitalize">
-                      {key}
-                    </h3>
-                    {Array.isArray(values) && values.length > 0 ? (
-                      <ul className="space-y-2">
-                        {values.map((item: string, index: number) => (
-                          <li
-                            key={index}
-                            className="text-gray-700 dark:text-gray-300 pl-4 border-l-2 border-purple-600"
-                          >
-                            {item}
-                          </li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p className="text-gray-500 dark:text-gray-400 italic">
-                        No {key} identified
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-16">
-                <RiPriceTag3Line className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400">
-                  PROFITS framework not applied yet
-                </p>
-              </div>
-            )}
+            <div className="text-center py-16">
+              <RiPriceTag3Line className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">
+                PROFITS framework not applied yet
+              </p>
+            </div>
           </TabsContent>
 
           {/* Action Items Tab */}
           <TabsContent value="actions">
-            {call.action_items && call.action_items.length > 0 ? (
-              <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 p-6">
-                <ul className="space-y-3">
-                  {call.action_items.map((item: string, index: number) => (
-                    <li
-                      key={index}
-                      className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                    >
-                      <RiCheckboxCircleLine className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-gray-900 dark:text-white">{item}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <div className="text-center py-16">
-                <RiCheckboxCircleLine className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 dark:text-gray-400">
-                  No action items identified
-                </p>
-              </div>
-            )}
+            <div className="text-center py-16">
+              <RiCheckboxCircleLine className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 dark:text-gray-400">
+                No action items identified
+              </p>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
