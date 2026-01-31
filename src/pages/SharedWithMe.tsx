@@ -6,7 +6,6 @@ import {
   RiTimeLine,
   RiLoader2Line,
   RiLinksLine,
-  RiUserHeartLine,
   RiGroupLine,
   RiFileTextLine,
   RiArrowUpDownLine,
@@ -17,7 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
-import { useSharedCalls } from "@/hooks/useCoachRelationships";
+
 import { useDirectReports, useTeamShares } from "@/hooks/useTeamHierarchy";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +36,7 @@ interface SharedCallBase {
   duration: string | null;
   owner_email: string;
   owner_name?: string | null;
-  source_type: "share_link" | "coach" | "team" | "manager";
+  source_type: "share_link" | "team" | "manager";
   source_label: string;
 }
 
@@ -90,8 +89,6 @@ const getSourceIcon = (sourceType: SharedCallBase["source_type"]) => {
   switch (sourceType) {
     case "share_link":
       return RiLinksLine;
-    case "coach":
-      return RiUserHeartLine;
     case "team":
       return RiGroupLine;
     case "manager":
@@ -105,8 +102,6 @@ const getSourceColor = (sourceType: SharedCallBase["source_type"]) => {
   switch (sourceType) {
     case "share_link":
       return "bg-blue-500/10 text-blue-500";
-    case "coach":
-      return "bg-purple-500/10 text-purple-500";
     case "team":
       return "bg-green-500/10 text-green-500";
     case "manager":
@@ -237,12 +232,6 @@ function useSharedWithMe(options: UseSharedWithMeOptions) {
     enabled: enabled && !!userId,
   });
 
-  // Get calls shared via coach relationships (where user is coach)
-  const { sharedCalls: coachCalls, isLoading: isLoadingCoachCalls } = useSharedCalls({
-    userId,
-    enabled: enabled && !!userId,
-  });
-
   // Get calls from direct reports (where user is manager)
   const { directReportCalls, isLoading: isLoadingManagerCalls } = useDirectReports({
     userId,
@@ -329,20 +318,6 @@ function useSharedWithMe(options: UseSharedWithMeOptions) {
     enabled: enabled && !!userId && sharesWithMe && sharesWithMe.length > 0,
   });
 
-  // Transform coach calls
-  const transformedCoachCalls: SharedCallBase[] = useMemo(() => {
-    return (coachCalls || []).map((call) => ({
-      recording_id: call.recording_id,
-      call_name: call.call_name,
-      recording_start_time: call.recording_start_time,
-      duration: call.duration,
-      owner_email: call.coachee_email,
-      owner_name: call.coachee_name,
-      source_type: "coach" as const,
-      source_label: "Coaching",
-    }));
-  }, [coachCalls]);
-
   // Transform manager calls
   const transformedManagerCalls: SharedCallBase[] = useMemo(() => {
     return (directReportCalls || []).map((call) => ({
@@ -372,7 +347,6 @@ function useSharedWithMe(options: UseSharedWithMeOptions) {
     };
 
     addCalls(shareLinkCalls || []);
-    addCalls(transformedCoachCalls);
     addCalls(transformedManagerCalls);
     addCalls(teamSharedCalls || []);
 
@@ -384,14 +358,12 @@ function useSharedWithMe(options: UseSharedWithMeOptions) {
     );
   }, [
     shareLinkCalls,
-    transformedCoachCalls,
     transformedManagerCalls,
     teamSharedCalls,
   ]);
 
   const isLoading =
     isLoadingShareLinks ||
-    isLoadingCoachCalls ||
     isLoadingManagerCalls ||
     isLoadingTeamShares ||
     isLoadingTeamCalls;
@@ -401,7 +373,6 @@ function useSharedWithMe(options: UseSharedWithMeOptions) {
     return {
       all: allCalls,
       share_link: allCalls.filter((c) => c.source_type === "share_link"),
-      coach: allCalls.filter((c) => c.source_type === "coach"),
       team: allCalls.filter((c) => c.source_type === "team"),
       manager: allCalls.filter((c) => c.source_type === "manager"),
     };
@@ -414,7 +385,6 @@ function useSharedWithMe(options: UseSharedWithMeOptions) {
     counts: {
       all: allCalls.length,
       share_link: bySourceType.share_link.length,
-      coach: bySourceType.coach.length,
       team: bySourceType.team.length,
       manager: bySourceType.manager.length,
     },
@@ -624,16 +594,12 @@ const SharedWithMe = () => {
         <h1 className="text-xl font-bold">Shared With Me</h1>
         <p className="text-muted-foreground text-center max-w-md">
           No calls have been shared with you yet. When colleagues share calls via
-          links, coaching relationships, or team sharing, they&apos;ll appear here.
+          links or team sharing, they&apos;ll appear here.
         </p>
         <div className="flex flex-col gap-2 text-sm text-muted-foreground mt-4">
           <div className="flex items-center gap-2">
             <RiLinksLine className="h-4 w-4 text-blue-500" />
             <span>Direct share links</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <RiUserHeartLine className="h-4 w-4 text-purple-500" />
-            <span>Coaching relationships</span>
           </div>
           <div className="flex items-center gap-2">
             <RiGroupLine className="h-4 w-4 text-green-500" />
@@ -697,18 +663,6 @@ const SharedWithMe = () => {
                   Links
                   <Badge variant="secondary" className="ml-2 text-xs">
                     {counts.share_link}
-                  </Badge>
-                </TabsTrigger>
-              )}
-              {counts.coach > 0 && (
-                <TabsTrigger
-                  value="coach"
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2"
-                >
-                  <RiUserHeartLine className="h-4 w-4 mr-1.5" />
-                  Coaching
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {counts.coach}
                   </Badge>
                 </TabsTrigger>
               )}

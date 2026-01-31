@@ -34,7 +34,6 @@ interface UseAccessControlResult {
   isLoading: boolean;
   // Helpers
   isOwner: boolean;
-  isCoach: boolean;
   isManager: boolean;
   isPeer: boolean;
   isSharedLink: boolean;
@@ -43,75 +42,6 @@ interface UseAccessControlResult {
 // ============================================================================
 // Helper Functions
 // ============================================================================
-
-/**
- * Determines if a call is shared with a coach based on sharing rules
- */
-async function checkCoachAccess(
-  callId: number | string,
-  callOwnerId: string,
-  coachUserId: string
-): Promise<{ hasAccess: boolean; relationshipId: string | null }> {
-  // Find active relationship where user is coach
-  const { data: relationship, error: relError } = await supabase
-    .from("coach_relationships")
-    .select("id")
-    .eq("coach_user_id", coachUserId)
-    .eq("coachee_user_id", callOwnerId)
-    .eq("status", "active")
-    .maybeSingle();
-
-  if (relError || !relationship) {
-    return { hasAccess: false, relationshipId: null };
-  }
-
-  // Check sharing rules for this relationship
-  const { data: shares, error: sharesError } = await supabase
-    .from("coach_shares")
-    .select("share_type, folder_id, tag_id")
-    .eq("relationship_id", relationship.id);
-
-  if (sharesError || !shares?.length) {
-    return { hasAccess: false, relationshipId: relationship.id };
-  }
-
-  // If sharing all, grant access
-  if (shares.some(s => s.share_type === 'all')) {
-    return { hasAccess: true, relationshipId: relationship.id };
-  }
-
-  // Check folder-based sharing
-  const folderIds = shares.filter(s => s.share_type === 'folder').map(s => s.folder_id);
-  if (folderIds.length > 0) {
-    const { data: folderAssignment } = await supabase
-      .from("folder_assignments")
-      .select("id")
-      .eq("recording_id", callId)
-      .in("folder_id", folderIds)
-      .limit(1);
-
-    if (folderAssignment?.length) {
-      return { hasAccess: true, relationshipId: relationship.id };
-    }
-  }
-
-  // Check tag-based sharing
-  const tagIds = shares.filter(s => s.share_type === 'tag').map(s => s.tag_id);
-  if (tagIds.length > 0) {
-    const { data: tagAssignment } = await supabase
-      .from("call_tags")
-      .select("id")
-      .eq("recording_id", callId)
-      .in("tag_id", tagIds)
-      .limit(1);
-
-    if (tagAssignment?.length) {
-      return { hasAccess: true, relationshipId: relationship.id };
-    }
-  }
-
-  return { hasAccess: false, relationshipId: relationship.id };
-}
 
 /**
  * Determines if a call is visible to a manager
@@ -239,7 +169,7 @@ async function checkPeerAccess(
  *
  * Provides functionality to:
  * - Check if current user can access a call
- * - Determine access level (owner, coach, manager, peer, shared_link)
+ * - Determine access level (owner, manager, peer, shared_link)
  * - Get all people with access to a call
  * - Get sharing status for a call
  */
@@ -255,7 +185,6 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
           isOwner: false,
           accessLevel: null,
           shareLinks: [],
-          coachAccess: null,
           isManager: false,
           isPeer: false,
           peopleWithAccess: [],
@@ -315,19 +244,6 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
         const linkAccessResults = await Promise.all(linkAccessPromises);
         const linkAccess = linkAccessResults.flat();
 
-        // Get coaches with access
-        const { data: coachRelationships } = await supabase
-          .from("coach_relationships")
-          .select("coach_user_id, created_at")
-          .eq("coachee_user_id", userId)
-          .eq("status", "active");
-
-        const coachAccess = (coachRelationships || []).map(rel => ({
-          user_id: rel.coach_user_id,
-          access_type: 'coach' as AccessLevel,
-          granted_at: rel.created_at,
-        }));
-
         // Get managers with access
         const { data: ownerMembership } = await supabase
           .from("team_memberships")
@@ -366,13 +282,12 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
         }));
 
         // Combine all people with access
-        const allAccess = [...linkAccess, ...coachAccess, ...managerAccess, ...peerAccess];
+        const allAccess = [...linkAccess, ...managerAccess, ...peerAccess];
 
         // Deduplicate by user_id, keeping highest access level
         const accessLevelPriority: Record<AccessLevel, number> = {
           owner: 4,
           manager: 3,
-          coach: 2,
           peer: 1,
           shared_link: 0,
         };
@@ -408,7 +323,6 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
           isOwner: true,
           accessLevel: 'owner' as AccessLevel,
           shareLinks: shareLinks as ShareLink[] || [],
-          coachAccess: null,
           isManager: false,
           isPeer: false,
           peopleWithAccess: enrichedPeople,
@@ -421,21 +335,6 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
           isOwner: false,
           accessLevel: null,
           shareLinks: [],
-          coachAccess: null,
-          isManager: false,
-          isPeer: false,
-          peopleWithAccess: [],
-        };
-      }
-
-      // Check coach access
-      const coachAccessResult = await checkCoachAccess(callId, effectiveCallOwnerId, userId);
-      if (coachAccessResult.hasAccess) {
-        return {
-          isOwner: false,
-          accessLevel: 'coach' as AccessLevel,
-          shareLinks: [],
-          coachAccess: coachAccessResult,
           isManager: false,
           isPeer: false,
           peopleWithAccess: [],
@@ -449,7 +348,6 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
           isOwner: false,
           accessLevel: 'manager' as AccessLevel,
           shareLinks: [],
-          coachAccess: null,
           isManager: true,
           isPeer: false,
           peopleWithAccess: [],
@@ -463,7 +361,6 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
           isOwner: false,
           accessLevel: 'peer' as AccessLevel,
           shareLinks: [],
-          coachAccess: null,
           isManager: false,
           isPeer: true,
           peopleWithAccess: [],
@@ -490,7 +387,6 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
           isOwner: false,
           accessLevel: 'shared_link' as AccessLevel,
           shareLinks: [],
-          coachAccess: null,
           isManager: false,
           isPeer: false,
           peopleWithAccess: [],
@@ -502,7 +398,6 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
         isOwner: false,
         accessLevel: null,
         shareLinks: [],
-        coachAccess: null,
         isManager: false,
         isPeer: false,
         peopleWithAccess: [],
@@ -517,23 +412,18 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
       return {
         hasShareLinks: false,
         shareLinkCount: 0,
-        sharedWithCoach: false,
-        coachCount: 0,
         visibleToTeam: false,
         visibleToManager: false,
       };
     }
 
     const activeLinks = (accessData.shareLinks || []).filter((l: ShareLink) => l.status === 'active');
-    const coaches = accessData.peopleWithAccess.filter(p => p.access_type === 'coach');
     const managers = accessData.peopleWithAccess.filter(p => p.access_type === 'manager');
     const peers = accessData.peopleWithAccess.filter(p => p.access_type === 'peer');
 
     return {
       hasShareLinks: activeLinks.length > 0,
       shareLinkCount: activeLinks.length,
-      sharedWithCoach: coaches.length > 0,
-      coachCount: coaches.length,
       visibleToTeam: peers.length > 0,
       visibleToManager: managers.length > 0,
     };
@@ -546,7 +436,6 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
     }
 
     const isOwner = accessData.accessLevel === 'owner';
-    const isCoach = accessData.accessLevel === 'coach';
     const isManager = accessData.accessLevel === 'manager';
     const isPeer = accessData.accessLevel === 'peer';
     const isSharedLink = accessData.accessLevel === 'shared_link';
@@ -556,9 +445,9 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
       canEdit: isOwner,
       canDelete: isOwner,
       canShare: isOwner,
-      canAddNotes: isOwner || isCoach || isManager,
+      canAddNotes: isOwner || isManager,
       sharedBy: null, // Could be enriched if needed
-      sharedVia: isCoach ? 'coach' : isManager ? 'manager' : isPeer ? 'team' : isSharedLink ? 'link' : undefined,
+      sharedVia: isManager ? 'manager' : isPeer ? 'team' : isSharedLink ? 'link' : undefined,
     };
   }, [accessData]);
 
@@ -575,7 +464,6 @@ export function useAccessControl(options: UseAccessControlOptions): UseAccessCon
     isLoading,
     // Helpers
     isOwner: accessData?.isOwner || false,
-    isCoach: accessData?.accessLevel === 'coach',
     isManager: accessData?.accessLevel === 'manager',
     isPeer: accessData?.accessLevel === 'peer',
     isSharedLink: accessData?.accessLevel === 'shared_link',
@@ -611,8 +499,6 @@ export function useCallSharingStatus(options: UseCallSharingStatusOptions): UseC
         return {
           hasShareLinks: false,
           shareLinkCount: 0,
-          sharedWithCoach: false,
-          coachCount: 0,
           visibleToTeam: false,
           visibleToManager: false,
         };
@@ -624,13 +510,6 @@ export function useCallSharingStatus(options: UseCallSharingStatusOptions): UseC
         .select("*", { count: 'exact', head: true })
         .eq("call_recording_id", callId)
         .eq("user_id", userId)
-        .eq("status", "active");
-
-      // Count coaches with access
-      const { data: coachRelationships } = await supabase
-        .from("coach_relationships")
-        .select("id")
-        .eq("coachee_user_id", userId)
         .eq("status", "active");
 
       // Check if visible to manager
@@ -650,8 +529,6 @@ export function useCallSharingStatus(options: UseCallSharingStatusOptions): UseC
       return {
         hasShareLinks: (shareLinkCount || 0) > 0,
         shareLinkCount: shareLinkCount || 0,
-        sharedWithCoach: (coachRelationships?.length || 0) > 0,
-        coachCount: coachRelationships?.length || 0,
         visibleToTeam: (peerShareCount || 0) > 0,
         visibleToManager: !!ownerMembership?.manager_membership_id,
       };
@@ -663,8 +540,6 @@ export function useCallSharingStatus(options: UseCallSharingStatusOptions): UseC
     sharingStatus: sharingStatus || {
       hasShareLinks: false,
       shareLinkCount: 0,
-      sharedWithCoach: false,
-      coachCount: 0,
       visibleToTeam: false,
       visibleToManager: false,
     },

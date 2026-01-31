@@ -1,7 +1,7 @@
 /**
  * Sharing Types
  * Used throughout the application for type-safe sharing data handling
- * Covers: Single Call Share, Coach Access, and Team Access features
+ * Covers: Single Call Share and Team Access features
  */
 
 // ============================================================================
@@ -12,15 +12,13 @@ export type ShareLinkStatus = 'active' | 'revoked';
 
 export type RelationshipStatus = 'pending' | 'active' | 'paused' | 'revoked';
 
-export type InvitedBy = 'coach' | 'coachee';
-
 export type ShareType = 'folder' | 'tag' | 'all';
 
 export type TeamRole = 'admin' | 'manager' | 'member';
 
 export type MembershipStatus = 'pending' | 'active' | 'removed';
 
-export type AccessLevel = 'owner' | 'coach' | 'manager' | 'peer' | 'shared_link';
+export type AccessLevel = 'owner' | 'manager' | 'peer' | 'shared_link';
 
 // ============================================================================
 // Single Call Share Types
@@ -49,54 +47,6 @@ export interface ShareAccessLog {
 export interface ShareAccessLogWithUser extends ShareAccessLog {
   user_email?: string | null;
   user_name?: string | null;
-}
-
-// ============================================================================
-// Coach Access Types
-// ============================================================================
-
-export interface CoachRelationship {
-  id: string;
-  coach_user_id: string;
-  coachee_user_id: string;
-  status: RelationshipStatus;
-  invited_by?: InvitedBy | null;
-  invite_token?: string | null;
-  invite_expires_at?: string | null;
-  created_at: string;
-  accepted_at?: string | null;
-  ended_at?: string | null;
-}
-
-export interface CoachRelationshipWithUsers extends CoachRelationship {
-  coach_email?: string | null;
-  coach_name?: string | null;
-  coachee_email?: string | null;
-  coachee_name?: string | null;
-}
-
-export interface CoachShare {
-  id: string;
-  relationship_id: string;
-  share_type: ShareType;
-  folder_id?: string | null;
-  tag_id?: string | null;
-  created_at: string;
-}
-
-export interface CoachShareWithDetails extends CoachShare {
-  folder_name?: string | null;
-  tag_name?: string | null;
-}
-
-export interface CoachNote {
-  id: string;
-  relationship_id: string;
-  call_recording_id: number;
-  user_id: string;
-  note: string;
-  created_at: string;
-  updated_at: string;
 }
 
 // ============================================================================
@@ -174,8 +124,6 @@ export interface ManagerNote {
 export interface SharingStatus {
   hasShareLinks: boolean;
   shareLinkCount: number;
-  sharedWithCoach: boolean;
-  coachCount: number;
   visibleToTeam: boolean;
   visibleToManager: boolean;
 }
@@ -187,7 +135,7 @@ export interface CallAccessInfo {
   canShare: boolean;
   canAddNotes: boolean;
   sharedBy?: string | null;
-  sharedVia?: 'link' | 'coach' | 'team' | 'manager';
+  sharedVia?: 'link' | 'team' | 'manager';
 }
 
 export interface PersonWithAccess {
@@ -206,18 +154,6 @@ export interface PersonWithAccess {
 export interface CreateShareLinkInput {
   call_recording_id: number;
   recipient_email?: string;
-}
-
-export interface CreateCoachInviteInput {
-  email: string;
-  message?: string;
-}
-
-export interface ConfigureCoachSharingInput {
-  relationship_id: string;
-  share_type: ShareType;
-  folder_ids?: string[];
-  tag_ids?: string[];
 }
 
 export interface CreateTeamInput {

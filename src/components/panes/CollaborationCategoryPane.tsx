@@ -2,7 +2,7 @@
  * Collaboration Category Pane (2nd Pane)
  *
  * Displays a list of collaboration categories for multi-pane navigation.
- * Team category is role-filtered (TEAM/ADMIN), Coaches visible to all.
+ * Team category is role-filtered (TEAM/ADMIN).
  *
  * ## Design Specification
  *
@@ -21,13 +21,12 @@ import { useUserRole } from "@/hooks/useUserRole";
 import {
   RiTeamLine,
   RiGroupLine,
-  RiUserHeartLine,
 } from "@remixicon/react";
 
 /** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
 const TRANSITION_DURATION = 250;
 
-export type CollaborationCategory = "team" | "coaches";
+export type CollaborationCategory = "team";
 
 interface CategoryItem {
   id: CollaborationCategory;
@@ -47,12 +46,6 @@ export const COLLABORATION_CATEGORIES: CategoryItem[] = [
     description: "Team hierarchy and sharing",
     icon: RiGroupLine,
     requiredRoles: ["TEAM", "ADMIN"],
-  },
-  {
-    id: "coaches",
-    label: "Coaches",
-    description: "Manage coaching relationships",
-    icon: RiUserHeartLine,
   },
 ];
 

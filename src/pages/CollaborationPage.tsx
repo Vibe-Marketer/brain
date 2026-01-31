@@ -1,13 +1,13 @@
 /**
  * Collaboration Page
  *
- * 3-pane layout for Team and Coaches collaboration features.
- * Routes: /team, /coaches
+ * 3-pane layout for Team collaboration features.
+ * Routes: /team
  *
  * ## Design Specification
  *
  * - **Position**: Full-page 3-pane layout (sidebar, category pane, detail pane)
- * - **Purpose**: Manage team hierarchy and coaching relationships
+ * - **Purpose**: Manage team hierarchy
  * - **Pattern**: Microsoft Loop-inspired navigation (same as Settings)
  *
  * @pattern collaboration-page
@@ -17,7 +17,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { RiLoader2Line, RiCloseLine, RiGroupLine, RiUserHeartLine, RiArrowLeftLine } from "@remixicon/react";
+import { RiLoader2Line, RiCloseLine, RiGroupLine, RiArrowLeftLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { AppShell } from "@/components/layout/AppShell";
 import { useBreakpointFlags } from "@/hooks/useBreakpoint";
@@ -32,7 +32,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 // Lazy load tab components
 const TeamTab = React.lazy(() => import("@/components/settings/TeamTab"));
-const CoachesTab = React.lazy(() => import("@/components/settings/CoachesTab"));
 
 /** Category metadata for display in detail pane header */
 const CATEGORY_META: Record<
@@ -47,11 +46,6 @@ const CATEGORY_META: Record<
     label: "Team",
     description: "Team hierarchy and sharing",
     icon: RiGroupLine,
-  },
-  coaches: {
-    label: "Coaches",
-    description: "Manage coaching relationships",
-    icon: RiUserHeartLine,
   },
 };
 
@@ -91,19 +85,13 @@ export default function CollaborationPage() {
     if (location.pathname.startsWith("/team")) {
       return "team";
     }
-    if (location.pathname.startsWith("/coaches")) {
-      return "coaches";
-    }
     return null;
   }, [location.pathname]);
 
   // Get default category based on user role
   const getDefaultCategory = useCallback((): CollaborationCategory => {
-    if (hasTeamAccess) {
-      return "team";
-    }
-    return "coaches";
-  }, [hasTeamAccess]);
+    return "team";
+  }, []);
 
   // --- Deep Link Handling and Role-Based Access ---
   useEffect(() => {
@@ -112,10 +100,9 @@ export default function CollaborationPage() {
     const urlCategory = getCategoryFromPath();
 
     if (urlCategory === "team" && !hasTeamAccess) {
-      // User doesn't have access to Team, redirect to Coaches with toast
+      // User doesn't have access to Team, show toast
       toast.info("Team management requires manager access");
-      navigate("/coaches", { replace: true });
-      setSelectedCategory("coaches");
+      navigate("/", { replace: true });
       return;
     }
 
@@ -216,7 +203,7 @@ export default function CollaborationPage() {
  * Collaboration Detail Pane (3rd Pane)
  *
  * Renders the actual collaboration content for the selected category.
- * Reuses TeamTab and CoachesTab components in a pane format.
+ * Reuses TeamTab component in a pane format.
  */
 interface CollaborationDetailPaneProps {
   category: CollaborationCategory;
@@ -249,8 +236,6 @@ function CollaborationDetailPane({
     switch (category) {
       case "team":
         return <TeamTab />;
-      case "coaches":
-        return <CoachesTab />;
       default:
         return (
           <div className="p-6 text-center text-muted-foreground">

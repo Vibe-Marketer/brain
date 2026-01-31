@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/tooltip";
 import {
   RiLinkM,
-  RiUserHeartLine,
   RiTeamLine,
   RiUserLine,
   RiShareLine,
@@ -30,7 +29,6 @@ interface SharedWithIndicatorProps {
  * SharedWithIndicator displays badges indicating the sharing status of a call.
  * It can show:
  * - Link badge: when the call has active share links
- * - Coach badge: when shared with coaches
  * - Team badge: when visible to team members or managers
  * - Access indicator: when viewing as non-owner, shows how access was granted
  */
@@ -43,7 +41,6 @@ export function SharedWithIndicator({
   // If nothing to show, return null
   const hasSharing = sharingStatus && (
     sharingStatus.hasShareLinks ||
-    sharingStatus.sharedWithCoach ||
     sharingStatus.visibleToTeam ||
     sharingStatus.visibleToManager
   );
@@ -98,32 +95,6 @@ export function SharedWithIndicator({
                   {sharingStatus.shareLinkCount === 1
                     ? "1 active share link"
                     : `${sharingStatus.shareLinkCount} active share links`}
-                </p>
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          {/* Coach Badge */}
-          {sharingStatus.sharedWithCoach && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge
-                  variant="secondary"
-                  className="gap-1 cursor-default"
-                >
-                  <RiUserHeartLine className="h-3 w-3" />
-                  {!compact && (
-                    <span>
-                      {sharingStatus.coachCount > 1 ? sharingStatus.coachCount : "Coach"}
-                    </span>
-                  )}
-                </Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>
-                  {sharingStatus.coachCount === 1
-                    ? "Shared with 1 coach"
-                    : `Shared with ${sharingStatus.coachCount} coaches`}
                 </p>
               </TooltipContent>
             </Tooltip>
@@ -201,12 +172,6 @@ function getAccessLevelConfig(accessLevel: AccessLevel): {
         label: "Shared",
         className: "border-blue-300 text-blue-700 dark:border-blue-700 dark:text-blue-300",
       };
-    case "coach":
-      return {
-        icon: <RiUserHeartLine className="h-3 w-3" />,
-        label: "Coach View",
-        className: "border-purple-300 text-purple-700 dark:border-purple-700 dark:text-purple-300",
-      };
     case "manager":
       return {
         icon: <RiUserLine className="h-3 w-3" />,
@@ -236,8 +201,6 @@ function getAccessLevelTooltip(accessLevel: AccessLevel): string {
   switch (accessLevel) {
     case "shared_link":
       return "You have access via a share link";
-    case "coach":
-      return "You have access as a coach";
     case "manager":
       return "You have access as the manager";
     case "peer":

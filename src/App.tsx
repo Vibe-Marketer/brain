@@ -20,7 +20,6 @@ import SortingTagging from '@/pages/SortingTagging';
 import Settings from '@/pages/Settings';
 import Analytics from '@/pages/Analytics';
 import SharedWithMe from '@/pages/SharedWithMe';
-import CoachDashboard from '@/pages/CoachDashboard';
 import CollaborationPage from '@/pages/CollaborationPage';
 
 // Content Library pages
@@ -85,12 +84,8 @@ function App() {
                     {/* Shared with me page */}
                     <Route path="/shared-with-me" element={<ProtectedRoute><Layout><SharedWithMe /></Layout></ProtectedRoute>} />
 
-                    {/* Coach dashboard */}
-                    <Route path="/coach" element={<ProtectedRoute><Layout><CoachDashboard /></Layout></ProtectedRoute>} />
-
                     {/* Collaboration routes */}
                     <Route path="/team" element={<ProtectedRoute><Layout><CollaborationPage /></Layout></ProtectedRoute>} />
-                    <Route path="/coaches" element={<ProtectedRoute><Layout><CollaborationPage /></Layout></ProtectedRoute>} />
 
                     {/* Content Library routes */}
                     <Route path="/library" element={<ProtectedRoute><Layout><ContentLibraryPage /></Layout></ProtectedRoute>} />

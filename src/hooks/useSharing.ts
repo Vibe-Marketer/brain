@@ -81,8 +81,6 @@ export function useSharing(options: UseSharingOptions): UseSharingResult {
   const sharingStatus: SharingStatus = {
     hasShareLinks: (shareLinks?.filter(l => l.status === 'active').length ?? 0) > 0,
     shareLinkCount: shareLinks?.filter(l => l.status === 'active').length ?? 0,
-    sharedWithCoach: false, // Will be computed by useAccessControl hook
-    coachCount: 0,
     visibleToTeam: false,
     visibleToManager: false,
   };

@@ -222,7 +222,7 @@ export function SettingsDetailPane({
   }, [category]);
 
   // Render the appropriate settings component based on category
-  // Note: Team and Coaches have moved to CollaborationPage (/team, /coaches routes)
+  // Note: Team has moved to CollaborationPage (/team route)
   const renderContent = () => {
     switch (category) {
       case "account":

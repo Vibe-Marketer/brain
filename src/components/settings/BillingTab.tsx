@@ -49,7 +49,6 @@ function getPlanDetails(tier: SubscriptionTier) {
         features: [
           "Up to 20 full users",
           "Advanced admin controls",
-          "5 coaches / 10 coachees",
           "Priority support",
           "Custom integrations",
         ],
@@ -66,8 +65,7 @@ function getPlanDetails(tier: SubscriptionTier) {
           "Up to 5 full users",
           "Team hierarchy & manager auto-access",
           "Shared folders",
-          "2 coaches / 3 coachees",
-          "Unlimited coach notes",
+          "Unlimited notes",
         ],
       };
     case "solo":
@@ -82,7 +80,6 @@ function getPlanDetails(tier: SubscriptionTier) {
           "1 user",
           "Unlimited calls & AI summaries",
           "Folders, tags, AI search",
-          "1 coach + 1 coachee",
           "10 notes per call",
         ],
       };
@@ -99,7 +96,6 @@ function getPlanDetails(tier: SubscriptionTier) {
           "300 minutes/month limit",
           "Limited storage",
           "View-only for shared calls",
-          "No Teams or coaching",
         ],
       };
   }

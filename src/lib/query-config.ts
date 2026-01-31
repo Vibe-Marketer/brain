@@ -74,17 +74,6 @@ export const queryKeys = {
     sharedWithMe: () => ['sharing', 'shared-with-me'] as const,
   },
 
-  // Coaches (Coach Relationships)
-  coaches: {
-    all: ['coaches'] as const,
-    relationships: () => ['coaches', 'relationships'] as const,
-    relationship: (relationshipId: string) => ['coaches', 'relationship', relationshipId] as const,
-    shares: (relationshipId: string) => ['coaches', 'shares', relationshipId] as const,
-    notes: (callId: string | number) => ['coaches', 'notes', callId] as const,
-    coachees: () => ['coaches', 'coachees'] as const,
-    sharedCalls: (filters?: Record<string, unknown>) => ['coaches', 'shared-calls', filters] as const,
-  },
-
   // Teams
   teams: {
     all: ['teams'] as const,

@@ -190,7 +190,7 @@ const navItems: NavItem[] = [
     iconLine: RiTeamLine,
     iconFill: RiTeamFill,
     path: '/team',
-    matchPaths: ['/team', '/coaches'],
+    matchPaths: ['/team'],
   },
   {
     id: 'analytics',

@@ -17,7 +17,7 @@ import {
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { isEmojiIcon, getIconComponent } from "@/components/ui/icon-emoji-picker";
-import type { ShareType, CoachShareWithDetails, TeamShareWithDetails } from "@/types/sharing";
+import type { ShareType, TeamShareWithDetails } from "@/types/sharing";
 
 // ============================================================================
 // Types
@@ -40,8 +40,6 @@ interface Tag {
 }
 
 interface SharingRulesFormProps {
-  /** Existing shares to pre-select (for coach relationships) */
-  existingShares?: CoachShareWithDetails[];
   /** Existing shares to pre-select (for team shares) */
   existingTeamShares?: TeamShareWithDetails[];
   /** Called when the form is submitted */
@@ -67,7 +65,6 @@ interface SharingRulesFormProps {
 // ============================================================================
 
 export function SharingRulesForm({
-  existingShares = [],
   existingTeamShares = [],
   onSave,
   onCancel,
@@ -137,7 +134,7 @@ export function SharingRulesForm({
 
   // Initialize from existing shares
   const initializeFromExistingShares = useCallback(() => {
-    const allShares = [...existingShares, ...existingTeamShares];
+    const allShares = [...existingTeamShares];
 
     // Check if sharing all
     if (allShares.some(s => s.share_type === 'all')) {
@@ -163,7 +160,7 @@ export function SharingRulesForm({
 
     setSelectedFolders(folderIds);
     setSelectedTags(tagIds);
-  }, [existingShares, existingTeamShares]);
+  }, [existingTeamShares]);
 
   // Load data on mount
   useEffect(() => {
