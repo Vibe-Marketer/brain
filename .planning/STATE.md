@@ -18,9 +18,9 @@
 
 **Plan:** 6 of 7 in Phase 5
 
-**Status:** Plan 05-06 complete, continuing with Phase 5
+**Status:** Plan 05-02 complete (types aligned), plans 01-06 done
 
-**Last activity:** 2026-01-31 - Completed 05-06-PLAN.md (Export & deduplication documentation)
+**Last activity:** 2026-01-31 - Completed 05-02-PLAN.md (Fix AutomationRules.tsx type mismatches)
 
 **Progress:**
 ```
@@ -115,6 +115,7 @@
 | 2026-01-31 | Users tab already functional | Spec-042 concerns were addressed - status/joined/view details all work | No major changes needed |
 | 2026-01-31 | Billing "Coming Soon" badge pattern | Unreleased features should show clear "Coming Soon" messaging | Prevents misleading CTAs |
 | 2026-01-31 | Bulk actions as 4th pane | Selection actions should follow 4th pane pattern for UI consistency | Replaced bottom Mac-style portal with right-side slide-in pane |
+| 2026-01-31 | Database type imports for Supabase tables | Ensures types stay in sync with schema, no manual interface maintenance | AutomationRules uses Database['public']['Tables']['X']['Row'] |
 
 ### Active TODOs
 
@@ -138,6 +139,8 @@
 Phase 4 Complete. Phase 5 in progress.
 
 - [x] Execute 05-01-PLAN.md (Route Automation Rules + Fix CallDetailPage)
+- [x] Execute 05-02-PLAN.md (Fix AutomationRules.tsx type mismatches)
+- [x] Execute 05-03-PLAN.md (Runtime test & fix Tags/Rules/Analytics tabs)
 - [x] Execute 05-04-PLAN.md (Fix Users & Billing tabs - verified functional)
 - [x] Execute 05-05-PLAN.md (Bulk action toolbar 4th pane)
 - [x] Execute 05-06-PLAN.md (Export & deduplication documentation)
@@ -166,15 +169,16 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 05-06-PLAN.md - Phase 5 plan 6 of 7
+**Stopped at:** Completed 05-02-PLAN.md - Phase 5 plan 6 of 7
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 5 Demo Polish in progress. Plan 6 of 7 complete.
+Phase 5 Demo Polish in progress. Plans 01-06 of 7 complete.
 
 **What to remember:**
+- REFACTOR-04 addressed: AutomationRules.tsx now uses Database types
 - DOC-01 addressed: Export system documented for help system (7 formats)
 - DOC-02 addressed: Deduplication documented with FAQ for user concerns
 - docs/help/ directory established for user-facing documentation
