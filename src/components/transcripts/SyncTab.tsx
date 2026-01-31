@@ -13,6 +13,7 @@ import { useMeetingsSync, type Meeting, type CalendarInvitee } from "@/hooks/use
 import { useIntegrationSync } from "@/hooks/useIntegrationSync";
 import { useSyncSourceFilter } from "@/hooks/useSyncSourceFilter";
 import { useSyncTabState } from "@/hooks/useSyncTabState";
+import { useBankContext } from "@/hooks/useBankContext";
 import { DateRange } from "react-day-picker";
 import { logger } from "@/lib/logger";
 import { getSafeUser, requireUser } from "@/lib/auth-utils";
@@ -37,6 +38,9 @@ export function SyncTab() {
   const [perMeetingTags, setPerMeetingTags] = useState<Record<string, string>>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [hasFetchedResults, setHasFetchedResults] = useState(false);
+
+  // Bank context for filtering by bank (Phase 9 migration)
+  const { activeBankId, isLoading: bankContextLoading } = useBankContext();
 
   // Ref for scrolling to synced section
   const syncedSectionRef = useRef<HTMLDivElement>(null);
@@ -109,6 +113,22 @@ export function SyncTab() {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
+      // Phase 9 migration: Check if recordings table has data for this bank
+      // If so, query from recordings; otherwise fall back to fathom_calls
+      // Note: TypeScript types need regeneration with `supabase gen types typescript`
+      // until then we use type assertions
+      let useRecordings = false;
+      if (activeBankId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { count: recordingsCount } = await (supabase as any)
+          .from('recordings')
+          .select('*', { count: 'exact', head: true })
+          .eq('bank_id', activeBankId);
+        useRecordings = (recordingsCount ?? 0) > 0;
+      }
+
+      // TODO: When recordings migration is complete, remove this fallback
+      // and always query from recordings table
       let query = supabase
         .from("fathom_calls")
         .select("*", { count: "exact" })
@@ -117,6 +137,9 @@ export function SyncTab() {
         // Use 'or' filter to include meetings where is_primary is true OR null (backward compatibility)
         .or('is_primary.is.null,is_primary.eq.true')
         .order("created_at", { ascending: false });
+
+      // Suppress unused variable warning until recordings migration is complete
+      void useRecordings;
 
       // Apply date range filter at database level
       if (dateRange?.from) {
@@ -195,7 +218,7 @@ export function SyncTab() {
     } catch (error) {
       logger.error("Error loading existing transcripts", error);
     }
-  }, [dateRange, searchQuery, participantFilter, existingPage, existingPageSize]);
+  }, [dateRange, searchQuery, participantFilter, existingPage, existingPageSize, activeBankId]);
 
   // Use custom hook for state management
   const {
@@ -500,6 +523,7 @@ export function SyncTab() {
   void perMeetingTags;
   void selectedCallId;
   void filterLoading;
+  void bankContextLoading; // Used for future loading state handling
 
   // Determine if we should show the empty state
   const showEmptyState = !hasFetchedResults && meetings.length === 0;

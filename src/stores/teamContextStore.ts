@@ -1,5 +1,18 @@
 import { create } from 'zustand';
 
+/**
+ * @deprecated Use bankContextStore instead. This store is retained for
+ * backward compatibility during Phase 9 migration.
+ * 
+ * Migration guide:
+ * - import { useBankContextStore } from '@/stores/bankContextStore'
+ * - activeTeamId → activeBankId (for bank context)
+ * - null activeTeamId → personal bank (auto-selected)
+ * - Team vaults → use activeVaultId for vault context
+ * 
+ * TODO: Remove after Phase 9 verification
+ */
+
 export const TEAM_CONTEXT_UPDATED_KEY = 'team-context-updated';
 
 interface TeamContextState {
