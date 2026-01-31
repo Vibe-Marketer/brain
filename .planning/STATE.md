@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 9 Bank/Vault Architecture - In progress (1/10 plans)
+**Current Focus:** Phase 9 Bank/Vault Architecture - In progress (4/10 plans)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 9 of 9 (Bank/Vault Architecture) - In progress
 
-**Plan:** 1 of 10 in Phase 9
+**Plan:** 3 of 10 in Phase 9
 
-**Status:** Phase 9 in progress - 09-02 (Banks Tables) complete
+**Status:** Phase 9 in progress - 09-03 (Vaults Tables) complete
 
-**Last activity:** 2026-01-31 - Completed 09-02-PLAN.md (Banks and BankMemberships tables)
+**Last activity:** 2026-01-31 - Completed 09-03-PLAN.md (Vaults and VaultMemberships tables)
 
 **Progress:**
 ```
-[██████████████████████████████████] 54/65 plans complete (Phase 9 started)
+[██████████████████████████████████] 56/65 plans complete (Phase 9: 3/10)
 ```
 
 ---
@@ -54,7 +54,7 @@
 | Phase 6: Code Health & Infrastructure | 13 | 13 | Complete (10/10 plans) |
 | Phase 7: Differentiators | 5 | 5 | Complete (6/6 plans) |
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
-| Phase 9: Bank/Vault Architecture | 5 | 0 | In progress (1/10 plans) |
+| Phase 9: Bank/Vault Architecture | 5 | 0 | In progress (3/10 plans) |
 
 ### Velocity
 
@@ -135,6 +135,9 @@
 | 2026-01-31 | Tier derived from product_id prefix | Product IDs follow format tier-interval (solo-monthly) | No extra API calls needed for tier detection |
 | 2026-01-31 | SECURITY DEFINER for bank membership checks | Prevents infinite RLS recursion when policies check membership tables | Pattern for is_bank_member/is_bank_admin_or_owner |
 | 2026-01-31 | Users can create their own initial bank_membership | Bootstrap pattern for bank creators to become bank_owner | Enables self-service bank creation flow |
+| 2026-01-31 | SECURITY DEFINER for vault membership checks | Prevents infinite RLS recursion when policies check vault membership tables | Pattern for is_vault_member/is_vault_admin_or_owner |
+| 2026-01-31 | Bank admins can view all vaults in their banks | Oversight capability for bank administrators | Uses separate SELECT policy on vaults table |
+| 2026-01-31 | 5-level vault role hierarchy | vault_owner > vault_admin > manager > member > guest | Granular access control within vaults |
 
 ### Active TODOs
 
@@ -187,6 +190,7 @@ Phase 7 Complete. Ready for Phase 8 (Growth).
 Phase 8 COMPLETE (6/6 plans). Phase 9 started.
 
 - [x] Execute 09-02-PLAN.md (Banks and BankMemberships tables with RLS)
+- [x] Execute 09-03-PLAN.md (Vaults and VaultMemberships tables with RLS)
 
 ### Pending Todos
 
@@ -210,21 +214,22 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 09-02-PLAN.md (Banks and BankMemberships tables)
+**Stopped at:** Completed 09-03-PLAN.md (Vaults and VaultMemberships tables)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 9 Bank/Vault Architecture started. Plan 09-02 complete.
+Phase 9 Bank/Vault Architecture in progress. Plans 09-01, 09-02, 09-03 complete.
 
 **What to remember:**
-- 09-02 completed: Banks and BankMemberships tables
-  - banks table with type constraint, cross_bank_default
-  - bank_memberships with user-bank relationship and role
-  - SECURITY DEFINER helpers: is_bank_member, is_bank_admin_or_owner
-  - Complete RLS policy set for bank isolation
-- Next: 09-03 (Vaults and VaultMemberships tables)
+- 09-03 completed: Vaults and VaultMemberships tables
+  - vaults table with vault_type enum (personal/team/coach/community/client)
+  - vault_memberships with 5-level role hierarchy
+  - SECURITY DEFINER helpers: is_vault_member, is_vault_admin_or_owner, get_vault_bank_id
+  - RLS policies enforce vault isolation within bank boundaries
+  - Bank admins can view all vaults in their banks (oversight)
+- Next: 09-04 (Recordings and VaultEntries tables)
 
 ---
 
@@ -236,11 +241,11 @@ Phase 9 Bank/Vault Architecture started. Plan 09-02 complete.
 | Total Requirements | 58 |
 | Requirements Complete | 54 (93%) |
 | Current Phase | 9 - Bank/Vault Architecture (In progress) |
-| Plans Complete | 54 overall |
-| Next Plan | 09-03 (Vaults and VaultMemberships tables) |
+| Plans Complete | 56 overall |
+| Next Plan | 09-04 (Recordings and VaultEntries tables) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 09-02-PLAN.md - Banks and BankMemberships tables)*
+*Last updated: 2026-01-31 (Completed 09-03-PLAN.md - Vaults and VaultMemberships tables)*
