@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (9/10 plans)
+**Current Focus:** Phase 6 Code Health & Infrastructure - Complete (10/10 plans)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 6 of 9 (Code Health & Infrastructure) - In Progress
+**Phase:** 6 of 9 (Code Health & Infrastructure) - Complete
 
-**Plan:** 9 of 10 in Phase 6
+**Plan:** 10 of 10 in Phase 6
 
-**Status:** In progress - Cron expression parsing complete
+**Status:** Phase complete - Ready for Phase 7
 
-**Last activity:** 2026-01-31 - Completed 06-09-PLAN.md (Cron parsing with validation UI)
+**Last activity:** 2026-01-31 - Completed 06-10-PLAN.md (Database rate limiting)
 
 **Progress:**
 ```
-[██████████████████████████████] 43/44 plans complete (phases 1-5 complete, 06-01/02/03/04/05/06/07/08/09 done)
+[██████████████████████████████] 44/44 plans complete (phases 1-6 complete)
 ```
 
 ---
@@ -121,6 +121,7 @@
 | 2026-01-31 | Graceful skip for missing tables | clients/tasks tables don't exist yet (Phase 7 feature) | Automation engine stable, won't crash |
 | 2026-01-31 | cron-parser for 5-field cron support | Industry-standard library with timezone support | Proper cron expression parsing in scheduler |
 | 2026-01-31 | cronstrue for human-readable schedules | Converts cron to natural language descriptions | Better UX for CronPreview component |
+| 2026-01-31 | Database-backed rate limiting with fail-open | In-memory Maps reset on cold starts; fail-open for UX | Rate limits persist across Edge Function restarts |
 
 ### Active TODOs
 
@@ -175,20 +176,19 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 06-09-PLAN.md
+**Stopped at:** Completed 06-10-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 6 Code Health & Infrastructure in progress. 9 of 10 plans complete (06-01, 06-02, 06-03, 06-04, 06-05, 06-06, 06-07, 06-08, 06-09).
+Phase 6 Code Health & Infrastructure complete. All 10 plans done. Ready for Phase 7: Differentiators.
 
 **What to remember:**
-- 06-09 completed: Cron expression parsing with validation UI
-- New files: src/lib/cron-utils.ts, src/components/automation/CronPreview.tsx
-- Updated: automation-scheduler with cron-parser, RuleBuilder with CronPreview
-- Dependencies added: cron-parser, cronstrue
-- Remaining Phase 6 plan: 06-10
+- 06-10 completed: Database-backed rate limiting
+- New files: rate_limits table, rate_limit_configs table, _shared/rate-limiter.ts
+- Updated: automation-webhook and automation-email use database rate limiting
+- Rate limits now persist across Edge Function cold starts
 
 ---
 
@@ -198,13 +198,13 @@ Phase 6 Code Health & Infrastructure in progress. 9 of 10 plans complete (06-01,
 |--------|-------|
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
-| Requirements Complete | 43 (74%) |
-| Current Phase | 6 - Code Health & Infrastructure (In Progress) |
-| Plans Complete | 9/10 in Phase 6 (43 overall) |
-| Next Plan | 06-10 |
+| Requirements Complete | 44 (76%) |
+| Current Phase | 6 - Code Health & Infrastructure (Complete) |
+| Plans Complete | 10/10 in Phase 6 (44 overall) |
+| Next Plan | 07-01 |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 06-09-PLAN.md - Cron parsing with validation UI)*
+*Last updated: 2026-01-31 (Completed 06-10-PLAN.md - Database rate limiting)*
