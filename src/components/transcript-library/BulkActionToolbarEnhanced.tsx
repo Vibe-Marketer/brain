@@ -1,14 +1,33 @@
+/**
+ * BulkActionsPane - Bulk action toolbar as 4th pane
+ * 
+ * Renders as a right-side slide-in pane (not bottom Mac-style bar).
+ * Follows DetailPaneOutlet pattern for UI consistency.
+ * 
+ * @pattern detail-pane
+ * @brand-version v4.2
+ */
+
 import { useState } from "react";
-import { createPortal } from "react-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
-import { RiDeleteBin6Line, RiCloseLine, RiShareForwardLine, RiPriceTag3Line, RiMagicLine, RiFolderLine, RiChatQuoteLine } from "@remixicon/react";
+import { 
+  RiDeleteBin6Line, 
+  RiCloseLine, 
+  RiShareForwardLine, 
+  RiPriceTag3Line, 
+  RiMagicLine, 
+  RiFolderLine, 
+  RiChatQuoteLine,
+  RiDownloadLine,
+  RiFileTextLine,
+} from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import SmartExportDialog from "@/components/SmartExportDialog";
 import ManualTagDialog from "@/components/ManualTagDialog";
-import { ActionButton } from "./ActionButton";
 import { TagDropdown } from "./TagDropdown";
 import { ExportDropdown } from "./ExportDropdown";
 import { exportToPDF, exportToDOCX, exportToTXT, exportToJSON, exportToZIP } from "@/lib/export-utils";
@@ -31,7 +50,7 @@ interface BulkAIOperationResponse {
   }>;
 }
 
-interface BulkActionToolbarEnhancedProps {
+export interface BulkActionToolbarEnhancedProps {
   selectedCount: number;
   selectedCalls: Meeting[];
   tags: Array<{ id: string; name: string }>;
@@ -43,6 +62,34 @@ interface BulkActionToolbarEnhancedProps {
   onAssignFolder?: () => void;
 }
 
+/**
+ * Helper component for grouped actions in the pane
+ */
+function ActionSection({ 
+  title, 
+  children 
+}: { 
+  title: string; 
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="space-y-2">
+      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+        {title}
+      </h4>
+      <div className="flex flex-col gap-1.5">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * BulkActionsPane - 4th pane bulk action toolbar
+ * 
+ * Renders as a right-side slide-in pane when items are selected.
+ * Returns null when no items selected.
+ */
 export function BulkActionToolbarEnhanced({
   selectedCount,
   selectedCalls,
@@ -209,110 +256,128 @@ export function BulkActionToolbarEnhanced({
     }
   };
 
-  return createPortal(
-    <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 duration-300">
-      <div className="bg-background/80 backdrop-blur-xl shadow-2xl rounded-2xl px-4 py-3 flex items-center gap-4 border border-border">
+  return (
+    <div 
+      className={cn(
+        // 4th pane styling (matches DetailPaneOutlet)
+        "w-[360px] h-full bg-card border-l border-border",
+        "flex flex-col flex-shrink-0",
+        "animate-in slide-in-from-right duration-500"
+      )}
+      role="complementary"
+      aria-label="Bulk actions panel"
+    >
+      {/* Header */}
+      <header className="flex items-center justify-between p-4 border-b border-border">
         <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="border-0">
+          <Badge variant="secondary" className="text-base px-2.5 py-0.5">
             {selectedCount}
           </Badge>
-          <span className="text-sm font-medium">
+          <span className="text-sm font-medium text-foreground">
             {selectedCount === 1 ? "transcript" : "transcripts"} selected
           </span>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onClearSelection}
+          className="h-8 w-8 p-0"
+          aria-label="Clear selection"
+        >
+          <RiCloseLine className="h-4 w-4" />
+        </Button>
+      </header>
 
-        <div className="h-6 w-px bg-border" />
-
-        <div className="flex items-center gap-1">
-          <Button
-            variant="hollow"
-            size="sm"
-            onClick={onClearSelection}
-            className="h-8 w-8 p-0 hover:bg-muted hover:text-muted-foreground"
-          >
-            <RiCloseLine className="h-4 w-4" />
-          </Button>
-
+      {/* Actions - vertical layout for pane */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Tags Section */}
+        <ActionSection title="Tags">
           <TagDropdown
             tags={tags}
             onTag={onTag}
             onRemoveTag={onRemoveTag}
             onCreateNewTag={onCreateNewTag}
           />
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={() => setShowManualTagDialog(true)}
+          >
+            <RiPriceTag3Line className="h-4 w-4 mr-2" />
+            Manage Tags
+          </Button>
+        </ActionSection>
 
+        {/* Export Section */}
+        <ActionSection title="Export">
           <ExportDropdown
             onExport={handleExport}
             onSmartExport={() => setShowSmartExport(true)}
           />
+        </ActionSection>
 
-          <ActionButton
-            icon={RiShareForwardLine}
-            label="Share"
-            onClick={handleShare}
-          />
-          
-          <div className="h-6 w-px bg-border mx-1" />
-
-          <ActionButton
-            icon={RiChatQuoteLine}
-            label="Chat"
-            onClick={handleChat}
-            title="Chat with selected transcripts"
-          />
-
-          <div className="h-6 w-px bg-border mx-1" />
-
-          <ActionButton
-            icon={RiPriceTag3Line}
-            label="Manage Tags"
-            onClick={() => setShowManualTagDialog(true)}
-            title="Manually assign tags to selected transcripts"
-          />
-
-          <ActionButton
-            icon={RiFolderLine}
-            label="Folder"
-            onClick={onAssignFolder}
-            title="Assign selected calls to a folder"
-          />
-
-          <ActionButton
-            icon={RiMagicLine}
-            label="Generate Titles"
+        {/* AI Section */}
+        <ActionSection title="AI Actions">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
             onClick={handleGenerateAITitles}
-            title="Generate AI-powered titles for selected calls"
-          />
-
-          <ActionButton
-            icon={RiPriceTag3Line}
-            label="Auto-Tag"
-            onClick={handleAutoTagCalls}
-            title="AI selects single most appropriate tag based on your preferences and history"
-          />
-
-          <div className="h-6 w-px bg-border mx-1" />
-
-          <ActionButton
-            icon={RiDeleteBin6Line}
-            label="Delete"
-            onClick={onDelete}
-            variant="destructive"
-          />
-
-          <div className="h-6 w-px bg-border mx-1" />
-
-          <Button
-            variant="hollow"
-            size="sm"
-            onClick={onClearSelection}
-            className="h-8 w-8"
-            title="Clear selection"
           >
-            <RiCloseLine className="h-4 w-4" />
+            <RiMagicLine className="h-4 w-4 mr-2" />
+            Generate AI Titles
           </Button>
-        </div>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={handleAutoTagCalls}
+          >
+            <RiPriceTag3Line className="h-4 w-4 mr-2" />
+            Auto-Tag with AI
+          </Button>
+        </ActionSection>
+
+        {/* Organization Section */}
+        <ActionSection title="Organize">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={handleChat}
+          >
+            <RiChatQuoteLine className="h-4 w-4 mr-2" />
+            Chat with Selected
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={onAssignFolder}
+          >
+            <RiFolderLine className="h-4 w-4 mr-2" />
+            Assign to Folder
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
+            onClick={handleShare}
+          >
+            <RiShareForwardLine className="h-4 w-4 mr-2" />
+            Share
+          </Button>
+        </ActionSection>
       </div>
 
+      {/* Footer - destructive action */}
+      <footer className="p-4 border-t border-border">
+        <Button 
+          variant="destructive" 
+          className="w-full"
+          onClick={onDelete}
+        >
+          <RiDeleteBin6Line className="h-4 w-4 mr-2" />
+          Delete Selected
+        </Button>
+      </footer>
+
+      {/* Dialogs */}
       <SmartExportDialog
         open={showSmartExport}
         onOpenChange={setShowSmartExport}
@@ -330,7 +395,6 @@ export function BulkActionToolbarEnhanced({
           onClearSelection();
         }}
       />
-    </div>,
-    document.body
+    </div>
   );
 }
