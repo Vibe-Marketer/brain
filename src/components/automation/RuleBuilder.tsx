@@ -48,6 +48,8 @@ import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { ConditionBuilder } from "./ConditionBuilder";
 import { ActionBuilder } from "./ActionBuilder";
+import { CronPreview } from "./CronPreview";
+import { validateCronExpression } from "@/lib/cron-utils";
 
 // ============================================================================
 // Types
@@ -635,14 +637,22 @@ function ScheduledConfig({ config, onChange }: Omit<TriggerConfigProps, "trigger
       )}
 
       {scheduleType === "cron" && (
-        <FormField label="Cron expression" required hint="Standard cron format: * * * * *">
-          <Input
-            value={config.cron_expression || "0 9 * * *"}
-            onChange={(e) => onChange({ ...config, cron_expression: e.target.value })}
-            placeholder="0 9 * * *"
-            className="font-mono"
+        <div className="space-y-4">
+          <FormField label="Cron expression" required hint="Standard cron format: minute hour day-of-month month day-of-week">
+            <Input
+              value={config.cron_expression || "0 9 * * *"}
+              onChange={(e) => onChange({ ...config, cron_expression: e.target.value })}
+              placeholder="0 9 * * *"
+              className="font-mono"
+            />
+          </FormField>
+
+          {/* Show preview of next scheduled runs */}
+          <CronPreview
+            expression={config.cron_expression || "0 9 * * *"}
+            timezone={config.timezone}
           />
-        </FormField>
+        </div>
       )}
 
       <FormField label="Timezone" hint="Leave empty for UTC">
@@ -776,6 +786,23 @@ export function RuleBuilder({ ruleId: propRuleId }: RuleBuilderProps) {
     if (!formData.name.trim()) {
       toast.error("Please enter a rule name");
       return;
+    }
+
+    // Validate cron expression for scheduled rules with cron schedule type
+    if (
+      formData.trigger_type === "scheduled" &&
+      formData.trigger_config.schedule_type === "cron"
+    ) {
+      const cronExpression = formData.trigger_config.cron_expression;
+      if (!cronExpression) {
+        toast.error("Please enter a cron expression");
+        return;
+      }
+      const validation = validateCronExpression(cronExpression);
+      if (!validation.valid) {
+        toast.error(`Invalid cron expression: ${validation.error}`);
+        return;
+      }
     }
 
     setIsSaving(true);
