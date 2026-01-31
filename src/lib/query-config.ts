@@ -113,6 +113,15 @@ export const queryKeys = {
     detail: (templateId: string) => ['templates', 'detail', templateId] as const,
     shared: () => ['templates', 'shared'] as const,
   },
+
+  // Contacts
+  contacts: {
+    all: ['contacts'] as const,
+    list: () => ['contacts', 'list'] as const,
+    detail: (contactId: string) => ['contacts', 'detail', contactId] as const,
+    settings: () => ['contacts', 'settings'] as const,
+    appearances: (contactId: string) => ['contacts', 'appearances', contactId] as const,
+  },
 } as const;
 
 // Type helper for query keys
