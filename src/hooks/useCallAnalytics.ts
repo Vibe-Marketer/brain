@@ -121,7 +121,7 @@ export function useCallAnalytics(timeRange: string = '30d') {
 
       const participationRate = totalInvitees > 0 ? Math.round((totalSpeakers / totalInvitees) * 100) : 0;
 
-      // Query 5: Active tags (system tags like TEAM, COACH, etc.)
+      // Query 5: Active tags (system tags like TEAM, etc.)
       const { data: tagsData } = await supabase
         .from('call_tag_assignments')
         .select('tag_id, call_tags!inner(user_id)')

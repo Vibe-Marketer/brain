@@ -42,7 +42,7 @@ import type { SettingsCategory } from "./SettingsCategoryPane";
 const TRANSITION_DURATION = 250;
 
 // Lazy load settings tab components
-// Note: TeamTab and CoachesTab have moved to CollaborationPage
+// Note: TeamTab has moved to CollaborationPage
 const AccountTab = React.lazy(() => import("@/components/settings/AccountTab"));
 const BusinessProfileTab = React.lazy(() => import("@/components/settings/BusinessProfileTab"));
 const UsersTab = React.lazy(() => import("@/components/settings/UsersTab"));

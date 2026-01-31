@@ -214,7 +214,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
     return { characters, tokens, words };
   }, [transcripts]);
 
-  // Fetch tags for this call (system tags like TEAM, COACH, etc.)
+  // Fetch tags for this call (system tags like TEAM, etc.)
   const { data: callCategories } = useQuery({
     queryKey: queryKeys.calls.categories(call?.recording_id),
     queryFn: async () => {
