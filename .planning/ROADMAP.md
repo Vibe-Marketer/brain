@@ -412,6 +412,51 @@ Plans:
 
 ---
 
+### Phase 10: Chat Bank/Vault Scoping (Gap Closure)
+**Goal:** Chat searches respect active bank/vault context for proper multi-tenant isolation
+
+**Dependencies:** Phase 9 (bank/vault architecture must exist)
+
+**Gap Closure:** Closes integration gap from v1-MILESTONE-AUDIT.md
+
+Plans:
+- [ ] 10-01-PLAN.md — Pass bank_id/vault_id from frontend to chat-stream-v2
+- [ ] 10-02-PLAN.md — Filter chat searches by active bank/vault context
+- [ ] 10-03-PLAN.md — Verify multi-tenant isolation end-to-end
+
+**Requirements:**
+- GAP-INT-01: Chat backend respects bank/vault context (not searching all user recordings)
+
+**Success Criteria:**
+1. Frontend sends bank_id/vault_id in chat request body
+2. chat-stream-v2 filters searches to active bank/vault only
+3. User in Bank A cannot see recordings from Bank B via chat
+4. Vault-scoped chat only searches recordings in that vault
+
+---
+
+### Phase 11: PROFITS Frontend Trigger (Gap Closure)
+**Goal:** Wire orphaned extract-profits Edge Function to Content area alongside other agent frameworks
+
+**Dependencies:** Phase 7 (extract-profits Edge Function must exist)
+
+**Gap Closure:** Closes flow gap from v1-MILESTONE-AUDIT.md
+
+Plans:
+- [ ] 11-01-PLAN.md — Add PROFITS Framework option to Content generation area
+- [ ] 11-02-PLAN.md — Wire to extract-profits with progress/result display
+
+**Requirements:**
+- GAP-FLOW-01: PROFITS Analysis accessible from Content area (alongside other agent frameworks)
+
+**Success Criteria:**
+1. PROFITS Framework option visible in Content area with other agent frameworks
+2. User can select call(s) and run PROFITS analysis
+3. Analysis triggers extract-profits Edge Function with loading state
+4. Results display consistently with other content generation output
+
+---
+
 ## Progress Tracking
 
 | Phase | Status | Requirements | Progress |
@@ -427,8 +472,10 @@ Plans:
 | 7 - Differentiators | Complete ✅ | 5 | 100% (5/5 plans) |
 | 8 - Growth Infrastructure | Complete ✅ | 4 | 100% (6/6 plans) |
 | 9 - Bank/Vault Architecture | Complete ✅ | 5 | 100% (10/10 plans) |
+| 10 - Chat Bank/Vault Scoping | Pending | 1 | 0% (0/3 plans) |
+| 11 - PROFITS Frontend Trigger | Pending | 1 | 0% (0/2 plans) |
 
-**Overall Progress:** 58/58 requirements complete (100%) - **MILESTONE COMPLETE**
+**Overall Progress:** 58/60 requirements (97%) - **Gap closure phases added**
 
 ---
 
@@ -542,8 +589,10 @@ Phase 9: Team Content Segregation (deferred - can be done anytime after Phase 4)
 9. ~~Phase 7: Differentiators~~ ✅ Complete (5/5 plans, all 5 requirements verified)
 10. ~~Phase 8: Growth Infrastructure~~ ✅ Complete (6/6 plans, all 4 requirements verified)
 11. ~~Phase 9: Bank/Vault Architecture~~ ✅ Complete (10/10 plans, all 5 requirements satisfied)
+12. **Phase 10: Chat Bank/Vault Scoping** ← Gap closure (integration)
+13. **Phase 11: PROFITS Frontend Trigger** ← Gap closure (flow)
 
-**🎉 v1 MILESTONE COMPLETE** - All 9 phases executed, 65/65 plans done.
+**Gap Closure Phases Added** - 2 phases from v1-MILESTONE-AUDIT.md
 
 ---
 
