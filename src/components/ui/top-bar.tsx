@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
-import { RiSearchLine, RiBellLine, RiSettings3Line, RiLogoutBoxRLine } from '@remixicon/react';
+import { RiSearchLine, RiSettings3Line, RiLogoutBoxRLine } from '@remixicon/react';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
@@ -19,14 +20,12 @@ interface TopBarProps {
   pageLabel: string;
   searchEnabled?: boolean;
   onSearchClick?: () => void;
-  notificationCount?: number;
   className?: string;
 }
 export function TopBar({
   pageLabel,
   searchEnabled = true,
   onSearchClick,
-  notificationCount = 0,
   className
 }: TopBarProps) {
   const { user, signOut } = useAuth();
@@ -106,10 +105,7 @@ export function TopBar({
             <RiSearchLine className="w-4 h-4" />
           </Button>}
 
-        <Button variant="hollow" size="icon" className="relative">
-          <RiBellLine className="w-4 h-4" />
-          {notificationCount > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />}
-        </Button>
+        <NotificationBell />
 
         <ThemeSwitcher />
 
