@@ -375,33 +375,40 @@ Plans:
 
 ---
 
-### Phase 9: Team Content Segregation (DEFERRED)
-**Goal:** Calls can be assigned to teams, creating workspace segregation between Personal and Team contexts
+### Phase 9: Bank/Vault Architecture
+**Goal:** Implement Bank/Vault architecture replacing teams - personal/team vault types with migration from fathom_calls
 
-**Dependencies:** Phase 4 (team infrastructure must exist)
+**Dependencies:** Phase 4 (team infrastructure to be replaced)
 
-**Plans:** TBD
+**Plans:** 10 plans in 3 waves
+
+Plans:
+- [ ] 09-01-PLAN.md — Eliminate all coach code (Edge Function, frontend, types)
+- [ ] 09-02-PLAN.md — Create banks and bank_memberships tables with RLS
+- [ ] 09-03-PLAN.md — Create vaults and vault_memberships tables with RLS
+- [ ] 09-04-PLAN.md — Create recordings and vault_entries tables with RLS
+- [ ] 09-05-PLAN.md — Update signup trigger + drop old team tables + update folders
+- [ ] 09-06-PLAN.md — Migration function for fathom_calls to recordings/vault_entries
+- [ ] 09-07-PLAN.md — Bank context store and useBankContext hook
+- [ ] 09-08-PLAN.md — Bank switcher UI in header
+- [ ] 09-09-PLAN.md — Banks & Vaults settings tab with vault management
+- [ ] 09-10-PLAN.md — Wire existing pages to use bank/vault context
 
 **Requirements:**
-- TEAM-03: Calls can be assigned/tagged to a team
-- TEAM-04: Personal workspace shows only non-team calls
-- TEAM-05: Team workspace shows only that team's calls
-- TEAM-06: Team members can see each other's team calls (based on visibility)
-- TEAM-07: Hierarchical sharing (members share up, managers share down)
+- BANK-01: Banks provide hard tenant isolation (personal vs business)
+- BANK-02: Vaults enable collaboration within banks (team, coach, client types)
+- BANK-03: Recordings live in one bank, VaultEntries enable multi-vault sharing
+- BANK-04: Existing fathom_calls migrate to recordings + vault_entries
+- BANK-05: Personal bank/vault auto-created on signup
 
 **Success Criteria:**
-1. User can assign a call to a team (moves it from Personal to Team workspace)
-2. Personal workspace no longer shows team-assigned calls
-3. Team workspace shows all calls assigned to that team
-4. Team members see calls based on visibility settings (admin_sees_all, manager visibility)
-5. Members can share calls "up" to managers
-6. Managers can share calls "down" to their reports
-
-**User-Defined Behavior:**
-- Calls tagged to a team move OUT of Personal, INTO Team workspace
-- If multiple teams, each team has its own tag/assignment
-- Visibility controlled by team settings + org hierarchy
-- Sharing flows both directions in the hierarchy
+1. Coach code completely removed from codebase
+2. Bank/Vault schema created with proper RLS policies
+3. New users get personal bank + vault on signup
+4. Existing calls migrated to recordings/vault_entries
+5. Bank switcher shows in header, allows context switching
+6. Team vaults can be created with default folders (Hall of Fame, Manager Reviews)
+7. All pages use new bank/vault context for data filtering
 
 ---
 
