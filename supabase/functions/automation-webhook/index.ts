@@ -10,7 +10,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
  * Security Features:
  * - HMAC-SHA256 signature verification using Web Crypto API
  * - Timestamp validation to prevent replay attacks (5 minute window)
- * - Rate limiting support via headers
+ * - Database-backed rate limiting (persists across cold starts)
  * - User-specific webhook secrets stored securely in database
  *
  * Expected Headers:
@@ -25,36 +25,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
  */
 
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { checkRateLimit, getRateLimitHeaders, createRateLimitResponse } from '../_shared/rate-limiter.ts';
 
 // Maximum age of webhook in milliseconds (5 minutes per spec)
 const MAX_WEBHOOK_AGE_MS = 5 * 60 * 1000;
-
-// Rate limiting: Track requests per user (in-memory, resets on function cold start)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute window
-const RATE_LIMIT_MAX_REQUESTS = 100; // 100 requests per minute per user
-
-/**
- * Check rate limit for a user
- */
-function checkRateLimit(userId: string): { allowed: boolean; remaining: number; resetAt: number } {
-  const now = Date.now();
-  const entry = rateLimitMap.get(userId);
-
-  if (!entry || entry.resetAt < now) {
-    // Reset or initialize
-    const resetAt = now + RATE_LIMIT_WINDOW_MS;
-    rateLimitMap.set(userId, { count: 1, resetAt });
-    return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - 1, resetAt };
-  }
-
-  if (entry.count >= RATE_LIMIT_MAX_REQUESTS) {
-    return { allowed: false, remaining: 0, resetAt: entry.resetAt };
-  }
-
-  entry.count++;
-  return { allowed: true, remaining: RATE_LIMIT_MAX_REQUESTS - entry.count, resetAt: entry.resetAt };
-}
 
 /**
  * Verify HMAC-SHA256 signature using Web Crypto API
@@ -393,32 +367,12 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check rate limit
-    const rateLimit = checkRateLimit(userId);
-    const rateLimitHeaders = {
-      'X-RateLimit-Limit': String(RATE_LIMIT_MAX_REQUESTS),
-      'X-RateLimit-Remaining': String(rateLimit.remaining),
-      'X-RateLimit-Reset': String(Math.ceil(rateLimit.resetAt / 1000)),
-    };
+    // Check rate limit (database-backed, persists across cold starts)
+    const rateLimit = await checkRateLimit(supabase, userId, { resourceType: 'webhook' });
+    const rateLimitHeaders = getRateLimitHeaders(rateLimit);
 
     if (!rateLimit.allowed) {
-      return new Response(
-        JSON.stringify({
-          error: 'Rate limit exceeded',
-          message: `Maximum ${RATE_LIMIT_MAX_REQUESTS} requests per minute`,
-          retry_after: Math.ceil((rateLimit.resetAt - Date.now()) / 1000),
-          request_id: requestId,
-        }),
-        {
-          status: 429,
-          headers: {
-            ...corsHeaders,
-            ...rateLimitHeaders,
-            'Content-Type': 'application/json',
-            'Retry-After': String(Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
-          },
-        }
-      );
+      return createRateLimitResponse(rateLimit, requestId, corsHeaders);
     }
 
     // Check idempotency (prevent duplicate processing)

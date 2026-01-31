@@ -9,7 +9,7 @@
  * - Support for to, cc, bcc recipients
  * - Template variable replacement with {{variable}} syntax
  * - Idempotency key support to prevent duplicate sends
- * - Rate limiting awareness
+ * - Database-backed rate limiting (persists across cold starts)
  * - Unsubscribe link support for compliance
  *
  * Template Variables:
@@ -30,6 +30,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { checkRateLimit, getRateLimitHeaders, createRateLimitResponse } from '../_shared/rate-limiter.ts';
 
 // Resend API configuration
 const RESEND_API_URL = 'https://api.resend.com/emails';
@@ -39,12 +40,6 @@ const RESEND_API_URL = 'https://api.resend.com/emails';
 // Use noreply@mail.callvaultai.com after domain verification in production
 const DEFAULT_FROM_ADDRESS = 'CallVault AI <onboarding@resend.dev>';
 const PRODUCTION_FROM_ADDRESS = 'CallVault AI <noreply@mail.callvaultai.com>';
-
-// Rate limit tracking (in-memory, resets on function cold start)
-// For production, this should be stored in Redis or database
-const rateLimitTracker = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_MAX = 95; // Leave buffer under 100/day free tier limit
-const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 /**
  * Template context for variable interpolation
@@ -109,28 +104,6 @@ interface ResendErrorResponse {
   statusCode: number;
   message: string;
   name: string;
-}
-
-/**
- * Check if we're under rate limit for a user
- */
-function checkRateLimit(userId: string): { allowed: boolean; remaining: number; resetAt: number } {
-  const now = Date.now();
-  const tracker = rateLimitTracker.get(userId);
-
-  if (!tracker || tracker.resetAt < now) {
-    // Start new window
-    rateLimitTracker.set(userId, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
-    return { allowed: true, remaining: RATE_LIMIT_MAX - 1, resetAt: now + RATE_LIMIT_WINDOW_MS };
-  }
-
-  if (tracker.count >= RATE_LIMIT_MAX) {
-    return { allowed: false, remaining: 0, resetAt: tracker.resetAt };
-  }
-
-  // Increment count
-  tracker.count += 1;
-  return { allowed: true, remaining: RATE_LIMIT_MAX - tracker.count, resetAt: tracker.resetAt };
 }
 
 /**
@@ -416,27 +389,11 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check rate limit
+    // Check rate limit (database-backed, persists across cold starts)
     const userId = request.user_id || 'anonymous';
-    const rateLimit = checkRateLimit(userId);
+    const rateLimit = await checkRateLimit(supabase, userId, { resourceType: 'email' });
     if (!rateLimit.allowed) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Rate limit exceeded',
-          code: 'RATE_LIMIT_EXCEEDED',
-          reset_at: new Date(rateLimit.resetAt).toISOString(),
-        }),
-        {
-          status: 429,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-            'X-RateLimit-Remaining': '0',
-            'X-RateLimit-Reset': String(Math.floor(rateLimit.resetAt / 1000)),
-          },
-        }
-      );
+      return createRateLimitResponse(rateLimit, undefined, corsHeaders);
     }
 
     // Check idempotency if key provided
@@ -583,8 +540,7 @@ Deno.serve(async (req) => {
         headers: {
           ...corsHeaders,
           'Content-Type': 'application/json',
-          'X-RateLimit-Remaining': String(rateLimit.remaining),
-          'X-RateLimit-Reset': String(Math.floor(rateLimit.resetAt / 1000)),
+          ...getRateLimitHeaders(rateLimit),
         },
       }
     );
