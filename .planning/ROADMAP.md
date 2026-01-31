@@ -219,11 +219,22 @@ Plans:
 ### Phase 5: Demo Polish — Wiring, Fixes & UI Consistency
 **Goal:** All built features are accessible, functional, and visually consistent (no broken pages, crashes, or inconsistent UI patterns)
 
-**Dependencies:** Phase 1-5 (core features must work first)
+**Dependencies:** Phase 1-4 (core features must work first)
+
+**Plans:** 7 plans in 3 waves
+
+Plans:
+- [ ] 05-01-PLAN.md — Route Automation Rules + fix CallDetailPage query (WIRE-01, IMPL-03)
+- [ ] 05-02-PLAN.md — Fix AutomationRules.tsx type mismatches (REFACTOR-04)
+- [ ] 05-03-PLAN.md — Runtime test & fix Tags/Rules/Analytics tabs (FIX-01, FIX-02, FIX-03)
+- [ ] 05-04-PLAN.md — Fix Users & Billing tabs (FIX-04, FIX-05)
+- [ ] 05-05-PLAN.md — Refactor bulk action toolbar to 4th pane (FIX-06)
+- [ ] 05-06-PLAN.md — Documentation for export & deduplication (DOC-01, DOC-02)
+- [ ] 05-07-PLAN.md — Human verification checkpoint
 
 **Requirements:**
 - WIRE-01: Route Automation Rules page
-- WIRE-02: Wire analytics tabs
+- WIRE-02: Wire analytics tabs (research shows already working - verify only)
 - FIX-01: Fix Tags tab error (spec-027)
 - FIX-02: Fix Rules tab error (spec-028)
 - FIX-03: Fix Analytics tabs crashes (spec-035)
