@@ -42,20 +42,20 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 ### TIER 2: DEMO POLISH (Looks Unfinished)
 
 **Wire Orphaned Pages**
-- [ ] **WIRE-01**: Route Automation Rules page (`/automation-rules` → `AutomationRules.tsx`)
-- [ ] **WIRE-02**: Wire analytics tabs (6 components exist, all show placeholders)
+- [x] **WIRE-01**: Route Automation Rules page (`/automation-rules` → `AutomationRules.tsx`)
+- [x] **WIRE-02**: Wire analytics tabs (6 components exist, all show placeholders)
 
 **Fix Broken Features**
-- [ ] **FIX-01**: Fix Tags tab error (spec-027)
-- [ ] **FIX-02**: Fix Rules tab error (spec-028)
-- [ ] **FIX-03**: Fix Analytics tabs crashes (spec-035)
-- [ ] **FIX-04**: Fix Users tab non-functional elements (spec-042)
-- [ ] **FIX-05**: Fix Billing section if charging (spec-043)
-- [ ] **FIX-06**: Move bulk action toolbar from bottom Mac-style bar to right-side 4th pane (consistency with app-wide slide-in pane pattern)
+- [x] **FIX-01**: Fix Tags tab error (spec-027)
+- [x] **FIX-02**: Fix Rules tab error (spec-028)
+- [x] **FIX-03**: Fix Analytics tabs crashes (spec-035)
+- [x] **FIX-04**: Fix Users tab non-functional elements (spec-042)
+- [x] **FIX-05**: Fix Billing section if charging (spec-043)
+- [x] **FIX-06**: Move bulk action toolbar from bottom Mac-style bar to right-side 4th pane (consistency with app-wide slide-in pane pattern)
 
 **Documentation**
-- [ ] **DOC-01**: Document export system (13+ formats, 4 bundle modes, 3 advanced formats) for marketing/onboarding/help
-- [ ] **DOC-02**: Document multi-source deduplication for user-facing help (fuzzy matching, priority modes)
+- [x] **DOC-01**: Document export system (13+ formats, 4 bundle modes, 3 advanced formats) for marketing/onboarding/help
+- [x] **DOC-02**: Document multi-source deduplication for user-facing help (fuzzy matching, priority modes)
 
 **Code Cleanup**
 - [ ] **CLEAN-01**: Consolidate duplicate deduplication code (`deduplication.ts` vs `dedup-fingerprint.ts`)
@@ -65,7 +65,7 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 - [ ] **REFACTOR-01**: Break down Chat.tsx (1900+ lines → smaller sub-components: MessageList, InputArea, ConnectionHandler + custom hooks)
 - [ ] **REFACTOR-02**: Break down useTeamHierarchy.ts (1200+ lines → smaller focused hooks: useTeamPermissions, useTeamData)
 - [ ] **REFACTOR-03**: Tighten types in stores (replace `any` types in `panelStore.ts` with proper interfaces)
-- [ ] **REFACTOR-04**: Fix type mismatches in AutomationRules.tsx with current Supabase schema
+- [x] **REFACTOR-04**: Fix type mismatches in AutomationRules.tsx with current Supabase schema
 - [ ] **REFACTOR-05**: Fix AI SDK outdated property (replace `maxTokens` in ai-agent.ts with current API)
 - [ ] **REFACTOR-06**: Tighten types in SyncTab.tsx (Meetings/Jobs loose types)
 - [ ] **REFACTOR-07**: Consolidate inline diversity filter (remove duplication in chat-stream/index.ts)
@@ -73,7 +73,7 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 **Missing Implementations**
 - [ ] **IMPL-01**: Create or delete missing automation functions (`summarize-call`, `extract-action-items` referenced in actions.ts but don't exist)
 - [ ] **IMPL-02**: Handle non-existent table references gracefully (`tasks`, `clients`, `client_health_history` in automation actions)
-- [ ] **IMPL-03**: Fix CallDetailPage to query `fathom_calls` instead of legacy `calls` table
+- [x] **IMPL-03**: Fix CallDetailPage to query `fathom_calls` instead of legacy `calls` table
 
 **Infrastructure Fixes**
 - [ ] **INFRA-01**: Complete cost tracking for all OpenRouter models (currently only tracks 2: text-embedding-3-small, gpt-4o-mini)
@@ -179,41 +179,40 @@ Which phases cover which requirements.
 | COACH-01 | Phase 5: Coach Collaboration | Pending |
 | COACH-02 | Phase 5: Coach Collaboration | Pending |
 | COACH-03 | Phase 5: Coach Collaboration | Pending |
-| WIRE-01 | Phase 6: Demo Polish | Pending |
-| WIRE-02 | Phase 6: Demo Polish | Pending |
-| FIX-01 | Phase 6: Demo Polish | Pending |
-| FIX-02 | Phase 6: Demo Polish | Pending |
-| FIX-03 | Phase 6: Demo Polish | Pending |
-| FIX-04 | Phase 6: Demo Polish | Pending |
-| FIX-05 | Phase 6: Demo Polish | Pending |
-| FIX-06 | Phase 6: Demo Polish | Pending |
-| REFACTOR-04 | Phase 6: Demo Polish | Pending |
-| IMPL-03 | Phase 6: Demo Polish | Pending |
-| DOC-01 | Phase 6: Demo Polish | Pending |
-| DOC-02 | Phase 6: Demo Polish | Pending |
-| REFACTOR-01 | Phase 7: Code Health | Pending |
-| REFACTOR-02 | Phase 7: Code Health | Pending |
-| REFACTOR-03 | Phase 7: Code Health | Pending |
-| REFACTOR-05 | Phase 7: Code Health | Pending |
-| REFACTOR-06 | Phase 7: Code Health | Pending |
-| REFACTOR-07 | Phase 7: Code Health | Pending |
-| CLEAN-01 | Phase 7: Code Health | Pending |
-| CLEAN-02 | Phase 7: Code Health | Pending |
-| IMPL-01 | Phase 7: Code Health | Pending |
-| IMPL-02 | Phase 7: Code Health | Pending |
-| INFRA-01 | Phase 7: Code Health | Pending |
-| INFRA-02 | Phase 7: Code Health | Pending |
-| INFRA-03 | Phase 7: Code Health | Pending |
-| DIFF-01 | Phase 8: Differentiators | Pending |
-| DIFF-02 | Phase 8: Differentiators | Pending |
-| DIFF-03 | Phase 8: Differentiators | Pending |
-| DIFF-04 | Phase 8: Differentiators | Pending |
-| DIFF-05 | Phase 8: Differentiators | Pending |
-| GROW-01 | Phase 9: Growth | Pending |
-| GROW-02 | Phase 9: Growth | Pending |
-| GROW-03 | Phase 9: Growth | Pending |
-| GROW-04 | Phase 9: Growth | Pending |
-| GROW-05 | Phase 9: Growth | Pending |
+| WIRE-01 | Phase 5: Demo Polish | Complete |
+| WIRE-02 | Phase 5: Demo Polish | Complete |
+| FIX-01 | Phase 5: Demo Polish | Complete |
+| FIX-02 | Phase 5: Demo Polish | Complete |
+| FIX-03 | Phase 5: Demo Polish | Complete |
+| FIX-04 | Phase 5: Demo Polish | Complete |
+| FIX-05 | Phase 5: Demo Polish | Complete |
+| FIX-06 | Phase 5: Demo Polish | Complete |
+| REFACTOR-04 | Phase 5: Demo Polish | Complete |
+| IMPL-03 | Phase 5: Demo Polish | Complete |
+| DOC-01 | Phase 5: Demo Polish | Complete |
+| DOC-02 | Phase 5: Demo Polish | Complete |
+| REFACTOR-01 | Phase 6: Code Health | Pending |
+| REFACTOR-02 | Phase 6: Code Health | Pending |
+| REFACTOR-03 | Phase 6: Code Health | Pending |
+| REFACTOR-05 | Phase 6: Code Health | Pending |
+| REFACTOR-06 | Phase 6: Code Health | Pending |
+| REFACTOR-07 | Phase 6: Code Health | Pending |
+| CLEAN-01 | Phase 6: Code Health | Pending |
+| CLEAN-02 | Phase 6: Code Health | Pending |
+| IMPL-01 | Phase 6: Code Health | Pending |
+| IMPL-02 | Phase 6: Code Health | Pending |
+| INFRA-01 | Phase 6: Code Health | Pending |
+| INFRA-02 | Phase 6: Code Health | Pending |
+| INFRA-03 | Phase 6: Code Health | Pending |
+| DIFF-01 | Phase 7: Differentiators | Pending |
+| DIFF-02 | Phase 7: Differentiators | Pending |
+| DIFF-03 | Phase 7: Differentiators | Pending |
+| DIFF-04 | Phase 7: Differentiators | Pending |
+| DIFF-05 | Phase 7: Differentiators | Pending |
+| GROW-02 | Phase 8: Growth | Pending |
+| GROW-03 | Phase 8: Growth | Pending |
+| GROW-04 | Phase 8: Growth | Pending |
+| GROW-05 | Phase 8: Growth | Pending |
 
 **Coverage:**
 - v1 requirements: 55 total
@@ -222,4 +221,4 @@ Which phases cover which requirements.
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-29 (Phase 4 complete — TEAM-01 and TEAM-02 marked Complete)*
+*Last updated: 2026-01-31 (Phase 5 complete — 12 Demo Polish requirements marked Complete)*
