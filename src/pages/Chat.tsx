@@ -51,6 +51,7 @@ import { useChatSession } from "@/hooks/useChatSession";
 import { useMentions } from "@/hooks/useMentions";
 import { useChatFilters } from "@/hooks/useChatFilters";
 import { useFolders } from "@/hooks/useFolders";
+import { useBankContext } from "@/hooks/useBankContext";
 import {
   useChatStreaming,
   isRateLimitError,
@@ -111,6 +112,9 @@ export default function Chat() {
   
   // --- Folders for filter ---
   const { folders } = useFolders();
+  
+  // --- Bank/Vault context for scoping ---
+  const { activeBankId, activeVaultId } = useBankContext();
 
   // --- CallDetailDialog state ---
   const [selectedCall, setSelectedCall] = React.useState<Meeting | null>(null);
@@ -195,10 +199,17 @@ export default function Chat() {
         filters: filterState.apiFilters,
         model: selectedModel,
         sessionId: currentSessionId,
+        // Phase 9: Pass bank/vault context for scoped searches
+        // When vault is selected, search is scoped to that vault
+        // When only bank is selected, search is scoped to all vaults in bank
+        sessionFilters: {
+          bank_id: activeBankId,
+          vault_id: activeVaultId, // null = all vaults in bank
+        },
       },
       fetch: customFetch,
     });
-  }, [session?.access_token, filterState.apiFilters, selectedModel, currentSessionId]);
+  }, [session?.access_token, filterState.apiFilters, selectedModel, currentSessionId, activeBankId, activeVaultId]);
 
   // --- AI SDK v5 Chat Hook ---
   const { messages, sendMessage, status, error, setMessages } = useChat({
