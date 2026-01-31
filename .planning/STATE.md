@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 8 Growth Infrastructure - COMPLETE (6/6 plans)
+**Current Focus:** Phase 9 Bank/Vault Architecture - In progress (1/10 plans)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 8 of 9 (Growth Infrastructure) - COMPLETE
+**Phase:** 9 of 9 (Bank/Vault Architecture) - In progress
 
-**Plan:** 6 of 6 in Phase 8 (all complete)
+**Plan:** 1 of 10 in Phase 9
 
-**Status:** Phase 8 complete - Ready for Phase 9 (deferred)
+**Status:** Phase 9 in progress - 09-02 (Banks Tables) complete
 
-**Last activity:** 2026-01-31 - Completed 08-03-PLAN.md (Polar Billing UI)
+**Last activity:** 2026-01-31 - Completed 09-02-PLAN.md (Banks and BankMemberships tables)
 
 **Progress:**
 ```
-[██████████████████████████████████] 53/55 plans complete (Phase 8 complete!)
+[██████████████████████████████████] 54/65 plans complete (Phase 9 started)
 ```
 
 ---
@@ -54,7 +54,7 @@
 | Phase 6: Code Health & Infrastructure | 13 | 13 | Complete (10/10 plans) |
 | Phase 7: Differentiators | 5 | 5 | Complete (6/6 plans) |
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
-| Phase 9: Team Content Segregation | 5 | 0 | Deferred |
+| Phase 9: Bank/Vault Architecture | 5 | 0 | In progress (1/10 plans) |
 
 ### Velocity
 
@@ -133,6 +133,8 @@
 | 2026-01-31 | Import nav item after Content in sidebar | Logical grouping for content acquisition features | YouTube imports accessible from main nav |
 | 2026-01-31 | UpgradeButton handles checkout internally | Encapsulates ensureCustomer + checkout + redirect | Reusable anywhere without checkout logic duplication |
 | 2026-01-31 | Tier derived from product_id prefix | Product IDs follow format tier-interval (solo-monthly) | No extra API calls needed for tier detection |
+| 2026-01-31 | SECURITY DEFINER for bank membership checks | Prevents infinite RLS recursion when policies check membership tables | Pattern for is_bank_member/is_bank_admin_or_owner |
+| 2026-01-31 | Users can create their own initial bank_membership | Bootstrap pattern for bank creators to become bank_owner | Enables self-service bank creation flow |
 
 ### Active TODOs
 
@@ -182,7 +184,9 @@ Phase 7 Complete. Ready for Phase 8 (Growth).
 - [x] Execute 08-05-PLAN.md (YouTube Import UI and ManualImport page)
 - [x] Execute 08-06-PLAN.md (Admin Cost Dashboard - RPC function, useAdminCosts hook, AdminCostDashboard component)
 
-Phase 8 COMPLETE (6/6 plans). Ready for Phase 9 (deferred).
+Phase 8 COMPLETE (6/6 plans). Phase 9 started.
+
+- [x] Execute 09-02-PLAN.md (Banks and BankMemberships tables with RLS)
 
 ### Pending Todos
 
@@ -206,23 +210,21 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 08-03-PLAN.md (Polar Billing UI)
+**Stopped at:** Completed 09-02-PLAN.md (Banks and BankMemberships tables)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 8 Growth Infrastructure COMPLETE (6/6 plans). All core functionality built.
+Phase 9 Bank/Vault Architecture started. Plan 09-02 complete.
 
 **What to remember:**
-- 08-03 completed: Polar Billing UI
-  - useSubscription hook for tier-aware components
-  - usePolarCustomer hook for customer management
-  - PlanCards component for plan comparison
-  - UpgradeButton component with full checkout flow
-  - BillingTab now shows real subscription state
-- Phase 9 (Team Content Segregation) is deferred
-- Consider: End-to-end testing, launch preparation
+- 09-02 completed: Banks and BankMemberships tables
+  - banks table with type constraint, cross_bank_default
+  - bank_memberships with user-bank relationship and role
+  - SECURITY DEFINER helpers: is_bank_member, is_bank_admin_or_owner
+  - Complete RLS policy set for bank isolation
+- Next: 09-03 (Vaults and VaultMemberships tables)
 
 ---
 
@@ -233,12 +235,12 @@ Phase 8 Growth Infrastructure COMPLETE (6/6 plans). All core functionality built
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
 | Requirements Complete | 54 (93%) |
-| Current Phase | 8 - Growth Infrastructure (COMPLETE) |
-| Plans Complete | 53 overall |
-| Next Plan | Phase 9 (deferred) or launch prep |
+| Current Phase | 9 - Bank/Vault Architecture (In progress) |
+| Plans Complete | 54 overall |
+| Next Plan | 09-03 (Vaults and VaultMemberships tables) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 08-03-PLAN.md - Polar Billing UI - Phase 8 COMPLETE)*
+*Last updated: 2026-01-31 (Completed 09-02-PLAN.md - Banks and BankMemberships tables)*
