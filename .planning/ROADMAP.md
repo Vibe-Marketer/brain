@@ -375,7 +375,7 @@ Plans:
 
 ---
 
-### Phase 9: Bank/Vault Architecture
+### Phase 9: Bank/Vault Architecture ✓ COMPLETE
 **Goal:** Implement Bank/Vault architecture replacing teams - personal/team vault types with migration from fathom_calls
 
 **Dependencies:** Phase 4 (team infrastructure to be replaced)
@@ -383,16 +383,16 @@ Plans:
 **Plans:** 10 plans in 3 waves
 
 Plans:
-- [ ] 09-01-PLAN.md — Eliminate all coach code (Edge Function, frontend, types)
-- [ ] 09-02-PLAN.md — Create banks and bank_memberships tables with RLS
-- [ ] 09-03-PLAN.md — Create vaults and vault_memberships tables with RLS
-- [ ] 09-04-PLAN.md — Create recordings and vault_entries tables with RLS
-- [ ] 09-05-PLAN.md — Update signup trigger + drop old team tables + update folders
-- [ ] 09-06-PLAN.md — Migration function for fathom_calls to recordings/vault_entries
-- [ ] 09-07-PLAN.md — Bank context store and useBankContext hook
-- [ ] 09-08-PLAN.md — Bank switcher UI in header
-- [ ] 09-09-PLAN.md — Banks & Vaults settings tab with vault management
-- [ ] 09-10-PLAN.md — Wire existing pages to use bank/vault context
+- [x] 09-01-PLAN.md — Eliminate all coach code (Edge Function, frontend, types)
+- [x] 09-02-PLAN.md — Create banks and bank_memberships tables with RLS
+- [x] 09-03-PLAN.md — Create vaults and vault_memberships tables with RLS
+- [x] 09-04-PLAN.md — Create recordings and vault_entries tables with RLS
+- [x] 09-05-PLAN.md — Update signup trigger + drop old team tables + update folders
+- [x] 09-06-PLAN.md — Migration function for fathom_calls to recordings/vault_entries
+- [x] 09-07-PLAN.md — Bank context store and useBankContext hook
+- [x] 09-08-PLAN.md — Bank switcher UI in header
+- [x] 09-09-PLAN.md — Banks & Vaults settings tab with vault management
+- [x] 09-10-PLAN.md — Wire existing pages to use bank/vault context
 
 **Requirements:**
 - BANK-01: Banks provide hard tenant isolation (personal vs business)
@@ -426,9 +426,9 @@ Plans:
 | 6 - Code Health & Infrastructure | Complete ✅ | 11 | 100% (10/10 plans) |
 | 7 - Differentiators | Complete ✅ | 5 | 100% (5/5 plans) |
 | 8 - Growth Infrastructure | Complete ✅ | 4 | 100% (6/6 plans) |
-| 9 - Team Content Segregation | Deferred | 5 | 0% |
+| 9 - Bank/Vault Architecture | Complete ✅ | 5 | 100% (10/10 plans) |
 
-**Overall Progress:** 58/58 requirements complete (100%)
+**Overall Progress:** 58/58 requirements complete (100%) - **MILESTONE COMPLETE**
 
 ---
 
@@ -541,8 +541,10 @@ Phase 9: Team Content Segregation (deferred - can be done anytime after Phase 4)
 8. ~~Phase 6: Code Health & Infrastructure~~ ✅ Complete (10/10 plans, 12/13 must-haves verified)
 9. ~~Phase 7: Differentiators~~ ✅ Complete (5/5 plans, all 5 requirements verified)
 10. ~~Phase 8: Growth Infrastructure~~ ✅ Complete (6/6 plans, all 4 requirements verified)
-11. Phase 9: Team Content Segregation — DEFERRED
+11. ~~Phase 9: Bank/Vault Architecture~~ ✅ Complete (10/10 plans, all 5 requirements satisfied)
+
+**🎉 v1 MILESTONE COMPLETE** - All 9 phases executed, 65/65 plans done.
 
 ---
 
-*Last updated: 2026-01-31 (Phase 8 Growth Infrastructure COMPLETE - 6/6 plans, GROW-02/03/05 verified)*
+*Last updated: 2026-01-31 (v1 MILESTONE COMPLETE - All 9 phases, 65/65 plans)*
