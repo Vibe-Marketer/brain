@@ -509,58 +509,30 @@ export function TranscriptsTab({
         />
       )}
 
-      {/* Main content area - NO card wrapper, directly on page */}
-      <div className="h-full flex flex-col">
-        {/* Filter bar - compact mode (no search, search is in page header) */}
-        {/* No border separator - clean transition from header to filters */}
-        <div className="flex-shrink-0 px-4 md:px-10 pt-2 pb-3">
-          <div className="flex items-center gap-2">
-            <div className="flex-1 min-w-0">
-              <FilterBar
-                filters={filters}
-                onFiltersChange={setFilters}
-                tags={tags}
-                folders={folders}
-                onCreateFolder={() => setQuickCreateFolderOpen(true)}
-                compact={true}
-              />
+      {/* Main layout - flex row to accommodate 4th pane bulk actions */}
+      <div className="h-full flex flex-row">
+        {/* Main content area - takes remaining space */}
+        <div className="flex-1 min-w-0 h-full flex flex-col">
+          {/* Filter bar - compact mode (no search, search is in page header) */}
+          {/* No border separator - clean transition from header to filters */}
+          <div className="flex-shrink-0 px-4 md:px-10 pt-2 pb-3">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <FilterBar
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  tags={tags}
+                  folders={folders}
+                  onCreateFolder={() => setQuickCreateFolderOpen(true)}
+                  compact={true}
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Content area with scroll */}
-        <div className="flex-1 overflow-y-auto px-4 md:px-4 py-0 space-y-4">
-
-          {/* Bulk Actions Toolbar */}
-          {selectedCalls.length > 0 && (
-            <ErrorBoundary>
-              <BulkActionToolbarEnhanced
-                selectedCount={selectedCalls.length}
-                selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
-                tags={tags}
-                onTag={(tagId) => {
-                  tagMutation.mutate({
-                    callIds: selectedCalls,
-                    tagId,
-                  });
-                }}
-                onRemoveTag={() => {
-                  untagMutation.mutate({
-                    callIds: selectedCalls,
-                  });
-                }}
-                onClearSelection={() => setSelectedCalls([])}
-                onDelete={handleDeleteCalls}
-                onCreateNewTag={() => {
-                  setIsQuickCreateOpen(true);
-                  setPendingTagTranscripts(selectedCalls);
-                }}
-                onAssignFolder={() => setFolderDialogOpen(true)}
-              />
-            </ErrorBoundary>
-          )}
-
-          {/* Content Area */}
+          {/* Content area with scroll */}
+          <div className="flex-1 overflow-y-auto px-4 md:px-4 py-0 space-y-4">
+            {/* Content Area */}
           {callsLoading ? (
             <TranscriptTableSkeleton />
           ) : validCalls.length === 0 ? (
@@ -617,7 +589,37 @@ export function TranscriptsTab({
               </ErrorBoundary>
             </>
           )}
+          </div>
         </div>
+
+        {/* Bulk Actions Pane - 4th pane position */}
+        {selectedCalls.length > 0 && (
+          <ErrorBoundary>
+            <BulkActionToolbarEnhanced
+              selectedCount={selectedCalls.length}
+              selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
+              tags={tags}
+              onTag={(tagId) => {
+                tagMutation.mutate({
+                  callIds: selectedCalls,
+                  tagId,
+                });
+              }}
+              onRemoveTag={() => {
+                untagMutation.mutate({
+                  callIds: selectedCalls,
+                });
+              }}
+              onClearSelection={() => setSelectedCalls([])}
+              onDelete={handleDeleteCalls}
+              onCreateNewTag={() => {
+                setIsQuickCreateOpen(true);
+                setPendingTagTranscripts(selectedCalls);
+              }}
+              onAssignFolder={() => setFolderDialogOpen(true)}
+            />
+          </ErrorBoundary>
+        )}
       </div>
 
       {/* Dialogs */}
