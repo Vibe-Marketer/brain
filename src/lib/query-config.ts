@@ -122,6 +122,13 @@ export const queryKeys = {
     settings: () => ['contacts', 'settings'] as const,
     appearances: (contactId: string) => ['contacts', 'appearances', contactId] as const,
   },
+
+  // Notifications
+  notifications: {
+    all: ['notifications'] as const,
+    list: () => ['notifications', 'list'] as const,
+    unread: () => ['notifications', 'unread'] as const,
+  },
 } as const;
 
 // Type helper for query keys
