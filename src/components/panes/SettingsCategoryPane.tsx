@@ -36,6 +36,8 @@ import {
   RiBuilding4Fill,
   RiContactsLine,
   RiContactsFill,
+  RiBankLine,
+  RiBankFill,
 } from "@remixicon/react";
 
 /** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
@@ -45,6 +47,7 @@ export type SettingsCategory =
   | "account"
   | "business"
   | "contacts"
+  | "banks"
   | "users"
   | "billing"
   | "integrations"
@@ -83,6 +86,13 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     description: "Track call attendees",
     icon: RiContactsLine,
     iconFill: RiContactsFill,
+  },
+  {
+    id: "banks",
+    label: "Banks & Vaults",
+    description: "Workspaces and collaboration",
+    icon: RiBankLine,
+    iconFill: RiBankFill,
   },
   {
     id: "users",

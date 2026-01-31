@@ -35,6 +35,7 @@ import {
   RiArrowLeftLine,
   RiBuilding4Line,
   RiContactsLine,
+  RiBankLine,
 } from "@remixicon/react";
 import type { SettingsCategory } from "./SettingsCategoryPane";
 
@@ -53,6 +54,7 @@ const IntegrationsTab = React.lazy(
 const AITab = React.lazy(() => import("@/components/settings/AITab"));
 const AdminTab = React.lazy(() => import("@/components/settings/AdminTab"));
 const ContactsTab = React.lazy(() => import("@/components/settings/ContactsTab"));
+const BanksTab = React.lazy(() => import("@/components/settings/BanksTab"));
 
 /** Category metadata for display */
 const CATEGORY_META: Record<
@@ -102,6 +104,11 @@ const CATEGORY_META: Record<
     label: "Admin",
     description: "System administration",
     icon: RiShieldLine,
+  },
+  banks: {
+    label: "Banks & Vaults",
+    description: "Workspaces and collaboration",
+    icon: RiBankLine,
   },
 };
 
@@ -241,6 +248,8 @@ export function SettingsDetailPane({
         return <AITab />;
       case "admin":
         return <AdminTab />;
+      case "banks":
+        return <BanksTab />;
       default:
         return (
           <div className="p-6 text-center text-muted-foreground">
