@@ -16,15 +16,15 @@
 
 **Phase:** 9 of 9 (Bank/Vault Architecture) - In progress
 
-**Plan:** 5 of 10 in Phase 9
+**Plan:** 6 of 10 in Phase 9
 
-**Status:** Phase 9 in progress - 09-01 (Delete Coach Code) complete
+**Status:** Phase 9 in progress - 09-05 (Signup Trigger & Drop Teams) complete
 
-**Last activity:** 2026-01-31 - Completed 09-01-PLAN.md (Delete Coach Code)
+**Last activity:** 2026-01-31 - Completed 09-05-PLAN.md (Signup Trigger & Drop Teams)
 
 **Progress:**
 ```
-[████████████████████████████████████] 58/65 plans complete (Phase 9: 5/10)
+[█████████████████████████████████████] 59/65 plans complete (Phase 9: 6/10)
 ```
 
 ---
@@ -54,7 +54,7 @@
 | Phase 6: Code Health & Infrastructure | 13 | 13 | Complete (10/10 plans) |
 | Phase 7: Differentiators | 5 | 5 | Complete (6/6 plans) |
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
-| Phase 9: Bank/Vault Architecture | 5 | 0 | In progress (5/10 plans) |
+| Phase 9: Bank/Vault Architecture | 5 | 0 | In progress (6/10 plans) |
 
 ### Velocity
 
@@ -194,6 +194,7 @@ Phase 8 COMPLETE (6/6 plans). Phase 9 started.
 - [x] Execute 09-02-PLAN.md (Banks and BankMemberships tables with RLS)
 - [x] Execute 09-03-PLAN.md (Vaults and VaultMemberships tables with RLS)
 - [x] Execute 09-04-PLAN.md (Recordings and VaultEntries tables with RLS)
+- [x] Execute 09-05-PLAN.md (Signup trigger + drop old team tables + update folders)
 
 ### Pending Todos
 
@@ -217,22 +218,22 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 09-01-PLAN.md (Delete Coach Code)
+**Stopped at:** Completed 09-05-PLAN.md (Signup Trigger & Drop Teams)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 9 Bank/Vault Architecture in progress. Plans 09-01, 09-02, 09-03, 09-04 complete (5/10).
+Phase 9 Bank/Vault Architecture in progress. Plans 09-01 through 09-05 complete (6/10).
 
 **What to remember:**
-- 09-01 completed: Delete Coach Code
-  - Deleted send-coach-invite Edge Function
-  - Dropped coach_relationships, coach_shares, coach_notes tables
-  - Removed all coach frontend code (~6200 lines deleted)
-  - Codebase is now clean of coach references
-- Previous completions: 09-02 (Banks), 09-03 (Vaults), 09-04 (Recordings/VaultEntries)
-- Next: 09-05 (Update signup trigger + drop old team tables + update folders)
+- 09-05 completed: Signup Trigger & Drop Old Team Tables
+  - Updated handle_new_user() to auto-create personal bank+vault on signup
+  - Dropped legacy team infrastructure (teams, team_memberships, team_shares, manager_notes)
+  - Added vault_id and visibility columns to folders table
+  - RLS policies updated for vault-level folder access
+- Previous completions: 09-01 (Delete Coach), 09-02 (Banks), 09-03 (Vaults), 09-04 (Recordings/VaultEntries)
+- Next: 09-06 (Data Migration) - migrate existing data to Bank/Vault model
 
 ---
 
@@ -244,11 +245,11 @@ Phase 9 Bank/Vault Architecture in progress. Plans 09-01, 09-02, 09-03, 09-04 co
 | Total Requirements | 58 |
 | Requirements Complete | 54 (93%) |
 | Current Phase | 9 - Bank/Vault Architecture (In progress) |
-| Plans Complete | 58 overall |
-| Next Plan | 09-05 (Update signup trigger + drop old team tables) |
+| Plans Complete | 59 overall |
+| Next Plan | 09-06 (Data Migration) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 09-01-PLAN.md - Delete Coach Code)*
+*Last updated: 2026-01-31 (Completed 09-05-PLAN.md - Signup Trigger & Drop Teams)*
