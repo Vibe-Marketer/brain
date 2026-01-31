@@ -1,30 +1,18 @@
 import { create } from 'zustand';
+import type { PanelType, PanelData, PanelHistoryEntry } from '@/types/panel';
 
-export type PanelType =
-  | 'workspace-detail'
-  | 'call-detail'
-  | 'insight-detail'
-  | 'filter-tool'
-  | 'ai-assistant'
-  | 'inspector'
-  | 'folder-detail'
-  | 'tag-detail'
-  | 'setting-help'
-  | 'settings'
-  | 'sorting'
-  | 'user-detail'
-  | 'bulk-actions'
-  | null;
+// Re-export PanelType for backward compatibility
+export type { PanelType } from '@/types/panel';
 
 interface PanelState {
   isPanelOpen: boolean;
   panelType: PanelType;
-  panelData: any;
+  panelData: PanelData;
   isPinned: boolean;
-  panelHistory: Array<{ type: PanelType; data: any }>;
+  panelHistory: PanelHistoryEntry[];
   
   // Actions
-  openPanel: (type: PanelType, data?: any) => void;
+  openPanel: (type: PanelType, data?: PanelData) => void;
   closePanel: () => void;
   togglePin: () => void;
   goBack: () => void;
@@ -38,7 +26,7 @@ export const usePanelStore = create<PanelState>((set, get) => ({
   isPinned: false,
   panelHistory: [],
 
-  openPanel: (type, data = null) => {
+  openPanel: (type: PanelType, data: PanelData = null) => {
     const current = get();
     
     // Add current panel to history if it exists

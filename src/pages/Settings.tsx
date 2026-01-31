@@ -74,7 +74,7 @@ export default function Settings() {
 
   // Helper function to open help panel for a specific topic
   const openHelpPanel = (topic: SettingHelpTopic) => {
-    openPanel('setting-help', { topic });
+    openPanel('setting-help', { type: 'setting-help', topic });
   };
 
   // Get help topic based on current category

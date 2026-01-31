@@ -50,7 +50,7 @@ export function FoldersTab() {
   const editInputRef = useRef<HTMLInputElement>(null);
 
   // Track selected folder for visual highlighting
-  const selectedFolderId = panelType === 'folder-detail' ? panelData?.folderId : null;
+  const selectedFolderId = panelType === 'folder-detail' && panelData?.type === 'folder-detail' ? panelData.folderId : null;
 
   // Get the currently selected folder object
   const selectedFolder = useMemo(() => {
@@ -133,7 +133,7 @@ export function FoldersTab() {
   };
 
   const handleFolderClick = (folder: Folder) => {
-    openPanel('folder-detail', { folderId: folder.id });
+    openPanel('folder-detail', { type: 'folder-detail', folderId: folder.id });
   };
 
   // Build hierarchy from flat folder list

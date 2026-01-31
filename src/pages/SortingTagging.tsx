@@ -269,10 +269,10 @@ export default function SortingTagging() {
             </div>
             {/* Bottom sheet content */}
             <div className="flex-1 overflow-y-auto">
-              {showRightPanel && panelType === 'folder-detail' && panelData?.folderId && (
+              {showRightPanel && panelType === 'folder-detail' && panelData?.type === 'folder-detail' && (
                 <FolderDetailPanel folderId={panelData.folderId} />
               )}
-              {showRightPanel && panelType === 'tag-detail' && panelData?.tagId && (
+              {showRightPanel && panelType === 'tag-detail' && panelData?.type === 'tag-detail' && (
                 <TagDetailPanel tagId={panelData.tagId} />
               )}
             </div>

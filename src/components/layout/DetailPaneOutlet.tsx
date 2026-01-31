@@ -61,12 +61,12 @@ export function DetailPaneOutlet({
 
     switch (panelType) {
       case 'folder-detail':
-        return panelData?.folderId ? (
+        return panelData?.type === 'folder-detail' ? (
           <FolderDetailPanel folderId={panelData.folderId} />
         ) : null;
 
       case 'tag-detail':
-        return panelData?.tagId ? (
+        return panelData?.type === 'tag-detail' ? (
           <TagDetailPanel tagId={panelData.tagId} />
         ) : null;
 
@@ -74,15 +74,15 @@ export function DetailPaneOutlet({
         return <SettingHelpPanel />;
 
       case 'user-detail':
-        return panelData?.userId ? (
+        return panelData?.type === 'user-detail' ? (
           <UserDetailPanel
             userId={panelData.userId}
-            onUserUpdated={panelData?.onUserUpdated}
+            onUserUpdated={panelData.onUserUpdated}
           />
         ) : null;
 
       case 'call-detail':
-        return panelData?.recordingId ? (
+        return panelData?.type === 'call-detail' ? (
           <CallDetailPanel recordingId={panelData.recordingId} />
         ) : null;
 

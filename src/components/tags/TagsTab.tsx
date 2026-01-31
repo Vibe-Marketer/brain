@@ -50,10 +50,10 @@ export function TagsTab() {
   const [duplicatingTagId, setDuplicatingTagId] = useState<string | null>(null);
 
   // Track selected tag for visual highlighting
-  const selectedTagId = panelType === 'tag-detail' ? panelData?.tagId : null;
+  const selectedTagId = panelType === 'tag-detail' && panelData?.type === 'tag-detail' ? panelData.tagId : null;
 
   const handleTagClick = (tag: Tag) => {
-    openPanel('tag-detail', { tagId: tag.id });
+    openPanel('tag-detail', { type: 'tag-detail', tagId: tag.id });
   };
 
   // Delete tag mutation
@@ -163,7 +163,7 @@ export function TagsTab() {
   // Cmd+E: Edit selected tag (open detail panel)
   const handleEditShortcut = useCallback(() => {
     if (selectedTag) {
-      openPanel('tag-detail', { tagId: selectedTag.id });
+      openPanel('tag-detail', { type: 'tag-detail', tagId: selectedTag.id });
     }
   }, [selectedTag, openPanel]);
 
