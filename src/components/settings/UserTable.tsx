@@ -185,7 +185,7 @@ export const UserTable = React.memo(({
                         size="sm"
                         onClick={() => onManageUser(user.user_id)}
                       >
-                        {isAdmin ? "VIEW DETAILS" : "MANAGE"}
+                        VIEW DETAILS
                       </Button>
                     )}
                   </TableCell>
