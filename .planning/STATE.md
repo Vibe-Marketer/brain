@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 9 Bank/Vault Architecture - In progress (4/10 plans)
+**Current Focus:** Phase 9 Bank/Vault Architecture - In progress (5/10 plans)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 9 of 9 (Bank/Vault Architecture) - In progress
 
-**Plan:** 4 of 10 in Phase 9
+**Plan:** 5 of 10 in Phase 9
 
-**Status:** Phase 9 in progress - 09-04 (Recordings and VaultEntries) complete
+**Status:** Phase 9 in progress - 09-01 (Delete Coach Code) complete
 
-**Last activity:** 2026-01-31 - Completed 09-04-PLAN.md (Recordings and VaultEntries tables)
+**Last activity:** 2026-01-31 - Completed 09-01-PLAN.md (Delete Coach Code)
 
 **Progress:**
 ```
-[████████████████████████████████████] 57/65 plans complete (Phase 9: 4/10)
+[████████████████████████████████████] 58/65 plans complete (Phase 9: 5/10)
 ```
 
 ---
@@ -54,7 +54,7 @@
 | Phase 6: Code Health & Infrastructure | 13 | 13 | Complete (10/10 plans) |
 | Phase 7: Differentiators | 5 | 5 | Complete (6/6 plans) |
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
-| Phase 9: Bank/Vault Architecture | 5 | 0 | In progress (3/10 plans) |
+| Phase 9: Bank/Vault Architecture | 5 | 0 | In progress (5/10 plans) |
 
 ### Velocity
 
@@ -217,21 +217,21 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 09-04-PLAN.md (Recordings and VaultEntries tables)
+**Stopped at:** Completed 09-01-PLAN.md (Delete Coach Code)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 9 Bank/Vault Architecture in progress. Plans 09-01, 09-02, 09-03, 09-04 complete.
+Phase 9 Bank/Vault Architecture in progress. Plans 09-01, 09-02, 09-03, 09-04 complete (5/10).
 
 **What to remember:**
-- 09-04 completed: Recordings and VaultEntries tables
-  - recordings table with bank ownership, source_app enum, legacy_recording_id for migration
-  - vault_entries table with local context (local_tags, scores, notes) per vault appearance
-  - SECURITY DEFINER helper: get_recording_bank_id
-  - RLS policies enforce bank membership for recordings, vault membership for entries
-  - UNIQUE constraints prevent duplicate recordings per bank and duplicate entries per vault
+- 09-01 completed: Delete Coach Code
+  - Deleted send-coach-invite Edge Function
+  - Dropped coach_relationships, coach_shares, coach_notes tables
+  - Removed all coach frontend code (~6200 lines deleted)
+  - Codebase is now clean of coach references
+- Previous completions: 09-02 (Banks), 09-03 (Vaults), 09-04 (Recordings/VaultEntries)
 - Next: 09-05 (Update signup trigger + drop old team tables + update folders)
 
 ---
@@ -244,11 +244,11 @@ Phase 9 Bank/Vault Architecture in progress. Plans 09-01, 09-02, 09-03, 09-04 co
 | Total Requirements | 58 |
 | Requirements Complete | 54 (93%) |
 | Current Phase | 9 - Bank/Vault Architecture (In progress) |
-| Plans Complete | 57 overall |
+| Plans Complete | 58 overall |
 | Next Plan | 09-05 (Update signup trigger + drop old team tables) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 09-04-PLAN.md - Recordings and VaultEntries tables)*
+*Last updated: 2026-01-31 (Completed 09-01-PLAN.md - Delete Coach Code)*
