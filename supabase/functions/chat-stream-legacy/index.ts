@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { diversityFilter } from '../_shared/search-pipeline.ts';
 
 // DIRECT OpenAI API Implementation
 // The AI SDK has zod bundling issues with esm.sh that cause "safeParseAsync is not a function" errors
@@ -200,26 +201,7 @@ async function rerankResults(
   }
 }
 
-function diversityFilter<T extends { recording_id: number }>(
-  chunks: T[],
-  maxPerRecording: number = 2,
-  targetCount: number = 5
-): T[] {
-  const diverse: T[] = [];
-  const recordingCounts = new Map<number, number>();
-
-  for (const chunk of chunks) {
-    if (diverse.length >= targetCount) break;
-
-    const count = recordingCounts.get(chunk.recording_id) || 0;
-    if (count >= maxPerRecording) continue;
-
-    diverse.push(chunk);
-    recordingCounts.set(chunk.recording_id, count + 1);
-  }
-
-  return diverse;
-}
+// diversityFilter imported from _shared/search-pipeline.ts
 
 // ============================================
 // TOOL DEFINITIONS (OpenAI Function Format)
