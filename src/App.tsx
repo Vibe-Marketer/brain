@@ -35,6 +35,9 @@ import HooksLibrary from '@/pages/HooksLibrary';
 import PostsLibrary from '@/pages/PostsLibrary';
 import EmailsLibrary from '@/pages/EmailsLibrary';
 
+// Automation Rules
+import AutomationRules from '@/pages/AutomationRules';
+
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -106,6 +109,12 @@ function App() {
 
                     {/* Team join page - public-ish route (redirects to login if not authenticated) */}
                     <Route path="/join/team/:token" element={<TeamJoin />} />
+
+                    {/* Automation Rules routes */}
+                    <Route path="/automation-rules" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
+                    <Route path="/automation-rules/new" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
+                    <Route path="/automation-rules/:id" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
+                    <Route path="/automation-rules/:id/history" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
 
                     {/* 404 */}
                     <Route path="*" element={<Navigate to="/" replace />} />
