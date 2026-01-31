@@ -2002,36 +2002,60 @@ export type Database = {
         Row: {
           auto_processing_preferences: Json | null
           created_at: string | null
+          /** Subscription renewal date for trial/expiration checks */
+          current_period_end: string | null
           display_name: string | null
           email: string | null
           id: string
           last_login_at: string | null
           onboarding_completed: boolean | null
+          /** Polar internal customer UUID for API calls */
+          polar_customer_id: string | null
+          /** App user ID sent to Polar (maps to auth.users.id) */
+          polar_external_id: string | null
+          /** Product key identifying tier (e.g., solo-monthly, team-annual) */
+          product_id: string | null
           setup_wizard_completed: boolean | null
+          /** Active Polar subscription UUID (null if free tier) */
+          subscription_id: string | null
+          /** Subscription status: active, canceled, revoked, incomplete, incomplete_expired, trialing, past_due, unpaid */
+          subscription_status: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           auto_processing_preferences?: Json | null
           created_at?: string | null
+          current_period_end?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
           last_login_at?: string | null
           onboarding_completed?: boolean | null
+          polar_customer_id?: string | null
+          polar_external_id?: string | null
+          product_id?: string | null
           setup_wizard_completed?: boolean | null
+          subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           auto_processing_preferences?: Json | null
           created_at?: string | null
+          current_period_end?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
           last_login_at?: string | null
           onboarding_completed?: boolean | null
+          polar_customer_id?: string | null
+          polar_external_id?: string | null
+          product_id?: string | null
           setup_wizard_completed?: boolean | null
+          subscription_id?: string | null
+          subscription_status?: string | null
           updated_at?: string | null
           user_id?: string
         }
@@ -2598,5 +2622,3 @@ export const Constants = {
     },
   },
 } as const
-A new version of Supabase CLI is available: v2.72.7 (currently installed v2.67.1)
-We recommend updating regularly for new features and bug fixes: https://supabase.com/docs/guides/cli/getting-started#updating-the-supabase-cli
