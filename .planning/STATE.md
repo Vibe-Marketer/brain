@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 7 High-Value Differentiators - In Progress (2/5 plans)
+**Current Focus:** Phase 7 High-Value Differentiators - In Progress (3/5 plans)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 7 of 9 (High-Value Differentiators) - In Progress
 
-**Plan:** 2 of 5 in Phase 7 (07-01, 07-03 complete)
+**Plan:** 3 of 5 in Phase 7 (07-01, 07-02, 07-03 complete)
 
-**Status:** In progress - DIFF-01 (PROFITS) and DIFF-05 (Analytics) complete
+**Status:** In progress - DIFF-01 (PROFITS), DIFF-02 (Folder-Level Chat), DIFF-05 (Analytics) complete
 
-**Last activity:** 2026-01-31 - Completed 07-01-PLAN.md (PROFITS Framework)
+**Last activity:** 2026-01-31 - Completed 07-02-PLAN.md (Folder-Level Chat)
 
 **Progress:**
 ```
-[█████████████████████████████░] 46/49 plans complete (phases 1-6 complete, phase 7 in progress)
+[██████████████████████████████░] 47/49 plans complete (phases 1-6 complete, phase 7 in progress)
 ```
 
 ---
@@ -52,7 +52,7 @@
 | Phase 4: Team Collaboration | 2 | 2 | Complete (6/6 plans) |
 | Phase 5: Demo Polish | 12 | 12 | Complete (7/7 plans) |
 | Phase 6: Code Health & Infrastructure | 13 | 0 | Pending |
-| Phase 7: Differentiators | 5 | 2 | In Progress (2/5 plans) |
+| Phase 7: Differentiators | 5 | 3 | In Progress (3/5 plans) |
 | Phase 8: Growth | 4 | 0 | Pending |
 | Phase 9: Team Content Segregation | 5 | 0 | Deferred |
 
@@ -123,6 +123,8 @@
 | 2026-01-31 | cronstrue for human-readable schedules | Converts cron to natural language descriptions | Better UX for CronPreview component |
 | 2026-01-31 | Database-backed rate limiting with fail-open | In-memory Maps reset on cold starts; fail-open for UX | Rate limits persist across Edge Function restarts |
 | 2026-01-31 | Analytics already wired to real data | useCallAnalytics queries fathom_calls directly | DIFF-05 verified, no changes needed |
+| 2026-01-31 | Folder filter resolved at request time | Folders→recording_ids via folder_assignments | Search pipeline unchanged, folder logic isolated |
+| 2026-01-31 | Individual folder pills in header | Users need to see and remove specific folders | Better UX than showing count |
 
 ### Active TODOs
 
@@ -159,6 +161,7 @@ Phase 6 Complete. Ready for Phase 7.
 
 - [x] Execute 07-03-PLAN.md (Verify Real Analytics Data - DIFF-05 verified)
 - [x] Execute 07-01-PLAN.md (PROFITS Framework - extract-profits, usePROFITS, PROFITSReport)
+- [x] Execute 07-02-PLAN.md (Folder-Level Chat - filter resolution, UI, header pills)
 
 ### Pending Todos
 
@@ -182,21 +185,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 07-01-PLAN.md (PROFITS Framework)
+**Stopped at:** Completed 07-02-PLAN.md (Folder-Level Chat)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 7 High-Value Differentiators in progress. Plans 07-01 and 07-03 complete. Plans 07-02, 07-04, 07-05 remain.
+Phase 7 High-Value Differentiators in progress. Plans 07-01, 07-02, and 07-03 complete. Plans 07-04, 07-05 remain.
 
 **What to remember:**
 - 07-01 completed: PROFITS Framework v2 fully implemented
-- New Edge Function: extract-profits (uses Claude 3 Haiku via OpenRouter)
-- New components: PROFITSReport, PROFITSSection, usePROFITS hook
-- Citation system links findings to fathom_transcripts rows
-- TypeScript types for profits_framework column are stale (workaround with unknown cast)
-- 07-02 has preliminary work started (folderIds in ChatFilters type)
+- 07-02 completed: Folder-Level Chat with backend resolution and header pills
+- New migration needed: `20260131000002_add_folder_filter_to_chat_sessions.sql`
+- Folder filter resolution: folder_ids → folder_assignments → recording_ids
+- Individual folder pills in header with removable X buttons
 
 ---
 
@@ -206,13 +208,13 @@ Phase 7 High-Value Differentiators in progress. Plans 07-01 and 07-03 complete. 
 |--------|-------|
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
-| Requirements Complete | 45 (78%) |
+| Requirements Complete | 46 (79%) |
 | Current Phase | 7 - High-Value Differentiators (In Progress) |
-| Plans Complete | 2/5 in Phase 7 (46 overall) |
-| Next Plan | 07-02, 07-04, or 07-05 |
+| Plans Complete | 3/5 in Phase 7 (47 overall) |
+| Next Plan | 07-04 or 07-05 |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 07-01-PLAN.md - PROFITS Framework)*
+*Last updated: 2026-01-31 (Completed 07-02-PLAN.md - Folder-Level Chat)*
