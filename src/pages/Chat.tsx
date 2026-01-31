@@ -656,6 +656,22 @@ export default function Chat() {
                       {filterState.filters.dateStart && <Badge variant="secondary" className="gap-1"><RiCalendarLine className="h-3 w-3" />{format(filterState.filters.dateStart, "MMM d")}{filterState.filters.dateEnd && ` - ${format(filterState.filters.dateEnd, "MMM d")}`}</Badge>}
                       {filterState.filters.speakers.length > 0 && <Badge variant="secondary" className="gap-1"><RiUser3Line className="h-3 w-3" />{filterState.filters.speakers.length} speaker{filterState.filters.speakers.length > 1 ? "s" : ""}</Badge>}
                       {filterState.filters.categories.length > 0 && <Badge variant="secondary" className="gap-1"><RiFolder3Line className="h-3 w-3" />{filterState.filters.categories.length} categor{filterState.filters.categories.length > 1 ? "ies" : "y"}</Badge>}
+                      {filterState.filters.folderIds.map((folderId) => {
+                        const folder = folders.find((f) => f.id === folderId);
+                        return folder ? (
+                          <Badge key={folderId} variant="secondary" className="gap-1 pr-1">
+                            <RiFolder3Line className="h-3 w-3" style={{ color: folder.color || '#6B7280' }} />
+                            <span className="max-w-[100px] truncate">{folder.name}</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); filterState.toggleFolder(folderId); }}
+                              className="ml-1 hover:bg-muted rounded p-0.5 transition-colors"
+                              aria-label={`Remove ${folder.name} folder filter`}
+                            >
+                              <RiCloseLine className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })}
                       {filterState.filters.recordingIds.length > 0 && <Badge variant="secondary" className="gap-1"><RiVideoLine className="h-3 w-3" />{filterState.filters.recordingIds.length} call{filterState.filters.recordingIds.length > 1 ? "s" : ""}</Badge>}
                       <Button variant="hollow" size="sm" onClick={filterState.clearFilters} className="h-6 px-2 text-xs"><RiCloseLine className="h-3 w-3" />Clear</Button>
                     </div>
