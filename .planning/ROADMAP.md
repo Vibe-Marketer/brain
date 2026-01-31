@@ -264,18 +264,32 @@ Plans:
 ### Phase 6: Code Health & Infrastructure
 **Goal:** Technical debt cleaned up, monolithic components refactored, types tightened, infrastructure hardened
 
-**Dependencies:** Phase 6 (ensure features work before refactoring)
+**Dependencies:** Phase 5 (ensure features work before refactoring)
+
+**Plans:** 10 plans in 3 waves
+
+Plans:
+- [ ] 06-01-PLAN.md — Refactor Chat.tsx into sub-components and hooks (REFACTOR-01)
+- [ ] 06-02-PLAN.md — Write tests for extracted Chat components (TDD)
+- [ ] 06-03-PLAN.md — Tighten types in panelStore and SyncTab (REFACTOR-03, REFACTOR-06)
+- [ ] 06-04-PLAN.md — Consolidate deduplication and diversity filter (CLEAN-01, REFACTOR-07)
+- [ ] 06-05-PLAN.md — Delete dead code: Coach functions, TeamManagement (CLEAN-02)
+- [ ] 06-06-PLAN.md — Implement summarize-call and extract-action-items (IMPL-01)
+- [ ] 06-07-PLAN.md — Handle missing table references gracefully (IMPL-02)
+- [ ] 06-08-PLAN.md — Complete cost tracking with dashboard (INFRA-01)
+- [ ] 06-09-PLAN.md — Fix cron parsing with validation UI (INFRA-02)
+- [ ] 06-10-PLAN.md — Database-backed rate limiting (INFRA-03)
 
 **Requirements:**
-- REFACTOR-01: Break down Chat.tsx (1900+ lines monolith)
-- REFACTOR-02: Break down useTeamHierarchy.ts (1200+ lines god hook)
+- REFACTOR-01: Break down Chat.tsx (2008 lines monolith)
+- ~~REFACTOR-02: Break down useTeamHierarchy.ts~~ — SKIPPED per CONTEXT.md (getting overhaul elsewhere)
 - REFACTOR-03: Tighten types in stores (remove any types)
-- REFACTOR-05: Fix AI SDK outdated property (maxTokens in ai-agent.ts)
+- ~~REFACTOR-05: Fix AI SDK outdated property~~ — SKIPPED (ai-agent.ts no longer exists)
 - REFACTOR-06: Tighten types in SyncTab.tsx (Meetings/Jobs loose types)
 - REFACTOR-07: Consolidate inline diversity filter (chat-stream/index.ts duplication)
 - CLEAN-01: Consolidate duplicate deduplication code
-- CLEAN-02: Delete dead code (legacy ai-agent.ts, Real-Time Coach stub, orphaned TeamManagement.tsx)
-- IMPL-01: Create or delete missing automation functions (summarize-call, extract-action-items)
+- CLEAN-02: Delete dead code (Coach Edge Functions, orphaned TeamManagement.tsx)
+- IMPL-01: Create missing automation functions (summarize-call, extract-action-items)
 - IMPL-02: Handle non-existent table references (tasks, clients, client_health_history)
 - INFRA-01: Complete cost tracking for all OpenRouter models
 - INFRA-02: Fix cron expression parsing (placeholder defaulting to 1-hour)
@@ -284,12 +298,12 @@ Plans:
 **Success Criteria:**
 1. Chat.tsx under 500 lines with extracted sub-components (MessageList, InputArea, ConnectionHandler)
 2. Chat streaming logic extracted to custom hooks (testable in isolation)
-3. useTeamHierarchy broken into focused hooks (useTeamPermissions, useTeamData)
+3. ~~useTeamHierarchy broken into focused hooks~~ — SKIPPED per CONTEXT.md
 4. All store interfaces properly typed (zero `any` types in store definitions)
 5. SyncTab.tsx Meetings/Jobs types defined with proper interfaces
 6. Single diversity filter implementation imported by chat-stream (no inline duplication)
 7. Single deduplication implementation used across codebase
-8. Legacy `ai-agent.ts` removed (replaced by Vercel AI SDK in Phase 2)
+8. ~~Legacy `ai-agent.ts` removed~~ — Already removed (no longer exists)
 9. Real-Time Coach stub removed if unused
 10. Orphaned `TeamManagement.tsx` removed if redundant
 11. Automation functions either implemented or references removed (no silent failures)
@@ -382,7 +396,7 @@ Plans:
 | 3.2 - Integration Import Controls | Complete ✅ | 3 | 100% (2/2 plans) |
 | 4 - Team Collaboration | Complete ✅ | 2 | 100% (6/6 plans) |
 | 5 - Demo Polish | Complete ✅ | 12 | 100% (7/7 plans) |
-| 6 - Code Health & Infrastructure | Pending | 13 | 0% |
+| 6 - Code Health & Infrastructure | In Progress | 11 | 0% (10 plans created) |
 | 7 - Differentiators | Pending | 5 | 0% |
 | 8 - Growth Infrastructure | Pending | 4 | 0% |
 | 9 - Team Content Segregation | Deferred | 5 | 0% |
