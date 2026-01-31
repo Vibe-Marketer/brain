@@ -5,17 +5,20 @@
  * - Date range
  * - Speakers
  * - Categories
+ * - Folders
  * - Specific calls
  */
 
 import * as React from 'react';
 import { format } from 'date-fns';
+import { RiFolderLine } from '@remixicon/react';
 import { Badge } from '@/components/ui/badge';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { ChatFilters, ChatSpeaker, ChatCategory, ChatCall } from '@/types/chat';
+import type { Folder } from '@/types/folders';
 
 // ==================== Props Interface ====================
 
@@ -28,12 +31,16 @@ export interface ChatFilterPopoverProps {
   availableSpeakers: ChatSpeaker[];
   /** Available categories */
   availableCategories: ChatCategory[];
+  /** Available folders */
+  availableFolders: Folder[];
   /** Available calls */
   availableCalls: ChatCall[];
   /** Toggle speaker filter */
   toggleSpeaker: (speaker: string) => void;
   /** Toggle category filter */
   toggleCategory: (category: string) => void;
+  /** Toggle folder filter */
+  toggleFolder: (folderId: string) => void;
   /** Toggle call filter */
   toggleCall: (recordingId: number) => void;
 }
@@ -45,9 +52,11 @@ export function ChatFilterPopover({
   setFilters,
   availableSpeakers,
   availableCategories,
+  availableFolders,
   availableCalls,
   toggleSpeaker,
   toggleCategory,
+  toggleFolder,
   toggleCall,
 }: ChatFilterPopoverProps): React.ReactElement {
   return (
@@ -130,6 +139,39 @@ export function ChatFilterPopover({
             <p className="text-sm text-ink-muted py-2">No categories indexed yet</p>
           )}
         </div>
+      </div>
+
+      <Separator className="my-4" />
+
+      {/* Folders */}
+      <div className="mb-4">
+        <label className="text-xs font-medium text-ink-muted uppercase mb-2 block">
+          Folders ({availableFolders.length})
+        </label>
+        <ScrollArea className="h-32">
+          <div className="space-y-1">
+            {availableFolders.map((folder) => (
+              <button
+                key={folder.id}
+                onClick={() => toggleFolder(folder.id)}
+                className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors ${
+                  filters.folderIds.includes(folder.id)
+                    ? 'bg-vibe-orange/10 text-ink'
+                    : 'hover:bg-hover text-ink-soft'
+                }`}
+              >
+                <RiFolderLine 
+                  className="h-4 w-4 flex-shrink-0" 
+                  style={{ color: folder.color || '#6B7280' }}
+                />
+                <span className="truncate">{folder.name}</span>
+              </button>
+            ))}
+            {availableFolders.length === 0 && (
+              <p className="text-sm text-ink-muted py-2">No folders created yet</p>
+            )}
+          </div>
+        </ScrollArea>
       </div>
 
       <Separator className="my-4" />

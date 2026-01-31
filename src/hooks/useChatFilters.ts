@@ -27,6 +27,7 @@ interface UseChatFiltersReturn {
   clearFilters: () => void;
   toggleSpeaker: (speaker: string) => void;
   toggleCategory: (category: string) => void;
+  toggleFolder: (folderId: string) => void;
   toggleCall: (recordingId: number) => void;
   addRecordingId: (recordingId: number) => void;
   setDateRange: (dateStart: Date | undefined, dateEnd: Date | undefined) => void;
@@ -62,6 +63,7 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
         speakers: [],
         categories: [],
         recordingIds: initialLocationState.prefilter.recordingIds || [],
+        folderIds: [],
       };
     }
     return {
@@ -70,6 +72,7 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
       speakers: [],
       categories: [],
       recordingIds: [],
+      folderIds: [],
     };
   });
 
@@ -89,6 +92,7 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
       speakers: filters.speakers.length > 0 ? filters.speakers : undefined,
       categories: filters.categories.length > 0 ? filters.categories : undefined,
       recording_ids: filters.recordingIds.length > 0 ? filters.recordingIds : undefined,
+      folder_ids: filters.folderIds.length > 0 ? filters.folderIds : undefined,
     }),
     [filters]
   );
@@ -100,7 +104,8 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
       filters.dateEnd ||
       filters.speakers.length > 0 ||
       filters.categories.length > 0 ||
-      filters.recordingIds.length > 0
+      filters.recordingIds.length > 0 ||
+      filters.folderIds.length > 0
     );
   }, [filters]);
 
@@ -113,6 +118,7 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
       speakers: [],
       categories: [],
       recordingIds: [],
+      folderIds: [],
     });
   }, []);
 
@@ -131,6 +137,15 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
       categories: prev.categories.includes(category)
         ? prev.categories.filter((c) => c !== category)
         : [...prev.categories, category],
+    }));
+  }, []);
+
+  const toggleFolder = React.useCallback((folderId: string) => {
+    setFilters((prev) => ({
+      ...prev,
+      folderIds: prev.folderIds.includes(folderId)
+        ? prev.folderIds.filter((id) => id !== folderId)
+        : [...prev.folderIds, folderId],
     }));
   }, []);
 
@@ -193,6 +208,7 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
     clearFilters,
     toggleSpeaker,
     toggleCategory,
+    toggleFolder,
     toggleCall,
     addRecordingId,
     setDateRange,

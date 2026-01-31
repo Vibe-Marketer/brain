@@ -16,6 +16,7 @@ export interface ChatFilters {
   speakers: string[];
   categories: string[];
   recordingIds: number[];
+  folderIds: string[];
 }
 
 /**
@@ -27,6 +28,7 @@ export interface ChatApiFilters {
   speakers?: string[];
   categories?: string[];
   recording_ids?: number[];
+  folder_ids?: string[];
 }
 
 /**

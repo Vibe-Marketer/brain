@@ -15,6 +15,7 @@ interface ChatSession {
   filter_speakers: string[];
   filter_categories: string[];
   filter_recording_ids: number[];
+  filter_folder_ids?: string[]; // Optional until migration runs
   is_archived: boolean;
   is_pinned: boolean;
   message_count: number;
@@ -54,6 +55,7 @@ interface CreateSessionParams {
   filter_speakers?: string[];
   filter_categories?: string[];
   filter_recording_ids?: number[];
+  filter_folder_ids?: string[];
 }
 
 interface SaveMessagesParams {
@@ -138,6 +140,7 @@ export function useChatSession(userId: string | undefined) {
           filter_speakers: params.filter_speakers || [],
           filter_categories: params.filter_categories || [],
           filter_recording_ids: params.filter_recording_ids || [],
+          filter_folder_ids: params.filter_folder_ids || [],
         })
         .select()
         .single();

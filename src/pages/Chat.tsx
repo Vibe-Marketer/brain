@@ -50,6 +50,7 @@ import { useBreakpoint } from "@/hooks/useBreakpoint";
 import { useChatSession } from "@/hooks/useChatSession";
 import { useMentions } from "@/hooks/useMentions";
 import { useChatFilters } from "@/hooks/useChatFilters";
+import { useFolders } from "@/hooks/useFolders";
 import {
   useChatStreaming,
   isRateLimitError,
@@ -107,6 +108,9 @@ export default function Chat() {
   const [availableSpeakers, setAvailableSpeakers] = React.useState<ChatSpeaker[]>([]);
   const [availableCategories, setAvailableCategories] = React.useState<ChatCategory[]>([]);
   const [availableCalls, setAvailableCalls] = React.useState<ChatCall[]>([]);
+  
+  // --- Folders for filter ---
+  const { folders } = useFolders();
 
   // --- CallDetailDialog state ---
   const [selectedCall, setSelectedCall] = React.useState<Meeting | null>(null);
@@ -364,7 +368,7 @@ export default function Chat() {
           setCurrentSessionId(null);
           setMessages([]);
           setIsLoadingMessages(false);
-          filterState.setFilters({ speakers: [], categories: [], recordingIds: [] });
+          filterState.setFilters({ speakers: [], categories: [], recordingIds: [], folderIds: [] });
         }
         return;
       }
@@ -379,6 +383,7 @@ export default function Chat() {
             speakers: sessionMeta.filter_speakers || [],
             categories: sessionMeta.filter_categories || [],
             recordingIds: sessionMeta.filter_recording_ids || [],
+            folderIds: sessionMeta.filter_folder_ids || [],
           });
         }
 
@@ -664,7 +669,7 @@ export default function Chat() {
                       <Button variant={filterState.hasActiveFilters ? "default" : "outline"} size="sm" className="gap-1 h-8 px-2 md:px-3"><RiFilterLine className="h-4 w-4" /><span className="hidden md:inline">Filters</span></Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-80 p-0" align="end">
-                      <ChatFilterPopover filters={filterState.filters} setFilters={filterState.setFilters} availableSpeakers={availableSpeakers} availableCategories={availableCategories} availableCalls={availableCalls} toggleSpeaker={filterState.toggleSpeaker} toggleCategory={filterState.toggleCategory} toggleCall={filterState.toggleCall} />
+                      <ChatFilterPopover filters={filterState.filters} setFilters={filterState.setFilters} availableSpeakers={availableSpeakers} availableCategories={availableCategories} availableFolders={folders} availableCalls={availableCalls} toggleSpeaker={filterState.toggleSpeaker} toggleCategory={filterState.toggleCategory} toggleFolder={filterState.toggleFolder} toggleCall={filterState.toggleCall} />
                     </PopoverContent>
                   </Popover>
                 </div>
