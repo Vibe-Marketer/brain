@@ -13,6 +13,22 @@ export interface CalendarInvitee {
   matched_speaker_display_name?: string;
 }
 
+/**
+ * Transcript segment for unsynced meetings (from Fathom API)
+ */
+export interface UnsyncedTranscriptSegment {
+  id: string;
+  recording_id: string | number;
+  speaker_name: string;
+  speaker_email: string | null;
+  text: string;
+  timestamp: string;
+  is_deleted: boolean;
+  edited_text: string | null;
+  edited_speaker_name: string | null;
+  edited_speaker_email: string | null;
+}
+
 export interface Meeting {
   recording_id: string;
   title: string;
@@ -27,7 +43,9 @@ export interface Meeting {
   url?: string;
   share_url?: string;
   summary?: string | null;
-  unsyncedTranscripts?: any[];
+  unsyncedTranscripts?: UnsyncedTranscriptSegment[];
+  /** Source platform for multi-source deduplication */
+  source_platform?: 'fathom' | 'google_meet' | 'zoom' | null;
 }
 
 interface SyncJob {

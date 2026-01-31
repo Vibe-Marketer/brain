@@ -483,7 +483,7 @@ export function SyncTab() {
 
   const filteredExistingTranscripts = existingTranscripts.filter(t => {
     // Source platform filter - default to 'fathom' if not set
-    const platform = (t as any).source_platform || 'fathom';
+    const platform = t.source_platform || 'fathom';
     if (!enabledSources.includes(platform)) {
       return false;
     }
