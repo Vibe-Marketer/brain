@@ -2,8 +2,8 @@
 
 **Created:** 2026-01-27
 **Depth:** Comprehensive (9 phases)
-**Coverage:** 55/55 requirements mapped ✓
-**Last Updated:** 2026-01-28 (Phase 2 complete with gap closures)
+**Coverage:** 58/58 requirements mapped ✓
+**Last Updated:** 2026-01-31 (Roadmap restructure: removed Coach, deferred Team Content Segregation)
 
 ## Overview
 
@@ -216,55 +216,7 @@ Plans:
 
 ---
 
-### Phase 4.5: Team Content Segregation (INSERTED)
-**Goal:** Calls can be assigned to teams, creating workspace segregation between Personal and Team contexts
-
-**Dependencies:** Phase 4 (team infrastructure must exist)
-
-**Plans:** TBD
-
-**Requirements:**
-- TEAM-03: Calls can be assigned/tagged to a team
-- TEAM-04: Personal workspace shows only non-team calls
-- TEAM-05: Team workspace shows only that team's calls
-- TEAM-06: Team members can see each other's team calls (based on visibility)
-- TEAM-07: Hierarchical sharing (members share up, managers share down)
-
-**Success Criteria:**
-1. User can assign a call to a team (moves it from Personal to Team workspace)
-2. Personal workspace no longer shows team-assigned calls
-3. Team workspace shows all calls assigned to that team
-4. Team members see calls based on visibility settings (admin_sees_all, manager visibility)
-5. Members can share calls "up" to managers
-6. Managers can share calls "down" to their reports
-
-**User-Defined Behavior:**
-- Calls tagged to a team move OUT of Personal, INTO Team workspace
-- If multiple teams, each team has its own tag/assignment
-- Visibility controlled by team settings + org hierarchy
-- Sharing flows both directions in the hierarchy
-
----
-
-### Phase 5: Coach Collaboration
-**Goal:** Coaches can be invited, accept invites, and access coachee data
-
-**Dependencies:** Phase 4.5 (coach needs team content model), Phase 4 (coach system builds on team infrastructure)
-
-**Requirements:**
-- COACH-01: Coach invite emails send successfully
-- COACH-02: Coach invite links generate correctly
-- COACH-03: Coach join page accessible via route
-
-**Success Criteria:**
-1. User can invite coach via email address
-2. Coach receives email with invite link
-3. Coach invite link opens accessible join page at `/join/coach/:token`
-4. Coach can accept invite and see coachee's calls in their view
-
----
-
-### Phase 6: Demo Polish — Wiring, Fixes & UI Consistency
+### Phase 5: Demo Polish — Wiring, Fixes & UI Consistency
 **Goal:** All built features are accessible, functional, and visually consistent (no broken pages, crashes, or inconsistent UI patterns)
 
 **Dependencies:** Phase 1-5 (core features must work first)
@@ -298,7 +250,7 @@ Plans:
 
 ---
 
-### Phase 7: Code Health & Infrastructure
+### Phase 6: Code Health & Infrastructure
 **Goal:** Technical debt cleaned up, monolithic components refactored, types tightened, infrastructure hardened
 
 **Dependencies:** Phase 6 (ensure features work before refactoring)
@@ -338,7 +290,7 @@ Plans:
 
 ---
 
-### Phase 8: High-Value Differentiators
+### Phase 7: High-Value Differentiators
 **Goal:** Unique features shipped that differentiate CallVault from generic transcription tools
 
 **Dependencies:** Phase 7 (ship on clean, stable foundation)
@@ -359,24 +311,52 @@ Plans:
 
 ---
 
-### Phase 9: Growth Infrastructure
+### Phase 8: Growth Infrastructure
 **Goal:** Post-launch features enabled to support user acquisition and monetization
 
-**Dependencies:** Phase 8 (ship core product first)
+**Dependencies:** Phase 7 (ship core product first)
 
 **Requirements:**
-- GROW-01: Coach Partner/Affiliate Program
 - GROW-02: 3-tier Billing
 - GROW-03: YouTube Import UI
 - GROW-04: Slack Notification Action
 - GROW-05: Complete Cost Tracking
 
 **Success Criteria:**
-1. Coach can generate affiliate link and see referral commissions
-2. Users can select Solo/Team/Business plan and upgrade/downgrade
-3. User can paste YouTube URL and import video as call transcript
-4. User can configure automation rule to post to Slack channel
-5. Admin dashboard shows AI costs for all OpenRouter models used
+1. Users can select Solo/Team/Business plan and upgrade/downgrade
+2. User can paste YouTube URL and import video as call transcript
+3. User can configure automation rule to post to Slack channel
+4. Admin dashboard shows AI costs for all OpenRouter models used
+
+---
+
+### Phase 9: Team Content Segregation (DEFERRED)
+**Goal:** Calls can be assigned to teams, creating workspace segregation between Personal and Team contexts
+
+**Dependencies:** Phase 4 (team infrastructure must exist)
+
+**Plans:** TBD
+
+**Requirements:**
+- TEAM-03: Calls can be assigned/tagged to a team
+- TEAM-04: Personal workspace shows only non-team calls
+- TEAM-05: Team workspace shows only that team's calls
+- TEAM-06: Team members can see each other's team calls (based on visibility)
+- TEAM-07: Hierarchical sharing (members share up, managers share down)
+
+**Success Criteria:**
+1. User can assign a call to a team (moves it from Personal to Team workspace)
+2. Personal workspace no longer shows team-assigned calls
+3. Team workspace shows all calls assigned to that team
+4. Team members see calls based on visibility settings (admin_sees_all, manager visibility)
+5. Members can share calls "up" to managers
+6. Managers can share calls "down" to their reports
+
+**User-Defined Behavior:**
+- Calls tagged to a team move OUT of Personal, INTO Team workspace
+- If multiple teams, each team has its own tag/assignment
+- Visibility controlled by team settings + org hierarchy
+- Sharing flows both directions in the hierarchy
 
 ---
 
@@ -390,14 +370,13 @@ Plans:
 | 3.1 - Compact Integration UI | Complete ✅ | 3 | 100% (3/3 plans) |
 | 3.2 - Integration Import Controls | Complete ✅ | 3 | 100% (2/2 plans) |
 | 4 - Team Collaboration | Complete ✅ | 2 | 100% (6/6 plans) |
-| 4.5 - Team Content Segregation | Pending | 5 | 0% |
-| 5 - Coach Collaboration | Pending | 3 | 0% |
-| 6 - Demo Polish | Pending | 12 | 0% |
-| 7 - Code Health & Infrastructure | Pending | 13 | 0% |
-| 8 - Differentiators | Pending | 5 | 0% |
-| 9 - Growth Infrastructure | Pending | 5 | 0% |
+| 5 - Demo Polish | Pending | 12 | 0% |
+| 6 - Code Health & Infrastructure | Pending | 13 | 0% |
+| 7 - Differentiators | Pending | 5 | 0% |
+| 8 - Growth Infrastructure | Pending | 4 | 0% |
+| 9 - Team Content Segregation | Deferred | 5 | 0% |
 
-**Overall Progress:** 23/66 requirements complete (35%)
+**Overall Progress:** 23/58 requirements complete (40%)
 
 ---
 
@@ -408,24 +387,22 @@ Phase 1: Security Lockdown (blocks all)
     ↓
 Phase 2: Chat Foundation
     ↓
-Phase 3: Integration OAuth ──┐
-    ↓                         │
-Phase 4: Team Collaboration   │ (Phases 3-5 can partially overlap)
-    ↓                         │
-Phase 4.5: Team Content Segregation
-    ↓                         │
-Phase 5: Coach Collaboration ─┘
+Phase 3: Integration OAuth
     ↓
-Phase 6: Demo Polish
+Phase 4: Team Collaboration ✅
     ↓
-Phase 7: Code Health & Infrastructure
+Phase 5: Demo Polish
     ↓
-Phase 8: Differentiators
+Phase 6: Code Health & Infrastructure
     ↓
-Phase 9: Growth Infrastructure
+Phase 7: Differentiators
+    ↓
+Phase 8: Growth Infrastructure
+    ↓
+Phase 9: Team Content Segregation (deferred - can be done anytime after Phase 4)
 ```
 
-**Note:** Phase 4.5 inserted for team content segregation (calls assigned to teams, workspace filtering). Coach collaboration (Phase 5) depends on this content model.
+**Note:** Coach Collaboration removed from roadmap. Team Content Segregation deferred to Phase 9.
 
 ---
 
@@ -450,49 +427,45 @@ Phase 9: Growth Infrastructure
 | INT-03 | 3 - Integration OAuth |
 | TEAM-01 | 4 - Team Collaboration |
 | TEAM-02 | 4 - Team Collaboration |
-| TEAM-03 | 4.5 - Team Content Segregation |
-| TEAM-04 | 4.5 - Team Content Segregation |
-| TEAM-05 | 4.5 - Team Content Segregation |
-| TEAM-06 | 4.5 - Team Content Segregation |
-| TEAM-07 | 4.5 - Team Content Segregation |
-| COACH-01 | 5 - Coach Collaboration |
-| COACH-02 | 5 - Coach Collaboration |
-| COACH-03 | 5 - Coach Collaboration |
-| WIRE-01 | 6 - Demo Polish |
-| WIRE-02 | 6 - Demo Polish |
-| FIX-01 | 6 - Demo Polish |
-| FIX-02 | 6 - Demo Polish |
-| FIX-03 | 6 - Demo Polish |
-| FIX-04 | 6 - Demo Polish |
-| FIX-05 | 6 - Demo Polish |
-| FIX-06 | 6 - Demo Polish |
-| REFACTOR-04 | 6 - Demo Polish |
-| IMPL-03 | 6 - Demo Polish |
-| DOC-01 | 6 - Demo Polish |
-| DOC-02 | 6 - Demo Polish |
-| REFACTOR-01 | 7 - Code Health |
-| REFACTOR-02 | 7 - Code Health |
-| REFACTOR-03 | 7 - Code Health |
-| REFACTOR-05 | 7 - Code Health |
-| REFACTOR-06 | 7 - Code Health |
-| REFACTOR-07 | 7 - Code Health |
-| CLEAN-01 | 7 - Code Health |
-| CLEAN-02 | 7 - Code Health |
-| IMPL-01 | 7 - Code Health |
-| IMPL-02 | 7 - Code Health |
-| INFRA-01 | 7 - Code Health |
-| INFRA-02 | 7 - Code Health |
-| INFRA-03 | 7 - Code Health |
-| DIFF-01 | 8 - Differentiators |
-| DIFF-02 | 8 - Differentiators |
-| DIFF-03 | 8 - Differentiators |
-| DIFF-04 | 8 - Differentiators |
-| DIFF-05 | 8 - Differentiators |
-| GROW-01 | 9 - Growth |
-| GROW-02 | 9 - Growth |
-| GROW-03 | 9 - Growth |
-| GROW-04 | 9 - Growth |
-| GROW-05 | 9 - Growth |
+| TEAM-03 | 9 - Team Content Segregation (deferred) |
+| TEAM-04 | 9 - Team Content Segregation (deferred) |
+| TEAM-05 | 9 - Team Content Segregation (deferred) |
+| TEAM-06 | 9 - Team Content Segregation (deferred) |
+| TEAM-07 | 9 - Team Content Segregation (deferred) |
+| WIRE-01 | 5 - Demo Polish |
+| WIRE-02 | 5 - Demo Polish |
+| FIX-01 | 5 - Demo Polish |
+| FIX-02 | 5 - Demo Polish |
+| FIX-03 | 5 - Demo Polish |
+| FIX-04 | 5 - Demo Polish |
+| FIX-05 | 5 - Demo Polish |
+| FIX-06 | 5 - Demo Polish |
+| REFACTOR-04 | 5 - Demo Polish |
+| IMPL-03 | 5 - Demo Polish |
+| DOC-01 | 5 - Demo Polish |
+| DOC-02 | 5 - Demo Polish |
+| REFACTOR-01 | 6 - Code Health |
+| REFACTOR-02 | 6 - Code Health |
+| REFACTOR-03 | 6 - Code Health |
+| REFACTOR-05 | 6 - Code Health |
+| REFACTOR-06 | 6 - Code Health |
+| REFACTOR-07 | 6 - Code Health |
+| CLEAN-01 | 6 - Code Health |
+| CLEAN-02 | 6 - Code Health |
+| IMPL-01 | 6 - Code Health |
+| IMPL-02 | 6 - Code Health |
+| INFRA-01 | 6 - Code Health |
+| INFRA-02 | 6 - Code Health |
+| INFRA-03 | 6 - Code Health |
+| DIFF-01 | 7 - Differentiators |
+| DIFF-02 | 7 - Differentiators |
+| DIFF-03 | 7 - Differentiators |
+| DIFF-04 | 7 - Differentiators |
+| DIFF-05 | 7 - Differentiators |
+| GROW-02 | 8 - Growth |
+| GROW-03 | 8 - Growth |
+| GROW-04 | 8 - Growth |
+| GROW-05 | 8 - Growth |
 | UI-INT-01 | 3.1 - Compact Integration UI |
 | UI-INT-02 | 3.1 - Compact Integration UI |
 | UI-INT-03 | 3.1 - Compact Integration UI |
@@ -500,7 +473,7 @@ Phase 9: Growth Infrastructure
 | UI-INT-05 | 3.2 - Integration Import Controls |
 | UI-INT-06 | 3.2 - Integration Import Controls |
 
-**Coverage:** 61/61 requirements mapped ✓
+**Coverage:** 58/58 requirements mapped ✓
 
 ---
 
@@ -512,9 +485,9 @@ Phase 9: Growth Infrastructure
 4. ~~Phase 3.1: Compact Integration UI~~ ✅ Complete (3/3 plans)
 5. ~~Phase 3.2: Integration Import Controls~~ ✅ Complete (2/2 plans)
 6. ~~Phase 4: Team Collaboration~~ ✅ Complete (6/6 plans, all must-haves verified)
-7. Run `/gsd-discuss-phase 5` to gather context for Coach Collaboration
+7. Run `/gsd-plan-phase 5` to plan Demo Polish
 8. Run `/gsd-execute-phase 5` to execute Phase 5
 
 ---
 
-*Last updated: 2026-01-29 (Phase 4 complete - Team Collaboration)*
+*Last updated: 2026-01-31 (Roadmap restructure: removed Coach Collaboration, deferred Team Content Segregation)*

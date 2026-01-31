@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 4 COMPLETE - Ready for Phase 4.5 Team Content Segregation
+**Current Focus:** Phase 4 COMPLETE - Ready for Phase 5 Demo Polish
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 4 of 10 (Team Collaboration) - COMPLETE
+**Phase:** 4 of 9 (Team Collaboration) - COMPLETE
 
 **Plan:** 6 of 6 in Phase 4
 
-**Status:** Phase 4 complete, Phase 4.5 pending
+**Status:** Phase 4 complete, Phase 5 (Demo Polish) pending
 
-**Last activity:** 2026-01-29 - Completed Phase 4 UAT, inserted Phase 4.5 for Team Content Segregation
+**Last activity:** 2026-01-31 - Roadmap restructure: removed Coach Collaboration, deferred Team Content Segregation to Phase 9
 
 **Progress:**
 ```
-[█████████████████████████] 29/58 plans complete (50%)
+[█████████████████████████] 29/29 plans complete (current phases)
 ```
 
 ---
@@ -50,12 +50,11 @@
 | Phase 3.1: Compact Integration UI | 3 | 3 | Complete (3/3 plans) |
 | Phase 3.2: Integration Import Controls | 3 | 3 | Complete (2/2 plans) |
 | Phase 4: Team Collaboration | 2 | 2 | Complete (6/6 plans) |
-| Phase 4.5: Team Content Segregation | 5 | 0 | Pending |
-| Phase 5: Coach Collaboration | 3 | 0 | Pending |
-| Phase 6: Demo Polish | 12 | 0 | Pending |
-| Phase 7: Code Health & Infrastructure | 13 | 0 | Pending |
-| Phase 8: Differentiators | 5 | 0 | Pending |
-| Phase 9: Growth | 5 | 0 | Pending |
+| Phase 5: Demo Polish | 12 | 0 | Pending |
+| Phase 6: Code Health & Infrastructure | 13 | 0 | Pending |
+| Phase 7: Differentiators | 5 | 0 | Pending |
+| Phase 8: Growth | 4 | 0 | Pending |
+| Phase 9: Team Content Segregation | 5 | 0 | Deferred |
 
 ### Velocity
 
@@ -131,14 +130,9 @@
 - [x] Execute 04-05-PLAN.md (Pending Setup Badge)
 - [x] Execute 04-06-PLAN.md (Team Collaboration Verification)
 
-Phase 4 Complete. Next: Phase 4.5 - Team Content Segregation
+Phase 4 Complete. Next: Phase 5 - Demo Polish
 
-Phase 4.5 Requirements (from UAT):
-- TEAM-03: Calls can be assigned/tagged to a team
-- TEAM-04: Personal workspace shows only non-team calls  
-- TEAM-05: Team workspace shows only that team's calls
-- TEAM-06: Team members can see each other's team calls (based on visibility)
-- TEAM-07: Hierarchical sharing (members share up, managers share down)
+(Coach Collaboration removed, Team Content Segregation deferred to Phase 9)
 
 ### Pending Todos
 
@@ -150,6 +144,8 @@ Phase 4.5 Requirements (from UAT):
 
 - Phase 3.1 inserted after Phase 3: Compact Integration UI (URGENT) - Redesign integration cards to compact button/icon format with reusable modal component
 - Phase 3.2 inserted after Phase 3.1: Integration Import Controls - Redesign "Import meetings from" section + per-integration search on/off toggle
+- Coach Collaboration (Phase 5) removed from roadmap entirely
+- Team Content Segregation (Phase 4.5) deferred to Phase 9
 
 ### Known Blockers
 
@@ -166,15 +162,15 @@ None
 ### Context for Next Session
 
 **Where we are:**
-Phase 4 Team Collaboration COMPLETE. UAT passed (7/8 tests, 1 deferred to Phase 4.5).
+Phase 4 Team Collaboration COMPLETE. Roadmap restructured.
 
 **What to remember:**
 - Phase 4 UAT: Team creation, invite links (fixed), join page, switcher (fixed) all working
 - Fixed GAP-1: Invite link storage moved to teams table (was causing duplicate key error)
 - Fixed GAP-2: TeamSwitcher now always visible with "Manage Teams" link
-- Deferred GAP-3: Team content filtering moved to Phase 4.5
-- Phase 4.5 inserted: Team Content Segregation (calls assigned to teams, workspace filtering)
-- Next: Phase 4.5 - Team Content Segregation
+- Coach Collaboration removed from roadmap (entire feature deferred indefinitely)
+- Team Content Segregation moved from Phase 4.5 to Phase 9 (last phase)
+- Next: Phase 5 - Demo Polish
 
 ---
 
@@ -182,15 +178,15 @@ Phase 4 Team Collaboration COMPLETE. UAT passed (7/8 tests, 1 deferred to Phase 
 
 | Metric | Value |
 |--------|-------|
-| Total Phases | 10 (+ 3 inserted: 3.1, 3.2, 4.5) |
-| Total Requirements | 66 |
-| Requirements Complete | 23 (35%) |
+| Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
+| Total Requirements | 58 |
+| Requirements Complete | 23 (40%) |
 | Current Phase | 4 - Team Collaboration COMPLETE |
-| Plans Complete | 6/6 in Phase 4 (29/63 overall) |
-| Next Phase | 4.5 - Team Content Segregation |
+| Plans Complete | 6/6 in Phase 4 (29 overall) |
+| Next Phase | 5 - Demo Polish |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-29 (Completed 04-06-PLAN.md - Phase 4 Complete)*
+*Last updated: 2026-01-31 (Roadmap restructure: removed Coach, deferred Team Content Segregation)*
