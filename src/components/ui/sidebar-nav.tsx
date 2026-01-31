@@ -41,6 +41,8 @@ import {
   RiSettings3Fill,
   RiPieChart2Line,
   RiPieChart2Fill,
+  RiUpload2Line,
+  RiUpload2Fill,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
@@ -165,6 +167,14 @@ const navItems: NavItem[] = [
     iconFill: RiArticleFill,
     path: '/content',
     matchPaths: ['/content', '/content/generators', '/content/library'],
+  },
+  {
+    id: 'import',
+    name: 'Import',
+    iconLine: RiUpload2Line,
+    iconFill: RiUpload2Fill,
+    path: '/import',
+    matchPaths: ['/import'],
   },
   {
     id: 'sorting',
