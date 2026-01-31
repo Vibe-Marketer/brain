@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 8 Growth Infrastructure - COMPLETE (6/6 plans)
+**Current Focus:** Phase 8 Growth Infrastructure - In Progress (4/6 plans complete)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 8 of 9 (Growth Infrastructure) - COMPLETE
+**Phase:** 8 of 9 (Growth Infrastructure) - In Progress
 
-**Plan:** 6 of 6 in Phase 8 (all complete)
+**Plan:** 4 of 6 in Phase 8 (08-01, 08-02, 08-04, 08-06 complete)
 
-**Status:** Phase 8 complete - All GROW requirements delivered
+**Status:** Phase 8 in progress - 08-03, 08-05 remaining
 
-**Last activity:** 2026-01-31 - Completed 08-06-PLAN.md (Admin Cost Dashboard)
+**Last activity:** 2026-01-31 - Completed 08-02-PLAN.md (Polar Edge Functions)
 
 **Progress:**
 ```
-[█████████████████████████████████] 53/55 plans complete (phases 1-8 complete, Phase 7 gap closed)
+[█████████████████████████████████] 51/55 plans complete (08-03, 08-05 remaining in Phase 8)
 ```
 
 ---
@@ -172,11 +172,14 @@ Phase 6 Complete. Ready for Phase 7.
 
 Phase 7 Complete. Ready for Phase 8 (Growth).
 
+- [x] Execute 08-01-PLAN.md (Polar billing schema and SDK client)
+- [x] Execute 08-02-PLAN.md (Polar Edge Functions - webhook, checkout, customer, state)
+- [ ] Execute 08-03-PLAN.md (Polar billing UI and BillingTab integration)
 - [x] Execute 08-04-PLAN.md (YouTube Import Edge Function - orchestration, metadata, progress tracking)
-- [x] Execute 08-05-PLAN.md (YouTube Import UI - ManualImport page, URL input, progress display)
+- [ ] Execute 08-05-PLAN.md (YouTube Import UI and ManualImport page)
 - [x] Execute 08-06-PLAN.md (Admin Cost Dashboard - RPC function, useAdminCosts hook, AdminCostDashboard component)
 
-Phase 8 COMPLETE. All GROW requirements delivered. Ready for Phase 9 (Team Content Segregation) when prioritized.
+Phase 8 in progress (4/6 complete). 08-03 and 08-05 remaining.
 
 ### Pending Todos
 
@@ -200,21 +203,22 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 07-06-PLAN.md (Gap closure: email alerts + NotificationBell)
+**Stopped at:** Completed 08-02-PLAN.md (Polar Edge Functions)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 7 Differentiators fully complete (6/6 plans including gap closure). Phase 8 Growth Infrastructure COMPLETE. Ready for Phase 9 (Team Content Segregation) when prioritized.
+Phase 8 Growth Infrastructure in progress (4/6 plans complete). 08-03 (Billing UI) and 08-05 (YouTube Import UI) remaining.
 
 **What to remember:**
-- Phase 7 gap closure (07-06) completed:
-  - Email alerts wired into check-client-health via automation-email
-  - NotificationBell integrated into TopBar header
-  - Both verification gaps from 07-VERIFICATION.md closed
-- Phase 8 delivered all GROW requirements
-- Phase 9 (Team Content Segregation) is deferred and can be started when needed
+- 08-02 completed: 4 Polar Edge Functions
+  - polar-webhook: Subscription lifecycle events, signature validation
+  - polar-checkout: Checkout URL generation with customerExternalId
+  - polar-create-customer: Creates customers with externalId = user.id
+  - polar-customer-state: On-demand state sync to handle webhook delays
+- Requires Polar dashboard setup: POLAR_ACCESS_TOKEN, POLAR_ORGANIZATION_ID, POLAR_WEBHOOK_SECRET
+- Next: 08-03 (Billing UI) or 08-05 (YouTube Import UI)
 
 ---
 
