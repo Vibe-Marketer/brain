@@ -35,6 +35,14 @@ import {
   RiFilmFill,
 } from "@remixicon/react";
 
+// Import analytics tab components
+import { OverviewTab } from "@/components/analytics/OverviewTab";
+import { DurationTab } from "@/components/analytics/DurationTab";
+import { ParticipationTab } from "@/components/analytics/ParticipationTab";
+import { TalkTimeTab } from "@/components/analytics/TalkTimeTab";
+import { TagsTab } from "@/components/analytics/TagsTab";
+import { ContentTab } from "@/components/analytics/ContentTab";
+
 /** Analytics categories matching AnalyticsCategoryPane */
 export type AnalyticsCategory =
   | "overview"
@@ -226,16 +234,20 @@ export function AnalyticsDetailPane({
   }, [category]);
 
   // Render the appropriate analytics component based on category
-  // For now, render placeholder content - actual components will be added in future stories
   const renderContent = () => {
     switch (displayedCategory) {
       case "overview":
+        return <OverviewTab />;
       case "duration":
+        return <DurationTab />;
       case "participation":
+        return <ParticipationTab />;
       case "talktime":
+        return <TalkTimeTab />;
       case "tags":
+        return <TagsTab />;
       case "content":
-        return <AnalyticsPlaceholder category={displayedCategory} />;
+        return <ContentTab />;
       default:
         return (
           <div className="p-6 text-center text-muted-foreground">
