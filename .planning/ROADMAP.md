@@ -320,14 +320,15 @@ Plans:
 
 **Dependencies:** Phase 6 (ship on clean, stable foundation)
 
-**Plans:** 5 plans in 3 waves
+**Plans:** 6 plans in 3 waves
 
 Plans:
-- [ ] 07-01-PLAN.md — PROFITS Framework extraction and report UI (DIFF-01)
-- [ ] 07-02-PLAN.md — Folder-Level Chat filtering (DIFF-02)
+- [x] 07-01-PLAN.md — PROFITS Framework extraction and report UI (DIFF-01)
+- [x] 07-02-PLAN.md — Folder-Level Chat filtering (DIFF-02)
 - [x] 07-03-PLAN.md — Real Analytics Data verification (DIFF-05) ✓
-- [ ] 07-04-PLAN.md — Contacts Database schema and UI (DIFF-04)
-- [ ] 07-05-PLAN.md — Client Health Alerts with notifications (DIFF-03)
+- [x] 07-04-PLAN.md — Contacts Database schema and UI (DIFF-04)
+- [x] 07-05-PLAN.md — Client Health Alerts with notifications (DIFF-03)
+- [ ] 07-06-PLAN.md — **[GAP FIX]** Wire email alerts + NotificationBell (DIFF-03 gaps)
 
 **Requirements:**
 - DIFF-01: PROFITS Framework v2 (psychology extraction from sales calls)
@@ -416,7 +417,7 @@ Plans:
 | 4 - Team Collaboration | Complete ✅ | 2 | 100% (6/6 plans) |
 | 5 - Demo Polish | Complete ✅ | 12 | 100% (7/7 plans) |
 | 6 - Code Health & Infrastructure | Complete ✅ | 11 | 100% (10/10 plans) |
-| 7 - Differentiators | In Progress | 5 | 20% (1/5 plans) |
+| 7 - Differentiators | In Progress | 5 | 83% (5/6 plans, gap closure pending) |
 | 8 - Growth Infrastructure | Pending | 4 | 0% |
 | 9 - Team Content Segregation | Deferred | 5 | 0% |
 
@@ -531,14 +532,15 @@ Phase 9: Team Content Segregation (deferred - can be done anytime after Phase 4)
 6. ~~Phase 4: Team Collaboration~~ ✅ Complete (6/6 plans, all must-haves verified)
 7. ~~Phase 5: Demo Polish~~ ✅ Complete (7/7 plans, all 12 requirements verified via Playwright)
 8. ~~Phase 6: Code Health & Infrastructure~~ ✅ Complete (10/10 plans, 12/13 must-haves verified)
-9. Phase 7: Differentiators - In Progress (1/5 plans complete)
-   - ~~07-03~~ ✅ Real Analytics Data verified (DIFF-05 satisfied)
-   - 07-01 PROFITS Framework (DIFF-01)
-   - 07-02 Folder-Level Chat (DIFF-02)
-   - 07-04 Contacts Database (DIFF-04)
-   - 07-05 Client Health Alerts (DIFF-03)
-10. Run `/gsd-execute-phase 7` to continue Phase 7
+9. Phase 7: Differentiators - In Progress (5/6 plans complete, gap closure pending)
+   - ~~07-01~~ ✅ PROFITS Framework (DIFF-01)
+   - ~~07-02~~ ✅ Folder-Level Chat (DIFF-02)
+   - ~~07-03~~ ✅ Real Analytics Data verified (DIFF-05)
+   - ~~07-04~~ ✅ Contacts Database (DIFF-04)
+   - ~~07-05~~ ✅ Client Health Alerts (DIFF-03)
+   - 07-06 **[GAP FIX]** Wire email alerts + NotificationBell
+10. Run `/gsd-execute-phase 7 --gaps-only` to close Phase 7 gaps
 
 ---
 
-*Last updated: 2026-01-31 (Phase 7 Differentiators in progress - 1/5 plans complete, DIFF-05 verified)*
+*Last updated: 2026-01-31 (Phase 7 Differentiators - 5/6 plans complete, gap closure plan 07-06 created)*
