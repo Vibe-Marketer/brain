@@ -1,6 +1,7 @@
 /**
  * Contact Card Component
  * Displays detailed contact information in a slide-over panel
+ * Includes health alert banner and re-engagement email modal
  */
 
 import * as React from "react";
@@ -29,6 +30,8 @@ import {
 } from "@remixicon/react";
 import type { ContactWithCallCount, ContactType, UpdateContactInput } from "@/types/contacts";
 import { formatDistanceToNow } from "date-fns";
+import { HealthAlertBanner } from "./HealthAlertBanner";
+import { ReengagementEmailModal } from "./ReengagementEmailModal";
 
 interface ContactCardProps {
   /** Contact to display */
@@ -65,6 +68,7 @@ export function ContactCard({
 }: ContactCardProps) {
   const [notes, setNotes] = React.useState(contact.notes || "");
   const [isNotesChanged, setIsNotesChanged] = React.useState(false);
+  const [showEmailModal, setShowEmailModal] = React.useState(false);
 
   // Reset notes when contact changes
   React.useEffect(() => {
@@ -135,6 +139,12 @@ export function ContactCard({
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-4 space-y-6">
+        {/* Health Alert Banner */}
+        <HealthAlertBanner
+          contact={contact}
+          onSendCheckin={() => setShowEmailModal(true)}
+        />
+
         {/* Contact Info Section */}
         <section className="space-y-3">
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -303,6 +313,13 @@ export function ContactCard({
           )}
         </Button>
       </footer>
+
+      {/* Re-engagement Email Modal */}
+      <ReengagementEmailModal
+        open={showEmailModal}
+        onOpenChange={setShowEmailModal}
+        contact={contact}
+      />
     </div>
   );
 }
