@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (1/10 plans)
+**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (5/10 plans)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 6 of 9 (Code Health & Infrastructure) - In Progress
 
-**Plan:** 4 of 10 in Phase 6
+**Plan:** 5 of 10 in Phase 6
 
-**Status:** In progress - deduplication/diversity filter consolidation complete
+**Status:** In progress - dead code removal complete
 
-**Last activity:** 2026-01-31 - Completed 06-04-PLAN.md (Consolidate deduplication & diversity filter)
+**Last activity:** 2026-01-31 - Completed 06-05-PLAN.md (Dead code removal - coach functions, TeamManagement.tsx)
 
 **Progress:**
 ```
-[██████████████████████████████] 35/44 plans complete (phases 1-5 complete, 06-04 done)
+[██████████████████████████████] 36/44 plans complete (phases 1-5 complete, 06-05 done)
 ```
 
 ---
