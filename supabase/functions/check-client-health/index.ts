@@ -48,6 +48,7 @@ interface HealthCheckResult {
   usersChecked: number;
   contactsChecked: number;
   alertsCreated: number;
+  emailsSent: number;
   errors: string[];
 }
 
@@ -89,6 +90,7 @@ Deno.serve(async (req) => {
       usersChecked: 0,
       contactsChecked: 0,
       alertsCreated: 0,
+      emailsSent: 0,
       errors: [],
     };
 
@@ -174,6 +176,46 @@ Deno.serve(async (req) => {
             if (notifError) {
               result.errors.push(`Notification for ${contact.email}: ${notifError.message}`);
               continue;
+            }
+
+            // Send email alert if enabled (opt-out model - enabled by default)
+            const { data: emailSettings } = await supabase
+              .from('user_contact_settings')
+              .select('email_alerts_enabled')
+              .eq('user_id', userId)
+              .maybeSingle();
+
+            // Default to true (opt-out model) if no settings found
+            const emailEnabled = emailSettings?.email_alerts_enabled ?? true;
+
+            if (emailEnabled) {
+              // Get user's email via admin API
+              const { data: userData } = await supabase.auth.admin.getUserById(userId);
+              const userEmail = userData?.user?.email;
+
+              if (userEmail) {
+                try {
+                  await supabase.functions.invoke('automation-email', {
+                    body: {
+                      to: userEmail,
+                      subject: `Health Alert: ${contact.name || contact.email} needs attention`,
+                      body: `Your contact ${contact.name || contact.email} hasn't been engaged in ${daysSinceSeen === Infinity ? 'a while' : `${daysSinceSeen} days`}.\n\nThreshold: ${threshold} days\n\nLog in to CallVault to generate a re-engagement email.`,
+                      user_id: userId,
+                      context: {
+                        custom: {
+                          contact_name: contact.name || contact.email,
+                          days_since_seen: daysSinceSeen === Infinity ? 'unknown' : String(daysSinceSeen),
+                          threshold_days: String(threshold),
+                        }
+                      }
+                    }
+                  });
+                  result.emailsSent++;
+                } catch (emailError) {
+                  const emailErrorMsg = emailError instanceof Error ? emailError.message : 'Unknown email error';
+                  result.errors.push(`Email for ${contact.email}: ${emailErrorMsg}`);
+                }
+              }
             }
 
             // Update last_alerted_at to reset cooldown
