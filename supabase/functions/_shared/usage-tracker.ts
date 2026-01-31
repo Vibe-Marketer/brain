@@ -10,18 +10,62 @@ import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
 export type OperationType = 'embedding' | 'enrichment' | 'search' | 'chat';
 
 // Pricing per 1M tokens (in USD)
-const PRICING = {
-  'text-embedding-3-small': {
-    input: 0.02, // $0.02 / 1M tokens
-    output: 0,
-  },
-  'gpt-4o-mini': {
-    input: 0.15, // $0.15 / 1M tokens
-    output: 0.60, // $0.60 / 1M tokens
-  },
-} as const;
+// Sources: OpenRouter pricing (https://openrouter.ai/models), OpenAI pricing
+const PRICING: Record<string, { input: number; output: number }> = {
+  // OpenAI Embeddings
+  'text-embedding-3-small': { input: 0.02, output: 0 },
+  'text-embedding-3-large': { input: 0.13, output: 0 },
 
-type SupportedModel = keyof typeof PRICING;
+  // OpenAI Chat Models (direct)
+  'gpt-4o-mini': { input: 0.15, output: 0.60 },
+  'gpt-4o': { input: 2.50, output: 10.00 },
+  'gpt-4-turbo': { input: 10.00, output: 30.00 },
+
+  // OpenAI via OpenRouter (same pricing as direct)
+  'openai/gpt-4o-mini': { input: 0.15, output: 0.60 },
+  'openai/gpt-4o': { input: 2.50, output: 10.00 },
+  'openai/gpt-4-turbo': { input: 10.00, output: 30.00 },
+  'openai/gpt-4.1': { input: 2.00, output: 8.00 },
+  'openai/gpt-4.1-mini': { input: 0.40, output: 1.60 },
+
+  // Anthropic via OpenRouter
+  'anthropic/claude-3-opus': { input: 15.00, output: 75.00 },
+  'anthropic/claude-3-opus-20240229': { input: 15.00, output: 75.00 },
+  'anthropic/claude-3-sonnet': { input: 3.00, output: 15.00 },
+  'anthropic/claude-3-sonnet-20240229': { input: 3.00, output: 15.00 },
+  'anthropic/claude-3-haiku': { input: 0.25, output: 1.25 },
+  'anthropic/claude-3-haiku-20240307': { input: 0.25, output: 1.25 },
+  'anthropic/claude-3.5-sonnet': { input: 3.00, output: 15.00 },
+  'anthropic/claude-3-5-sonnet': { input: 3.00, output: 15.00 },
+  'anthropic/claude-3-5-sonnet-20241022': { input: 3.00, output: 15.00 },
+
+  // Google via OpenRouter
+  'google/gemini-pro': { input: 0.50, output: 1.50 },
+  'google/gemini-pro-1.5': { input: 1.25, output: 5.00 },
+  'google/gemini-2.0-flash': { input: 0.10, output: 0.40 },
+  'google/gemini-2.5-flash': { input: 0.15, output: 0.60 },
+
+  // Chinese models via OpenRouter
+  'z-ai/glm-4.6': { input: 0.05, output: 0.05 },
+
+  // DeepSeek models
+  'deepseek/deepseek-chat': { input: 0.14, output: 0.28 },
+  'deepseek/deepseek-coder': { input: 0.14, output: 0.28 },
+};
+
+/**
+ * Normalize model name to match pricing table
+ *
+ * Handles various formats:
+ * - OpenRouter format: "anthropic/claude-3-haiku" (kept as-is)
+ * - Direct format: "gpt-4o-mini" (kept as-is)
+ * - Full date suffix: "anthropic/claude-3-haiku-20240307" (kept as-is, has entry)
+ */
+function normalizeModelName(model: string): string {
+  // Model names are stored with their full identifier
+  // Just trim whitespace and lowercase for matching
+  return model.trim();
+}
 
 /**
  * Calculate cost in cents from token count
@@ -31,9 +75,12 @@ function calculateCostCents(
   inputTokens: number,
   outputTokens: number = 0
 ): number {
-  const pricing = PRICING[model as SupportedModel];
+  const normalizedModel = normalizeModelName(model);
+  const pricing = PRICING[normalizedModel];
+
   if (!pricing) {
-    // Unknown model, return 0 cost
+    // Log warning for unknown models to help identify missing pricing
+    console.warn(`[usage-tracker] Unknown model pricing: ${model}. Recording 0 cost.`);
     return 0;
   }
 
