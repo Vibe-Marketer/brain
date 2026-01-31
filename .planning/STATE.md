@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 8 Growth Infrastructure - In Progress (5/6 plans complete)
+**Current Focus:** Phase 8 Growth Infrastructure - COMPLETE (6/6 plans)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 8 of 9 (Growth Infrastructure) - In Progress
+**Phase:** 8 of 9 (Growth Infrastructure) - COMPLETE
 
-**Plan:** 5 of 6 in Phase 8 (08-01, 08-02, 08-04, 08-05, 08-06 complete)
+**Plan:** 6 of 6 in Phase 8 (all complete)
 
-**Status:** Phase 8 in progress - 08-03 remaining
+**Status:** Phase 8 complete - Ready for Phase 9 (deferred)
 
-**Last activity:** 2026-01-31 - Completed 08-05-PLAN.md (YouTube Import UI)
+**Last activity:** 2026-01-31 - Completed 08-03-PLAN.md (Polar Billing UI)
 
 **Progress:**
 ```
-[█████████████████████████████████] 52/55 plans complete (08-03 remaining in Phase 8)
+[██████████████████████████████████] 53/55 plans complete (Phase 8 complete!)
 ```
 
 ---
@@ -131,6 +131,8 @@
 | 2026-01-31 | SECURITY DEFINER + role check for admin RPC | Admin-only aggregation needs to bypass RLS but still verify caller role | Pattern for admin-only functions |
 | 2026-01-31 | Empty results for non-admin cost queries | Return empty arrays/zeros rather than errors for non-admins | Simpler frontend logic |
 | 2026-01-31 | Import nav item after Content in sidebar | Logical grouping for content acquisition features | YouTube imports accessible from main nav |
+| 2026-01-31 | UpgradeButton handles checkout internally | Encapsulates ensureCustomer + checkout + redirect | Reusable anywhere without checkout logic duplication |
+| 2026-01-31 | Tier derived from product_id prefix | Product IDs follow format tier-interval (solo-monthly) | No extra API calls needed for tier detection |
 
 ### Active TODOs
 
@@ -175,12 +177,12 @@ Phase 7 Complete. Ready for Phase 8 (Growth).
 
 - [x] Execute 08-01-PLAN.md (Polar billing schema and SDK client)
 - [x] Execute 08-02-PLAN.md (Polar Edge Functions - webhook, checkout, customer, state)
-- [ ] Execute 08-03-PLAN.md (Polar billing UI and BillingTab integration)
+- [x] Execute 08-03-PLAN.md (Polar billing UI and BillingTab integration)
 - [x] Execute 08-04-PLAN.md (YouTube Import Edge Function - orchestration, metadata, progress tracking)
-- [ ] Execute 08-05-PLAN.md (YouTube Import UI and ManualImport page)
+- [x] Execute 08-05-PLAN.md (YouTube Import UI and ManualImport page)
 - [x] Execute 08-06-PLAN.md (Admin Cost Dashboard - RPC function, useAdminCosts hook, AdminCostDashboard component)
 
-Phase 8 in progress (4/6 complete). 08-03 and 08-05 remaining.
+Phase 8 COMPLETE (6/6 plans). Ready for Phase 9 (deferred).
 
 ### Pending Todos
 
@@ -204,22 +206,23 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 08-05-PLAN.md (YouTube Import UI)
+**Stopped at:** Completed 08-03-PLAN.md (Polar Billing UI)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 8 Growth Infrastructure in progress (5/6 plans complete). 08-03 (Billing UI) remaining.
+Phase 8 Growth Infrastructure COMPLETE (6/6 plans). All core functionality built.
 
 **What to remember:**
-- 08-05 completed: YouTube Import UI
-  - ManualImport page at /import with AppShell layout
-  - YouTubeImportForm with URL validation and paste detection
-  - ImportProgress 4-step indicator matching Edge Function steps
-  - Import nav item added to sidebar
-- Depends on 08-04 youtube-import Edge Function
-- Next: 08-03 (Billing UI) to complete Phase 8
+- 08-03 completed: Polar Billing UI
+  - useSubscription hook for tier-aware components
+  - usePolarCustomer hook for customer management
+  - PlanCards component for plan comparison
+  - UpgradeButton component with full checkout flow
+  - BillingTab now shows real subscription state
+- Phase 9 (Team Content Segregation) is deferred
+- Consider: End-to-end testing, launch preparation
 
 ---
 
@@ -229,13 +232,13 @@ Phase 8 Growth Infrastructure in progress (5/6 plans complete). 08-03 (Billing U
 |--------|-------|
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
-| Requirements Complete | 53 (91%) |
-| Current Phase | 8 - Growth Infrastructure (5/6 plans) |
-| Plans Complete | 52 overall |
-| Next Plan | 08-03 (Billing UI) |
+| Requirements Complete | 54 (93%) |
+| Current Phase | 8 - Growth Infrastructure (COMPLETE) |
+| Plans Complete | 53 overall |
+| Next Plan | Phase 9 (deferred) or launch prep |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 08-05-PLAN.md - YouTube Import UI)*
+*Last updated: 2026-01-31 (Completed 08-03-PLAN.md - Polar Billing UI - Phase 8 COMPLETE)*
