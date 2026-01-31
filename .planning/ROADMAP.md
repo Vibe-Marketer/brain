@@ -318,20 +318,29 @@ Plans:
 ### Phase 7: High-Value Differentiators
 **Goal:** Unique features shipped that differentiate CallVault from generic transcription tools
 
-**Dependencies:** Phase 7 (ship on clean, stable foundation)
+**Dependencies:** Phase 6 (ship on clean, stable foundation)
+
+**Plans:** 5 plans in 3 waves
+
+Plans:
+- [ ] 07-01-PLAN.md — PROFITS Framework extraction and report UI (DIFF-01)
+- [ ] 07-02-PLAN.md — Folder-Level Chat filtering (DIFF-02)
+- [ ] 07-03-PLAN.md — Real Analytics Data verification (DIFF-05)
+- [ ] 07-04-PLAN.md — Contacts Database schema and UI (DIFF-04)
+- [ ] 07-05-PLAN.md — Client Health Alerts with notifications (DIFF-03)
 
 **Requirements:**
-- DIFF-01: PROFITS Framework v2
-- DIFF-02: Folder-Level Chat
-- DIFF-03: Client Health Alerts
-- DIFF-04: Manual Upload
-- DIFF-05: Real Analytics Data
+- DIFF-01: PROFITS Framework v2 (psychology extraction from sales calls)
+- DIFF-02: Folder-Level Chat (scope chat to specific folders)
+- DIFF-03: Client Health Alerts (engagement tracking with notifications)
+- DIFF-04: Contacts Database (track attendees from calls)
+- DIFF-05: Real Analytics Data (verify analytics shows real data)
 
 **Success Criteria:**
 1. User can run PROFITS analysis on sales call and see psychology extraction
 2. User can open folder and chat with only that folder's calls
-3. User receives email alert when client sentiment drops below threshold
-4. User can manually upload audio/video file without integration
+3. User receives email alert when client engagement drops below threshold
+4. User can view and manage contacts from call attendees
 5. Analytics tabs show real data from existing hooks (not placeholders)
 
 ---
