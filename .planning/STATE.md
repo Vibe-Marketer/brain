@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 8 Growth Infrastructure - In Progress (4/6 plans complete)
+**Current Focus:** Phase 8 Growth Infrastructure - In Progress (5/6 plans complete)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 8 of 9 (Growth Infrastructure) - In Progress
 
-**Plan:** 4 of 6 in Phase 8 (08-01, 08-02, 08-04, 08-06 complete)
+**Plan:** 5 of 6 in Phase 8 (08-01, 08-02, 08-04, 08-05, 08-06 complete)
 
-**Status:** Phase 8 in progress - 08-03, 08-05 remaining
+**Status:** Phase 8 in progress - 08-03 remaining
 
-**Last activity:** 2026-01-31 - Completed 08-02-PLAN.md (Polar Edge Functions)
+**Last activity:** 2026-01-31 - Completed 08-05-PLAN.md (YouTube Import UI)
 
 **Progress:**
 ```
-[█████████████████████████████████] 51/55 plans complete (08-03, 08-05 remaining in Phase 8)
+[█████████████████████████████████] 52/55 plans complete (08-03 remaining in Phase 8)
 ```
 
 ---
@@ -130,6 +130,7 @@
 | 2026-01-31 | YouTube recording_id range 9000000000000+ | Avoid collision with Fathom recording IDs | Unique ID space per platform |
 | 2026-01-31 | SECURITY DEFINER + role check for admin RPC | Admin-only aggregation needs to bypass RLS but still verify caller role | Pattern for admin-only functions |
 | 2026-01-31 | Empty results for non-admin cost queries | Return empty arrays/zeros rather than errors for non-admins | Simpler frontend logic |
+| 2026-01-31 | Import nav item after Content in sidebar | Logical grouping for content acquisition features | YouTube imports accessible from main nav |
 
 ### Active TODOs
 
@@ -203,22 +204,22 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 08-02-PLAN.md (Polar Edge Functions)
+**Stopped at:** Completed 08-05-PLAN.md (YouTube Import UI)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 8 Growth Infrastructure in progress (4/6 plans complete). 08-03 (Billing UI) and 08-05 (YouTube Import UI) remaining.
+Phase 8 Growth Infrastructure in progress (5/6 plans complete). 08-03 (Billing UI) remaining.
 
 **What to remember:**
-- 08-02 completed: 4 Polar Edge Functions
-  - polar-webhook: Subscription lifecycle events, signature validation
-  - polar-checkout: Checkout URL generation with customerExternalId
-  - polar-create-customer: Creates customers with externalId = user.id
-  - polar-customer-state: On-demand state sync to handle webhook delays
-- Requires Polar dashboard setup: POLAR_ACCESS_TOKEN, POLAR_ORGANIZATION_ID, POLAR_WEBHOOK_SECRET
-- Next: 08-03 (Billing UI) or 08-05 (YouTube Import UI)
+- 08-05 completed: YouTube Import UI
+  - ManualImport page at /import with AppShell layout
+  - YouTubeImportForm with URL validation and paste detection
+  - ImportProgress 4-step indicator matching Edge Function steps
+  - Import nav item added to sidebar
+- Depends on 08-04 youtube-import Edge Function
+- Next: 08-03 (Billing UI) to complete Phase 8
 
 ---
 
@@ -229,12 +230,12 @@ Phase 8 Growth Infrastructure in progress (4/6 plans complete). 08-03 (Billing U
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
 | Requirements Complete | 53 (91%) |
-| Current Phase | All complete through Phase 8 |
-| Plans Complete | 53 overall (including 07-06 gap closure) |
-| Next Phase | 9 - Team Content Segregation (Deferred) |
+| Current Phase | 8 - Growth Infrastructure (5/6 plans) |
+| Plans Complete | 52 overall |
+| Next Plan | 08-03 (Billing UI) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 07-06-PLAN.md - Gap closure for Phase 7)*
+*Last updated: 2026-01-31 (Completed 08-05-PLAN.md - YouTube Import UI)*
