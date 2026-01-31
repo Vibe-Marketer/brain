@@ -16,15 +16,15 @@
 
 **Phase:** 9 of 9 (Bank/Vault Architecture) - In progress
 
-**Plan:** 3 of 10 in Phase 9
+**Plan:** 4 of 10 in Phase 9
 
-**Status:** Phase 9 in progress - 09-03 (Vaults Tables) complete
+**Status:** Phase 9 in progress - 09-04 (Recordings and VaultEntries) complete
 
-**Last activity:** 2026-01-31 - Completed 09-03-PLAN.md (Vaults and VaultMemberships tables)
+**Last activity:** 2026-01-31 - Completed 09-04-PLAN.md (Recordings and VaultEntries tables)
 
 **Progress:**
 ```
-[██████████████████████████████████] 56/65 plans complete (Phase 9: 3/10)
+[████████████████████████████████████] 57/65 plans complete (Phase 9: 4/10)
 ```
 
 ---
@@ -138,6 +138,8 @@
 | 2026-01-31 | SECURITY DEFINER for vault membership checks | Prevents infinite RLS recursion when policies check vault membership tables | Pattern for is_vault_member/is_vault_admin_or_owner |
 | 2026-01-31 | Bank admins can view all vaults in their banks | Oversight capability for bank administrators | Uses separate SELECT policy on vaults table |
 | 2026-01-31 | 5-level vault role hierarchy | vault_owner > vault_admin > manager > member > guest | Granular access control within vaults |
+| 2026-01-31 | VaultEntry enables same recording in multiple vaults | Recording lives in ONE bank, but can appear in many vaults with local context | vault_entries has local_tags, scores, notes per appearance |
+| 2026-01-31 | legacy_recording_id for fathom_calls migration | BIGINT field tracks original fathom_calls.recording_id for migration | UNIQUE(bank_id, legacy_recording_id) prevents duplicates |
 
 ### Active TODOs
 
@@ -191,6 +193,7 @@ Phase 8 COMPLETE (6/6 plans). Phase 9 started.
 
 - [x] Execute 09-02-PLAN.md (Banks and BankMemberships tables with RLS)
 - [x] Execute 09-03-PLAN.md (Vaults and VaultMemberships tables with RLS)
+- [x] Execute 09-04-PLAN.md (Recordings and VaultEntries tables with RLS)
 
 ### Pending Todos
 
@@ -214,22 +217,22 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 09-03-PLAN.md (Vaults and VaultMemberships tables)
+**Stopped at:** Completed 09-04-PLAN.md (Recordings and VaultEntries tables)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 9 Bank/Vault Architecture in progress. Plans 09-01, 09-02, 09-03 complete.
+Phase 9 Bank/Vault Architecture in progress. Plans 09-01, 09-02, 09-03, 09-04 complete.
 
 **What to remember:**
-- 09-03 completed: Vaults and VaultMemberships tables
-  - vaults table with vault_type enum (personal/team/coach/community/client)
-  - vault_memberships with 5-level role hierarchy
-  - SECURITY DEFINER helpers: is_vault_member, is_vault_admin_or_owner, get_vault_bank_id
-  - RLS policies enforce vault isolation within bank boundaries
-  - Bank admins can view all vaults in their banks (oversight)
-- Next: 09-04 (Recordings and VaultEntries tables)
+- 09-04 completed: Recordings and VaultEntries tables
+  - recordings table with bank ownership, source_app enum, legacy_recording_id for migration
+  - vault_entries table with local context (local_tags, scores, notes) per vault appearance
+  - SECURITY DEFINER helper: get_recording_bank_id
+  - RLS policies enforce bank membership for recordings, vault membership for entries
+  - UNIQUE constraints prevent duplicate recordings per bank and duplicate entries per vault
+- Next: 09-05 (Update signup trigger + drop old team tables + update folders)
 
 ---
 
@@ -241,11 +244,11 @@ Phase 9 Bank/Vault Architecture in progress. Plans 09-01, 09-02, 09-03 complete.
 | Total Requirements | 58 |
 | Requirements Complete | 54 (93%) |
 | Current Phase | 9 - Bank/Vault Architecture (In progress) |
-| Plans Complete | 56 overall |
-| Next Plan | 09-04 (Recordings and VaultEntries tables) |
+| Plans Complete | 57 overall |
+| Next Plan | 09-05 (Update signup trigger + drop old team tables) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 09-03-PLAN.md - Vaults and VaultMemberships tables)*
+*Last updated: 2026-01-31 (Completed 09-04-PLAN.md - Recordings and VaultEntries tables)*
