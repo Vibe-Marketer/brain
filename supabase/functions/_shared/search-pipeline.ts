@@ -55,6 +55,7 @@ export interface FormattedSearchResult {
   sentiment?: string;
   text: string;
   relevance: string;
+  share_url?: string | null;
 }
 
 // ============================================
@@ -324,7 +325,25 @@ export async function executeHybridSearch(
 
   console.log(`Search pipeline complete: ${candidates.length} → ${reranked.length} → ${diverse.length} results`);
 
-  // Step 5: Format results
+  // Step 5: Lookup share_urls for unique recording_ids
+  const uniqueRecordingIds = [...new Set(diverse.map((r) => r.recording_id))];
+  let shareUrlMap: Map<number, string | null> = new Map();
+
+  if (uniqueRecordingIds.length > 0) {
+    const { data: calls } = await supabase
+      .from('fathom_calls')
+      .select('recording_id, share_url')
+      .in('recording_id', uniqueRecordingIds)
+      .eq('user_id', userId);
+
+    if (calls) {
+      calls.forEach((c: { recording_id: number; share_url: string | null }) => {
+        shareUrlMap.set(c.recording_id, c.share_url);
+      });
+    }
+  }
+
+  // Step 6: Format results
   return {
     results: diverse.map((r: SearchResult, i: number) => ({
       index: i + 1,
@@ -339,6 +358,7 @@ export async function executeHybridSearch(
       relevance: r.rerank_score
         ? Math.round(r.rerank_score * 100) + '%'
         : Math.round(r.rrf_score * 100) + '%',
+      share_url: shareUrlMap.get(r.recording_id) || null,
     })),
     total_found: candidates.length,
     reranked: reranked.length,

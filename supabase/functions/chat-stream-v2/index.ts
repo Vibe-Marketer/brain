@@ -155,9 +155,11 @@ CITATION INSTRUCTIONS:
 - Always include the sources list even if there is only one source
 
 VIEW MEETING LINKS:
-- When you want to add a "View" link for a specific call, use markdown format: [View](URL)
-- Use the share_url from the tool results if available (e.g., https://fathom.video/share/...)
-- If no share_url, construct it as: https://fathom.video/share/{share_token}?tab=summary
+- When you want to add a "View" link for a specific call, use markdown format: [View](share_url)
+- ALWAYS use the share_url field from the tool results — this is the PUBLIC shareable link
+- The share_url is included in search results, getCallDetails, and getCallsList responses
+- NEVER construct or guess URLs — always use the exact share_url from the data
+- If no share_url is available for a call, do not include a View link for that call
 - The frontend will render these as styled pill buttons that open in a new tab
 
 ERROR DISCLOSURE:
@@ -469,7 +471,7 @@ function createTools(
         try {
           const { data: call, error: callError } = await supabase
             .from('fathom_calls')
-            .select('recording_id, title, created_at, recording_start_time, recording_end_time, recorded_by_name, summary, url')
+            .select('recording_id, title, created_at, recording_start_time, recording_end_time, recorded_by_name, summary, url, share_url')
             .eq('recording_id', numericId)
             .eq('user_id', userId)
             .single();
@@ -511,6 +513,7 @@ function createTools(
             participants: uniqueSpeakers,
             summary: call.summary || 'No summary available',
             url: call.url,
+            share_url: call.share_url,
           };
         } catch (error) {
           console.error('[chat-stream-v2] getCallDetails error:', error);
@@ -535,7 +538,7 @@ function createTools(
         try {
           let callsQuery = supabase
             .from('fathom_calls')
-            .select('recording_id, title, created_at, summary, recorded_by_name')
+            .select('recording_id, title, created_at, summary, recorded_by_name, share_url')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
@@ -566,11 +569,13 @@ function createTools(
               created_at: string;
               recorded_by_name: string;
               summary: string | null;
+              share_url: string | null;
             }) => ({
               recording_id: c.recording_id,
               title: c.title,
               date: c.created_at,
               recorded_by: c.recorded_by_name,
+              share_url: c.share_url,
               summary_preview: c.summary
                 ? c.summary.substring(0, 400) + (c.summary.length > 400 ? '...' : '')
                 : 'No summary',
