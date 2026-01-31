@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (4/10 plans)
+**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (5/10 plans)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 6 of 9 (Code Health & Infrastructure) - In Progress
 
-**Plan:** 4 of 10 in Phase 6
+**Plan:** 5 of 10 in Phase 6
 
-**Status:** In progress - Chat.tsx refactored, type safety improvements complete
+**Status:** In progress - Missing table references handled gracefully
 
-**Last activity:** 2026-01-31 - Completed 06-01-PLAN.md (Chat.tsx refactoring - 2008 to 689 lines)
+**Last activity:** 2026-01-31 - Completed 06-07-PLAN.md (Handle missing table references)
 
 **Progress:**
 ```
-[██████████████████████████████] 38/44 plans complete (phases 1-5 complete, 06-01/03/04/05 done)
+[██████████████████████████████] 39/44 plans complete (phases 1-5 complete, 06-01/03/04/05/07 done)
 ```
 
 ---
@@ -118,6 +118,7 @@
 | 2026-01-31 | Database type imports for Supabase tables | Ensures types stay in sync with schema, no manual interface maintenance | AutomationRules uses Database['public']['Tables']['X']['Row'] |
 | 2026-01-31 | Discriminated union for PanelData | Use 'type' field as discriminator for type-safe panel data access | All panel components use type narrowing |
 | 2026-01-31 | source_platform on Meeting interface | Support multi-source deduplication (fathom, google_meet, zoom) | SyncTab filters work with all platforms |
+| 2026-01-31 | Graceful skip for missing tables | clients/tasks tables don't exist yet (Phase 7 feature) | Automation engine stable, won't crash |
 
 ### Active TODOs
 
@@ -172,20 +173,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 06-01-PLAN.md
+**Stopped at:** Completed 06-07-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 6 Code Health & Infrastructure in progress. 4 of 10 plans complete (06-01, 06-03, 06-04, 06-05).
+Phase 6 Code Health & Infrastructure in progress. 5 of 10 plans complete (06-01, 06-03, 06-04, 06-05, 06-07).
 
 **What to remember:**
-- 06-01 completed: Chat.tsx refactored from 2008 to 689 lines (66% reduction)
-- New hooks: useChatStreaming, useChatFilters at src/hooks/
-- New components: ChatMessageList, ChatInputArea, ChatConnectionHandler, ChatFilterPopover
-- New types at src/types/chat.ts
-- Next: 06-02-PLAN.md (Supabase client consolidation)
+- 06-07 completed: Missing table references (clients, tasks) handled gracefully
+- executeUpdateClientHealth now checks if clients table exists before querying
+- executeCreateTask has improved messaging for missing tasks table
+- Client Health feature tables will be created in Phase 7 (DIFF-03)
+- Remaining Phase 6 plans: 06-02, 06-06, 06-08, 06-09, 06-10
 
 ---
 
@@ -197,11 +198,11 @@ Phase 6 Code Health & Infrastructure in progress. 4 of 10 plans complete (06-01,
 | Total Requirements | 58 |
 | Requirements Complete | 43 (74%) |
 | Current Phase | 6 - Code Health & Infrastructure (In Progress) |
-| Plans Complete | 4/10 in Phase 6 (38 overall) |
-| Next Plan | 06-02-PLAN.md |
+| Plans Complete | 5/10 in Phase 6 (39 overall) |
+| Next Plan | Continue Wave 2 (06-02, 06-06, 06-08, 06-09) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 06-01-PLAN.md - Chat.tsx refactoring)*
+*Last updated: 2026-01-31 (Completed 06-07-PLAN.md - Handle missing table references)*
