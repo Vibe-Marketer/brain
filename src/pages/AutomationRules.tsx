@@ -397,9 +397,16 @@ function RulesTable({
                   </span>
                 </td>
                 <td className="py-3 px-4">
-                  <span className="text-sm text-muted-foreground">
-                    {formatDateTime(rule.last_applied_at)}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-sm text-muted-foreground">
+                      {formatDateTime(rule.last_applied_at)}
+                    </span>
+                    {rule.trigger_type === "scheduled" && rule.next_run_at && (
+                      <span className="text-xs text-muted-foreground/70">
+                        Next: {formatDateTime(rule.next_run_at)}
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="py-3 px-4 text-right">
                   <DropdownMenu>
