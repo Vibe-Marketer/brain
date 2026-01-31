@@ -350,16 +350,26 @@ Plans:
 
 **Dependencies:** Phase 7 (ship core product first)
 
+**Plans:** 6 plans in 3 waves
+
+Plans:
+- [ ] 08-01-PLAN.md — Polar billing schema and SDK client (GROW-02)
+- [ ] 08-02-PLAN.md — Polar Edge Functions for subscription lifecycle (GROW-02)
+- [ ] 08-03-PLAN.md — Polar billing UI and BillingTab integration (GROW-02)
+- [ ] 08-04-PLAN.md — YouTube import Edge Function (GROW-03)
+- [ ] 08-05-PLAN.md — YouTube import UI and ManualImport page (GROW-03)
+- [ ] 08-06-PLAN.md — Admin cost dashboard extension (GROW-05)
+
 **Requirements:**
-- GROW-02: 3-tier Billing
+- GROW-02: 3-tier Billing (Polar integration)
 - GROW-03: YouTube Import UI
-- GROW-04: Slack Notification Action
+- ~~GROW-04: Slack Notification Action~~ — DEFERRED per CONTEXT.md
 - GROW-05: Complete Cost Tracking
 
 **Success Criteria:**
-1. Users can select Solo/Team/Business plan and upgrade/downgrade
+1. Users can select Solo/Team/Business plan and upgrade/downgrade via Polar
 2. User can paste YouTube URL and import video as call transcript
-3. User can configure automation rule to post to Slack channel
+3. ~~User can configure automation rule to post to Slack channel~~ — DEFERRED
 4. Admin dashboard shows AI costs for all OpenRouter models used
 
 ---
