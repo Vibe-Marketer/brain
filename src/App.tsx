@@ -38,6 +38,9 @@ import EmailsLibrary from '@/pages/EmailsLibrary';
 // Automation Rules
 import AutomationRules from '@/pages/AutomationRules';
 
+// Manual Import
+import ManualImport from '@/pages/ManualImport';
+
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -115,6 +118,9 @@ function App() {
                     <Route path="/automation-rules/new" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
                     <Route path="/automation-rules/:id" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
                     <Route path="/automation-rules/:id/history" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
+
+                    {/* Manual Import route */}
+                    <Route path="/import" element={<ProtectedRoute><Layout><ManualImport /></Layout></ProtectedRoute>} />
 
                     {/* 404 */}
                     <Route path="*" element={<Navigate to="/" replace />} />
