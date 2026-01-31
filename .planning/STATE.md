@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 9 Bank/Vault Architecture - In progress (5/10 plans)
+**Current Focus:** Phase 9 Bank/Vault Architecture - In progress (8/10 plans)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 9 of 9 (Bank/Vault Architecture) - In progress
 
-**Plan:** 6 of 10 in Phase 9
+**Plan:** 8 of 10 in Phase 9
 
-**Status:** Phase 9 in progress - 09-05 (Signup Trigger & Drop Teams) complete
+**Status:** Phase 9 in progress - 09-08 (Bank Switcher UI in Header) complete
 
-**Last activity:** 2026-01-31 - Completed 09-05-PLAN.md (Signup Trigger & Drop Teams)
+**Last activity:** 2026-01-31 - Completed 09-08-PLAN.md (Bank Switcher UI in Header)
 
 **Progress:**
 ```
-[█████████████████████████████████████] 59/65 plans complete (Phase 9: 6/10)
+[██████████████████████████████████████] 61/65 plans complete (Phase 9: 8/10)
 ```
 
 ---
@@ -54,7 +54,7 @@
 | Phase 6: Code Health & Infrastructure | 13 | 13 | Complete (10/10 plans) |
 | Phase 7: Differentiators | 5 | 5 | Complete (6/6 plans) |
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
-| Phase 9: Bank/Vault Architecture | 5 | 0 | In progress (6/10 plans) |
+| Phase 9: Bank/Vault Architecture | 5 | 0 | In progress (8/10 plans) |
 
 ### Velocity
 
@@ -195,6 +195,9 @@ Phase 8 COMPLETE (6/6 plans). Phase 9 started.
 - [x] Execute 09-03-PLAN.md (Vaults and VaultMemberships tables with RLS)
 - [x] Execute 09-04-PLAN.md (Recordings and VaultEntries tables with RLS)
 - [x] Execute 09-05-PLAN.md (Signup trigger + drop old team tables + update folders)
+- [x] Execute 09-06-PLAN.md (Migration function for fathom_calls to recordings)
+- [x] Execute 09-07-PLAN.md (Bank context store and useBankContext hook)
+- [x] Execute 09-08-PLAN.md (Bank Switcher UI in header)
 
 ### Pending Todos
 
@@ -218,22 +221,25 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 09-05-PLAN.md (Signup Trigger & Drop Teams)
+**Stopped at:** Completed 09-08-PLAN.md (Bank Switcher UI in Header)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 9 Bank/Vault Architecture in progress. Plans 09-01 through 09-05 complete (6/10).
+Phase 9 Bank/Vault Architecture in progress. Plans 09-01 through 09-08 complete (8/10).
 
 **What to remember:**
-- 09-05 completed: Signup Trigger & Drop Old Team Tables
-  - Updated handle_new_user() to auto-create personal bank+vault on signup
-  - Dropped legacy team infrastructure (teams, team_memberships, team_shares, manager_notes)
-  - Added vault_id and visibility columns to folders table
-  - RLS policies updated for vault-level folder access
-- Previous completions: 09-01 (Delete Coach), 09-02 (Banks), 09-03 (Vaults), 09-04 (Recordings/VaultEntries)
-- Next: 09-06 (Data Migration) - migrate existing data to Bank/Vault model
+- 09-08 completed: Bank Switcher UI in Header
+  - Created src/components/header/BankSwitcher.tsx following TeamSwitcher pattern
+  - Replaced TeamSwitcher with BankSwitcher in TopBar
+  - Shows current bank + vault in header
+  - Banks dropdown with role badges
+  - Vaults section within active bank
+  - "All Recordings" option for no vault filter
+  - "Create Business Bank" Pro CTA
+- Previous completions: 09-01 through 09-07
+- Next: 09-09 (Recording Queries Update)
 
 ---
 
@@ -245,11 +251,11 @@ Phase 9 Bank/Vault Architecture in progress. Plans 09-01 through 09-05 complete 
 | Total Requirements | 58 |
 | Requirements Complete | 54 (93%) |
 | Current Phase | 9 - Bank/Vault Architecture (In progress) |
-| Plans Complete | 59 overall |
-| Next Plan | 09-06 (Data Migration) |
+| Plans Complete | 61 overall |
+| Next Plan | 09-09 (Recording Queries Update) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 09-05-PLAN.md - Signup Trigger & Drop Teams)*
+*Last updated: 2026-01-31 (Completed 09-08-PLAN.md - Bank Switcher UI in Header)*
