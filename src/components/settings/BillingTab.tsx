@@ -1,10 +1,12 @@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RiBankCardLine, RiSparkling2Line, RiCpuLine } from "@remixicon/react";
+import { RiBankCardLine, RiCpuLine, RiCalendarLine } from "@remixicon/react";
 import { BarChart } from "@tremor/react";
 import { useEmbeddingCosts } from "@/hooks/useEmbeddingCosts";
-import { useUserRole } from "@/hooks/useUserRole";
+import { useSubscription, type SubscriptionTier } from "@/hooks/useSubscription";
+import { PlanCards } from "@/components/billing/PlanCards";
+import { UpgradeButton } from "@/components/billing/UpgradeButton";
 
 /**
  * Format USD with appropriate precision
@@ -31,26 +33,28 @@ function formatTokens(tokens: number): string {
 }
 
 /**
- * Get plan details based on user role
- * Maps database roles to actual pricing tiers
+ * Get plan details based on subscription tier
+ * Maps Polar tiers to display information
  */
-function getPlanDetails(role: string) {
-  switch (role) {
-    case "ADMIN":
+function getPlanDetails(tier: SubscriptionTier) {
+  switch (tier) {
+    case "business":
       return {
-        name: "Admin",
-        displayName: "Admin",
-        price: null,
-        description: "Full system access with administrative privileges and all features.",
+        name: "Business",
+        displayName: "Business",
+        price: "$249/mo",
+        annualPrice: "$2,390/yr (save $598)",
+        description: "Up to 20 users with advanced admin controls and priority support.",
         badgeVariant: "default" as const,
         features: [
-          "All Business features",
-          "Full administrative access",
-          "System configuration",
-          "User management",
+          "Up to 20 full users",
+          "Advanced admin controls",
+          "5 coaches / 10 coachees",
+          "Priority support",
+          "Custom integrations",
         ],
       };
-    case "TEAM":
+    case "team":
       return {
         name: "Team",
         displayName: "Team",
@@ -65,13 +69,8 @@ function getPlanDetails(role: string) {
           "2 coaches / 3 coachees",
           "Unlimited coach notes",
         ],
-        nextTier: {
-          name: "Business",
-          price: "$249/mo",
-          benefits: ["Up to 20 users", "Advanced admin controls", "5 coaches / 10 coachees", "Priority support"],
-        },
       };
-    case "PRO":
+    case "solo":
       return {
         name: "Solo",
         displayName: "Solo",
@@ -86,13 +85,8 @@ function getPlanDetails(role: string) {
           "1 coach + 1 coachee",
           "10 notes per call",
         ],
-        nextTier: {
-          name: "Team",
-          price: "$99/mo",
-          benefits: ["Up to 5 users", "Team hierarchy", "Shared folders", "More coaching capacity"],
-        },
       };
-    case "FREE":
+    case "free":
     default:
       return {
         name: "Free",
@@ -107,13 +101,40 @@ function getPlanDetails(role: string) {
           "View-only for shared calls",
           "No Teams or coaching",
         ],
-        nextTier: {
-          name: "Solo",
-          price: "$29/mo",
-          benefits: ["Unlimited calls", "AI summaries", "Coaching features", "Advanced AI search"],
-        },
       };
   }
+}
+
+/**
+ * Format subscription status for display
+ */
+function formatStatus(status: string | null): { label: string; variant: "default" | "outline" | "destructive" } {
+  switch (status) {
+    case "active":
+      return { label: "Active", variant: "default" };
+    case "trialing":
+      return { label: "Trial", variant: "outline" };
+    case "canceled":
+      return { label: "Canceled", variant: "destructive" };
+    case "past_due":
+      return { label: "Past Due", variant: "destructive" };
+    case "unpaid":
+      return { label: "Unpaid", variant: "destructive" };
+    default:
+      return { label: "Free", variant: "outline" };
+  }
+}
+
+/**
+ * Format date for display
+ */
+function formatDate(date: Date | null): string {
+  if (!date) return "";
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }
 
 export default function BillingTab() {
@@ -128,7 +149,14 @@ export default function BillingTab() {
     error,
   } = useEmbeddingCosts(6);
 
-  const { role, loading: roleLoading, isPro, isTeam, isAdmin } = useUserRole();
+  const {
+    tier,
+    status,
+    periodEnd,
+    isPaid,
+    isLoading: subscriptionLoading,
+    error: subscriptionError,
+  } = useSubscription();
 
   return (
     <div>
@@ -268,13 +296,17 @@ export default function BillingTab() {
           </p>
         </div>
         <div className="lg:col-span-2">
-          {roleLoading ? (
+          {subscriptionLoading ? (
             <div className="flex items-start gap-4">
               <Skeleton className="h-12 w-12 rounded-lg" />
               <div className="flex-1 space-y-2">
                 <Skeleton className="h-6 w-32" />
                 <Skeleton className="h-4 w-full" />
               </div>
+            </div>
+          ) : subscriptionError ? (
+            <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg text-sm text-red-600 dark:text-red-400">
+              Failed to load subscription data: {subscriptionError.message}
             </div>
           ) : (
             <div className="space-y-6">
@@ -285,24 +317,37 @@ export default function BillingTab() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-semibold">{getPlanDetails(role).displayName} Plan</h3>
-                    <Badge variant={getPlanDetails(role).badgeVariant}>Active</Badge>
-                    {getPlanDetails(role).price && (
+                    <h3 className="text-lg font-semibold">{getPlanDetails(tier).displayName} Plan</h3>
+                    <Badge variant={formatStatus(status).variant}>{formatStatus(status).label}</Badge>
+                    {getPlanDetails(tier).price && (
                       <span className="text-sm font-medium text-muted-foreground">
-                        {getPlanDetails(role).price}
+                        {getPlanDetails(tier).price}
                       </span>
                     )}
                   </div>
-                  {getPlanDetails(role).annualPrice && (
+                  {getPlanDetails(tier).annualPrice && (
                     <p className="text-xs text-muted-foreground mb-2">
-                      Or {getPlanDetails(role).annualPrice}
+                      Or {getPlanDetails(tier).annualPrice}
                     </p>
                   )}
                   <p className="text-sm text-muted-foreground">
-                    {getPlanDetails(role).description}
+                    {getPlanDetails(tier).description}
                   </p>
                 </div>
               </div>
+
+              {/* Subscription Details (for paid plans) */}
+              {isPaid && periodEnd && (
+                <div className="pl-16">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <RiCalendarLine className="h-4 w-4" />
+                    <span>
+                      {status === 'canceled' ? 'Access until: ' : 'Renews: '}
+                      {formatDate(periodEnd)}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Plan Features */}
               <div className="pl-16">
@@ -310,7 +355,7 @@ export default function BillingTab() {
                   What's included
                 </h4>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  {getPlanDetails(role).features?.map((feature, index) => (
+                  {getPlanDetails(tier).features?.map((feature, index) => (
                     <li key={index} className="flex items-center gap-2">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                       {feature}
@@ -318,12 +363,21 @@ export default function BillingTab() {
                   ))}
                 </ul>
               </div>
+
+              {/* Upgrade CTA for free users */}
+              {tier === 'free' && (
+                <div className="pl-16">
+                  <UpgradeButton productId="solo-monthly" className="mt-2">
+                    Upgrade to Solo
+                  </UpgradeButton>
+                </div>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* All Plans - Show pricing table for reference */}
+      {/* All Plans - Interactive plan comparison with PlanCards */}
       <Separator className="my-16" />
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
@@ -331,107 +385,33 @@ export default function BillingTab() {
             All Plans
           </h2>
           <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Compare features across all tiers
+            Compare features and upgrade your plan
           </p>
         </div>
         <div className="lg:col-span-2">
-          <div className="space-y-4">
-            {/* Free Tier */}
-            <div className="p-4 bg-muted/30 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">Free</h4>
-                <span className="text-sm text-muted-foreground">$0</span>
-              </div>
-              <p className="text-xs text-muted-foreground">300 min/month • View shared calls • Limited storage</p>
+          <PlanCards
+            currentTier={tier}
+            onUpgrade={() => {
+              // Handled internally by PlanCards' UpgradeButton components
+            }}
+            isLoading={subscriptionLoading}
+          />
+          
+          {/* Enterprise callout */}
+          <div className="mt-6 p-4 bg-muted/30 rounded-lg">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="font-medium">Enterprise</h4>
+              <span className="text-sm text-muted-foreground">Custom pricing</span>
             </div>
-
-            {/* Solo Tier */}
-            <div className="p-4 bg-muted/30 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">Solo</h4>
-                <span className="text-sm text-muted-foreground">$29/mo or $278/yr</span>
-              </div>
-              <p className="text-xs text-muted-foreground">1 user • Unlimited calls • 1 coach/coachee • AI search</p>
-            </div>
-
-            {/* Team Tier */}
-            <div className="p-4 bg-muted/30 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">Team</h4>
-                <span className="text-sm text-muted-foreground">$99/mo or $950/yr</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Up to 5 users • Team hierarchy • Shared folders • 2 coaches/3 coachees</p>
-            </div>
-
-            {/* Business Tier */}
-            <div className="p-4 bg-muted/30 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">Business</h4>
-                <span className="text-sm text-muted-foreground">$249/mo or $2,390/yr</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Up to 20 users • Advanced admin • 5 coaches/10 coachees • Priority support</p>
-            </div>
-
-            {/* Enterprise Tier */}
-            <div className="p-4 bg-muted/30 rounded-lg">
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium">Enterprise</h4>
-                <span className="text-sm text-muted-foreground">Custom pricing</span>
-              </div>
-              <p className="text-xs text-muted-foreground">Unlimited users • SSO • Dedicated CSM • SLA • Custom security</p>
-            </div>
+            <p className="text-xs text-muted-foreground">
+              Unlimited users • SSO • Dedicated CSM • SLA • Custom security
+            </p>
+            <p className="text-xs text-muted-foreground mt-2">
+              Contact us for enterprise pricing and features.
+            </p>
           </div>
         </div>
       </div>
-
-      {/* Upgrade to Next Tier - Show for FREE, PRO, and TEAM users */}
-      {!roleLoading && getPlanDetails(role).nextTier && (
-        <>
-          <Separator className="my-16" />
-          <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-            <div>
-              <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-                Upgrade to {getPlanDetails(role).nextTier.name}
-              </h2>
-              <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-                Unlock more features and capacity
-              </p>
-            </div>
-            <div className="lg:col-span-2">
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-vibe-orange/20 to-vibe-orange/10 flex items-center justify-center">
-                  <RiSparkling2Line className="h-6 w-6 text-vibe-orange" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="text-lg font-semibold">{getPlanDetails(role).nextTier.name} Plan</h3>
-                    <Badge variant="outline">Upgrade</Badge>
-                    <span className="text-sm font-medium text-muted-foreground">
-                      {getPlanDetails(role).nextTier.price}
-                    </span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Get access to these additional features:
-                  </p>
-                  <ul className="space-y-2 text-sm text-muted-foreground mb-6">
-                    {getPlanDetails(role).nextTier.benefits.map((benefit, index) => (
-                      <li key={index} className="flex items-center gap-2">
-                        <div className="h-1.5 w-1.5 rounded-full bg-vibe-orange" />
-                        {benefit}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-xs">
-                      Coming Soon - Stripe Integration
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </>
-      )}
     </div>
   );
 }

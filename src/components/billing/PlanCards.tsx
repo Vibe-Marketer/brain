@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { RiCheckLine, RiStarLine } from "@remixicon/react";
 import type { SubscriptionTier } from "@/hooks/useSubscription";
+import { UpgradeButton } from "./UpgradeButton";
 
 /**
  * Plan tier definition for display
@@ -87,8 +88,8 @@ const PLANS: PlanTier[] = [
 export interface PlanCardsProps {
   /** Current user's tier */
   currentTier: SubscriptionTier;
-  /** Callback when upgrade is requested */
-  onUpgrade: (productId: string) => void;
+  /** Callback when upgrade is requested (optional - UpgradeButton handles checkout internally) */
+  onUpgrade?: (productId: string) => void;
   /** Loading state */
   isLoading?: boolean;
   /** Whether to show annual pricing toggle (default: show monthly) */
@@ -105,7 +106,7 @@ export interface PlanCardsProps {
  */
 export function PlanCards({
   currentTier,
-  onUpgrade,
+  onUpgrade: _onUpgrade, // Legacy prop - UpgradeButton handles checkout internally
   isLoading = false,
   showAnnual = false,
 }: PlanCardsProps) {
@@ -209,29 +210,29 @@ export function PlanCards({
                   Current Plan
                 </Button>
               ) : isUpgrade ? (
-                <Button 
+                <UpgradeButton 
+                  productId={productId}
                   variant="default" 
                   className="w-full"
-                  onClick={() => onUpgrade(productId)}
                 >
                   Upgrade to {plan.name}
-                </Button>
+                </UpgradeButton>
               ) : isDowngrade ? (
-                <Button 
+                <UpgradeButton 
+                  productId={productId}
                   variant="outline" 
                   className="w-full"
-                  onClick={() => onUpgrade(productId)}
                 >
                   Downgrade to {plan.name}
-                </Button>
+                </UpgradeButton>
               ) : (
-                <Button 
+                <UpgradeButton 
+                  productId={productId}
                   variant="default" 
                   className="w-full"
-                  onClick={() => onUpgrade(productId)}
                 >
                   Get Started
-                </Button>
+                </UpgradeButton>
               )}
             </div>
 
