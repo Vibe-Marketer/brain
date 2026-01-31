@@ -224,7 +224,7 @@ Plans:
 **Plans:** 7 plans in 3 waves
 
 Plans:
-- [ ] 05-01-PLAN.md — Route Automation Rules + fix CallDetailPage query (WIRE-01, IMPL-03)
+- [x] 05-01-PLAN.md — Route Automation Rules + fix CallDetailPage query (WIRE-01, IMPL-03)
 - [ ] 05-02-PLAN.md — Fix AutomationRules.tsx type mismatches (REFACTOR-04)
 - [ ] 05-03-PLAN.md — Runtime test & fix Tags/Rules/Analytics tabs (FIX-01, FIX-02, FIX-03)
 - [ ] 05-04-PLAN.md — Fix Users & Billing tabs (FIX-04, FIX-05)
@@ -381,13 +381,13 @@ Plans:
 | 3.1 - Compact Integration UI | Complete ✅ | 3 | 100% (3/3 plans) |
 | 3.2 - Integration Import Controls | Complete ✅ | 3 | 100% (2/2 plans) |
 | 4 - Team Collaboration | Complete ✅ | 2 | 100% (6/6 plans) |
-| 5 - Demo Polish | Pending | 12 | 0% |
+| 5 - Demo Polish | In Progress | 12 | 14% (1/7 plans) |
 | 6 - Code Health & Infrastructure | Pending | 13 | 0% |
 | 7 - Differentiators | Pending | 5 | 0% |
 | 8 - Growth Infrastructure | Pending | 4 | 0% |
 | 9 - Team Content Segregation | Deferred | 5 | 0% |
 
-**Overall Progress:** 23/58 requirements complete (40%)
+**Overall Progress:** 25/58 requirements complete (43%)
 
 ---
 

@@ -1,12 +1,12 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-01-29
+**Last Updated:** 2026-01-31
 
 ## Project Reference
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 4 COMPLETE - Ready for Phase 5 Demo Polish
+**Current Focus:** Phase 5 Demo Polish - Plan 4 of 7 complete
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 4 of 9 (Team Collaboration) - COMPLETE
+**Phase:** 5 of 9 (Demo Polish) - In Progress
 
-**Plan:** 6 of 6 in Phase 4
+**Plan:** 1 of 7 in Phase 5
 
-**Status:** Phase 4 complete, Phase 5 (Demo Polish) pending
+**Status:** Plan 05-01 complete, continuing with Phase 5
 
-**Last activity:** 2026-01-31 - Roadmap restructure: removed Coach Collaboration, deferred Team Content Segregation to Phase 9
+**Last activity:** 2026-01-31 - Completed 05-01-PLAN.md (Route Automation Rules + Fix CallDetailPage)
 
 **Progress:**
 ```
-[█████████████████████████] 29/29 plans complete (current phases)
+[██████████████████████████░░░] 30/36 plans complete (phases 1-5)
 ```
 
 ---
@@ -50,7 +50,7 @@
 | Phase 3.1: Compact Integration UI | 3 | 3 | Complete (3/3 plans) |
 | Phase 3.2: Integration Import Controls | 3 | 3 | Complete (2/2 plans) |
 | Phase 4: Team Collaboration | 2 | 2 | Complete (6/6 plans) |
-| Phase 5: Demo Polish | 12 | 0 | Pending |
+| Phase 5: Demo Polish | 12 | 2 | In Progress (1/7 plans) |
 | Phase 6: Code Health & Infrastructure | 13 | 0 | Pending |
 | Phase 7: Differentiators | 5 | 0 | Pending |
 | Phase 8: Growth | 4 | 0 | Pending |
@@ -110,6 +110,8 @@
 | 2026-01-29 | Cross-tab sync via localStorage | Same pattern as preferencesStore for consistency | Established cross-tab sync pattern |
 | 2026-01-29 | onboarding_complete defaults to false | New invites start incomplete until user completes setup | Enables "Pending setup" badge tracking |
 | 2026-01-29 | Amber badge for pending status | Consistent with warning/pending styling | Status badges use amber for 'pending' states |
+| 2026-01-31 | Parse URL params to number for recording_id | fathom_calls uses numeric recording_id, URL params are strings | Pattern for numeric ID queries |
+| 2026-01-31 | Sentiment from sentiment_cache JSON | fathom_calls stores sentiment in JSON field, not top-level columns | Extract from JSON for display |
 
 ### Active TODOs
 
@@ -130,7 +132,9 @@
 - [x] Execute 04-05-PLAN.md (Pending Setup Badge)
 - [x] Execute 04-06-PLAN.md (Team Collaboration Verification)
 
-Phase 4 Complete. Next: Phase 5 - Demo Polish
+Phase 4 Complete. Phase 5 in progress.
+
+- [x] Execute 05-01-PLAN.md (Route Automation Rules + Fix CallDetailPage)
 
 (Coach Collaboration removed, Team Content Segregation deferred to Phase 9)
 
@@ -155,22 +159,20 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-01-29
-**Stopped at:** Completed 04-06-PLAN.md - Phase 4 Complete
+**Last session:** 2026-01-31
+**Stopped at:** Completed 05-01-PLAN.md - Phase 5 plan 1 of 7
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 4 Team Collaboration COMPLETE. Roadmap restructured.
+Phase 5 Demo Polish in progress. Plan 1 of 7 complete.
 
 **What to remember:**
-- Phase 4 UAT: Team creation, invite links (fixed), join page, switcher (fixed) all working
-- Fixed GAP-1: Invite link storage moved to teams table (was causing duplicate key error)
-- Fixed GAP-2: TeamSwitcher now always visible with "Manage Teams" link
-- Coach Collaboration removed from roadmap (entire feature deferred indefinitely)
-- Team Content Segregation moved from Phase 4.5 to Phase 9 (last phase)
-- Next: Phase 5 - Demo Polish
+- WIRE-01 addressed: Automation Rules page now at /automation-rules with 4 routes
+- IMPL-03 addressed: CallDetailPage queries fathom_calls table (not legacy calls)
+- Schema mismatch: fathom_calls lacks profits_framework, action_items - tabs show placeholders
+- Next: 05-02-PLAN.md (Fix AutomationRules.tsx type mismatches)
 
 ---
 
@@ -180,13 +182,13 @@ Phase 4 Team Collaboration COMPLETE. Roadmap restructured.
 |--------|-------|
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
-| Requirements Complete | 23 (40%) |
-| Current Phase | 4 - Team Collaboration COMPLETE |
-| Plans Complete | 6/6 in Phase 4 (29 overall) |
-| Next Phase | 5 - Demo Polish |
+| Requirements Complete | 25 (43%) |
+| Current Phase | 5 - Demo Polish (In Progress) |
+| Plans Complete | 1/7 in Phase 5 (30 overall) |
+| Next Plan | 05-02-PLAN.md |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Roadmap restructure: removed Coach, deferred Team Content Segregation)*
+*Last updated: 2026-01-31 (Completed 05-01-PLAN.md)*
