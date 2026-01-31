@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 8 Growth Infrastructure - In Progress (4/6 plans)
+**Current Focus:** Phase 8 Growth Infrastructure - COMPLETE (6/6 plans)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 8 of 9 (Growth Infrastructure) - In Progress
+**Phase:** 8 of 9 (Growth Infrastructure) - COMPLETE
 
-**Plan:** 4 of 6 in Phase 8 (08-04 complete)
+**Plan:** 6 of 6 in Phase 8 (all complete)
 
-**Status:** Phase 8 in progress - YouTube import Edge Function complete
+**Status:** Phase 8 complete - All GROW requirements delivered
 
-**Last activity:** 2026-01-31 - Completed 08-04-PLAN.md (YouTube Import Edge Function)
+**Last activity:** 2026-01-31 - Completed 08-06-PLAN.md (Admin Cost Dashboard)
 
 **Progress:**
 ```
-[█████████████████████████████░░] 50/55 plans complete (phases 1-7 + partial phase 8)
+[█████████████████████████████████] 52/55 plans complete (phases 1-8 complete)
 ```
 
 ---
@@ -53,7 +53,7 @@
 | Phase 5: Demo Polish | 12 | 12 | Complete (7/7 plans) |
 | Phase 6: Code Health & Infrastructure | 13 | 13 | Complete (10/10 plans) |
 | Phase 7: Differentiators | 5 | 5 | Complete (5/5 plans) |
-| Phase 8: Growth | 4 | 1 | In Progress (4/6 plans) |
+| Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
 | Phase 9: Team Content Segregation | 5 | 0 | Deferred |
 
 ### Velocity
@@ -128,6 +128,8 @@
 | 2026-01-31 | YouTube as explicit source_platform | Added 'youtube' to constraint rather than using 'other' | Better filtering and query support |
 | 2026-01-31 | Metadata JSONB column for fathom_calls | Platform-specific data needs flexible storage | YouTube video details stored without schema changes |
 | 2026-01-31 | YouTube recording_id range 9000000000000+ | Avoid collision with Fathom recording IDs | Unique ID space per platform |
+| 2026-01-31 | SECURITY DEFINER + role check for admin RPC | Admin-only aggregation needs to bypass RLS but still verify caller role | Pattern for admin-only functions |
+| 2026-01-31 | Empty results for non-admin cost queries | Return empty arrays/zeros rather than errors for non-admins | Simpler frontend logic |
 
 ### Active TODOs
 
@@ -171,8 +173,10 @@ Phase 6 Complete. Ready for Phase 7.
 Phase 7 Complete. Ready for Phase 8 (Growth).
 
 - [x] Execute 08-04-PLAN.md (YouTube Import Edge Function - orchestration, metadata, progress tracking)
+- [x] Execute 08-05-PLAN.md (YouTube Import UI - ManualImport page, URL input, progress display)
+- [x] Execute 08-06-PLAN.md (Admin Cost Dashboard - RPC function, useAdminCosts hook, AdminCostDashboard component)
 
-Phase 8 In Progress. Next: 08-05 (YouTube Import UI).
+Phase 8 COMPLETE. All GROW requirements delivered. Ready for Phase 9 (Team Content Segregation) when prioritized.
 
 ### Pending Todos
 
@@ -196,20 +200,23 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 08-04-PLAN.md (YouTube Import Edge Function) - Phase 8 In Progress
+**Stopped at:** Completed 08-06-PLAN.md (Admin Cost Dashboard) - Phase 8 COMPLETE
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 8 Growth Infrastructure IN PROGRESS. 4/6 plans complete (08-04 just completed). Next is 08-05 (YouTube Import UI).
+Phase 8 Growth Infrastructure COMPLETE. All 6 plans executed. Ready for Phase 9 (Team Content Segregation) when prioritized.
 
 **What to remember:**
-- 08-04 completed: YouTube import Edge Function with full orchestration pipeline
-- Migration added: `20260131162000_add_youtube_source_and_metadata.sql` for metadata JSONB column and youtube source_platform
-- YouTube import uses recording_id range 9000000000000+ to avoid collision with Fathom IDs
-- Step-based progress tracking via response.step field for frontend UI
-- Next plan 08-05 should create ManualImport page to call youtube-import function
+- Phase 8 delivered all GROW requirements:
+  - 08-01: Polar billing infrastructure (types + utilities)
+  - 08-02/03: User and org billing hooks
+  - 08-04: YouTube import Edge Function with progress tracking
+  - 08-05: YouTube import UI (ManualImport page)
+  - 08-06: Admin cost dashboard (system-wide AI cost visibility)
+- Admin cost dashboard uses SECURITY DEFINER + role check pattern for admin-only RPC
+- Phase 9 (Team Content Segregation) is deferred and can be started when needed
 
 ---
 
@@ -219,13 +226,13 @@ Phase 8 Growth Infrastructure IN PROGRESS. 4/6 plans complete (08-04 just comple
 |--------|-------|
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
-| Requirements Complete | 49 (84%) |
-| Current Phase | 8 - Growth Infrastructure (In Progress) |
-| Plans Complete | 4/6 in Phase 8 (50 overall) |
-| Next Plan | 08-05 (YouTube Import UI) |
+| Requirements Complete | 52 (90%) |
+| Current Phase | 8 - Growth Infrastructure (COMPLETE) |
+| Plans Complete | 6/6 in Phase 8 (52 overall) |
+| Next Phase | 9 - Team Content Segregation (Deferred) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 08-04-PLAN.md - YouTube Import Edge Function, Phase 8 In Progress)*
+*Last updated: 2026-01-31 (Completed 08-06-PLAN.md - Admin Cost Dashboard, Phase 8 COMPLETE)*
