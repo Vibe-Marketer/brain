@@ -7,6 +7,16 @@
  * - Title similarity >= 80% (Levenshtein)
  * - Time overlap >= 50%
  * - Participant overlap >= 60%
+ *
+ * SCOPE: Used by sync-meetings (Fathom) and google-meet-sync-meetings.
+ * Uses synchronous fingerprint generation with simple hash.
+ *
+ * NOTE: dedup-fingerprint.ts is a separate implementation for Zoom sync
+ * that uses async crypto.subtle hashing and the fastest-levenshtein library.
+ * Both serve the same purpose but have different implementation details.
+ * Future consolidation could merge these into a single module.
+ *
+ * @see dedup-fingerprint.ts for Zoom-specific implementation
  */
 
 // ============================================================================

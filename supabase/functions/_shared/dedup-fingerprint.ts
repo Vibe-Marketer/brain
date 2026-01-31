@@ -2,6 +2,16 @@
  * Deduplication fingerprint generator for multi-source meeting detection.
  * Generates fingerprints and matches meetings from different sources (Zoom, Fathom, etc.)
  * using fuzzy matching on title, time, and participants.
+ *
+ * SCOPE: Used by zoom-sync-meetings and zoom-webhook for Zoom-specific deduplication.
+ * Uses async crypto.subtle SHA-256 hashing and the fastest-levenshtein library.
+ *
+ * NOTE: deduplication.ts is a separate implementation for Fathom and Google Meet sync
+ * that uses synchronous fingerprint generation with a simple hash function.
+ * Both serve the same purpose but have different implementation details.
+ * Future consolidation could merge these into a single module.
+ *
+ * @see deduplication.ts for Fathom/Google Meet implementation
  */
 
 // Use esm.sh for npm packages in Deno
