@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 7 High-Value Differentiators - In Progress (3/5 plans)
+**Current Focus:** Phase 8 Growth Infrastructure - In Progress (4/6 plans)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization
 
-**Phase:** 7 of 9 (High-Value Differentiators) - Complete
+**Phase:** 8 of 9 (Growth Infrastructure) - In Progress
 
-**Plan:** 5 of 5 in Phase 7 (All complete)
+**Plan:** 4 of 6 in Phase 8 (08-04 complete)
 
-**Status:** Phase 7 complete - All differentiators implemented
+**Status:** Phase 8 in progress - YouTube import Edge Function complete
 
-**Last activity:** 2026-01-31 - Completed 07-05-PLAN.md (Client Health Alerts)
+**Last activity:** 2026-01-31 - Completed 08-04-PLAN.md (YouTube Import Edge Function)
 
 **Progress:**
 ```
-[███████████████████████████████] 49/49 plans complete (phases 1-7 complete)
+[█████████████████████████████░░] 50/55 plans complete (phases 1-7 + partial phase 8)
 ```
 
 ---
@@ -51,9 +51,9 @@
 | Phase 3.2: Integration Import Controls | 3 | 3 | Complete (2/2 plans) |
 | Phase 4: Team Collaboration | 2 | 2 | Complete (6/6 plans) |
 | Phase 5: Demo Polish | 12 | 12 | Complete (7/7 plans) |
-| Phase 6: Code Health & Infrastructure | 13 | 0 | Pending |
+| Phase 6: Code Health & Infrastructure | 13 | 13 | Complete (10/10 plans) |
 | Phase 7: Differentiators | 5 | 5 | Complete (5/5 plans) |
-| Phase 8: Growth | 4 | 0 | Pending |
+| Phase 8: Growth | 4 | 1 | In Progress (4/6 plans) |
 | Phase 9: Team Content Segregation | 5 | 0 | Deferred |
 
 ### Velocity
@@ -125,6 +125,9 @@
 | 2026-01-31 | Analytics already wired to real data | useCallAnalytics queries fathom_calls directly | DIFF-05 verified, no changes needed |
 | 2026-01-31 | Folder filter resolved at request time | Folders→recording_ids via folder_assignments | Search pipeline unchanged, folder logic isolated |
 | 2026-01-31 | Individual folder pills in header | Users need to see and remove specific folders | Better UX than showing count |
+| 2026-01-31 | YouTube as explicit source_platform | Added 'youtube' to constraint rather than using 'other' | Better filtering and query support |
+| 2026-01-31 | Metadata JSONB column for fathom_calls | Platform-specific data needs flexible storage | YouTube video details stored without schema changes |
+| 2026-01-31 | YouTube recording_id range 9000000000000+ | Avoid collision with Fathom recording IDs | Unique ID space per platform |
 
 ### Active TODOs
 
@@ -167,6 +170,10 @@ Phase 6 Complete. Ready for Phase 7.
 
 Phase 7 Complete. Ready for Phase 8 (Growth).
 
+- [x] Execute 08-04-PLAN.md (YouTube Import Edge Function - orchestration, metadata, progress tracking)
+
+Phase 8 In Progress. Next: 08-05 (YouTube Import UI).
+
 ### Pending Todos
 
 2 todos in `.planning/todos/pending/`:
@@ -189,22 +196,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 07-05-PLAN.md (Client Health Alerts) - Phase 7 Complete
+**Stopped at:** Completed 08-04-PLAN.md (YouTube Import Edge Function) - Phase 8 In Progress
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 7 High-Value Differentiators COMPLETE. All 5 plans executed. Ready for Phase 8 (Growth).
+Phase 8 Growth Infrastructure IN PROGRESS. 4/6 plans complete (08-04 just completed). Next is 08-05 (YouTube Import UI).
 
 **What to remember:**
-- 07-01 completed: PROFITS Framework v2 fully implemented
-- 07-02 completed: Folder-Level Chat with backend resolution and header pills
-- 07-04 completed: Contacts Database with useContacts hook and Settings UI
-- 07-05 completed: Client Health Alerts with notifications and AI email generation
-- New migrations: `20260131000003_create_contacts_table.sql`, `20260131000004_create_notifications_table.sql`
-- check-client-health Edge Function needs pg_cron scheduling for production
-- NotificationBell component ready to add to header
+- 08-04 completed: YouTube import Edge Function with full orchestration pipeline
+- Migration added: `20260131162000_add_youtube_source_and_metadata.sql` for metadata JSONB column and youtube source_platform
+- YouTube import uses recording_id range 9000000000000+ to avoid collision with Fathom IDs
+- Step-based progress tracking via response.step field for frontend UI
+- Next plan 08-05 should create ManualImport page to call youtube-import function
 
 ---
 
@@ -214,13 +219,13 @@ Phase 7 High-Value Differentiators COMPLETE. All 5 plans executed. Ready for Pha
 |--------|-------|
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
-| Requirements Complete | 48 (83%) |
-| Current Phase | 7 - High-Value Differentiators (Complete) |
-| Plans Complete | 5/5 in Phase 7 (49 overall) |
-| Next Plan | 08-01 (Phase 8: Growth) |
+| Requirements Complete | 49 (84%) |
+| Current Phase | 8 - Growth Infrastructure (In Progress) |
+| Plans Complete | 4/6 in Phase 8 (50 overall) |
+| Next Plan | 08-05 (YouTube Import UI) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 07-05-PLAN.md - Client Health Alerts, Phase 7 Complete)*
+*Last updated: 2026-01-31 (Completed 08-04-PLAN.md - YouTube Import Edge Function, Phase 8 In Progress)*

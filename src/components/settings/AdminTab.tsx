@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { UserTable } from "@/components/settings/UserTable";
 import { supabase } from "@/integrations/supabase/client";
+import AdminCostDashboard from "@/components/settings/AdminCostDashboard";
 
 interface UserProfile {
   user_id: string;
@@ -364,6 +365,11 @@ export default function AdminTab() {
           </div>
         </div>
       </div>
+
+      <Separator className="my-16" />
+
+      {/* System Costs Section */}
+      <AdminCostDashboard />
     </div>
   );
 }
