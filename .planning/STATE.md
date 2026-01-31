@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (5/10 plans)
+**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (6/10 plans)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 6 of 9 (Code Health & Infrastructure) - In Progress
 
-**Plan:** 5 of 10 in Phase 6
+**Plan:** 6 of 10 in Phase 6
 
-**Status:** In progress - dead code removal complete
+**Status:** In progress - type safety improvements complete
 
-**Last activity:** 2026-01-31 - Completed 06-05-PLAN.md (Dead code removal - coach functions, TeamManagement.tsx)
+**Last activity:** 2026-01-31 - Completed 06-03-PLAN.md (Type safety - panelStore discriminated union, SyncTab proper types)
 
 **Progress:**
 ```
-[██████████████████████████████] 36/44 plans complete (phases 1-5 complete, 06-05 done)
+[██████████████████████████████] 37/44 plans complete (phases 1-5 complete, 06-01 through 06-05 done)
 ```
 
 ---
@@ -116,6 +116,8 @@
 | 2026-01-31 | Billing "Coming Soon" badge pattern | Unreleased features should show clear "Coming Soon" messaging | Prevents misleading CTAs |
 | 2026-01-31 | Bulk actions as 4th pane | Selection actions should follow 4th pane pattern for UI consistency | Replaced bottom Mac-style portal with right-side slide-in pane |
 | 2026-01-31 | Database type imports for Supabase tables | Ensures types stay in sync with schema, no manual interface maintenance | AutomationRules uses Database['public']['Tables']['X']['Row'] |
+| 2026-01-31 | Discriminated union for PanelData | Use 'type' field as discriminator for type-safe panel data access | All panel components use type narrowing |
+| 2026-01-31 | source_platform on Meeting interface | Support multi-source deduplication (fathom, google_meet, zoom) | SyncTab filters work with all platforms |
 
 ### Active TODOs
 
@@ -170,19 +172,19 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 05-07-PLAN.md - Phase 5 COMPLETE
+**Stopped at:** Completed 06-03-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 5 Demo Polish COMPLETE. All 7 plans executed, all 12 requirements verified.
+Phase 6 Code Health & Infrastructure in progress. 6 of 10 plans complete.
 
 **What to remember:**
-- Phase 6 in progress - code health and infrastructure improvements
-- 06-04 completed: deduplication modules documented, diversityFilter consolidated
-- Both chat-stream functions now import from _shared/search-pipeline.ts
-- Next: 06-05-PLAN.md (Error handling standardization)
+- 06-03 completed: panelStore now uses discriminated union, SyncTab has proper Meeting interface
+- New types at src/types/panel.ts with PanelType, PanelData discriminated union
+- Meeting interface has source_platform field for multi-source support
+- Next: 06-04-PLAN.md (Consolidate deduplication and diversity filter)
 
 ---
 
@@ -192,10 +194,10 @@ Phase 5 Demo Polish COMPLETE. All 7 plans executed, all 12 requirements verified
 |--------|-------|
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
-| Requirements Complete | 42 (72%) |
+| Requirements Complete | 43 (74%) |
 | Current Phase | 6 - Code Health & Infrastructure (In Progress) |
-| Plans Complete | 4/10 in Phase 6 (35 overall) |
-| Next Plan | 06-05-PLAN.md |
+| Plans Complete | 6/10 in Phase 6 (37 overall) |
+| Next Plan | 06-04-PLAN.md |
 | Blockers | 0 |
 
 ---
