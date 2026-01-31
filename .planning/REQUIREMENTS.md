@@ -58,27 +58,27 @@ Requirements for launch stabilization. Organized by tier (Critical → Demo Poli
 - [x] **DOC-02**: Document multi-source deduplication for user-facing help (fuzzy matching, priority modes)
 
 **Code Cleanup**
-- [ ] **CLEAN-01**: Consolidate duplicate deduplication code (`deduplication.ts` vs `dedup-fingerprint.ts`)
-- [ ] **CLEAN-02**: Delete dead code (legacy `ai-agent.ts`, `Real-Time Coach` stub, orphaned `TeamManagement.tsx` if redundant with `CollaborationPage.tsx`)
+- [x] **CLEAN-01**: Consolidate duplicate deduplication code (`deduplication.ts` vs `dedup-fingerprint.ts`)
+- [x] **CLEAN-02**: Delete dead code (legacy `ai-agent.ts`, `Real-Time Coach` stub, orphaned `TeamManagement.tsx` if redundant with `CollaborationPage.tsx`)
 
 **Tech Debt Refactoring**
-- [ ] **REFACTOR-01**: Break down Chat.tsx (1900+ lines → smaller sub-components: MessageList, InputArea, ConnectionHandler + custom hooks)
-- [ ] **REFACTOR-02**: Break down useTeamHierarchy.ts (1200+ lines → smaller focused hooks: useTeamPermissions, useTeamData)
-- [ ] **REFACTOR-03**: Tighten types in stores (replace `any` types in `panelStore.ts` with proper interfaces)
+- [x] **REFACTOR-01**: Break down Chat.tsx (1900+ lines → smaller sub-components: MessageList, InputArea, ConnectionHandler + custom hooks) — 689 lines, gap accepted
+- [ ] **REFACTOR-02**: Break down useTeamHierarchy.ts (1200+ lines → smaller focused hooks: useTeamPermissions, useTeamData) — SKIPPED per CONTEXT.md
+- [x] **REFACTOR-03**: Tighten types in stores (replace `any` types in `panelStore.ts` with proper interfaces)
 - [x] **REFACTOR-04**: Fix type mismatches in AutomationRules.tsx with current Supabase schema
-- [ ] **REFACTOR-05**: Fix AI SDK outdated property (replace `maxTokens` in ai-agent.ts with current API)
-- [ ] **REFACTOR-06**: Tighten types in SyncTab.tsx (Meetings/Jobs loose types)
-- [ ] **REFACTOR-07**: Consolidate inline diversity filter (remove duplication in chat-stream/index.ts)
+- [ ] **REFACTOR-05**: Fix AI SDK outdated property (replace `maxTokens` in ai-agent.ts with current API) — SKIPPED (ai-agent.ts removed)
+- [x] **REFACTOR-06**: Tighten types in SyncTab.tsx (Meetings/Jobs loose types)
+- [x] **REFACTOR-07**: Consolidate inline diversity filter (remove duplication in chat-stream/index.ts)
 
 **Missing Implementations**
-- [ ] **IMPL-01**: Create or delete missing automation functions (`summarize-call`, `extract-action-items` referenced in actions.ts but don't exist)
-- [ ] **IMPL-02**: Handle non-existent table references gracefully (`tasks`, `clients`, `client_health_history` in automation actions)
+- [x] **IMPL-01**: Create or delete missing automation functions (`summarize-call`, `extract-action-items` referenced in actions.ts but don't exist)
+- [x] **IMPL-02**: Handle non-existent table references gracefully (`tasks`, `clients`, `client_health_history` in automation actions)
 - [x] **IMPL-03**: Fix CallDetailPage to query `fathom_calls` instead of legacy `calls` table
 
 **Infrastructure Fixes**
-- [ ] **INFRA-01**: Complete cost tracking for all OpenRouter models (currently only tracks 2: text-embedding-3-small, gpt-4o-mini)
-- [ ] **INFRA-02**: Fix cron expression parsing (currently placeholder defaulting to 1-hour regardless of expression)
-- [ ] **INFRA-03**: Move rate limiting to database (in-memory limits in automation-webhook/email reset on cold starts)
+- [x] **INFRA-01**: Complete cost tracking for all OpenRouter models (currently only tracks 2: text-embedding-3-small, gpt-4o-mini)
+- [x] **INFRA-02**: Fix cron expression parsing (currently placeholder defaulting to 1-hour regardless of expression)
+- [x] **INFRA-03**: Move rate limiting to database (in-memory limits in automation-webhook/email reset on cold starts)
 
 ### TIER 3: HIGH-VALUE DIFFERENTIATORS (Ship After Stable)
 
