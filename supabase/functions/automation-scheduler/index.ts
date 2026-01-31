@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { parseExpression } from 'https://esm.sh/cron-parser@4.9.0';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
@@ -135,10 +136,25 @@ function calculateNextRunAt(config: ScheduleConfig, fromTime: Date = new Date())
     }
 
     case 'cron': {
-      // For cron expressions, we need a more complex parser
-      // For now, default to running again in 1 hour if cron is used
-      // A full cron parser could be added as a future enhancement
-      return new Date(fromTime.getTime() + 60 * 60 * 1000);
+      const expression = config.cron_expression;
+      if (!expression) {
+        console.warn('[automation-scheduler] No cron expression provided, falling back to 1 hour');
+        return new Date(fromTime.getTime() + 60 * 60 * 1000);
+      }
+
+      try {
+        // Parse cron expression and calculate next run time
+        // cron-parser supports standard 5-field format: minute hour day-of-month month day-of-week
+        const interval = parseExpression(expression, {
+          currentDate: fromTime,
+          tz: config.timezone || 'UTC',
+        });
+        return interval.next().toDate();
+      } catch (error) {
+        console.error('[automation-scheduler] Invalid cron expression:', expression, error);
+        // Fallback to 1 hour if cron expression is invalid
+        return new Date(fromTime.getTime() + 60 * 60 * 1000);
+      }
     }
 
     default:
