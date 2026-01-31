@@ -15,7 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { TeamSwitcher } from '@/components/TeamSwitcher';
+import { BankSwitcher } from '@/components/header/BankSwitcher';
 interface TopBarProps {
   pageLabel: string;
   searchEnabled?: boolean;
@@ -98,8 +98,8 @@ export function TopBar({
 
       {/* Right: Utilities */}
       <div className="flex items-center gap-1 md:gap-2">
-        {/* Team Switcher - shows current team context */}
-        <TeamSwitcher />
+        {/* Bank Switcher - shows current bank/vault context */}
+        <BankSwitcher />
         
         {searchEnabled && <Button variant="hollow" size="icon" onClick={handleSearchClick} className="text-muted-foreground" aria-label="Search (Cmd+K)">
             <RiSearchLine className="w-4 h-4" />
