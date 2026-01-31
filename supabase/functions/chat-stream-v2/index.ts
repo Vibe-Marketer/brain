@@ -13,6 +13,7 @@ import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { executeHybridSearch, diversityFilter } from '../_shared/search-pipeline.ts';
 import { generateQueryEmbedding } from '../_shared/embeddings.ts';
+import { logUsage, estimateTokenCount } from '../_shared/usage-tracker.ts';
 
 import type { SearchFilters } from '../_shared/search-pipeline.ts';
 
@@ -846,6 +847,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const selectedModel = requestedModel || 'openai/gpt-4o-mini';
+    const requestStartTime = Date.now();
     console.log(`[chat-stream-v2] User: ${user.id}, Model: ${selectedModel}, Messages: ${messages.length}, Filters: ${JSON.stringify(sessionFilters)}`);
 
     // ---- Build system prompt and tools ----
@@ -862,6 +864,13 @@ Deno.serve(async (req: Request) => {
       console.log('[chat-stream-v2] Message count:', convertedMessages.length);
       console.log('[chat-stream-v2] Tools count:', Object.keys(allTools).length);
 
+      // Estimate input tokens from messages for usage logging
+      const fullPromptText = systemPrompt + '\n' + convertedMessages.map(m => {
+        if (typeof m.content === 'string') return m.content;
+        return JSON.stringify(m.content);
+      }).join('\n');
+      const estimatedInputTokens = estimateTokenCount(fullPromptText);
+
       const result = streamText({
         model: openrouter(selectedModel),
         system: systemPrompt,
@@ -872,6 +881,27 @@ Deno.serve(async (req: Request) => {
         onError: ({ error }) => {
           console.error('[chat-stream-v2] Stream onError callback:', error);
           console.error('[chat-stream-v2] Error details:', JSON.stringify(error, null, 2));
+        },
+        onFinish: async ({ text, usage }) => {
+          // Fire-and-forget usage logging - don't block response
+          const latencyMs = Date.now() - requestStartTime;
+          const outputTokens = usage?.completionTokens || estimateTokenCount(text);
+          const inputTokens = usage?.promptTokens || estimatedInputTokens;
+
+          console.log(`[chat-stream-v2] Usage logged: model=${selectedModel}, input=${inputTokens}, output=${outputTokens}, latency=${latencyMs}ms`);
+
+          // Log to usage tracking table (fire-and-forget)
+          logUsage(supabase, {
+            userId: user.id,
+            operationType: 'chat',
+            model: selectedModel,
+            inputTokens,
+            outputTokens,
+            sessionId: sessionId || undefined,
+            latencyMs,
+          }).catch(err => {
+            console.error('[chat-stream-v2] Failed to log usage:', err);
+          });
         },
       });
 
