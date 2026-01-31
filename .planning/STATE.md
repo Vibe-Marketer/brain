@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (6/10 plans)
+**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (8/10 plans)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 6 of 9 (Code Health & Infrastructure) - In Progress
 
-**Plan:** 6 of 10 in Phase 6
+**Plan:** 8 of 10 in Phase 6
 
-**Status:** In progress - IMPL-01 resolved, AI analysis functions implemented
+**Status:** In progress - Chat refactor tests complete
 
-**Last activity:** 2026-01-31 - Completed 06-06-PLAN.md (Missing automation functions)
+**Last activity:** 2026-01-31 - Completed 06-02-PLAN.md (Chat refactor tests - 152 test cases)
 
 **Progress:**
 ```
-[██████████████████████████████] 40/44 plans complete (phases 1-5 complete, 06-01/03/04/05/06/07 done)
+[██████████████████████████████] 42/44 plans complete (phases 1-5 complete, 06-01/02/03/04/05/06/07/08 done)
 ```
 
 ---
@@ -173,20 +173,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 06-06-PLAN.md
+**Stopped at:** Completed 06-08-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 6 Code Health & Infrastructure in progress. 6 of 10 plans complete (06-01, 06-03, 06-04, 06-05, 06-06, 06-07).
+Phase 6 Code Health & Infrastructure in progress. 7 of 10 plans complete (06-01, 06-03, 06-04, 06-05, 06-06, 06-07, 06-08).
 
 **What to remember:**
-- 06-06 completed: Created summarize-call and extract-action-items Edge Functions
-- Both use Vercel AI SDK v5 + OpenRouter (consistent with automation-sentiment)
-- IMPL-01 (missing automation functions) is now resolved
-- automation-engine can now execute summarize and extract_action_items analysis types
-- Remaining Phase 6 plans: 06-02, 06-08, 06-09, 06-10
+- 06-08 completed: Full cost tracking for OpenRouter models with dashboard
+- Extended usage-tracker with 26 model pricing entries
+- Per-request logging added to chat-stream-v2 via onFinish callback
+- Cost dashboard integrated into Settings > AI tab
+- Remaining Phase 6 plans: 06-02, 06-09, 06-10
 
 ---
 
@@ -198,11 +198,11 @@ Phase 6 Code Health & Infrastructure in progress. 6 of 10 plans complete (06-01,
 | Total Requirements | 58 |
 | Requirements Complete | 43 (74%) |
 | Current Phase | 6 - Code Health & Infrastructure (In Progress) |
-| Plans Complete | 6/10 in Phase 6 (40 overall) |
-| Next Plan | Continue Wave 2 (06-02, 06-08, 06-09) |
+| Plans Complete | 7/10 in Phase 6 (41 overall) |
+| Next Plan | Continue Wave 2 (06-02, 06-09) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 06-06-PLAN.md - Missing automation functions)*
+*Last updated: 2026-01-31 (Completed 06-08-PLAN.md - Cost tracking for OpenRouter models)*
