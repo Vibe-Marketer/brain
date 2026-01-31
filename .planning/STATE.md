@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 5 Demo Polish - Plan 5 of 7 complete
+**Current Focus:** Phase 5 Demo Polish - Plan 6 of 7 complete
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 5 of 9 (Demo Polish) - In Progress
 
-**Plan:** 5 of 7 in Phase 5
+**Plan:** 6 of 7 in Phase 5
 
-**Status:** Plan 05-05 complete, continuing with Phase 5
+**Status:** Plan 05-06 complete, continuing with Phase 5
 
-**Last activity:** 2026-01-31 - Completed 05-05-PLAN.md (Bulk action toolbar 4th pane)
+**Last activity:** 2026-01-31 - Completed 05-06-PLAN.md (Export & deduplication documentation)
 
 **Progress:**
 ```
-[████████████████████████████░] 32/36 plans complete (phases 1-5)
+[█████████████████████████████░] 33/36 plans complete (phases 1-5)
 ```
 
 ---
@@ -50,7 +50,7 @@
 | Phase 3.1: Compact Integration UI | 3 | 3 | Complete (3/3 plans) |
 | Phase 3.2: Integration Import Controls | 3 | 3 | Complete (2/2 plans) |
 | Phase 4: Team Collaboration | 2 | 2 | Complete (6/6 plans) |
-| Phase 5: Demo Polish | 12 | 5 | In Progress (5/7 plans) |
+| Phase 5: Demo Polish | 12 | 7 | In Progress (6/7 plans) |
 | Phase 6: Code Health & Infrastructure | 13 | 0 | Pending |
 | Phase 7: Differentiators | 5 | 0 | Pending |
 | Phase 8: Growth | 4 | 0 | Pending |
@@ -140,6 +140,7 @@ Phase 4 Complete. Phase 5 in progress.
 - [x] Execute 05-01-PLAN.md (Route Automation Rules + Fix CallDetailPage)
 - [x] Execute 05-04-PLAN.md (Fix Users & Billing tabs - verified functional)
 - [x] Execute 05-05-PLAN.md (Bulk action toolbar 4th pane)
+- [x] Execute 05-06-PLAN.md (Export & deduplication documentation)
 
 (Coach Collaboration removed, Team Content Segregation deferred to Phase 9)
 
@@ -165,20 +166,19 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 05-05-PLAN.md - Phase 5 plan 5 of 7
+**Stopped at:** Completed 05-06-PLAN.md - Phase 5 plan 6 of 7
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 5 Demo Polish in progress. Plan 5 of 7 complete.
+Phase 5 Demo Polish in progress. Plan 6 of 7 complete.
 
 **What to remember:**
-- FIX-06 addressed: Bulk action toolbar now uses 4th pane pattern instead of bottom Mac-style bar
-- Inline pane rendering chosen over DetailPaneOutlet for selection state co-location
-- Actions organized in vertical sections: Tags, Export, AI, Organize
-- 500ms slide-in animation per brand guidelines
-- Next: 05-06-PLAN.md (Documentation for export & deduplication)
+- DOC-01 addressed: Export system documented for help system (7 formats)
+- DOC-02 addressed: Deduplication documented with FAQ for user concerns
+- docs/help/ directory established for user-facing documentation
+- Next: 05-07-PLAN.md (Human verification checkpoint)
 
 ---
 
@@ -188,13 +188,13 @@ Phase 5 Demo Polish in progress. Plan 5 of 7 complete.
 |--------|-------|
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
-| Requirements Complete | 28 (48%) |
+| Requirements Complete | 30 (52%) |
 | Current Phase | 5 - Demo Polish (In Progress) |
-| Plans Complete | 5/7 in Phase 5 (32 overall) |
-| Next Plan | 05-06-PLAN.md |
+| Plans Complete | 6/7 in Phase 5 (33 overall) |
+| Next Plan | 05-07-PLAN.md |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 05-05-PLAN.md - FIX-06 Bulk action toolbar 4th pane)*
+*Last updated: 2026-01-31 (Completed 05-06-PLAN.md - Export & deduplication documentation)*
