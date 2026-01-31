@@ -82,6 +82,7 @@ export default function Settings() {
     const topicMap: Record<SettingsCategory, SettingHelpTopic> = {
       account: "profile",
       business: "profile", // Business uses profile help for now
+      contacts: "profile", // Contacts uses profile help for now
       users: "users",
       billing: "billing",
       integrations: "integrations",

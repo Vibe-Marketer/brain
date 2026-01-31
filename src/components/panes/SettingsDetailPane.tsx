@@ -34,6 +34,7 @@ import {
   RiShieldLine,
   RiArrowLeftLine,
   RiBuilding4Line,
+  RiContactsLine,
 } from "@remixicon/react";
 import type { SettingsCategory } from "./SettingsCategoryPane";
 
@@ -51,6 +52,7 @@ const IntegrationsTab = React.lazy(
 );
 const AITab = React.lazy(() => import("@/components/settings/AITab"));
 const AdminTab = React.lazy(() => import("@/components/settings/AdminTab"));
+const ContactsTab = React.lazy(() => import("@/components/settings/ContactsTab"));
 
 /** Category metadata for display */
 const CATEGORY_META: Record<
@@ -70,6 +72,11 @@ const CATEGORY_META: Record<
     label: "Business Profile",
     description: "AI content personalization",
     icon: RiBuilding4Line,
+  },
+  contacts: {
+    label: "Contacts",
+    description: "Track call attendees",
+    icon: RiContactsLine,
   },
   users: {
     label: "Users",
@@ -222,6 +229,8 @@ export function SettingsDetailPane({
         return <AccountTab />;
       case "business":
         return <BusinessProfileTab />;
+      case "contacts":
+        return <ContactsTab />;
       case "users":
         return <UsersTab />;
       case "billing":

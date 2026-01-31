@@ -34,6 +34,8 @@ import {
   RiSettings3Line,
   RiBuilding4Line,
   RiBuilding4Fill,
+  RiContactsLine,
+  RiContactsFill,
 } from "@remixicon/react";
 
 /** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
@@ -42,6 +44,7 @@ const TRANSITION_DURATION = 250;
 export type SettingsCategory =
   | "account"
   | "business"
+  | "contacts"
   | "users"
   | "billing"
   | "integrations"
@@ -73,6 +76,13 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     description: "AI content personalization",
     icon: RiBuilding4Line,
     iconFill: RiBuilding4Fill,
+  },
+  {
+    id: "contacts",
+    label: "Contacts",
+    description: "Track call attendees",
+    icon: RiContactsLine,
+    iconFill: RiContactsFill,
   },
   {
     id: "users",
