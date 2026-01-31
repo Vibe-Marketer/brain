@@ -522,6 +522,10 @@ async function executeAIAnalysis(
 /**
  * Execute update_client_health action
  * Updates client health score in the database
+ * 
+ * NOTE: This feature requires the `clients` and `client_health_history` tables
+ * which are planned for Phase 7 (DIFF-03: Client Health Alerts). Until those
+ * tables are created, this action will gracefully skip with an informative message.
  */
 async function executeUpdateClientHealth(
   supabase: SupabaseClient,
@@ -531,6 +535,40 @@ async function executeUpdateClientHealth(
 ): Promise<ActionResult> {
   const { client_id, client_email, adjustment, reason, set_absolute } = config;
 
+  // Check if clients table exists by attempting a lightweight query
+  // This gracefully handles the case where the table doesn't exist yet
+  try {
+    const { error: tableCheckError } = await supabase
+      .from('clients')
+      .select('id')
+      .limit(0);
+
+    // If we get a "relation does not exist" error, the table doesn't exist
+    if (tableCheckError?.message?.includes('does not exist') || 
+        tableCheckError?.code === '42P01') {
+      return {
+        success: true,
+        details: {
+          note: 'Client health feature not yet available. The clients table will be created in Phase 7 (DIFF-03: Client Health Alerts).',
+          skipped: true,
+          adjustment,
+          reason,
+        },
+      };
+    }
+  } catch {
+    // If the table check fails unexpectedly, gracefully skip
+    return {
+      success: true,
+      details: {
+        note: 'Client health feature not yet available. Unable to access clients table.',
+        skipped: true,
+        adjustment,
+        reason,
+      },
+    };
+  }
+
   // Try to find client by ID or email
   let clientIdentifier = client_id;
 
@@ -538,12 +576,25 @@ async function executeUpdateClientHealth(
     // Try to find client by email
     const replacedEmail = replaceTemplateVariables(client_email, context);
 
-    const { data: client } = await supabase
+    const { data: client, error: emailLookupError } = await supabase
       .from('clients')
       .select('id')
       .eq('user_id', userId)
       .eq('email', replacedEmail)
       .maybeSingle();
+
+    // Handle table not existing gracefully
+    if (emailLookupError?.message?.includes('does not exist')) {
+      return {
+        success: true,
+        details: {
+          note: 'Client health feature not yet available.',
+          skipped: true,
+          adjustment,
+          reason,
+        },
+      };
+    }
 
     if (client) {
       clientIdentifier = client.id;
@@ -558,12 +609,25 @@ async function executeUpdateClientHealth(
       .map((p) => p.email);
 
     if (participantEmails.length > 0) {
-      const { data: client } = await supabase
+      const { data: client, error: participantLookupError } = await supabase
         .from('clients')
         .select('id')
         .eq('user_id', userId)
         .in('email', participantEmails)
         .maybeSingle();
+
+      // Handle table not existing gracefully
+      if (participantLookupError?.message?.includes('does not exist')) {
+        return {
+          success: true,
+          details: {
+            note: 'Client health feature not yet available.',
+            skipped: true,
+            adjustment,
+            reason,
+          },
+        };
+      }
 
       if (client) {
         clientIdentifier = client.id;
@@ -590,6 +654,18 @@ async function executeUpdateClientHealth(
     .single();
 
   if (fetchError) {
+    // Handle table not existing gracefully
+    if (fetchError.message?.includes('does not exist')) {
+      return {
+        success: true,
+        details: {
+          note: 'Client health feature not yet available.',
+          skipped: true,
+          adjustment,
+          reason,
+        },
+      };
+    }
     return { success: false, error: `Failed to fetch client: ${fetchError.message}` };
   }
 
@@ -615,10 +691,23 @@ async function executeUpdateClientHealth(
     .eq('id', clientIdentifier);
 
   if (updateError) {
+    // Handle table not existing gracefully
+    if (updateError.message?.includes('does not exist')) {
+      return {
+        success: true,
+        details: {
+          note: 'Client health feature not yet available.',
+          skipped: true,
+          adjustment,
+          reason,
+        },
+      };
+    }
     return { success: false, error: `Failed to update client health: ${updateError.message}` };
   }
 
   // Log health change history (if table exists)
+  // This already has graceful error handling via .catch()
   await supabase.from('client_health_history').insert({
     client_id: clientIdentifier,
     user_id: userId,
@@ -629,7 +718,7 @@ async function executeUpdateClientHealth(
     triggered_by_call: context.call?.recording_id,
     created_at: new Date().toISOString(),
   }).catch(() => {
-    // Table might not exist, ignore error
+    // Table might not exist yet (planned for Phase 7), ignore error
   });
 
   return {
@@ -741,6 +830,10 @@ async function executeWebhook(
 /**
  * Execute create_task action
  * Creates a task/reminder in the system
+ * 
+ * NOTE: This feature requires the `tasks` table which is not yet implemented.
+ * Until the table is created, this action will gracefully skip with an
+ * informative message.
  */
 async function executeCreateTask(
   supabase: SupabaseClient,
@@ -788,11 +881,18 @@ async function executeCreateTask(
     .single();
 
   if (error) {
-    // Table might not exist
+    // Table doesn't exist yet - gracefully skip with clear message
+    // Check for common "relation does not exist" error patterns
+    const isTableMissing = error.message?.includes('does not exist') || 
+                           error.code === '42P01';
+    
     return {
       success: true,
       details: {
-        note: 'Task creation attempted but tasks table may not exist',
+        note: isTableMissing 
+          ? 'Task creation feature not yet available. The tasks table has not been implemented.'
+          : `Task creation failed: ${error.message}`,
+        skipped: isTableMissing,
         title: replacedTitle,
         due_date: taskDueDate,
         priority,
