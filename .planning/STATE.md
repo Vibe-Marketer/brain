@@ -16,15 +16,15 @@
 
 **Phase:** 5 of 9 (Demo Polish) - In Progress
 
-**Plan:** 1 of 7 in Phase 5
+**Plan:** 4 of 7 in Phase 5
 
-**Status:** Plan 05-01 complete, continuing with Phase 5
+**Status:** Plan 05-04 complete, continuing with Phase 5
 
-**Last activity:** 2026-01-31 - Completed 05-01-PLAN.md (Route Automation Rules + Fix CallDetailPage)
+**Last activity:** 2026-01-31 - Completed 05-04-PLAN.md (Fix Users & Billing tabs)
 
 **Progress:**
 ```
-[██████████████████████████░░░] 30/36 plans complete (phases 1-5)
+[███████████████████████████░░] 31/36 plans complete (phases 1-5)
 ```
 
 ---
@@ -50,7 +50,7 @@
 | Phase 3.1: Compact Integration UI | 3 | 3 | Complete (3/3 plans) |
 | Phase 3.2: Integration Import Controls | 3 | 3 | Complete (2/2 plans) |
 | Phase 4: Team Collaboration | 2 | 2 | Complete (6/6 plans) |
-| Phase 5: Demo Polish | 12 | 2 | In Progress (1/7 plans) |
+| Phase 5: Demo Polish | 12 | 4 | In Progress (4/7 plans) |
 | Phase 6: Code Health & Infrastructure | 13 | 0 | Pending |
 | Phase 7: Differentiators | 5 | 0 | Pending |
 | Phase 8: Growth | 4 | 0 | Pending |
@@ -112,6 +112,8 @@
 | 2026-01-29 | Amber badge for pending status | Consistent with warning/pending styling | Status badges use amber for 'pending' states |
 | 2026-01-31 | Parse URL params to number for recording_id | fathom_calls uses numeric recording_id, URL params are strings | Pattern for numeric ID queries |
 | 2026-01-31 | Sentiment from sentiment_cache JSON | fathom_calls stores sentiment in JSON field, not top-level columns | Extract from JSON for display |
+| 2026-01-31 | Users tab already functional | Spec-042 concerns were addressed - status/joined/view details all work | No major changes needed |
+| 2026-01-31 | Billing "Coming Soon" badge pattern | Unreleased features should show clear "Coming Soon" messaging | Prevents misleading CTAs |
 
 ### Active TODOs
 
@@ -135,6 +137,7 @@
 Phase 4 Complete. Phase 5 in progress.
 
 - [x] Execute 05-01-PLAN.md (Route Automation Rules + Fix CallDetailPage)
+- [x] Execute 05-04-PLAN.md (Fix Users & Billing tabs - verified functional)
 
 (Coach Collaboration removed, Team Content Segregation deferred to Phase 9)
 
@@ -160,19 +163,19 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 05-01-PLAN.md - Phase 5 plan 1 of 7
+**Stopped at:** Completed 05-04-PLAN.md - Phase 5 plan 4 of 7
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 5 Demo Polish in progress. Plan 1 of 7 complete.
+Phase 5 Demo Polish in progress. Plan 4 of 7 complete.
 
 **What to remember:**
-- WIRE-01 addressed: Automation Rules page now at /automation-rules with 4 routes
-- IMPL-03 addressed: CallDetailPage queries fathom_calls table (not legacy calls)
-- Schema mismatch: fathom_calls lacks profits_framework, action_items - tabs show placeholders
-- Next: 05-02-PLAN.md (Fix AutomationRules.tsx type mismatches)
+- FIX-04 addressed: Users tab verified functional (status, joined date, view details all work)
+- FIX-05 addressed: Billing tab shows appropriate "Coming Soon - Stripe Integration" messaging
+- showActions={isAdmin} pattern ensures admin-only UI elements are properly gated
+- Next: 05-05-PLAN.md (Refactor bulk action toolbar to 4th pane)
 
 ---
 
@@ -182,13 +185,13 @@ Phase 5 Demo Polish in progress. Plan 1 of 7 complete.
 |--------|-------|
 | Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
 | Total Requirements | 58 |
-| Requirements Complete | 25 (43%) |
+| Requirements Complete | 27 (47%) |
 | Current Phase | 5 - Demo Polish (In Progress) |
-| Plans Complete | 1/7 in Phase 5 (30 overall) |
-| Next Plan | 05-02-PLAN.md |
+| Plans Complete | 4/7 in Phase 5 (31 overall) |
+| Next Plan | 05-05-PLAN.md |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 05-01-PLAN.md)*
+*Last updated: 2026-01-31 (Completed 05-04-PLAN.md - FIX-04, FIX-05)*
