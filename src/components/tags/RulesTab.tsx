@@ -133,7 +133,7 @@ export function RulesTab() {
   useKeyboardShortcut(handleCreateShortcut, { key: 'n' });
 
   // Fetch rules
-  const { data: rules, isLoading: rulesLoading } = useQuery({
+  const { data: rules, isLoading: rulesLoading, error: rulesError } = useQuery({
     queryKey: ["tag-rules"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -513,6 +513,20 @@ export function RulesTab() {
         {[...Array(5)].map((_, i) => (
           <Skeleton key={i} className="h-12 w-full" />
         ))}
+      </div>
+    );
+  }
+
+  if (rulesError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+        <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+          <RiFlowChart className="h-8 w-8 text-destructive/50" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Failed to load rules</h3>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          There was an error loading your tag rules. Please try refreshing the page.
+        </p>
       </div>
     );
   }

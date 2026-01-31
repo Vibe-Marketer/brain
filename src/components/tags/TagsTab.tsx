@@ -121,7 +121,7 @@ export function TagsTab() {
   };
 
   // Fetch tags
-  const { data: tags, isLoading } = useQuery({
+  const { data: tags, isLoading, error: tagsError } = useQuery({
     queryKey: ["call-tags"],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -238,6 +238,20 @@ export function TagsTab() {
             </TableBody>
           </Table>
         </div>
+      </div>
+    );
+  }
+
+  if (tagsError) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+        <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+          <RiPriceTag3Line className="h-8 w-8 text-destructive/50" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Failed to load tags</h3>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          There was an error loading your tags. Please try refreshing the page.
+        </p>
       </div>
     );
   }
