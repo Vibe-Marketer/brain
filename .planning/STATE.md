@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (5/10 plans)
+**Current Focus:** Phase 6 Code Health & Infrastructure - In Progress (6/10 plans)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 6 of 9 (Code Health & Infrastructure) - In Progress
 
-**Plan:** 5 of 10 in Phase 6
+**Plan:** 6 of 10 in Phase 6
 
-**Status:** In progress - Missing table references handled gracefully
+**Status:** In progress - IMPL-01 resolved, AI analysis functions implemented
 
-**Last activity:** 2026-01-31 - Completed 06-07-PLAN.md (Handle missing table references)
+**Last activity:** 2026-01-31 - Completed 06-06-PLAN.md (Missing automation functions)
 
 **Progress:**
 ```
-[██████████████████████████████] 39/44 plans complete (phases 1-5 complete, 06-01/03/04/05/07 done)
+[██████████████████████████████] 40/44 plans complete (phases 1-5 complete, 06-01/03/04/05/06/07 done)
 ```
 
 ---
@@ -173,20 +173,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 06-07-PLAN.md
+**Stopped at:** Completed 06-06-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 6 Code Health & Infrastructure in progress. 5 of 10 plans complete (06-01, 06-03, 06-04, 06-05, 06-07).
+Phase 6 Code Health & Infrastructure in progress. 6 of 10 plans complete (06-01, 06-03, 06-04, 06-05, 06-06, 06-07).
 
 **What to remember:**
-- 06-07 completed: Missing table references (clients, tasks) handled gracefully
-- executeUpdateClientHealth now checks if clients table exists before querying
-- executeCreateTask has improved messaging for missing tasks table
-- Client Health feature tables will be created in Phase 7 (DIFF-03)
-- Remaining Phase 6 plans: 06-02, 06-06, 06-08, 06-09, 06-10
+- 06-06 completed: Created summarize-call and extract-action-items Edge Functions
+- Both use Vercel AI SDK v5 + OpenRouter (consistent with automation-sentiment)
+- IMPL-01 (missing automation functions) is now resolved
+- automation-engine can now execute summarize and extract_action_items analysis types
+- Remaining Phase 6 plans: 06-02, 06-08, 06-09, 06-10
 
 ---
 
@@ -198,11 +198,11 @@ Phase 6 Code Health & Infrastructure in progress. 5 of 10 plans complete (06-01,
 | Total Requirements | 58 |
 | Requirements Complete | 43 (74%) |
 | Current Phase | 6 - Code Health & Infrastructure (In Progress) |
-| Plans Complete | 5/10 in Phase 6 (39 overall) |
-| Next Plan | Continue Wave 2 (06-02, 06-06, 06-08, 06-09) |
+| Plans Complete | 6/10 in Phase 6 (40 overall) |
+| Next Plan | Continue Wave 2 (06-02, 06-08, 06-09) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 06-07-PLAN.md - Handle missing table references)*
+*Last updated: 2026-01-31 (Completed 06-06-PLAN.md - Missing automation functions)*
