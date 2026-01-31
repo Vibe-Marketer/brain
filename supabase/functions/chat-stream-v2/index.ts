@@ -38,6 +38,7 @@ interface RequestBody {
     speakers?: string[];
     categories?: string[];
     recording_ids?: number[];
+    folder_ids?: string[];
   };
   sessionId?: string;
 }
@@ -48,6 +49,7 @@ interface SessionFilters {
   speakers?: string[];
   categories?: string[];
   recording_ids?: number[];
+  folder_ids?: string[];
 }
 
 // ============================================
@@ -84,6 +86,7 @@ function buildSystemPrompt(filters?: SessionFilters): string {
     if (filters.speakers?.length) parts.push(`Speakers: ${filters.speakers.join(', ')}`);
     if (filters.categories?.length) parts.push(`Categories: ${filters.categories.join(', ')}`);
     if (filters.recording_ids?.length) parts.push(`Specific calls: ${filters.recording_ids.length} selected`);
+    if (filters.folder_ids?.length) parts.push(`Folders: ${filters.folder_ids.length} folder(s) selected - searches are scoped to calls within these folders`);
     if (parts.length > 0) {
       filterContext = `\n\nACTIVE FILTERS:\nThe user has active filters applied. Respect these when searching:\n${parts.join('\n')}`;
     }
@@ -180,9 +183,55 @@ ${filterContext}`;
 // ============================================
 
 /**
+ * Resolve folder IDs to recording IDs by querying folder_assignments.
+ * Returns the intersection of folder recordings with any existing recording filter.
+ */
+async function resolveFolderFilter(
+  supabase: SupabaseClient,
+  userId: string,
+  folderIds: string[],
+  existingRecordingIds?: number[],
+): Promise<number[] | undefined> {
+  if (!folderIds || folderIds.length === 0) {
+    return existingRecordingIds;
+  }
+
+  // Get all recording IDs assigned to any of the specified folders
+  const { data: assignments, error } = await supabase
+    .from('folder_assignments')
+    .select('call_recording_id')
+    .in('folder_id', folderIds)
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error('[chat-stream-v2] Error resolving folder filter:', error);
+    return existingRecordingIds;
+  }
+
+  const rawIds: number[] = (assignments || []).map(
+    (a: { call_recording_id: number }) => a.call_recording_id
+  );
+  const folderRecordingIds: number[] = Array.from(new Set(rawIds));
+
+  if (folderRecordingIds.length === 0) {
+    // Folders exist but have no calls - return empty array to match nothing
+    return [];
+  }
+
+  // Intersect with existing recording filter if present
+  if (existingRecordingIds && existingRecordingIds.length > 0) {
+    const intersection = folderRecordingIds.filter(id => existingRecordingIds.includes(id));
+    return intersection.length > 0 ? intersection : [];
+  }
+
+  return folderRecordingIds;
+}
+
+/**
  * Merge session filters with tool-specific search filters.
  * Session filters (from request body) provide the base context;
  * tool-specific filters override or extend them.
+ * Note: folder_ids are resolved to recording_ids before this function is called.
  */
 function mergeFilters(
   sessionFilters: SessionFilters | undefined,
@@ -825,12 +874,13 @@ Deno.serve(async (req: Request) => {
         speakers: requestFilters.speakers,
         categories: requestFilters.categories,
         recording_ids: requestFilters.recording_ids,
+        folder_ids: requestFilters.folder_ids,
       };
     } else if (sessionId) {
       // Fall back to session-stored filters
       const { data: session } = await supabase
         .from('chat_sessions')
-        .select('filter_date_start, filter_date_end, filter_speakers, filter_categories, filter_recording_ids')
+        .select('filter_date_start, filter_date_end, filter_speakers, filter_categories, filter_recording_ids, filter_folder_ids')
         .eq('id', sessionId)
         .eq('user_id', user.id)
         .single();
@@ -842,8 +892,22 @@ Deno.serve(async (req: Request) => {
           speakers: session.filter_speakers,
           categories: session.filter_categories,
           recording_ids: session.filter_recording_ids,
+          folder_ids: session.filter_folder_ids,
         };
       }
+    }
+
+    // ---- Resolve folder filters to recording IDs ----
+    // Folder IDs are converted to recording_ids for the search pipeline
+    if (sessionFilters?.folder_ids?.length) {
+      const resolvedRecordingIds = await resolveFolderFilter(
+        supabase,
+        user.id,
+        sessionFilters.folder_ids,
+        sessionFilters.recording_ids,
+      );
+      sessionFilters.recording_ids = resolvedRecordingIds;
+      console.log(`[chat-stream-v2] Resolved ${sessionFilters.folder_ids.length} folder(s) to ${resolvedRecordingIds?.length ?? 0} recording(s)`);
     }
 
     const selectedModel = requestedModel || 'openai/gpt-4o-mini';
