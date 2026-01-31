@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 7 High-Value Differentiators - In Progress (1/5 plans)
+**Current Focus:** Phase 7 High-Value Differentiators - In Progress (2/5 plans)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 7 of 9 (High-Value Differentiators) - In Progress
 
-**Plan:** 3 of 5 in Phase 7
+**Plan:** 2 of 5 in Phase 7 (07-01, 07-03 complete)
 
-**Status:** In progress - DIFF-05 verified
+**Status:** In progress - DIFF-01 (PROFITS) and DIFF-05 (Analytics) complete
 
-**Last activity:** 2026-01-31 - Completed 07-03-PLAN.md (Verify Real Analytics Data)
+**Last activity:** 2026-01-31 - Completed 07-01-PLAN.md (PROFITS Framework)
 
 **Progress:**
 ```
-[█████████████████████████████░] 45/49 plans complete (phases 1-6 complete, phase 7 in progress)
+[█████████████████████████████░] 46/49 plans complete (phases 1-6 complete, phase 7 in progress)
 ```
 
 ---
@@ -52,7 +52,7 @@
 | Phase 4: Team Collaboration | 2 | 2 | Complete (6/6 plans) |
 | Phase 5: Demo Polish | 12 | 12 | Complete (7/7 plans) |
 | Phase 6: Code Health & Infrastructure | 13 | 0 | Pending |
-| Phase 7: Differentiators | 5 | 1 | In Progress (1/5 plans) |
+| Phase 7: Differentiators | 5 | 2 | In Progress (2/5 plans) |
 | Phase 8: Growth | 4 | 0 | Pending |
 | Phase 9: Team Content Segregation | 5 | 0 | Deferred |
 
@@ -158,6 +158,7 @@ Phase 5 Complete. (Coach Collaboration removed, Team Content Segregation deferre
 Phase 6 Complete. Ready for Phase 7.
 
 - [x] Execute 07-03-PLAN.md (Verify Real Analytics Data - DIFF-05 verified)
+- [x] Execute 07-01-PLAN.md (PROFITS Framework - extract-profits, usePROFITS, PROFITSReport)
 
 ### Pending Todos
 
@@ -181,19 +182,21 @@ None
 ## Session Continuity
 
 **Last session:** 2026-01-31
-**Stopped at:** Completed 07-03-PLAN.md
+**Stopped at:** Completed 07-01-PLAN.md (PROFITS Framework)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 7 High-Value Differentiators in progress. Plan 07-03 complete (DIFF-05 verified). Plans 07-01, 07-02, 07-04, 07-05 remain.
+Phase 7 High-Value Differentiators in progress. Plans 07-01 and 07-03 complete. Plans 07-02, 07-04, 07-05 remain.
 
 **What to remember:**
-- 07-03 completed: Verified analytics tabs show real data from fathom_calls
-- useCallAnalytics hook already queries fathom_calls directly - no code changes needed
-- DIFF-05 requirement satisfied, documented with e2e test suite
-- New file: e2e/analytics-data.spec.ts (18 tests)
+- 07-01 completed: PROFITS Framework v2 fully implemented
+- New Edge Function: extract-profits (uses Claude 3 Haiku via OpenRouter)
+- New components: PROFITSReport, PROFITSSection, usePROFITS hook
+- Citation system links findings to fathom_transcripts rows
+- TypeScript types for profits_framework column are stale (workaround with unknown cast)
+- 07-02 has preliminary work started (folderIds in ChatFilters type)
 
 ---
 
@@ -205,11 +208,11 @@ Phase 7 High-Value Differentiators in progress. Plan 07-03 complete (DIFF-05 ver
 | Total Requirements | 58 |
 | Requirements Complete | 45 (78%) |
 | Current Phase | 7 - High-Value Differentiators (In Progress) |
-| Plans Complete | 1/5 in Phase 7 (45 overall) |
-| Next Plan | 07-01, 07-02, 07-04, or 07-05 |
+| Plans Complete | 2/5 in Phase 7 (46 overall) |
+| Next Plan | 07-02, 07-04, or 07-05 |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (Completed 07-03-PLAN.md - Verify Real Analytics Data)*
+*Last updated: 2026-01-31 (Completed 07-01-PLAN.md - PROFITS Framework)*
