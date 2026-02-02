@@ -118,6 +118,70 @@ export function startChatTrace(params: ChatTraceParams): ChatTraceResult | null 
   };
 }
 
+// ============================================
+// SIMPLIFIED TRACING FOR NON-CHAT FUNCTIONS
+// ============================================
+
+export interface SimpleTraceParams {
+  name: string;           // Function name like "generate-ai-titles"
+  userId: string;
+  model: string;
+  input: unknown;         // The prompt/input sent to the model
+  metadata?: Record<string, unknown>;
+}
+
+export interface SimpleTraceResult {
+  traceId: string;
+  end: (output: unknown, error?: string) => Promise<void>;
+}
+
+/**
+ * Start a simple trace for non-streaming LLM calls.
+ * Use this for generateText/generateObject calls.
+ */
+export function startTrace(params: SimpleTraceParams): SimpleTraceResult | null {
+  const langfuse = getLangfuse();
+  if (!langfuse) {
+    return null;
+  }
+
+  const { name, userId, model, input, metadata } = params;
+
+  // Create trace
+  const trace = langfuse.trace({
+    name,
+    userId,
+    metadata: {
+      model,
+      ...metadata,
+    },
+  });
+
+  // Create generation span
+  const generation = trace.generation({
+    name: `${name}-generation`,
+    model,
+    input,
+  });
+
+  return {
+    traceId: trace.id,
+    end: async (output: unknown, error?: string) => {
+      if (error) {
+        generation.end({
+          output: null,
+          statusMessage: error,
+        });
+      } else {
+        generation.end({
+          output,
+        });
+      }
+      await langfuse.flushAsync();
+    },
+  };
+}
+
 /**
  * Log a tool call within a trace.
  */

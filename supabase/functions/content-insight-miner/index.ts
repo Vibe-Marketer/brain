@@ -7,6 +7,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
@@ -194,13 +195,29 @@ Deno.serve(async (req: Request) => {
       )
       .join('\n');
 
+    // Start Langfuse trace
+    const trace = startTrace({
+      name: 'content-insight-miner',
+      userId: user.id,
+      model,
+      input: { title: call.title, transcriptLength: transcript?.length || 0 },
+      metadata: { recording_id },
+    });
+
     // Mine insights
-    const result = await mineInsights(
-      transcript || call.summary || '',
-      call.title,
-      openrouterApiKey,
-      model
-    );
+    let result;
+    try {
+      result = await mineInsights(
+        transcript || call.summary || '',
+        call.title,
+        openrouterApiKey,
+        model
+      );
+      await trace?.end({ insightsCount: result.insights.length });
+    } catch (error) {
+      await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
 
     console.log(`Mined ${result.insights.length} insights from call ${recording_id}`);
 
@@ -229,6 +246,9 @@ Deno.serve(async (req: Request) => {
       }
     }
 
+    // Flush Langfuse traces before response
+    await flushLangfuse();
+
     return new Response(
       JSON.stringify({
         recording_id,
@@ -241,6 +261,7 @@ Deno.serve(async (req: Request) => {
 
   } catch (error) {
     console.error('Error in content-insight-miner:', error);
+    await flushLangfuse();
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),

@@ -7,6 +7,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
@@ -236,6 +237,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Start Langfuse trace (at request level since this streams)
+    const trace = startTrace({
+      name: 'content-builder',
+      userId: user.id,
+      model,
+      input: { hookIds: hook_ids, hookCount: hooks.length },
+      metadata: { hook_ids },
+    });
+
     // Setup SSE streaming response
     const encoder = new TextEncoder();
 
@@ -244,6 +254,8 @@ Deno.serve(async (req: Request) => {
         const send = (data: unknown) => {
           controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
         };
+
+        let contentItemsCreated = 0;
 
         try {
           // Process each hook
@@ -254,10 +266,9 @@ Deno.serve(async (req: Request) => {
               openrouterApiKey,
               model
             )) {
-              send(event);
-
               // On complete, save to database
               if (event.type === 'complete' && event.data) {
+                contentItemsCreated += 2; // social post + email
                 const content = event.data as { social_post_text: string; email_subject: string; email_body_opening: string };
 
                 // Save social post
@@ -288,12 +299,18 @@ Deno.serve(async (req: Request) => {
             }
           }
 
+          // End trace with success
+          await trace?.end({ contentItemsCreated });
+          await flushLangfuse();
+
           send({ type: 'done' });
           controller.enqueue(encoder.encode('data: [DONE]\n\n'));
           controller.close();
 
         } catch (error) {
           console.error('Stream error:', error);
+          await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
+          await flushLangfuse();
           send({
             type: 'error',
             error: error instanceof Error ? error.message : 'Unknown error',
@@ -315,6 +332,7 @@ Deno.serve(async (req: Request) => {
 
   } catch (error) {
     console.error('Error in content-builder:', error);
+    await flushLangfuse();
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),

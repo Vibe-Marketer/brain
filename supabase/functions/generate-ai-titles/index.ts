@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
 import { generateText } from 'https://esm.sh/ai@5.0.102';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 
 // OpenRouter configuration - using official AI SDK v5 provider
 function createOpenRouterProvider(apiKey: string) {
@@ -327,12 +328,28 @@ Participants: ${participantInfo}
 Transcript:
 ${cleanedTranscript}`;
 
-        const result = await generateText({
-          model: openrouter('google/gemini-2.5-flash'),
-          system: SYSTEM_PROMPT,
-          prompt: userPrompt,
-          temperature: 0.7,
+        // Start Langfuse trace
+        const trace = startTrace({
+          name: 'generate-ai-titles',
+          userId,
+          model: 'google/gemini-2.5-flash',
+          input: { system: SYSTEM_PROMPT, user: userPrompt.substring(0, 500) + '...' },
+          metadata: { recordingId, transcriptLength: cleanedTranscript.length },
         });
+
+        let result;
+        try {
+          result = await generateText({
+            model: openrouter('google/gemini-2.5-flash'),
+            system: SYSTEM_PROMPT,
+            prompt: userPrompt,
+            temperature: 0.7,
+          });
+          await trace?.end(result.text);
+        } catch (error) {
+          await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
+          throw error;
+        }
 
         // Clean up the response - remove any quotes, markdown, or extra whitespace
         const aiTitle = result.text
@@ -383,6 +400,9 @@ ${cleanedTranscript}`;
 
     const successCount = results.filter(r => r.success).length;
 
+    // Flush Langfuse traces before response
+    await flushLangfuse();
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -396,6 +416,7 @@ ${cleanedTranscript}`;
 
   } catch (error) {
     console.error('Generate titles error:', error);
+    await flushLangfuse();
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Internal server error',

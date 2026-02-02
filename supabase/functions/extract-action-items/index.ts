@@ -21,6 +21,7 @@ import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2
 import { generateObject } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 
 // OpenRouter configuration - using official AI SDK v5 provider
 function createOpenRouterProvider(apiKey: string) {
@@ -188,7 +189,27 @@ Deno.serve(async (req) => {
 
     // Extract action items using AI
     const openrouter = createOpenRouterProvider(openrouterApiKey);
-    const action_items = await extractActionItems(call.full_transcript, call.title || '', openrouter);
+
+    // Start Langfuse trace
+    const trace = startTrace({
+      name: 'extract-action-items',
+      userId: user.id,
+      model: 'anthropic/claude-3-haiku-20240307',
+      input: { title: call.title, transcriptLength: call.full_transcript.length },
+      metadata: { recording_id },
+    });
+
+    let action_items;
+    try {
+      action_items = await extractActionItems(call.full_transcript, call.title || '', openrouter);
+      await trace?.end({ action_items_count: action_items.length });
+    } catch (error) {
+      await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
+
+    // Flush Langfuse traces before response
+    await flushLangfuse();
 
     return new Response(
       JSON.stringify({
@@ -203,6 +224,7 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Extract-action-items error:', error);
+    await flushLangfuse();
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Internal server error',

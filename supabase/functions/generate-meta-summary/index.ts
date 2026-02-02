@@ -3,6 +3,7 @@ import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2
 import { generateObject } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 
 // OpenRouter configuration - using official AI SDK v5 provider
 function createOpenRouterProvider(apiKey: string) {
@@ -161,10 +162,7 @@ Deno.serve(async (req) => {
     // Generate meta-summary using OpenRouter (GLM-4.6 via OpenRouter)
     const openrouter = createOpenRouterProvider(openrouterApiKey);
 
-    const result = await generateObject({
-      model: openrouter('z-ai/glm-4.6'),
-      schema: MetaSummarySchema,
-      prompt: `Analyze these ${calls.length} meeting summaries and create a comprehensive meta-summary.
+    const metaPrompt = `Analyze these ${calls.length} meeting summaries and create a comprehensive meta-summary.
 
 TIME PERIOD: ${startDate} to ${endDate}
 TOTAL MEETINGS: ${calls.length}
@@ -183,10 +181,34 @@ Your task:
 6. Highlight notable contributions from key participants (if discernible)
 7. Describe how topics/themes evolved over time
 
-Be thorough but concise. Focus on what matters most for someone who wants to understand what happened across all these meetings.`,
+Be thorough but concise. Focus on what matters most for someone who wants to understand what happened across all these meetings.`;
+
+    // Start Langfuse trace
+    const trace = startTrace({
+      name: 'generate-meta-summary',
+      userId: user.id,
+      model: 'z-ai/glm-4.6',
+      input: { meetingCount: calls.length, promptLength: metaPrompt.length },
+      metadata: { recording_ids, totalDurationMinutes },
     });
 
+    let result;
+    try {
+      result = await generateObject({
+        model: openrouter('z-ai/glm-4.6'),
+        schema: MetaSummarySchema,
+        prompt: metaPrompt,
+      });
+      await trace?.end({ themesCount: result.object.key_themes?.length || 0 });
+    } catch (error) {
+      await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
+
     console.log(`Meta-summary generated for ${calls.length} meetings`);
+
+    // Flush Langfuse traces before response
+    await flushLangfuse();
 
     return new Response(
       JSON.stringify({
@@ -204,6 +226,7 @@ Be thorough but concise. Focus on what matters most for someone who wants to und
 
   } catch (error) {
     console.error('Meta-summary generation error:', error);
+    await flushLangfuse();
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Internal server error',

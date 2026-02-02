@@ -3,6 +3,7 @@ import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2
 import { generateObject } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 
 // OpenRouter configuration - using official AI SDK v5 provider
 function createOpenRouterProvider(apiKey: string) {
@@ -308,10 +309,7 @@ Deno.serve(async (req) => {
         ].filter(Boolean).join('\n\n');
 
         // Generate tag using OpenRouter via AI SDK with preferences and history
-        const result = await generateObject({
-          model: openrouter('z-ai/glm-4.6'),
-          schema: TagSchema,
-          prompt: `Analyze this meeting call and assign the SINGLE most appropriate tag.
+        const tagPrompt = `Analyze this meeting call and assign the SINGLE most appropriate tag.
 
 ${preferencesContext}
 
@@ -344,8 +342,29 @@ TAGGING PRIORITY:
 Current Call Information:
 ${callInfo}
 
-Select the ONE most appropriate tag from the approved list.`,
+Select the ONE most appropriate tag from the approved list.`;
+
+        // Start Langfuse trace
+        const trace = startTrace({
+          name: 'auto-tag-calls',
+          userId: user.id,
+          model: 'z-ai/glm-4.6',
+          input: { prompt: tagPrompt.substring(0, 500) + '...' },
+          metadata: { recordingId, attendeeCount },
         });
+
+        let result;
+        try {
+          result = await generateObject({
+            model: openrouter('z-ai/glm-4.6'),
+            schema: TagSchema,
+            prompt: tagPrompt,
+          });
+          await trace?.end(result.object);
+        } catch (error) {
+          await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
+          throw error;
+        }
 
         const selectedTag = result.object.tag;
         console.log(`Generated tag for ${recordingId}: ${selectedTag} (${result.object.confidence}% confidence) - ${result.object.reasoning}`);
@@ -387,6 +406,9 @@ Select the ONE most appropriate tag from the approved list.`,
 
     const successCount = results.filter(r => r.success).length;
 
+    // Flush Langfuse traces before response
+    await flushLangfuse();
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -400,6 +422,7 @@ Select the ONE most appropriate tag from the approved list.`,
 
   } catch (error) {
     console.error('Auto-tag error:', error);
+    await flushLangfuse();
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Internal server error',

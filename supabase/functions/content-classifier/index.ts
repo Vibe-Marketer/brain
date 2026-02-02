@@ -7,6 +7,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
 const DEFAULT_MODEL = 'openai/gpt-4o-mini';
@@ -173,15 +174,34 @@ Deno.serve(async (req: Request) => {
       )
       .join('\n');
 
+    // Start Langfuse trace
+    const trace = startTrace({
+      name: 'content-classifier',
+      userId: user.id,
+      model,
+      input: { title: call.title, transcriptLength: transcript?.length || 0 },
+      metadata: { recording_id },
+    });
+
     // Classify the call
-    const result = await classifyCall(
-      transcript || call.summary || '',
-      call.title,
-      openrouterApiKey,
-      model
-    );
+    let result;
+    try {
+      result = await classifyCall(
+        transcript || call.summary || '',
+        call.title,
+        openrouterApiKey,
+        model
+      );
+      await trace?.end(result);
+    } catch (error) {
+      await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
 
     console.log(`Classified call ${recording_id}: ${result.call_type}, content_potential=${result.content_potential}`);
+
+    // Flush Langfuse traces before response
+    await flushLangfuse();
 
     return new Response(
       JSON.stringify({
@@ -193,6 +213,7 @@ Deno.serve(async (req: Request) => {
 
   } catch (error) {
     console.error('Error in content-classifier:', error);
+    await flushLangfuse();
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
       JSON.stringify({ error: errorMessage }),

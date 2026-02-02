@@ -30,6 +30,7 @@ import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2
 import { generateText } from 'https://esm.sh/ai@5.0.102';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 
 // =============================================================================
 // TYPES & SCHEMAS
@@ -394,12 +395,32 @@ Deno.serve(async (req) => {
     // Extract PROFITS using AI
     const modelId = 'anthropic/claude-3-haiku-20240307';
     const openrouter = createOpenRouterProvider(openrouterApiKey);
-    const { sections, model_used } = await extractPROFITS(
-      segments,
-      call.title || '',
-      openrouter,
-      modelId
-    );
+
+    // Start Langfuse trace
+    const trace = startTrace({
+      name: 'extract-profits',
+      userId: user.id,
+      model: modelId,
+      input: { title: call.title, segmentCount: segments.length },
+      metadata: { recording_id },
+    });
+
+    let sections, model_used;
+    try {
+      const result = await extractPROFITS(
+        segments,
+        call.title || '',
+        openrouter,
+        modelId
+      );
+      sections = result.sections;
+      model_used = result.model_used;
+      const totalFindings = sections.reduce((sum: number, s: PROFITSSection) => sum + s.findings.length, 0);
+      await trace?.end({ totalFindings, model_used });
+    } catch (error) {
+      await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
 
     // Build the full report
     const profitsReport: PROFITSReport = {
@@ -424,8 +445,11 @@ Deno.serve(async (req) => {
     }
 
     // Count findings for logging
-    const totalFindings = sections.reduce((sum, s) => sum + s.findings.length, 0);
-    console.log(`Extracted ${totalFindings} PROFITS findings for recording ${recording_id}`);
+    const totalFindingsLog = sections.reduce((sum: number, s: PROFITSSection) => sum + s.findings.length, 0);
+    console.log(`Extracted ${totalFindingsLog} PROFITS findings for recording ${recording_id}`);
+
+    // Flush Langfuse traces before response
+    await flushLangfuse();
 
     return new Response(
       JSON.stringify({
@@ -440,6 +464,7 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Extract-profits error:', error);
+    await flushLangfuse();
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Internal server error',
