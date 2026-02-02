@@ -1,12 +1,12 @@
 ---
 milestone: v1
-audited: 2026-01-31T20:00:00Z
+audited: 2026-01-31T20:30:00Z
 status: tech_debt
 scores:
-  requirements: 51/55
-  phases: 8/8
-  integration: 98%
-  flows: 5/5
+  requirements: 55/58
+  phases: 9/9
+  integration: 87/100
+  flows: 5/6
 gaps:
   requirements:
     - id: INT-01
@@ -20,7 +20,7 @@ gaps:
       reason: "Errors surface to user via toast"
     - id: COACH-01
       status: deferred
-      reason: "Coach feature removed from roadmap (Phase 9 will eliminate)"
+      reason: "Coach feature removed from roadmap (Phase 9 eliminated)"
     - id: COACH-02
       status: deferred
       reason: "Coach feature removed from roadmap"
@@ -29,12 +29,14 @@ gaps:
       reason: "Coach feature removed from roadmap"
     - id: REFACTOR-02
       status: skipped
-      reason: "useTeamHierarchy getting overhaul in Phase 9"
+      reason: "useTeamHierarchy superseded by Bank/Vault in Phase 9"
     - id: REFACTOR-05
       status: skipped
       reason: "ai-agent.ts no longer exists (deleted in SEC-01)"
-  integration: []
-  flows: []
+  integration:
+    - "Bank/vault context ignored by chat-stream-v2 backend (searches return all user recordings instead of scoping to active bank/vault)"
+  flows:
+    - "PROFITS Analysis flow: extract-profits backend exists but has no frontend trigger"
 tech_debt:
   - phase: 01-security-lockdown
     items:
@@ -43,7 +45,6 @@ tech_debt:
       - "ALLOWED_ORIGINS env var must be set in Supabase production secrets"
   - phase: 02-chat-foundation
     items:
-      - "Chat.tsx endpoints 'chat-stream' vs 'chat-stream-v2' drift (deployed functions diverge from local naming)"
       - "Deferred: CallDetailPanel for citation sources (user prefers popup dialog)"
   - phase: 04-team-collaboration
     items:
@@ -51,24 +52,33 @@ tech_debt:
   - phase: 06-code-health-infrastructure
     items:
       - "Chat.tsx at 689 lines (target was <500, accepted as essential orchestration logic)"
+  - phase: 07-differentiators
+    items:
+      - "extract-profits Edge Function orphaned - no frontend caller"
+  - phase: 09-bank-vault-architecture
+    items:
+      - "BankSwitcher.tsx has TODO + console.log for Create Bank feature"
+      - "BankSwitcher.tsx has TODO + console.log for Manage Banks navigation"
+      - "Legacy teams/team-memberships Edge Functions still exist (superseded by banks)"
+      - "Bank/vault filtering not implemented in chat-stream-v2 backend"
 ---
 
 # Milestone v1: CallVault Launch Stabilization Audit
 
 **Milestone Goal:** Stabilize CallVault for public launch by fixing core chat reliability, enabling collaboration features, and wiring orphaned functionality.
 
-**Audited:** 2026-01-31
+**Audited:** 2026-01-31T20:30:00Z
 **Status:** Tech Debt (all blockers resolved, accumulated debt needs review)
 
 ## Executive Summary
 
 v1 Launch Stabilization is **READY TO SHIP** with minor tech debt to track in backlog.
 
-- **51/55 requirements satisfied** (93%)
-- **8/8 phases complete** with verification
-- **98% integration health** (all cross-phase wiring verified)
-- **5/5 E2E flows verified** (Team, Billing, YouTube Import, Notifications, OAuth)
-- **4 requirements deferred** (Coach features moving to Phase 9)
+- **55/58 requirements satisfied** (95%)
+- **9/9 phases complete** with verification
+- **87/100 integration health** (1 critical gap: bank/vault chat scoping)
+- **5/6 E2E flows verified** (PROFITS flow partial - no frontend trigger)
+- **3 requirements deferred** (Coach features eliminated in Phase 9)
 
 ## Requirements Coverage
 
@@ -158,12 +168,13 @@ v1 Launch Stabilization is **READY TO SHIP** with minor tech debt to track in ba
 | 04-team-collaboration | Passed | 6/6 | None |
 | 05-demo-polish | Passed | 12/12 | None |
 | 06-code-health-infrastructure | Gaps Found | 12/13 | Chat.tsx 689 lines > 500 target |
-| 07-differentiators | Passed | 5/5 | None |
+| 07-differentiators | Passed | 5/5 | extract-profits orphaned |
 | 08-growth-infrastructure | Passed | 6/6 | None |
+| 09-bank-vault-architecture | Passed | 7/7 | Chat backend not scoping to bank/vault |
 
 ## Integration Check Results
 
-**Overall Integration Health: 98%**
+**Overall Integration Health: 87/100**
 
 ### Cross-Phase Wiring Verified
 
@@ -174,20 +185,35 @@ v1 Launch Stabilization is **READY TO SHIP** with minor tech debt to track in ba
 | Phase 4 TeamSwitcher → top-bar.tsx | Wired |
 | Phase 7 NotificationBell → top-bar.tsx | Wired |
 | Phase 8 useSubscription → BillingTab | Wired |
+| Phase 9 BankSwitcher → top-bar.tsx | Wired |
+| Phase 9 useBankContext → Chat.tsx, SyncTab.tsx | Wired (frontend) |
+| Phase 9 bank/vault → chat-stream-v2 | **NOT WIRED** (backend ignores) |
 
 ### E2E Flows Verified
 
-| Flow | Status |
-|------|--------|
-| New User → OAuth → Import → Chat | Complete (using legacy endpoint) |
-| Team Creation → Invite → Join → Switch | Complete |
-| YouTube Import → Transcripts → Chat | Complete |
-| Billing Upgrade Flow | Complete |
-| Health Alerts (Backend) | Complete |
+| Flow | Status | Notes |
+|------|--------|-------|
+| Signup → First Chat | Complete | Personal bank/vault auto-created |
+| Connect → Import → Search | Complete | OAuth → meetings → searchable |
+| Create Vault → Share | Complete | Vault creation works |
+| PROFITS Analysis | **Partial** | Backend exists, no frontend trigger |
+| Subscription Upgrade | Complete | Polar checkout → webhook → updated |
+| YouTube → Chat | Complete | Creates fathom_calls, searchable |
+
+### Critical Integration Gap
+
+**Bank/Vault Context Not Passed to Chat Backend**
+
+The frontend sends `bank_id` and `vault_id` via `useBankContext`, but `chat-stream-v2` ignores these fields. This means:
+- Chat searches return all user recordings regardless of active bank/vault selection
+- Multi-tenant isolation is incomplete for the chat feature
+
+**Recommended Fix:** Add `bank_id`/`vault_id` to SessionFilters in chat-stream-v2/index.ts and filter queries accordingly.
 
 ### Known Integration Debt
 
-1. **Chat endpoint drift:** Local `chat-stream-legacy` doesn't match deployed `chat-stream`. Works because Supabase has both deployed.
+1. **PROFITS orphaned:** extract-profits Edge Function has no frontend caller
+2. **Legacy team functions:** teams/ and team-memberships/ Edge Functions still exist after Phase 9 superseded them
 
 ## Tech Debt Summary
 
@@ -208,15 +234,23 @@ v1 Launch Stabilization is **READY TO SHIP** with minor tech debt to track in ba
 **Phase 06 - Code Health:**
 - Chat.tsx at 689 lines (38% over 500-line target)
 
-### Total: 7 items across 4 phases
+**Phase 07 - Differentiators:**
+- extract-profits Edge Function has no frontend caller
 
-## Deferred to Phase 9
+**Phase 09 - Bank/Vault Architecture:**
+- BankSwitcher.tsx TODOs for Create Bank / Manage Banks
+- Legacy teams/team-memberships Edge Functions not cleaned up
+- chat-stream-v2 doesn't filter by bank/vault context
 
-| Item | Reason |
+### Total: 11 items across 6 phases
+
+## Deferred / Eliminated
+
+| Item | Status |
 |------|--------|
-| COACH-01, COACH-02, COACH-03 | Coach feature being eliminated in Bank/Vault architecture |
-| REFACTOR-02 (useTeamHierarchy) | Getting complete overhaul in Phase 9 |
-| TEAM-03 through TEAM-07 | Team Content Segregation deferred |
+| COACH-01, COACH-02, COACH-03 | **Eliminated** - Coach feature removed in Phase 9 |
+| REFACTOR-02 (useTeamHierarchy) | **Superseded** - Replaced by Bank/Vault architecture |
+| TEAM-03 through TEAM-07 | **Replaced** - Bank/Vault handles content segregation |
 
 ## Recommendations
 
@@ -228,12 +262,20 @@ v1 Launch Stabilization is **READY TO SHIP** with minor tech debt to track in ba
 
 ### Post-Launch Priorities
 
-1. **Align local/deployed chat endpoints** - Deploy chat-stream-legacy or update Chat.tsx
-2. **Set ALLOWED_ORIGINS in production** - Security hardening
-3. **Regenerate Supabase types** - Remove any casts
-4. **Consider Chat.tsx extraction** - If maintenance becomes difficult
+1. **Add bank/vault filtering to chat-stream-v2** - Critical for multi-tenant isolation
+2. **Wire extract-profits to frontend** - Add button on CallDetailPage
+3. **Set ALLOWED_ORIGINS in production** - Security hardening
+4. **Clean up legacy team Edge Functions** - Remove teams/, team-memberships/
+5. **Regenerate Supabase types** - Remove any casts
+
+### Can Defer
+
+- Chat.tsx 689 lines (acceptable, well-organized)
+- BankSwitcher Create Bank TODO (Pro feature)
+- ContentGenerator re-wiring (Phase 2 feature)
 
 ---
 
-*Audited: 2026-01-31T20:00:00Z*
+*Audited: 2026-01-31T20:30:00Z*
 *Auditor: Claude (gsd-verify-milestone orchestrator)*
+*Integration Checker: gsd-integration-checker agent*

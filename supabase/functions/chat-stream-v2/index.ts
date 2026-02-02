@@ -7,13 +7,14 @@
 // Phase: 02-chat-foundation (plan 05)
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { streamText, tool, convertToModelMessages } from 'https://esm.sh/ai@5.0.102';
-import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
+import { streamText, tool, convertToModelMessages } from 'https://esm.sh/ai@6.0.66';
+import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@2.1.1';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { executeHybridSearch, diversityFilter } from '../_shared/search-pipeline.ts';
 import { generateQueryEmbedding } from '../_shared/embeddings.ts';
 import { logUsage, estimateTokenCount } from '../_shared/usage-tracker.ts';
+import { startChatTrace, flushLangfuse, type ChatTraceResult } from '../_shared/langfuse.ts';
 
 import type { SearchFilters } from '../_shared/search-pipeline.ts';
 
@@ -40,7 +41,23 @@ interface RequestBody {
     recording_ids?: number[];
     folder_ids?: string[];
   };
+  sessionFilters?: {
+    bank_id?: string | null;
+    vault_id?: string | null;
+  };
   sessionId?: string;
+}
+
+interface BusinessProfileContext {
+  company_name: string | null;
+  industry: string | null;
+  primary_product_service: string | null;
+  target_audience: string | null;
+  target_audience_pain_points: string | null;
+  offer_name: string | null;
+  offer_promise: string | null;
+  brand_voice: string | null;
+  prohibited_terms: string | null;
 }
 
 interface SessionFilters {
@@ -67,15 +84,69 @@ function createOpenRouterProvider(apiKey: string) {
 }
 
 // ============================================
+// BUSINESS PROFILE FETCHER
+// ============================================
+
+/**
+ * Fetch the user's default business profile for context injection.
+ * Returns null if no profile exists (graceful fallback).
+ */
+async function fetchBusinessProfile(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<BusinessProfileContext | null> {
+  try {
+    const { data, error } = await supabase
+      .from('business_profiles')
+      .select('company_name, industry, primary_product_service, target_audience, target_audience_pain_points, offer_name, offer_promise, brand_voice, prohibited_terms')
+      .eq('user_id', userId)
+      .eq('is_default', true)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[chat-stream-v2] Failed to fetch business profile:', error.message);
+      return null;
+    }
+
+    return data as BusinessProfileContext | null;
+  } catch (err) {
+    console.warn('[chat-stream-v2] Error fetching business profile:', err);
+    return null;
+  }
+}
+
+// ============================================
 // SYSTEM PROMPT BUILDER
 // ============================================
 
-function buildSystemPrompt(filters?: SessionFilters): string {
+function buildSystemPrompt(
+  filters?: SessionFilters,
+  businessProfile?: BusinessProfileContext | null,
+): string {
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
   const recentDate = new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const lastWeekDate = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
   const thisMonthDate = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0];
+
+  // Build business context if profile exists
+  let businessContext = '';
+  if (businessProfile) {
+    const profileParts: string[] = [];
+    if (businessProfile.company_name) profileParts.push(`Company: ${businessProfile.company_name}`);
+    if (businessProfile.industry) profileParts.push(`Industry: ${businessProfile.industry}`);
+    if (businessProfile.primary_product_service) profileParts.push(`Product/Service: ${businessProfile.primary_product_service}`);
+    if (businessProfile.target_audience) profileParts.push(`Target Audience: ${businessProfile.target_audience}`);
+    if (businessProfile.target_audience_pain_points) profileParts.push(`Audience Pain Points: ${businessProfile.target_audience_pain_points}`);
+    if (businessProfile.offer_name) profileParts.push(`Main Offer: ${businessProfile.offer_name}`);
+    if (businessProfile.offer_promise) profileParts.push(`Value Promise: ${businessProfile.offer_promise}`);
+    if (businessProfile.brand_voice) profileParts.push(`Brand Voice: ${businessProfile.brand_voice}`);
+    if (businessProfile.prohibited_terms) profileParts.push(`Avoid Using: ${businessProfile.prohibited_terms}`);
+    
+    if (profileParts.length > 0) {
+      businessContext = `\n\nUSER BUSINESS CONTEXT:\nUse this context to provide more relevant, personalized insights:\n${profileParts.join('\n')}`;
+    }
+  }
 
   // Build filter context if filters are active
   let filterContext = '';
@@ -93,6 +164,7 @@ function buildSystemPrompt(filters?: SessionFilters): string {
   }
 
   return `You are CallVault AI, an expert meeting intelligence assistant that helps users analyze their call recordings and transcripts. You have access to 14 specialized RAG tools to search, filter, and analyze meeting data.
+${businessContext}
 
 AVAILABLE TOOLS:
 
@@ -266,11 +338,79 @@ function createTools(
   hfApiKey: string,
   sessionFilters?: SessionFilters,
 ) {
+  // ================================================================
+  // TOOL EXECUTION LOGGING WRAPPER
+  // Logs what tools return to catch "silent failures" where tools
+  // appear to work but return empty/useless results
+  // ================================================================
+  function logToolResult(toolName: string, input: unknown, result: unknown): void {
+    const resultSummary = summarizeResult(result);
+    console.log(`[TOOL RESULT] ${toolName}:`, JSON.stringify({
+      input: truncateForLog(input),
+      ...resultSummary,
+    }));
+  }
+
+  function summarizeResult(result: unknown): { status: string; resultCount?: number; hasError?: boolean; message?: string } {
+    if (!result || typeof result !== 'object') {
+      return { status: 'empty_or_invalid', hasError: true };
+    }
+
+    const r = result as Record<string, unknown>;
+
+    // Check for explicit errors
+    if (r.error === true || r.error) {
+      return { status: 'error', hasError: true, message: String(r.message || r.error) };
+    }
+
+    // Check for "no results" messages
+    if (r.message && !r.results) {
+      return { status: 'no_results', message: String(r.message) };
+    }
+
+    // Check for actual results
+    if (Array.isArray(r.results)) {
+      return { 
+        status: r.results.length > 0 ? 'success' : 'empty_results',
+        resultCount: r.results.length,
+      };
+    }
+
+    // For single-item returns (like getCallDetails)
+    if (r.recording_id || r.title || r.calls) {
+      const callCount = Array.isArray(r.calls) ? r.calls.length : 1;
+      return { status: 'success', resultCount: callCount };
+    }
+
+    // For metadata returns
+    if (r.values || r.metadata_type) {
+      const count = Array.isArray(r.values) ? r.values.length : 0;
+      return { status: 'success', resultCount: count };
+    }
+
+    return { status: 'unknown_format' };
+  }
+
+  function truncateForLog(obj: unknown): unknown {
+    if (typeof obj === 'string') return obj.length > 100 ? obj.slice(0, 100) + '...' : obj;
+    if (typeof obj !== 'object' || obj === null) return obj;
+    const truncated: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
+      if (typeof v === 'string' && v.length > 100) {
+        truncated[k] = v.slice(0, 100) + '...';
+      } else {
+        truncated[k] = v;
+      }
+    }
+    return truncated;
+  }
+
   // Shared helper for search tools (1-9): call executeHybridSearch with merged filters
-  async function search(query: string, limit: number, toolFilters: Partial<SearchFilters> = {}) {
+  async function search(toolName: string, query: string, limit: number, toolFilters: Partial<SearchFilters> = {}) {
     const filters = mergeFilters(sessionFilters, toolFilters);
+    const startTime = Date.now();
     try {
-      return await executeHybridSearch({
+      const result = await executeHybridSearch({
         query,
         limit,
         supabase,
@@ -279,9 +419,15 @@ function createTools(
         hfApiKey,
         filters,
       });
+      const elapsed = Date.now() - startTime;
+      console.log(`[chat-stream-v2] ${toolName} completed in ${elapsed}ms`);
+      logToolResult(toolName, { query, limit, filters }, result);
+      return result;
     } catch (error) {
-      console.error(`[chat-stream-v2] Search error:`, error);
-      return { error: true, message: error instanceof Error ? error.message : 'Search failed' };
+      console.error(`[chat-stream-v2] ${toolName} FAILED:`, error);
+      const errorResult = { error: true, message: error instanceof Error ? error.message : 'Search failed' };
+      logToolResult(toolName, { query, limit, filters }, errorResult);
+      return errorResult;
     }
   }
 
@@ -294,34 +440,32 @@ function createTools(
     // Tool 1: searchTranscriptsByQuery
     searchTranscriptsByQuery: tool({
       description: 'General semantic and keyword search through meeting transcripts. Use for broad queries about topics, content, or keywords.',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().describe('The search query to find relevant transcript chunks'),
         limit: z.number().optional().describe('Maximum number of results to return (default: 10)'),
       }),
       execute: async ({ query, limit = 10 }) => {
-        console.log(`[chat-stream-v2] searchTranscriptsByQuery: "${query}" (limit: ${limit})`);
-        return search(query, limit);
+        return search('searchTranscriptsByQuery', query, limit);
       },
     }),
 
     // Tool 2: searchBySpeaker
     searchBySpeaker: tool({
       description: 'Find what specific people said in meetings. Use when the user asks about a particular speaker or wants to filter by who spoke.',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().describe('Search query to find within this speaker\'s statements'),
         speaker: z.string().describe('Speaker name or email to filter by'),
         limit: z.number().optional().describe('Maximum number of results to return (default: 10)'),
       }),
       execute: async ({ query, speaker, limit = 10 }) => {
-        console.log(`[chat-stream-v2] searchBySpeaker: "${query}" speaker="${speaker}" (limit: ${limit})`);
-        return search(query, limit, { speakers: [speaker] });
+        return search('searchBySpeaker', query, limit, { speakers: [speaker] });
       },
     }),
 
     // Tool 3: searchByDateRange
     searchByDateRange: tool({
       description: 'Find transcripts within a specific date range. MUST be used for temporal queries like "recent calls", "last week", "this month", "yesterday".',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().optional().describe('Optional search query within the date range'),
         date_from: z.string().optional().describe('Start date in ISO format (YYYY-MM-DD)'),
         date_to: z.string().optional().describe('End date in ISO format (YYYY-MM-DD)'),
@@ -329,8 +473,7 @@ function createTools(
       }),
       execute: async ({ query, date_from, date_to, limit = 10 }) => {
         const searchQuery = query || 'recent discussions';
-        console.log(`[chat-stream-v2] searchByDateRange: "${searchQuery}" from=${date_from} to=${date_to}`);
-        return search(searchQuery, limit, {
+        return search('searchByDateRange', searchQuery, limit, {
           date_start: date_from,
           date_end: date_to,
         });
@@ -340,81 +483,76 @@ function createTools(
     // Tool 4: searchByCategory
     searchByCategory: tool({
       description: 'Search within specific call categories (sales, coaching, demo, support, etc.). Use when user specifies a call type.',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().describe('Search query within this category'),
         category: z.string().describe('Call category to filter by (e.g., "sales", "coaching", "demo")'),
         limit: z.number().optional().describe('Maximum number of results to return (default: 10)'),
       }),
       execute: async ({ query, category, limit = 10 }) => {
-        console.log(`[chat-stream-v2] searchByCategory: "${query}" category="${category}"`);
-        return search(query, limit, { categories: [category] });
+        return search('searchByCategory', query, limit, { categories: [category] });
       },
     }),
 
     // Tool 5: searchByIntentSignal
     searchByIntentSignal: tool({
       description: 'Find transcript chunks with specific customer intent signals. Detects: buying_signal (interest in purchasing), objection (concerns or pushback), question (customer inquiries), concern (worries or hesitations).',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().optional().describe('Optional refinement query to narrow results'),
         intent_type: z.enum(['buying_signal', 'objection', 'question', 'concern']).describe('The type of intent signal to search for'),
         limit: z.number().optional().describe('Maximum number of results to return (default: 10)'),
       }),
       execute: async ({ query, intent_type, limit = 10 }) => {
         const searchQuery = query || intent_type.replace('_', ' ');
-        console.log(`[chat-stream-v2] searchByIntentSignal: "${searchQuery}" intent="${intent_type}"`);
-        return search(searchQuery, limit, { intent_signals: [intent_type] });
+        return search('searchByIntentSignal', searchQuery, limit, { intent_signals: [intent_type] });
       },
     }),
 
     // Tool 6: searchBySentiment
     searchBySentiment: tool({
       description: 'Find transcripts by emotional tone or sentiment. Values: positive (happy, satisfied), negative (frustrated, angry), neutral (factual), mixed (combination).',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().optional().describe('Optional search query within this sentiment category'),
         sentiment: z.enum(['positive', 'negative', 'neutral', 'mixed']).describe('The sentiment to filter by'),
         limit: z.number().optional().describe('Maximum number of results to return (default: 10)'),
       }),
       execute: async ({ query, sentiment, limit = 10 }) => {
         const searchQuery = query || sentiment;
-        console.log(`[chat-stream-v2] searchBySentiment: "${searchQuery}" sentiment="${sentiment}"`);
-        return search(searchQuery, limit, { sentiment });
+        return search('searchBySentiment', searchQuery, limit, { sentiment });
       },
     }),
 
     // Tool 7: searchByTopics
     searchByTopics: tool({
       description: 'Find transcripts tagged with specific auto-extracted topics. Use when user asks about themes or subjects (e.g., "pricing", "features", "onboarding").',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().optional().describe('Optional search query within these topics'),
         topics: z.array(z.string()).describe('List of topics to search for (e.g., ["pricing", "product-fit"])'),
         limit: z.number().optional().describe('Maximum number of results to return (default: 10)'),
       }),
       execute: async ({ query, topics, limit = 10 }) => {
         const searchQuery = query || topics.join(' ');
-        console.log(`[chat-stream-v2] searchByTopics: "${searchQuery}" topics=${JSON.stringify(topics)}`);
-        return search(searchQuery, limit, { topics });
+        return search('searchByTopics', searchQuery, limit, { topics });
       },
     }),
 
     // Tool 8: searchByUserTags
     searchByUserTags: tool({
       description: 'Find transcripts with specific user-assigned tags. Use when user references their own organizational tags (e.g., "important", "follow-up", "urgent").',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().optional().describe('Optional search query within tagged content'),
         tags: z.array(z.string()).describe('List of user tags to filter by (e.g., ["important", "followup"])'),
         limit: z.number().optional().describe('Maximum number of results to return (default: 10)'),
       }),
       execute: async ({ query, tags, limit = 10 }) => {
         const searchQuery = query || tags.join(' ');
-        console.log(`[chat-stream-v2] searchByUserTags: "${searchQuery}" tags=${JSON.stringify(tags)}`);
-        return search(searchQuery, limit, { user_tags: tags });
+        return search('searchByUserTags', searchQuery, limit, { user_tags: tags });
       },
     }),
 
     // Tool 9: searchByEntity
     searchByEntity: tool({
       description: 'Find mentions of specific companies, people, or products in transcripts. Uses JSONB entity post-filtering after semantic search.',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().optional().describe('Optional search query (defaults to entity name)'),
         entity_type: z.enum(['companies', 'people', 'products']).optional().describe('Type of entity to search for'),
         entity_name: z.string().describe('Name of the entity (e.g., "Acme Corp", "John Doe", "Product X")'),
@@ -507,7 +645,7 @@ function createTools(
     // Tool 10: getCallDetails
     getCallDetails: tool({
       description: 'Get complete details about a specific call including title, date, participants, duration, summary, and URL. Use when user references a specific call by recording_id.',
-      parameters: z.object({
+      inputSchema: z.object({
         recording_id: z.string().describe('The recording ID of the call to get details for'),
       }),
       execute: async ({ recording_id }) => {
@@ -575,7 +713,7 @@ function createTools(
     // Tool 11: getCallsList
     getCallsList: tool({
       description: 'Get a list of calls matching filter criteria with summary previews. Use for overview queries like "show me all sales calls from last month" or "list calls with Jane".',
-      parameters: z.object({
+      inputSchema: z.object({
         limit: z.number().optional().describe('Maximum calls to return (default: 20)'),
         offset: z.number().optional().describe('Number of calls to skip for pagination'),
         category: z.string().optional().describe('Category filter'),
@@ -641,7 +779,7 @@ function createTools(
     // Tool 12: getAvailableMetadata
     getAvailableMetadata: tool({
       description: 'Discover what metadata values are available for filtering (speakers, categories, topics, tags). Use when user asks "what categories do I have?" or wants to explore available filters.',
-      parameters: z.object({
+      inputSchema: z.object({
         metadata_type: z.enum(['speakers', 'categories', 'topics', 'tags']).describe('Type of metadata to retrieve'),
       }),
       execute: async ({ metadata_type }) => {
@@ -671,7 +809,7 @@ function createTools(
     // Tool 13: advancedSearch
     advancedSearch: tool({
       description: 'Multi-dimensional search combining multiple filters simultaneously. Use for complex queries like "find objections from sales calls in January where Sarah spoke".',
-      parameters: z.object({
+      inputSchema: z.object({
         query: z.string().optional().describe('Search query text'),
         speaker: z.string().optional().describe('Filter by speaker name/email'),
         category: z.string().optional().describe('Filter by category'),
@@ -684,7 +822,6 @@ function createTools(
       }),
       execute: async ({ query, speaker, category, date_from, date_to, sentiment, intent, tags, limit = 10 }) => {
         const searchQuery = query || 'relevant content';
-        console.log(`[chat-stream-v2] advancedSearch: "${searchQuery}" with multiple filters`);
 
         const toolFilters: Partial<SearchFilters> = {};
         if (speaker) toolFilters.speakers = [speaker];
@@ -695,14 +832,14 @@ function createTools(
         if (intent) toolFilters.intent_signals = [intent];
         if (tags) toolFilters.user_tags = tags;
 
-        return search(searchQuery, limit, toolFilters);
+        return search('advancedSearch', searchQuery, limit, toolFilters);
       },
     }),
 
     // Tool 14: compareCalls
     compareCalls: tool({
       description: 'Compare 2-5 specific calls side-by-side to identify similarities, differences, or patterns. Use for questions like "compare these calls" or "how do these meetings differ?"',
-      parameters: z.object({
+      inputSchema: z.object({
         recording_ids: z.array(z.string()).min(2).max(5).describe('Array of 2-5 recording IDs to compare'),
         focus: z.string().optional().describe('Optional focus area for comparison (e.g., "objections", "pricing discussion")'),
       }),
@@ -914,9 +1051,15 @@ Deno.serve(async (req: Request) => {
     const requestStartTime = Date.now();
     console.log(`[chat-stream-v2] User: ${user.id}, Model: ${selectedModel}, Messages: ${messages.length}, Filters: ${JSON.stringify(sessionFilters)}`);
 
+    // ---- Fetch business profile for context ----
+    const businessProfile = await fetchBusinessProfile(supabase, user.id);
+    if (businessProfile) {
+      console.log(`[chat-stream-v2] Business profile loaded: ${businessProfile.company_name || 'unnamed'}`);
+    }
+
     // ---- Build system prompt and tools ----
     const openrouter = createOpenRouterProvider(openrouterApiKey);
-    const systemPrompt = buildSystemPrompt(sessionFilters);
+    const systemPrompt = buildSystemPrompt(sessionFilters, businessProfile);
     const allTools = createTools(supabase, user.id, openaiApiKey, hfApiKey, sessionFilters);
 
     // ---- Convert messages ----
@@ -934,6 +1077,35 @@ Deno.serve(async (req: Request) => {
         return JSON.stringify(m.content);
       }).join('\n');
       const estimatedInputTokens = estimateTokenCount(fullPromptText);
+
+      // ---- Start Langfuse trace (if configured) ----
+      // Serialize messages for Langfuse input
+      const messagesForTrace = convertedMessages.map(m => ({
+        role: m.role,
+        content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content),
+      }));
+
+      const langfuseTrace: ChatTraceResult | null = startChatTrace({
+        userId: user.id,
+        sessionId: sessionId || undefined,
+        model: selectedModel,
+        systemPrompt,
+        messages: messagesForTrace,
+        metadata: {
+          hasBusinessProfile: !!businessProfile,
+          hasFilters: !!sessionFilters,
+          filterSummary: sessionFilters ? {
+            hasDateRange: !!(sessionFilters.date_start || sessionFilters.date_end),
+            hasSpeakers: !!(sessionFilters.speakers?.length),
+            hasCategories: !!(sessionFilters.categories?.length),
+            hasRecordingIds: !!(sessionFilters.recording_ids?.length),
+          } : null,
+        },
+      });
+
+      if (langfuseTrace) {
+        console.log(`[chat-stream-v2] Langfuse trace started: ${langfuseTrace.traceId}`);
+      }
 
       const result = streamText({
         model: openrouter(selectedModel),
@@ -953,6 +1125,18 @@ Deno.serve(async (req: Request) => {
           const inputTokens = usage?.promptTokens || estimatedInputTokens;
 
           console.log(`[chat-stream-v2] Usage logged: model=${selectedModel}, input=${inputTokens}, output=${outputTokens}, latency=${latencyMs}ms`);
+
+          // End Langfuse generation and flush trace
+          if (langfuseTrace) {
+            langfuseTrace.endGeneration(text, {
+              promptTokens: inputTokens,
+              completionTokens: outputTokens,
+            });
+            // Flush asynchronously - don't block response
+            langfuseTrace.endTrace().catch(err => {
+              console.error('[chat-stream-v2] Failed to flush Langfuse:', err);
+            });
+          }
 
           // Log to usage tracking table (fire-and-forget)
           logUsage(supabase, {
@@ -979,6 +1163,9 @@ Deno.serve(async (req: Request) => {
       console.error('[chat-stream-v2] Error message:', streamError instanceof Error ? streamError.message : String(streamError));
       console.error('[chat-stream-v2] Error stack:', streamError instanceof Error ? streamError.stack : 'no stack');
 
+      // Ensure Langfuse is flushed even on error
+      await flushLangfuse();
+
       // Return detailed error for debugging
       return new Response(
         JSON.stringify({
@@ -993,6 +1180,10 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error('[chat-stream-v2] Handler error:', error);
     console.error('[chat-stream-v2] Handler error type:', error?.constructor?.name);
+
+    // Ensure Langfuse is flushed even on error
+    await flushLangfuse();
+
     return new Response(
       JSON.stringify({
         error: error instanceof Error ? error.message : 'Internal server error',

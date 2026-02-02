@@ -1,0 +1,201 @@
+# callvault-assistant.test.yaml
+# Promptfoo test cases for CallVault AI chat assistant
+
+prompt: callvault-assistant.md
+
+# Default assertions applied to all tests
+defaults:
+  variables:
+    today_date: "2026-02-02"
+    recent_date: "2026-01-19"
+    last_week_date: "2026-01-26"
+    this_month_date: "2026-02-01"
+    business_context: ""
+    filter_context: ""
+
+tests:
+  # ============================================
+  # TOOL SELECTION TESTS
+  # ============================================
+  
+  - name: temporal_query_uses_date_tool
+    description: Queries about recent calls should use searchByDateRange
+    variables:
+      today_date: "2026-02-02"
+      recent_date: "2026-01-19"
+      last_week_date: "2026-01-26"
+      this_month_date: "2026-02-01"
+    prompt: "What did we discuss in recent calls?"
+    assertions:
+      - type: llm-rubric
+        value: "The response should indicate using searchByDateRange tool or date-based filtering"
+      - type: not-contains
+        value: "I don't have access"
+
+  - name: speaker_query_uses_speaker_tool
+    description: Queries about specific speakers should use searchBySpeaker
+    prompt: "What did Sarah say about the pricing?"
+    assertions:
+      - type: llm-rubric
+        value: "The response should indicate using searchBySpeaker tool with 'Sarah' as the speaker"
+
+  - name: objection_query_uses_intent_tool
+    description: Queries about objections should use searchByIntentSignal
+    prompt: "What objections came up in sales calls?"
+    assertions:
+      - type: llm-rubric
+        value: "The response should indicate using searchByIntentSignal with intent='objection' or similar"
+
+  - name: sentiment_query_uses_sentiment_tool
+    description: Queries about customer mood should use searchBySentiment
+    prompt: "Were customers happy in yesterday's calls?"
+    assertions:
+      - type: llm-rubric
+        value: "The response should indicate using searchBySentiment tool"
+
+  - name: entity_query_uses_entity_tool
+    description: Queries about specific companies should use searchByEntity
+    prompt: "What's the status with Acme Corp?"
+    assertions:
+      - type: llm-rubric
+        value: "The response should indicate using searchByEntity with entity_name='Acme Corp'"
+
+  # ============================================
+  # QUERY EXPANSION TESTS
+  # ============================================
+
+  - name: broad_query_uses_multiple_tools
+    description: Broad questions should trigger multiple parallel searches
+    prompt: "Give me a summary of how our demos went last week"
+    assertions:
+      - type: llm-rubric
+        value: "The response should indicate using at least 2-3 different search tools for comprehensive coverage"
+
+  - name: pricing_query_expansion
+    description: Pricing queries should use multiple search angles
+    prompt: "What did we discuss about pricing?"
+    assertions:
+      - type: llm-rubric
+        value: "Should use searchTranscriptsByQuery AND searchByTopics with pricing topic"
+
+  # ============================================
+  # RECORDING ID SAFETY TESTS
+  # ============================================
+
+  - name: no_fabricated_recording_ids
+    description: Never use made-up recording IDs
+    prompt: "Tell me about recording 123"
+    assertions:
+      - type: llm-rubric
+        value: "Should indicate that it cannot look up arbitrary recording IDs without first searching, OR should search first before getting details"
+      - type: not-contains
+        value: "getCallDetails(recording_id='123')"
+
+  - name: recording_id_from_search_results
+    description: Recording IDs must come from search results
+    prompt: "Find calls with John and tell me the details of the most recent one"
+    assertions:
+      - type: llm-rubric
+        value: "Should first search for calls with John, then use the recording_id from those results for getCallDetails"
+
+  # ============================================
+  # BUSINESS CONTEXT TESTS
+  # ============================================
+
+  - name: uses_business_context
+    description: Responses should incorporate business context when available
+    variables:
+      business_context: |
+        
+        USER BUSINESS CONTEXT:
+        Company: TechStartup Inc
+        Industry: SaaS
+        Target Audience: Enterprise IT managers
+        Brand Voice: Professional and consultative
+    prompt: "What concerns have prospects raised?"
+    assertions:
+      - type: llm-rubric
+        value: "Response should consider the SaaS/Enterprise context when interpreting results"
+
+  - name: respects_prohibited_terms
+    description: Should avoid prohibited terms when set in business profile
+    variables:
+      business_context: |
+        
+        USER BUSINESS CONTEXT:
+        Company: Premium Solutions
+        Avoid Using: cheap, discount, budget, basic
+    prompt: "How should I position our product?"
+    assertions:
+      - type: not-contains
+        value: "cheap"
+      - type: not-contains
+        value: "discount"
+
+  # ============================================
+  # CITATION TESTS
+  # ============================================
+
+  - name: includes_citations
+    description: Responses should include numbered citations
+    prompt: "What pricing objections have come up?"
+    assertions:
+      - type: llm-rubric
+        value: "Response should include numbered citations like [1], [2] and a sources list at the end"
+
+  - name: citation_format_correct
+    description: Sources list should follow correct format
+    prompt: "Summarize last week's sales calls"
+    assertions:
+      - type: llm-rubric
+        value: "Sources list should be in format: [N] Call Title (Speaker, Date)"
+
+  # ============================================
+  # ERROR HANDLING TESTS
+  # ============================================
+
+  - name: honest_about_no_results
+    description: Should honestly acknowledge when no data found
+    prompt: "What did we discuss with XYZ Company that doesn't exist?"
+    assertions:
+      - type: llm-rubric
+        value: "Should acknowledge if no results found, not fabricate data"
+      - type: not-contains
+        value: "Based on the call with XYZ"
+
+  - name: handles_tool_errors_gracefully
+    description: Should handle tool failures gracefully
+    prompt: "Search everything and give me all data"
+    assertions:
+      - type: llm-rubric
+        value: "Should attempt searches and report results honestly, even if some fail"
+
+  # ============================================
+  # FILTER CONTEXT TESTS
+  # ============================================
+
+  - name: respects_active_filters
+    description: Should acknowledge and respect active session filters
+    variables:
+      filter_context: |
+        
+        ACTIVE FILTERS:
+        The user has active filters applied. Respect these when searching:
+        Date from: 2026-01-01
+        Categories: sales
+    prompt: "What objections came up?"
+    assertions:
+      - type: llm-rubric
+        value: "Should indicate searches will be scoped to sales calls from January onwards"
+
+  - name: folder_filter_acknowledgment
+    description: Should acknowledge folder-scoped searches
+    variables:
+      filter_context: |
+        
+        ACTIVE FILTERS:
+        Folders: 2 folder(s) selected - searches are scoped to calls within these folders
+    prompt: "Show me recent calls"
+    assertions:
+      - type: llm-rubric
+        value: "Should acknowledge that results are limited to the selected folders"
