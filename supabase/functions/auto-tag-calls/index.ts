@@ -348,7 +348,7 @@ Select the ONE most appropriate tag from the approved list.`;
         const trace = startTrace({
           name: 'auto-tag-calls',
           userId: user.id,
-          model: 'z-ai/glm-4.6',
+          model: 'openai/gpt-5-nano',
           input: { prompt: tagPrompt.substring(0, 500) + '...' },
           metadata: { recordingId, attendeeCount },
         });
@@ -356,7 +356,7 @@ Select the ONE most appropriate tag from the approved list.`;
         let result;
         try {
           result = await generateObject({
-            model: openrouter('z-ai/glm-4.6'),
+            model: openrouter('openai/gpt-5-nano'),
             schema: TagSchema,
             prompt: tagPrompt,
           });

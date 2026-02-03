@@ -71,7 +71,7 @@ async function extractActionItems(
     : transcript;
 
   const result = await generateObject({
-    model: openrouter('anthropic/claude-3-haiku-20240307'),
+    model: openrouter('openai/gpt-5-nano'),
     schema: ActionItemsResponseSchema,
     prompt: `Extract all action items, tasks, and to-dos from this meeting/call transcript.
 
@@ -194,7 +194,7 @@ Deno.serve(async (req) => {
     const trace = startTrace({
       name: 'extract-action-items',
       userId: user.id,
-      model: 'anthropic/claude-3-haiku-20240307',
+      model: 'openai/gpt-5-nano',
       input: { title: call.title, transcriptLength: call.full_transcript.length },
       metadata: { recording_id },
     });

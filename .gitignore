@@ -65,3 +65,4 @@ RCA.md
 # Debug logs
 logs.txt
 webhook_logs.txt
+.venv/

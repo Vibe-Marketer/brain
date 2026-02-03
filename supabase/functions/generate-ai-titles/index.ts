@@ -332,7 +332,7 @@ ${cleanedTranscript}`;
         const trace = startTrace({
           name: 'generate-ai-titles',
           userId,
-          model: 'google/gemini-2.5-flash',
+          model: 'openai/gpt-5-nano',
           input: { system: SYSTEM_PROMPT, user: userPrompt.substring(0, 500) + '...' },
           metadata: { recordingId, transcriptLength: cleanedTranscript.length },
         });
@@ -340,7 +340,7 @@ ${cleanedTranscript}`;
         let result;
         try {
           result = await generateText({
-            model: openrouter('google/gemini-2.5-flash'),
+            model: openrouter('openai/gpt-5-nano'),
             system: SYSTEM_PROMPT,
             prompt: userPrompt,
             temperature: 0.7,

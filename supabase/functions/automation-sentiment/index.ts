@@ -126,7 +126,7 @@ async function analyzeSentiment(
     : transcript;
 
   const result = await generateObject({
-    model: openrouter('anthropic/claude-3-haiku-20240307'),
+    model: openrouter('openai/gpt-5-nano'),
     schema: SentimentSchema,
     prompt: `Analyze the overall sentiment of this meeting/call transcript.
 
@@ -289,7 +289,7 @@ Deno.serve(async (req) => {
     const trace = startTrace({
       name: 'automation-sentiment',
       userId: user.id,
-      model: 'anthropic/claude-3-haiku-20240307',
+      model: 'openai/gpt-5-nano',
       input: { transcriptLength: transcriptToAnalyze.length },
       metadata: { recording_id: recording_id || null },
     });

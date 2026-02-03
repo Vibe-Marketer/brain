@@ -393,7 +393,7 @@ Deno.serve(async (req) => {
     }));
 
     // Extract PROFITS using AI
-    const modelId = 'anthropic/claude-3-haiku-20240307';
+    const modelId = 'openai/gpt-5-nano';
     const openrouter = createOpenRouterProvider(openrouterApiKey);
 
     // Start Langfuse trace

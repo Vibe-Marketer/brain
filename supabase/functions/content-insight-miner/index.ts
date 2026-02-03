@@ -10,7 +10,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const DEFAULT_MODEL = 'openai/gpt-4o-mini';
+const DEFAULT_MODEL = 'openai/gpt-5-nano';
 
 type InsightCategory = 'pain' | 'dream_outcome' | 'objection_or_fear' | 'story_or_analogy' | 'expert_framework';
 type EmotionCategory = 'anger_outrage' | 'awe_surprise' | 'social_currency' | 'relatable' | 'practical_value' | 'humor_sharp' | 'neutral';

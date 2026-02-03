@@ -57,7 +57,7 @@ async function generateSummary(
     : transcript;
 
   const result = await generateText({
-    model: openrouter('anthropic/claude-3-haiku-20240307'),
+    model: openrouter('openai/gpt-5-nano'),
     prompt: `Summarize this meeting/call transcript in 3-5 concise paragraphs.
 
 Meeting Title: ${callTitle || 'Unknown'}
@@ -204,7 +204,7 @@ Deno.serve(async (req) => {
     const trace = startTrace({
       name: 'summarize-call',
       userId: user.id,
-      model: 'anthropic/claude-3-haiku-20240307',
+      model: 'openai/gpt-5-nano',
       input: { title: call.title, transcriptLength: call.full_transcript.length },
       metadata: { recording_id },
     });

@@ -187,7 +187,7 @@ Be thorough but concise. Focus on what matters most for someone who wants to und
     const trace = startTrace({
       name: 'generate-meta-summary',
       userId: user.id,
-      model: 'z-ai/glm-4.6',
+      model: 'openai/gpt-5-nano',
       input: { meetingCount: calls.length, promptLength: metaPrompt.length },
       metadata: { recording_ids, totalDurationMinutes },
     });
@@ -195,7 +195,7 @@ Be thorough but concise. Focus on what matters most for someone who wants to und
     let result;
     try {
       result = await generateObject({
-        model: openrouter('z-ai/glm-4.6'),
+        model: openrouter('openai/gpt-5-nano'),
         schema: MetaSummarySchema,
         prompt: metaPrompt,
       });
