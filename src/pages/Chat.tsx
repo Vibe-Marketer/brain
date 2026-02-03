@@ -222,25 +222,46 @@ export default function Chat() {
 
   // --- Computed State ---
   const isChatReady = !!session?.access_token && !!transport;
-  const isLoading = status === "submitted" || status === "streaming" || streamingState.isReconnecting;
+
+  // --- Destructure streamingState to avoid object reference in useEffect deps ---
+  // This prevents infinite loops from the streamingState object being recreated each render
+  const { 
+    handledErrorRef, 
+    lastUserMessageRef, 
+    setRateLimitCooldown,
+    rateLimitCooldownEnd, 
+    clearRateLimitCooldown,
+    reconnectAttemptsRef, 
+    resetReconnectionState, 
+    incompleteMessageIds, 
+    setIncompleteMessageIds,
+    isRateLimited,
+    rateLimitSeconds,
+    isReconnecting,
+    reconnectAttemptDisplay,
+    reconnectTimeoutRef,
+    MAX_RECONNECT_ATTEMPTS,
+  } = streamingState;
+
+  const isLoading = status === "submitted" || status === "streaming" || isReconnecting;
 
   // --- Error Handling Effect ---
   React.useEffect(() => {
     if (!error) {
-      streamingState.handledErrorRef.current = null;
+      handledErrorRef.current = null;
       return;
     }
 
-    if (streamingState.handledErrorRef.current === error) return;
-    streamingState.handledErrorRef.current = error;
+    if (handledErrorRef.current === error) return;
+    handledErrorRef.current = error;
 
     throttledErrorLog('general', '[Chat] Error occurred:', error.message);
 
     if (isRateLimitError(error)) {
       const retryAfterSeconds = extractRetryAfterSeconds(error);
       const cooldownEnd = Date.now() + retryAfterSeconds * 1000;
-      streamingState.setRateLimitCooldown(cooldownEnd, retryAfterSeconds);
-      streamingState.resetReconnectionState();
+      setRateLimitCooldown(cooldownEnd, retryAfterSeconds);
+      resetReconnectionState();
       toast.error(`Rate limit exceeded. Please wait ${retryAfterSeconds} seconds.`, {
         duration: retryAfterSeconds * 1000,
         id: 'rate-limit-toast',
@@ -248,10 +269,10 @@ export default function Chat() {
       return;
     }
 
-    if (isStreamingInterruptionError(error) && streamingState.lastUserMessageRef.current) {
+    if (isStreamingInterruptionError(error) && lastUserMessageRef.current) {
       const lastMsg = messagesRef.current[messagesRef.current.length - 1];
       if (lastMsg?.role === 'assistant') {
-        streamingState.setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
+        setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
       }
       toast.error('Connection lost. Click Retry to continue.', {
         id: 'streaming-error-toast',
@@ -263,7 +284,7 @@ export default function Chat() {
 
     const lastMsg = messagesRef.current[messagesRef.current.length - 1];
     if (lastMsg?.role === 'assistant' && getMessageTextContent(lastMsg).trim().length > 0) {
-      streamingState.setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
+      setIncompleteMessageIds((prev) => new Set(prev).add(lastMsg.id));
     }
 
     const friendlyError = getUserFriendlyError(error, ErrorContexts.CHAT);
@@ -276,7 +297,7 @@ export default function Chat() {
           toast.info('Session refreshed - please try again');
         }
       });
-    } else if (streamingState.lastUserMessageRef.current) {
+    } else if (lastUserMessageRef.current) {
       toast.error(friendlyError.message, {
         id: 'streaming-error-toast',
         duration: 10000,
@@ -285,35 +306,35 @@ export default function Chat() {
     } else {
       toast.error(friendlyError.message);
     }
-  }, [error, navigate, streamingState]);
+  }, [error, navigate, handledErrorRef, lastUserMessageRef, setRateLimitCooldown, resetReconnectionState, setIncompleteMessageIds]);
 
   // --- Rate limit countdown effect ---
   React.useEffect(() => {
-    if (streamingState.rateLimitCooldownEnd === null) return;
+    if (rateLimitCooldownEnd === null) return;
 
     const updateCountdown = () => {
-      const remaining = Math.max(0, Math.ceil((streamingState.rateLimitCooldownEnd! - Date.now()) / 1000));
+      const remaining = Math.max(0, Math.ceil((rateLimitCooldownEnd - Date.now()) / 1000));
       if (remaining <= 0) {
-        streamingState.clearRateLimitCooldown();
+        clearRateLimitCooldown();
         toast.success('You can send messages again.', { duration: 3000 });
       }
     };
 
     const intervalId = setInterval(updateCountdown, 1000);
     return () => clearInterval(intervalId);
-  }, [streamingState.rateLimitCooldownEnd, streamingState]);
+  }, [rateLimitCooldownEnd, clearRateLimitCooldown]);
 
   // --- Reset streaming state on success ---
   React.useEffect(() => {
-    if (status === 'ready' && streamingState.reconnectAttemptsRef.current > 0) {
-      streamingState.resetReconnectionState();
+    if (status === 'ready' && reconnectAttemptsRef.current > 0) {
+      resetReconnectionState();
       toast.dismiss('reconnect-toast');
       toast.success('Connection restored!', { duration: 2000 });
     }
-    if (status === 'ready' && streamingState.incompleteMessageIds.size > 0 && streamingState.reconnectAttemptsRef.current === 0) {
-      streamingState.setIncompleteMessageIds(new Set());
+    if (status === 'ready' && incompleteMessageIds.size > 0 && reconnectAttemptsRef.current === 0) {
+      setIncompleteMessageIds(new Set());
     }
-  }, [status, streamingState]);
+  }, [status, reconnectAttemptsRef, resetReconnectionState, incompleteMessageIds, setIncompleteMessageIds]);
 
   // --- Debounced message save ---
   const debouncedSaveMessages = React.useMemo(() => {
@@ -487,8 +508,8 @@ export default function Chat() {
       setTimeout(() => navigate('/login', { replace: true }), 2000);
       return;
     }
-    if (streamingState.isRateLimited) {
-      toast.error(`Please wait ${streamingState.rateLimitSeconds} seconds.`, { id: 'rate-limit-warning' });
+    if (isRateLimited) {
+      toast.error(`Please wait ${rateLimitSeconds} seconds.`, { id: 'rate-limit-warning' });
       return;
     }
 
@@ -515,10 +536,10 @@ export default function Chat() {
       }
     }
 
-    streamingState.lastUserMessageRef.current = inputToSubmit;
+    lastUserMessageRef.current = inputToSubmit;
     sendMessage({ text: inputToSubmit });
     setInput("");
-  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, sendMessage, filterState, isChatReady, streamingState]);
+  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, sendMessage, filterState, isChatReady, isRateLimited, rateLimitSeconds, lastUserMessageRef]);
 
   const handleSuggestionClick = React.useCallback(async (text: string) => {
     if (!isChatReady) {
@@ -526,8 +547,8 @@ export default function Chat() {
       setTimeout(() => navigate('/login', { replace: true }), 2000);
       return;
     }
-    if (streamingState.isRateLimited) {
-      toast.error(`Please wait ${streamingState.rateLimitSeconds} seconds.`, { id: 'rate-limit-warning' });
+    if (isRateLimited) {
+      toast.error(`Please wait ${rateLimitSeconds} seconds.`, { id: 'rate-limit-warning' });
       return;
     }
 
@@ -546,13 +567,13 @@ export default function Chat() {
       }
     }
 
-    streamingState.lastUserMessageRef.current = text;
+    lastUserMessageRef.current = text;
     sendMessage({ text });
-  }, [currentSessionId, session?.user?.id, createNewSession, navigate, sendMessage, isChatReady, streamingState]);
+  }, [currentSessionId, session?.user?.id, createNewSession, navigate, sendMessage, isChatReady, isRateLimited, rateLimitSeconds, lastUserMessageRef]);
 
   // --- Retry handler ---
   const handleRetry = React.useCallback(() => {
-    const lastUserMessage = streamingState.lastUserMessageRef.current;
+    const lastUserMessage = lastUserMessageRef.current;
     if (!lastUserMessage) {
       toast.error('No message to retry.');
       return;
@@ -562,17 +583,17 @@ export default function Chat() {
       return;
     }
 
-    if (streamingState.reconnectTimeoutRef.current) {
-      clearTimeout(streamingState.reconnectTimeoutRef.current);
-      streamingState.reconnectTimeoutRef.current = null;
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
 
-    setMessages((prev) => prev.filter((m) => !streamingState.incompleteMessageIds.has(m.id)));
-    streamingState.resetReconnectionState();
+    setMessages((prev) => prev.filter((m) => !incompleteMessageIds.has(m.id)));
+    resetReconnectionState();
     toast.dismiss('streaming-error-toast');
 
     sendMessage({ text: lastUserMessage });
-  }, [isChatReady, sendMessage, setMessages, streamingState]);
+  }, [isChatReady, sendMessage, setMessages, lastUserMessageRef, reconnectTimeoutRef, incompleteMessageIds, resetReconnectionState]);
 
   React.useEffect(() => {
     handleRetryRef.current = handleRetry;
@@ -704,11 +725,11 @@ export default function Chat() {
             </ChatInnerCardHeader>
 
             <ChatInnerCardContent>
-              <ChatMessageList messages={messages} isLoadingMessages={isLoadingMessages} isLoading={isLoading} isChatReady={isChatReady} userName={session?.user?.user_metadata?.full_name?.split(" ")[0]} hasTranscripts={availableCalls.length > 0} incompleteMessageIds={streamingState.incompleteMessageIds} onCallClick={handleViewCall} onRetry={handleRetry} onSuggestionClick={handleSuggestionClick} onNavigateToTranscripts={() => navigate('/transcripts')} />
+              <ChatMessageList messages={messages} isLoadingMessages={isLoadingMessages} isLoading={isLoading} isChatReady={isChatReady} userName={session?.user?.user_metadata?.full_name?.split(" ")[0]} hasTranscripts={availableCalls.length > 0} incompleteMessageIds={incompleteMessageIds} onCallClick={handleViewCall} onRetry={handleRetry} onSuggestionClick={handleSuggestionClick} onNavigateToTranscripts={() => navigate('/transcripts')} />
             </ChatInnerCardContent>
 
             <ChatInnerCardInputArea>
-              <ChatInputArea input={input} onInputChange={handleInputChangeWithMentions} onSubmit={handleChatSubmit} isLoading={isLoading} isChatReady={isChatReady} isRateLimited={streamingState.isRateLimited} rateLimitSeconds={streamingState.rateLimitSeconds} isReconnecting={streamingState.isReconnecting} reconnectAttemptDisplay={streamingState.reconnectAttemptDisplay} maxReconnectAttempts={streamingState.MAX_RECONNECT_ATTEMPTS} selectedModel={selectedModel} onModelChange={setSelectedModel} contextAttachments={filterState.contextAttachments} onRemoveAttachment={filterState.removeAttachment} availableCalls={availableCalls} onAddCall={filterState.addCallAttachment} showMentions={showMentions} filteredCalls={filteredCalls} onMentionSelect={handleMentionSelect} textareaRef={textareaRef} />
+              <ChatInputArea input={input} onInputChange={handleInputChangeWithMentions} onSubmit={handleChatSubmit} isLoading={isLoading} isChatReady={isChatReady} isRateLimited={isRateLimited} rateLimitSeconds={rateLimitSeconds} isReconnecting={isReconnecting} reconnectAttemptDisplay={reconnectAttemptDisplay} maxReconnectAttempts={MAX_RECONNECT_ATTEMPTS} selectedModel={selectedModel} onModelChange={setSelectedModel} contextAttachments={filterState.contextAttachments} onRemoveAttachment={filterState.removeAttachment} availableCalls={availableCalls} onAddCall={filterState.addCallAttachment} showMentions={showMentions} filteredCalls={filteredCalls} onMentionSelect={handleMentionSelect} textareaRef={textareaRef} />
             </ChatInnerCardInputArea>
           </ChatInnerCard>
         </div>
