@@ -12,7 +12,7 @@ import {
 } from '@remixicon/react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+// Removed ScrollArea import to fix radix-ui infinite loop bug
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -318,7 +318,7 @@ export function ChatSidebar({
 
         {/* Sessions list - matches Library panel styling */}
         <div className="flex-1 overflow-hidden pt-2">
-          <ScrollArea className="h-full">
+          <div className="h-full overflow-y-auto">
             <div className="px-2 space-y-0.5">
             {/* Pinned sessions */}
             {pinnedSessions.length > 0 && (
@@ -377,7 +377,7 @@ export function ChatSidebar({
               </div>
             )}
             </div>
-          </ScrollArea>
+          </div>
         </div>
       </div>
 
