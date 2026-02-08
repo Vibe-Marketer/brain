@@ -89,10 +89,10 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
     () => ({
       date_start: filters.dateStart?.toISOString(),
       date_end: filters.dateEnd?.toISOString(),
-      speakers: filters.speakers.length > 0 ? filters.speakers : undefined,
-      categories: filters.categories.length > 0 ? filters.categories : undefined,
-      recording_ids: filters.recordingIds.length > 0 ? filters.recordingIds : undefined,
-      folder_ids: filters.folderIds.length > 0 ? filters.folderIds : undefined,
+      speakers: filters.speakers?.length > 0 ? filters.speakers : undefined,
+      categories: filters.categories?.length > 0 ? filters.categories : undefined,
+      recording_ids: filters.recordingIds?.length > 0 ? filters.recordingIds : undefined,
+      folder_ids: filters.folderIds?.length > 0 ? filters.folderIds : undefined,
     }),
     [filters]
   );
@@ -102,10 +102,10 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
     return !!(
       filters.dateStart ||
       filters.dateEnd ||
-      filters.speakers.length > 0 ||
-      filters.categories.length > 0 ||
-      filters.recordingIds.length > 0 ||
-      filters.folderIds.length > 0
+      (filters.speakers?.length ?? 0) > 0 ||
+      (filters.categories?.length ?? 0) > 0 ||
+      (filters.recordingIds?.length ?? 0) > 0 ||
+      (filters.folderIds?.length ?? 0) > 0
     );
   }, [filters]);
 
