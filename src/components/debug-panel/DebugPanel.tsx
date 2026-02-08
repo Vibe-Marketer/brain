@@ -27,6 +27,7 @@ import {
   RiEyeOffLine,
   RiEyeLine,
   RiGlobeLine,
+  RiTimerLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { captureDebugScreenshot } from '@/lib/screenshot';
@@ -102,6 +103,7 @@ function DebugPanelCore() {
     resolvedErrors,
     ignoredPatterns,
     clearMessages,
+    clearStaleMessages,
     toggleBookmark,
     acknowledgeErrors,
     addMessage,
@@ -149,6 +151,16 @@ function DebugPanelCore() {
   const recurringCount = messages.filter(m => m.resolutionStatus === 'recurring').length;
   const resolvedErrorsCount = resolvedErrors.size;
   const ignoredCount = ignoredPatterns.size;
+
+  // Stale message count (errors/warnings not seen in 5 minutes)
+  const STALE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+  const now = Date.now();
+  const staleCount = messages.filter(m => {
+    if (m.isBookmarked) return false;
+    if (m.type !== 'error' && m.type !== 'warning') return false;
+    const lastSeen = m.lastSeen || m.timestamp;
+    return (now - lastSeen) >= STALE_THRESHOLD;
+  }).length;
 
   // Analytics data - must be called unconditionally (before early return)
   const analyticsData = useMemo(() => {
@@ -476,6 +488,18 @@ function DebugPanelCore() {
             <RiMailLine className="w-3.5 h-3.5 mr-1" />
             Email
           </Button>
+          {staleCount > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => clearStaleMessages()}
+              className="text-xs text-amber-600 border-amber-300 hover:bg-amber-50 dark:text-amber-400 dark:border-amber-700 dark:hover:bg-amber-900/20"
+              title="Remove errors that haven't recurred in 5+ minutes"
+            >
+              <RiTimerLine className="w-3.5 h-3.5 mr-1" />
+              Clear Stale ({staleCount})
+            </Button>
+          )}
         </div>
 
         {/* Filters */}
@@ -779,11 +803,17 @@ function DebugPanelCore() {
                   const isExpanded = expandedMessages.has(message.id);
                   const isResolved = message.resolutionStatus === 'resolved';
                   const isRecurring = message.resolutionStatus === 'recurring';
+                  const lastSeen = message.lastSeen || message.timestamp;
+                  const isStale = (message.type === 'error' || message.type === 'warning') &&
+                    !message.isBookmarked &&
+                    (now - lastSeen) >= STALE_THRESHOLD;
                   return (
                     <div
                       key={message.id}
                       className={`border-l-4 rounded-r-lg p-2 transition-all relative ${
-                        isRecurring
+                        isStale
+                          ? 'border-gray-300 bg-gray-50 dark:bg-gray-800/50 opacity-50'
+                          : isRecurring
                           ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20'
                           : isResolved
                           ? 'border-green-500 bg-green-50 dark:bg-green-900/20 opacity-60'
@@ -862,13 +892,28 @@ function DebugPanelCore() {
 
                       <div className="flex items-center gap-2 mb-1 pr-20">
                         <span className={`text-[10px] font-medium uppercase ${
+                          isStale ? 'text-gray-400' :
                           isRecurring ? 'text-orange-600' :
                           isResolved ? 'text-green-600' :
                           message.type === 'error' ? 'text-red-600' :
                           message.type === 'warning' ? 'text-yellow-600' : 'text-blue-600'
                         }`}>
-                          {isRecurring ? '🔄 RECURRING' : isResolved ? '✓ RESOLVED' : message.type}
+                          {isStale ? '⏳ STALE' : isRecurring ? '🔄 RECURRING' : isResolved ? '✓ RESOLVED' : message.type}
                         </span>
+                        {/* Show count if error occurred multiple times */}
+                        {message.count && message.count > 1 && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            isStale
+                              ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                              : message.type === 'error'
+                              ? 'bg-red-200 dark:bg-red-800 text-red-700 dark:text-red-200'
+                              : message.type === 'warning'
+                              ? 'bg-yellow-200 dark:bg-yellow-800 text-yellow-700 dark:text-yellow-200'
+                              : 'bg-blue-200 dark:bg-blue-800 text-blue-700 dark:text-blue-200'
+                          }`}>
+                            ×{message.count}
+                          </span>
+                        )}
                         {isRecurring && message.recurrenceCount && (
                           <span className="text-[10px] bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-200 px-1.5 py-0.5 rounded font-medium">
                             ×{message.recurrenceCount}
@@ -879,8 +924,8 @@ function DebugPanelCore() {
                             {message.source}
                           </span>
                         )}
-                        <span className="text-[10px] text-gray-400 ml-auto">
-                          {new Date(message.timestamp).toLocaleTimeString()}
+                        <span className="text-[10px] text-gray-400 ml-auto" title={`First: ${new Date(message.timestamp).toLocaleString()}${message.lastSeen ? `\nLast: ${new Date(message.lastSeen).toLocaleString()}` : ''}`}>
+                          {new Date(message.lastSeen || message.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
 

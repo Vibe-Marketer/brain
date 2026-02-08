@@ -196,30 +196,50 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
     []
   );
 
-  return {
-    // Filter state
-    filters,
-    setFilters,
-    
-    // API-formatted filters
-    apiFilters,
-    
-    // Filter manipulation
-    clearFilters,
-    toggleSpeaker,
-    toggleCategory,
-    toggleFolder,
-    toggleCall,
-    addRecordingId,
-    setDateRange,
-    
-    // Context attachments
-    contextAttachments,
-    setContextAttachments,
-    removeAttachment,
-    addCallAttachment,
-    
-    // Computed
-    hasActiveFilters,
-  };
+  // Memoize the return object to prevent infinite loops when used in useEffect deps
+  return React.useMemo(
+    () => ({
+      // Filter state
+      filters,
+      setFilters,
+      
+      // API-formatted filters
+      apiFilters,
+      
+      // Filter manipulation
+      clearFilters,
+      toggleSpeaker,
+      toggleCategory,
+      toggleFolder,
+      toggleCall,
+      addRecordingId,
+      setDateRange,
+      
+      // Context attachments
+      contextAttachments,
+      setContextAttachments,
+      removeAttachment,
+      addCallAttachment,
+      
+      // Computed
+      hasActiveFilters,
+    }),
+    [
+      filters,
+      setFilters,
+      apiFilters,
+      clearFilters,
+      toggleSpeaker,
+      toggleCategory,
+      toggleFolder,
+      toggleCall,
+      addRecordingId,
+      setDateRange,
+      contextAttachments,
+      setContextAttachments,
+      removeAttachment,
+      addCallAttachment,
+      hasActiveFilters,
+    ]
+  );
 }

@@ -101,6 +101,9 @@ export default function Chat() {
   const filterState = useChatFilters({
     initialLocationState: location.state as ChatLocationState | undefined,
   });
+  
+  // Destructure stable setters to avoid infinite loops in useEffect deps
+  const { setFilters: setFiltersStable, setContextAttachments: setContextAttachmentsStable } = filterState;
 
   // --- Streaming State (extracted hook) ---
   const streamingState = useChatStreaming();
@@ -400,7 +403,7 @@ export default function Chat() {
           setCurrentSessionId(null);
           setMessages([]);
           setIsLoadingMessages(false);
-          filterState.setFilters({ speakers: [], categories: [], recordingIds: [], folderIds: [] });
+          setFiltersStable({ speakers: [], categories: [], recordingIds: [], folderIds: [] });
         }
         return;
       }
@@ -409,7 +412,7 @@ export default function Chat() {
       try {
         const sessionMeta = sessionsRef.current.find((s) => s.id === sessionId);
         if (sessionMeta && isMounted) {
-          filterState.setFilters({
+          setFiltersStable({
             dateStart: sessionMeta.filter_date_start ? new Date(sessionMeta.filter_date_start) : undefined,
             dateEnd: sessionMeta.filter_date_end ? new Date(sessionMeta.filter_date_end) : undefined,
             speakers: sessionMeta.filter_speakers || [],
@@ -421,7 +424,7 @@ export default function Chat() {
 
         const locationState = location.state as ChatLocationState | undefined;
         if (locationState?.initialContext) {
-          filterState.setContextAttachments(locationState.initialContext);
+          setContextAttachmentsStable(locationState.initialContext);
         }
 
         if (locationState?.newSession) {
@@ -456,7 +459,7 @@ export default function Chat() {
     }
     loadSession();
     return () => { isMounted = false; };
-  }, [sessionId, fetchMessages, setMessages, filterState, location, navigate]);
+  }, [sessionId, fetchMessages, setMessages, setFiltersStable, setContextAttachmentsStable, location, navigate]);
 
   // --- Session handlers ---
   const createNewSession = React.useCallback(async () => {
