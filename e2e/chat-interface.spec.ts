@@ -540,11 +540,18 @@ test.describe("Chat Interface - Edge Cases", () => {
     // Wait for response to complete
     await waitForResponseComplete(page);
 
-    // After completion, button should be enabled again
-    const isEnabledAfter = !(await sendButton.isDisabled().catch(() => true));
-    console.log(`Send button enabled after streaming: ${isEnabledAfter}`);
+    // After completion, input should be enabled (button is disabled when input is empty, which is correct)
+    const textarea = page.locator('textarea[placeholder*="Ask"]');
+    const isTextareaEnabled = !(await textarea.isDisabled().catch(() => true));
+    console.log(`Textarea enabled after streaming: ${isTextareaEnabled}`);
 
-    expect(isEnabledAfter).toBe(true);
+    // Type something to verify button can be enabled
+    await textarea.fill("test message");
+    const isButtonEnabledWithText = !(await sendButton.isDisabled().catch(() => true));
+    console.log(`Send button enabled after streaming with text: ${isButtonEnabledWithText}`);
+
+    expect(isTextareaEnabled).toBe(true);
+    expect(isButtonEnabledWithText).toBe(true);
   });
 
   test("should maintain UI responsiveness during long streaming", async ({ page }) => {
