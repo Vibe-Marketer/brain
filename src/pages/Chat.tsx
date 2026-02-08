@@ -102,8 +102,19 @@ export default function Chat() {
     initialLocationState: location.state as ChatLocationState | undefined,
   });
   
-  // Destructure stable setters to avoid infinite loops in useEffect deps
-  const { setFilters: setFiltersStable, setContextAttachments: setContextAttachmentsStable } = filterState;
+  // Destructure stable setters and values to avoid infinite loops in useEffect deps
+  // The setter functions from useState are stable, but the filterState object itself changes
+  const { 
+    setFilters: setFiltersStable, 
+    setContextAttachments: setContextAttachmentsStable,
+    contextAttachments,
+  } = filterState;
+  
+  // Use a ref to access current contextAttachments in callbacks without adding to deps
+  const contextAttachmentsRef = React.useRef(contextAttachments);
+  React.useEffect(() => {
+    contextAttachmentsRef.current = contextAttachments;
+  }, [contextAttachments]);
 
   // --- Streaming State (extracted hook) ---
   const streamingState = useChatStreaming();
@@ -517,10 +528,12 @@ export default function Chat() {
     }
 
     let inputToSubmit = input;
-    if (filterState.contextAttachments.length > 0) {
-      const attachmentMentions = filterState.contextAttachments.map((a) => `@[${a.title}](recording:${a.id})`).join(" ");
+    // Use ref to get current attachments to avoid filterState in deps
+    const currentAttachments = contextAttachmentsRef.current;
+    if (currentAttachments.length > 0) {
+      const attachmentMentions = currentAttachments.map((a) => `@[${a.title}](recording:${a.id})`).join(" ");
       inputToSubmit = `[Context: ${attachmentMentions}]\n\n${input}`;
-      filterState.setContextAttachments([]);
+      setContextAttachmentsStable([]);
     }
     if (!inputToSubmit?.trim()) return;
 
@@ -542,7 +555,7 @@ export default function Chat() {
     lastUserMessageRef.current = inputToSubmit;
     sendMessage({ text: inputToSubmit });
     setInput("");
-  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, sendMessage, filterState, isChatReady, isRateLimited, rateLimitSeconds, lastUserMessageRef]);
+  }, [input, currentSessionId, session?.user?.id, createNewSession, navigate, sendMessage, setContextAttachmentsStable, isChatReady, isRateLimited, rateLimitSeconds, lastUserMessageRef]);
 
   const handleSuggestionClick = React.useCallback(async (text: string) => {
     if (!isChatReady) {
@@ -732,7 +745,7 @@ export default function Chat() {
             </ChatInnerCardContent>
 
             <ChatInnerCardInputArea>
-              <ChatInputArea input={input} onInputChange={handleInputChangeWithMentions} onSubmit={handleChatSubmit} isLoading={isLoading} isChatReady={isChatReady} isRateLimited={isRateLimited} rateLimitSeconds={rateLimitSeconds} isReconnecting={isReconnecting} reconnectAttemptDisplay={reconnectAttemptDisplay} maxReconnectAttempts={MAX_RECONNECT_ATTEMPTS} selectedModel={selectedModel} onModelChange={setSelectedModel} contextAttachments={filterState.contextAttachments} onRemoveAttachment={filterState.removeAttachment} availableCalls={availableCalls} onAddCall={filterState.addCallAttachment} showMentions={showMentions} filteredCalls={filteredCalls} onMentionSelect={handleMentionSelect} textareaRef={textareaRef} />
+              <ChatInputArea input={input} onInputChange={handleInputChangeWithMentions} onSubmit={handleChatSubmit} isLoading={isLoading} isChatReady={isChatReady} isRateLimited={isRateLimited} rateLimitSeconds={rateLimitSeconds} isReconnecting={isReconnecting} reconnectAttemptDisplay={reconnectAttemptDisplay} maxReconnectAttempts={MAX_RECONNECT_ATTEMPTS} selectedModel={selectedModel} onModelChange={setSelectedModel} contextAttachments={contextAttachments} onRemoveAttachment={filterState.removeAttachment} availableCalls={availableCalls} onAddCall={filterState.addCallAttachment} showMentions={showMentions} filteredCalls={filteredCalls} onMentionSelect={handleMentionSelect} textareaRef={textareaRef} />
             </ChatInnerCardInputArea>
           </ChatInnerCard>
         </div>
