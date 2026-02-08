@@ -66,3 +66,6 @@ RCA.md
 logs.txt
 webhook_logs.txt
 .venv/
+
+# Playwright auth state
+playwright/.auth/
