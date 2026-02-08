@@ -101,10 +101,10 @@ async function sendChatMessage(page: Page, message: string, waitForSession = tru
 async function waitForResponseComplete(page: Page, timeout = 60000) {
   const startTime = Date.now();
 
-  // First, wait for any response to start appearing
+  // First, wait for any response to start appearing (assistant messages are left-aligned with rounded-bl bubble)
   await page
     .waitForSelector(
-      '[data-testid="assistant-message"], .assistant-message, [class*="AssistantMessage"], [class*="assistant"]',
+      '.justify-start .rounded-bl-\\[4px\\], [data-testid="assistant-message"]',
       { timeout: 30000 }
     )
     .catch(() => {
@@ -245,8 +245,8 @@ test.describe("Chat Interface - Complete Flows", () => {
     // Wait for streaming response to complete
     await waitForResponseComplete(page);
 
-    // Verify assistant response exists
-    const assistantResponse = page.locator('[class*="assistant"]').last();
+    // Verify assistant response exists (assistant messages are left-aligned with rounded-bl-[4px] bubble)
+    const assistantResponse = page.locator('.justify-start .rounded-bl-\\[4px\\]').last();
     const responseText = await assistantResponse.textContent().catch(() => "");
     expect(responseText?.length || 0).toBeGreaterThan(0);
 
@@ -366,9 +366,9 @@ test.describe("Chat Interface - Complete Flows", () => {
       .count();
     console.log(`Source citations: ${sourceCitations}`);
 
-    // Verify response exists
+    // Verify response exists (assistant messages are left-aligned with rounded-bl bubble)
     const responseContent = await page
-      .locator('[class*="assistant"]')
+      .locator('.justify-start .rounded-bl-\\[4px\\]')
       .last()
       .textContent()
       .catch(() => "");
@@ -477,9 +477,9 @@ test.describe("Chat Interface - Edge Cases", () => {
     // Wait for response
     await waitForResponseComplete(page);
 
-    // Verify response handles no results gracefully
+    // Verify response handles no results gracefully (assistant messages are left-aligned)
     const responseContent = await page
-      .locator('[class*="assistant"]')
+      .locator('.justify-start .rounded-bl-\\[4px\\]')
       .last()
       .textContent()
       .catch(() => "");
@@ -491,7 +491,7 @@ test.describe("Chat Interface - Edge Cases", () => {
 
     // Should not have console errors or crashes
     const hasResponse = await page
-      .locator('[class*="assistant"]')
+      .locator('.justify-start .rounded-bl-\\[4px\\]')
       .last()
       .isVisible()
       .catch(() => false);
@@ -695,9 +695,9 @@ test.describe("Chat Interface - Tool Calls and Sources", () => {
 
     console.log(`Tool states observed: ${Array.from(statesSeen).join(", ")}`);
 
-    // Verify response completed
+    // Verify response completed (assistant messages are left-aligned)
     const hasResponse = await page
-      .locator('[class*="assistant"]')
+      .locator('.justify-start .rounded-bl-\\[4px\\]')
       .last()
       .isVisible()
       .catch(() => false);

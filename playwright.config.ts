@@ -17,6 +17,14 @@ export default defineConfig({
   // Test directory
   testDir: './e2e',
 
+  // Global timeout for tests (2 minutes for real AI API calls)
+  timeout: 120 * 1000,
+
+  // Timeout for expect assertions
+  expect: {
+    timeout: 30 * 1000,
+  },
+
   // Run tests in files in parallel
   fullyParallel: true,
 
