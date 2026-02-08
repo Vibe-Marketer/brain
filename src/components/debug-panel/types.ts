@@ -42,6 +42,9 @@ export interface DebugMessage {
   recurrenceCount?: number;       // How many times this recurred after resolution
   originalErrorId?: string;       // Links to the original resolved error
   appStateSnapshot?: AppStateSnapshot; // State when error occurred
+  // Freshness tracking (for stale error cleanup)
+  lastSeen?: number;              // Last time this error occurred (updates on duplicates)
+  count?: number;                 // Number of times this exact error has occurred
 }
 
 // Snapshot of app state when error occurred (for comparison)

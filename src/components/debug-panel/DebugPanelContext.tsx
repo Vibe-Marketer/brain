@@ -262,6 +262,7 @@ interface DebugPanelContextType {
   logAction: (action: ActionTrailEntry['action'], description: string, details?: string) => void;
   logWebSocket: (messageType: string, data: unknown, wsCategory?: DebugMessage['wsCategory']) => void;
   clearMessages: (clearResolved?: boolean) => void;
+  clearStaleMessages: (staleThresholdMs?: number) => void;
   toggleBookmark: (messageId: string) => void;
   acknowledgeErrors: () => void;
   acknowledgeMessage: (messageId: string) => void;
@@ -395,16 +396,16 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
     // Ignore certain messages
     if (shouldIgnore(msg.message)) return;
 
-    // Generate error signature for errors (for recurrence detection)
-    const isError = msg.type === 'error';
-    const signature = isError ? generateErrorSignature(msg.message, msg.source, msg.category) : undefined;
+    // Generate error signature for errors/warnings (for deduplication and recurrence detection)
+    const isErrorOrWarning = msg.type === 'error' || msg.type === 'warning';
+    const signature = isErrorOrWarning ? generateErrorSignature(msg.message, msg.source, msg.category) : undefined;
 
     // Check for recurrence of resolved errors
     let resolutionStatus: ResolutionStatus = 'active';
     let recurrenceCount = 0;
     let originalErrorId: string | undefined;
 
-    if (isError && signature && resolvedErrors.has(signature)) {
+    if (msg.type === 'error' && signature && resolvedErrors.has(signature)) {
       const resolved = resolvedErrors.get(signature)!;
       resolutionStatus = 'recurring';
       recurrenceCount = resolved.recurrenceCount + 1;
@@ -422,39 +423,65 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       });
     }
 
-    const newMessage: DebugMessage = {
-      ...msg,
-      id: msg.id || generateId(),
-      timestamp: msg.timestamp || Date.now(),
-      isBookmarked: false,
-      isAcknowledged: false,
-      // Resolution tracking
-      errorSignature: signature,
-      resolutionStatus: isError ? resolutionStatus : undefined,
-      recurrenceCount: recurrenceCount > 0 ? recurrenceCount : undefined,
-      originalErrorId,
-      appStateSnapshot: isError ? captureAppState(actionTrail) : undefined,
-    };
+    const now = Date.now();
 
-    // Send errors to Sentry (only if Sentry is installed AND enabled)
-    // This is OPTIONAL - Debug Panel works without Sentry
-    if (Sentry && config.enableSentry && sendToSentry && msg.type === 'error') {
-      Sentry.withScope((scope) => {
-        scope.setTag('source', msg.source || 'unknown');
-        scope.setTag('category', msg.category || 'system');
-        scope.setTag('session_id', sessionId.current);
-        if (msg.stack) {
-          scope.setExtra('stack', msg.stack);
-        }
-        if (msg.httpStatus) {
-          scope.setTag('http_status', String(msg.httpStatus));
-        }
-        Sentry.captureMessage(msg.message, 'error');
-      });
-      newMessage.sentToSentry = true;
-    }
-
+    // Check for existing message with same signature (deduplication)
     setMessages(prev => {
+      if (signature) {
+        const existingIndex = prev.findIndex(m => m.errorSignature === signature);
+        if (existingIndex !== -1) {
+          // Update existing message: bump lastSeen and count
+          const existing = prev[existingIndex];
+          const updated = [...prev];
+          updated[existingIndex] = {
+            ...existing,
+            lastSeen: now,
+            count: (existing.count || 1) + 1,
+            // Update resolution status if this was a recurring error
+            resolutionStatus: msg.type === 'error' ? resolutionStatus : existing.resolutionStatus,
+            recurrenceCount: recurrenceCount > 0 ? recurrenceCount : existing.recurrenceCount,
+            // Don't mark as acknowledged if it's recurring (user should see it)
+            isAcknowledged: resolutionStatus === 'recurring' ? false : existing.isAcknowledged,
+          };
+          return updated;
+        }
+      }
+
+      // New message - create it
+      const newMessage: DebugMessage = {
+        ...msg,
+        id: msg.id || generateId(),
+        timestamp: msg.timestamp || now,
+        lastSeen: now,
+        count: 1,
+        isBookmarked: false,
+        isAcknowledged: false,
+        // Resolution tracking
+        errorSignature: signature,
+        resolutionStatus: msg.type === 'error' ? resolutionStatus : undefined,
+        recurrenceCount: recurrenceCount > 0 ? recurrenceCount : undefined,
+        originalErrorId,
+        appStateSnapshot: msg.type === 'error' ? captureAppState(actionTrail) : undefined,
+      };
+
+      // Send errors to Sentry (only if Sentry is installed AND enabled)
+      // Only send for NEW errors (first occurrence), not updates
+      if (Sentry && config.enableSentry && sendToSentry && msg.type === 'error') {
+        Sentry.withScope((scope) => {
+          scope.setTag('source', msg.source || 'unknown');
+          scope.setTag('category', msg.category || 'system');
+          scope.setTag('session_id', sessionId.current);
+          if (msg.stack) {
+            scope.setExtra('stack', msg.stack);
+          }
+          if (msg.httpStatus) {
+            scope.setTag('http_status', String(msg.httpStatus));
+          }
+          Sentry.captureMessage(msg.message, 'error');
+        });
+        newMessage.sentToSentry = true;
+      }
+
       const updated = [...prev, newMessage];
       if (updated.length > config.maxMessages) {
         return updated.slice(-config.maxMessages);
@@ -773,6 +800,53 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
     }
   }, [config.persistMessages]);
 
+  // Clear stale messages (errors/warnings that haven't recurred in threshold time)
+  // Default: 5 minutes (300000ms)
+  const clearStaleMessages = useCallback((staleThresholdMs = 5 * 60 * 1000) => {
+    const now = Date.now();
+    setMessages(prev => prev.filter(msg => {
+      // Keep bookmarked messages
+      if (msg.isBookmarked) return true;
+      // Keep non-error/warning messages (info, websocket, etc.)
+      if (msg.type !== 'error' && msg.type !== 'warning') return true;
+      // Keep messages that have been seen recently
+      const lastSeen = msg.lastSeen || msg.timestamp;
+      return (now - lastSeen) < staleThresholdMs;
+    }));
+  }, []);
+
+  // Auto-cleanup: Remove stale errors every 30 seconds
+  useEffect(() => {
+    const CLEANUP_INTERVAL = 30 * 1000; // 30 seconds
+    const STALE_THRESHOLD = 5 * 60 * 1000; // 5 minutes
+
+    const cleanupInterval = setInterval(() => {
+      const now = Date.now();
+      setMessages(prev => {
+        // Only run cleanup if there are messages to clean
+        const staleCount = prev.filter(msg => {
+          if (msg.isBookmarked) return false;
+          if (msg.type !== 'error' && msg.type !== 'warning') return false;
+          const lastSeen = msg.lastSeen || msg.timestamp;
+          return (now - lastSeen) >= STALE_THRESHOLD;
+        }).length;
+
+        // If no stale messages, don't trigger a state update
+        if (staleCount === 0) return prev;
+
+        // Filter out stale messages
+        return prev.filter(msg => {
+          if (msg.isBookmarked) return true;
+          if (msg.type !== 'error' && msg.type !== 'warning') return true;
+          const lastSeen = msg.lastSeen || msg.timestamp;
+          return (now - lastSeen) < STALE_THRESHOLD;
+        });
+      });
+    }, CLEANUP_INTERVAL);
+
+    return () => clearInterval(cleanupInterval);
+  }, []);
+
   const toggleBookmark = useCallback((messageId: string) => {
     setMessages(prev =>
       prev.map(msg =>
@@ -984,6 +1058,7 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       logAction,
       logWebSocket,
       clearMessages,
+      clearStaleMessages,
       toggleBookmark,
       acknowledgeErrors,
       acknowledgeMessage,
