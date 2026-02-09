@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   RiUserLine,
   RiBuildingLine,
@@ -12,6 +13,7 @@ import {
 } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useBankContext } from '@/hooks/useBankContext';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +42,7 @@ import type { BankWithMembership, VaultWithMembership } from '@/types/bank';
  * @pattern follows TeamSwitcher for consistency
  */
 export function BankSwitcher() {
+  const navigate = useNavigate();
   const {
     activeBank,
     activeVault,
@@ -157,7 +160,11 @@ export function BankSwitcher() {
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2 text-muted-foreground"
             onClick={() => {
-              // TODO: Implement business bank creation modal (Pro feature)
+              // Navigate to banks settings where user can create a business bank
+              navigate('/settings/banks');
+              toast.info('Create a Business Bank to collaborate with your team', {
+                description: 'Business banks are available on Pro plans',
+              });
             }}
           >
             <RiAddLine className="h-4 w-4" />
@@ -172,7 +179,7 @@ export function BankSwitcher() {
         <DropdownMenuItem
           className="cursor-pointer flex items-center gap-2 text-muted-foreground"
           onClick={() => {
-            // TODO: Navigate to bank management settings page
+            navigate('/settings/banks');
           }}
         >
           <RiSettingsLine className="h-4 w-4" />
