@@ -24,6 +24,7 @@ import { TagDetailPanel } from '@/components/panels/TagDetailPanel';
 import { SettingHelpPanel } from '@/components/panels/SettingHelpPanel';
 import { UserDetailPanel } from '@/components/panels/UserDetailPanel';
 import { CallDetailPanel } from '@/components/panels/CallDetailPanel';
+import { VaultMemberPanel } from '@/components/panels/VaultMemberPanel';
 
 export interface DetailPaneOutletProps {
   /** Whether we're on tablet breakpoint (affects width) */
@@ -87,11 +88,8 @@ export function DetailPaneOutlet({
         ) : null;
 
       case 'vault-member':
-        // Placeholder for Plan 02 - Vault Members panel
         return panelData?.type === 'vault-member' ? (
-          <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-4">
-            Members panel coming in Plan 02
-          </div>
+          <VaultMemberPanel vaultId={panelData.vaultId} />
         ) : null;
 
       default:
