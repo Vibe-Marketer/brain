@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { InviteesPopover } from "./InviteesPopover";
 import { InviteesCountCircle } from "./InviteesCountCircle";
 import { SharedWithIndicator } from "@/components/sharing/SharedWithIndicator";
+import { AddToVaultMenu } from "@/components/vault/AddToVaultMenu";
 import type { Meeting } from "@/types";
 import type { SharingStatus, AccessLevel } from "@/types/sharing";
 
@@ -287,6 +288,10 @@ export function TranscriptTableRow({
               <RiFolderLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
             </button>
           )}
+          <AddToVaultMenu
+            legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : null}
+            compact
+          />
           {onCustomDownload ? (
             <button
               onClick={() => onCustomDownload(call.recording_id, call.title)}
