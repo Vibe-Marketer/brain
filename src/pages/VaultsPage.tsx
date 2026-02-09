@@ -20,10 +20,13 @@ import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import { useBankContext } from '@/hooks/useBankContext';
 import { useVaults } from '@/hooks/useVaults';
 import { VaultListPane } from '@/components/panes/VaultListPane';
+import { VaultDetailPane } from '@/components/panes/VaultDetailPane';
+import { VaultMemberPanel } from '@/components/panels/VaultMemberPanel';
 import { Button } from '@/components/ui/button';
 import {
   RiSafeLine,
   RiCloseLine,
+  RiArrowLeftSLine,
 } from '@remixicon/react';
 
 export default function VaultsPage() {
@@ -181,31 +184,38 @@ export default function VaultsPage() {
               role="main"
               aria-label="Vaults"
             >
-              {/* Mobile header */}
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowMobileVaultList(true)}
-                  className="text-muted-foreground hover:text-foreground h-10 w-10"
-                  aria-label="Open vault list"
-                >
-                  <RiSafeLine className="h-5 w-5" />
-                </Button>
-                <span className="text-sm font-semibold">Vaults</span>
-              </div>
-
-              {/* Main content placeholder */}
-              <div className="flex-1 flex items-center justify-center p-6">
-                <div className="text-center">
-                  <RiSafeLine className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                  <p className="text-sm text-muted-foreground">
-                    {selectedVaultId
-                      ? 'Vault recordings and members coming in Plan 02'
-                      : 'Select a vault to view recordings and members'}
-                  </p>
-                </div>
-              </div>
+              {/* Mobile: Show VaultDetailPane or empty state */}
+              {selectedVaultId ? (
+                <VaultDetailPane
+                  vaultId={selectedVaultId}
+                  showBackButton
+                  onBack={() => setShowMobileVaultList(true)}
+                />
+              ) : (
+                <>
+                  {/* Mobile header */}
+                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowMobileVaultList(true)}
+                      className="text-muted-foreground hover:text-foreground h-10 w-10"
+                      aria-label="Open vault list"
+                    >
+                      <RiSafeLine className="h-5 w-5" />
+                    </Button>
+                    <span className="text-sm font-semibold">Vaults</span>
+                  </div>
+                  <div className="flex-1 flex items-center justify-center p-6">
+                    <div className="text-center">
+                      <RiSafeLine className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground">
+                        Select a vault to view recordings and members
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -234,8 +244,10 @@ export default function VaultsPage() {
                 <RiCloseLine className="h-5 w-5" aria-hidden="true" />
               </Button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <p className="text-sm text-muted-foreground">Members panel coming in Plan 02</p>
+            <div className="flex-1 overflow-y-auto">
+              {selectedVaultId && (
+                <VaultMemberPanel vaultId={selectedVaultId} />
+              )}
             </div>
           </aside>
         )}
@@ -256,20 +268,29 @@ export default function VaultsPage() {
         showDetailPane: true,
       }}
     >
-      {/* Main content - placeholder */}
-      <div className="flex-1 flex items-center justify-center p-6">
-        <div className="text-center">
-          <RiSafeLine className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-          <h2 className="text-lg font-semibold text-foreground mb-2">
-            {selectedVaultId ? 'Vault Detail' : 'Select a Vault'}
-          </h2>
-          <p className="text-sm text-muted-foreground max-w-md">
-            {selectedVaultId
-              ? 'Vault recordings and members coming in Plan 02'
-              : 'Select a vault from the sidebar to view recordings and members'}
-          </p>
+      {/* Main content */}
+      {selectedVaultId ? (
+        <VaultDetailPane
+          vaultId={selectedVaultId}
+          onClose={() => {
+            setSelectedVaultId(null);
+            navigate('/vaults', { replace: true });
+          }}
+        />
+      ) : (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <RiSafeLine className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-foreground mb-2">
+              Select a Vault
+            </h2>
+            <p className="text-sm text-muted-foreground max-w-md">
+              Select a vault from the sidebar to view recordings and members
+            </p>
+            <RiArrowLeftSLine className="h-6 w-6 text-muted-foreground/40 mx-auto mt-2" aria-hidden="true" />
+          </div>
         </div>
-      </div>
+      )}
     </AppShell>
   );
 }
