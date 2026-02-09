@@ -28,6 +28,9 @@ export interface SearchResult {
   rrf_score: number;
   similarity_score: number;
   rerank_score?: number;
+  // Vault attribution (from scoped search)
+  vault_id?: string | null;
+  vault_name?: string | null;
 }
 
 /** Optional filters for search queries. */
@@ -41,6 +44,9 @@ export interface SearchFilters {
   intent_signals?: string[];
   user_tags?: string[];
   recording_ids?: number[];
+  // Bank/Vault scoping
+  bank_id?: string;
+  vault_id?: string | null;  // null = all vaults in bank
 }
 
 /** Final formatted result returned to tool callers. */
@@ -56,6 +62,9 @@ export interface FormattedSearchResult {
   text: string;
   relevance: string;
   share_url?: string | null;
+  // Vault attribution
+  vault_id?: string | null;
+  vault_name?: string | null;
 }
 
 // ============================================
@@ -276,18 +285,21 @@ export async function executeHybridSearch(
     filters = {},
   } = params;
 
-  console.log(`Hybrid search: "${query}" with filters:`, filters);
+  const useScopedSearch = !!(filters.bank_id || filters.vault_id);
+  console.log(`Hybrid search: "${query}" with filters:`, filters, `scoped: ${useScopedSearch}`);
   const searchStartTime = Date.now();
 
   // Step 1: Generate embedding
   const queryEmbedding = await generateQueryEmbedding(query, openaiApiKey);
 
-  // Step 2: Call hybrid_search_transcripts RPC
+  // Step 2: Call hybrid search RPC (scoped or unscoped)
   const hasSpecificRecordingFilters = filters.recording_ids && filters.recording_ids.length > 0;
   const baseCount = hasSpecificRecordingFilters ? 60 : 40;
   const candidateCount = Math.min(limit * 3, baseCount);
 
-  const { data: candidates, error } = await supabase.rpc('hybrid_search_transcripts', {
+  // Use vault-scoped search when bank/vault context is present
+  const rpcFunction = useScopedSearch ? 'hybrid_search_transcripts_scoped' : 'hybrid_search_transcripts';
+  const rpcParams: Record<string, unknown> = {
     query_text: query,
     query_embedding: queryEmbedding,
     match_count: candidateCount,
@@ -304,7 +316,15 @@ export async function executeHybridSearch(
     filter_sentiment: filters.sentiment || null,
     filter_intent_signals: filters.intent_signals || null,
     filter_user_tags: filters.user_tags || null,
-  });
+  };
+
+  // Add bank/vault params only for scoped search
+  if (useScopedSearch) {
+    rpcParams.filter_bank_id = filters.bank_id || null;
+    rpcParams.filter_vault_id = filters.vault_id || null;
+  }
+
+  const { data: candidates, error } = await supabase.rpc(rpcFunction, rpcParams);
 
   if (error) {
     console.error('Search error:', error);
@@ -359,6 +379,8 @@ export async function executeHybridSearch(
         ? Math.round(r.rerank_score * 100) + '%'
         : Math.round(r.rrf_score * 100) + '%',
       share_url: shareUrlMap.get(r.recording_id) || null,
+      vault_id: r.vault_id || null,
+      vault_name: r.vault_name || null,
     })),
     total_found: candidates.length,
     reranked: reranked.length,
