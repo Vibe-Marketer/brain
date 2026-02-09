@@ -1,11 +1,12 @@
 "use client";
 
 import * as React from 'react';
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Badge } from '@/components/ui/badge';
-import { RiMicLine, RiCalendarLine, RiUser3Line, RiPlayCircleLine } from '@remixicon/react';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { RiMicLine, RiCalendarLine, RiUser3Line, RiPlayCircleLine, RiArrowDownSLine } from '@remixicon/react';
 
 // ============================================================================
 // Call Source Context - Adapted from prompt-kit Source pattern
@@ -351,7 +352,7 @@ export interface SourceListProps {
 /**
  * Renders a compact source list at the bottom of an assistant message.
  * Shows:
- *   Sources
+ *   Sources (N)  [collapsed by default]
  *   [1] Call Title — Speaker — Date
  *   [2] Another Call — Speaker — Date
  *
@@ -364,59 +365,74 @@ export function SourceList({
   onSourceClick,
   className,
 }: SourceListProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
   if (sources.length === 0) {
     return null;
   }
 
   return (
-    <div
+    <Collapsible
+      open={isOpen}
+      onOpenChange={setIsOpen}
       className={cn(
         'bg-muted/50 dark:bg-muted/30 rounded-lg p-3 mt-2',
         'border border-border/40',
         className
       )}
     >
-      <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">
-        Sources
-      </div>
-      <div className="space-y-1">
-        {sources.map((source, i) => {
-          const displayIndex = indices ? indices[i] : i + 1;
-          const formattedDate = source.call_date
-            ? new Date(source.call_date).toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: 'numeric',
-              })
-            : undefined;
+      <CollapsibleTrigger className="flex items-center gap-1.5 w-full group/trigger hover:opacity-80 transition-opacity">
+        <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">
+          Sources ({sources.length})
+        </div>
+        <RiArrowDownSLine
+          className={cn(
+            'h-4 w-4 text-muted-foreground transition-transform duration-200',
+            isOpen && 'rotate-180'
+          )}
+        />
+      </CollapsibleTrigger>
+      
+      <CollapsibleContent className="overflow-hidden data-[state=open]:animate-accordion-down data-[state=closed]:animate-accordion-up">
+        <div className="space-y-1 mt-1.5">
+          {sources.map((source, i) => {
+            const displayIndex = indices ? indices[i] : i + 1;
+            const formattedDate = source.call_date
+              ? new Date(source.call_date).toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                })
+              : undefined;
 
-          return (
-            <button
-              key={source.id}
-              onClick={() => onSourceClick?.(source.recording_id)}
-              className={cn(
-                'flex items-baseline gap-1.5 w-full text-left',
-                'text-xs text-muted-foreground hover:text-foreground',
-                'transition-colors duration-150 rounded px-1 -mx-1 py-0.5',
-                'hover:bg-muted/80'
-              )}
-            >
-              <span className="text-primary/70 font-semibold shrink-0 tabular-nums">
-                [{displayIndex}]
-              </span>
-              <span className="truncate">
-                {source.call_title || 'Untitled Call'}
-                {source.speaker_name && (
-                  <span className="text-muted-foreground/70"> — {source.speaker_name}</span>
+            return (
+              <button
+                key={source.id}
+                onClick={() => onSourceClick?.(source.recording_id)}
+                className={cn(
+                  'flex items-baseline gap-1.5 w-full text-left',
+                  'text-xs text-muted-foreground hover:text-foreground',
+                  'transition-colors duration-150 rounded px-1 -mx-1 py-0.5',
+                  'hover:bg-muted/80'
                 )}
-                {formattedDate && (
-                  <span className="text-muted-foreground/70"> — {formattedDate}</span>
-                )}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-    </div>
+              >
+                <span className="text-primary/70 font-semibold shrink-0 tabular-nums">
+                  [{displayIndex}]
+                </span>
+                <span className="truncate">
+                  {source.call_title || 'Untitled Call'}
+                  {source.speaker_name && (
+                    <span className="text-muted-foreground/70"> — {source.speaker_name}</span>
+                  )}
+                  {formattedDate && (
+                    <span className="text-muted-foreground/70"> — {formattedDate}</span>
+                  )}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </CollapsibleContent>
+    </Collapsible>
   );
 }
