@@ -159,9 +159,9 @@ export function AdminModelManager() {
     // but informing the local edit state helps consistency.
   };
   
-  const cycleTier = (currentTier: string) => {
-    const tiers = ['FREE', 'PRO', 'TEAM', 'ADMIN'];
-    const idx = tiers.indexOf(currentTier || 'FREE');
+  const cycleTier = (currentTier: string): 'FREE' | 'PRO' | 'TEAM' | 'ADMIN' => {
+    const tiers = ['FREE', 'PRO', 'TEAM', 'ADMIN'] as const;
+    const idx = tiers.indexOf((currentTier as 'FREE' | 'PRO' | 'TEAM' | 'ADMIN') || 'FREE');
     return tiers[(idx + 1) % tiers.length];
   };
 
@@ -198,8 +198,8 @@ export function AdminModelManager() {
     // Then sort
     if (sortConfig) {
       sortableModels.sort((a, b) => {
-        let aValue: any = a[sortConfig.key as keyof AIModel];
-        let bValue: any = b[sortConfig.key as keyof AIModel];
+        let aValue: string | number | boolean = a[sortConfig.key as keyof AIModel] as string | number | boolean;
+        let bValue: string | number | boolean = b[sortConfig.key as keyof AIModel] as string | number | boolean;
 
         // Handle computed costs
         if (sortConfig.key === 'input_cost') {
@@ -394,7 +394,7 @@ export function AdminModelManager() {
                           "cursor-pointer px-2 py-0.5 rounded text-[10px] font-medium border text-center select-none w-[50px] transition-colors", 
                           getTierColor(model.min_tier || 'FREE')
                         )}
-                        onClick={() => updateModel(model.id, { min_tier: cycleTier(model.min_tier) as any })}
+                        onClick={() => updateModel(model.id, { min_tier: cycleTier(model.min_tier) })}
                         title="Click to cycle Tier"
                       >
                         {model.min_tier || 'FREE'}

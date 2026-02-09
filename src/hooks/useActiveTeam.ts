@@ -115,18 +115,22 @@ export function useActiveTeam(): UseActiveTeamResult {
       
       if (existing) {
         // Update existing row
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await (supabase
-          .from('user_settings') as any)
+          .from('user_settings') as unknown as {
+            update: (data: typeof settingsData) => {
+              eq: (column: string, value: string) => Promise<{ error: unknown }>;
+            };
+          })
           .update(settingsData)
           .eq('user_id', user.id);
         
         if (error) throw error;
       } else {
         // Insert new row
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { error } = await (supabase
-          .from('user_settings') as any)
+          .from('user_settings') as unknown as {
+            insert: (data: typeof settingsData) => Promise<{ error: unknown }>;
+          })
           .insert(settingsData);
         
         if (error) throw error;
