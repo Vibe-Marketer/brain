@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -128,6 +128,9 @@ export function useBankContext() {
     staleTime: 5 * 60 * 1000,
   })
 
+  // Track whether we're currently creating a bank to prevent duplicate calls
+  const isCreatingBankRef = useRef(false)
+
   // Initialize on first load
   useEffect(() => {
     if (!user || banksLoading || isInitialized) return
@@ -138,11 +141,26 @@ export function useBankContext() {
       const defaultBank = personalBank || banks[0]
 
       initialize(defaultBank.id, null)
-    } else if (banks) {
-      // User has no banks - this shouldn't happen with proper signup trigger
-      setError('No banks found for user')
+    } else if (banks && !isCreatingBankRef.current) {
+      // User has no banks - auto-create personal bank via RPC
+      // This handles legacy users who signed up before the bank/vault system
+      isCreatingBankRef.current = true
+      setLoading(true)
+
+      supabase
+        .rpc('ensure_personal_bank', { p_user_id: user.id })
+        .then(({ error: rpcError }) => {
+          if (rpcError) {
+            console.error('[useBankContext] Failed to create personal bank:', rpcError)
+            setError('Failed to initialize bank')
+          } else {
+            // Invalidate banks query to re-fetch with the newly created bank
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'banks', user.id] })
+          }
+          isCreatingBankRef.current = false
+        })
     }
-  }, [user, banks, banksLoading, isInitialized, initialize, setError])
+  }, [user, banks, banksLoading, isInitialized, initialize, setError, setLoading, queryClient])
 
   // Cross-tab sync via storage event
   useEffect(() => {
