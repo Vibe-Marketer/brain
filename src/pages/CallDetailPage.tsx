@@ -263,7 +263,6 @@ export const CallDetailPage: React.FC = () => {
                     transcriptTab.click();
                   }
                   // TODO: Enhance to scroll to specific timestamp/segment in transcript
-                  console.log('Citation clicked:', citation);
                 }}
               />
             </div>

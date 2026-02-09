@@ -48,10 +48,7 @@ export function useSyncSourceFilter({
 
   // Helper function to apply saved filter (not a hook, just a function)
   const applyFilterToState = (platforms: IntegrationPlatform[], savedFilter: string[] | null) => {
-    console.log("[useSyncSourceFilter] applyFilterToState called", { platforms, savedFilter });
-    
     if (platforms.length === 0) {
-      console.log("[useSyncSourceFilter] No platforms, setting empty");
       setEnabledSourcesState([]);
       return;
     }
@@ -62,8 +59,6 @@ export function useSyncSourceFilter({
         platforms.includes(platform as IntegrationPlatform)
       );
 
-      console.log("[useSyncSourceFilter] Applying saved filter", { savedFilter, validSources });
-
       // If intersection results in empty, fall back to all connected
       if (validSources.length > 0) {
         setEnabledSourcesState(validSources);
@@ -72,7 +67,6 @@ export function useSyncSourceFilter({
       }
     } else {
       // NULL or empty = all connected platforms enabled (default)
-      console.log("[useSyncSourceFilter] No saved filter, enabling all platforms");
       setEnabledSourcesState([...platforms]);
     }
   };
@@ -81,15 +75,10 @@ export function useSyncSourceFilter({
   const loadFilterPreferences = useCallback(async () => {
     // Prevent concurrent or duplicate loads
     if (isLoadingRef.current || hasLoadedFromDbRef.current) {
-      console.log("[useSyncSourceFilter] Skipping load - already loaded or loading", {
-        isLoading: isLoadingRef.current,
-        hasLoaded: hasLoadedFromDbRef.current
-      });
       return;
     }
     
     isLoadingRef.current = true;
-    console.log("[useSyncSourceFilter] Loading from DB...");
     
     try {
       const { user, error: authError } = await getSafeUser();
@@ -110,8 +99,6 @@ export function useSyncSourceFilter({
       }
 
       const savedFilter = settings?.sync_source_filter;
-      
-      console.log("[useSyncSourceFilter] DB returned:", { savedFilter, connectedPlatforms });
       
       // Store the raw DB value
       if (savedFilter && Array.isArray(savedFilter) && savedFilter.length > 0) {
@@ -260,10 +247,6 @@ export function useSyncSourceFilter({
     // CRITICAL: If previousConnected was empty, this is the initial platform arrival
     // (platforms loaded async after DB filter was fetched). Apply the saved filter!
     if (previousConnected.length === 0 && connectedPlatforms.length > 0) {
-      console.log("[useSyncSourceFilter] Initial platforms arrived, applying saved filter", {
-        connectedPlatforms,
-        savedFilter: savedFilterRef.current
-      });
       applyFilterToState(connectedPlatforms, savedFilterRef.current);
       previousConnectedRef.current = [...connectedPlatforms];
       return;
