@@ -86,6 +86,14 @@ export function DetailPaneOutlet({
           <CallDetailPanel recordingId={panelData.recordingId} />
         ) : null;
 
+      case 'vault-member':
+        // Placeholder for Plan 02 - Vault Members panel
+        return panelData?.type === 'vault-member' ? (
+          <div className="flex items-center justify-center h-full text-sm text-muted-foreground p-4">
+            Members panel coming in Plan 02
+          </div>
+        ) : null;
+
       default:
         // Unsupported panel type
         console.warn(`DetailPaneOutlet: Unsupported panel type "${panelType}"`);
@@ -106,6 +114,8 @@ export function DetailPaneOutlet({
         return 'User detail panel';
       case 'call-detail':
         return 'Call detail panel';
+      case 'vault-member':
+        return 'Vault member panel';
       default:
         return 'Detail panel';
     }
