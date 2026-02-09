@@ -31,6 +31,7 @@ import { InsightCard } from '@/components/loop/InsightCard';
 import { ContentGenerator } from '@/components/loop/ContentGenerator';
 import { PROFITSReport } from '@/components/profits/PROFITSReport';
 import { supabase } from '@/integrations/supabase/client';
+import { VaultBadgeList } from '@/components/vault/VaultBadgeList';
 import { cn } from '@/lib/utils';
 import type { PROFITSCitation } from '@/hooks/usePROFITS';
 
@@ -144,6 +145,13 @@ export const CallDetailPage: React.FC = () => {
                   </Badge>
                 )}
               </div>
+              {/* Vault badges */}
+              <VaultBadgeList
+                legacyRecordingId={recordingId}
+                maxVisible={3}
+                size="md"
+                className="mt-2"
+              />
             </div>
 
             <div className="flex gap-2">
