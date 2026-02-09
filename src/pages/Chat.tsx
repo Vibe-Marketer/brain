@@ -194,6 +194,22 @@ export default function Chat() {
   }, [user?.id]);
 
   // --- Transport creation ---
+  // IMPORTANT: The AI SDK v5 useChat hook creates a Chat instance once via useRef
+  // and never recreates it when transport changes. The transport's `body` property
+  // supports Resolvable<object> (a function), which is resolved on each request.
+  // We use refs to ensure the body function always reads the latest values.
+  const apiFiltersRef = React.useRef(apiFilters);
+  React.useEffect(() => { apiFiltersRef.current = apiFilters; }, [apiFilters]);
+
+  const selectedModelRef = React.useRef(selectedModel);
+  React.useEffect(() => { selectedModelRef.current = selectedModel; }, [selectedModel]);
+
+  const activeBankIdRef = React.useRef(activeBankId);
+  React.useEffect(() => { activeBankIdRef.current = activeBankId; }, [activeBankId]);
+
+  const activeVaultIdRef = React.useRef(activeVaultId);
+  React.useEffect(() => { activeVaultIdRef.current = activeVaultId; }, [activeVaultId]);
+
   const transport = React.useMemo(() => {
     if (!session?.access_token) {
       logger.warn('Transport creation blocked: No valid auth token');
@@ -212,7 +228,7 @@ export default function Chat() {
         clearTimeout(timeoutId);
         Sentry.captureException(error, {
           tags: { component: 'Chat', action: 'fetch_chat_stream' },
-          extra: { url, model: selectedModel, sessionId: currentSessionId },
+          extra: { url, model: selectedModelRef.current, sessionId: currentSessionIdRef.current },
         });
         throw error;
       }
@@ -220,22 +236,25 @@ export default function Chat() {
 
     return new DefaultChatTransport({
       api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${chatEndpoint}`,
-      headers: { Authorization: `Bearer ${session.access_token}` },
-      body: {
-        filters: apiFilters,
-        model: selectedModel,
-        sessionId: currentSessionId,
-        // Phase 9: Pass bank/vault context for scoped searches
+      headers: () => ({ Authorization: `Bearer ${session.access_token}` }),
+      // Body is a Resolvable<object> — using a function ensures it resolves
+      // to the latest values on each request, even though the Chat instance
+      // and transport are created once and reused by useChat.
+      body: () => ({
+        filters: apiFiltersRef.current,
+        model: selectedModelRef.current,
+        sessionId: currentSessionIdRef.current,
+        // Phase 10: Pass bank/vault context for scoped searches
         // When vault is selected, search is scoped to that vault
         // When only bank is selected, search is scoped to all vaults in bank
         sessionFilters: {
-          bank_id: activeBankId,
-          vault_id: activeVaultId, // null = all vaults in bank
+          bank_id: activeBankIdRef.current,
+          vault_id: activeVaultIdRef.current, // null = all vaults in bank
         },
-      },
+      }),
       fetch: customFetch,
     });
-  }, [session?.access_token, apiFilters, selectedModel, currentSessionId, activeBankId, activeVaultId]);
+  }, [session?.access_token]);
 
   // --- AI SDK v5 Chat Hook ---
   const { messages, sendMessage, status, error, setMessages } = useChat({
