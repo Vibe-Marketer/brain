@@ -13,7 +13,8 @@ import {
   RiFileTextLine,
   RiSparklingLine,
   RiFileCopyLine,
-  RiDownloadLine
+  RiDownloadLine,
+  RiLoader4Line
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -33,6 +34,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 /** Inline type definition — formerly from deleted ai-agent.ts */
 export interface ExtractedInsight {
@@ -90,12 +92,60 @@ export const ContentGenerator: React.FC<ContentGeneratorProps> = ({
   const [targetAudience, setTargetAudience] = useState('');
   const [additionalContext, setAdditionalContext] = useState('');
   const [generatedContent, setGeneratedContent] = useState('');
-
-  const isProcessing = false;
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleGenerate = async () => {
-    // TODO: Re-wire to edge function once content generation pipeline is connected
-    toast.error('Content generation is being migrated to server-side processing');
+    if (insights.length === 0) {
+      toast.error('No insights selected');
+      return;
+    }
+
+    setIsProcessing(true);
+    setGeneratedContent('');
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Please sign in to generate content');
+        return;
+      }
+
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-content`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            insights: insights.map(i => ({
+              type: i.type,
+              content: i.content,
+              context: i.context,
+            })),
+            content_type: contentType,
+            tone,
+            target_audience: targetAudience || undefined,
+            additional_context: additionalContext || undefined,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate content');
+      }
+
+      const result = await response.json();
+      setGeneratedContent(result.content);
+      toast.success('Content generated!');
+    } catch (error) {
+      console.error('Content generation error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate content');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleCopy = () => {
@@ -223,7 +273,7 @@ export const ContentGenerator: React.FC<ContentGeneratorProps> = ({
           >
             {isProcessing ? (
               <>
-                <RiSparklingLine className="w-5 h-5 mr-2 animate-spin" />
+                <RiLoader4Line className="w-5 h-5 mr-2 animate-spin" />
                 Generating...
               </>
             ) : (
