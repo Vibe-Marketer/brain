@@ -412,7 +412,7 @@ Plans:
 
 ---
 
-### Phase 10: Chat Bank/Vault Scoping (Gap Closure)
+### Phase 10: Chat Bank/Vault Scoping (Gap Closure) ✓ COMPLETE
 **Goal:** Chat searches respect active bank/vault context for proper multi-tenant isolation
 
 **Dependencies:** Phase 9 (bank/vault architecture must exist)
@@ -420,9 +420,9 @@ Plans:
 **Gap Closure:** Closes integration gap from v1-MILESTONE-AUDIT.md
 
 Plans:
-- [x] 10-01-PLAN.md — Pass bank_id/vault_id from frontend to chat-stream-v2 ✅
-- [x] 10-02-PLAN.md — Filter chat searches by active bank/vault context ✅
-- [x] 10-03-PLAN.md — Verify multi-tenant isolation end-to-end ✅
+- [x] 10-01-PLAN.md — Pass bank_id/vault_id from frontend to chat-stream-v2
+- [x] 10-02-PLAN.md — Filter chat searches by active bank/vault context
+- [x] 10-03-PLAN.md — Verify multi-tenant isolation end-to-end
 
 **Requirements:**
 - GAP-INT-01: Chat backend respects bank/vault context (not searching all user recordings)
@@ -475,7 +475,7 @@ Plans:
 | 10 - Chat Bank/Vault Scoping | Complete ✅ | 1 | 100% (3/3 plans) |
 | 11 - PROFITS Frontend Trigger | Pending | 1 | 0% (0/2 plans) |
 
-**Overall Progress:** 58/60 requirements (97%) - **Gap closure phases added**
+**Overall Progress:** 59/60 requirements (98%) - **1 gap closure phase remaining**
 
 ---
 
