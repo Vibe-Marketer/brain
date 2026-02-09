@@ -4,6 +4,18 @@
   "parallelization": true,
   "commit_docs": true,
   "model_profile": "balanced",
+  "model_mapping": {
+    "gsd-researcher": "opencode/kimi-k2.5-free",
+    "gsd-roadmapper": "opencode/kimi-k2.5-free",
+    "gsd-planner": "opencode/kimi-k2.5-free",
+    "gsd-executor": "opencode/kimi-k2.5-free",
+    "gsd-verifier": "opencode/kimi-k2.5-free",
+    "gsd-debugger": "opencode/kimi-k2.5-free",
+    "gsd-phase-researcher": "opencode/kimi-k2.5-free",
+    "gsd-plan-checker": "opencode/kimi-k2.5-free",
+    "gsd-integration-checker": "opencode/kimi-k2.5-free",
+    "gsd-research-synthesizer": "opencode/kimi-k2.5-free"
+  },
   "workflow": {
     "research": true,
     "plan_check": true,
