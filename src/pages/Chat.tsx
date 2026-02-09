@@ -713,19 +713,19 @@ export default function Chat() {
                       <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/></svg>
                     </Button>
                   )}
-                  {filterState.hasActiveFilters && (
+                  {hasActiveFilters && (
                     <div className="hidden md:flex items-center gap-2">
-                      {filterState.filters.dateStart && <Badge variant="secondary" className="gap-1"><RiCalendarLine className="h-3 w-3" />{format(filterState.filters.dateStart, "MMM d")}{filterState.filters.dateEnd && ` - ${format(filterState.filters.dateEnd, "MMM d")}`}</Badge>}
-                      {filterState.filters.speakers.length > 0 && <Badge variant="secondary" className="gap-1"><RiUser3Line className="h-3 w-3" />{filterState.filters.speakers.length} speaker{filterState.filters.speakers.length > 1 ? "s" : ""}</Badge>}
-                      {filterState.filters.categories.length > 0 && <Badge variant="secondary" className="gap-1"><RiFolder3Line className="h-3 w-3" />{filterState.filters.categories.length} categor{filterState.filters.categories.length > 1 ? "ies" : "y"}</Badge>}
-                      {filterState.filters.folderIds.map((folderId) => {
+                      {filters.dateStart && <Badge variant="secondary" className="gap-1"><RiCalendarLine className="h-3 w-3" />{format(filters.dateStart, "MMM d")}{filters.dateEnd && ` - ${format(filters.dateEnd, "MMM d")}`}</Badge>}
+                      {filters.speakers.length > 0 && <Badge variant="secondary" className="gap-1"><RiUser3Line className="h-3 w-3" />{filters.speakers.length} speaker{filters.speakers.length > 1 ? "s" : ""}</Badge>}
+                      {filters.categories.length > 0 && <Badge variant="secondary" className="gap-1"><RiFolder3Line className="h-3 w-3" />{filters.categories.length} categor{filters.categories.length > 1 ? "ies" : "y"}</Badge>}
+                      {filters.folderIds.map((folderId) => {
                         const folder = folders.find((f) => f.id === folderId);
                         return folder ? (
                           <Badge key={folderId} variant="secondary" className="gap-1 pr-1">
                             <RiFolder3Line className="h-3 w-3" style={{ color: folder.color || '#6B7280' }} />
                             <span className="max-w-[100px] truncate">{folder.name}</span>
                             <button
-                              onClick={(e) => { e.stopPropagation(); filterState.toggleFolder(folderId); }}
+                              onClick={(e) => { e.stopPropagation(); toggleFolder(folderId); }}
                               className="ml-1 hover:bg-muted rounded p-0.5 transition-colors"
                               aria-label={`Remove ${folder.name} folder filter`}
                             >
@@ -734,20 +734,20 @@ export default function Chat() {
                           </Badge>
                         ) : null;
                       })}
-                      {filterState.filters.recordingIds.length > 0 && <Badge variant="secondary" className="gap-1"><RiVideoLine className="h-3 w-3" />{filterState.filters.recordingIds.length} call{filterState.filters.recordingIds.length > 1 ? "s" : ""}</Badge>}
-                      <Button variant="hollow" size="sm" onClick={filterState.clearFilters} className="h-6 px-2 text-xs"><RiCloseLine className="h-3 w-3" />Clear</Button>
+                      {filters.recordingIds.length > 0 && <Badge variant="secondary" className="gap-1"><RiVideoLine className="h-3 w-3" />{filters.recordingIds.length} call{filters.recordingIds.length > 1 ? "s" : ""}</Badge>}
+                      <Button variant="hollow" size="sm" onClick={clearFilters} className="h-6 px-2 text-xs"><RiCloseLine className="h-3 w-3" />Clear</Button>
                     </div>
                   )}
-                  {filterState.hasActiveFilters && <Badge variant="secondary" className="md:hidden">Filtered</Badge>}
+                  {hasActiveFilters && <Badge variant="secondary" className="md:hidden">Filtered</Badge>}
                 </div>
                 <div className="flex items-center gap-1 md:gap-2">
                   <Button variant="hollow" size="sm" onClick={handleNewChat} className="gap-1 h-8 px-2 md:px-3"><RiAddLine className="h-4 w-4" /><span className="hidden md:inline">New Chat</span></Button>
                   <Popover open={showFilters} onOpenChange={setShowFilters}>
                     <PopoverTrigger asChild>
-                      <Button variant={filterState.hasActiveFilters ? "default" : "outline"} size="sm" className="gap-1 h-8 px-2 md:px-3"><RiFilterLine className="h-4 w-4" /><span className="hidden md:inline">Filters</span></Button>
+                      <Button variant={hasActiveFilters ? "default" : "outline"} size="sm" className="gap-1 h-8 px-2 md:px-3"><RiFilterLine className="h-4 w-4" /><span className="hidden md:inline">Filters</span></Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-80 p-0" align="end">
-                      <ChatFilterPopover filters={filterState.filters} setFilters={filterState.setFilters} availableSpeakers={availableSpeakers} availableCategories={availableCategories} availableFolders={folders} availableCalls={availableCalls} toggleSpeaker={filterState.toggleSpeaker} toggleCategory={filterState.toggleCategory} toggleFolder={filterState.toggleFolder} toggleCall={filterState.toggleCall} />
+                      <ChatFilterPopover filters={filters} setFilters={setFiltersStable} availableSpeakers={availableSpeakers} availableCategories={availableCategories} availableFolders={folders} availableCalls={availableCalls} toggleSpeaker={toggleSpeaker} toggleCategory={toggleCategory} toggleFolder={toggleFolder} toggleCall={toggleCall} />
                     </PopoverContent>
                   </Popover>
                 </div>
@@ -759,7 +759,7 @@ export default function Chat() {
             </ChatInnerCardContent>
 
             <ChatInnerCardInputArea>
-              <ChatInputArea input={input} onInputChange={handleInputChangeWithMentions} onSubmit={handleChatSubmit} isLoading={isLoading} isChatReady={isChatReady} isRateLimited={isRateLimited} rateLimitSeconds={rateLimitSeconds} isReconnecting={isReconnecting} reconnectAttemptDisplay={reconnectAttemptDisplay} maxReconnectAttempts={MAX_RECONNECT_ATTEMPTS} selectedModel={selectedModel} onModelChange={setSelectedModel} contextAttachments={contextAttachments} onRemoveAttachment={filterState.removeAttachment} availableCalls={availableCalls} onAddCall={filterState.addCallAttachment} showMentions={showMentions} filteredCalls={filteredCalls} onMentionSelect={handleMentionSelect} textareaRef={textareaRef} />
+              <ChatInputArea input={input} onInputChange={handleInputChangeWithMentions} onSubmit={handleChatSubmit} isLoading={isLoading} isChatReady={isChatReady} isRateLimited={isRateLimited} rateLimitSeconds={rateLimitSeconds} isReconnecting={isReconnecting} reconnectAttemptDisplay={reconnectAttemptDisplay} maxReconnectAttempts={MAX_RECONNECT_ATTEMPTS} selectedModel={selectedModel} onModelChange={setSelectedModel} contextAttachments={contextAttachments} onRemoveAttachment={removeAttachment} availableCalls={availableCalls} onAddCall={addCallAttachment} showMentions={showMentions} filteredCalls={filteredCalls} onMentionSelect={handleMentionSelect} textareaRef={textareaRef} />
             </ChatInnerCardInputArea>
           </ChatInnerCard>
         </div>
