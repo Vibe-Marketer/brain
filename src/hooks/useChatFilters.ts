@@ -197,6 +197,7 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
   );
 
   // Memoize the return object to prevent infinite loops when used in useEffect deps
+  // Note: setFilters and setContextAttachments are stable setState functions and should NOT be in deps
   return React.useMemo(
     () => ({
       // Filter state
@@ -226,7 +227,7 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
     }),
     [
       filters,
-      setFilters,
+      // setFilters is a stable setState function - excluded from deps
       apiFilters,
       clearFilters,
       toggleSpeaker,
@@ -236,7 +237,7 @@ export function useChatFilters(options: UseChatFiltersOptions = {}): UseChatFilt
       addRecordingId,
       setDateRange,
       contextAttachments,
-      setContextAttachments,
+      // setContextAttachments is a stable setState function - excluded from deps
       removeAttachment,
       addCallAttachment,
       hasActiveFilters,

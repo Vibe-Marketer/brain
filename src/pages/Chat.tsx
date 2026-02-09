@@ -102,12 +102,24 @@ export default function Chat() {
     initialLocationState: location.state as ChatLocationState | undefined,
   });
   
-  // Destructure stable setters and values to avoid infinite loops in useEffect deps
-  // The setter functions from useState are stable, but the filterState object itself changes
+  // Destructure ALL values to avoid filterState object instability causing infinite loops
+  // After fixing useChatFilters memoization, these should all be stable references
   const { 
+    filters,
+    apiFilters,
     setFilters: setFiltersStable, 
-    setContextAttachments: setContextAttachmentsStable,
+    clearFilters,
+    toggleSpeaker,
+    toggleCategory,
+    toggleFolder,
+    toggleCall,
+    addRecordingId,
+    setDateRange,
     contextAttachments,
+    setContextAttachments: setContextAttachmentsStable,
+    removeAttachment,
+    addCallAttachment,
+    hasActiveFilters,
   } = filterState;
   
   // Use a ref to access current contextAttachments in callbacks without adding to deps
@@ -210,7 +222,7 @@ export default function Chat() {
       api: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${chatEndpoint}`,
       headers: { Authorization: `Bearer ${session.access_token}` },
       body: {
-        filters: filterState.apiFilters,
+        filters: apiFilters,
         model: selectedModel,
         sessionId: currentSessionId,
         // Phase 9: Pass bank/vault context for scoped searches
@@ -223,7 +235,7 @@ export default function Chat() {
       },
       fetch: customFetch,
     });
-  }, [session?.access_token, filterState.apiFilters, selectedModel, currentSessionId, activeBankId, activeVaultId]);
+  }, [session?.access_token, apiFilters, selectedModel, currentSessionId, activeBankId, activeVaultId]);
 
   // --- AI SDK v5 Chat Hook ---
   const { messages, sendMessage, status, error, setMessages } = useChat({
@@ -477,13 +489,13 @@ export default function Chat() {
   // --- Session handlers ---
   const createNewSession = React.useCallback(async () => {
     return createSession({
-      filter_date_start: filterState.filters.dateStart,
-      filter_date_end: filterState.filters.dateEnd,
-      filter_speakers: filterState.filters.speakers,
-      filter_categories: filterState.filters.categories,
-      filter_recording_ids: filterState.filters.recordingIds,
+      filter_date_start: filters.dateStart,
+      filter_date_end: filters.dateEnd,
+      filter_speakers: filters.speakers,
+      filter_categories: filters.categories,
+      filter_recording_ids: filters.recordingIds,
     });
-  }, [createSession, filterState.filters]);
+  }, [createSession, filters]);
 
   const handleNewChat = React.useCallback(async () => {
     try {
@@ -644,7 +656,7 @@ export default function Chat() {
     availableCalls,
     input,
     onInputChange: setInput,
-    onCallSelect: filterState.addRecordingId,
+    onCallSelect: addRecordingId,
     textareaRef,
   });
 
