@@ -16,15 +16,15 @@
 
 **Phase:** 10.2 of 11+ (Vaults Page - INSERTED)
 
-**Plan:** 1 of 9 in current phase
+**Plan:** 2 of 9 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-09 - Completed 10.2-01-PLAN.md
+**Last activity:** 2026-02-09 - Completed 10.2-02-PLAN.md
 
 **Progress:**
 ```
-[█████████████████████████████████████░░░░░░] 69/77 plans complete (90%)
+[██████████████████████████████████████░░░░░] 70/77 plans complete (91%)
 ```
 
 ---
@@ -56,7 +56,7 @@
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
 | Phase 9: Bank/Vault Architecture | 5 | 5 | Complete (10/10 plans) |
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
-| Phase 10.2: Vaults Page | 7 | 0 | In progress (1/9 plans) |
+| Phase 10.2: Vaults Page | 7 | 0 | In progress (2/9 plans) |
 
 ### Velocity
 
@@ -144,6 +144,9 @@
 | 2026-01-31 | 5-level vault role hierarchy | vault_owner > vault_admin > manager > member > guest | Granular access control within vaults |
 | 2026-01-31 | VaultEntry enables same recording in multiple vaults | Recording lives in ONE bank, but can appear in many vaults with local context | vault_entries has local_tags, scores, notes per appearance |
 | 2026-01-31 | legacy_recording_id for fathom_calls migration | BIGINT field tracks original fathom_calls.recording_id for migration | UNIQUE(bank_id, legacy_recording_id) prevents duplicates |
+| 2026-02-09 | mapRecordingToMeeting adapter for TranscriptTable reuse | Vault recordings use Recording type; TranscriptTable expects Meeting | Zero changes to TranscriptTable, adapter maps all fields |
+| 2026-02-09 | UUID recordingId passed to AddToVaultMenu | Vault recordings have UUID IDs, not just legacy numeric IDs | TranscriptTableRow now passes both recordingId and legacyRecordingId |
+| 2026-02-09 | Vault recordings query invalidation on mutations | VaultDetailPane and AddToVaultMenu use different query keys | useVaultAssignment invalidates both vaultEntries and vaults.recordings |
 
 ### Active TODOs
 
@@ -214,8 +217,9 @@ Phase 9 COMPLETE. All 9 phases in v1 milestone executed.
 Phase 10 COMPLETE (3/3 plans). GAP-INT-01 closed.
 
 - [x] Execute 10.2-01-PLAN.md (Vaults page foundation - route, hooks, vault list pane)
+- [x] Execute 10.2-02-PLAN.md (Vault detail view - recordings table, member panel, adapter)
 
-Phase 10.2 in progress (1/9 plans).
+Phase 10.2 in progress (2/9 plans).
 
 ### Pending Todos
 
@@ -240,19 +244,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-02-09
-**Stopped at:** Completed 10.2-01-PLAN.md
+**Stopped at:** Completed 10.2-02-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.2 Plan 01 complete - Vaults page foundation is live. /vaults route works, sidebar updated, vault list pane shows bank-scoped vaults.
+Phase 10.2 Plan 02 complete - Vault detail view is live with recordings table and member panel.
 
 **What to remember:**
-- Plan 01 delivered: /vaults route, VaultListPane, useVaults hooks, sidebar nav updated
-- Next: 10.2-02-PLAN.md (Vault Detail View with recordings table)
-- vault-member panel type is registered but renders placeholder
-- Bank context visible in VaultListPane header
+- Plan 02 delivered: VaultDetailPane, VaultMemberPanel, useVaultMembers, mapRecordingToMeeting adapter
+- Next: 10.2-03-PLAN.md (Vault Creation & Edit Dialogs)
+- "Invite Members" button is stubbed (disabled) — Plan 04 will activate it
+- AddToVaultMenu works with both UUID and legacy numeric recording IDs
+- Vault recordings query invalidation wired for add/remove operations
 - /team redirects to /vaults for backward compatibility
 
 ---
@@ -264,9 +269,9 @@ Phase 10.2 Plan 01 complete - Vaults page foundation is live. /vaults route work
 | Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 67 |
 | Requirements Complete | 58 (87%) |
-| Current Phase | 10.2 - Vaults Page (INSERTED - 0/6 plans) |
-| Plans Complete | 68/74 (92%) |
-| Next Plan | 10.2-01-PLAN.md (Foundation) |
+| Current Phase | 10.2 - Vaults Page (INSERTED - 2/9 plans) |
+| Plans Complete | 70/77 (91%) |
+| Next Plan | 10.2-03-PLAN.md (Vault Creation & Edit Dialogs) |
 | Blockers | 0 |
 
 ---
