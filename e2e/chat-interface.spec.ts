@@ -268,7 +268,7 @@ test.describe("Chat Interface - Complete Flows", () => {
     await waitForResponseComplete(page);
 
     // Wait for debounced save to complete
-    await page.waitForTimeout(1500);
+    await page.waitForTimeout(2000);
 
     // Refresh the page
     await page.reload();
@@ -597,7 +597,7 @@ test.describe("Chat Interface - Session Management", () => {
     const session1Id = session1Url.split("/chat/")[1];
 
     await waitForResponseComplete(page);
-    await page.waitForTimeout(1500); // Wait for save
+    await page.waitForTimeout(2000); // Wait for save
 
     console.log(`Session 1 created: ${session1Id}`);
 
@@ -613,7 +613,10 @@ test.describe("Chat Interface - Session Management", () => {
     const session2Id = session2Url.split("/chat/")[1];
 
     await waitForResponseComplete(page);
-    await page.waitForTimeout(1500);
+    
+    // Verify message is visible before save
+    await expect(page.locator(`text=${message2.substring(0, 25)}`).first()).toBeVisible({ timeout: 5000 });
+    await page.waitForTimeout(3000); // Wait for debounced save
 
     console.log(`Session 2 created: ${session2Id}`);
 
@@ -651,7 +654,10 @@ test.describe("Chat Interface - Session Management", () => {
     const sessionId = sessionUrl.split("/chat/")[1];
 
     await waitForResponseComplete(page);
-    await page.waitForTimeout(1500);
+    
+    // Verify message is visible before save
+    await expect(page.locator(`text=${testMessage.substring(0, 25)}`).first()).toBeVisible({ timeout: 5000 });
+    await page.waitForTimeout(3000); // Wait for debounced save
 
     // Navigate away
     await page.goto("/");
