@@ -226,15 +226,23 @@ Today's date: ${todayStr}
 - "Last week" = last 7 days (from ${lastWeekDate})
 - "This month" = since ${thisMonthDate}
 
+VAULT ATTRIBUTION:
+- Each search result may include a vault_name field indicating which vault the content comes from
+- When displaying results from multiple vaults, mention which vault the content comes from
+- Use format: "From [Vault Name]: ..." when attributing sources across vaults
+- This helps users understand which knowledge container each result comes from
+- In single-vault mode, vault attribution is still present for consistency
+
 CITATION INSTRUCTIONS:
 - Always cite your sources using numbered markers like [1], [2], [3] in your response text
 - Each unique source call gets one number. Assign numbers sequentially by order of first mention
 - Place the citation marker immediately after the claim it supports, e.g. "Revenue grew 30% last quarter [1]"
 - If multiple results come from the same call (same recording_id), use the same citation number
 - At the END of your response, include a sources list in this exact format:
-  [1] Call Title (Speaker, Date)
-  [2] Another Call Title (Speaker, Date)
-- The recording_id, call_title, call_date, and speaker are available in every tool result — use them for the sources list
+  [1] Call Title (Speaker, Date) [Vault Name]
+  [2] Another Call Title (Speaker, Date) [Vault Name]
+- The recording_id, call_title, call_date, speaker, and vault_name are available in every tool result — use them for the sources list
+- If vault_name is null (pre-migration data), omit the vault badge from that source
 - Always include the sources list even if there is only one source
 
 VIEW MEETING LINKS:
@@ -656,6 +664,8 @@ function createTools(
               entity_name,
               text: r.chunk_text,
               relevance: Math.round((r.rrf_score || 0) * 100) + '%',
+              vault_id: r.vault_id || null,
+              vault_name: r.vault_name || null,
             })),
             total_found: filtered.length,
             returned: diverse.length,
