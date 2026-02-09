@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 10.2 - Vaults Page Implementation (Wave 1 in progress)
+**Current Focus:** Phase 10.2 - Vaults Page Implementation (Wave 2 in progress)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 10.2 of 11+ (Vaults Page - INSERTED)
 
-**Plan:** 2 of 9 in current phase
+**Plan:** 3 of 9 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-09 - Completed 10.2-02-PLAN.md
+**Last activity:** 2026-02-09 - Completed 10.2-07-PLAN.md
 
 **Progress:**
 ```
-[██████████████████████████████████████░░░░░] 70/77 plans complete (91%)
+[██████████████████████████████████████░░░░░] 71/77 plans complete (92%)
 ```
 
 ---
@@ -56,7 +56,7 @@
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
 | Phase 9: Bank/Vault Architecture | 5 | 5 | Complete (10/10 plans) |
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
-| Phase 10.2: Vaults Page | 7 | 0 | In progress (2/9 plans) |
+| Phase 10.2: Vaults Page | 7 | 0 | In progress (3/9 plans) |
 
 ### Velocity
 
@@ -219,7 +219,7 @@ Phase 10 COMPLETE (3/3 plans). GAP-INT-01 closed.
 - [x] Execute 10.2-01-PLAN.md (Vaults page foundation - route, hooks, vault list pane)
 - [x] Execute 10.2-02-PLAN.md (Vault detail view - recordings table, member panel, adapter)
 
-Phase 10.2 in progress (2/9 plans).
+Phase 10.2 in progress (3/9 plans).
 
 ### Pending Todos
 
@@ -244,20 +244,21 @@ None
 ## Session Continuity
 
 **Last session:** 2026-02-09
-**Stopped at:** Completed 10.2-02-PLAN.md
+**Stopped at:** Completed 10.2-07-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.2 Plan 02 complete - Vault detail view is live with recordings table and member panel.
+Phase 10.2 Plan 07 complete - Vault membership badges visible on CallDetailPage and TranscriptTable.
 
 **What to remember:**
-- Plan 02 delivered: VaultDetailPane, VaultMemberPanel, useVaultMembers, mapRecordingToMeeting adapter
-- Next: 10.2-03-PLAN.md (Vault Creation & Edit Dialogs)
-- "Invite Members" button is stubbed (disabled) — Plan 04 will activate it
-- AddToVaultMenu works with both UUID and legacy numeric recording IDs
-- Vault recordings query invalidation wired for add/remove operations
+- Plan 07 delivered: VaultBadge, VaultBadgeList components integrated into CallDetailPage and TranscriptTable
+- VaultBadge has personal (subtle) vs team (prominent) styling with sm/md/lg sizes
+- VaultBadgeList uses useVaultAssignment hook, supports both UUID and legacy numeric IDs
+- TranscriptTable has toggleable "Vaults" column, hides personal vault badges
+- Badge clicks stopPropagation to prevent row click interference
+- "Invite Members" button still stubbed (disabled) — Plan 04 will activate it
 - /team redirects to /vaults for backward compatibility
 
 ---
@@ -269,8 +270,8 @@ Phase 10.2 Plan 02 complete - Vault detail view is live with recordings table an
 | Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 67 |
 | Requirements Complete | 58 (87%) |
-| Current Phase | 10.2 - Vaults Page (INSERTED - 2/9 plans) |
-| Plans Complete | 70/77 (91%) |
+| Current Phase | 10.2 - Vaults Page (INSERTED - 3/9 plans) |
+| Plans Complete | 71/77 (92%) |
 | Next Plan | 10.2-03-PLAN.md (Vault Creation & Edit Dialogs) |
 | Blockers | 0 |
 
