@@ -21,6 +21,7 @@ import Settings from '@/pages/Settings';
 import Analytics from '@/pages/Analytics';
 import SharedWithMe from '@/pages/SharedWithMe';
 import CollaborationPage from '@/pages/CollaborationPage';
+import VaultsPage from '@/pages/VaultsPage';
 
 // Content Library pages
 import { ContentLibraryPage } from '@/components/content-library/ContentLibraryPage';
@@ -84,8 +85,12 @@ function App() {
                     {/* Shared with me page */}
                     <Route path="/shared-with-me" element={<ProtectedRoute><Layout><SharedWithMe /></Layout></ProtectedRoute>} />
 
-                    {/* Collaboration routes */}
-                    <Route path="/team" element={<ProtectedRoute><Layout><CollaborationPage /></Layout></ProtectedRoute>} />
+                    {/* Vaults routes */}
+                    <Route path="/vaults" element={<ProtectedRoute><Layout><VaultsPage /></Layout></ProtectedRoute>} />
+                    <Route path="/vaults/:vaultId" element={<ProtectedRoute><Layout><VaultsPage /></Layout></ProtectedRoute>} />
+
+                    {/* Legacy team redirect */}
+                    <Route path="/team" element={<Navigate to="/vaults" replace />} />
 
                     {/* Content Library routes */}
                     <Route path="/library" element={<ProtectedRoute><Layout><ContentLibraryPage /></Layout></ProtectedRoute>} />
