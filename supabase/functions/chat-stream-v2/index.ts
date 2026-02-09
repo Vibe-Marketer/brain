@@ -344,7 +344,11 @@ function createTools(
   openaiApiKey: string,
   hfApiKey: string,
   sessionFilters?: SessionFilters,
+  bankId?: string,
+  vaultId?: string | null,
 ) {
+  // Log bank/vault context for debugging (plan 02 will add actual filtering)
+  console.log(`[chat-stream-v2] Tools context - Bank: ${bankId || 'none'}, Vault: ${vaultId === null ? 'all' : vaultId || 'none'}`);
   // ================================================================
   // TOOL EXECUTION LOGGING WRAPPER
   // Logs what tools return to catch "silent failures" where tools
@@ -999,7 +1003,11 @@ Deno.serve(async (req: Request) => {
 
     // ---- Parse Request Body ----
     const body: RequestBody = await req.json();
-    const { messages, model: requestedModel, filters: requestFilters, sessionId } = body;
+    const { messages, model: requestedModel, filters: requestFilters, sessionId, sessionFilters: bankVaultContext } = body;
+
+    // Extract bank/vault context for multi-tenant scoping
+    const bankId = bankVaultContext?.bank_id || undefined;
+    const vaultId = bankVaultContext?.vault_id; // null means "all vaults in bank"
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -1054,9 +1062,16 @@ Deno.serve(async (req: Request) => {
       console.log(`[chat-stream-v2] Resolved ${sessionFilters.folder_ids.length} folder(s) to ${resolvedRecordingIds?.length ?? 0} recording(s)`);
     }
 
+    // ---- Set bank_id on session filters for tool access ----
+    if (bankId && sessionFilters) {
+      sessionFilters.bank_id = bankId;
+    } else if (bankId && !sessionFilters) {
+      sessionFilters = { bank_id: bankId };
+    }
+
     const selectedModel = requestedModel || 'openai/gpt-4o-mini';
     const requestStartTime = Date.now();
-    console.log(`[chat-stream-v2] User: ${user.id}, Model: ${selectedModel}, Messages: ${messages.length}, Filters: ${JSON.stringify(sessionFilters)}`);
+    console.log(`[chat-stream-v2] User: ${user.id}, Bank: ${bankId || 'none'}, Vault: ${vaultId === null ? 'all' : vaultId || 'none'}, Model: ${selectedModel}, Messages: ${messages.length}, Filters: ${JSON.stringify(sessionFilters)}`);
 
     // ---- Fetch business profile for context ----
     const businessProfile = await fetchBusinessProfile(supabase, user.id);
@@ -1067,7 +1082,7 @@ Deno.serve(async (req: Request) => {
     // ---- Build system prompt and tools ----
     const openrouter = createOpenRouterProvider(openrouterApiKey);
     const systemPrompt = buildSystemPrompt(sessionFilters, businessProfile);
-    const allTools = createTools(supabase, user.id, openaiApiKey, hfApiKey, sessionFilters);
+    const allTools = createTools(supabase, user.id, openaiApiKey, hfApiKey, sessionFilters, bankId, vaultId);
 
     // ---- Convert messages ----
     const convertedMessages = convertToModelMessages(messages);
@@ -1101,11 +1116,14 @@ Deno.serve(async (req: Request) => {
         metadata: {
           hasBusinessProfile: !!businessProfile,
           hasFilters: !!sessionFilters,
+          bankId: bankId || null,
+          vaultId: vaultId !== undefined ? vaultId : null,
           filterSummary: sessionFilters ? {
             hasDateRange: !!(sessionFilters.date_start || sessionFilters.date_end),
             hasSpeakers: !!(sessionFilters.speakers?.length),
             hasCategories: !!(sessionFilters.categories?.length),
             hasRecordingIds: !!(sessionFilters.recording_ids?.length),
+            hasBankId: !!sessionFilters.bank_id,
           } : null,
         },
       });
