@@ -1,26 +1,15 @@
 {
-  "mode": "yolo",
-  "depth": "comprehensive",
-  "parallelization": true,
-  "commit_docs": true,
-  "model_profile": "balanced",
-  "model_mapping": {
-    "gsd-researcher": "opencode/kimi-k2.5-free",
-    "gsd-roadmapper": "opencode/kimi-k2.5-free",
-    "gsd-planner": "opencode/kimi-k2.5-free",
-    "gsd-executor": "opencode/kimi-k2.5-free",
-    "gsd-verifier": "opencode/kimi-k2.5-free",
-    "gsd-debugger": "opencode/kimi-k2.5-free",
-    "gsd-phase-researcher": "opencode/kimi-k2.5-free",
-    "gsd-plan-checker": "opencode/kimi-k2.5-free",
-    "gsd-integration-checker": "opencode/kimi-k2.5-free",
-    "gsd-research-synthesizer": "opencode/kimi-k2.5-free"
-  },
+  "model_profile": "budget",
   "workflow": {
     "research": true,
     "plan_check": true,
-    "verifier": true,
-    "verification_type": "automated"
+    "verifier": true
   },
-  "verification_notes": "Use dev-browser skill or Playwright for UI verification. No manual human checkpoints - verify programmatically via tests and automated browser checks."
+  "planning": {
+    "commit_docs": true,
+    "search_gitignored": false
+  },
+  "git": {
+    "branching_strategy": "none"
+  }
 }
