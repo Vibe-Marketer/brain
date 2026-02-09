@@ -157,8 +157,7 @@ export function BankSwitcher() {
           <DropdownMenuItem
             className="cursor-pointer flex items-center gap-2 text-muted-foreground"
             onClick={() => {
-              // TODO: Open business bank creation modal
-              console.log('Create business bank - Pro feature');
+              // TODO: Implement business bank creation modal (Pro feature)
             }}
           >
             <RiAddLine className="h-4 w-4" />
@@ -173,8 +172,7 @@ export function BankSwitcher() {
         <DropdownMenuItem
           className="cursor-pointer flex items-center gap-2 text-muted-foreground"
           onClick={() => {
-            // TODO: Navigate to bank management settings
-            console.log('Manage banks');
+            // TODO: Navigate to bank management settings page
           }}
         >
           <RiSettingsLine className="h-4 w-4" />

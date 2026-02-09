@@ -1,6 +1,7 @@
 import React from 'react';
 import * as Sentry from '@sentry/react';
 import { debugLog } from '@/components/debug-panel';
+import { logger } from '@/lib/logger';
 
 interface Props {
   children: React.ReactNode;
@@ -77,7 +78,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
     // For chunk load errors, attempt automatic retry (stale chunks after deployment)
     if (isChunkLoadError(error) && this.state.retryCount < this.maxRetries) {
-      console.log(`ChunkLoadError detected, attempting retry ${this.state.retryCount + 1}/${this.maxRetries}...`);
+      logger.info(`ChunkLoadError detected, attempting retry ${this.state.retryCount + 1}/${this.maxRetries}`);
       this.setState({ isRetrying: true });
 
       // Exponential backoff: 1s, 2s, 4s
