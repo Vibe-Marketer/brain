@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { queryKeys } from '@/lib/query-config'
 import type { Vault, VaultMembership, VaultRole, VaultEntry, Recording } from '@/types/bank'
+import type { Meeting } from '@/types'
 
 /** Vault with member count and user's role */
 export interface VaultWithMeta extends Vault {
@@ -34,6 +35,26 @@ export interface VaultDetail extends Vault {
 /** Recording with vault-specific metadata from vault_entries */
 export interface VaultRecording extends Recording {
   vault_entry: Pick<VaultEntry, 'id' | 'local_tags' | 'scores' | 'notes' | 'folder_id'>
+}
+
+/** Vault member with user profile info */
+export interface VaultMember {
+  id: string
+  user_id: string
+  role: VaultRole
+  created_at: string
+  email: string | null
+  display_name: string | null
+  avatar_url: string | null
+}
+
+/** Role hierarchy for sorting (lower = higher rank) */
+const ROLE_ORDER: Record<VaultRole, number> = {
+  vault_owner: 0,
+  vault_admin: 1,
+  manager: 2,
+  member: 3,
+  guest: 4,
 }
 
 /**
@@ -252,5 +273,132 @@ export function useVaultRecordings(
     recordings: data || [],
     isLoading,
     error,
+  }
+}
+
+/**
+ * useVaultMembers - Returns members of a vault with user profile info
+ *
+ * Fetches vault_memberships and resolves user profiles via auth.users metadata.
+ * Sorted by role hierarchy: vault_owner first, then vault_admin, manager, member, guest.
+ *
+ * @param vaultId - The vault ID to fetch members for. Pass null to disable query.
+ */
+export function useVaultMembers(vaultId: string | null) {
+  const { user } = useAuth()
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: queryKeys.vaults.members(vaultId || ''),
+    queryFn: async (): Promise<VaultMember[]> => {
+      if (!user || !vaultId) return []
+
+      // Fetch memberships for this vault
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: memberships, error: memberError } = await (supabase as any)
+        .from('vault_memberships')
+        .select('id, user_id, role, created_at')
+        .eq('vault_id', vaultId)
+
+      if (memberError) throw memberError
+      if (!memberships || memberships.length === 0) return []
+
+      // Fetch user profiles for each member
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const userIds = memberships.map((m: any) => m.user_id) as string[]
+
+      // Use user_profiles table if available, otherwise fall back to auth metadata
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: profiles, error: profileError } = await (supabase as any)
+        .from('user_profiles')
+        .select('id, email, display_name, avatar_url')
+        .in('id', userIds)
+
+      // Build profile lookup
+      const profileMap = new Map<string, { email: string | null; display_name: string | null; avatar_url: string | null }>()
+      if (!profileError && profiles) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const p of profiles as any[]) {
+          profileMap.set(p.id, {
+            email: p.email || null,
+            display_name: p.display_name || null,
+            avatar_url: p.avatar_url || null,
+          })
+        }
+      }
+
+      // Transform and sort by role hierarchy
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const members: VaultMember[] = memberships.map((m: any) => {
+        const profile = profileMap.get(m.user_id)
+        return {
+          id: m.id,
+          user_id: m.user_id,
+          role: m.role as VaultRole,
+          created_at: m.created_at,
+          email: profile?.email || null,
+          display_name: profile?.display_name || null,
+          avatar_url: profile?.avatar_url || null,
+        }
+      })
+
+      // Sort by role hierarchy
+      members.sort((a, b) => {
+        const orderA = ROLE_ORDER[a.role] ?? 99
+        const orderB = ROLE_ORDER[b.role] ?? 99
+        return orderA - orderB
+      })
+
+      return members
+    },
+    enabled: !!user && !!vaultId,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
+
+  return {
+    members: data || [],
+    isLoading,
+    error,
+  }
+}
+
+/**
+ * mapRecordingToMeeting - Adapter function to bridge Recording → Meeting type
+ *
+ * TranscriptTable uses the Meeting type. Vault recordings use Recording + VaultEntry.
+ * This adapter maps vault recording data to the Meeting shape expected by TranscriptTable.
+ *
+ * @param recording - Recording from vault (may include vault_entry metadata)
+ * @returns Meeting-compatible object for TranscriptTable consumption
+ */
+export function mapRecordingToMeeting(recording: VaultRecording): Meeting {
+  return {
+    // Use legacy_recording_id for TranscriptTable compatibility (it expects number | string)
+    recording_id: recording.legacy_recording_id ?? recording.id,
+    title: recording.title,
+    full_transcript: recording.full_transcript || null,
+    summary: recording.summary || null,
+    created_at: recording.created_at,
+    recording_start_time: recording.recording_start_time || null,
+    recording_end_time: recording.recording_end_time || null,
+    // Fields not available on Recording - set sensible defaults
+    url: null,
+    share_url: null,
+    recorded_by_name: null,
+    recorded_by_email: null,
+    calendar_invitees: null,
+    synced: true,
+    user_id: recording.owner_user_id,
+    synced_at: recording.synced_at || undefined,
+    auto_tags: recording.global_tags || null,
+    // Source tracking
+    source_platform: (recording.source_app as Meeting['source_platform']) || null,
+    // Not applicable for vault recordings
+    meeting_fingerprint: null,
+    is_primary: null,
+    merged_from: null,
+    fuzzy_match_score: null,
+    google_calendar_event_id: null,
+    google_drive_file_id: null,
+    transcript_source: null,
   }
 }
