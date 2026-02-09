@@ -170,7 +170,7 @@ test.describe("Chat Context Attachments - subtask-2-4", () => {
 
     const hasCallsOrEmpty =
       popoverContent?.includes("No calls") ||
-      popoverContent?.length! > 20; // Has some content (call items)
+      (popoverContent?.length ?? 0) > 20; // Has some content (call items)
 
     console.log(`Popover content preview: ${popoverContent?.substring(0, 100)}`);
 

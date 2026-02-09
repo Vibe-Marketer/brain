@@ -327,7 +327,7 @@ export async function executeHybridSearch(
 
   // Step 5: Lookup share_urls for unique recording_ids
   const uniqueRecordingIds = [...new Set(diverse.map((r) => r.recording_id))];
-  let shareUrlMap: Map<number, string | null> = new Map();
+  const shareUrlMap: Map<number, string | null> = new Map();
 
   if (uniqueRecordingIds.length > 0) {
     const { data: calls } = await supabase

@@ -174,7 +174,7 @@ function evaluateSinglePattern(
       break;
     }
 
-    default:
+    default: {
       // Default to contains
       const searchText = case_sensitive ? text : text.toLowerCase();
       const searchPattern = case_sensitive ? pattern : pattern.toLowerCase();
@@ -183,6 +183,8 @@ function evaluateSinglePattern(
       if (matches) {
         matchedText = text.substring(matchPosition, matchPosition + pattern.length);
       }
+      break;
+    }
   }
 
   return {

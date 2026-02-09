@@ -29,7 +29,7 @@ interface GenerateTitlesRequest {
 function cleanTranscript(transcript: string): string {
   return transcript
     // Remove timestamps like [00:00:00] or (00:00:00) or 00:00:00
-    .replace(/[\[\(]?\d{1,2}:\d{2}(:\d{2})?[\]\)]?\s*/g, '')
+    .replace(/[[(]?\d{1,2}:\d{2}(:\d{2})?[\])]?\s*/g, '')
     // Remove excessive newlines (more than 2 in a row)
     .replace(/\n{3,}/g, '\n\n')
     // Remove leading/trailing whitespace from each line

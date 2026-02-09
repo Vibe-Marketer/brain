@@ -264,10 +264,10 @@ test.describe("Chat RAG Search - subtask-2-2", () => {
         // Metadata should include call title, date, speaker info
         // The CallSourceContent component shows: title, date, speaker, preview text
         const hasCallInfo =
-          hoverContent?.length! > 0 &&
+          (hoverContent?.length ?? 0) > 0 &&
           (hoverContent?.includes("View full call") ||
             hoverContent?.includes("202") || // Date year
-            hoverContent?.length! > 20); // Has some content
+            (hoverContent?.length ?? 0) > 20); // Has some content
 
         expect(hasCallInfo).toBe(true);
       }
@@ -329,11 +329,11 @@ test.describe("Chat RAG Search - subtask-2-2", () => {
 
         // Verify dialog has call-related content
         const hasCallContent =
-          dialogContent?.length! > 0 &&
+          (dialogContent?.length ?? 0) > 0 &&
           (dialogContent?.includes("transcript") ||
             dialogContent?.includes("call") ||
             dialogContent?.includes("recording") ||
-            dialogContent?.length! > 50);
+            (dialogContent?.length ?? 0) > 50);
 
         // Close the dialog
         const closeButton = dialog.locator('button[aria-label*="close"], button:has-text("Close"), [data-testid="close-dialog"]');
@@ -482,7 +482,7 @@ test.describe("Chat RAG Search - Tool Verification", () => {
       responseContent?.toLowerCase().includes("unable") ||
       responseContent?.toLowerCase().includes("don't have") ||
       responseContent?.toLowerCase().includes("not found") ||
-      responseContent?.length! > 10; // Has some response
+      (responseContent?.length ?? 0) > 10; // Has some response
 
     expect(handlesNoResults).toBe(true);
   });

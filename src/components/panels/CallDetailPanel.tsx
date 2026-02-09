@@ -71,7 +71,7 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
 
   // Fetch user settings for host email
   const { data: userSettings } = useQuery({
-    queryKey: queryKeys.user.settings(user?.id!),
+    queryKey: queryKeys.user.settings(user?.id ?? ''),
     queryFn: async () => {
       if (!user?.id) return null;
       const { data, error } = await supabase
@@ -217,6 +217,12 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
     );
   }, [call?.recording_start_time, call?.recording_end_time]);
 
+  // Prepare transcript groups for display
+  const transcriptGroups = useMemo(() => {
+    if (!transcripts?.length) return [];
+    return groupTranscriptsBySpeaker(transcripts);
+  }, [transcripts]);
+
   // Handle chat with AI navigation
   const handleChatWithAI = () => {
     if (!call?.recording_id) return;
@@ -296,12 +302,6 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
       </div>
     );
   }
-
-  // Prepare transcript groups for display
-  const transcriptGroups = useMemo(() => {
-    if (!transcripts?.length) return [];
-    return groupTranscriptsBySpeaker(transcripts);
-  }, [transcripts]);
 
   // Determine host email for styling
   const hostEmail = (
