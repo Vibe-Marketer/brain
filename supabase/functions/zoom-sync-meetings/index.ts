@@ -541,10 +541,11 @@ function shouldNewMeetingBePrimary(
       return newMeeting.synced_at < existingSyncedAt;
     }
 
-    default:
+    default: {
       // Default to first_synced behavior
       const existingSyncedAt = existingMeeting.synced_at ? new Date(existingMeeting.synced_at) : new Date(0);
       return newMeeting.synced_at < existingSyncedAt;
+    }
   }
 }
 

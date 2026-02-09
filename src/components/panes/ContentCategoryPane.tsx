@@ -176,11 +176,12 @@ export function ContentCategoryPane({
 
       switch (event.key) {
         case "Enter":
-        case " ":
+        case " ": {
           event.preventDefault();
           const category = CONTENT_CATEGORIES.find((c) => c.id === categoryId);
           if (category) navigate(category.path);
           break;
+        }
         case "ArrowDown":
           event.preventDefault();
           focusCategoryByIndex(currentIndex + 1);
