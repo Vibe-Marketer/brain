@@ -60,6 +60,12 @@ interface BusinessProfileContext {
   prohibited_terms: string | null;
 }
 
+// Bank/Vault context for multi-tenant scoping
+interface BankVaultContext {
+  bank_id?: string;
+  vault_id?: string | null;  // null = all vaults in bank
+}
+
 interface SessionFilters {
   date_start?: string;
   date_end?: string;
@@ -67,6 +73,7 @@ interface SessionFilters {
   categories?: string[];
   recording_ids?: number[];
   folder_ids?: string[];
+  bank_id?: string;
 }
 
 // ============================================
