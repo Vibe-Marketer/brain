@@ -435,6 +435,50 @@ Plans:
 
 ---
 
+### Phase 10.2: Vaults Page (INSERTED)
+**Goal:** Make vaults a first-class sidebar page replacing "Collaboration" with full vault management
+
+**Dependencies:** Phase 10 (bank/vault scoping must work first)
+
+**Gap Closure:** Makes vault architecture actually usable by users
+
+Plans:
+- [ ] 10.2-01-PLAN.md — Foundation: Route, sidebar replacement, vault list pane
+- [ ] 10.2-02-PLAN.md — Vault Detail: Recordings table, member panel
+- [ ] 10.2-03-PLAN.md — Vault CRUD: Create, edit, delete dialogs
+- [ ] 10.2-04-PLAN.md — Member Management: Invite, roles, remove
+- [ ] 10.2-05-PLAN.md — Business Bank: Create business banks
+- [ ] 10.2-06-PLAN.md — Polish: Empty states, error handling, mobile
+
+**Requirements:**
+- VAULT-UI-01: "Vaults" replaces "Collaboration" in sidebar
+- VAULT-UI-02: Vault list pane shows all vaults grouped by bank
+- VAULT-UI-03: Vault detail shows recordings with vault-specific metadata
+- VAULT-UI-04: Can create/edit/delete vaults from the page
+- VAULT-UI-05: Can invite/remove vault members and change roles
+- VAULT-UI-06: Can create business banks (no billing gate for now)
+- VAULT-UI-07: Can move/assign recordings between vaults
+
+**Success Criteria:**
+1. Sidebar shows "Vaults" instead of "Collaboration"
+2. Vault list pane displays all user's vaults grouped by bank
+3. Vault detail view shows recordings table with source attribution
+4. Members panel shows current members with roles
+5. Create vault dialog works for all vault types
+6. Edit vault allows renaming and changing settings
+7. Delete vault with confirmation for non-personal vaults
+8. Invite members by email with role selection
+9. Remove members or change their roles
+10. Create business bank with initial vault
+11. Move recordings between vaults via UI
+12. All functionality works without billing gates
+
+**Details:**
+This is a major UX insertion. The bank/vault architecture exists but is hidden in Settings.
+Moving it to a first-class sidebar page makes the collaboration model discoverable and usable.
+
+---
+
 ### Phase 11: PROFITS Frontend Trigger (Gap Closure)
 **Goal:** Wire orphaned extract-profits Edge Function to Content area alongside other agent frameworks
 
@@ -473,9 +517,10 @@ Plans:
 | 8 - Growth Infrastructure | Complete ✅ | 4 | 100% (6/6 plans) |
 | 9 - Bank/Vault Architecture | Complete ✅ | 5 | 100% (10/10 plans) |
 | 10 - Chat Bank/Vault Scoping | Complete ✅ | 1 | 100% (3/3 plans) |
+| 10.2 - Vaults Page (INSERTED) | Pending | 7 | 0% (0/6 plans) |
 | 11 - PROFITS Frontend Trigger | Pending | 1 | 0% (0/2 plans) |
 
-**Overall Progress:** 59/60 requirements (98%) - **1 gap closure phase remaining**
+**Overall Progress:** 59/67 requirements (88%) - **2 phases remaining (1 inserted)**
 
 ---
 

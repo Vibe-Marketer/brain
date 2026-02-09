@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 10 Complete - Ready for Phase 11
+**Current Focus:** Phase 10.2 Inserted - Vaults Page Implementation (URGENT)
 
 ---
 
@@ -14,7 +14,7 @@
 
 **Milestone:** v1 Launch Stabilization + Gap Closures
 
-**Phase:** 10 of 11 (Chat Bank/Vault Scoping)
+**Phase:** 10.2 of 11+ (Vaults Page - INSERTED)
 
 **Plan:** 3 of 3 in current phase
 
@@ -24,7 +24,7 @@
 
 **Progress:**
 ```
-[██████████████████████████████████████████░] 68/70 plans complete (97%)
+[████████████████████████████████████░░░░░░░] 68/74 plans complete (92%)
 ```
 
 ---
@@ -56,6 +56,7 @@
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
 | Phase 9: Bank/Vault Architecture | 5 | 5 | Complete (10/10 plans) |
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
+| Phase 10.2: Vaults Page | 7 | 0 | Pending (0/6 plans) |
 
 ### Velocity
 
@@ -222,6 +223,7 @@ Phase 10 COMPLETE (3/3 plans). GAP-INT-01 closed.
 
 - Phase 3.1 inserted after Phase 3: Compact Integration UI (URGENT) - Redesign integration cards to compact button/icon format with reusable modal component
 - Phase 3.2 inserted after Phase 3.1: Integration Import Controls - Redesign "Import meetings from" section + per-integration search on/off toggle
+- Phase 10.2 inserted after Phase 10: Vaults Page (URGENT) - Make vaults first-class sidebar page with full management UI, replacing "Collaboration"
 - Coach Collaboration (Phase 5) removed from roadmap entirely
 - Team Content Segregation (Phase 4.5) deferred to Phase 9
 
@@ -240,14 +242,15 @@ None
 ### Context for Next Session
 
 **Where we are:**
-Phase 10 (Chat Bank/Vault Scoping) - COMPLETE. All 3 plans executed. GAP-INT-01 closed.
+Phase 10.2 (Vaults Page) - INSERTED after Phase 10. This is URGENT work to make the bank/vault architecture actually usable.
 
 **What to remember:**
-- 10-01 added BankVaultContext type and bank_id parsing in chat-stream-v2
-- 10-02 added vault-scoped search (hybrid_search_transcripts_scoped) and all 14 tools respect vault membership
-- 10-03 verified multi-tenant isolation via code inspection (all checks PASS)
-- VaultMembership is the sole access primitive for chat content
-- Next: Phase 11 (if exists) or project complete
+- Phase 10 completed: bank_id/vault_id now flow from frontend to chat, scoped search works, multi-tenant isolation verified
+- Phase 10.2 makes vaults a first-class sidebar page replacing "Collaboration"
+- Full scope: vault list pane, vault detail with recordings, member management, vault CRUD, business bank creation
+- Vault assignment UI (AddToVaultMenu) already built - needs integration into the new page
+- Business bank creation currently has no UI flow (just a CTA that navigates to settings)
+- Need to test vault-scoped chat properly once we can move recordings between vaults
 
 ---
 
@@ -255,15 +258,15 @@ Phase 10 (Chat Bank/Vault Scoping) - COMPLETE. All 3 plans executed. GAP-INT-01 
 
 | Metric | Value |
 |--------|-------|
-| Total Phases | 11 (+ 2 inserted: 3.1, 3.2, + 2 gap closures: 10, 11) |
-| Total Requirements | 60 |
-| Requirements Complete | 58 (97%) |
-| Current Phase | 10 - Chat Bank/Vault Scoping (COMPLETE - 3/3 plans) |
-| Plans Complete | 68/70 (97%) |
-| Next Plan | Phase 11 (next gap closure) |
+| Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
+| Total Requirements | 67 |
+| Requirements Complete | 58 (87%) |
+| Current Phase | 10.2 - Vaults Page (INSERTED - 0/6 plans) |
+| Plans Complete | 68/74 (92%) |
+| Next Plan | 10.2-01-PLAN.md (Foundation) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-09 (Phase 10 COMPLETE - GAP-INT-01 closed)*
+*Last updated: 2026-02-09 (Phase 10.2 INSERTED - Vaults Page)*
