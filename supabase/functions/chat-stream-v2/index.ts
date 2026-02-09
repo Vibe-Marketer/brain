@@ -577,6 +577,7 @@ function createTools(
             filter_speakers: sessionFilters?.speakers || null,
             filter_categories: sessionFilters?.categories || null,
             filter_recording_ids: sessionFilters?.recording_ids || null,
+            filter_bank_id: sessionFilters?.bank_id || null,
           });
 
           if (error) {
@@ -730,6 +731,11 @@ function createTools(
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
+          // Apply bank filter if present
+          if (sessionFilters?.bank_id) {
+            callsQuery = callsQuery.eq('bank_id', sessionFilters.bank_id);
+          }
+
           // Apply filters (tool args override session filters)
           const dateStart = date_from || sessionFilters?.date_start;
           const dateEnd = date_to || sessionFilters?.date_end;
@@ -854,11 +860,17 @@ function createTools(
           }
 
           // Fetch call details for all recordings
-          const { data: calls, error: callsError } = await supabase
+          let callsQuery = supabase
             .from('fathom_calls')
             .select('recording_id, title, created_at, summary, recorded_by_name')
             .in('recording_id', numericIds)
             .eq('user_id', userId);
+          
+          if (sessionFilters?.bank_id) {
+            callsQuery = callsQuery.eq('bank_id', sessionFilters.bank_id);
+          }
+          
+          const { data: calls, error: callsError } = await callsQuery;
 
           if (callsError || !calls) {
             return { error: true, message: `Failed to fetch call details: ${callsError?.message}` };
@@ -882,6 +894,7 @@ function createTools(
                 rrf_k: 60,
                 filter_user_id: userId,
                 filter_recording_ids: numericIds,
+                filter_bank_id: sessionFilters?.bank_id || null,
               });
 
               if (!chunksError && chunks && chunks.length > 0) {

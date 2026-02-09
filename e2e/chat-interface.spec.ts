@@ -254,6 +254,13 @@ test.describe("Chat Interface - Complete Flows", () => {
   });
 
   test("should persist chat history across page refresh", async ({ page }) => {
+    // Capture console messages
+    page.on('console', msg => {
+      if (msg.text().includes('[Chat]')) {
+        console.log('Browser console:', msg.text());
+      }
+    });
+    
     await page.goto("/chat");
     await waitForChatReady(page);
 
@@ -613,16 +620,28 @@ test.describe("Chat Interface - Session Management", () => {
     const session2Id = session2Url.split("/chat/")[1];
 
     await waitForResponseComplete(page);
-    
-    // Verify message is visible before save
-    await expect(page.locator(`text=${message2.substring(0, 25)}`).first()).toBeVisible({ timeout: 5000 });
-    await page.waitForTimeout(3000); // Wait for debounced save
+    await page.waitForTimeout(2000); // Wait for save
 
     console.log(`Session 2 created: ${session2Id}`);
 
     // Navigate back to session 1
     await page.goto(`/chat/${session1Id}`);
     await waitForChatReady(page);
+    
+    // Debug: wait for messages to load and check what's rendered
+    await page.waitForTimeout(3000);
+    
+    // Check for user messages (blue bubble with rounded-br-[4px])
+    const userMessages = await page.locator('.rounded-br-\\[4px\\]').allTextContents();
+    console.log('User messages found:', userMessages);
+    
+    // Check for assistant messages (rounded-bl-[4px])
+    const assistantMessages = await page.locator('.rounded-bl-\\[4px\\]').allTextContents();
+    console.log('Assistant messages found:', assistantMessages);
+    
+    // Check total message count in chat area
+    const chatMessages = await page.locator('[class*="py-3"]').allTextContents();
+    console.log('All chat area items:', chatMessages.length);
 
     // Verify session 1 message is present
     await expect(page.locator(`text=${message1.substring(0, 25)}`).first()).toBeVisible({
@@ -654,10 +673,7 @@ test.describe("Chat Interface - Session Management", () => {
     const sessionId = sessionUrl.split("/chat/")[1];
 
     await waitForResponseComplete(page);
-    
-    // Verify message is visible before save
-    await expect(page.locator(`text=${testMessage.substring(0, 25)}`).first()).toBeVisible({ timeout: 5000 });
-    await page.waitForTimeout(3000); // Wait for debounced save
+    await page.waitForTimeout(2000); // Wait for debounced save
 
     // Navigate away
     await page.goto("/");

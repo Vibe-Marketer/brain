@@ -363,6 +363,8 @@ export default function Chat() {
             content: getMessageTextContent(m),
             parts: m.parts,
           }));
+          // Debug: log what we're saving
+          console.log('[Chat] Saving messages:', messagesToSave.map(m => ({ role: m.role, content: m.content?.substring(0, 50), partsLength: m.parts?.length })));
           await saveMessages({ sessionId, messages: messagesToSave, model });
         } catch (err) {
           logger.error("Failed to save messages:", err);
