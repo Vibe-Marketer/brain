@@ -442,13 +442,18 @@ Plans:
 
 **Gap Closure:** Makes vault architecture actually usable by users
 
+**Plans:** 9 plans in 4 waves
+
 Plans:
-- [ ] 10.2-01-PLAN.md — Foundation: Route, sidebar replacement, vault list pane
-- [ ] 10.2-02-PLAN.md — Vault Detail: Recordings table, member panel
-- [ ] 10.2-03-PLAN.md — Vault CRUD: Create, edit, delete dialogs
-- [ ] 10.2-04-PLAN.md — Member Management: Invite, roles, remove
-- [ ] 10.2-05-PLAN.md — Business Bank: Create business banks
-- [ ] 10.2-06-PLAN.md — Polish: Empty states, error handling, mobile
+- [ ] 10.2-01-PLAN.md — W1: Foundation — Route, sidebar, vault list pane, useVaults hook, query keys
+- [ ] 10.2-02-PLAN.md — W2: Vault detail — Recordings (no tabs), member slide-in panel, Recording→Meeting adapter
+- [ ] 10.2-03-PLAN.md — W2: Vault CRUD — Create/edit/delete dialogs + useVaultMutations
+- [ ] 10.2-07-PLAN.md — W2: Vault badges — VaultBadge/VaultBadgeList on CallDetailPage + TranscriptTable
+- [ ] 10.2-04-PLAN.md — W3: Member management — Shareable invite links (no email), roles, remove/leave
+- [ ] 10.2-05-PLAN.md — W3: Business bank creation — Both CTA and BankSwitcher entry points
+- [ ] 10.2-08-PLAN.md — W3: Search/filter — Search recordings within vaults by title, sort, date filter
+- [ ] 10.2-06-PLAN.md — W4: Polish — Empty states, error boundaries, settings migration, mobile verify
+- [ ] 10.2-09-PLAN.md — W4: Import vault selection — VaultSelector in YouTube import + SyncTab sync flow
 
 **Requirements:**
 - VAULT-UI-01: "Vaults" replaces "Collaboration" in sidebar
@@ -467,7 +472,7 @@ Plans:
 5. Create vault dialog works for all vault types
 6. Edit vault allows renaming and changing settings
 7. Delete vault with confirmation for non-personal vaults
-8. Invite members by email with role selection
+8. Invite members via shareable link with default member role
 9. Remove members or change their roles
 10. Create business bank with initial vault
 11. Move recordings between vaults via UI
@@ -517,7 +522,7 @@ Plans:
 | 8 - Growth Infrastructure | Complete ✅ | 4 | 100% (6/6 plans) |
 | 9 - Bank/Vault Architecture | Complete ✅ | 5 | 100% (10/10 plans) |
 | 10 - Chat Bank/Vault Scoping | Complete ✅ | 1 | 100% (3/3 plans) |
-| 10.2 - Vaults Page (INSERTED) | Pending | 7 | 0% (0/6 plans) |
+| 10.2 - Vaults Page (INSERTED) | Planned | 7 | 0% (0/9 plans, 4 waves) |
 | 11 - PROFITS Frontend Trigger | Pending | 1 | 0% (0/2 plans) |
 
 **Overall Progress:** 59/67 requirements (88%) - **2 phases remaining (1 inserted)**
