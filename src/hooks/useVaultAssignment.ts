@@ -133,9 +133,13 @@ export function useVaultAssignment(
       }
       toast.error('Failed to add recording to vault')
     },
-    onSettled: () => {
+    onSettled: (_data, _error, { vaultId }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.vaultEntries.byRecording(effectiveRecordingId || ''),
+      })
+      // Also invalidate vault recordings so VaultDetailPane refreshes
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vaults.recordings(vaultId),
       })
     },
     onSuccess: (_data, { vaultId }) => {
@@ -183,9 +187,13 @@ export function useVaultAssignment(
       }
       toast.error('Failed to remove recording from vault')
     },
-    onSettled: () => {
+    onSettled: (_data, _error, { vaultId }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.vaultEntries.byRecording(effectiveRecordingId || ''),
+      })
+      // Also invalidate vault recordings so VaultDetailPane refreshes
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.vaults.recordings(vaultId),
       })
     },
     onSuccess: (_data, { vaultId }) => {

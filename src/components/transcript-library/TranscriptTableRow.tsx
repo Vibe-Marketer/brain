@@ -289,6 +289,7 @@ export function TranscriptTableRow({
             </button>
           )}
           <AddToVaultMenu
+            recordingId={typeof call.recording_id === 'string' ? call.recording_id : null}
             legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : null}
             compact
           />
