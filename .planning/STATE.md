@@ -1,30 +1,30 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-01-31
+**Last Updated:** 2026-02-09
 
 ## Project Reference
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** v1 Milestone COMPLETE - All 9 phases executed
+**Current Focus:** Phase 10 - Chat Bank/Vault Scoping (Gap Closure)
 
 ---
 
 ## Current Position
 
-**Milestone:** v1 Launch Stabilization
+**Milestone:** v1 Launch Stabilization + Gap Closures
 
-**Phase:** 9 of 9 (Bank/Vault Architecture) - COMPLETE
+**Phase:** 10 of 11 (Chat Bank/Vault Scoping)
 
-**Plan:** 10 of 10 in Phase 9 (COMPLETE)
+**Plan:** 1 of 3 in current phase
 
-**Status:** MILESTONE COMPLETE - All phases executed, ready for launch
+**Status:** In progress
 
-**Last activity:** 2026-01-31 - Completed Phase 9 (Bank/Vault Architecture)
+**Last activity:** 2026-02-09 - Completed 10-01-PLAN.md
 
 **Progress:**
 ```
-[████████████████████████████████████████] 65/65 plans complete (100%)
+[████████████████████████████████████████░░] 66/70 plans complete (94%)
 ```
 
 ---
@@ -203,6 +203,10 @@ Phase 8 COMPLETE (6/6 plans). Phase 9 started.
 
 Phase 9 COMPLETE. All 9 phases in v1 milestone executed.
 
+- [x] Execute 10-01-PLAN.md (Pass bank_id/vault_id to chat-stream-v2)
+
+Phase 10 in progress (1/3 plans).
+
 ### Pending Todos
 
 2 todos in `.planning/todos/pending/`:
@@ -224,30 +228,21 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-01-31
-**Stopped at:** MILESTONE COMPLETE - All phases executed
+**Last session:** 2026-02-09
+**Stopped at:** Completed 10-01-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-v1 Launch Stabilization milestone COMPLETE. All 9 phases executed (65/65 plans).
+Phase 10 (Chat Bank/Vault Scoping) - Plan 01 complete, 2 plans remaining.
 
 **What to remember:**
-- Phase 9 completed with 10 plans:
-  - 09-01: Eliminated coach code
-  - 09-02: Banks and bank_memberships tables
-  - 09-03: Vaults and vault_memberships tables
-  - 09-04: Recordings and vault_entries tables
-  - 09-05: Signup trigger + drop old team tables
-  - 09-06: Migration function for fathom_calls
-  - 09-07: Bank context store and useBankContext hook
-  - 09-08: Bank switcher UI in header
-  - 09-09: Banks & Vaults settings tab
-  - 09-10: Wire pages to bank/vault context
-- v1 Milestone Audit completed (see v1-MILESTONE-AUDIT.md)
-- Tech debt tracked for post-launch backlog
-- Next: Production deployment preparation
+- 10-01 added BankVaultContext type and bank_id parsing in chat-stream-v2
+- Frontend already sends sessionFilters.bank_id/vault_id (from Phase 9)
+- createTools now receives bankId/vaultId params
+- Next: 10-02 will add actual search filtering by bank/vault
+- Then: 10-03 will verify multi-tenant isolation end-to-end
 
 ---
 
@@ -255,12 +250,12 @@ v1 Launch Stabilization milestone COMPLETE. All 9 phases executed (65/65 plans).
 
 | Metric | Value |
 |--------|-------|
-| Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
-| Total Requirements | 58 |
-| Requirements Complete | 58 (100%) |
-| Current Phase | COMPLETE - All 9 phases done |
-| Plans Complete | 65/65 (100%) |
-| Next Plan | N/A - Milestone complete |
+| Total Phases | 11 (+ 2 inserted: 3.1, 3.2, + 2 gap closures: 10, 11) |
+| Total Requirements | 60 |
+| Requirements Complete | 58 (97%) |
+| Current Phase | 10 - Chat Bank/Vault Scoping (1/3 plans) |
+| Plans Complete | 66/70 (94%) |
+| Next Plan | 10-02-PLAN.md |
 | Blockers | 0 |
 
 ---

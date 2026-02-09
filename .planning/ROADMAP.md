@@ -420,9 +420,9 @@ Plans:
 **Gap Closure:** Closes integration gap from v1-MILESTONE-AUDIT.md
 
 Plans:
-- [x] 10-01-PLAN.md — Pass bank_id/vault_id from frontend to chat-stream-v2 (PLANNED)
-- [x] 10-02-PLAN.md — Filter chat searches by active bank/vault context (PLANNED)
-- [x] 10-03-PLAN.md — Verify multi-tenant isolation end-to-end (PLANNED)
+- [x] 10-01-PLAN.md — Pass bank_id/vault_id from frontend to chat-stream-v2 ✅
+- [ ] 10-02-PLAN.md — Filter chat searches by active bank/vault context
+- [ ] 10-03-PLAN.md — Verify multi-tenant isolation end-to-end
 
 **Requirements:**
 - GAP-INT-01: Chat backend respects bank/vault context (not searching all user recordings)
@@ -472,7 +472,7 @@ Plans:
 | 7 - Differentiators | Complete ✅ | 5 | 100% (5/5 plans) |
 | 8 - Growth Infrastructure | Complete ✅ | 4 | 100% (6/6 plans) |
 | 9 - Bank/Vault Architecture | Complete ✅ | 5 | 100% (10/10 plans) |
-| 10 - Chat Bank/Vault Scoping | Planned | 1 | 0% (0/3 plans executed, 3/3 planned) |
+| 10 - Chat Bank/Vault Scoping | In progress | 1 | 33% (1/3 plans complete) |
 | 11 - PROFITS Frontend Trigger | Pending | 1 | 0% (0/2 plans) |
 
 **Overall Progress:** 58/60 requirements (97%) - **Gap closure phases added**
