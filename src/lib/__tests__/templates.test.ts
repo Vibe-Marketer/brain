@@ -94,7 +94,7 @@ describe('Template CRUD Functions', () => {
         select: mockSelect,
         order: mockOrder,
         eq: mockEq,
-      } as any);
+      } as ReturnType<typeof supabase.from>);
 
       await fetchTemplates({ content_type: 'email' });
 

@@ -39,7 +39,7 @@ interface WebhookDelivery {
   webhook_id: string;
   created_at: string;
   status: 'success' | 'failed' | 'duplicate';
-  request_body: any;
+  request_body: unknown;
   request_headers: Record<string, string>;
   payload: {
     verification_results?: {
@@ -96,7 +96,7 @@ export default function WebhookDeliveryViewerV2() {
     const fetch = async () => {
       const { data } = await supabase.from('webhook_deliveries').select('*').order('created_at', { ascending: false }).limit(50);
       if (data) {
-        setDeliveries(data as any);
+        setDeliveries(data as WebhookDelivery[]);
       }
     };
     fetch();
@@ -145,7 +145,7 @@ export default function WebhookDeliveryViewerV2() {
     toast.success(`${label} copied to clipboard`);
   };
 
-  const downloadJson = (data: any, filename: string) => {
+  const downloadJson = (data: unknown, filename: string) => {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

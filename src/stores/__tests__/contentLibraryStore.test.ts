@@ -127,11 +127,11 @@ describe('contentLibraryStore', () => {
     });
 
     it('should set loading state while fetching', async () => {
-      let resolvePromise: (value: any) => void;
-      const pendingPromise = new Promise((resolve) => {
+      let resolvePromise: (value: { data: ContentLibraryItem[]; error: null }) => void;
+      const pendingPromise = new Promise<{ data: ContentLibraryItem[]; error: null }>((resolve) => {
         resolvePromise = resolve;
       });
-      mockFetchContentItems.mockReturnValue(pendingPromise as any);
+      mockFetchContentItems.mockReturnValue(pendingPromise);
 
       act(() => {
         useContentLibraryStore.getState().fetchItems();
@@ -149,7 +149,7 @@ describe('contentLibraryStore', () => {
     it('should handle fetch error', async () => {
       mockFetchContentItems.mockResolvedValue({
         data: null,
-        error: { message: 'Network error', name: 'ContentLibraryError' } as any,
+        error: { message: 'Network error', name: 'ContentLibraryError' } as Error,
       });
 
       await act(async () => {
@@ -212,7 +212,7 @@ describe('contentLibraryStore', () => {
         tags: ['follow-up'],
       };
 
-      let result: any;
+      let result: ContentLibraryItem | null = null;
       await act(async () => {
         result = await useContentLibraryStore.getState().saveContentItem(input);
       });
@@ -226,7 +226,7 @@ describe('contentLibraryStore', () => {
     it('should rollback optimistic update on error', async () => {
       mockSaveContent.mockResolvedValue({
         data: null,
-        error: { message: 'Save failed', name: 'ContentLibraryError' } as any,
+        error: { message: 'Save failed', name: 'ContentLibraryError' } as Error,
       });
 
       const input = {
@@ -235,7 +235,7 @@ describe('contentLibraryStore', () => {
         content: 'New content',
       };
 
-      let result: any;
+      let result: ContentLibraryItem | null = null;
       await act(async () => {
         result = await useContentLibraryStore.getState().saveContentItem(input);
       });
@@ -267,7 +267,7 @@ describe('contentLibraryStore', () => {
     it('should rollback optimistic delete on error', async () => {
       mockDeleteContent.mockResolvedValue({
         data: null,
-        error: { message: 'Delete failed', name: 'ContentLibraryError' } as any,
+        error: { message: 'Delete failed', name: 'ContentLibraryError' } as Error,
       });
 
       act(() => {
@@ -307,7 +307,7 @@ describe('contentLibraryStore', () => {
     it('should rollback usage increment on error', async () => {
       mockIncrementUsageCount.mockResolvedValue({
         data: null,
-        error: { message: 'Increment failed', name: 'ContentLibraryError' } as any,
+        error: { message: 'Increment failed', name: 'ContentLibraryError' } as Error,
       });
 
       act(() => {
@@ -343,7 +343,7 @@ describe('contentLibraryStore', () => {
     it('should handle fetch error', async () => {
       mockFetchTemplates.mockResolvedValue({
         data: null,
-        error: { message: 'Failed to fetch', name: 'TemplateError' } as any,
+        error: { message: 'Failed to fetch', name: 'TemplateError' } as Error,
       });
       mockFetchSharedTemplates.mockResolvedValue({ data: [], error: null });
 
@@ -385,7 +385,7 @@ describe('contentLibraryStore', () => {
         content_type: 'email' as const,
       };
 
-      let result: any;
+      let result: Template | null = null;
       await act(async () => {
         result = await useContentLibraryStore.getState().saveNewTemplate(input);
       });
@@ -397,7 +397,7 @@ describe('contentLibraryStore', () => {
     it('should rollback optimistic update on error', async () => {
       mockSaveTemplate.mockResolvedValue({
         data: null,
-        error: { message: 'Save failed', name: 'TemplateError' } as any,
+        error: { message: 'Save failed', name: 'TemplateError' } as Error,
       });
 
       const input = {
@@ -406,7 +406,7 @@ describe('contentLibraryStore', () => {
         content_type: 'email' as const,
       };
 
-      let result: any;
+      let result: Template | null = null;
       await act(async () => {
         result = await useContentLibraryStore.getState().saveNewTemplate(input);
       });
@@ -437,7 +437,7 @@ describe('contentLibraryStore', () => {
     it('should rollback optimistic delete on error', async () => {
       mockDeleteTemplate.mockResolvedValue({
         data: null,
-        error: { message: 'Delete failed', name: 'TemplateError' } as any,
+        error: { message: 'Delete failed', name: 'TemplateError' } as Error,
       });
 
       act(() => {
@@ -570,7 +570,7 @@ describe('contentLibraryStore', () => {
     it('should handle fetch tags error gracefully', async () => {
       mockGetAllTags.mockResolvedValue({
         data: null,
-        error: { message: 'Failed', name: 'ContentLibraryError' } as any,
+        error: { message: 'Failed', name: 'ContentLibraryError' } as Error,
       });
 
       await act(async () => {

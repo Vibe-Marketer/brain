@@ -108,7 +108,10 @@ export function FolderDetailPanel({
 
   // Get available parent folders (exclude current folder and its descendants)
   const availableParentFolders = useMemo(() => {
-    if (!folder) return folders.filter((f) => (f as any).depth === undefined || (f as any).depth < 2);
+    if (!folder) return folders.filter((f) => {
+      const depth = 'depth' in f ? (f as Folder & { depth?: number }).depth : undefined;
+      return depth === undefined || depth < 2;
+    });
 
     const getDescendantIds = (fId: string): string[] => {
       const children = folders.filter((f) => f.parent_id === fId);
