@@ -16,15 +16,15 @@
 
 **Phase:** 10 of 11 (Chat Bank/Vault Scoping)
 
-**Plan:** 1 of 3 in current phase
+**Plan:** 2 of 3 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-09 - Completed 10-01-PLAN.md
+**Last activity:** 2026-02-09 - Completed 10-02-PLAN.md
 
 **Progress:**
 ```
-[████████████████████████████████████████░░] 66/70 plans complete (94%)
+[█████████████████████████████████████████░] 67/70 plans complete (96%)
 ```
 
 ---
@@ -137,6 +137,8 @@
 | 2026-01-31 | Users can create their own initial bank_membership | Bootstrap pattern for bank creators to become bank_owner | Enables self-service bank creation flow |
 | 2026-01-31 | SECURITY DEFINER for vault membership checks | Prevents infinite RLS recursion when policies check vault membership tables | Pattern for is_vault_member/is_vault_admin_or_owner |
 | 2026-01-31 | Bank admins can view all vaults in their banks | Oversight capability for bank administrators | Uses separate SELECT policy on vaults table |
+| 2026-02-09 | Scoped search wraps existing function | Zero breaking changes for pre-migration data | hybrid_search_transcripts_scoped wraps hybrid_search_transcripts |
+| 2026-02-09 | Per-tool vault membership verification | Analytical tools independently verify access | getCallDetails/getCallsList/compareCalls each check vault access |
 | 2026-01-31 | 5-level vault role hierarchy | vault_owner > vault_admin > manager > member > guest | Granular access control within vaults |
 | 2026-01-31 | VaultEntry enables same recording in multiple vaults | Recording lives in ONE bank, but can appear in many vaults with local context | vault_entries has local_tags, scores, notes per appearance |
 | 2026-01-31 | legacy_recording_id for fathom_calls migration | BIGINT field tracks original fathom_calls.recording_id for migration | UNIQUE(bank_id, legacy_recording_id) prevents duplicates |
@@ -205,7 +207,7 @@ Phase 9 COMPLETE. All 9 phases in v1 milestone executed.
 
 - [x] Execute 10-01-PLAN.md (Pass bank_id/vault_id to chat-stream-v2)
 
-Phase 10 in progress (1/3 plans).
+Phase 10 in progress (2/3 plans).
 
 ### Pending Todos
 
@@ -229,20 +231,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-02-09
-**Stopped at:** Completed 10-01-PLAN.md
+**Stopped at:** Completed 10-02-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10 (Chat Bank/Vault Scoping) - Plan 01 complete, 2 plans remaining.
+Phase 10 (Chat Bank/Vault Scoping) - Plan 02 complete, 1 plan remaining.
 
 **What to remember:**
 - 10-01 added BankVaultContext type and bank_id parsing in chat-stream-v2
-- Frontend already sends sessionFilters.bank_id/vault_id (from Phase 9)
-- createTools now receives bankId/vaultId params
-- Next: 10-02 will add actual search filtering by bank/vault
-- Then: 10-03 will verify multi-tenant isolation end-to-end
+- 10-02 added vault-scoped search (hybrid_search_transcripts_scoped) and all 14 tools respect vault membership
+- SearchFilters now includes bank_id/vault_id, results include vault_name attribution
+- System prompt updated with vault attribution and citation format includes [Vault Name]
+- Next: 10-03 will verify multi-tenant isolation end-to-end
 
 ---
 
@@ -253,9 +255,9 @@ Phase 10 (Chat Bank/Vault Scoping) - Plan 01 complete, 2 plans remaining.
 | Total Phases | 11 (+ 2 inserted: 3.1, 3.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 60 |
 | Requirements Complete | 58 (97%) |
-| Current Phase | 10 - Chat Bank/Vault Scoping (1/3 plans) |
-| Plans Complete | 66/70 (94%) |
-| Next Plan | 10-02-PLAN.md |
+| Current Phase | 10 - Chat Bank/Vault Scoping (2/3 plans) |
+| Plans Complete | 67/70 (96%) |
+| Next Plan | 10-03-PLAN.md |
 | Blockers | 0 |
 
 ---

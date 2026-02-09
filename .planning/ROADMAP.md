@@ -421,7 +421,7 @@ Plans:
 
 Plans:
 - [x] 10-01-PLAN.md — Pass bank_id/vault_id from frontend to chat-stream-v2 ✅
-- [ ] 10-02-PLAN.md — Filter chat searches by active bank/vault context
+- [x] 10-02-PLAN.md — Filter chat searches by active bank/vault context ✅
 - [ ] 10-03-PLAN.md — Verify multi-tenant isolation end-to-end
 
 **Requirements:**
