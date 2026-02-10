@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 10.2 - Vaults Page Implementation (Wave 2 in progress)
+**Current Focus:** Phase 10.2 - Vaults Page Implementation (Wave 3 in progress)
 
 ---
 
@@ -16,15 +16,15 @@
 
 **Phase:** 10.2 of 11+ (Vaults Page - INSERTED)
 
-**Plan:** 3 of 9 in current phase
+**Plan:** 4 of 9 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-09 - Completed 10.2-07-PLAN.md
+**Last activity:** 2026-02-09 - Completed 10.2-08-PLAN.md
 
 **Progress:**
 ```
-[██████████████████████████████████████░░░░░] 71/77 plans complete (92%)
+[██████████████████████████████████████░░░░░] 72/77 plans complete (94%)
 ```
 
 ---
@@ -147,6 +147,8 @@
 | 2026-02-09 | mapRecordingToMeeting adapter for TranscriptTable reuse | Vault recordings use Recording type; TranscriptTable expects Meeting | Zero changes to TranscriptTable, adapter maps all fields |
 | 2026-02-09 | UUID recordingId passed to AddToVaultMenu | Vault recordings have UUID IDs, not just legacy numeric IDs | TranscriptTableRow now passes both recordingId and legacyRecordingId |
 | 2026-02-09 | Vault recordings query invalidation on mutations | VaultDetailPane and AddToVaultMenu use different query keys | useVaultAssignment invalidates both vaultEntries and vaults.recordings |
+| 2026-02-09 | Client-side search/filter for vault recordings | Recordings already loaded; no server roundtrips needed | 300ms debounced title search, sort by date/duration/title |
+| 2026-02-09 | hasActiveFilters includes non-default sort | User can clear all filters including sort to reset view | Sort changes count as active filters |
 
 ### Active TODOs
 
@@ -218,8 +220,9 @@ Phase 10 COMPLETE (3/3 plans). GAP-INT-01 closed.
 
 - [x] Execute 10.2-01-PLAN.md (Vaults page foundation - route, hooks, vault list pane)
 - [x] Execute 10.2-02-PLAN.md (Vault detail view - recordings table, member panel, adapter)
+- [x] Execute 10.2-08-PLAN.md (Search/filter for vault recordings - useRecordingSearch, VaultSearchFilter)
 
-Phase 10.2 in progress (3/9 plans).
+Phase 10.2 in progress (4/9 plans).
 
 ### Pending Todos
 
@@ -244,20 +247,20 @@ None
 ## Session Continuity
 
 **Last session:** 2026-02-09
-**Stopped at:** Completed 10.2-07-PLAN.md
+**Stopped at:** Completed 10.2-08-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.2 Plan 07 complete - Vault membership badges visible on CallDetailPage and TranscriptTable.
+Phase 10.2 Plan 08 complete - Vault recordings search/filter/sort functional.
 
 **What to remember:**
-- Plan 07 delivered: VaultBadge, VaultBadgeList components integrated into CallDetailPage and TranscriptTable
-- VaultBadge has personal (subtle) vs team (prominent) styling with sm/md/lg sizes
-- VaultBadgeList uses useVaultAssignment hook, supports both UUID and legacy numeric IDs
-- TranscriptTable has toggleable "Vaults" column, hides personal vault badges
-- Badge clicks stopPropagation to prevent row click interference
+- Plan 08 delivered: useRecordingSearch hook + VaultSearchFilter toolbar in VaultDetailPane
+- Search is 300ms debounced, client-side title matching
+- Sort by date/duration/title with asc/desc toggle
+- Empty filter state shows RiSearchLine icon + "Clear Filters" button
+- Date range filtering wired in hook but no UI date picker yet
 - "Invite Members" button still stubbed (disabled) — Plan 04 will activate it
 - /team redirects to /vaults for backward compatibility
 
@@ -270,9 +273,9 @@ Phase 10.2 Plan 07 complete - Vault membership badges visible on CallDetailPage 
 | Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 67 |
 | Requirements Complete | 58 (87%) |
-| Current Phase | 10.2 - Vaults Page (INSERTED - 3/9 plans) |
-| Plans Complete | 71/77 (92%) |
-| Next Plan | 10.2-03-PLAN.md (Vault Creation & Edit Dialogs) |
+| Current Phase | 10.2 - Vaults Page (INSERTED - 4/9 plans) |
+| Plans Complete | 72/77 (94%) |
+| Next Plan | 10.2-09-PLAN.md |
 | Blockers | 0 |
 
 ---

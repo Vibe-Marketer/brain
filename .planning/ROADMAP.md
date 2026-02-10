@@ -445,13 +445,13 @@ Plans:
 **Plans:** 9 plans in 4 waves
 
 Plans:
-- [ ] 10.2-01-PLAN.md — W1: Foundation — Route, sidebar, vault list pane, useVaults hook, query keys
-- [ ] 10.2-02-PLAN.md — W2: Vault detail — Recordings (no tabs), member slide-in panel, Recording→Meeting adapter
+- [x] 10.2-01-PLAN.md — W1: Foundation — Route, sidebar, vault list pane, useVaults hook, query keys
+- [x] 10.2-02-PLAN.md — W2: Vault detail — Recordings (no tabs), member slide-in panel, Recording→Meeting adapter
 - [ ] 10.2-03-PLAN.md — W2: Vault CRUD — Create/edit/delete dialogs + useVaultMutations
-- [ ] 10.2-07-PLAN.md — W2: Vault badges — VaultBadge/VaultBadgeList on CallDetailPage + TranscriptTable
+- [x] 10.2-07-PLAN.md — W2: Vault badges — VaultBadge/VaultBadgeList on CallDetailPage + TranscriptTable
 - [ ] 10.2-04-PLAN.md — W3: Member management — Shareable invite links (no email), roles, remove/leave
 - [ ] 10.2-05-PLAN.md — W3: Business bank creation — Both CTA and BankSwitcher entry points
-- [ ] 10.2-08-PLAN.md — W3: Search/filter — Search recordings within vaults by title, sort, date filter
+- [x] 10.2-08-PLAN.md — W3: Search/filter — Search recordings within vaults by title, sort, date filter
 - [ ] 10.2-06-PLAN.md — W4: Polish — Empty states, error boundaries, settings migration, mobile verify
 - [ ] 10.2-09-PLAN.md — W4: Import vault selection — VaultSelector in YouTube import + SyncTab sync flow
 
