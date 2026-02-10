@@ -12,6 +12,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { CallDetailPage } from '@/pages/CallDetailPage';
 import { SharedCallView } from '@/pages/SharedCallView';
 import TeamJoin from '@/pages/TeamJoin';
+import VaultJoin from '@/pages/VaultJoin';
 
 // Import existing pages
 import TranscriptsNew from '@/pages/TranscriptsNew';
@@ -112,6 +113,9 @@ function App() {
 
                     {/* Team join page - public-ish route (redirects to login if not authenticated) */}
                     <Route path="/join/team/:token" element={<TeamJoin />} />
+
+                    {/* Vault join page - public-ish route (redirects to login if not authenticated) */}
+                    <Route path="/join/vault/:token" element={<VaultJoin />} />
 
                     {/* Automation Rules routes */}
                     <Route path="/automation-rules" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
