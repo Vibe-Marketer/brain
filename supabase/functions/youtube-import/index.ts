@@ -115,6 +115,9 @@ Deno.serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
+    // Store the user's JWT token to pass to internal function calls
+    const userJwtToken = token;
+
     if (userError || !user) {
       return new Response(
         JSON.stringify({ 
@@ -206,7 +209,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Authorization': `Bearer ${userJwtToken}`,
         },
         body: JSON.stringify({
           action: 'video-details',
@@ -254,7 +257,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Authorization': `Bearer ${userJwtToken}`,
         },
         body: JSON.stringify({
           action: 'transcript',
