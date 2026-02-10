@@ -136,7 +136,7 @@ export const UserTable = React.memo(({
                 <TableCell className="py-0.5 whitespace-nowrap">
                   {isAdmin && updatingUserId !== user.user_id ? (
                     <Select
-                      value={user.role}
+                      value={user.role || "FREE"}
                       onValueChange={(value) =>
                         onRoleChange(user.user_id, value as "FREE" | "PRO" | "TEAM" | "ADMIN")
                       }

@@ -252,9 +252,13 @@ export default function GoogleMeetSetupWizard({
             {currentStepData.icon}
             <div className="flex-1">
               <DialogTitle className="text-2xl">{currentStepData.title}</DialogTitle>
-              {currentStepData.stepNumber && (
+              {currentStepData.stepNumber ? (
                 <DialogDescription className="mt-1">
                   Step {currentStepData.stepNumber} of {totalSteps}
+                </DialogDescription>
+              ) : (
+                <DialogDescription className="sr-only">
+                  Google Meet setup steps and authorization flow
                 </DialogDescription>
               )}
             </div>

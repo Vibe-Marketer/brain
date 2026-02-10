@@ -283,9 +283,13 @@ export default function FathomSetupWizard({ open, onComplete: _onComplete, onDis
               {currentStepData.icon}
               <div className="flex-1">
                 <DialogTitle className="text-2xl">{currentStepData.title}</DialogTitle>
-                {currentStepData.stepNumber && (
+                {currentStepData.stepNumber ? (
                   <DialogDescription className="mt-1">
                     Step {currentStepData.stepNumber} of {totalSteps}
+                  </DialogDescription>
+                ) : (
+                  <DialogDescription className="sr-only">
+                    Fathom setup steps and authorization flow
                   </DialogDescription>
                 )}
               </div>

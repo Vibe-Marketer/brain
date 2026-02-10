@@ -19,6 +19,10 @@ export interface ApiResponse<T = unknown> {
   error?: string;
 }
 
+export interface OAuthUrlResponse {
+  authUrl: string;
+}
+
 // YouTube thumbnail type
 export interface YouTubeThumbnails {
   default?: { url: string; width: number; height: number };
@@ -156,7 +160,7 @@ export async function deleteAllCalls() {
  * Get Fathom OAuth authorization URL
  */
 export async function getFathomOAuthUrl() {
-  return callEdgeFunction('fathom-oauth-url', undefined, { retry: false });
+  return callEdgeFunction<OAuthUrlResponse>('fathom-oauth-url', undefined, { retry: false });
 }
 
 /**
@@ -188,7 +192,7 @@ export async function createFathomWebhook() {
  * Get Google OAuth authorization URL
  */
 export async function getGoogleOAuthUrl() {
-  return callEdgeFunction('google-oauth-url', undefined, { retry: false });
+  return callEdgeFunction<OAuthUrlResponse>('google-oauth-url', undefined, { retry: false });
 }
 
 /**
