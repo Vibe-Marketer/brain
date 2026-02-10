@@ -90,7 +90,7 @@ export function BanksTab() {
               <TabsTrigger
                 key={bank.id}
                 value={bank.id}
-                className="gap-2 normal-case font-medium !px-3.5 !py-2 !pb-2 rounded-full data-[state=active]:after:hidden data-[state=active]:bg-card data-[state=active]:shadow-sm"
+                className="gap-2 normal-case font-medium !px-0 !pt-0 !pb-4 data-[state=active]:after:w-[72%]"
               >
                 {bank.type === 'personal' ? (
                   <RiUserLine className="h-4 w-4" />
