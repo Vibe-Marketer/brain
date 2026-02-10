@@ -34,7 +34,7 @@ export function BusinessProfileDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="font-montserrat font-extrabold uppercase tracking-wide">
+          <DialogTitle className="font-display font-extrabold uppercase tracking-wide">
             {profile.company_name || 'Business Profile'}
           </DialogTitle>
           <DialogDescription>

@@ -172,7 +172,7 @@ export function InlineConnectionWizard({
     fathom: {
       name: "Fathom",
       icon: <FathomIcon className="h-6 w-6" />,
-      color: "text-purple-600 dark:text-purple-400",
+      color: "text-info-text",
       warningTitle: "API Access Required",
       warningContent: (
         <p className="text-sm text-muted-foreground">

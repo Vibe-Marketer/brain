@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   RiSearchLine,
-  RiLoader2Line,
   RiAddLine,
   RiFlowChart,
   RiPlayCircleLine,
@@ -39,6 +38,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { AppShell } from "@/components/layout/AppShell";
+import { Spinner } from "@/components/ui/spinner";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
@@ -111,17 +112,17 @@ const getTriggerLabel = (triggerType: string): string => {
 const getTriggerColor = (triggerType: string): string => {
   switch (triggerType) {
     case "call_created":
-      return "bg-green-500/10 text-green-600 dark:text-green-400";
+      return "bg-success-bg text-success-text";
     case "transcript_phrase":
-      return "bg-blue-500/10 text-blue-600 dark:text-blue-400";
+      return "bg-info-bg text-info-text";
     case "sentiment":
-      return "bg-purple-500/10 text-purple-600 dark:text-purple-400";
+      return "bg-neutral-bg text-neutral-text";
     case "duration":
-      return "bg-orange-500/10 text-orange-600 dark:text-orange-400";
+      return "bg-warning-bg text-warning-text";
     case "webhook":
-      return "bg-pink-500/10 text-pink-600 dark:text-pink-400";
+      return "bg-info-bg text-info-text";
     case "scheduled":
-      return "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400";
+      return "bg-info-bg text-info-text";
     default:
       return "bg-muted text-muted-foreground";
   }
@@ -505,9 +506,9 @@ export default function AutomationRules() {
   // Loading state
   if (authLoading) {
     return (
-      <div className="h-full flex items-center justify-center">
-        <RiLoader2Line className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
+        <div className="h-full flex items-center justify-center">
+          <Spinner size="lg" />
+        </div>
     );
   }
 
@@ -523,53 +524,49 @@ export default function AutomationRules() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Main Content Card */}
-      <div className="flex-1 min-h-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col m-1">
-        {/* Header */}
-        <div className="px-4 md:px-10 pt-4 flex-shrink-0 border-b border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              AUTOMATION
-            </p>
-          </div>
-          <div className="flex items-end justify-between gap-4 mb-4">
-            <div className="flex-1 min-w-0">
-              <h1 className="font-display text-2xl md:text-4xl font-extrabold text-foreground uppercase tracking-wide mb-0.5">
+    <AppShell>
+      <div className="h-full flex flex-col overflow-hidden">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+              aria-hidden="true"
+            >
+              <RiFlowChart className="h-4 w-4 text-vibe-orange" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
                 AUTOMATION RULES
-              </h1>
-              <p className="text-sm text-muted-foreground">
+              </h2>
+              <p className="text-xs text-ink-muted">
                 {stats.total} rule{stats.total !== 1 ? "s" : ""}
                 {stats.active > 0 && ` (${stats.active} active)`}
                 {stats.totalRuns > 0 && ` \u2022 ${stats.totalRuns.toLocaleString()} total runs`}
               </p>
             </div>
-            {/* Actions */}
-            <div className="flex items-center gap-3 flex-shrink-0">
-              {/* Search */}
-              <div className="relative w-64 hidden md:block">
-                <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search rules..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="h-9 pl-8 text-sm"
-                />
-              </div>
-              {/* Create Button */}
-              <Button onClick={handleCreateRule} className="gap-2">
-                <RiAddLine className="h-4 w-4" />
-                <span className="hidden sm:inline">New Rule</span>
-              </Button>
-            </div>
           </div>
-        </div>
 
-        {/* Rules Table */}
-        <div className="flex-1 overflow-auto p-4 md:p-10">
+          <div className="flex items-center gap-3 flex-shrink-0">
+            <div className="relative w-64 hidden md:block">
+              <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search rules..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-9 pl-8 text-sm"
+              />
+            </div>
+            <Button onClick={handleCreateRule} className="gap-2">
+              <RiAddLine className="h-4 w-4" />
+              <span className="hidden sm:inline">New Rule</span>
+            </Button>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-auto p-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <RiLoader2Line className="h-8 w-8 animate-spin text-muted-foreground" />
+              <Spinner size="lg" />
             </div>
           ) : rules.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-4">
@@ -586,7 +583,6 @@ export default function AutomationRules() {
                 Create Your First Rule
               </Button>
 
-              {/* Trigger types preview */}
               <div className="flex flex-wrap justify-center gap-2 mt-6 max-w-lg">
                 <Badge variant="secondary" className={cn("text-xs", getTriggerColor("call_created"))}>
                   <RiPlayCircleLine className="h-3 w-3 mr-1" />
@@ -647,6 +643,6 @@ export default function AutomationRules() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </AppShell>
   );
 }

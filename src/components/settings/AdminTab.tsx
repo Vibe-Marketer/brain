@@ -187,10 +187,10 @@ export default function AdminTab() {
       {/* System Statistics Section */}
       <div className="space-y-4">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+          <h2 className="font-semibold text-foreground">
             System Overview
           </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Platform-wide statistics and metrics
           </p>
         </div>
@@ -259,10 +259,10 @@ export default function AdminTab() {
       {/* User Management Section */}
       <div className="space-y-4">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+          <h2 className="font-semibold text-foreground">
             User Management
           </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             System-wide user administration and role management
           </p>
         </div>

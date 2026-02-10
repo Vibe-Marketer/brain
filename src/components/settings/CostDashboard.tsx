@@ -127,10 +127,10 @@ export function CostDashboard() {
       {/* Header with Period Selector */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+          <h2 className="font-semibold text-foreground">
             AI Cost Dashboard
           </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Track usage and costs across all AI operations
           </p>
         </div>

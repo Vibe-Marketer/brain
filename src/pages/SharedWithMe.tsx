@@ -4,7 +4,6 @@ import {
   RiSearchLine,
   RiCalendarLine,
   RiTimeLine,
-  RiLoader2Line,
   RiLinksLine,
   RiGroupLine,
   RiFileTextLine,
@@ -14,8 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
+import { AppShell } from "@/components/layout/AppShell";
+import { Spinner } from "@/components/ui/spinner";
 
 import { useDirectReports, useTeamShares } from "@/hooks/useTeamHierarchy";
 import { useQuery } from "@tanstack/react-query";
@@ -101,11 +102,11 @@ const getSourceIcon = (sourceType: SharedCallBase["source_type"]) => {
 const getSourceColor = (sourceType: SharedCallBase["source_type"]) => {
   switch (sourceType) {
     case "share_link":
-      return "bg-blue-500/10 text-blue-500";
+      return "bg-info-bg text-info-text";
     case "team":
-      return "bg-green-500/10 text-green-500";
+      return "bg-success-bg text-success-text";
     case "manager":
-      return "bg-orange-500/10 text-orange-500";
+      return "bg-warning-bg text-warning-text";
     default:
       return "bg-muted text-muted-foreground";
   }
@@ -570,7 +571,7 @@ const SharedWithMe = () => {
   if (authLoading) {
     return (
       <div className="h-full flex items-center justify-center">
-        <RiLoader2Line className="h-8 w-8 animate-spin text-muted-foreground" />
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -596,95 +597,83 @@ const SharedWithMe = () => {
           No calls have been shared with you yet. When colleagues share calls via
           links or team sharing, they&apos;ll appear here.
         </p>
-        <div className="flex flex-col gap-2 text-sm text-muted-foreground mt-4">
-          <div className="flex items-center gap-2">
-            <RiLinksLine className="h-4 w-4 text-blue-500" />
-            <span>Direct share links</span>
+          <div className="flex flex-col gap-2 text-sm text-muted-foreground mt-4">
+            <div className="flex items-center gap-2">
+              <RiLinksLine className="h-4 w-4 text-info-text" />
+              <span>Direct share links</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <RiGroupLine className="h-4 w-4 text-success-text" />
+              <span>Team folder/tag sharing</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <RiGroupLine className="h-4 w-4 text-green-500" />
-            <span>Team folder/tag sharing</span>
-          </div>
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Main Content Card */}
-      <div className="flex-1 min-h-0 bg-card rounded-2xl border border-border shadow-sm overflow-hidden flex flex-col m-1">
-        {/* Header */}
-        <div className="px-4 md:px-10 pt-4 flex-shrink-0 border-b border-border">
-          <div className="flex items-center gap-2 mb-4">
-            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              SHARING
-            </p>
-          </div>
-          <div className="flex items-end justify-between gap-4 mb-4">
-            <div className="flex-1 min-w-0">
-              <h1 className="font-display text-2xl md:text-4xl font-extrabold text-foreground uppercase tracking-wide mb-0.5">
+    <AppShell>
+      <div className="h-full flex flex-col overflow-hidden">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+              aria-hidden="true"
+            >
+              <RiShareLine className="h-4 w-4 text-vibe-orange" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
                 SHARED WITH ME
-              </h1>
-              <p className="text-sm text-muted-foreground">
+              </h2>
+              <p className="text-xs text-ink-muted">
                 {counts.all} call{counts.all !== 1 ? "s" : ""} shared with you
               </p>
             </div>
-            {/* Search */}
-            <div className="relative w-64 flex-shrink-0 hidden md:block">
-              <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search shared calls..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-9 pl-8 text-sm"
-              />
-            </div>
           </div>
 
-          {/* Source Tabs */}
+          <div className="relative w-64 flex-shrink-0 hidden md:block">
+            <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search shared calls..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-9 pl-8 text-sm"
+            />
+          </div>
+        </header>
+
+        <div className="px-4 pt-3 flex-shrink-0">
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="h-auto p-0 bg-transparent border-b-0 gap-0">
-              <TabsTrigger
-                value="all"
-                className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2"
-              >
-                All
+            <TabsList>
+              <TabsTrigger value="all">
+                ALL
                 <Badge variant="secondary" className="ml-2 text-xs">
                   {counts.all}
                 </Badge>
               </TabsTrigger>
               {counts.share_link > 0 && (
-                <TabsTrigger
-                  value="share_link"
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2"
-                >
-                  <RiLinksLine className="h-4 w-4 mr-1.5" />
-                  Links
+                <TabsTrigger value="share_link">
+                  <RiLinksLine className="h-4 w-4 mr-2" />
+                  LINKS
                   <Badge variant="secondary" className="ml-2 text-xs">
                     {counts.share_link}
                   </Badge>
                 </TabsTrigger>
               )}
               {counts.team > 0 && (
-                <TabsTrigger
-                  value="team"
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2"
-                >
-                  <RiGroupLine className="h-4 w-4 mr-1.5" />
-                  Team
+                <TabsTrigger value="team">
+                  <RiGroupLine className="h-4 w-4 mr-2" />
+                  TEAM
                   <Badge variant="secondary" className="ml-2 text-xs">
                     {counts.team}
                   </Badge>
                 </TabsTrigger>
               )}
               {counts.manager > 0 && (
-                <TabsTrigger
-                  value="manager"
-                  className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-4 py-2"
-                >
-                  <RiGroupLine className="h-4 w-4 mr-1.5" />
-                  Direct Reports
+                <TabsTrigger value="manager">
+                  <RiGroupLine className="h-4 w-4 mr-2" />
+                  DIRECT REPORTS
                   <Badge variant="secondary" className="ml-2 text-xs">
                     {counts.manager}
                   </Badge>
@@ -694,11 +683,10 @@ const SharedWithMe = () => {
           </Tabs>
         </div>
 
-        {/* Calls Table */}
-        <div className="flex-1 overflow-auto p-4 md:p-10">
+        <div className="flex-1 overflow-auto p-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-16">
-              <RiLoader2Line className="h-8 w-8 animate-spin text-muted-foreground" />
+              <Spinner size="lg" />
             </div>
           ) : (
             <SharedCallsTable
@@ -709,7 +697,7 @@ const SharedWithMe = () => {
           )}
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 };
 

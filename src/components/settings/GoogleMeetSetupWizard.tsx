@@ -141,7 +141,7 @@ export default function GoogleMeetSetupWizard({
           id="acknowledge-workspace"
           checked={acknowledgedWorkspaceWarning}
           onChange={(e) => setAcknowledgedWorkspaceWarning(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
         />
         <label htmlFor="acknowledge-workspace" className="text-sm text-muted-foreground">
           I understand the recording requirements

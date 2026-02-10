@@ -50,10 +50,10 @@ import type { VaultRole } from '@/types/bank'
 /** Role badge styling */
 const ROLE_BADGE_STYLES: Record<VaultRole, { bg: string; text: string }> = {
   vault_owner: { bg: 'bg-vibe-orange/15', text: 'text-vibe-orange' },
-  vault_admin: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300' },
-  manager: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
-  member: { bg: 'bg-gray-100 dark:bg-gray-800/50', text: 'text-gray-600 dark:text-gray-400' },
-  guest: { bg: 'bg-gray-50 dark:bg-gray-900/30', text: 'text-gray-500 dark:text-gray-500' },
+  vault_admin: { bg: 'bg-info-bg', text: 'text-info-text' },
+  manager: { bg: 'bg-success-bg', text: 'text-success-text' },
+  member: { bg: 'bg-neutral-bg', text: 'text-neutral-text' },
+  guest: { bg: 'bg-neutral-bg', text: 'text-neutral-text' },
 }
 
 /** Human-readable role labels */

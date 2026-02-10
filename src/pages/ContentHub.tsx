@@ -76,8 +76,8 @@ export default function ContentHub() {
               <RiHome4Line className="h-4 w-4 text-vibe-orange" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-ink">
-                Overview
+              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                OVERVIEW
               </h2>
               <p className="text-xs text-ink-muted">
                 Content Hub home
@@ -131,8 +131,8 @@ export default function ContentHub() {
 
           <div className="bg-card border rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <RiFileTextLine className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <div className="p-2 bg-info-bg rounded-lg">
+                <RiFileTextLine className="w-5 h-5 text-info-text" />
               </div>
               <div>
                 <p className="text-2xl font-bold tabular-nums">{posts.length}</p>
@@ -143,8 +143,8 @@ export default function ContentHub() {
 
           <div className="bg-card border rounded-lg p-4">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/20 rounded-lg">
-                <RiMailLine className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <div className="p-2 bg-info-bg rounded-lg">
+                <RiMailLine className="w-5 h-5 text-info-text" />
               </div>
               <div>
                 <p className="text-2xl font-bold tabular-nums">{emails.length}</p>
@@ -184,8 +184,8 @@ export default function ContentHub() {
           className="group bg-card border rounded-lg p-6 hover:border-vibe-orange/50 transition-colors"
         >
           <div className="flex items-start gap-4">
-            <div className="p-3 bg-gradient-to-br from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-900/10 rounded-lg">
-              <RiFileTextLine className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+            <div className="p-3 bg-info-bg rounded-lg">
+              <RiFileTextLine className="w-6 h-6 text-info-text" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold group-hover:text-vibe-orange transition-colors">

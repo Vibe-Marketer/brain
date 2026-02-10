@@ -52,27 +52,27 @@ const VAULT_TYPE_CONFIG: Record<VaultType, {
   personal: {
     label: 'Personal',
     icon: RiUserLine,
-    className: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    className: 'bg-info-bg text-info-text',
   },
   team: {
     label: 'Team',
     icon: RiTeamLine,
-    className: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    className: 'bg-success-bg text-success-text',
   },
   coach: {
     label: 'Coach',
     icon: RiBriefcaseLine,
-    className: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    className: 'bg-warning-bg text-warning-text',
   },
   community: {
     label: 'Community',
     icon: RiCommunityLine,
-    className: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+    className: 'bg-warning-bg text-warning-text',
   },
   client: {
     label: 'Client',
     icon: RiBriefcaseLine,
-    className: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
+    className: 'bg-info-bg text-info-text',
   },
 };
 
@@ -106,7 +106,7 @@ function VaultListEmpty({
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
       <RiSafeLine className="h-16 w-16 text-muted-foreground/50 mb-4" aria-hidden="true" />
-      <p className="text-sm font-montserrat font-extrabold uppercase tracking-wide text-foreground mb-1">
+      <p className="text-sm font-display font-extrabold uppercase tracking-wide text-foreground mb-1">
         No hubs yet
       </p>
       <p className="text-xs text-muted-foreground mb-4">
@@ -242,7 +242,7 @@ export function VaultListPane({
         <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-2">
             <h2
-              className="inline-flex items-center gap-1.5 text-xs font-montserrat font-extrabold uppercase tracking-wide text-foreground"
+              className="inline-flex items-center gap-1.5 text-xs font-display font-extrabold uppercase tracking-wide text-foreground"
               id="hub-list-title"
             >
               <RiSafeLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -267,7 +267,7 @@ export function VaultListPane({
               <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 {activeBank?.type === 'personal' ? 'Personal Workspace' : 'Business Workspace'}
               </p>
-              <p className="text-sm font-montserrat font-extrabold uppercase tracking-wide text-foreground truncate">
+              <p className="text-sm font-display font-extrabold uppercase tracking-wide text-foreground truncate">
                 {activeBank?.name || 'Loading...'}
               </p>
             </div>

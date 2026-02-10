@@ -265,7 +265,7 @@ export function SettingsDetailPane({
       className={cn(
         "h-full flex flex-col bg-background",
         // Pane enter animation (slide + fade)
-        "transition-all duration-300 ease-in-out",
+        "transition-all duration-500 ease-in-out",
         isMounted
           ? "opacity-100 translate-x-0"
           : "opacity-0 translate-x-2",
@@ -302,7 +302,7 @@ export function SettingsDetailPane({
           {/* Category title and description */}
           <div className="min-w-0">
             <h2
-              className="text-sm font-montserrat font-extrabold text-foreground uppercase tracking-wide truncate"
+              className="text-sm font-display font-extrabold text-foreground uppercase tracking-wide truncate"
               id="settings-detail-title"
             >
               {meta.label}

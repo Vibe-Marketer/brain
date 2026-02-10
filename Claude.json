@@ -1,0 +1,19 @@
+{
+  "$schema": "https://claude.ai/config.json",
+  "agent": {
+    "gsd-planner": { "model": "claude-sonnet-4-20250514" },
+    "gsd-plan-checker": { "model": "claude-sonnet-4-20250514" },
+    "gsd-phase-researcher": { "model": "claude-sonnet-4-20250514" },
+    "gsd-roadmapper": { "model": "claude-sonnet-4-20250514" },
+    "gsd-project-researcher": { "model": "claude-sonnet-4-20250514" },
+    "gsd-research-synthesizer": { "model": "claude-sonnet-4-20250514" },
+    "gsd-codebase-mapper": { "model": "claude-sonnet-4-20250514" },
+    "gsd-executor": { "model": "claude-haiku-3-5-20241022" },
+    "gsd-debugger": { "model": "claude-haiku-3-5-20241022" },
+    "gsd-verifier": { "model": "claude-sonnet-4-20250514" },
+    "gsd-integration-checker": { "model": "claude-sonnet-4-20250514" },
+    "gsd-set-profile": { "model": "claude-sonnet-4-20250514" },
+    "gsd-settings": { "model": "claude-sonnet-4-20250514" },
+    "gsd-set-model": { "model": "claude-sonnet-4-20250514" }
+  }
+}

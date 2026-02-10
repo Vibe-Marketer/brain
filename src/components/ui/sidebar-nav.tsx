@@ -125,11 +125,11 @@ const NavIcon = React.memo(({ icon: IconLine, iconFill: IconFill, isActive, chil
         'w-full h-full flex items-center justify-center rounded-xl transition-all duration-150',
         // Light mode styles
         'bg-gradient-to-br from-white to-gray-200',
-        'border border-gray-300/80',
+        'border border-border',
         'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
         // Dark mode styles
         'dark:from-gray-700 dark:to-gray-800',
-        'dark:border-gray-600/80',
+        'dark:border-border',
         'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
         // Active state
         isActive && 'ring-2 ring-vibe-orange/50'
@@ -367,8 +367,8 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   'relative flex items-center',
                   isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
                   'rounded-xl transition-all duration-500 ease-in-out',
-                  'hover:bg-gray-100 dark:hover:bg-white/10',
-                  active && !isCollapsed && 'bg-gray-100 dark:bg-gray-800',
+                  'hover:bg-hover',
+                  active && !isCollapsed && 'bg-hover',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
                 )}
                 title={item.name}
@@ -419,7 +419,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 'relative flex items-center',
                 isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
                 'rounded-xl transition-all duration-500 ease-in-out',
-                'hover:bg-gray-100 dark:hover:bg-white/10',
+                'hover:bg-hover',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
               )}
               title="Toggle Library Panel"

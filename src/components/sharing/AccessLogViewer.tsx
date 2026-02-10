@@ -154,11 +154,11 @@ export const AccessLogViewer = React.memo(({
                         <RiUserLine className="h-4 w-4 text-muted-foreground" />
                       </div>
                       <div className="flex flex-col">
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-50 truncate max-w-[180px]">
+                        <div className="text-sm font-medium text-foreground truncate max-w-[180px]">
                           {log.user_name || log.user_email || "Unknown User"}
                         </div>
                         {log.user_name && log.user_email && (
-                          <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[180px]">
+                          <div className="text-xs text-muted-foreground truncate max-w-[180px]">
                             {log.user_email}
                           </div>
                         )}
@@ -169,10 +169,10 @@ export const AccessLogViewer = React.memo(({
                     <div className="flex items-center gap-2">
                       <RiTimeLine className="h-4 w-4 text-muted-foreground shrink-0" />
                       <div className="flex flex-col">
-                        <span className="text-sm text-gray-900 dark:text-gray-50 tabular-nums">
+                        <span className="text-sm text-foreground tabular-nums">
                           {formatDate(log.accessed_at)}
                         </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400 tabular-nums">
+                        <span className="text-xs text-muted-foreground tabular-nums">
                           {formatTime(log.accessed_at)}
                         </span>
                       </div>

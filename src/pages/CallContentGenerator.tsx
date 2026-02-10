@@ -12,7 +12,7 @@
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RiArrowLeftLine } from '@remixicon/react';
+import { RiArrowLeftLine, RiSparklingLine } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { useContentWizardStore } from '@/stores/contentWizardStore';
 import { CallContentWizard } from '@/components/content-hub/CallContentWizard';
@@ -45,7 +45,23 @@ export default function CallContentGenerator() {
     >
       <div className="flex flex-col h-full">
         {/* Header */}
-        <div className="flex items-center gap-4 p-4 border-b">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+              aria-hidden="true"
+            >
+              <RiSparklingLine className="h-4 w-4 text-vibe-orange" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                SOCIAL POST GENERATOR
+              </h2>
+              <p className="text-xs text-ink-muted">
+                Transform call transcripts into viral content
+              </p>
+            </div>
+          </div>
           <Button
             variant="ghost"
             size="sm"
@@ -55,13 +71,7 @@ export default function CallContentGenerator() {
             <RiArrowLeftLine className="w-4 h-4" />
             Back
           </Button>
-          <div>
-            <h1 className="text-lg font-semibold">Social Post Generator</h1>
-            <p className="text-sm text-muted-foreground">
-              Transform call transcripts into viral content
-            </p>
-          </div>
-        </div>
+        </header>
 
         {/* Wizard */}
         <div className="flex-1 overflow-hidden">

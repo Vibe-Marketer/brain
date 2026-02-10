@@ -74,8 +74,8 @@ export default function ContentGenerators() {
               <RiSparklingLine className="h-4 w-4 text-vibe-orange" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-ink">
-                Generators
+              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                GENERATORS
               </h2>
               <p className="text-xs text-ink-muted">
                 Create new content
@@ -103,7 +103,7 @@ function GeneratorCardComponent({ generator }: { generator: GeneratorCard }) {
     return (
       <div className="bg-card border rounded-lg p-6 opacity-60">
         <div className="flex items-start gap-4">
-          <div className="p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-muted-foreground">
+          <div className="p-3 bg-muted rounded-lg text-muted-foreground">
             {generator.icon}
           </div>
           <div className="flex-1">

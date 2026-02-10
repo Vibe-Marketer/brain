@@ -130,7 +130,7 @@ export function DetailPaneOutlet({
         "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm",
         "flex flex-col h-full z-10 overflow-hidden",
         // Transition: Width, opacity, and transform animate together
-        "transition-[width,opacity,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        "transition-[width,opacity,transform] duration-500 ease-in-out",
         "will-change-[width,transform]",
         // Focus states
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",

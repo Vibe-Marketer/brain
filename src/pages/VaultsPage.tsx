@@ -243,7 +243,7 @@ export default function VaultsPage() {
                       >
                         <RiSafeLine className="h-5 w-5" aria-hidden="true" />
                       </Button>
-                      <span className="text-sm font-montserrat font-extrabold uppercase tracking-wide text-foreground">
+                      <span className="text-sm font-display font-extrabold uppercase tracking-wide text-foreground">
                         Hubs
                       </span>
                     </div>

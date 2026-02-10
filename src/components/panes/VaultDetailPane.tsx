@@ -48,11 +48,11 @@ import type { Meeting } from '@/types'
 
 /** Vault type badge colors */
 const VAULT_TYPE_STYLES: Record<VaultType, { bg: string; text: string }> = {
-  personal: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300' },
-  team: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
-  coach: { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-300' },
-  community: { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-700 dark:text-amber-300' },
-  client: { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-700 dark:text-rose-300' },
+  personal: { bg: 'bg-info-bg', text: 'text-info-text' },
+  team: { bg: 'bg-success-bg', text: 'text-success-text' },
+  coach: { bg: 'bg-warning-bg', text: 'text-warning-text' },
+  community: { bg: 'bg-warning-bg', text: 'text-warning-text' },
+  client: { bg: 'bg-info-bg', text: 'text-info-text' },
 }
 
 export interface VaultDetailPaneProps {
@@ -238,7 +238,7 @@ export function VaultDetailPane({
                   className="group flex items-center gap-1 min-w-0 focus:outline-none"
                   aria-label="Hub actions"
                 >
-                  <span className="font-montserrat font-extrabold text-sm uppercase tracking-wide truncate">
+                  <span className="font-display font-extrabold text-sm uppercase tracking-wide truncate">
                     {vault.name}
                   </span>
                   <RiArrowDownSLine className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
@@ -259,7 +259,7 @@ export function VaultDetailPane({
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <h2 className="font-montserrat font-extrabold text-sm uppercase tracking-wide truncate">
+            <h2 className="font-display font-extrabold text-sm uppercase tracking-wide truncate">
               {vault.name}
             </h2>
           )}

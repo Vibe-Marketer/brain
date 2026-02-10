@@ -690,7 +690,7 @@ export default function Chat() {
       {isMobile && showSidebar && (
         <>
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40" onClick={() => setShowSidebar(false)} />
-          <div className={cn("fixed top-0 left-0 bottom-0 w-[280px] bg-card/95 backdrop-blur-md rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col", "animate-in slide-in-from-left duration-300")}>
+          <div className={cn("fixed top-0 left-0 bottom-0 w-[280px] bg-card/95 backdrop-blur-md rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col", "animate-in slide-in-from-left duration-500")}>
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/40">
               <span className="text-sm font-semibold">Chat Sessions</span>
               <Button variant="ghost" size="icon" onClick={() => setShowSidebar(false)} className="text-muted-foreground h-8 w-8">
@@ -721,7 +721,7 @@ export default function Chat() {
           </header>
 
           {/* Main Chat Content */}
-          <ChatInnerCard className="min-w-0 flex-1 relative z-0 transition-all duration-300">
+          <ChatInnerCard className="min-w-0 flex-1 relative z-0 transition-all duration-500 ease-in-out">
             <ChatInnerCardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 md:gap-3">

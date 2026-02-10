@@ -85,19 +85,19 @@ export function BanksTab() {
         </Card>
       ) : (
         <Tabs defaultValue={defaultBankId} className="space-y-4">
-          <TabsList className="gap-1 md:gap-1">
+          <TabsList>
             {banks.map((bank) => (
               <TabsTrigger
                 key={bank.id}
                 value={bank.id}
-                className="gap-2 normal-case font-medium !px-0 !pt-0 !pb-4"
+                className="gap-2"
               >
                 {bank.type === 'personal' ? (
                   <RiUserLine className="h-4 w-4" />
                 ) : (
                   <RiBuilding4Line className="h-4 w-4" />
                 )}
-                {bank.name}
+                {bank.name.toUpperCase()}
               </TabsTrigger>
             ))}
           </TabsList>

@@ -283,7 +283,7 @@ export function ContentCategoryPane({
                   "hover:bg-muted/50 dark:hover:bg-white/5",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
-                    "bg-gray-100 dark:bg-gray-800",
+                    "bg-hover",
                     "border-l-0 pl-4",
                   ]
                 )}

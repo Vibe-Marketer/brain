@@ -18,6 +18,7 @@ import {
   RiArrowRightLine, 
   RiExternalLinkLine,
   RiCheckboxCircleLine,
+  RiUpload2Line,
 } from '@remixicon/react';
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
@@ -55,13 +56,23 @@ export default function ManualImport() {
     <AppShell>
       <div className="h-full flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex-shrink-0 px-6 py-5 border-b border-border">
-          <h1 className="font-montserrat font-extrabold text-xl uppercase tracking-wide text-foreground">
-            Import Content
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground font-inter font-light">
-            Import videos from YouTube to analyze with AI and search across your library.
-          </p>
+        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+              aria-hidden="true"
+            >
+              <RiUpload2Line className="h-4 w-4 text-vibe-orange" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                IMPORT CONTENT
+              </h2>
+              <p className="text-xs text-ink-muted">
+                Import videos from YouTube to analyze with AI
+              </p>
+            </div>
+          </div>
         </header>
 
         {/* Main content area */}

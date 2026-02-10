@@ -130,7 +130,7 @@ export default function SortingTagging() {
         {/* Mobile overlay backdrop - for nav or bottom sheet */}
         {(showMobileNav || showMobileBottomSheet) && (
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-500"
             onClick={() => {
               if (showMobileNav) setShowMobileNav(false);
               if (showMobileBottomSheet) handleCloseMobileBottomSheet();
@@ -146,7 +146,7 @@ export default function SortingTagging() {
             aria-label="Mobile navigation menu"
             className={cn(
               "fixed top-0 left-0 bottom-0 w-[280px] bg-card rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col py-2",
-              "animate-in slide-in-from-left duration-300"
+              "animate-in slide-in-from-left duration-500"
             )}
           >
             <div className="w-full px-2 mb-2 flex items-center justify-end">
@@ -246,7 +246,7 @@ export default function SortingTagging() {
             aria-label={panelType === 'folder-detail' ? "Folder detail panel" : panelType === 'tag-detail' ? "Tag detail panel" : "Detail panel"}
             className={cn(
               "fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl border-t border-border/60 shadow-xl flex flex-col",
-              "max-h-[85vh] animate-in slide-in-from-bottom duration-300"
+              "max-h-[85vh] animate-in slide-in-from-bottom duration-500"
             )}
           >
             {/* Bottom sheet handle/header */}
