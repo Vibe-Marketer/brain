@@ -1,25 +1,10 @@
--- ============================================================================
--- ADMIN COST AGGREGATION FUNCTION
--- ============================================================================
--- Purpose: Provide admin-level aggregated cost data across all users
--- Enables admin cost dashboard with breakdowns by model, feature, and user
---
--- Security:
---   - SECURITY DEFINER to bypass RLS for admin aggregation
---   - Checks calling user has ADMIN role before returning data
---   - Non-admin callers receive empty results
--- ============================================================================
-
--- Function: get_admin_cost_summary
--- Parameters:
---   p_period: 'month' (current month), 'last_month', 'all' (all time)
--- Returns:
---   model_breakdown: JSONB array of { model, cost_cents, requests, tokens }
---   feature_breakdown: JSONB array of { operation_type, cost_cents, requests }
---   user_breakdown: JSONB array of { user_id, email, cost_cents, requests } - top 20 by cost
---   total_cost_cents: NUMERIC
---   total_tokens: BIGINT
---   total_requests: BIGINT
+-- ==========================================================================
+-- FIX ADMIN COST SUMMARY TOKEN AMBIGUITY
+-- ==========================================================================
+-- Purpose: Disambiguate total_tokens references inside get_admin_cost_summary
+-- Author: OpenCode
+-- Date: 2026-02-10
+-- ==========================================================================
 
 CREATE OR REPLACE FUNCTION public.get_admin_cost_summary(
   p_period TEXT DEFAULT 'month'
@@ -44,15 +29,15 @@ DECLARE
 BEGIN
   -- Get the calling user's ID
   v_user_id := auth.uid();
-  
+
   -- Check if user is admin
   SELECT role INTO v_user_role
   FROM public.user_roles
   WHERE user_id = v_user_id;
-  
+
   -- Non-admin users get empty results
   IF v_user_role IS NULL OR v_user_role != 'ADMIN' THEN
-    RETURN QUERY SELECT 
+    RETURN QUERY SELECT
       '[]'::JSONB,
       '[]'::JSONB,
       '[]'::JSONB,
@@ -61,10 +46,10 @@ BEGIN
       0::BIGINT;
     RETURN;
   END IF;
-  
+
   -- Calculate date range based on period
   v_end_date := NOW();
-  
+
   CASE p_period
     WHEN 'month' THEN
       v_start_date := DATE_TRUNC('month', NOW());
@@ -76,7 +61,7 @@ BEGIN
     ELSE
       v_start_date := DATE_TRUNC('month', NOW());
   END CASE;
-  
+
   RETURN QUERY
   WITH filtered_logs AS (
     SELECT *
@@ -86,7 +71,7 @@ BEGIN
   ),
   -- Aggregate by model
   model_agg AS (
-    SELECT 
+    SELECT
       COALESCE(
         JSONB_AGG(
           JSONB_BUILD_OBJECT(
@@ -100,18 +85,18 @@ BEGIN
         '[]'::JSONB
       ) AS breakdown
     FROM (
-      SELECT 
+      SELECT
         model,
         SUM(cost_cents) AS total_cost,
         COUNT(*) AS request_count,
         SUM(fl.total_tokens) AS token_count
-      FROM filtered_logs
+      FROM filtered_logs fl
       GROUP BY model
     ) m
   ),
   -- Aggregate by operation type (feature)
   feature_agg AS (
-    SELECT 
+    SELECT
       COALESCE(
         JSONB_AGG(
           JSONB_BUILD_OBJECT(
@@ -124,7 +109,7 @@ BEGIN
         '[]'::JSONB
       ) AS breakdown
     FROM (
-      SELECT 
+      SELECT
         operation_type,
         SUM(cost_cents) AS total_cost,
         COUNT(*) AS request_count
@@ -134,7 +119,7 @@ BEGIN
   ),
   -- Aggregate by user (top 20 by cost)
   user_agg AS (
-    SELECT 
+    SELECT
       COALESCE(
         JSONB_AGG(
           JSONB_BUILD_OBJECT(
@@ -148,7 +133,7 @@ BEGIN
         '[]'::JSONB
       ) AS breakdown
     FROM (
-      SELECT 
+      SELECT
         fl.user_id,
         SUM(fl.cost_cents) AS total_cost,
         COUNT(*) AS request_count
@@ -165,9 +150,9 @@ BEGIN
       COALESCE(SUM(cost_cents), 0) AS total_cost,
       COALESCE(SUM(fl.total_tokens), 0)::BIGINT AS total_tok,
       COUNT(*) AS total_req
-    FROM filtered_logs
+    FROM filtered_logs fl
   )
-  SELECT 
+  SELECT
     ma.breakdown,
     fa.breakdown,
     ua.breakdown,
@@ -175,13 +160,12 @@ BEGIN
     t.total_tok,
     t.total_req
   FROM model_agg ma, feature_agg fa, user_agg ua, totals t;
-  
+
 END;
 $$;
 
--- Add comment
 COMMENT ON FUNCTION public.get_admin_cost_summary IS 'Get admin-level cost aggregation across all users with breakdowns by model, feature, and user. Returns empty results for non-admin callers.';
 
--- ============================================================================
+-- ==========================================================================
 -- END OF MIGRATION
--- ============================================================================
+-- ==========================================================================
