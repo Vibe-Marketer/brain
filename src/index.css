@@ -29,6 +29,14 @@ CallVault Brand System v4.2
     --vibe-orange-dark: 14 100% 50%;    /* #FF3D00 - Pressed states, gradient end */
     --vibe-orange-light: 55 100% 50%;   /* #FFEB00 - Gradient highlights only */
 
+    /* Indicator tokens (tabs + sidebar/selectors) */
+    --cv-tab-indicator-width: calc(100% - 0.1rem);
+    --cv-tab-indicator-height: 5px;
+    --cv-tab-indicator-bottom: 0.125rem;
+    --cv-side-indicator-offset: 0.25rem;
+    --cv-side-indicator-height: 65%;
+    --cv-side-indicator-width: 0.25rem;
+
     /* Card Gradient - "White Hot to Lava" diagonal */
     --card-gradient: linear-gradient(135deg, hsl(55 100% 50% / 0.15) 0%, hsl(32 100% 50% / 0.1) 50%, hsl(14 100% 50% / 0.08) 100%);
     --card-gradient-dark: linear-gradient(135deg, hsl(32 100% 50% / 0.08) 0%, hsl(14 100% 50% / 0.05) 100%);
@@ -389,6 +397,17 @@ CallVault Brand System v4.2
    Force correct backgrounds on chart components
    ============================================ */
 @layer components {
+  .cv-side-indicator-pill {
+    position: absolute;
+    left: var(--cv-side-indicator-offset);
+    top: 50%;
+    width: var(--cv-side-indicator-width);
+    height: var(--cv-side-indicator-height);
+    transform: translateY(-50%);
+    border-radius: 9999px;
+    background-color: hsl(var(--vibe-orange));
+  }
+
   /* Force background colors on Tremor DonutChart components */
   .tremor-DonutChart-root,
   .tremor-DonutChart-root > div,

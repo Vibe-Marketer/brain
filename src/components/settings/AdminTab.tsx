@@ -60,8 +60,7 @@ export default function AdminTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
-  const statAccentClass =
-    "absolute left-2 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full";
+  const statAccentClass = "cv-side-indicator-pill";
 
   // Define applyFilters BEFORE the useEffect that uses it to avoid TDZ errors
   const applyFilters = useCallback(() => {

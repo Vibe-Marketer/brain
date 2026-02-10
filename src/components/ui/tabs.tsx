@@ -27,7 +27,7 @@ TabsList.displayName = TabsPrimitive.List.displayName;
 const TabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
->(({ className, ...props }, ref) => (
+>(({ className, style, ...props }, ref) => (
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
@@ -41,11 +41,11 @@ const TabsTrigger = React.forwardRef<
       "data-[state=active]:text-ink dark:data-[state=active]:text-white",
       // Active state - floating pill underline
       "data-[state=active]:after:absolute",
-      "data-[state=active]:after:bottom-0.5",
+      "data-[state=active]:after:bottom-[var(--cv-tab-indicator-bottom)]",
       "data-[state=active]:after:left-1/2",
       "data-[state=active]:after:-translate-x-1/2",
-      "data-[state=active]:after:w-[68%]",
-      "data-[state=active]:after:h-[8px]",
+      "data-[state=active]:after:w-[var(--cv-tab-indicator-width)]",
+      "data-[state=active]:after:h-[var(--cv-tab-indicator-height)]",
       "data-[state=active]:after:bg-vibe-orange",
       "data-[state=active]:after:rounded-full",
       "data-[state=active]:after:content-['']",
@@ -58,6 +58,7 @@ const TabsTrigger = React.forwardRef<
       // ENFORCED: No horizontal padding, only bottom padding for underline space
       "px-0 pb-4 pt-0 m-0",
     )}
+    style={style}
     {...props}
   />
 ));

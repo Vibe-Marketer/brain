@@ -58,8 +58,7 @@ const FEATURE_LABELS: Record<string, string> = {
 
 export default function AdminCostDashboard() {
   const [period, setPeriod] = useState<AdminCostPeriod>("month");
-  const summaryAccentClass =
-    "absolute left-2 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full";
+  const summaryAccentClass = "cv-side-indicator-pill";
   const { byModel, byFeature, byUser, totals, isLoading, error } =
     useAdminCosts(period);
 

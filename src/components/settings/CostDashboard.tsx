@@ -93,8 +93,7 @@ function formatModelName(model: string): string {
  */
 export function CostDashboard() {
   const [period, setPeriod] = useState<CostPeriod>('month');
-  const cardAccentClass =
-    'absolute left-2 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full';
+  const cardAccentClass = 'cv-side-indicator-pill';
 
   const {
     totalCostUsd,

@@ -226,7 +226,7 @@ export function AnalyticsCategoryPane({
               {/* Active indicator - pill shape (Loop-style) with smooth transition */}
               <div
                 className={cn(
-                  "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full",
+                  "cv-side-indicator-pill",
                   "transition-all duration-200 ease-in-out",
                   isActive ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0"
                 )}
