@@ -29,6 +29,14 @@ const ROLE_POWER: Record<VaultRole, number> = {
   guest: 4,
 }
 
+const ROLE_LABELS: Record<VaultRole, string> = {
+  vault_owner: 'Owner',
+  vault_admin: 'Admin',
+  manager: 'Manager',
+  member: 'Member',
+  guest: 'Guest',
+}
+
 /**
  * Generates a cryptographically secure 32-character URL-safe token
  * (Same implementation as useTeamHierarchy)
@@ -57,10 +65,30 @@ function getInviteExpiration(): string {
  */
 export function useGenerateVaultInvite(vaultId: string) {
   const queryClient = useQueryClient()
+  const { user } = useAuth()
 
   return useMutation({
-    mutationFn: async (): Promise<{ invite_token: string; invite_url: string }> => {
+    mutationFn: async (options?: { force?: boolean }): Promise<{
+      invite_token: string
+      invite_url: string
+      invite_expires_at: string
+    }> => {
       if (!vaultId) throw new Error('Vault ID is required')
+      if (!user) throw new Error('Not authenticated')
+
+      // Permission check: must be vault_owner or vault_admin
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: membership } = await (supabase as any)
+        .from('vault_memberships')
+        .select('role')
+        .eq('vault_id', vaultId)
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      const currentRole = membership?.role as VaultRole | undefined
+      if (currentRole !== 'vault_owner' && currentRole !== 'vault_admin') {
+        throw new Error('Only vault owners and admins can generate invite links')
+      }
 
       // Check if vault already has a valid invite token
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,11 +101,15 @@ export function useGenerateVaultInvite(vaultId: string) {
       if (fetchError) throw fetchError
 
       // If there's an existing valid token, return it
-      if (existingVault?.invite_token && existingVault?.invite_expires_at) {
+      if (!options?.force && existingVault?.invite_token && existingVault?.invite_expires_at) {
         const expiresAt = new Date(existingVault.invite_expires_at)
         if (expiresAt > new Date()) {
           const inviteUrl = `${window.location.origin}/join/vault/${existingVault.invite_token}`
-          return { invite_token: existingVault.invite_token, invite_url: inviteUrl }
+          return {
+            invite_token: existingVault.invite_token,
+            invite_url: inviteUrl,
+            invite_expires_at: existingVault.invite_expires_at,
+          }
         }
       }
 
@@ -97,7 +129,7 @@ export function useGenerateVaultInvite(vaultId: string) {
       if (updateError) throw updateError
 
       const inviteUrl = `${window.location.origin}/join/vault/${inviteToken}`
-      return { invite_token: inviteToken, invite_url: inviteUrl }
+      return { invite_token: inviteToken, invite_url: inviteUrl, invite_expires_at: inviteExpiresAt }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.vaults.detail(vaultId) })
@@ -122,18 +154,31 @@ export function useChangeRole(vaultId: string) {
   return useMutation({
     mutationFn: async ({
       membershipId,
-      userId: targetUserId,
+      userId: _targetUserId,
       newRole,
       currentUserRole,
+      targetRole,
+      isLastAdmin,
     }: {
       membershipId: string
       userId: string
       newRole: VaultRole
       currentUserRole: VaultRole
+      targetRole: VaultRole
+      isLastAdmin: boolean
     }) => {
       // Permission check: must be owner or admin
       if (currentUserRole !== 'vault_owner' && currentUserRole !== 'vault_admin') {
         throw new Error('Only vault owners and admins can change roles')
+      }
+
+      // Cannot change vault_owner role via this action
+      if (targetRole === 'vault_owner') {
+        throw new Error('Cannot change the vault owner role')
+      }
+
+      if (targetRole === 'vault_admin' && isLastAdmin && newRole !== 'vault_admin') {
+        throw new Error('Cannot demote the last admin')
       }
 
       // Cannot promote beyond own role
@@ -150,8 +195,8 @@ export function useChangeRole(vaultId: string) {
 
       if (error) throw error
     },
-    onSuccess: () => {
-      toast.success('Role updated')
+    onSuccess: (_data, variables) => {
+      toast.success(`Role changed to ${ROLE_LABELS[variables.newRole]}`)
       queryClient.invalidateQueries({ queryKey: queryKeys.vaults.members(vaultId) })
       queryClient.invalidateQueries({ queryKey: queryKeys.vaults.detail(vaultId) })
     },
@@ -176,10 +221,16 @@ export function useRemoveMember(vaultId: string) {
     mutationFn: async ({
       membershipId,
       targetRole,
+      currentUserRole,
     }: {
       membershipId: string
       targetRole: VaultRole
+      currentUserRole: VaultRole
     }) => {
+      if (currentUserRole !== 'vault_owner' && currentUserRole !== 'vault_admin') {
+        throw new Error('Only vault owners and admins can remove members')
+      }
+
       // Cannot remove vault_owner
       if (targetRole === 'vault_owner') {
         throw new Error('Cannot remove the vault owner')
