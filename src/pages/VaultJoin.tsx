@@ -46,6 +46,7 @@ export default function VaultJoin() {
   const [isLoading, setIsLoading] = useState(true)
   const [isJoining, setIsJoining] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [alreadyMemberVaultId, setAlreadyMemberVaultId] = useState<string | null>(null)
 
   // Fetch invite data when component mounts
   useEffect(() => {
@@ -73,7 +74,7 @@ export default function VaultJoin() {
 
         // Check if expired
         if (vault.invite_expires_at && new Date(vault.invite_expires_at) < new Date()) {
-          setError('This invitation has expired')
+          setError('This invite link has expired')
           setIsLoading(false)
           return
         }
@@ -89,6 +90,7 @@ export default function VaultJoin() {
             .maybeSingle()
 
           if (existingMembership) {
+            setAlreadyMemberVaultId(vault.id)
             setError("You're already a member of this vault")
             setIsLoading(false)
             return
@@ -140,6 +142,7 @@ export default function VaultJoin() {
         .maybeSingle()
 
       if (existingMembership) {
+        setAlreadyMemberVaultId(inviteData.vault_id)
         setError("You're already a member of this vault")
         setIsJoining(false)
         return
@@ -160,7 +163,7 @@ export default function VaultJoin() {
       }
 
       toast.success(`Joined vault '${inviteData.vault_name}'`)
-      navigate(`/vaults`)
+      navigate(`/vaults/${inviteData.vault_id}`)
     } catch (err) {
       toast.error(getErrorToastMessage(err))
       setIsJoining(false)
@@ -194,10 +197,17 @@ export default function VaultJoin() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <Button onClick={() => navigate('/vaults')} className="w-full">
-              <RiSafeLine className="w-4 h-4 mr-2" />
-              Go to Vaults
-            </Button>
+            {alreadyMemberVaultId ? (
+              <Button onClick={() => navigate(`/vaults/${alreadyMemberVaultId}`)} className="w-full">
+                <RiSafeLine className="w-4 h-4 mr-2" />
+                Go to Vault
+              </Button>
+            ) : (
+              <Button onClick={() => navigate('/vaults')} className="w-full">
+                <RiSafeLine className="w-4 h-4 mr-2" />
+                Go to Vaults
+              </Button>
+            )}
             <Button variant="hollow" onClick={() => navigate('/')} className="w-full">
               <RiArrowLeftLine className="w-4 h-4 mr-2" />
               Go Home

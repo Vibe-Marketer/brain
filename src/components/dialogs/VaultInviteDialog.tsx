@@ -13,7 +13,7 @@
  * @brand-version v4.2
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -54,14 +54,18 @@ export function VaultInviteDialog({
 
   const generateInvite = useGenerateVaultInvite(vaultId)
 
+  const expiresInDays = useMemo(() => {
+    if (!expiresAt) return null
+    const msRemaining = new Date(expiresAt).getTime() - Date.now()
+    const daysRemaining = Math.max(1, Math.ceil(msRemaining / (1000 * 60 * 60 * 24)))
+    return daysRemaining
+  }, [expiresAt])
+
   const handleGenerate = useCallback(async () => {
     try {
-      const result = await generateInvite.mutateAsync()
+      const result = await generateInvite.mutateAsync({})
       setInviteUrl(result.invite_url)
-      // Calculate expiry (7 days from now if freshly generated)
-      const expiryDate = new Date()
-      expiryDate.setDate(expiryDate.getDate() + 7)
-      setExpiresAt(expiryDate.toISOString())
+      setExpiresAt(result.invite_expires_at)
     } catch {
       // Error handled by mutation's onError toast
     }
@@ -71,8 +75,14 @@ export function VaultInviteDialog({
     // Clear existing to force new token generation
     setInviteUrl(null)
     setIsCopied(false)
-    handleGenerate()
-  }, [handleGenerate])
+    try {
+      const result = await generateInvite.mutateAsync({ force: true })
+      setInviteUrl(result.invite_url)
+      setExpiresAt(result.invite_expires_at)
+    } catch {
+      // Error handled by mutation's onError toast
+    }
+  }, [generateInvite])
 
   const handleCopy = useCallback(async () => {
     if (!inviteUrl) return
@@ -162,11 +172,11 @@ export function VaultInviteDialog({
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <RiTimeLine className="h-3.5 w-3.5" />
                   <span>
-                    Expires {new Date(expiresAt).toLocaleDateString(undefined, {
+                    Expires in {expiresInDays ?? 7} {expiresInDays === 1 ? 'day' : 'days'} ({new Date(expiresAt).toLocaleDateString(undefined, {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
-                    })}
+                    })})
                   </span>
                 </div>
               )}
