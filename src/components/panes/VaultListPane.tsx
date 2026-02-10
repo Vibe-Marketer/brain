@@ -22,6 +22,7 @@ import {
 } from '@remixicon/react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
+import { CreateVaultDialog } from '@/components/dialogs/CreateVaultDialog';
 import { useBankContext } from '@/hooks/useBankContext';
 import { useVaults } from '@/hooks/useVaults';
 import type { VaultType } from '@/types/bank';
@@ -181,10 +182,11 @@ export function VaultListPane({
     [vaults, onVaultSelect, focusVaultByIndex]
   );
 
-  // Create Vault stub handler
+  // Create Vault dialog state
+  const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+
   const handleCreateVault = React.useCallback(() => {
-    // Stub for Plan 03 - will open create vault modal
-    console.log('[VaultListPane] Create Vault clicked - stub for Plan 03');
+    setCreateDialogOpen(true);
   }, []);
 
   return (
@@ -344,6 +346,15 @@ export function VaultListPane({
             );
           })}
         </div>
+      )}
+
+      {/* Create Vault Dialog */}
+      {activeBankId && (
+        <CreateVaultDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          bankId={activeBankId}
+        />
       )}
     </div>
   );

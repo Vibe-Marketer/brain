@@ -9,7 +9,7 @@
  * @brand-version v4.2
  */
 
-import { useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -18,17 +18,19 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { TranscriptTable } from '@/components/transcript-library/TranscriptTable'
 import { VaultSearchFilter } from '@/components/vault/VaultSearchFilter'
+import { EditVaultDialog } from '@/components/dialogs/EditVaultDialog'
 import {
   RiGroupLine,
   RiArrowLeftLine,
   RiSafeLine,
   RiRecordCircleLine,
   RiSearchLine,
+  RiSettings3Line,
 } from '@remixicon/react'
 import { usePanelStore } from '@/stores/panelStore'
 import { useVaultDetail, useVaultRecordings, mapRecordingToMeeting } from '@/hooks/useVaults'
 import { useRecordingSearch } from '@/hooks/useRecordingSearch'
-import type { VaultType } from '@/types/bank'
+import type { VaultType, VaultRole } from '@/types/bank'
 import type { Meeting } from '@/types'
 
 /** Vault type badge colors */
@@ -116,6 +118,18 @@ export function VaultDetailPane({
     openPanel('vault-member', { type: 'vault-member' as const, vaultId })
   }, [openPanel, vaultId])
 
+  // Edit vault dialog state
+  const [editDialogOpen, setEditDialogOpen] = useState(false)
+
+  // Permission check: can user edit vault settings?
+  const canEditSettings = vault?.user_role
+    ? (['vault_owner', 'vault_admin'] as VaultRole[]).includes(vault.user_role)
+    : false
+
+  const handleOpenSettings = useCallback(() => {
+    setEditDialogOpen(true)
+  }, [])
+
   // No-op handlers for TranscriptTable required props
   const handleSelectCall = useCallback(() => {}, [])
   const handleSelectAll = useCallback(() => {}, [])
@@ -180,6 +194,19 @@ export function VaultDetailPane({
             <RiRecordCircleLine className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="tabular-nums">{recordings.length}</span>
           </div>
+
+          {/* Settings button (vault_owner/vault_admin only) */}
+          {canEditSettings && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleOpenSettings}
+              className="h-8 w-8"
+              aria-label="Vault settings"
+            >
+              <RiSettings3Line className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
 
           {/* Members button */}
           <Button
@@ -266,6 +293,14 @@ export function VaultDetailPane({
           )}
         </div>
       </ScrollArea>
+
+      {/* Edit Vault Dialog */}
+      <EditVaultDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        vault={vault}
+        userRole={vault?.user_role || null}
+      />
     </div>
   )
 }
