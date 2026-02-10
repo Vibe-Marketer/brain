@@ -594,10 +594,13 @@ export function SyncTab() {
           integration="fathom"
           value={selectedVaultId}
           onVaultChange={setSelectedVaultId}
-          label="Sync to vault"
+          label="Sync to Hub"
           disabled={syncing}
           className="mb-4"
         />
+        <p className="text-xs text-muted-foreground -mt-2 mb-4">
+          Calls sync to your current workspace. Switch workspace in the header to sync elsewhere.
+        </p>
 
         {/* Active Sync Jobs Status - Shows real-time progress */}
         <ActiveSyncJobsCard
