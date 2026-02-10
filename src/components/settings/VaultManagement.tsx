@@ -198,6 +198,7 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
               type="button"
               onClick={() => navigate('/vaults')}
               className="font-medium underline hover:no-underline"
+              aria-label="Go to Vaults page"
             >
               Vaults page
             </button>
@@ -216,7 +217,7 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
         {canManage && (
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm">
+              <Button size="sm" aria-label="Create vault">
                 <RiAddLine className="h-4 w-4 mr-2" />
                 Create Vault
               </Button>
@@ -235,6 +236,7 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
                     value={newVaultName}
                     onChange={(e) => setNewVaultName(e.target.value)}
                     placeholder="e.g., Sales Team, Marketing"
+                    aria-label="Vault name"
                   />
                 </div>
                 <div className="space-y-2">
@@ -262,12 +264,14 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
                 <Button
                   variant="outline"
                   onClick={() => setCreateDialogOpen(false)}
+                  aria-label="Cancel vault creation"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleCreateVault}
                   disabled={createVault.isPending}
+                  aria-label="Create vault"
                 >
                   {createVault.isPending ? 'Creating...' : 'Create Vault'}
                 </Button>
@@ -325,7 +329,7 @@ function VaultCard({ vault, canManage }: VaultCardProps) {
               {vault.vault_type}
             </Badge>
             {canManage && (
-              <Button variant="ghost" size="icon">
+              <Button variant="ghost" size="icon" aria-label="Vault settings">
                 <RiSettings3Line className="h-4 w-4" />
               </Button>
             )}

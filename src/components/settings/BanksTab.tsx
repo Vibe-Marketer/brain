@@ -65,6 +65,7 @@ export function BanksTab() {
           size="sm"
           onClick={() => navigate('/vaults')}
           className="flex-shrink-0 gap-1.5"
+          aria-label="Go to Vaults"
         >
           Go to Vaults
           <RiArrowRightLine className="h-3.5 w-3.5" />

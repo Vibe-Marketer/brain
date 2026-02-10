@@ -14,7 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AppShell } from '@/components/layout/AppShell';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ErrorBoundary } from 'react-error-boundary';
 import { useBreakpointFlags } from '@/hooks/useBreakpoint';
 import { usePanelStore } from '@/stores/panelStore';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
@@ -27,8 +27,41 @@ import { Button } from '@/components/ui/button';
 import {
   RiSafeLine,
   RiCloseLine,
-  RiArrowLeftSLine,
+  RiArrowLeftLine,
+  RiErrorWarningLine,
 } from '@remixicon/react';
+
+function VaultsErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="flex-1 flex items-center justify-center p-6">
+      <div className="text-center">
+        <RiErrorWarningLine className="h-16 w-16 text-destructive/60 mx-auto mb-4" aria-hidden="true" />
+        <h2 className="text-lg font-semibold text-foreground mb-2">Something went wrong</h2>
+        <p className="text-sm text-muted-foreground max-w-md mb-4">
+          {error.message || 'An unexpected error occurred while loading the vaults page.'}
+        </p>
+        <div className="flex items-center gap-3 justify-center">
+          <Button
+            variant="default"
+            onClick={resetErrorBoundary}
+            aria-label="Try again"
+          >
+            Try Again
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => navigate('/')}
+            aria-label="Go home"
+          >
+            Go Home
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function VaultsPage() {
   const { vaultId: urlVaultId } = useParams<{ vaultId?: string }>();
@@ -142,7 +175,7 @@ export default function VaultsPage() {
         {/* Mobile overlay backdrop */}
         {(showMobileNav || showMobileVaultList || showMobileBottomSheet) && (
           <div
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-200"
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-500"
             onClick={() => {
               if (showMobileNav) setShowMobileNav(false);
               if (showMobileVaultList) setShowMobileVaultList(false);
@@ -157,7 +190,7 @@ export default function VaultsPage() {
           <div
             className={cn(
               'fixed top-0 left-0 bottom-0 w-[280px] bg-card/95 backdrop-blur-md rounded-r-2xl border-r border-border/60 shadow-lg z-50 flex flex-col',
-              'animate-in slide-in-from-left duration-300'
+              'animate-in slide-in-from-left duration-500'
             )}
           >
             <div className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-white/50 dark:bg-black/20">
@@ -167,11 +200,9 @@ export default function VaultsPage() {
               <button
                 onClick={() => setShowMobileVaultList(false)}
                 className="text-muted-foreground hover:text-foreground h-6 w-6"
+                aria-label="Close vault list"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <RiCloseLine className="h-4 w-4" aria-hidden="true" />
               </button>
             </div>
             <div className="flex-1 overflow-hidden pt-2">
@@ -186,44 +217,47 @@ export default function VaultsPage() {
         {/* Mobile main content */}
         <div className="h-full flex gap-3 overflow-hidden p-1">
           <div className="flex-1 flex flex-col h-full min-w-0 overflow-hidden">
-            <div
+            <ErrorBoundary FallbackComponent={VaultsErrorFallback}>
+              <div
               className="flex-1 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full overflow-hidden"
               role="main"
               aria-label="Vaults"
-            >
-              {/* Mobile: Show VaultDetailPane or empty state */}
-              {selectedVaultId ? (
-                <VaultDetailPane
-                  vaultId={selectedVaultId}
-                  showBackButton
-                  onBack={() => setShowMobileVaultList(true)}
-                />
-              ) : (
-                <>
-                  {/* Mobile header */}
-                  <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setShowMobileVaultList(true)}
-                      className="text-muted-foreground hover:text-foreground h-10 w-10"
-                      aria-label="Open vault list"
-                    >
-                      <RiSafeLine className="h-5 w-5" />
-                    </Button>
-                    <span className="text-sm font-semibold">Vaults</span>
-                  </div>
-                  <div className="flex-1 flex items-center justify-center p-6">
-                    <div className="text-center">
-                      <RiSafeLine className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                      <p className="text-sm text-muted-foreground">
-                        Select a vault to view recordings and members
-                      </p>
+              >
+                {/* Mobile: Show VaultDetailPane or empty state */}
+                {selectedVaultId ? (
+                  <VaultDetailPane
+                    vaultId={selectedVaultId}
+                    showBackButton
+                    onBack={() => setShowMobileVaultList(true)}
+                  />
+                ) : (
+                  <>
+                    {/* Mobile header */}
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setShowMobileVaultList(true)}
+                        className="text-muted-foreground hover:text-foreground h-10 w-10"
+                        aria-label="Open vault list"
+                      >
+                        <RiSafeLine className="h-5 w-5" aria-hidden="true" />
+                      </Button>
+                      <span className="text-sm font-semibold">Vaults</span>
                     </div>
-                  </div>
-                </>
-              )}
-            </div>
+                    <div className="flex-1 flex items-center justify-center p-6">
+                      <div className="text-center">
+                        <RiArrowLeftLine className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" aria-hidden="true" />
+                        <p className="text-sm font-semibold text-foreground mb-1">Select a vault</p>
+                        <p className="text-xs text-muted-foreground">
+                          Choose a vault from the list to view recordings and members
+                        </p>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </ErrorBoundary>
           </div>
         </div>
 
@@ -234,7 +268,7 @@ export default function VaultsPage() {
             aria-label="Vault member panel"
             className={cn(
               'fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl border-t border-border/60 shadow-xl flex flex-col',
-              'max-h-[85vh] animate-in slide-in-from-bottom duration-300'
+              'max-h-[85vh] animate-in slide-in-from-bottom duration-500'
             )}
           >
             <div className="flex items-center justify-between px-4 py-3 border-b border-border/40 flex-shrink-0">
@@ -275,58 +309,15 @@ export default function VaultsPage() {
         showDetailPane: true,
       }}
     >
-      <ErrorBoundary
-        fallback={
-          <div className="flex-1 flex items-center justify-center p-6">
-            <div className="text-center">
-              <RiSafeLine className="h-16 w-16 text-destructive/30 mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-2">
-                Something went wrong
-              </h2>
-              <p className="text-sm text-muted-foreground max-w-md mb-4">
-                An error occurred while loading the vault view. Please try again.
-              </p>
-              <div className="flex items-center gap-3 justify-center">
-                <Button
-                  variant="default"
-                  onClick={() => window.location.reload()}
-                >
-                  Try Again
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/')}
-                >
-                  Go Home
-                </Button>
-              </div>
-            </div>
-          </div>
-        }
-      >
+      <ErrorBoundary FallbackComponent={VaultsErrorFallback}>
         {/* Main content */}
-        {selectedVaultId ? (
-          <VaultDetailPane
-            vaultId={selectedVaultId}
-            onClose={() => {
-              setSelectedVaultId(null);
-              navigate('/vaults', { replace: true });
-            }}
-          />
-        ) : (
-          <div className="flex-1 flex items-center justify-center p-6">
-            <div className="text-center">
-              <RiSafeLine className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-              <h2 className="text-lg font-semibold text-foreground mb-2">
-                Select a Vault
-              </h2>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Select a vault from the sidebar to view recordings and members
-              </p>
-              <RiArrowLeftSLine className="h-6 w-6 text-muted-foreground/40 mx-auto mt-2" aria-hidden="true" />
-            </div>
-          </div>
-        )}
+        <VaultDetailPane
+          vaultId={selectedVaultId}
+          onClose={() => {
+            setSelectedVaultId(null);
+            navigate('/vaults', { replace: true });
+          }}
+        />
       </ErrorBoundary>
     </AppShell>
   );

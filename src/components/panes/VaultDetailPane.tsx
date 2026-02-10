@@ -10,6 +10,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -31,14 +32,17 @@ import {
   RiGroupLine,
   RiArrowLeftLine,
   RiSafeLine,
+  RiMicLine,
   RiRecordCircleLine,
   RiSearchLine,
   RiSettings3Line,
   RiArrowDownSLine,
+  RiErrorWarningLine,
 } from '@remixicon/react'
 import { usePanelStore } from '@/stores/panelStore'
 import { useVaultDetail, useVaultRecordings, mapRecordingToMeeting } from '@/hooks/useVaults'
 import { useRecordingSearch } from '@/hooks/useRecordingSearch'
+import { queryKeys } from '@/lib/query-config'
 import type { VaultType, VaultRole } from '@/types/bank'
 import type { Meeting } from '@/types'
 
@@ -52,7 +56,7 @@ const VAULT_TYPE_STYLES: Record<VaultType, { bg: string; text: string }> = {
 }
 
 export interface VaultDetailPaneProps {
-  vaultId: string
+  vaultId: string | null
   onClose?: () => void
   onBack?: () => void
   showBackButton?: boolean
@@ -90,9 +94,10 @@ export function VaultDetailPane({
   className,
 }: VaultDetailPaneProps) {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { openPanel } = usePanelStore()
-  const { vault, isLoading: vaultLoading } = useVaultDetail(vaultId)
-  const { recordings, isLoading: recordingsLoading } = useVaultRecordings(vaultId)
+  const { vault, isLoading: vaultLoading, error: vaultError } = useVaultDetail(vaultId)
+  const { recordings, isLoading: recordingsLoading, error: recordingsError } = useVaultRecordings(vaultId)
 
   // Search/filter/sort recordings
   const {
@@ -149,8 +154,46 @@ export function VaultDetailPane({
   const handleSelectCall = useCallback(() => {}, [])
   const handleSelectAll = useCallback(() => {}, [])
 
+  if (!vaultId) {
+    return (
+      <div className={cn('h-full flex flex-col', className)}>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <div className="text-center">
+            <RiArrowLeftLine className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" aria-hidden="true" />
+            <p className="text-sm font-semibold text-foreground mb-1">Select a vault</p>
+            <p className="text-xs text-muted-foreground max-w-xs">
+              Choose a vault from the list to view recordings and members
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   if (vaultLoading) {
     return <VaultDetailSkeleton />
+  }
+
+  if (vaultError) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="text-center">
+          <RiErrorWarningLine className="h-12 w-12 text-destructive/60 mx-auto mb-3" aria-hidden="true" />
+          <p className="text-sm font-semibold text-foreground mb-1">Unable to load this vault</p>
+          <p className="text-xs text-muted-foreground mb-4">
+            Please try again in a moment.
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.vaults.detail(vaultId) })}
+            aria-label="Retry loading vault"
+          >
+            Try Again
+          </Button>
+        </div>
+      </div>
+    )
   }
 
   if (!vault) {
@@ -292,18 +335,36 @@ export function VaultDetailPane({
                 <Skeleton key={i} className="h-12 w-full" />
               ))}
             </div>
+          ) : recordingsError ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <RiErrorWarningLine className="h-12 w-12 text-destructive/60 mb-4" aria-hidden="true" />
+              <h3 className="text-sm font-semibold text-foreground mb-1">Unable to load recordings</h3>
+              <p className="text-xs text-muted-foreground text-center max-w-xs">
+                Please try again. If this keeps happening, contact support.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.vaults.recordings(vaultId) })}
+                aria-label="Retry loading recordings"
+              >
+                Try Again
+              </Button>
+            </div>
           ) : recordings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <RiSafeLine className="h-16 w-16 text-muted-foreground/20 mb-4" aria-hidden="true" />
-              <h3 className="text-sm font-semibold text-foreground mb-1">No recordings in this vault yet</h3>
+              <RiMicLine className="h-16 w-16 text-muted-foreground/20 mb-4" aria-hidden="true" />
+              <h3 className="text-sm font-semibold text-foreground mb-1">No recordings in this vault</h3>
               <p className="text-xs text-muted-foreground text-center max-w-xs">
-                Add recordings from your Library using the vault menu on any recording row.
+                Recordings you add to this vault will appear here.
               </p>
               <Button
                 variant="hollow"
                 size="sm"
                 className="mt-4"
-                onClick={() => navigate('/')}
+                onClick={() => navigate('/library')}
+                aria-label="Go to Library"
               >
                 Go to Library
               </Button>
@@ -321,6 +382,7 @@ export function VaultDetailPane({
                 size="sm"
                 className="mt-4"
                 onClick={clearFilters}
+                aria-label="Clear filters"
               >
                 Clear Filters
               </Button>

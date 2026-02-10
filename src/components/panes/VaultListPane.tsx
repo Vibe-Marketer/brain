@@ -9,7 +9,7 @@
  */
 
 import * as React from 'react';
-import { cn } from '@/lib/utils';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   RiSafeLine,
   RiSafeFill,
@@ -20,13 +20,16 @@ import {
   RiCommunityLine,
   RiBriefcaseLine,
   RiBuildingLine,
+  RiErrorWarningLine,
 } from '@remixicon/react';
+import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { CreateVaultDialog } from '@/components/dialogs/CreateVaultDialog';
 import { CreateBusinessBankDialog } from '@/components/dialogs/CreateBusinessBankDialog';
 import { useBankContext } from '@/hooks/useBankContext';
 import { useVaults } from '@/hooks/useVaults';
+import { queryKeys } from '@/lib/query-config';
 import type { VaultType } from '@/types/bank';
 import type { VaultWithMeta } from '@/hooks/useVaults';
 
@@ -92,32 +95,48 @@ function VaultListSkeleton() {
 }
 
 /** Empty state when no vaults exist */
-function VaultListEmpty({ onCreateClick }: { onCreateClick?: () => void }) {
+function VaultListEmpty({
+  onCreateClick,
+  canCreate,
+}: {
+  onCreateClick?: () => void;
+  canCreate: boolean;
+}) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
-      <div
-        className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-3"
-        aria-hidden="true"
-      >
-        <RiSafeLine className="h-6 w-6 text-muted-foreground" />
-      </div>
-      <p className="text-sm font-medium text-foreground mb-1">
-        No vaults in this bank
+      <RiSafeLine className="h-16 w-16 text-muted-foreground/50 mb-4" aria-hidden="true" />
+      <p className="text-sm font-montserrat font-extrabold uppercase tracking-wide text-foreground mb-1">
+        No vaults yet
       </p>
       <p className="text-xs text-muted-foreground mb-4">
-        Create a vault to start collaborating
+        Create your first vault to start collaborating
       </p>
-      {onCreateClick && (
-        <Button
-          variant="default"
-          size="sm"
-          onClick={onCreateClick}
-          className="gap-1.5"
-        >
-          <RiAddLine className="h-4 w-4" />
-          Create Vault
-        </Button>
-      )}
+      <Button
+        variant="default"
+        size="sm"
+        onClick={canCreate ? onCreateClick : undefined}
+        className="gap-1.5"
+        disabled={!canCreate}
+        aria-label="Create vault"
+      >
+        <RiAddLine className="h-4 w-4" aria-hidden="true" />
+        Create Vault
+      </Button>
+    </div>
+  );
+}
+
+function VaultListError({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+      <RiErrorWarningLine className="h-12 w-12 text-destructive/60 mb-3" aria-hidden="true" />
+      <p className="text-sm font-semibold text-foreground mb-1">Unable to load vaults</p>
+      <p className="text-xs text-muted-foreground mb-4">
+        Please check your connection and try again.
+      </p>
+      <Button variant="outline" size="sm" onClick={onRetry} aria-label="Retry loading vaults">
+        Try Again
+      </Button>
     </div>
   );
 }
@@ -127,8 +146,9 @@ export function VaultListPane({
   onVaultSelect,
   className,
 }: VaultListPaneProps) {
+  const queryClient = useQueryClient();
   const { activeBankId, activeBank, bankRole, banks } = useBankContext();
-  const { vaults, isLoading } = useVaults(activeBankId);
+  const { vaults, isLoading, error } = useVaults(activeBankId);
   const canCreateVault = bankRole === 'bank_owner' || bankRole === 'bank_admin';
   const businessBanks = banks.filter((bank) => bank.type === 'business');
   const hasBusinessBanks = businessBanks.length > 0;
@@ -243,6 +263,7 @@ export function VaultListPane({
               onClick={handleCreateVault}
               className="h-6 w-6 text-muted-foreground hover:text-foreground"
               title="Create Vault"
+              aria-label="Create vault"
             >
               <RiAddLine className="h-4 w-4" />
             </Button>
@@ -253,8 +274,15 @@ export function VaultListPane({
       {/* Vault List */}
       {isLoading ? (
         <VaultListSkeleton />
+      ) : error ? (
+        <VaultListError
+          onRetry={() => queryClient.invalidateQueries({ queryKey: queryKeys.vaults.list() })}
+        />
       ) : vaults.length === 0 ? (
-        <VaultListEmpty onCreateClick={canCreateVault ? handleCreateVault : undefined} />
+        <VaultListEmpty
+          onCreateClick={handleCreateVault}
+          canCreate={canCreateVault}
+        />
       ) : (
         <div
           className="flex-1 overflow-y-auto py-2 px-2"
@@ -377,6 +405,7 @@ export function VaultListPane({
               'hover:bg-muted/50 dark:hover:bg-white/5',
               'transition-colors duration-200'
             )}
+            aria-label="Create business bank"
           >
             <RiBuildingLine className="h-4 w-4" />
             <span>Create Business Bank</span>
@@ -391,6 +420,7 @@ export function VaultListPane({
               size="sm"
               onClick={() => setCreateBankDialogOpen(true)}
               className="gap-1.5"
+              aria-label="Create business bank"
             >
               <RiBuildingLine className="h-4 w-4" />
               Create Business Bank

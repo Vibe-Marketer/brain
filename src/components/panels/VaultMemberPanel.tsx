@@ -33,6 +33,7 @@ import {
   RiGroupLine,
   RiUserAddLine,
   RiUserLine,
+  RiTeamLine,
   RiMoreLine,
   RiShieldUserLine,
   RiLogoutCircleLine,
@@ -121,6 +122,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
   )
 
   const showSearch = members.length > 10
+  const hasOnlyOwner = members.length <= 1
   const filteredMembers = useMemo(() => {
     if (!searchTerm.trim()) return members
     const term = searchTerm.trim().toLowerCase()
@@ -208,12 +210,12 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
       <ScrollArea className="flex-1">
         {isLoading ? (
           <MemberListSkeleton />
-        ) : members.length === 0 ? (
+        ) : hasOnlyOwner ? (
           <div className="flex flex-col items-center justify-center py-12 px-4">
-            <RiGroupLine className="h-10 w-10 text-muted-foreground/20 mb-3" aria-hidden="true" />
+            <RiTeamLine className="h-12 w-12 text-muted-foreground/50 mb-3" aria-hidden="true" />
             <p className="text-sm font-medium text-foreground mb-1">No members yet</p>
             <p className="text-xs text-muted-foreground text-center">
-              Invite team members to collaborate in this vault.
+              Invite team members to collaborate
             </p>
             {canManage && (
               <Button
