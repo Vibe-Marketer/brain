@@ -157,7 +157,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
     } finally {
       setIsImporting(false);
     }
-  }, [url, onSuccess, onError]);
+  }, [url, selectedVaultId, onSuccess, onError]);
 
   const handleReset = useCallback(() => {
     setUrl('');
