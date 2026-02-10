@@ -20,7 +20,7 @@
 
 **Status:** In progress
 
-**Last activity:** 2026-02-10 - Completed 10.2-06-PLAN.md
+**Last activity:** 2026-02-10 - Completed quick task 003: Run migration, fix Sync Hub naming, workspace scope
 
 **Progress:**
 ```
@@ -153,6 +153,8 @@
 | 2026-02-10 | sync-meetings also needs vault_id (not just zoom/google) | SyncTab calls sync-meetings, not zoom-sync-meetings | Identified and fixed during edge function updates |
 | 2026-02-10 | Store business bank logos in banks.logo_url | Support logo upload without storage infrastructure for MVP | Bank creation persists branding assets |
 | 2026-02-10 | Create business banks via RPC | RLS returning blocked insert + select during provisioning | Reliable business bank creation flow |
+| 2026-02-10 | Workspace tabs use per-surface floating pill override | Needed horizontal pill active indicator in Workspaces & Hubs without changing shared tabs primitive globally | BanksTab suppresses default underline with local `TabsTrigger` active-state overrides |
+| 2026-02-10 | Settings category rows use pill-first active emphasis | Vertical indicator should be the primary wayfinding signal, not stacked orange icon/text/arrow accents | SettingsCategoryPane active colors are neutralized while preserving keyboard/ARIA behavior |
 
 ### Active TODOs
 
@@ -252,24 +254,34 @@ Phase 10.2 COMPLETE (9/9 plans).
 
 None
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Update workspace hub tab indicator | 2026-02-10 | 5859a1c | [001-update-workspace-hub-tab-indicator](./quick/001-update-workspace-hub-tab-indicator-to-ho/) |
+| 002 | Complete UI brand audit | 2026-02-10 | f0969ad | [002-complete-ui-brand-audit](./quick/002-complete-ui-brand-audit-fix-hub-header-a/) |
+| 003 | Run migration, fix Sync Hub naming, workspace scope | 2026-02-10 | dd5ba9a | [003-run-migration-fix-sync-hub-naming](./quick/003-run-migration-fix-sync-hub-naming-workspace-scope/) |
+
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-02-10T16:21:40Z
-**Stopped at:** Completed quick-003-PLAN.md
+**Last session:** 2026-02-10T16:23:51Z
+**Stopped at:** Completed quick-001-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Quick task 003 complete - workspace-scoped migration applied, Sync Hub naming fixed, workspace messaging added.
+Quick tasks 003 and 001 complete - migration and workspace messaging updates landed, plus selector indicator refresh in settings.
 
 **What to remember:**
 - Migration 20260210170000 applied: folders and call_tags now have bank_id (workspace-scoped)
 - SyncTab now shows "Sync to Hub" instead of "Sync to vault"
 - Workspace context messaging added below hub selector
 - VaultSelector already filters hubs by active workspace (useBankContext)
+- Workspaces & Hubs tabs now use horizontal floating pill active state in settings
+- Settings category selector now uses offset vertical pill as primary active marker, including Admin
 - Phase 11 (PROFITS Frontend Trigger) is next
 
 ---
@@ -289,4 +301,4 @@ Quick task 003 complete - workspace-scoped migration applied, Sync Hub naming fi
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-10 (Quick task 003 - migration, Sync Hub naming, workspace messaging)*
+*Last updated: 2026-02-10 (Quick tasks 003 and 001 complete - migration/messaging + selector indicator refresh)*
