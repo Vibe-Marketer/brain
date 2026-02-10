@@ -661,7 +661,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body FIRST
-    const { recordingIds } = await req.json();
+    const { recordingIds, vault_id } = await req.json();
 
     if (!Array.isArray(recordingIds)) {
       return new Response(
@@ -744,6 +744,26 @@ Deno.serve(async (req) => {
       }
     }
 
+    // Validate vault membership once at the top if vault_id provided
+    let validatedVaultId: string | null = null;
+    if (vault_id) {
+      const { data: membership, error: membershipError } = await supabase
+        .from('vault_memberships')
+        .select('id')
+        .eq('vault_id', vault_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (membershipError) {
+        console.error('Error checking vault membership:', membershipError);
+      } else if (!membership) {
+        console.warn(`User ${user.id} is not a member of vault ${vault_id}, ignoring vault_id`);
+      } else {
+        validatedVaultId = vault_id;
+        console.log(`Vault ${vault_id} membership validated for user ${user.id}`);
+      }
+    }
+
     console.log(`Syncing ${recordingIds.length} Zoom meetings`);
 
     // Create a sync job record
@@ -801,6 +821,38 @@ Deno.serve(async (req) => {
             if (success) {
               synced.push(recordingId);
               console.log(`✓ Synced Zoom ${recordingId} (${synced.length}/${recordingIds.length})`);
+
+              // Create vault entry if vault_id was validated
+              if (validatedVaultId) {
+                try {
+                  // Look up recording UUID from legacy recording_id (Zoom uses string UUIDs as recording_id)
+                  const { data: recording } = await supabase
+                    .from('recordings')
+                    .select('id')
+                    .eq('owner_user_id', userId)
+                    .or(`legacy_recording_id.eq.${recordingId}`)
+                    .maybeSingle();
+
+                  if (recording?.id) {
+                    const { error: vaultEntryError } = await supabase
+                      .from('vault_entries')
+                      .insert({
+                        vault_id: validatedVaultId,
+                        recording_id: recording.id,
+                      });
+
+                    if (vaultEntryError) {
+                      console.error(`Error creating vault entry for Zoom recording ${recordingId}:`, vaultEntryError);
+                    } else {
+                      console.log(`Created vault entry for Zoom recording ${recording.id} in vault ${validatedVaultId}`);
+                    }
+                  } else {
+                    console.warn(`No recordings table entry found for Zoom recording_id ${recordingId}`);
+                  }
+                } catch (vaultError) {
+                  console.error(`Error handling vault entry for Zoom recording ${recordingId}:`, vaultError);
+                }
+              }
             } else {
               failed.push(recordingId);
               console.log(`✗ Failed to sync Zoom ${recordingId}`);

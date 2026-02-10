@@ -16,6 +16,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 
 interface ImportRequest {
   videoUrl: string;
+  vault_id?: string;
 }
 
 type ImportStep = 'validating' | 'checking' | 'fetching' | 'transcribing' | 'processing' | 'done';
@@ -350,7 +351,61 @@ Deno.serve(async (req) => {
     console.log(`Successfully imported YouTube video as recording_id: ${recordingId}`);
 
     // ========================================================================
-    // Step 6: Return success
+    // Step 6: Create vault entry if vault_id provided
+    // ========================================================================
+    if (body.vault_id) {
+      try {
+        // Validate vault membership
+        const { data: membership, error: membershipError } = await supabase
+          .from('vault_memberships')
+          .select('id')
+          .eq('vault_id', body.vault_id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (membershipError) {
+          console.error('Error checking vault membership:', membershipError);
+        } else if (!membership) {
+          console.warn(`User ${user.id} is not a member of vault ${body.vault_id}, skipping vault entry`);
+        } else {
+          // Look up or create recording in recordings table
+          // First check if a recording already exists for this fathom_calls entry
+          const { data: existingRecording } = await supabase
+            .from('recordings')
+            .select('id')
+            .eq('legacy_recording_id', recordingId)
+            .eq('owner_user_id', user.id)
+            .maybeSingle();
+
+          const recordingUuid = existingRecording?.id;
+
+          if (recordingUuid) {
+            // Create vault entry
+            const { error: vaultEntryError } = await supabase
+              .from('vault_entries')
+              .insert({
+                vault_id: body.vault_id,
+                recording_id: recordingUuid,
+              });
+
+            if (vaultEntryError) {
+              // Don't fail the whole import for vault entry issues
+              console.error('Error creating vault entry:', vaultEntryError);
+            } else {
+              console.log(`Created vault entry for recording ${recordingUuid} in vault ${body.vault_id}`);
+            }
+          } else {
+            console.warn(`No recordings table entry found for legacy_recording_id ${recordingId}, skipping vault entry`);
+          }
+        }
+      } catch (vaultError) {
+        // Never fail the import due to vault entry issues
+        console.error('Error handling vault entry:', vaultError);
+      }
+    }
+
+    // ========================================================================
+    // Step 7: Return success
     // ========================================================================
     const response: ImportResponse = {
       success: true,
