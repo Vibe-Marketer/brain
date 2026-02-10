@@ -171,14 +171,14 @@ Which phases cover which requirements.
 | CHAT-04 | Phase 2: Chat Foundation | Complete |
 | CHAT-05 | Phase 2: Chat Foundation | Complete |
 | STORE-01 | Phase 2: Chat Foundation | Complete |
-| INT-01 | Phase 3: Integration OAuth | Pending |
-| INT-02 | Phase 3: Integration OAuth | Pending |
-| INT-03 | Phase 3: Integration OAuth | Pending |
+| INT-01 | Phase 3: Integration OAuth | Complete |
+| INT-02 | Phase 3: Integration OAuth | Complete (Beta) |
+| INT-03 | Phase 3: Integration OAuth | Complete |
 | TEAM-01 | Phase 4: Team Collaboration | Complete |
 | TEAM-02 | Phase 4: Team Collaboration | Complete |
-| COACH-01 | Phase 5: Coach Collaboration | Pending |
-| COACH-02 | Phase 5: Coach Collaboration | Pending |
-| COACH-03 | Phase 5: Coach Collaboration | Pending |
+| COACH-01 | ~~Coach Collaboration~~ | Removed (Coach removed from roadmap) |
+| COACH-02 | ~~Coach Collaboration~~ | Removed (Coach removed from roadmap) |
+| COACH-03 | ~~Coach Collaboration~~ | Removed (Coach removed from roadmap) |
 | WIRE-01 | Phase 5: Demo Polish | Complete |
 | WIRE-02 | Phase 5: Demo Polish | Complete |
 | FIX-01 | Phase 5: Demo Polish | Complete |
@@ -191,34 +191,54 @@ Which phases cover which requirements.
 | IMPL-03 | Phase 5: Demo Polish | Complete |
 | DOC-01 | Phase 5: Demo Polish | Complete |
 | DOC-02 | Phase 5: Demo Polish | Complete |
-| REFACTOR-01 | Phase 6: Code Health | Pending |
-| REFACTOR-02 | Phase 6: Code Health | Pending |
-| REFACTOR-03 | Phase 6: Code Health | Pending |
-| REFACTOR-05 | Phase 6: Code Health | Pending |
-| REFACTOR-06 | Phase 6: Code Health | Pending |
-| REFACTOR-07 | Phase 6: Code Health | Pending |
-| CLEAN-01 | Phase 6: Code Health | Pending |
-| CLEAN-02 | Phase 6: Code Health | Pending |
-| IMPL-01 | Phase 6: Code Health | Pending |
-| IMPL-02 | Phase 6: Code Health | Pending |
-| INFRA-01 | Phase 6: Code Health | Pending |
-| INFRA-02 | Phase 6: Code Health | Pending |
-| INFRA-03 | Phase 6: Code Health | Pending |
-| DIFF-01 | Phase 7: Differentiators | Pending |
-| DIFF-02 | Phase 7: Differentiators | Pending |
-| DIFF-03 | Phase 7: Differentiators | Pending |
-| DIFF-04 | Phase 7: Differentiators | Pending |
-| DIFF-05 | Phase 7: Differentiators | Pending |
-| GROW-02 | Phase 8: Growth | Pending |
-| GROW-03 | Phase 8: Growth | Pending |
-| GROW-04 | Phase 8: Growth | Pending |
-| GROW-05 | Phase 8: Growth | Pending |
+| REFACTOR-01 | Phase 6: Code Health | Complete |
+| REFACTOR-02 | Phase 6: Code Health | Skipped (per CONTEXT.md) |
+| REFACTOR-03 | Phase 6: Code Health | Complete |
+| REFACTOR-05 | Phase 6: Code Health | Skipped (ai-agent.ts removed) |
+| REFACTOR-06 | Phase 6: Code Health | Complete |
+| REFACTOR-07 | Phase 6: Code Health | Complete |
+| CLEAN-01 | Phase 6: Code Health | Complete |
+| CLEAN-02 | Phase 6: Code Health | Complete |
+| IMPL-01 | Phase 6: Code Health | Complete |
+| IMPL-02 | Phase 6: Code Health | Complete |
+| INFRA-01 | Phase 6: Code Health | Complete |
+| INFRA-02 | Phase 6: Code Health | Complete |
+| INFRA-03 | Phase 6: Code Health | Complete |
+| DIFF-01 | Phase 7: Differentiators | Complete |
+| DIFF-02 | Phase 7: Differentiators | Complete |
+| DIFF-03 | Phase 7: Differentiators | Complete |
+| DIFF-04 | Phase 7: Differentiators | Complete |
+| DIFF-05 | Phase 7: Differentiators | Complete |
+| GROW-02 | Phase 8: Growth | Complete |
+| GROW-03 | Phase 8: Growth | Complete |
+| GROW-04 | Phase 8: Growth | Deferred (per CONTEXT.md) |
+| GROW-05 | Phase 8: Growth | Complete |
+| UI-INT-01 | Phase 3.1: Compact Integration UI | Complete |
+| UI-INT-02 | Phase 3.1: Compact Integration UI | Complete |
+| UI-INT-03 | Phase 3.1: Compact Integration UI | Complete |
+| UI-INT-04 | Phase 3.2: Integration Import Controls | Complete |
+| UI-INT-05 | Phase 3.2: Integration Import Controls | Complete |
+| UI-INT-06 | Phase 3.2: Integration Import Controls | Complete |
+| BANK-01 | Phase 9: Bank/Vault Architecture | Complete |
+| BANK-02 | Phase 9: Bank/Vault Architecture | Complete |
+| BANK-03 | Phase 9: Bank/Vault Architecture | Complete |
+| BANK-04 | Phase 9: Bank/Vault Architecture | Complete |
+| BANK-05 | Phase 9: Bank/Vault Architecture | Complete |
+| GAP-INT-01 | Phase 10: Chat Bank/Vault Scoping | Complete |
+| VAULT-UI-01 | Phase 10.2: Vaults Page | Complete |
+| VAULT-UI-02 | Phase 10.2: Vaults Page | Complete |
+| VAULT-UI-03 | Phase 10.2: Vaults Page | Complete |
+| VAULT-UI-04 | Phase 10.2: Vaults Page | Complete |
+| VAULT-UI-05 | Phase 10.2: Vaults Page | Complete |
+| VAULT-UI-06 | Phase 10.2: Vaults Page | Complete |
+| VAULT-UI-07 | Phase 10.2: Vaults Page | Complete |
 
 **Coverage:**
-- v1 requirements: 55 total
-- Mapped to phases: 55/55 ✓
+- v1 requirements: 55 original + 19 added (phases 3.1, 3.2, 9, 10, 10.2) = 74 total
+- Mapped to phases: 74/74 ✓
 - Unmapped: 0
+- Complete: 64 | Skipped/Removed: 5 | Deferred: 1 | Pending: 4
 
 ---
 *Requirements defined: 2026-01-27*
-*Last updated: 2026-01-31 (Phase 5 complete — 12 Demo Polish requirements marked Complete)*
+*Last updated: 2026-02-10 (Phase 10.2 complete — all requirements through Phase 10.2 updated)*
