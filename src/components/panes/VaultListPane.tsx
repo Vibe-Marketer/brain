@@ -27,6 +27,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { CreateVaultDialog } from '@/components/dialogs/CreateVaultDialog';
 import { CreateBusinessBankDialog } from '@/components/dialogs/CreateBusinessBankDialog';
+import { BankSwitcher } from '@/components/header/BankSwitcher';
 import { useBankContext } from '@/hooks/useBankContext';
 import { useVaults } from '@/hooks/useVaults';
 import { queryKeys } from '@/lib/query-config';
@@ -239,13 +240,18 @@ export function VaultListPane({
       {/* Header - Bank name prominently displayed */}
       <header className="flex-shrink-0 border-b border-border bg-cb-card/50">
         {/* Bank context */}
-        <div className="px-4 pt-3 pb-1">
-          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-            {activeBank?.type === 'personal' ? 'Personal Bank' : 'Business Bank'}
-          </p>
-          <h2 className="text-sm font-bold text-foreground truncate">
-            {activeBank?.name || 'Loading...'}
-          </h2>
+        <div className="px-4 pt-3 pb-1 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+              {activeBank?.type === 'personal' ? 'Personal Bank' : 'Business Bank'}
+            </p>
+            <h2 className="text-sm font-bold text-foreground truncate">
+              {activeBank?.name || 'Loading...'}
+            </h2>
+          </div>
+          <div className="flex-shrink-0">
+            <BankSwitcher />
+          </div>
         </div>
 
         {/* Vaults title + create button */}

@@ -53,57 +53,29 @@ export function useCreateBusinessBank() {
         throw new Error('Organization name must be between 3 and 50 characters')
       }
 
-      // 1. Create the business bank
+      const { data: createResult, error: createError } = await db
+        .rpc('create_business_bank', {
+          p_name: bankName,
+          p_cross_bank_default: input.crossBankDefault || 'copy_only',
+          p_logo_url: input.logoUrl || null,
+          p_default_vault_name: input.defaultVaultName || null,
+        })
+        .single()
+
+      if (createError) throw createError
+      if (!createResult?.bank_id) {
+        throw new Error('Business bank creation did not return a bank id')
+      }
+
       const { data: bank, error: bankError } = await db
         .from('banks')
-        .insert({
-          name: bankName,
-          type: 'business',
-          cross_bank_default: input.crossBankDefault || 'copy_only',
-          logo_url: input.logoUrl || null,
-        })
-        .select()
+        .select('*')
+        .eq('id', createResult.bank_id)
         .single()
 
       if (bankError) throw bankError
 
-      // 2. Create bank_membership for creator as bank_owner
-      const { error: membershipError } = await db
-        .from('bank_memberships')
-        .insert({
-          bank_id: bank.id,
-          user_id: user.id,
-          role: 'bank_owner',
-        })
-
-      if (membershipError) throw membershipError
-
-      // 3. Create default vault in the bank
-      const vaultName = input.defaultVaultName?.trim() || `${bankName}'s Vault`
-      const { data: vault, error: vaultError } = await db
-        .from('vaults')
-        .insert({
-          bank_id: bank.id,
-          name: vaultName,
-          vault_type: 'team',
-        })
-        .select()
-        .single()
-
-      if (vaultError) throw vaultError
-
-      // 4. Create vault_membership for creator as vault_owner
-      const { error: vaultMembershipError } = await db
-        .from('vault_memberships')
-        .insert({
-          vault_id: vault.id,
-          user_id: user.id,
-          role: 'vault_owner',
-        })
-
-      if (vaultMembershipError) throw vaultMembershipError
-
-      return { bank, vault }
+      return { bank, vault: { id: createResult.vault_id } }
     },
     onSuccess: (data, variables) => {
       // Invalidate bank context queries to pick up new bank
