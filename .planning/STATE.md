@@ -20,7 +20,7 @@
 
 **Status:** In progress
 
-**Last activity:** 2026-02-10 - Completed 10.2-09-PLAN.md
+**Last activity:** 2026-02-10 - Completed 10.2-03-PLAN.md
 
 **Progress:**
 ```
@@ -251,24 +251,22 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-02-10
-**Stopped at:** Completed 10.2-09-PLAN.md
+**Last session:** 2026-02-10T04:17:15Z
+**Stopped at:** Completed 10.2-03-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.2 Plan 09 complete - Vault selection available in all import flows with edge function support.
+Phase 10.2 Plan 03 complete - vault CRUD dialogs and mutations wired into the vault UI.
 
 **What to remember:**
-- Plan 09 delivered: VaultSelector component, useUserPreferences hook, edge function vault_id support
-- VaultSelector shows personal bank vaults first, then business bank vaults
-- useUserPreferences persists default vault per integration in localStorage with cross-tab sync
-- YouTubeImportForm has VaultSelector between URL input and import button
-- SyncTab has VaultSelector near sync controls with label "Sync to vault"
-- 4 edge functions updated: youtube-import, sync-meetings, zoom-sync-meetings, google-meet-sync-meetings
-- All edge functions validate vault membership and create vault_entries non-blocking
-- google-poll-sync unchanged (cron job, no user vault context)
+- useVaultMutations adds optimistic create/update/delete and transfer-on-delete support
+- CreateVaultDialog includes bank selection, TTL defaults, and validation
+- EditVaultDialog exposes immutable type note and delete handoff
+- DeleteVaultDialog requires name confirmation and supports recording transfer
+- VaultListPane gates create actions by bank role and auto-selects new vaults
+- VaultDetailPane adds vault name context menu with edit/delete actions
 - "Invite Members" button still stubbed (disabled) — Plan 04 will activate it
 - /team redirects to /vaults for backward compatibility
 - Remaining plans: 04 (Invite Flow), 05 (Vault Settings), 06 (Polish)
@@ -290,4 +288,4 @@ Phase 10.2 Plan 09 complete - Vault selection available in all import flows with
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-10 (Phase 10.2 - Plan 09 Vault Selection During Import complete)*
+*Last updated: 2026-02-10 (Phase 10.2 - Plan 03 Vault CRUD dialogs complete)*
