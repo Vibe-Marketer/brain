@@ -1,5 +1,30 @@
 {
-  "model_profile": "budget",
+  "model_profile": "balanced",
+  "profiles": {
+    "active_profile": "balanced",
+    "presets": {
+      "quality": {
+        "planning": "claude-opus-4-6",
+        "execution": "claude-sonnet-4-20250514",
+        "verification": "claude-opus-4-6"
+      },
+      "balanced": {
+        "planning": "claude-sonnet-4-20250514",
+        "execution": "claude-haiku-3-5-20241022",
+        "verification": "claude-sonnet-4-20250514"
+      },
+      "budget": {
+        "planning": "claude-haiku-3-5-20241022",
+        "execution": "claude-haiku-3-5-20241022",
+        "verification": "claude-haiku-3-5-20241022"
+      }
+    },
+    "custom_overrides": {
+      "quality": {},
+      "balanced": {},
+      "budget": {}
+    }
+  },
   "workflow": {
     "research": true,
     "plan_check": true,
