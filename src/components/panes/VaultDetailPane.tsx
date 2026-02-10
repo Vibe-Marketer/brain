@@ -19,6 +19,14 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { TranscriptTable } from '@/components/transcript-library/TranscriptTable'
 import { VaultSearchFilter } from '@/components/vault/VaultSearchFilter'
 import { EditVaultDialog } from '@/components/dialogs/EditVaultDialog'
+import { DeleteVaultDialog } from '@/components/dialogs/DeleteVaultDialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import {
   RiGroupLine,
   RiArrowLeftLine,
@@ -26,6 +34,7 @@ import {
   RiRecordCircleLine,
   RiSearchLine,
   RiSettings3Line,
+  RiArrowDownSLine,
 } from '@remixicon/react'
 import { usePanelStore } from '@/stores/panelStore'
 import { useVaultDetail, useVaultRecordings, mapRecordingToMeeting } from '@/hooks/useVaults'
@@ -120,14 +129,20 @@ export function VaultDetailPane({
 
   // Edit vault dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
 
   // Permission check: can user edit vault settings?
   const canEditSettings = vault?.user_role
     ? (['vault_owner', 'vault_admin'] as VaultRole[]).includes(vault.user_role)
     : false
+  const canDeleteVault = vault?.user_role === 'vault_owner'
 
   const handleOpenSettings = useCallback(() => {
     setEditDialogOpen(true)
+  }, [])
+
+  const handleOpenDelete = useCallback(() => {
+    setDeleteDialogOpen(true)
   }, [])
 
   // No-op handlers for TranscriptTable required props
@@ -170,9 +185,39 @@ export function VaultDetailPane({
           )}
 
           {/* Vault name */}
-          <h2 className="font-montserrat font-extrabold text-base uppercase tracking-wide truncate">
-            {vault.name}
-          </h2>
+          {canEditSettings ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="group flex items-center gap-1 min-w-0 focus:outline-none"
+                  aria-label="Vault actions"
+                >
+                  <span className="font-montserrat font-extrabold text-base uppercase tracking-wide truncate">
+                    {vault.name}
+                  </span>
+                  <RiArrowDownSLine className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-40">
+                <DropdownMenuItem onClick={handleOpenSettings}>
+                  Edit Vault
+                </DropdownMenuItem>
+                {canDeleteVault && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleOpenDelete}>
+                      Delete Vault
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <h2 className="font-montserrat font-extrabold text-base uppercase tracking-wide truncate">
+              {vault.name}
+            </h2>
+          )}
 
           {/* Vault type badge */}
           <Badge
@@ -300,6 +345,14 @@ export function VaultDetailPane({
         onOpenChange={setEditDialogOpen}
         vault={vault}
         userRole={vault?.user_role || null}
+        onDeleteRequest={handleOpenDelete}
+      />
+
+      <DeleteVaultDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        vault={vault}
+        recordingCount={recordingsLoading ? null : recordings.length}
       />
     </div>
   )

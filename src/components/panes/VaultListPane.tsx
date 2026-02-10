@@ -127,8 +127,9 @@ export function VaultListPane({
   onVaultSelect,
   className,
 }: VaultListPaneProps) {
-  const { activeBankId, activeBank } = useBankContext();
+  const { activeBankId, activeBank, bankRole } = useBankContext();
   const { vaults, isLoading } = useVaults(activeBankId);
+  const canCreateVault = bankRole === 'bank_owner' || bankRole === 'bank_admin';
 
   // Track mount state for enter animations
   const [isMounted, setIsMounted] = React.useState(false);
@@ -190,8 +191,16 @@ export function VaultListPane({
   const [createBankDialogOpen, setCreateBankDialogOpen] = React.useState(false);
 
   const handleCreateVault = React.useCallback(() => {
+    if (!canCreateVault) return;
     setCreateDialogOpen(true);
-  }, []);
+  }, [canCreateVault]);
+
+  const handleVaultCreated = React.useCallback(
+    (vaultId: string) => {
+      onVaultSelect(vaultId);
+    },
+    [onVaultSelect]
+  );
 
   return (
     <div
@@ -225,15 +234,17 @@ export function VaultListPane({
           >
             VAULTS
           </h3>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={handleCreateVault}
-            className="h-6 w-6 text-muted-foreground hover:text-foreground"
-            title="Create Vault"
-          >
-            <RiAddLine className="h-4 w-4" />
-          </Button>
+          {canCreateVault && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleCreateVault}
+              className="h-6 w-6 text-muted-foreground hover:text-foreground"
+              title="Create Vault"
+            >
+              <RiAddLine className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </header>
 
@@ -241,7 +252,7 @@ export function VaultListPane({
       {isLoading ? (
         <VaultListSkeleton />
       ) : vaults.length === 0 ? (
-        <VaultListEmpty onCreateClick={handleCreateVault} />
+        <VaultListEmpty onCreateClick={canCreateVault ? handleCreateVault : undefined} />
       ) : (
         <div
           className="flex-1 overflow-y-auto py-2 px-2"
@@ -370,11 +381,12 @@ export function VaultListPane({
       </div>
 
       {/* Create Vault Dialog */}
-      {activeBankId && (
+      {activeBankId && canCreateVault && (
         <CreateVaultDialog
           open={createDialogOpen}
           onOpenChange={setCreateDialogOpen}
           bankId={activeBankId}
+          onVaultCreated={handleVaultCreated}
         />
       )}
 
