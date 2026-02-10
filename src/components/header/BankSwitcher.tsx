@@ -37,7 +37,7 @@ import type { BankWithMembership, VaultWithMembership } from '@/types/bank';
  * - Dropdown lists all user's banks
  * - Vaults section within active bank
  * - "All Recordings" option for no vault filter
- * - "Create Business Bank" CTA for upsell (Pro feature)
+ * - "Create Business Bank" CTA for new orgs
  *
  * @pattern follows TeamSwitcher for consistency
  */
@@ -85,7 +85,7 @@ export function BankSwitcher() {
             </>
           ) : (
             <>
-              <RiBuildingLine className="h-4 w-4 text-vibe-orange" />
+              <RiBuildingLine className="h-4 w-4 text-muted-foreground" />
               <span className="hidden sm:inline max-w-[100px] truncate">
                 {activeBank.name}
               </span>
@@ -105,6 +105,9 @@ export function BankSwitcher() {
 
       <DropdownMenuContent align="end" className="w-64 bg-background border-border z-50">
         {/* Personal Bank Section */}
+        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+          Personal
+        </DropdownMenuLabel>
         {banks.filter((b) => b.type === 'personal').map((bank) => (
           <BankMenuItem
             key={bank.id}
@@ -122,7 +125,8 @@ export function BankSwitcher() {
         <DropdownMenuGroup>
           {banks.filter((b) => b.type === 'business').length === 0 ? (
             <div className="px-2 py-1.5 text-xs text-muted-foreground">
-              No business banks yet
+              <div>No business banks</div>
+              <div>Create one to collaborate</div>
             </div>
           ) : (
             banks.filter((b) => b.type === 'business').map((bank) => (
@@ -232,7 +236,14 @@ function BankMenuItem({
     >
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4" />
-        <span className="truncate max-w-[140px]">{bank.name}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="truncate max-w-[140px]">{bank.name}</span>
+          {bank.type === 'business' && (
+            <span className="text-[10px] text-muted-foreground">
+              {bank.member_count ?? 1} member{(bank.member_count ?? 1) !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-1.5">
         <Badge variant="outline" className="text-xs capitalize">

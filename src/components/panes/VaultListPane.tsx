@@ -127,9 +127,11 @@ export function VaultListPane({
   onVaultSelect,
   className,
 }: VaultListPaneProps) {
-  const { activeBankId, activeBank, bankRole } = useBankContext();
+  const { activeBankId, activeBank, bankRole, banks } = useBankContext();
   const { vaults, isLoading } = useVaults(activeBankId);
   const canCreateVault = bankRole === 'bank_owner' || bankRole === 'bank_admin';
+  const businessBanks = banks.filter((bank) => bank.type === 'business');
+  const hasBusinessBanks = businessBanks.length > 0;
 
   // Track mount state for enter animations
   const [isMounted, setIsMounted] = React.useState(false);
@@ -207,7 +209,7 @@ export function VaultListPane({
       className={cn(
         'h-full flex flex-col',
         // Pane enter animation
-        'transition-all duration-300 ease-in-out',
+        'transition-all duration-500 ease-in-out',
         isMounted ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-2',
         className
       )}
@@ -365,19 +367,36 @@ export function VaultListPane({
 
       {/* Create Business Bank CTA */}
       <div className="flex-shrink-0 border-t border-border px-3 py-3">
-        <button
-          type="button"
-          onClick={() => setCreateBankDialogOpen(true)}
-          className={cn(
-            'w-full flex items-center gap-2 px-3 py-2 rounded-lg',
-            'text-sm text-muted-foreground hover:text-foreground',
-            'hover:bg-muted/50 dark:hover:bg-white/5',
-            'transition-colors duration-200'
-          )}
-        >
-          <RiBuildingLine className="h-4 w-4" />
-          <span>Create Business Bank</span>
-        </button>
+        {hasBusinessBanks ? (
+          <button
+            type="button"
+            onClick={() => setCreateBankDialogOpen(true)}
+            className={cn(
+              'w-full flex items-center gap-2 px-3 py-2 rounded-lg',
+              'text-sm text-muted-foreground hover:text-foreground',
+              'hover:bg-muted/50 dark:hover:bg-white/5',
+              'transition-colors duration-200'
+            )}
+          >
+            <RiBuildingLine className="h-4 w-4" />
+            <span>Create Business Bank</span>
+          </button>
+        ) : (
+          <div className="rounded-lg border border-border bg-cb-card/60 p-3 space-y-2">
+            <p className="text-sm font-medium text-foreground">
+              Create your first business bank to collaborate with your team
+            </p>
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => setCreateBankDialogOpen(true)}
+              className="gap-1.5"
+            >
+              <RiBuildingLine className="h-4 w-4" />
+              Create Business Bank
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Create Vault Dialog */}

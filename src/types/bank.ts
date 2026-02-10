@@ -27,6 +27,7 @@ export interface Bank {
   name: string
   type: BankType
   cross_bank_default: 'copy_only' | 'copy_and_remove'
+  logo_url?: string | null
   created_at: string
   updated_at: string
 }
@@ -74,6 +75,7 @@ export interface VaultMembership {
 export interface BankWithMembership extends Bank {
   membership: BankMembership
   vaults?: Vault[]
+  member_count?: number
 }
 
 /**
