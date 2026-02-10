@@ -60,6 +60,7 @@ export function useCreateBusinessBank() {
           name: bankName,
           type: 'business',
           cross_bank_default: input.crossBankDefault || 'copy_only',
+          logo_url: input.logoUrl || null,
         })
         .select()
         .single()

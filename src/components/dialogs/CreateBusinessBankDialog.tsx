@@ -34,7 +34,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { CreateVaultDialog } from '@/components/dialogs/CreateVaultDialog'
 import { useCreateBusinessBank } from '@/hooks/useBankMutations'
+
+const MAX_LOGO_SIZE_BYTES = 2 * 1024 * 1024
+const ACCEPTED_LOGO_TYPES = ['image/png', 'image/jpeg', 'image/svg+xml']
 
 export interface CreateBusinessBankDialogProps {
   open: boolean
@@ -49,6 +53,10 @@ export function CreateBusinessBankDialog({
   const [defaultVaultName, setDefaultVaultName] = useState('')
   const [crossBankDefault, setCrossBankDefault] = useState<'copy_only' | 'copy_and_remove'>('copy_only')
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
+  const [createVaultOpen, setCreateVaultOpen] = useState(false)
+  const [createdBankId, setCreatedBankId] = useState<string | null>(null)
   const createBank = useCreateBusinessBank()
 
   const isValid = name.trim().length >= 3 && name.trim().length <= 50
@@ -60,20 +68,25 @@ export function CreateBusinessBankDialog({
       {
         name: name.trim(),
         crossBankDefault,
+        logoUrl: logoDataUrl || undefined,
         defaultVaultName: defaultVaultName.trim() || undefined,
       },
       {
-        onSuccess: () => {
+        onSuccess: (data) => {
           // Reset form
           setName('')
           setDefaultVaultName('')
           setCrossBankDefault('copy_only')
           setShowAdvanced(false)
+          setLogoDataUrl(null)
+          setLogoError(null)
+          setCreatedBankId(data.bank.id)
+          setCreateVaultOpen(true)
           onOpenChange(false)
         },
       }
     )
-  }, [name, crossBankDefault, defaultVaultName, isValid, createBank, onOpenChange])
+  }, [name, crossBankDefault, defaultVaultName, isValid, logoDataUrl, createBank, onOpenChange])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -85,13 +98,49 @@ export function CreateBusinessBankDialog({
     [handleSubmit, isValid, createBank.isPending]
   )
 
+  const handleLogoChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+
+    if (!file) {
+      setLogoDataUrl(null)
+      setLogoError(null)
+      return
+    }
+
+    if (!ACCEPTED_LOGO_TYPES.includes(file.type)) {
+      setLogoDataUrl(null)
+      setLogoError('Please upload a PNG, JPG, or SVG file')
+      event.target.value = ''
+      return
+    }
+
+    if (file.size > MAX_LOGO_SIZE_BYTES) {
+      setLogoDataUrl(null)
+      setLogoError('Logo must be 2MB or smaller')
+      event.target.value = ''
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      setLogoDataUrl(typeof reader.result === 'string' ? reader.result : null)
+      setLogoError(null)
+    }
+    reader.onerror = () => {
+      setLogoDataUrl(null)
+      setLogoError('Unable to read logo file')
+      event.target.value = ''
+    }
+    reader.readAsDataURL(file)
+  }, [])
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[440px]" aria-describedby="create-bank-description">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-md bg-vibe-orange/10 flex items-center justify-center">
-              <RiBuildingLine className="h-4 w-4 text-vibe-orange" />
+            <div className="w-8 h-8 rounded-md bg-muted flex items-center justify-center">
+              <RiBuildingLine className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
               <DialogTitle>Create Business Bank</DialogTitle>
@@ -122,6 +171,37 @@ export function CreateBusinessBankDialog({
                 Name must be at least 3 characters
               </p>
             )}
+          </div>
+
+          {/* Logo (optional) */}
+          <div className="space-y-2">
+            <Label htmlFor="bank-logo">Logo (optional)</Label>
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-lg border border-border bg-muted/40 flex items-center justify-center overflow-hidden">
+                {logoDataUrl ? (
+                  <img
+                    src={logoDataUrl}
+                    alt="Logo preview"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <RiBuildingLine className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1">
+                <Input
+                  id="bank-logo"
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.svg"
+                  onChange={handleLogoChange}
+                  disabled={createBank.isPending}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  PNG, JPG, or SVG up to 2MB
+                </p>
+              </div>
+            </div>
+            {logoError && <p className="text-xs text-destructive">{logoError}</p>}
           </div>
 
           {/* Default Vault Name (optional) */}
@@ -193,7 +273,7 @@ export function CreateBusinessBankDialog({
 
         <DialogFooter>
           <Button
-            variant="outline"
+            variant="hollow"
             onClick={() => onOpenChange(false)}
             disabled={createBank.isPending}
           >
@@ -207,6 +287,14 @@ export function CreateBusinessBankDialog({
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {createdBankId && (
+        <CreateVaultDialog
+          open={createVaultOpen}
+          onOpenChange={setCreateVaultOpen}
+          bankId={createdBankId}
+        />
+      )}
     </Dialog>
   )
 }
