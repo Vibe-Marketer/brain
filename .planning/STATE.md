@@ -16,15 +16,15 @@
 
 **Phase:** 10.2 of 11+ (Vaults Page - INSERTED)
 
-**Plan:** 6 of 9 in current phase
+**Plan:** 7 of 9 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-10 - Completed 10.2-03-PLAN.md
+**Last activity:** 2026-02-10 - Completed 10.2-04-PLAN.md
 
 **Progress:**
 ```
-[██████████████████████████████████████████░] 78/83 plans complete (94%)
+[███████████████████████████████████████████░] 79/83 plans complete (95%)
 ```
 
 ---
@@ -56,7 +56,7 @@
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
 | Phase 9: Bank/Vault Architecture | 5 | 5 | Complete (10/10 plans) |
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
-| Phase 10.2: Vaults Page | 7 | 0 | In progress (6/9 plans) |
+| Phase 10.2: Vaults Page | 7 | 0 | In progress (7/9 plans) |
 
 ### Velocity
 
@@ -227,7 +227,7 @@ Phase 10 COMPLETE (3/3 plans). GAP-INT-01 closed.
 - [x] Execute 10.2-08-PLAN.md (Search/filter for vault recordings - useRecordingSearch, VaultSearchFilter)
 - [x] Execute 10.2-09-PLAN.md (Vault Selection During Import - VaultSelector, edge function vault_id)
 
-Phase 10.2 in progress (6/9 plans).
+Phase 10.2 in progress (7/9 plans).
 
 ### Pending Todos
 
@@ -251,25 +251,22 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-02-10T04:17:15Z
-**Stopped at:** Completed 10.2-03-PLAN.md
+**Last session:** 2026-02-10T04:36:45Z
+**Stopped at:** Completed 10.2-04-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.2 Plan 03 complete - vault CRUD dialogs and mutations wired into the vault UI.
+Phase 10.2 Plan 04 complete - vault invite links, join flow, and member management actions are wired.
 
 **What to remember:**
-- useVaultMutations adds optimistic create/update/delete and transfer-on-delete support
-- CreateVaultDialog includes bank selection, TTL defaults, and validation
-- EditVaultDialog exposes immutable type note and delete handoff
-- DeleteVaultDialog requires name confirmation and supports recording transfer
-- VaultListPane gates create actions by bank role and auto-selects new vaults
-- VaultDetailPane adds vault name context menu with edit/delete actions
-- "Invite Members" button still stubbed (disabled) — Plan 04 will activate it
+- Vault invite links use /join/vault/:token and default role is always member
+- VaultJoin handles already-member routing and redirects to vault detail
+- VaultMemberPanel now supports role changes, removal, leave vault, and search
+- VaultInviteDialog supports copy/regenerate and expiry display
 - /team redirects to /vaults for backward compatibility
-- Remaining plans: 04 (Invite Flow), 05 (Vault Settings), 06 (Polish)
+- Remaining plans: 05 (Vault Settings), 06 (Polish)
 
 ---
 
@@ -280,12 +277,12 @@ Phase 10.2 Plan 03 complete - vault CRUD dialogs and mutations wired into the va
 | Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 67 |
 | Requirements Complete | 58 (87%) |
-| Current Phase | 10.2 - Vaults Page (INSERTED - 6/9 plans) |
-| Plans Complete | 78/83 (94%) |
-| Next Plan | 10.2-04-PLAN.md (Vault Member Invite Flow) |
+| Current Phase | 10.2 - Vaults Page (INSERTED - 7/9 plans) |
+| Plans Complete | 79/83 (95%) |
+| Next Plan | 10.2-05-PLAN.md (Vault Settings) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-10 (Phase 10.2 - Plan 03 Vault CRUD dialogs complete)*
+*Last updated: 2026-02-10 (Phase 10.2 - Plan 04 Vault Member Invite Flow complete)*
