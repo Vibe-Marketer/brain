@@ -256,19 +256,20 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-02-10T05:21:58Z
-**Stopped at:** Completed 10.2-06-PLAN.md
+**Last session:** 2026-02-10T16:21:40Z
+**Stopped at:** Completed quick-003-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.2 complete - vaults polish and verification fixes landed.
+Quick task 003 complete - workspace-scoped migration applied, Sync Hub naming fixed, workspace messaging added.
 
 **What to remember:**
-- Vaults page now has full empty/error states and settings migration messaging
-- Business bank creation runs through RPC to avoid RLS returning issues
-- VaultListPane surfaces the bank switcher in the header for quick context changes
+- Migration 20260210170000 applied: folders and call_tags now have bank_id (workspace-scoped)
+- SyncTab now shows "Sync to Hub" instead of "Sync to vault"
+- Workspace context messaging added below hub selector
+- VaultSelector already filters hubs by active workspace (useBankContext)
 - Phase 11 (PROFITS Frontend Trigger) is next
 
 ---
@@ -288,4 +289,4 @@ Phase 10.2 complete - vaults polish and verification fixes landed.
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-10 (Phase 10.2 - Plan 06 Vaults polish complete)*
+*Last updated: 2026-02-10 (Quick task 003 - migration, Sync Hub naming, workspace messaging)*
