@@ -22,7 +22,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { RiDeleteBinLine } from '@remixicon/react'
 import { useUpdateVault } from '@/hooks/useVaultMutations'
-import { DeleteVaultDialog } from './DeleteVaultDialog'
 import type { VaultDetail } from '@/hooks/useVaults'
 import type { VaultRole } from '@/types/bank'
 
@@ -31,6 +30,7 @@ export interface EditVaultDialogProps {
   onOpenChange: (open: boolean) => void
   vault: VaultDetail | null
   userRole: VaultRole | null
+  onDeleteRequest?: () => void
 }
 
 /** Roles that can edit vault settings */
@@ -44,10 +44,10 @@ export function EditVaultDialog({
   onOpenChange,
   vault,
   userRole,
+  onDeleteRequest,
 }: EditVaultDialogProps) {
   const [name, setName] = useState('')
   const [ttlDays, setTtlDays] = useState<number>(7)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const updateVault = useUpdateVault()
 
   const canEdit = userRole ? CAN_EDIT_ROLES.includes(userRole) : false
@@ -73,7 +73,7 @@ export function EditVaultDialog({
       {
         vaultId: vault.id,
         name: name.trim(),
-        defaultSharelinkTtlDays: ttlDays,
+        defaultShareLinkTtlDays: ttlDays,
       },
       {
         onSuccess: () => {
@@ -144,57 +144,47 @@ export function EditVaultDialog({
               <p className="text-sm text-muted-foreground capitalize">
                 {vault.vault_type}
               </p>
+              <p className="text-xs text-muted-foreground">
+                Vault type cannot be changed after creation.
+              </p>
             </div>
           </div>
 
-          <DialogFooter className="flex items-center justify-between sm:justify-between">
-            {/* Delete button (left side) */}
-            <div>
-              {canDelete && vault.vault_type !== 'personal' && (
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={() => {
-                    onOpenChange(false)
-                    // Small delay to prevent animation conflicts
-                    setTimeout(() => setDeleteDialogOpen(true), 150)
-                  }}
-                  className="gap-1.5"
-                >
-                  <RiDeleteBinLine className="h-4 w-4" />
-                  Delete Vault
-                </Button>
-              )}
-            </div>
-
-            {/* Save/Cancel (right side) */}
-            <div className="flex items-center gap-2">
+          {canDelete && vault.vault_type !== 'personal' && (
+            <div className="pt-4 border-t border-border/40">
               <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={updateVault.isPending}
+                variant="destructive"
+                onClick={() => {
+                  onOpenChange(false)
+                  onDeleteRequest?.()
+                }}
+                className="w-full gap-1.5"
               >
-                Cancel
+                <RiDeleteBinLine className="h-4 w-4" />
+                Delete Vault
               </Button>
-              {canEdit && (
-                <Button
-                  onClick={handleSubmit}
-                  disabled={!hasChanges || updateVault.isPending}
-                >
-                  {updateVault.isPending ? 'Saving...' : 'Save Changes'}
-                </Button>
-              )}
             </div>
+          )}
+
+          <DialogFooter className="flex items-center justify-end">
+            <Button
+              variant="hollow"
+              onClick={() => onOpenChange(false)}
+              disabled={updateVault.isPending}
+            >
+              Cancel
+            </Button>
+            {canEdit && (
+              <Button
+                onClick={handleSubmit}
+                disabled={!hasChanges || updateVault.isPending}
+              >
+                {updateVault.isPending ? 'Saving...' : 'Save Changes'}
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Delete confirmation dialog */}
-      <DeleteVaultDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        vault={vault}
-      />
     </>
   )
 }

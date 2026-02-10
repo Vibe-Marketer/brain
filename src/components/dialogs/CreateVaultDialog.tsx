@@ -8,7 +8,7 @@
  * @brand-version v4.2
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -20,6 +20,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -27,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { useBankContext } from '@/hooks/useBankContext'
 import { useCreateVault } from '@/hooks/useVaultMutations'
 import type { VaultType } from '@/types/bank'
 
@@ -34,6 +36,7 @@ export interface CreateVaultDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   bankId: string
+  onVaultCreated?: (vaultId: string) => void
 }
 
 /** Type descriptions for the select menu */
@@ -72,38 +75,81 @@ export function CreateVaultDialog({
   open,
   onOpenChange,
   bankId,
+  onVaultCreated,
 }: CreateVaultDialogProps) {
   const [name, setName] = useState('')
   const [vaultType, setVaultType] = useState<VaultType>('team')
+  const [ttlDays, setTtlDays] = useState('7')
+  const [selectedBankId, setSelectedBankId] = useState(bankId)
+  const { banks, activeBankId } = useBankContext()
   const createVault = useCreateVault()
 
+  const businessBanks = useMemo(
+    () => banks.filter((bank) => bank.type === 'business'),
+    [banks]
+  )
+
+  const showBankSelect = businessBanks.length > 1
+
+  useEffect(() => {
+    if (!open) return
+    const businessDefault =
+      businessBanks.find((bank) => bank.id === activeBankId)?.id ||
+      businessBanks[0]?.id ||
+      ''
+    const fallbackBank = showBankSelect
+      ? businessDefault
+      : bankId || activeBankId || businessDefault
+    setSelectedBankId(fallbackBank)
+  }, [open, bankId, activeBankId, businessBanks, showBankSelect])
+
+  const trimmedName = name.trim()
+  const isNameValid = trimmedName.length >= 3 && trimmedName.length <= 50
+  const ttlValue = ttlDays.trim() === '' ? null : Number(ttlDays)
+  const shareLinkTtl = ttlValue !== null && Number.isFinite(ttlValue)
+    ? Math.min(365, Math.max(1, ttlValue))
+    : undefined
+  const canSubmit = isNameValid && !!selectedBankId && !createVault.isPending
+
   const handleSubmit = useCallback(() => {
-    if (!name.trim()) return
+    if (!isNameValid || !selectedBankId) return
 
     createVault.mutate(
       {
-        bankId,
-        name: name.trim(),
+        bankId: selectedBankId,
+        name: trimmedName,
         vaultType,
+        defaultShareLinkTtlDays: shareLinkTtl,
       },
       {
-        onSuccess: () => {
+        onSuccess: (vault) => {
           setName('')
           setVaultType('team')
+          setTtlDays('7')
           onOpenChange(false)
+          onVaultCreated?.(vault.id)
         },
       }
     )
-  }, [name, vaultType, bankId, createVault, onOpenChange])
+  }, [
+    createVault,
+    isNameValid,
+    onOpenChange,
+    onVaultCreated,
+    selectedBankId,
+    shareLinkTtl,
+    trimmedName,
+    vaultType,
+  ])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' && name.trim() && !createVault.isPending) {
+      if (e.key === 'Enter' && canSubmit) {
         e.preventDefault()
         handleSubmit()
       }
     },
-    [handleSubmit, name, createVault.isPending]
+    [canSubmit, handleSubmit]
   )
 
   return (
@@ -128,6 +174,14 @@ export function CreateVaultDialog({
               placeholder="e.g., Sales Team, Marketing"
               autoFocus
             />
+            <p className="text-xs text-muted-foreground">
+              3-50 characters
+            </p>
+            {name.length > 0 && !isNameValid && (
+              <p className="text-xs text-destructive">
+                Vault name must be between 3 and 50 characters.
+              </p>
+            )}
           </div>
 
           {/* Vault type */}
@@ -147,18 +201,67 @@ export function CreateVaultDialog({
                     value={opt.value}
                     disabled={opt.disabled}
                   >
-                    {opt.label}
-                    {opt.disabled && ' (Coming Soon)'}
+                    <div className="flex items-center justify-between w-full gap-3">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">{opt.label}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {opt.description}
+                        </span>
+                      </div>
+                      {opt.disabled && (
+                        <Badge variant="outline" className="text-[10px]">
+                          Coming Soon
+                        </Badge>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
+          {/* Default share link TTL */}
+          <div className="space-y-2">
+            <Label htmlFor="vault-ttl">Default Share Link Expiration (days)</Label>
+            <Input
+              id="vault-ttl"
+              type="number"
+              min={1}
+              max={365}
+              value={ttlDays}
+              onChange={(e) => setTtlDays(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">
+              Shared links expire after this many days (default 7)
+            </p>
+          </div>
+
+          {/* Bank selection */}
+          {showBankSelect && (
+            <div className="space-y-2">
+              <Label htmlFor="vault-bank">Bank</Label>
+              <Select
+                value={selectedBankId}
+                onValueChange={setSelectedBankId}
+              >
+                <SelectTrigger id="vault-bank">
+                  <SelectValue placeholder="Select a bank" />
+                </SelectTrigger>
+                <SelectContent>
+                  {businessBanks.map((bank) => (
+                    <SelectItem key={bank.id} value={bank.id}>
+                      {bank.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button
-            variant="outline"
+            variant="hollow"
             onClick={() => onOpenChange(false)}
             disabled={createVault.isPending}
           >
@@ -166,7 +269,7 @@ export function CreateVaultDialog({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={!name.trim() || createVault.isPending}
+            disabled={!canSubmit}
           >
             {createVault.isPending ? 'Creating...' : 'Create Vault'}
           </Button>

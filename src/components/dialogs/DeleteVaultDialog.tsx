@@ -8,7 +8,7 @@
  * @brand-version v4.2
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -20,8 +20,17 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { RiAlertLine } from '@remixicon/react'
 import { useDeleteVault } from '@/hooks/useVaultMutations'
+import { useVaults } from '@/hooks/useVaults'
 import { useNavigate } from 'react-router-dom'
 import type { VaultDetail } from '@/hooks/useVaults'
 
@@ -29,18 +38,36 @@ export interface DeleteVaultDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   vault: VaultDetail | null
+  recordingCount?: number | null
 }
 
 export function DeleteVaultDialog({
   open,
   onOpenChange,
   vault,
+  recordingCount,
 }: DeleteVaultDialogProps) {
   const [confirmText, setConfirmText] = useState('')
+  const [transferEnabled, setTransferEnabled] = useState(false)
+  const [transferVaultId, setTransferVaultId] = useState('')
   const deleteVault = useDeleteVault()
   const navigate = useNavigate()
+  const { vaults } = useVaults(vault?.bank_id || null)
+
+  const transferOptions = useMemo(
+    () => vaults.filter((option) => option.id !== vault?.id),
+    [vaults, vault]
+  )
+
+  useEffect(() => {
+    if (!open) return
+    if (transferVaultId || transferOptions.length === 0) return
+    setTransferVaultId(transferOptions[0].id)
+  }, [open, transferVaultId, transferOptions])
 
   const isConfirmed = vault ? confirmText === vault.name : false
+  const needsTransferTarget = transferEnabled && !transferVaultId
+  const canDelete = isConfirmed && !needsTransferTarget
 
   const handleDelete = useCallback(() => {
     if (!vault || !isConfirmed) return
@@ -48,11 +75,13 @@ export function DeleteVaultDialog({
     deleteVault.mutate(
       {
         vaultId: vault.id,
-        vaultName: vault.name,
+        transferRecordingsToVaultId: transferEnabled ? transferVaultId : undefined,
       },
       {
         onSuccess: () => {
           setConfirmText('')
+          setTransferEnabled(false)
+          setTransferVaultId('')
           onOpenChange(false)
           // Navigate back to vaults list
           navigate('/vaults')
@@ -65,6 +94,8 @@ export function DeleteVaultDialog({
     (newOpen: boolean) => {
       if (!newOpen) {
         setConfirmText('')
+        setTransferEnabled(false)
+        setTransferVaultId('')
       }
       onOpenChange(newOpen)
     },
@@ -100,7 +131,46 @@ export function DeleteVaultDialog({
               <li>Remove all vault entry assignments</li>
               <li>Delete all vault-specific notes, tags, and scores</li>
             </ul>
+            {typeof recordingCount === 'number' && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                {recordingCount === 0
+                  ? 'This vault has no recordings.'
+                  : `This vault has ${recordingCount} recording${recordingCount !== 1 ? 's' : ''}.`}
+              </p>
+            )}
           </div>
+
+          {typeof recordingCount === 'number' && recordingCount > 0 && transferOptions.length > 0 && (
+            <div className="space-y-3 rounded-md border border-border/60 p-3">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="transfer-recordings"
+                  checked={transferEnabled}
+                  onCheckedChange={(checked) => setTransferEnabled(Boolean(checked))}
+                />
+                <Label htmlFor="transfer-recordings">
+                  Transfer recordings to another vault
+                </Label>
+              </div>
+              {transferEnabled && (
+                <div className="space-y-2">
+                  <Label htmlFor="transfer-vault">Transfer to</Label>
+                  <Select value={transferVaultId} onValueChange={setTransferVaultId}>
+                    <SelectTrigger id="transfer-vault">
+                      <SelectValue placeholder="Select a vault" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {transferOptions.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          {option.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Confirmation input */}
           <div className="space-y-2">
@@ -120,7 +190,7 @@ export function DeleteVaultDialog({
 
         <DialogFooter>
           <Button
-            variant="outline"
+            variant="hollow"
             onClick={() => handleOpenChange(false)}
             disabled={deleteVault.isPending}
           >
@@ -129,7 +199,7 @@ export function DeleteVaultDialog({
           <Button
             variant="destructive"
             onClick={handleDelete}
-            disabled={!isConfirmed || deleteVault.isPending}
+            disabled={!canDelete || deleteVault.isPending}
           >
             {deleteVault.isPending ? 'Deleting...' : 'Delete Vault'}
           </Button>
