@@ -20,7 +20,7 @@
 
 **Status:** In progress
 
-**Last activity:** 2026-02-10 - Completed quick task 003: Run migration, fix Sync Hub naming, workspace scope
+**Last activity:** 2026-02-10 - Completed quick task 002: Complete UI brand audit + HUB header alignment
 
 **Progress:**
 ```
@@ -155,6 +155,8 @@
 | 2026-02-10 | Create business banks via RPC | RLS returning blocked insert + select during provisioning | Reliable business bank creation flow |
 | 2026-02-10 | Workspace tabs use per-surface floating pill override | Needed horizontal pill active indicator in Workspaces & Hubs without changing shared tabs primitive globally | BanksTab suppresses default underline with local `TabsTrigger` active-state overrides |
 | 2026-02-10 | Settings category rows use pill-first active emphasis | Vertical indicator should be the primary wayfinding signal, not stacked orange icon/text/arrow accents | SettingsCategoryPane active colors are neutralized while preserving keyboard/ARIA behavior |
+| 2026-02-10 | HUB pane headers use icon-led stacked context layout | Prevent overlap/truncation in constrained pane widths while keeping workspace context legible | VaultListPane header now stacks workspace label/name/switcher with dedicated action row |
+| 2026-02-10 | Brand tabs standardize on rounded pill active indicators | Current UI direction moved off clip-path tab markers; docs needed canonical guidance | Brand guidelines v4.2.1 now codify pill indicator direction and hardcoded-value policy |
 
 ### Active TODOs
 
@@ -259,21 +261,21 @@ None
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 001 | Update workspace hub tab indicator | 2026-02-10 | 5859a1c | [001-update-workspace-hub-tab-indicator](./quick/001-update-workspace-hub-tab-indicator-to-ho/) |
-| 002 | Complete UI brand audit | 2026-02-10 | f0969ad | [002-complete-ui-brand-audit](./quick/002-complete-ui-brand-audit-fix-hub-header-a/) |
+| 002 | Complete UI brand audit | 2026-02-10 | e819980 | [002-complete-ui-brand-audit](./quick/002-complete-ui-brand-audit-fix-hub-header-a/) |
 | 003 | Run migration, fix Sync Hub naming, workspace scope | 2026-02-10 | dd5ba9a | [003-run-migration-fix-sync-hub-naming](./quick/003-run-migration-fix-sync-hub-naming-workspace-scope/) |
 
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-02-10T16:23:51Z
-**Stopped at:** Completed quick-001-PLAN.md
+**Last session:** 2026-02-10T16:28:49Z
+**Stopped at:** Completed quick task 002 execution and summary
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Quick tasks 003 and 001 complete - migration and workspace messaging updates landed, plus selector indicator refresh in settings.
+Quick tasks 001, 002, and 003 are complete - migration/workspace messaging updates landed and HUB header + brand alignment is now documented and shipped.
 
 **What to remember:**
 - Migration 20260210170000 applied: folders and call_tags now have bank_id (workspace-scoped)
@@ -282,6 +284,8 @@ Quick tasks 003 and 001 complete - migration and workspace messaging updates lan
 - VaultSelector already filters hubs by active workspace (useBankContext)
 - Workspaces & Hubs tabs now use horizontal floating pill active state in settings
 - Settings category selector now uses offset vertical pill as primary active marker, including Admin
+- Vaults pane headers are now icon-led and token-aligned across list/detail/adjacent panes
+- Brand guidelines moved to v4.2.1 with rounded tab-pill direction and token-first hardcoded-value rules
 - Phase 11 (PROFITS Frontend Trigger) is next
 
 ---
