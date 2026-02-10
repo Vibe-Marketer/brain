@@ -1,14 +1,19 @@
 /**
  * VaultMemberPanel - Slide-in detail panel (4th pane) showing vault members
  *
- * Shows member list with roles, avatars, and join dates.
- * Invite/role management actions are stubs for Plan 04.
+ * Full member management:
+ * - Member list with roles, avatars, join dates
+ * - Invite members via shareable link (vault_owner/vault_admin)
+ * - Change member roles (vault_owner/vault_admin)
+ * - Remove members (vault_owner/vault_admin)
+ * - Leave vault (self-removal)
+ * - "You" badge on current user
  *
  * @pattern detail-panel
  * @brand-version v4.2
  */
 
-import { useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -16,13 +21,28 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu'
+import {
   RiCloseLine,
   RiGroupLine,
   RiUserAddLine,
   RiUserLine,
+  RiMoreLine,
+  RiShieldUserLine,
+  RiLogoutCircleLine,
+  RiDeleteBinLine,
 } from '@remixicon/react'
 import { usePanelStore } from '@/stores/panelStore'
-import { useVaultMembers } from '@/hooks/useVaults'
+import { useVaultMembers, type VaultMember } from '@/hooks/useVaults'
+import { useChangeRole, useRemoveMember, useLeaveVault } from '@/hooks/useVaultMemberMutations'
+import { useAuth } from '@/contexts/AuthContext'
+import { VaultInviteDialog } from '@/components/dialogs/VaultInviteDialog'
+import { ChangeRoleDialog } from '@/components/dialogs/ChangeRoleDialog'
 import type { VaultRole } from '@/types/bank'
 
 /** Role badge styling */
@@ -45,6 +65,7 @@ const ROLE_LABELS: Record<VaultRole, string> = {
 
 export interface VaultMemberPanelProps {
   vaultId: string
+  vaultName?: string
 }
 
 /** Loading skeleton for member list */
@@ -65,13 +86,73 @@ function MemberListSkeleton() {
   )
 }
 
-export function VaultMemberPanel({ vaultId }: VaultMemberPanelProps) {
+export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) {
   const { closePanel } = usePanelStore()
+  const { user } = useAuth()
   const { members, isLoading } = useVaultMembers(vaultId)
+
+  // Mutation hooks
+  const changeRole = useChangeRole(vaultId)
+  const removeMember = useRemoveMember(vaultId)
+  const leaveVault = useLeaveVault(vaultId)
+
+  // Dialog state
+  const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
+  const [changeRoleTarget, setChangeRoleTarget] = useState<VaultMember | null>(null)
 
   const handleClose = useCallback(() => {
     closePanel()
   }, [closePanel])
+
+  // Find current user's membership
+  const currentUserMembership = useMemo(
+    () => members.find((m) => m.user_id === user?.id) || null,
+    [members, user?.id]
+  )
+
+  const currentUserRole = currentUserMembership?.role || null
+  const canManage = currentUserRole === 'vault_owner' || currentUserRole === 'vault_admin'
+
+  // Handle role change
+  const handleChangeRole = useCallback(
+    (newRole: VaultRole) => {
+      if (!changeRoleTarget || !currentUserRole) return
+      changeRole.mutate(
+        {
+          membershipId: changeRoleTarget.id,
+          userId: changeRoleTarget.user_id,
+          newRole,
+          currentUserRole,
+        },
+        {
+          onSuccess: () => setChangeRoleTarget(null),
+        }
+      )
+    },
+    [changeRoleTarget, currentUserRole, changeRole]
+  )
+
+  // Handle member removal
+  const handleRemoveMember = useCallback(
+    (member: VaultMember) => {
+      if (!confirm(`Remove ${member.display_name || member.email || 'this member'} from the vault?`)) return
+      removeMember.mutate({
+        membershipId: member.id,
+        targetRole: member.role,
+      })
+    },
+    [removeMember]
+  )
+
+  // Handle leave vault
+  const handleLeaveVault = useCallback(() => {
+    if (!currentUserMembership || !currentUserRole) return
+    if (!confirm('Are you sure you want to leave this vault?')) return
+    leaveVault.mutate({
+      membershipId: currentUserMembership.id,
+      userRole: currentUserRole,
+    })
+  }, [currentUserMembership, currentUserRole, leaveVault])
 
   return (
     <div className="h-full flex flex-col">
@@ -112,36 +193,36 @@ export function VaultMemberPanel({ vaultId }: VaultMemberPanelProps) {
             <p className="text-xs text-muted-foreground text-center">
               Invite team members to collaborate in this vault.
             </p>
-            {/* Invite button stub for Plan 04 */}
-            <Button
-              variant="hollow"
-              size="sm"
-              className="mt-4"
-              disabled
-              aria-label="Invite members (coming soon)"
-            >
-              <RiUserAddLine className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
-              Invite Members
-            </Button>
+            {canManage && (
+              <Button
+                variant="hollow"
+                size="sm"
+                className="mt-4"
+                onClick={() => setInviteDialogOpen(true)}
+                aria-label="Invite members"
+              >
+                <RiUserAddLine className="h-3.5 w-3.5 mr-1.5" aria-hidden="true" />
+                Invite Members
+              </Button>
+            )}
           </div>
         ) : (
           <div className="p-3 space-y-1">
-            {/* Invite button stub at top */}
-            <div className="pb-2 mb-2 border-b border-border/30">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
-                disabled
-                aria-label="Invite members (coming soon)"
-              >
-                <RiUserAddLine className="h-3.5 w-3.5 mr-2" aria-hidden="true" />
-                Invite Members
-                <Badge variant="outline" className="ml-auto text-[9px] px-1 h-4">
-                  Soon
-                </Badge>
-              </Button>
-            </div>
+            {/* Invite button at top — only for vault_owner/vault_admin */}
+            {canManage && (
+              <div className="pb-2 mb-2 border-b border-border/30">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setInviteDialogOpen(true)}
+                  aria-label="Invite members"
+                >
+                  <RiUserAddLine className="h-3.5 w-3.5 mr-2" aria-hidden="true" />
+                  Invite Members
+                </Button>
+              </div>
+            )}
 
             {/* Member rows */}
             {members.map((member) => {
@@ -150,11 +231,13 @@ export function VaultMemberPanel({ vaultId }: VaultMemberPanelProps) {
               const joinDate = member.created_at
                 ? format(new Date(member.created_at), 'MMM d, yyyy')
                 : null
+              const isCurrentUser = member.user_id === user?.id
+              const canChangeThisMember = canManage && !isCurrentUser && member.role !== 'vault_owner'
 
               return (
                 <div
                   key={member.id}
-                  className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted/50 transition-colors"
+                  className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted/50 transition-colors group"
                 >
                   {/* Avatar */}
                   {member.avatar_url ? (
@@ -171,9 +254,19 @@ export function VaultMemberPanel({ vaultId }: VaultMemberPanelProps) {
 
                   {/* Name + email */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">
-                      {member.display_name || member.email || 'Unknown user'}
-                    </p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {member.display_name || member.email || 'Unknown user'}
+                      </p>
+                      {isCurrentUser && (
+                        <Badge
+                          variant="outline"
+                          className="text-[9px] px-1 py-0 h-4 uppercase tracking-wider"
+                        >
+                          You
+                        </Badge>
+                      )}
+                    </div>
                     {member.display_name && member.email && (
                       <p className="text-xs text-muted-foreground truncate">
                         {member.email}
@@ -197,12 +290,81 @@ export function VaultMemberPanel({ vaultId }: VaultMemberPanelProps) {
                   >
                     {roleLabel}
                   </Badge>
+
+                  {/* Actions menu */}
+                  {(canChangeThisMember || isCurrentUser) && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                          aria-label="Member actions"
+                        >
+                          <RiMoreLine className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-48">
+                        {/* Change role (not for self, not for owner) */}
+                        {canChangeThisMember && (
+                          <DropdownMenuItem onClick={() => setChangeRoleTarget(member)}>
+                            <RiShieldUserLine className="h-4 w-4 mr-2" />
+                            Change Role
+                          </DropdownMenuItem>
+                        )}
+                        {/* Remove from vault (not for self, not for owner) */}
+                        {canChangeThisMember && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => handleRemoveMember(member)}
+                            >
+                              <RiDeleteBinLine className="h-4 w-4 mr-2" />
+                              Remove from Vault
+                            </DropdownMenuItem>
+                          </>
+                        )}
+                        {/* Leave vault (self only, not owner) */}
+                        {isCurrentUser && currentUserRole !== 'vault_owner' && (
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={handleLeaveVault}
+                          >
+                            <RiLogoutCircleLine className="h-4 w-4 mr-2" />
+                            Leave Vault
+                          </DropdownMenuItem>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
                 </div>
               )
             })}
           </div>
         )}
       </ScrollArea>
+
+      {/* Invite Dialog */}
+      <VaultInviteDialog
+        open={inviteDialogOpen}
+        onOpenChange={setInviteDialogOpen}
+        vaultId={vaultId}
+        vaultName={vaultName || 'this vault'}
+      />
+
+      {/* Change Role Dialog */}
+      {changeRoleTarget && currentUserRole && (
+        <ChangeRoleDialog
+          open={!!changeRoleTarget}
+          onOpenChange={(open) => !open && setChangeRoleTarget(null)}
+          memberName={changeRoleTarget.display_name || changeRoleTarget.email || 'Unknown'}
+          currentRole={changeRoleTarget.role}
+          currentUserRole={currentUserRole}
+          onConfirm={handleChangeRole}
+          isLoading={changeRole.isPending}
+        />
+      )}
     </div>
   )
 }
