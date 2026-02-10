@@ -13,7 +13,6 @@ import {
 } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useBankContext } from '@/hooks/useBankContext';
-import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { CreateBusinessBankDialog } from '@/components/dialogs/CreateBusinessBankDialog';
 import type { BankWithMembership, VaultWithMembership } from '@/types/bank';
 
 /**
@@ -53,6 +53,9 @@ export function BankSwitcher() {
     switchVault,
     isPersonalBank,
   } = useBankContext();
+
+  // Create Business Bank dialog state
+  const [createBankDialogOpen, setCreateBankDialogOpen] = React.useState(false);
 
   if (isLoading) {
     return (
@@ -101,19 +104,36 @@ export function BankSwitcher() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-64 bg-background border-border z-50">
-        {/* Banks Section */}
+        {/* Personal Bank Section */}
+        {banks.filter((b) => b.type === 'personal').map((bank) => (
+          <BankMenuItem
+            key={bank.id}
+            bank={bank}
+            isActive={bank.id === activeBank.id}
+            onClick={() => switchBank(bank.id)}
+          />
+        ))}
+
+        {/* Business Banks Section */}
+        <DropdownMenuSeparator />
         <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-          Switch bank
+          Business Banks
         </DropdownMenuLabel>
         <DropdownMenuGroup>
-          {banks.map((bank) => (
-            <BankMenuItem
-              key={bank.id}
-              bank={bank}
-              isActive={bank.id === activeBank.id}
-              onClick={() => switchBank(bank.id)}
-            />
-          ))}
+          {banks.filter((b) => b.type === 'business').length === 0 ? (
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+              No business banks yet
+            </div>
+          ) : (
+            banks.filter((b) => b.type === 'business').map((bank) => (
+              <BankMenuItem
+                key={bank.id}
+                bank={bank}
+                isActive={bank.id === activeBank.id}
+                onClick={() => switchBank(bank.id)}
+              />
+            ))
+          )}
         </DropdownMenuGroup>
 
         {/* Vaults in active bank */}
@@ -155,25 +175,14 @@ export function BankSwitcher() {
 
         <DropdownMenuSeparator />
 
-        {/* Create Business Bank (only show for personal bank context) */}
-        {isPersonalBank && (
-          <DropdownMenuItem
-            className="cursor-pointer flex items-center gap-2 text-muted-foreground"
-            onClick={() => {
-              // Navigate to banks settings where user can create a business bank
-              navigate('/settings/banks');
-              toast.info('Create a Business Bank to collaborate with your team', {
-                description: 'Business banks are available on Pro plans',
-              });
-            }}
-          >
-            <RiAddLine className="h-4 w-4" />
-            <span>Create Business Bank</span>
-            <Badge variant="outline" className="ml-auto text-xs">
-              Pro
-            </Badge>
-          </DropdownMenuItem>
-        )}
+        {/* Create Business Bank */}
+        <DropdownMenuItem
+          className="cursor-pointer flex items-center gap-2 text-muted-foreground"
+          onClick={() => setCreateBankDialogOpen(true)}
+        >
+          <RiAddLine className="h-4 w-4" />
+          <span>Create Business Bank</span>
+        </DropdownMenuItem>
 
         {/* Manage Banks link */}
         <DropdownMenuItem
@@ -186,6 +195,12 @@ export function BankSwitcher() {
           <span>Manage Banks</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
+
+      {/* Create Business Bank Dialog */}
+      <CreateBusinessBankDialog
+        open={createBankDialogOpen}
+        onOpenChange={setCreateBankDialogOpen}
+      />
     </DropdownMenu>
   );
 }

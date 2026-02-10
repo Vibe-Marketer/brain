@@ -19,10 +19,12 @@ import {
   RiTeamLine,
   RiCommunityLine,
   RiBriefcaseLine,
+  RiBuildingLine,
 } from '@remixicon/react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { CreateVaultDialog } from '@/components/dialogs/CreateVaultDialog';
+import { CreateBusinessBankDialog } from '@/components/dialogs/CreateBusinessBankDialog';
 import { useBankContext } from '@/hooks/useBankContext';
 import { useVaults } from '@/hooks/useVaults';
 import type { VaultType } from '@/types/bank';
@@ -184,6 +186,8 @@ export function VaultListPane({
 
   // Create Vault dialog state
   const [createDialogOpen, setCreateDialogOpen] = React.useState(false);
+  // Create Business Bank dialog state
+  const [createBankDialogOpen, setCreateBankDialogOpen] = React.useState(false);
 
   const handleCreateVault = React.useCallback(() => {
     setCreateDialogOpen(true);
@@ -348,6 +352,23 @@ export function VaultListPane({
         </div>
       )}
 
+      {/* Create Business Bank CTA */}
+      <div className="flex-shrink-0 border-t border-border px-3 py-3">
+        <button
+          type="button"
+          onClick={() => setCreateBankDialogOpen(true)}
+          className={cn(
+            'w-full flex items-center gap-2 px-3 py-2 rounded-lg',
+            'text-sm text-muted-foreground hover:text-foreground',
+            'hover:bg-muted/50 dark:hover:bg-white/5',
+            'transition-colors duration-200'
+          )}
+        >
+          <RiBuildingLine className="h-4 w-4" />
+          <span>Create Business Bank</span>
+        </button>
+      </div>
+
       {/* Create Vault Dialog */}
       {activeBankId && (
         <CreateVaultDialog
@@ -356,6 +377,12 @@ export function VaultListPane({
           bankId={activeBankId}
         />
       )}
+
+      {/* Create Business Bank Dialog */}
+      <CreateBusinessBankDialog
+        open={createBankDialogOpen}
+        onOpenChange={setCreateBankDialogOpen}
+      />
     </div>
   );
 }
