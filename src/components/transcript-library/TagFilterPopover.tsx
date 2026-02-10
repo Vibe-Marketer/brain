@@ -5,6 +5,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { requireUser } from "@/lib/auth-utils";
+import { useBankContext } from "@/hooks/useBankContext";
 import { FilterButton } from "./FilterButton";
 import { logger } from "@/lib/logger";
 
@@ -19,6 +20,7 @@ export function TagFilterPopover({
   tags,
   onTagsChange,
 }: TagFilterPopoverProps) {
+  const { activeBankId } = useBankContext();
   const handleTagToggle = (tagId: string, checked: boolean) => {
     if (checked) {
       onTagsChange([...selectedTags, tagId]);
@@ -40,7 +42,7 @@ export function TagFilterPopover({
 
       const { error } = await supabase
         .from("call_tags")
-        .insert({ name: name.trim(), user_id: user.id });
+        .insert({ name: name.trim(), user_id: user.id, ...(activeBankId && { bank_id: activeBankId }) });
 
       if (error) throw error;
 

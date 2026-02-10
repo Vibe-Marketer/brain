@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { useBankContext } from "@/hooks/useBankContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +28,7 @@ export default function QuickCreateTagDialog({
   onOpenChange,
   onTagCreated,
 }: QuickCreateTagDialogProps) {
+  const { activeBankId } = useBankContext();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -46,11 +48,17 @@ export default function QuickCreateTagDialog({
         return;
       }
 
+      if (!activeBankId) {
+        toast.error("No active workspace selected");
+        return;
+      }
+
       const { data, error } = await supabase
         .from("call_tags")
         .insert({
           name: validation.data.name,
           user_id: user.id,
+          bank_id: activeBankId,
         })
         .select()
         .single();

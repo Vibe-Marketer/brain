@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { getSafeUser } from "@/lib/auth-utils";
+import { useBankContext } from "@/hooks/useBankContext";
 import type { Tag } from "@/hooks/useCategorySync";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -36,6 +37,7 @@ export function useSyncTabState({
   checkSyncStatus,
   setMeetings
 }: UseSyncTabStateProps) {
+  const { activeBankId } = useBankContext();
   const [userTimezone, setUserTimezone] = useState<string>("America/New_York");
   const [hostEmail, setHostEmail] = useState<string>("");
   const [tags, setTags] = useState<Tag[]>([]);
@@ -97,13 +99,19 @@ export function useSyncTabState({
     }
   };
 
-  // Load tags from call_tags table
+  // Load tags from call_tags table (scoped to active workspace)
   const loadTags = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("call_tags")
         .select("id, name")
         .order("name");
+
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setTags(data || []);

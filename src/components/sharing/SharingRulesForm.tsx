@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { useBankContext } from "@/hooks/useBankContext";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -73,6 +74,7 @@ export function SharingRulesForm({
   title = "Configure Sharing Rules",
   showShareAllToggle = true,
 }: SharingRulesFormProps) {
+  const { activeBankId } = useBankContext();
   // State
   const [folders, setFolders] = useState<FolderTreeNode[]>([]);
   const [allFoldersFlat, setAllFoldersFlat] = useState<FolderTreeNode[]>([]);
@@ -87,17 +89,23 @@ export function SharingRulesForm({
   // Data Loading
   // ============================================================================
 
-  // Load folders from database
+  // Load folders from database (scoped to active workspace)
   const loadFolders = useCallback(async () => {
     try {
       const { user } = await getSafeUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("folders")
         .select("id, name, color, icon, parent_id, position")
         .eq("user_id", user.id)
         .order("position");
+
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -112,17 +120,23 @@ export function SharingRulesForm({
     }
   }, []);
 
-  // Load tags from database
+  // Load tags from database (scoped to active workspace)
   const loadTags = useCallback(async () => {
     try {
       const { user } = await getSafeUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("call_tags")
         .select("id, name, color")
         .eq("user_id", user.id)
         .order("name");
+
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
