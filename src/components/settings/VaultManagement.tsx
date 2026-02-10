@@ -11,12 +11,15 @@
  */
 
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   RiAddLine,
   RiTeamLine,
   RiSettings3Line,
   RiArrowRightSLine,
+  RiArrowRightLine,
+  RiInformationLine,
 } from '@remixicon/react'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -71,6 +74,7 @@ interface VaultQueryResult {
 const db = supabase as any
 
 export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
+  const navigate = useNavigate()
   const { user } = useAuth()
   const queryClient = useQueryClient()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -184,6 +188,24 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
 
   return (
     <div className="space-y-4">
+      {/* Deprecation notice */}
+      <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
+        <RiInformationLine className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-xs text-amber-800 dark:text-amber-200">
+            Vault management is now available on the{' '}
+            <button
+              type="button"
+              onClick={() => navigate('/vaults')}
+              className="font-medium underline hover:no-underline"
+            >
+              Vaults page
+            </button>
+            . This settings view will be removed in a future update.
+          </p>
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-medium">Vaults</h3>

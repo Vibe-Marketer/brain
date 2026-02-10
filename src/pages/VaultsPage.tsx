@@ -14,6 +14,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AppShell } from '@/components/layout/AppShell';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { useBreakpointFlags } from '@/hooks/useBreakpoint';
 import { usePanelStore } from '@/stores/panelStore';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
@@ -32,6 +33,12 @@ import {
 export default function VaultsPage() {
   const { vaultId: urlVaultId } = useParams<{ vaultId?: string }>();
   const navigate = useNavigate();
+
+  // Page title
+  useEffect(() => {
+    document.title = 'Vaults | CallVault';
+    return () => { document.title = 'CallVault'; };
+  }, []);
 
   // Responsive breakpoint
   const { isMobile } = useBreakpointFlags();
@@ -268,29 +275,59 @@ export default function VaultsPage() {
         showDetailPane: true,
       }}
     >
-      {/* Main content */}
-      {selectedVaultId ? (
-        <VaultDetailPane
-          vaultId={selectedVaultId}
-          onClose={() => {
-            setSelectedVaultId(null);
-            navigate('/vaults', { replace: true });
-          }}
-        />
-      ) : (
-        <div className="flex-1 flex items-center justify-center p-6">
-          <div className="text-center">
-            <RiSafeLine className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">
-              Select a Vault
-            </h2>
-            <p className="text-sm text-muted-foreground max-w-md">
-              Select a vault from the sidebar to view recordings and members
-            </p>
-            <RiArrowLeftSLine className="h-6 w-6 text-muted-foreground/40 mx-auto mt-2" aria-hidden="true" />
+      <ErrorBoundary
+        fallback={
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="text-center">
+              <RiSafeLine className="h-16 w-16 text-destructive/30 mx-auto mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-2">
+                Something went wrong
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-md mb-4">
+                An error occurred while loading the vault view. Please try again.
+              </p>
+              <div className="flex items-center gap-3 justify-center">
+                <Button
+                  variant="default"
+                  onClick={() => window.location.reload()}
+                >
+                  Try Again
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/')}
+                >
+                  Go Home
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        }
+      >
+        {/* Main content */}
+        {selectedVaultId ? (
+          <VaultDetailPane
+            vaultId={selectedVaultId}
+            onClose={() => {
+              setSelectedVaultId(null);
+              navigate('/vaults', { replace: true });
+            }}
+          />
+        ) : (
+          <div className="flex-1 flex items-center justify-center p-6">
+            <div className="text-center">
+              <RiSafeLine className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
+              <h2 className="text-lg font-semibold text-foreground mb-2">
+                Select a Vault
+              </h2>
+              <p className="text-sm text-muted-foreground max-w-md">
+                Select a vault from the sidebar to view recordings and members
+              </p>
+              <RiArrowLeftSLine className="h-6 w-6 text-muted-foreground/40 mx-auto mt-2" aria-hidden="true" />
+            </div>
+          </div>
+        )}
+      </ErrorBoundary>
     </AppShell>
   );
 }

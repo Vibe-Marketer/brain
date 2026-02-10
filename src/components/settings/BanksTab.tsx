@@ -10,17 +10,22 @@
  * @see .planning/phases/09-bank-vault-architecture/09-CONTEXT.md
  */
 
+import { useNavigate } from 'react-router-dom'
 import {
   RiBuilding4Line,
   RiUserLine,
+  RiArrowRightLine,
+  RiInformationLine,
 } from '@remixicon/react'
 import { useBankContext } from '@/hooks/useBankContext'
 import { VaultManagement } from './VaultManagement'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export function BanksTab() {
+  const navigate = useNavigate()
   const { banks, activeBank, isLoading, bankRole } = useBankContext()
 
   if (isLoading) {
@@ -42,6 +47,28 @@ export function BanksTab() {
         <p className="text-muted-foreground">
           Manage your banks and collaboration spaces
         </p>
+      </div>
+
+      {/* Migration banner - vault management has moved */}
+      <div className="flex items-start gap-3 p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
+        <RiInformationLine className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+            Vault management has moved to the Vaults page
+          </p>
+          <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
+            Create, manage, and invite members to vaults from the dedicated Vaults page.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => navigate('/vaults')}
+          className="flex-shrink-0 gap-1.5"
+        >
+          Go to Vaults
+          <RiArrowRightLine className="h-3.5 w-3.5" />
+        </Button>
       </div>
 
       {/* Bank list as tabs */}
