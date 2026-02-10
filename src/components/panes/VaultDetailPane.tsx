@@ -66,7 +66,7 @@ export interface VaultDetailPaneProps {
 /** Loading skeleton for vault detail */
 function VaultDetailSkeleton() {
   return (
-    <div className="p-6 space-y-6" aria-label="Loading vault detail">
+    <div className="p-6 space-y-6" aria-label="Loading hub detail">
       <div className="flex items-center gap-3">
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-5 w-16" />
@@ -160,9 +160,9 @@ export function VaultDetailPane({
         <div className="flex-1 flex items-center justify-center p-6">
           <div className="text-center">
             <RiArrowLeftLine className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" aria-hidden="true" />
-            <p className="text-sm font-semibold text-foreground mb-1">Select a vault</p>
+            <p className="text-sm font-semibold text-foreground mb-1">Select a hub</p>
             <p className="text-xs text-muted-foreground max-w-xs">
-              Choose a vault from the list to view recordings and members
+              Choose a hub from the list to view recordings and members
             </p>
           </div>
         </div>
@@ -179,7 +179,7 @@ export function VaultDetailPane({
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center">
           <RiErrorWarningLine className="h-12 w-12 text-destructive/60 mx-auto mb-3" aria-hidden="true" />
-          <p className="text-sm font-semibold text-foreground mb-1">Unable to load this vault</p>
+          <p className="text-sm font-semibold text-foreground mb-1">Unable to load this hub</p>
           <p className="text-xs text-muted-foreground mb-4">
             Please try again in a moment.
           </p>
@@ -187,7 +187,7 @@ export function VaultDetailPane({
             variant="outline"
             size="sm"
             onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.vaults.detail(vaultId) })}
-            aria-label="Retry loading vault"
+            aria-label="Retry loading hub"
           >
             Try Again
           </Button>
@@ -201,7 +201,7 @@ export function VaultDetailPane({
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center">
           <RiSafeLine className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">Vault not found</p>
+          <p className="text-sm text-muted-foreground">Hub not found</p>
         </div>
       </div>
     )
@@ -212,7 +212,7 @@ export function VaultDetailPane({
   return (
     <div className={cn('h-full flex flex-col', className)}>
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border/40 flex-shrink-0">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/70 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {/* Back button for mobile */}
           {showBackButton && onBack && (
@@ -221,11 +221,13 @@ export function VaultDetailPane({
               size="sm"
               onClick={onBack}
               className="mr-1 -ml-1"
-              aria-label="Go back to vault list"
+              aria-label="Go back to hub list"
             >
               <RiArrowLeftLine className="h-4 w-4" aria-hidden="true" />
             </Button>
           )}
+
+          <RiSafeLine className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
 
           {/* Vault name */}
           {canEditSettings ? (
@@ -234,9 +236,9 @@ export function VaultDetailPane({
                 <button
                   type="button"
                   className="group flex items-center gap-1 min-w-0 focus:outline-none"
-                  aria-label="Vault actions"
+                  aria-label="Hub actions"
                 >
-                  <span className="font-montserrat font-extrabold text-base uppercase tracking-wide truncate">
+                  <span className="font-montserrat font-extrabold text-sm uppercase tracking-wide truncate">
                     {vault.name}
                   </span>
                   <RiArrowDownSLine className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
@@ -244,20 +246,20 @@ export function VaultDetailPane({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-40">
                 <DropdownMenuItem onClick={handleOpenSettings}>
-                  Edit Vault
+                  Edit Hub
                 </DropdownMenuItem>
                 {canDeleteVault && (
                   <>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleOpenDelete}>
-                      Delete Vault
+                      Delete Hub
                     </DropdownMenuItem>
                   </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <h2 className="font-montserrat font-extrabold text-base uppercase tracking-wide truncate">
+            <h2 className="font-montserrat font-extrabold text-sm uppercase tracking-wide truncate">
               {vault.name}
             </h2>
           )}
@@ -290,7 +292,7 @@ export function VaultDetailPane({
               size="icon"
               onClick={handleOpenSettings}
               className="h-8 w-8"
-              aria-label="Vault settings"
+              aria-label="Hub settings"
             >
               <RiSettings3Line className="h-4 w-4" aria-hidden="true" />
             </Button>
@@ -302,7 +304,7 @@ export function VaultDetailPane({
             size="sm"
             onClick={handleOpenMembers}
             className="flex items-center gap-1.5 text-xs"
-            aria-label={`View ${vault.member_count} vault members`}
+            aria-label={`View ${vault.member_count} hub members`}
           >
             <RiGroupLine className="h-4 w-4" aria-hidden="true" />
             <span className="tabular-nums">{vault.member_count}</span>
@@ -355,9 +357,9 @@ export function VaultDetailPane({
           ) : recordings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
               <RiMicLine className="h-16 w-16 text-muted-foreground/20 mb-4" aria-hidden="true" />
-              <h3 className="text-sm font-semibold text-foreground mb-1">No recordings in this vault</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-1">No recordings in this hub</h3>
               <p className="text-xs text-muted-foreground text-center max-w-xs">
-                Recordings you add to this vault will appear here.
+                Recordings you add to this hub will appear here.
               </p>
               <Button
                 variant="hollow"

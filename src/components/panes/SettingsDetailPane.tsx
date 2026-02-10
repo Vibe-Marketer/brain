@@ -106,7 +106,7 @@ const CATEGORY_META: Record<
     icon: RiShieldLine,
   },
   banks: {
-    label: "Banks & Vaults",
+    label: "Workspaces & Hubs",
     description: "Workspaces and collaboration",
     icon: RiBankLine,
   },
@@ -276,7 +276,7 @@ export function SettingsDetailPane({
       tabIndex={-1}
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-cb-card/50 flex-shrink-0">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/70 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {/* Back button for mobile navigation */}
           {showBackButton && onBack && (
@@ -293,21 +293,21 @@ export function SettingsDetailPane({
 
           {/* Category icon - with smooth transition */}
           <div
-            className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 transition-all duration-200 ease-in-out"
+            className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 transition-all duration-200 ease-in-out"
             aria-hidden="true"
           >
-            <Icon className="h-4 w-4 text-vibe-orange transition-transform duration-200 ease-in-out" />
+            <Icon className="h-4 w-4 text-muted-foreground transition-transform duration-200 ease-in-out" />
           </div>
 
           {/* Category title and description */}
           <div className="min-w-0">
             <h2
-              className="text-sm font-bold text-ink uppercase tracking-wide truncate"
+              className="text-sm font-montserrat font-extrabold text-foreground uppercase tracking-wide truncate"
               id="settings-detail-title"
             >
               {meta.label}
             </h2>
-            <p className="text-xs text-ink-muted truncate">
+            <p className="text-xs text-muted-foreground truncate">
               {meta.description}
             </p>
           </div>

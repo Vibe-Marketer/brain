@@ -107,10 +107,10 @@ function VaultListEmpty({
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
       <RiSafeLine className="h-16 w-16 text-muted-foreground/50 mb-4" aria-hidden="true" />
       <p className="text-sm font-montserrat font-extrabold uppercase tracking-wide text-foreground mb-1">
-        No vaults yet
+        No hubs yet
       </p>
       <p className="text-xs text-muted-foreground mb-4">
-        Create your first vault to start collaborating
+        Create your first hub to start collaborating
       </p>
       <Button
         variant="default"
@@ -118,10 +118,10 @@ function VaultListEmpty({
         onClick={canCreate ? onCreateClick : undefined}
         className="gap-1.5"
         disabled={!canCreate}
-        aria-label="Create vault"
+        aria-label="Create hub"
       >
         <RiAddLine className="h-4 w-4" aria-hidden="true" />
-        Create Vault
+        Create Hub
       </Button>
     </div>
   );
@@ -135,7 +135,7 @@ function VaultListError({ onRetry }: { onRetry: () => void }) {
       <p className="text-xs text-muted-foreground mb-4">
         Please check your connection and try again.
       </p>
-      <Button variant="outline" size="sm" onClick={onRetry} aria-label="Retry loading vaults">
+      <Button variant="outline" size="sm" onClick={onRetry} aria-label="Retry loading hubs">
         Try Again
       </Button>
     </div>
@@ -235,45 +235,46 @@ export function VaultListPane({
         className
       )}
       role="navigation"
-      aria-label="Vault list"
+      aria-label="Hub list"
     >
-      {/* Header - Bank name prominently displayed */}
-      <header className="flex-shrink-0 border-b border-border bg-cb-card/50">
-        {/* Bank context */}
-        <div className="px-4 pt-3 pb-1 flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-              {activeBank?.type === 'personal' ? 'Personal Bank' : 'Business Bank'}
-            </p>
-            <h2 className="text-sm font-bold text-foreground truncate">
-              {activeBank?.name || 'Loading...'}
-            </h2>
-          </div>
-          <div className="flex-shrink-0">
-            <BankSwitcher />
-          </div>
-        </div>
-
-        {/* Vaults title + create button */}
-        <div className="flex items-center justify-between px-4 py-2">
-          <h3
-            className="text-xs font-bold text-muted-foreground uppercase tracking-wide font-montserrat"
-            id="vault-list-title"
-          >
-            VAULTS
-          </h3>
-          {canCreateVault && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleCreateVault}
-              className="h-6 w-6 text-muted-foreground hover:text-foreground"
-              title="Create Vault"
-              aria-label="Create vault"
+      {/* Header - icon-led HUB composition with responsive bank context */}
+      <header className="flex-shrink-0 border-b border-border bg-card/70">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between gap-2">
+            <h2
+              className="inline-flex items-center gap-1.5 text-xs font-montserrat font-extrabold uppercase tracking-wide text-foreground"
+              id="hub-list-title"
             >
-              <RiAddLine className="h-4 w-4" />
-            </Button>
-          )}
+              <RiSafeLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+              HUBS
+            </h2>
+            {canCreateVault && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCreateVault}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                title="Create Hub"
+                aria-label="Create hub"
+              >
+                <RiAddLine className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          <div className="mt-2 space-y-2">
+            <div className="min-w-0">
+              <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
+                {activeBank?.type === 'personal' ? 'Personal Workspace' : 'Business Workspace'}
+              </p>
+              <p className="text-sm font-montserrat font-extrabold uppercase tracking-wide text-foreground truncate">
+                {activeBank?.name || 'Loading...'}
+              </p>
+            </div>
+            <div className="max-w-full">
+              <BankSwitcher />
+            </div>
+          </div>
         </div>
       </header>
 
@@ -293,7 +294,7 @@ export function VaultListPane({
         <div
           className="flex-1 overflow-y-auto py-2 px-2"
           role="list"
-          aria-labelledby="vault-list-title"
+          aria-labelledby="hub-list-title"
         >
           {vaults.map((vault: VaultWithMeta) => {
             const isActive = selectedVaultId === vault.id;
@@ -333,18 +334,18 @@ export function VaultListPane({
                     'hover:bg-muted/50 dark:hover:bg-white/5',
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
                     isActive && [
-                      'bg-gray-100 dark:bg-gray-800',
-                      'border-l-0 pl-4', // Offset for the active indicator
+                      'bg-muted/60',
+                      'border-l-0 pl-4',
                     ]
                   )}
                   aria-current={isActive ? 'true' : undefined}
-                  aria-label={`${vault.name}: ${typeConfig.label} vault, ${vault.member_count} member${vault.member_count !== 1 ? 's' : ''}`}
+                  aria-label={`${vault.name}: ${typeConfig.label} hub, ${vault.member_count} member${vault.member_count !== 1 ? 's' : ''}`}
                 >
                   {/* Vault icon */}
                   <div
                     className={cn(
                       'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0',
-                      'bg-cb-card border border-border',
+                       'bg-card border border-border',
                       'transition-all duration-200 ease-in-out',
                       isActive && 'border-vibe-orange/30 bg-vibe-orange/10'
                     )}
@@ -411,25 +412,25 @@ export function VaultListPane({
               'hover:bg-muted/50 dark:hover:bg-white/5',
               'transition-colors duration-200'
             )}
-            aria-label="Create business bank"
+            aria-label="Create business workspace"
           >
             <RiBuildingLine className="h-4 w-4" />
-            <span>Create Business Bank</span>
+            <span>Create Business Workspace</span>
           </button>
         ) : (
-          <div className="rounded-lg border border-border bg-cb-card/60 p-3 space-y-2">
+          <div className="rounded-lg border border-border bg-card/70 p-3 space-y-2">
             <p className="text-sm font-medium text-foreground">
-              Create your first business bank to collaborate with your team
+              Create your first business workspace to collaborate with your team
             </p>
             <Button
               variant="default"
               size="sm"
               onClick={() => setCreateBankDialogOpen(true)}
               className="gap-1.5"
-              aria-label="Create business bank"
+              aria-label="Create business workspace"
             >
               <RiBuildingLine className="h-4 w-4" />
-              Create Business Bank
+              Create Business Workspace
             </Button>
           </div>
         )}

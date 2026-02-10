@@ -2,7 +2,7 @@
  * VaultsPage - Main vaults management interface
  *
  * Provides 3-pane layout with vault list sidebar, main content area,
- * and detail panel outlet. Bank context controls which vaults are visible.
+  * and detail panel outlet. Bank context controls which hubs are visible.
  *
  * Route: /vaults and /vaults/:vaultId
  *
@@ -40,7 +40,7 @@ function VaultsErrorFallback({ error, resetErrorBoundary }: { error: Error; rese
         <RiErrorWarningLine className="h-16 w-16 text-destructive/60 mx-auto mb-4" aria-hidden="true" />
         <h2 className="text-lg font-semibold text-foreground mb-2">Something went wrong</h2>
         <p className="text-sm text-muted-foreground max-w-md mb-4">
-          {error.message || 'An unexpected error occurred while loading the vaults page.'}
+          {error.message || 'An unexpected error occurred while loading the hubs page.'}
         </p>
         <div className="flex items-center gap-3 justify-center">
           <Button
@@ -69,7 +69,7 @@ export default function VaultsPage() {
 
   // Page title
   useEffect(() => {
-    document.title = 'Vaults | CallVault';
+    document.title = 'Hubs | CallVault';
     return () => { document.title = 'CallVault'; };
   }, []);
 
@@ -185,7 +185,7 @@ export default function VaultsPage() {
           />
         )}
 
-        {/* Mobile vault list overlay */}
+        {/* Mobile hub list overlay */}
         {showMobileVaultList && (
           <div
             className={cn(
@@ -195,12 +195,12 @@ export default function VaultsPage() {
           >
             <div className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-white/50 dark:bg-black/20">
               <h2 className="text-sm font-semibold text-foreground tracking-tight uppercase">
-                Vaults
+                Hubs
               </h2>
               <button
                 onClick={() => setShowMobileVaultList(false)}
                 className="text-muted-foreground hover:text-foreground h-6 w-6"
-                aria-label="Close vault list"
+                aria-label="Close hub list"
               >
                 <RiCloseLine className="h-4 w-4" aria-hidden="true" />
               </button>
@@ -221,7 +221,7 @@ export default function VaultsPage() {
               <div
               className="flex-1 bg-card rounded-2xl border border-border/60 shadow-sm flex flex-col h-full overflow-hidden"
               role="main"
-              aria-label="Vaults"
+              aria-label="Hubs"
               >
                 {/* Mobile: Show VaultDetailPane or empty state */}
                 {selectedVaultId ? (
@@ -233,24 +233,26 @@ export default function VaultsPage() {
                 ) : (
                   <>
                     {/* Mobile header */}
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card/70 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => setShowMobileVaultList(true)}
                         className="text-muted-foreground hover:text-foreground h-10 w-10"
-                        aria-label="Open vault list"
+                        aria-label="Open hub list"
                       >
                         <RiSafeLine className="h-5 w-5" aria-hidden="true" />
                       </Button>
-                      <span className="text-sm font-semibold">Vaults</span>
+                      <span className="text-sm font-montserrat font-extrabold uppercase tracking-wide text-foreground">
+                        Hubs
+                      </span>
                     </div>
                     <div className="flex-1 flex items-center justify-center p-6">
                       <div className="text-center">
                         <RiArrowLeftLine className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" aria-hidden="true" />
-                        <p className="text-sm font-semibold text-foreground mb-1">Select a vault</p>
+                        <p className="text-sm font-semibold text-foreground mb-1">Select a hub</p>
                         <p className="text-xs text-muted-foreground">
-                          Choose a vault from the list to view recordings and members
+                          Choose a hub from the list to view recordings and members
                         </p>
                       </div>
                     </div>
@@ -265,7 +267,7 @@ export default function VaultsPage() {
         {showMobileBottomSheet && (
           <aside
             role="complementary"
-            aria-label="Vault member panel"
+            aria-label="Hub member panel"
             className={cn(
               'fixed bottom-0 left-0 right-0 z-50 bg-card rounded-t-2xl border-t border-border/60 shadow-xl flex flex-col',
               'max-h-[85vh] animate-in slide-in-from-bottom duration-500'
