@@ -22,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 import { ImportProgress, type ImportStep } from './ImportProgress';
+import { VaultSelector } from '@/components/vault/VaultSelector';
 
 interface YouTubeImportFormProps {
   /** Callback when import succeeds */
@@ -89,6 +90,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
   const [isImporting, setIsImporting] = useState(false);
   const [currentStep, setCurrentStep] = useState<ImportStep>('idle');
   const [error, setError] = useState<string | undefined>();
+  const [selectedVaultId, setSelectedVaultId] = useState<string>('');
 
   const handlePaste = useCallback((event: React.ClipboardEvent<HTMLInputElement>) => {
     const pastedText = event.clipboardData.getData('text');
@@ -121,7 +123,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
 
     try {
       const { data, error: invokeError } = await supabase.functions.invoke<ImportResponse>('youtube-import', {
-        body: { videoUrl: trimmedUrl },
+        body: { videoUrl: trimmedUrl, vault_id: selectedVaultId || undefined },
       });
 
       if (invokeError) {
@@ -161,6 +163,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
     setUrl('');
     setCurrentStep('idle');
     setError(undefined);
+    // Keep selectedVaultId — user likely wants same vault for next import
   }, []);
 
   const isValid = url.trim().length > 0 && isValidYouTubeInput(url.trim());
@@ -206,6 +209,14 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
             Supported formats: youtube.com/watch?v=..., youtu.be/..., or 11-character video ID
           </p>
         </div>
+
+        {/* Vault selector */}
+        <VaultSelector
+          integration="youtube"
+          value={selectedVaultId}
+          onVaultChange={setSelectedVaultId}
+          disabled={isImporting}
+        />
 
         {/* Submit button */}
         <Button
