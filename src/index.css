@@ -282,7 +282,7 @@ CallVault Brand System v4.2
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 13%;
     --secondary-foreground: 0 0% 100%;
-    --accent: 32 100% 50%;      /* Vibe orange */
+    --accent: 0 0% 95%;         /* Light gray for selection highlights - NOT vibe orange */
     --accent-foreground: 0 0% 9%;
     --muted: 0 0% 95%;
     --muted-foreground: 0 0% 40%;
@@ -410,11 +410,6 @@ CallVault Brand System v4.2
     background-color: transparent !important;
   }
 
-  /* Angular clip-path for active tab underlines (horizontal) */
-  /* Trapezoid: narrow top, wide bottom - both edges slant outward */
-  [data-state="active"]::after {
-    clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
-  }
 }
 
 /* ============================================
