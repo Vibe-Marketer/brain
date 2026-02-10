@@ -135,7 +135,7 @@ export function VaultBadgeList({
           </PopoverTrigger>
           <PopoverContent align="start" className="w-52 p-2">
             <p className="px-2 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              More Vaults
+              More Hubs
             </p>
             <div className="space-y-1 mt-1">
               {overflow.map((vault) => (

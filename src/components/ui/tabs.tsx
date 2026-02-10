@@ -39,13 +39,15 @@ const TabsTrigger = React.forwardRef<
       // Active state - font weight and color
       "data-[state=active]:font-semibold",
       "data-[state=active]:text-ink dark:data-[state=active]:text-white",
-      // Active state - 6px vibe green underline (angular shape via CSS)
+      // Active state - floating pill underline
       "data-[state=active]:after:absolute",
-      "data-[state=active]:after:bottom-0",
-      "data-[state=active]:after:left-0",
-      "data-[state=active]:after:right-0",
-      "data-[state=active]:after:h-[6px]",
+      "data-[state=active]:after:bottom-0.5",
+      "data-[state=active]:after:left-1/2",
+      "data-[state=active]:after:-translate-x-1/2",
+      "data-[state=active]:after:w-[68%]",
+      "data-[state=active]:after:h-[8px]",
       "data-[state=active]:after:bg-vibe-orange",
+      "data-[state=active]:after:rounded-full",
       "data-[state=active]:after:content-['']",
       // Hover state
       "hover:text-ink dark:hover:text-white",
@@ -54,11 +56,8 @@ const TabsTrigger = React.forwardRef<
       "disabled:pointer-events-none disabled:opacity-50",
       className,
       // ENFORCED: No horizontal padding, only bottom padding for underline space
-      "px-0 pb-3 pt-0 m-0",
+      "px-0 pb-4 pt-0 m-0",
     )}
-    style={{
-      // Angular clip-path for the ::after pseudo-element applied via CSS
-    }}
     {...props}
   />
 ));

@@ -186,7 +186,7 @@ const navItems: NavItem[] = [
   },
   {
     id: 'vaults',
-    name: 'Vaults',
+    name: 'Hubs',
     iconLine: RiSafeLine,
     iconFill: RiSafeFill,
     path: '/vaults',

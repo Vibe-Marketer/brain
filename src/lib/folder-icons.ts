@@ -33,7 +33,7 @@ export const FOLDER_ICON_OPTIONS: FolderIconOption[] = [
   { id: 'building', label: 'Building', icon: RemixIcon.RiBuildingLine, category: 'business' },
   { id: 'building-2', label: 'Building 2', icon: RemixIcon.RiBuilding2Line, category: 'business' },
   { id: 'store', label: 'Store', icon: RemixIcon.RiStoreLine, category: 'business' },
-  { id: 'bank', label: 'Bank', icon: RemixIcon.RiBankLine, category: 'business' },
+  { id: 'bank', label: 'Workspace', icon: RemixIcon.RiBankLine, category: 'business' },
   { id: 'government', label: 'Government', icon: RemixIcon.RiGovernmentLine, category: 'business' },
   { id: 'presentation', label: 'Presentation', icon: RemixIcon.RiSlideshowLine, category: 'business' },
   { id: 'calendar', label: 'Calendar', icon: RemixIcon.RiCalendarLine, category: 'business' },

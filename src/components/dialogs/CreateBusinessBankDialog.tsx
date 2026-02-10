@@ -1,8 +1,8 @@
 /**
- * CreateBusinessBankDialog - Dialog for creating business banks
+ * CreateBusinessBankDialog - Dialog for creating business workspaces
  *
- * Full configuration upfront: name, cross-bank recording default,
- * and default vault name. After creation: auto-switches to new bank
+ * Full configuration upfront: name, cross-workspace recording default,
+ * and default hub name. After creation: auto-switches to new workspace
  * and navigates to /vaults.
  *
  * @pattern dialog-form
@@ -53,8 +53,10 @@ export function CreateBusinessBankDialog({
   const [defaultVaultName, setDefaultVaultName] = useState('')
   const [crossBankDefault, setCrossBankDefault] = useState<'copy_only' | 'copy_and_remove'>('copy_only')
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showLogoUpload, setShowLogoUpload] = useState(false)
   const [logoDataUrl, setLogoDataUrl] = useState<string | null>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
+  const [logoInputKey, setLogoInputKey] = useState(0)
   const [createVaultOpen, setCreateVaultOpen] = useState(false)
   const [createdBankId, setCreatedBankId] = useState<string | null>(null)
   const createBank = useCreateBusinessBank()
@@ -78,8 +80,10 @@ export function CreateBusinessBankDialog({
           setDefaultVaultName('')
           setCrossBankDefault('copy_only')
           setShowAdvanced(false)
+          setShowLogoUpload(false)
           setLogoDataUrl(null)
           setLogoError(null)
+          setLogoInputKey((prev) => prev + 1)
           setCreatedBankId(data.bank.id)
           setCreateVaultOpen(true)
           onOpenChange(false)
@@ -104,6 +108,7 @@ export function CreateBusinessBankDialog({
     if (!file) {
       setLogoDataUrl(null)
       setLogoError(null)
+      setShowLogoUpload(false)
       return
     }
 
@@ -125,6 +130,7 @@ export function CreateBusinessBankDialog({
     reader.onload = () => {
       setLogoDataUrl(typeof reader.result === 'string' ? reader.result : null)
       setLogoError(null)
+      setShowLogoUpload(true)
     }
     reader.onerror = () => {
       setLogoDataUrl(null)
@@ -143,9 +149,9 @@ export function CreateBusinessBankDialog({
               <RiBuildingLine className="h-4 w-4 text-muted-foreground" />
             </div>
             <div>
-              <DialogTitle>Create Business Bank</DialogTitle>
+              <DialogTitle>Create Business Workspace</DialogTitle>
               <DialogDescription id="create-bank-description">
-                Set up an organization to collaborate with your team
+                A workspace is an account for your company or clients.
               </DialogDescription>
             </div>
           </div>
@@ -176,46 +182,82 @@ export function CreateBusinessBankDialog({
           {/* Logo (optional) */}
           <div className="space-y-2">
             <Label htmlFor="bank-logo">Logo (optional)</Label>
-            <div className="flex items-center gap-3">
-              <div className="h-12 w-12 rounded-lg border border-border bg-muted/40 flex items-center justify-center overflow-hidden">
-                {logoDataUrl ? (
-                  <img
-                    src={logoDataUrl}
-                    alt="Logo preview"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <RiBuildingLine className="h-5 w-5 text-muted-foreground" />
-                )}
-              </div>
-              <div className="flex-1">
-                <Input
-                  id="bank-logo"
-                  type="file"
-                  accept=".png,.jpg,.jpeg,.svg"
-                  onChange={handleLogoChange}
+            {!showLogoUpload && !logoDataUrl ? (
+              <div className="flex items-center justify-between rounded-lg border border-dashed border-border px-3 py-2">
+                <span className="text-xs text-muted-foreground">
+                  Add a logo now or skip and set it later in Settings.
+                </span>
+                <Button
+                  type="button"
+                  variant="link"
+                  className="text-xs px-0"
+                  onClick={() => setShowLogoUpload(true)}
                   disabled={createBank.isPending}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  PNG, JPG, or SVG up to 2MB
-                </p>
+                  aria-label="Add logo"
+                >
+                  Add logo
+                </Button>
               </div>
-            </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-lg border border-border bg-muted/40 flex items-center justify-center overflow-hidden">
+                  {logoDataUrl ? (
+                    <img
+                      src={logoDataUrl}
+                      alt="Logo preview"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <RiBuildingLine className="h-5 w-5 text-muted-foreground" />
+                  )}
+                </div>
+                <div className="flex-1 space-y-1">
+                  <Input
+                    key={logoInputKey}
+                    id="bank-logo"
+                    type="file"
+                    accept=".png,.jpg,.jpeg,.svg"
+                    onChange={handleLogoChange}
+                    disabled={createBank.isPending}
+                  />
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      PNG, JPG, or SVG up to 2MB
+                    </p>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="text-xs px-0"
+                      onClick={() => {
+                        setLogoDataUrl(null)
+                        setLogoError(null)
+                        setShowLogoUpload(false)
+                        setLogoInputKey((prev) => prev + 1)
+                      }}
+                      disabled={createBank.isPending}
+                      aria-label="Remove logo"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
             {logoError && <p className="text-xs text-destructive">{logoError}</p>}
           </div>
 
-          {/* Default Vault Name (optional) */}
+          {/* Default Hub Name (optional) */}
           <div className="space-y-2">
-            <Label htmlFor="default-vault-name">Default Vault Name</Label>
+            <Label htmlFor="default-vault-name">Default Hub Name</Label>
             <Input
               id="default-vault-name"
               value={defaultVaultName}
               onChange={(e) => setDefaultVaultName(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={name.trim() ? `${name.trim()}'s Vault` : "Your first vault in this bank"}
+              placeholder={name.trim() ? `${name.trim()}'s Hub` : "Your first hub in this workspace"}
             />
             <p className="text-xs text-muted-foreground">
-              Your first vault in this bank. Leave blank for default.
+              Your first hub in this workspace. Leave blank for default.
             </p>
           </div>
 
@@ -236,10 +278,10 @@ export function CreateBusinessBankDialog({
 
             {showAdvanced && (
               <div className="px-3 pb-3 space-y-3 border-t border-border pt-3">
-                {/* Cross-Bank Recording Default */}
+                {/* Cross-Workspace Recording Default */}
                 <div className="space-y-2">
                   <Label htmlFor="cross-bank-default">
-                    Cross-Bank Recording Behavior
+                    Cross-Workspace Recording Behavior
                   </Label>
                   <Select
                     value={crossBankDefault}
@@ -261,8 +303,8 @@ export function CreateBusinessBankDialog({
                     <RiInformationLine className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
                     <span>
                       {crossBankDefault === 'copy_only'
-                        ? 'Recordings copied to this bank also stay in the source bank.'
-                        : 'Recordings moved to this bank are removed from the source bank.'}
+                        ? 'Recordings copied to this workspace also stay in the source workspace.'
+                        : 'Recordings moved to this workspace are removed from the source workspace.'}
                     </span>
                   </div>
                 </div>
@@ -283,7 +325,7 @@ export function CreateBusinessBankDialog({
             onClick={handleSubmit}
             disabled={!isValid || createBank.isPending}
           >
-            {createBank.isPending ? 'Creating...' : 'Create Business Bank'}
+            {createBank.isPending ? 'Creating...' : 'Create Business Workspace'}
           </Button>
         </DialogFooter>
       </DialogContent>

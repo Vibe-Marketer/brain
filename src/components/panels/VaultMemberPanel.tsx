@@ -158,7 +158,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
   const handleRemoveMember = useCallback(
     (member: VaultMember) => {
       if (!currentUserRole) return
-      if (!confirm(`Remove ${member.display_name || member.email || 'this member'} from the vault?`)) return
+      if (!confirm(`Remove ${member.display_name || member.email || 'this member'} from the hub?`)) return
       removeMember.mutate({
         membershipId: member.id,
         targetRole: member.role,
@@ -171,7 +171,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
   // Handle leave vault
   const handleLeaveVault = useCallback(() => {
     if (!currentUserMembership || !currentUserRole) return
-    if (!confirm('Are you sure you want to leave this vault?')) return
+    if (!confirm('Are you sure you want to leave this hub?')) return
     leaveVault.mutate({
       membershipId: currentUserMembership.id,
       userRole: currentUserRole,
@@ -185,7 +185,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
         <div className="flex items-center gap-2 min-w-0">
           <RiGroupLine className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wide truncate">
-            Vault Members
+            Hub Members
           </h3>
           {!isLoading && (
             <Badge
@@ -238,7 +238,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search members"
                 className="h-8 text-xs"
-                aria-label="Search vault members"
+                aria-label="Search hub members"
               />
             )}
             {/* Invite button at top — only for vault_owner/vault_admin */}
@@ -363,7 +363,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
                               onClick={() => handleRemoveMember(member)}
                             >
                               <RiDeleteBinLine className="h-4 w-4 mr-2" />
-                              Remove from Vault
+                              Remove from Hub
                             </DropdownMenuItem>
                           </>
                         )}
@@ -374,7 +374,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
                             onClick={handleLeaveVault}
                           >
                             <RiLogoutCircleLine className="h-4 w-4 mr-2" />
-                            Leave Vault
+                            Leave Hub
                           </DropdownMenuItem>
                         )}
                       </DropdownMenuContent>
@@ -393,7 +393,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
         vaultId={vaultId}
-        vaultName={vaultName || 'this vault'}
+        vaultName={vaultName || 'this hub'}
       />
 
       {/* Change Role Dialog */}

@@ -91,7 +91,7 @@ export default function VaultJoin() {
 
           if (existingMembership) {
             setAlreadyMemberVaultId(vault.id)
-            setError("You're already a member of this vault")
+            setError("You're already a member of this hub")
             setIsLoading(false)
             return
           }
@@ -143,7 +143,7 @@ export default function VaultJoin() {
 
       if (existingMembership) {
         setAlreadyMemberVaultId(inviteData.vault_id)
-        setError("You're already a member of this vault")
+        setError("You're already a member of this hub")
         setIsJoining(false)
         return
       }
@@ -162,7 +162,7 @@ export default function VaultJoin() {
         throw insertError
       }
 
-      toast.success(`Joined vault '${inviteData.vault_name}'`)
+      toast.success(`Joined hub '${inviteData.vault_name}'`)
       navigate(`/vaults/${inviteData.vault_id}`)
     } catch (err) {
       toast.error(getErrorToastMessage(err))
@@ -200,12 +200,12 @@ export default function VaultJoin() {
             {alreadyMemberVaultId ? (
               <Button onClick={() => navigate(`/vaults/${alreadyMemberVaultId}`)} className="w-full">
                 <RiSafeLine className="w-4 h-4 mr-2" />
-                Go to Vault
+                Go to Hub
               </Button>
             ) : (
               <Button onClick={() => navigate('/vaults')} className="w-full">
                 <RiSafeLine className="w-4 h-4 mr-2" />
-                Go to Vaults
+                Go to Hubs
               </Button>
             )}
             <Button variant="hollow" onClick={() => navigate('/')} className="w-full">
@@ -228,7 +228,7 @@ export default function VaultJoin() {
               <RiUserAddLine className="w-8 h-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Vault Invitation</CardTitle>
+          <CardTitle className="text-2xl">Hub Invitation</CardTitle>
           <CardDescription className="text-base mt-2">
             You've been invited to join{' '}
             <span className="font-medium text-foreground">{inviteData?.vault_name}</span>
@@ -237,19 +237,19 @@ export default function VaultJoin() {
         <CardContent className="space-y-6">
           {/* What you'll get */}
           <div className="bg-muted/50 rounded-lg p-4">
-            <h3 className="font-medium text-sm text-foreground mb-3">As a vault member, you'll be able to:</h3>
+            <h3 className="font-medium text-sm text-foreground mb-3">As a hub member, you'll be able to:</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <RiCheckLine className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>Access shared call recordings in this vault</span>
+                <span>Access shared call recordings in this hub</span>
               </li>
               <li className="flex items-start gap-2">
                 <RiCheckLine className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>Collaborate with other vault members</span>
+                <span>Collaborate with other hub members</span>
               </li>
               <li className="flex items-start gap-2">
                 <RiCheckLine className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>Use AI chat scoped to vault recordings</span>
+                <span>Use AI chat scoped to hub recordings</span>
               </li>
             </ul>
           </div>
@@ -259,7 +259,7 @@ export default function VaultJoin() {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <RiGroupLine className="w-4 h-4" />
               <span>
-                {inviteData.member_count} {inviteData.member_count === 1 ? 'member' : 'members'} already in this vault
+                {inviteData.member_count} {inviteData.member_count === 1 ? 'member' : 'members'} already in this hub
               </span>
             </div>
           )}
@@ -293,7 +293,7 @@ export default function VaultJoin() {
               ) : (
                 <>
                   <RiCheckLine className="w-4 h-4 mr-2" />
-                  Join Vault
+                  Join Hub
                 </>
               )}
             </Button>

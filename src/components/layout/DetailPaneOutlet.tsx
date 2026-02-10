@@ -113,7 +113,7 @@ export function DetailPaneOutlet({
       case 'call-detail':
         return 'Call detail panel';
       case 'vault-member':
-        return 'Vault member panel';
+        return 'Hub member panel';
       default:
         return 'Detail panel';
     }

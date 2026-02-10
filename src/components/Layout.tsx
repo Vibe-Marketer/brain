@@ -24,7 +24,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     if (location.pathname.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
     if (location.pathname.startsWith('/settings')) return 'SETTINGS';
     if (location.pathname === '/shared-with-me') return 'SHARED WITH ME';
-    if (location.pathname.startsWith('/vaults')) return 'VAULTS';
+    if (location.pathname.startsWith('/vaults')) return 'HUBS';
     if (location.pathname.startsWith('/content')) return 'CONTENT HUB';
     return 'HOME';
   };

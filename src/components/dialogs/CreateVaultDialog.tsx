@@ -1,7 +1,7 @@
 /**
- * CreateVaultDialog - Dialog for creating new vaults
+  * CreateVaultDialog - Dialog for creating new hubs
  *
- * Supports vault name, type selection (team default),
+  * Supports hub name, type selection (team default),
  * and optional share link TTL setting.
  *
  * @pattern dialog-form
@@ -49,7 +49,7 @@ const VAULT_TYPE_OPTIONS: Array<{
   {
     value: 'team',
     label: 'Team',
-    description: 'Shared workspace for your team',
+    description: 'Shared hub for your team',
   },
   {
     value: 'coach',
@@ -156,22 +156,22 @@ export function CreateVaultDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby="create-vault-description">
         <DialogHeader>
-          <DialogTitle>Create New Vault</DialogTitle>
-          <DialogDescription id="create-vault-description">
-            Create a collaboration space for your team
-          </DialogDescription>
+      <DialogTitle>Create New Hub</DialogTitle>
+      <DialogDescription id="create-vault-description">
+        A hub is a shared space inside a workspace for one team, client, or community.
+      </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
-          {/* Vault name */}
+          {/* Hub name */}
           <div className="space-y-2">
-            <Label htmlFor="vault-name">Vault Name</Label>
+            <Label htmlFor="vault-name">Hub Name</Label>
             <Input
               id="vault-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="e.g., Sales Team, Marketing"
+              placeholder="e.g., Sales Hub, Client A"
               autoFocus
             />
             <p className="text-xs text-muted-foreground">
@@ -179,14 +179,14 @@ export function CreateVaultDialog({
             </p>
             {name.length > 0 && !isNameValid && (
               <p className="text-xs text-destructive">
-                Vault name must be between 3 and 50 characters.
+                Hub name must be between 3 and 50 characters.
               </p>
             )}
           </div>
 
-          {/* Vault type */}
+          {/* Hub type */}
           <div className="space-y-2">
-            <Label htmlFor="vault-type">Vault Type</Label>
+            <Label htmlFor="vault-type">Hub Type</Label>
             <Select
               value={vaultType}
               onValueChange={(v) => setVaultType(v as VaultType)}
@@ -236,16 +236,16 @@ export function CreateVaultDialog({
             </p>
           </div>
 
-          {/* Bank selection */}
+          {/* Workspace selection */}
           {showBankSelect && (
             <div className="space-y-2">
-              <Label htmlFor="vault-bank">Bank</Label>
+              <Label htmlFor="vault-bank">Workspace</Label>
               <Select
                 value={selectedBankId}
                 onValueChange={setSelectedBankId}
               >
                 <SelectTrigger id="vault-bank">
-                  <SelectValue placeholder="Select a bank" />
+                  <SelectValue placeholder="Select a workspace" />
                 </SelectTrigger>
                 <SelectContent>
                   {businessBanks.map((bank) => (
@@ -271,7 +271,7 @@ export function CreateVaultDialog({
             onClick={handleSubmit}
             disabled={!canSubmit}
           >
-            {createVault.isPending ? 'Creating...' : 'Create Vault'}
+            {createVault.isPending ? 'Creating...' : 'Create Hub'}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -80,6 +80,7 @@ export function useCreateVault() {
           const { error: folderError } = await supabase.from('folders').insert({
             vault_id: vault.id,
             user_id: user.id,
+            bank_id: input.bankId,
             name: folder.name,
             visibility: folder.visibility,
           })
@@ -128,7 +129,7 @@ export function useCreateVault() {
       if (context?.previousList && context.listKey) {
         queryClient.setQueryData(context.listKey, context.previousList)
       }
-      toast.error(`Failed to create vault: ${error.message}`)
+      toast.error(`Failed to create hub: ${error.message}`)
     },
     onSuccess: (vault, variables, context) => {
       if (context?.listKey && context.tempId) {
@@ -144,7 +145,7 @@ export function useCreateVault() {
           )
         )
       }
-      toast.success(`Vault '${variables.name.trim()}' created`)
+      toast.success(`Hub '${variables.name.trim()}' created`)
     },
     onSettled: () => {
       // Invalidate vault queries for this bank
@@ -252,7 +253,7 @@ export function useUpdateVault() {
           queryClient.setQueryData(key, data)
         }
       }
-      toast.error('Failed to update vault')
+      toast.error('Failed to update hub')
     },
     onSettled: (_data, _error, input) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.vaults.list() })
@@ -262,7 +263,7 @@ export function useUpdateVault() {
       queryClient.invalidateQueries({ queryKey: ['bankContext'] })
     },
     onSuccess: () => {
-      toast.success('Vault updated')
+      toast.success('Hub updated')
     },
   })
 }
@@ -331,7 +332,7 @@ export function useDeleteVault() {
       queryClient.invalidateQueries({ queryKey: queryKeys.vaults.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.vaultEntries.all })
       queryClient.invalidateQueries({ queryKey: ['bankContext'] })
-      toast.success('Vault deleted')
+      toast.success('Hub deleted')
     },
     onError: (error: Error, input, context) => {
       if (context?.previousDetail) {
@@ -345,7 +346,7 @@ export function useDeleteVault() {
           queryClient.setQueryData(key, data)
         }
       }
-      toast.error(`Failed to delete vault: ${error.message}`)
+      toast.error(`Failed to delete hub: ${error.message}`)
     },
   })
 }

@@ -1,8 +1,8 @@
 /**
- * VaultSelector - Dropdown for choosing which vault to import recordings into
+  * VaultSelector - Dropdown for choosing which hub to import recordings into
  *
- * Shows user's vaults grouped by bank, with personal vault first.
- * Remembers default vault per integration via useUserPreferences.
+  * Shows user's hubs grouped by workspace, with personal hub first.
+  * Remembers default hub per integration via useUserPreferences.
  *
  * @pattern vault-selector
  * @brand-version v4.2
@@ -56,7 +56,7 @@ export function VaultSelector({
   integration,
   onVaultChange,
   value,
-  label = 'Import to vault',
+   label = 'Import to hub',
   className,
   disabled = false,
 }: VaultSelectorProps) {
@@ -144,12 +144,12 @@ export function VaultSelector({
         disabled={disabled}
       >
         <SelectTrigger className="w-full h-10">
-          <SelectValue placeholder="Select a vault..." />
+          <SelectValue placeholder="Select a hub..." />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
             <SelectLabel className="text-xs text-muted-foreground uppercase tracking-wide">
-              Vaults
+              Hubs
             </SelectLabel>
             {sortedVaults.map((vault) => (
               <SelectItem key={vault.id} value={vault.id}>

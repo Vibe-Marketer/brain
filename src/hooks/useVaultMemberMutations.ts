@@ -73,7 +73,7 @@ export function useGenerateVaultInvite(vaultId: string) {
       invite_url: string
       invite_expires_at: string
     }> => {
-      if (!vaultId) throw new Error('Vault ID is required')
+      if (!vaultId) throw new Error('Hub ID is required')
       if (!user) throw new Error('Not authenticated')
 
       // Permission check: must be vault_owner or vault_admin
@@ -87,7 +87,7 @@ export function useGenerateVaultInvite(vaultId: string) {
 
       const currentRole = membership?.role as VaultRole | undefined
       if (currentRole !== 'vault_owner' && currentRole !== 'vault_admin') {
-        throw new Error('Only vault owners and admins can generate invite links')
+        throw new Error('Only hub owners and admins can generate invite links')
       }
 
       // Check if vault already has a valid invite token
@@ -169,12 +169,12 @@ export function useChangeRole(vaultId: string) {
     }) => {
       // Permission check: must be owner or admin
       if (currentUserRole !== 'vault_owner' && currentUserRole !== 'vault_admin') {
-        throw new Error('Only vault owners and admins can change roles')
+        throw new Error('Only hub owners and admins can change roles')
       }
 
       // Cannot change vault_owner role via this action
       if (targetRole === 'vault_owner') {
-        throw new Error('Cannot change the vault owner role')
+        throw new Error('Cannot change the hub owner role')
       }
 
       if (targetRole === 'vault_admin' && isLastAdmin && newRole !== 'vault_admin') {
@@ -228,12 +228,12 @@ export function useRemoveMember(vaultId: string) {
       currentUserRole: VaultRole
     }) => {
       if (currentUserRole !== 'vault_owner' && currentUserRole !== 'vault_admin') {
-        throw new Error('Only vault owners and admins can remove members')
+        throw new Error('Only hub owners and admins can remove members')
       }
 
       // Cannot remove vault_owner
       if (targetRole === 'vault_owner') {
-        throw new Error('Cannot remove the vault owner')
+        throw new Error('Cannot remove the hub owner')
       }
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -271,7 +271,7 @@ export function useLeaveVault(vaultId: string) {
   return useMutation({
     mutationFn: async ({ membershipId, userRole }: { membershipId: string; userRole: VaultRole }) => {
       if (userRole === 'vault_owner') {
-        throw new Error('Vault owners cannot leave. Transfer ownership first.')
+        throw new Error('Hub owners cannot leave. Transfer ownership first.')
       }
 
       if (!user) throw new Error('Not authenticated')
@@ -286,12 +286,12 @@ export function useLeaveVault(vaultId: string) {
       if (error) throw error
     },
     onSuccess: () => {
-      toast.success('You left the vault')
+      toast.success('You left the hub')
       queryClient.invalidateQueries({ queryKey: queryKeys.vaults.all })
       navigate('/vaults')
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to leave vault')
+      toast.error(error.message || 'Failed to leave hub')
     },
   })
 }

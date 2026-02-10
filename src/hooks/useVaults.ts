@@ -154,7 +154,7 @@ export function useVaultDetail(vaultId: string | null) {
         .from('vaults')
         .select('*')
         .eq('id', vaultId)
-        .single()
+        .maybeSingle()
 
       if (vaultError) throw vaultError
       if (!vault) return null

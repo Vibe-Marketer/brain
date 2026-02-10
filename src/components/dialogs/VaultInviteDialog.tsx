@@ -126,7 +126,7 @@ export function VaultInviteDialog({
             Invite to {vaultName}
           </DialogTitle>
           <DialogDescription>
-            Share this link with anyone you want to invite. They'll join as a member.
+            Share this link with anyone you want to invite. They'll join this hub as a member.
           </DialogDescription>
         </DialogHeader>
 

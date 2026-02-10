@@ -1,8 +1,8 @@
 /**
- * EditVaultDialog - Dialog for editing vault name and settings
+  * EditVaultDialog - Dialog for editing hub name and settings
  *
- * Allows renaming vault and changing share link TTL.
- * Includes a "Delete Vault" button that opens the DeleteVaultDialog.
+  * Allows renaming hub and changing share link TTL.
+  * Includes a "Delete Hub" button that opens the DeleteVaultDialog.
  *
  * @pattern dialog-form
  * @brand-version v4.2
@@ -98,24 +98,24 @@ export function EditVaultDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent aria-describedby="edit-vault-description">
-          <DialogHeader>
-            <DialogTitle>Vault Settings</DialogTitle>
-            <DialogDescription id="edit-vault-description">
-              Update vault name and configuration
-            </DialogDescription>
-          </DialogHeader>
+    <DialogContent aria-describedby="edit-vault-description">
+      <DialogHeader>
+        <DialogTitle>Hub Settings</DialogTitle>
+        <DialogDescription id="edit-vault-description">
+          Update hub name and configuration
+        </DialogDescription>
+      </DialogHeader>
 
           <div className="space-y-4 py-4">
-            {/* Vault name */}
-            <div className="space-y-2">
-              <Label htmlFor="edit-vault-name">Vault Name</Label>
-              <Input
+        {/* Hub name */}
+        <div className="space-y-2">
+          <Label htmlFor="edit-vault-name">Hub Name</Label>
+          <Input
                 id="edit-vault-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Vault name"
+            placeholder="Hub name"
                 disabled={!canEdit}
                 autoFocus
               />
@@ -138,16 +138,16 @@ export function EditVaultDialog({
               </p>
             </div>
 
-            {/* Vault type (read-only) */}
-            <div className="space-y-2">
-              <Label>Vault Type</Label>
-              <p className="text-sm text-muted-foreground capitalize">
-                {vault.vault_type}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                Vault type cannot be changed after creation.
-              </p>
-            </div>
+        {/* Hub type (read-only) */}
+        <div className="space-y-2">
+          <Label>Hub Type</Label>
+          <p className="text-sm text-muted-foreground capitalize">
+            {vault.vault_type}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            Hub type cannot be changed after creation.
+          </p>
+        </div>
           </div>
 
           {canDelete && vault.vault_type !== 'personal' && (
@@ -161,7 +161,7 @@ export function EditVaultDialog({
                 className="w-full gap-1.5"
               >
                 <RiDeleteBinLine className="h-4 w-4" />
-                Delete Vault
+            Delete Hub
               </Button>
             </div>
           )}
