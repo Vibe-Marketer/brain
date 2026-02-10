@@ -17,15 +17,17 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { TranscriptTable } from '@/components/transcript-library/TranscriptTable'
-import { AddToVaultMenu } from '@/components/vault/AddToVaultMenu'
+import { VaultSearchFilter } from '@/components/vault/VaultSearchFilter'
 import {
   RiGroupLine,
   RiArrowLeftLine,
   RiSafeLine,
   RiRecordCircleLine,
+  RiSearchLine,
 } from '@remixicon/react'
 import { usePanelStore } from '@/stores/panelStore'
 import { useVaultDetail, useVaultRecordings, mapRecordingToMeeting } from '@/hooks/useVaults'
+import { useRecordingSearch } from '@/hooks/useRecordingSearch'
 import type { VaultType } from '@/types/bank'
 import type { Meeting } from '@/types'
 
@@ -81,10 +83,25 @@ export function VaultDetailPane({
   const { vault, isLoading: vaultLoading } = useVaultDetail(vaultId)
   const { recordings, isLoading: recordingsLoading } = useVaultRecordings(vaultId)
 
-  // Transform vault recordings to Meeting[] for TranscriptTable
+  // Search/filter/sort recordings
+  const {
+    searchQuery,
+    setSearchQuery,
+    sortBy,
+    setSortBy,
+    sortOrder,
+    setSortOrder,
+    clearFilters,
+    hasActiveFilters,
+    filteredRecordings,
+    totalCount,
+    filteredCount,
+  } = useRecordingSearch({ recordings })
+
+  // Transform filtered vault recordings to Meeting[] for TranscriptTable
   const meetings = useMemo(() => {
-    return recordings.map(mapRecordingToMeeting)
-  }, [recordings])
+    return filteredRecordings.map(mapRecordingToMeeting)
+  }, [filteredRecordings])
 
   // Handle recording click - navigate to call detail page
   const handleCallClick = useCallback(
@@ -178,6 +195,22 @@ export function VaultDetailPane({
         </div>
       </header>
 
+      {/* Search/filter toolbar - only show when vault has recordings */}
+      {!recordingsLoading && recordings.length > 0 && (
+        <VaultSearchFilter
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          sortBy={sortBy}
+          onSortByChange={setSortBy}
+          sortOrder={sortOrder}
+          onSortOrderChange={setSortOrder}
+          hasActiveFilters={hasActiveFilters}
+          onClearFilters={clearFilters}
+          totalCount={totalCount}
+          filteredCount={filteredCount}
+        />
+      )}
+
       {/* Recordings - ALWAYS visible (no tabs) */}
       <ScrollArea className="flex-1">
         <div className="p-4">
@@ -201,6 +234,23 @@ export function VaultDetailPane({
                 onClick={() => navigate('/')}
               >
                 Go to Library
+              </Button>
+            </div>
+          ) : filteredRecordings.length === 0 ? (
+            /* Empty filter state - recordings exist but none match filters */
+            <div className="flex flex-col items-center justify-center py-16">
+              <RiSearchLine className="h-12 w-12 text-muted-foreground/20 mb-4" aria-hidden="true" />
+              <h3 className="text-sm font-semibold text-foreground mb-1">No matching recordings</h3>
+              <p className="text-xs text-muted-foreground text-center max-w-xs">
+                No recordings match your current search or filters. Try adjusting your criteria.
+              </p>
+              <Button
+                variant="hollow"
+                size="sm"
+                className="mt-4"
+                onClick={clearFilters}
+              >
+                Clear Filters
               </Button>
             </div>
           ) : (
