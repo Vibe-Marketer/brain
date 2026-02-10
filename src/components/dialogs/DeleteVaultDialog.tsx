@@ -1,8 +1,8 @@
 /**
- * DeleteVaultDialog - Confirmation dialog for vault deletion
+  * DeleteVaultDialog - Confirmation dialog for hub deletion
  *
- * Requires typing the vault name to confirm deletion.
- * Prevents accidental deletion of vaults with recordings.
+  * Requires typing the hub name to confirm deletion.
+  * Prevents accidental deletion of hubs with recordings.
  *
  * @pattern dialog-confirmation
  * @brand-version v4.2
@@ -112,11 +112,11 @@ export function DeleteVaultDialog({
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10">
               <RiAlertLine className="h-4 w-4 text-destructive" />
             </div>
-            <DialogTitle>Delete Vault</DialogTitle>
+            <DialogTitle>Delete Hub</DialogTitle>
           </div>
           <DialogDescription id="delete-vault-description">
             This action cannot be undone. All recordings will be removed from
-            this vault (recordings themselves are not deleted from your bank).
+            this hub (recordings themselves are not deleted from your workspace).
           </DialogDescription>
         </DialogHeader>
 
@@ -127,15 +127,15 @@ export function DeleteVaultDialog({
               Deleting <strong>{vault.name}</strong> will:
             </p>
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground list-disc pl-4">
-              <li>Remove all vault memberships ({vault.member_count} members)</li>
-              <li>Remove all vault entry assignments</li>
-              <li>Delete all vault-specific notes, tags, and scores</li>
+              <li>Remove all hub memberships ({vault.member_count} members)</li>
+              <li>Remove all hub entry assignments</li>
+              <li>Delete all hub-specific notes, tags, and scores</li>
             </ul>
             {typeof recordingCount === 'number' && (
               <p className="mt-2 text-xs text-muted-foreground">
                 {recordingCount === 0
-                  ? 'This vault has no recordings.'
-                  : `This vault has ${recordingCount} recording${recordingCount !== 1 ? 's' : ''}.`}
+                  ? 'This hub has no recordings.'
+                  : `This hub has ${recordingCount} recording${recordingCount !== 1 ? 's' : ''}.`}
               </p>
             )}
           </div>
@@ -149,7 +149,7 @@ export function DeleteVaultDialog({
                   onCheckedChange={(checked) => setTransferEnabled(Boolean(checked))}
                 />
                 <Label htmlFor="transfer-recordings">
-                  Transfer recordings to another vault
+                  Transfer recordings to another hub
                 </Label>
               </div>
               {transferEnabled && (
@@ -157,7 +157,7 @@ export function DeleteVaultDialog({
                   <Label htmlFor="transfer-vault">Transfer to</Label>
                   <Select value={transferVaultId} onValueChange={setTransferVaultId}>
                     <SelectTrigger id="transfer-vault">
-                      <SelectValue placeholder="Select a vault" />
+                      <SelectValue placeholder="Select a hub" />
                     </SelectTrigger>
                     <SelectContent>
                       {transferOptions.map((option) => (
@@ -201,7 +201,7 @@ export function DeleteVaultDialog({
             onClick={handleDelete}
             disabled={!canDelete || deleteVault.isPending}
           >
-            {deleteVault.isPending ? 'Deleting...' : 'Delete Vault'}
+            {deleteVault.isPending ? 'Deleting...' : 'Delete Hub'}
           </Button>
         </DialogFooter>
       </DialogContent>

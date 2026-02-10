@@ -16,7 +16,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   RiAddLine,
   RiTeamLine,
-  RiSettings3Line,
+  RiDeleteBinLine,
   RiArrowRightSLine,
   RiArrowRightLine,
   RiInformationLine,
@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
+import { DeleteVaultDialog } from '@/components/dialogs/DeleteVaultDialog'
 import type { VaultType } from '@/types/bank'
 
 interface VaultManagementProps {
@@ -154,6 +155,7 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
           await supabase.from('folders').insert({
             vault_id: vault.id,
             user_id: user!.id,
+            bank_id: bankId,
             name: folder.name,
             visibility: folder.visibility,
           })
@@ -167,16 +169,16 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
       queryClient.invalidateQueries({ queryKey: ['bankContext'] })
       setCreateDialogOpen(false)
       setNewVaultName('')
-      toast.success('Vault created successfully')
+      toast.success('Hub created successfully')
     },
     onError: (error) => {
-      toast.error(`Failed to create vault: ${error.message}`)
+      toast.error(`Failed to create hub: ${error.message}`)
     },
   })
 
   const handleCreateVault = () => {
     if (!newVaultName.trim()) {
-      toast.error('Vault name is required')
+      toast.error('Hub name is required')
       return
     }
     createVault.mutate({ name: newVaultName.trim(), type: newVaultType })
@@ -193,14 +195,14 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
         <RiInformationLine className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
         <div className="flex-1">
           <p className="text-xs text-amber-800 dark:text-amber-200">
-            Vault management is now available on the{' '}
+            Hub management is now available on the{' '}
             <button
               type="button"
               onClick={() => navigate('/vaults')}
               className="font-medium underline hover:no-underline"
-              aria-label="Go to Vaults page"
+              aria-label="Go to Hubs page"
             >
-              Vaults page
+              Hubs page
             </button>
             . This settings view will be removed in a future update.
           </p>
@@ -209,38 +211,38 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
 
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium">Vaults</h3>
+          <h3 className="text-lg font-medium">Hubs</h3>
           <p className="text-sm text-muted-foreground">
-            Manage collaboration spaces within this bank
+            Manage collaboration spaces within this workspace
           </p>
         </div>
         {canManage && (
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" aria-label="Create vault">
+              <Button size="sm" aria-label="Create hub">
                 <RiAddLine className="h-4 w-4 mr-2" />
-                Create Vault
+                Create Hub
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create New Vault</DialogTitle>
+                <DialogTitle>Create New Hub</DialogTitle>
                 <DialogDescription>
-                  Create a collaboration space for your team
+                  A hub is a shared space inside a workspace for one team, client, or community.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Vault Name</label>
+                  <label className="text-sm font-medium">Hub Name</label>
                   <Input
                     value={newVaultName}
                     onChange={(e) => setNewVaultName(e.target.value)}
-                    placeholder="e.g., Sales Team, Marketing"
-                    aria-label="Vault name"
+                    placeholder="e.g., Sales Hub, Client A"
+                    aria-label="Hub name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Vault Type</label>
+                  <label className="text-sm font-medium">Hub Type</label>
                   <Select
                     value={newVaultType}
                     onValueChange={(v) => setNewVaultType(v as VaultType)}
@@ -264,16 +266,16 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
                 <Button
                   variant="outline"
                   onClick={() => setCreateDialogOpen(false)}
-                  aria-label="Cancel vault creation"
+                  aria-label="Cancel hub creation"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleCreateVault}
                   disabled={createVault.isPending}
-                  aria-label="Create vault"
+                  aria-label="Create hub"
                 >
-                  {createVault.isPending ? 'Creating...' : 'Create Vault'}
+                  {createVault.isPending ? 'Creating...' : 'Create Hub'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -281,12 +283,12 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
         )}
       </div>
 
-      {/* Vault list */}
+          {/* Hub list */}
       <div className="space-y-3">
         {vaults?.length === 0 ? (
           <Card>
             <CardContent className="pt-6 text-center text-muted-foreground">
-              No vaults yet. Create one to get started.
+              No hubs yet. Create one to get started.
             </CardContent>
           </Card>
         ) : (
@@ -309,35 +311,100 @@ interface VaultCardProps {
 }
 
 function VaultCard({ vault, canManage }: VaultCardProps) {
+  const navigate = useNavigate()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const memberCount = vault.vault_memberships?.length || 0
 
   return (
-    <Card>
-      <CardHeader className="py-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <RiTeamLine className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <CardTitle className="text-base">{vault.name}</CardTitle>
-              <CardDescription className="text-xs">
-                {memberCount} member{memberCount !== 1 ? 's' : ''} &middot; {vault.vault_type}
-              </CardDescription>
+    <>
+      <Card>
+        <CardHeader className="py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <RiTeamLine className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <CardTitle className="text-base">{vault.name}</CardTitle>
+                <CardDescription className="text-xs">
+                  {memberCount} member{memberCount !== 1 ? 's' : ''} &middot; {vault.vault_type}
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="capitalize">
+                {vault.vault_type}
+              </Badge>
+              {canManage && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Delete hub"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <RiDeleteBinLine className="h-4 w-4" />
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label="Open hub"
+                onClick={() => navigate(`/vaults/${vault.id}`)}
+              >
+                <RiArrowRightSLine className="h-4 w-4" />
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="capitalize">
-              {vault.vault_type}
-            </Badge>
-            {canManage && (
-              <Button variant="ghost" size="icon" aria-label="Vault settings">
-                <RiSettings3Line className="h-4 w-4" />
-              </Button>
-            )}
-            <RiArrowRightSLine className="h-4 w-4 text-muted-foreground" />
-          </div>
-        </div>
-      </CardHeader>
-    </Card>
+        </CardHeader>
+      </Card>
+
+      {/* Delete vault dialog - uses same dialog as VaultsPage */}
+      {deleteDialogOpen && (
+        <DeleteVaultDialogWrapper
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          vault={vault}
+        />
+      )}
+    </>
+  )
+}
+
+/**
+ * Wrapper to adapt VaultQueryResult to DeleteVaultDialog's expected VaultDetail type
+ */
+function DeleteVaultDialogWrapper({
+  open,
+  onOpenChange,
+  vault,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  vault: VaultQueryResult
+}) {
+  const memberCount = vault.vault_memberships?.length || 0
+
+  return (
+    <DeleteVaultDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      vault={{
+        id: vault.id,
+        bank_id: vault.bank_id,
+        name: vault.name,
+        vault_type: vault.vault_type as VaultType,
+        default_sharelink_ttl_days: vault.default_sharelink_ttl_days,
+        created_at: vault.created_at,
+        updated_at: vault.updated_at,
+        member_count: memberCount,
+        user_role: 'vault_owner',
+        memberships: (vault.vault_memberships || []).map((m) => ({
+          ...m,
+          role: m.role as VaultType extends string ? any : never,
+          created_at: vault.created_at,
+        })),
+      } as any}
+      recordingCount={0}
+    />
   )
 }
 
