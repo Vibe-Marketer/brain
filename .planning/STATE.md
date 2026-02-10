@@ -1,6 +1,6 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-02-09
+**Last Updated:** 2026-02-10
 
 ## Project Reference
 
@@ -16,15 +16,15 @@
 
 **Phase:** 10.2 of 11+ (Vaults Page - INSERTED)
 
-**Plan:** 4 of 9 in current phase
+**Plan:** 6 of 9 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-09 - Completed 10.2-08-PLAN.md
+**Last activity:** 2026-02-10 - Completed 10.2-09-PLAN.md
 
 **Progress:**
 ```
-[██████████████████████████████████████░░░░░] 72/77 plans complete (94%)
+[██████████████████████████████████████████░] 78/83 plans complete (94%)
 ```
 
 ---
@@ -56,7 +56,7 @@
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
 | Phase 9: Bank/Vault Architecture | 5 | 5 | Complete (10/10 plans) |
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
-| Phase 10.2: Vaults Page | 7 | 0 | In progress (3/9 plans) |
+| Phase 10.2: Vaults Page | 7 | 0 | In progress (6/9 plans) |
 
 ### Velocity
 
@@ -149,6 +149,8 @@
 | 2026-02-09 | Vault recordings query invalidation on mutations | VaultDetailPane and AddToVaultMenu use different query keys | useVaultAssignment invalidates both vaultEntries and vaults.recordings |
 | 2026-02-09 | Client-side search/filter for vault recordings | Recordings already loaded; no server roundtrips needed | 300ms debounced title search, sort by date/duration/title |
 | 2026-02-09 | hasActiveFilters includes non-default sort | User can clear all filters including sort to reset view | Sort changes count as active filters |
+| 2026-02-10 | Vault entry creation non-blocking in edge functions | Vault entry failures should never break import/sync | Pattern for all import edge functions |
+| 2026-02-10 | sync-meetings also needs vault_id (not just zoom/google) | SyncTab calls sync-meetings, not zoom-sync-meetings | Identified and fixed during edge function updates |
 
 ### Active TODOs
 
@@ -220,9 +222,12 @@ Phase 10 COMPLETE (3/3 plans). GAP-INT-01 closed.
 
 - [x] Execute 10.2-01-PLAN.md (Vaults page foundation - route, hooks, vault list pane)
 - [x] Execute 10.2-02-PLAN.md (Vault detail view - recordings table, member panel, adapter)
+- [x] Execute 10.2-03-PLAN.md (Vault Creation & Edit Dialogs)
+- [x] Execute 10.2-07-PLAN.md (Vault Membership Badges)
 - [x] Execute 10.2-08-PLAN.md (Search/filter for vault recordings - useRecordingSearch, VaultSearchFilter)
+- [x] Execute 10.2-09-PLAN.md (Vault Selection During Import - VaultSelector, edge function vault_id)
 
-Phase 10.2 in progress (4/9 plans).
+Phase 10.2 in progress (6/9 plans).
 
 ### Pending Todos
 
@@ -246,23 +251,27 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-02-09
-**Stopped at:** Completed 10.2-08-PLAN.md
+**Last session:** 2026-02-10
+**Stopped at:** Completed 10.2-09-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.2 Plan 08 complete - Vault recordings search/filter/sort functional.
+Phase 10.2 Plan 09 complete - Vault selection available in all import flows with edge function support.
 
 **What to remember:**
-- Plan 08 delivered: useRecordingSearch hook + VaultSearchFilter toolbar in VaultDetailPane
-- Search is 300ms debounced, client-side title matching
-- Sort by date/duration/title with asc/desc toggle
-- Empty filter state shows RiSearchLine icon + "Clear Filters" button
-- Date range filtering wired in hook but no UI date picker yet
+- Plan 09 delivered: VaultSelector component, useUserPreferences hook, edge function vault_id support
+- VaultSelector shows personal bank vaults first, then business bank vaults
+- useUserPreferences persists default vault per integration in localStorage with cross-tab sync
+- YouTubeImportForm has VaultSelector between URL input and import button
+- SyncTab has VaultSelector near sync controls with label "Sync to vault"
+- 4 edge functions updated: youtube-import, sync-meetings, zoom-sync-meetings, google-meet-sync-meetings
+- All edge functions validate vault membership and create vault_entries non-blocking
+- google-poll-sync unchanged (cron job, no user vault context)
 - "Invite Members" button still stubbed (disabled) — Plan 04 will activate it
 - /team redirects to /vaults for backward compatibility
+- Remaining plans: 04 (Invite Flow), 05 (Vault Settings), 06 (Polish)
 
 ---
 
@@ -273,12 +282,12 @@ Phase 10.2 Plan 08 complete - Vault recordings search/filter/sort functional.
 | Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 67 |
 | Requirements Complete | 58 (87%) |
-| Current Phase | 10.2 - Vaults Page (INSERTED - 4/9 plans) |
-| Plans Complete | 72/77 (94%) |
-| Next Plan | 10.2-09-PLAN.md |
+| Current Phase | 10.2 - Vaults Page (INSERTED - 6/9 plans) |
+| Plans Complete | 78/83 (94%) |
+| Next Plan | 10.2-04-PLAN.md (Vault Member Invite Flow) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-09 (Phase 10.2 INSERTED - Vaults Page)*
+*Last updated: 2026-02-10 (Phase 10.2 - Plan 09 Vault Selection During Import complete)*
