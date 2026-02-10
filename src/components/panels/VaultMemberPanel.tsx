@@ -18,6 +18,7 @@ import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
@@ -47,7 +48,7 @@ import type { VaultRole } from '@/types/bank'
 
 /** Role badge styling */
 const ROLE_BADGE_STYLES: Record<VaultRole, { bg: string; text: string }> = {
-  vault_owner: { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-300' },
+  vault_owner: { bg: 'bg-vibe-orange/15', text: 'text-vibe-orange' },
   vault_admin: { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-300' },
   manager: { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-300' },
   member: { bg: 'bg-gray-100 dark:bg-gray-800/50', text: 'text-gray-600 dark:text-gray-400' },
@@ -99,6 +100,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
   // Dialog state
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [changeRoleTarget, setChangeRoleTarget] = useState<VaultMember | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
 
   const handleClose = useCallback(() => {
     closePanel()
@@ -113,6 +115,22 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
   const currentUserRole = currentUserMembership?.role || null
   const canManage = currentUserRole === 'vault_owner' || currentUserRole === 'vault_admin'
 
+  const adminCount = useMemo(
+    () => members.filter((member) => member.role === 'vault_admin').length,
+    [members]
+  )
+
+  const showSearch = members.length > 10
+  const filteredMembers = useMemo(() => {
+    if (!searchTerm.trim()) return members
+    const term = searchTerm.trim().toLowerCase()
+    return members.filter((member) => {
+      const name = member.display_name?.toLowerCase() || ''
+      const email = member.email?.toLowerCase() || ''
+      return name.includes(term) || email.includes(term)
+    })
+  }, [members, searchTerm])
+
   // Handle role change
   const handleChangeRole = useCallback(
     (newRole: VaultRole) => {
@@ -123,25 +141,29 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
           userId: changeRoleTarget.user_id,
           newRole,
           currentUserRole,
+          targetRole: changeRoleTarget.role,
+          isLastAdmin: changeRoleTarget.role === 'vault_admin' && adminCount <= 1,
         },
         {
           onSuccess: () => setChangeRoleTarget(null),
         }
       )
     },
-    [changeRoleTarget, currentUserRole, changeRole]
+    [changeRoleTarget, currentUserRole, changeRole, adminCount]
   )
 
   // Handle member removal
   const handleRemoveMember = useCallback(
     (member: VaultMember) => {
+      if (!currentUserRole) return
       if (!confirm(`Remove ${member.display_name || member.email || 'this member'} from the vault?`)) return
       removeMember.mutate({
         membershipId: member.id,
         targetRole: member.role,
+        currentUserRole,
       })
     },
-    [removeMember]
+    [removeMember, currentUserRole]
   )
 
   // Handle leave vault
@@ -207,7 +229,16 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
             )}
           </div>
         ) : (
-          <div className="p-3 space-y-1">
+          <div className="p-3 space-y-2">
+            {showSearch && (
+              <Input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search members"
+                className="h-8 text-xs"
+                aria-label="Search vault members"
+              />
+            )}
             {/* Invite button at top — only for vault_owner/vault_admin */}
             {canManage && (
               <div className="pb-2 mb-2 border-b border-border/30">
@@ -225,12 +256,17 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
             )}
 
             {/* Member rows */}
-            {members.map((member) => {
-              const roleStyle = ROLE_BADGE_STYLES[member.role] || ROLE_BADGE_STYLES.member
-              const roleLabel = ROLE_LABELS[member.role] || member.role
-              const joinDate = member.created_at
-                ? format(new Date(member.created_at), 'MMM d, yyyy')
-                : null
+            {filteredMembers.length === 0 ? (
+              <div className="py-6 text-center text-xs text-muted-foreground">
+                No members match that search.
+              </div>
+            ) : (
+              filteredMembers.map((member) => {
+                const roleStyle = ROLE_BADGE_STYLES[member.role] || ROLE_BADGE_STYLES.member
+                const roleLabel = ROLE_LABELS[member.role] || member.role
+                const joinDate = member.created_at
+                  ? format(new Date(member.created_at), 'MMM d, yyyy')
+                  : null
               const isCurrentUser = member.user_id === user?.id
               const canChangeThisMember = canManage && !isCurrentUser && member.role !== 'vault_owner'
 
@@ -304,18 +340,22 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
                           <RiMoreLine className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        {/* Change role (not for self, not for owner) */}
-                        {canChangeThisMember && (
-                          <DropdownMenuItem onClick={() => setChangeRoleTarget(member)}>
-                            <RiShieldUserLine className="h-4 w-4 mr-2" />
-                            Change Role
-                          </DropdownMenuItem>
-                        )}
-                        {/* Remove from vault (not for self, not for owner) */}
-                        {canChangeThisMember && (
-                          <>
-                            <DropdownMenuSeparator />
+                    <DropdownMenuContent align="end" className="w-48">
+                      {/* Change role (not for self, not for owner) */}
+                      {canChangeThisMember && (
+                        <DropdownMenuItem onClick={() => setChangeRoleTarget(member)}>
+                          <RiShieldUserLine className="h-4 w-4 mr-2" />
+                          Change Role
+                        </DropdownMenuItem>
+                      )}
+                      <DropdownMenuItem disabled>
+                        <RiUserLine className="h-4 w-4 mr-2" />
+                        View Profile
+                      </DropdownMenuItem>
+                      {/* Remove from vault (not for self, not for owner) */}
+                      {canChangeThisMember && (
+                        <>
+                          <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
                               onClick={() => handleRemoveMember(member)}
@@ -340,7 +380,8 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
                   )}
                 </div>
               )
-            })}
+              })
+            )}
           </div>
         )}
       </ScrollArea>
@@ -361,6 +402,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
           memberName={changeRoleTarget.display_name || changeRoleTarget.email || 'Unknown'}
           currentRole={changeRoleTarget.role}
           currentUserRole={currentUserRole}
+          isLastAdmin={changeRoleTarget.role === 'vault_admin' && adminCount <= 1}
           onConfirm={handleChangeRole}
           isLoading={changeRole.isPending}
         />

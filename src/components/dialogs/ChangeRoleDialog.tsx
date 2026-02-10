@@ -35,6 +35,7 @@ interface ChangeRoleDialogProps {
   memberName: string
   currentRole: VaultRole
   currentUserRole: VaultRole
+  isLastAdmin?: boolean
   onConfirm: (newRole: VaultRole) => void
   isLoading?: boolean
 }
@@ -98,6 +99,7 @@ export function ChangeRoleDialog({
   memberName,
   currentRole,
   currentUserRole,
+  isLastAdmin = false,
   onConfirm,
   isLoading = false,
 }: ChangeRoleDialogProps) {
@@ -111,14 +113,16 @@ export function ChangeRoleDialog({
 
   const currentUserPower = ROLE_POWER[currentUserRole]
   const hasChanged = selectedRole !== currentRole
+  const currentRoleLabel = VAULT_ROLES.find((role) => role.value === currentRole)?.label || currentRole
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>Change Role</DialogTitle>
+          <DialogTitle>Change Role for {memberName}</DialogTitle>
           <DialogDescription>
-            Update role for <span className="font-medium text-foreground">{memberName}</span>
+            <span className="text-muted-foreground">Current role:</span>{' '}
+            <span className="font-medium text-foreground">{currentRoleLabel}</span>
           </DialogDescription>
         </DialogHeader>
 
@@ -129,7 +133,8 @@ export function ChangeRoleDialog({
             const isDisabled = role.power < currentUserPower
             // vault_owner transfer is not supported via this dialog
             const isOwnerTransfer = role.value === 'vault_owner' && currentRole !== 'vault_owner'
-            const disabled = isDisabled || isOwnerTransfer || isLoading
+            const isLastAdminDemotion = currentRole === 'vault_admin' && isLastAdmin && role.value !== 'vault_admin'
+            const disabled = isDisabled || isOwnerTransfer || isLastAdminDemotion || isLoading
             const isSelected = selectedRole === role.value
             const isCurrent = currentRole === role.value
 
