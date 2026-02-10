@@ -1,0 +1,20 @@
+[
+  {
+    "name": "desktop-1440",
+    "banksUrl": "http://127.0.0.1:8080/settings/banks",
+    "settingsUrl": "http://127.0.0.1:8080/settings/account",
+    "adminVisible": true,
+    "consoleErrors": [
+      "TypeError: Failed to fetch (vltmrnjsubfzrgrtdqey.supabase.co)\n    at http://127.0.0.1:8080/node_modules/.vite/deps/@sentry_react.js?v=521610e0:11018:28\n    at window.fetch (http://127.0.0.1:8080/src/components/debug-panel/DebugPanelContext.tsx:543:54)\n    at http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:7183:23\n    at _handleRequest2 (http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:7473:20)\n    at _request (http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:7463:22)\n    at http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:9972:22\n    at SupabaseAuthClient._useSession (http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:9875:20)\n    at async SupabaseAuthClient._getUser (http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:9963:14)\n    at async http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:9947:14"
+    ]
+  },
+  {
+    "name": "mobile-390",
+    "banksUrl": "http://127.0.0.1:8080/settings/banks",
+    "settingsUrl": "http://127.0.0.1:8080/settings/account",
+    "adminVisible": false,
+    "consoleErrors": [
+      "TypeError: Failed to fetch (vltmrnjsubfzrgrtdqey.supabase.co)\n    at http://127.0.0.1:8080/node_modules/.vite/deps/@sentry_react.js?v=521610e0:11018:28\n    at window.fetch (http://127.0.0.1:8080/src/components/debug-panel/DebugPanelContext.tsx:543:54)\n    at http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:7183:23\n    at _handleRequest2 (http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:7473:20)\n    at _request (http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:7463:22)\n    at http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:9972:22\n    at SupabaseAuthClient._useSession (http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:9875:20)\n    at async SupabaseAuthClient._getUser (http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:9963:14)\n    at async http://127.0.0.1:8080/node_modules/.vite/deps/@supabase_supabase-js.js?v=521610e0:9947:14"
+    ]
+  }
+]
