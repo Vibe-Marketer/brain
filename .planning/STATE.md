@@ -6,7 +6,7 @@
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 10.2 - Vaults Page Implementation (Wave 3 in progress)
+**Current Focus:** Phase 11 - PROFITS Frontend Trigger (pending)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization + Gap Closures
 
-**Phase:** 10.2 of 11+ (Vaults Page - INSERTED)
+**Phase:** 11 of 11+ (PROFITS Frontend Trigger)
 
-**Plan:** 7 of 9 in current phase
+**Plan:** 0 of 2 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-10 - Completed 10.2-05-PLAN.md
+**Last activity:** 2026-02-10 - Completed 10.2-06-PLAN.md
 
 **Progress:**
 ```
-[███████████████████████████████████████████░] 79/83 plans complete (95%)
+[███████████████████████████████████████████░] 81/83 plans complete (98%)
 ```
 
 ---
@@ -56,7 +56,7 @@
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
 | Phase 9: Bank/Vault Architecture | 5 | 5 | Complete (10/10 plans) |
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
-| Phase 10.2: Vaults Page | 7 | 0 | In progress (7/9 plans) |
+| Phase 10.2: Vaults Page | 7 | 7 | Complete (9/9 plans) |
 
 ### Velocity
 
@@ -152,6 +152,7 @@
 | 2026-02-10 | Vault entry creation non-blocking in edge functions | Vault entry failures should never break import/sync | Pattern for all import edge functions |
 | 2026-02-10 | sync-meetings also needs vault_id (not just zoom/google) | SyncTab calls sync-meetings, not zoom-sync-meetings | Identified and fixed during edge function updates |
 | 2026-02-10 | Store business bank logos in banks.logo_url | Support logo upload without storage infrastructure for MVP | Bank creation persists branding assets |
+| 2026-02-10 | Create business banks via RPC | RLS returning blocked insert + select during provisioning | Reliable business bank creation flow |
 
 ### Active TODOs
 
@@ -224,11 +225,14 @@ Phase 10 COMPLETE (3/3 plans). GAP-INT-01 closed.
 - [x] Execute 10.2-01-PLAN.md (Vaults page foundation - route, hooks, vault list pane)
 - [x] Execute 10.2-02-PLAN.md (Vault detail view - recordings table, member panel, adapter)
 - [x] Execute 10.2-03-PLAN.md (Vault Creation & Edit Dialogs)
+- [x] Execute 10.2-04-PLAN.md (Member management - invite links, roles, remove/leave)
+- [x] Execute 10.2-05-PLAN.md (Business bank creation entry points)
+- [x] Execute 10.2-06-PLAN.md (Vaults polish - empty states, error handling, mobile verification)
 - [x] Execute 10.2-07-PLAN.md (Vault Membership Badges)
 - [x] Execute 10.2-08-PLAN.md (Search/filter for vault recordings - useRecordingSearch, VaultSearchFilter)
 - [x] Execute 10.2-09-PLAN.md (Vault Selection During Import - VaultSelector, edge function vault_id)
 
-Phase 10.2 in progress (7/9 plans).
+Phase 10.2 COMPLETE (9/9 plans).
 
 ### Pending Todos
 
@@ -252,21 +256,20 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-02-10T04:37:10Z
-**Stopped at:** Completed 10.2-05-PLAN.md
+**Last session:** 2026-02-10T05:21:58Z
+**Stopped at:** Completed 10.2-06-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.2 Plan 05 complete - business bank creation flow wired into vaults and header entry points.
+Phase 10.2 complete - vaults polish and verification fixes landed.
 
 **What to remember:**
-- CreateBusinessBankDialog collects name, logo, cross-bank defaults, and default vault name
-- useCreateBusinessBank provisions owner membership and default vault
-- VaultListPane shows first-bank CTA plus create bank button when business banks exist
-- BankSwitcher groups personal vs business banks and exposes create business bank entry
-- Remaining plans: 06 (Polish)
+- Vaults page now has full empty/error states and settings migration messaging
+- Business bank creation runs through RPC to avoid RLS returning issues
+- VaultListPane surfaces the bank switcher in the header for quick context changes
+- Phase 11 (PROFITS Frontend Trigger) is next
 
 ---
 
@@ -277,12 +280,12 @@ Phase 10.2 Plan 05 complete - business bank creation flow wired into vaults and 
 | Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 67 |
 | Requirements Complete | 58 (87%) |
-| Current Phase | 10.2 - Vaults Page (INSERTED - 7/9 plans) |
-| Plans Complete | 79/83 (95%) |
-| Next Plan | 10.2-06-PLAN.md (Vaults polish) |
+| Current Phase | 11 - PROFITS Frontend Trigger (0/2 plans) |
+| Plans Complete | 81/83 (98%) |
+| Next Plan | 11-01-PLAN.md (PROFITS frontend trigger) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-10 (Phase 10.2 - Plan 05 Business Bank creation complete)*
+*Last updated: 2026-02-10 (Phase 10.2 - Plan 06 Vaults polish complete)*
