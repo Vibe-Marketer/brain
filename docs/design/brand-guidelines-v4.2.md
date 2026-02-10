@@ -1,8 +1,8 @@
-# CALLVAULT BRAND GUIDELINES v4.2
+# CALLVAULT BRAND GUIDELINES v4.2.1
 
 ## Authoritative Design System Reference
 
-**Last Updated:** January 14, 2026
+**Last Updated:** February 10, 2026
 **Status:** Complete & Accurate - Supersedes ALL previous versions
 **Purpose:** Single source of truth for all design and development decisions
 
@@ -1301,31 +1301,22 @@ When a navigation item is active, it combines:
 - UPPERCASE text automatically applied
 - No background on TabsList
 
-### Active Tab Underline
+### Active Tab Indicator (Pill)
 
 **Visual Specifications:**
 
 - Height: 6px
 - Color: Vibe Orange (#FF8800)
-- Shape: **Parallelogram/angular** (NOT rounded)
+- Shape: **Rounded pill** (NOT angular)
 - Position: Bottom of tab, full width
-- Clip-path: `polygon(5% 0, 95% 0, 100% 100%, 0 100%)` (trapezoid, narrow top)
 
 **Full-Width Black Underline:**
 
 - TabsList wrapped in div with `border-b border-ink dark:border-white`
 - Provides visual separation between tabs and content
 
-**CSS Implementation:**
-The clip-path is applied via global CSS in `src/index.css`:
-
-```css
-[data-state="active"]::after {
-  clip-path: polygon(5% 0, 95% 0, 100% 100%, 0 100%);
-}
-```
-
-**Note:** Horizontal tabs use 5% offset (subtle). Vertical markers use 10%.
+**Implementation Note:**
+Use a simple rounded pseudo-element (`rounded-full`) for active tab indicators. Do not apply clip-path shapes to tabs.
 
 **Typography:**
 
@@ -1372,13 +1363,14 @@ const TabsTrigger = React.forwardRef<
       // Active state - font weight and color
       "data-[state=active]:font-semibold",
       "data-[state=active]:text-ink dark:data-[state=active]:text-white",
-      // Active state - 6px vibe orange underline (clip-path via CSS)
+      // Active state - 6px vibe orange pill indicator
       "data-[state=active]:after:absolute",
       "data-[state=active]:after:bottom-0",
       "data-[state=active]:after:left-0",
       "data-[state=active]:after:right-0",
       "data-[state=active]:after:h-[6px]",
       "data-[state=active]:after:bg-vibe-orange",
+      "data-[state=active]:after:rounded-full",
       "data-[state=active]:after:content-['']",
       // Hover state
       "hover:text-ink dark:hover:text-white",
@@ -1413,31 +1405,27 @@ const TabsTrigger = React.forwardRef<
 
 **ALWAYS:**
 
-- Use clip-path polygon for angular aesthetic (applied via CSS in index.css)
+- Use rounded pill indicator on active tabs (`rounded-full`)
 - Use 6px height for the underline
 - Use vibe orange (#FF8800) color
 - Include full-width black underline wrapper div
-- Horizontal tabs: trapezoid `polygon(5% 0, 95% 0, 100% 100%, 0 100%)`
-- Vertical markers: needle `polygon(0 0, 100% 10%, 100% 90%, 0 100%)`
 
 **NEVER:**
 
 - Use `grid` or `grid-cols-*` on TabsList (flex layout is enforced)
 - Add padding/margin to TabsTrigger (enforced as px-0 m-0)
-- Use `rounded-t-sm` or any border-radius on tab underlines
-- Apply clip-path inline in Tailwind classes (use CSS)
-- Use solid rectangles - must be angled
-- Use rounded corners on the underline
+- Apply clip-path-based shapes to tabs
+- Reintroduce legacy angular/trapezoid tab underlines
 - Apply to inactive tabs
 
 **Visual Consistency:**
-The angular underline matches the angled vibe orange markers on metric cards, maintaining cohesive design language throughout the application.
+Tabs now use rounded orange pills for active state consistency across current navigation patterns.
 
 **Visual Example:**
 
 ```text
-[Active Tab]  <- 6px vibe orange angular underline
-    /----\
+[Active Tab]  <- 6px vibe orange rounded pill
+    (----)
 [Content Below]
 ```
 
@@ -1483,16 +1471,10 @@ The pill indicator is a vertical bar that marks the active item. It provides a s
 | Position | Absolute, left edge (`absolute left-0`) |
 | Border radius | Right side only (`rounded-r-full`) |
 | Color | Vibe Orange (`bg-vibe-orange`) |
-| Shape | Needle/angular via clip-path |
+| Shape | Rounded pill |
 
-**Clip-Path for Angular Shape:**
-
-```css
-/* Applied via global CSS for angular "needle" effect */
-clip-path: polygon(0 0, 100% 10%, 100% 90%, 0 100%);
-```
-
-This creates a tapered effect that narrows toward the top and bottom.
+**Shape Rule:**
+Use rounded pill markers for active navigation states. Do not use clip-path needle/trapezoid styling.
 
 **Implementation:**
 
@@ -1501,7 +1483,6 @@ This creates a tapered effect that narrows toward the top and bottom.
 {isActive && (
   <div
     className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[80%] rounded-r-full bg-vibe-orange"
-    style={{ clipPath: 'polygon(0 0, 100% 10%, 100% 90%, 0 100%)' }}
   />
 )}
 ```
@@ -1669,6 +1650,26 @@ Focus states should be visually distinct from selection states:
 - Skip transition animations (feels jarring)
 - Mix selection state patterns across components
 - Forget accessible focus states
+
+### Pane Headers (Vaults and Adjacent Detail Panes)
+
+Pane headers for HUB flows (secondary pane + middle pane + adjacent detail panes) must use a shared structure and tokenized surface treatment.
+
+**Required Composition:**
+
+- Secondary pane header: icon-led HUB label, workspace context line, bank/workspace name, and non-overlapping actions.
+- Middle pane header: HUB icon + uppercase title, optional type badge, right-side utility actions.
+- Adjacent detail headers (for settings-style panes): same border/background/typography family as the middle pane.
+
+**Required Styles:**
+
+- Surface: `bg-card/*` tokenized backgrounds only (no hardcoded grayscale literals)
+- Divider: `border-b border-border`
+- Heading: `font-montserrat font-extrabold uppercase tracking-wide`
+- Supporting text: `text-muted-foreground`
+
+**Layout Rule:**
+Header actions and context controls must wrap/stack as needed to avoid overlap or truncation in constrained pane widths.
 
 ---
 
@@ -2287,15 +2288,14 @@ Limited-duration alerts for new feature rollout, action-required messages during
 
 ```tsx
 <div
-  className="border-b-[6px] border-vibe-orange"
-  style={{ clipPath: "polygon(0 0, 100% 15%, 100% 85%, 0 100%)" }}
+  className="relative after:absolute after:left-0 after:right-0 after:bottom-0 after:h-[6px] after:rounded-full after:bg-vibe-orange"
 >
   Active Tab
 </div>
 ```
 
-- 6px angular line beneath active tab
-- Uses clip-path for trapezoid shape
+- 6px rounded pill beneath active tab
+- Uses `rounded-full` marker styling
 - Indicates current section in navigation
 
 #### 2. Left-Edge Indicators (Metric Cards)
@@ -2946,7 +2946,7 @@ toast.success("Sync complete. Your vault is up to date.");
 | Drop shadows everywhere | Dated, heavy | Shadows only on modals/dropdowns |
 | Rounded corners everywhere | Inconsistent | Specific radii per component type |
 | Colored icons | Inconsistent | Gray (#7A7A7A) for all icons |
-| `rounded-t-sm` on tab underlines | Wrong aesthetic | clip-path polygon for angular shape |
+| clip-path/angular tab underlines | Legacy pattern drift | Rounded pill indicator (`rounded-full`) |
 | Orange gradients in UI | Reserved for logo/marketing | Solid #FF8800 |
 
 ---
@@ -3157,9 +3157,9 @@ Before shipping any feature:
 ### Tabs
 
 - [ ] Active underline is 6px height
-- [ ] Angular shape using clip-path polygon (NOT rounded-t-sm)
+- [ ] Rounded pill indicator on active tabs (no clip-path)
 - [ ] Vibe orange color (#FF8800)
-- [ ] Matches metric card marker aesthetic
+- [ ] No legacy angular/trapezoid tab marker styles
 
 ### Tables
 
@@ -3204,7 +3204,8 @@ Before shipping any feature:
 ### Dark Mode
 
 - [ ] Toggle switches themes correctly
-- [ ] No hardcoded colors (use semantic tokens)
+- [ ] No hardcoded presentation values when token/utilities exist (color, border, spacing, typography)
+- [ ] Allowed hardcoded exceptions are documented semantic badges, runtime dimensions, and external brand marks only
 - [ ] Primary button stays same (doesn't invert)
 - [ ] Plain button adapts (#202020 bg)
 - [ ] Text maintains 7:1+ contrast
@@ -3277,7 +3278,7 @@ Full changelog: [brand-guidelines-changelog.md](./brand-guidelines-changelog.md)
 
 ## DOCUMENT VERSION
 
-**Current Version:** v4.2
+**Current Version:** v4.2.1
 
 This version reference must match the title at the top of the document.
 
@@ -3309,7 +3310,7 @@ This version reference must match the title at the top of the document.
 
 ---
 
-*END OF BRAND GUIDELINES v4.2*
+*END OF BRAND GUIDELINES v4.2.1*
 
 This document is complete and accurate as of January 14, 2026.
 All implementations must follow these specifications exactly.
