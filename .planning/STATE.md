@@ -20,7 +20,7 @@
 
 **Status:** In progress
 
-**Last activity:** 2026-02-10 - Completed 10.2-04-PLAN.md
+**Last activity:** 2026-02-10 - Completed 10.2-05-PLAN.md
 
 **Progress:**
 ```
@@ -151,6 +151,7 @@
 | 2026-02-09 | hasActiveFilters includes non-default sort | User can clear all filters including sort to reset view | Sort changes count as active filters |
 | 2026-02-10 | Vault entry creation non-blocking in edge functions | Vault entry failures should never break import/sync | Pattern for all import edge functions |
 | 2026-02-10 | sync-meetings also needs vault_id (not just zoom/google) | SyncTab calls sync-meetings, not zoom-sync-meetings | Identified and fixed during edge function updates |
+| 2026-02-10 | Store business bank logos in banks.logo_url | Support logo upload without storage infrastructure for MVP | Bank creation persists branding assets |
 
 ### Active TODOs
 
@@ -251,22 +252,21 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-02-10T04:36:45Z
-**Stopped at:** Completed 10.2-04-PLAN.md
+**Last session:** 2026-02-10T04:37:10Z
+**Stopped at:** Completed 10.2-05-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.2 Plan 04 complete - vault invite links, join flow, and member management actions are wired.
+Phase 10.2 Plan 05 complete - business bank creation flow wired into vaults and header entry points.
 
 **What to remember:**
-- Vault invite links use /join/vault/:token and default role is always member
-- VaultJoin handles already-member routing and redirects to vault detail
-- VaultMemberPanel now supports role changes, removal, leave vault, and search
-- VaultInviteDialog supports copy/regenerate and expiry display
-- /team redirects to /vaults for backward compatibility
-- Remaining plans: 05 (Vault Settings), 06 (Polish)
+- CreateBusinessBankDialog collects name, logo, cross-bank defaults, and default vault name
+- useCreateBusinessBank provisions owner membership and default vault
+- VaultListPane shows first-bank CTA plus create bank button when business banks exist
+- BankSwitcher groups personal vs business banks and exposes create business bank entry
+- Remaining plans: 06 (Polish)
 
 ---
 
@@ -279,10 +279,10 @@ Phase 10.2 Plan 04 complete - vault invite links, join flow, and member manageme
 | Requirements Complete | 58 (87%) |
 | Current Phase | 10.2 - Vaults Page (INSERTED - 7/9 plans) |
 | Plans Complete | 79/83 (95%) |
-| Next Plan | 10.2-05-PLAN.md (Vault Settings) |
+| Next Plan | 10.2-06-PLAN.md (Vaults polish) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-10 (Phase 10.2 - Plan 04 Vault Member Invite Flow complete)*
+*Last updated: 2026-02-10 (Phase 10.2 - Plan 05 Business Bank creation complete)*
