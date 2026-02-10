@@ -14,6 +14,7 @@ import { useBankContext } from '@/hooks/useBankContext'
 import { queryKeys } from '@/lib/query-config'
 import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
+import type { BankWithMembership } from '@/types/bank'
 
 // Type-safe supabase client wrapper for tables not yet in generated types
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -64,7 +65,7 @@ export function useCreateBusinessBank() {
 
       if (createError) throw createError
       if (!createResult?.bank_id) {
-        throw new Error('Business bank creation did not return a bank id')
+        throw new Error('Business workspace creation did not return a workspace id')
       }
 
       const { data: bank, error: bankError } = await db
@@ -88,12 +89,93 @@ export function useCreateBusinessBank() {
       // Navigate to /vaults so user sees the new bank's default vault
       navigate('/vaults')
 
-      toast.success(`Business bank "${variables.name}" created`, {
+      toast.success(`Business workspace "${variables.name}" created`, {
         description: "You're now viewing it",
       })
     },
     onError: (error: Error) => {
-      toast.error(`Failed to create business bank: ${error.message}`)
+      toast.error(`Failed to create business workspace: ${error.message}`)
+    },
+  })
+}
+
+// ─── Delete Bank ───────────────────────────────────────────────────
+
+export interface DeleteBankInput {
+  bankId: string
+  /** If true, move calls back to personal bank before deleting */
+  moveCallsToPersonal?: boolean
+}
+
+/**
+ * useDeleteBank - Deletes a business bank
+ *
+ * Flow:
+ * 1. Optionally move recordings from the bank back to user's personal bank
+ * 2. Delete all vault memberships, vaults, bank memberships
+ * 3. Delete the bank itself (cascading deletes handle related data)
+ * 4. Switch to personal bank, invalidate queries
+ *
+ * Cannot delete personal banks.
+ */
+export function useDeleteBank() {
+  const { user } = useAuth()
+  const { banks, switchBank } = useBankContext()
+  const queryClient = useQueryClient()
+  const navigate = useNavigate()
+
+  return useMutation({
+    mutationFn: async (input: DeleteBankInput) => {
+      if (!user) throw new Error('Not authenticated')
+
+      // Find the bank to verify it's a business bank
+      const bank = banks.find((b: BankWithMembership) => b.id === input.bankId)
+      if (!bank) throw new Error('Workspace not found')
+      if (bank.type === 'personal') throw new Error('Cannot delete personal workspace')
+      if (bank.membership.role !== 'bank_owner') {
+        throw new Error('Only workspace owners can delete workspaces')
+      }
+
+      // If moveCallsToPersonal, move recordings to personal bank
+      if (input.moveCallsToPersonal) {
+        const personalBank = banks.find((b: BankWithMembership) => b.type === 'personal')
+        if (personalBank) {
+          // Update recordings to point to personal bank
+          const { error: moveError } = await db
+            .from('recordings')
+            .update({ bank_id: personalBank.id })
+            .eq('bank_id', input.bankId)
+
+          if (moveError) throw moveError
+        }
+      }
+
+      // Delete the bank (cascading deletes handle vaults, memberships, vault_entries)
+      const { error: deleteError } = await db
+        .from('banks')
+        .delete()
+        .eq('id', input.bankId)
+
+      if (deleteError) throw deleteError
+
+      return { bankId: input.bankId }
+    },
+    onSuccess: () => {
+      // Switch to personal bank
+      const personalBank = banks.find((b: BankWithMembership) => b.type === 'personal')
+      if (personalBank) {
+        switchBank(personalBank.id)
+      }
+
+      // Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: ['bankContext'] })
+      queryClient.invalidateQueries({ queryKey: queryKeys.vaults.list() })
+
+      navigate('/')
+      toast.success('Workspace deleted successfully')
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to delete workspace: ${error.message}`)
     },
   })
 }
