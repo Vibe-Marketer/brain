@@ -1,12 +1,12 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-02-11 (Plan 04 - phase complete)
+**Last Updated:** 2026-02-11 (Plan 05 executed)
 
 ## Project Reference
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 11 - PROFITS Frontend Trigger (pending)
+**Current Focus:** Phase 10.3 gap closures (plan 06 pending)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization + Gap Closures
 
-**Phase:** 11 of 11+ (PROFITS Frontend Trigger)
+**Phase:** 10.3 of 11+ (YouTube-Specific Vaults & Video Intelligence)
 
-**Plan:** 0 of 2 in current phase
+**Plan:** 5 of 6 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-11 - Phase 10.3 COMPLETE (YouTube-Specific Vaults & Video Intelligence) - 4/4 plans, 7/7 must-haves verified
+**Last activity:** 2026-02-11 - Completed 10.3-05-PLAN.md (YouTube create option parity + regressions)
 
 **Progress:**
 ```
-[█████████████████████████████████████████████] 85/87 plans complete (98%)
+[█████████████████████████████████████████████] 86/87 plans complete (99%)
 ```
 
 ---
@@ -57,7 +57,7 @@
 | Phase 9: Bank/Vault Architecture | 5 | 5 | Complete (10/10 plans) |
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
 | Phase 10.2: Vaults Page | 7 | 7 | Complete (9/9 plans) |
-| Phase 10.3: YouTube-Specific Vaults | 6 | 6 | Complete (4/4 plans) |
+| Phase 10.3: YouTube-Specific Vaults | 6 | 6 | In progress (5/6 plans) |
 
 ### Velocity
 
@@ -158,6 +158,7 @@
 | 2026-02-10 | Settings category rows use pill-first active emphasis | Vertical indicator should be the primary wayfinding signal, not stacked orange icon/text/arrow accents | SettingsCategoryPane active colors are neutralized while preserving keyboard/ARIA behavior |
 | 2026-02-10 | HUB pane headers use icon-led stacked context layout | Prevent overlap/truncation in constrained pane widths while keeping workspace context legible | VaultListPane header now stacks workspace label/name/switcher with dedicated action row |
 | 2026-02-10 | Brand tabs standardize on rounded pill active indicators | Current UI direction moved off clip-path tab markers; docs needed canonical guidance | Brand guidelines v4.2.1 now codify pill indicator direction and hardcoded-value policy |
+| 2026-02-11 | Enforce YouTube create-type parity across Hubs and Settings | UAT gap showed stale hardcoded create options blocked self-serve YouTube vault creation | Both create entry points now expose YouTube with regression coverage on option and payload |
 
 ### Active TODOs
 
@@ -243,8 +244,10 @@ Phase 10.2 COMPLETE (9/9 plans).
 - [x] Execute 10.3-02-PLAN.md (YouTube Video List: media-row components, sort hook, VaultDetailPane)
 - [x] Execute 10.3-03-PLAN.md (Import Flow: VaultSelector YouTube-only filtering, auto-create vault)
 - [x] Execute 10.3-04-PLAN.md (Video Detail Modal: summary, description, transcript, chat)
+- [x] Execute 10.3-05-PLAN.md (Gap closure: expose YouTube in Hubs + Settings create flows with tests)
+- [ ] Execute 10.3-06-PLAN.md (Remaining gap closure)
 
-Phase 10.3 COMPLETE (4/4 plans). 7/7 must-haves verified.
+Phase 10.3 IN PROGRESS (5/6 plans). Gap closure 06 pending.
 
 ### Pending Todos
 
@@ -278,13 +281,13 @@ None
 ## Session Continuity
 
 **Last session:** 2026-02-11
-**Stopped at:** Phase 10.3 COMPLETE — verified and committed
+**Stopped at:** Completed 10.3-05-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.3 COMPLETE (4/4 plans, 7/7 must-haves verified). YouTube-Specific Vaults fully delivered. Phase 11 (PROFITS Frontend Trigger) is next.
+Phase 10.3 gap-closure execution is active at 5/6 plans complete. Core YouTube vault functionality is delivered; one closure plan remains before returning to Phase 11.
 
 **What to remember:**
 - Migration 20260211000001: 'youtube' added to vault_type CHECK constraint
@@ -298,7 +301,8 @@ Phase 10.3 COMPLETE (4/4 plans, 7/7 must-haves verified). YouTube-Specific Vault
 - youtube-import auto-creates "YouTube Vault" on first import + populates recordings table
 - YouTubeVideoDetailModal opens on click with summary, collapsible description, transcript, chat CTA
 - YouTubeChatSection navigates to /chat with vault context
-- Phase 11 (PROFITS Frontend Trigger) is next — 2 plans pending
+- Remaining in current focus: 10.3-06-PLAN.md (final gap closure)
+- Phase 11 (PROFITS Frontend Trigger) follows after 10.3 gap closures
 
 ---
 
@@ -309,12 +313,12 @@ Phase 10.3 COMPLETE (4/4 plans, 7/7 must-haves verified). YouTube-Specific Vault
 | Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 80 |
 | Requirements Complete | 70 (88%) |
-| Current Phase | 11 - PROFITS Frontend Trigger (0/2 plans) |
-| Plans Complete | 85/87 (98%) |
-| Next Plan | 11-01-PLAN.md (PROFITS frontend trigger) |
+| Current Phase | 10.3 - YouTube-Specific Vaults (5/6 plans) |
+| Plans Complete | 86/87 (99%) |
+| Next Plan | 10.3-06-PLAN.md (remaining gap closure) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-11 (Phase 10.3 COMPLETE — YouTube-Specific Vaults delivered, 4/4 plans, 7/7 must-haves verified)*
+*Last updated: 2026-02-11 (Completed 10.3-05 gap closure; phase 10.3 at 5/6 with one remaining plan)*
