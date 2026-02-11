@@ -3,7 +3,40 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 
 // YouTube Data API v3 base URL
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
-const TRANSCRIPT_API_BASE = 'https://api.youdotcom/v1/transcript';
+const TRANSCRIPT_API_BASE = 'https://transcriptapi.com/api/v2/youtube/transcript';
+
+class ApiHttpError extends Error {
+  status: number;
+  details?: unknown;
+
+  constructor(message: string, status: number, details?: unknown) {
+    super(message);
+    this.name = 'ApiHttpError';
+    this.status = status;
+    this.details = details;
+  }
+}
+
+function parseJsonSafely(raw: string): unknown {
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function createApiHttpError(source: string, status: number, rawBody: string): ApiHttpError {
+  const details = parseJsonSafely(rawBody);
+  return new ApiHttpError(`${source} error (${status})`, status, details);
+}
+
+function normalizeSecret(value: string | null): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return trimmed.replace(/^['"]|['"]$/g, '');
+}
 
 interface YouTubeSearchParams {
   query: string;
@@ -46,8 +79,7 @@ async function searchVideos(query: string, maxResults: number = 10, apiKey: stri
   const response = await fetch(url.toString());
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`YouTube API search error: ${response.status} - ${errorText}`);
+    throw createApiHttpError('YouTube API search', response.status, await response.text());
   }
 
   const data = await response.json();
@@ -83,8 +115,7 @@ async function getChannelVideos(channelId: string, maxResults: number = 25, apiK
   const response = await fetch(url.toString());
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`YouTube API channel videos error: ${response.status} - ${errorText}`);
+    throw createApiHttpError('YouTube API channel videos', response.status, await response.text());
   }
 
   const data = await response.json();
@@ -115,8 +146,7 @@ async function getVideoDetails(videoId: string, apiKey: string) {
   const response = await fetch(url.toString());
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`YouTube API video details error: ${response.status} - ${errorText}`);
+    throw createApiHttpError('YouTube API video details', response.status, await response.text());
   }
 
   const data = await response.json();
@@ -150,9 +180,13 @@ async function getVideoDetails(videoId: string, apiKey: string) {
  * Get transcript for a single video
  */
 async function getVideoTranscript(videoId: string, transcriptApiKey: string) {
-  const url = `${TRANSCRIPT_API_BASE}/${videoId}`;
+  const url = new URL(TRANSCRIPT_API_BASE);
+  url.searchParams.set('video_url', videoId);
+  url.searchParams.set('format', 'json');
+  url.searchParams.set('include_timestamp', 'false');
+  url.searchParams.set('send_metadata', 'true');
 
-  const response = await fetch(url, {
+  const response = await fetch(url.toString(), {
     headers: {
       'Authorization': `Bearer ${transcriptApiKey}`,
       'Content-Type': 'application/json',
@@ -160,17 +194,26 @@ async function getVideoTranscript(videoId: string, transcriptApiKey: string) {
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Transcript API error: ${response.status} - ${errorText}`);
+    throw createApiHttpError('Transcript API', response.status, await response.text());
   }
 
-  const data = await response.json();
+  const payload = parseJsonSafely(await response.text());
+  const data = payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
+  const transcript = typeof data?.transcript === 'string'
+    ? data.transcript
+    : typeof data?.text === 'string'
+      ? data.text
+      : null;
+
+  if (!transcript) {
+    throw new ApiHttpError('Transcript API returned invalid payload', 502, payload);
+  }
 
   return {
     videoId,
-    transcript: data.transcript,
-    language: data.language,
-    duration: data.duration,
+    transcript,
+    language: typeof data?.language === 'string' ? data.language : undefined,
+    duration: typeof data?.duration === 'number' ? data.duration : undefined,
   };
 }
 
@@ -182,8 +225,16 @@ async function getBatchTranscripts(videoIds: string[], transcriptApiKey: string)
     videoIds.map(videoId => getVideoTranscript(videoId, transcriptApiKey))
   );
 
-  const transcripts = [];
-  const errors = [];
+  const transcripts: Array<{
+    videoId: string;
+    transcript: string;
+    language?: string;
+    duration?: number;
+  }> = [];
+  const errors: Array<{
+    videoId: string;
+    error: string;
+  }> = [];
 
   for (let i = 0; i < results.length; i++) {
     const result = results[i];
@@ -219,8 +270,8 @@ Deno.serve(async (req) => {
 
   try {
     // Get API keys from environment
-    const youtubeApiKey = Deno.env.get('YOUTUBE_DATA_API_KEY');
-    const transcriptApiKey = Deno.env.get('TRANSCRIPT_API_KEY');
+    const youtubeApiKey = normalizeSecret(Deno.env.get('YOUTUBE_DATA_API_KEY'));
+    const transcriptApiKey = normalizeSecret(Deno.env.get('TRANSCRIPT_API_KEY'));
 
     if (!youtubeApiKey) {
       return new Response(
@@ -353,6 +404,14 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('YouTube API error:', error);
+
+    if (error instanceof ApiHttpError) {
+      return new Response(
+        JSON.stringify({ success: false, error: error.message, details: error.details }),
+        { status: error.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const errorMessage = error instanceof Error ? error.message : 'Internal server error';
 
     return new Response(
