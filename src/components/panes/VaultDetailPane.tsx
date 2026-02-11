@@ -53,6 +53,7 @@ const VAULT_TYPE_STYLES: Record<VaultType, { bg: string; text: string }> = {
   coach: { bg: 'bg-warning-bg', text: 'text-warning-text' },
   community: { bg: 'bg-warning-bg', text: 'text-warning-text' },
   client: { bg: 'bg-info-bg', text: 'text-info-text' },
+  youtube: { bg: 'bg-red-500/10', text: 'text-red-600' },
 }
 
 export interface VaultDetailPaneProps {

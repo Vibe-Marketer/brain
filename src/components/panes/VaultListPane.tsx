@@ -20,6 +20,7 @@ import {
   RiCommunityLine,
   RiBriefcaseLine,
   RiBuildingLine,
+  RiYoutubeLine,
   RiErrorWarningLine,
 } from '@remixicon/react';
 import { cn } from '@/lib/utils';
@@ -73,6 +74,11 @@ const VAULT_TYPE_CONFIG: Record<VaultType, {
     label: 'Client',
     icon: RiBriefcaseLine,
     className: 'bg-info-bg text-info-text',
+  },
+  youtube: {
+    label: 'YouTube',
+    icon: RiYoutubeLine,
+    className: 'bg-red-500/10 text-red-600',
   },
 };
 
