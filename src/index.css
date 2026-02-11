@@ -408,6 +408,11 @@ CallVault Brand System v4.2
     background-color: hsl(var(--vibe-orange));
   }
 
+  .cv-vertical-marker {
+    border-top-right-radius: 9999px;
+    border-bottom-right-radius: 9999px;
+  }
+
   /* Force background colors on Tremor DonutChart components */
   .tremor-DonutChart-root,
   .tremor-DonutChart-root > div,

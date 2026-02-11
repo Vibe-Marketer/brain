@@ -91,25 +91,19 @@ export function useGenerateVaultInvite(vaultId: string) {
       }
 
       // Check if vault already has a valid invite token
+      // Preferred path: SECURITY DEFINER RPC handles permissions and token generation
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: existingVault, error: fetchError } = await (supabase as any)
-        .from('vaults')
-        .select('invite_token, invite_expires_at')
-        .eq('id', vaultId)
-        .single()
+      const { data: rpcData, error: rpcError } = await (supabase as any).rpc('generate_vault_invite', {
+        p_vault_id: vaultId,
+        p_force: !!options?.force,
+      })
 
-      if (fetchError) throw fetchError
-
-      // If there's an existing valid token, return it
-      if (!options?.force && existingVault?.invite_token && existingVault?.invite_expires_at) {
-        const expiresAt = new Date(existingVault.invite_expires_at)
-        if (expiresAt > new Date()) {
-          const inviteUrl = `${window.location.origin}/join/vault/${existingVault.invite_token}`
-          return {
-            invite_token: existingVault.invite_token,
-            invite_url: inviteUrl,
-            invite_expires_at: existingVault.invite_expires_at,
-          }
+      if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
+        const row = rpcData[0] as { invite_token: string; invite_expires_at: string }
+        return {
+          invite_token: row.invite_token,
+          invite_url: `${window.location.origin}/join/vault/${row.invite_token}`,
+          invite_expires_at: row.invite_expires_at,
         }
       }
 
@@ -126,7 +120,16 @@ export function useGenerateVaultInvite(vaultId: string) {
         })
         .eq('id', vaultId)
 
-      if (updateError) throw updateError
+      if (updateError) {
+        const message = updateError?.message || ''
+        if (message.includes('row-level security')) {
+          throw new Error('You do not have permission to generate invite links for this hub.')
+        }
+        if (message.includes('invite_token') || message.includes('invite_expires_at')) {
+          throw new Error('Hub invite schema is not fully deployed yet. Please run the latest Supabase migrations and try again.')
+        }
+        throw updateError
+      }
 
       const inviteUrl = `${window.location.origin}/join/vault/${inviteToken}`
       return { invite_token: inviteToken, invite_url: inviteUrl, invite_expires_at: inviteExpiresAt }

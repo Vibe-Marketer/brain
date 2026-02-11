@@ -28,21 +28,13 @@ import {
   RiLayoutColumnLine,
   RiAddLine,
   RiHome4Line,
-  RiHome4Fill,
   RiSparklingLine,
-  RiSparklingFill,
   RiArticleLine,
-  RiArticleFill,
   RiPriceTag3Line,
-  RiPriceTag3Fill,
   RiSafeLine,
-  RiSafeFill,
   RiSettings3Line,
-  RiSettings3Fill,
   RiPieChart2Line,
-  RiPieChart2Fill,
   RiUpload2Line,
-  RiUpload2Fill,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
@@ -50,10 +42,8 @@ import { cn } from '@/lib/utils';
 interface NavItem {
   id: string;
   name: string;
-  /** Line icon variant (used when inactive) */
+  /** Line icon variant */
   iconLine: RemixiconComponentType;
-  /** Fill icon variant (used when active) */
-  iconFill: RemixiconComponentType;
   path: string;
   matchPaths?: string[];
 }
@@ -81,8 +71,6 @@ interface SidebarNavProps {
 interface NavIconProps {
   /** Remix Icon component type for line variant (inactive state) */
   icon?: RemixiconComponentType;
-  /** Remix Icon component type for fill variant (active state) */
-  iconFill?: RemixiconComponentType;
   /** Whether the icon is in active state */
   isActive?: boolean;
   /** Optional children (for backward compatibility with pre-rendered icons) */
@@ -95,15 +83,15 @@ interface NavIconProps {
  * Dark mode: Dark gray gradient with adjusted shadows
  *
  * Supports two usage patterns:
- * 1. Pass Remix Icon components directly via icon/iconFill props
+ * 1. Pass Remix Icon components directly via icon props
  * 2. Pass pre-rendered React nodes as children (backward compatible)
  */
-const NavIcon = React.memo(({ icon: IconLine, iconFill: IconFill, isActive, children }: NavIconProps) => {
+const NavIcon = React.memo(({ icon: IconLine, isActive, children }: NavIconProps) => {
   // Determine which icon to render based on props and active state
   const renderIcon = () => {
     // If icon components are provided, render the appropriate one
-    if (IconLine || IconFill) {
-      const IconComponent = isActive && IconFill ? IconFill : IconLine;
+    if (IconLine) {
+      const IconComponent = IconLine;
       if (IconComponent) {
         return (
           <IconComponent
@@ -148,7 +136,6 @@ const navItems: NavItem[] = [
     id: 'home',
     name: 'Home',
     iconLine: RiHome4Line,
-    iconFill: RiHome4Fill,
     path: '/',
     matchPaths: ['/', '/transcripts'],
   },
@@ -156,7 +143,6 @@ const navItems: NavItem[] = [
     id: 'chat',
     name: 'AI Chat',
     iconLine: RiSparklingLine,
-    iconFill: RiSparklingFill,
     path: '/chat',
     matchPaths: ['/chat'],
   },
@@ -164,7 +150,6 @@ const navItems: NavItem[] = [
     id: 'content',
     name: 'Content',
     iconLine: RiArticleLine,
-    iconFill: RiArticleFill,
     path: '/content',
     matchPaths: ['/content', '/content/generators', '/content/library'],
   },
@@ -172,7 +157,6 @@ const navItems: NavItem[] = [
     id: 'import',
     name: 'Import',
     iconLine: RiUpload2Line,
-    iconFill: RiUpload2Fill,
     path: '/import',
     matchPaths: ['/import'],
   },
@@ -180,7 +164,6 @@ const navItems: NavItem[] = [
     id: 'sorting',
     name: 'Sorting',
     iconLine: RiPriceTag3Line,
-    iconFill: RiPriceTag3Fill,
     path: '/sorting-tagging',
     matchPaths: ['/sorting-tagging'],
   },
@@ -188,7 +171,6 @@ const navItems: NavItem[] = [
     id: 'vaults',
     name: 'Hubs',
     iconLine: RiSafeLine,
-    iconFill: RiSafeFill,
     path: '/vaults',
     matchPaths: ['/vaults'],
   },
@@ -196,7 +178,6 @@ const navItems: NavItem[] = [
     id: 'analytics',
     name: 'Analytics',
     iconLine: RiPieChart2Line,
-    iconFill: RiPieChart2Fill,
     path: '/analytics',
     matchPaths: ['/analytics'],
   },
@@ -204,7 +185,6 @@ const navItems: NavItem[] = [
     id: 'settings',
     name: 'Settings',
     iconLine: RiSettings3Line,
-    iconFill: RiSettings3Fill,
     path: '/settings',
     matchPaths: ['/settings'],
   },
@@ -325,19 +305,6 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
           const active = isActive(item);
           return (
             <div key={item.id} className="relative flex flex-col mb-1">
-              {/* Active indicator - left-side orange pill with smooth scale-y transition - visible in both modes */}
-              <div
-                className={cn(
-                  "absolute top-1/2 -translate-y-1/2 w-1 bg-vibe-orange rounded-full",
-                  "transition-all duration-200 ease-in-out",
-                  // Position and size based on mode
-                  isCollapsed ? "left-0 h-[50%]" : "left-1 h-[60%]",
-                  active
-                    ? "opacity-100 scale-y-100"
-                    : "opacity-0 scale-y-0"
-                )}
-                aria-hidden="true"
-              />
               <button
                 ref={(el) => {
                   if (el) {
@@ -365,10 +332,13 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 onKeyDown={(e) => handleKeyDown(e, item.id)}
                 className={cn(
                   'relative flex items-center',
-                  isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
-                  'rounded-xl transition-all duration-500 ease-in-out',
-                  'hover:bg-hover',
-                  active && !isCollapsed && 'bg-hover',
+                  isCollapsed ? 'justify-center w-11 h-11 px-0' : 'justify-start w-full px-3 h-10 gap-3',
+                  'rounded-lg border border-transparent transition-all duration-500 ease-in-out',
+                  'hover:bg-hover/70',
+                  active && !isCollapsed && [
+                    'bg-hover border-border pl-4',
+                    "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange"
+                  ],
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
                 )}
                 title={item.name}
@@ -380,15 +350,14 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   )}>
                      {isCollapsed ? (
                        // Collapsed mode: Use NavIcon with icon props for glossy 3D effect
-                       <NavIcon
-                         icon={item.iconLine}
-                         iconFill={item.iconFill}
-                         isActive={active}
-                       />
+                        <NavIcon
+                          icon={item.iconLine}
+                          isActive={active}
+                        />
                      ) : (
                        // Expanded mode: Render icon directly
                        (() => {
-                         const IconComponent = active ? item.iconFill : item.iconLine;
+                          const IconComponent = item.iconLine;
                          return <IconComponent className={cn(iconClass, active && "text-vibe-orange")} />;
                        })()
                      )}
@@ -398,7 +367,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   {!isCollapsed && (
                       <span className={cn(
                         "text-sm truncate transition-colors",
-                        active ? "font-semibold text-vibe-orange" : "text-foreground"
+                        active ? "font-medium text-foreground" : "text-foreground"
                       )}>{item.name}</span>
                   )}
               </button>

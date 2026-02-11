@@ -20,15 +20,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   RiHome4Line,
-  RiHome4Fill,
   RiSparklingLine,
-  RiSparklingFill,
   RiLightbulbLine,
-  RiLightbulbFill,
   RiFileTextLine,
-  RiFileTextFill,
   RiMailLine,
-  RiMailFill,
   RiPhoneLine,
   RiLayoutGridLine,
 } from "@remixicon/react";
@@ -46,7 +41,6 @@ interface CategoryItem {
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  iconFill?: React.ComponentType<{ className?: string }>;
   path: string;
   indent?: boolean;
 }
@@ -57,7 +51,6 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
     label: "Overview",
     description: "Content Hub home",
     icon: RiHome4Line,
-    iconFill: RiHome4Fill,
     path: "/content",
   },
   {
@@ -65,7 +58,6 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
     label: "Generators",
     description: "Create new content",
     icon: RiSparklingLine,
-    iconFill: RiSparklingFill,
     path: "/content/generators",
   },
   {
@@ -81,7 +73,6 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
     label: "Hooks",
     description: "Attention grabbers",
     icon: RiLightbulbLine,
-    iconFill: RiLightbulbFill,
     path: "/content/library/hooks",
   },
   {
@@ -89,7 +80,6 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
     label: "Posts",
     description: "Social content",
     icon: RiFileTextLine,
-    iconFill: RiFileTextFill,
     path: "/content/library/posts",
   },
   {
@@ -97,7 +87,6 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
     label: "Emails",
     description: "Email drafts",
     icon: RiMailLine,
-    iconFill: RiMailFill,
     path: "/content/library/emails",
   },
 ];
@@ -248,7 +237,7 @@ export function ContentCategoryPane({
       >
         {CONTENT_CATEGORIES.map((category) => {
           const isActive = selectedCategory === category.id;
-          const IconComponent = isActive && category.iconFill ? category.iconFill : category.icon;
+          const IconComponent = category.icon;
           const count = categoryCounts[category.id];
 
           return (
@@ -257,15 +246,6 @@ export function ContentCategoryPane({
               role="listitem"
               className={cn("relative mb-1", category.indent && "ml-4")}
             >
-              {/* Active indicator */}
-              <div
-                className={cn(
-                  "cv-side-indicator-pill",
-                  "transition-all duration-200 ease-in-out",
-                  isActive ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0"
-                )}
-                aria-hidden="true"
-              />
               <button
                 ref={(el) => {
                   if (el) {
@@ -278,13 +258,14 @@ export function ContentCategoryPane({
                 onClick={() => navigate(category.path)}
                 onKeyDown={(e) => handleKeyDown(e, category.id)}
                 className={cn(
-                  "w-full flex items-start gap-3 px-3 py-3 rounded-lg",
+                  "relative w-full flex items-start gap-3 px-3 py-3 rounded-lg",
                   "text-left transition-all duration-150 ease-in-out",
-                  "hover:bg-muted/50 dark:hover:bg-white/5",
+                  "hover:bg-hover/70",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
                     "bg-hover",
                     "border-l-0 pl-4",
+                    "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
                 )}
                 aria-current={isActive ? "true" : undefined}

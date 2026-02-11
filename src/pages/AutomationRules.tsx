@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   RiSearchLine,
   RiAddLine,
+  RiEyeLine,
   RiFlowChart,
   RiPlayCircleLine,
   RiTimeLine,
@@ -40,10 +41,12 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { Spinner } from "@/components/ui/spinner";
+import { AutomationRulesPane, type AutomationFilter } from "@/components/panes/AutomationRulesPane";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { cn } from "@/lib/utils";
 import { useTableSort } from "@/hooks/useTableSort";
+import { usePanelStore } from "@/stores/panelStore";
 import type { Database, Json } from "@/integrations/supabase/types";
 
 // ============================================================================
@@ -261,6 +264,7 @@ function useAutomationRules(userId: string | undefined): UseAutomationRulesResul
 
 interface RulesTableProps {
   rules: AutomationRule[];
+  onRowClick: (rule: AutomationRule) => void;
   onToggle: (ruleId: string, enabled: boolean) => void;
   onEdit: (rule: AutomationRule) => void;
   onDelete: (rule: AutomationRule) => void;
@@ -269,6 +273,7 @@ interface RulesTableProps {
 
 function RulesTable({
   rules,
+  onRowClick,
   onToggle,
   onEdit,
   onDelete,
@@ -355,13 +360,16 @@ function RulesTable({
               <tr
                 key={rule.id}
                 className="border-b border-border/50 hover:bg-muted/30 transition-colors"
+                onClick={() => onRowClick(rule)}
               >
                 <td className="py-3 px-4">
-                  <Switch
-                    checked={rule.enabled}
-                    onCheckedChange={(checked) => onToggle(rule.id, checked)}
-                    aria-label={`${rule.enabled ? "Disable" : "Enable"} ${rule.name}`}
-                  />
+                  <div onClick={(event) => event.stopPropagation()}>
+                    <Switch
+                      checked={rule.enabled}
+                      onCheckedChange={(checked) => onToggle(rule.id, checked)}
+                      aria-label={`${rule.enabled ? "Disable" : "Enable"} ${rule.name}`}
+                    />
+                  </div>
                 </td>
                 <td className="py-3 px-4">
                   <div className="flex flex-col">
@@ -416,12 +424,22 @@ function RulesTable({
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
+                        onClick={(event) => event.stopPropagation()}
                       >
                         <RiMore2Fill className="h-4 w-4" />
                         <span className="sr-only">Actions for {rule.name}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
+                      <DropdownMenuItem
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onRowClick(rule);
+                        }}
+                      >
+                        <RiEyeLine className="h-4 w-4 mr-2" />
+                        View Details
+                      </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onEdit(rule)}>
                         <RiEditLine className="h-4 w-4 mr-2" />
                         Edit Rule
@@ -456,9 +474,11 @@ function RulesTable({
 export default function AutomationRules() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { openPanel } = usePanelStore();
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<AutomationFilter>("all");
   const [ruleToDelete, setRuleToDelete] = useState<AutomationRule | null>(null);
 
   // Fetch rules
@@ -466,15 +486,23 @@ export default function AutomationRules() {
 
   // Filter by search query
   const filteredRules = useMemo(() => {
-    if (!searchQuery.trim()) return rules;
+    const filterByState = (candidate: AutomationRule) => {
+      if (activeFilter === "active") return candidate.enabled;
+      if (activeFilter === "inactive") return !candidate.enabled;
+      return true;
+    };
+
+    const stateFiltered = rules.filter(filterByState);
+
+    if (!searchQuery.trim()) return stateFiltered;
     const query = searchQuery.toLowerCase();
-    return rules.filter(
+    return stateFiltered.filter(
       (rule) =>
         rule.name.toLowerCase().includes(query) ||
         (rule.description?.toLowerCase().includes(query) ?? false) ||
         getTriggerLabel(rule.trigger_type).toLowerCase().includes(query)
     );
-  }, [rules, searchQuery]);
+  }, [rules, searchQuery, activeFilter]);
 
   // Stats
   const stats = useMemo(() => {
@@ -494,6 +522,10 @@ export default function AutomationRules() {
 
   const handleViewHistory = (rule: AutomationRule) => {
     navigate(`/automation-rules/${rule.id}/history`);
+  };
+
+  const handleRuleRowClick = (rule: AutomationRule) => {
+    openPanel("automation-rule", { type: "automation-rule", ruleId: rule.id });
   };
 
   const handleDeleteConfirm = async () => {
@@ -524,7 +556,18 @@ export default function AutomationRules() {
   }
 
   return (
-    <AppShell>
+    <AppShell
+      config={{
+        secondaryPane: (
+          <AutomationRulesPane
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            stats={stats}
+          />
+        ),
+        showDetailPane: true,
+      }}
+    >
       <div className="h-full flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
@@ -613,6 +656,7 @@ export default function AutomationRules() {
           ) : (
             <RulesTable
               rules={filteredRules}
+              onRowClick={handleRuleRowClick}
               onToggle={toggleRule}
               onEdit={handleEditRule}
               onDelete={setRuleToDelete}

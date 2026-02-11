@@ -23,9 +23,6 @@ import {
   RiGroupLine,
 } from "@remixicon/react";
 
-/** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
-const TRANSITION_DURATION = 250;
-
 export type CollaborationCategory = "team";
 
 interface CategoryItem {
@@ -33,8 +30,6 @@ interface CategoryItem {
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  /** Filled icon variant for active/selected state (optional - falls back to line icon with orange color) */
-  iconFill?: React.ComponentType<{ className?: string }>;
   /** Roles required to see this category. Empty array = visible to all. */
   requiredRoles?: Array<"ADMIN" | "TEAM">;
 }
@@ -95,13 +90,6 @@ export function CollaborationCategoryPane({
       return false;
     });
   }, [isAdmin, isTeam]);
-
-  // Get the current focused category index
-  const getFocusedIndex = React.useCallback(() => {
-    const focused = document.activeElement as HTMLElement;
-    const entries = Array.from(buttonRefs.current.entries());
-    return entries.findIndex(([, el]) => el === focused);
-  }, []);
 
   // Focus a category by index (wraps around)
   const focusCategoryByIndex = React.useCallback(
@@ -193,8 +181,7 @@ export function CollaborationCategoryPane({
       >
         {visibleCategories.map((category) => {
           const isActive = selectedCategory === category.id;
-          // Use filled icon variant when active, fall back to line icon
-          const IconComponent = isActive && category.iconFill ? category.iconFill : category.icon;
+          const IconComponent = category.icon;
 
           return (
             <div
@@ -202,17 +189,6 @@ export function CollaborationCategoryPane({
               role="listitem"
               className="relative mb-1"
             >
-              {/* Active indicator - pill shape (Loop-style) with smooth transition */}
-              <div
-                className={cn(
-                  "cv-side-indicator-pill",
-                  "transition-all duration-200 ease-in-out",
-                  isActive
-                    ? "opacity-100 scale-y-100"
-                    : "opacity-0 scale-y-0"
-                )}
-                aria-hidden="true"
-              />
               <button
                 ref={(el) => {
                   if (el) {
@@ -225,13 +201,14 @@ export function CollaborationCategoryPane({
                 onClick={() => onCategorySelect(category.id)}
                 onKeyDown={(e) => handleKeyDown(e, category.id)}
                 className={cn(
-                  "w-full flex items-start gap-3 px-3 py-3 rounded-lg",
+                  "relative w-full flex items-start gap-3 px-3 py-3 rounded-lg",
                   "text-left transition-all duration-150 ease-in-out",
-                  "hover:bg-muted/50 dark:hover:bg-white/5",
+                  "hover:bg-hover/70",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
                     "bg-hover",
                     "border-l-0 pl-4", // Offset for the active indicator
+                    "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
                 )}
                 aria-current={isActive ? "true" : undefined}

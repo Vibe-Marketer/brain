@@ -12,7 +12,6 @@ import * as React from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   RiSafeLine,
-  RiSafeFill,
   RiAddLine,
   RiGroupLine,
   RiUserLine,
@@ -243,17 +242,19 @@ export function VaultListPane({
       role="navigation"
       aria-label="Hub list"
     >
-      {/* Header - icon-led HUB composition with responsive bank context */}
-      <header className="flex-shrink-0 border-b border-border bg-card/70">
+      {/* Header */}
+      <header className="flex-shrink-0 border-b border-border bg-card/50">
         <div className="px-4 py-3">
           <div className="flex items-center justify-between gap-2">
-            <h2
-              className="inline-flex items-center gap-1.5 text-xs font-display font-extrabold uppercase tracking-wide text-foreground"
-              id="hub-list-title"
-            >
-              <RiSafeLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-              HUBS
-            </h2>
+            <div className="flex items-center gap-3 min-w-0" id="hub-list-title">
+              <div className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0" aria-hidden="true">
+                <RiSafeLine className="h-4 w-4 text-vibe-orange" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-ink uppercase tracking-wide">HUBS</h2>
+                <p className="text-xs text-ink-muted">Select a workspace hub</p>
+              </div>
+            </div>
             {canCreateVault && (
               <Button
                 variant="ghost"
@@ -268,7 +269,7 @@ export function VaultListPane({
             )}
           </div>
 
-          <div className="mt-2 space-y-2">
+          <div className="mt-3 space-y-2">
             <div className="min-w-0">
               <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
                 {activeBank?.type === 'personal' ? 'Personal Workspace' : 'Business Workspace'}
@@ -306,7 +307,7 @@ export function VaultListPane({
             const isActive = selectedVaultId === vault.id;
             const typeConfig = VAULT_TYPE_CONFIG[vault.vault_type] || VAULT_TYPE_CONFIG.personal;
             const TypeIcon = typeConfig.icon;
-            const VaultIcon = isActive ? RiSafeFill : RiSafeLine;
+            const VaultIcon = RiSafeLine;
 
             return (
               <div
@@ -314,15 +315,6 @@ export function VaultListPane({
                 role="listitem"
                 className="relative mb-1"
               >
-                {/* Active indicator - left-side orange pill */}
-                <div
-                  className={cn(
-                    'cv-side-indicator-pill',
-                    'transition-all duration-200 ease-in-out',
-                    isActive ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0'
-                  )}
-                  aria-hidden="true"
-                />
                 <button
                   ref={(el) => {
                     if (el) {
@@ -335,13 +327,14 @@ export function VaultListPane({
                   onClick={() => onVaultSelect(vault.id)}
                   onKeyDown={(e) => handleKeyDown(e, vault.id)}
                   className={cn(
-                    'w-full flex items-start gap-3 px-3 py-3 rounded-lg',
+                    'relative w-full flex items-start gap-3 px-3 py-3 rounded-lg',
                     'text-left transition-all duration-500 ease-in-out',
-                    'hover:bg-muted/50 dark:hover:bg-white/5',
+                    'hover:bg-hover/70',
                     'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
                     isActive && [
-                      'bg-muted/60',
+                      'bg-hover border border-border',
                       'border-l-0 pl-4',
+                      "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                     ]
                   )}
                   aria-current={isActive ? 'true' : undefined}
@@ -415,7 +408,7 @@ export function VaultListPane({
             className={cn(
               'w-full flex items-center gap-2 px-3 py-2 rounded-lg',
               'text-sm text-muted-foreground hover:text-foreground',
-              'hover:bg-muted/50 dark:hover:bg-white/5',
+              'hover:bg-hover/70',
               'transition-colors duration-200'
             )}
             aria-label="Create business workspace"

@@ -375,12 +375,7 @@ export default function AITab() {
 
         {/* Model Selection Card */}
         <div className="relative py-6 px-6 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-          <div
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-orange"
-            style={{
-              clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-            }}
-          />
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-orange cv-vertical-marker" />
 
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 mt-1">
@@ -467,12 +462,7 @@ export default function AITab() {
 
         {/* Indexing Action Card */}
         <div className="relative py-6 px-6 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-          <div
-            className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-orange"
-            style={{
-              clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-            }}
-          />
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-20 bg-vibe-orange cv-vertical-marker" />
 
           <div className="flex items-start gap-4">
             <div className="flex-shrink-0 mt-1">

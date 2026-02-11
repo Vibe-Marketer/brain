@@ -25,6 +25,7 @@ import { SettingHelpPanel } from '@/components/panels/SettingHelpPanel';
 import { UserDetailPanel } from '@/components/panels/UserDetailPanel';
 import { CallDetailPanel } from '@/components/panels/CallDetailPanel';
 import { VaultMemberPanel } from '@/components/panels/VaultMemberPanel';
+import { AutomationRulePanel } from '@/components/panels/AutomationRulePanel';
 
 export interface DetailPaneOutletProps {
   /** Whether we're on tablet breakpoint (affects width) */
@@ -92,6 +93,11 @@ export function DetailPaneOutlet({
           <VaultMemberPanel vaultId={panelData.vaultId} />
         ) : null;
 
+      case 'automation-rule':
+        return panelData?.type === 'automation-rule' ? (
+          <AutomationRulePanel ruleId={panelData.ruleId} />
+        ) : null;
+
       default:
         // Unsupported panel type
         console.warn(`DetailPaneOutlet: Unsupported panel type "${panelType}"`);
@@ -114,6 +120,8 @@ export function DetailPaneOutlet({
         return 'Call detail panel';
       case 'vault-member':
         return 'Hub member panel';
+      case 'automation-rule':
+        return 'Automation rule detail panel';
       default:
         return 'Detail panel';
     }

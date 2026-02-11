@@ -139,9 +139,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
         className={cn(
           "cv-side-indicator-pill",
           "transition-all duration-200 ease-in-out",
-          isSelected
-            ? "opacity-100 scale-y-100"
-            : "opacity-0 scale-y-0"
+          isSelected ? "opacity-100" : "opacity-0"
         )}
         aria-hidden="true"
       />
@@ -725,9 +723,7 @@ export function FolderSidebar({
                     className={cn(
                       "cv-side-indicator-pill",
                       "transition-all duration-200 ease-in-out",
-                      selectedFolderId === null
-                        ? "opacity-100 scale-y-100"
-                        : "opacity-0 scale-y-0"
+                      selectedFolderId === null ? "opacity-100" : "opacity-0"
                     )}
                     aria-hidden="true"
                   />

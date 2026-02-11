@@ -19,19 +19,12 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import {
   RiFolderLine,
-  RiFolderFill,
   RiPriceTag3Line,
-  RiPriceTag3Fill,
   RiSettings3Line,
-  RiSettings3Fill,
   RiRepeatLine,
-  RiRepeatFill,
   RiOrganizationChart,
   RiLightbulbLine,
 } from "@remixicon/react";
-
-/** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
-const TRANSITION_DURATION = 250;
 
 export type SortingCategory = "folders" | "tags" | "rules" | "recurring";
 
@@ -40,8 +33,6 @@ interface CategoryItem {
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  /** Filled icon variant for active/selected state (optional - falls back to line icon with orange color) */
-  iconFill?: React.ComponentType<{ className?: string }>;
 }
 
 const SORTING_CATEGORIES_BASE: CategoryItem[] = [
@@ -50,28 +41,24 @@ const SORTING_CATEGORIES_BASE: CategoryItem[] = [
     label: "Folders",
     description: "Manage folder hierarchy",
     icon: RiFolderLine,
-    iconFill: RiFolderFill,
   },
   {
     id: "tags",
     label: "Tags",
     description: "View and edit call tags",
     icon: RiPriceTag3Line,
-    iconFill: RiPriceTag3Fill,
   },
   {
     id: "rules",
     label: "Rules",
     description: "Configure auto-sorting",
     icon: RiSettings3Line,
-    iconFill: RiSettings3Fill,
   },
   {
     id: "recurring",
     label: "Recurring Titles",
     description: "Create rules from patterns",
     icon: RiRepeatLine,
-    iconFill: RiRepeatFill,
   },
 ];
 
@@ -105,9 +92,6 @@ export function SortingCategoryPane({
   categoryCounts = {},
   className,
 }: SortingCategoryPaneProps) {
-  // Categories list
-  const SORTING_CATEGORIES = SORTING_CATEGORIES_BASE;
-
   // Track mount state for enter animations
   const [isMounted, setIsMounted] = React.useState(false);
   React.useEffect(() => {
@@ -123,7 +107,7 @@ export function SortingCategoryPane({
 
   // Focus a category by index (wraps around)
   const focusCategoryByIndex = React.useCallback((index: number) => {
-    const categoryIds = SORTING_CATEGORIES.map((c) => c.id);
+    const categoryIds = SORTING_CATEGORIES_BASE.map((c) => c.id);
     const wrappedIndex =
       ((index % categoryIds.length) + categoryIds.length) % categoryIds.length;
     const categoryId = categoryIds[wrappedIndex];
@@ -134,7 +118,7 @@ export function SortingCategoryPane({
   // Keyboard navigation handler for individual items
   const handleKeyDown = React.useCallback(
     (event: React.KeyboardEvent, categoryId: SortingCategory) => {
-      const currentIndex = SORTING_CATEGORIES.findIndex(
+      const currentIndex = SORTING_CATEGORIES_BASE.findIndex(
         (c) => c.id === categoryId
       );
 
@@ -158,7 +142,7 @@ export function SortingCategoryPane({
           break;
         case "End":
           event.preventDefault();
-          focusCategoryByIndex(SORTING_CATEGORIES.length - 1);
+          focusCategoryByIndex(SORTING_CATEGORIES_BASE.length - 1);
           break;
       }
     },
@@ -200,7 +184,7 @@ export function SortingCategoryPane({
             Organization
           </h2>
           <p className="text-xs text-ink-muted">
-            {SORTING_CATEGORIES.length} categories
+            {SORTING_CATEGORIES_BASE.length} categories
           </p>
         </div>
       </header>
@@ -211,10 +195,9 @@ export function SortingCategoryPane({
         role="list"
         aria-labelledby="sorting-category-title"
       >
-        {SORTING_CATEGORIES.map((category) => {
+        {SORTING_CATEGORIES_BASE.map((category) => {
           const isActive = selectedCategory === category.id;
-          // Use filled icon variant when active, fall back to line icon
-          const IconComponent = isActive && category.iconFill ? category.iconFill : category.icon;
+          const IconComponent = category.icon;
           const count = categoryCounts[category.id];
 
           return (
@@ -223,17 +206,6 @@ export function SortingCategoryPane({
               role="listitem"
               className="relative mb-1"
             >
-              {/* Active indicator - pill shape (Loop-style) with smooth transition */}
-              <div
-                className={cn(
-                  "cv-side-indicator-pill",
-                  "transition-all duration-200 ease-in-out",
-                  isActive
-                    ? "opacity-100 scale-y-100"
-                    : "opacity-0 scale-y-0"
-                )}
-                aria-hidden="true"
-              />
               <button
                 ref={(el) => {
                   if (el) {
@@ -246,13 +218,14 @@ export function SortingCategoryPane({
                 onClick={() => onCategorySelect(category.id)}
                 onKeyDown={(e) => handleKeyDown(e, category.id)}
                 className={cn(
-                  "w-full flex items-start gap-3 px-3 py-3 rounded-lg",
+                  "relative w-full flex items-start gap-3 px-3 py-3 rounded-lg",
                   "text-left transition-all duration-150 ease-in-out",
-                  "hover:bg-muted/50 dark:hover:bg-white/5",
+                  "hover:bg-hover/70",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
                     "bg-hover",
                     "border-l-0 pl-4", // Offset for the active indicator
+                    "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
                 )}
                 aria-current={isActive ? "true" : undefined}
