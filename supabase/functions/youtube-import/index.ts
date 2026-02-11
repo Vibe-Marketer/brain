@@ -30,6 +30,32 @@ interface ImportResponse {
   exists?: boolean;
 }
 
+type ImportStage = 'video-details' | 'transcript';
+
+interface DownstreamErrorResponse extends ImportResponse {
+  source: 'youtube-api';
+  stage: ImportStage;
+  status: number;
+  details?: unknown;
+}
+
+interface YouTubeVideoDetails {
+  title: string;
+  description?: string;
+  channelId?: string;
+  channelTitle?: string;
+  publishedAt?: string;
+  thumbnails?: {
+    high?: { url?: string };
+    default?: { url?: string };
+  };
+  duration?: string;
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
+  categoryId?: string;
+}
+
 /**
  * Extract video ID from various YouTube URL formats
  * Supports:
@@ -96,6 +122,43 @@ function parseDurationToSeconds(iso8601: string | undefined | null): number | nu
   const minutes = parseInt(match[2] || '0', 10);
   const secs = parseInt(match[3] || '0', 10);
   return hours * 3600 + minutes * 60 + secs;
+}
+
+function parseJsonSafely(raw: string): unknown {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function createDownstreamFailureResponse(
+  stage: ImportStage,
+  step: ImportStep,
+  status: number,
+  error: string,
+  corsHeaders: Record<string, string>,
+  details?: unknown,
+): Response {
+  const payload: DownstreamErrorResponse = {
+    success: false,
+    step,
+    error,
+    source: 'youtube-api',
+    stage,
+    status,
+    details,
+  };
+
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
 }
 
 Deno.serve(async (req) => {
@@ -290,100 +353,113 @@ Deno.serve(async (req) => {
       );
     }
 
+    const youtubeApiHeaders = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${userJwtToken}`,
+    };
+
     // ========================================================================
     // Step 3: Fetch video details via youtube-api function
     // ========================================================================
-    const detailsResponse = await fetch(
-      `${supabaseUrl}/functions/v1/youtube-api`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userJwtToken}`,
-        },
-        body: JSON.stringify({
-          action: 'video-details',
-          params: { videoId },
-        }),
-      }
-    );
+    const detailsResponse = await fetch(`${supabaseUrl}/functions/v1/youtube-api`, {
+      method: 'POST',
+      headers: youtubeApiHeaders,
+      body: JSON.stringify({
+        action: 'video-details',
+        params: { videoId },
+      }),
+    });
+
+    const detailsRaw = await detailsResponse.text();
+    const detailsPayload = parseJsonSafely(detailsRaw);
 
     if (!detailsResponse.ok) {
-      const errorText = await detailsResponse.text();
-      console.error('Failed to fetch video details:', errorText);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'fetching' as ImportStep,
-          error: 'Failed to fetch video details. The video may be private or unavailable.' 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      console.error('[youtube-import] downstream youtube-api failure', {
+        stage: 'video-details',
+        downstreamStatus: detailsResponse.status,
+      });
+      return createDownstreamFailureResponse(
+        'video-details',
+        'fetching',
+        detailsResponse.status,
+        'youtube-api video-details stage failed',
+        corsHeaders,
+        detailsPayload,
       );
     }
 
-    const detailsResult = await detailsResponse.json();
-    
-    if (!detailsResult.success || !detailsResult.data) {
-      console.error('Video details response error:', detailsResult);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'fetching' as ImportStep,
-          error: detailsResult.error || 'Failed to fetch video details' 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    const detailsResult = isRecord(detailsPayload) ? detailsPayload : null;
+
+    const detailsData = isRecord(detailsResult?.data) ? detailsResult.data : null;
+
+    if (!detailsResult?.success || !detailsData || typeof detailsData.title !== 'string') {
+      console.error('[youtube-import] invalid youtube-api success payload', {
+        stage: 'video-details',
+      });
+      return createDownstreamFailureResponse(
+        'video-details',
+        'fetching',
+        502,
+        'youtube-api video-details returned invalid payload',
+        corsHeaders,
+        detailsPayload,
       );
     }
 
-    const videoDetails = detailsResult.data;
+    const videoDetails = detailsData as unknown as YouTubeVideoDetails;
     console.log(`Fetched video details: "${videoDetails.title}"`);
 
     // ========================================================================
     // Step 4: Fetch transcript via youtube-api function
     // ========================================================================
-    const transcriptResponse = await fetch(
-      `${supabaseUrl}/functions/v1/youtube-api`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userJwtToken}`,
-        },
-        body: JSON.stringify({
-          action: 'transcript',
-          params: { videoId },
-        }),
-      }
-    );
+    const transcriptResponse = await fetch(`${supabaseUrl}/functions/v1/youtube-api`, {
+      method: 'POST',
+      headers: youtubeApiHeaders,
+      body: JSON.stringify({
+        action: 'transcript',
+        params: { videoId },
+      }),
+    });
+
+    const transcriptRaw = await transcriptResponse.text();
+    const transcriptPayload = parseJsonSafely(transcriptRaw);
 
     if (!transcriptResponse.ok) {
-      const errorText = await transcriptResponse.text();
-      console.error('Failed to fetch transcript:', errorText);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'transcribing' as ImportStep,
-          error: 'Transcript not available for this video. Ensure the video has captions enabled.' 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      console.error('[youtube-import] downstream youtube-api failure', {
+        stage: 'transcript',
+        downstreamStatus: transcriptResponse.status,
+      });
+      return createDownstreamFailureResponse(
+        'transcript',
+        'transcribing',
+        transcriptResponse.status,
+        'youtube-api transcript stage failed',
+        corsHeaders,
+        transcriptPayload,
       );
     }
 
-    const transcriptResult = await transcriptResponse.json();
-    
-    if (!transcriptResult.success || !transcriptResult.data?.transcript) {
-      console.error('Transcript response error:', transcriptResult);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'transcribing' as ImportStep,
-          error: transcriptResult.error || 'Transcript not available for this video' 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    const transcriptResult = isRecord(transcriptPayload) ? transcriptPayload : null;
+
+    const transcriptData = isRecord(transcriptResult?.data)
+      ? transcriptResult.data
+      : null;
+
+    if (!transcriptResult?.success || typeof transcriptData?.transcript !== 'string') {
+      console.error('[youtube-import] invalid youtube-api success payload', {
+        stage: 'transcript',
+      });
+      return createDownstreamFailureResponse(
+        'transcript',
+        'transcribing',
+        502,
+        'youtube-api transcript returned invalid payload',
+        corsHeaders,
+        transcriptPayload,
       );
     }
 
-    const transcriptText = transcriptResult.data.transcript;
+    const transcriptText = transcriptData.transcript;
     console.log(`Fetched transcript: ${transcriptText.length} characters`);
 
     // ========================================================================
