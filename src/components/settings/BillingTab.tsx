@@ -55,15 +55,15 @@ function getPlanDetails(tier: SubscriptionTier) {
       };
     case "team":
       return {
-        name: "Team",
-        displayName: "Team",
+        name: "Hub",
+        displayName: "Hub",
         price: "$99/mo",
         annualPrice: "$950/yr (save $238)",
-        description: "Up to 5 users with team hierarchy and shared collaboration.",
+        description: "Up to 5 users with hub hierarchy and shared collaboration.",
         badgeVariant: "default" as const,
         features: [
           "Up to 5 full users",
-          "Team hierarchy & manager auto-access",
+          "Hub hierarchy & manager auto-access",
           "Shared folders",
           "Unlimited notes",
         ],

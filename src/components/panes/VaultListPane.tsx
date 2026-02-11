@@ -55,7 +55,7 @@ const VAULT_TYPE_CONFIG: Record<VaultType, {
     className: 'bg-info-bg text-info-text',
   },
   team: {
-    label: 'Team',
+    label: 'Hub',
     icon: RiTeamLine,
     className: 'bg-success-bg text-success-text',
   },
@@ -419,7 +419,7 @@ export function VaultListPane({
         ) : (
           <div className="rounded-lg border border-border bg-card/70 p-3 space-y-2">
             <p className="text-sm font-medium text-foreground">
-              Create your first business workspace to collaborate with your team
+              Create your first business workspace to collaborate in your hub
             </p>
             <Button
               variant="default"

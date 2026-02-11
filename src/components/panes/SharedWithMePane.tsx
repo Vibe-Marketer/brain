@@ -29,7 +29,7 @@ export function SharedWithMePane({
   const filters: Array<{ id: SharedTab; label: string; icon: ComponentType<{ className?: string }>; count: number }> = [
     { id: "all", label: "All Calls", icon: RiFilter3Line, count: counts.all },
     { id: "share_link", label: "Direct Links", icon: RiLinksLine, count: counts.share_link },
-    { id: "team", label: "Team Shares", icon: RiGroupLine, count: counts.team },
+    { id: "team", label: "Hub Shares", icon: RiGroupLine, count: counts.team },
     { id: "manager", label: "Direct Reports", icon: RiGroupLine, count: counts.manager },
   ];
 

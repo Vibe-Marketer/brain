@@ -35,6 +35,7 @@ import {
   RiSettings3Line,
   RiPieChart2Line,
   RiUpload2Line,
+  RiShareForwardLine,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
@@ -172,7 +173,14 @@ const navItems: NavItem[] = [
     name: 'Hubs',
     iconLine: RiSafeLine,
     path: '/vaults',
-    matchPaths: ['/vaults'],
+    matchPaths: ['/vaults', '/hubs'],
+  },
+  {
+    id: 'shared',
+    name: 'Shared',
+    iconLine: RiShareForwardLine,
+    path: '/shared-with-me',
+    matchPaths: ['/shared-with-me'],
   },
   {
     id: 'analytics',

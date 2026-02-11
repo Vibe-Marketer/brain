@@ -215,7 +215,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
             <RiTeamLine className="h-12 w-12 text-muted-foreground/50 mb-3" aria-hidden="true" />
             <p className="text-sm font-medium text-foreground mb-1">No members yet</p>
             <p className="text-xs text-muted-foreground text-center">
-              Invite team members to collaborate
+              Invite hub members to collaborate
             </p>
             {canManage && (
               <Button

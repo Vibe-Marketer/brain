@@ -24,8 +24,15 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     if (location.pathname.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
     if (location.pathname.startsWith('/settings')) return 'SETTINGS';
     if (location.pathname === '/shared-with-me') return 'SHARED WITH ME';
+    if (location.pathname.startsWith('/hubs')) return 'HUBS';
     if (location.pathname.startsWith('/vaults')) return 'HUBS';
     if (location.pathname.startsWith('/content')) return 'CONTENT HUB';
+    if (location.pathname.startsWith('/analytics')) return 'ANALYTICS';
+    if (location.pathname.startsWith('/import')) return 'IMPORT';
+    if (location.pathname.startsWith('/library')) return 'CONTENT LIBRARY';
+    if (location.pathname.startsWith('/templates')) return 'TEMPLATES';
+    if (location.pathname.startsWith('/call')) return 'CALL DETAIL';
+    if (location.pathname.startsWith('/transcripts')) return 'HOME';
     return 'HOME';
   };
 

@@ -87,7 +87,7 @@ export default function TeamJoin() {
             .maybeSingle();
 
           if (existingMembership) {
-            setError("You're already a member of this team");
+            setError("You're already a member of this hub");
             setIsLoading(false);
             return;
           }
@@ -102,7 +102,7 @@ export default function TeamJoin() {
             .select('display_name')
             .eq('user_id', team.owner_user_id)
             .maybeSingle();
-          inviterEmail = settings?.display_name || 'A team admin';
+          inviterEmail = settings?.display_name || 'A hub admin';
         }
 
         setInviteData({
@@ -145,7 +145,7 @@ export default function TeamJoin() {
         .maybeSingle();
 
       if (existingMembership) {
-        setError("You're already a member of this team");
+        setError("You're already a member of this hub");
         setIsAccepting(false);
         return;
       }
@@ -165,9 +165,9 @@ export default function TeamJoin() {
         throw insertError;
       }
 
-      const teamName = inviteData.team_name || 'the team';
+      const teamName = inviteData.team_name || 'the hub';
       toast.success(`You've joined ${teamName}!`);
-      navigate('/team');
+      navigate('/vaults');
     } catch (err) {
       toast.error(getErrorToastMessage(err));
       setIsAccepting(false);
@@ -201,9 +201,9 @@ export default function TeamJoin() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            <Button onClick={() => navigate('/team')} className="w-full">
+            <Button onClick={() => navigate('/vaults')} className="w-full">
               <RiTeamLine className="w-4 h-4 mr-2" />
-              Go to Team
+              Go to Hubs
             </Button>
             <Button variant="hollow" onClick={() => navigate('/')} className="w-full">
               <RiArrowLeftLine className="w-4 h-4 mr-2" />
@@ -225,7 +225,7 @@ export default function TeamJoin() {
               <RiUserAddLine className="w-8 h-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Team Invitation</CardTitle>
+          <CardTitle className="text-2xl">Hub Invitation</CardTitle>
           <CardDescription className="text-base mt-2">
             {inviteData?.inviter_email ? (
               <>
@@ -245,11 +245,11 @@ export default function TeamJoin() {
         <CardContent className="space-y-6">
           {/* What you'll get */}
           <div className="bg-muted/50 rounded-lg p-4">
-            <h3 className="font-medium text-sm text-foreground mb-3">As a team member, you'll be able to:</h3>
+            <h3 className="font-medium text-sm text-foreground mb-3">As a hub member, you'll be able to:</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li className="flex items-start gap-2">
                 <RiCheckLine className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>Collaborate with your team on call recordings</span>
+                <span>Collaborate in your hub on call recordings</span>
               </li>
               <li className="flex items-start gap-2">
                 <RiCheckLine className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />

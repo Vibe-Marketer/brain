@@ -37,8 +37,8 @@ interface CategoryItem {
 export const COLLABORATION_CATEGORIES: CategoryItem[] = [
   {
     id: "team",
-    label: "Team",
-    description: "Team hierarchy and sharing",
+    label: "Hub",
+    description: "Hub hierarchy and sharing",
     icon: RiGroupLine,
     requiredRoles: ["TEAM", "ADMIN"],
   },
@@ -150,7 +150,7 @@ export function CollaborationCategoryPane({
         className
       )}
       role="navigation"
-      aria-label="Collaboration categories"
+      aria-label="Hub categories"
     >
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-4 border-b border-border bg-card/50">
@@ -165,7 +165,7 @@ export function CollaborationCategoryPane({
             className="text-sm font-bold text-ink uppercase tracking-wide"
             id="collaboration-category-title"
           >
-            Collaboration
+            Hubs
           </h2>
           <p className="text-xs text-ink-muted">
             {visibleCategories.length} {visibleCategories.length === 1 ? 'category' : 'categories'}

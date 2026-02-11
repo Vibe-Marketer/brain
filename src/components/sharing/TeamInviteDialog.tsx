@@ -95,7 +95,7 @@ export function TeamInviteDialog({
         role: selectedRole,
         reports_to_me: reportsToMe && isManager,
       });
-      toast.success("Team invitation sent");
+      toast.success("Hub invitation sent");
       setMemberEmail("");
       setSelectedRole("member");
       setReportsToMe(false);
@@ -270,10 +270,10 @@ export function TeamInviteDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RiTeamLine className="h-5 w-5" />
-            Invite Team Members
+            Invite Hub Members
           </DialogTitle>
           <DialogDescription>
-            Invite colleagues to join your team. Managers can see their direct reports&apos; calls.
+            Invite colleagues to join your hub. Managers can see their direct reports&apos; calls.
           </DialogDescription>
         </DialogHeader>
 
@@ -287,7 +287,7 @@ export function TeamInviteDialog({
                   <RiMailLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     type="email"
-                    placeholder="Team member's email address"
+                    placeholder="Hub member's email address"
                     value={memberEmail}
                     onChange={(e) => setMemberEmail(e.target.value)}
                     className="pl-9"
@@ -365,7 +365,7 @@ export function TeamInviteDialog({
               {activeMembers.length > 0 && (
                 <div className="space-y-3">
                   <Label className="text-sm font-medium">
-                    Team Members ({activeMembers.length})
+                    Hub Members ({activeMembers.length})
                   </Label>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {activeMembers.map(renderMemberCard)}

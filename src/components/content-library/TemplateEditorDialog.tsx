@@ -364,11 +364,11 @@ Best regards,
               onCheckedChange={(checked) => setIsShared(checked === true)}
             />
             <Label htmlFor="is-shared" className="text-sm font-normal cursor-pointer">
-              Share with team members
+              Share with hub members
             </Label>
           </div>
           <p className="text-xs text-muted-foreground -mt-2">
-            When enabled, team members can view and use this template.
+            When enabled, hub members can view and use this template.
           </p>
         </div>
 

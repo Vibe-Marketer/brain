@@ -48,8 +48,8 @@ const VAULT_TYPE_OPTIONS: Array<{
 }> = [
   {
     value: 'team',
-    label: 'Team',
-    description: 'Shared hub for your team',
+    label: 'Hub',
+    description: 'Shared hub for collaboration',
   },
   {
     value: 'youtube',

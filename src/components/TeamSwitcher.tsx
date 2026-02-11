@@ -152,7 +152,7 @@ export function TeamSwitcher() {
           className="cursor-pointer flex items-center gap-2 text-muted-foreground"
         >
           <RiSettingsLine className="h-4 w-4" />
-          <span>Manage Teams</span>
+          <span>Manage Hubs</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

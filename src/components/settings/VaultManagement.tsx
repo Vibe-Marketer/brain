@@ -251,7 +251,7 @@ export function VaultManagement({ bankId, canManage }: VaultManagementProps) {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="team">Team</SelectItem>
+                      <SelectItem value="team">Hub</SelectItem>
                       <SelectItem value="youtube">YouTube</SelectItem>
                       <SelectItem value="coach" disabled>
                         Coach (Coming Soon)

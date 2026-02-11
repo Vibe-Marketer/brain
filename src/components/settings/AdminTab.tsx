@@ -231,7 +231,7 @@ export default function AdminTab() {
               <div className={statAccentClass} aria-hidden="true" />
               <div className="flex items-center gap-3 mb-2">
                 <RiGroupLine className="h-5 w-5 text-primary" />
-                <p className="text-xs font-medium text-muted-foreground">Team</p>
+                <p className="text-xs font-medium text-muted-foreground">Hub</p>
               </div>
               <p className="text-2xl font-extrabold tabular-nums">{stats.teamUsers}</p>
             </div>

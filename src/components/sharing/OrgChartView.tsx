@@ -293,7 +293,7 @@ function OrgChartNodeComponent({
                     className="text-destructive focus:text-destructive"
                   >
                     <RiDeleteBinLine className="h-4 w-4 mr-2" />
-                    Remove from Team
+                    Remove from Hub
                   </DropdownMenuItem>
                 </>
               )}
@@ -402,7 +402,7 @@ export function OrgChartView({
     return (
       <div className={cn("flex flex-col items-center justify-center py-12", className)}>
         <RiOrganizationChart className="h-12 w-12 text-muted-foreground mb-4" />
-        <p className="text-sm text-muted-foreground">No team members found</p>
+        <p className="text-sm text-muted-foreground">No hub members found</p>
       </div>
     );
   }

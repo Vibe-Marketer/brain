@@ -146,7 +146,7 @@ export default function TeamTab() {
   // Handle team creation
   const handleCreateTeam = useCallback(async () => {
     if (!createFormData.name.trim()) {
-      toast.error("Team name is required");
+      toast.error("Hub name is required");
       return;
     }
     try {
@@ -156,7 +156,7 @@ export default function TeamTab() {
       setUserTeamId(newTeam.id);
       setShowCreateForm(false);
       setCreateFormData({ name: "" });
-      toast.success("Team created successfully");
+      toast.success("Hub created successfully");
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to create team";
       toast.error(message);
@@ -263,10 +263,10 @@ export default function TeamTab() {
         <div className="space-y-4">
           <div>
             <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-              Team Management
+              Hub Management
             </h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-              Ready to collaborate? Create a team to unlock Call Vault&apos;s full potential.
+              Ready to collaborate? Create a hub to unlock Call Vault&apos;s full potential.
             </p>
           </div>
 
@@ -274,23 +274,23 @@ export default function TeamTab() {
             <div className="flex flex-col items-center justify-center py-12 px-6 border border-border dark:border-cb-border-dark rounded-lg">
               <RiTeamLine className="h-12 w-12 text-muted-foreground mb-6" />
               <h3 className="text-base font-semibold text-gray-900 dark:text-gray-50 mb-2">
-                Start collaborating with your team
+                Start collaborating in your hub
               </h3>
               <p className="text-sm text-center text-gray-500 dark:text-gray-500 mb-6 max-w-md">
-                Organize your team in hierarchies, share calls automatically with managers, and collaborate on folders and tags.
+                Organize your hub in hierarchies, share calls automatically with managers, and collaborate on folders and tags.
               </p>
               <Button onClick={() => setShowCreateForm(true)} size="lg">
                 <RiAddLine className="h-4 w-4 mr-2" />
-                CREATE TEAM
+                CREATE HUB
               </Button>
             </div>
           ) : (
             <div className="space-y-4 p-4 border border-border dark:border-cb-border-dark rounded-lg">
               <div className="space-y-2">
-                <Label htmlFor="team-name">Team Name</Label>
+                <Label htmlFor="team-name">Hub Name</Label>
                 <Input
                   id="team-name"
-                  placeholder="e.g., Sales Team, Customer Success"
+                  placeholder="e.g., Sales Hub, Customer Success"
                   value={createFormData.name}
                   onChange={(e) =>
                     setCreateFormData({ ...createFormData, name: e.target.value })
@@ -322,7 +322,7 @@ export default function TeamTab() {
                   ) : (
                     <>
                       <RiAddLine className="h-4 w-4 mr-2" />
-                      CREATE TEAM
+                      CREATE HUB
                     </>
                   )}
                 </Button>
@@ -337,10 +337,10 @@ export default function TeamTab() {
         <div className="space-y-4">
           <div>
             <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-              About Teams
+              About Hubs
             </h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-              Information about team features and benefits
+              Information about hub features and benefits
             </p>
           </div>
           <div className="space-y-3 text-sm text-gray-500 dark:text-gray-400">

@@ -161,16 +161,21 @@ export function useBankContext() {
   // Track whether we're currently creating a bank to prevent duplicate calls
   const isCreatingBankRef = useRef(false)
 
-  // Initialize on first load
+  // Initialize on first load - restore persisted selection or default to personal bank
   useEffect(() => {
     if (!user || banksLoading || isInitialized) return
 
     if (banks && banks.length > 0) {
-      // Find personal bank or use first bank
-      const personalBank = banks.find((b) => b.type === 'personal')
-      const defaultBank = personalBank || banks[0]
-
-      initialize(defaultBank.id, null)
+      // Check if we have a persisted bank selection that's still valid
+      if (activeBankId && banks.some((b) => b.id === activeBankId)) {
+        // Persisted bank is still valid - restore it
+        initialize(activeBankId, activeVaultId)
+      } else {
+        // No valid persisted selection - default to personal bank
+        const personalBank = banks.find((b) => b.type === 'personal')
+        const defaultBank = personalBank || banks[0]
+        initialize(defaultBank.id, null)
+      }
     } else if (banks && !isCreatingBankRef.current) {
       // User has no banks - auto-create personal bank via RPC
       // This handles legacy users who signed up before the bank/vault system
@@ -220,8 +225,11 @@ export function useBankContext() {
   const switchBank = useCallback(
     (bankId: string) => {
       setActiveBank(bankId)
+      // Invalidate ALL queries so every component refetches with the new bank context.
+      // This ensures calls, folders, tags, content, chat sessions, etc. all refresh.
+      queryClient.invalidateQueries()
     },
-    [setActiveBank]
+    [setActiveBank, queryClient]
   )
 
   const switchVault = useCallback(

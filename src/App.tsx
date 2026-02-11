@@ -13,6 +13,7 @@ import { CallDetailPage } from '@/pages/CallDetailPage';
 import { SharedCallView } from '@/pages/SharedCallView';
 import TeamJoin from '@/pages/TeamJoin';
 import VaultJoin from '@/pages/VaultJoin';
+import CollaborationPage from '@/pages/CollaborationPage';
 
 // Import existing pages
 import TranscriptsNew from '@/pages/TranscriptsNew';
@@ -86,8 +87,11 @@ function App() {
                     <Route path="/vaults" element={<ProtectedRoute><Layout><VaultsPage /></Layout></ProtectedRoute>} />
                     <Route path="/vaults/:vaultId" element={<ProtectedRoute><Layout><VaultsPage /></Layout></ProtectedRoute>} />
 
+                    {/* Hub management (team hierarchy, invites, org chart) */}
+                    <Route path="/hubs/manage" element={<ProtectedRoute><Layout><CollaborationPage /></Layout></ProtectedRoute>} />
+
                     {/* Legacy team redirect */}
-                    <Route path="/team" element={<Navigate to="/vaults" replace />} />
+                    <Route path="/team" element={<Navigate to="/hubs/manage" replace />} />
 
                     {/* Content Library routes */}
                     <Route path="/library" element={<ProtectedRoute><Layout><ContentLibraryPage /></Layout></ProtectedRoute>} />

@@ -534,10 +534,10 @@ export function TemplatesPage() {
               <>
                 <Separator />
                 <TemplateSection
-                  title="Team Templates"
+                  title="Hub Templates"
                   icon={RiTeamLine}
                   templates={sharedTemplates}
-                  emptyMessage="No shared templates from your team."
+                  emptyMessage="No shared templates from your hub."
                   onUse={handleUseTemplate}
                   isShared={true}
                 />

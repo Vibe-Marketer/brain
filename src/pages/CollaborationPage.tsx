@@ -43,8 +43,8 @@ const CATEGORY_META: Record<
   }
 > = {
   team: {
-    label: "Team",
-    description: "Team hierarchy and sharing",
+    label: "Hub",
+    description: "Hub hierarchy and sharing",
     icon: RiGroupLine,
   },
 };
@@ -52,7 +52,7 @@ const CATEGORY_META: Record<
 /** Loading skeleton for collaboration content */
 function CollaborationLoadingSkeleton() {
   return (
-    <div className="p-6 space-y-6" aria-label="Loading collaboration content">
+    <div className="p-6 space-y-6" aria-label="Loading hub content">
       <Skeleton className="h-8 w-1/3" />
       <div className="space-y-4">
         <Skeleton className="h-4 w-2/3" />
@@ -101,7 +101,7 @@ export default function CollaborationPage() {
 
     if (urlCategory === "team" && !hasTeamAccess) {
       // User doesn't have access to Team, show toast
-      toast.info("Team management requires manager access");
+      toast.info("Hub management requires manager access");
       navigate("/", { replace: true });
       return;
     }
@@ -120,7 +120,7 @@ export default function CollaborationPage() {
   const handleCategorySelect = useCallback((category: CollaborationCategory) => {
     // Check access for Team category
     if (category === "team" && !hasTeamAccess) {
-      toast.info("Team management requires manager access");
+      toast.info("Hub management requires manager access");
       return;
     }
     // Update URL which will trigger the useEffect to update selectedCategory
@@ -151,7 +151,7 @@ export default function CollaborationPage() {
           // Mobile: Show category list
           <div className="h-full flex flex-col overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-3 border-b border-border/40 flex-shrink-0">
-              <span className="text-sm font-semibold">Collaboration</span>
+              <span className="text-sm font-semibold">Hubs</span>
             </div>
             <CollaborationCategoryPane
               selectedCategory={selectedCategory}
@@ -239,7 +239,7 @@ function CollaborationDetailPane({
       default:
         return (
           <div className="p-6 text-center text-muted-foreground">
-            Unknown collaboration category
+            Unknown hub category
           </div>
         );
     }
@@ -256,7 +256,7 @@ function CollaborationDetailPane({
         className
       )}
       role="region"
-      aria-label={`${meta.label} collaboration`}
+      aria-label={`${meta.label} details`}
       tabIndex={-1}
     >
       {/* Header */}

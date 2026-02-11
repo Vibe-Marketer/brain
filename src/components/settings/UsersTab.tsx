@@ -186,7 +186,7 @@ export default function UsersTab() {
               </div>
               <div className="flex items-start gap-3">
                 <Badge variant="default" className="shrink-0">TEAM</Badge>
-                <p>Team members with shared organization access and collaboration features</p>
+                <p>Hub members with shared organization access and collaboration features</p>
               </div>
               <div className="flex items-start gap-3">
                 <Badge variant="destructive" className="shrink-0">ADMIN</Badge>

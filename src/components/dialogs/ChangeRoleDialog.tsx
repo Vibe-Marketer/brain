@@ -65,7 +65,7 @@ const VAULT_ROLES: Array<{
   {
     value: 'manager',
     label: 'Manager',
-    description: 'Can view all recordings and manage team members below them.',
+    description: 'Can view all recordings and manage hub members below them.',
     icon: RiGroupLine,
     power: 2,
   },
