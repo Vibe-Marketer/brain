@@ -1,6 +1,6 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-02-11
+**Last Updated:** 2026-02-11 (Plan 03)
 
 ## Project Reference
 
@@ -16,15 +16,15 @@
 
 **Phase:** 10.3 of 11+ (YouTube-Specific Vaults & Video Intelligence)
 
-**Plan:** 1 of 4 in current phase
+**Plan:** 3 of 4 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-11 - Completed 10.3-01-PLAN.md (YouTube foundation: DB migration, types, utilities, vault configs)
+**Last activity:** 2026-02-11 - Completed 10.3-03-PLAN.md (YouTube vault filtering + auto-creation)
 
 **Progress:**
 ```
-[███████████████████████████████████████████░] 82/85 plans complete (96%)
+[████████████████████████████████████████████░] 84/85 plans complete (99%)
 ```
 
 ---
@@ -269,22 +269,22 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-02-11T04:41:55Z
-**Stopped at:** Completed 10.3-01-PLAN.md
+**Last session:** 2026-02-11T04:48:21Z
+**Stopped at:** Completed 10.3-03-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.3 Plan 01 complete — YouTube foundation laid. 'youtube' vault type exists in DB and TypeScript, YouTubeVideoMetadata interface and utility functions ready.
+Phase 10.3 Plans 01 + 03 complete (02 executing in parallel). YouTube vault auto-creation and VaultSelector filtering are live.
 
 **What to remember:**
-- Migration 20260211000001 ready to apply: adds 'youtube' to vaults.vault_type CHECK constraint
-- VaultType union updated: 'personal' | 'team' | 'coach' | 'community' | 'client' | 'youtube'
-- YouTubeVideoMetadata interface in src/types/youtube.ts with getYouTubeMetadata type-narrowing helper
-- parseYouTubeDuration, formatCompactNumber, YOUTUBE_CATEGORIES in src/lib/youtube-utils.ts
-- VaultListPane VAULT_TYPE_CONFIG and VaultDetailPane VAULT_TYPE_STYLES both have youtube entries (red styling + RiYoutubeLine icon)
-- Phase 10.3 Plan 02 (YouTube Video List) is next
+- VaultSelector filters to youtube-type vaults when integration='youtube'
+- Shows "A YouTube Hub will be created automatically" when no YouTube vault exists
+- youtube-import auto-creates "YouTube Vault" with vault_type='youtube' on first import
+- Recordings table populated directly with source_metadata during import
+- parseDurationToSeconds helper in Edge Function for ISO 8601 duration parsing
+- Phase 10.3 Plan 04 (Transcript Chat Parity) is next
 
 ---
 
@@ -295,9 +295,9 @@ Phase 10.3 Plan 01 complete — YouTube foundation laid. 'youtube' vault type ex
 | Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 67 |
 | Requirements Complete | 58 (87%) |
-| Current Phase | 10.3 - YouTube-Specific Vaults & Video Intelligence (1/4 plans) |
-| Plans Complete | 82/85 (96%) |
-| Next Plan | 10.3-02-PLAN.md (YouTube video list) |
+| Current Phase | 10.3 - YouTube-Specific Vaults & Video Intelligence (3/4 plans) |
+| Plans Complete | 84/85 (99%) |
+| Next Plan | 10.3-04-PLAN.md (Transcript chat parity) |
 | Blockers | 0 |
 
 ---
