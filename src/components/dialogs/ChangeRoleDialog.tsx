@@ -173,7 +173,7 @@ export function ChangeRoleDialog({
                       {role.label}
                     </Label>
                     {isCurrent && (
-                      <span className="text-[10px] px-1.5 py-0 rounded-full bg-muted text-muted-foreground uppercase tracking-wider">
+                      <span className="text-2xs px-1.5 py-0 rounded-full bg-muted text-muted-foreground uppercase tracking-wider">
                         Current
                       </span>
                     )}

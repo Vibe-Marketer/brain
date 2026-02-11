@@ -377,7 +377,7 @@ export function VaultListPane({
                       {/* Type badge */}
                       <span
                         className={cn(
-                          'inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-md',
+                          'inline-flex items-center gap-1 text-2xs font-medium px-1.5 py-0.5 rounded-md',
                           typeConfig.className
                         )}
                       >
@@ -386,7 +386,7 @@ export function VaultListPane({
                       </span>
 
                       {/* Member count */}
-                      <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                      <span className="inline-flex items-center gap-1 text-2xs text-muted-foreground">
                         <RiGroupLine className="h-3 w-3" />
                         <span className="tabular-nums">{vault.member_count}</span>
                       </span>

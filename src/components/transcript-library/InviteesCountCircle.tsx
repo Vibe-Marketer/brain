@@ -6,7 +6,7 @@ interface InviteesCountCircleProps {
 
 export function InviteesCountCircle({ invitees }: InviteesCountCircleProps) {
   if (!invitees || invitees.length === 0) {
-    return <span className="text-muted-foreground text-[10px]">-</span>;
+    return <span className="text-muted-foreground text-2xs">-</span>;
   }
 
   // Count how many have matched_speaker_display_name (these are participants who actually joined)
@@ -44,11 +44,11 @@ export function InviteesCountCircle({ invitees }: InviteesCountCircleProps) {
         </div>
       </div>
       <div className="text-left">
-        <div className="text-[10px]">
+        <div className="text-2xs">
           <span className="font-bold">{joinedCount}</span>
           <span className="text-muted-foreground ml-1">Joined</span>
         </div>
-        <div className="text-[10px] text-muted-foreground">
+        <div className="text-2xs text-muted-foreground">
           {invitedCount} Invited
         </div>
       </div>

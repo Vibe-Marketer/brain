@@ -138,7 +138,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
       <div
         className={cn(
           "cv-side-indicator-pill",
-          "transition-all duration-200 ease-in-out",
+          "transition-all duration-500 ease-in-out",
           isSelected ? "opacity-100" : "opacity-0"
         )}
         aria-hidden="true"
@@ -631,7 +631,7 @@ export function FolderSidebar({
         aria-label="Folder navigation"
       >
         {/* Header - standardized pattern matching other category panes */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-cb-card/50">
+        <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card/50">
           <div
             className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
             aria-hidden="true"
@@ -675,7 +675,7 @@ export function FolderSidebar({
         {folders.length > 10 && (
           <div
             className={cn(
-              "overflow-hidden transition-all duration-300 ease-in-out",
+              "overflow-hidden transition-all duration-500 ease-in-out",
               isSearchVisible ? "max-h-14 opacity-100" : "max-h-0 opacity-0"
             )}
           >
@@ -722,7 +722,7 @@ export function FolderSidebar({
                   <div
                     className={cn(
                       "cv-side-indicator-pill",
-                      "transition-all duration-200 ease-in-out",
+                      "transition-all duration-500 ease-in-out",
                       selectedFolderId === null ? "opacity-100" : "opacity-0"
                     )}
                     aria-hidden="true"

@@ -233,7 +233,7 @@ export default function VaultsPage() {
                 ) : (
                   <>
                     {/* Mobile header */}
-                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card/70 flex-shrink-0">
+                    <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
                       <Button
                         variant="ghost"
                         size="icon"

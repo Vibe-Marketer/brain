@@ -420,7 +420,7 @@ export default function AITab() {
                                 <div className="flex items-center gap-2">
                                   <span className="font-medium">{model.name}</span>
                                   {model.contextLength && (
-                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+                                    <span className="text-2xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                                       {Math.round(model.contextLength / 1000)}k
                                     </span>
                                   )}

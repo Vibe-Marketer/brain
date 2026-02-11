@@ -151,7 +151,7 @@ export function AddToVaultMenu({
 
                   {/* Personal lock indicator */}
                   {isPersonal && isAssigned && (
-                    <span className="text-[10px] text-muted-foreground">always</span>
+                    <span className="text-2xs text-muted-foreground">always</span>
                   )}
 
                   {/* Check indicator */}

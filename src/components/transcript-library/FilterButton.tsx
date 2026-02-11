@@ -43,7 +43,7 @@ export const FilterButton = forwardRef<HTMLButtonElement, FilterButtonProps>(
         {icon}
         <span>{label}</span>
         {count !== undefined && count > 0 && (
-          <span className="ml-1 text-[10px] bg-vibe-orange text-white rounded-full px-1.5 py-0.5">
+          <span className="ml-1 text-2xs bg-vibe-orange text-white rounded-full px-1.5 py-0.5">
             {count}
           </span>
         )}

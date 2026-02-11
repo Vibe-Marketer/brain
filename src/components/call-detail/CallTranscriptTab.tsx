@@ -311,7 +311,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                                         <>
                                           <p className="text-[15px] leading-[20px]">{message.display_text}</p>
                                           {message.has_edits && (
-                                            <Badge variant="secondary" className="absolute -top-2 -right-2 text-[10px] px-1 py-0">
+                                            <Badge variant="secondary" className="absolute -top-2 -right-2 text-2xs px-1 py-0">
                                               Edited
                                             </Badge>
                                           )}

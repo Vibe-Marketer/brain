@@ -15,7 +15,7 @@ export function StatItem({ label, value, current }: StatItemProps) {
           {label}
         </div>
         {current && (
-          <div className="text-[10px] text-cb-gray-dark dark:text-cb-gray-light">
+          <div className="text-2xs text-cb-gray-dark dark:text-cb-gray-light">
             current
           </div>
         )}

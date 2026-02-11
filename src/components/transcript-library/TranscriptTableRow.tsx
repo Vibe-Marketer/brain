@@ -110,7 +110,7 @@ export function TranscriptTableRow({
           <div className="flex items-center gap-1 mt-0">
             {/* Sources count badge for merged meetings - only show for primary records with 3+ sources */}
             {call.is_primary && call.merged_from && call.merged_from.length > 1 && (
-              <Badge variant="outline" className="text-[9px] md:text-[10px] px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0 flex items-center gap-0.5">
+              <Badge variant="outline" className="text-[9px] md:text-2xs px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0 flex items-center gap-0.5">
                 <RiStackLine className="h-2.5 w-2.5" />
                 {call.merged_from.length + 1} sources
               </Badge>
@@ -123,7 +123,7 @@ export function TranscriptTableRow({
 
                 if (hasNoTranscript) {
                   return (
-                    <Badge variant="destructive" className="text-[9px] md:text-[10px] px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0">
+                    <Badge variant="destructive" className="text-[9px] md:text-2xs px-1 md:px-1.5 py-0 h-3.5 md:h-4 shrink-0">
                       NO TRANSCRIPT
                     </Badge>
                   );
@@ -132,7 +132,7 @@ export function TranscriptTableRow({
 
               // For unsynced meetings OR synced meetings with transcripts, show subtitle
               return (
-                <span className="text-[9px] md:text-[10px] text-muted-foreground leading-tight hidden md:inline">
+                <span className="text-[9px] md:text-2xs text-muted-foreground leading-tight hidden md:inline">
                   {call.ai_generated_title || `ID: ${call.recording_id}`}
                 </span>
               );
@@ -149,7 +149,7 @@ export function TranscriptTableRow({
               <span className="text-right font-mono tabular-nums">{dateWithoutYear}</span>
             </div>
             {/* Bottom row: Time left, Year right */}
-            <div className="flex items-center justify-between text-[10px] text-muted-foreground leading-tight">
+            <div className="flex items-center justify-between text-2xs text-muted-foreground leading-tight">
               <span className="text-left font-mono">{time}</span>
               <span className="text-right font-mono text-muted-foreground/50">{yearOnly}</span>
             </div>
@@ -178,7 +178,7 @@ export function TranscriptTableRow({
               {call.calendar_invitees && call.calendar_invitees.length > 0 ? (
                 <InviteesPopover invitees={call.calendar_invitees} hostEmail={hostEmail} />
               ) : (
-                <span className="text-muted-foreground text-[10px]">No participants</span>
+                <span className="text-muted-foreground text-2xs">No participants</span>
               )}
             </div>
           </div>
@@ -199,7 +199,7 @@ export function TranscriptTableRow({
             return (
               <Badge
                 variant={isSkip ? "destructive" : "outline"}
-                className="text-[10px] px-1.5 py-0 h-4 w-fit leading-none flex items-center gap-0.5"
+                className="text-2xs px-1.5 py-0 h-4 w-fit leading-none flex items-center gap-0.5"
               >
                 <Icon className="h-3 w-3 mr-0.5 flex-shrink-0" />
                 <span className="truncate max-w-[80px]">
@@ -213,7 +213,7 @@ export function TranscriptTableRow({
           {call.auto_tags && call.auto_tags.length > 0 && (
             <Badge
               variant="outline"
-              className="text-[10px] py-0 px-1.5 h-4 w-fit leading-none flex items-center gap-0.5"
+              className="text-2xs py-0 px-1.5 h-4 w-fit leading-none flex items-center gap-0.5"
             >
               <RiPriceTag3Line className="h-3 w-3 mr-0.5 flex-shrink-0" />
               <span className="truncate max-w-[80px]">
@@ -224,7 +224,7 @@ export function TranscriptTableRow({
 
           {/* Show placeholder only if NO tags at all */}
           {tagAssignments.length === 0 && (!call.auto_tags || call.auto_tags.length === 0) && (
-            <span className="text-[10px] text-muted-foreground">No tags</span>
+            <span className="text-2xs text-muted-foreground">No tags</span>
           )}
           </div>
         </TableCell>
@@ -241,7 +241,7 @@ export function TranscriptTableRow({
                   <Badge
                     key={folderId}
                     variant="outline"
-                    className="text-[10px] px-1.5 py-0 h-4 w-fit leading-none flex items-center gap-0.5"
+                    className="text-2xs px-1.5 py-0 h-4 w-fit leading-none flex items-center gap-0.5"
                     style={{ borderColor: folder.color }}
                   >
                     <RiFolderLine className="h-3 w-3 mr-0.5 flex-shrink-0" style={{ color: folder.color }} />
@@ -250,10 +250,10 @@ export function TranscriptTableRow({
                 );
               })
             ) : (
-              <span className="text-[10px] text-muted-foreground">No folder</span>
+              <span className="text-2xs text-muted-foreground">No folder</span>
             )}
             {folderAssignments.length > 2 && (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-2xs text-muted-foreground">
                 +{folderAssignments.length - 2} more
               </span>
             )}

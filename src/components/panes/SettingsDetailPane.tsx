@@ -276,7 +276,7 @@ export function SettingsDetailPane({
       tabIndex={-1}
     >
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/70 flex-shrink-0">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {/* Back button for mobile navigation */}
           {showBackButton && onBack && (
