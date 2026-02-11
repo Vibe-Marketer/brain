@@ -246,55 +246,67 @@ export const CallDetailPage: React.FC = () => {
           </header>
 
           <div className="flex-1 overflow-auto p-6 space-y-6">
-            {/* YouTube video summary card */}
-            <div className="bg-card rounded-lg border border-border overflow-hidden">
-              {/* Thumbnail */}
-              {ytMeta?.thumbnail ? (
-                <div className="w-full aspect-video bg-muted">
-                  <img
-                    src={ytMeta.thumbnail}
-                    alt={call.title || 'Video thumbnail'}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ) : (
-                <div className="w-full aspect-video bg-muted flex items-center justify-center">
-                  <RiPlayLine className="h-16 w-16 text-muted-foreground/20" />
-                </div>
-              )}
-
-              <div className="p-5 space-y-3">
-                <h3 className="text-lg font-semibold text-foreground leading-snug">
-                  {call.title || 'Untitled Video'}
-                </h3>
-
-                {ytMeta?.channelTitle && (
-                  <p className="text-sm text-muted-foreground">{ytMeta.channelTitle}</p>
+            {/* YouTube video summary card - compact horizontal layout */}
+            <div className="bg-card rounded-lg border border-border p-4">
+              <div className="flex gap-4">
+                {/* Compact thumbnail */}
+                {ytMeta?.thumbnail ? (
+                  <a
+                    href={ytMeta.videoId ? `https://www.youtube.com/watch?v=${ytMeta.videoId}` : undefined}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-shrink-0 rounded-md overflow-hidden bg-muted hover:opacity-90 transition-opacity"
+                    style={{ width: 168, height: 94 }}
+                  >
+                    <img
+                      src={ytMeta.thumbnail}
+                      alt={call.title || 'Video thumbnail'}
+                      className="w-full h-full object-cover"
+                    />
+                  </a>
+                ) : (
+                  <div
+                    className="flex-shrink-0 rounded-md bg-muted flex items-center justify-center"
+                    style={{ width: 168, height: 94 }}
+                  >
+                    <RiPlayLine className="h-8 w-8 text-muted-foreground/20" />
+                  </div>
                 )}
 
-                {/* Stats row */}
-                <div className="flex items-center gap-4 flex-wrap text-xs text-muted-foreground">
-                  {ytMeta?.viewCount != null && (
-                    <div className="flex items-center gap-1">
-                      <RiEyeLine className="h-3.5 w-3.5" />
-                      <span className="tabular-nums">{formatCompactNumber(ytMeta.viewCount)} views</span>
-                    </div>
+                {/* Metadata alongside thumbnail */}
+                <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+                  <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-2">
+                    {call.title || 'Untitled Video'}
+                  </h3>
+
+                  {ytMeta?.channelTitle && (
+                    <p className="text-xs text-muted-foreground truncate">{ytMeta.channelTitle}</p>
                   )}
-                  {ytMeta?.likeCount != null && (
+
+                  {/* Stats pills */}
+                  <div className="flex items-center gap-3 flex-wrap text-xs text-muted-foreground">
+                    {ytMeta?.viewCount != null && (
+                      <div className="flex items-center gap-1">
+                        <RiEyeLine className="h-3 w-3" />
+                        <span className="tabular-nums">{formatCompactNumber(ytMeta.viewCount)} views</span>
+                      </div>
+                    )}
+                    {ytMeta?.likeCount != null && (
+                      <div className="flex items-center gap-1">
+                        <RiThumbUpLine className="h-3 w-3" />
+                        <span className="tabular-nums">{formatCompactNumber(ytMeta.likeCount)}</span>
+                      </div>
+                    )}
+                    {ytDuration && (
+                      <div className="flex items-center gap-1">
+                        <RiTimeLine className="h-3 w-3" />
+                        <span className="tabular-nums">{ytDuration.display}</span>
+                      </div>
+                    )}
                     <div className="flex items-center gap-1">
-                      <RiThumbUpLine className="h-3.5 w-3.5" />
-                      <span className="tabular-nums">{formatCompactNumber(ytMeta.likeCount)}</span>
+                      <RiCalendarLine className="h-3 w-3" />
+                      <span>{new Date(call.recording_start_time || call.created_at).toLocaleDateString()}</span>
                     </div>
-                  )}
-                  {ytDuration && (
-                    <div className="flex items-center gap-1">
-                      <RiTimeLine className="h-3.5 w-3.5" />
-                      <span className="tabular-nums">{ytDuration.display}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-1">
-                    <RiCalendarLine className="h-3.5 w-3.5" />
-                    <span>{new Date(call.recording_start_time || call.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>
               </div>

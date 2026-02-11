@@ -444,22 +444,42 @@ Deno.serve(async (req) => {
     // Step 0: Ensure YouTube vault exists (auto-create on first import)
     // ========================================================================
     let youtubeVaultId: string | null = body.vault_id || null;
+    let resolvedPersonalBankId: string | null = null;
 
     if (!youtubeVaultId) {
       try {
         // Find user's personal bank via bank_memberships
-        const { data: bankMembership, error: bankError } = await supabase
+        // Use two separate queries instead of a join to avoid PostgREST join issues
+        const { data: bankMemberships, error: bankError } = await supabase
           .from('bank_memberships')
-          .select('bank_id, banks!inner(id, type)')
-          .eq('user_id', user.id)
-          .eq('banks.type', 'personal')
-          .maybeSingle();
+          .select('bank_id')
+          .eq('user_id', user.id);
 
         if (bankError) {
-          console.error('Error finding personal bank:', bankError);
+          console.error('Error finding bank memberships:', bankError);
         }
 
-        const personalBankId = bankMembership?.bank_id;
+        if (bankMemberships && bankMemberships.length > 0) {
+          // Look up which of these banks is a personal bank
+          const bankIds = bankMemberships.map(bm => bm.bank_id);
+          const { data: personalBank, error: personalBankError } = await supabase
+            .from('banks')
+            .select('id')
+            .in('id', bankIds)
+            .eq('type', 'personal')
+            .maybeSingle();
+
+          if (personalBankError) {
+            console.error('Error finding personal bank:', personalBankError);
+          }
+
+          resolvedPersonalBankId = personalBank?.id || null;
+          console.log(`Found personal bank: ${resolvedPersonalBankId} (from ${bankMemberships.length} memberships)`);
+        } else {
+          console.warn('No bank memberships found for user:', user.id);
+        }
+
+        const personalBankId = resolvedPersonalBankId;
 
         if (personalBankId) {
           // Check for existing YouTube vault in that bank
@@ -754,15 +774,19 @@ Deno.serve(async (req) => {
     let newRecordingUuid: string | null = null;
 
     try {
-      // Find user's bank for recording ownership
-      const { data: userBank } = await supabase
-        .from('bank_memberships')
-        .select('bank_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle();
+      // Reuse the personal bank found in Step 0, or fall back to first membership
+      let recordingBankId = resolvedPersonalBankId;
+      if (!recordingBankId) {
+        const { data: userBank } = await supabase
+          .from('bank_memberships')
+          .select('bank_id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+        recordingBankId = userBank?.bank_id || null;
+      }
 
-      if (userBank?.bank_id) {
+      if (recordingBankId) {
         // Parse duration to seconds for recordings table
         const durationSeconds = parseDurationToSeconds(videoDetails.duration);
 
@@ -786,7 +810,7 @@ Deno.serve(async (req) => {
         const { data: newRecording, error: recordingInsertError } = await supabase
           .from('recordings')
           .insert({
-            bank_id: userBank.bank_id,
+            bank_id: recordingBankId,
             owner_user_id: user.id,
             legacy_recording_id: recordingId,
             title: videoDetails.title,
@@ -851,12 +875,16 @@ Deno.serve(async (req) => {
     // ========================================================================
     // Step 7: Return success
     // ========================================================================
-    const response: ImportResponse = {
+    const response: ImportResponse & { vaultId?: string } = {
       success: true,
       step: 'done',
       recordingId: recordingId,
       title: videoDetails.title,
     };
+
+    if (youtubeVaultId) {
+      response.vaultId = youtubeVaultId;
+    }
 
     return new Response(
       JSON.stringify(response),
