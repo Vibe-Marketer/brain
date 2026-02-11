@@ -1036,7 +1036,7 @@ function createTools(
           }
 
           // Fetch call details for all recordings
-          const { data: calls, error: callsError } = await supabase
+          let callsQuery = supabase
             .from('fathom_calls')
             .select('recording_id, title, created_at, summary, recorded_by_name')
             .in('recording_id', scopedNumericIds)
