@@ -1,7 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://vltmrnjsubfzrgrtdqey.supabase.co';
-const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsdG1ybmpzdWJmenJncnRkcWV5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mzg3NTAwNywiZXhwIjoyMDc5NDUxMDA3fQ.a8Lp_JzIk4f4ROiRPBTNGZgnTMQ6Ok5rRuQzkx3stv8';
+const requireEnv = (name: string, fallback?: string): string => {
+  const value = process.env[name] ?? (fallback ? process.env[fallback] : undefined);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}${fallback ? ` (or ${fallback})` : ''}`);
+  }
+  return value;
+};
+
+const supabaseUrl = requireEnv('SUPABASE_URL', 'VITE_SUPABASE_URL');
+const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+const testUserId = requireEnv('DEBUG_TEST_USER_ID');
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
@@ -18,7 +27,7 @@ async function checkFunctions() {
       full_text_weight: 1.0,
       semantic_weight: 1.0,
       rrf_k: 60,
-      filter_user_id: 'ad6cdef0-8dc0-4ad5-bfe7-f0e1bce01be4', // a@vibeos.com
+      filter_user_id: testUserId,
       filter_date_start: null,
       filter_date_end: null,
       filter_speakers: null,
@@ -41,7 +50,7 @@ async function checkFunctions() {
   console.log('\nTesting: get_available_metadata');
   try {
     const { data, error } = await supabase.rpc('get_available_metadata', {
-      p_user_id: 'ad6cdef0-8dc0-4ad5-bfe7-f0e1bce01be4',
+      p_user_id: testUserId,
       p_metadata_type: 'speakers',
     });
     
@@ -63,7 +72,7 @@ async function checkFunctions() {
     const { data, error } = await supabase
       .from('fathom_transcripts')
       .select('id, text')
-      .eq('user_id', 'ad6cdef0-8dc0-4ad5-bfe7-f0e1bce01be4')
+      .eq('user_id', testUserId)
       .limit(1)
       .single();
     

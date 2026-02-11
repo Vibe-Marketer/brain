@@ -1,10 +1,18 @@
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 
+const requireEnv = (name: string, fallback?: string): string => {
+  const value = process.env[name] ?? (fallback ? process.env[fallback] : undefined);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}${fallback ? ` (or ${fallback})` : ''}`);
+  }
+  return value;
+};
+
 dotenv.config();
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const anonKey = process.env.VITE_SUPABASE_PUBLISHABLE_KEY!;
+const supabaseUrl = requireEnv('SUPABASE_URL', 'VITE_SUPABASE_URL');
+const anonKey = requireEnv('SUPABASE_ANON_KEY', 'VITE_SUPABASE_PUBLISHABLE_KEY');
 
 const supabase = createClient(supabaseUrl, anonKey);
 

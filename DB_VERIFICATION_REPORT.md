@@ -117,7 +117,7 @@ sentiment_cache, metadata
 
 ### 5. E2E RAG Tools Test Results ❌
 
-**Test Suite:** test-rag-final-run.ts  
+**Test Suite:** scripts/debug/root/test-rag-final-run.ts  
 **Authentication:** ✅ SUCCESS (a@vibeos.com)  
 **Edge Function:** ❌ 502 Bad Gateway on ALL requests
 
@@ -213,7 +213,7 @@ https://supabase.com/dashboard/project/vltmrnjsubfzrgrtdqey/functions/chat-strea
 
 5. **Test edge function after migrations**
    - Verify `chat-stream-v2` responds correctly
-   - Rerun E2E tests: `npx tsx test-rag-final-run.ts`
+   - Rerun E2E tests: `npx tsx scripts/debug/root/test-rag-final-run.ts`
 
 6. **Update PENDING_DATABASE_MIGRATION.md**
    - Document current status
@@ -232,10 +232,10 @@ https://supabase.com/dashboard/project/vltmrnjsubfzrgrtdqey/functions/chat-strea
 ## Test Artifacts
 
 ### Scripts Created:
-- `/Users/admin/repos/brain/verify-db-functions.ts` - Function verification
-- `/Users/admin/repos/brain/test-db-complete.ts` - Comprehensive DB tests
-- `/Users/admin/repos/brain/check-schema-simple.ts` - Schema checker
-- `/Users/admin/repos/brain/test-rag-final-run.ts` - E2E RAG tools test
+- `scripts/debug/root/verify-db-functions.ts` - Function verification
+- `scripts/debug/root/test-db-complete.ts` - Comprehensive DB tests
+- `scripts/debug/root/check-schema-simple.ts` - Schema checker
+- `scripts/debug/root/test-rag-final-run.ts` - E2E RAG tools test
 
 ### Test Output Files:
 - This report: `DB_VERIFICATION_REPORT.md`
