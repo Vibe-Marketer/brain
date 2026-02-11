@@ -1,8 +1,8 @@
 /**
  * VaultDetailPane - Main content area showing vault recordings (always visible)
  *
- * Renders recordings via TranscriptTable with a Recording→Meeting adapter.
- * NO tabs — recordings are always visible per locked decision.
+ * Renders recordings via TranscriptTable (default) or YouTubeVideoList
+ * when vault_type is 'youtube'. NO tabs — recordings always visible.
  * "Members" button opens VaultMemberPanel as slide-in 4th pane.
  *
  * @pattern app-shell-main-content
@@ -18,6 +18,7 @@ import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { TranscriptTable } from '@/components/transcript-library/TranscriptTable'
+import { YouTubeVideoList } from '@/components/youtube/YouTubeVideoList'
 import { VaultSearchFilter } from '@/components/vault/VaultSearchFilter'
 import { EditVaultDialog } from '@/components/dialogs/EditVaultDialog'
 import { DeleteVaultDialog } from '@/components/dialogs/DeleteVaultDialog'
@@ -33,6 +34,7 @@ import {
   RiArrowLeftLine,
   RiSafeLine,
   RiMicLine,
+  RiYoutubeLine,
   RiRecordCircleLine,
   RiSearchLine,
   RiSettings3Line,
@@ -42,8 +44,10 @@ import {
 import { usePanelStore } from '@/stores/panelStore'
 import { useVaultDetail, useVaultRecordings, mapRecordingToMeeting } from '@/hooks/useVaults'
 import { useRecordingSearch } from '@/hooks/useRecordingSearch'
+import { useYouTubeSearch } from '@/hooks/useYouTubeSearch'
 import { queryKeys } from '@/lib/query-config'
 import type { VaultType, VaultRole } from '@/types/bank'
+import type { VaultRecording } from '@/hooks/useVaults'
 import type { Meeting } from '@/types'
 
 /** Vault type badge colors */
@@ -100,30 +104,43 @@ export function VaultDetailPane({
   const { vault, isLoading: vaultLoading, error: vaultError } = useVaultDetail(vaultId)
   const { recordings, isLoading: recordingsLoading, error: recordingsError } = useVaultRecordings(vaultId)
 
-  // Search/filter/sort recordings
-  const {
-    searchQuery,
-    setSearchQuery,
-    sortBy,
-    setSortBy,
-    sortOrder,
-    setSortOrder,
-    clearFilters,
-    hasActiveFilters,
-    filteredRecordings,
-    totalCount,
-    filteredCount,
-  } = useRecordingSearch({ recordings })
+  // Determine vault type for conditional rendering
+  const isYouTubeVault = vault?.vault_type === 'youtube'
 
-  // Transform filtered vault recordings to Meeting[] for TranscriptTable
+  // Standard search/filter/sort recordings (used for non-YouTube vaults)
+  const standardSearch = useRecordingSearch({ recordings })
+
+  // YouTube-specific search/sort (used for YouTube vaults)
+  const youtubeSearch = useYouTubeSearch({ recordings })
+
+  // Select the active hook's data based on vault type
+  const searchQuery = isYouTubeVault ? youtubeSearch.searchQuery : standardSearch.searchQuery
+  const setSearchQuery = isYouTubeVault ? youtubeSearch.setSearchQuery : standardSearch.setSearchQuery
+  const clearFilters = isYouTubeVault ? youtubeSearch.clearFilters : standardSearch.clearFilters
+  const hasActiveFilters = isYouTubeVault ? youtubeSearch.hasActiveFilters : standardSearch.hasActiveFilters
+  const filteredRecordings = isYouTubeVault ? youtubeSearch.filteredRecordings : standardSearch.filteredRecordings
+  const totalCount = isYouTubeVault ? youtubeSearch.totalCount : standardSearch.totalCount
+  const filteredCount = isYouTubeVault ? youtubeSearch.filteredCount : standardSearch.filteredCount
+
+  // Transform filtered vault recordings to Meeting[] for TranscriptTable (non-YouTube only)
   const meetings = useMemo(() => {
+    if (isYouTubeVault) return []
     return filteredRecordings.map(mapRecordingToMeeting)
-  }, [filteredRecordings])
+  }, [filteredRecordings, isYouTubeVault])
 
   // Handle recording click - navigate to call detail page
   const handleCallClick = useCallback(
     (call: Meeting) => {
       navigate(`/call/${call.recording_id}`)
+    },
+    [navigate]
+  )
+
+  // Handle YouTube video click - navigate to call detail page using legacy_recording_id
+  const handleVideoClick = useCallback(
+    (recording: VaultRecording) => {
+      const navId = recording.legacy_recording_id ?? recording.id
+      navigate(`/call/${navId}`)
     },
     [navigate]
   )
@@ -314,19 +331,67 @@ export function VaultDetailPane({
       </header>
 
       {/* Search/filter toolbar - only show when vault has recordings */}
-      {!recordingsLoading && recordings.length > 0 && (
+      {/* Non-YouTube vaults: full search + sort toolbar */}
+      {!recordingsLoading && recordings.length > 0 && !isYouTubeVault && (
         <VaultSearchFilter
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          sortBy={sortBy}
-          onSortByChange={setSortBy}
-          sortOrder={sortOrder}
-          onSortOrderChange={setSortOrder}
-          hasActiveFilters={hasActiveFilters}
-          onClearFilters={clearFilters}
-          totalCount={totalCount}
-          filteredCount={filteredCount}
+          searchQuery={standardSearch.searchQuery}
+          onSearchChange={standardSearch.setSearchQuery}
+          sortBy={standardSearch.sortBy}
+          onSortByChange={standardSearch.setSortBy}
+          sortOrder={standardSearch.sortOrder}
+          onSortOrderChange={standardSearch.setSortOrder}
+          hasActiveFilters={standardSearch.hasActiveFilters}
+          onClearFilters={standardSearch.clearFilters}
+          totalCount={standardSearch.totalCount}
+          filteredCount={standardSearch.filteredCount}
         />
+      )}
+      {/* YouTube vaults: search-only bar (sort controlled by column headers) */}
+      {!recordingsLoading && recordings.length > 0 && isYouTubeVault && (
+        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-sm border-b border-border/40 px-4 py-2">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1 min-w-0">
+              <RiSearchLine
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
+                aria-hidden="true"
+              />
+              <input
+                type="text"
+                placeholder="Search videos..."
+                value={youtubeSearch.searchQuery}
+                onChange={(e) => youtubeSearch.setSearchQuery(e.target.value)}
+                className="h-8 w-full rounded-md border border-input bg-background/50 pl-8 pr-8 text-xs ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Search videos by title"
+              />
+              {youtubeSearch.searchQuery && (
+                <button
+                  onClick={() => youtubeSearch.setSearchQuery('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  aria-label="Clear search"
+                >
+                  <RiSearchLine className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+            {youtubeSearch.hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={youtubeSearch.clearFilters}
+                className="h-8 text-xs text-muted-foreground hover:text-foreground flex-shrink-0"
+                aria-label="Clear all filters"
+              >
+                Clear
+              </Button>
+            )}
+          </div>
+          {youtubeSearch.filteredCount !== youtubeSearch.totalCount && (
+            <div className="mt-1.5 text-[11px] text-muted-foreground">
+              Showing <span className="font-medium tabular-nums">{youtubeSearch.filteredCount}</span> of{' '}
+              <span className="tabular-nums">{youtubeSearch.totalCount}</span> videos
+            </div>
+          )}
+        </div>
       )}
 
       {/* Recordings - ALWAYS visible (no tabs) */}
@@ -357,28 +422,40 @@ export function VaultDetailPane({
             </div>
           ) : recordings.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16">
-              <RiMicLine className="h-16 w-16 text-muted-foreground/20 mb-4" aria-hidden="true" />
-              <h3 className="text-sm font-semibold text-foreground mb-1">No recordings in this hub</h3>
+              {isYouTubeVault ? (
+                <RiYoutubeLine className="h-16 w-16 text-muted-foreground/20 mb-4" aria-hidden="true" />
+              ) : (
+                <RiMicLine className="h-16 w-16 text-muted-foreground/20 mb-4" aria-hidden="true" />
+              )}
+              <h3 className="text-sm font-semibold text-foreground mb-1">
+                {isYouTubeVault ? 'No videos in this hub' : 'No recordings in this hub'}
+              </h3>
               <p className="text-xs text-muted-foreground text-center max-w-xs">
-                Recordings you add to this hub will appear here.
+                {isYouTubeVault
+                  ? 'Import YouTube videos to start building your video library.'
+                  : 'Recordings you add to this hub will appear here.'}
               </p>
               <Button
                 variant="hollow"
                 size="sm"
                 className="mt-4"
-                onClick={() => navigate('/library')}
-                aria-label="Go to Library"
+                onClick={() => navigate(isYouTubeVault ? '/import' : '/library')}
+                aria-label={isYouTubeVault ? 'Import Videos' : 'Go to Library'}
               >
-                Go to Library
+                {isYouTubeVault ? 'Import Videos' : 'Go to Library'}
               </Button>
             </div>
           ) : filteredRecordings.length === 0 ? (
             /* Empty filter state - recordings exist but none match filters */
             <div className="flex flex-col items-center justify-center py-16">
               <RiSearchLine className="h-12 w-12 text-muted-foreground/20 mb-4" aria-hidden="true" />
-              <h3 className="text-sm font-semibold text-foreground mb-1">No matching recordings</h3>
+              <h3 className="text-sm font-semibold text-foreground mb-1">
+                {isYouTubeVault ? 'No matching videos' : 'No matching recordings'}
+              </h3>
               <p className="text-xs text-muted-foreground text-center max-w-xs">
-                No recordings match your current search or filters. Try adjusting your criteria.
+                {isYouTubeVault
+                  ? 'No videos match your current search. Try adjusting your criteria.'
+                  : 'No recordings match your current search or filters. Try adjusting your criteria.'}
               </p>
               <Button
                 variant="hollow"
@@ -390,6 +467,14 @@ export function VaultDetailPane({
                 Clear Filters
               </Button>
             </div>
+          ) : isYouTubeVault ? (
+            <YouTubeVideoList
+              recordings={youtubeSearch.filteredRecordings}
+              onVideoClick={handleVideoClick}
+              sortBy={youtubeSearch.sortBy}
+              sortOrder={youtubeSearch.sortOrder}
+              onSortChange={youtubeSearch.handleSortChange}
+            />
           ) : (
             <TranscriptTable
               calls={meetings}
