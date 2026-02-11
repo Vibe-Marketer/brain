@@ -12,9 +12,6 @@ verify_jwt = false
 [functions.save-fathom-key]
 verify_jwt = true
 
-[functions.test-env-vars]
-verify_jwt = false
-
 [functions.test-fathom-connection]
 verify_jwt = true
 
@@ -75,6 +72,12 @@ verify_jwt = false
 # Worker function called by pg_cron for scheduled rule execution
 # Needs to work without user JWT (uses service role)
 verify_jwt = false
+
+[functions.generate-content]
+verify_jwt = true
+
+[functions.extract-profits]
+verify_jwt = true
 
 [functions.automation-email]
 verify_jwt = true

@@ -121,10 +121,34 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
     setError(undefined);
     setCurrentStep('validating');
 
+    // Simulate multi-step progress while waiting for the single-request edge function.
+    // The edge function performs: validate → check duplicate → fetch metadata → transcribe → process → done.
+    // We advance the UI through these steps on a timer so the user sees real progress.
+    const progressSteps: { step: ImportStep; delay: number }[] = [
+      { step: 'checking', delay: 800 },
+      { step: 'fetching', delay: 1800 },
+      { step: 'transcribing', delay: 4000 },
+      { step: 'processing', delay: 8000 },
+    ];
+
+    let cancelled = false;
+    const timeoutIds: ReturnType<typeof setTimeout>[] = [];
+
+    for (const { step, delay } of progressSteps) {
+      const id = setTimeout(() => {
+        if (!cancelled) setCurrentStep(step);
+      }, delay);
+      timeoutIds.push(id);
+    }
+
     try {
       const { data, error: invokeError } = await supabase.functions.invoke<ImportResponse>('youtube-import', {
         body: { videoUrl: trimmedUrl, vault_id: selectedVaultId || undefined },
       });
+
+      // Stop simulated progress — real response arrived
+      cancelled = true;
+      timeoutIds.forEach(clearTimeout);
 
       if (invokeError) {
         throw new Error(invokeError.message || 'Failed to import video');
@@ -150,6 +174,10 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
         onError(data.error);
       }
     } catch (err) {
+      // Stop simulated progress on error
+      cancelled = true;
+      timeoutIds.forEach(clearTimeout);
+
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
       setError(errorMessage);
       setCurrentStep('error');

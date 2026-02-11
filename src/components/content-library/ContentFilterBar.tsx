@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { RiFilter3Line, RiPriceTag3Line, RiCloseLine } from "@remixicon/react";
 import { useContentLibraryStore } from "@/stores/contentLibraryStore";
+import { useBankContext } from "@/hooks/useBankContext";
 import type { ContentType, ContentLibraryFilters } from "@/types/content-library";
 
 /**
@@ -168,6 +169,7 @@ export function ContentFilterBar({ compact = false }: ContentFilterBarProps) {
   const clearFilters = useContentLibraryStore((state) => state.clearFilters);
   const fetchItems = useContentLibraryStore((state) => state.fetchItems);
   const availableTags = useContentLibraryStore((state) => state.availableTags);
+  const { activeBankId } = useBankContext();
 
   // Check if any filters are active
   const hasActiveFilters =
@@ -181,7 +183,7 @@ export function ContentFilterBar({ compact = false }: ContentFilterBarProps) {
       content_type: type,
     };
     updateFilters(newFilters);
-    fetchItems(newFilters);
+    fetchItems(newFilters, activeBankId);
   };
 
   // Handle tags change
@@ -191,13 +193,13 @@ export function ContentFilterBar({ compact = false }: ContentFilterBarProps) {
       tags: tags.length > 0 ? tags : undefined,
     };
     updateFilters(newFilters);
-    fetchItems(newFilters);
+    fetchItems(newFilters, activeBankId);
   };
 
   // Handle clear all filters
   const handleClearAll = () => {
     clearFilters();
-    fetchItems({});
+    fetchItems({}, activeBankId);
   };
 
   return (

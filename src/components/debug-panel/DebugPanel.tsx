@@ -370,7 +370,7 @@ function DebugPanelCore() {
       >
         <RiBugLine className="w-5 h-5" />
         {(unacknowledgedCount > 0 || (warningCount > 0 && !isOpen)) && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-2xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
             {unacknowledgedCount > 0 ? unacknowledgedCount : warningCount}
           </span>
         )}
@@ -672,7 +672,7 @@ function DebugPanelCore() {
                   </div>
                   {recurringCount > 0 && (
                     <div className="mt-2 pt-2 border-t border-purple-200 dark:border-purple-700">
-                      <div className="text-[10px] text-orange-600 dark:text-orange-400 font-medium mb-1">
+                      <div className="text-2xs text-orange-600 dark:text-orange-400 font-medium mb-1">
                         ⚠️ Recurring Errors (previously resolved):
                       </div>
                       {messages.filter(m => m.resolutionStatus === 'recurring').slice(0, 3).map(msg => (
@@ -716,7 +716,7 @@ function DebugPanelCore() {
                           <div className="text-purple-700 dark:text-purple-300 truncate" title={pattern.pattern}>
                             {pattern.pattern}
                           </div>
-                          <div className="text-[10px] text-purple-500 dark:text-purple-400">
+                          <div className="text-2xs text-purple-500 dark:text-purple-400">
                             {pattern.type} • Ignored {new Date(pattern.ignoredAt).toLocaleDateString()}
                           </div>
                         </div>
@@ -762,7 +762,7 @@ function DebugPanelCore() {
                           </div>
                           <div className="ml-3 flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <span className={`px-2 py-0.5 text-[10px] font-medium rounded capitalize ${
+                              <span className={`px-2 py-0.5 text-2xs font-medium rounded capitalize ${
                                 event.type === 'error'
                                   ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'
                                   : event.type === 'warning'
@@ -771,7 +771,7 @@ function DebugPanelCore() {
                               }`}>
                                 {event.type}
                               </span>
-                              <span className="text-[10px] text-gray-400">
+                              <span className="text-2xs text-gray-400">
                                 +{formatTime(event.relativeTime)}
                               </span>
                             </div>
@@ -891,7 +891,7 @@ function DebugPanelCore() {
                       </div>
 
                       <div className="flex items-center gap-2 mb-1 pr-20">
-                        <span className={`text-[10px] font-medium uppercase ${
+                        <span className={`text-2xs font-medium uppercase ${
                           isStale ? 'text-gray-400' :
                           isRecurring ? 'text-orange-600' :
                           isResolved ? 'text-green-600' :
@@ -902,7 +902,7 @@ function DebugPanelCore() {
                         </span>
                         {/* Show count if error occurred multiple times */}
                         {message.count && message.count > 1 && (
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                          <span className={`text-2xs px-1.5 py-0.5 rounded font-medium ${
                             isStale
                               ? 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                               : message.type === 'error'
@@ -915,16 +915,16 @@ function DebugPanelCore() {
                           </span>
                         )}
                         {isRecurring && message.recurrenceCount && (
-                          <span className="text-[10px] bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-200 px-1.5 py-0.5 rounded font-medium">
+                          <span className="text-2xs bg-orange-200 dark:bg-orange-800 text-orange-700 dark:text-orange-200 px-1.5 py-0.5 rounded font-medium">
                             ×{message.recurrenceCount}
                           </span>
                         )}
                         {message.source && (
-                          <span className="text-[10px] bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">
+                          <span className="text-2xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">
                             {message.source}
                           </span>
                         )}
-                        <span className="text-[10px] text-gray-400 ml-auto" title={`First: ${new Date(message.timestamp).toLocaleString()}${message.lastSeen ? `\nLast: ${new Date(message.lastSeen).toLocaleString()}` : ''}`}>
+                        <span className="text-2xs text-gray-400 ml-auto" title={`First: ${new Date(message.timestamp).toLocaleString()}${message.lastSeen ? `\nLast: ${new Date(message.lastSeen).toLocaleString()}` : ''}`}>
                           {new Date(message.lastSeen || message.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
@@ -937,12 +937,12 @@ function DebugPanelCore() {
                         <div>
                           <button
                             onClick={() => toggleExpanded(message.id)}
-                            className="text-[10px] text-blue-600 hover:text-blue-800 underline"
+                            className="text-2xs text-blue-600 hover:text-blue-800 underline"
                           >
                             {isExpanded ? 'Hide details' : 'Show details'}
                           </button>
                           {isExpanded && (
-                            <pre className="mt-1 text-[10px] bg-gray-900 text-gray-300 p-2 rounded overflow-x-auto whitespace-pre-wrap max-h-32">
+                            <pre className="mt-1 text-2xs bg-gray-900 text-gray-300 p-2 rounded overflow-x-auto whitespace-pre-wrap max-h-32">
                               {message.stack || message.details}
                             </pre>
                           )}

@@ -68,15 +68,16 @@ describe('Content Library CRUD Functions', () => {
         },
       ];
 
-      const mockFrom = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-        }),
-      });
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+      };
+      const mockFrom = vi.fn().mockReturnValue(chainMock);
 
       vi.mocked(supabase.from).mockImplementation(mockFrom);
 
-      const result = await fetchContentItems();
+      const result = await fetchContentItems(undefined, 'test-bank-id');
 
       expect(result.error).toBeNull();
       expect(result.data).toEqual(mockData);
@@ -84,33 +85,36 @@ describe('Content Library CRUD Functions', () => {
     });
 
     it('should filter by content_type', async () => {
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ data: [], error: null });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
+      const mockEq = vi.fn().mockReturnThis();
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
         eq: mockEq,
-      } as any);
+        order: vi.fn().mockReturnThis(),
+        contains: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+      // Make the last eq call resolve with data
+      mockEq.mockImplementation(() => chainMock);
 
-      await fetchContentItems({ content_type: 'email' });
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
 
+      await fetchContentItems({ content_type: 'email' }, 'test-bank-id');
+
+      expect(mockEq).toHaveBeenCalledWith('bank_id', 'test-bank-id');
       expect(mockEq).toHaveBeenCalledWith('content_type', 'email');
     });
 
     it('should filter by tags', async () => {
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockReturnThis();
       const mockContains = vi.fn().mockResolvedValue({ data: [], error: null });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
         contains: mockContains,
-      } as any);
+      };
 
-      await fetchContentItems({ tags: ['sales', 'follow-up'] });
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
+
+      await fetchContentItems({ tags: ['sales', 'follow-up'] }, 'test-bank-id');
 
       expect(mockContains).toHaveBeenCalledWith('tags', ['sales', 'follow-up']);
     });
@@ -118,13 +122,15 @@ describe('Content Library CRUD Functions', () => {
     it('should handle database errors', async () => {
       const mockError = { code: 'PGRST123', message: 'Database error' };
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: null, error: mockError }),
-        }),
-      } as any);
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: null, error: mockError }),
+      };
 
-      const result = await fetchContentItems();
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
+
+      const result = await fetchContentItems(undefined, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(ContentLibraryError);
       expect(result.error?.code).toBe('PGRST123');
@@ -160,7 +166,7 @@ describe('Content Library CRUD Functions', () => {
         }),
       } as any);
 
-      const result = await saveContent(input);
+      const result = await saveContent(input, 'test-bank-id');
 
       expect(result.error).toBeNull();
       expect(result.data).toEqual(mockInsertedData);
@@ -173,7 +179,7 @@ describe('Content Library CRUD Functions', () => {
         content: 'Test content',
       };
 
-      const result = await saveContent(input);
+      const result = await saveContent(input, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(ContentLibraryError);
       expect(result.error?.message).toBe('Title is required');
@@ -187,7 +193,7 @@ describe('Content Library CRUD Functions', () => {
         content: '',
       };
 
-      const result = await saveContent(input);
+      const result = await saveContent(input, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(ContentLibraryError);
       expect(result.error?.message).toBe('Content is required');
@@ -201,7 +207,7 @@ describe('Content Library CRUD Functions', () => {
         content: 'Test content',
       };
 
-      const result = await saveContent(input);
+      const result = await saveContent(input, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(ContentLibraryError);
       expect(result.error?.message).toBe('Title must be 255 characters or less');
@@ -214,7 +220,7 @@ describe('Content Library CRUD Functions', () => {
         content: 'a'.repeat(50001),
       };
 
-      const result = await saveContent(input);
+      const result = await saveContent(input, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(ContentLibraryError);
       expect(result.error?.message).toBe('Content must be 50,000 characters or less');
@@ -403,10 +409,12 @@ describe('Content Library CRUD Functions', () => {
       ];
 
       vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+        }),
       } as any);
 
-      const result = await getAllTags();
+      const result = await getAllTags('test-bank-id');
 
       expect(result.error).toBeNull();
       expect(result.data).toEqual(['email', 'follow-up', 'marketing', 'sales']);
@@ -414,10 +422,12 @@ describe('Content Library CRUD Functions', () => {
 
     it('should handle empty results', async () => {
       vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockResolvedValue({ data: [], error: null }),
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }),
       } as any);
 
-      const result = await getAllTags();
+      const result = await getAllTags('test-bank-id');
 
       expect(result.error).toBeNull();
       expect(result.data).toEqual([]);
@@ -431,10 +441,12 @@ describe('Content Library CRUD Functions', () => {
       ];
 
       vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+        }),
       } as any);
 
-      const result = await getAllTags();
+      const result = await getAllTags('test-bank-id');
 
       expect(result.error).toBeNull();
       expect(result.data).toEqual(['sales']);

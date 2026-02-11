@@ -21,7 +21,6 @@ import SortingTagging from '@/pages/SortingTagging';
 import Settings from '@/pages/Settings';
 import Analytics from '@/pages/Analytics';
 import SharedWithMe from '@/pages/SharedWithMe';
-import CollaborationPage from '@/pages/CollaborationPage';
 import VaultsPage from '@/pages/VaultsPage';
 
 // Content Library pages
@@ -35,9 +34,6 @@ import CallContentGenerator from '@/pages/CallContentGenerator';
 import HooksLibrary from '@/pages/HooksLibrary';
 import PostsLibrary from '@/pages/PostsLibrary';
 import EmailsLibrary from '@/pages/EmailsLibrary';
-
-// Automation Rules
-import AutomationRules from '@/pages/AutomationRules';
 
 // Manual Import
 import ManualImport from '@/pages/ManualImport';
@@ -118,10 +114,10 @@ function App() {
                     <Route path="/join/vault/:token" element={<VaultJoin />} />
 
                     {/* Automation Rules routes */}
-                    <Route path="/automation-rules" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
-                    <Route path="/automation-rules/new" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
-                    <Route path="/automation-rules/:id" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
-                    <Route path="/automation-rules/:id/history" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />
+                    <Route path="/automation-rules" element={<Navigate to="/sorting-tagging/rules" replace />} />
+                    <Route path="/automation-rules/new" element={<Navigate to="/sorting-tagging/rules" replace />} />
+                    <Route path="/automation-rules/:id" element={<Navigate to="/sorting-tagging/rules" replace />} />
+                    <Route path="/automation-rules/:id/history" element={<Navigate to="/sorting-tagging/rules" replace />} />
 
                     {/* Manual Import route */}
                     <Route path="/import" element={<ProtectedRoute><Layout><ManualImport /></Layout></ProtectedRoute>} />

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useContentLibraryStore } from "@/stores/contentLibraryStore";
+import { useBankContext } from "@/hooks/useBankContext";
 import {
   RiFileList3Line,
   RiAddLine,
@@ -369,6 +370,7 @@ export function TemplatesPage() {
   const isLoading = useContentLibraryStore((state) => state.templatesLoading);
   const error = useContentLibraryStore((state) => state.templatesError);
   const fetchAllTemplates = useContentLibraryStore((state) => state.fetchAllTemplates);
+  const { activeBankId } = useBankContext();
 
   // Editor dialog state
   const [editorOpen, setEditorOpen] = useState(false);
@@ -378,10 +380,10 @@ export function TemplatesPage() {
   const [variableInputOpen, setVariableInputOpen] = useState(false);
   const [usingTemplate, setUsingTemplate] = useState<Template | null>(null);
 
-  // Fetch templates on mount
+  // Fetch templates on mount and when bank changes
   useEffect(() => {
-    fetchAllTemplates();
-  }, [fetchAllTemplates]);
+    fetchAllTemplates(undefined, activeBankId);
+  }, [fetchAllTemplates, activeBankId]);
 
   // Handle creating new template
   const handleNewTemplate = () => {
@@ -404,7 +406,7 @@ export function TemplatesPage() {
   // Handle template saved
   const handleTemplateSaved = () => {
     // Refresh templates after save
-    fetchAllTemplates();
+    fetchAllTemplates(undefined, activeBankId);
   };
 
   // Loading state

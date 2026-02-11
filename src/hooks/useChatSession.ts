@@ -50,6 +50,7 @@ interface ChatMessage {
 
 interface CreateSessionParams {
   title?: string;
+  bank_id?: string;
   filter_date_start?: Date;
   filter_date_end?: Date;
   filter_speakers?: string[];
@@ -79,30 +80,32 @@ interface ToggleArchiveParams {
   isArchived: boolean;
 }
 
-export function useChatSession(userId: string | undefined) {
+export function useChatSession(userId: string | undefined, activeBankId?: string | null) {
   const queryClient = useQueryClient();
 
-  // Fetch all sessions for the user
+  // Fetch all sessions for the user, scoped to active bank
   const {
     data: sessions = [],
     isLoading: isLoadingSessions,
     error: sessionsError,
   } = useQuery({
-    queryKey: ['chat-sessions', userId],
+    queryKey: ['chat-sessions', userId, activeBankId],
     queryFn: async (): Promise<ChatSession[]> => {
       if (!userId) throw new Error('User ID is required');
+      if (!activeBankId) return [];
 
       const { data, error } = await supabase
         .from('chat_sessions')
         .select('*')
         .eq('user_id', userId)
+        .eq('bank_id', activeBankId)
         .eq('is_archived', false)
         .order('updated_at', { ascending: false }); // Sort by updated_at so newest/active chats are first
 
       if (error) throw error;
       return data || [];
     },
-    enabled: !!userId,
+    enabled: !!userId && !!activeBankId,
   });
 
   // Fetch messages for a specific session - memoized for stable reference
@@ -129,11 +132,13 @@ export function useChatSession(userId: string | undefined) {
   const createSessionMutation = useMutation({
     mutationFn: async (params: CreateSessionParams): Promise<ChatSession> => {
       if (!userId) throw new Error('User ID is required');
+      if (!params.bank_id) throw new Error('Bank ID is required');
 
       const { data, error } = await supabase
         .from('chat_sessions')
         .insert({
           user_id: userId,
+          bank_id: params.bank_id,
           title: params.title || null,
           filter_date_start: params.filter_date_start?.toISOString() || null,
           filter_date_end: params.filter_date_end?.toISOString() || null,
@@ -149,7 +154,7 @@ export function useChatSession(userId: string | undefined) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId, activeBankId] });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to create chat session');
@@ -286,7 +291,7 @@ export function useChatSession(userId: string | undefined) {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId, activeBankId] });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to save messages');
@@ -301,7 +306,7 @@ export function useChatSession(userId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId, activeBankId] });
       toast.success('Chat session deleted');
     },
     onError: (error: Error) => {
@@ -320,7 +325,7 @@ export function useChatSession(userId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId, activeBankId] });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to update title');
@@ -338,7 +343,7 @@ export function useChatSession(userId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId, activeBankId] });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to update pin status');
@@ -356,7 +361,7 @@ export function useChatSession(userId: string | undefined) {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId] });
+      queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId, activeBankId] });
     },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to update archive status');

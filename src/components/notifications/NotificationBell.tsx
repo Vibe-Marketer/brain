@@ -49,7 +49,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                 "absolute -top-0.5 -right-0.5",
                 "flex items-center justify-center",
                 "min-w-[18px] h-[18px] px-1",
-                "text-[10px] font-semibold text-white",
+                "text-2xs font-semibold text-white",
                 "bg-red-500 rounded-full",
                 "ring-2 ring-background"
               )}

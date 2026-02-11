@@ -112,7 +112,7 @@ export function TopBar({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Avatar className="w-7 h-7 md:w-8 md:h-8 cursor-pointer">
-              <AvatarFallback className="bg-muted text-[10px] md:text-xs">
+              <AvatarFallback className="bg-muted text-2xs md:text-xs">
                 {getInitials(user?.email)}
               </AvatarFallback>
             </Avatar>

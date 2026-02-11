@@ -13,6 +13,7 @@
 import * as React from 'react';
 import { useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { 
   RiYoutubeLine, 
   RiArrowRightLine, 
@@ -25,6 +26,8 @@ import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
 import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
 import { cn } from '@/lib/utils';
+import { queryKeys } from '@/lib/query-config';
+import type { ChatLocationState } from '@/types/chat';
 
 interface ImportResult {
   recordingId: number;
@@ -33,6 +36,7 @@ interface ImportResult {
 
 export default function ManualImport() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
   const handleSuccess = useCallback((recordingId: number, title: string) => {
@@ -40,7 +44,10 @@ export default function ManualImport() {
     toast.success('Video imported successfully!', {
       description: title,
     });
-  }, []);
+    // Refresh vault list so newly auto-created YouTube vault appears in sidebar
+    queryClient.invalidateQueries({ queryKey: queryKeys.vaults.all });
+    queryClient.invalidateQueries({ queryKey: ['bankContext'] });
+  }, [queryClient]);
 
   const handleError = useCallback((error: string) => {
     toast.error('Import failed', {
@@ -128,7 +135,19 @@ export default function ManualImport() {
                     asChild
                     className="text-vibe-orange hover:text-vibe-orange/80"
                   >
-                    <Link to="/chat">
+                    <Link
+                      to="/chat"
+                      state={{
+                        initialContext: [{
+                          type: 'call',
+                          id: importResult.recordingId,
+                          title: importResult.title,
+                          date: new Date().toISOString(),
+                        }],
+                        callTitle: importResult.title,
+                        newSession: true,
+                      } satisfies ChatLocationState}
+                    >
                       Open AI Chat
                       <RiExternalLinkLine className="w-3.5 h-3.5 ml-1.5" />
                     </Link>

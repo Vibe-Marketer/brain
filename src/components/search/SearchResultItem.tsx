@@ -243,7 +243,7 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({
           </h4>
           <Badge
             className={cn(
-              'shrink-0 text-[10px] px-1.5 py-0 border-0',
+              'shrink-0 text-2xs px-1.5 py-0 border-0',
               config.badgeClass
             )}
           >
@@ -253,7 +253,7 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({
           {result.sourcePlatform && SOURCE_PLATFORM_CONFIG[result.sourcePlatform] && (
             <Badge
               variant="outline"
-              className="shrink-0 text-[10px] px-1.5 py-0 flex items-center gap-0.5"
+              className="shrink-0 text-2xs px-1.5 py-0 flex items-center gap-0.5"
             >
               {React.createElement(SOURCE_PLATFORM_CONFIG[result.sourcePlatform].Icon, {
                 className: 'h-2.5 w-2.5',
@@ -263,7 +263,7 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({
           )}
           {/* Relevance Score Badge */}
           {result.metadata?.confidence !== undefined && (
-            <span className="shrink-0 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+            <span className="shrink-0 text-2xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
               {result.metadata.confidence}%
             </span>
           )}

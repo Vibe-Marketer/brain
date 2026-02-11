@@ -8,7 +8,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  * 1. Validates YouTube URL and extracts video ID
  * 2. Checks for duplicate imports
  * 3. Fetches video metadata via youtube-api function
- * 4. Fetches transcript via youtube-api function
+ * 4. Fetches transcript via Transcript API directly
  * 5. Creates fathom_calls record with source_platform='youtube'
  * 
  * The existing embedding pipeline will pick up new records for processing.
@@ -28,6 +28,240 @@ interface ImportResponse {
   recordingId?: number;
   title?: string;
   exists?: boolean;
+}
+
+type ImportStage = 'video-details' | 'transcript';
+type DownstreamSource = 'youtube-api' | 'transcripts-api';
+
+const TRANSCRIPT_API_BASE = 'https://transcriptapi.com/api/v2/youtube/transcript';
+
+interface DownstreamErrorResponse extends ImportResponse {
+  source: DownstreamSource;
+  stage: ImportStage;
+  status: number;
+  details?: unknown;
+}
+
+interface YouTubeVideoDetails {
+  title: string;
+  description?: string;
+  channelId?: string;
+  channelTitle?: string;
+  publishedAt?: string;
+  thumbnails?: {
+    high?: { url?: string };
+    default?: { url?: string };
+  };
+  duration?: string;
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
+  categoryId?: string;
+}
+
+function getStringValue(source: Record<string, unknown> | null, keys: string[]): string | undefined {
+  if (!source) return undefined;
+
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+
+  return undefined;
+}
+
+function getNumberValue(source: Record<string, unknown> | null, keys: string[]): number | undefined {
+  if (!source) return undefined;
+
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim().length > 0) {
+      const parsed = Number(value);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function buildFallbackVideoDetails(
+  videoId: string,
+  transcriptData: Record<string, unknown> | null,
+  nestedTranscriptData: Record<string, unknown> | null,
+): YouTubeVideoDetails {
+  const transcriptMetadata = isRecord(transcriptData?.metadata) ? transcriptData.metadata : null;
+  const nestedTranscriptMetadata = isRecord(nestedTranscriptData?.metadata) ? nestedTranscriptData.metadata : null;
+
+  const title = getStringValue(transcriptData, ['title', 'video_title', 'videoTitle'])
+    ?? getStringValue(nestedTranscriptData, ['title', 'video_title', 'videoTitle'])
+    ?? getStringValue(transcriptMetadata, ['title'])
+    ?? getStringValue(nestedTranscriptMetadata, ['title'])
+    ?? `YouTube Video ${videoId}`;
+
+  const description = getStringValue(transcriptData, ['description', 'video_description'])
+    ?? getStringValue(nestedTranscriptData, ['description', 'video_description']);
+
+  const channelTitle = getStringValue(transcriptData, ['channelTitle', 'channel_title', 'channel_name'])
+    ?? getStringValue(nestedTranscriptData, ['channelTitle', 'channel_title', 'channel_name']);
+
+  const channelId = getStringValue(transcriptData, ['channelId', 'channel_id'])
+    ?? getStringValue(nestedTranscriptData, ['channelId', 'channel_id']);
+
+  const publishedAt = getStringValue(transcriptData, ['publishedAt', 'published_at'])
+    ?? getStringValue(nestedTranscriptData, ['publishedAt', 'published_at']);
+
+  const duration = getStringValue(transcriptData, ['duration', 'youtube_duration'])
+    ?? getStringValue(nestedTranscriptData, ['duration', 'youtube_duration']);
+
+  const thumbnailUrl = getStringValue(transcriptData, ['thumbnail', 'thumbnail_url'])
+    ?? getStringValue(nestedTranscriptData, ['thumbnail', 'thumbnail_url']);
+
+  const metadataThumbnailUrl = getStringValue(transcriptMetadata, ['thumbnail_url'])
+    ?? getStringValue(nestedTranscriptMetadata, ['thumbnail_url']);
+
+  const resolvedChannelTitle = channelTitle
+    ?? getStringValue(transcriptMetadata, ['author_name'])
+    ?? getStringValue(nestedTranscriptMetadata, ['author_name']);
+
+  const viewCount = getNumberValue(transcriptData, ['viewCount', 'view_count', 'youtube_view_count'])
+    ?? getNumberValue(nestedTranscriptData, ['viewCount', 'view_count', 'youtube_view_count']);
+
+  const likeCount = getNumberValue(transcriptData, ['likeCount', 'like_count', 'youtube_like_count'])
+    ?? getNumberValue(nestedTranscriptData, ['likeCount', 'like_count', 'youtube_like_count']);
+
+  return {
+    title,
+    description,
+    channelId,
+    channelTitle: resolvedChannelTitle,
+    publishedAt,
+    duration,
+    viewCount,
+    likeCount,
+    thumbnails: (thumbnailUrl ?? metadataThumbnailUrl) ? { high: { url: thumbnailUrl ?? metadataThumbnailUrl } } : undefined,
+  };
+}
+
+/**
+ * Format seconds to MM:SS or HH:MM:SS timestamp string
+ */
+function formatTimestamp(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  if (h > 0) {
+    return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+/**
+ * Extract a segment array from transcript data (if present).
+ * Returns an array of { text, start?, duration? } objects.
+ */
+function extractSegmentArray(data: Record<string, unknown> | null): Array<{ text: string; start?: number; duration?: number }> | null {
+  if (!data) return null;
+
+  const tryParse = (arr: unknown[]): Array<{ text: string; start?: number; duration?: number }> | null => {
+    const result: Array<{ text: string; start?: number; duration?: number }> = [];
+    for (const item of arr) {
+      if (typeof item === 'string' && item.trim()) {
+        result.push({ text: item });
+      } else if (isRecord(item) && typeof item.text === 'string' && item.text.trim()) {
+        const start = typeof item.start === 'number' ? item.start
+          : typeof item.offset === 'number' ? item.offset
+          : typeof item.timestamp === 'number' ? item.timestamp
+          : undefined;
+        const duration = typeof item.duration === 'number' ? item.duration : undefined;
+        result.push({ text: item.text, start, duration });
+      }
+    }
+    return result.length > 0 ? result : null;
+  };
+
+  if (Array.isArray(data.transcript)) {
+    const segments = tryParse(data.transcript);
+    if (segments) return segments;
+  }
+  if (Array.isArray(data.segments)) {
+    const segments = tryParse(data.segments);
+    if (segments) return segments;
+  }
+
+  return null;
+}
+
+/**
+ * Extract transcript text from a single response data object.
+ *
+ * Handles all TranscriptAPI v2 response shapes:
+ *   - transcript as string (format=text)
+ *   - transcript as array of segment objects (format=json)
+ *   - segments as array (defensive, some docs show this key)
+ *   - text as string (legacy fallback)
+ *
+ * When segments include timestamps, formats them as "[MM:SS] text" lines
+ * for readable display with timestamps.
+ */
+function extractTranscriptFromData(data: Record<string, unknown> | null): string | null {
+  if (!data) return null;
+
+  // 1. Try segment arrays with timestamps first (json format)
+  const segments = extractSegmentArray(data);
+  if (segments) {
+    const hasTimestamps = segments.some(s => s.start !== undefined);
+    if (hasTimestamps) {
+      // Format with timestamps: group into ~30-second paragraphs
+      const lines: string[] = [];
+      let lastTimestamp = -999;
+
+      for (const seg of segments) {
+        const ts = seg.start !== undefined ? formatTimestamp(seg.start) : null;
+        // Add timestamp header every ~30 seconds
+        if (ts && seg.start !== undefined && (seg.start - lastTimestamp >= 30)) {
+          lines.push(`\n[${ts}]`);
+          lastTimestamp = seg.start;
+        }
+        lines.push(seg.text);
+      }
+
+      const joined = lines.join('\n').trim();
+      if (joined.length > 0) return joined;
+    } else {
+      // No timestamps — just join text
+      const joined = segments.map(s => s.text).join('\n');
+      if (joined.length > 0) return joined;
+    }
+  }
+
+  // 2. transcript as plain string (text format fallback)
+  const transcript = data.transcript;
+  if (typeof transcript === 'string' && transcript.trim().length > 0) {
+    return transcript;
+  }
+
+  // 3. top-level text field (legacy fallback)
+  const text = data.text;
+  if (typeof text === 'string' && text.trim().length > 0) {
+    return text;
+  }
+
+  return null;
+}
+
+function extractTranscriptText(
+  transcriptData: Record<string, unknown> | null,
+  nestedTranscriptData: Record<string, unknown> | null,
+): string | null {
+  return extractTranscriptFromData(transcriptData) ?? extractTranscriptFromData(nestedTranscriptData);
 }
 
 /**
@@ -98,6 +332,53 @@ function parseDurationToSeconds(iso8601: string | undefined | null): number | nu
   return hours * 3600 + minutes * 60 + secs;
 }
 
+function parseJsonSafely(raw: string): unknown {
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+}
+
+function normalizeSecret(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function createDownstreamFailureResponse(
+  source: DownstreamSource,
+  stage: ImportStage,
+  step: ImportStep,
+  status: number,
+  error: string,
+  corsHeaders: Record<string, string>,
+  details?: unknown,
+): Response {
+  const payload: DownstreamErrorResponse = {
+    success: false,
+    step,
+    error,
+    source,
+    stage,
+    status,
+    details,
+  };
+
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -163,22 +444,42 @@ Deno.serve(async (req) => {
     // Step 0: Ensure YouTube vault exists (auto-create on first import)
     // ========================================================================
     let youtubeVaultId: string | null = body.vault_id || null;
+    let resolvedPersonalBankId: string | null = null;
 
     if (!youtubeVaultId) {
       try {
         // Find user's personal bank via bank_memberships
-        const { data: bankMembership, error: bankError } = await supabase
+        // Use two separate queries instead of a join to avoid PostgREST join issues
+        const { data: bankMemberships, error: bankError } = await supabase
           .from('bank_memberships')
-          .select('bank_id, banks!inner(id, type)')
-          .eq('user_id', user.id)
-          .eq('banks.type', 'personal')
-          .maybeSingle();
+          .select('bank_id')
+          .eq('user_id', user.id);
 
         if (bankError) {
-          console.error('Error finding personal bank:', bankError);
+          console.error('Error finding bank memberships:', bankError);
         }
 
-        const personalBankId = bankMembership?.bank_id;
+        if (bankMemberships && bankMemberships.length > 0) {
+          // Look up which of these banks is a personal bank
+          const bankIds = bankMemberships.map(bm => bm.bank_id);
+          const { data: personalBank, error: personalBankError } = await supabase
+            .from('banks')
+            .select('id')
+            .in('id', bankIds)
+            .eq('type', 'personal')
+            .maybeSingle();
+
+          if (personalBankError) {
+            console.error('Error finding personal bank:', personalBankError);
+          }
+
+          resolvedPersonalBankId = personalBank?.id || null;
+          console.log(`Found personal bank: ${resolvedPersonalBankId} (from ${bankMemberships.length} memberships)`);
+        } else {
+          console.warn('No bank memberships found for user:', user.id);
+        }
+
+        const personalBankId = resolvedPersonalBankId;
 
         if (personalBankId) {
           // Check for existing YouTube vault in that bank
@@ -290,100 +591,124 @@ Deno.serve(async (req) => {
       );
     }
 
+    const youtubeApiHeaders = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${userJwtToken}`,
+    };
+
     // ========================================================================
-    // Step 3: Fetch video details via youtube-api function
+    // Step 3: Fetch video details via youtube-api function (best effort)
     // ========================================================================
-    const detailsResponse = await fetch(
-      `${supabaseUrl}/functions/v1/youtube-api`,
-      {
+    let videoDetails: YouTubeVideoDetails | null = null;
+
+    try {
+      const detailsResponse = await fetch(`${supabaseUrl}/functions/v1/youtube-api`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userJwtToken}`,
-        },
+        headers: youtubeApiHeaders,
         body: JSON.stringify({
           action: 'video-details',
           params: { videoId },
         }),
-      }
-    );
+      });
 
-    if (!detailsResponse.ok) {
-      const errorText = await detailsResponse.text();
-      console.error('Failed to fetch video details:', errorText);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'fetching' as ImportStep,
-          error: 'Failed to fetch video details. The video may be private or unavailable.' 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      const detailsRaw = await detailsResponse.text();
+      const detailsPayload = parseJsonSafely(detailsRaw);
+
+      if (!detailsResponse.ok) {
+        console.warn('[youtube-import] youtube-api video-details unavailable; continuing with transcript metadata fallback', {
+          stage: 'video-details',
+          downstreamStatus: detailsResponse.status,
+          detailsPayload,
+        });
+      } else {
+        const detailsResult = isRecord(detailsPayload) ? detailsPayload : null;
+        const detailsData = isRecord(detailsResult?.data) ? detailsResult.data : null;
+
+        if (detailsResult?.success && detailsData && typeof detailsData.title === 'string') {
+          videoDetails = detailsData as unknown as YouTubeVideoDetails;
+          console.log(`Fetched video details: "${videoDetails.title}"`);
+        } else {
+          console.warn('[youtube-import] youtube-api returned invalid video-details payload; falling back to transcript metadata');
+        }
+      }
+    } catch (detailsError) {
+      console.warn('[youtube-import] video-details fetch failed; falling back to transcript metadata', detailsError);
+    }
+
+    // ========================================================================
+    // Step 4: Fetch transcript via Transcript API (direct)
+    // ========================================================================
+    const transcriptApiKey = normalizeSecret(Deno.env.get('TRANSCRIPT_API_KEY'));
+    if (!transcriptApiKey) {
+      return createDownstreamFailureResponse(
+        'transcripts-api',
+        'transcript',
+        'transcribing',
+        500,
+        'Transcript API key not configured',
+        corsHeaders,
       );
     }
 
-    const detailsResult = await detailsResponse.json();
-    
-    if (!detailsResult.success || !detailsResult.data) {
-      console.error('Video details response error:', detailsResult);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'fetching' as ImportStep,
-          error: detailsResult.error || 'Failed to fetch video details' 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const transcriptUrl = new URL(TRANSCRIPT_API_BASE);
+    transcriptUrl.searchParams.set('video_url', videoId);
+    transcriptUrl.searchParams.set('format', 'json');
+    transcriptUrl.searchParams.set('include_timestamp', 'true');
+    transcriptUrl.searchParams.set('send_metadata', 'true');
 
-    const videoDetails = detailsResult.data;
-    console.log(`Fetched video details: "${videoDetails.title}"`);
+    console.log(`[youtube-import] Fetching transcript from: ${transcriptUrl.toString()}`);
 
-    // ========================================================================
-    // Step 4: Fetch transcript via youtube-api function
-    // ========================================================================
-    const transcriptResponse = await fetch(
-      `${supabaseUrl}/functions/v1/youtube-api`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${userJwtToken}`,
-        },
-        body: JSON.stringify({
-          action: 'transcript',
-          params: { videoId },
-        }),
-      }
-    );
+    const transcriptResponse = await fetch(transcriptUrl.toString(), {
+      headers: {
+        Authorization: `Bearer ${transcriptApiKey}`,
+      },
+    });
+
+    const transcriptRaw = await transcriptResponse.text();
+    const transcriptPayload = parseJsonSafely(transcriptRaw);
 
     if (!transcriptResponse.ok) {
-      const errorText = await transcriptResponse.text();
-      console.error('Failed to fetch transcript:', errorText);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'transcribing' as ImportStep,
-          error: 'Transcript not available for this video. Ensure the video has captions enabled.' 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      console.error('[youtube-import] downstream transcript api failure', {
+        stage: 'transcript',
+        downstreamStatus: transcriptResponse.status,
+        responseBody: typeof transcriptRaw === 'string' ? transcriptRaw.slice(0, 500) : 'empty',
+      });
+      return createDownstreamFailureResponse(
+        'transcripts-api',
+        'transcript',
+        'transcribing',
+        transcriptResponse.status,
+        'transcripts-api transcript stage failed',
+        corsHeaders,
+        transcriptPayload,
       );
     }
 
-    const transcriptResult = await transcriptResponse.json();
-    
-    if (!transcriptResult.success || !transcriptResult.data?.transcript) {
-      console.error('Transcript response error:', transcriptResult);
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'transcribing' as ImportStep,
-          error: transcriptResult.error || 'Transcript not available for this video' 
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    const transcriptData = isRecord(transcriptPayload) ? transcriptPayload : null;
+    const nestedTranscriptData = isRecord(transcriptData?.data) ? transcriptData.data : null;
+
+    const transcriptText = extractTranscriptText(transcriptData, nestedTranscriptData);
+
+    if (!transcriptText) {
+      console.error('[youtube-import] invalid transcript api success payload', {
+        stage: 'transcript',
+      });
+      return createDownstreamFailureResponse(
+        'transcripts-api',
+        'transcript',
+        'transcribing',
+        502,
+        'transcripts-api transcript returned invalid payload',
+        corsHeaders,
+        transcriptPayload,
       );
     }
 
-    const transcriptText = transcriptResult.data.transcript;
+    if (!videoDetails) {
+      videoDetails = buildFallbackVideoDetails(videoId, transcriptData, nestedTranscriptData);
+      console.log(`Using transcript-derived metadata fallback for video: "${videoDetails.title}"`);
+    }
+
     console.log(`Fetched transcript: ${transcriptText.length} characters`);
 
     // ========================================================================
@@ -449,15 +774,19 @@ Deno.serve(async (req) => {
     let newRecordingUuid: string | null = null;
 
     try {
-      // Find user's bank for recording ownership
-      const { data: userBank } = await supabase
-        .from('bank_memberships')
-        .select('bank_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle();
+      // Reuse the personal bank found in Step 0, or fall back to first membership
+      let recordingBankId = resolvedPersonalBankId;
+      if (!recordingBankId) {
+        const { data: userBank } = await supabase
+          .from('bank_memberships')
+          .select('bank_id')
+          .eq('user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+        recordingBankId = userBank?.bank_id || null;
+      }
 
-      if (userBank?.bank_id) {
+      if (recordingBankId) {
         // Parse duration to seconds for recordings table
         const durationSeconds = parseDurationToSeconds(videoDetails.duration);
 
@@ -481,7 +810,7 @@ Deno.serve(async (req) => {
         const { data: newRecording, error: recordingInsertError } = await supabase
           .from('recordings')
           .insert({
-            bank_id: userBank.bank_id,
+            bank_id: recordingBankId,
             owner_user_id: user.id,
             legacy_recording_id: recordingId,
             title: videoDetails.title,
@@ -546,12 +875,16 @@ Deno.serve(async (req) => {
     // ========================================================================
     // Step 7: Return success
     // ========================================================================
-    const response: ImportResponse = {
+    const response: ImportResponse & { vaultId?: string } = {
       success: true,
       step: 'done',
       recordingId: recordingId,
       title: videoDetails.title,
     };
+
+    if (youtubeVaultId) {
+      response.vaultId = youtubeVaultId;
+    }
 
     return new Response(
       JSON.stringify(response),

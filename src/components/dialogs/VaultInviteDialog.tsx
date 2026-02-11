@@ -53,6 +53,10 @@ export function VaultInviteDialog({
   const [isCopied, setIsCopied] = useState(false)
 
   const generateInvite = useGenerateVaultInvite(vaultId)
+  const mutationErrorMessage =
+    generateInvite.error instanceof Error
+      ? generateInvite.error.message
+      : null
 
   const expiresInDays = useMemo(() => {
     if (!expiresAt) return null
@@ -202,8 +206,11 @@ export function VaultInviteDialog({
               </Button>
             </>
           ) : (
-            <div className="text-center py-6 text-sm text-muted-foreground">
-              Failed to generate link. Please try again.
+            <div className="text-center py-6 text-sm text-muted-foreground space-y-2">
+              <p>Failed to generate link. Please try again.</p>
+              {mutationErrorMessage && (
+                <p className="text-xs text-destructive">{mutationErrorMessage}</p>
+              )}
             </div>
           )}
         </div>

@@ -391,7 +391,7 @@ export function AdminModelManager() {
                     <TableCell>
                       <div 
                         className={cn(
-                          "cursor-pointer px-2 py-0.5 rounded text-[10px] font-medium border text-center select-none w-[50px] transition-colors", 
+                          "cursor-pointer px-2 py-0.5 rounded text-2xs font-medium border text-center select-none w-[50px] transition-colors", 
                           getTierColor(model.min_tier || 'FREE')
                         )}
                         onClick={() => updateModel(model.id, { min_tier: cycleTier(model.min_tier) })}

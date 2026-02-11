@@ -417,7 +417,7 @@ export default function SmartExportDialog({
                   <Label htmlFor="weekly" className="flex items-center gap-2 cursor-pointer">
                     <RiCalendarCheckLine className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">Weekly Bundles</span>
-                    <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    <Badge variant="outline" className="text-2xs px-1.5 py-0">
                       {stats.weekCount} weeks
                     </Badge>
                   </Label>
@@ -437,7 +437,7 @@ export default function SmartExportDialog({
                     <RiFolderLine className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">By Folder</span>
                     {stats.folderCount > 0 && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      <Badge variant="outline" className="text-2xs px-1.5 py-0">
                         {stats.folderCount} folders
                       </Badge>
                     )}
@@ -458,7 +458,7 @@ export default function SmartExportDialog({
                     <RiPriceTag3Line className="h-4 w-4 text-muted-foreground" />
                     <span className="font-medium">By Tag</span>
                     {stats.tagCount > 0 && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                      <Badge variant="outline" className="text-2xs px-1.5 py-0">
                         {stats.tagCount} tags
                       </Badge>
                     )}

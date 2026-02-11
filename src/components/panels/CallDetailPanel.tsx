@@ -538,7 +538,7 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
                               {group.speaker || "Unknown"}
                             </span>
                             {group.messages[0].timestamp && (
-                              <span className="text-[10px] text-ink-muted">
+                              <span className="text-2xs text-ink-muted">
                                 {group.messages[0].timestamp}
                               </span>
                             )}

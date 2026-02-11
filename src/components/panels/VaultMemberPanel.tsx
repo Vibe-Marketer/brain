@@ -190,7 +190,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
           {!isLoading && (
             <Badge
               variant="outline"
-              className="text-[10px] px-1.5 py-0 h-5 tabular-nums"
+              className="text-2xs px-1.5 py-0 h-5 tabular-nums"
             >
               {members.length}
             </Badge>
@@ -311,7 +311,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
                       </p>
                     )}
                     {joinDate && (
-                      <p className="text-[10px] text-muted-foreground/70">
+                      <p className="text-2xs text-muted-foreground/70">
                         Joined {joinDate}
                       </p>
                     )}
@@ -321,7 +321,7 @@ export function VaultMemberPanel({ vaultId, vaultName }: VaultMemberPanelProps) 
                   <Badge
                     variant="outline"
                     className={cn(
-                      'text-[10px] px-1.5 py-0 h-5 uppercase tracking-wider font-medium border-0 flex-shrink-0',
+                      'text-2xs px-1.5 py-0 h-5 uppercase tracking-wider font-medium border-0 flex-shrink-0',
                       roleStyle.bg,
                       roleStyle.text
                     )}

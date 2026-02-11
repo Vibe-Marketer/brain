@@ -108,12 +108,12 @@ export function IntegrationSourceCard({
 
         {/* Connection status */}
         {connected ? (
-          <span className="text-[10px] font-medium text-success flex items-center gap-1">
+          <span className="text-2xs font-medium text-success flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-success" />
             Connected
           </span>
         ) : (
-          <span className="text-[10px] font-medium text-vibe-orange">
+          <span className="text-2xs font-medium text-vibe-orange">
             Connect →
           </span>
         )}
@@ -123,7 +123,7 @@ export function IntegrationSourceCard({
       {connected && (
         <div className="flex items-center gap-1.5">
           <span className={cn(
-            "text-[10px] font-medium uppercase transition-colors",
+            "text-2xs font-medium uppercase transition-colors",
             !localEnabled ? "text-ink-muted" : "text-ink-muted/40"
           )}>
             off
@@ -135,7 +135,7 @@ export function IntegrationSourceCard({
             className="data-[state=checked]:bg-success"
           />
           <span className={cn(
-            "text-[10px] font-medium uppercase transition-colors",
+            "text-2xs font-medium uppercase transition-colors",
             localEnabled ? "text-success" : "text-ink-muted/40"
           )}>
             on

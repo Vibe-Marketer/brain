@@ -53,14 +53,17 @@ export interface ContentLibraryResult<T> {
  * const { data, error } = await fetchContentItems({ tags: ['follow-up', 'important'] });
  */
 export async function fetchContentItems(
-  filters?: ContentLibraryFilters
+  filters?: ContentLibraryFilters,
+  bankId?: string | null
 ): Promise<ContentLibraryResult<ContentLibraryItem[]>> {
   try {
     const user = await requireUser();
+    if (!bankId) return { data: [], error: null };
 
     let query = supabase
       .from("content_library")
       .select("*")
+      .eq("bank_id", bankId)
       .order("created_at", { ascending: false });
 
     // RLS handles user/team access, but we can add explicit user filter for clarity
@@ -128,10 +131,18 @@ export async function fetchContentItems(
  * });
  */
 export async function saveContent(
-  input: ContentLibraryInput
+  input: ContentLibraryInput,
+  bankId?: string | null
 ): Promise<ContentLibraryResult<ContentLibraryItem>> {
   try {
     const user = await requireUser();
+
+    if (!bankId) {
+      return {
+        data: null,
+        error: new ContentLibraryError("Bank ID is required"),
+      };
+    }
 
     // Validate required fields
     if (!input.title?.trim()) {
@@ -167,6 +178,7 @@ export async function saveContent(
       .from("content_library")
       .insert({
         user_id: user.id,
+        bank_id: bankId,
         content_type: input.content_type,
         title: input.title.trim(),
         content: input.content,
@@ -484,15 +496,19 @@ export async function getContentById(
  * const { data: tags, error } = await getAllTags();
  * // tags: ['follow-up', 'sales', 'marketing', ...]
  */
-export async function getAllTags(): Promise<ContentLibraryResult<string[]>> {
+export async function getAllTags(bankId?: string | null): Promise<ContentLibraryResult<string[]>> {
   try {
     const user = await requireUser();
+    if (!bankId) return { data: [], error: null };
 
     // Fetch all items and extract unique tags
     // Note: This could be optimized with a database function for large datasets
-    const { data, error } = await supabase
+    let query = supabase
       .from("content_library")
-      .select("tags");
+      .select("tags")
+      .eq("bank_id", bankId);
+
+    const { data, error } = await query;
 
     if (error) {
       logger.error("Error fetching tags", error);

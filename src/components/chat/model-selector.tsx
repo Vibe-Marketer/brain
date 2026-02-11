@@ -239,7 +239,7 @@ export function ModelSelector({
         {providers.map((provider, idx) => (
           <React.Fragment key={provider}>
             {idx > 0 && <DropdownMenuSeparator />}
-            <DropdownMenuLabel className="flex items-center gap-2 text-[10px] uppercase text-ink-muted">
+            <DropdownMenuLabel className="flex items-center gap-2 text-2xs uppercase text-ink-muted">
               <ProviderIcon provider={provider} className="h-3 w-3" />
               {providerDisplayNames[provider] || provider}
             </DropdownMenuLabel>

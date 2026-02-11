@@ -178,7 +178,7 @@ describe('contentLibraryStore', () => {
         await useContentLibraryStore.getState().fetchItems();
       });
 
-      expect(mockFetchContentItems).toHaveBeenCalledWith(filters);
+      expect(mockFetchContentItems).toHaveBeenCalledWith(filters, undefined);
     });
 
     it('should use provided filters over store filters', async () => {
@@ -195,7 +195,7 @@ describe('contentLibraryStore', () => {
         await useContentLibraryStore.getState().fetchItems(providedFilters);
       });
 
-      expect(mockFetchContentItems).toHaveBeenCalledWith(providedFilters);
+      expect(mockFetchContentItems).toHaveBeenCalledWith(providedFilters, undefined);
     });
   });
 
@@ -369,8 +369,8 @@ describe('contentLibraryStore', () => {
         await useContentLibraryStore.getState().fetchAllTemplates();
       });
 
-      expect(mockFetchTemplates).toHaveBeenCalledWith(filters, true);
-      expect(mockFetchSharedTemplates).toHaveBeenCalledWith(filters);
+      expect(mockFetchTemplates).toHaveBeenCalledWith(filters, true, undefined);
+      expect(mockFetchSharedTemplates).toHaveBeenCalledWith(filters, undefined);
     });
   });
 

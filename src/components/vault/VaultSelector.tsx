@@ -185,7 +185,7 @@ export function VaultSelector({
                   <VaultIcon vault={vault} />
                   <span className="truncate">{vault.name}</span>
                   {vault.vault_type === 'personal' && (
-                    <span className="text-[10px] text-muted-foreground ml-1">
+                    <span className="text-2xs text-muted-foreground ml-1">
                       (personal)
                     </span>
                   )}

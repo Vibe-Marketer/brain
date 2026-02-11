@@ -1,12 +1,12 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-02-11 (Plan 04 - phase complete)
+**Last Updated:** 2026-02-11 (Plan 06 executed)
 
 ## Project Reference
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 11 - PROFITS Frontend Trigger (pending)
+**Current Focus:** Phase 10.3 post-plan verification blockers (external API credential/billing remediation)
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization + Gap Closures
 
-**Phase:** 11 of 11+ (PROFITS Frontend Trigger)
+**Phase:** 10.3 of 11+ (YouTube-Specific Vaults & Video Intelligence)
 
-**Plan:** 0 of 2 in current phase
+**Plan:** 6 of 6 in current phase
 
-**Status:** In progress
+**Status:** In progress (external blocker)
 
-**Last activity:** 2026-02-11 - Phase 10.3 COMPLETE (YouTube-Specific Vaults & Video Intelligence) - 4/4 plans, 7/7 must-haves verified
+**Last activity:** 2026-02-11 - Completed 10.3-06-PLAN.md (YouTube import diagnostics + blocker triage)
 
 **Progress:**
 ```
-[█████████████████████████████████████████████] 85/87 plans complete (98%)
+[██████████████████████████████████████████████] 87/87 plans complete (100%)
 ```
 
 ---
@@ -57,7 +57,7 @@
 | Phase 9: Bank/Vault Architecture | 5 | 5 | Complete (10/10 plans) |
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
 | Phase 10.2: Vaults Page | 7 | 7 | Complete (9/9 plans) |
-| Phase 10.3: YouTube-Specific Vaults | 6 | 6 | Complete (4/4 plans) |
+| Phase 10.3: YouTube-Specific Vaults | 6 | 6 | In progress (6/6 plans, external runtime blocker) |
 
 ### Velocity
 
@@ -158,6 +158,8 @@
 | 2026-02-10 | Settings category rows use pill-first active emphasis | Vertical indicator should be the primary wayfinding signal, not stacked orange icon/text/arrow accents | SettingsCategoryPane active colors are neutralized while preserving keyboard/ARIA behavior |
 | 2026-02-10 | HUB pane headers use icon-led stacked context layout | Prevent overlap/truncation in constrained pane widths while keeping workspace context legible | VaultListPane header now stacks workspace label/name/switcher with dedicated action row |
 | 2026-02-10 | Brand tabs standardize on rounded pill active indicators | Current UI direction moved off clip-path tab markers; docs needed canonical guidance | Brand guidelines v4.2.1 now codify pill indicator direction and hardcoded-value policy |
+| 2026-02-11 | Enforce YouTube create-type parity across Hubs and Settings | UAT gap showed stale hardcoded create options blocked self-serve YouTube vault creation | Both create entry points now expose YouTube with regression coverage on option and payload |
+| 2026-02-11 | Propagate provider statuses from youtube-api and normalize transcript endpoint | UAT continuation showed youtube-import 500 remained non-actionable due downstream masking and deprecated transcript host | Import failures now expose concrete upstream causes (API_KEY_INVALID, transcript billing 402) for immediate config remediation |
 
 ### Active TODOs
 
@@ -243,8 +245,10 @@ Phase 10.2 COMPLETE (9/9 plans).
 - [x] Execute 10.3-02-PLAN.md (YouTube Video List: media-row components, sort hook, VaultDetailPane)
 - [x] Execute 10.3-03-PLAN.md (Import Flow: VaultSelector YouTube-only filtering, auto-create vault)
 - [x] Execute 10.3-04-PLAN.md (Video Detail Modal: summary, description, transcript, chat)
+- [x] Execute 10.3-05-PLAN.md (Gap closure: expose YouTube in Hubs + Settings create flows with tests)
+- [x] Execute 10.3-06-PLAN.md (Import diagnostics hardening + runtime blocker triage)
 
-Phase 10.3 COMPLETE (4/4 plans). 7/7 must-haves verified.
+Phase 10.3 plans complete (6/6). External runtime blockers remain before UAT sign-off.
 
 ### Pending Todos
 
@@ -263,7 +267,8 @@ Phase 10.3 COMPLETE (4/4 plans). 7/7 must-haves verified.
 
 ### Known Blockers
 
-None
+- Project secret `YOUTUBE_DATA_API_KEY` currently invalid in runtime (`API_KEY_INVALID` from YouTube API)
+- Transcript provider key returns `402 no_active_paid_plan` for transcript fetch requests
 
 ### Quick Tasks Completed
 
@@ -277,14 +282,14 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-02-11
-**Stopped at:** Phase 10.3 COMPLETE — verified and committed
+**Last session:** 2026-02-11 06:40 UTC
+**Stopped at:** Completed 10.3-06-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.3 COMPLETE (4/4 plans, 7/7 must-haves verified). YouTube-Specific Vaults fully delivered. Phase 11 (PROFITS Frontend Trigger) is next.
+Phase 10.3 plan execution is complete at 6/6, with one external runtime gate still blocking final UAT approval of import-dependent tests.
 
 **What to remember:**
 - Migration 20260211000001: 'youtube' added to vault_type CHECK constraint
@@ -298,7 +303,8 @@ Phase 10.3 COMPLETE (4/4 plans, 7/7 must-haves verified). YouTube-Specific Vault
 - youtube-import auto-creates "YouTube Vault" on first import + populates recordings table
 - YouTubeVideoDetailModal opens on click with summary, collapsible description, transcript, chat CTA
 - YouTubeChatSection navigates to /chat with vault context
-- Phase 11 (PROFITS Frontend Trigger) is next — 2 plans pending
+- Current focus: set valid YouTube API key and transcript billing in Supabase runtime, then re-run UAT tests 2-4
+- Phase 11 (PROFITS Frontend Trigger) follows once UAT blockers clear
 
 ---
 
@@ -309,12 +315,12 @@ Phase 10.3 COMPLETE (4/4 plans, 7/7 must-haves verified). YouTube-Specific Vault
 | Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 80 |
 | Requirements Complete | 70 (88%) |
-| Current Phase | 11 - PROFITS Frontend Trigger (0/2 plans) |
-| Plans Complete | 85/87 (98%) |
-| Next Plan | 11-01-PLAN.md (PROFITS frontend trigger) |
-| Blockers | 0 |
+| Current Phase | 10.3 - YouTube-Specific Vaults (6/6 plans, awaiting runtime config fix) |
+| Plans Complete | 87/87 (100%) |
+| Next Plan | None (phase plans complete; rerun UAT after secrets/billing remediation) |
+| Blockers | 2 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-11 (Phase 10.3 COMPLETE — YouTube-Specific Vaults delivered, 4/4 plans, 7/7 must-haves verified)*
+*Last updated: 2026-02-11 (Completed 10.3-06; phase plans 6/6 complete with external runtime blockers documented)*

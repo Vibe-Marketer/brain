@@ -1,6 +1,0 @@
-## Codebase Patterns
-
-(Patterns discovered during Ralph iterations will be added here)
-
----
-

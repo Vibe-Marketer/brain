@@ -52,6 +52,11 @@ const VAULT_TYPE_OPTIONS: Array<{
     description: 'Shared hub for your team',
   },
   {
+    value: 'youtube',
+    label: 'YouTube',
+    description: 'Video intelligence and channel content',
+  },
+  {
     value: 'coach',
     label: 'Coach',
     description: 'Coaching sessions and feedback',
@@ -209,7 +214,7 @@ export function CreateVaultDialog({
                         </span>
                       </div>
                       {opt.disabled && (
-                        <Badge variant="outline" className="text-[10px]">
+                        <Badge variant="outline" className="text-2xs">
                           Coming Soon
                         </Badge>
                       )}

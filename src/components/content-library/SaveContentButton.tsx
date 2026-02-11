@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/sonner";
 import { useContentLibraryStore } from "@/stores/contentLibraryStore";
+import { useBankContext } from "@/hooks/useBankContext";
 import type { ContentType, ContentMetadata } from "@/types/content-library";
 import { normalizeTags, addTag, removeTag, getTagSuggestions } from "@/lib/tag-utils";
 
@@ -113,13 +114,14 @@ export function SaveContentButton({
   const saveContentItem = useContentLibraryStore((state) => state.saveContentItem);
   const availableTags = useContentLibraryStore((state) => state.availableTags);
   const fetchTags = useContentLibraryStore((state) => state.fetchTags);
+  const { activeBankId } = useBankContext();
 
   // Fetch available tags when dialog opens
   useEffect(() => {
     if (isDialogOpen) {
-      fetchTags();
+      fetchTags(activeBankId);
     }
-  }, [isDialogOpen, fetchTags]);
+  }, [isDialogOpen, fetchTags, activeBankId]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -233,7 +235,7 @@ export function SaveContentButton({
         content_type: contentType,
         tags: normalizeTags(tags),
         metadata: metadata || {},
-      });
+      }, activeBankId);
 
       if (result) {
         setIsSaved(true);

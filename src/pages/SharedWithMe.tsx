@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import {
-  RiSearchLine,
   RiCalendarLine,
   RiTimeLine,
   RiLinksLine,
@@ -11,18 +10,16 @@ import {
   RiShareLine,
 } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { Spinner } from "@/components/ui/spinner";
+import { SharedWithMePane } from "@/components/panes/SharedWithMePane";
+import { usePanelStore } from "@/stores/panelStore";
 
-import { useDirectReports, useTeamShares } from "@/hooks/useTeamHierarchy";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/query-config";
-import { logger } from "@/lib/logger";
 import { useTableSort } from "@/hooks/useTableSort";
 import { cn } from "@/lib/utils";
 
@@ -124,214 +121,39 @@ interface UseSharedWithMeOptions {
 function useSharedWithMe(options: UseSharedWithMeOptions) {
   const { userId, enabled = true } = options;
 
-  // Get calls shared via share links
   const { data: shareLinkCalls, isLoading: isLoadingShareLinks } = useQuery({
     queryKey: queryKeys.sharing.sharedWithMe(),
     queryFn: async () => {
-      if (!userId) return [];
-
-      // Get all share links where user has accessed
-      const { data: accessLogs, error: logsError } = await supabase
-        .from("call_share_access_log")
-        .select(`
-          share_link_id,
-          call_share_links!inner(
-            id,
-            call_recording_id,
-            user_id,
-            status
-          )
-        `)
-        .eq("accessed_by_user_id", userId);
-
-      if (logsError) {
-        logger.error("Error fetching share link access", logsError);
-        return [];
-      }
-
-      // Also get active share links where user is the recipient (by email)
-      const { data: userData } = await supabase.rpc("get_user_email", {
-        user_id: userId,
+      // Preferred path: RPC backed by SECURITY DEFINER function
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const rpcResult = await (supabase as any).rpc("get_calls_shared_with_me_v2", {
+        p_include_expired: false,
       });
 
-      const { data: recipientLinks, error: recipientError } = await supabase
-        .from("call_share_links")
-        .select("*")
-        .eq("recipient_email", userData)
-        .eq("status", "active");
-
-      if (recipientError) {
-        logger.error("Error fetching recipient share links", recipientError);
+      if (rpcResult.error) {
+        return [] as SharedCallBase[];
       }
 
-      // Combine and dedupe
-      const linkIds = new Set<string>();
-      const allLinks: Array<{
-        share_link_id: string;
-        call_recording_id: number;
-        user_id: string;
-      }> = [];
+      const rows = rpcResult.data;
 
-      // From access logs
-      accessLogs?.forEach((log) => {
-        const link = log.call_share_links as unknown as {
-          id: string;
-          call_recording_id: number;
-          user_id: string;
-          status: string;
-        };
-        if (link.status === "active" && !linkIds.has(link.id)) {
-          linkIds.add(link.id);
-          allLinks.push({
-            share_link_id: link.id,
-            call_recording_id: link.call_recording_id,
-            user_id: link.user_id,
-          });
-        }
-      });
-
-      // From recipient links
-      recipientLinks?.forEach((link) => {
-        if (!linkIds.has(link.id)) {
-          linkIds.add(link.id);
-          allLinks.push({
-            share_link_id: link.id,
-            call_recording_id: link.call_recording_id,
-            user_id: link.user_id,
-          });
-        }
-      });
-
-      if (allLinks.length === 0) return [];
-
-      // Fetch call details
-      const calls: SharedCallBase[] = [];
-      for (const link of allLinks) {
-        const { data: call } = await supabase
-          .from("fathom_calls")
-          .select("recording_id, call_name, recording_start_time, duration")
-          .eq("recording_id", link.call_recording_id)
-          .eq("user_id", link.user_id)
-          .single();
-
-        if (call) {
-          const { data: ownerEmail } = await supabase.rpc("get_user_email", {
-            user_id: link.user_id,
-          });
-
-          calls.push({
-            ...call,
-            owner_email: ownerEmail || "Unknown",
-            source_type: "share_link",
-            source_label: "Direct Link",
-          });
-        }
-      }
-
-      return calls;
+      return ((rows || []) as Array<{
+        recording_id: number;
+        call_name: string;
+        recording_start_time: string;
+        duration: string | null;
+        source_label: string;
+      }>).map((row) => ({
+        recording_id: row.recording_id,
+        call_name: row.call_name,
+        recording_start_time: row.recording_start_time,
+        duration: row.duration,
+        owner_email: "Shared via link",
+        source_type: "share_link" as const,
+        source_label: row.source_label || "Direct Link",
+      }));
     },
     enabled: enabled && !!userId,
   });
-
-  // Get calls from direct reports (where user is manager)
-  const { directReportCalls, isLoading: isLoadingManagerCalls } = useDirectReports({
-    userId,
-    enabled: enabled && !!userId,
-  });
-
-  // Get calls shared via team shares
-  const { sharesWithMe, isLoading: isLoadingTeamShares } = useTeamShares({
-    userId,
-    enabled: enabled && !!userId,
-  });
-
-  // Get team-shared calls
-  const { data: teamSharedCalls, isLoading: isLoadingTeamCalls } = useQuery({
-    queryKey: ["shared-with-me", "team-calls", userId],
-    queryFn: async () => {
-      if (!userId || !sharesWithMe?.length) return [];
-
-      const calls: SharedCallBase[] = [];
-      const seenCallIds = new Set<number>();
-
-      for (const share of sharesWithMe) {
-        // For each share rule, fetch matching calls
-        let query = supabase
-          .from("fathom_calls")
-          .select("recording_id, call_name, recording_start_time, duration, user_id")
-          .eq("user_id", share.owner_user_id)
-          .order("recording_start_time", { ascending: false })
-          .limit(50);
-
-        if (share.share_type === "folder" && share.folder_id) {
-          // Get calls in this folder
-          const { data: folderAssignments } = await supabase
-            .from("folder_assignments")
-            .select("recording_id")
-            .eq("folder_id", share.folder_id);
-
-          if (folderAssignments?.length) {
-            const recordingIds = folderAssignments.map((a) => a.recording_id);
-            query = query.in("recording_id", recordingIds);
-          } else {
-            continue; // No calls in folder
-          }
-        } else if (share.share_type === "tag" && share.tag_id) {
-          // Get calls with this tag
-          const { data: tagAssignments } = await supabase
-            .from("call_tag_assignments")
-            .select("recording_id")
-            .eq("tag_id", share.tag_id);
-
-          if (tagAssignments?.length) {
-            const recordingIds = tagAssignments.map((a) => a.recording_id);
-            query = query.in("recording_id", recordingIds);
-          } else {
-            continue; // No calls with tag
-          }
-        }
-
-        const { data: shareCalls, error } = await query;
-
-        if (error) {
-          logger.error("Error fetching team shared calls", error);
-          continue;
-        }
-
-        for (const call of shareCalls || []) {
-          if (!seenCallIds.has(call.recording_id)) {
-            seenCallIds.add(call.recording_id);
-            calls.push({
-              recording_id: call.recording_id,
-              call_name: call.call_name,
-              recording_start_time: call.recording_start_time,
-              duration: call.duration,
-              owner_email: share.owner_name || "Teammate",
-              source_type: "team",
-              source_label: share.folder_name || share.tag_name || "Team Share",
-            });
-          }
-        }
-      }
-
-      return calls;
-    },
-    enabled: enabled && !!userId && sharesWithMe && sharesWithMe.length > 0,
-  });
-
-  // Transform manager calls
-  const transformedManagerCalls: SharedCallBase[] = useMemo(() => {
-    return (directReportCalls || []).map((call) => ({
-      recording_id: call.recording_id,
-      call_name: call.call_name,
-      recording_start_time: call.recording_start_time,
-      duration: call.duration,
-      owner_email: call.owner_email,
-      owner_name: call.owner_name,
-      source_type: "manager" as const,
-      source_label: "Direct Report",
-    }));
-  }, [directReportCalls]);
 
   // Combine all calls and dedupe
   const allCalls = useMemo(() => {
@@ -348,8 +170,6 @@ function useSharedWithMe(options: UseSharedWithMeOptions) {
     };
 
     addCalls(shareLinkCalls || []);
-    addCalls(transformedManagerCalls);
-    addCalls(teamSharedCalls || []);
 
     // Sort by date descending
     return combined.sort(
@@ -359,15 +179,9 @@ function useSharedWithMe(options: UseSharedWithMeOptions) {
     );
   }, [
     shareLinkCalls,
-    transformedManagerCalls,
-    teamSharedCalls,
   ]);
 
-  const isLoading =
-    isLoadingShareLinks ||
-    isLoadingManagerCalls ||
-    isLoadingTeamShares ||
-    isLoadingTeamCalls;
+  const isLoading = isLoadingShareLinks;
 
   // Group by source type for tabs
   const bySourceType = useMemo(() => {
@@ -399,15 +213,17 @@ function useSharedWithMe(options: UseSharedWithMeOptions) {
 interface SharedCallsTableProps {
   calls: SharedCallBase[];
   onCallClick: (call: SharedCallBase) => void;
+  onOpenCallPage: (call: SharedCallBase) => void;
   showSourceColumn?: boolean;
 }
 
 function SharedCallsTable({
   calls,
   onCallClick,
+  onOpenCallPage,
   showSourceColumn = true,
 }: SharedCallsTableProps) {
-  const { sortField, sortDirection, sortedData, handleSort } = useTableSort(
+  const { sortField, sortedData, handleSort } = useTableSort(
     calls,
     "recording_start_time"
   );
@@ -471,6 +287,9 @@ function SharedCallsTable({
                 Duration
               </span>
             </th>
+            <th className="text-right py-3 px-4">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Open</span>
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -521,6 +340,18 @@ function SharedCallsTable({
                     <span>{formatDuration(call.duration)}</span>
                   </div>
                 </td>
+                <td className="py-3 px-4 text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onOpenCallPage(call);
+                    }}
+                  >
+                    Open
+                  </Button>
+                </td>
               </tr>
             );
           })}
@@ -537,10 +368,11 @@ function SharedCallsTable({
 const SharedWithMe = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
+  const { openPanel } = usePanelStore();
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState<"all" | "share_link" | "team" | "manager">("all");
 
   // Get shared calls
   const { bySourceType, isLoading, counts } = useSharedWithMe({
@@ -564,6 +396,14 @@ const SharedWithMe = () => {
 
   // Handle call click
   const handleCallClick = (call: SharedCallBase) => {
+    openPanel("call-detail", {
+      type: "call-detail",
+      recordingId: call.recording_id,
+      title: call.call_name,
+    });
+  };
+
+  const handleOpenCallPage = (call: SharedCallBase) => {
     navigate(`/call/${call.recording_id}`);
   };
 
@@ -587,32 +427,21 @@ const SharedWithMe = () => {
     );
   }
 
-  // Empty state
-  if (!isLoading && counts.all === 0) {
-    return (
-      <div className="h-full flex flex-col items-center justify-center gap-4 p-8">
-        <RiShareLine className="h-16 w-16 text-muted-foreground opacity-50" />
-        <h1 className="text-xl font-bold">Shared With Me</h1>
-        <p className="text-muted-foreground text-center max-w-md">
-          No calls have been shared with you yet. When colleagues share calls via
-          links or team sharing, they&apos;ll appear here.
-        </p>
-          <div className="flex flex-col gap-2 text-sm text-muted-foreground mt-4">
-            <div className="flex items-center gap-2">
-              <RiLinksLine className="h-4 w-4 text-info-text" />
-              <span>Direct share links</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <RiGroupLine className="h-4 w-4 text-success-text" />
-              <span>Team folder/tag sharing</span>
-            </div>
-          </div>
-      </div>
-    );
-  }
-
   return (
-    <AppShell>
+    <AppShell
+      config={{
+        secondaryPane: (
+          <SharedWithMePane
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            counts={counts}
+          />
+        ),
+        showDetailPane: true,
+      }}
+    >
       <div className="h-full flex flex-col overflow-hidden">
         <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
           <div className="flex items-center gap-3 min-w-0">
@@ -631,57 +460,7 @@ const SharedWithMe = () => {
               </p>
             </div>
           </div>
-
-          <div className="relative w-64 flex-shrink-0 hidden md:block">
-            <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search shared calls..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 pl-8 text-sm"
-            />
-          </div>
         </header>
-
-        <div className="px-4 pt-3 flex-shrink-0">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList>
-              <TabsTrigger value="all">
-                ALL
-                <Badge variant="secondary" className="ml-2 text-xs">
-                  {counts.all}
-                </Badge>
-              </TabsTrigger>
-              {counts.share_link > 0 && (
-                <TabsTrigger value="share_link">
-                  <RiLinksLine className="h-4 w-4 mr-2" />
-                  LINKS
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {counts.share_link}
-                  </Badge>
-                </TabsTrigger>
-              )}
-              {counts.team > 0 && (
-                <TabsTrigger value="team">
-                  <RiGroupLine className="h-4 w-4 mr-2" />
-                  TEAM
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {counts.team}
-                  </Badge>
-                </TabsTrigger>
-              )}
-              {counts.manager > 0 && (
-                <TabsTrigger value="manager">
-                  <RiGroupLine className="h-4 w-4 mr-2" />
-                  DIRECT REPORTS
-                  <Badge variant="secondary" className="ml-2 text-xs">
-                    {counts.manager}
-                  </Badge>
-                </TabsTrigger>
-              )}
-            </TabsList>
-          </Tabs>
-        </div>
 
         <div className="flex-1 overflow-auto p-6">
           {isLoading ? (
@@ -692,6 +471,7 @@ const SharedWithMe = () => {
             <SharedCallsTable
               calls={filteredCalls}
               onCallClick={handleCallClick}
+              onOpenCallPage={handleOpenCallPage}
               showSourceColumn={activeTab === "all"}
             />
           )}

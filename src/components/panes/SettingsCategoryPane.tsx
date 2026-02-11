@@ -20,28 +20,16 @@ import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
   RiUserLine,
-  RiUserFill,
   RiTeamLine,
-  RiTeamFill,
   RiWalletLine,
-  RiWalletFill,
   RiPlugLine,
-  RiPlugFill,
   RiRobot2Line,
-  RiRobot2Fill,
   RiShieldLine,
-  RiShieldFill,
   RiSettings3Line,
   RiBuilding4Line,
-  RiBuilding4Fill,
   RiContactsLine,
-  RiContactsFill,
   RiBankLine,
-  RiBankFill,
 } from "@remixicon/react";
-
-/** Transition duration for pane animations (matches Loop pattern: ~200-300ms) */
-const TRANSITION_DURATION = 250;
 
 export type SettingsCategory =
   | "account"
@@ -59,8 +47,6 @@ interface CategoryItem {
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  /** Filled icon variant for active/selected state (optional - falls back to line icon with orange color) */
-  iconFill?: React.ComponentType<{ className?: string }>;
   /** Roles required to see this category. Empty array = visible to all. */
   requiredRoles?: Array<"ADMIN" | "TEAM">;
 }
@@ -71,35 +57,30 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     label: "Account",
     description: "Profile and preferences",
     icon: RiUserLine,
-    iconFill: RiUserFill,
   },
   {
     id: "business",
     label: "Business Profile",
     description: "AI content personalization",
     icon: RiBuilding4Line,
-    iconFill: RiBuilding4Fill,
   },
   {
     id: "contacts",
     label: "Contacts",
     description: "Track call attendees",
     icon: RiContactsLine,
-    iconFill: RiContactsFill,
   },
   {
     id: "banks",
     label: "Workspaces & Hubs",
     description: "Workspaces and collaboration",
     icon: RiBankLine,
-    iconFill: RiBankFill,
   },
   {
     id: "users",
     label: "Users",
     description: "Manage organization users",
     icon: RiTeamLine,
-    iconFill: RiTeamFill,
     requiredRoles: ["TEAM", "ADMIN"],
   },
   {
@@ -107,28 +88,24 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     label: "Billing",
     description: "Plans and payments",
     icon: RiWalletLine,
-    iconFill: RiWalletFill,
   },
   {
     id: "integrations",
     label: "Integrations",
     description: "Connected services",
     icon: RiPlugLine,
-    iconFill: RiPlugFill,
   },
   {
     id: "ai",
     label: "AI",
     description: "Models and knowledge base",
     icon: RiRobot2Line,
-    iconFill: RiRobot2Fill,
   },
   {
     id: "admin",
     label: "Admin",
     description: "System administration",
     icon: RiShieldLine,
-    iconFill: RiShieldFill,
     requiredRoles: ["ADMIN"],
   },
 ];
@@ -179,13 +156,6 @@ export function SettingsCategoryPane({
       return false;
     });
   }, [isAdmin, isTeam]);
-
-  // Get the current focused category index
-  const getFocusedIndex = React.useCallback(() => {
-    const focused = document.activeElement as HTMLElement;
-    const entries = Array.from(buttonRefs.current.entries());
-    return entries.findIndex(([, el]) => el === focused);
-  }, []);
 
   // Focus a category by index (wraps around)
   const focusCategoryByIndex = React.useCallback(
@@ -239,7 +209,7 @@ export function SettingsCategoryPane({
       className={cn(
         "h-full flex flex-col",
         // Pane enter animation (slide + fade)
-        "transition-all duration-300 ease-in-out",
+        "transition-all duration-500 ease-in-out",
         isMounted
           ? "opacity-100 translate-x-0"
           : "opacity-0 -translate-x-2",
@@ -249,7 +219,7 @@ export function SettingsCategoryPane({
       aria-label="Settings categories"
     >
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-cb-card/50">
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card/50">
         <div
           className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
           aria-hidden="true"
@@ -277,8 +247,7 @@ export function SettingsCategoryPane({
       >
         {visibleCategories.map((category) => {
           const isActive = selectedCategory === category.id;
-          // Use filled icon variant when active, fall back to line icon
-          const IconComponent = isActive && category.iconFill ? category.iconFill : category.icon;
+          const IconComponent = category.icon;
 
           return (
             <div
@@ -286,17 +255,6 @@ export function SettingsCategoryPane({
               role="listitem"
               className="relative mb-1"
             >
-              {/* Active indicator - pill shape (Loop-style) with smooth transition */}
-              <div
-                className={cn(
-                  "cv-side-indicator-pill",
-                  "transition-all duration-200 ease-in-out",
-                  isActive
-                    ? "opacity-100 scale-y-100"
-                    : "opacity-0 scale-y-0"
-                )}
-                aria-hidden="true"
-              />
               <button
                 ref={(el) => {
                   if (el) {
@@ -309,13 +267,14 @@ export function SettingsCategoryPane({
                 onClick={() => onCategorySelect(category.id)}
                 onKeyDown={(e) => handleKeyDown(e, category.id)}
                 className={cn(
-                  "w-full flex items-start gap-3 px-3 py-3 rounded-lg",
+                  "relative w-full flex items-start gap-3 px-3 py-3 rounded-lg",
                   "text-left transition-all duration-150 ease-in-out",
-                  "hover:bg-muted/50 dark:hover:bg-white/5",
+                  "hover:bg-hover/70",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
                     "bg-hover",
                     "border-l-0 pl-4", // Offset for the active indicator
+                    "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
                 )}
                 aria-current={isActive ? "true" : undefined}
@@ -326,14 +285,14 @@ export function SettingsCategoryPane({
                   className={cn(
                     "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
                     "bg-cb-card border border-border",
-                    "transition-all duration-200 ease-in-out",
+                    "transition-all duration-500 ease-in-out",
                     isActive && "bg-muted dark:bg-white/10"
                   )}
                   aria-hidden="true"
                 >
                   <IconComponent
                     className={cn(
-                      "h-4 w-4 transition-colors duration-200 ease-in-out",
+                      "h-4 w-4 transition-colors duration-500 ease-in-out",
                       isActive
                         ? "text-ink dark:text-white"
                         : "text-ink-muted"
@@ -346,7 +305,7 @@ export function SettingsCategoryPane({
                   <span
                     className={cn(
                       "block text-sm font-medium truncate",
-                      "transition-colors duration-200 ease-in-out",
+                      "transition-colors duration-500 ease-in-out",
                       isActive ? "text-ink dark:text-white" : "text-ink"
                     )}
                   >
@@ -361,7 +320,7 @@ export function SettingsCategoryPane({
                 <div
                   className={cn(
                     "flex-shrink-0 mt-1.5",
-                    "transition-all duration-200 ease-in-out",
+                    "transition-all duration-500 ease-in-out",
                     isActive
                       ? "opacity-100 translate-x-0"
                       : "opacity-0 -translate-x-1"

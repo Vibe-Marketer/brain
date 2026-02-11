@@ -282,6 +282,7 @@ export default {
         "tremor-full": "9999px",
       },
       fontSize: {
+        "2xs": ["0.625rem", { lineHeight: "0.875rem" }],
         "tremor-label": ["0.75rem", { lineHeight: "1rem" }],
         "tremor-default": ["0.875rem", { lineHeight: "1.25rem" }],
         "tremor-title": ["1.125rem", { lineHeight: "1.75rem" }],
