@@ -189,10 +189,10 @@ export default function WebhookDeliveryViewerV2() {
                       }`}
                   >
                     <div className="flex items-center justify-between w-full">
-                       <span className={`text-[10px] font-bold uppercase ${isSuccess ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>
+                       <span className={`text-2xs font-bold uppercase ${isSuccess ? 'text-green-600 dark:text-green-500' : 'text-red-600 dark:text-red-500'}`}>
                           {d.status}
                        </span>
-                       <span className="text-[10px] text-muted-foreground whitespace-nowrap ml-2">
+                       <span className="text-2xs text-muted-foreground whitespace-nowrap ml-2">
                          {formatDistanceToNow(new Date(d.created_at), { addSuffix: true }).replace("about ", "")}
                        </span>
                     </div>
@@ -226,11 +226,11 @@ export default function WebhookDeliveryViewerV2() {
                    
                    <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-2">
-                         <Badge variant={selected.status === 'success' ? 'default' : 'destructive'} className="text-[10px] h-5">
+                         <Badge variant={selected.status === 'success' ? 'default' : 'destructive'} className="text-2xs h-5">
                            {selected.status.toUpperCase()}
                          </Badge>
                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline-block">{selected.webhook_id.slice(0, 12)}...</span>
+                            <span className="text-2xs text-muted-foreground font-mono hidden sm:inline-block">{selected.webhook_id.slice(0, 12)}...</span>
                             
                             {/* TOOLS MENU */}
                             <DropdownMenu>
@@ -321,7 +321,7 @@ export default function WebhookDeliveryViewerV2() {
                            <div className="flex items-center gap-2">
                              <RiLockPasswordLine className="w-3.5 h-3.5" /> Cryptographic Verification Log
                            </div>
-                           <Button variant="ghost" size="sm" onClick={() => setShowSecrets(!showSecrets)} className="h-6 gap-1 text-[10px] text-slate-500 hover:text-slate-300">
+                           <Button variant="ghost" size="sm" onClick={() => setShowSecrets(!showSecrets)} className="h-6 gap-1 text-2xs text-slate-500 hover:text-slate-300">
                               {showSecrets ? <RiEyeOffLine className="w-3 h-3"/> : <RiEyeLine className="w-3 h-3"/>}
                               {showSecrets ? "Hide Secrets" : "Reveal Secrets"}
                            </Button>
@@ -330,7 +330,7 @@ export default function WebhookDeliveryViewerV2() {
                         {/* 1. Secrets Comparison Table */}
                         <div className="p-0 overflow-x-auto">
                            <table className="w-full text-left">
-                             <thead className="bg-slate-900/50 text-slate-500 text-[10px] uppercase font-bold tracking-wider">
+                             <thead className="bg-slate-900/50 text-slate-500 text-2xs uppercase font-bold tracking-wider">
                                <tr>
                                   <th className="p-3 border-b border-slate-800 font-medium">Method / Secret Source</th>
                                   <th className="p-3 border-b border-slate-800 font-medium">Key Preview</th>
@@ -344,7 +344,7 @@ export default function WebhookDeliveryViewerV2() {
                                      <RiKey2Line className="w-3 h-3 text-slate-500" />
                                      <div>
                                         <div className="font-semibold text-slate-300">OAuth App Secret</div>
-                                        <div className="text-[10px] text-slate-600">Shared Application Key</div>
+                                        <div className="text-2xs text-slate-600">Shared Application Key</div>
                                      </div>
                                   </td>
                                   <td className="p-3 font-mono text-slate-400 break-all">
@@ -355,9 +355,9 @@ export default function WebhookDeliveryViewerV2() {
                                   </td>
                                   <td className="p-3 text-right">
                                      {selected.payload?.verification_results?.oauth_app_secret?.verified ? (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-green-500/10 text-green-400 border border-green-500/20">MATCH</span>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs bg-green-500/10 text-green-400 border border-green-500/20">MATCH</span>
                                      ) : (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-red-500/10 text-red-400 border border-red-500/20">FAIL</span>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs bg-red-500/10 text-red-400 border border-red-500/20">FAIL</span>
                                      )}
                                   </td>
                                </tr>
@@ -367,7 +367,7 @@ export default function WebhookDeliveryViewerV2() {
                                      <RiKey2Line className="w-3 h-3 text-slate-500" />
                                      <div>
                                         <div className="font-semibold text-slate-300">Personal Secret</div>
-                                        <div className="text-[10px] text-slate-600">User: {selected.request_body?.recorded_by?.email || 'N/A'}</div>
+                                        <div className="text-2xs text-slate-600">User: {selected.request_body?.recorded_by?.email || 'N/A'}</div>
                                      </div>
                                   </td>
                                   <td className="p-3 font-mono text-slate-400 break-all">
@@ -378,9 +378,9 @@ export default function WebhookDeliveryViewerV2() {
                                   </td>
                                   <td className="p-3 text-right">
                                      {selected.payload?.verification_results?.personal_by_email?.verified ? (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-green-500/10 text-green-400 border border-green-500/20">MATCH</span>
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs bg-green-500/10 text-green-400 border border-green-500/20">MATCH</span>
                                      ) : (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] bg-red-500/10 text-red-400 border border-red-500/20">
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded text-2xs bg-red-500/10 text-red-400 border border-red-500/20">
                                            {selected.payload?.verification_results?.personal_by_email?.available ? "FAIL" : "MISSING"}
                                         </span>
                                      )}
@@ -392,12 +392,12 @@ export default function WebhookDeliveryViewerV2() {
 
                         {/* 2. Signature Comparison Table */}
                         <div className="border-t border-slate-800 p-4 space-y-3">
-                           <div className="opacity-50 uppercase tracking-wider text-[10px] font-bold">Signature Analysis</div>
+                           <div className="opacity-50 uppercase tracking-wider text-2xs font-bold">Signature Analysis</div>
                            
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               {/* Received */}
                               <div className="space-y-1">
-                                 <div className="text-[10px] text-slate-500 font-semibold mb-1">RECEIVED HEADER</div>
+                                 <div className="text-2xs text-slate-500 font-semibold mb-1">RECEIVED HEADER</div>
                                  <div className="p-3 bg-blue-950/30 text-blue-200 border border-blue-900/50 rounded break-all select-all font-mono text-[11px] leading-relaxed relative group">
                                     <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                        <RiFileCopyLine className="w-3 h-3 cursor-pointer" onClick={() => copyToClipboard(selected.payload?.signature_debug?.received_signature || "", "Signature")} />
@@ -410,13 +410,13 @@ export default function WebhookDeliveryViewerV2() {
 
                               {/* Computed */}
                               <div className="space-y-2">
-                                 <div className="text-[10px] text-slate-500 font-semibold mb-1">COMPUTED CANDIDATES</div>
+                                 <div className="text-2xs text-slate-500 font-semibold mb-1">COMPUTED CANDIDATES</div>
                                  
                                  {/* Specific Computed Candidates */}
                                  {(selected.payload?.verification_results?.personal_by_email?.computed_signature) && (
                                      <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
-                                        <span className="text-[10px] text-slate-500 w-32 shrink-0">Computed (Personal)</span>
-                                        <code className="text-orange-300 break-all select-all text-[10px] flex-1 text-right">
+                                        <span className="text-2xs text-slate-500 w-32 shrink-0">Computed (Personal)</span>
+                                        <code className="text-orange-300 break-all select-all text-2xs flex-1 text-right">
                                            {selected.payload.verification_results.personal_by_email.computed_signature.slice(0, 24)}...
                                         </code>
                                      </div>
@@ -424,8 +424,8 @@ export default function WebhookDeliveryViewerV2() {
                                  
                                  {(selected.payload?.verification_results?.oauth_app_secret?.computed_signature) && (
                                      <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
-                                        <span className="text-[10px] text-slate-500 w-32 shrink-0">Computed (OAuth)</span>
-                                        <code className="text-purple-300 break-all select-all text-[10px] flex-1 text-right">
+                                        <span className="text-2xs text-slate-500 w-32 shrink-0">Computed (OAuth)</span>
+                                        <code className="text-purple-300 break-all select-all text-2xs flex-1 text-right">
                                            {selected.payload.verification_results.oauth_app_secret.computed_signature.slice(0, 24)}...
                                         </code>
                                      </div>
@@ -436,8 +436,8 @@ export default function WebhookDeliveryViewerV2() {
                                    !selected.payload?.verification_results?.oauth_app_secret?.computed_signature) && (
                                    <>
                                      <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
-                                        <span className="text-[10px] text-slate-500 w-24 shrink-0">Native/Simple</span>
-                                        <code className="text-orange-300 break-all select-all text-[10px] flex-1 text-right">
+                                        <span className="text-2xs text-slate-500 w-24 shrink-0">Native/Simple</span>
+                                        <code className="text-orange-300 break-all select-all text-2xs flex-1 text-right">
                                            {selected.payload?.signature_debug?.simple_full_secret ? (
                                               <span>{selected.payload.signature_debug.simple_full_secret.slice(0, 20)}...</span>
                                            ) : <span className="text-slate-700">N/A</span>}
@@ -445,8 +445,8 @@ export default function WebhookDeliveryViewerV2() {
                                      </div>
 
                                      <div className="flex items-center justify-between p-2 bg-slate-900 rounded border border-slate-800 group">
-                                        <span className="text-[10px] text-slate-500 w-24 shrink-0">Svix (Complex)</span>
-                                        <code className="text-purple-300 break-all select-all text-[10px] flex-1 text-right">
+                                        <span className="text-2xs text-slate-500 w-24 shrink-0">Svix (Complex)</span>
+                                        <code className="text-purple-300 break-all select-all text-2xs flex-1 text-right">
                                            {selected.payload?.signature_debug?.svix_computed ? (
                                               <span>{selected.payload.signature_debug.svix_computed.slice(0, 20)}...</span>
                                            ) : <span className="text-slate-700">N/A</span>}

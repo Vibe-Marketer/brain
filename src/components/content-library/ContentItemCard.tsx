@@ -155,7 +155,7 @@ export function ContentItemCard({ item }: ContentItemCardProps) {
                 <h3 className="font-inter font-medium text-sm text-ink truncate leading-tight">
                   {item.title}
                 </h3>
-                <Badge className={`${badgeClass} text-[10px] font-medium px-2 py-0.5 shrink-0`} variant="outline">
+                <Badge className={`${badgeClass} text-2xs font-medium px-2 py-0.5 shrink-0`} variant="outline">
                   {item.content_type}
                 </Badge>
               </div>
@@ -195,12 +195,12 @@ export function ContentItemCard({ item }: ContentItemCardProps) {
         {item.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {item.tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} variant="hollow" className="text-[10px] font-normal px-2 py-0.5 text-ink-muted border-border">
+              <Badge key={tag} variant="hollow" className="text-2xs font-normal px-2 py-0.5 text-ink-muted border-border">
                 {tag}
               </Badge>
             ))}
             {item.tags.length > 3 && (
-              <Badge variant="hollow" className="text-[10px] font-normal px-2 py-0.5 text-ink-muted border-border">
+              <Badge variant="hollow" className="text-2xs font-normal px-2 py-0.5 text-ink-muted border-border">
                 +{item.tags.length - 3}
               </Badge>
             )}

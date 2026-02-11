@@ -489,13 +489,15 @@ Moving it to a first-class sidebar page makes the collaboration model discoverab
 
 **Depends on:** Phase 10.2 (COMPLETE)
 
-**Plans:** 4 plans in 3 waves
+**Plans:** 6 plans in 3 waves
 
 Plans:
 - [x] 10.3-01-PLAN.md — W1: Foundation — DB migration, YouTube types, utilities, vault type configs
 - [x] 10.3-02-PLAN.md — W2: YouTube Video List — Media-row components, sort hook, VaultDetailPane conditional rendering
 - [x] 10.3-03-PLAN.md — W2: Import Flow — VaultSelector YouTube-only filtering, auto-create YouTube vault on first import
 - [x] 10.3-04-PLAN.md — W3: Video Detail Modal — Dialog overlay with summary, collapsible description, transcript, click-to-start chat
+- [ ] 10.3-05-PLAN.md — [GAP FIX] Add YouTube vault type option in all create surfaces + regression tests
+- [ ] 10.3-06-PLAN.md — [GAP FIX] Unblock youtube-import 400 chain (status propagation, auth forwarding, deploy + re-UAT gate)
 
 **Requirements:**
 - YT-01: 'youtube' vault type exists in DB and TypeScript
@@ -555,7 +557,7 @@ Plans:
 | 9 - Bank/Vault Architecture | Complete ✅ | 5 | 100% (10/10 plans) |
 | 10 - Chat Bank/Vault Scoping | Complete ✅ | 1 | 100% (3/3 plans) |
 | 10.2 - Vaults Page (INSERTED) | Complete ✅ | 7 | 100% (9/9 plans, 4 waves) |
-| 10.3 - YouTube-Specific Vaults & Video Intelligence (INSERTED) | Complete ✅ | 6 | 100% (4/4 plans, 3 waves) |
+| 10.3 - YouTube-Specific Vaults & Video Intelligence (INSERTED) | In Progress 🟡 | 6 | 67% (4/6 plans complete, gap closures planned) |
 | 11 - PROFITS Frontend Trigger | Pending | 1 | 0% (0/2 plans) |
 
 **Overall Progress:** 65/67 requirements (97%) - **1 phase remaining**
@@ -673,11 +675,11 @@ Phase 9: Team Content Segregation (deferred - can be done anytime after Phase 4)
 10. ~~Phase 8: Growth Infrastructure~~ ✅ Complete (6/6 plans, all 4 requirements verified)
 11. ~~Phase 9: Bank/Vault Architecture~~ ✅ Complete (10/10 plans, all 5 requirements satisfied)
 12. ~~Phase 10: Chat Bank/Vault Scoping~~ ✅ Complete (3/3 plans, GAP-INT-01 closed)
-13. ~~Phase 10.3: YouTube-Specific Vaults & Video Intelligence~~ ✅ Complete (4/4 plans, 7/7 must-haves verified)
-14. **Phase 11: PROFITS Frontend Trigger** ← Gap closure (flow)
+13. **Phase 10.3: YouTube-Specific Vaults & Video Intelligence** ← Execute gap closures (10.3-05, 10.3-06)
+14. **Phase 11: PROFITS Frontend Trigger** ← Next after 10.3 gaps close
 
 **Gap Closure Phases Added** - 2 phases from v1-MILESTONE-AUDIT.md
 
 ---
 
-*Last updated: 2026-02-11 (Phase 10.3 COMPLETE - YouTube-Specific Vaults delivered, 85/87 plans)*
+*Last updated: 2026-02-11 (Phase 10.3 gap closures planned - 10.3-05 and 10.3-06 added for diagnosed UAT blockers)*

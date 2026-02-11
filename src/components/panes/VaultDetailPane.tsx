@@ -235,7 +235,7 @@ export function VaultDetailPane({
   return (
     <div className={cn('h-full flex flex-col', className)}>
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/70 flex-shrink-0">
+      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {/* Back button for mobile */}
           {showBackButton && onBack && (
@@ -291,7 +291,7 @@ export function VaultDetailPane({
           <Badge
             variant="outline"
             className={cn(
-              'text-[10px] px-1.5 py-0 h-5 uppercase tracking-wider font-medium border-0',
+              'text-2xs px-1.5 py-0 h-5 uppercase tracking-wider font-medium border-0',
               typeStyle.bg,
               typeStyle.text
             )}

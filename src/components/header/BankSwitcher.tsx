@@ -240,7 +240,7 @@ function BankMenuItem({
         <div className="flex flex-col min-w-0">
           <span className="truncate max-w-[140px]">{bank.name}</span>
           {bank.type === 'business' && (
-            <span className="text-[10px] text-muted-foreground">
+            <span className="text-2xs text-muted-foreground">
               {bank.member_count ?? 1} member{(bank.member_count ?? 1) !== 1 ? 's' : ''}
             </span>
           )}

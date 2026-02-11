@@ -166,7 +166,7 @@ export function CallSourceContent({ source, className }: CallSourceContentProps)
             {source.call_title || 'Transcript'}
           </span>
           {source.similarity_score != null && source.similarity_score > 0 && (
-            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
+            <span className="text-2xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
               {Math.round(source.similarity_score * 100)}%
             </span>
           )}
@@ -204,7 +204,7 @@ export function CallSourceContent({ source, className }: CallSourceContentProps)
         {/* VIEW pill button */}
         <Badge
           variant="outline"
-          className="text-[10px] px-1.5 py-0 h-4 w-fit leading-none flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 transition-colors"
+          className="text-2xs px-1.5 py-0 h-4 w-fit leading-none flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 transition-colors"
           onClick={handleClick}
         >
           <RiPlayCircleLine className="h-3 w-3 flex-shrink-0" />
@@ -318,7 +318,7 @@ export function CitationMarker({
           }}
           className={cn(
             'inline-flex items-center justify-center',
-            'text-[10px] font-semibold text-primary/80 hover:text-primary',
+            'text-2xs font-semibold text-primary/80 hover:text-primary',
             'cursor-pointer transition-colors duration-150',
             'align-super leading-none',
             'px-0.5 -mx-0.5',

@@ -85,12 +85,7 @@ export function DurationTab() {
                 className="relative py-4 px-4 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg"
               >
                 {/* Vibe orange wedge accent */}
-                <div
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange"
-                  style={{
-                    clipPath: "polygon(0 0, 100% 20%, 100% 80%, 0 100%)",
-                  }}
-                />
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange cv-vertical-marker" />
                 <div className="text-xs font-medium text-cb-gray-dark dark:text-cb-gray-light mb-1">
                   {bucket.name}
                 </div>

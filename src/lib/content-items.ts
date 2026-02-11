@@ -55,14 +55,17 @@ export interface ContentItemsResult<T> {
  * const { data, error } = await fetchContentItems({ status: 'draft' });
  */
 export async function fetchContentItems(
-  filters?: ContentItemFilters
+  filters?: ContentItemFilters,
+  bankId?: string | null
 ): Promise<ContentItemsResult<ContentItem[]>> {
   try {
     const user = await requireUser();
+    if (!bankId) return { data: [], error: null };
 
     let query = supabase
       .from("content_items")
       .select("*")
+      .eq("bank_id", bankId)
       .order("created_at", { ascending: false });
 
     // Apply content_type filter
@@ -123,9 +126,10 @@ export async function fetchContentItems(
  * const { data, error } = await fetchPosts({ status: 'draft' });
  */
 export async function fetchPosts(
-  filters?: Omit<ContentItemFilters, "content_type">
+  filters?: Omit<ContentItemFilters, "content_type">,
+  bankId?: string | null
 ): Promise<ContentItemsResult<ContentItem[]>> {
-  return fetchContentItems({ ...filters, content_type: "post" });
+  return fetchContentItems({ ...filters, content_type: "post" }, bankId);
 }
 
 /**
@@ -139,9 +143,10 @@ export async function fetchPosts(
  * const { data, error } = await fetchEmails({ status: 'used' });
  */
 export async function fetchEmails(
-  filters?: Omit<ContentItemFilters, "content_type">
+  filters?: Omit<ContentItemFilters, "content_type">,
+  bankId?: string | null
 ): Promise<ContentItemsResult<ContentItem[]>> {
-  return fetchContentItems({ ...filters, content_type: "email" });
+  return fetchContentItems({ ...filters, content_type: "email" }, bankId);
 }
 
 /**
@@ -158,10 +163,18 @@ export async function fetchEmails(
  * });
  */
 export async function createContentItem(
-  input: ContentItemInput
+  input: ContentItemInput,
+  bankId?: string | null
 ): Promise<ContentItemsResult<ContentItem>> {
   try {
     const user = await requireUser();
+
+    if (!bankId) {
+      return {
+        data: null,
+        error: new ContentItemsError("Bank ID is required"),
+      };
+    }
 
     // Validate required fields
     if (!input.content_text?.trim()) {
@@ -197,6 +210,7 @@ export async function createContentItem(
       .from("content_items")
       .insert({
         user_id: user.id,
+        bank_id: bankId,
         hook_id: input.hook_id || null,
         content_type: input.content_type,
         content_text: input.content_text.trim(),

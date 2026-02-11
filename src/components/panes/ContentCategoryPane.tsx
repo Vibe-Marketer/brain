@@ -20,15 +20,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   RiHome4Line,
-  RiHome4Fill,
   RiSparklingLine,
-  RiSparklingFill,
   RiLightbulbLine,
-  RiLightbulbFill,
   RiFileTextLine,
-  RiFileTextFill,
   RiMailLine,
-  RiMailFill,
   RiPhoneLine,
   RiLayoutGridLine,
 } from "@remixicon/react";
@@ -46,7 +41,6 @@ interface CategoryItem {
   label: string;
   description: string;
   icon: React.ComponentType<{ className?: string }>;
-  iconFill?: React.ComponentType<{ className?: string }>;
   path: string;
   indent?: boolean;
 }
@@ -57,7 +51,6 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
     label: "Overview",
     description: "Content Hub home",
     icon: RiHome4Line,
-    iconFill: RiHome4Fill,
     path: "/content",
   },
   {
@@ -65,7 +58,6 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
     label: "Generators",
     description: "Create new content",
     icon: RiSparklingLine,
-    iconFill: RiSparklingFill,
     path: "/content/generators",
   },
   {
@@ -81,7 +73,6 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
     label: "Hooks",
     description: "Attention grabbers",
     icon: RiLightbulbLine,
-    iconFill: RiLightbulbFill,
     path: "/content/library/hooks",
   },
   {
@@ -89,7 +80,6 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
     label: "Posts",
     description: "Social content",
     icon: RiFileTextLine,
-    iconFill: RiFileTextFill,
     path: "/content/library/posts",
   },
   {
@@ -97,7 +87,6 @@ const CONTENT_CATEGORIES: CategoryItem[] = [
     label: "Emails",
     description: "Email drafts",
     icon: RiMailLine,
-    iconFill: RiMailFill,
     path: "/content/library/emails",
   },
 ];
@@ -212,7 +201,7 @@ export function ContentCategoryPane({
     <div
       className={cn(
         "h-full flex flex-col",
-        "transition-all duration-300 ease-in-out",
+        "transition-all duration-500 ease-in-out",
         isMounted ? "opacity-100 translate-x-0" : "opacity-0 -translate-x-2",
         className
       )}
@@ -220,7 +209,7 @@ export function ContentCategoryPane({
       aria-label="Content Hub categories"
     >
       {/* Header */}
-      <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-cb-card/50">
+      <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card/50">
         <div
           className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
           aria-hidden="true"
@@ -248,7 +237,7 @@ export function ContentCategoryPane({
       >
         {CONTENT_CATEGORIES.map((category) => {
           const isActive = selectedCategory === category.id;
-          const IconComponent = isActive && category.iconFill ? category.iconFill : category.icon;
+          const IconComponent = category.icon;
           const count = categoryCounts[category.id];
 
           return (
@@ -257,15 +246,6 @@ export function ContentCategoryPane({
               role="listitem"
               className={cn("relative mb-1", category.indent && "ml-4")}
             >
-              {/* Active indicator */}
-              <div
-                className={cn(
-                  "cv-side-indicator-pill",
-                  "transition-all duration-200 ease-in-out",
-                  isActive ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0"
-                )}
-                aria-hidden="true"
-              />
               <button
                 ref={(el) => {
                   if (el) {
@@ -278,13 +258,14 @@ export function ContentCategoryPane({
                 onClick={() => navigate(category.path)}
                 onKeyDown={(e) => handleKeyDown(e, category.id)}
                 className={cn(
-                  "w-full flex items-start gap-3 px-3 py-3 rounded-lg",
+                  "relative w-full flex items-start gap-3 px-3 py-3 rounded-lg",
                   "text-left transition-all duration-150 ease-in-out",
-                  "hover:bg-muted/50 dark:hover:bg-white/5",
+                  "hover:bg-hover/70",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
                     "bg-hover",
                     "border-l-0 pl-4",
+                    "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
                 )}
                 aria-current={isActive ? "true" : undefined}
@@ -295,14 +276,14 @@ export function ContentCategoryPane({
                   className={cn(
                     "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
                     "bg-cb-card border border-border",
-                    "transition-all duration-200 ease-in-out",
+                    "transition-all duration-500 ease-in-out",
                     isActive && "border-vibe-orange/30 bg-vibe-orange/10"
                   )}
                   aria-hidden="true"
                 >
                   <IconComponent
                     className={cn(
-                      "h-4 w-4 transition-colors duration-200 ease-in-out",
+                      "h-4 w-4 transition-colors duration-500 ease-in-out",
                       isActive ? "text-vibe-orange" : "text-ink-muted"
                     )}
                   />
@@ -314,7 +295,7 @@ export function ContentCategoryPane({
                     <span
                       className={cn(
                         "block text-sm font-medium truncate",
-                        "transition-colors duration-200 ease-in-out",
+                        "transition-colors duration-500 ease-in-out",
                         isActive ? "text-vibe-orange" : "text-ink"
                       )}
                     >
@@ -341,7 +322,7 @@ export function ContentCategoryPane({
                 <div
                   className={cn(
                     "flex-shrink-0 mt-1.5",
-                    "transition-all duration-200 ease-in-out",
+                    "transition-all duration-500 ease-in-out",
                     isActive
                       ? "opacity-100 translate-x-0"
                       : "opacity-0 -translate-x-1"

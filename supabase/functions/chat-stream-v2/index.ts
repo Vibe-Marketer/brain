@@ -189,7 +189,7 @@ AVAILABLE TOOLS:
 9. searchByEntity — Find mentions of specific companies, people, or products. Uses JSONB entity post-filtering.
 
 **Analytical Tools (direct database queries, no search pipeline):**
-10. getCallDetails — Get complete details about a specific call. IMPORTANT: You must use an actual recording_id from your search results, never a made-up number. Returns title, date, duration, speakers, summary, URL.
+10. getCallDetails — Get complete details about a specific call. IMPORTANT: You must use an actual recording_id from your search results, never a made-up number. Returns title, date, duration, speakers, summary, URL. Set include_transcript=true for YouTube imports or when the user asks about a specific call's content. YouTube imports always include the full transcript automatically since search tools cannot find YouTube content.
 11. getCallsList — Get a paginated list of calls with optional filters. Good for overview queries like "show me all sales calls from last month".
 12. getAvailableMetadata — Discover what metadata values are available (speakers, categories, topics, tags). Use when user asks "what categories do I have?" or wants to explore filters.
 
@@ -252,6 +252,13 @@ VIEW MEETING LINKS:
 - NEVER construct or guess URLs — always use the exact share_url from the data
 - If no share_url is available for a call, do not include a View link for that call
 - The frontend will render these as styled pill buttons that open in a new tab
+
+YOUTUBE IMPORTS:
+- YouTube videos imported by users have source_platform='youtube' in the database
+- YouTube content does NOT have chunked transcripts in fathom_transcripts, so search tools (1-9) will NOT find YouTube content
+- To access YouTube video content, use getCallDetails with the recording_id — the full transcript is automatically included for YouTube calls
+- When a user's message contains context like [Context: @[Video Title](recording:12345)], extract the recording_id and immediately call getCallDetails to get the video's transcript
+- For YouTube content, you can answer questions directly from the transcript returned by getCallDetails — no need to use search tools
 
 ERROR DISCLOSURE:
 If a tool fails or returns no results, acknowledge the gap honestly: "I couldn't find results for [X], but based on [Y]..." — never fabricate information or pretend you have data you don't.
@@ -684,12 +691,13 @@ function createTools(
 
     // Tool 10: getCallDetails
     getCallDetails: tool({
-      description: 'Get complete details about a specific call including title, date, participants, duration, summary, and URL. Use when user references a specific call by recording_id.',
+      description: 'Get complete details about a specific call including title, date, participants, duration, summary, URL, and transcript. Use when user references a specific call by recording_id. For YouTube imports, also returns the full transcript since there are no chunked transcripts to search.',
       inputSchema: z.object({
         recording_id: z.string().describe('The recording ID of the call to get details for'),
+        include_transcript: z.boolean().optional().describe('Whether to include full transcript in response (default: false, set true for YouTube imports or when user asks about specific call content)'),
       }),
-      execute: async ({ recording_id }) => {
-        console.log(`[chat-stream-v2] getCallDetails: ${recording_id}`);
+      execute: async ({ recording_id, include_transcript = false }) => {
+        console.log(`[chat-stream-v2] getCallDetails: ${recording_id} (include_transcript: ${include_transcript})`);
 
         const numericId = parseInt(recording_id, 10);
         if (isNaN(numericId)) {
@@ -739,9 +747,11 @@ function createTools(
             }
           }
 
+          // Select additional fields for YouTube imports
+          const selectFields = 'recording_id, title, created_at, recording_start_time, recording_end_time, recorded_by_name, summary, url, share_url, source_platform, full_transcript, metadata';
           const { data: call, error: callError } = await supabase
             .from('fathom_calls')
-            .select('recording_id, title, created_at, recording_start_time, recording_end_time, recorded_by_name, summary, url, share_url')
+            .select(selectFields)
             .eq('recording_id', numericId)
             .eq('user_id', userId)
             .single();
@@ -750,19 +760,24 @@ function createTools(
             return { error: true, message: 'Call not found or not accessible' };
           }
 
-          // Get speakers from transcripts
-          const { data: speakers } = await supabase
-            .from('fathom_transcripts')
-            .select('speaker_name, speaker_email')
-            .eq('recording_id', numericId)
-            .eq('user_id', userId)
-            .eq('is_deleted', false);
+          const isYouTubeCall = call.source_platform === 'youtube';
 
-          const uniqueSpeakers = [
-            ...new Set(
-              speakers?.map((s: { speaker_name: string | null }) => s.speaker_name).filter(Boolean)
-            ),
-          ];
+          // Get speakers from transcripts (only for non-YouTube calls)
+          let uniqueSpeakers: string[] = [];
+          if (!isYouTubeCall) {
+            const { data: speakers } = await supabase
+              .from('fathom_transcripts')
+              .select('speaker_name, speaker_email')
+              .eq('recording_id', numericId)
+              .eq('user_id', userId)
+              .eq('is_deleted', false);
+
+            uniqueSpeakers = [
+              ...new Set(
+                speakers?.map((s: { speaker_name: string | null }) => s.speaker_name).filter(Boolean)
+              ),
+            ] as string[];
+          }
 
           let duration = 'Unknown';
           if (call.recording_start_time && call.recording_end_time) {
@@ -774,7 +789,24 @@ function createTools(
             duration = `${mins} minutes`;
           }
 
-          return {
+          // For YouTube imports, extract duration from metadata
+          if (isYouTubeCall && duration === 'Unknown') {
+            const meta = call.metadata as Record<string, unknown> | null;
+            const ytDuration = meta?.youtube_duration as string | undefined;
+            if (ytDuration) {
+              const match = ytDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+              if (match) {
+                const h = parseInt(match[1] || '0', 10);
+                const m = parseInt(match[2] || '0', 10);
+                const s = parseInt(match[3] || '0', 10);
+                const totalMins = Math.round(h * 60 + m + s / 60);
+                duration = `${totalMins} minutes`;
+              }
+            }
+          }
+
+          // Build response
+          const result: Record<string, unknown> = {
             recording_id: call.recording_id,
             title: call.title,
             date: call.created_at,
@@ -784,7 +816,32 @@ function createTools(
             summary: call.summary || 'No summary available',
             url: call.url,
             share_url: call.share_url,
+            source_platform: call.source_platform || 'fathom',
           };
+
+          // For YouTube imports, always include transcript since search tools
+          // cannot find YouTube content (no chunked fathom_transcripts).
+          // For regular calls, include transcript only when explicitly requested.
+          if (isYouTubeCall || include_transcript) {
+            const transcript = call.full_transcript;
+            if (transcript) {
+              // Truncate to ~32K chars to stay within token limits
+              result.full_transcript = transcript.length > 32000
+                ? transcript.substring(0, 32000) + '\n\n[Transcript truncated — first 32000 characters shown]'
+                : transcript;
+            }
+          }
+
+          // For YouTube, include useful metadata
+          if (isYouTubeCall) {
+            const meta = call.metadata as Record<string, unknown> | null;
+            if (meta) {
+              result.youtube_channel = meta.youtube_channel_title || undefined;
+              result.youtube_video_id = meta.youtube_video_id || undefined;
+            }
+          }
+
+          return result;
         } catch (error) {
           console.error('[chat-stream-v2] getCallDetails error:', error);
           return { error: true, message: error instanceof Error ? error.message : 'Failed to get call details' };

@@ -54,14 +54,14 @@ interface ContentLibraryState {
  */
 interface ContentLibraryActions {
   // Content library actions
-  fetchItems: (filters?: ContentLibraryFilters) => Promise<void>;
-  saveContentItem: (input: ContentLibraryInput) => Promise<ContentLibraryItem | null>;
+  fetchItems: (filters?: ContentLibraryFilters, bankId?: string | null) => Promise<void>;
+  saveContentItem: (input: ContentLibraryInput, bankId?: string | null) => Promise<ContentLibraryItem | null>;
   deleteItem: (id: string) => Promise<boolean>;
   incrementItemUsage: (id: string) => Promise<void>;
 
   // Template actions
-  fetchAllTemplates: (filters?: TemplateFilters) => Promise<void>;
-  saveNewTemplate: (input: TemplateInput) => Promise<Template | null>;
+  fetchAllTemplates: (filters?: TemplateFilters, bankId?: string | null) => Promise<void>;
+  saveNewTemplate: (input: TemplateInput, bankId?: string | null) => Promise<Template | null>;
   deleteTemplateItem: (id: string) => Promise<boolean>;
   incrementTemplateUsage: (id: string) => Promise<void>;
 
@@ -72,7 +72,7 @@ interface ContentLibraryActions {
   clearTemplateFilters: () => void;
 
   // Tags
-  fetchTags: () => Promise<void>;
+  fetchTags: (bankId?: string | null) => Promise<void>;
 
   // Reset
   reset: () => void;
@@ -107,12 +107,12 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
     ...initialState,
 
     // Content library actions
-    fetchItems: async (filters?: ContentLibraryFilters) => {
+    fetchItems: async (filters?: ContentLibraryFilters, bankId?: string | null) => {
       const effectiveFilters = filters ?? get().filters;
 
       set({ itemsLoading: true, itemsError: null });
 
-      const { data, error } = await fetchContentItems(effectiveFilters);
+      const { data, error } = await fetchContentItems(effectiveFilters, bankId);
 
       if (error) {
         set({
@@ -129,7 +129,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
       });
     },
 
-    saveContentItem: async (input: ContentLibraryInput) => {
+    saveContentItem: async (input: ContentLibraryInput, bankId?: string | null) => {
       // Optimistic update - add a temporary item with a placeholder ID
       const tempId = `temp-${Date.now()}`;
       const tempItem: ContentLibraryItem = {
@@ -150,7 +150,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
         items: [tempItem, ...state.items],
       }));
 
-      const { data, error } = await saveContent(input);
+      const { data, error } = await saveContent(input, bankId);
 
       if (error) {
         // Rollback optimistic update
@@ -226,15 +226,15 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
     },
 
     // Template actions
-    fetchAllTemplates: async (filters?: TemplateFilters) => {
+    fetchAllTemplates: async (filters?: TemplateFilters, bankId?: string | null) => {
       const effectiveFilters = filters ?? get().templateFilters;
 
       set({ templatesLoading: true, templatesError: null });
 
       // Fetch both personal+team templates and shared templates in parallel
       const [templatesResult, sharedResult] = await Promise.all([
-        fetchTemplates(effectiveFilters, true),
-        fetchSharedTemplates(effectiveFilters),
+        fetchTemplates(effectiveFilters, true, bankId),
+        fetchSharedTemplates(effectiveFilters, bankId),
       ]);
 
       if (templatesResult.error) {
@@ -253,7 +253,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
       });
     },
 
-    saveNewTemplate: async (input: TemplateInput) => {
+    saveNewTemplate: async (input: TemplateInput, bankId?: string | null) => {
       // Optimistic update - add a temporary template
       const tempId = `temp-${Date.now()}`;
       const tempTemplate: Template = {
@@ -275,7 +275,7 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
         templates: [tempTemplate, ...state.templates],
       }));
 
-      const { data, error } = await saveTemplate(input);
+      const { data, error } = await saveTemplate(input, bankId);
 
       if (error) {
         // Rollback optimistic update
@@ -373,10 +373,10 @@ export const useContentLibraryStore = create<ContentLibraryState & ContentLibrar
     },
 
     // Tags
-    fetchTags: async () => {
+    fetchTags: async (bankId?: string | null) => {
       set({ tagsLoading: true });
 
-      const { data, error } = await getAllTags();
+      const { data, error } = await getAllTags(bankId);
 
       if (error) {
         set({ tagsLoading: false });

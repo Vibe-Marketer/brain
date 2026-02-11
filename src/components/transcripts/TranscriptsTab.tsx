@@ -270,6 +270,9 @@ export function TranscriptsTab({
         .order("created_at", { ascending: false })
         .range(offset, offset + pageSize - 1);
 
+      // Exclude YouTube imports from the main recordings list — they live in the YouTube hub
+      query = query.or('source_platform.is.null,source_platform.neq.youtube');
+
       // Apply bank filter for business banks
       if (bankRecordingIds !== null) {
         query = query.in("recording_id", bankRecordingIds);

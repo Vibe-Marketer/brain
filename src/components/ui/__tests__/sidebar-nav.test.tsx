@@ -149,7 +149,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
 
       // Active indicator dot should be present
-      const indicatorDot = container.querySelector('.bg-vibe-orange.rounded-full');
+      const indicatorDot = container.querySelector('.cv-side-indicator-pill');
       expect(indicatorDot).toBeInTheDocument();
     });
 
@@ -190,15 +190,14 @@ describe('SidebarNav', () => {
       renderWithRouter({ isCollapsed: false }, ['/chat']);
 
       const chatButton = screen.getByTitle('AI Chat');
-      // Active items have gray background in expanded mode
-      expect(chatButton).toHaveClass('bg-gray-100');
+      // Active items use shared hover token background
+      expect(chatButton).toHaveClass('bg-hover');
     });
 
-    it('should render active indicator with h-[60%] height in expanded mode', () => {
+    it('should render standardized active indicator in expanded mode', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
 
-      // Active indicator should have 60% height class
-      const indicator = container.querySelector('.bg-vibe-orange.h-\\[60\\%\\]');
+      const indicator = container.querySelector('.cv-side-indicator-pill');
       expect(indicator).toBeInTheDocument();
     });
 
@@ -206,7 +205,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/chat']);
 
       // Find the active indicator with visible state classes
-      const activeIndicators = container.querySelectorAll('.bg-vibe-orange.opacity-100.scale-y-100');
+      const activeIndicators = container.querySelectorAll('.cv-side-indicator-pill.opacity-100');
       expect(activeIndicators.length).toBeGreaterThan(0);
     });
 
@@ -214,7 +213,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/chat']);
 
       // Find inactive indicators with hidden state classes
-      const inactiveIndicators = container.querySelectorAll('.bg-vibe-orange.opacity-0.scale-y-0');
+      const inactiveIndicators = container.querySelectorAll('.cv-side-indicator-pill.opacity-0');
       expect(inactiveIndicators.length).toBeGreaterThan(0);
     });
 
@@ -222,7 +221,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
 
       // Indicator should have transition classes
-      const indicator = container.querySelector('.bg-vibe-orange.transition-all.duration-200');
+      const indicator = container.querySelector('.cv-side-indicator-pill.transition-all.duration-500');
       expect(indicator).toBeInTheDocument();
     });
 
@@ -230,7 +229,7 @@ describe('SidebarNav', () => {
       const { container } = renderWithRouter({ isCollapsed: false }, ['/']);
 
       // Indicator should have fully rounded pill shape
-      const indicator = container.querySelector('.bg-vibe-orange.rounded-full');
+      const indicator = container.querySelector('.cv-side-indicator-pill');
       expect(indicator).toBeInTheDocument();
     });
   });

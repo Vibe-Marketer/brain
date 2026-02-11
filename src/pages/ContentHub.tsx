@@ -26,12 +26,14 @@ import { ContentHubStatsSkeleton } from '@/components/content-library/ContentHub
 import { useBusinessProfileStore, useProfiles } from '@/stores/businessProfileStore';
 import { useHooksLibraryStore, useHooks, useHooksLoading } from '@/stores/hooksLibraryStore';
 import { useContentItemsStore, usePosts, useEmails, usePostsLoading } from '@/stores/contentItemsStore';
+import { useBankContext } from '@/hooks/useBankContext';
 
 export default function ContentHub() {
   const fetchProfiles = useBusinessProfileStore((state) => state.fetchProfiles);
   const fetchHooks = useHooksLibraryStore((state) => state.fetchHooks);
   const fetchPosts = useContentItemsStore((state) => state.fetchPosts);
   const fetchEmails = useContentItemsStore((state) => state.fetchEmails);
+  const { activeBankId } = useBankContext();
 
   const profiles = useProfiles();
   const hooks = useHooks();
@@ -46,9 +48,9 @@ export default function ContentHub() {
   useEffect(() => {
     fetchProfiles();
     fetchHooks();
-    fetchPosts();
-    fetchEmails();
-  }, [fetchProfiles, fetchHooks, fetchPosts, fetchEmails]);
+    fetchPosts(undefined, activeBankId);
+    fetchEmails(undefined, activeBankId);
+  }, [fetchProfiles, fetchHooks, fetchPosts, fetchEmails, activeBankId]);
 
   const hasProfiles = profiles.length > 0;
 

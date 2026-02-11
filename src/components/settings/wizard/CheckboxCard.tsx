@@ -29,12 +29,9 @@ export function CheckboxCard({
     <div className="relative py-2 px-4 pl-6 bg-card border border-border dark:border-cb-border-dark rounded-lg">
       <div
         className={cn(
-          "absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6",
+          "absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-6 cv-vertical-marker",
           checked ? "bg-vibe-orange" : "bg-red-500"
         )}
-        style={{
-          clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-        }}
       />
       <div className="flex items-center gap-3">
         <Checkbox
