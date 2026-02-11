@@ -1,12 +1,12 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-02-10
+**Last Updated:** 2026-02-11
 
 ## Project Reference
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 11 - PROFITS Frontend Trigger (pending)
+**Current Focus:** Phase 10.3 - YouTube-Specific Vaults & Video Intelligence
 
 ---
 
@@ -14,17 +14,17 @@
 
 **Milestone:** v1 Launch Stabilization + Gap Closures
 
-**Phase:** 11 of 11+ (PROFITS Frontend Trigger)
+**Phase:** 10.3 of 11+ (YouTube-Specific Vaults & Video Intelligence)
 
-**Plan:** 0 of 2 in current phase
+**Plan:** 1 of 4 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-10 - Completed quick task 002: Complete UI brand audit + HUB header alignment
+**Last activity:** 2026-02-11 - Completed 10.3-01-PLAN.md (YouTube foundation: DB migration, types, utilities, vault configs)
 
 **Progress:**
 ```
-[███████████████████████████████████████████░] 81/83 plans complete (98%)
+[███████████████████████████████████████████░] 82/85 plans complete (96%)
 ```
 
 ---
@@ -249,6 +249,7 @@ Phase 10.2 COMPLETE (9/9 plans).
 - Phase 3.1 inserted after Phase 3: Compact Integration UI (URGENT) - Redesign integration cards to compact button/icon format with reusable modal component
 - Phase 3.2 inserted after Phase 3.1: Integration Import Controls - Redesign "Import meetings from" section + per-integration search on/off toggle
 - Phase 10.2 inserted after Phase 10: Vaults Page (URGENT) - Make vaults first-class sidebar page with full management UI, replacing "Collaboration"
+- Phase 10.3 inserted after Phase 10: YouTube-Specific Vaults & Video Intelligence (URGENT) - Dedicated youtube vault type, full video metadata schema, thumbnail-first list, and call-parity transcript chat
 - Coach Collaboration (Phase 5) removed from roadmap entirely
 - Team Content Segregation (Phase 4.5) deferred to Phase 9
 
@@ -268,25 +269,22 @@ None
 
 ## Session Continuity
 
-**Last session:** 2026-02-10T16:28:49Z
-**Stopped at:** Completed quick task 002 execution and summary
+**Last session:** 2026-02-11T04:41:55Z
+**Stopped at:** Completed 10.3-01-PLAN.md
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Quick tasks 001, 002, and 003 are complete - migration/workspace messaging updates landed and HUB header + brand alignment is now documented and shipped.
+Phase 10.3 Plan 01 complete — YouTube foundation laid. 'youtube' vault type exists in DB and TypeScript, YouTubeVideoMetadata interface and utility functions ready.
 
 **What to remember:**
-- Migration 20260210170000 applied: folders and call_tags now have bank_id (workspace-scoped)
-- SyncTab now shows "Sync to Hub" instead of "Sync to vault"
-- Workspace context messaging added below hub selector
-- VaultSelector already filters hubs by active workspace (useBankContext)
-- Workspaces & Hubs tabs now use horizontal floating pill active state in settings
-- Settings category selector now uses offset vertical pill as primary active marker, including Admin
-- Vaults pane headers are now icon-led and token-aligned across list/detail/adjacent panes
-- Brand guidelines moved to v4.2.1 with rounded tab-pill direction and token-first hardcoded-value rules
-- Phase 11 (PROFITS Frontend Trigger) is next
+- Migration 20260211000001 ready to apply: adds 'youtube' to vaults.vault_type CHECK constraint
+- VaultType union updated: 'personal' | 'team' | 'coach' | 'community' | 'client' | 'youtube'
+- YouTubeVideoMetadata interface in src/types/youtube.ts with getYouTubeMetadata type-narrowing helper
+- parseYouTubeDuration, formatCompactNumber, YOUTUBE_CATEGORIES in src/lib/youtube-utils.ts
+- VaultListPane VAULT_TYPE_CONFIG and VaultDetailPane VAULT_TYPE_STYLES both have youtube entries (red styling + RiYoutubeLine icon)
+- Phase 10.3 Plan 02 (YouTube Video List) is next
 
 ---
 
@@ -297,12 +295,12 @@ Quick tasks 001, 002, and 003 are complete - migration/workspace messaging updat
 | Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 67 |
 | Requirements Complete | 58 (87%) |
-| Current Phase | 11 - PROFITS Frontend Trigger (0/2 plans) |
-| Plans Complete | 81/83 (98%) |
-| Next Plan | 11-01-PLAN.md (PROFITS frontend trigger) |
+| Current Phase | 10.3 - YouTube-Specific Vaults & Video Intelligence (1/4 plans) |
+| Plans Complete | 82/85 (96%) |
+| Next Plan | 10.3-02-PLAN.md (YouTube video list) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-10 (Quick tasks 003 and 001 complete - migration/messaging + selector indicator refresh)*
+*Last updated: 2026-02-11 (Phase 10.3 Plan 01 complete - YouTube foundation: DB migration, types, utilities, vault configs)*

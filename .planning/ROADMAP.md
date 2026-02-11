@@ -492,7 +492,7 @@ Moving it to a first-class sidebar page makes the collaboration model discoverab
 **Plans:** 4 plans in 3 waves
 
 Plans:
-- [ ] 10.3-01-PLAN.md — W1: Foundation — DB migration, YouTube types, utilities, vault type configs
+- [x] 10.3-01-PLAN.md — W1: Foundation — DB migration, YouTube types, utilities, vault type configs
 - [ ] 10.3-02-PLAN.md — W2: YouTube Video List — Media-row components, sort hook, VaultDetailPane conditional rendering
 - [ ] 10.3-03-PLAN.md — W2: Import Flow — VaultSelector YouTube-only filtering, auto-create YouTube vault on first import
 - [ ] 10.3-04-PLAN.md — W3: Video Detail Modal — Dialog overlay with summary, collapsible description, transcript, click-to-start chat
@@ -555,7 +555,7 @@ Plans:
 | 9 - Bank/Vault Architecture | Complete ✅ | 5 | 100% (10/10 plans) |
 | 10 - Chat Bank/Vault Scoping | Complete ✅ | 1 | 100% (3/3 plans) |
 | 10.2 - Vaults Page (INSERTED) | Complete ✅ | 7 | 100% (9/9 plans, 4 waves) |
-| 10.3 - YouTube-Specific Vaults & Video Intelligence (INSERTED) | Planning Complete | 6 | 0% (0/4 plans, 3 waves) |
+| 10.3 - YouTube-Specific Vaults & Video Intelligence (INSERTED) | In Progress | 6 | 25% (1/4 plans, 3 waves) |
 | 11 - PROFITS Frontend Trigger | Pending | 1 | 0% (0/2 plans) |
 
 **Overall Progress:** 59/67 requirements (88%) - **3 phases remaining (2 inserted)**
