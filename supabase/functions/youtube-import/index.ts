@@ -8,7 +8,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
  * 1. Validates YouTube URL and extracts video ID
  * 2. Checks for duplicate imports
  * 3. Fetches video metadata via youtube-api function
- * 4. Fetches transcript via youtube-api function
+ * 4. Fetches transcript via Transcript API directly
  * 5. Creates fathom_calls record with source_platform='youtube'
  * 
  * The existing embedding pipeline will pick up new records for processing.
@@ -31,9 +31,12 @@ interface ImportResponse {
 }
 
 type ImportStage = 'video-details' | 'transcript';
+type DownstreamSource = 'youtube-api' | 'transcripts-api';
+
+const TRANSCRIPT_API_BASE = 'https://transcriptapi.com/api/v2/youtube/transcript';
 
 interface DownstreamErrorResponse extends ImportResponse {
-  source: 'youtube-api';
+  source: DownstreamSource;
   stage: ImportStage;
   status: number;
   details?: unknown;
@@ -133,11 +136,21 @@ function parseJsonSafely(raw: string): unknown {
   }
 }
 
+function normalizeSecret(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  return trimmed;
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
 function createDownstreamFailureResponse(
+  source: DownstreamSource,
   stage: ImportStage,
   step: ImportStep,
   status: number,
@@ -149,7 +162,7 @@ function createDownstreamFailureResponse(
     success: false,
     step,
     error,
-    source: 'youtube-api',
+    source,
     stage,
     status,
     details,
@@ -379,6 +392,7 @@ Deno.serve(async (req) => {
         downstreamStatus: detailsResponse.status,
       });
       return createDownstreamFailureResponse(
+        'youtube-api',
         'video-details',
         'fetching',
         detailsResponse.status,
@@ -397,6 +411,7 @@ Deno.serve(async (req) => {
         stage: 'video-details',
       });
       return createDownstreamFailureResponse(
+        'youtube-api',
         'video-details',
         'fetching',
         502,
@@ -410,56 +425,80 @@ Deno.serve(async (req) => {
     console.log(`Fetched video details: "${videoDetails.title}"`);
 
     // ========================================================================
-    // Step 4: Fetch transcript via youtube-api function
+    // Step 4: Fetch transcript via Transcript API (direct)
     // ========================================================================
-    const transcriptResponse = await fetch(`${supabaseUrl}/functions/v1/youtube-api`, {
-      method: 'POST',
-      headers: youtubeApiHeaders,
-      body: JSON.stringify({
-        action: 'transcript',
-        params: { videoId },
-      }),
+    const transcriptApiKey = normalizeSecret(Deno.env.get('TRANSCRIPT_API_KEY'));
+    if (!transcriptApiKey) {
+      return createDownstreamFailureResponse(
+        'transcripts-api',
+        'transcript',
+        'transcribing',
+        500,
+        'Transcript API key not configured',
+        corsHeaders,
+      );
+    }
+
+    const transcriptUrl = new URL(TRANSCRIPT_API_BASE);
+    transcriptUrl.searchParams.set('video_url', videoId);
+    transcriptUrl.searchParams.set('format', 'json');
+    transcriptUrl.searchParams.set('include_timestamp', 'false');
+    transcriptUrl.searchParams.set('send_metadata', 'true');
+
+    const transcriptResponse = await fetch(transcriptUrl.toString(), {
+      headers: {
+        Authorization: `Bearer ${transcriptApiKey}`,
+        'Content-Type': 'application/json',
+      },
     });
 
     const transcriptRaw = await transcriptResponse.text();
     const transcriptPayload = parseJsonSafely(transcriptRaw);
 
     if (!transcriptResponse.ok) {
-      console.error('[youtube-import] downstream youtube-api failure', {
+      console.error('[youtube-import] downstream transcript api failure', {
         stage: 'transcript',
         downstreamStatus: transcriptResponse.status,
       });
       return createDownstreamFailureResponse(
+        'transcripts-api',
         'transcript',
         'transcribing',
         transcriptResponse.status,
-        'youtube-api transcript stage failed',
+        'transcripts-api transcript stage failed',
         corsHeaders,
         transcriptPayload,
       );
     }
 
-    const transcriptResult = isRecord(transcriptPayload) ? transcriptPayload : null;
+    const transcriptData = isRecord(transcriptPayload) ? transcriptPayload : null;
+    const nestedTranscriptData = isRecord(transcriptData?.data) ? transcriptData.data : null;
 
-    const transcriptData = isRecord(transcriptResult?.data)
-      ? transcriptResult.data
-      : null;
+    const transcriptText = typeof transcriptData?.transcript === 'string'
+      ? transcriptData.transcript
+      : typeof transcriptData?.text === 'string'
+        ? transcriptData.text
+        : typeof nestedTranscriptData?.transcript === 'string'
+          ? nestedTranscriptData.transcript
+          : typeof nestedTranscriptData?.text === 'string'
+            ? nestedTranscriptData.text
+            : null;
 
-    if (!transcriptResult?.success || typeof transcriptData?.transcript !== 'string') {
-      console.error('[youtube-import] invalid youtube-api success payload', {
+    if (!transcriptText) {
+      console.error('[youtube-import] invalid transcript api success payload', {
         stage: 'transcript',
       });
       return createDownstreamFailureResponse(
+        'transcripts-api',
         'transcript',
         'transcribing',
         502,
-        'youtube-api transcript returned invalid payload',
+        'transcripts-api transcript returned invalid payload',
         corsHeaders,
         transcriptPayload,
       );
     }
 
-    const transcriptText = transcriptData.transcript;
     console.log(`Fetched transcript: ${transcriptText.length} characters`);
 
     // ========================================================================
