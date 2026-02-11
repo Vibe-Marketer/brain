@@ -11,8 +11,8 @@
 export type BankType = 'personal' | 'business'
 export type BankRole = 'bank_owner' | 'bank_admin' | 'bank_member'
 
-// Vault types - personal + team fully implemented, others schema only
-export type VaultType = 'personal' | 'team' | 'coach' | 'community' | 'client'
+// Vault types - personal + team fully implemented, youtube for video intelligence, others schema only
+export type VaultType = 'personal' | 'team' | 'coach' | 'community' | 'client' | 'youtube'
 export type VaultRole = 'vault_owner' | 'vault_admin' | 'manager' | 'member' | 'guest'
 
 // Folder visibility within vaults
