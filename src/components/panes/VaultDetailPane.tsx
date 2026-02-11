@@ -19,6 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { TranscriptTable } from '@/components/transcript-library/TranscriptTable'
 import { YouTubeVideoList } from '@/components/youtube/YouTubeVideoList'
+import { YouTubeVideoDetailModal } from '@/components/youtube/YouTubeVideoDetailModal'
 import { VaultSearchFilter } from '@/components/vault/VaultSearchFilter'
 import { EditVaultDialog } from '@/components/dialogs/EditVaultDialog'
 import { DeleteVaultDialog } from '@/components/dialogs/DeleteVaultDialog'
@@ -136,13 +137,17 @@ export function VaultDetailPane({
     [navigate]
   )
 
-  // Handle YouTube video click - navigate to call detail page using legacy_recording_id
+  // YouTube video detail modal state
+  const [videoModalOpen, setVideoModalOpen] = useState(false)
+  const [selectedVideo, setSelectedVideo] = useState<VaultRecording | null>(null)
+
+  // Handle YouTube video click - open detail modal
   const handleVideoClick = useCallback(
     (recording: VaultRecording) => {
-      const navId = recording.legacy_recording_id ?? recording.id
-      navigate(`/call/${navId}`)
+      setSelectedVideo(recording)
+      setVideoModalOpen(true)
     },
-    [navigate]
+    []
   )
 
   // Open members panel (4th pane)
@@ -504,6 +509,16 @@ export function VaultDetailPane({
         vault={vault}
         recordingCount={recordingsLoading ? null : recordings.length}
       />
+
+      {/* YouTube Video Detail Modal */}
+      {isYouTubeVault && (
+        <YouTubeVideoDetailModal
+          open={videoModalOpen}
+          onOpenChange={setVideoModalOpen}
+          recording={selectedVideo}
+          vaultId={vaultId!}
+        />
+      )}
     </div>
   )
 }
