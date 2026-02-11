@@ -1,16 +1,24 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://vltmrnjsubfzrgrtdqey.supabase.co';
-const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsdG1ybmpzdWJmenJncnRkcWV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NzUwMDcsImV4cCI6MjA3OTQ1MTAwN30.jkT4qFvOuRnyMexcOfgt1AZSbrRFyDsJfPVsGdA0BUo';
+const requireEnv = (name: string, fallback?: string): string => {
+  const value = process.env[name] ?? (fallback ? process.env[fallback] : undefined);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}${fallback ? ` (or ${fallback})` : ''}`);
+  }
+  return value;
+};
+
+const supabaseUrl = requireEnv('SUPABASE_URL', 'VITE_SUPABASE_URL');
+const anonKey = requireEnv('SUPABASE_ANON_KEY', 'VITE_SUPABASE_PUBLISHABLE_KEY');
+const testUserEmail = requireEnv('CALLVAULTAI_LOGIN');
+const testUserPassword = requireEnv('CALLVAULTAI_LOGIN_PASSWORD');
 
 const supabase = createClient(supabaseUrl, anonKey);
 
-//Test user from .env comments: sepihe5967@gavrom.com / Password1!
-
 async function getAuthToken(): Promise<string> {
   const { data, error } = await supabase.auth.signInWithPassword({
-    email: 'sepihe5967@gavrom.com',
-    password: 'Password1!',
+    email: testUserEmail,
+    password: testUserPassword,
   });
   
   if (error || !data.session) {
@@ -28,7 +36,7 @@ async function testQuery(token: string, messages: any[], testName: string) {
   console.log(`${'='.repeat(70)}`);
   
   try {
-    const response = await fetch('https://vltmrnjsubfzrgrtdqey.supabase.co/functions/v1/chat-stream-v2', {
+    const response = await fetch(`${supabaseUrl}/functions/v1/chat-stream-v2`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

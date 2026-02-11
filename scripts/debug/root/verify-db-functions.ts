@@ -1,6 +1,14 @@
 import { createClient } from '@supabase/supabase-js';
 import * as dotenv from 'dotenv';
 
+const requireEnv = (name: string, fallback?: string): string => {
+  const value = process.env[name] ?? (fallback ? process.env[fallback] : undefined);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}${fallback ? ` (or ${fallback})` : ''}`);
+  }
+  return value;
+};
+
 dotenv.config();
 
 const supabase = createClient(

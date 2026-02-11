@@ -45,6 +45,13 @@ See [RAG_TESTING_GUIDE.md](./RAG_TESTING_GUIDE.md) for:
 
 ## Other Scripts
 
+### Root Script Archive
+
+Legacy root-level debug scripts now live in `scripts/debug/root/`.
+
+- Run with: `npx tsx scripts/debug/root/<script-name>.ts`
+- See `scripts/debug/root/README.md` for required env vars
+
 ### Supabase Import Scripts
 
 | Script | Purpose |

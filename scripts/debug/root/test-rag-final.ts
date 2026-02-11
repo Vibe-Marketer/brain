@@ -1,22 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://vltmrnjsubfzrgrtdqey.supabase.co';
-const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsdG1ybmpzdWJmenJncnRkcWV5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mzg3NTAwNywiZXhwIjoyMDc5NDUxMDA3fQ.a8Lp_JzIk4f4ROiRPBTNGZgnTMQ6Ok5rRuQzkx3stv8';
-const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsdG1ybmpzdWJmenJncnRkcWV5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NzUwMDcsImV4cCI6MjA3OTQ1MTAwN30.jkT4qFvOuRnyMexcOfgt1AZSbrRFyDsJfPVsGdA0BUo';
+const requireEnv = (name: string, fallback?: string): string => {
+  const value = process.env[name] ?? (fallback ? process.env[fallback] : undefined);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}${fallback ? ` (or ${fallback})` : ''}`);
+  }
+  return value;
+};
+
+const supabaseUrl = requireEnv('SUPABASE_URL', 'VITE_SUPABASE_URL');
+const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
+const anonKey = requireEnv('SUPABASE_ANON_KEY', 'VITE_SUPABASE_PUBLISHABLE_KEY');
+const testUserEmail = requireEnv('DEBUG_TEST_USER_EMAIL', 'CALLVAULTAI_LOGIN');
+const testUserId = requireEnv('DEBUG_TEST_USER_ID');
 
 const adminClient = createClient(supabaseUrl, serviceRoleKey, {
   auth: { autoRefreshToken: false, persistSession: false }
 });
 
-// Test target user - a@vibeos.com has the most data (1207 calls)
-const TEST_USER_EMAIL = 'a@vibeos.com';
-const TEST_USER_ID = 'ad6cdef0-8dc0-4ad5-bfe7-f0e1bce01be4';
-
 async function getAuthToken(): Promise<string> {
   // Use service role to directly create a session
   const { data, error } = await adminClient.auth.admin.generateLink({
     type: 'magiclink',
-    email: TEST_USER_EMAIL,
+    email: testUserEmail,
   });
   
   if (error) throw new Error(`Failed to generate auth: ${error.message}`);
@@ -172,7 +178,7 @@ async function runAllTests() {
   const { data: recentCall } = await adminClient
     .from('fathom_calls')
     .select('recording_id, title, created_at')
-    .eq('user_id', TEST_USER_ID)
+    .eq('user_id', testUserId)
     .order('created_at', { ascending: false })
     .limit(1)
     .single();
@@ -180,7 +186,7 @@ async function runAllTests() {
   const { data: speakers } = await adminClient
     .from('fathom_transcripts')
     .select('speaker_name')
-    .eq('user_id', TEST_USER_ID)
+    .eq('user_id', testUserId)
     .not('speaker_name', 'is', null)
     .limit(20);
   

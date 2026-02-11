@@ -1,7 +1,15 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://vltmrnjsubfzrgrtdqey.supabase.co';
-const serviceRoleKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZsdG1ybmpzdWJmenJncnRkcWV5Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2Mzg3NTAwNywiZXhwIjoyMDc5NDUxMDA3fQ.a8Lp_JzIk4f4ROiRPBTNGZgnTMQ6Ok5rRuQzkx3stv8';
+const requireEnv = (name: string, fallback?: string): string => {
+  const value = process.env[name] ?? (fallback ? process.env[fallback] : undefined);
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}${fallback ? ` (or ${fallback})` : ''}`);
+  }
+  return value;
+};
+
+const supabaseUrl = requireEnv('SUPABASE_URL', 'VITE_SUPABASE_URL');
+const serviceRoleKey = requireEnv('SUPABASE_SERVICE_ROLE_KEY');
 
 const supabase = createClient(supabaseUrl, serviceRoleKey);
 
