@@ -182,13 +182,14 @@ const navItems: NavItem[] = [
     path: '/shared-with-me',
     matchPaths: ['/shared-with-me'],
   },
-  {
-    id: 'analytics',
-    name: 'Analytics',
-    iconLine: RiPieChart2Line,
-    path: '/analytics',
-    matchPaths: ['/analytics'],
-  },
+  // Analytics hidden until data pipelines are properly built (50-60% of displayed data is placeholder/fake)
+  // {
+  //   id: 'analytics',
+  //   name: 'Analytics',
+  //   iconLine: RiPieChart2Line,
+  //   path: '/analytics',
+  //   matchPaths: ['/analytics'],
+  // },
   {
     id: 'settings',
     name: 'Settings',
