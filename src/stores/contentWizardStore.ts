@@ -96,7 +96,7 @@ interface ContentWizardActions {
   reset: () => void;
 
   // Persistence actions
-  saveAllContent: () => Promise<SaveResult>;
+  saveAllContent: (bankId?: string | null) => Promise<SaveResult>;
 }
 
 /**
@@ -380,14 +380,15 @@ export const useContentWizardStore = create<ContentWizardStoreState & ContentWiz
     },
 
     // Persistence actions
-    saveAllContent: async (): Promise<SaveResult> => {
+    saveAllContent: async (bankId?: string | null): Promise<SaveResult> => {
       const { selected_hook_ids, generated_hooks, generated_content, markContentSaved } = get();
 
       // Call the save function
       const result = await saveWizardContent(
         selected_hook_ids,
         generated_hooks,
-        generated_content
+        generated_content,
+        bankId
       );
 
       // Mark saved hooks as saved in local state

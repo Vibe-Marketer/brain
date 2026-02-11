@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { parseVariables, createVariableDefinitions } from "@/lib/template-engine";
 import { useContentLibraryStore } from "@/stores/contentLibraryStore";
+import { useBankContext } from "@/hooks/useBankContext";
 import type { Template, TemplateInput, ContentType, TemplateVariable } from "@/types/content-library";
 import { RiPriceTag3Line } from "@remixicon/react";
 
@@ -85,6 +86,7 @@ export function TemplateEditorDialog({
 
   // Store actions
   const saveNewTemplate = useContentLibraryStore((state) => state.saveNewTemplate);
+  const { activeBankId } = useBankContext();
 
   // Ref for focus management
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -190,7 +192,7 @@ export function TemplateEditorDialog({
       }
 
       // Create new template
-      const savedTemplate = await saveNewTemplate(templateInput);
+      const savedTemplate = await saveNewTemplate(templateInput, activeBankId);
 
       if (savedTemplate) {
         toast.success("Template saved successfully");

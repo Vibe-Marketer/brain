@@ -69,15 +69,16 @@ describe('Template CRUD Functions', () => {
         },
       ];
 
-      const mockFrom = vi.fn().mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-        }),
-      });
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+      };
+      const mockFrom = vi.fn().mockReturnValue(chainMock);
 
       vi.mocked(supabase.from).mockImplementation(mockFrom);
 
-      const result = await fetchTemplates();
+      const result = await fetchTemplates(undefined, true, 'test-bank-id');
 
       expect(result.error).toBeNull();
       expect(result.data).toHaveLength(1);
@@ -86,79 +87,90 @@ describe('Template CRUD Functions', () => {
     });
 
     it('should filter by content_type', async () => {
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ data: [], error: null });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
+      const mockEq = vi.fn().mockReturnThis();
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
         eq: mockEq,
-      } as ReturnType<typeof supabase.from>);
+        order: vi.fn().mockReturnThis(),
+        or: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+      mockEq.mockImplementation(() => chainMock);
 
-      await fetchTemplates({ content_type: 'email' });
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
 
+      await fetchTemplates({ content_type: 'email' }, true, 'test-bank-id');
+
+      expect(mockEq).toHaveBeenCalledWith('bank_id', 'test-bank-id');
       expect(mockEq).toHaveBeenCalledWith('content_type', 'email');
     });
 
     it('should filter by is_shared', async () => {
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ data: [], error: null });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
+      const mockEq = vi.fn().mockReturnThis();
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
         eq: mockEq,
-      } as any);
+        order: vi.fn().mockReturnThis(),
+        or: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
+      mockEq.mockImplementation(() => chainMock);
 
-      await fetchTemplates({ is_shared: true });
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
+
+      await fetchTemplates({ is_shared: true }, true, 'test-bank-id');
 
       expect(mockEq).toHaveBeenCalledWith('is_shared', true);
     });
 
     it('should apply search filter', async () => {
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockReturnThis();
       const mockOr = vi.fn().mockResolvedValue({ data: [], error: null });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockReturnThis(),
         or: mockOr,
-      } as any);
+      };
 
-      await fetchTemplates({ search: 'test' });
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
+
+      await fetchTemplates({ search: 'test' }, true, 'test-bank-id');
 
       expect(mockOr).toHaveBeenCalledWith('name.ilike.%test%,description.ilike.%test%');
     });
 
     it('should fetch only personal templates when includeShared is false', async () => {
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ data: [], error: null });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
+      // Create a thenable chain mock that tracks all calls
+      const mockEq = vi.fn();
+      const chainMock: Record<string, any> = {
+        select: vi.fn(),
         eq: mockEq,
-      } as any);
+        order: vi.fn(),
+        then: vi.fn((resolve: (val: any) => void) => resolve({ data: [], error: null })),
+      };
+      // All methods return chainMock so chaining continues
+      chainMock.select.mockReturnValue(chainMock);
+      chainMock.eq.mockReturnValue(chainMock);
+      chainMock.order.mockReturnValue(chainMock);
 
-      await fetchTemplates({}, false);
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
 
+      await fetchTemplates({}, false, 'test-bank-id');
+
+      expect(mockEq).toHaveBeenCalledWith('bank_id', 'test-bank-id');
       expect(mockEq).toHaveBeenCalledWith('user_id', 'test-user-id');
     });
 
     it('should handle database errors', async () => {
       const mockError = { code: 'PGRST123', message: 'Database error' };
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: null, error: mockError }),
-        }),
-      } as any);
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: null, error: mockError }),
+      };
 
-      const result = await fetchTemplates();
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
+
+      const result = await fetchTemplates(undefined, true, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(TemplateError);
       expect(result.error?.code).toBe('PGRST123');
@@ -186,13 +198,15 @@ describe('Template CRUD Functions', () => {
         },
       ];
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-        }),
-      } as any);
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+      };
 
-      const result = await fetchTemplates();
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
+
+      const result = await fetchTemplates(undefined, true, 'test-bank-id');
 
       expect(result.data?.[0].variables).toHaveLength(2);
       expect(result.data?.[0].variables[0]).toEqual({ name: 'name', required: true });
@@ -216,13 +230,15 @@ describe('Template CRUD Functions', () => {
         },
       ];
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-        }),
-      } as any);
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
+      };
 
-      const result = await fetchTemplates();
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
+
+      const result = await fetchTemplates(undefined, true, 'test-bank-id');
 
       expect(result.data?.[0].variables).toEqual([]);
     });
@@ -230,40 +246,42 @@ describe('Template CRUD Functions', () => {
 
   describe('fetchPersonalTemplates', () => {
     it('should call fetchTemplates with includeShared=false', async () => {
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockResolvedValue({ data: [], error: null });
-
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        order: mockOrder,
+      const mockEq = vi.fn();
+      const chainMock: Record<string, any> = {
+        select: vi.fn(),
         eq: mockEq,
-      } as any);
+        order: vi.fn(),
+        then: vi.fn((resolve: (val: any) => void) => resolve({ data: [], error: null })),
+      };
+      chainMock.select.mockReturnValue(chainMock);
+      chainMock.eq.mockReturnValue(chainMock);
+      chainMock.order.mockReturnValue(chainMock);
 
-      await fetchPersonalTemplates();
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
 
+      await fetchPersonalTemplates(undefined, 'test-bank-id');
+
+      expect(mockEq).toHaveBeenCalledWith('bank_id', 'test-bank-id');
       expect(mockEq).toHaveBeenCalledWith('user_id', 'test-user-id');
     });
   });
 
   describe('fetchSharedTemplates', () => {
     it('should fetch only shared templates from other users', async () => {
-      const mockSelect = vi.fn().mockReturnThis();
-      const mockEq = vi.fn().mockReturnThis();
-      const mockNeq = vi.fn().mockReturnThis();
-      const mockOrder = vi.fn().mockResolvedValue({ data: [], error: null });
+      const chainMock = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        neq: vi.fn().mockReturnThis(),
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
 
-      vi.mocked(supabase.from).mockReturnValue({
-        select: mockSelect,
-        eq: mockEq,
-        neq: mockNeq,
-        order: mockOrder,
-      } as any);
+      vi.mocked(supabase.from).mockReturnValue(chainMock as any);
 
-      await fetchSharedTemplates();
+      await fetchSharedTemplates(undefined, 'test-bank-id');
 
-      expect(mockEq).toHaveBeenCalledWith('is_shared', true);
-      expect(mockNeq).toHaveBeenCalledWith('user_id', 'test-user-id');
+      expect(chainMock.eq).toHaveBeenCalledWith('bank_id', 'test-bank-id');
+      expect(chainMock.eq).toHaveBeenCalledWith('is_shared', true);
+      expect(chainMock.neq).toHaveBeenCalledWith('user_id', 'test-user-id');
     });
   });
 
@@ -296,7 +314,7 @@ describe('Template CRUD Functions', () => {
         }),
       } as any);
 
-      const result = await saveTemplate(input);
+      const result = await saveTemplate(input, 'test-bank-id');
 
       expect(result.error).toBeNull();
       expect(result.data?.name).toBe('Test Template');
@@ -309,7 +327,7 @@ describe('Template CRUD Functions', () => {
         content_type: 'email' as const,
       };
 
-      const result = await saveTemplate(input);
+      const result = await saveTemplate(input, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(TemplateError);
       expect(result.error?.message).toBe('Name is required');
@@ -323,7 +341,7 @@ describe('Template CRUD Functions', () => {
         content_type: 'email' as const,
       };
 
-      const result = await saveTemplate(input);
+      const result = await saveTemplate(input, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(TemplateError);
       expect(result.error?.message).toBe('Template content is required');
@@ -337,7 +355,7 @@ describe('Template CRUD Functions', () => {
         content_type: 'email' as const,
       };
 
-      const result = await saveTemplate(input);
+      const result = await saveTemplate(input, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(TemplateError);
       expect(result.error?.message).toBe('Name must be 255 characters or less');
@@ -350,7 +368,7 @@ describe('Template CRUD Functions', () => {
         content_type: 'email' as const,
       };
 
-      const result = await saveTemplate(input);
+      const result = await saveTemplate(input, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(TemplateError);
       expect(result.error?.message).toBe('Template content must be 50,000 characters or less');
@@ -373,7 +391,7 @@ describe('Template CRUD Functions', () => {
         }),
       } as any);
 
-      const result = await saveTemplate(input);
+      const result = await saveTemplate(input, 'test-bank-id');
 
       expect(result.error).toBeInstanceOf(TemplateError);
       expect(result.error?.code).toBe('PGRST123');

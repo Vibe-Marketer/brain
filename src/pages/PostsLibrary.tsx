@@ -49,6 +49,7 @@ import {
   useItemsError,
 } from '@/stores/contentItemsStore';
 import type { ContentItem, ContentItemStatus } from '@/types/content-hub';
+import { useBankContext } from '@/hooks/useBankContext';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function PostsLibrary() {
@@ -63,6 +64,7 @@ export default function PostsLibrary() {
   const removeItem = useContentItemsStore((state) => state.removeItem);
   const markItemAsUsed = useContentItemsStore((state) => state.markItemAsUsed);
   const markItemAsDraft = useContentItemsStore((state) => state.markItemAsDraft);
+  const { activeBankId } = useBankContext();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ContentItemStatus | 'all'>('all');
@@ -70,8 +72,8 @@ export default function PostsLibrary() {
   const [editText, setEditText] = useState('');
 
   useEffect(() => {
-    fetchPosts();
-  }, [fetchPosts]);
+    fetchPosts(undefined, activeBankId);
+  }, [fetchPosts, activeBankId]);
 
   const handleCopy = async (post: ContentItem) => {
     await navigator.clipboard.writeText(post.content_text);
@@ -162,7 +164,7 @@ export default function PostsLibrary() {
       <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
         <div className="flex flex-col items-center justify-center h-full gap-4">
           <p className="text-destructive">{error}</p>
-          <Button onClick={() => fetchPosts()}>Retry</Button>
+          <Button onClick={() => fetchPosts(undefined, activeBankId)}>Retry</Button>
         </div>
       </AppShell>
     );

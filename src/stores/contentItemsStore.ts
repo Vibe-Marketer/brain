@@ -39,12 +39,12 @@ interface ContentItemsState {
  */
 interface ContentItemsActions {
   // Fetch actions
-  fetchPosts: (filters?: Omit<ContentItemFilters, 'content_type'>) => Promise<void>;
-  fetchEmails: (filters?: Omit<ContentItemFilters, 'content_type'>) => Promise<void>;
-  fetchAll: (filters?: ContentItemFilters) => Promise<void>;
+  fetchPosts: (filters?: Omit<ContentItemFilters, 'content_type'>, bankId?: string | null) => Promise<void>;
+  fetchEmails: (filters?: Omit<ContentItemFilters, 'content_type'>, bankId?: string | null) => Promise<void>;
+  fetchAll: (filters?: ContentItemFilters, bankId?: string | null) => Promise<void>;
 
   // CRUD actions
-  addItem: (input: ContentItemInput) => Promise<ContentItem | null>;
+  addItem: (input: ContentItemInput, bankId?: string | null) => Promise<ContentItem | null>;
   updateItem: (id: string, updates: Partial<Omit<ContentItem, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => Promise<ContentItem | null>;
   removeItem: (id: string) => Promise<boolean>;
 
@@ -83,12 +83,12 @@ export const useContentItemsStore = create<ContentItemsState & ContentItemsActio
     ...initialState,
 
     // Fetch posts
-    fetchPosts: async (filters?: Omit<ContentItemFilters, 'content_type'>) => {
+    fetchPosts: async (filters?: Omit<ContentItemFilters, 'content_type'>, bankId?: string | null) => {
       const effectiveFilters = filters ?? get().filters;
 
       set({ itemsLoading: true, itemsError: null });
 
-      const { data, error } = await fetchPostsLib(effectiveFilters);
+      const { data, error } = await fetchPostsLib(effectiveFilters, bankId);
 
       if (error) {
         set({
@@ -106,12 +106,12 @@ export const useContentItemsStore = create<ContentItemsState & ContentItemsActio
     },
 
     // Fetch emails
-    fetchEmails: async (filters?: Omit<ContentItemFilters, 'content_type'>) => {
+    fetchEmails: async (filters?: Omit<ContentItemFilters, 'content_type'>, bankId?: string | null) => {
       const effectiveFilters = filters ?? get().filters;
 
       set({ itemsLoading: true, itemsError: null });
 
-      const { data, error } = await fetchEmailsLib(effectiveFilters);
+      const { data, error } = await fetchEmailsLib(effectiveFilters, bankId);
 
       if (error) {
         set({
@@ -129,15 +129,15 @@ export const useContentItemsStore = create<ContentItemsState & ContentItemsActio
     },
 
     // Fetch both posts and emails
-    fetchAll: async (filters?: ContentItemFilters) => {
+    fetchAll: async (filters?: ContentItemFilters, bankId?: string | null) => {
       const effectiveFilters = filters ?? get().filters;
 
       set({ itemsLoading: true, itemsError: null });
 
       // Fetch both types in parallel
       const [postsResult, emailsResult] = await Promise.all([
-        fetchPostsLib(effectiveFilters),
-        fetchEmailsLib(effectiveFilters),
+        fetchPostsLib(effectiveFilters, bankId),
+        fetchEmailsLib(effectiveFilters, bankId),
       ]);
 
       if (postsResult.error) {
@@ -165,7 +165,7 @@ export const useContentItemsStore = create<ContentItemsState & ContentItemsActio
     },
 
     // Add new content item
-    addItem: async (input: ContentItemInput) => {
+    addItem: async (input: ContentItemInput, bankId?: string | null) => {
       // Optimistic update - add a temporary item with a placeholder ID
       const tempId = `temp-${Date.now()}`;
       const tempItem: ContentItem = {
@@ -192,7 +192,7 @@ export const useContentItemsStore = create<ContentItemsState & ContentItemsActio
         }));
       }
 
-      const { data, error } = await createContentItem(input);
+      const { data, error } = await createContentItem(input, bankId);
 
       if (error) {
         // Rollback optimistic update

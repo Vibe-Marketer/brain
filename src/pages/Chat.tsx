@@ -165,7 +165,7 @@ export default function Chat() {
     deleteSession,
     togglePin,
     toggleArchive,
-  } = useChatSession(session?.user?.id);
+  } = useChatSession(session?.user?.id, activeBankId);
 
   const sessionsRef = React.useRef(sessions);
   React.useEffect(() => {
@@ -516,13 +516,14 @@ export default function Chat() {
   // --- Session handlers ---
   const createNewSession = React.useCallback(async () => {
     return createSession({
+      bank_id: activeBankId || undefined,
       filter_date_start: filters.dateStart,
       filter_date_end: filters.dateEnd,
       filter_speakers: filters.speakers,
       filter_categories: filters.categories,
       filter_recording_ids: filters.recordingIds,
     });
-  }, [createSession, filters]);
+  }, [createSession, filters, activeBankId]);
 
   const handleNewChat = React.useCallback(async () => {
     try {

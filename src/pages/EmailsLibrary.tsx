@@ -49,6 +49,7 @@ import {
   useItemsError,
 } from '@/stores/contentItemsStore';
 import type { ContentItem, ContentItemStatus } from '@/types/content-hub';
+import { useBankContext } from '@/hooks/useBankContext';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function EmailsLibrary() {
@@ -63,6 +64,7 @@ export default function EmailsLibrary() {
   const removeItem = useContentItemsStore((state) => state.removeItem);
   const markItemAsUsed = useContentItemsStore((state) => state.markItemAsUsed);
   const markItemAsDraft = useContentItemsStore((state) => state.markItemAsDraft);
+  const { activeBankId } = useBankContext();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<ContentItemStatus | 'all'>('all');
@@ -71,8 +73,8 @@ export default function EmailsLibrary() {
   const [editText, setEditText] = useState('');
 
   useEffect(() => {
-    fetchEmails();
-  }, [fetchEmails]);
+    fetchEmails(undefined, activeBankId);
+  }, [fetchEmails, activeBankId]);
 
   const handleCopy = async (email: ContentItem) => {
     const fullContent = email.email_subject
@@ -174,7 +176,7 @@ export default function EmailsLibrary() {
       <AppShell config={{ secondaryPane: <ContentCategoryPane categoryCounts={categoryCounts} /> }}>
         <div className="flex flex-col items-center justify-center h-full gap-4">
           <p className="text-destructive">{error}</p>
-          <Button onClick={() => fetchEmails()}>Retry</Button>
+          <Button onClick={() => fetchEmails(undefined, activeBankId)}>Retry</Button>
         </div>
       </AppShell>
     );

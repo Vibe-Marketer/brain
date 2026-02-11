@@ -56,14 +56,17 @@ export interface TemplateResult<T> {
  */
 export async function fetchTemplates(
   filters?: TemplateFilters,
-  includeShared: boolean = true
+  includeShared: boolean = true,
+  bankId?: string | null
 ): Promise<TemplateResult<Template[]>> {
   try {
     const user = await requireUser();
+    if (!bankId) return { data: [], error: null };
 
     let query = supabase
       .from("templates")
       .select("*")
+      .eq("bank_id", bankId)
       .order("created_at", { ascending: false });
 
     // RLS handles user/team access, but we can filter for personal templates only
@@ -131,9 +134,10 @@ export async function fetchTemplates(
  * @returns Array of user's personal templates
  */
 export async function fetchPersonalTemplates(
-  filters?: TemplateFilters
+  filters?: TemplateFilters,
+  bankId?: string | null
 ): Promise<TemplateResult<Template[]>> {
-  return fetchTemplates(filters, false);
+  return fetchTemplates(filters, false, bankId);
 }
 
 /**
@@ -143,14 +147,17 @@ export async function fetchPersonalTemplates(
  * @returns Array of shared team templates
  */
 export async function fetchSharedTemplates(
-  filters?: TemplateFilters
+  filters?: TemplateFilters,
+  bankId?: string | null
 ): Promise<TemplateResult<Template[]>> {
   try {
     const user = await requireUser();
+    if (!bankId) return { data: [], error: null };
 
     let query = supabase
       .from("templates")
       .select("*")
+      .eq("bank_id", bankId)
       .eq("is_shared", true)
       .neq("user_id", user.id) // Exclude user's own templates
       .order("created_at", { ascending: false });
@@ -218,10 +225,18 @@ export async function fetchSharedTemplates(
  * });
  */
 export async function saveTemplate(
-  input: TemplateInput
+  input: TemplateInput,
+  bankId?: string | null
 ): Promise<TemplateResult<Template>> {
   try {
     const user = await requireUser();
+
+    if (!bankId) {
+      return {
+        data: null,
+        error: new TemplateError("Bank ID is required"),
+      };
+    }
 
     // Validate required fields
     if (!input.name?.trim()) {
@@ -257,6 +272,7 @@ export async function saveTemplate(
       .from("templates")
       .insert({
         user_id: user.id,
+        bank_id: bankId,
         name: input.name.trim(),
         description: input.description || null,
         template_content: input.template_content,

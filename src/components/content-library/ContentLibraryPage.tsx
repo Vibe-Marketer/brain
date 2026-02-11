@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useContentLibraryStore } from "@/stores/contentLibraryStore";
+import { useBankContext } from "@/hooks/useBankContext";
 import { RiFileTextLine } from "@remixicon/react";
 import { Separator } from "@/components/ui/separator";
 import { AppShell } from "@/components/layout/AppShell";
@@ -19,12 +20,13 @@ export function ContentLibraryPage() {
   const error = useContentLibraryStore((state) => state.itemsError);
   const fetchItems = useContentLibraryStore((state) => state.fetchItems);
   const fetchTags = useContentLibraryStore((state) => state.fetchTags);
+  const { activeBankId } = useBankContext();
 
-  // Fetch items and tags on mount
+  // Fetch items and tags on mount and when bank changes
   useEffect(() => {
-    fetchItems();
-    fetchTags();
-  }, [fetchItems, fetchTags]);
+    fetchItems(undefined, activeBankId);
+    fetchTags(activeBankId);
+  }, [fetchItems, fetchTags, activeBankId]);
 
   // Loading state - show skeleton for smooth UX
   if (isLoading) {

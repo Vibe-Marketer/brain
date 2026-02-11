@@ -13,6 +13,7 @@ import { useCallback, useState } from 'react';
 import { RiCheckLine, RiLoader4Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useBankContext } from '@/hooks/useBankContext';
 import { useToast } from '@/hooks/use-toast';
 import {
   useContentWizardStore,
@@ -59,6 +60,7 @@ export function CallContentWizard({ onComplete, onCancel }: CallContentWizardPro
   const prevStep = useContentWizardStore((state) => state.prevStep);
   const goToStep = useContentWizardStore((state) => state.goToStep);
   const saveAllContent = useContentWizardStore((state) => state.saveAllContent);
+  const { activeBankId } = useBankContext();
 
   const currentIndex = STEP_ORDER.indexOf(currentStep);
   const isFirstStep = currentIndex === 0;
@@ -69,7 +71,7 @@ export function CallContentWizard({ onComplete, onCancel }: CallContentWizardPro
       // Save content before completing wizard
       setIsSaving(true);
       try {
-        const saveResult = await saveAllContent();
+        const saveResult = await saveAllContent(activeBankId);
 
         if (saveResult.success) {
           toast({
@@ -107,7 +109,7 @@ export function CallContentWizard({ onComplete, onCancel }: CallContentWizardPro
     } else {
       nextStep();
     }
-  }, [isLastStep, onComplete, nextStep, saveAllContent, toast]);
+  }, [isLastStep, onComplete, nextStep, saveAllContent, activeBankId, toast]);
 
   const handleBack = useCallback(() => {
     prevStep();
