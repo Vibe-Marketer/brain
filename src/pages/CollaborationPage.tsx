@@ -249,7 +249,7 @@ function CollaborationDetailPane({
     <div
       className={cn(
         "h-full flex flex-col bg-background",
-        "transition-all duration-300 ease-in-out",
+        "transition-all duration-500 ease-in-out",
         isMounted
           ? "opacity-100 translate-x-0"
           : "opacity-0 translate-x-2",

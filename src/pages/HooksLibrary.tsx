@@ -53,13 +53,13 @@ import {
 import type { Hook, EmotionCategory, HookStatus } from '@/types/content-hub';
 
 const EMOTION_COLORS: Record<EmotionCategory, string> = {
-  anger_outrage: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  awe_surprise: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-  social_currency: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  relatable: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
-  practical_value: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  humor_sharp: 'bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300',
-  neutral: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300',
+  anger_outrage: 'bg-danger-bg text-danger-text',
+  awe_surprise: 'bg-info-bg text-info-text',
+  social_currency: 'bg-info-bg text-info-text',
+  relatable: 'bg-success-bg text-success-text',
+  practical_value: 'bg-warning-bg text-warning-text',
+  humor_sharp: 'bg-neutral-bg text-neutral-text',
+  neutral: 'bg-neutral-bg text-neutral-text',
 };
 
 const EMOTION_LABELS: Record<EmotionCategory, string> = {
@@ -166,8 +166,8 @@ export default function HooksLibrary() {
               <RiLightbulbLine className="h-4 w-4 text-vibe-orange" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-ink">
-                Hooks
+              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                HOOKS
               </h2>
               <p className="text-xs text-ink-muted">
                 {hooks.length} hook{hooks.length !== 1 ? 's' : ''} saved

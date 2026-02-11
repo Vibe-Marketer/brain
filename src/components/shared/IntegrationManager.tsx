@@ -88,7 +88,7 @@ export function IntegrationManager({
       return (
         <Card className="border-border dark:border-cb-border-dark">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-montserrat font-extrabold uppercase tracking-wide">
+            <CardTitle className="text-lg font-display font-extrabold uppercase tracking-wide">
               Connect Integration
             </CardTitle>
           </CardHeader>
@@ -175,7 +175,7 @@ export function IntegrationManager({
     return (
       <Card className="border-border dark:border-cb-border-dark">
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-montserrat font-extrabold uppercase tracking-wide flex items-center justify-between">
+          <CardTitle className="text-lg font-display font-extrabold uppercase tracking-wide flex items-center justify-between">
             <span>{title}</span>
             <AddIntegrationButton
               integrations={filteredIntegrations}
@@ -194,7 +194,7 @@ export function IntegrationManager({
   return (
     <div>
       <div className="flex items-center justify-between pb-3 border-b border-border mb-3">
-        <h3 className="font-semibold text-gray-900 dark:text-gray-50">
+        <h3 className="font-semibold text-foreground">
           {title}
         </h3>
         <AddIntegrationButton

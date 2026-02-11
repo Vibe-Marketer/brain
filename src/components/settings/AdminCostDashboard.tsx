@@ -58,6 +58,7 @@ const FEATURE_LABELS: Record<string, string> = {
 
 export default function AdminCostDashboard() {
   const [period, setPeriod] = useState<AdminCostPeriod>("month");
+  const summaryAccentClass = "cv-side-indicator-pill";
   const { byModel, byFeature, byUser, totals, isLoading, error } =
     useAdminCosts(period);
 
@@ -133,12 +134,7 @@ export default function AdminCostDashboard() {
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="relative py-3 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-                style={{
-                  clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-                }}
-              />
+              <div className={summaryAccentClass} aria-hidden="true" />
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Total Cost
               </p>
@@ -147,12 +143,7 @@ export default function AdminCostDashboard() {
               </p>
             </div>
             <div className="relative py-3 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-                style={{
-                  clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-                }}
-              />
+              <div className={summaryAccentClass} aria-hidden="true" />
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Total Requests
               </p>
@@ -161,12 +152,7 @@ export default function AdminCostDashboard() {
               </p>
             </div>
             <div className="relative py-3 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-                style={{
-                  clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)",
-                }}
-              />
+              <div className={summaryAccentClass} aria-hidden="true" />
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Total Tokens
               </p>

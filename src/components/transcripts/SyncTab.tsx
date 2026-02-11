@@ -14,6 +14,7 @@ import { useIntegrationSync } from "@/hooks/useIntegrationSync";
 import { useSyncSourceFilter } from "@/hooks/useSyncSourceFilter";
 import { useSyncTabState } from "@/hooks/useSyncTabState";
 import { useBankContext } from "@/hooks/useBankContext";
+import { VaultSelector } from "@/components/vault/VaultSelector";
 import { DateRange } from "react-day-picker";
 import { logger } from "@/lib/logger";
 import { getSafeUser, requireUser } from "@/lib/auth-utils";
@@ -38,6 +39,7 @@ export function SyncTab() {
   const [perMeetingTags, setPerMeetingTags] = useState<Record<string, string>>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [hasFetchedResults, setHasFetchedResults] = useState(false);
+  const [selectedVaultId, setSelectedVaultId] = useState<string>('');
 
   // Bank context for filtering by bank (Phase 9 migration)
   const { activeBankId, isLoading: bankContextLoading } = useBankContext();
@@ -441,7 +443,8 @@ export function SyncTab() {
         body: {
           recordingIds,
           createdAfter,
-          createdBefore
+          createdBefore,
+          vault_id: selectedVaultId || undefined,
         }
       });
 
@@ -585,6 +588,19 @@ export function SyncTab() {
             )}
           </div>
         </div>
+
+        {/* Vault selector for sync destination */}
+        <VaultSelector
+          integration="fathom"
+          value={selectedVaultId}
+          onVaultChange={setSelectedVaultId}
+          label="Sync to Hub"
+          disabled={syncing}
+          className="mb-4"
+        />
+        <p className="text-xs text-muted-foreground -mt-2 mb-4">
+          Calls sync to your current workspace. Switch workspace in the header to sync elsewhere.
+        </p>
 
         {/* Active Sync Jobs Status - Shows real-time progress */}
         <ActiveSyncJobsCard

@@ -118,6 +118,22 @@ export const queryKeys = {
     list: () => ['notifications', 'list'] as const,
     unread: () => ['notifications', 'unread'] as const,
   },
+
+  // Vaults
+  vaults: {
+    all: ['vaults'] as const,
+    list: () => ['vaults', 'list'] as const,
+    detail: (id: string) => ['vaults', 'detail', id] as const,
+    members: (vaultId: string) => ['vaults', 'members', vaultId] as const,
+    recordings: (vaultId: string) => ['vaults', 'recordings', vaultId] as const,
+  },
+
+  // Vault Entries (recording <-> vault assignments)
+  vaultEntries: {
+    all: ['vault-entries'] as const,
+    byRecording: (recordingId: string) => ['vault-entries', 'recording', recordingId] as const,
+    byVault: (vaultId: string) => ['vault-entries', 'vault', vaultId] as const,
+  },
 } as const;
 
 // Type helper for query keys

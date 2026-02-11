@@ -87,6 +87,27 @@ vi.mock('sonner', () => ({
   },
 }));
 
+// Mock useBankContext (used by QuickCreateFolderDialog for bank-scoped folder operations)
+vi.mock('@/hooks/useBankContext', () => ({
+  useBankContext: vi.fn(() => ({
+    activeBankId: 'test-bank-id',
+    activeVaultId: null,
+    isLoading: false,
+    isInitialized: true,
+    error: null,
+    banks: [],
+    vaults: [],
+    activeBank: null,
+    activeVault: null,
+    isPersonalBank: true,
+    setActiveBank: vi.fn(),
+    setActiveVault: vi.fn(),
+    switchBank: vi.fn(),
+    switchVault: vi.fn(),
+    refresh: vi.fn(),
+  })),
+}));
+
 // Import after mocking
 import { FoldersTab } from '../FoldersTab';
 import { useFolders } from '@/hooks/useFolders';
@@ -99,6 +120,7 @@ import type { Folder } from '@/hooks/useFolders';
 const createMockFolder = (overrides: Partial<Folder> = {}): Folder => ({
   id: 'folder-1',
   user_id: 'user-1',
+  bank_id: 'test-bank-id',
   name: 'Test Folder',
   description: null,
   color: '#6B7280',
@@ -314,7 +336,7 @@ describe('FoldersTab Integration Tests', () => {
         fireEvent.click(folderRow);
       }
 
-      expect(mockOpenPanel).toHaveBeenCalledWith('folder-detail', { folderId: 'folder-1' });
+      expect(mockOpenPanel).toHaveBeenCalledWith('folder-detail', { type: 'folder-detail', folderId: 'folder-1' });
     });
 
     it('should show selection highlighting when folder is selected', () => {
@@ -339,7 +361,7 @@ describe('FoldersTab Integration Tests', () => {
         openPanel: mockOpenPanel,
         closePanel: mockClosePanel,
         togglePin: mockTogglePin,
-        panelData: { folderId: 'folder-1' },
+        panelData: { type: 'folder-detail', folderId: 'folder-1' },
         panelType: 'folder-detail',
         isPanelOpen: true,
         isPinned: false,
@@ -351,7 +373,7 @@ describe('FoldersTab Integration Tests', () => {
       render(<FoldersTab />, { wrapper: createWrapper() });
 
       const folderRow = screen.getByText('Work').closest('tr');
-      expect(folderRow).toHaveClass('bg-hover');
+      expect(folderRow).toHaveClass('bg-hover', { exact: false });
     });
   });
 
@@ -691,7 +713,7 @@ describe('FoldersTab Integration Tests', () => {
         openPanel: mockOpenPanel,
         closePanel: mockClosePanel,
         togglePin: mockTogglePin,
-        panelData: { folderId: 'folder-1' },
+        panelData: { type: 'folder-detail', folderId: 'folder-1' },
         panelType: 'folder-detail',
         isPanelOpen: true,
         isPinned: false,
@@ -731,7 +753,7 @@ describe('FoldersTab Integration Tests', () => {
         openPanel: mockOpenPanel,
         closePanel: mockClosePanel,
         togglePin: mockTogglePin,
-        panelData: { folderId: 'folder-1' },
+        panelData: { type: 'folder-detail', folderId: 'folder-1' },
         panelType: 'folder-detail',
         isPanelOpen: true,
         isPinned: false,
@@ -965,7 +987,7 @@ describe('FoldersTab Integration Tests', () => {
         fireEvent.click(workRow);
       }
 
-      expect(mockOpenPanel).toHaveBeenCalledWith('folder-detail', { folderId: 'folder-1' });
+      expect(mockOpenPanel).toHaveBeenCalledWith('folder-detail', { type: 'folder-detail', folderId: 'folder-1' });
 
       // Click second folder
       const personalRow = screen.getByText('Personal').closest('tr');
@@ -973,7 +995,7 @@ describe('FoldersTab Integration Tests', () => {
         fireEvent.click(personalRow);
       }
 
-      expect(mockOpenPanel).toHaveBeenCalledWith('folder-detail', { folderId: 'folder-2' });
+      expect(mockOpenPanel).toHaveBeenCalledWith('folder-detail', { type: 'folder-detail', folderId: 'folder-2' });
     });
 
     it('should use list keyboard navigation hook for arrow key support', () => {

@@ -77,25 +77,19 @@ function HookContentCard({ hook, content, onCopy }: HookContentCardProps) {
 
       {/* Content Tabs */}
       <Tabs defaultValue="post" className="w-full">
-        <TabsList className="w-full justify-start rounded-none border-b bg-transparent h-auto p-0">
-          <TabsTrigger
-            value="post"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-vibe-orange data-[state=active]:bg-transparent px-4 py-2"
-          >
+        <TabsList>
+          <TabsTrigger value="post">
             <RiFileTextLine className="w-4 h-4 mr-2" />
-            Social Post
+            SOCIAL POST
           </TabsTrigger>
-          <TabsTrigger
-            value="email"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-vibe-orange data-[state=active]:bg-transparent px-4 py-2"
-          >
+          <TabsTrigger value="email">
             <RiMailLine className="w-4 h-4 mr-2" />
-            Email
+            EMAIL
           </TabsTrigger>
         </TabsList>
 
         {/* Social Post */}
-        <TabsContent value="post" className="p-4 m-0">
+        <TabsContent value="post" className="p-4 mt-0">
           {!hasContent ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               {isStreaming ? (
@@ -148,7 +142,7 @@ function HookContentCard({ hook, content, onCopy }: HookContentCardProps) {
         </TabsContent>
 
         {/* Email */}
-        <TabsContent value="email" className="p-4 m-0">
+        <TabsContent value="email" className="p-4 mt-0">
           {!hasContent ? (
             <div className="flex items-center justify-center py-8 text-muted-foreground">
               {isStreaming ? (

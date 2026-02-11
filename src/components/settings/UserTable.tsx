@@ -125,10 +125,10 @@ export const UserTable = React.memo(({
               >
                 <TableCell className="py-0.5">
                   <div className="flex flex-col">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-50">
+                    <div className="text-sm font-medium text-foreground">
                       {user.display_name || "—"}
                     </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                    <div className="text-xs text-muted-foreground">
                       {user.email}
                     </div>
                   </div>
@@ -136,7 +136,7 @@ export const UserTable = React.memo(({
                 <TableCell className="py-0.5 whitespace-nowrap">
                   {isAdmin && updatingUserId !== user.user_id ? (
                     <Select
-                      value={user.role}
+                      value={user.role || "FREE"}
                       onValueChange={(value) =>
                         onRoleChange(user.user_id, value as "FREE" | "PRO" | "TEAM" | "ADMIN")
                       }
@@ -174,7 +174,7 @@ export const UserTable = React.memo(({
                     </Badge>
                   </div>
                 </TableCell>
-                <TableCell className="hidden lg:table-cell py-0.5 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400 tabular-nums">
+                <TableCell className="hidden lg:table-cell py-0.5 whitespace-nowrap text-sm text-muted-foreground tabular-nums">
                   {formatDate(user.created_at)}
                 </TableCell>
                 {showActions && (

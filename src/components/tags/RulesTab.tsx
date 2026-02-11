@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { supabase } from "@/integrations/supabase/client";
+import { useBankContext } from "@/hooks/useBankContext";
 import { toast } from "sonner";
 import {
   Table,
@@ -93,6 +94,7 @@ const RULE_TYPES = [
 
 export function RulesTab() {
   const queryClient = useQueryClient();
+  const { activeBankId } = useBankContext();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -146,29 +148,39 @@ export function RulesTab() {
     },
   });
 
-  // Fetch tags
+  // Fetch tags scoped to active bank/workspace
   const { data: tags } = useQuery({
-    queryKey: ["call-tags"],
+    queryKey: ["call-tags", activeBankId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("call_tags")
         .select("id, name, color")
         .order("name");
 
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Tag[];
     },
   });
 
-  // Fetch folders
+  // Fetch folders scoped to active bank/workspace
   const { data: folders } = useQuery({
-    queryKey: ["folders"],
+    queryKey: ["folders", activeBankId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("folders")
         .select("id, name, color, icon")
         .order("name");
 
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Folder[];
     },

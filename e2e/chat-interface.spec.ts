@@ -620,7 +620,9 @@ test.describe("Chat Interface - Session Management", () => {
     const session2Id = session2Url.split("/chat/")[1];
 
     await waitForResponseComplete(page);
-    await page.waitForTimeout(2000); // Wait for save
+    // Verify message is visible before save
+    await expect(page.locator(`text=${message2.substring(0, 25)}`).first()).toBeVisible({ timeout: 5000 });
+    await page.waitForTimeout(3000); // Wait for debounced save
 
     console.log(`Session 2 created: ${session2Id}`);
 
@@ -673,7 +675,9 @@ test.describe("Chat Interface - Session Management", () => {
     const sessionId = sessionUrl.split("/chat/")[1];
 
     await waitForResponseComplete(page);
-    await page.waitForTimeout(2000); // Wait for debounced save
+    // Verify message is visible before save
+    await expect(page.locator(`text=${testMessage.substring(0, 25)}`).first()).toBeVisible({ timeout: 5000 });
+    await page.waitForTimeout(3000); // Wait for debounced save
 
     // Navigate away
     await page.goto("/");

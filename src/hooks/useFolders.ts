@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { queryKeys } from "@/lib/query-config";
 import { requireUser } from "@/lib/auth-utils";
+import { useBankContext } from "@/hooks/useBankContext";
 import type { Folder, FolderAssignment } from "@/types/folders";
 
 // Re-export types for consumers
@@ -40,22 +41,26 @@ interface MoveToFolderParams {
 
 export function useFolders() {
   const queryClient = useQueryClient();
+  const { activeBankId } = useBankContext();
 
-  // Fetch all folders for the current user
+  // Fetch folders for the current user scoped to the active bank/workspace
   const { data: folders = [], isLoading, refetch } = useQuery({
-    queryKey: queryKeys.folders.list(),
+    queryKey: [...queryKeys.folders.list(), activeBankId],
     queryFn: async () => {
       const user = await requireUser();
+      if (!activeBankId) return [];
 
       const { data, error } = await supabase
         .from("folders")
         .select("*")
         .eq("user_id", user.id)
+        .eq("bank_id", activeBankId)
         .order("position");
 
       if (error) throw error;
       return (data || []) as Folder[];
     },
+    enabled: !!activeBankId,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
@@ -88,12 +93,14 @@ export function useFolders() {
   const createFolderMutation = useMutation({
     mutationFn: async ({ name, parentId = null, color = "#6B7280", icon = "folder", description = null }: CreateFolderParams) => {
       const user = await requireUser();
+      if (!activeBankId) throw new Error("No active workspace selected");
 
       // Get the next position for this folder level
       let positionQuery = supabase
         .from("folders")
         .select("position")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("bank_id", activeBankId);
 
       // Use .is() for null comparison, .eq() for actual values
       if (parentId) {
@@ -112,6 +119,7 @@ export function useFolders() {
         .from("folders")
         .insert({
           user_id: user.id,
+          bank_id: activeBankId,
           name,
           description,
           color,

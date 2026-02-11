@@ -24,6 +24,7 @@ import { TagDetailPanel } from '@/components/panels/TagDetailPanel';
 import { SettingHelpPanel } from '@/components/panels/SettingHelpPanel';
 import { UserDetailPanel } from '@/components/panels/UserDetailPanel';
 import { CallDetailPanel } from '@/components/panels/CallDetailPanel';
+import { VaultMemberPanel } from '@/components/panels/VaultMemberPanel';
 
 export interface DetailPaneOutletProps {
   /** Whether we're on tablet breakpoint (affects width) */
@@ -86,6 +87,11 @@ export function DetailPaneOutlet({
           <CallDetailPanel recordingId={panelData.recordingId} />
         ) : null;
 
+      case 'vault-member':
+        return panelData?.type === 'vault-member' ? (
+          <VaultMemberPanel vaultId={panelData.vaultId} />
+        ) : null;
+
       default:
         // Unsupported panel type
         console.warn(`DetailPaneOutlet: Unsupported panel type "${panelType}"`);
@@ -106,6 +112,8 @@ export function DetailPaneOutlet({
         return 'User detail panel';
       case 'call-detail':
         return 'Call detail panel';
+      case 'vault-member':
+        return 'Hub member panel';
       default:
         return 'Detail panel';
     }
@@ -122,7 +130,7 @@ export function DetailPaneOutlet({
         "flex-shrink-0 bg-card rounded-2xl border border-border/60 shadow-sm",
         "flex flex-col h-full z-10 overflow-hidden",
         // Transition: Width, opacity, and transform animate together
-        "transition-[width,opacity,transform] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]",
+        "transition-[width,opacity,transform] duration-500 ease-in-out",
         "will-change-[width,transform]",
         // Focus states
         "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",

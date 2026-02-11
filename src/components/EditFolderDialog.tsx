@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { useBankContext } from "@/hooks/useBankContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +59,7 @@ export default function EditFolderDialog({
   folder,
   onFolderUpdated,
 }: EditFolderDialogProps) {
+  const { activeBankId } = useBankContext();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
@@ -105,11 +107,17 @@ export default function EditFolderDialog({
 
       // Note: Do NOT query 'depth' column - it doesn't exist in the database
       // Depth is computed client-side to avoid database schema dependencies
-      const { data, error } = await supabase
+      let query = supabase
         .from("folders")
         .select("id, name, parent_id")
         .eq("user_id", user.id)
         .order("name");
+
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -190,13 +198,17 @@ export default function EditFolderDialog({
         }
       }
 
-      // Check duplicate name
+      // Check duplicate name (scoped to active workspace)
       let duplicateQuery = supabase
         .from("folders")
         .select("id")
         .eq("user_id", user.id)
         .eq("name", validation.data.name)
         .neq("id", folder.id);
+
+      if (activeBankId) {
+        duplicateQuery = duplicateQuery.eq("bank_id", activeBankId);
+      }
 
       if (selectedParentId) {
         duplicateQuery = duplicateQuery.eq("parent_id", selectedParentId);

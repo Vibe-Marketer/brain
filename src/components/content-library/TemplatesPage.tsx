@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useContentLibraryStore } from "@/stores/contentLibraryStore";
 import {
-  RiLoader2Line,
   RiFileList3Line,
   RiAddLine,
   RiFileCopyLine,
@@ -19,6 +18,8 @@ import {
   RiPlayLine,
 } from "@remixicon/react";
 import { Separator } from "@/components/ui/separator";
+import { AppShell } from "@/components/layout/AppShell";
+import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -60,16 +61,16 @@ function getContentTypeIcon(type: ContentType) {
 function getContentTypeBadgeClass(type: ContentType): string {
   switch (type) {
     case "email":
-      return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      return "bg-info-bg text-info-text";
     case "social":
-      return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      return "bg-info-bg text-info-text";
     case "testimonial":
-      return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200";
+      return "bg-success-bg text-success-text";
     case "insight":
-      return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
+      return "bg-warning-bg text-warning-text";
     case "other":
     default:
-      return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200";
+      return "bg-neutral-bg text-neutral-text";
   }
 }
 
@@ -409,20 +410,24 @@ export function TemplatesPage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <RiLoader2Line className="w-8 h-8 animate-spin text-vibe-orange" />
-      </div>
+      <AppShell>
+        <div className="h-full flex items-center justify-center py-20">
+          <Spinner size="lg" />
+        </div>
+      </AppShell>
     );
   }
 
   // Error state
   if (error) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <p className="text-cb-gray-dark dark:text-cb-gray-light">
-          Failed to load templates. Please try again.
-        </p>
-      </div>
+      <AppShell>
+        <div className="h-full flex items-center justify-center py-20">
+          <p className="text-muted-foreground">
+            Failed to load templates. Please try again.
+          </p>
+        </div>
+      </AppShell>
     );
   }
 
@@ -432,44 +437,113 @@ export function TemplatesPage() {
   // Empty state - no templates at all
   if (totalTemplates === 0) {
     return (
-      <div className="bg-white dark:bg-card">
-        {/* Top separator for breathing room */}
-        <Separator className="mb-8" />
+      <AppShell>
+        <div className="h-full flex flex-col overflow-hidden">
+          <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+                aria-hidden="true"
+              >
+                <RiFileList3Line className="h-4 w-4 text-vibe-orange" />
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                  TEMPLATES
+                </h2>
+                <p className="text-xs text-ink-muted">
+                  Create reusable templates with variable placeholders
+                </p>
+              </div>
+            </div>
+            <Button onClick={handleNewTemplate}>
+              <RiAddLine className="w-4 h-4 mr-2" />
+              New Template
+            </Button>
+          </header>
 
-        {/* Page header with new template button */}
-        <div className="px-4 mb-6 flex items-center justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold text-cb-black dark:text-cb-white">
-              Templates
-            </h1>
-            <p className="text-sm text-muted-foreground mt-1">
-              Create reusable templates with variable placeholders
+          <div className="flex-1 flex flex-col items-center justify-center py-20 space-y-4 p-6 text-center">
+            <RiFileList3Line className="w-12 h-12 text-muted-foreground" />
+            <p className="text-lg text-foreground">No templates yet</p>
+            <p className="text-sm text-muted-foreground">
+              Create your first template to save time on repetitive content
             </p>
+            <Button onClick={handleNewTemplate} className="mt-4">
+              <RiAddLine className="w-4 h-4 mr-2" />
+              Create Your First Template
+            </Button>
+          </div>
+
+          <TemplateEditorDialog
+            open={editorOpen}
+            onOpenChange={setEditorOpen}
+            template={editingTemplate}
+            onTemplateSaved={handleTemplateSaved}
+          />
+
+          <TemplateVariableInputDialog
+            open={variableInputOpen}
+            onOpenChange={setVariableInputOpen}
+            template={usingTemplate}
+          />
+        </div>
+      </AppShell>
+    );
+  }
+
+  return (
+    <AppShell>
+      <div className="h-full flex flex-col overflow-hidden">
+        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div
+              className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
+              aria-hidden="true"
+            >
+              <RiFileList3Line className="h-4 w-4 text-vibe-orange" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                TEMPLATES
+              </h2>
+              <p className="text-xs text-ink-muted">
+                {totalTemplates} {totalTemplates === 1 ? "template" : "templates"} available
+              </p>
+            </div>
           </div>
           <Button onClick={handleNewTemplate}>
             <RiAddLine className="w-4 h-4 mr-2" />
             New Template
           </Button>
+        </header>
+
+        <div className="flex-1 p-6 overflow-auto">
+          <div className="space-y-8">
+            <TemplateSection
+              title="My Templates"
+              icon={RiUserLine}
+              templates={templates}
+              emptyMessage="You haven't created any templates yet. Click 'New Template' to get started."
+              onEdit={handleEditTemplate}
+              onUse={handleUseTemplate}
+            />
+
+            {sharedTemplates.length > 0 && (
+              <>
+                <Separator />
+                <TemplateSection
+                  title="Team Templates"
+                  icon={RiTeamLine}
+                  templates={sharedTemplates}
+                  emptyMessage="No shared templates from your team."
+                  onUse={handleUseTemplate}
+                  isShared={true}
+                />
+              </>
+            )}
+          </div>
         </div>
 
-        <Separator className="my-6" />
-
-        {/* Empty state */}
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-          <RiFileList3Line className="w-12 h-12 text-muted-foreground" />
-          <p className="text-lg text-cb-gray-dark dark:text-cb-gray-light">
-            No templates yet
-          </p>
-          <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
-            Create your first template to save time on repetitive content
-          </p>
-          <Button onClick={handleNewTemplate} className="mt-4">
-            <RiAddLine className="w-4 h-4 mr-2" />
-            Create Your First Template
-          </Button>
-        </div>
-
-        {/* Template Editor Dialog */}
         <TemplateEditorDialog
           open={editorOpen}
           onOpenChange={setEditorOpen}
@@ -477,82 +551,13 @@ export function TemplatesPage() {
           onTemplateSaved={handleTemplateSaved}
         />
 
-        {/* Template Variable Input Dialog */}
         <TemplateVariableInputDialog
           open={variableInputOpen}
           onOpenChange={setVariableInputOpen}
           template={usingTemplate}
         />
       </div>
-    );
-  }
-
-  return (
-    <div className="bg-white dark:bg-card">
-      {/* Top separator for breathing room */}
-      <Separator className="mb-8" />
-
-      {/* Page header with new template button */}
-      <div className="px-4 mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-cb-black dark:text-cb-white">
-            Templates
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalTemplates} {totalTemplates === 1 ? "template" : "templates"} available
-          </p>
-        </div>
-        <Button onClick={handleNewTemplate}>
-          <RiAddLine className="w-4 h-4 mr-2" />
-          New Template
-        </Button>
-      </div>
-
-      <Separator className="my-6" />
-
-      {/* Templates sections */}
-      <div className="px-4 pb-8 space-y-8">
-        {/* Personal Templates Section */}
-        <TemplateSection
-          title="My Templates"
-          icon={RiUserLine}
-          templates={templates}
-          emptyMessage="You haven't created any templates yet. Click 'New Template' to get started."
-          onEdit={handleEditTemplate}
-          onUse={handleUseTemplate}
-        />
-
-        {/* Team/Shared Templates Section - only show if there are shared templates */}
-        {sharedTemplates.length > 0 && (
-          <>
-            <Separator />
-            <TemplateSection
-              title="Team Templates"
-              icon={RiTeamLine}
-              templates={sharedTemplates}
-              emptyMessage="No shared templates from your team."
-              onUse={handleUseTemplate}
-              isShared={true}
-            />
-          </>
-        )}
-      </div>
-
-      {/* Template Editor Dialog */}
-      <TemplateEditorDialog
-        open={editorOpen}
-        onOpenChange={setEditorOpen}
-        template={editingTemplate}
-        onTemplateSaved={handleTemplateSaved}
-      />
-
-      {/* Template Variable Input Dialog */}
-      <TemplateVariableInputDialog
-        open={variableInputOpen}
-        onOpenChange={setVariableInputOpen}
-        template={usingTemplate}
-      />
-    </div>
+    </AppShell>
   );
 }
 

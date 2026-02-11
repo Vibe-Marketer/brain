@@ -12,6 +12,7 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { CallDetailPage } from '@/pages/CallDetailPage';
 import { SharedCallView } from '@/pages/SharedCallView';
 import TeamJoin from '@/pages/TeamJoin';
+import VaultJoin from '@/pages/VaultJoin';
 
 // Import existing pages
 import TranscriptsNew from '@/pages/TranscriptsNew';
@@ -21,6 +22,7 @@ import Settings from '@/pages/Settings';
 import Analytics from '@/pages/Analytics';
 import SharedWithMe from '@/pages/SharedWithMe';
 import CollaborationPage from '@/pages/CollaborationPage';
+import VaultsPage from '@/pages/VaultsPage';
 
 // Content Library pages
 import { ContentLibraryPage } from '@/components/content-library/ContentLibraryPage';
@@ -84,8 +86,12 @@ function App() {
                     {/* Shared with me page */}
                     <Route path="/shared-with-me" element={<ProtectedRoute><Layout><SharedWithMe /></Layout></ProtectedRoute>} />
 
-                    {/* Collaboration routes */}
-                    <Route path="/team" element={<ProtectedRoute><Layout><CollaborationPage /></Layout></ProtectedRoute>} />
+                    {/* Vaults routes */}
+                    <Route path="/vaults" element={<ProtectedRoute><Layout><VaultsPage /></Layout></ProtectedRoute>} />
+                    <Route path="/vaults/:vaultId" element={<ProtectedRoute><Layout><VaultsPage /></Layout></ProtectedRoute>} />
+
+                    {/* Legacy team redirect */}
+                    <Route path="/team" element={<Navigate to="/vaults" replace />} />
 
                     {/* Content Library routes */}
                     <Route path="/library" element={<ProtectedRoute><Layout><ContentLibraryPage /></Layout></ProtectedRoute>} />
@@ -107,6 +113,9 @@ function App() {
 
                     {/* Team join page - public-ish route (redirects to login if not authenticated) */}
                     <Route path="/join/team/:token" element={<TeamJoin />} />
+
+                    {/* Vault join page - public-ish route (redirects to login if not authenticated) */}
+                    <Route path="/join/vault/:token" element={<VaultJoin />} />
 
                     {/* Automation Rules routes */}
                     <Route path="/automation-rules" element={<ProtectedRoute><Layout><AutomationRules /></Layout></ProtectedRoute>} />

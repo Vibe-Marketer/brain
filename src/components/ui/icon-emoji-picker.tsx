@@ -103,9 +103,9 @@ export function IconEmojiPicker({ value, onChange, color = '#6B7280' }: IconEmoj
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'icons' | 'emoji')}>
-        <TabsList className="w-full">
-          <TabsTrigger value="icons" className="flex-1 uppercase">ICONS</TabsTrigger>
-          <TabsTrigger value="emoji" className="flex-1 uppercase">EMOJI</TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="icons">ICONS</TabsTrigger>
+          <TabsTrigger value="emoji">EMOJI</TabsTrigger>
         </TabsList>
 
         <TabsContent value="icons" className="mt-3 space-y-3">

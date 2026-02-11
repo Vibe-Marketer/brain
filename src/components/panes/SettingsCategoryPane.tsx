@@ -89,7 +89,7 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
   },
   {
     id: "banks",
-    label: "Banks & Vaults",
+    label: "Workspaces & Hubs",
     description: "Workspaces and collaboration",
     icon: RiBankLine,
     iconFill: RiBankFill,
@@ -289,7 +289,7 @@ export function SettingsCategoryPane({
               {/* Active indicator - pill shape (Loop-style) with smooth transition */}
               <div
                 className={cn(
-                  "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full",
+                  "cv-side-indicator-pill",
                   "transition-all duration-200 ease-in-out",
                   isActive
                     ? "opacity-100 scale-y-100"
@@ -314,7 +314,7 @@ export function SettingsCategoryPane({
                   "hover:bg-muted/50 dark:hover:bg-white/5",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
-                    "bg-gray-100 dark:bg-gray-800",
+                    "bg-hover",
                     "border-l-0 pl-4", // Offset for the active indicator
                   ]
                 )}
@@ -327,7 +327,7 @@ export function SettingsCategoryPane({
                     "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0",
                     "bg-cb-card border border-border",
                     "transition-all duration-200 ease-in-out",
-                    isActive && "border-vibe-orange/30 bg-vibe-orange/10"
+                    isActive && "bg-muted dark:bg-white/10"
                   )}
                   aria-hidden="true"
                 >
@@ -335,7 +335,7 @@ export function SettingsCategoryPane({
                     className={cn(
                       "h-4 w-4 transition-colors duration-200 ease-in-out",
                       isActive
-                        ? "text-vibe-orange"
+                        ? "text-ink dark:text-white"
                         : "text-ink-muted"
                     )}
                   />
@@ -347,7 +347,7 @@ export function SettingsCategoryPane({
                     className={cn(
                       "block text-sm font-medium truncate",
                       "transition-colors duration-200 ease-in-out",
-                      isActive ? "text-vibe-orange" : "text-ink"
+                      isActive ? "text-ink dark:text-white" : "text-ink"
                     )}
                   >
                     {category.label}
@@ -369,7 +369,7 @@ export function SettingsCategoryPane({
                   aria-hidden="true"
                 >
                   <svg
-                    className="h-4 w-4 text-vibe-orange"
+                    className="h-4 w-4 text-ink-muted"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

@@ -16,6 +16,7 @@ import { getCorsHeaders } from '../_shared/cors.ts';
 
 interface ImportRequest {
   videoUrl: string;
+  vault_id?: string;
 }
 
 type ImportStep = 'validating' | 'checking' | 'fetching' | 'transcribing' | 'processing' | 'done';
@@ -83,6 +84,20 @@ function generateYouTubeRecordingId(): number {
   return base + timestamp;
 }
 
+/**
+ * Parse ISO 8601 duration (e.g., "PT1H2M10S") to seconds
+ * Used to populate recordings.duration field
+ */
+function parseDurationToSeconds(iso8601: string | undefined | null): number | null {
+  if (!iso8601 || typeof iso8601 !== 'string') return null;
+  const match = iso8601.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+  if (!match) return null;
+  const hours = parseInt(match[1] || '0', 10);
+  const minutes = parseInt(match[2] || '0', 10);
+  const secs = parseInt(match[3] || '0', 10);
+  return hours * 3600 + minutes * 60 + secs;
+}
+
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -114,6 +129,9 @@ Deno.serve(async (req) => {
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
+    // Store the user's JWT token to pass to internal function calls
+    const userJwtToken = token;
+
     if (userError || !user) {
       return new Response(
         JSON.stringify({ 
@@ -140,6 +158,82 @@ Deno.serve(async (req) => {
     }
 
     console.log(`YouTube import request - User: ${user.id}, URL: ${body.videoUrl}`);
+
+    // ========================================================================
+    // Step 0: Ensure YouTube vault exists (auto-create on first import)
+    // ========================================================================
+    let youtubeVaultId: string | null = body.vault_id || null;
+
+    if (!youtubeVaultId) {
+      try {
+        // Find user's personal bank via bank_memberships
+        const { data: bankMembership, error: bankError } = await supabase
+          .from('bank_memberships')
+          .select('bank_id, banks!inner(id, type)')
+          .eq('user_id', user.id)
+          .eq('banks.type', 'personal')
+          .maybeSingle();
+
+        if (bankError) {
+          console.error('Error finding personal bank:', bankError);
+        }
+
+        const personalBankId = bankMembership?.bank_id;
+
+        if (personalBankId) {
+          // Check for existing YouTube vault in that bank
+          const { data: existingVault, error: vaultCheckError } = await supabase
+            .from('vaults')
+            .select('id')
+            .eq('bank_id', personalBankId)
+            .eq('vault_type', 'youtube')
+            .maybeSingle();
+
+          if (vaultCheckError) {
+            console.error('Error checking for YouTube vault:', vaultCheckError);
+          }
+
+          if (existingVault) {
+            youtubeVaultId = existingVault.id;
+            console.log(`Found existing YouTube vault: ${youtubeVaultId}`);
+          } else {
+            // Create YouTube vault
+            const { data: newVault, error: createVaultError } = await supabase
+              .from('vaults')
+              .insert({
+                bank_id: personalBankId,
+                name: 'YouTube Vault',
+                vault_type: 'youtube',
+              })
+              .select('id')
+              .single();
+
+            if (createVaultError) {
+              console.error('Error creating YouTube vault:', createVaultError);
+            } else if (newVault) {
+              youtubeVaultId = newVault.id;
+              console.log(`Created YouTube vault: ${youtubeVaultId}`);
+
+              // Create vault_membership for user as vault_owner
+              const { error: membershipError } = await supabase
+                .from('vault_memberships')
+                .insert({
+                  vault_id: newVault.id,
+                  user_id: user.id,
+                  role: 'vault_owner',
+                });
+
+              if (membershipError) {
+                console.error('Error creating vault membership:', membershipError);
+              }
+            }
+          }
+        }
+      } catch (vaultSetupError) {
+        // Never block import on vault auto-creation failures
+        console.error('Error in YouTube vault auto-creation:', vaultSetupError);
+      }
+    }
 
     // ========================================================================
     // Step 1: Validate URL and extract video ID
@@ -205,7 +299,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Authorization': `Bearer ${userJwtToken}`,
         },
         body: JSON.stringify({
           action: 'video-details',
@@ -253,7 +347,7 @@ Deno.serve(async (req) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabaseServiceKey}`,
+          'Authorization': `Bearer ${userJwtToken}`,
         },
         body: JSON.stringify({
           action: 'transcript',
@@ -350,7 +444,107 @@ Deno.serve(async (req) => {
     console.log(`Successfully imported YouTube video as recording_id: ${recordingId}`);
 
     // ========================================================================
-    // Step 6: Return success
+    // Step 6: Create recording in recordings table + vault entry
+    // ========================================================================
+    let newRecordingUuid: string | null = null;
+
+    try {
+      // Find user's bank for recording ownership
+      const { data: userBank } = await supabase
+        .from('bank_memberships')
+        .select('bank_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+
+      if (userBank?.bank_id) {
+        // Parse duration to seconds for recordings table
+        const durationSeconds = parseDurationToSeconds(videoDetails.duration);
+
+        // Build source_metadata matching YouTubeVideoMetadata interface
+        const sourceMetadata = {
+          youtube_video_id: videoId,
+          youtube_channel_id: videoDetails.channelId,
+          youtube_channel_title: videoDetails.channelTitle,
+          youtube_description: (videoDetails.description || '').substring(0, 1000),
+          youtube_thumbnail: videoDetails.thumbnails?.high?.url || videoDetails.thumbnails?.default?.url,
+          youtube_duration: videoDetails.duration,
+          youtube_view_count: videoDetails.viewCount,
+          youtube_like_count: videoDetails.likeCount,
+          youtube_comment_count: videoDetails.commentCount || null,
+          youtube_category_id: videoDetails.categoryId || null,
+          import_source: 'youtube-import',
+          imported_at: new Date().toISOString(),
+        };
+
+        // Create recording directly in recordings table
+        const { data: newRecording, error: recordingInsertError } = await supabase
+          .from('recordings')
+          .insert({
+            bank_id: userBank.bank_id,
+            owner_user_id: user.id,
+            legacy_recording_id: recordingId,
+            title: videoDetails.title,
+            full_transcript: transcriptText,
+            source_app: 'youtube',
+            source_metadata: sourceMetadata,
+            duration: durationSeconds,
+            recording_start_time: publishedAt,
+            global_tags: [],
+          })
+          .select('id')
+          .single();
+
+        if (recordingInsertError) {
+          console.error('Error creating recording:', recordingInsertError);
+        } else if (newRecording) {
+          newRecordingUuid = newRecording.id;
+          console.log(`Created recording ${newRecordingUuid} with source_metadata`);
+        }
+      }
+    } catch (recordingError) {
+      // Never block import on recording table failures
+      console.error('Error creating recording entry:', recordingError);
+    }
+
+    // Create vault entry linking recording to YouTube vault
+    if (youtubeVaultId && newRecordingUuid) {
+      try {
+        // Validate vault membership
+        const { data: membership, error: membershipError } = await supabase
+          .from('vault_memberships')
+          .select('id')
+          .eq('vault_id', youtubeVaultId)
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (membershipError) {
+          console.error('Error checking vault membership:', membershipError);
+        } else if (!membership) {
+          console.warn(`User ${user.id} is not a member of vault ${youtubeVaultId}, skipping vault entry`);
+        } else {
+          const { error: vaultEntryError } = await supabase
+            .from('vault_entries')
+            .insert({
+              vault_id: youtubeVaultId,
+              recording_id: newRecordingUuid,
+            });
+
+          if (vaultEntryError) {
+            // Don't fail the whole import for vault entry issues
+            console.error('Error creating vault entry:', vaultEntryError);
+          } else {
+            console.log(`Created vault entry for recording ${newRecordingUuid} in vault ${youtubeVaultId}`);
+          }
+        }
+      } catch (vaultError) {
+        // Never fail the import due to vault entry issues
+        console.error('Error handling vault entry:', vaultError);
+      }
+    }
+
+    // ========================================================================
+    // Step 7: Return success
     // ========================================================================
     const response: ImportResponse = {
       success: true,

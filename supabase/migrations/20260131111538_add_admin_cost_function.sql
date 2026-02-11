@@ -104,7 +104,7 @@ BEGIN
         model,
         SUM(cost_cents) AS total_cost,
         COUNT(*) AS request_count,
-        SUM(total_tokens) AS token_count
+        SUM(fl.total_tokens) AS token_count
       FROM filtered_logs
       GROUP BY model
     ) m
@@ -163,7 +163,7 @@ BEGIN
   totals AS (
     SELECT
       COALESCE(SUM(cost_cents), 0) AS total_cost,
-      COALESCE(SUM(total_tokens), 0)::BIGINT AS total_tok,
+      COALESCE(SUM(fl.total_tokens), 0)::BIGINT AS total_tok,
       COUNT(*) AS total_req
     FROM filtered_logs
   )

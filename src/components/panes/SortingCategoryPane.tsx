@@ -226,7 +226,7 @@ export function SortingCategoryPane({
               {/* Active indicator - pill shape (Loop-style) with smooth transition */}
               <div
                 className={cn(
-                  "absolute left-1 top-1/2 -translate-y-1/2 w-1 h-[60%] bg-vibe-orange rounded-full",
+                  "cv-side-indicator-pill",
                   "transition-all duration-200 ease-in-out",
                   isActive
                     ? "opacity-100 scale-y-100"
@@ -251,7 +251,7 @@ export function SortingCategoryPane({
                   "hover:bg-muted/50 dark:hover:bg-white/5",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
-                    "bg-gray-100 dark:bg-gray-800",
+                    "bg-hover",
                     "border-l-0 pl-4", // Offset for the active indicator
                   ]
                 )}

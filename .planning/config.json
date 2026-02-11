@@ -1,14 +1,40 @@
 {
-  "mode": "yolo",
-  "depth": "comprehensive",
-  "parallelization": true,
-  "commit_docs": true,
   "model_profile": "balanced",
+  "profiles": {
+    "active_profile": "balanced",
+    "presets": {
+      "quality": {
+        "planning": "claude-opus-4-6",
+        "execution": "claude-sonnet-4-20250514",
+        "verification": "claude-opus-4-6"
+      },
+      "balanced": {
+        "planning": "claude-sonnet-4-20250514",
+        "execution": "claude-haiku-3-5-20241022",
+        "verification": "claude-sonnet-4-20250514"
+      },
+      "budget": {
+        "planning": "claude-haiku-3-5-20241022",
+        "execution": "claude-haiku-3-5-20241022",
+        "verification": "claude-haiku-3-5-20241022"
+      }
+    },
+    "custom_overrides": {
+      "quality": {},
+      "balanced": {},
+      "budget": {}
+    }
+  },
   "workflow": {
     "research": true,
     "plan_check": true,
-    "verifier": true,
-    "verification_type": "automated"
+    "verifier": true
   },
-  "verification_notes": "Use dev-browser skill or Playwright for UI verification. No manual human checkpoints - verify programmatically via tests and automated browser checks."
+  "planning": {
+    "commit_docs": true,
+    "search_gitignored": false
+  },
+  "git": {
+    "branching_strategy": "none"
+  }
 }

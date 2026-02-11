@@ -193,8 +193,8 @@ export default function EmailsLibrary() {
               <RiMailLine className="h-4 w-4 text-vibe-orange" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-ink">
-                Emails
+              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                EMAILS
               </h2>
               <p className="text-xs text-ink-muted">
                 {emails.length} email{emails.length !== 1 ? 's' : ''} saved

@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect, useCallback, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
@@ -6,6 +6,9 @@ import { useBankContextStore, BANK_CONTEXT_UPDATED_KEY } from '@/stores/bankCont
 import type { Bank, BankWithMembership, Vault, VaultWithMembership, BankRole, VaultRole } from '@/types/bank'
 
 const QUERY_KEY = 'bankContext'
+// Type-safe supabase client wrapper for tables not yet in generated types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any
 
 /**
  * useBankContext hook
@@ -43,7 +46,7 @@ export function useBankContext() {
 
       // Query bank_memberships joined with banks
       // Note: This relies on the banks and bank_memberships tables created in 09-02
-      const { data: memberships, error } = await supabase
+      const { data: memberships, error } = await db
         .from('bank_memberships')
         .select(`
           id,
@@ -54,6 +57,7 @@ export function useBankContext() {
             name,
             type,
             cross_bank_default,
+            logo_url,
             created_at,
             updated_at
           )
@@ -64,7 +68,7 @@ export function useBankContext() {
 
       // Transform to BankWithMembership format
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return (memberships || []).map((m: any) => ({
+      const baseBanks = (memberships || []).map((m: any) => ({
         ...m.bank,
         membership: {
           id: m.id,
@@ -74,6 +78,32 @@ export function useBankContext() {
           created_at: m.created_at,
         },
       })) as BankWithMembership[]
+
+      if (baseBanks.length === 0) return []
+
+      const banksWithCounts = await Promise.all(
+        baseBanks.map(async (bank) => {
+          try {
+            const { count } = await db
+              .from('bank_memberships')
+              .select('*', { count: 'exact', head: true })
+              .eq('bank_id', bank.id)
+
+            return {
+              ...bank,
+              member_count: count ?? 1,
+            }
+          } catch (error) {
+            console.error('[useBankContext] Failed to load bank member count:', error)
+            return {
+              ...bank,
+              member_count: 1,
+            }
+          }
+        })
+      )
+
+      return banksWithCounts
     },
     enabled: !!user,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -87,7 +117,7 @@ export function useBankContext() {
 
       // Query vault_memberships joined with vaults
       // Note: This relies on the vaults and vault_memberships tables created in 09-03
-      const { data: memberships, error } = await supabase
+      const { data: memberships, error } = await db
         .from('vault_memberships')
         .select(`
           id,
@@ -128,6 +158,9 @@ export function useBankContext() {
     staleTime: 5 * 60 * 1000,
   })
 
+  // Track whether we're currently creating a bank to prevent duplicate calls
+  const isCreatingBankRef = useRef(false)
+
   // Initialize on first load
   useEffect(() => {
     if (!user || banksLoading || isInitialized) return
@@ -138,11 +171,26 @@ export function useBankContext() {
       const defaultBank = personalBank || banks[0]
 
       initialize(defaultBank.id, null)
-    } else if (banks) {
-      // User has no banks - this shouldn't happen with proper signup trigger
-      setError('No banks found for user')
+    } else if (banks && !isCreatingBankRef.current) {
+      // User has no banks - auto-create personal bank via RPC
+      // This handles legacy users who signed up before the bank/vault system
+      isCreatingBankRef.current = true
+      setLoading(true)
+
+      supabase
+        .rpc('ensure_personal_bank', { p_user_id: user.id })
+        .then(({ error: rpcError }) => {
+          if (rpcError) {
+            console.error('[useBankContext] Failed to create personal bank:', rpcError)
+            setError('Failed to initialize bank')
+          } else {
+            // Invalidate banks query to re-fetch with the newly created bank
+            queryClient.invalidateQueries({ queryKey: [QUERY_KEY, 'banks', user.id] })
+          }
+          isCreatingBankRef.current = false
+        })
     }
-  }, [user, banks, banksLoading, isInitialized, initialize, setError])
+  }, [user, banks, banksLoading, isInitialized, initialize, setError, setLoading, queryClient])
 
   // Cross-tab sync via storage event
   useEffect(() => {

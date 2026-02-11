@@ -44,7 +44,7 @@ Execute the plan at {{plan_path}} using **intelligent segmentation** for optimal
 
    **3A: Fully Autonomous Execution**
    ```
-   Spawn Task tool (subagent_type="general-purpose"):
+   Spawn Task tool (subagent_type="gsd-executor"):
 
    Prompt: "Execute plan at {{plan_path}}
 

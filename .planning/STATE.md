@@ -1,30 +1,30 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-01-31
+**Last Updated:** 2026-02-11 (Plan 04 - phase complete)
 
 ## Project Reference
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** v1 Milestone COMPLETE - All 9 phases executed
+**Current Focus:** Phase 11 - PROFITS Frontend Trigger (pending)
 
 ---
 
 ## Current Position
 
-**Milestone:** v1 Launch Stabilization
+**Milestone:** v1 Launch Stabilization + Gap Closures
 
-**Phase:** 9 of 9 (Bank/Vault Architecture) - COMPLETE
+**Phase:** 11 of 11+ (PROFITS Frontend Trigger)
 
-**Plan:** 10 of 10 in Phase 9 (COMPLETE)
+**Plan:** 0 of 2 in current phase
 
-**Status:** MILESTONE COMPLETE - All phases executed, ready for launch
+**Status:** In progress
 
-**Last activity:** 2026-01-31 - Completed Phase 9 (Bank/Vault Architecture)
+**Last activity:** 2026-02-11 - Phase 10.3 COMPLETE (YouTube-Specific Vaults & Video Intelligence) - 4/4 plans, 7/7 must-haves verified
 
 **Progress:**
 ```
-[████████████████████████████████████████] 65/65 plans complete (100%)
+[█████████████████████████████████████████████] 85/87 plans complete (98%)
 ```
 
 ---
@@ -55,6 +55,9 @@
 | Phase 7: Differentiators | 5 | 5 | Complete (6/6 plans) |
 | Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
 | Phase 9: Bank/Vault Architecture | 5 | 5 | Complete (10/10 plans) |
+| Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
+| Phase 10.2: Vaults Page | 7 | 7 | Complete (9/9 plans) |
+| Phase 10.3: YouTube-Specific Vaults | 6 | 6 | Complete (4/4 plans) |
 
 ### Velocity
 
@@ -137,9 +140,24 @@
 | 2026-01-31 | Users can create their own initial bank_membership | Bootstrap pattern for bank creators to become bank_owner | Enables self-service bank creation flow |
 | 2026-01-31 | SECURITY DEFINER for vault membership checks | Prevents infinite RLS recursion when policies check vault membership tables | Pattern for is_vault_member/is_vault_admin_or_owner |
 | 2026-01-31 | Bank admins can view all vaults in their banks | Oversight capability for bank administrators | Uses separate SELECT policy on vaults table |
+| 2026-02-09 | Scoped search wraps existing function | Zero breaking changes for pre-migration data | hybrid_search_transcripts_scoped wraps hybrid_search_transcripts |
+| 2026-02-09 | Per-tool vault membership verification | Analytical tools independently verify access | getCallDetails/getCallsList/compareCalls each check vault access |
 | 2026-01-31 | 5-level vault role hierarchy | vault_owner > vault_admin > manager > member > guest | Granular access control within vaults |
 | 2026-01-31 | VaultEntry enables same recording in multiple vaults | Recording lives in ONE bank, but can appear in many vaults with local context | vault_entries has local_tags, scores, notes per appearance |
 | 2026-01-31 | legacy_recording_id for fathom_calls migration | BIGINT field tracks original fathom_calls.recording_id for migration | UNIQUE(bank_id, legacy_recording_id) prevents duplicates |
+| 2026-02-09 | mapRecordingToMeeting adapter for TranscriptTable reuse | Vault recordings use Recording type; TranscriptTable expects Meeting | Zero changes to TranscriptTable, adapter maps all fields |
+| 2026-02-09 | UUID recordingId passed to AddToVaultMenu | Vault recordings have UUID IDs, not just legacy numeric IDs | TranscriptTableRow now passes both recordingId and legacyRecordingId |
+| 2026-02-09 | Vault recordings query invalidation on mutations | VaultDetailPane and AddToVaultMenu use different query keys | useVaultAssignment invalidates both vaultEntries and vaults.recordings |
+| 2026-02-09 | Client-side search/filter for vault recordings | Recordings already loaded; no server roundtrips needed | 300ms debounced title search, sort by date/duration/title |
+| 2026-02-09 | hasActiveFilters includes non-default sort | User can clear all filters including sort to reset view | Sort changes count as active filters |
+| 2026-02-10 | Vault entry creation non-blocking in edge functions | Vault entry failures should never break import/sync | Pattern for all import edge functions |
+| 2026-02-10 | sync-meetings also needs vault_id (not just zoom/google) | SyncTab calls sync-meetings, not zoom-sync-meetings | Identified and fixed during edge function updates |
+| 2026-02-10 | Store business bank logos in banks.logo_url | Support logo upload without storage infrastructure for MVP | Bank creation persists branding assets |
+| 2026-02-10 | Create business banks via RPC | RLS returning blocked insert + select during provisioning | Reliable business bank creation flow |
+| 2026-02-10 | Workspace tabs use per-surface floating pill override | Needed horizontal pill active indicator in Workspaces & Hubs without changing shared tabs primitive globally | BanksTab suppresses default underline with local `TabsTrigger` active-state overrides |
+| 2026-02-10 | Settings category rows use pill-first active emphasis | Vertical indicator should be the primary wayfinding signal, not stacked orange icon/text/arrow accents | SettingsCategoryPane active colors are neutralized while preserving keyboard/ARIA behavior |
+| 2026-02-10 | HUB pane headers use icon-led stacked context layout | Prevent overlap/truncation in constrained pane widths while keeping workspace context legible | VaultListPane header now stacks workspace label/name/switcher with dedicated action row |
+| 2026-02-10 | Brand tabs standardize on rounded pill active indicators | Current UI direction moved off clip-path tab markers; docs needed canonical guidance | Brand guidelines v4.2.1 now codify pill indicator direction and hardcoded-value policy |
 
 ### Active TODOs
 
@@ -203,6 +221,31 @@ Phase 8 COMPLETE (6/6 plans). Phase 9 started.
 
 Phase 9 COMPLETE. All 9 phases in v1 milestone executed.
 
+- [x] Execute 10-01-PLAN.md (Pass bank_id/vault_id to chat-stream-v2)
+- [x] Execute 10-02-PLAN.md (Vault-scoped search RPC + all tools scoped)
+- [x] Execute 10-03-PLAN.md (Verification - multi-tenant isolation verified)
+
+Phase 10 COMPLETE (3/3 plans). GAP-INT-01 closed.
+
+- [x] Execute 10.2-01-PLAN.md (Vaults page foundation - route, hooks, vault list pane)
+- [x] Execute 10.2-02-PLAN.md (Vault detail view - recordings table, member panel, adapter)
+- [x] Execute 10.2-03-PLAN.md (Vault Creation & Edit Dialogs)
+- [x] Execute 10.2-04-PLAN.md (Member management - invite links, roles, remove/leave)
+- [x] Execute 10.2-05-PLAN.md (Business bank creation entry points)
+- [x] Execute 10.2-06-PLAN.md (Vaults polish - empty states, error handling, mobile verification)
+- [x] Execute 10.2-07-PLAN.md (Vault Membership Badges)
+- [x] Execute 10.2-08-PLAN.md (Search/filter for vault recordings - useRecordingSearch, VaultSearchFilter)
+- [x] Execute 10.2-09-PLAN.md (Vault Selection During Import - VaultSelector, edge function vault_id)
+
+Phase 10.2 COMPLETE (9/9 plans).
+
+- [x] Execute 10.3-01-PLAN.md (YouTube foundation: DB migration, types, utilities, vault configs)
+- [x] Execute 10.3-02-PLAN.md (YouTube Video List: media-row components, sort hook, VaultDetailPane)
+- [x] Execute 10.3-03-PLAN.md (Import Flow: VaultSelector YouTube-only filtering, auto-create vault)
+- [x] Execute 10.3-04-PLAN.md (Video Detail Modal: summary, description, transcript, chat)
+
+Phase 10.3 COMPLETE (4/4 plans). 7/7 must-haves verified.
+
 ### Pending Todos
 
 2 todos in `.planning/todos/pending/`:
@@ -213,6 +256,8 @@ Phase 9 COMPLETE. All 9 phases in v1 milestone executed.
 
 - Phase 3.1 inserted after Phase 3: Compact Integration UI (URGENT) - Redesign integration cards to compact button/icon format with reusable modal component
 - Phase 3.2 inserted after Phase 3.1: Integration Import Controls - Redesign "Import meetings from" section + per-integration search on/off toggle
+- Phase 10.2 inserted after Phase 10: Vaults Page (URGENT) - Make vaults first-class sidebar page with full management UI, replacing "Collaboration"
+- Phase 10.3 inserted after Phase 10: YouTube-Specific Vaults & Video Intelligence (URGENT) - Dedicated youtube vault type, full video metadata schema, thumbnail-first list, and call-parity transcript chat
 - Coach Collaboration (Phase 5) removed from roadmap entirely
 - Team Content Segregation (Phase 4.5) deferred to Phase 9
 
@@ -220,34 +265,40 @@ Phase 9 COMPLETE. All 9 phases in v1 milestone executed.
 
 None
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 001 | Update workspace hub tab indicator | 2026-02-10 | 5859a1c | [001-update-workspace-hub-tab-indicator](./quick/001-update-workspace-hub-tab-indicator-to-ho/) |
+| 002 | Complete UI brand audit | 2026-02-10 | e819980 | [002-complete-ui-brand-audit](./quick/002-complete-ui-brand-audit-fix-hub-header-a/) |
+| 003 | Run migration, fix Sync Hub naming, workspace scope | 2026-02-10 | dd5ba9a | [003-run-migration-fix-sync-hub-naming](./quick/003-run-migration-fix-sync-hub-naming-workspace-scope/) |
+
 ---
 
 ## Session Continuity
 
-**Last session:** 2026-01-31
-**Stopped at:** MILESTONE COMPLETE - All phases executed
+**Last session:** 2026-02-11
+**Stopped at:** Phase 10.3 COMPLETE — verified and committed
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-v1 Launch Stabilization milestone COMPLETE. All 9 phases executed (65/65 plans).
+Phase 10.3 COMPLETE (4/4 plans, 7/7 must-haves verified). YouTube-Specific Vaults fully delivered. Phase 11 (PROFITS Frontend Trigger) is next.
 
 **What to remember:**
-- Phase 9 completed with 10 plans:
-  - 09-01: Eliminated coach code
-  - 09-02: Banks and bank_memberships tables
-  - 09-03: Vaults and vault_memberships tables
-  - 09-04: Recordings and vault_entries tables
-  - 09-05: Signup trigger + drop old team tables
-  - 09-06: Migration function for fathom_calls
-  - 09-07: Bank context store and useBankContext hook
-  - 09-08: Bank switcher UI in header
-  - 09-09: Banks & Vaults settings tab
-  - 09-10: Wire pages to bank/vault context
-- v1 Milestone Audit completed (see v1-MILESTONE-AUDIT.md)
-- Tech debt tracked for post-launch backlog
-- Next: Production deployment preparation
+- Migration 20260211000001: 'youtube' added to vault_type CHECK constraint
+- VaultType union includes 'youtube', YouTubeVideoMetadata interface in src/types/youtube.ts
+- parseYouTubeDuration, formatCompactNumber, YOUTUBE_CATEGORIES in src/lib/youtube-utils.ts
+- VaultListPane + VaultDetailPane have youtube entries (red styling + RiYoutubeLine icon)
+- YouTubeVideoRow/List/Stats/OutlierBadge in src/components/youtube/
+- useYouTubeSearch hook with 5 sort fields + published-date tie-breaker
+- VaultDetailPane branches on isYouTubeVault for YouTubeVideoList vs TranscriptTable
+- VaultSelector filters to youtube vaults when integration='youtube'
+- youtube-import auto-creates "YouTube Vault" on first import + populates recordings table
+- YouTubeVideoDetailModal opens on click with summary, collapsible description, transcript, chat CTA
+- YouTubeChatSection navigates to /chat with vault context
+- Phase 11 (PROFITS Frontend Trigger) is next — 2 plans pending
 
 ---
 
@@ -255,15 +306,15 @@ v1 Launch Stabilization milestone COMPLETE. All 9 phases executed (65/65 plans).
 
 | Metric | Value |
 |--------|-------|
-| Total Phases | 9 (+ 2 inserted: 3.1, 3.2) |
-| Total Requirements | 58 |
-| Requirements Complete | 58 (100%) |
-| Current Phase | COMPLETE - All 9 phases done |
-| Plans Complete | 65/65 (100%) |
-| Next Plan | N/A - Milestone complete |
+| Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
+| Total Requirements | 80 |
+| Requirements Complete | 70 (88%) |
+| Current Phase | 11 - PROFITS Frontend Trigger (0/2 plans) |
+| Plans Complete | 85/87 (98%) |
+| Next Plan | 11-01-PLAN.md (PROFITS frontend trigger) |
 | Blockers | 0 |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-01-31 (v1 Milestone COMPLETE - All 9 phases executed)*
+*Last updated: 2026-02-11 (Phase 10.3 COMPLETE — YouTube-Specific Vaults delivered, 4/4 plans, 7/7 must-haves verified)*

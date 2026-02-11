@@ -26,6 +26,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
+import { CreateBusinessBankDialog } from '@/components/dialogs/CreateBusinessBankDialog';
 import type { BankWithMembership, VaultWithMembership } from '@/types/bank';
 
 /**
@@ -37,7 +38,7 @@ import type { BankWithMembership, VaultWithMembership } from '@/types/bank';
  * - Dropdown lists all user's banks
  * - Vaults section within active bank
  * - "All Recordings" option for no vault filter
- * - "Create Business Bank" CTA for upsell (Pro feature)
+ * - "Create Business Bank" CTA for new orgs
  *
  * @pattern follows TeamSwitcher for consistency
  */
@@ -53,6 +54,9 @@ export function BankSwitcher() {
     switchVault,
     isPersonalBank,
   } = useBankContext();
+
+  // Create Business Bank dialog state
+  const [createBankDialogOpen, setCreateBankDialogOpen] = React.useState(false);
 
   if (isLoading) {
     return (
@@ -78,11 +82,11 @@ export function BankSwitcher() {
           {isPersonalBank ? (
             <>
               <RiUserLine className="h-4 w-4 text-muted-foreground" />
-              <span className="hidden sm:inline">Personal</span>
+                <span className="hidden sm:inline">Personal Workspace</span>
             </>
           ) : (
             <>
-              <RiBuildingLine className="h-4 w-4 text-vibe-orange" />
+              <RiBuildingLine className="h-4 w-4 text-muted-foreground" />
               <span className="hidden sm:inline max-w-[100px] truncate">
                 {activeBank.name}
               </span>
@@ -101,27 +105,48 @@ export function BankSwitcher() {
       </DropdownMenuTrigger>
 
       <DropdownMenuContent align="end" className="w-64 bg-background border-border z-50">
-        {/* Banks Section */}
+        {/* Personal Workspace Section */}
         <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-          Switch bank
+          Personal Workspace
+        </DropdownMenuLabel>
+        {banks.filter((b) => b.type === 'personal').map((bank) => (
+          <BankMenuItem
+            key={bank.id}
+            bank={bank}
+            isActive={bank.id === activeBank.id}
+            onClick={() => switchBank(bank.id)}
+          />
+        ))}
+
+        {/* Business Workspaces Section */}
+        <DropdownMenuSeparator />
+        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+          Business Workspaces
         </DropdownMenuLabel>
         <DropdownMenuGroup>
-          {banks.map((bank) => (
-            <BankMenuItem
-              key={bank.id}
-              bank={bank}
-              isActive={bank.id === activeBank.id}
-              onClick={() => switchBank(bank.id)}
-            />
-          ))}
+          {banks.filter((b) => b.type === 'business').length === 0 ? (
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+              <div>No business workspaces</div>
+              <div>Create one to collaborate</div>
+            </div>
+          ) : (
+            banks.filter((b) => b.type === 'business').map((bank) => (
+              <BankMenuItem
+                key={bank.id}
+                bank={bank}
+                isActive={bank.id === activeBank.id}
+                onClick={() => switchBank(bank.id)}
+              />
+            ))
+          )}
         </DropdownMenuGroup>
 
-        {/* Vaults in active bank */}
+        {/* Hubs in active workspace */}
         {vaults.length > 0 && (
           <>
             <DropdownMenuSeparator />
             <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              Vaults in {activeBank.name}
+              Hubs in {activeBank.name}
             </DropdownMenuLabel>
             <DropdownMenuGroup>
               {/* Show all recordings (no vault filter) */}
@@ -155,27 +180,16 @@ export function BankSwitcher() {
 
         <DropdownMenuSeparator />
 
-        {/* Create Business Bank (only show for personal bank context) */}
-        {isPersonalBank && (
-          <DropdownMenuItem
-            className="cursor-pointer flex items-center gap-2 text-muted-foreground"
-            onClick={() => {
-              // Navigate to banks settings where user can create a business bank
-              navigate('/settings/banks');
-              toast.info('Create a Business Bank to collaborate with your team', {
-                description: 'Business banks are available on Pro plans',
-              });
-            }}
-          >
-            <RiAddLine className="h-4 w-4" />
-            <span>Create Business Bank</span>
-            <Badge variant="outline" className="ml-auto text-xs">
-              Pro
-            </Badge>
-          </DropdownMenuItem>
-        )}
+        {/* Create Business Workspace */}
+        <DropdownMenuItem
+          className="cursor-pointer flex items-center gap-2 text-muted-foreground"
+          onClick={() => setCreateBankDialogOpen(true)}
+        >
+          <RiAddLine className="h-4 w-4" />
+          <span>Create Business Workspace</span>
+        </DropdownMenuItem>
 
-        {/* Manage Banks link */}
+        {/* Manage Workspaces link */}
         <DropdownMenuItem
           className="cursor-pointer flex items-center gap-2 text-muted-foreground"
           onClick={() => {
@@ -183,9 +197,15 @@ export function BankSwitcher() {
           }}
         >
           <RiSettingsLine className="h-4 w-4" />
-          <span>Manage Banks</span>
+          <span>Manage Workspaces</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
+
+      {/* Create Business Bank Dialog */}
+      <CreateBusinessBankDialog
+        open={createBankDialogOpen}
+        onOpenChange={setCreateBankDialogOpen}
+      />
     </DropdownMenu>
   );
 }
@@ -217,7 +237,14 @@ function BankMenuItem({
     >
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4" />
-        <span className="truncate max-w-[140px]">{bank.name}</span>
+        <div className="flex flex-col min-w-0">
+          <span className="truncate max-w-[140px]">{bank.name}</span>
+          {bank.type === 'business' && (
+            <span className="text-[10px] text-muted-foreground">
+              {bank.member_count ?? 1} member{(bank.member_count ?? 1) !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
       </div>
       <div className="flex items-center gap-1.5">
         <Badge variant="outline" className="text-xs capitalize">

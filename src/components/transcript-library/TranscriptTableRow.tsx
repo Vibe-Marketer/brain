@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { InviteesPopover } from "./InviteesPopover";
 import { InviteesCountCircle } from "./InviteesCountCircle";
 import { SharedWithIndicator } from "@/components/sharing/SharedWithIndicator";
+import { AddToVaultMenu } from "@/components/vault/AddToVaultMenu";
+import { VaultBadgeList } from "@/components/vault/VaultBadgeList";
 import type { Meeting } from "@/types";
 import type { SharingStatus, AccessLevel } from "@/types/sharing";
 
@@ -258,6 +260,20 @@ export function TranscriptTableRow({
           </div>
         </TableCell>
       )}
+      {/* Vaults column */}
+      {visibleColumns.vaults !== false && (
+        <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
+          <div onClick={(e) => e.stopPropagation()}>
+            <VaultBadgeList
+              recordingId={typeof call.recording_id === 'string' ? call.recording_id : undefined}
+              legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : undefined}
+              maxVisible={2}
+              size="sm"
+              hidePersonal
+            />
+          </div>
+        </TableCell>
+      )}
       {/* Shared With column */}
       {visibleColumns.sharedWith !== false && (
         <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
@@ -287,6 +303,11 @@ export function TranscriptTableRow({
               <RiFolderLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
             </button>
           )}
+          <AddToVaultMenu
+            recordingId={typeof call.recording_id === 'string' ? call.recording_id : null}
+            legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : null}
+            compact
+          />
           {onCustomDownload ? (
             <button
               onClick={() => onCustomDownload(call.recording_id, call.title)}

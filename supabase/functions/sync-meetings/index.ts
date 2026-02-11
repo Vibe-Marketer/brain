@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body FIRST
-    const { recordingIds, createdAfter, createdBefore } = await req.json();
+    const { recordingIds, createdAfter, createdBefore, vault_id } = await req.json();
 
     if (!Array.isArray(recordingIds) || recordingIds.length === 0) {
       return new Response(
@@ -356,6 +356,26 @@ Deno.serve(async (req) => {
       throw new Error('Fathom OAuth token has expired. Please reconnect your Fathom account in Settings.');
     }
 
+
+    // Validate vault membership once at the top if vault_id provided
+    let validatedVaultId: string | null = null;
+    if (vault_id) {
+      const { data: membership, error: membershipError } = await supabase
+        .from('vault_memberships')
+        .select('id')
+        .eq('vault_id', vault_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (membershipError) {
+        console.error('Error checking vault membership:', membershipError);
+      } else if (!membership) {
+        console.warn(`User ${user.id} is not a member of vault ${vault_id}, ignoring vault_id`);
+      } else {
+        validatedVaultId = vault_id;
+        console.log(`Vault ${vault_id} membership validated for user ${user.id}`);
+      }
+    }
 
     console.log(`Syncing ${recordingIds.length} meetings with date range:`, { createdAfter, createdBefore });
 
@@ -512,6 +532,38 @@ Deno.serve(async (req) => {
             if (success) {
               synced.push(recordingId);
               console.log(`✓ Synced ${recordingId} (${synced.length}/${recordingIds.length})`);
+
+              // Create vault entry if vault_id was validated
+              if (validatedVaultId) {
+                try {
+                  // Look up recording UUID from legacy recording_id
+                  const { data: recording } = await supabase
+                    .from('recordings')
+                    .select('id')
+                    .eq('legacy_recording_id', recordingId)
+                    .eq('owner_user_id', userId)
+                    .maybeSingle();
+
+                  if (recording?.id) {
+                    const { error: vaultEntryError } = await supabase
+                      .from('vault_entries')
+                      .insert({
+                        vault_id: validatedVaultId,
+                        recording_id: recording.id,
+                      });
+
+                    if (vaultEntryError) {
+                      console.error(`Error creating vault entry for recording ${recordingId}:`, vaultEntryError);
+                    } else {
+                      console.log(`Created vault entry for recording ${recording.id} in vault ${validatedVaultId}`);
+                    }
+                  } else {
+                    console.warn(`No recordings table entry found for legacy_recording_id ${recordingId}`);
+                  }
+                } catch (vaultError) {
+                  console.error(`Error handling vault entry for recording ${recordingId}:`, vaultError);
+                }
+              }
             } else {
               failed.push(recordingId);
               console.log(`✗ Failed to sync ${recordingId}`);

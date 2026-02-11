@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useBankContext } from "@/hooks/useBankContext";
 import {
   Table,
   TableBody,
@@ -45,6 +46,7 @@ interface Tag {
 export function TagsTab() {
   const { openPanel, panelData, panelType } = usePanelStore();
   const queryClient = useQueryClient();
+  const { activeBankId } = useBankContext();
   const [deleteConfirmTag, setDeleteConfirmTag] = useState<Tag | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [duplicatingTagId, setDuplicatingTagId] = useState<string | null>(null);
@@ -85,6 +87,7 @@ export function TagsTab() {
           color: tag.color,
           description: tag.description,
           is_system: false, // Duplicated tags are always custom
+          ...(activeBankId && { bank_id: activeBankId }),
         })
         .select()
         .single();
@@ -120,15 +123,20 @@ export function TagsTab() {
     }
   };
 
-  // Fetch tags
+  // Fetch tags scoped to active bank/workspace
   const { data: tags, isLoading, error: tagsError } = useQuery({
-    queryKey: ["call-tags"],
+    queryKey: ["call-tags", activeBankId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("call_tags")
         .select("id, name, color, description, is_system")
         .order("name");
 
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
       if (error) throw error;
       return data as Tag[];
     },

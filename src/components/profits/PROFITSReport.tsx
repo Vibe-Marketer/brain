@@ -58,7 +58,7 @@ export function PROFITSReport({
           <RiSparklingLine className="w-8 h-8 text-ink-muted" />
         </div>
 
-        <h3 className="font-montserrat font-extrabold text-lg uppercase tracking-wide text-ink mb-2">
+        <h3 className="font-display font-extrabold text-lg uppercase tracking-wide text-ink mb-2">
           PROFITS Analysis
         </h3>
 
@@ -100,7 +100,7 @@ export function PROFITSReport({
       {/* Header with metadata */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <h3 className="font-montserrat font-extrabold text-lg uppercase tracking-wide text-ink">
+          <h3 className="font-display font-extrabold text-lg uppercase tracking-wide text-ink">
             PROFITS Analysis
           </h3>
           <span className="text-sm text-ink-muted">

@@ -141,7 +141,7 @@ export default function GoogleMeetSetupWizard({
           id="acknowledge-workspace"
           checked={acknowledgedWorkspaceWarning}
           onChange={(e) => setAcknowledgedWorkspaceWarning(e.target.checked)}
-          className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          className="h-4 w-4 rounded border-border text-primary focus:ring-primary"
         />
         <label htmlFor="acknowledge-workspace" className="text-sm text-muted-foreground">
           I understand the recording requirements
@@ -252,9 +252,13 @@ export default function GoogleMeetSetupWizard({
             {currentStepData.icon}
             <div className="flex-1">
               <DialogTitle className="text-2xl">{currentStepData.title}</DialogTitle>
-              {currentStepData.stepNumber && (
+              {currentStepData.stepNumber ? (
                 <DialogDescription className="mt-1">
                   Step {currentStepData.stepNumber} of {totalSteps}
+                </DialogDescription>
+              ) : (
+                <DialogDescription className="sr-only">
+                  Google Meet setup steps and authorization flow
                 </DialogDescription>
               )}
             </div>

@@ -23,9 +23,9 @@ import {
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSharedCall } from '@/hooks/useSharing';
-import { cn } from '@/lib/utils';
 
 export const SharedCallView: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -60,10 +60,10 @@ export const SharedCallView: React.FC = () => {
   // Loading state
   if (isLoading || authLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-viewport flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600 dark:text-gray-400">Loading shared call...</p>
+          <Spinner size="lg" className="mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading shared call...</p>
         </div>
       </div>
     );
@@ -72,13 +72,13 @@ export const SharedCallView: React.FC = () => {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-viewport flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <RiErrorWarningLine className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Error Loading Call
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-muted-foreground mb-6">
             There was an error loading the shared call. Please try again or contact the person who shared it.
           </p>
           <Button onClick={() => navigate('/')}>
@@ -93,13 +93,13 @@ export const SharedCallView: React.FC = () => {
   // Revoked link state
   if (data?.isRevoked) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-viewport flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
           <RiLockLine className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Link Revoked
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-muted-foreground mb-6">
             This share link has been revoked by the owner. You no longer have access to this call.
           </p>
           <Button onClick={() => navigate('/')}>
@@ -114,13 +114,13 @@ export const SharedCallView: React.FC = () => {
   // Invalid or not found state
   if (!data?.isValid || !data?.call) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+      <div className="min-h-screen bg-viewport flex items-center justify-center">
         <div className="text-center max-w-md mx-auto px-4">
-          <RiLinksLine className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+          <RiLinksLine className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-foreground mb-2">
             Call Not Found
           </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
+          <p className="text-muted-foreground mb-6">
             This share link is invalid or has expired. Please check the link or contact the person who shared it.
           </p>
           <Button onClick={() => navigate('/')}>
@@ -161,17 +161,17 @@ export const SharedCallView: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="min-h-screen bg-viewport">
       <div className="max-w-4xl mx-auto px-6 py-8">
         {/* Shared Call Banner */}
-        <div className="mb-6 p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800 flex items-center gap-3">
-          <RiLinksLine className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+        <div className="mb-6 p-4 bg-info-bg rounded-lg border border-info-border flex items-center gap-3">
+          <RiLinksLine className="w-5 h-5 text-info-text flex-shrink-0" />
           <div className="flex-1">
-            <p className="text-sm text-purple-700 dark:text-purple-300">
+            <p className="text-sm text-info-text">
               Shared call from <span className="font-medium">{call.recorded_by_email}</span>
             </p>
           </div>
-          <Badge variant="outline" className="text-purple-600 border-purple-600">
+          <Badge variant="outline" className="text-info-text border-info-border">
             <RiLinksLine className="w-3 h-3 mr-1" />
             SHARED
           </Badge>
@@ -181,18 +181,18 @@ export const SharedCallView: React.FC = () => {
         <div className="mb-8">
           <Link
             to="/"
-            className="inline-flex items-center text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4"
+            className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground mb-4"
           >
             <RiArrowLeftLine className="w-4 h-4 mr-1" />
             Back to Home
           </Link>
 
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+          <h1 className="text-3xl font-bold text-foreground mb-4">
             {call.call_name || 'Untitled Call'}
           </h1>
 
           {/* Call metadata */}
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <div className="flex items-center gap-1.5">
               <RiCalendarLine className="w-4 h-4" />
               <span>{formatDate(call.recording_start_time)}</span>
@@ -203,7 +203,7 @@ export const SharedCallView: React.FC = () => {
             </div>
             {call.duration && (
               <div className="flex items-center gap-1.5">
-                <span className="text-gray-400">•</span>
+                <span className="text-muted-foreground">•</span>
                 <span>{formatDuration(call.duration)}</span>
               </div>
             )}
@@ -215,22 +215,22 @@ export const SharedCallView: React.FC = () => {
         </div>
 
         {/* Transcript */}
-        <div className="bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2">
-            <RiFileTextLine className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+        <div className="bg-card rounded-lg border border-border overflow-hidden">
+          <div className="px-6 py-4 border-b border-border flex items-center gap-2">
+            <RiFileTextLine className="w-5 h-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold text-foreground">
               Transcript
             </h2>
           </div>
           <div className="p-6">
             {call.full_transcript ? (
-              <pre className="whitespace-pre-wrap font-sans text-gray-900 dark:text-white text-sm leading-relaxed">
+              <pre className="whitespace-pre-wrap font-sans text-foreground text-sm leading-relaxed">
                 {call.full_transcript}
               </pre>
             ) : (
               <div className="text-center py-12">
-                <RiFileTextLine className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                <p className="text-gray-500 dark:text-gray-400">
+                <RiFileTextLine className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">
                   No transcript available for this call
                 </p>
               </div>
@@ -239,7 +239,7 @@ export const SharedCallView: React.FC = () => {
         </div>
 
         {/* Footer with share info */}
-        <div className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+        <div className="mt-6 text-center text-sm text-muted-foreground">
           <p>
             Shared on {shareLink && formatDate(shareLink.created_at)}
             {shareLink?.recipient_email && (

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { useBankContext } from "@/hooks/useBankContext";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -41,6 +42,7 @@ export default function AssignFolderDialog({
   onFoldersUpdated,
   onCreateFolder,
 }: AssignFolderDialogProps) {
+  const { activeBankId } = useBankContext();
   const [folderTree, setFolderTree] = useState<FolderTreeNode[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -103,10 +105,16 @@ export default function AssignFolderDialog({
 
   const loadFolders = useCallback(async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("folders")
         .select("id, name, color, parent_id, icon, position")
         .order("position");
+
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 

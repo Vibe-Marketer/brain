@@ -60,6 +60,7 @@ export default function AdminTab() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const statAccentClass = "cv-side-indicator-pill";
 
   // Define applyFilters BEFORE the useEffect that uses it to avoid TDZ errors
   const applyFilters = useCallback(() => {
@@ -186,21 +187,16 @@ export default function AdminTab() {
       {/* System Statistics Section */}
       <div className="space-y-4">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+          <h2 className="font-semibold text-foreground">
             System Overview
           </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Platform-wide statistics and metrics
           </p>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4">
             <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-                style={{
-                  clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
-                }}
-              />
+              <div className={statAccentClass} aria-hidden="true" />
               <div className="flex items-center gap-3 mb-2">
                 <RiGroupLine className="h-5 w-5 text-ink-muted" />
                 <p className="text-xs font-medium text-muted-foreground">Total Users</p>
@@ -208,12 +204,7 @@ export default function AdminTab() {
               <p className="text-2xl font-extrabold tabular-nums">{stats.totalUsers}</p>
             </div>
             <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-                style={{
-                  clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
-                }}
-              />
+              <div className={statAccentClass} aria-hidden="true" />
               <div className="flex items-center gap-3 mb-2">
                 <RiPulseLine className="h-5 w-5 text-ink-muted" />
                 <p className="text-xs font-medium text-muted-foreground">Active Users</p>
@@ -221,12 +212,7 @@ export default function AdminTab() {
               <p className="text-2xl font-extrabold tabular-nums">{stats.activeUsers}</p>
             </div>
             <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-                style={{
-                  clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
-                }}
-              />
+              <div className={statAccentClass} aria-hidden="true" />
               <div className="flex items-center gap-3 mb-2">
                 <RiCheckboxCircleLine className="h-5 w-5 text-ink-muted" />
                 <p className="text-xs font-medium text-muted-foreground">Setup Complete</p>
@@ -234,12 +220,7 @@ export default function AdminTab() {
               <p className="text-2xl font-extrabold tabular-nums">{stats.completedSetup}</p>
             </div>
             <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-                style={{
-                  clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
-                }}
-              />
+              <div className={statAccentClass} aria-hidden="true" />
               <div className="flex items-center gap-3 mb-2">
                 <RiShieldLine className="h-5 w-5 text-destructive" />
                 <p className="text-xs font-medium text-muted-foreground">Admins</p>
@@ -247,12 +228,7 @@ export default function AdminTab() {
               <p className="text-2xl font-extrabold tabular-nums">{stats.adminUsers}</p>
             </div>
             <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-                style={{
-                  clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
-                }}
-              />
+              <div className={statAccentClass} aria-hidden="true" />
               <div className="flex items-center gap-3 mb-2">
                 <RiGroupLine className="h-5 w-5 text-primary" />
                 <p className="text-xs font-medium text-muted-foreground">Team</p>
@@ -260,12 +236,7 @@ export default function AdminTab() {
               <p className="text-2xl font-extrabold tabular-nums">{stats.teamUsers}</p>
             </div>
             <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-                style={{
-                  clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
-                }}
-              />
+              <div className={statAccentClass} aria-hidden="true" />
               <div className="flex items-center gap-3 mb-2">
                 <RiGroupLine className="h-5 w-5 text-primary" />
                 <p className="text-xs font-medium text-muted-foreground">Pro</p>
@@ -273,12 +244,7 @@ export default function AdminTab() {
               <p className="text-2xl font-extrabold tabular-nums">{stats.proUsers}</p>
             </div>
             <div className="relative py-2 px-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <div
-                className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-                style={{
-                  clipPath: "polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)"
-                }}
-              />
+              <div className={statAccentClass} aria-hidden="true" />
               <div className="flex items-center gap-3 mb-2">
                 <RiGroupLine className="h-5 w-5 text-muted-foreground" />
                 <p className="text-xs font-medium text-muted-foreground">Free</p>
@@ -293,10 +259,10 @@ export default function AdminTab() {
       {/* User Management Section */}
       <div className="space-y-4">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+          <h2 className="font-semibold text-foreground">
             User Management
           </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             System-wide user administration and role management
           </p>
         </div>

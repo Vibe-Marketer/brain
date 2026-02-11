@@ -412,7 +412,7 @@ Plans:
 
 ---
 
-### Phase 10: Chat Bank/Vault Scoping (Gap Closure)
+### Phase 10: Chat Bank/Vault Scoping (Gap Closure) ✓ COMPLETE
 **Goal:** Chat searches respect active bank/vault context for proper multi-tenant isolation
 
 **Dependencies:** Phase 9 (bank/vault architecture must exist)
@@ -420,9 +420,9 @@ Plans:
 **Gap Closure:** Closes integration gap from v1-MILESTONE-AUDIT.md
 
 Plans:
-- [x] 10-01-PLAN.md — Pass bank_id/vault_id from frontend to chat-stream-v2 (PLANNED)
-- [x] 10-02-PLAN.md — Filter chat searches by active bank/vault context (PLANNED)
-- [x] 10-03-PLAN.md — Verify multi-tenant isolation end-to-end (PLANNED)
+- [x] 10-01-PLAN.md — Pass bank_id/vault_id from frontend to chat-stream-v2
+- [x] 10-02-PLAN.md — Filter chat searches by active bank/vault context
+- [x] 10-03-PLAN.md — Verify multi-tenant isolation end-to-end
 
 **Requirements:**
 - GAP-INT-01: Chat backend respects bank/vault context (not searching all user recordings)
@@ -432,6 +432,87 @@ Plans:
 2. chat-stream-v2 filters searches to active bank/vault only
 3. User in Bank A cannot see recordings from Bank B via chat
 4. Vault-scoped chat only searches recordings in that vault
+
+---
+
+### Phase 10.2: Vaults Page (INSERTED)
+**Goal:** Make vaults a first-class sidebar page replacing "Collaboration" with full vault management
+
+**Dependencies:** Phase 10 (bank/vault scoping must work first)
+
+**Gap Closure:** Makes vault architecture actually usable by users
+
+**Plans:** 9 plans in 4 waves
+
+Plans:
+- [x] 10.2-01-PLAN.md — W1: Foundation — Route, sidebar, vault list pane, useVaults hook, query keys
+- [x] 10.2-02-PLAN.md — W2: Vault detail — Recordings (no tabs), member slide-in panel, Recording→Meeting adapter
+- [x] 10.2-03-PLAN.md — W2: Vault CRUD — Create/edit/delete dialogs + useVaultMutations
+- [x] 10.2-07-PLAN.md — W2: Vault badges — VaultBadge/VaultBadgeList on CallDetailPage + TranscriptTable
+- [x] 10.2-04-PLAN.md — W3: Member management — Shareable invite links (no email), roles, remove/leave
+- [x] 10.2-05-PLAN.md — W3: Business bank creation — Both CTA and BankSwitcher entry points
+- [x] 10.2-08-PLAN.md — W3: Search/filter — Search recordings within vaults by title, sort, date filter
+- [x] 10.2-06-PLAN.md — W4: Polish — Empty states, error boundaries, settings migration, mobile verify
+- [x] 10.2-09-PLAN.md — W4: Import vault selection — VaultSelector in YouTube import + SyncTab sync flow
+
+**Requirements:**
+- VAULT-UI-01: "Vaults" replaces "Collaboration" in sidebar
+- VAULT-UI-02: Vault list pane shows all vaults grouped by bank
+- VAULT-UI-03: Vault detail shows recordings with vault-specific metadata
+- VAULT-UI-04: Can create/edit/delete vaults from the page
+- VAULT-UI-05: Can invite/remove vault members and change roles
+- VAULT-UI-06: Can create business banks (no billing gate for now)
+- VAULT-UI-07: Can move/assign recordings between vaults
+
+**Success Criteria:**
+1. Sidebar shows "Vaults" instead of "Collaboration"
+2. Vault list pane displays all user's vaults grouped by bank
+3. Vault detail view shows recordings table with source attribution
+4. Members panel shows current members with roles
+5. Create vault dialog works for all vault types
+6. Edit vault allows renaming and changing settings
+7. Delete vault with confirmation for non-personal vaults
+8. Invite members via shareable link with default member role
+9. Remove members or change their roles
+10. Create business bank with initial vault
+11. Move recordings between vaults via UI
+12. All functionality works without billing gates
+
+**Details:**
+This is a major UX insertion. The bank/vault architecture exists but is hidden in Settings.
+Moving it to a first-class sidebar page makes the collaboration model discoverable and usable.
+
+---
+
+### Phase 10.3: YouTube-Specific Vaults & Video Intelligence (INSERTED)
+**Goal:** Create dedicated YouTube vault type with thumbnail-first video UX, media-row list layout, video detail modal, and YouTube-scoped import + chat
+
+**Depends on:** Phase 10.2 (COMPLETE)
+
+**Plans:** 4 plans in 3 waves
+
+Plans:
+- [x] 10.3-01-PLAN.md — W1: Foundation — DB migration, YouTube types, utilities, vault type configs
+- [x] 10.3-02-PLAN.md — W2: YouTube Video List — Media-row components, sort hook, VaultDetailPane conditional rendering
+- [x] 10.3-03-PLAN.md — W2: Import Flow — VaultSelector YouTube-only filtering, auto-create YouTube vault on first import
+- [x] 10.3-04-PLAN.md — W3: Video Detail Modal — Dialog overlay with summary, collapsible description, transcript, click-to-start chat
+
+**Requirements:**
+- YT-01: 'youtube' vault type exists in DB and TypeScript
+- YT-02: YouTube vault displays media-row list (not TranscriptTable)
+- YT-03: Video detail opens in modal overlay with summary, description, transcript
+- YT-04: Chat works within YouTube vault context (reuses existing infrastructure)
+- YT-05: First import auto-creates YouTube vault if none exists
+- YT-06: VaultSelector filters to YouTube-only vaults during import
+
+**Success Criteria:**
+1. YouTube vault type can be created and appears in vault list with YouTube icon
+2. YouTube vault shows media-row list with thumbnails, metadata columns, and outlier rank placeholder
+3. Clicking video opens modal with above-the-fold summary, collapsible description, transcript
+4. "Start Chat" navigates to chat page with YouTube vault context
+5. First YouTube import auto-creates "YouTube Vault" seamlessly
+6. VaultSelector prevents non-YouTube vault selection during YouTube import
+7. Non-YouTube vaults completely unaffected (no regression)
 
 ---
 
@@ -472,10 +553,12 @@ Plans:
 | 7 - Differentiators | Complete ✅ | 5 | 100% (5/5 plans) |
 | 8 - Growth Infrastructure | Complete ✅ | 4 | 100% (6/6 plans) |
 | 9 - Bank/Vault Architecture | Complete ✅ | 5 | 100% (10/10 plans) |
-| 10 - Chat Bank/Vault Scoping | Planned | 1 | 0% (0/3 plans executed, 3/3 planned) |
+| 10 - Chat Bank/Vault Scoping | Complete ✅ | 1 | 100% (3/3 plans) |
+| 10.2 - Vaults Page (INSERTED) | Complete ✅ | 7 | 100% (9/9 plans, 4 waves) |
+| 10.3 - YouTube-Specific Vaults & Video Intelligence (INSERTED) | Complete ✅ | 6 | 100% (4/4 plans, 3 waves) |
 | 11 - PROFITS Frontend Trigger | Pending | 1 | 0% (0/2 plans) |
 
-**Overall Progress:** 58/60 requirements (97%) - **Gap closure phases added**
+**Overall Progress:** 65/67 requirements (97%) - **1 phase remaining**
 
 ---
 
@@ -589,11 +672,12 @@ Phase 9: Team Content Segregation (deferred - can be done anytime after Phase 4)
 9. ~~Phase 7: Differentiators~~ ✅ Complete (5/5 plans, all 5 requirements verified)
 10. ~~Phase 8: Growth Infrastructure~~ ✅ Complete (6/6 plans, all 4 requirements verified)
 11. ~~Phase 9: Bank/Vault Architecture~~ ✅ Complete (10/10 plans, all 5 requirements satisfied)
-12. **Phase 10: Chat Bank/Vault Scoping** ← Gap closure (integration)
-13. **Phase 11: PROFITS Frontend Trigger** ← Gap closure (flow)
+12. ~~Phase 10: Chat Bank/Vault Scoping~~ ✅ Complete (3/3 plans, GAP-INT-01 closed)
+13. ~~Phase 10.3: YouTube-Specific Vaults & Video Intelligence~~ ✅ Complete (4/4 plans, 7/7 must-haves verified)
+14. **Phase 11: PROFITS Frontend Trigger** ← Gap closure (flow)
 
 **Gap Closure Phases Added** - 2 phases from v1-MILESTONE-AUDIT.md
 
 ---
 
-*Last updated: 2026-01-31 (v1 MILESTONE COMPLETE - All 9 phases, 65/65 plans)*
+*Last updated: 2026-02-11 (Phase 10.3 COMPLETE - YouTube-Specific Vaults delivered, 85/87 plans)*

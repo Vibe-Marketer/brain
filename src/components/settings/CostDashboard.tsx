@@ -93,6 +93,7 @@ function formatModelName(model: string): string {
  */
 export function CostDashboard() {
   const [period, setPeriod] = useState<CostPeriod>('month');
+  const cardAccentClass = 'cv-side-indicator-pill';
 
   const {
     totalCostUsd,
@@ -126,10 +127,10 @@ export function CostDashboard() {
       {/* Header with Period Selector */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+          <h2 className="font-semibold text-foreground">
             AI Cost Dashboard
           </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+          <p className="mt-1 text-sm text-muted-foreground">
             Track usage and costs across all AI operations
           </p>
         </div>
@@ -156,10 +157,7 @@ export function CostDashboard() {
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="relative p-4 bg-card border border-border dark:border-cb-border-dark rounded-lg">
-            <div
-              className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange"
-              style={{ clipPath: 'polygon(0px 0px, 100% 10%, 100% 90%, 0px 100%)' }}
-            />
+            <div className={cardAccentClass} aria-hidden="true" />
             <div className="pl-2">
               <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                 Total Cost

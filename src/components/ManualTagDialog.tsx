@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useBankContext } from "@/hooks/useBankContext";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -35,6 +36,7 @@ export default function ManualTagDialog({
   callTitle,
   onTagsUpdated,
 }: ManualTagDialogProps) {
+  const { activeBankId } = useBankContext();
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
@@ -101,10 +103,16 @@ export default function ManualTagDialog({
 
   const loadTags = async () => {
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from("call_tags")
         .select("id, name")
         .order("name");
+
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setTags(data || []);

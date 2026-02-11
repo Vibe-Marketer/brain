@@ -2616,6 +2616,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      ensure_personal_bank: {
+        Args: { p_user_id: string }
+        Returns: string
+      }
       finalize_embedding_jobs: { Args: never; Returns: number }
       generate_automation_webhook_secret: {
         Args: { p_user_id: string }

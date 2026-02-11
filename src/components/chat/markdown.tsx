@@ -112,19 +112,19 @@ const INITIAL_COMPONENTS: Partial<Components> = {
 
   // Headings
   h1: ({ children, ...props }) => (
-    <h1 className="mb-4 mt-6 font-montserrat text-2xl font-extrabold uppercase text-ink" {...props}>
+    <h1 className="mb-4 mt-6 font-display text-2xl font-extrabold uppercase text-ink" {...props}>
       {children}
     </h1>
   ),
 
   h2: ({ children, ...props }) => (
-    <h2 className="mb-3 mt-5 font-montserrat text-xl font-extrabold uppercase text-ink" {...props}>
+    <h2 className="mb-3 mt-5 font-display text-xl font-extrabold uppercase text-ink" {...props}>
       {children}
     </h2>
   ),
 
   h3: ({ children, ...props }) => (
-    <h3 className="mb-2 mt-4 font-montserrat text-lg font-extrabold uppercase text-ink" {...props}>
+    <h3 className="mb-2 mt-4 font-display text-lg font-extrabold uppercase text-ink" {...props}>
       {children}
     </h3>
   ),
@@ -191,7 +191,7 @@ export function Markdown({ children, className, components, onViewCall, ...props
             className={cn(
               "inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium no-underline",
               "bg-white dark:bg-card border-black dark:border-white",
-              "hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              "hover:bg-hover transition-colors"
             )}
           >
             VIEW

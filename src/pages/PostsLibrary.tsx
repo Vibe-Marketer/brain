@@ -181,8 +181,8 @@ export default function PostsLibrary() {
               <RiFileTextLine className="h-4 w-4 text-vibe-orange" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-semibold text-ink">
-                Posts
+              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+                POSTS
               </h2>
               <p className="text-xs text-ink-muted">
                 {posts.length} post{posts.length !== 1 ? 's' : ''} saved

@@ -4,6 +4,31 @@ This file tracks all changes to the CallVault Brand Guidelines document.
 
 ---
 
+## v4.2.1 - February 10, 2026
+
+**Time:** 16:31 UTC
+**Git Commit:** (pending)
+
+### Changes
+
+#### US-005: Tab Indicator Direction Update
+- Updated Tab Navigation guidance to document rounded pill active indicators
+- Removed clip-path/angular tab assumptions from required implementation guidance
+
+#### US-006: HUB/Pane Header Alignment Rules
+- Added explicit pane-header composition rules for HUB secondary pane, middle pane, and adjacent detail panes
+- Codified non-overlap requirement for header context/actions in constrained pane widths
+
+#### US-007: Token-First Hardcoded Value Policy
+- Added explicit rule to avoid hardcoded presentation values when equivalent tokens/utilities exist
+- Documented allowed exceptions (semantic badges, runtime dimensions, external brand marks)
+
+#### US-008: Patch Version Bump
+- Incremented guideline version from v4.2 to v4.2.1 in all required locations
+- Updated Last Updated metadata to February 10, 2026
+
+---
+
 ## v4.2 - January 14, 2026
 
 **Time:** 15:30 UTC

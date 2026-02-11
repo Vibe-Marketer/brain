@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { useBankContext } from "@/hooks/useBankContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +53,7 @@ export default function QuickCreateFolderDialog({
   onFolderCreated,
   parentFolderId,
 }: QuickCreateFolderDialogProps) {
+  const { activeBankId } = useBankContext();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
@@ -95,11 +97,17 @@ export default function QuickCreateFolderDialog({
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("folders")
         .select("id, name, parent_id")
         .eq("user_id", user.id)
         .order("name");
+
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
 
@@ -157,11 +165,17 @@ export default function QuickCreateFolderDialog({
         }
       }
 
+      if (!activeBankId) {
+        toast.error("No active workspace selected");
+        return;
+      }
+
       // Check for duplicate name
       let query = supabase
         .from("folders")
         .select("id")
         .eq("user_id", user.id)
+        .eq("bank_id", activeBankId)
         .eq("name", validation.data.name);
 
       if (selectedParentId) {
@@ -188,6 +202,7 @@ export default function QuickCreateFolderDialog({
           name: validation.data.name,
           description: validation.data.description,
           user_id: user.id,
+          bank_id: activeBankId,
           parent_id: selectedParentId || null,
           icon: emoji,
           position: 0,

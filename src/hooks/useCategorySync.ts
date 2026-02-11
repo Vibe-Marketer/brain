@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getSafeUser, requireUser } from "@/lib/auth-utils";
+import { useBankContext } from "@/hooks/useBankContext";
 
 export interface Tag {
   id: string;
@@ -15,20 +16,29 @@ export type Category = Tag;
 export function useTagSync() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagAssignments, setTagAssignments] = useState<Record<string, string[]>>({});
+  const { activeBankId } = useBankContext();
 
+  // Reload tags when active bank changes
   useEffect(() => {
     loadTags();
-  }, []);
+  }, [activeBankId]);
 
   const loadTags = async () => {
     try {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
-      const { data, error } = await supabase
+      let query = supabase
         .from("call_tags")
         .select("id, name")
         .order("name");
+
+      // Scope tags to the active bank/workspace
+      if (activeBankId) {
+        query = query.eq("bank_id", activeBankId);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setTags(data || []);
@@ -144,10 +154,11 @@ export function useTagSync() {
   ) => {
     try {
       const user = await requireUser();
+      if (!activeBankId) throw new Error("No active workspace selected");
 
       const { data, error } = await supabase
         .from("call_tags")
-        .insert({ name, description, color, user_id: user.id })
+        .insert({ name, description, color, user_id: user.id, bank_id: activeBankId })
         .select()
         .single();
 

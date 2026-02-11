@@ -173,7 +173,7 @@ export const ContentGenerator: React.FC<ContentGeneratorProps> = ({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <RiSparklingLine className="w-5 h-5 text-purple-600" />
+            <RiSparklingLine className="w-5 h-5 text-vibe-orange" />
             Generate Content from Insights
           </DialogTitle>
           <DialogDescription>
@@ -195,26 +195,24 @@ export const ContentGenerator: React.FC<ContentGeneratorProps> = ({
                     className={cn(
                       "flex items-start gap-3 p-4 rounded-lg border-2 transition-all text-left",
                       contentType === type.value
-                        ? "border-purple-600 bg-purple-50 dark:bg-purple-900/20"
-                        : "border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700"
+                        ? "border-vibe-orange bg-vibe-orange/10"
+                        : "border-border hover:border-vibe-orange/40"
                     )}
                   >
                     <Icon className={cn(
                       "w-5 h-5 flex-shrink-0 mt-0.5",
-                      contentType === type.value
-                        ? "text-purple-600 dark:text-purple-400"
-                        : "text-gray-600 dark:text-gray-400"
+                        contentType === type.value
+                          ? "text-vibe-orange"
+                          : "text-muted-foreground"
                     )} />
                     <div>
                       <h4 className={cn(
                         "font-semibold text-sm mb-1",
-                        contentType === type.value
-                          ? "text-purple-900 dark:text-purple-100"
-                          : "text-gray-900 dark:text-white"
+                        "text-foreground"
                       )}>
                         {type.label}
                       </h4>
-                      <p className="text-xs text-gray-600 dark:text-gray-400">
+                      <p className="text-xs text-muted-foreground">
                         {type.description}
                       </p>
                     </div>
@@ -266,11 +264,7 @@ export const ContentGenerator: React.FC<ContentGeneratorProps> = ({
           </div>
 
           {/* Generate Button */}
-          <Button
-            onClick={handleGenerate}
-            disabled={isProcessing}
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-          >
+          <Button onClick={handleGenerate} disabled={isProcessing} className="w-full">
             {isProcessing ? (
               <>
                 <RiLoader4Line className="w-5 h-5 mr-2 animate-spin" />
@@ -308,8 +302,8 @@ export const ContentGenerator: React.FC<ContentGeneratorProps> = ({
                   </Button>
                 </div>
               </div>
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 border border-gray-200 dark:border-gray-800 max-h-96 overflow-y-auto">
-                <pre className="whitespace-pre-wrap font-sans text-sm text-gray-900 dark:text-white">
+              <div className="bg-card rounded-lg p-4 border border-border max-h-96 overflow-y-auto">
+                <pre className="whitespace-pre-wrap font-sans text-sm text-foreground">
                   {generatedContent}
                 </pre>
               </div>

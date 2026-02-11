@@ -60,6 +60,12 @@ interface BusinessProfileContext {
   prohibited_terms: string | null;
 }
 
+// Bank/Vault context for multi-tenant scoping
+interface BankVaultContext {
+  bank_id?: string;
+  vault_id?: string | null;  // null = all vaults in bank
+}
+
 interface SessionFilters {
   date_start?: string;
   date_end?: string;
@@ -67,6 +73,7 @@ interface SessionFilters {
   categories?: string[];
   recording_ids?: number[];
   folder_ids?: string[];
+  bank_id?: string;
 }
 
 // ============================================
@@ -219,15 +226,23 @@ Today's date: ${todayStr}
 - "Last week" = last 7 days (from ${lastWeekDate})
 - "This month" = since ${thisMonthDate}
 
+VAULT ATTRIBUTION:
+- Each search result may include a vault_name field indicating which vault the content comes from
+- When displaying results from multiple vaults, mention which vault the content comes from
+- Use format: "From [Vault Name]: ..." when attributing sources across vaults
+- This helps users understand which knowledge container each result comes from
+- In single-vault mode, vault attribution is still present for consistency
+
 CITATION INSTRUCTIONS:
 - Always cite your sources using numbered markers like [1], [2], [3] in your response text
 - Each unique source call gets one number. Assign numbers sequentially by order of first mention
 - Place the citation marker immediately after the claim it supports, e.g. "Revenue grew 30% last quarter [1]"
 - If multiple results come from the same call (same recording_id), use the same citation number
 - At the END of your response, include a sources list in this exact format:
-  [1] Call Title (Speaker, Date)
-  [2] Another Call Title (Speaker, Date)
-- The recording_id, call_title, call_date, and speaker are available in every tool result — use them for the sources list
+  [1] Call Title (Speaker, Date) [Vault Name]
+  [2] Another Call Title (Speaker, Date) [Vault Name]
+- The recording_id, call_title, call_date, speaker, and vault_name are available in every tool result — use them for the sources list
+- If vault_name is null (pre-migration data), omit the vault badge from that source
 - Always include the sources list even if there is only one source
 
 VIEW MEETING LINKS:
@@ -304,10 +319,13 @@ async function resolveFolderFilter(
  * Session filters (from request body) provide the base context;
  * tool-specific filters override or extend them.
  * Note: folder_ids are resolved to recording_ids before this function is called.
+ * Bank/vault context is always applied from the request-level context.
  */
 function mergeFilters(
   sessionFilters: SessionFilters | undefined,
   toolFilters: Partial<SearchFilters>,
+  bankId?: string,
+  vaultId?: string | null,
 ): SearchFilters {
   return {
     date_start: toolFilters.date_start || sessionFilters?.date_start,
@@ -319,6 +337,9 @@ function mergeFilters(
     sentiment: toolFilters.sentiment,
     intent_signals: toolFilters.intent_signals,
     user_tags: toolFilters.user_tags,
+    // Always apply bank/vault context from request
+    bank_id: bankId,
+    vault_id: vaultId,
   };
 }
 
@@ -337,7 +358,11 @@ function createTools(
   openaiApiKey: string,
   hfApiKey: string,
   sessionFilters?: SessionFilters,
+  bankId?: string,
+  vaultId?: string | null,
 ) {
+  // Log bank/vault context for debugging (plan 02 will add actual filtering)
+  console.log(`[chat-stream-v2] Tools context - Bank: ${bankId || 'none'}, Vault: ${vaultId === null ? 'all' : vaultId || 'none'}`);
   // ================================================================
   // TOOL EXECUTION LOGGING WRAPPER
   // Logs what tools return to catch "silent failures" where tools
@@ -407,7 +432,7 @@ function createTools(
 
   // Shared helper for search tools (1-9): call executeHybridSearch with merged filters
   async function search(toolName: string, query: string, limit: number, toolFilters: Partial<SearchFilters> = {}) {
-    const filters = mergeFilters(sessionFilters, toolFilters);
+    const filters = mergeFilters(sessionFilters, toolFilters, bankId, vaultId);
     const startTime = Date.now();
     try {
       const result = await executeHybridSearch({
@@ -564,7 +589,11 @@ function createTools(
         try {
           // Search using entity name as query, then filter results by entities JSONB field
           const queryEmbedding = await generateQueryEmbedding(query || entity_name, openaiApiKey);
-          const { data: candidates, error } = await supabase.rpc('hybrid_search_transcripts', {
+          
+          // Use scoped search when bank/vault context is present
+          const useScopedSearch = !!(bankId || vaultId);
+          const rpcFunction = useScopedSearch ? 'hybrid_search_transcripts_scoped' : 'hybrid_search_transcripts';
+          const rpcParams: Record<string, unknown> = {
             query_text: query || entity_name,
             query_embedding: queryEmbedding,
             match_count: limit * 3,
@@ -577,8 +606,16 @@ function createTools(
             filter_speakers: sessionFilters?.speakers || null,
             filter_categories: sessionFilters?.categories || null,
             filter_recording_ids: sessionFilters?.recording_ids || null,
-            filter_bank_id: sessionFilters?.bank_id || null,
-          });
+          };
+          
+          if (useScopedSearch) {
+            rpcParams.filter_bank_id = bankId || null;
+            rpcParams.filter_vault_id = vaultId || null;
+          } else {
+            rpcParams.filter_bank_id = sessionFilters?.bank_id || null;
+          }
+          
+          const { data: candidates, error } = await supabase.rpc(rpcFunction, rpcParams);
 
           if (error) {
             return { error: true, message: `Entity search failed: ${error.message}` };
@@ -627,6 +664,8 @@ function createTools(
               entity_name,
               text: r.chunk_text,
               relevance: Math.round((r.rrf_score || 0) * 100) + '%',
+              vault_id: r.vault_id || null,
+              vault_name: r.vault_name || null,
             })),
             total_found: filtered.length,
             returned: diverse.length,
@@ -658,6 +697,48 @@ function createTools(
         }
 
         try {
+          // If vault context is present, verify the recording is in an accessible vault
+          if (bankId || vaultId) {
+            const accessibleVaultIds: string[] = [];
+            
+            if (vaultId) {
+              // Specific vault - verify membership
+              const { data: membership } = await supabase
+                .from('vault_memberships')
+                .select('id')
+                .eq('vault_id', vaultId)
+                .eq('user_id', userId)
+                .maybeSingle();
+              if (membership) accessibleVaultIds.push(vaultId);
+            } else if (bankId) {
+              // Bank-level - get all vault memberships in this bank
+              const { data: memberships } = await supabase
+                .from('vault_memberships')
+                .select('vault_id, vaults!inner(bank_id)')
+                .eq('user_id', userId)
+                .eq('vaults.bank_id', bankId);
+              if (memberships) {
+                memberships.forEach((m: { vault_id: string }) => accessibleVaultIds.push(m.vault_id));
+              }
+            }
+            
+            if (accessibleVaultIds.length > 0) {
+              // Check if recording is in any accessible vault via legacy_recording_id
+              const { data: entry } = await supabase
+                .from('vault_entries')
+                .select('id, recordings!inner(legacy_recording_id)')
+                .in('vault_id', accessibleVaultIds)
+                .eq('recordings.legacy_recording_id', numericId)
+                .maybeSingle();
+              
+              if (!entry) {
+                return { error: true, message: 'Call not found or not accessible in current vault context' };
+              }
+            } else {
+              return { error: true, message: 'No vault access in current context' };
+            }
+          }
+
           const { data: call, error: callError } = await supabase
             .from('fathom_calls')
             .select('recording_id, title, created_at, recording_start_time, recording_end_time, recorded_by_name, summary, url, share_url')
@@ -722,17 +803,65 @@ function createTools(
         date_to: z.string().optional().describe('End date filter (YYYY-MM-DD)'),
       }),
       execute: async ({ limit = 20, offset = 0, category, date_from, date_to }) => {
-        console.log(`[chat-stream-v2] getCallsList: limit=${limit} offset=${offset} category=${category}`);
+        console.log(`[chat-stream-v2] getCallsList: limit=${limit} offset=${offset} category=${category} bank=${bankId} vault=${vaultId}`);
 
         try {
+          // If vault context is present, get accessible recording_ids first
+          let vaultScopedRecordingIds: number[] | null = null;
+          
+          if (bankId || vaultId) {
+            const accessibleVaultIds: string[] = [];
+            
+            if (vaultId) {
+              const { data: membership } = await supabase
+                .from('vault_memberships')
+                .select('id')
+                .eq('vault_id', vaultId)
+                .eq('user_id', userId)
+                .maybeSingle();
+              if (membership) accessibleVaultIds.push(vaultId);
+            } else if (bankId) {
+              const { data: memberships } = await supabase
+                .from('vault_memberships')
+                .select('vault_id, vaults!inner(bank_id)')
+                .eq('user_id', userId)
+                .eq('vaults.bank_id', bankId);
+              if (memberships) {
+                memberships.forEach((m: { vault_id: string }) => accessibleVaultIds.push(m.vault_id));
+              }
+            }
+            
+            if (accessibleVaultIds.length > 0) {
+              // Get legacy recording IDs from accessible vault entries
+              const { data: entries } = await supabase
+                .from('vault_entries')
+                .select('recordings!inner(legacy_recording_id)')
+                .in('vault_id', accessibleVaultIds);
+              
+              if (entries && entries.length > 0) {
+                vaultScopedRecordingIds = entries
+                  .map((e: { recordings: { legacy_recording_id: number | null } }) => e.recordings.legacy_recording_id)
+                  .filter((id: number | null): id is number => id !== null);
+              }
+            }
+            
+            // No accessible recordings - return empty
+            if (!vaultScopedRecordingIds || vaultScopedRecordingIds.length === 0) {
+              return { message: 'No calls found in accessible vaults.' };
+            }
+          }
+
           let callsQuery = supabase
             .from('fathom_calls')
             .select('recording_id, title, created_at, summary, recorded_by_name, share_url')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
-          // Apply bank filter if present
-          if (sessionFilters?.bank_id) {
+          // Apply vault scoping if present
+          if (vaultScopedRecordingIds) {
+            callsQuery = callsQuery.in('recording_id', vaultScopedRecordingIds);
+          } else if (sessionFilters?.bank_id) {
+            // Fall back to bank filter on fathom_calls
             callsQuery = callsQuery.eq('bank_id', sessionFilters.bank_id);
           }
 
@@ -859,14 +988,61 @@ function createTools(
             return { error: true, message: 'Must provide at least 2 valid recording IDs to compare' };
           }
 
+          // If vault context is present, filter recording_ids to accessible vaults
+          let scopedNumericIds = numericIds;
+          if (bankId || vaultId) {
+            const accessibleVaultIds: string[] = [];
+            
+            if (vaultId) {
+              const { data: membership } = await supabase
+                .from('vault_memberships')
+                .select('id')
+                .eq('vault_id', vaultId)
+                .eq('user_id', userId)
+                .maybeSingle();
+              if (membership) accessibleVaultIds.push(vaultId);
+            } else if (bankId) {
+              const { data: memberships } = await supabase
+                .from('vault_memberships')
+                .select('vault_id, vaults!inner(bank_id)')
+                .eq('user_id', userId)
+                .eq('vaults.bank_id', bankId);
+              if (memberships) {
+                memberships.forEach((m: { vault_id: string }) => accessibleVaultIds.push(m.vault_id));
+              }
+            }
+            
+            if (accessibleVaultIds.length > 0) {
+              // Get accessible legacy recording IDs
+              const { data: entries } = await supabase
+                .from('vault_entries')
+                .select('recordings!inner(legacy_recording_id)')
+                .in('vault_id', accessibleVaultIds);
+              
+              const accessibleRecIds = new Set(
+                (entries || [])
+                  .map((e: { recordings: { legacy_recording_id: number | null } }) => e.recordings.legacy_recording_id)
+                  .filter((id: number | null): id is number => id !== null)
+              );
+              
+              scopedNumericIds = numericIds.filter(id => accessibleRecIds.has(id));
+            } else {
+              scopedNumericIds = [];
+            }
+            
+            if (scopedNumericIds.length < 2) {
+              return { error: true, message: 'Some recordings not accessible in current vault context. Need at least 2 valid calls.' };
+            }
+          }
+
           // Fetch call details for all recordings
           let callsQuery = supabase
             .from('fathom_calls')
             .select('recording_id, title, created_at, summary, recorded_by_name')
-            .in('recording_id', numericIds)
+            .in('recording_id', scopedNumericIds)
             .eq('user_id', userId);
           
-          if (sessionFilters?.bank_id) {
+          if (sessionFilters?.bank_id && !vaultId) {
             callsQuery = callsQuery.eq('bank_id', sessionFilters.bank_id);
           }
           
@@ -885,7 +1061,11 @@ function createTools(
           if (focus) {
             try {
               const queryEmbedding = await generateQueryEmbedding(focus, openaiApiKey);
-              const { data: chunks, error: chunksError } = await supabase.rpc('hybrid_search_transcripts', {
+              
+              // Use scoped search when vault context is present
+              const useScopedSearch = !!(bankId || vaultId);
+              const focusRpcFunction = useScopedSearch ? 'hybrid_search_transcripts_scoped' : 'hybrid_search_transcripts';
+              const focusRpcParams: Record<string, unknown> = {
                 query_text: focus,
                 query_embedding: queryEmbedding,
                 match_count: 30,
@@ -893,9 +1073,17 @@ function createTools(
                 semantic_weight: 1.0,
                 rrf_k: 60,
                 filter_user_id: userId,
-                filter_recording_ids: numericIds,
-                filter_bank_id: sessionFilters?.bank_id || null,
-              });
+                filter_recording_ids: scopedNumericIds,
+              };
+              
+              if (useScopedSearch) {
+                focusRpcParams.filter_bank_id = bankId || null;
+                focusRpcParams.filter_vault_id = vaultId || null;
+              } else {
+                focusRpcParams.filter_bank_id = sessionFilters?.bank_id || null;
+              }
+              
+              const { data: chunks, error: chunksError } = await supabase.rpc(focusRpcFunction, focusRpcParams);
 
               if (!chunksError && chunks && chunks.length > 0) {
                 // Group chunks by recording_id
@@ -1005,7 +1193,11 @@ Deno.serve(async (req: Request) => {
 
     // ---- Parse Request Body ----
     const body: RequestBody = await req.json();
-    const { messages, model: requestedModel, filters: requestFilters, sessionId } = body;
+    const { messages, model: requestedModel, filters: requestFilters, sessionId, sessionFilters: bankVaultContext } = body;
+
+    // Extract bank/vault context for multi-tenant scoping
+    const bankId = bankVaultContext?.bank_id || undefined;
+    const vaultId = bankVaultContext?.vault_id; // null means "all vaults in bank"
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -1060,9 +1252,16 @@ Deno.serve(async (req: Request) => {
       console.log(`[chat-stream-v2] Resolved ${sessionFilters.folder_ids.length} folder(s) to ${resolvedRecordingIds?.length ?? 0} recording(s)`);
     }
 
+    // ---- Set bank_id on session filters for tool access ----
+    if (bankId && sessionFilters) {
+      sessionFilters.bank_id = bankId;
+    } else if (bankId && !sessionFilters) {
+      sessionFilters = { bank_id: bankId };
+    }
+
     const selectedModel = requestedModel || 'openai/gpt-4o-mini';
     const requestStartTime = Date.now();
-    console.log(`[chat-stream-v2] User: ${user.id}, Model: ${selectedModel}, Messages: ${messages.length}, Filters: ${JSON.stringify(sessionFilters)}`);
+    console.log(`[chat-stream-v2] User: ${user.id}, Bank: ${bankId || 'none'}, Vault: ${vaultId === null ? 'all' : vaultId || 'none'}, Model: ${selectedModel}, Messages: ${messages.length}, Filters: ${JSON.stringify(sessionFilters)}`);
 
     // ---- Fetch business profile for context ----
     const businessProfile = await fetchBusinessProfile(supabase, user.id);
@@ -1073,7 +1272,7 @@ Deno.serve(async (req: Request) => {
     // ---- Build system prompt and tools ----
     const openrouter = createOpenRouterProvider(openrouterApiKey);
     const systemPrompt = buildSystemPrompt(sessionFilters, businessProfile);
-    const allTools = createTools(supabase, user.id, openaiApiKey, hfApiKey, sessionFilters);
+    const allTools = createTools(supabase, user.id, openaiApiKey, hfApiKey, sessionFilters, bankId, vaultId);
 
     // ---- Convert messages ----
     const convertedMessages = convertToModelMessages(messages);
@@ -1107,11 +1306,14 @@ Deno.serve(async (req: Request) => {
         metadata: {
           hasBusinessProfile: !!businessProfile,
           hasFilters: !!sessionFilters,
+          bankId: bankId || null,
+          vaultId: vaultId !== undefined ? vaultId : null,
           filterSummary: sessionFilters ? {
             hasDateRange: !!(sessionFilters.date_start || sessionFilters.date_end),
             hasSpeakers: !!(sessionFilters.speakers?.length),
             hasCategories: !!(sessionFilters.categories?.length),
             hasRecordingIds: !!(sessionFilters.recording_ids?.length),
+            hasBankId: !!sessionFilters.bank_id,
           } : null,
         },
       });
