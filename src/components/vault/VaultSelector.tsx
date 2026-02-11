@@ -9,8 +9,8 @@
  */
 
 import * as React from 'react'
-import { useEffect } from 'react'
-import { RiSafeLine, RiLockLine, RiTeamLine } from '@remixicon/react'
+import { useEffect, useMemo } from 'react'
+import { RiSafeLine, RiLockLine, RiTeamLine, RiYoutubeLine } from '@remixicon/react'
 import {
   Select,
   SelectContent,
@@ -49,6 +49,9 @@ function VaultIcon({ vault }: { vault: VaultWithMembership }) {
   if (vault.vault_type === 'personal') {
     return <RiLockLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
   }
+  if (vault.vault_type === 'youtube') {
+    return <RiYoutubeLine className="h-4 w-4 text-red-500 flex-shrink-0" />
+  }
   return <RiTeamLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
 }
 
@@ -63,21 +66,29 @@ export function VaultSelector({
   const { vaults, personalVault, isLoading } = useBankContext()
   const { getDefaultVault, setDefaultVault } = useUserPreferences()
 
+  // Filter vaults by type when integration is 'youtube'
+  const filteredVaults = useMemo(() => {
+    if (integration === 'youtube') {
+      return vaults.filter((v) => v.vault_type === 'youtube')
+    }
+    return vaults
+  }, [vaults, integration])
+
   // Auto-select default vault on mount
   useEffect(() => {
-    if (!value && vaults.length > 0) {
+    if (!value && filteredVaults.length > 0) {
       const savedDefault = getDefaultVault(integration)
-      const savedExists = savedDefault && vaults.some((v) => v.id === savedDefault)
+      const savedExists = savedDefault && filteredVaults.some((v) => v.id === savedDefault)
 
       if (savedExists && savedDefault) {
         onVaultChange(savedDefault)
-      } else if (personalVault) {
+      } else if (integration !== 'youtube' && personalVault) {
         onVaultChange(personalVault.id)
       } else {
-        onVaultChange(vaults[0].id)
+        onVaultChange(filteredVaults[0].id)
       }
     }
-  }, [vaults, personalVault, value, integration, getDefaultVault, onVaultChange])
+  }, [filteredVaults, personalVault, value, integration, getDefaultVault, onVaultChange])
 
   // Handle selection change
   const handleChange = (vaultId: string) => {
@@ -86,13 +97,13 @@ export function VaultSelector({
   }
 
   // Sort vaults: personal first, then team vaults alphabetically
-  const sortedVaults = React.useMemo(() => {
-    const personal = vaults.filter((v) => v.vault_type === 'personal')
-    const team = vaults
+  const sortedVaults = useMemo(() => {
+    const personal = filteredVaults.filter((v) => v.vault_type === 'personal')
+    const team = filteredVaults
       .filter((v) => v.vault_type !== 'personal')
       .sort((a, b) => a.name.localeCompare(b.name))
     return [...personal, ...team]
-  }, [vaults])
+  }, [filteredVaults])
 
   if (isLoading) {
     return (
@@ -108,12 +119,29 @@ export function VaultSelector({
     )
   }
 
-  if (vaults.length === 0) {
+  if (filteredVaults.length === 0) {
+    // When integration is YouTube and no YouTube vault exists, show auto-creation message
+    if (integration === 'youtube') {
+      return (
+        <div className={cn('space-y-2', className)}>
+          {label && (
+            <label className="text-sm font-medium text-foreground flex items-center gap-2">
+              <RiSafeLine className="w-4 h-4 text-muted-foreground" />
+              {label}
+            </label>
+          )}
+          <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-muted/30 text-sm text-muted-foreground">
+            <RiYoutubeLine className="h-4 w-4 text-red-500 flex-shrink-0" />
+            <span>A YouTube Hub will be created automatically</span>
+          </div>
+        </div>
+      )
+    }
     return null
   }
 
   // If only one vault, show it as plain text (no need for a dropdown)
-  if (vaults.length === 1) {
+  if (filteredVaults.length === 1) {
     return (
       <div className={cn('space-y-2', className)}>
         {label && (
@@ -123,8 +151,8 @@ export function VaultSelector({
           </label>
         )}
         <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-muted/30 text-sm">
-          <VaultIcon vault={vaults[0]} />
-          <span className="truncate">{vaults[0].name}</span>
+          <VaultIcon vault={filteredVaults[0]} />
+          <span className="truncate">{filteredVaults[0].name}</span>
         </div>
       </div>
     )
