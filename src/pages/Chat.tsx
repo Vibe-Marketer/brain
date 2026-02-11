@@ -448,6 +448,14 @@ export default function Chat() {
           setMessages([]);
           setIsLoadingMessages(false);
           setFiltersStable({ speakers: [], categories: [], recordingIds: [], folderIds: [] });
+
+          // Preserve context attachments from navigation state (e.g., "Open in AI Chat" from import)
+          const locationState = location.state as ChatLocationState | undefined;
+          if (locationState?.initialContext) {
+            setContextAttachmentsStable(locationState.initialContext);
+            // Clear the state so it doesn't re-apply on subsequent renders
+            navigate(location.pathname, { replace: true, state: undefined });
+          }
         }
         return;
       }

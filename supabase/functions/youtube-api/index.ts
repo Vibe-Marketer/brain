@@ -177,35 +177,98 @@ async function getVideoDetails(videoId: string, apiKey: string) {
 }
 
 /**
+ * Extract transcript text from a TranscriptAPI v2 response.
+ *
+ * The v2 API returns different shapes depending on the `format` and
+ * `include_timestamp` parameters:
+ *   format=text  + include_timestamp=false  → transcript is a plain string
+ *   format=text  + include_timestamp=true   → transcript is a timestamped string
+ *   format=json  + include_timestamp=*      → transcript is an array of segment objects
+ *
+ * We also defensively check for a top-level `segments` key and a `text` key
+ * to handle any future response-shape changes.
+ */
+function extractTranscriptFromPayload(data: Record<string, unknown> | null): string | null {
+  if (!data) return null;
+
+  const transcript = data.transcript;
+
+  // Plain string transcript (format=text or unexpected string)
+  if (typeof transcript === 'string' && transcript.trim().length > 0) {
+    return transcript;
+  }
+
+  // Array of segment objects (format=json, v2 standard)
+  if (Array.isArray(transcript)) {
+    const joined = transcript
+      .map((seg: unknown) => {
+        if (typeof seg === 'string') return seg;
+        if (seg && typeof seg === 'object' && 'text' in seg && typeof (seg as Record<string, unknown>).text === 'string') {
+          return (seg as Record<string, unknown>).text as string;
+        }
+        return '';
+      })
+      .filter((line: string) => line.trim().length > 0)
+      .join('\n');
+    if (joined.length > 0) return joined;
+  }
+
+  // Fallback: check for `segments` key (seen in some v2 marketing examples)
+  const segments = data.segments;
+  if (Array.isArray(segments)) {
+    const joined = segments
+      .map((seg: unknown) => {
+        if (typeof seg === 'string') return seg;
+        if (seg && typeof seg === 'object' && 'text' in seg && typeof (seg as Record<string, unknown>).text === 'string') {
+          return (seg as Record<string, unknown>).text as string;
+        }
+        return '';
+      })
+      .filter((line: string) => line.trim().length > 0)
+      .join('\n');
+    if (joined.length > 0) return joined;
+  }
+
+  // Fallback: top-level `text` field
+  if (typeof data.text === 'string' && (data.text as string).trim().length > 0) {
+    return data.text as string;
+  }
+
+  return null;
+}
+
+/**
  * Get transcript for a single video
  */
 async function getVideoTranscript(videoId: string, transcriptApiKey: string) {
   const url = new URL(TRANSCRIPT_API_BASE);
   url.searchParams.set('video_url', videoId);
-  url.searchParams.set('format', 'json');
+  url.searchParams.set('format', 'text');
   url.searchParams.set('include_timestamp', 'false');
   url.searchParams.set('send_metadata', 'true');
+
+  console.log(`[youtube-api] Fetching transcript for ${videoId} from ${url.toString()}`);
 
   const response = await fetch(url.toString(), {
     headers: {
       'Authorization': `Bearer ${transcriptApiKey}`,
-      'Content-Type': 'application/json',
     },
   });
 
   if (!response.ok) {
-    throw createApiHttpError('Transcript API', response.status, await response.text());
+    const errorBody = await response.text();
+    console.error(`[youtube-api] Transcript API error: status=${response.status}, body=${errorBody}`);
+    throw createApiHttpError('Transcript API', response.status, errorBody);
   }
 
-  const payload = parseJsonSafely(await response.text());
+  const rawBody = await response.text();
+  const payload = parseJsonSafely(rawBody);
   const data = payload && typeof payload === 'object' ? payload as Record<string, unknown> : null;
-  const transcript = typeof data?.transcript === 'string'
-    ? data.transcript
-    : typeof data?.text === 'string'
-      ? data.text
-      : null;
+
+  const transcript = extractTranscriptFromPayload(data);
 
   if (!transcript) {
+    console.error('[youtube-api] Transcript API returned unrecognized payload structure:', JSON.stringify(payload).slice(0, 500));
     throw new ApiHttpError('Transcript API returned invalid payload', 502, payload);
   }
 

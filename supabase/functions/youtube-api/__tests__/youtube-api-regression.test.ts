@@ -15,6 +15,7 @@ describe('youtube-api regression coverage', () => {
     expect(source).toContain("const TRANSCRIPT_API_BASE = 'https://transcriptapi.com/api/v2/youtube/transcript';");
     expect(source).not.toContain('https://api.youdotcom/v1/transcript');
     expect(source).toContain("url.searchParams.set('video_url', videoId);");
+    expect(source).toContain("url.searchParams.set('format', 'text');");
   });
 
   it('normalizes quoted secrets before downstream calls', () => {
