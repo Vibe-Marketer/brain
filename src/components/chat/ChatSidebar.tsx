@@ -7,6 +7,7 @@ import {
   RiArchiveLine,
   RiChat3Line,
   RiMoreLine,
+  RiEditLine,
   RiListCheck,
   RiCloseLine,
 } from '@remixicon/react';
@@ -49,6 +50,7 @@ interface ChatSidebarProps {
   onDeleteSession: (sessionId: string) => void;
   onTogglePin: (sessionId: string, isPinned: boolean) => void;
   onToggleArchive: (sessionId: string, isArchived: boolean) => void;
+  onRenameSession: (sessionId: string, title: string) => void;
 }
 
 // ChatGPT-style compact session item
@@ -60,6 +62,7 @@ interface SessionItemProps {
   onTogglePin: (sessionId: string, isPinned: boolean) => void;
   onToggleArchive: (sessionId: string, isArchived: boolean) => void;
   onDelete: (sessionId: string) => void;
+  onRename: (sessionId: string, title: string) => void;
   isSelectionMode?: boolean;
   isSelected?: boolean;
   onToggleSelection?: (sessionId: string) => void;
@@ -72,13 +75,23 @@ const SessionItem = React.memo(function SessionItem({
   onTogglePin,
   onToggleArchive,
   onDelete,
+  onRename,
   isSelectionMode,
   isSelected,
   onToggleSelection,
 }: SessionItemProps) {
   const title = session.title || 'New conversation';
+  const [isRenaming, setIsRenaming] = React.useState(false);
+  const [draftTitle, setDraftTitle] = React.useState(title);
+
+  React.useEffect(() => {
+    setDraftTitle(title);
+    setIsRenaming(false);
+  }, [session.id, title]);
 
   const handleClick = (e: React.MouseEvent) => {
+    if (isRenaming) return;
+
     if (isSelectionMode && onToggleSelection) {
       e.preventDefault();
       e.stopPropagation();
@@ -87,6 +100,28 @@ const SessionItem = React.memo(function SessionItem({
       onSelect(session.id);
     }
   };
+
+  const startRename = (e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
+    setDraftTitle(title);
+    setIsRenaming(true);
+  };
+
+  const cancelRename = React.useCallback(() => {
+    setDraftTitle(title);
+    setIsRenaming(false);
+  }, [title]);
+
+  const saveRename = React.useCallback(() => {
+    const nextTitle = draftTitle.trim();
+    if (!nextTitle || nextTitle === title) {
+      setIsRenaming(false);
+      setDraftTitle(title);
+      return;
+    }
+    onRename(session.id, nextTitle);
+    setIsRenaming(false);
+  }, [draftTitle, onRename, session.id, title]);
 
   return (
     <div
@@ -112,15 +147,40 @@ const SessionItem = React.memo(function SessionItem({
       )}
 
       {/* Title - truncates with ellipsis */}
-      <span
-        className={`
-          flex-1 min-w-0 truncate text-sm
-          ${isActive && !isSelectionMode ? 'text-ink font-medium' : 'text-ink-soft'}
-        `}
-        dir="auto"
-      >
-        {title}
-      </span>
+      {isRenaming ? (
+        <input
+          value={draftTitle}
+          onChange={(e) => setDraftTitle(e.target.value)}
+          onClick={(e) => e.stopPropagation()}
+          onBlur={saveRename}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              saveRename();
+            }
+            if (e.key === 'Escape') {
+              e.preventDefault();
+              cancelRename();
+            }
+          }}
+          autoFocus
+          maxLength={120}
+          className="flex-1 min-w-0 h-7 px-2 rounded-md border border-border bg-card text-sm text-ink"
+          aria-label="Rename chat"
+        />
+      ) : (
+        <span
+          className={`
+            flex-1 min-w-0 truncate text-sm
+            ${isActive && !isSelectionMode ? 'text-ink font-medium' : 'text-ink-soft'}
+          `}
+          dir="auto"
+          onDoubleClick={startRename}
+          title="Double-click to rename"
+        >
+          {title}
+        </span>
+      )}
 
       {/* Pin indicator (small, inline) */}
       {session.is_pinned && (
@@ -128,18 +188,28 @@ const SessionItem = React.memo(function SessionItem({
       )}
 
       {/* 3-dot menu - ALWAYS visible */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
+       <DropdownMenu>
+         <DropdownMenuTrigger asChild>
+           <button
+             type="button"
             className="flex-shrink-0 h-6 w-6 flex items-center justify-center rounded hover:bg-cb-border/50 transition-colors"
             onClick={(e) => e.stopPropagation()}
             aria-label="Options"
           >
             <RiMoreLine className="h-5 w-5 text-ink-muted" />
           </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
+         </DropdownMenuTrigger>
+         <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuItem
+            onClick={(e) => {
+              e.stopPropagation();
+              startRename();
+            }}
+          >
+            <RiEditLine className="h-4 w-4 mr-2" />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation();
@@ -192,6 +262,7 @@ export function ChatSidebar({
   onDeleteSession,
   onTogglePin,
   onToggleArchive,
+  onRenameSession,
 }: ChatSidebarProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = React.useState(false);
   const [sessionToDelete, setSessionToDelete] = React.useState<string | null>(null);
@@ -335,6 +406,7 @@ export function ChatSidebar({
                     onTogglePin={onTogglePin}
                     onToggleArchive={onToggleArchive}
                     onDelete={handleDeleteClick}
+                    onRename={onRenameSession}
                     isSelectionMode={isSelectionMode}
                     isSelected={selectedSessions.includes(session.id)}
                     onToggleSelection={toggleSelection}
@@ -360,6 +432,7 @@ export function ChatSidebar({
                     onTogglePin={onTogglePin}
                     onToggleArchive={onToggleArchive}
                     onDelete={handleDeleteClick}
+                    onRename={onRenameSession}
                     isSelectionMode={isSelectionMode}
                     isSelected={selectedSessions.includes(session.id)}
                     onToggleSelection={toggleSelection}

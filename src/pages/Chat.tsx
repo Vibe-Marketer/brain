@@ -24,6 +24,7 @@ import {
   RiAddLine,
   RiVideoLine,
   RiChat3Line,
+  RiEditLine,
 } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { CallDetailDialog } from "@/components/CallDetailDialog";
@@ -159,18 +160,25 @@ export default function Chat() {
   // --- Chat Session Management ---
   const {
     sessions,
+    isLoadingSessions,
     fetchMessages,
     createSession,
     saveMessages,
     deleteSession,
+    updateTitle,
     togglePin,
     toggleArchive,
   } = useChatSession(session?.user?.id, activeBankId);
+
+  const [isHeaderRenaming, setIsHeaderRenaming] = React.useState(false);
+  const [headerDraftTitle, setHeaderDraftTitle] = React.useState("");
 
   const sessionsRef = React.useRef(sessions);
   React.useEffect(() => {
     sessionsRef.current = sessions;
   }, [sessions]);
+
+  const previousBankIdRef = React.useRef<string | null>(null);
 
   // --- Load user's preferred model ---
   React.useEffect(() => {
@@ -264,6 +272,23 @@ export default function Chat() {
   React.useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
+
+  // Reset chat state when switching bank to avoid stale cross-bank session history
+  React.useEffect(() => {
+    if (!activeBankId) return;
+
+    if (previousBankIdRef.current && previousBankIdRef.current !== activeBankId) {
+      setCurrentSessionId(null);
+      currentSessionIdRef.current = null;
+      setMessages([]);
+      setIsLoadingMessages(false);
+      setFiltersStable({ speakers: [], categories: [], recordingIds: [], folderIds: [] });
+      setContextAttachmentsStable([]);
+      navigate(chatBasePath, { replace: true, state: undefined });
+    }
+
+    previousBankIdRef.current = activeBankId;
+  }, [activeBankId, navigate, setMessages, setFiltersStable, setContextAttachmentsStable]);
 
   // --- Computed State ---
   const isChatReady = !!session?.access_token && !!transport;
@@ -442,6 +467,8 @@ export default function Chat() {
   React.useEffect(() => {
     let isMounted = true;
     async function loadSession() {
+      const locationState = location.state as ChatLocationState | undefined;
+
       if (!sessionId) {
         if (isMounted) {
           setCurrentSessionId(null);
@@ -450,7 +477,6 @@ export default function Chat() {
           setFiltersStable({ speakers: [], categories: [], recordingIds: [], folderIds: [] });
 
           // Preserve context attachments from navigation state (e.g., "Open in AI Chat" from import)
-          const locationState = location.state as ChatLocationState | undefined;
           if (locationState?.initialContext) {
             setContextAttachmentsStable(locationState.initialContext);
             // Clear the state so it doesn't re-apply on subsequent renders
@@ -460,9 +486,20 @@ export default function Chat() {
         return;
       }
 
+      const sessionMeta = sessionsRef.current.find((s) => s.id === sessionId);
+      if (!locationState?.newSession && !isLoadingSessions && !sessionMeta) {
+        if (isMounted) {
+          setCurrentSessionId(null);
+          currentSessionIdRef.current = null;
+          setMessages([]);
+          setIsLoadingMessages(false);
+          navigate(chatBasePath, { replace: true, state: undefined });
+        }
+        return;
+      }
+
       setIsLoadingMessages(true);
       try {
-        const sessionMeta = sessionsRef.current.find((s) => s.id === sessionId);
         if (sessionMeta && isMounted) {
           setFiltersStable({
             dateStart: sessionMeta.filter_date_start ? new Date(sessionMeta.filter_date_start) : undefined,
@@ -474,7 +511,6 @@ export default function Chat() {
           });
         }
 
-        const locationState = location.state as ChatLocationState | undefined;
         if (locationState?.initialContext) {
           setContextAttachmentsStable(locationState.initialContext);
         }
@@ -511,7 +547,7 @@ export default function Chat() {
     }
     loadSession();
     return () => { isMounted = false; };
-  }, [sessionId, fetchMessages, setMessages, setFiltersStable, setContextAttachmentsStable, location, navigate]);
+  }, [sessionId, fetchMessages, setMessages, setFiltersStable, setContextAttachmentsStable, location, navigate, isLoadingSessions]);
 
   // --- Session handlers ---
   const createNewSession = React.useCallback(async () => {
@@ -555,6 +591,47 @@ export default function Chat() {
   const handleToggleArchive = React.useCallback(async (sid: string, isArchived: boolean) => {
     try { await toggleArchive({ sessionId: sid, isArchived }); } catch (err) { logger.error("Failed to toggle archive:", err); }
   }, [toggleArchive]);
+
+  const handleRenameSession = React.useCallback(async (sid: string, title: string) => {
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) return;
+
+    try {
+      await updateTitle({ sessionId: sid, title: trimmedTitle });
+    } catch (err) {
+      logger.error("Failed to rename session:", err);
+    }
+  }, [updateTitle]);
+
+  const activeSession = React.useMemo(
+    () => sessions.find((item) => item.id === currentSessionId) || null,
+    [sessions, currentSessionId]
+  );
+
+  React.useEffect(() => {
+    setIsHeaderRenaming(false);
+    setHeaderDraftTitle(activeSession?.title || "");
+  }, [activeSession?.id, activeSession?.title]);
+
+  const beginHeaderRename = React.useCallback(() => {
+    setHeaderDraftTitle(activeSession?.title || "");
+    setIsHeaderRenaming(true);
+  }, [activeSession?.title]);
+
+  const cancelHeaderRename = React.useCallback(() => {
+    setHeaderDraftTitle(activeSession?.title || "");
+    setIsHeaderRenaming(false);
+  }, [activeSession?.title]);
+
+  const saveHeaderRename = React.useCallback(async () => {
+    if (!activeSession?.id) {
+      setIsHeaderRenaming(false);
+      return;
+    }
+
+    await handleRenameSession(activeSession.id, headerDraftTitle);
+    setIsHeaderRenaming(false);
+  }, [activeSession?.id, handleRenameSession, headerDraftTitle]);
 
   // --- Chat submission ---
   const handleChatSubmit = React.useCallback(async (e?: React.FormEvent) => {
@@ -709,14 +786,14 @@ export default function Chat() {
               </Button>
             </div>
             <div className="flex-1 overflow-hidden">
-              <ChatSidebar sessions={sessions} activeSessionId={currentSessionId} onSessionSelect={(id) => { handleSessionSelect(id); setShowSidebar(false); }} onNewChat={() => { handleNewChat(); setShowSidebar(false); }} onDeleteSession={handleDeleteSession} onTogglePin={handleTogglePin} onToggleArchive={handleToggleArchive} />
+              <ChatSidebar sessions={sessions} activeSessionId={currentSessionId} onSessionSelect={(id) => { handleSessionSelect(id); setShowSidebar(false); }} onNewChat={() => { handleNewChat(); setShowSidebar(false); }} onDeleteSession={handleDeleteSession} onTogglePin={handleTogglePin} onToggleArchive={handleToggleArchive} onRenameSession={handleRenameSession} />
             </div>
           </div>
         </>
       )}
 
       {/* AppShell with ChatSidebar */}
-      <AppShell config={{ secondaryPane: <ChatSidebar sessions={sessions} activeSessionId={currentSessionId} onSessionSelect={handleSessionSelect} onNewChat={handleNewChat} onDeleteSession={handleDeleteSession} onTogglePin={handleTogglePin} onToggleArchive={handleToggleArchive} /> }}>
+      <AppShell config={{ secondaryPane: <ChatSidebar sessions={sessions} activeSessionId={currentSessionId} onSessionSelect={handleSessionSelect} onNewChat={handleNewChat} onDeleteSession={handleDeleteSession} onTogglePin={handleTogglePin} onToggleArchive={handleToggleArchive} onRenameSession={handleRenameSession} /> }}>
         <div className="flex flex-col h-full overflow-hidden">
           {/* Header */}
           <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
@@ -724,10 +801,52 @@ export default function Chat() {
               <div className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0">
                 <RiChat3Line className="h-4 w-4 text-vibe-orange" />
               </div>
-              <div className="min-w-0">
-                <h2 className="text-sm font-bold text-ink uppercase tracking-wide">AI Chat</h2>
-                <p className="text-xs text-ink-muted">Ask questions about your calls</p>
-              </div>
+                <div className="min-w-0">
+                  {isHeaderRenaming ? (
+                    <input
+                      value={headerDraftTitle}
+                      onChange={(e) => setHeaderDraftTitle(e.target.value)}
+                      onBlur={() => {
+                        void saveHeaderRename();
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          void saveHeaderRename();
+                        }
+                        if (e.key === 'Escape') {
+                          e.preventDefault();
+                          cancelHeaderRename();
+                        }
+                      }}
+                      autoFocus
+                      maxLength={120}
+                      className="h-7 px-2 rounded-md border border-border bg-card text-sm font-bold text-ink w-[240px] max-w-[60vw]"
+                      aria-label="Rename active chat"
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2 min-w-0">
+                      <h2
+                        className="text-sm font-bold text-ink uppercase tracking-wide truncate"
+                        title={activeSession?.title || 'AI Chat'}
+                      >
+                        {activeSession?.title || 'AI Chat'}
+                      </h2>
+                      {activeSession?.id && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 rounded-full"
+                          onClick={beginHeaderRename}
+                          aria-label="Rename chat"
+                        >
+                          <RiEditLine className="h-3.5 w-3.5 opacity-70" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  <p className="text-xs text-ink-muted">Ask questions about your calls</p>
+                </div>
             </div>
           </header>
 

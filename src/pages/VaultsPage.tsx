@@ -10,7 +10,7 @@
  * @brand-version v4.2
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { AppShell } from '@/components/layout/AppShell';
@@ -82,6 +82,7 @@ export default function VaultsPage() {
 
   // Selected vault state from URL
   const [selectedVaultId, setSelectedVaultId] = useState<string | null>(urlVaultId || null);
+  const previousBankIdRef = useRef<string | null>(null);
 
   // Mobile-specific state
   const [showMobileNav, setShowMobileNav] = useState(false);
@@ -116,6 +117,18 @@ export default function VaultsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlVaultId, vaults, vaultsLoading, navigate]);
+
+  // Reset stale vault selection when bank context changes
+  useEffect(() => {
+    if (!activeBankId) return;
+
+    if (previousBankIdRef.current && previousBankIdRef.current !== activeBankId) {
+      setSelectedVaultId(null);
+      navigate('/vaults', { replace: true });
+    }
+
+    previousBankIdRef.current = activeBankId;
+  }, [activeBankId, navigate]);
 
   // Handle vault selection
   const handleVaultSelect = useCallback(

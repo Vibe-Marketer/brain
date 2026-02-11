@@ -110,6 +110,20 @@ export function useChatSession(userId: string | undefined, activeBankId?: string
 
   // Fetch messages for a specific session - memoized for stable reference
   const fetchMessages = useCallback(async (sessionId: string): Promise<Message[]> => {
+    if (!userId) throw new Error('User ID is required');
+    if (!activeBankId) throw new Error('Active bank ID is required');
+
+    const { data: session, error: sessionError } = await supabase
+      .from('chat_sessions')
+      .select('id')
+      .eq('id', sessionId)
+      .eq('user_id', userId)
+      .eq('bank_id', activeBankId)
+      .maybeSingle();
+
+    if (sessionError) throw sessionError;
+    if (!session) return [];
+
     const { data, error } = await supabase
       .from('chat_messages')
       .select('*')
@@ -126,7 +140,7 @@ export function useChatSession(userId: string | undefined, activeBankId?: string
       parts: msg.parts,
       createdAt: new Date(msg.created_at),
     }));
-  }, []);
+  }, [userId, activeBankId]);
 
   // Create new session
   const createSessionMutation = useMutation({
@@ -324,11 +338,28 @@ export function useChatSession(userId: string | undefined, activeBankId?: string
 
       if (error) throw error;
     },
+    onMutate: async ({ sessionId, title }) => {
+      const queryKey = ['chat-sessions', userId, activeBankId] as const;
+      await queryClient.cancelQueries({ queryKey });
+      const previousSessions = queryClient.getQueryData<ChatSession[]>(queryKey);
+
+      queryClient.setQueryData<ChatSession[]>(queryKey, (old = []) =>
+        old.map((session) =>
+          session.id === sessionId ? { ...session, title } : session
+        )
+      );
+
+      return { previousSessions };
+    },
+    onError: (error: Error, _variables, context) => {
+      const queryKey = ['chat-sessions', userId, activeBankId] as const;
+      if (context?.previousSessions) {
+        queryClient.setQueryData(queryKey, context.previousSessions);
+      }
+      toast.error(error.message || 'Failed to update title');
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['chat-sessions', userId, activeBankId] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || 'Failed to update title');
     },
   });
 

@@ -40,6 +40,21 @@ function createWrapper() {
   );
 }
 
+function createWrapperWithClient() {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    React.createElement(QueryClientProvider, { client: queryClient }, children)
+  );
+
+  return { wrapper, queryClient };
+}
+
 describe('useChatSession', () => {
   const testUserId = 'test-user-123';
 
@@ -623,6 +638,89 @@ describe('useChatSession', () => {
 
       // All IDs should be unique
       expect(uniqueIds.size).toBe(3);
+    });
+  });
+
+  describe('Session Rename', () => {
+    it('optimistically updates session title and persists rename', async () => {
+      const userId = 'test-user-123';
+      const bankId = 'bank-123';
+      const sessionId = 'session-1';
+
+      const existingSession = {
+        id: sessionId,
+        user_id: userId,
+        title: 'Old title',
+        description: null,
+        filter_date_start: null,
+        filter_date_end: null,
+        filter_speakers: [],
+        filter_categories: [],
+        filter_recording_ids: [],
+        is_archived: false,
+        is_pinned: false,
+        message_count: 0,
+        last_message_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      let resolveUpdate: (value: { data: null; error: null }) => void;
+      const updatePromise = new Promise<{ data: null; error: null }>((resolve) => {
+        resolveUpdate = resolve;
+      });
+
+      const updateEq = vi.fn().mockReturnValue(updatePromise);
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'chat_sessions') {
+          const selectChain = {
+            eq: vi.fn(),
+            order: vi.fn().mockReturnValue({ data: [existingSession], error: null }),
+          };
+          selectChain.eq.mockReturnValue(selectChain);
+
+          return {
+            select: vi.fn().mockReturnValue(selectChain),
+            update: vi.fn().mockReturnValue({ eq: updateEq }),
+          };
+        }
+
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              data: [],
+              error: null,
+            }),
+          }),
+        };
+      });
+
+      const { wrapper, queryClient } = createWrapperWithClient();
+      const { result } = renderHook(() => useChatSession(userId, bankId), { wrapper });
+
+      await waitFor(() => {
+        expect(result.current.sessions.length).toBe(1);
+      });
+
+      const renamePromise = result.current.updateTitle({
+        sessionId,
+        title: 'New title',
+      });
+
+      await waitFor(() => {
+        const cache = queryClient.getQueryData<Array<{ id: string; title: string }>>([
+          'chat-sessions',
+          userId,
+          bankId,
+        ]);
+        expect(cache?.find((session) => session.id === sessionId)?.title).toBe('New title');
+      });
+
+      resolveUpdate!({ data: null, error: null });
+      await renamePromise;
+
+      expect(updateEq).toHaveBeenCalledWith('id', sessionId);
     });
   });
 });
