@@ -1,0 +1,47 @@
+# Ralph Progress Log
+
+## Codebase Patterns
+- CSS variables in brand-guidelines are in Section 23 "CSS VARIABLE REFERENCE" starting around line 2917
+- The document has numbered sections (## SECTION NAME format with caps for major sections)
+- When updating CSS variables, remember to update both :root (light mode) and .dark (dark mode) sections
+- Tailwind config mapping section follows the CSS variables section and shows how variables map to utility classes
+
+---
+
+Started: Tue Jan 13 19:02:03 EST 2026
+
+## 2026-01-13 - US-001: Update CSS Variable Reference section
+- Removed all cv- prefixes from CSS variable names in Section 23
+  - Light mode: --cv-white, --cv-black, --cv-ink, --cv-ink-soft, --cv-ink-muted, --cv-border, --cv-border-soft, --cv-hover → unprefixed versions
+  - Dark mode: --cv-viewport-dark, --cv-card-dark, --cv-panel-dark, --cv-border-dark, --cv-text-dark-* → unprefixed versions
+  - Status colors: --cv-success-*, --cv-warning-*, --cv-danger-*, --cv-info-*, --cv-neutral-* → unprefixed versions
+- Updated Tailwind config mapping to use flat structure instead of nested cv: {} object
+- Added status colors to Tailwind config (success, warning, danger, info, neutral)
+- Added usage examples section showing unprefixed class usage
+- Files changed: docs/design/brand-guidelines-v4.1.md
+- **Learnings for future iterations:**
+  - The brand-guidelines file is very large (29k+ tokens), must read sections with offset/limit
+  - Section 23 is the CSS Variable Reference section
+  - Always update both :root and .dark CSS variable blocks
+  - The Tailwind config should mirror the unprefixed variable naming convention
+---
+
+## 2026-01-13 - US-002: Update Color System section
+- Verified Color System section (lines 138-263) was already using unprefixed semantic names
+- Added Tailwind Usage examples to Primary Neutrals subsection:
+  - text-ink, text-ink-soft, text-ink-muted for text colors
+  - border-border, border-border-soft for borders
+  - hover:bg-hover for hover states
+- Added Tailwind Usage examples to Semantic Status Colors subsection:
+  - bg-success-bg, text-success-text, border-success-border
+  - bg-warning-bg, text-warning-text, border-warning-border
+  - bg-danger-bg, text-danger-text, border-danger-border
+  - bg-info-bg, text-info-text, border-info-border
+  - bg-neutral-bg, text-neutral-text, border-neutral-border
+- Files changed: docs/design/brand-guidelines-v4.1.md
+- **Learnings for future iterations:**
+  - The Color System section starts at line 138 and ends at line ~263
+  - Background Hierarchy already had Tailwind examples, but Primary Neutrals and Status Colors did not
+  - When documenting color systems, always include explicit Tailwind class examples for each subsection
+---
+

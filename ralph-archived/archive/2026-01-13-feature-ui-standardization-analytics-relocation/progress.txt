@@ -1,0 +1,46 @@
+# Ralph Progress Log
+
+## Codebase Patterns
+- Pane headers use `py-3` for 48px height (12px top + ~24px content + 12px bottom)
+- Header pattern: `flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50`
+- Icon containers: `w-8 h-8 rounded-lg bg-cb-vibe-orange/10` with `text-cb-vibe-orange`
+- Pre-existing lint errors exist in `.kilocode/worktrees` directories - these are separate worktrees and don't block builds
+
+---
+
+Initialized: Tue Jan 13 10:37:58 EST 2026
+
+---
+
+## 2026-01-13 - US-001: Update SettingsCategoryPane header py-4 to py-3
+- Changed `py-4` to `py-3` in header class on line 232 of SettingsCategoryPane.tsx
+- Files changed: `src/components/panes/SettingsCategoryPane.tsx`
+- **Learnings for future iterations:**
+  - The 48px header height is achieved with `py-3` (12px padding) + content (~24px with icon/text)
+  - SettingsCategoryPane is the reference implementation for category pane headers
+  - Build passes despite lint errors in worktree directories (these are pre-existing)
+---
+
+## 2026-01-13 - US-002: Update SortingCategoryPane header py-4 to py-3
+- Changed `py-4` to `py-3` in header class on line 182 of SortingCategoryPane.tsx
+- Files changed: `src/components/panes/SortingCategoryPane.tsx`
+- **Learnings for future iterations:**
+  - SortingCategoryPane follows the same header pattern as SettingsCategoryPane
+  - The header is at line ~182 with class `flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50`
+  - This pane also has a "Quick Tips" section at the bottom that other panes may not have
+---
+
+## 2026-01-13 - US-003: Standardize FolderSidebar header to match Settings/Sorting pattern
+- Replaced custom header in FolderSidebar.tsx (lines ~589-611) with standardized pattern
+- Added icon container with `w-8 h-8 rounded-lg bg-cb-vibe-orange/10` and `RiFolderLine` icon
+- Changed title from "Folders" to "Library" with proper styling: `text-sm font-semibold text-cb-ink uppercase tracking-wide`
+- Added dynamic subtitle: `{folders.length} {folders.length === 1 ? 'folder' : 'folders'}`
+- Kept + button on right side with `flex-shrink-0` to prevent layout issues
+- Changed outer div to `<header>` semantic element with proper classes: `flex items-center gap-3 px-4 py-3 border-b border-cb-border bg-cb-card/50`
+- Files changed: `src/components/transcript-library/FolderSidebar.tsx`
+- **Learnings for future iterations:**
+  - FolderSidebar has both collapsed and expanded views - only expanded view has the header (collapsed shows icon-only navigation)
+  - The header now matches the exact pattern from SettingsCategoryPane.tsx (lines 232-250)
+  - Added `id="folder-sidebar-title"` for accessibility labeling (aria-labelledby can reference this)
+  - Use `flex-1` on the title container and `flex-shrink-0` on buttons to ensure proper layout
+---

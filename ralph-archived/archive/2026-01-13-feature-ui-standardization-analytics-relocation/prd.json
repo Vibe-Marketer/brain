@@ -1,0 +1,62 @@
+{
+  "projectName": "CallVault",
+  "featureName": "Brand Guidelines v4.2 Update",
+  "branchName": "docs/brand-guidelines-v42",
+  "description": "Update brand guidelines from v4.1 to v4.2, removing cb-/cv- prefixes and standardizing on semantic naming throughout all documentation and code examples",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Update CSS Variable Reference section",
+      "priority": 1,
+      "description": "As a developer, I need the CSS Variable Reference section (Section 23) to document unprefixed semantic names so I use the correct class names.",
+      "acceptanceCriteria": [
+        "Remove all cv- and cb- prefixes from variable examples",
+        "Update Tailwind config mapping to show unprefixed names (e.g., text-ink-muted not text-cb-ink-muted)",
+        "Update all code examples in Section 23 to use semantic names",
+        "Ensure dark mode variable examples are also updated"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-002",
+      "title": "Update Color System section",
+      "priority": 2,
+      "description": "As a developer, I need the Color System section (Section 3) to show unprefixed Tailwind class usage examples.",
+      "acceptanceCriteria": [
+        "Update all Tailwind Usage examples to use unprefixed classes",
+        "Remove mentions of cv- prefix in documentation",
+        "Ensure all color token examples use semantic naming",
+        "Update any color tables to reflect new naming"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-003",
+      "title": "Update component code examples",
+      "priority": 3,
+      "description": "As a developer, I need all component sections (Button, Tab Navigation, etc.) to show correct unprefixed class names.",
+      "acceptanceCriteria": [
+        "Update Button System section (Section 5) code examples",
+        "Update Tab Navigation section (Section 7) examples",
+        "Update Icon Button Implementation examples",
+        "Find/replace cv- with semantic names in all code blocks"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-004",
+      "title": "Version bump and changelog",
+      "priority": 4,
+      "description": "As a maintainer, I need proper version tracking so changes are documented and file is renamed appropriately.",
+      "acceptanceCriteria": [
+        "Rename file from brand-guidelines-v4.1.md to brand-guidelines-v4.2.md",
+        "Increment version in title (line 1)",
+        "Update DOCUMENT VERSION section",
+        "Update END OF BRAND GUIDELINES marker",
+        "Add entry to docs/brand-guidelines-changelog.md with date, time, and change summary",
+        "Update Last Updated date/time in header"
+      ],
+      "passes": false
+    }
+  ]
+}

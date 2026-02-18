@@ -1,0 +1,613 @@
+{
+  "projectName": "All PRDs",
+  "featureName": "All User Stories from       46 PRDs",
+  "branchName": "ralph-all-prds",
+  "description": "Combined user stories from all PRDs in prd/ folder",
+  "userStories": [
+    {
+      "id": "US-001.1",
+      "title": "US-001.1: As a CallVault user, I want the Import button at the top of the sidebar so that I can quickly access the primary action without searching.",
+      "priority": 1,
+      "description": "US-001.1: As a CallVault user, I want the Import button at the top of the sidebar so that I can quickly access the primary action without searching.",
+      "acceptanceCriteria": [
+        "Import button appears at top when sidebar expanded",
+        "Import button appears at top when sidebar collapsed",
+        "Visual separator between Import and nav items",
+        "Click functionality unchanged",
+        "500ms transitions maintained"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-002.1",
+      "title": "",
+      "priority": 2,
+      "description": "",
+      "acceptanceCriteria": [
+        "Collapsed sidebar shows left-side orange pill on active item",
+        "No bottom dot visible anywhere",
+        "Indicator matches expanded mode styling",
+        "Smooth scale-y transition when selecting",
+        "Works for all nav items (Home, Chat, Content, etc.)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-003.1",
+      "title": "US-003.1: As a CallVault user, I want Analytics to appear before Settings in the sidebar so that I can access my call analytics more easily.",
+      "priority": 3,
+      "description": "US-003.1: As a CallVault user, I want Analytics to appear before Settings in the sidebar so that I can access my call analytics more easily.",
+      "acceptanceCriteria": [
+        "Analytics appears above Settings in nav",
+        "Settings is the last nav item",
+        "All nav functionality unchanged",
+        "Keyboard navigation (ArrowDown/Up) follows new order"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-004.1",
+      "title": "US-004.1: As a CallVault user, I want Settings at the bottom of the navigation so that its in the expected location and doesnt distract from primary features.",
+      "priority": 4,
+      "description": "US-004.1: As a CallVault user, I want Settings at the bottom of the navigation so that its in the expected location and doesnt distract from primary features.",
+      "acceptanceCriteria": [
+        "Settings is the last nav item",
+        "Settings appears after Analytics",
+        "All Settings functionality unchanged",
+        "No visual separation from other nav items"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-005.1",
+      "title": "US-005.1: As a CallVault user with many folders, I want proper spacing around the search box so that the interface feels polished and easy to scan.",
+      "priority": 5,
+      "description": "US-005.1: As a CallVault user with many folders, I want proper spacing around the search box so that the interface feels polished and easy to scan.",
+      "acceptanceCriteria": [
+        "Search box has visible gap from header",
+        "Spacing consistent with sidebar patterns",
+        "No layout shift or overflow issues"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-006.1",
+      "title": "US-006.1: As a CallVault user, I want the folder search to be hidden until I need it so that my sidebar stays clean and uncluttered.",
+      "priority": 6,
+      "description": "US-006.1: As a CallVault user, I want the folder search to be hidden until I need it so that my sidebar stays clean and uncluttered.",
+      "acceptanceCriteria": [
+        "Search hidden by default",
+        "Magnifying glass icon visible in header",
+        "Clicking icon toggles search visibility",
+        "Input auto-focuses when opened",
+        "Search auto-hides when cleared and unfocused",
+        "Smooth animation on open/close",
+        "Works in both expanded and collapsed sidebar modes"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-007.1",
+      "title": "",
+      "priority": 7,
+      "description": "",
+      "acceptanceCriteria": [
+        "No extra line at top of import screen",
+        "Header remains properly styled",
+        "No layout regressions"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-008.1",
+      "title": "US-008.1: As a CallVault user, I want a cleaner integrations section so that I can focus on managing my integrations without visual clutter.",
+      "priority": 8,
+      "description": "US-008.1: As a CallVault user, I want a cleaner integrations section so that I can focus on managing my integrations without visual clutter.",
+      "acceptanceCriteria": [
+        "Integrations section has reduced visual weight",
+        "Content is more compact vertically",
+        "Design feels cleaner and less boxy",
+        "Still clearly grouped as a section"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-009.1",
+      "title": "",
+      "priority": 9,
+      "description": "",
+      "acceptanceCriteria": [
+        "Label clearly indicates purpose",
+        "User understands what the date range controls",
+        "Consistent wording across all integration types"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-010.1",
+      "title": "US-010.1: As a CallVault user importing meetings, I want to easily find and click the Fetch Meetings button so that I can complete the import process.",
+      "priority": 10,
+      "description": "US-010.1: As a CallVault user importing meetings, I want to easily find and click the Fetch Meetings button so that I can complete the import process.",
+      "acceptanceCriteria": [
+        "Fetch Meetings button visible without scrolling (if possible)",
+        "If scrolling required, scroll works correctly",
+        "Button accessible on all screen sizes",
+        "No content cut off or inaccessible"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-011.1",
+      "title": "US-011.1: As a CallVault user, I want consistent icons for each integration so that I can quickly recognize each service regardless of where I am in the app.",
+      "priority": 11,
+      "description": "US-011.1: As a CallVault user, I want consistent icons for each integration so that I can quickly recognize each service regardless of where I am in the app.",
+      "acceptanceCriteria": [
+        "Zoom icon consistent everywhere",
+        "Google Meet icon consistent everywhere",
+        "Fathom icon consistent everywhere",
+        "No visual inconsistencies between screens"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-012.1",
+      "title": "US-012.1: As a CallVault user, I want Connect buttons to look clickable so that I know I can interact with them.",
+      "priority": 12,
+      "description": "US-012.1: As a CallVault user, I want Connect buttons to look clickable so that I know I can interact with them.",
+      "acceptanceCriteria": [
+        "Connect buttons appear fully active (not grayed)",
+        "Sufficient contrast and visibility",
+        "Consistent across all integration types"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-013.1",
+      "title": "US-013.1: As a CallVault user connecting an integration, I want to complete the connection with minimal clicks so that I can start using the integration quickly.",
+      "priority": 13,
+      "description": "US-013.1: As a CallVault user connecting an integration, I want to complete the connection with minimal clicks so that I can start using the integration quickly.",
+      "acceptanceCriteria": [
+        "No unnecessary confirmation screens",
+        "Maximum 2 steps to initiate OAuth",
+        "User can connect faster than before"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-014.1",
+      "title": "",
+      "priority": 14,
+      "description": "",
+      "acceptanceCriteria": [
+        "No empty requirements screens",
+        "If requirements exist, they're displayed",
+        "If no requirements, no acknowledgment checkbox",
+        "User never acknowledges invisible content"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-015.1",
+      "title": "US-015.1: As a CallVault user, I want to connect my Zoom account so that I can import my Zoom meeting recordings.",
+      "priority": 15,
+      "description": "US-015.1: As a CallVault user, I want to connect my Zoom account so that I can import my Zoom meeting recordings.",
+      "acceptanceCriteria": [
+        "Button click initiates Zoom OAuth",
+        "Zoom authorization page opens",
+        "Callback handled correctly",
+        "Connected status shown on success",
+        "Error message shown on failure"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-016.1",
+      "title": "",
+      "priority": 16,
+      "description": "",
+      "acceptanceCriteria": [
+        "Fathom alternative shown for restricted users",
+        "Clear messaging explaining the alternative",
+        "Working affiliate link",
+        "Doesn't feel like a dead end"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-017.1",
+      "title": "",
+      "priority": 17,
+      "description": "",
+      "acceptanceCriteria": [
+        "No separate confirmation screen",
+        "Connect button on requirements page",
+        "Button disabled until acknowledgment",
+        "Single step from requirements to OAuth"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-018.1",
+      "title": "US-018.1: As a CallVault user connecting Google, I want clear feedback on connection status so that I know if it worked or what went wrong.",
+      "priority": 18,
+      "description": "US-018.1: As a CallVault user connecting Google, I want clear feedback on connection status so that I know if it worked or what went wrong.",
+      "acceptanceCriteria": [
+        "Spinner times out after 30 seconds",
+        "Success message on successful connection",
+        "Error message on failure",
+        "Cancel button works during loading",
+        "User can retry after failure"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-019.1",
+      "title": "US-019.1: As a CallVault user with multiple Google accounts, I want clear visibility into which account is connected so that I can manage my integrations properly.",
+      "priority": 19,
+      "description": "US-019.1: As a CallVault user with multiple Google accounts, I want clear visibility into which account is connected so that I can manage my integrations properly.",
+      "acceptanceCriteria": [
+        "Connected account shows email/identifier",
+        "Connected status clearly visible",
+        "Reconnect attempt handled gracefully",
+        "No silent failures or confusing states"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-020.1",
+      "title": "",
+      "priority": 20,
+      "description": "",
+      "acceptanceCriteria": [
+        "X button works during loading",
+        "Cancel button works during loading",
+        "Pending operations aborted",
+        "User can always exit",
+        "No stuck states"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-021.1",
+      "title": "",
+      "priority": 21,
+      "description": "",
+      "acceptanceCriteria": [
+        "Single component used in both locations",
+        "Behavior identical in Import and Settings",
+        "No duplicate integration management code",
+        "Both screens use same connection flows"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-022.1",
+      "title": "US-022.1: As a CallVault user, I want to see loading feedback in the Content section so that I know my content is loading and not missing.",
+      "priority": 22,
+      "description": "US-022.1: As a CallVault user, I want to see loading feedback in the Content section so that I know my content is loading and not missing.",
+      "acceptanceCriteria": [
+        "Skeleton shows during content loading",
+        "Skeleton matches card layout",
+        "Smooth transition to actual content",
+        "Loading state for each content type"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-023.1",
+      "title": "US-023.1: As a CallVault user, I want content cards to look professional so that I trust the quality of generated content.",
+      "priority": 23,
+      "description": "US-023.1: As a CallVault user, I want content cards to look professional so that I trust the quality of generated content.",
+      "acceptanceCriteria": [
+        "Cards align with brand guidelines",
+        "Professional, polished appearance",
+        "Good typography and spacing",
+        "Consistent visual language"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-024.1",
+      "title": "US-024.1: As a CallVault user, I want the content generator to have a clear name so that I know what it creates before I use it.",
+      "priority": 24,
+      "description": "US-024.1: As a CallVault user, I want the content generator to have a clear name so that I know what it creates before I use it.",
+      "acceptanceCriteria": [
+        "Generator has new descriptive name",
+        "Name consistent across all locations",
+        "Name clearly indicates output type"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-025.1",
+      "title": "US-025.1: As a CallVault user with a connected business profile, I want to edit my profile information so that I can keep it up to date.",
+      "priority": 25,
+      "description": "US-025.1: As a CallVault user with a connected business profile, I want to edit my profile information so that I can keep it up to date.",
+      "acceptanceCriteria": [
+        "Edit button visible for connected profiles",
+        "Clicking opens profile editor",
+        "Changes can be saved",
+        "View-only mode available"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-026.1",
+      "title": "US-026.1: As a CallVault user browsing calls, I want compact call cards so that I can see more calls without scrolling.",
+      "priority": 26,
+      "description": "US-026.1: As a CallVault user browsing calls, I want compact call cards so that I can see more calls without scrolling.",
+      "acceptanceCriteria": [
+        "Cards visibly more compact",
+        "Essential info still displayed",
+        "More cards visible per screen",
+        "Text remains readable",
+        "Spacing consistent with other components"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-027.1",
+      "title": "US-027.1: As a CallVault user, I want the Tags tab to work so that I can manage my call tags.",
+      "priority": 27,
+      "description": "US-027.1: As a CallVault user, I want the Tags tab to work so that I can manage my call tags.",
+      "acceptanceCriteria": [
+        "Tags tab loads without error",
+        "No screen flickering",
+        "Tag management works",
+        "Console shows no errors"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-028.1",
+      "title": "US-028.1: As a CallVault user, I want the Rules tab to work so that I can set up automation rules.",
+      "priority": 28,
+      "description": "US-028.1: As a CallVault user, I want the Rules tab to work so that I can set up automation rules.",
+      "acceptanceCriteria": [
+        "Rules tab loads without error",
+        "No screen flickering",
+        "Rules management works",
+        "Console shows no errors"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-029.1",
+      "title": "US-029.1: As a CallVault admin/developer, I want access to the debug tool so that I can diagnose issues.",
+      "priority": 29,
+      "description": "US-029.1: As a CallVault admin/developer, I want access to the debug tool so that I can diagnose issues.",
+      "acceptanceCriteria": [
+        "Debug tool visible for admin accounts",
+        "Permission checks working correctly",
+        "Tool functionality intact",
+        "Hidden from regular users (if by design)"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-030.1",
+      "title": "US-030.1: As a CallVault user, I want the Sorting & Tagging page to work completely so that I can organize and automate my call management.",
+      "priority": 30,
+      "description": "US-030.1: As a CallVault user, I want the Sorting & Tagging page to work completely so that I can organize and automate my call management.",
+      "acceptanceCriteria": [
+        "All tabs load without errors",
+        "No flickering on any interaction",
+        "Tag management works",
+        "Rules management works",
+        "Debug tool accessible",
+        "No console errors",
+        "Stable after multiple tab switches"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-031.1",
+      "title": "US-031.1: As a CallVault user, I want to create a team so that I can collaborate with colleagues.",
+      "priority": 31,
+      "description": "US-031.1: As a CallVault user, I want to create a team so that I can collaborate with colleagues.",
+      "acceptanceCriteria": [
+        "Team creation works",
+        "Success confirmation shown",
+        "Error message on failure",
+        "No silent failures",
+        "Team appears in team list after creation"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-032.1",
+      "title": "US-032.1: As a CallVault user without a team, I want clear guidance on what to do next so that I can get started with collaboration.",
+      "priority": 32,
+      "description": "US-032.1: As a CallVault user without a team, I want clear guidance on what to do next so that I can get started with collaboration.",
+      "acceptanceCriteria": [
+        "Empty state has helpful messaging",
+        "Create team CTA is prominent",
+        "User understands available actions"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-033.1",
+      "title": "US-033.1: As a CallVault user, I want to invite coaches via email so that I can get coaching feedback on my calls.",
+      "priority": 33,
+      "description": "US-033.1: As a CallVault user, I want to invite coaches via email so that I can get coaching feedback on my calls.",
+      "acceptanceCriteria": [
+        "Email sends on submission",
+        "Success confirmation shown",
+        "Error message on failure",
+        "Coach receives proper invite email"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-034.1",
+      "title": "US-034.1: As a CallVault user, I want to generate a shareable invite link so that I can invite coaches without needing their email.",
+      "priority": 34,
+      "description": "US-034.1: As a CallVault user, I want to generate a shareable invite link so that I can invite coaches without needing their email.",
+      "acceptanceCriteria": [
+        "Button generates link on click",
+        "Link displayed in UI",
+        "Copy to clipboard works",
+        "Generated link is valid",
+        "Coach can use link to accept"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-035.1",
+      "title": "US-035.1: As a CallVault user, I want the Analytics page to work so that I can review my call performance and insights.",
+      "priority": 35,
+      "description": "US-035.1: As a CallVault user, I want the Analytics page to work so that I can review my call performance and insights.",
+      "acceptanceCriteria": [
+        "All tabs load without errors",
+        "Data displays correctly",
+        "Tab switching smooth",
+        "No console errors",
+        "Empty states instead of errors when no data"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-036.1",
+      "title": "US-036.1: As a CallVault user, I want a clean settings page so that I can easily find and change settings.",
+      "priority": 36,
+      "description": "US-036.1: As a CallVault user, I want a clean settings page so that I can easily find and change settings.",
+      "acceptanceCriteria": [
+        "Excessive dividers removed",
+        "Only essential separators remain",
+        "Page feels cleaner and more scannable"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-037.1",
+      "title": "US-037.1: As a CallVault user, I want to click on a field to edit it so that the interaction is intuitive.",
+      "priority": 37,
+      "description": "US-037.1: As a CallVault user, I want to click on a field to edit it so that the interaction is intuitive.",
+      "acceptanceCriteria": [
+        "Edit icons inside input containers",
+        "Click anywhere to edit",
+        "Consistent across all editable fields",
+        "Clear visual indication of editability"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-038.1",
+      "title": "US-038.1: As a CallVault user editing settings, I want clear confirm/cancel buttons so that I know exactly what each action does.",
+      "priority": 38,
+      "description": "US-038.1: As a CallVault user editing settings, I want clear confirm/cancel buttons so that I know exactly what each action does.",
+      "acceptanceCriteria": [
+        "X icon is red/destructive color",
+        "Checkmark is green/success color",
+        "Both clearly visible",
+        "Sufficient contrast for accessibility"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-039.1",
+      "title": "US-039.1: As a CallVault user, I want to change my email address so that I can keep my account up to date.",
+      "priority": 39,
+      "description": "US-039.1: As a CallVault user, I want to change my email address so that I can keep my account up to date.",
+      "acceptanceCriteria": [
+        "Email field is editable",
+        "Verification email sent to new address",
+        "Clear feedback during verification",
+        "Email updated after verification"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-040.1",
+      "title": "US-040.1: As a CallVault user with multiple profiles, I want profile management to work correctly so that I can maintain separate business profiles.",
+      "priority": 40,
+      "description": "US-040.1: As a CallVault user with multiple profiles, I want profile management to work correctly so that I can maintain separate business profiles.",
+      "acceptanceCriteria": [
+        "New profile creation has clear guidance",
+        "Profile selector updates displayed content",
+        "Correct data shown for selected profile",
+        "No stale data visible"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-041.1",
+      "title": "US-041.1: As a CallVault admin managing users, I want a clean users interface so that I can easily manage team members.",
+      "priority": 41,
+      "description": "US-041.1: As a CallVault admin managing users, I want a clean users interface so that I can easily manage team members.",
+      "acceptanceCriteria": [
+        "Excess dividers removed",
+        "User list easy to scan",
+        "Visual hierarchy clear"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-042.1",
+      "title": "US-042.1: As a CallVault admin, I want user management to work so that I can manage my team effectively.",
+      "priority": 42,
+      "description": "US-042.1: As a CallVault admin, I want user management to work so that I can manage my team effectively.",
+      "acceptanceCriteria": [
+        "Status field works",
+        "Joined date shows correctly",
+        "View Details opens user detail",
+        "All displayed elements functional"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-043.1",
+      "title": "US-043.1: As a CallVault user, I want billing to work correctly so that I can manage my subscription.",
+      "priority": 43,
+      "description": "US-043.1: As a CallVault user, I want billing to work correctly so that I can manage my subscription.",
+      "acceptanceCriteria": [
+        "Plan displayed accurately",
+        "Plan changes work",
+        "Payment management works",
+        "Billing history viewable",
+        "All billing actions functional"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-044.1",
+      "title": "US-044.1: As a CallVault user, I want to connect Google successfully so that I can use Google integration features.",
+      "priority": 44,
+      "description": "US-044.1: As a CallVault user, I want to connect Google successfully so that I can use Google integration features.",
+      "acceptanceCriteria": [
+        "OAuth completes successfully",
+        "Connected status shown",
+        "User-friendly errors on failure",
+        "Edge function working properly"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-045.1",
+      "title": "US-045.1: As a CallVault user, I want to connect Zoom from Settings so that I can import Zoom recordings.",
+      "priority": 45,
+      "description": "US-045.1: As a CallVault user, I want to connect Zoom from Settings so that I can import Zoom recordings.",
+      "acceptanceCriteria": [
+        "Button triggers OAuth",
+        "Zoom auth page opens",
+        "Callback handled",
+        "Connected status shown"
+      ],
+      "passes": false
+    },
+    {
+      "id": "US-046.1",
+      "title": "US-046.1: As a CallVault user, I want accurate indexing status information so that I know how many transcripts are being processed.",
+      "priority": 46,
+      "description": "US-046.1: As a CallVault user, I want accurate indexing status information so that I know how many transcripts are being processed.",
+      "acceptanceCriteria": [
+        "Count is accurate",
+        "Progress matches count",
+        "No conflicting numbers",
+        "User can trust displayed status"
+      ],
+      "passes": false
+    }
+  ]
+}
