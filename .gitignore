@@ -69,3 +69,7 @@ webhook_logs.txt
 
 # Playwright auth state
 playwright/.auth/
+
+# Claude Code - browser runtime artifacts (NOT skills/commands/agents)
+.claude/skills/dev-browser/profiles/browser-data/
+.claude/skills/dev-browser/node_modules/
