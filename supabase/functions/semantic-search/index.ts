@@ -92,10 +92,6 @@ Deno.serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
 
-    if (!openaiApiKey) {
-      throw new Error('OPENAI_API_KEY not configured');
-    }
-
     // Get user from auth header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
@@ -145,19 +141,38 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Generate embedding for the query
     const startTime = Date.now();
-    const queryEmbedding = await generateQueryEmbedding(trimmedQuery, openaiApiKey);
-    const embeddingTime = Date.now() - startTime;
+
+    // Try to generate embedding — fall back to text-only search if OpenAI is unavailable
+    let queryEmbedding: number[] | null = null;
+    let embeddingTime = 0;
+    let searchMode = 'hybrid';
+
+    if (openaiApiKey) {
+      try {
+        const embeddingStart = Date.now();
+        queryEmbedding = await generateQueryEmbedding(trimmedQuery, openaiApiKey);
+        embeddingTime = Date.now() - embeddingStart;
+      } catch (embeddingErr) {
+        console.warn('Embedding generation failed, falling back to text-only search:', embeddingErr);
+        searchMode = 'text-only';
+      }
+    } else {
+      searchMode = 'text-only';
+    }
+
+    // Use a zero vector for text-only fallback (semantic_weight=0 means vector is ignored in scoring)
+    const EMBEDDING_DIMS = 1536;
+    const effectiveEmbedding = queryEmbedding ?? new Array(EMBEDDING_DIMS).fill(0);
 
     // Call hybrid search RPC
     const searchStartTime = Date.now();
     const rpcParams: Record<string, unknown> = {
       query_text: trimmedQuery,
-      query_embedding: queryEmbedding,
+      query_embedding: effectiveEmbedding,
       match_count: limit,
       full_text_weight: 1.0,
-      semantic_weight: 1.0,
+      semantic_weight: queryEmbedding ? 1.0 : 0.0,  // Disable vector scoring on fallback
       rrf_k: 60,
       filter_user_id: user.id,
     };
@@ -202,6 +217,7 @@ Deno.serve(async (req) => {
         query: trimmedQuery,
         results,
         total: results.length,
+        search_mode: searchMode,
         timing: {
           embedding_ms: embeddingTime,
           search_ms: searchTime,
