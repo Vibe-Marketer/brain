@@ -164,6 +164,20 @@ Claude Desktop / Gemini / Perplexity / Cursor
 
 ---
 
+## Data Prerequisite: Structured Attendee Names
+
+Before the MCP can expose useful attendee/contact data, the `contacts` and `speakers` tables need `first_name` and `last_name` columns. Currently both store a single `name` TEXT field.
+
+**What to do:**
+- Add `first_name TEXT` and `last_name TEXT` columns to `contacts` (and optionally `speakers`)
+- Backfill by splitting existing `name` values (first space = split point, or use the full name as `first_name` if no space)
+- Update import pipelines to populate `first_name`/`last_name` at import time (Fathom and Google Meet provide structured or parseable names)
+- The MCP `get_contacts` and `get_recording_attendees` tools return `{first_name, last_name, email}` -- CRM-ready without downstream parsing
+
+This is a small migration + backfill, not a schema redesign. It makes the MCP output directly usable for CRM integration (HubSpot, Salesforce, Pipedrive all expect first/last name as separate fields).
+
+---
+
 ## CallVault MCP Server: Tool Inventory Design
 
 This is where differentiation lives. Every competitor exposes 3-5 basic tools (search, get transcript, get summary). CallVault should expose **three tiers** of increasingly powerful tools.
