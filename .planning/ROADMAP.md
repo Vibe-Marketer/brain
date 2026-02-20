@@ -3,7 +3,7 @@
 **Created:** 2026-01-27
 **Depth:** Comprehensive (9 phases)
 **Coverage:** 58/58 requirements mapped ✓
-**Last Updated:** 2026-01-31 (Roadmap restructure: removed Coach, deferred Team Content Segregation)
+**Last Updated:** 2026-02-20 (Phase 12 planned: 5 plans in 4 waves)
 
 ## Overview
 
@@ -540,6 +540,47 @@ Plans:
 
 ---
 
+### Phase 12: Deploy CallVault MCP as Remote Cloudflare Worker with Supabase OAuth 2.1
+
+**Goal:** Convert the local stdio CallVault MCP server into a hosted remote MCP server on Cloudflare Workers with Supabase OAuth 2.1 authentication, so any user can connect from Claude Desktop/Cowork, ChatGPT, OpenClaw, or any MCP client by just pasting a URL and signing in with their Google account -- zero local installation required.
+
+**Dependencies:** None (independent of main app phases -- operates on the separate callvault-mcp codebase)
+
+**Plans:** 5 plans in 4 waves
+
+Plans:
+- [ ] 12-01-PLAN.md — W1: Project scaffolding, RequestContext type, per-request Supabase factory, Workers-compatible utils
+- [ ] 12-02-PLAN.md — W2: Thread RequestContext through all 16 handler operations (6 handler files + router)
+- [ ] 12-03-PLAN.md — W3: Worker entry point with createMcpHandler, JWT auth middleware, CORS, well-known endpoints
+- [ ] 12-04-PLAN.md — W2: OAuth consent page in CallVault frontend (/oauth/consent route)
+- [ ] 12-05-PLAN.md — W4: Supabase dashboard setup, deploy to Cloudflare, MCP Inspector + client verification
+
+**Requirements:**
+- MCP-REMOTE-01: Cloudflare Worker deployed at `callvault-mcp.callvault.workers.dev/mcp` with Streamable HTTP transport
+- MCP-REMOTE-02: Supabase OAuth 2.1 Server enabled with Dynamic Client Registration for auto-discovery
+- MCP-REMOTE-03: All 16 existing operations ported to stateless Worker format (no session.json dependency)
+- MCP-REMOTE-04: Users can connect from Claude Desktop via Settings > Connectors with just the URL
+- MCP-REMOTE-05: Users can connect from ChatGPT via Apps SDK / Developer Mode connector
+- MCP-REMOTE-06: Users can connect from OpenClaw via openclaw.json config (DOWNGRADED: community plugin only)
+- MCP-REMOTE-07: OAuth flow uses existing CallVault/Google accounts (no separate auth system)
+- MCP-REMOTE-08: Semantic search operation working (requires valid OpenAI API key in Supabase secrets)
+
+**Success Criteria:**
+1. Worker deployed and responding at `/mcp` endpoint with Streamable HTTP
+2. MCP Inspector validates all 16 operations via remote HTTP transport
+3. OAuth discovery endpoint returns valid configuration at `/.well-known/oauth-protected-resource`
+4. End-to-end: User adds URL in Claude Desktop > authenticates via Google > successfully queries their calls
+5. End-to-end: Same flow works in ChatGPT developer mode
+6. End-to-end: OpenClaw config connects and lists tools (via community plugin)
+7. Supabase RLS enforces data isolation (User A cannot see User B's recordings)
+8. Local stdio MCP server still works for developers who prefer it
+
+**Research:**
+- [Hosting Options Analysis](../../artifacts/research/2026-02-18-mcp-server-hosting-options.md)
+- [Plugin Architecture Technical Research](../../artifacts/research/2026-02-18-callvault-mcp-plugin-architecture-technical.md)
+
+---
+
 ## Progress Tracking
 
 | Phase | Status | Requirements | Progress |
@@ -557,10 +598,11 @@ Plans:
 | 9 - Bank/Vault Architecture | Complete ✅ | 5 | 100% (10/10 plans) |
 | 10 - Chat Bank/Vault Scoping | Complete ✅ | 1 | 100% (3/3 plans) |
 | 10.2 - Vaults Page (INSERTED) | Complete ✅ | 7 | 100% (9/9 plans, 4 waves) |
-| 10.3 - YouTube-Specific Vaults & Video Intelligence (INSERTED) | In Progress 🟡 | 6 | 67% (4/6 plans complete, gap closures planned) |
+| 10.3 - YouTube-Specific Vaults & Video Intelligence (INSERTED) | In Progress | 6 | 67% (4/6 plans complete, gap closures planned) |
 | 11 - PROFITS Frontend Trigger | Pending | 1 | 0% (0/2 plans) |
+| 12 - Remote MCP on Cloudflare Workers | Planned | 8 | 0% (5 plans in 4 waves) |
 
-**Overall Progress:** 65/67 requirements (97%) - **1 phase remaining**
+**Overall Progress:** 65/83 requirements (78%) - **3 phases remaining**
 
 ---
 
@@ -584,9 +626,11 @@ Phase 7: Differentiators
 Phase 8: Growth Infrastructure
     ↓
 Phase 9: Team Content Segregation (deferred - can be done anytime after Phase 4)
+
+Phase 12: Remote MCP (independent - separate codebase)
 ```
 
-**Note:** Coach Collaboration removed from roadmap. Team Content Segregation deferred to Phase 9.
+**Note:** Coach Collaboration removed from roadmap. Team Content Segregation deferred to Phase 9. Phase 12 is independent of all other phases.
 
 ---
 
@@ -656,8 +700,16 @@ Phase 9: Team Content Segregation (deferred - can be done anytime after Phase 4)
 | UI-INT-04 | 3.2 - Integration Import Controls |
 | UI-INT-05 | 3.2 - Integration Import Controls |
 | UI-INT-06 | 3.2 - Integration Import Controls |
+| MCP-REMOTE-01 | 12 - Remote MCP on Cloudflare Workers |
+| MCP-REMOTE-02 | 12 - Remote MCP on Cloudflare Workers |
+| MCP-REMOTE-03 | 12 - Remote MCP on Cloudflare Workers |
+| MCP-REMOTE-04 | 12 - Remote MCP on Cloudflare Workers |
+| MCP-REMOTE-05 | 12 - Remote MCP on Cloudflare Workers |
+| MCP-REMOTE-06 | 12 - Remote MCP on Cloudflare Workers |
+| MCP-REMOTE-07 | 12 - Remote MCP on Cloudflare Workers |
+| MCP-REMOTE-08 | 12 - Remote MCP on Cloudflare Workers |
 
-**Coverage:** 58/58 requirements mapped ✓
+**Coverage:** 66/66 requirements mapped (58 original + 8 MCP-REMOTE)
 
 ---
 
@@ -675,11 +727,10 @@ Phase 9: Team Content Segregation (deferred - can be done anytime after Phase 4)
 10. ~~Phase 8: Growth Infrastructure~~ ✅ Complete (6/6 plans, all 4 requirements verified)
 11. ~~Phase 9: Bank/Vault Architecture~~ ✅ Complete (10/10 plans, all 5 requirements satisfied)
 12. ~~Phase 10: Chat Bank/Vault Scoping~~ ✅ Complete (3/3 plans, GAP-INT-01 closed)
-13. **Phase 10.3: YouTube-Specific Vaults & Video Intelligence** ← Execute gap closures (10.3-05, 10.3-06)
-14. **Phase 11: PROFITS Frontend Trigger** ← Next after 10.3 gaps close
-
-**Gap Closure Phases Added** - 2 phases from v1-MILESTONE-AUDIT.md
+13. **Phase 10.3: YouTube-Specific Vaults & Video Intelligence** -- Execute gap closures (10.3-05, 10.3-06)
+14. **Phase 11: PROFITS Frontend Trigger** -- Next after 10.3 gaps close
+15. **Phase 12: Deploy CallVault MCP as Remote Cloudflare Worker** -- 5 plans in 4 waves, ready to execute
 
 ---
 
-*Last updated: 2026-02-11 (Phase 10.3 gap closures planned - 10.3-05 and 10.3-06 added for diagnosed UAT blockers)*
+*Last updated: 2026-02-20 (Phase 12 planned: 5 plans in 4 waves)*
