@@ -1,6 +1,6 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-02-21 (Phase 12, Plan 04 executed)
+**Last Updated:** 2026-02-21 (Phase 12, Plan 03 executed)
 
 ## Project Reference
 
@@ -20,7 +20,7 @@
 
 **Status:** In progress
 
-**Last activity:** 2026-02-21 - Completed 12-04-PLAN.md (OAuth consent page: OAuthConsentPage component + /oauth/consent route)
+**Last activity:** 2026-02-21 - Completed 12-03-PLAN.md (Worker entry point: CORS, OAuth discovery, JWT auth, stateless MCP handler with all 4 tools, resources, and 5 prompts)
 
 **Progress:**
 ```
@@ -58,7 +58,7 @@
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
 | Phase 10.2: Vaults Page | 7 | 7 | Complete (9/9 plans) |
 | Phase 10.3: YouTube-Specific Vaults | 6 | 6 | In progress (6/6 plans, external runtime blocker) |
-| Phase 12: Deploy CallVault MCP Worker | 0 | 0 | In progress (2/5 plans complete) |
+| Phase 12: Deploy CallVault MCP Worker | 0 | 0 | In progress (4/5 plans complete) |
 
 ### Velocity
 
@@ -169,6 +169,10 @@
 | 2026-02-21 | window.location.href for approve/deny redirect | Supabase redirect_to URLs are external MCP client callback URLs; React Router navigate() only handles internal routes | Required for correct OAuth redirect behavior |
 | 2026-02-21 | Context threaded through private helpers (getTranscriptText, getSpeakerEmails) | Only way to eliminate all singleton usage including internal helpers in transcripts.ts | Complete singleton elimination across all 7 handler files |
 | 2026-02-21 | @ts-expect-error on stdio executeOperation call during transitional migration | Keeps stdio build green without altering runtime behavior; Plan 03 removes the suppression | Safe multi-plan migration without breaking existing stdio server |
+| 2026-02-21 | WebStandardStreamableHTTPServerTransport instead of createMcpHandler (agents/mcp) | createMcpHandler does not exist in agents package; WebStandardStreamableHTTPServerTransport is correct stateless approach | Per-request transport.handleRequest(request) returns Response |
+| 2026-02-21 | Per-request McpServer factory (createMcpServer) closes over RequestContext | No shared state between requests; each request gets isolated server with user's supabase client | Stateless Worker architecture without Durable Objects |
+| 2026-02-21 | auth.ts refactored to use globalThis for all Node.js APIs | Enables auth.ts to compile in Worker TypeScript context (no @types/node) | Dynamic import of auth.ts works without TS errors |
+| 2026-02-21 | tsconfig.json excludes worker.ts and auth-middleware.ts | Worker files use ExecutionContext (Cloudflare-only); stdio build doesn't have @cloudflare/workers-types | Clean build separation for stdio vs Worker targets |
 
 ### Active TODOs
 
@@ -261,11 +265,11 @@ Phase 10.3 plans complete (6/6). External runtime blockers remain before UAT sig
 
 - [x] Execute 12-01-PLAN.md (Worker foundation: wrangler config, types, Supabase factory, utils)
 - [x] Execute 12-02-PLAN.md (Thread RequestContext through all 6 handler files)
-- [ ] Execute 12-03-PLAN.md (Worker entry point: auth, MCP server setup, HTTP transport)
+- [x] Execute 12-03-PLAN.md (Worker entry point: auth, MCP server setup, HTTP transport)
 - [x] Execute 12-04-PLAN.md (OAuth consent page: OAuthConsentPage + /oauth/consent route in brain frontend)
 - [ ] Execute 12-05-PLAN.md (Deploy and verify: wrangler deploy, integration tests)
 
-Phase 12 in progress (3/5 plans complete — 12-01, 12-02, and 12-04 done; 12-03 and 12-05 remain).
+Phase 12 in progress (4/5 plans complete — 12-01, 12-02, 12-03, and 12-04 done; 12-05 remains).
 
 ### Pending Todos
 
@@ -300,24 +304,27 @@ Phase 12 in progress (3/5 plans complete — 12-01, 12-02, and 12-04 done; 12-03
 
 ## Session Continuity
 
-**Last session:** 2026-02-21 12:26 UTC
-**Stopped at:** Completed 12-02-PLAN.md (context threading through all handler files)
+**Last session:** 2026-02-21 13:03 UTC
+**Stopped at:** Completed 12-03-PLAN.md (Worker entry point: auth-middleware.ts, worker.ts, stdio index.ts update)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 12 Plans 01, 02, and 04 complete. Plans 03 and 05 remain.
+Phase 12 Plans 01, 02, 03, and 04 complete. Plan 05 remains.
 
 **What to remember:**
 - codebase: /Users/Naegele/Developer/mcp/callvault-mcp (separate repo from brain)
-- All 7 handler files migrated: navigation, recordings, transcripts, search, contacts, analysis, index
-- All 16 handler operations accept (params, context: RequestContext) — zero singleton imports in handlers/
-- src/handlers/index.ts: executeOperation(operation, params, context) — context threaded to all handlers
-- src/index.ts: @ts-expect-error on executeOperation call (Plan 03 will remove when it updates index.ts)
-- Private helpers getTranscriptText and getSpeakerEmails in transcripts.ts also thread context
-- npm run build passes — stdio build remains green
-- Next: Plan 03 (Worker entry point: auth, MCP server setup, HTTP transport)
+- src/worker.ts: Cloudflare Worker entry point (CORS, OAuth discovery, JWT auth, stateless MCP)
+- src/auth-middleware.ts: JWT validation via jose + Supabase JWKS (RS256)
+- Uses WebStandardStreamableHTTPServerTransport (NOT createMcpHandler — that doesn't exist)
+- Per-request McpServer factory closes over RequestContext — no shared state
+- src/index.ts: @ts-expect-error removed, RequestContext created from stdio session
+- Both Worker (tsconfig.worker.json) and stdio (tsconfig.json) builds pass cleanly
+- auth.ts refactored to use globalThis for Node.js APIs (Workers TS compat)
+- tsconfig.json now excludes worker.ts and auth-middleware.ts
+- tsconfig.worker.json has explicit include list, excludes src/index.ts
+- Next: Plan 05 (Deploy and verify: wrangler deploy, integration tests)
 
 ---
 
@@ -330,10 +337,10 @@ Phase 12 Plans 01, 02, and 04 complete. Plans 03 and 05 remain.
 | Requirements Complete | 70 (88%) |
 | Current Phase | 12 - Deploy CallVault MCP as Remote Cloudflare Worker (3/5 plans complete — 01, 02, 04 done) |
 | Plans Complete | 90/94 (96%) |
-| Next Plan | 12-03-PLAN.md (Worker entry point: auth, MCP server setup, HTTP transport) |
+| Next Plan | 12-05-PLAN.md (Deploy and verify: wrangler deploy, integration tests) |
 | Blockers | 2 (YouTube API key invalid, transcript billing 402 — unrelated to Phase 12) |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-21 (Completed 12-01, 12-02, 12-04; OAuth consent page + RequestContext threading done)*
+*Last updated: 2026-02-21 (Completed 12-01, 12-02, 12-03, 12-04; Worker entry point + stdio backward compat done)*
