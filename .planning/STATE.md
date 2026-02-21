@@ -1,6 +1,6 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-02-21 (Phase 12, Plan 01 executed)
+**Last Updated:** 2026-02-21 (Phase 12, Plan 04 executed)
 
 ## Project Reference
 
@@ -16,11 +16,11 @@
 
 **Phase:** 12 (Deploy CallVault MCP as Remote Cloudflare Worker)
 
-**Plan:** 1 of 5 in current phase
+**Plan:** 4 of 5 in current phase
 
 **Status:** In progress
 
-**Last activity:** 2026-02-21 - Completed 12-01-PLAN.md (Worker foundation: wrangler config, types, Supabase factory, utils)
+**Last activity:** 2026-02-21 - Completed 12-04-PLAN.md (OAuth consent page: OAuthConsentPage component + /oauth/consent route)
 
 **Progress:**
 ```
@@ -58,7 +58,7 @@
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
 | Phase 10.2: Vaults Page | 7 | 7 | Complete (9/9 plans) |
 | Phase 10.3: YouTube-Specific Vaults | 6 | 6 | In progress (6/6 plans, external runtime blocker) |
-| Phase 12: Deploy CallVault MCP Worker | 0 | 0 | In progress (1/5 plans complete) |
+| Phase 12: Deploy CallVault MCP Worker | 0 | 0 | In progress (2/5 plans complete) |
 
 ### Velocity
 
@@ -164,6 +164,11 @@
 | 2026-02-21 | Stateless createMcpHandler over McpAgent/DurableObjects for callvault-mcp Worker | Simpler Supabase JWT integration without OAuthProvider adapter; DO billing avoided | No session persistence across tool calls; acceptable for initial remote deployment |
 | 2026-02-21 | Per-request Supabase client via global.headers.Authorization (not setSession) | Workers runtime lacks browser storage; setSession triggers those code paths | Clean per-request auth without storage side effects |
 | 2026-02-21 | Cursor-based pagination (next_offset) instead of KV-backed session storage | Eliminates KV namespace infrastructure dependency for initial deployment | Clients pass offset param to callvault_execute for next page |
+| 2026-02-21 | Public route with internal auth guard for /oauth/consent | Matches TeamJoin/VaultJoin pattern; consent page must be accessible unauthenticated to redirect to login first | No ProtectedRoute wrapper on /oauth/consent |
+| 2026-02-21 | Cast supabase.auth as any for oauth methods | supabase-js type defs may not include OAuth 2.1 server beta API yet; avoids build errors while preserving runtime behavior | Pattern for beta Supabase APIs |
+| 2026-02-21 | window.location.href for approve/deny redirect | Supabase redirect_to URLs are external MCP client callback URLs; React Router navigate() only handles internal routes | Required for correct OAuth redirect behavior |
+| 2026-02-21 | Context threaded through private helpers (getTranscriptText, getSpeakerEmails) | Only way to eliminate all singleton usage including internal helpers in transcripts.ts | Complete singleton elimination across all 7 handler files |
+| 2026-02-21 | @ts-expect-error on stdio executeOperation call during transitional migration | Keeps stdio build green without altering runtime behavior; Plan 03 removes the suppression | Safe multi-plan migration without breaking existing stdio server |
 
 ### Active TODOs
 
@@ -255,12 +260,12 @@ Phase 10.2 COMPLETE (9/9 plans).
 Phase 10.3 plans complete (6/6). External runtime blockers remain before UAT sign-off.
 
 - [x] Execute 12-01-PLAN.md (Worker foundation: wrangler config, types, Supabase factory, utils)
-- [ ] Execute 12-02-PLAN.md (Thread RequestContext through all 6 handler files)
+- [x] Execute 12-02-PLAN.md (Thread RequestContext through all 6 handler files)
 - [ ] Execute 12-03-PLAN.md (Worker entry point: auth, MCP server setup, HTTP transport)
-- [ ] Execute 12-04-PLAN.md (Supabase OAuth 2.1 PKCE flow: /authorize + /callback routes)
+- [x] Execute 12-04-PLAN.md (OAuth consent page: OAuthConsentPage + /oauth/consent route in brain frontend)
 - [ ] Execute 12-05-PLAN.md (Deploy and verify: wrangler deploy, integration tests)
 
-Phase 12 in progress (1/5 plans complete).
+Phase 12 in progress (3/5 plans complete — 12-01, 12-02, and 12-04 done; 12-03 and 12-05 remain).
 
 ### Pending Todos
 
@@ -295,25 +300,24 @@ Phase 12 in progress (1/5 plans complete).
 
 ## Session Continuity
 
-**Last session:** 2026-02-21 12:18 UTC
-**Stopped at:** Completed 12-01-PLAN.md (Worker foundation)
+**Last session:** 2026-02-21 12:26 UTC
+**Stopped at:** Completed 12-02-PLAN.md (context threading through all handler files)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 12 Plan 01 complete. Worker project scaffolded in /Users/Naegele/Developer/mcp/callvault-mcp. Plans 02-05 remain.
+Phase 12 Plans 01, 02, and 04 complete. Plans 03 and 05 remain.
 
 **What to remember:**
 - codebase: /Users/Naegele/Developer/mcp/callvault-mcp (separate repo from brain)
-- wrangler.jsonc: stateless config, no DO/KV, nodejs_compat flag, workers_dev=true
-- tsconfig.worker.json: ESNext/Bundler module resolution, resolveJsonModule, no @types/node
-- src/types.ts: Env interface (Worker env bindings) + RequestContext (supabase + userId)
-- src/supabase.ts: createSupabaseClient(url, key, token) + getUserIdFromToken(token) [Worker] + legacy getSupabaseClient()/getCurrentUserId() [stdio]
-- src/utils.ts: console-based logging, cursor-based pagination (next_offset) — no fs, no sessionsCache Map
-- authorize.ts excluded from tsconfig.json (Node-only, being replaced by Worker OAuth in Plan 04)
-- All deps installed: wrangler ^4, @cloudflare/workers-types ^4, agents ^0.1, jose ^6
-- Next: Plan 02 (thread RequestContext through all 6 handler files)
+- All 7 handler files migrated: navigation, recordings, transcripts, search, contacts, analysis, index
+- All 16 handler operations accept (params, context: RequestContext) — zero singleton imports in handlers/
+- src/handlers/index.ts: executeOperation(operation, params, context) — context threaded to all handlers
+- src/index.ts: @ts-expect-error on executeOperation call (Plan 03 will remove when it updates index.ts)
+- Private helpers getTranscriptText and getSpeakerEmails in transcripts.ts also thread context
+- npm run build passes — stdio build remains green
+- Next: Plan 03 (Worker entry point: auth, MCP server setup, HTTP transport)
 
 ---
 
