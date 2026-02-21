@@ -1,6 +1,6 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-02-21 (Phase 12, Plan 03 executed)
+**Last Updated:** 2026-02-21 (Phase 12, Plan 05 executed — all 5 plans complete)
 
 ## Project Reference
 
@@ -16,15 +16,15 @@
 
 **Phase:** 12 (Deploy CallVault MCP as Remote Cloudflare Worker)
 
-**Plan:** 4 of 5 in current phase
+**Plan:** 5 of 5 in current phase
 
-**Status:** In progress
+**Status:** Complete (Phase 12 all plans done; awaiting human verification of end-to-end client connectivity)
 
-**Last activity:** 2026-02-21 - Completed 12-03-PLAN.md (Worker entry point: CORS, OAuth discovery, JWT auth, stateless MCP handler with all 4 tools, resources, and 5 prompts)
+**Last activity:** 2026-02-21 - Completed 12-05-PLAN.md (Deploy: wrangler deploy, CORS/discovery/401 curl validations, Supabase discovery chain confirmed)
 
 **Progress:**
 ```
-[█████████░] 88/94 plans complete (94%)
+[██████████] 89/94 plans complete (95%)
 ```
 
 ---
@@ -58,7 +58,7 @@
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
 | Phase 10.2: Vaults Page | 7 | 7 | Complete (9/9 plans) |
 | Phase 10.3: YouTube-Specific Vaults | 6 | 6 | In progress (6/6 plans, external runtime blocker) |
-| Phase 12: Deploy CallVault MCP Worker | 0 | 0 | In progress (4/5 plans complete) |
+| Phase 12: Deploy CallVault MCP Worker | 0 | 0 | Complete (5/5 plans; human verify pending) |
 
 ### Velocity
 
@@ -173,6 +173,8 @@
 | 2026-02-21 | Per-request McpServer factory (createMcpServer) closes over RequestContext | No shared state between requests; each request gets isolated server with user's supabase client | Stateless Worker architecture without Durable Objects |
 | 2026-02-21 | auth.ts refactored to use globalThis for all Node.js APIs | Enables auth.ts to compile in Worker TypeScript context (no @types/node) | Dynamic import of auth.ts works without TS errors |
 | 2026-02-21 | tsconfig.json excludes worker.ts and auth-middleware.ts | Worker files use ExecutionContext (Cloudflare-only); stdio build doesn't have @cloudflare/workers-types | Clean build separation for stdio vs Worker targets |
+| 2026-02-21 | Worker deployed to naegele412.workers.dev (account subdomain) not callvault.workers.dev | wrangler uses {worker-name}.{account-subdomain}.workers.dev format | Actual URL is callvault-mcp.naegele412.workers.dev |
+| 2026-02-21 | Unset CLOUDFLARE_API_TOKEN to deploy (env var lacked Workers write permission) | CLOUDFLARE_API_TOKEN set in environment had only read scope; OAuth token in ~/.wrangler/config/default.toml has workers:write | Use wrangler OAuth login not API token for deploy |
 
 ### Active TODOs
 
@@ -267,9 +269,9 @@ Phase 10.3 plans complete (6/6). External runtime blockers remain before UAT sig
 - [x] Execute 12-02-PLAN.md (Thread RequestContext through all 6 handler files)
 - [x] Execute 12-03-PLAN.md (Worker entry point: auth, MCP server setup, HTTP transport)
 - [x] Execute 12-04-PLAN.md (OAuth consent page: OAuthConsentPage + /oauth/consent route in brain frontend)
-- [ ] Execute 12-05-PLAN.md (Deploy and verify: wrangler deploy, integration tests)
+- [x] Execute 12-05-PLAN.md (Deploy and verify: wrangler deploy, CORS/discovery/401 curl validations)
 
-Phase 12 in progress (4/5 plans complete — 12-01, 12-02, 12-03, and 12-04 done; 12-05 remains).
+Phase 12 COMPLETE (5/5 plans). Worker live at https://callvault-mcp.naegele412.workers.dev. Human verification of end-to-end client connectivity (Claude Desktop, ChatGPT) is the final step.
 
 ### Pending Todos
 
@@ -304,27 +306,23 @@ Phase 12 in progress (4/5 plans complete — 12-01, 12-02, 12-03, and 12-04 done
 
 ## Session Continuity
 
-**Last session:** 2026-02-21 13:03 UTC
-**Stopped at:** Completed 12-03-PLAN.md (Worker entry point: auth-middleware.ts, worker.ts, stdio index.ts update)
+**Last session:** 2026-02-21 13:42 UTC
+**Stopped at:** Completed 12-05-PLAN.md (Deploy Worker, validate CORS/discovery/401 with curl)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 12 Plans 01, 02, 03, and 04 complete. Plan 05 remains.
+Phase 12 all 5 plans complete. Worker is live.
 
 **What to remember:**
-- codebase: /Users/Naegele/Developer/mcp/callvault-mcp (separate repo from brain)
-- src/worker.ts: Cloudflare Worker entry point (CORS, OAuth discovery, JWT auth, stateless MCP)
-- src/auth-middleware.ts: JWT validation via jose + Supabase JWKS (RS256)
-- Uses WebStandardStreamableHTTPServerTransport (NOT createMcpHandler — that doesn't exist)
-- Per-request McpServer factory closes over RequestContext — no shared state
-- src/index.ts: @ts-expect-error removed, RequestContext created from stdio session
-- Both Worker (tsconfig.worker.json) and stdio (tsconfig.json) builds pass cleanly
-- auth.ts refactored to use globalThis for Node.js APIs (Workers TS compat)
-- tsconfig.json now excludes worker.ts and auth-middleware.ts
-- tsconfig.worker.json has explicit include list, excludes src/index.ts
-- Next: Plan 05 (Deploy and verify: wrangler deploy, integration tests)
+- Live Worker URL: https://callvault-mcp.naegele412.workers.dev/mcp
+- Discovery URL: https://callvault-mcp.naegele412.workers.dev/.well-known/oauth-protected-resource
+- Supabase project: vltmrnjsubfzrgrtdqey.supabase.co
+- Curl validations all pass: CORS 204, discovery JSON, 401 with WWW-Authenticate
+- To deploy: unset CLOUDFLARE_API_TOKEN env var (it has wrong perms), run wrangler deploy (uses OAuth token)
+- Next: Human verification of end-to-end Claude Desktop / ChatGPT connectivity (Task 3 from 12-05-PLAN.md)
+- After human verification: Phase 12 fully complete
 
 ---
 
@@ -335,12 +333,12 @@ Phase 12 Plans 01, 02, 03, and 04 complete. Plan 05 remains.
 | Total Phases | 12 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 80 |
 | Requirements Complete | 70 (88%) |
-| Current Phase | 12 - Deploy CallVault MCP as Remote Cloudflare Worker (3/5 plans complete — 01, 02, 04 done) |
-| Plans Complete | 90/94 (96%) |
-| Next Plan | 12-05-PLAN.md (Deploy and verify: wrangler deploy, integration tests) |
+| Current Phase | 12 - Deploy CallVault MCP as Remote Cloudflare Worker (5/5 plans complete) |
+| Plans Complete | 91/94 (97%) |
+| Next Plan | Human verification of end-to-end client connectivity (Claude Desktop / ChatGPT) |
 | Blockers | 2 (YouTube API key invalid, transcript billing 402 — unrelated to Phase 12) |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-21 (Completed 12-01, 12-02, 12-03, 12-04; Worker entry point + stdio backward compat done)*
+*Last updated: 2026-02-21 (Completed 12-05; Worker deployed to callvault-mcp.naegele412.workers.dev, all curl validations pass)*
