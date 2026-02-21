@@ -264,6 +264,7 @@ Phase 10.3 plans complete (6/6). External runtime blockers remain before UAT sig
 - Phase 10.3 inserted after Phase 10: YouTube-Specific Vaults & Video Intelligence (URGENT) - Dedicated youtube vault type, full video metadata schema, thumbnail-first list, and call-parity transcript chat
 - Coach Collaboration (Phase 5) removed from roadmap entirely
 - Team Content Segregation (Phase 4.5) deferred to Phase 9
+- Phase 12 added: Deploy CallVault MCP as Remote Cloudflare Worker with Supabase OAuth 2.1
 
 ### Known Blockers
 
