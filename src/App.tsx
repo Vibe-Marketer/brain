@@ -13,6 +13,7 @@ import { CallDetailPage } from '@/pages/CallDetailPage';
 import { SharedCallView } from '@/pages/SharedCallView';
 import TeamJoin from '@/pages/TeamJoin';
 import VaultJoin from '@/pages/VaultJoin';
+import OAuthConsentPage from '@/pages/OAuthConsentPage';
 
 // Import existing pages
 import TranscriptsNew from '@/pages/TranscriptsNew';
@@ -67,6 +68,9 @@ function App() {
                     <Route path="/oauth/callback" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
                     <Route path="/oauth/callback/meet" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
                     <Route path="/oauth/callback/zoom" element={<ProtectedRoute><OAuthCallback /></ProtectedRoute>} />
+
+                    {/* OAuth consent page - public route, handles its own auth check internally */}
+                    <Route path="/oauth/consent" element={<OAuthConsentPage />} />
 
                     {/* Main app routes */}
                     <Route path="/" element={<ProtectedRoute><Layout><TranscriptsNew /></Layout></ProtectedRoute>} />
