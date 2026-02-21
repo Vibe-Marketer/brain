@@ -72,9 +72,7 @@ export default function OAuthConsentPage() {
     if (!authorizationId) return;
 
     try {
-      // supabase.auth.oauth is available in supabase-js v2 with OAuth server support
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.auth as any).oauth.getAuthorizationDetails(
+      const { data, error } = await supabase.auth.oauth.getAuthorizationDetails(
         authorizationId
       );
 
@@ -123,14 +121,15 @@ export default function OAuthConsentPage() {
     setActionError(null);
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.auth as any).oauth.approveAuthorization(
+      // supabase-js SDK auto-redirects to redirect_url on approve (skipBrowserRedirect: false by default)
+      const { error } = await supabase.auth.oauth.approveAuthorization(
         authorizationId
       );
 
       if (error) throw error;
 
-      window.location.href = data.redirect_to;
+      // SDK handles redirect automatically; fallback just in case
+      // (supabase-js calls window.location.assign(data.redirect_url))
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to approve authorization';
       setActionError(errMsg);
@@ -144,14 +143,14 @@ export default function OAuthConsentPage() {
     setActionError(null);
 
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase.auth as any).oauth.denyAuthorization(
+      // supabase-js SDK auto-redirects on deny too
+      const { error } = await supabase.auth.oauth.denyAuthorization(
         authorizationId
       );
 
       if (error) throw error;
 
-      window.location.href = data.redirect_to;
+      // SDK handles redirect automatically
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : 'Failed to deny authorization';
       setActionError(errMsg);
