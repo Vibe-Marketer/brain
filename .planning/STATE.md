@@ -1,30 +1,30 @@
 # State: CallVault Launch Stabilization
 
-**Last Updated:** 2026-02-11 (Plan 06 executed)
+**Last Updated:** 2026-02-21 (Phase 12, Plan 01 executed)
 
 ## Project Reference
 
 **Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
 
-**Current Focus:** Phase 10.3 post-plan verification blockers (external API credential/billing remediation)
+**Current Focus:** Phase 12 — Deploy CallVault MCP as Remote Cloudflare Worker with Supabase OAuth 2.1
 
 ---
 
 ## Current Position
 
-**Milestone:** v1 Launch Stabilization + Gap Closures
+**Milestone:** v1 Launch Stabilization + Gap Closures + Remote MCP Deployment
 
-**Phase:** 10.3 of 11+ (YouTube-Specific Vaults & Video Intelligence)
+**Phase:** 12 (Deploy CallVault MCP as Remote Cloudflare Worker)
 
-**Plan:** 6 of 6 in current phase
+**Plan:** 1 of 5 in current phase
 
-**Status:** In progress (external blocker)
+**Status:** In progress
 
-**Last activity:** 2026-02-11 - Completed 10.3-06-PLAN.md (YouTube import diagnostics + blocker triage)
+**Last activity:** 2026-02-21 - Completed 12-01-PLAN.md (Worker foundation: wrangler config, types, Supabase factory, utils)
 
 **Progress:**
 ```
-[██████████████████████████████████████████████] 87/87 plans complete (100%)
+[█████████░] 88/94 plans complete (94%)
 ```
 
 ---
@@ -58,6 +58,7 @@
 | Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
 | Phase 10.2: Vaults Page | 7 | 7 | Complete (9/9 plans) |
 | Phase 10.3: YouTube-Specific Vaults | 6 | 6 | In progress (6/6 plans, external runtime blocker) |
+| Phase 12: Deploy CallVault MCP Worker | 0 | 0 | In progress (1/5 plans complete) |
 
 ### Velocity
 
@@ -160,6 +161,9 @@
 | 2026-02-10 | Brand tabs standardize on rounded pill active indicators | Current UI direction moved off clip-path tab markers; docs needed canonical guidance | Brand guidelines v4.2.1 now codify pill indicator direction and hardcoded-value policy |
 | 2026-02-11 | Enforce YouTube create-type parity across Hubs and Settings | UAT gap showed stale hardcoded create options blocked self-serve YouTube vault creation | Both create entry points now expose YouTube with regression coverage on option and payload |
 | 2026-02-11 | Propagate provider statuses from youtube-api and normalize transcript endpoint | UAT continuation showed youtube-import 500 remained non-actionable due downstream masking and deprecated transcript host | Import failures now expose concrete upstream causes (API_KEY_INVALID, transcript billing 402) for immediate config remediation |
+| 2026-02-21 | Stateless createMcpHandler over McpAgent/DurableObjects for callvault-mcp Worker | Simpler Supabase JWT integration without OAuthProvider adapter; DO billing avoided | No session persistence across tool calls; acceptable for initial remote deployment |
+| 2026-02-21 | Per-request Supabase client via global.headers.Authorization (not setSession) | Workers runtime lacks browser storage; setSession triggers those code paths | Clean per-request auth without storage side effects |
+| 2026-02-21 | Cursor-based pagination (next_offset) instead of KV-backed session storage | Eliminates KV namespace infrastructure dependency for initial deployment | Clients pass offset param to callvault_execute for next page |
 
 ### Active TODOs
 
@@ -250,6 +254,14 @@ Phase 10.2 COMPLETE (9/9 plans).
 
 Phase 10.3 plans complete (6/6). External runtime blockers remain before UAT sign-off.
 
+- [x] Execute 12-01-PLAN.md (Worker foundation: wrangler config, types, Supabase factory, utils)
+- [ ] Execute 12-02-PLAN.md (Thread RequestContext through all 6 handler files)
+- [ ] Execute 12-03-PLAN.md (Worker entry point: auth, MCP server setup, HTTP transport)
+- [ ] Execute 12-04-PLAN.md (Supabase OAuth 2.1 PKCE flow: /authorize + /callback routes)
+- [ ] Execute 12-05-PLAN.md (Deploy and verify: wrangler deploy, integration tests)
+
+Phase 12 in progress (1/5 plans complete).
+
 ### Pending Todos
 
 2 todos in `.planning/todos/pending/`:
@@ -283,29 +295,25 @@ Phase 10.3 plans complete (6/6). External runtime blockers remain before UAT sig
 
 ## Session Continuity
 
-**Last session:** 2026-02-11 06:40 UTC
-**Stopped at:** Completed 10.3-06-PLAN.md
+**Last session:** 2026-02-21 12:18 UTC
+**Stopped at:** Completed 12-01-PLAN.md (Worker foundation)
 **Resume file:** None
 
 ### Context for Next Session
 
 **Where we are:**
-Phase 10.3 plan execution is complete at 6/6, with one external runtime gate still blocking final UAT approval of import-dependent tests.
+Phase 12 Plan 01 complete. Worker project scaffolded in /Users/Naegele/Developer/mcp/callvault-mcp. Plans 02-05 remain.
 
 **What to remember:**
-- Migration 20260211000001: 'youtube' added to vault_type CHECK constraint
-- VaultType union includes 'youtube', YouTubeVideoMetadata interface in src/types/youtube.ts
-- parseYouTubeDuration, formatCompactNumber, YOUTUBE_CATEGORIES in src/lib/youtube-utils.ts
-- VaultListPane + VaultDetailPane have youtube entries (red styling + RiYoutubeLine icon)
-- YouTubeVideoRow/List/Stats/OutlierBadge in src/components/youtube/
-- useYouTubeSearch hook with 5 sort fields + published-date tie-breaker
-- VaultDetailPane branches on isYouTubeVault for YouTubeVideoList vs TranscriptTable
-- VaultSelector filters to youtube vaults when integration='youtube'
-- youtube-import auto-creates "YouTube Vault" on first import + populates recordings table
-- YouTubeVideoDetailModal opens on click with summary, collapsible description, transcript, chat CTA
-- YouTubeChatSection navigates to /chat with vault context
-- Current focus: set valid YouTube API key and transcript billing in Supabase runtime, then re-run UAT tests 2-4
-- Phase 11 (PROFITS Frontend Trigger) follows once UAT blockers clear
+- codebase: /Users/Naegele/Developer/mcp/callvault-mcp (separate repo from brain)
+- wrangler.jsonc: stateless config, no DO/KV, nodejs_compat flag, workers_dev=true
+- tsconfig.worker.json: ESNext/Bundler module resolution, resolveJsonModule, no @types/node
+- src/types.ts: Env interface (Worker env bindings) + RequestContext (supabase + userId)
+- src/supabase.ts: createSupabaseClient(url, key, token) + getUserIdFromToken(token) [Worker] + legacy getSupabaseClient()/getCurrentUserId() [stdio]
+- src/utils.ts: console-based logging, cursor-based pagination (next_offset) — no fs, no sessionsCache Map
+- authorize.ts excluded from tsconfig.json (Node-only, being replaced by Worker OAuth in Plan 04)
+- All deps installed: wrangler ^4, @cloudflare/workers-types ^4, agents ^0.1, jose ^6
+- Next: Plan 02 (thread RequestContext through all 6 handler files)
 
 ---
 
@@ -313,15 +321,15 @@ Phase 10.3 plan execution is complete at 6/6, with one external runtime gate sti
 
 | Metric | Value |
 |--------|-------|
-| Total Phases | 11 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
+| Total Phases | 12 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
 | Total Requirements | 80 |
 | Requirements Complete | 70 (88%) |
-| Current Phase | 10.3 - YouTube-Specific Vaults (6/6 plans, awaiting runtime config fix) |
-| Plans Complete | 87/87 (100%) |
-| Next Plan | None (phase plans complete; rerun UAT after secrets/billing remediation) |
-| Blockers | 2 |
+| Current Phase | 12 - Deploy CallVault MCP as Remote Cloudflare Worker (1/5 plans complete) |
+| Plans Complete | 88/94 (94%) |
+| Next Plan | 12-02-PLAN.md (Thread RequestContext through all handler files) |
+| Blockers | 2 (YouTube API key invalid, transcript billing 402 — unrelated to Phase 12) |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-11 (Completed 10.3-06; phase plans 6/6 complete with external runtime blockers documented)*
+*Last updated: 2026-02-21 (Completed 12-01; Phase 12 Worker foundation scaffolded)*
