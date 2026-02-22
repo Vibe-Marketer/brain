@@ -1,8 +1,10 @@
-# CallVault Launch Stabilization
+# CallVault
 
 ## What This Is
 
-CallVault is a conversation intelligence platform that ingests call recordings from multiple sources (Fathom, Zoom, Google Meet), enriches them with AI-powered metadata (topics, sentiment, intent signals), and turns them into actionable intelligence through RAG-powered chat, content generation, and automation. Currently in brownfield state with active users - needs stabilization for public launch without breaking existing workflows.
+CallVault is a conversation intelligence platform that ingests call recordings from multiple sources (Fathom, Zoom, Google Meet, YouTube), enriches them with AI-powered metadata (topics, sentiment, intent signals, entities), and turns them into actionable intelligence through RAG-powered chat, content generation, and automation. The platform uses a Bank/Vault multi-tenant architecture providing hard tenant isolation alongside collaborative workspace sharing.
+
+v1 shipped with the core platform stabilized, Bank/Vault architecture live, differentiating features delivered (folder-level chat, client health alerts, contacts database, Polar billing, YouTube import), and the MCP server deployed remotely to Cloudflare Workers.
 
 ## Core Value
 
@@ -14,184 +16,139 @@ If Chat breaks, nothing else matters. Everything else (content generation, expor
 
 ### Validated
 
-*(Existing capabilities already shipped and used by current users)*
+*(Shipped in v1 — confirmed working)*
 
-- ✓ Multi-source call ingestion (Fathom, Zoom, Google Meet) — existing
-- ✓ Transcript storage and display — existing
-- ✓ Content generation pipeline (4-agent wizard: Classifier → Insight Miner → Hook Generator → Content Builder) — existing
-- ✓ Export system (13+ formats including Obsidian, LLM Context, Analysis Package) — existing
-- ✓ Chunk metadata enrichment (topics, sentiment, intent signals, entities) — existing
-- ✓ Transcript editing (non-destructive) — existing
-- ✓ Multi-source deduplication (fuzzy matching across platforms) — existing
-- ✓ Folder and tag organization — existing
-- ✓ Public sharing with access logging — existing
+- ✓ Multi-source call ingestion (Fathom, Zoom, Google Meet, YouTube) — v1
+- ✓ Transcript storage and display — existing pre-v1
+- ✓ Content generation pipeline (4-agent wizard: Classifier → Insight Miner → Hook Generator → Content Builder) — existing pre-v1
+- ✓ Export system (13+ formats including Obsidian, LLM Context, Analysis Package) — existing pre-v1
+- ✓ Chunk metadata enrichment (topics, sentiment, intent signals, entities) — existing pre-v1
+- ✓ Transcript editing (non-destructive) — existing pre-v1
+- ✓ Multi-source deduplication (fuzzy matching across platforms) — existing pre-v1
+- ✓ Folder and tag organization — existing pre-v1
+- ✓ Public sharing with access logging — existing pre-v1
+- ✓ Chat works reliably with all 14 RAG tools firing consistently (CHAT-01) — v1
+- ✓ Tool calls return results with three-state display (CHAT-02) — v1
+- ✓ Streaming stable with error recovery (CHAT-03) — v1
+- ✓ Inline citations with hover preview (CHAT-04) — v1
+- ✓ Migrated to Vercel AI SDK + OpenRouter (CHAT-05) — v1
+- ✓ Silent store failures surface toast errors (STORE-01) — v1
+- ✓ Zoom OAuth connection flow works (INT-01) — v1
+- ✓ Google OAuth connection flow works — Beta (INT-02) — v1
+- ✓ Integration connection errors surface to user (INT-03) — v1
+- ✓ Team creation works with multi-team membership (TEAM-01) — v1
+- ✓ Team join page at /join/team/:token (TEAM-02) — v1
+- ✓ Security hardening: API key removal, CORS migration, PII logging cleanup, dead function deletion (SEC-01–06) — v1
+- ✓ All orphaned pages routed (Automation Rules, Analytics, etc.) (WIRE-01, WIRE-02, FIX-01–06) — v1
+- ✓ Code health: Chat.tsx refactored, types tightened, deduplication consolidated, dead code removed (REFACTOR/CLEAN series) — v1
+- ✓ Infrastructure: cost tracking (26 models), cron parsing, database-backed rate limiting (INFRA-01–03) — v1
+- ✓ Folder-Level Chat (DIFF-02) — v1
+- ✓ Client Health Alerts with email notifications (DIFF-03) — v1
+- ✓ Contacts Database with Settings UI (DIFF-04) — v1
+- ✓ Analytics tabs show real data (DIFF-05) — v1
+- ✓ Polar 3-tier billing (Solo/Team/Business) (GROW-02) — v1
+- ✓ YouTube import with progress tracking (GROW-03) — v1
+- ✓ Admin cost dashboard for all OpenRouter models (GROW-05) — v1
+- ✓ Compact integration buttons with reusable connection modal (UI-INT-01–03) — v1
+- ✓ Per-integration sync source filter with persistence (UI-INT-04–06) — v1
+- ✓ Bank/Vault multi-tenant architecture (BANK-01–05) — v1
+- ✓ Chat searches scoped to active bank/vault context (GAP-INT-01) — v1
+- ✓ Vaults as first-class sidebar page with full CRUD and member management (VAULT-UI-01–07) — v1
+- ✓ YouTube vault type with media-row list, video detail modal, YouTube-scoped import + chat (YT-01–06) — v1
+- ✓ CallVault MCP remote server on Cloudflare Workers with Supabase OAuth 2.1 (MCP-REMOTE-01–08) — v1
 
 ### Active
 
-*(Current scope - fixing broken, finishing half-done, wiring orphaned)*
+*(Scope for next milestone — TBD via /gsd-new-milestone)*
 
-**TIER 1: CRITICAL (Blocks Launch)**
-- [ ] **CHAT-01**: Chat works reliably with all 14 RAG tools firing consistently
-- [ ] **CHAT-02**: Tool calls return results (no silent failures with green checkmarks on empty data)
-- [ ] **CHAT-03**: Streaming doesn't error out mid-response
-- [ ] **CHAT-04**: Citations work consistently
-- [ ] **CHAT-05**: Migrate to Vercel AI SDK + OpenRouter (replace manual streaming implementation)
-- [ ] **INT-01**: Zoom OAuth connection flow works (currently button does nothing)
-- [ ] **INT-02**: Google OAuth connection flow works (currently infinite spinner)
-- [ ] **INT-03**: Integration connection errors surface to user (no silent failures)
-- [ ] **TEAM-01**: Team creation works (currently fails silently)
-- [ ] **TEAM-02**: Team join page accessible via route (`/join/team/:token`)
-- [ ] **COACH-01**: Coach invite emails send successfully
-- [ ] **COACH-02**: Coach invite links generate correctly
-- [ ] **COACH-03**: Coach join page accessible via route (`/join/coach/:token`)
-- [ ] **SEC-01**: Remove client-side exposed API keys (`src/lib/ai-agent.ts` with `VITE_OPENAI_API_KEY`)
-- [ ] **SEC-02**: Delete legacy unauthenticated edge functions (`extract-knowledge`, `generate-content`)
-- [ ] **SEC-03**: Add admin auth check to `test-env-vars` and `test-secrets` edge functions
-
-**TIER 2: DEMO POLISH (Looks Unfinished)**
-- [ ] **WIRE-01**: Route Automation Rules page (`/automation-rules` → `AutomationRules.tsx`)
-- [ ] **WIRE-02**: Wire analytics tabs (6 components exist, all show placeholders)
-- [ ] **FIX-01**: Fix Tags tab error (spec-027)
-- [ ] **FIX-02**: Fix Rules tab error (spec-028)
-- [ ] **FIX-03**: Fix Analytics tabs crashes (spec-035)
-- [ ] **FIX-04**: Fix Users tab non-functional elements (spec-042)
-- [ ] **FIX-05**: Fix Billing section if charging (spec-043)
-- [ ] **CLEAN-01**: Consolidate duplicate deduplication code (`deduplication.ts` vs `dedup-fingerprint.ts`)
-- [ ] **CLEAN-02**: Delete dead code (legacy `ai-agent.ts`, `Real-Time Coach` stub, orphaned `TeamManagement.tsx` if redundant with `CollaborationPage.tsx`)
-
-**TIER 3: HIGH-VALUE DIFFERENTIATORS (Ship After Stable)**
-- [ ] **DIFF-01**: PROFITS Framework v2 (sales psychology extraction from calls)
-- [ ] **DIFF-02**: Folder-Level Chat (chat with a specific folder of calls)
-- [ ] **DIFF-03**: Client Health Alerts (sentiment + automation + email alerts)
-- [ ] **DIFF-04**: Manual Upload (legacy recordings upload for users without integrations)
-- [ ] **DIFF-05**: Real Analytics Data (wire existing data hooks to analytics tabs)
-
-**TIER 4: GROWTH (Post-Launch)**
-- [ ] **GROW-01**: Coach Partner/Affiliate Program (coaches-as-distribution channel)
-- [ ] **GROW-02**: 3-tier Billing (Solo/Team/Business pricing)
-- [ ] **GROW-03**: YouTube Import UI
-- [ ] **GROW-04**: Slack Notification Action (automation engine)
-- [ ] **GROW-05**: Complete Cost Tracking (track all OpenRouter models, not just 2)
+*No active requirements defined yet. Run `/gsd-new-milestone` to define v2 scope.*
 
 ### Out of Scope
 
-*(Deferred to v2+ - documented in specs but not blocking launch)*
+*(Deferred to v2+ — documented but not in current roadmap)*
 
-- **UI Polish (12 specs)** — Button positioning, spacing, visual tweaks — Doesn't block demos or functionality
-- **SPEC-001**: Import button position (top vs bottom of sidebar)
-- **SPEC-002**: Selected indicator when sidebar collapsed
-- **SPEC-003**: Analytics position in nav
-- **SPEC-004**: Settings position in nav
-- **SPEC-005**: Search box spacing
-- **SPEC-006**: Search box hidden by default
-- **SPEC-007**: Import extra line spacing
-- **SPEC-008**: Integrations box design polish
-- **SPEC-009**: Date range labeling clarity
-- **SPEC-010**: Fetch meetings visibility
-- **SPEC-011**: Integration icons consistency
-- **SPEC-036**: Excessive divider lines
-- **SPEC-037**: Edit pencil placement
-- **SPEC-038**: Confirmation icons visibility
-- **SPEC-041**: Users tab extra lines
+**UI Polish (15 specs)**
+- SPEC-001 through SPEC-011, SPEC-036–038, SPEC-041 — Button positioning, spacing, visual tweaks
 
-- **UX Enhancements (7 specs)** — Nice-to-haves that improve flow but aren't critical
-- **SPEC-012**: Connect button active state
-- **SPEC-013**: Connection wizard extra steps
-- **SPEC-014**: Missing requirements info display
-- **SPEC-016**: Google Meet as Fathom alternative messaging
-- **SPEC-017**: Google Meet extra confirmation step
-- **SPEC-019**: Multiple Google accounts handling
-- **SPEC-032**: Team status display improvements
+**UX Enhancements (7 specs)**
+- SPEC-012 through SPEC-014, SPEC-016–017, SPEC-019, SPEC-032 — Nice-to-haves
 
-- **Feature Additions** — New capabilities beyond stabilization scope
-- **SPEC-021**: Integration component consistency refactor
-- **SPEC-022**: Content loading state improvements
-- **SPEC-023**: Content cards design system
-- **SPEC-024**: Generator naming conventions
-- **SPEC-025**: Business profile edit flow
-- **SPEC-026**: Call cards size optimization
-- **SPEC-029**: Missing debug tool
-- **SPEC-030**: Sorting & Tagging page complete rework (EPIC)
-- **SPEC-039**: Email edit functionality
-- **SPEC-040**: New profile creation flow redesign
-- **SPEC-046**: Knowledge base indexing count display
-- **SPEC-047**: Loop-style import button
+**Feature Additions (12 specs)**
+- SPEC-021 through SPEC-030, SPEC-039, SPEC-040, SPEC-046, SPEC-047 — New capabilities beyond stabilization
+
+**Eliminated**
+- PROFITS Framework frontend trigger — The PROFITS Framework (extract-profits Edge Function) was built in Phase 7 but the frontend trigger was never wired. The entire PROFITS Framework is being dropped for v2.
+- Coach collaboration features (COACH-01–03) — Eliminated when Bank/Vault architecture superseded the team/coach model
+
+**Deferred**
+- GROW-04: Slack Notification Action — Deferred per original CONTEXT.md decision
+- GROW-01: Coach Partner/Affiliate Program — Deferred (coach model eliminated)
 
 ## Context
 
-### Current State
+### Current State (post-v1)
 
-**What's Working:**
-- Content generation pipeline fully operational (4-agent wizard with real AI calls)
-- Export system comprehensive (6 base formats, 4 bundle modes, 3 advanced formats)
-- Multi-source ingestion with deduplication
-- Chunk-level metadata enrichment (topics, sentiment, intent, entities)
-- Transcript editing with history
+**What's Live:**
+- Full conversation intelligence platform with 14 RAG tools and inline citations
+- Bank/Vault multi-tenant architecture with hard tenant isolation
+- Vaults as first-class workspaces for team collaboration on call recordings
+- YouTube vault type with thumbnail-first video UX and video detail modal
+- Polar billing integration (Solo/Team/Business tiers)
+- Remote MCP server at https://callvault-mcp.naegele412.workers.dev/mcp
+- 80 v1 requirements shipped (70 complete, 1 Beta, 9 skipped/eliminated/deferred)
 
-**What's Broken:**
-- Chat works ~50% of the time (tool calls fail silently or error out completely)
-- Integration OAuth flows non-functional (Zoom button does nothing, Google infinite spinner)
-- Team/coach collaboration features broken (creation fails, invites don't send/work)
-- 4 fully-built pages orphaned (no routes)
-- Analytics tabs all show placeholders despite components existing
+**Known Issues / Tech Debt:**
+- YouTube import blocked by external runtime issues (YOUTUBE_DATA_API_KEY invalid, transcript provider billing 402)
+- Google OAuth is Beta (requires Google Workspace, not fully E2E tested in production)
+- TypeScript types need regeneration (`supabase gen types`) to remove `any` casts in useActiveTeam.ts
+- Chat.tsx at 689 lines (target was <500 — accepted as essential orchestration logic)
+- BankSwitcher.tsx has TODO comments for Create Bank / Manage Banks navigation
+- Legacy teams/team-memberships Edge Functions still exist (superseded by banks)
+- ALLOWED_ORIGINS env var must be set in Supabase production secrets
+- ContentGenerator.tsx needs re-wiring to edge function (stubbed during Phase 1)
 
-**Technical Debt:**
-- Chat backend bypasses Vercel AI SDK due to November zod/esm.sh bundling issues
-- Manual SSE streaming implementation is fragile
-- Duplicate deduplication code (2 implementations with different algorithms)
-- Client-side API key exposure (`VITE_OPENAI_API_KEY` visible in DevTools)
-- Legacy edge functions without auth
-- Type mismatches in orphaned components
+**Codebase:** ~112,743 lines TypeScript/React + Supabase Edge Functions (Deno)
+
+**Tech Stack:**
+- Frontend: React 18 + Vite, Zustand state, React Query, Vercel AI SDK (`useChat` hook)
+- Backend: Supabase (PostgreSQL + Edge Functions on Deno)
+- AI: Vercel AI SDK + OpenRouter (300+ models for chat), OpenAI (embeddings only)
+- Billing: Polar
+- MCP: Cloudflare Workers + Supabase OAuth 2.1
+- Chat: Vercel AI SDK `streamText` on Deno, 14 RAG tools with zod schemas
 
 ### Architecture
 
-**Current Stack:**
-- **Frontend**: React 18 + Vite, Zustand state, React Query, Vercel AI SDK types (`@ai-sdk/react`)
-- **Backend**: Supabase (PostgreSQL + Edge Functions on Deno)
-- **AI**: OpenRouter (300+ models for chat), OpenAI (embeddings only - OpenRouter doesn't support)
-- **Chat Implementation**: Manual fetch to OpenRouter with SSE parsing (bypassing Vercel AI SDK)
+**Bank/Vault Model (live since Phase 9):**
+- Banks: Hard tenant isolation (personal vs business)
+- Vaults: Collaborative workspaces within banks (team, coach, client, youtube types)
+- Recordings: Live in one bank, VaultEntries enable multi-vault sharing
+- Multi-tenant chat: Scoped to active bank/vault via hybrid_search_transcripts_scoped RPC
 
-**Target Architecture (Post-Fix):**
-- Keep frontend Vercel AI SDK (`useChat` hook)
-- Replace backend manual streaming with Vercel AI SDK `streamText`
-- Configure Vercel AI SDK to use OpenRouter as provider (OpenAI-compatible)
-- Keep OpenAI for embeddings
-- Result: Reliable tool orchestration, proper streaming, less custom code
-
-### User Base
-
-Active users currently using CallVault for:
-- Importing calls from Fathom (primary), some Zoom/Google
-- Searching call history via Chat (when it works)
-- Generating content from calls
-- Exporting transcripts
-
-**Critical constraint**: Cannot break existing user workflows during stabilization.
-
-### Prior Cleanup Attempts
-
-- **ralph-archived/**: Previous attempt at fixing 47 specs using different process
-- Result: Generated PRDs but didn't execute systematically
-- Specs are valid and well-documented, just need proper execution framework
-
-## Constraints
-
-- **Tech Stack**: Must use Supabase Edge Functions (Deno runtime) — Can't switch to Node.js/Vercel functions
-- **AI Provider**: Must keep OpenRouter (300+ model access requirement) + OpenAI for embeddings
-- **User Impact**: Cannot break existing validated features during fixes
-- **Speed**: Need to move fast - launch pressure
-- **Quality**: Fix properly, not patch fragile implementations
-- **Backward Compatibility**: Current users' data, sessions, and workflows must continue working
+**Remote MCP (live since Phase 12):**
+- Stateless Cloudflare Worker with per-request Supabase client factory
+- Supabase OAuth 2.1 with Dynamic Client Registration
+- 16 operations ported from local stdio to stateless Worker format
+- Cursor-based pagination (no KV storage dependency)
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Vercel AI SDK + OpenRouter for Chat | Manual streaming is fragile, Vercel SDK handles tool orchestration reliably, OpenRouter is OpenAI-compatible | — Pending |
-| Prioritize Chat → Teams → Integrations | Chat is core value, Teams/Coach needed for launch, Integrations block onboarding | — Pending |
-| Defer UI polish to v2 | Button positioning doesn't block demos or functionality | — Pending |
-| Keep all deferred specs documented | 47 specs represent real issues, need tracking even if not v1 | — Pending |
-| Wire orphaned pages before building new | 652-909 lines of working code just needs routing | — Pending |
+| Vercel AI SDK + OpenRouter for Chat | Manual streaming is fragile, Vercel SDK handles tool orchestration reliably, OpenRouter is OpenAI-compatible | ✓ Chat works reliably — 14 tools fire consistently |
+| Prioritize Chat → Security → Teams → Integrations | Chat is core value, security must come first, Teams/Coach needed for launch | ✓ Core value delivered |
+| Defer UI polish to v2 | Button positioning doesn't block demos or functionality | ✓ 47 specs deferred, launch unblocked |
+| Wire orphaned pages before building new | 652-909 lines of working code just needs routing | ✓ All pages accessible |
+| Bank/Vault architecture over Teams | Teams model couldn't support multi-tenant isolation needed for business accounts | ✓ Hard isolation with collaborative vaults |
+| PROFITS Framework dropped | Backend built, no frontend trigger ever implemented; framework eliminated for v2 | — Pending v2 direction |
+| Stateless Cloudflare Workers for MCP | Simpler Supabase JWT integration without OAuthProvider adapter; DurableObjects billing avoided | ✓ Worker live and responding |
+| Per-request Supabase client (not setSession) | Workers runtime lacks browser storage; setSession triggers those code paths | ✓ Clean per-request auth |
+| Cursor-based pagination for MCP | Eliminates KV namespace infrastructure dependency for initial deployment | ✓ Deployed without KV |
+| createMcpServer factory per-request | No shared state between requests; isolated server with user's supabase client | ✓ Stateless Worker architecture |
+| Coach feature eliminated | Bank/Vault architecture superseded team/coach model; coach features never used | ✓ Codebase simplified |
+| maxSteps over stopWhen/stepCountIs for streamText | Simpler API, well-documented, same behavior | ✓ Established chat pattern |
+| SECURITY DEFINER + role check for admin RPC | Admin-only aggregation needs to bypass RLS but still verify caller role | ✓ Pattern for admin-only functions |
+| Decimal phase numbering for insertions | Clear insertion semantics without renumbering existing phases | ✓ 3.1, 3.2, 10.2, 10.3 inserted cleanly |
 
 ---
-*Last updated: 2026-01-27 after initialization*
+*Last updated: 2026-02-21 after v1 milestone completion*

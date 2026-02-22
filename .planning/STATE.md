@@ -1,69 +1,44 @@
-# State: CallVault Launch Stabilization
+# State: CallVault
 
-**Last Updated:** 2026-02-21 (Phase 12, Plan 05 executed — all 5 plans complete)
+**Last Updated:** 2026-02-21 (v1 milestone archived — ready for next milestone planning)
 
 ## Project Reference
 
-**Core Value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
+See: `.planning/PROJECT.md` (updated 2026-02-21 after v1 milestone)
 
-**Current Focus:** Phase 12 — Deploy CallVault MCP as Remote Cloudflare Worker with Supabase OAuth 2.1
+**Core value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
+
+**Current focus:** Planning next milestone — run `/gsd-new-milestone`
 
 ---
 
 ## Current Position
 
-**Milestone:** v1 Launch Stabilization + Gap Closures + Remote MCP Deployment
+**Milestone:** v2 — Not yet defined
 
-**Phase:** 12 (Deploy CallVault MCP as Remote Cloudflare Worker)
+**Phase:** Not started
 
-**Plan:** 5 of 5 in current phase
+**Plan:** Not started
 
-**Status:** Complete (Phase 12 all plans done; awaiting human verification of end-to-end client connectivity)
+**Status:** Ready to plan next milestone
 
-**Last activity:** 2026-02-21 - Completed 12-05-PLAN.md (Deploy: wrangler deploy, CORS/discovery/401 curl validations, Supabase discovery chain confirmed)
+**Last activity:** 2026-02-21 — v1 milestone complete and archived
 
 **Progress:**
 ```
-[██████████] 89/94 plans complete (95%)
+[          ] 0/? plans (v2 not yet planned)
 ```
 
 ---
 
-## Performance Metrics
+## v1 Summary (Archived)
 
-### Execution Stats
+**v1 Launch Stabilization:** COMPLETE — See `.planning/milestones/v1-ROADMAP.md`
 
-- **Total Requirements:** 55
-- **Completed:** 15 (SEC-01 through SEC-06, CHAT-01 through CHAT-05, STORE-01, INT-01, INT-03)
-- **Partial:** 1 (INT-02 - Google Meet marked Beta, not fully tested)
-- **In Progress:** 0
-- **Blocked:** 0
-- **Remaining:** 39
-
-### Phase Progress
-
-| Phase | Requirements | Complete | Status |
-|-------|--------------|----------|--------|
-| Phase 1: Security Lockdown | 6 | 6 | Complete (6/6 plans) |
-| Phase 2: Chat Foundation | 6 | 6 | Complete (12/12 plans) |
-| Phase 3: Integration OAuth | 3 | 2 | Complete (2/2 plans) - INT-02 partial |
-| Phase 3.1: Compact Integration UI | 3 | 3 | Complete (3/3 plans) |
-| Phase 3.2: Integration Import Controls | 3 | 3 | Complete (2/2 plans) |
-| Phase 4: Team Collaboration | 2 | 2 | Complete (6/6 plans) |
-| Phase 5: Demo Polish | 12 | 12 | Complete (7/7 plans) |
-| Phase 6: Code Health & Infrastructure | 13 | 13 | Complete (10/10 plans) |
-| Phase 7: Differentiators | 5 | 5 | Complete (6/6 plans) |
-| Phase 8: Growth | 6 | 6 | Complete (6/6 plans) |
-| Phase 9: Bank/Vault Architecture | 5 | 5 | Complete (10/10 plans) |
-| Phase 10: Chat Bank/Vault Scoping | 1 | 1 | Complete (3/3 plans) |
-| Phase 10.2: Vaults Page | 7 | 7 | Complete (9/9 plans) |
-| Phase 10.3: YouTube-Specific Vaults | 6 | 6 | In progress (6/6 plans, external runtime blocker) |
-| Phase 12: Deploy CallVault MCP Worker | 0 | 0 | Complete (5/5 plans; human verify pending) |
-
-### Velocity
-
-- **Plans/Session:** ~2-3 per session
-- **Estimated Completion:** TBD after more data points
+- 93 plans across 12 phases (+ 4 inserted)
+- 80 requirements (70 complete, 1 Beta, 9 skipped/eliminated/deferred)
+- ~112,743 lines TypeScript
+- Remote MCP live at https://callvault-mcp.naegele412.workers.dev/mcp
 
 ---
 
@@ -178,121 +153,19 @@
 
 ### Active TODOs
 
-- [x] Execute 01-01 through 01-06 (Phase 1 complete)
-- [x] Execute 02-01 through 02-12 (Phase 2 complete)
-- [x] Execute 03-01-PLAN.md (Zoom OAuth fix & Google Meet Beta badge)
-- [x] Execute 03-02-PLAN.md (OAuth verification - Zoom verified, Google skipped)
-- [x] Execute 03.1-01-PLAN.md (Core primitives - modal store + compact button)
-- [x] Execute 03.1-02-PLAN.md (Composite components - modal + button group)
-- [x] Execute 03.1-03-PLAN.md (Wire up Sync page)
-- [x] Execute 03.2-01-PLAN.md (Database + Filter Hook)
-- [x] Execute 03.2-02-PLAN.md (SourcesFilterPopover + SyncTab integration)
-
-- [x] Execute 04-01-PLAN.md (Team Invite Route Fix)
-- [x] Execute 04-02-PLAN.md (Multi-Team & Simplified Creation)
-- [x] Execute 04-03-PLAN.md (Team Context Infrastructure)
-- [x] Execute 04-04-PLAN.md (Team Switcher Dropdown)
-- [x] Execute 04-05-PLAN.md (Pending Setup Badge)
-- [x] Execute 04-06-PLAN.md (Team Collaboration Verification)
-
-Phase 4 Complete. Phase 5 in progress.
-
-- [x] Execute 05-01-PLAN.md (Route Automation Rules + Fix CallDetailPage)
-- [x] Execute 05-02-PLAN.md (Fix AutomationRules.tsx type mismatches)
-- [x] Execute 05-03-PLAN.md (Runtime test & fix Tags/Rules/Analytics tabs)
-- [x] Execute 05-04-PLAN.md (Fix Users & Billing tabs - verified functional)
-- [x] Execute 05-05-PLAN.md (Bulk action toolbar 4th pane)
-- [x] Execute 05-06-PLAN.md (Export & deduplication documentation)
-- [x] Execute 05-07-PLAN.md (Final verification via Playwright - all 12 requirements verified)
-
-Phase 5 Complete. (Coach Collaboration removed, Team Content Segregation deferred to Phase 9)
-
-Phase 6 Complete. Ready for Phase 7.
-
-- [x] Execute 07-03-PLAN.md (Verify Real Analytics Data - DIFF-05 verified)
-- [x] Execute 07-01-PLAN.md (PROFITS Framework - extract-profits, usePROFITS, PROFITSReport)
-- [x] Execute 07-02-PLAN.md (Folder-Level Chat - filter resolution, UI, header pills)
-- [x] Execute 07-04-PLAN.md (Contacts Database - schema, useContacts, Settings UI)
-- [x] Execute 07-05-PLAN.md (Client Health Alerts - notifications, scheduled check, email generation)
-
-Phase 7 Complete. Ready for Phase 8 (Growth).
-
-- [x] Execute 08-01-PLAN.md (Polar billing schema and SDK client)
-- [x] Execute 08-02-PLAN.md (Polar Edge Functions - webhook, checkout, customer, state)
-- [x] Execute 08-03-PLAN.md (Polar billing UI and BillingTab integration)
-- [x] Execute 08-04-PLAN.md (YouTube Import Edge Function - orchestration, metadata, progress tracking)
-- [x] Execute 08-05-PLAN.md (YouTube Import UI and ManualImport page)
-- [x] Execute 08-06-PLAN.md (Admin Cost Dashboard - RPC function, useAdminCosts hook, AdminCostDashboard component)
-
-Phase 8 COMPLETE (6/6 plans). Phase 9 started.
-
-- [x] Execute 09-02-PLAN.md (Banks and BankMemberships tables with RLS)
-- [x] Execute 09-03-PLAN.md (Vaults and VaultMemberships tables with RLS)
-- [x] Execute 09-04-PLAN.md (Recordings and VaultEntries tables with RLS)
-- [x] Execute 09-05-PLAN.md (Signup trigger + drop old team tables + update folders)
-- [x] Execute 09-06-PLAN.md (Migration function for fathom_calls to recordings)
-- [x] Execute 09-07-PLAN.md (Bank context store and useBankContext hook)
-- [x] Execute 09-08-PLAN.md (Bank Switcher UI in header)
-- [x] Execute 09-09-PLAN.md (Banks & Vaults settings tab)
-- [x] Execute 09-10-PLAN.md (Wire pages to bank/vault context)
-
-Phase 9 COMPLETE. All 9 phases in v1 milestone executed.
-
-- [x] Execute 10-01-PLAN.md (Pass bank_id/vault_id to chat-stream-v2)
-- [x] Execute 10-02-PLAN.md (Vault-scoped search RPC + all tools scoped)
-- [x] Execute 10-03-PLAN.md (Verification - multi-tenant isolation verified)
-
-Phase 10 COMPLETE (3/3 plans). GAP-INT-01 closed.
-
-- [x] Execute 10.2-01-PLAN.md (Vaults page foundation - route, hooks, vault list pane)
-- [x] Execute 10.2-02-PLAN.md (Vault detail view - recordings table, member panel, adapter)
-- [x] Execute 10.2-03-PLAN.md (Vault Creation & Edit Dialogs)
-- [x] Execute 10.2-04-PLAN.md (Member management - invite links, roles, remove/leave)
-- [x] Execute 10.2-05-PLAN.md (Business bank creation entry points)
-- [x] Execute 10.2-06-PLAN.md (Vaults polish - empty states, error handling, mobile verification)
-- [x] Execute 10.2-07-PLAN.md (Vault Membership Badges)
-- [x] Execute 10.2-08-PLAN.md (Search/filter for vault recordings - useRecordingSearch, VaultSearchFilter)
-- [x] Execute 10.2-09-PLAN.md (Vault Selection During Import - VaultSelector, edge function vault_id)
-
-Phase 10.2 COMPLETE (9/9 plans).
-
-- [x] Execute 10.3-01-PLAN.md (YouTube foundation: DB migration, types, utilities, vault configs)
-- [x] Execute 10.3-02-PLAN.md (YouTube Video List: media-row components, sort hook, VaultDetailPane)
-- [x] Execute 10.3-03-PLAN.md (Import Flow: VaultSelector YouTube-only filtering, auto-create vault)
-- [x] Execute 10.3-04-PLAN.md (Video Detail Modal: summary, description, transcript, chat)
-- [x] Execute 10.3-05-PLAN.md (Gap closure: expose YouTube in Hubs + Settings create flows with tests)
-- [x] Execute 10.3-06-PLAN.md (Import diagnostics hardening + runtime blocker triage)
-
-Phase 10.3 plans complete (6/6). External runtime blockers remain before UAT sign-off.
-
-- [x] Execute 12-01-PLAN.md (Worker foundation: wrangler config, types, Supabase factory, utils)
-- [x] Execute 12-02-PLAN.md (Thread RequestContext through all 6 handler files)
-- [x] Execute 12-03-PLAN.md (Worker entry point: auth, MCP server setup, HTTP transport)
-- [x] Execute 12-04-PLAN.md (OAuth consent page: OAuthConsentPage + /oauth/consent route in brain frontend)
-- [x] Execute 12-05-PLAN.md (Deploy and verify: wrangler deploy, CORS/discovery/401 curl validations)
-
-Phase 12 COMPLETE (5/5 plans). Worker live at https://callvault-mcp.naegele412.workers.dev. Human verification of end-to-end client connectivity (Claude Desktop, ChatGPT) is the final step.
+*v1 complete. No active todos. Start v2 with `/gsd-new-milestone`.*
 
 ### Pending Todos
 
-2 todos in `.planning/todos/pending/`:
+2 todos carry forward to v2 from `.planning/todos/pending/`:
 - **Fix missing get_available_metadata database function** (database)
 - **Make chat sources section collapsible** (ui)
 
-### Roadmap Evolution
-
-- Phase 3.1 inserted after Phase 3: Compact Integration UI (URGENT) - Redesign integration cards to compact button/icon format with reusable modal component
-- Phase 3.2 inserted after Phase 3.1: Integration Import Controls - Redesign "Import meetings from" section + per-integration search on/off toggle
-- Phase 10.2 inserted after Phase 10: Vaults Page (URGENT) - Make vaults first-class sidebar page with full management UI, replacing "Collaboration"
-- Phase 10.3 inserted after Phase 10: YouTube-Specific Vaults & Video Intelligence (URGENT) - Dedicated youtube vault type, full video metadata schema, thumbnail-first list, and call-parity transcript chat
-- Coach Collaboration (Phase 5) removed from roadmap entirely
-- Team Content Segregation (Phase 4.5) deferred to Phase 9
-- Phase 12 added: Deploy CallVault MCP as Remote Cloudflare Worker with Supabase OAuth 2.1
-
-### Known Blockers
+### Known Blockers (carry to v2 backlog)
 
 - Project secret `YOUTUBE_DATA_API_KEY` currently invalid in runtime (`API_KEY_INVALID` from YouTube API)
 - Transcript provider key returns `402 no_active_paid_plan` for transcript fetch requests
+- Human verification of MCP end-to-end connectivity (Claude Desktop / ChatGPT) still pending
 
 ### Quick Tasks Completed
 
@@ -306,23 +179,21 @@ Phase 12 COMPLETE (5/5 plans). Worker live at https://callvault-mcp.naegele412.w
 
 ## Session Continuity
 
-**Last session:** 2026-02-21 13:42 UTC
-**Stopped at:** Completed 12-05-PLAN.md (Deploy Worker, validate CORS/discovery/401 with curl)
-**Resume file:** None
+**Last session:** 2026-02-21
+**Stopped at:** v1 milestone archived. Ready for v2 planning.
+**Resume with:** `/gsd-new-milestone`
 
 ### Context for Next Session
 
-**Where we are:**
-Phase 12 all 5 plans complete. Worker is live.
+**v1 is done. Start fresh with v2.**
 
-**What to remember:**
-- Live Worker URL: https://callvault-mcp.naegele412.workers.dev/mcp
-- Discovery URL: https://callvault-mcp.naegele412.workers.dev/.well-known/oauth-protected-resource
+Key reference points from v1:
+- Live MCP Worker: https://callvault-mcp.naegele412.workers.dev/mcp
 - Supabase project: vltmrnjsubfzrgrtdqey.supabase.co
-- Curl validations all pass: CORS 204, discovery JSON, 401 with WWW-Authenticate
-- To deploy: unset CLOUDFLARE_API_TOKEN env var (it has wrong perms), run wrangler deploy (uses OAuth token)
-- Next: Human verification of end-to-end Claude Desktop / ChatGPT connectivity (Task 3 from 12-05-PLAN.md)
-- After human verification: Phase 12 fully complete
+- MCP deploy: unset CLOUDFLARE_API_TOKEN, run wrangler deploy (uses OAuth token in ~/.wrangler/config)
+- YouTube blockers: YOUTUBE_DATA_API_KEY invalid + transcript provider billing 402
+- Google OAuth: Production Workspace only (Beta badge showing)
+- All v1 archives in `.planning/milestones/`
 
 ---
 
@@ -330,15 +201,13 @@ Phase 12 all 5 plans complete. Worker is live.
 
 | Metric | Value |
 |--------|-------|
-| Total Phases | 12 (+ 3 inserted: 3.1, 3.2, 10.2, + 2 gap closures: 10, 11) |
-| Total Requirements | 80 |
-| Requirements Complete | 70 (88%) |
-| Current Phase | 12 - Deploy CallVault MCP as Remote Cloudflare Worker (5/5 plans complete) |
-| Plans Complete | 91/94 (97%) |
-| Next Plan | Human verification of end-to-end client connectivity (Claude Desktop / ChatGPT) |
-| Blockers | 2 (YouTube API key invalid, transcript billing 402 — unrelated to Phase 12) |
+| v1 Total Phases | 12 (+ inserted: 3.1, 3.2, 10.2, 10.3) |
+| v1 Total Plans | 93 |
+| v1 Requirements | 80 (70 complete, 1 Beta, 9 skipped/eliminated/deferred) |
+| v2 Status | Not yet planned |
+| Next Step | `/gsd-new-milestone` to define v2 scope |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-21 (Completed 12-05; Worker deployed to callvault-mcp.naegele412.workers.dev, all curl validations pass)*
+*Last updated: 2026-02-21 (v1 milestone archived; v2 not yet defined)*
