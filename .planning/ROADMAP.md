@@ -5,6 +5,10 @@
 **Coverage:** 70/70 v2.0 requirements mapped ✓
 **Phase numbering:** Continues from v1 (last phase: 12) → v2.0 starts at Phase 13
 
+> **v1 archive:** `.planning/milestones/v1-ROADMAP.md` (Phases 1–12, 93 plans, 80 requirements)
+> **v2 phase folders:** `.planning/phases/13/` through `.planning/phases/22/` — created by `/gsd-plan-phase N` when each phase is planned
+> **App repo:** v2 code lives at `/dev/callvault/` (new repo, created in Phase 14). This planning file stays in `brain/.planning/`.
+
 ---
 
 ## Overview
