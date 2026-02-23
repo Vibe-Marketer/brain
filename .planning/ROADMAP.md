@@ -90,7 +90,19 @@ v2.0 is a deliberate, scoped frontend rebuild on top of the proven Supabase back
 4. Navigating to `/bank/`, `/vault/`, `/hub/` returns a 404 or redirect (those paths should never exist in the new repo — they are v1 concepts)
 5. A new user can be added to the Supabase redirect allowlist for the new domain and successfully complete auth without touching the old SITE_URL — old frontend continues to work for current users
 
-**Notes:** Deep tech stack research (FOUND-02) is a deliverable of this phase, not a prerequisite — the research happens as Phase 14 plan 01, the repo creation happens as plan 02. TailwindCSS v4 CSS-first config (`@theme {}` in globals.css, no `tailwind.config.js`). Abstract browser APIs behind hooks (`useFileOpen`, `useClipboard`) for future Tauri compatibility. `src-tauri/.gitkeep` created from day 1.
+**Notes:** Deep tech stack research (FOUND-02) is a deliverable of this phase, not a prerequisite — the research happens as Phase 14 plan 01, the repo creation happens as plan 02.
+
+**Repo setup (explicit):**
+- New repo created at `/Users/Naegele/dev/callvault/` — a sibling of `brain/`, NOT inside it
+- GitHub repo: `Vibe-Marketer/callvault` (new, separate from `Vibe-Marketer/brain`)
+- New Vercel project pointing at `callvault/` repo — separate deployment from v1
+- `brain/` stays untouched — v1 app stays live in production until v2 is confirmed stable
+- `.planning/` stays in `brain/.planning/` — it is the single source of truth for all v2 planning
+- `callvault/` gets its own `CLAUDE.md` that references `brain/.planning/` for project context
+- Same Supabase project env vars: `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` copied from `brain/.env.local`
+- Phase numbering, STATE.md, ROADMAP.md all remain in `brain/.planning/` — GSD commands run from `brain/`
+
+**Other scaffold notes:** TailwindCSS v4 CSS-first config (`@theme {}` in globals.css, no `tailwind.config.js`). Abstract browser APIs behind hooks (`useFileOpen`, `useClipboard`) for future Tauri compatibility. `src-tauri/.gitkeep` created from day 1.
 
 ---
 
