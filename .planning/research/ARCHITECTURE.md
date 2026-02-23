@@ -1,457 +1,865 @@
-# Architecture Patterns Comparison
+# Architecture Research: CallVault v2.0
 
-**Research Date:** February 9, 2026  
-**Comparison:** CallVault Current Architecture vs OpenAI Agents SDK Architecture
-
----
-
-## Current CallVault Architecture
-
-### High-Level Structure
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        React Frontend                          │
-│                   (useChat hook from AI SDK)                   │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ HTTP/WebSocket
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              Supabase Edge Function (Deno Runtime)             │
-│                         chat-stream-v2                          │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Vercel AI SDK: streamText()                            │   │
-│  │  ├── Model: OpenRouter (Anthropic, OpenAI, etc.)       │   │
-│  │  ├── System Prompt (with business profile injection)   │   │
-│  │  └── 14 RAG Tools (search, metadata, analytics)        │   │
-│  │       ├── searchTranscriptsByQuery                     │   │
-│  │       ├── searchBySpeaker                              │   │
-│  │       ├── searchByDateRange                            │   │
-│  │       ├── searchByCategory                             │   │
-│  │       ├── searchByIntentSignal                         │   │
-│  │       ├── searchBySentiment                            │   │
-│  │       ├── searchByTopics                               │   │
-│  │       ├── searchByUserTags                             │   │
-│  │       ├── searchByEntity                               │   │
-│  │       ├── getCallDetails                               │   │
-│  │       ├── getCallsList                                 │   │
-│  │       ├── getAvailableMetadata                         │   │
-│  │       ├── advancedSearch                               │   │
-│  │       └── compareCalls                                 │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-               ┌───────────────┼───────────────┐
-               ▼               ▼               ▼
-        ┌──────────┐    ┌──────────┐    ┌──────────┐
-        │ Supabase │    │ OpenAI   │    │ Hugging  │
-        │ Database │    │ (Embeds) │    │ Face     │
-        │ (pgvector)│    │          │    │ (Rerank) │
-        └──────────┘    └──────────┘    └──────────┘
-```
-
-### Key Architectural Decisions
-
-1. **Single Agent, Many Tools**
-   - One AI agent with 14 specialized RAG tools
-   - Tools encapsulate different search strategies
-   - Agent decides which tools to call
-
-2. **Hybrid Search Pipeline**
-   - Semantic search (OpenAI embeddings)
-   - Full-text search (PostgreSQL)
-   - Cross-encoder re-ranking (HuggingFace)
-   - Diversity filtering
-
-3. **Streaming-First**
-   - Server-Sent Events (SSE) to frontend
-   - Real-time token streaming
-   - Tool result streaming
-
-4. **Multi-Tenant with Bank/Vault Scoping**
-   - User authentication via JWT
-   - Bank-level and vault-level scoping
-   - RLS policies for data isolation
+**Research Date:** 2026-02-22  
+**Domain:** Brownfield frontend rebuild — same Supabase project, new repo  
+**Overall Confidence:** HIGH (Supabase OAuth 2.1 docs verified; connector pattern derived from existing code analysis; repo structure from established Vite+React conventions)
 
 ---
 
-## OpenAI Agents SDK Architecture
+## New Frontend Repo Structure
 
-### Recommended Structure
+### Recommended Directory Layout
+
+The new repo should be a clean Vite + React + TypeScript project. Because v2 adds Tauri/Electron as a future target, the architecture must not assume a browser host. All Supabase/API calls go through a `services/` layer so the renderer layer is host-agnostic.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        React Frontend                          │
-│              (Manual integration or ChatKit)                   │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │ HTTP
-                               ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              Supabase Edge Function (Deno Runtime)             │
-│                    Agent Orchestration                          │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  OpenAI Agents SDK: Runner.run()                        │   │
-│  │  ├── Triage Agent                                       │   │
-│  │  │   └── Handoffs: [SearchAgent, AnalyticsAgent]       │   │
-│  │  ├── Search Agent                                       │   │
-│  │  │   └── Tools: [hybridSearch, semanticSearch]          │   │
-│  │  └── Analytics Agent                                    │   │
-│  │      └── Tools: [getCallDetails, compareCalls]          │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                         OR                                     │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │  Single Agent (simpler migration path)                  │   │
-│  │  └── Agent with 14 tools (similar to current)           │   │
-│  └─────────────────────────────────────────────────────────┘   │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-               ┌───────────────┼───────────────┐
-               ▼               ▼               ▼
-        ┌──────────┐    ┌──────────┐    ┌──────────┐
-        │ Supabase │    │ OpenAI/  │    │ Tracing  │
-        │ Database │    │ OpenRouter│   │ (Built-in)│
-        └──────────┘    └──────────┘    └──────────┘
+callvault-v2/                         # New git repo (not brain/)
+├── index.html
+├── vite.config.ts
+├── tsconfig.json
+├── package.json
+├── tailwind.config.ts
+├── components.json                   # shadcn/ui config
+│
+├── src/
+│   ├── main.tsx                      # Entry point
+│   ├── App.tsx                       # Router + providers
+│   │
+│   ├── app/                          # App-wide concerns
+│   │   ├── providers.tsx             # QueryClient, AuthProvider, ThemeProvider
+│   │   ├── router.tsx                # TanStack Router or React Router config
+│   │   └── query-keys.ts             # Centralized query key factory
+│   │
+│   ├── features/                     # Feature-sliced design (vertical slices)
+│   │   ├── auth/
+│   │   │   ├── LoginPage.tsx
+│   │   │   ├── OAuthCallbackPage.tsx
+│   │   │   └── useAuth.ts
+│   │   ├── recordings/               # Core recordings domain (replaces fathom_calls)
+│   │   │   ├── RecordingsList.tsx
+│   │   │   ├── RecordingDetail.tsx
+│   │   │   ├── useRecordings.ts      # Queries: recordings + vault_entries
+│   │   │   └── types.ts
+│   │   ├── vaults/                   # Bank/vault management
+│   │   │   ├── VaultsPage.tsx
+│   │   │   ├── VaultContext.tsx      # Active vault context
+│   │   │   └── useVaults.ts
+│   │   ├── import/                   # Import connectors UI
+│   │   │   ├── ImportHub.tsx         # "Add source" entry point
+│   │   │   ├── connectors/           # One folder per connector UI
+│   │   │   │   ├── FathomConnector.tsx
+│   │   │   │   ├── ZoomConnector.tsx
+│   │   │   │   ├── GoogleMeetConnector.tsx
+│   │   │   │   ├── YouTubeConnector.tsx
+│   │   │   │   └── _registry.ts      # Connector registry (see below)
+│   │   │   └── useImportStatus.ts
+│   │   ├── chat/                     # AI chat (simplified bridge)
+│   │   │   ├── ChatPage.tsx
+│   │   │   └── useChat.ts            # useChat from Vercel AI SDK
+│   │   ├── search/
+│   │   │   └── SearchBar.tsx
+│   │   ├── settings/
+│   │   │   ├── SettingsPage.tsx
+│   │   │   ├── WorkspaceSettings.tsx
+│   │   │   └── MCPTokenSettings.tsx  # Per-workspace MCP URL display
+│   │   └── analytics/
+│   │       └── AnalyticsDashboard.tsx
+│   │
+│   ├── services/                     # API adapter layer (host-agnostic)
+│   │   ├── supabase.ts               # Supabase client singleton
+│   │   ├── recordings.service.ts     # All recording/vault_entry queries
+│   │   ├── import.service.ts         # Trigger import edge functions
+│   │   ├── mcp.service.ts            # MCP token management
+│   │   └── connectors/               # Per-connector API adapters
+│   │       ├── fathom.connector.ts
+│   │       ├── zoom.connector.ts
+│   │       ├── google-meet.connector.ts
+│   │       └── youtube.connector.ts
+│   │
+│   ├── components/                   # Shared UI components
+│   │   ├── layout/
+│   │   │   ├── AppShell.tsx          # 4-pane layout (preserve from v1)
+│   │   │   └── NavRail.tsx
+│   │   ├── ui/                       # shadcn/ui primitives
+│   │   └── shared/                   # Domain-agnostic components
+│   │
+│   ├── hooks/                        # Shared hooks (not feature-specific)
+│   │   ├── useBreakpoint.ts
+│   │   └── useKeyboardShortcut.ts
+│   │
+│   ├── stores/                       # Zustand (UI state only)
+│   │   ├── panelStore.ts
+│   │   └── preferencesStore.ts
+│   │
+│   ├── lib/                          # Pure utilities
+│   │   ├── utils.ts                  # cn() etc
+│   │   └── format.ts
+│   │
+│   └── types/                        # Global TypeScript types
+│       ├── recording.ts              # Recording, VaultEntry, UnifiedRecording
+│       ├── connector.ts              # ImportConnector interface
+│       └── mcp.ts                    # MCPToken, WorkspaceMCPConfig
+│
+├── supabase/                         # Linked to SAME Supabase project (not copied)
+│   └── (symlink or git submodule — see Integration Points)
+│
+└── src-tauri/                        # Added later, empty now, reserved
+    └── .gitkeep
 ```
 
-### Key Architectural Patterns
+### Key Structural Decisions
 
-1. **Agent Primitives**
-   ```typescript
-   interface Agent {
-     name: string;
-     instructions: string;
-     tools: Tool[];
-     handoffs?: Agent[];  // For multi-agent
-     guardrails?: Guardrail[];
-   }
-   ```
+**Feature-sliced design (vertical slices) over flat components:**
+- Each feature owns its components, hooks, and types
+- Prevents the v1 sprawl where `components/` had 45 top-level entries
+- Services layer (`services/`) = only place that touches Supabase
 
-2. **Runner Loop**
-   ```typescript
-   // Agents SDK manages the loop
-   const result = await Runner.run(
-     startingAgent,
-     userInput,
-     { maxTurns: 10 }
-   );
-   ```
+**`src-tauri/` reserved from day 1:**
+- Tauri will need a `src-tauri/` directory at project root
+- Reserve it now — no code impact, prevents future restructuring
+- All backend calls go through `services/` so Tauri IPC can be swapped in later
 
-3. **Sessions for State**
-   ```typescript
-   // Automatic conversation history
-   const session = new Session();
-   await Runner.run(agent, input, { session });
-   // History persisted across runs
-   ```
-
-4. **Handoffs for Multi-Agent**
-   ```typescript
-   const triageAgent = new Agent({
-     name: 'Triage',
-     instructions: 'Route to appropriate specialist',
-     handoffs: [salesAgent, supportAgent, technicalAgent]
-   });
-   ```
+**Supabase functions stay in the existing `brain/` repo:**
+- The new frontend repo links to the same Supabase project by URL/env
+- No need to copy or symlink `supabase/` — edge functions deploy independently
+- `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in `.env` point to same project
 
 ---
 
-## Architecture Comparison
+## Data Model Migration (fathom_calls → recordings)
 
-### 1. Agent Organization
+### Current State
 
-| Aspect | Current (Vercel AI SDK) | OpenAI Agents SDK |
-|--------|------------------------|-------------------|
-| **Structure** | Single agent, 14 tools | Could be single agent OR multi-agent |
-| **Tool Definition** | Inline with `tool()` | Decorated functions or `function_tool()` |
-| **Tool Execution** | AI SDK manages loop | Runner manages loop |
-| **Agent Boundaries** | Tool-based separation | Agent-based separation (optional) |
+The migration infrastructure is **already built** in the existing codebase:
 
-### 2. State Management
+- `recordings` + `vault_entries` tables: **deployed** (migration `20260131000007`)
+- `migrate_fathom_call_to_recording()` SQL function: **deployed** (migration `20260131000008`)
+- `migrate_batch_fathom_calls()` batch function: **deployed**
+- `get_migration_progress()` progress function: **deployed**
+- `migrate-recordings` edge function: **deployed**
+- `get_unified_recordings` search RPC: **deployed** (via `20260131300001_chat_vault_search_function.sql`)
 
-| Aspect | Current (Vercel AI SDK) | OpenAI Agents SDK |
-|--------|------------------------|-------------------|
-| **Conversation History** | Manual (pass messages array) | Automatic (Sessions) |
-| **Context Management** | Manual token counting | Automatic |
-| **Persistence** | External (database) | Built-in + Redis option |
-| **Multi-turn Logic** | `maxSteps` in `streamText` | `maxTurns` in Runner |
+The v2 frontend needs to **complete the migration** by ensuring all existing `fathom_calls` rows have corresponding `recordings` rows, then treating `recordings` as the authoritative source.
 
-### 3. Tool Calling Architecture
+### Migration Sequence
 
-**Current Pattern:**
+**Phase 1 — Dual-write safety (implemented in edge functions already)**
+
+The existing import functions write to `fathom_calls` (legacy). During migration, new imports from v2 should write directly to `recordings`. Before that cutover, verify all existing rows are migrated.
+
+```
+Step 1: Run get_migration_progress() to see current state
+        → SELECT * FROM get_migration_progress();
+        → Expect: total_fathom_calls, migrated_recordings, remaining
+
+Step 2: If remaining > 0, run batch migration
+        → POST /functions/v1/migrate-recordings (admin-only)
+        → Runs migrate_batch_fathom_calls(100) repeatedly until complete=true
+        → Each call: processes 100 rows, idempotent (safe to re-run)
+
+Step 3: Verify 1:1 completeness
+        → SELECT COUNT(*) FROM fathom_calls 
+             WHERE NOT EXISTS (
+               SELECT 1 FROM recordings 
+               WHERE recordings.legacy_recording_id = fathom_calls.recording_id
+             );
+        → Should return 0
+
+Step 4: Switch v2 frontend to query recordings table only
+        → No queries to fathom_calls from new code
+        → All reads use get_unified_recordings() RPC or recordings table directly
+
+Step 5: New imports write directly to recordings table
+        → v2 connector functions (edge functions) INSERT into recordings, not fathom_calls
+        → Requires updating: fathom-oauth-callback, zoom-sync-meetings, 
+          google-meet-sync-meetings, youtube-import
+```
+
+**Phase 2 — Cutover (v2 go-live)**
+
+Once v2 is launched and all reads come from `recordings`:
+
+```
+Step 6: Add read-only flag to fathom_calls (don't delete yet)
+        → ALTER TABLE fathom_calls ADD COLUMN archived_at TIMESTAMPTZ DEFAULT NOW();
+        → This signals "no new writes", preserves data as audit trail
+
+Step 7: Monitor for 2-4 weeks
+        → Check for any code still writing to fathom_calls (should be zero)
+        → Check analytics/automation functions still work correctly
+
+Step 8: Remove fathom_calls reference from edge functions
+        → Update any remaining references
+
+Step 9: Archive/drop fathom_calls (future milestone, not v2)
+        → ONLY after 100% confidence nothing reads it
+        → Keep migration in Supabase history for audit trail
+```
+
+### Rollback Plan
+
+At each step, rollback is safe:
+
+| Step | Rollback Action |
+|------|----------------|
+| Steps 1-3 | No schema changes, simply stop migration |
+| Step 4 | Re-point frontend queries back to fathom_calls |
+| Step 5 | Revert edge function code, recordings data is preserved |
+| Step 6 | Remove archived_at column |
+| Steps 7-9 | Already committed — no rollback needed |
+
+**Key safety property:** `migrate_fathom_call_to_recording()` is idempotent. Running it twice for the same row returns the existing recording UUID without creating duplicates. The `legacy_recording_id` unique constraint (`UNIQUE(bank_id, legacy_recording_id)`) enforces this at DB level.
+
+### get_unified_recordings RPC Pattern
+
+The recommended query pattern for v2 frontend (HIGH confidence — already deployed):
+
 ```typescript
-// Tool defined inline
-const searchTool = tool({
-  description: 'Search transcripts',
-  parameters: z.object({ query: z.string() }),
-  execute: async ({ query }, { messages }) => {
-    // Access to conversation context via options
-    return await search(query);
-  }
-});
-
-// Used in streamText
-const result = streamText({
-  model: openRouter('claude-3.5-sonnet'),
-  tools: { searchTool },
-  // ...
-});
+// services/recordings.service.ts
+export async function getUnifiedRecordings(vaultId: string, options?: {
+  limit?: number;
+  offset?: number;
+  searchQuery?: string;
+}) {
+  const { data, error } = await supabase
+    .rpc('get_unified_recordings', {
+      p_vault_id: vaultId,
+      p_limit: options?.limit ?? 50,
+      p_offset: options?.offset ?? 0,
+    });
+  
+  if (error) throw error;
+  return data as UnifiedRecording[];
+}
 ```
 
-**Agents SDK Pattern:**
+This RPC joins `recordings` + `vault_entries` and returns a unified view, avoiding N+1 queries and keeping component code clean.
+
+---
+
+## Import Connector Architecture
+
+### Current Pattern (v1 Problem)
+
+Each connector in v1 is a monolith:
+- `zoom-sync-meetings/index.ts` — 978 lines, does: auth, fetch, dedup, transform, insert
+- `google-meet-sync-meetings/index.ts` — 816 lines, same pattern
+- `youtube-import/index.ts` — 906 lines, same pattern
+
+Adding a new connector (Grain, Fireflies, etc.) currently requires writing ~800-1000 lines following an implicit pattern that is nowhere defined. It's a 2-week task per connector.
+
+### Recommended Connector Architecture: The 5-Stage Pipeline
+
+Every connector does exactly these 5 things. Codify this as a composable pipeline in `_shared/`:
+
 ```typescript
-// Tool as decorated function
-@function_tool
-async function searchTranscripts(
-  query: string,
-  context: ToolContext  // Access to agent context
-): Promise<string> {
-  return await search(query);
+// supabase/functions/_shared/connector-pipeline.ts
+
+export interface ConnectorContext {
+  supabase: SupabaseClient;
+  userId: string;
+  bankId: string;
+  vaultId: string;
 }
 
-// Agent definition
-const agent = new Agent({
-  name: 'Assistant',
-  instructions: '...',
-  tools: [searchTranscripts],
-});
+export interface ConnectorConfig {
+  sourceApp: string;          // 'zoom', 'google_meet', 'youtube', 'grain', etc.
+  fetchMeetings: (ctx: ConnectorContext, credentials: unknown) => Promise<RawMeeting[]>;
+  transformMeeting: (raw: RawMeeting) => RecordingInsert;
+  getCredentials: (ctx: ConnectorContext) => Promise<unknown>;
+  refreshCredentials?: (ctx: ConnectorContext, credentials: unknown) => Promise<unknown>;
+  onProgress?: (processed: number, total: number) => void;
+}
 
-// Runner handles execution
-const result = await Runner.run(agent, userInput);
+export interface RawMeeting {
+  externalId: string;         // Platform's unique ID (for deduplication)
+  title: string;
+  startTime?: string;
+  endTime?: string;
+  transcript?: string;
+  audioUrl?: string;
+  videoUrl?: string;
+  metadata?: Record<string, unknown>;
+}
+
+export interface RecordingInsert {
+  title: string;
+  source_app: string;
+  source_metadata: Record<string, unknown>;
+  full_transcript?: string;
+  audio_url?: string;
+  video_url?: string;
+  recording_start_time?: string;
+  recording_end_time?: string;
+  global_tags?: string[];
+}
+
+export async function runConnectorPipeline(
+  config: ConnectorConfig,
+  context: ConnectorContext,
+): Promise<{ synced: number; skipped: number; errors: number }> {
+  // Stage 1: Get credentials (with optional refresh)
+  let credentials = await config.getCredentials(context);
+  
+  // Stage 2: Fetch raw meetings from platform
+  const rawMeetings = await config.fetchMeetings(context, credentials);
+  
+  let synced = 0, skipped = 0, errors = 0;
+  
+  for (const raw of rawMeetings) {
+    try {
+      // Stage 3: Check deduplication (by external_id in source_metadata)
+      const exists = await checkDuplicate(context.supabase, context.bankId, config.sourceApp, raw.externalId);
+      if (exists) { skipped++; continue; }
+      
+      // Stage 4: Transform to recordings schema
+      const recordingData = config.transformMeeting(raw);
+      
+      // Stage 5: Insert recording + vault_entry
+      await insertRecordingWithVaultEntry(context.supabase, {
+        ...recordingData,
+        bank_id: context.bankId,
+        owner_user_id: context.userId,
+      }, context.vaultId);
+      
+      synced++;
+      config.onProgress?.(synced + skipped + errors, rawMeetings.length);
+    } catch (e) {
+      errors++;
+      console.error(`Error syncing ${raw.externalId}:`, e);
+    }
+  }
+  
+  return { synced, skipped, errors };
+}
 ```
 
-### 4. Multi-Agent Patterns
+### Adding a New Connector: 1-2 Day Pattern
 
-**Current Approach (Tool-based):**
-```
-User Query → Single Agent → Routes via Tool Selection
-                ↓
-    ┌───────────┼───────────┐
-    ▼           ▼           ▼
- Search Tool  Analytics  Metadata
-```
+With the pipeline in place, a new connector (e.g., Grain) is:
 
-**Agents SDK Approach (Agent-based):**
-```
-User Query → Triage Agent
-                ↓
-        ┌───────┴───────┐
-        ▼               ▼
-   Search Agent    Analytics Agent
-   (specialized)   (specialized)
-```
-
-**Key Difference:**
-- Current: Single agent decides which tools to call
-- Agents SDK: Triage agent decides which agent to handoff to
-
----
-
-## Migration Architecture Options
-
-### Option 1: Direct Translation (Lowest Risk)
-
-Keep single-agent architecture, translate to Agents SDK syntax.
-
-**Pros:**
-- Minimal architectural change
-- Can migrate incrementally
-- Low risk
-
-**Cons:**
-- Doesn't leverage multi-agent capabilities
-- Still requires significant code changes
-- Loses Vercel AI SDK benefits
-
-### Option 2: Multi-Agent Refactor (Highest Risk)
-
-Restructure into multiple specialized agents.
-
-**Agent Design:**
+**Step 1: Create `_shared/grain-client.ts`** (~50 lines)
 ```typescript
-// Triage Agent
-const triageAgent = new Agent({
-  name: 'CallVault Triage',
-  instructions: 'Route to appropriate specialist based on query type',
-  handoffs: [searchAgent, analyticsAgent, metadataAgent]
-});
+export class GrainClient {
+  constructor(private apiKey: string) {}
+  async getRecordings(): Promise<GrainRecording[]> { ... }
+}
+```
 
-// Search Specialist
-const searchAgent = new Agent({
-  name: 'Search Specialist',
-  instructions: 'Handle semantic and keyword searches',
-  tools: [searchTranscripts, searchBySpeaker, searchByEntity]
-});
+**Step 2: Create `supabase/functions/grain-sync/index.ts`** (~80 lines)
+```typescript
+import { runConnectorPipeline } from '../_shared/connector-pipeline.ts';
+import { GrainClient } from '../_shared/grain-client.ts';
 
-// Analytics Specialist  
-const analyticsAgent = new Agent({
-  name: 'Analytics Specialist',
-  instructions: 'Handle call details and comparisons',
-  tools: [getCallDetails, compareCalls, getCallsList]
-});
+const grainConnector: ConnectorConfig = {
+  sourceApp: 'grain',
+  
+  getCredentials: async (ctx) => {
+    const { data } = await ctx.supabase
+      .from('user_settings')
+      .select('grain_api_key')
+      .eq('user_id', ctx.userId)
+      .single();
+    return data?.grain_api_key;
+  },
+  
+  fetchMeetings: async (ctx, apiKey) => {
+    const client = new GrainClient(apiKey as string);
+    const recordings = await client.getRecordings();
+    return recordings.map(r => ({
+      externalId: r.id,
+      title: r.title,
+      transcript: r.transcript_text,
+      startTime: r.started_at,
+      metadata: { grain_url: r.share_url },
+    }));
+  },
+  
+  transformMeeting: (raw) => ({
+    title: raw.title,
+    source_app: 'grain',
+    source_metadata: raw.metadata ?? {},
+    full_transcript: raw.transcript,
+    recording_start_time: raw.startTime,
+  }),
+};
 
-// Metadata Specialist
-const metadataAgent = new Agent({
-  name: 'Metadata Specialist',
-  instructions: 'Handle metadata filtering and discovery',
-  tools: [searchByCategory, searchBySentiment, getAvailableMetadata]
+Deno.serve(async (req) => {
+  // ... auth, parse body, call runConnectorPipeline(grainConnector, context)
 });
 ```
 
-**Pros:**
-- Leverages Agents SDK strengths
-- More modular architecture
-- Built-in routing logic
-
-**Cons:**
-- High risk - complete refactor
-- May not improve actual performance
-- More complex to debug
-
-### Option 3: Hybrid (Recommended if Migrating)
-
-Keep Vercel AI SDK for main chat, use Agents SDK for specific workflows.
-
-```
-Main Chat ──► Vercel AI SDK (current)
-                 ↓
-        ┌────────┴────────┐
-        ▼                 ▼
-   RAG Tools        Special Workflow
-   (14 tools)       (Agents SDK endpoint)
-   (current)        (new, if needed)
+**Step 3: Create `src/features/import/connectors/GrainConnector.tsx`** (~100 lines)
+```typescript
+// UI: API key input, sync button, last synced status
 ```
 
-**Pros:**
-- No migration risk to core chat
-- Can experiment with Agents SDK
-- Best of both worlds
+**Step 4: Register in `_registry.ts`**
+```typescript
+// src/features/import/connectors/_registry.ts
+export const CONNECTOR_REGISTRY: ConnectorDefinition[] = [
+  { id: 'fathom',       label: 'Fathom',       icon: FathomIcon,      component: FathomConnector },
+  { id: 'zoom',         label: 'Zoom',          icon: ZoomIcon,        component: ZoomConnector },
+  { id: 'google_meet',  label: 'Google Meet',   icon: GMeetIcon,       component: GoogleMeetConnector },
+  { id: 'youtube',      label: 'YouTube',       icon: YouTubeIcon,     component: YouTubeConnector },
+  { id: 'grain',        label: 'Grain',         icon: GrainIcon,       component: GrainConnector },  // ← new line
+];
+```
 
-**Cons:**
-- Two different patterns to maintain
-- Complexity of multiple approaches
+Total: ~230 lines, 1-2 days including tests. **This is the target state.**
+
+### Connector Registry Interface
+
+```typescript
+// src/types/connector.ts
+export interface ConnectorDefinition {
+  id: string;                          // Must match source_app in recordings table
+  label: string;                       // Display name
+  icon: React.ComponentType;           // Brand icon
+  component: React.ComponentType<ConnectorProps>;
+  authType: 'oauth' | 'api_key' | 'url_only';
+  description: string;
+  docsUrl?: string;
+}
+
+export interface ConnectorProps {
+  onSuccess: () => void;
+  onError: (error: string) => void;
+}
+```
+
+### Deduplication in the Pipeline
+
+The shared dedup check should use `source_metadata->>'external_id'` rather than title+time fingerprinting (which is error-prone). The pipeline stores the platform's canonical ID:
+
+```sql
+-- Dedup check in checkDuplicate()
+SELECT id FROM recordings
+WHERE bank_id = $bankId
+  AND source_app = $sourceApp
+  AND source_metadata->>'external_id' = $externalId
+LIMIT 1;
+```
+
+This requires adding `external_id` as a consistent key in `source_metadata` across all connectors. **Existing connectors need a one-time migration** to normalize their `source_metadata` (low risk, additive only).
 
 ---
 
-## Data Flow Comparison
+## Per-Workspace MCP Token Architecture
 
-### Current Flow (Vercel AI SDK)
+### Problem Statement
 
-```
-1. User sends message
-   ↓
-2. Frontend: useChat sends to Edge Function
-   ↓
-3. Edge Function: Build system prompt (with business profile)
-   ↓
-4. Edge Function: streamText() with OpenRouter
-   ↓
-5. LLM decides which tool(s) to call
-   ↓
-6. Tool executes (hybrid search pipeline)
-   ↓
-7. Tool results appended to conversation
-   ↓
-8. LLM generates final response
-   ↓
-9. Tokens stream to frontend
-   ↓
-10. Frontend displays with citations
-```
+Currently: MCP tokens are per-user. A coach using Claude as an AI assistant can query ALL their calls. 
 
-### Agents SDK Flow
+v2 need: Coach creates a workspace (vault), generates a workspace-scoped MCP URL. Client gets that URL and can only see recordings in that vault — not the coach's other vaults.
+
+### Solution: Supabase OAuth 2.1 Client ID + RLS Scoping
+
+**This is exactly what Supabase's OAuth 2.1 server was designed for** (HIGH confidence — verified in official Supabase docs).
+
+The JWT issued by Supabase for an OAuth client includes a `client_id` claim. RLS policies can use `(auth.jwt() ->> 'client_id')` to scope access.
+
+#### Architecture
 
 ```
-1. User sends message
-   ↓
-2. Frontend: POST to Edge Function
-   ↓
-3. Edge Function: Runner.run(startingAgent, input)
-   ↓
-4. Runner loop begins
-   ↓
-5. Agent decides: respond, call tool, or handoff
-   ↓
-6a. If handoff: switch to other agent, continue loop
-6b. If tool: execute tool, append result
-6c. If respond: return final output
-   ↓
-7. Loop continues until final output or maxTurns
-   ↓
-8. Response returned to frontend
-   ↓
-9. Frontend displays (manual integration)
+┌─────────────────────────────────────────────────────────────────────┐
+│                     Coach's CallVault App                           │
+│                                                                     │
+│  Settings → Workspace → "MCP Access" → [Generate Token]            │
+│                                         ↓                           │
+│  Calls: POST /functions/v1/create-mcp-token                        │
+│  Body: { vault_id: "uuid-of-coaching-vault" }                      │
+│                                         ↓                           │
+│  Returns: {                                                         │
+│    mcp_url: "callvault-mcp.naegele412.workers.dev",                │
+│    client_id: "cv-ws-xxxxxxxx",   ← workspace-scoped client        │
+│    instructions: "Add to Claude with this URL..."                  │
+│  }                                                                  │
+└──────────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│              Supabase OAuth 2.1 Server                              │
+│                                                                     │
+│  auth.oauth_clients table:                                          │
+│  {                                                                  │
+│    client_id: "cv-ws-xxxxxxxx",                                     │
+│    name: "MCP: Coaching Vault - John Smith",                       │
+│    owner_user_id: <coach_user_id>,                                  │
+│    allowed_redirect_uris: ["callvault-mcp.workers.dev/callback"],  │
+│    metadata: { vault_id: "uuid-of-coaching-vault" }                │
+│  }                                                                  │
+└──────────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│              Cloudflare Workers MCP Server                          │
+│                                                                     │
+│  Token exchange → Supabase issues JWT:                              │
+│  {                                                                  │
+│    "sub": "coach-user-uuid",                                        │
+│    "client_id": "cv-ws-xxxxxxxx",                                   │
+│    "role": "authenticated"                                          │
+│  }                                                                  │
+│                                                                     │
+│  MCP tools run as coach user, but RLS restricts to vault           │
+└──────────────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│              PostgreSQL RLS (vault-scoped access)                   │
+│                                                                     │
+│  New RLS policy on vault_entries:                                   │
+│  CREATE POLICY "MCP clients see only their scoped vault"            │
+│  ON vault_entries FOR SELECT                                        │
+│  USING (                                                            │
+│    -- Normal user session: all their vaults                         │
+│    (auth.jwt() ->> 'client_id') IS NULL                             │
+│    AND is_vault_member(vault_id, auth.uid())                        │
+│  ) OR (                                                             │
+│    -- MCP client: only the specific vault it was scoped to          │
+│    (auth.jwt() ->> 'client_id') IS NOT NULL                         │
+│    AND vault_id = get_mcp_client_vault_id(auth.jwt() ->> 'client_id') │
+│    AND auth.uid() = get_mcp_client_owner(auth.jwt() ->> 'client_id') │
+│  );                                                                 │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+#### Database Schema Addition
+
+```sql
+-- New table: workspace_mcp_tokens
+-- Tracks which OAuth client_id maps to which vault
+CREATE TABLE workspace_mcp_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  client_id TEXT NOT NULL UNIQUE,           -- Supabase OAuth client_id
+  vault_id UUID NOT NULL REFERENCES vaults(id) ON DELETE CASCADE,
+  owner_user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  label TEXT,                               -- "John Smith coaching vault"
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  last_used_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ                    -- NULL = active
+);
+
+-- Helper function for RLS
+CREATE OR REPLACE FUNCTION get_mcp_client_vault_id(p_client_id TEXT)
+RETURNS UUID LANGUAGE sql STABLE SECURITY DEFINER
+AS $$
+  SELECT vault_id FROM workspace_mcp_tokens 
+  WHERE client_id = p_client_id AND revoked_at IS NULL
+$$;
+
+CREATE OR REPLACE FUNCTION get_mcp_client_owner(p_client_id TEXT)
+RETURNS UUID LANGUAGE sql STABLE SECURITY DEFINER
+AS $$
+  SELECT owner_user_id FROM workspace_mcp_tokens
+  WHERE client_id = p_client_id AND revoked_at IS NULL
+$$;
+```
+
+#### New Edge Function: `create-mcp-token`
+
+```typescript
+// supabase/functions/create-mcp-token/index.ts (~120 lines)
+// POST body: { vault_id, label }
+// 1. Verify user is vault owner
+// 2. Register OAuth client with Supabase auth.oauth_clients
+// 3. Insert row into workspace_mcp_tokens
+// 4. Return { client_id, mcp_url, setup_instructions }
+```
+
+#### Cloudflare Workers Changes
+
+The MCP server on Cloudflare Workers currently authenticates via Supabase OAuth and runs all tools as the authenticated user. For v2, it needs to:
+
+1. **Read `client_id` from the JWT** — already present in token
+2. **Pass `client_id` to Supabase queries** — RLS handles the rest automatically
+3. **No changes to tool definitions** — the DB layer enforces vault scoping
+
+This is the key insight: **the MCP Worker code barely changes**. RLS does the filtering. The Worker just needs to forward the token correctly (which it already does via Supabase OAuth 2.1).
+
+#### Revocation
+
+```typescript
+// POST /functions/v1/revoke-mcp-token
+// Body: { client_id }
+// 1. UPDATE workspace_mcp_tokens SET revoked_at = NOW()
+// 2. Revoke OAuth client in Supabase (if API supports it)
+// Result: Token immediately invalid at RLS layer
 ```
 
 ---
 
-## Scalability Considerations
+## Edge Function Reorganization
 
-### At Current Scale (Single User)
+### Current Inventory (42 non-AI functions remaining)
 
-| Aspect | Vercel AI SDK | OpenAI Agents SDK |
-|--------|---------------|-------------------|
-| Latency | ~500-1500ms | Similar |
-| Complexity | Medium | Medium |
-| Debugging | Good (Langfuse) | Good (built-in) |
+After removing ~23 AI content-generation functions, the remaining functions fall into these groups:
 
-### At 10K Users
+```
+GROUP 1: Connectors / Import (20 functions)
+  OAuth flows (3 per platform × 3 platforms + Fathom key):
+  ├── fathom-oauth-url, fathom-oauth-callback, fathom-oauth-refresh
+  ├── zoom-oauth-url, zoom-oauth-callback, zoom-oauth-refresh
+  ├── google-oauth-url, google-oauth-callback, google-oauth-refresh
+  ├── save-fathom-key, test-fathom-connection, create-fathom-webhook
+  Import/Sync:
+  ├── fetch-meetings, fetch-single-meeting (Fathom fetch)
+  ├── sync-meetings, resync-all-calls (Fathom sync orchestration)
+  ├── zoom-fetch-meetings, zoom-sync-meetings, zoom-webhook
+  ├── google-meet-fetch-meetings, google-meet-sync-meetings, google-poll-sync
+  └── youtube-api, youtube-import
 
-| Aspect | Vercel AI SDK | OpenAI Agents SDK |
-|--------|---------------|-------------------|
-| Stateless Scaling | ✅ Excellent | ✅ Good (Sessions need storage) |
-| Caching | Via Vercel AI Gateway | Manual implementation |
-| Rate Limiting | OpenRouter handles | Manual implementation |
+GROUP 2: Embedding Pipeline (7 functions)
+  ├── embed-chunks           — Creates vector embeddings
+  ├── backfill-chunk-metadata— Enriches existing chunks
+  ├── enrich-chunk-metadata  — Adds metadata to chunks
+  ├── process-embeddings     — Orchestrates embedding pipeline
+  ├── retry-failed-embeddings— Handles failed embedding jobs
+  ├── rerank-results         — Cross-encoder reranking
+  └── semantic-search        — Semantic search endpoint
 
-### At 1M Users
+GROUP 3: AI Chat (2 functions — simplified in v2)
+  ├── chat-stream-v2         — Main chat (simplify to ~100 line bridge)
+  └── chat-stream-legacy     — Delete in v2
 
-| Aspect | Vercel AI SDK | OpenAI Agents SDK |
-|--------|---------------|-------------------|
-| Multi-region | Vercel infrastructure | Self-managed |
-| Observability | Langfuse/others | Built-in + third-party |
-| Cost Optimization | AI Gateway caching | Manual |
+GROUP 4: Automation (5 functions)
+  ├── automation-engine      — Rule evaluation
+  ├── automation-scheduler   — Cron trigger
+  ├── automation-email       — Email action
+  ├── automation-sentiment   — Sentiment trigger
+  └── auto-tag-calls         — Tag automation
+
+GROUP 5: Billing / Subscription (4 functions)
+  ├── polar-checkout
+  ├── polar-create-customer
+  ├── polar-customer-state
+  └── polar-webhook
+
+GROUP 6: Sharing / Collaboration (3 functions)
+  ├── share-call
+  ├── check-client-health
+  └── migrate-recordings
+
+GROUP 7: MCP / Workspace (new in v2, 2 functions)
+  ├── create-mcp-token       — New: Register workspace OAuth client
+  └── revoke-mcp-token       — New: Revoke workspace token
+
+GROUP 8: Config / Misc (4 functions)
+  ├── get-config-status
+  ├── get-available-models
+  ├── sync-openrouter-models
+  ├── save-host-email
+  └── test-secrets
+```
+
+### Reorganization Recommendation
+
+**Don't rename existing functions** — Supabase function names are part of the public URL, and v1 clients may still be running during migration. Instead:
+
+1. **Create new connector functions** that write to `recordings` directly (GROUP 1 v2 variants)
+2. **Keep old connector functions** as deprecated until v1 is fully off
+3. **Add GROUP 7** (MCP workspace tokens) as new functions
+4. **Simplify chat-stream-v2** to the ~100 line bridge (remove 14 AI tools, replace with simple chat)
+5. **Delete chat-stream-legacy** when v1 is off
+
+**The `_shared/connector-pipeline.ts`** described above is the key reorganization move — it doesn't rename functions, it extracts the common pattern so future functions are thin wrappers.
+
+### Function Naming for New Connector Functions
+
+When writing new v2 variants of connector sync functions:
+
+```
+zoom-sync-v2/       — Writes to recordings table directly
+google-meet-sync-v2/— Writes to recordings table directly  
+fathom-sync-v2/     — Writes to recordings table directly
+youtube-import-v2/  — Writes to recordings table directly
+grain-sync/         — New connector (follows pipeline pattern)
+```
+
+Old functions remain deployed during transition, then removed.
 
 ---
 
-## Anti-Patterns to Avoid
+## Build Order
 
-### Anti-Pattern 1: Premature Multi-Agent
+For fastest working state from zero, build in this sequence:
 
-**What:** Splitting single-agent workflow into multiple agents unnecessarily.
+```
+PHASE 1: Foundation (Day 1-2)
+  → New repo scaffold (Vite + React + TypeScript + Tailwind + shadcn)
+  → Supabase client connected (env vars pointing to existing project)
+  → Auth flow working (login, session, protected routes)
+  → AppShell layout (port from v1)
 
-**Why Bad:** Adds complexity without benefit. Current 14-tool approach works well.
+  ✓ Working state: Can log in, see empty shell
 
-**Instead:** Keep single agent until true multi-agent needs emerge.
+PHASE 2: Read existing recordings (Day 3-4)  
+  → Query get_unified_recordings() RPC (already deployed)
+  → RecordingsList page showing existing data
+  → RecordingDetail page
+  → Run batch migration to ensure fathom_calls → recordings complete
 
-### Anti-Pattern 2: Ignoring Streaming
+  ✓ Working state: Can see all existing calls, browse them
 
-**What:** Using Agents SDK's non-streaming responses for chat UI.
+PHASE 3: Core import connectors (Week 2)
+  → Build _shared/connector-pipeline.ts (new shared utility)
+  → Fathom connector v2 (OAuth + sync → recordings directly)
+  → YouTube import v2
+  → Import hub UI (ConnectorRegistry pattern)
 
-**Why Bad:** Poor user experience, long wait times.
+  ✓ Working state: Can import new calls from primary sources
 
-**Instead:** Ensure streaming implementation (more complex with Agents SDK).
+PHASE 4: AI chat + search (Week 3)
+  → Simplify chat-stream-v2 to bridge (remove AI bloat)
+  → Chat UI (port useChat hook from v1)
+  → Search bar connected to semantic-search function
 
-### Anti-Pattern 3: Mixing Patterns
+  ✓ Working state: Full read-query-chat loop working
 
-**What:** Partial migration leaving two different agent patterns.
+PHASE 5: Bank/Vault management (Week 3-4)
+  → Vaults page
+  → Vault context switching
+  → Vault membership UI
+  → Settings page (workspace configuration)
 
-**Why Bad:** Hard to maintain, confusing for developers.
+  ✓ Working state: Multi-vault navigation
 
-**Instead:** Complete migration or stay with current stack.
+PHASE 6: Per-workspace MCP tokens (Week 4-5)
+  → workspace_mcp_tokens table migration
+  → create-mcp-token edge function
+  → MCP token settings UI
+  → Test with Claude: scope a token to a vault, verify isolation
 
-### Anti-Pattern 4: Losing Provider Flexibility
+  ✓ Working state: Coaches can share workspace-scoped MCP URLs
 
-**What:** Hard-coding to OpenAI models when using Agents SDK.
+PHASE 7: Additional connectors (Week 5+)
+  → Zoom sync v2
+  → Google Meet sync v2
+  → First new connector (Grain or Fireflies) using pipeline
+```
 
-**Why Bad:** Loses OpenRouter's 300+ model access.
+### Critical Path Dependencies
 
-**Instead:** Configure custom baseURL for OpenRouter.
+```
+Auth (Phase 1) → ALL other phases
+Recordings data visible (Phase 2) → Chat/search (Phase 4)
+Connector pipeline (Phase 3) → All future connectors
+Bank/Vault UI (Phase 5) → MCP workspace tokens (Phase 6)
+```
+
+**Don't skip Phase 2 before Phase 3.** The batch migration must complete before v2 writes new imports to `recordings`, otherwise you'll have a split data state with some calls only in `fathom_calls`.
+
+---
+
+## Integration Points
+
+### New Frontend ↔ Existing Supabase
+
+```typescript
+// src/services/supabase.ts
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// .env.local (new repo — same values as brain/ project)
+// VITE_SUPABASE_URL=https://[existing-project-ref].supabase.co
+// VITE_SUPABASE_ANON_KEY=[same anon key]
+```
+
+**No schema changes required** to connect — the new frontend is a new client of the same Supabase project. RLS policies already enforce isolation.
+
+### New Frontend ↔ Cloudflare Workers MCP
+
+The MCP server URL doesn't change: `callvault-mcp.naegele412.workers.dev`
+
+The Cloudflare Worker authenticates via Supabase OAuth 2.1 (already implemented). For workspace-scoped tokens, the Worker receives JWTs with a `client_id` claim — this is already present in all Supabase OAuth 2.1 tokens. No changes to the Worker's auth flow.
+
+**What does change on the Worker:** The MCP tools may need to pass `client_id` as a context hint when querying Supabase, but since RLS already filters by `client_id` in the JWT, the Worker's database queries don't need modification. The DB enforces scoping automatically.
+
+### Existing Supabase Functions ↔ New v2 Recordings Table
+
+The embedding pipeline (`process-embeddings`, `embed-chunks`, etc.) currently writes chunk metadata using `fathom_calls.recording_id` (BIGINT). For v2 recordings, chunks need to reference `recordings.id` (UUID).
+
+**Two options:**
+
+| Option | Description | Risk |
+|--------|-------------|------|
+| A: New `recording_uuid` column in chunks table | Add `recording_uuid UUID REFERENCES recordings(id)` to the chunks table | LOW — additive |
+| B: Change chunk FK to UUID | Replace `recording_id BIGINT` with `recording_id UUID` | HIGH — breaks existing embeddings |
+
+**Recommendation: Option A** — Add `recording_uuid` as an additional column alongside the existing `recording_id`. The embedding pipeline for new recordings populates `recording_uuid`. Legacy chunks keep their `recording_id`. The `get_unified_recordings` RPC can join on either.
+
+### Tauri/Electron Future-Proofing
+
+The `services/` layer in the v2 repo is the single boundary:
+
+```typescript
+// services/recordings.service.ts
+// This is the ONLY file that changes when adapting to Tauri
+
+// Browser version:
+import { supabase } from './supabase';
+export async function getRecordings(vaultId: string) {
+  return supabase.rpc('get_unified_recordings', { p_vault_id: vaultId });
+}
+
+// Tauri version (future swap):
+// import { invoke } from '@tauri-apps/api/tauri';
+// export async function getRecordings(vaultId: string) {
+//   return invoke('get_recordings', { vaultId });
+// }
+```
+
+Feature components import from `services/`, never from `supabase` directly. This one discipline enables the Tauri swap without touching feature code.
+
+---
+
+## Architecture Anti-Patterns to Avoid
+
+### Anti-Pattern 1: Writing New Imports to fathom_calls
+
+**What:** New import connectors (v2) write to `fathom_calls` instead of `recordings`  
+**Why bad:** Prolongs the migration, continues the split data state  
+**Instead:** All v2 connectors write directly to `recordings` + `vault_entries`
+
+### Anti-Pattern 2: Per-Component Supabase Imports
+
+**What:** `import { supabase } from '@/lib/supabase'` scattered throughout components  
+**Why bad:** Couples UI to Supabase, breaks Tauri path, hard to mock in tests  
+**Instead:** All Supabase calls through `services/*.service.ts`
+
+### Anti-Pattern 3: Workspace MCP Tokens via API Keys (not OAuth)
+
+**What:** Generate a static API key stored in a column, pass it to Claude  
+**Why bad:** No token expiration, no revocation, no RLS integration, no audit trail  
+**Instead:** Supabase OAuth 2.1 client with `client_id` in JWT — RLS handles scoping automatically
+
+### Anti-Pattern 4: One Giant "sync-all" Edge Function
+
+**What:** Single function handles all sources: "if zoom, do zoom; if google, do google"  
+**Why bad:** Untestable, deployment of one connector breaks all others, 2000+ lines  
+**Instead:** One function per connector, shared logic in `_shared/connector-pipeline.ts`
+
+### Anti-Pattern 5: Hardcoding Vault IDs in MCP Tools
+
+**What:** MCP tools accept a `vault_id` parameter, coach embeds it in tool config  
+**Why bad:** Client can change the parameter and access other vaults  
+**Instead:** RLS derives vault access from JWT `client_id` — no parameter needed or trusted
 
 ---
 
 ## Sources
 
-- [OpenAI Agents SDK Documentation](https://openai.github.io/openai-agents-python/)
-- [OpenAI Agents SDK TypeScript](https://openai.github.io/openai-agents-js/)
-- [Vercel AI SDK Documentation](https://ai-sdk.dev/)
-- [OpenAI Agents SDK vs Vercel AI SDK Comparison](https://sph.sh/en/posts/typescript-ai-sdk-agent-tooling/)
-- [LangChain vs Vercel AI SDK vs OpenAI SDK](https://strapi.io/blog/langchain-vs-vercel-ai-sdk-vs-openai-sdk-comparison-guide)
+| Source | URL | Confidence |
+|--------|-----|------------|
+| Supabase MCP Authentication docs | https://supabase.com/docs/guides/auth/oauth-server/mcp-authentication | HIGH |
+| Supabase Token Security & RLS docs | https://supabase.com/docs/guides/auth/oauth-server/token-security | HIGH |
+| Supabase OAuth 2.1 server overview | https://supabase.com/docs/guides/auth/oauth-server | HIGH |
+| Existing recordings table migration | `supabase/migrations/20260131000007_create_recordings_tables.sql` | HIGH |
+| Existing migration functions | `supabase/migrations/20260131000008_migration_function.sql` | HIGH |
+| Existing connector functions (analysis) | `supabase/functions/zoom-sync-meetings/index.ts` et al. | HIGH |
+| Vite project structure | https://vitejs.dev/guide/ | HIGH |
+| Feature-sliced design principles | https://feature-sliced.design/ | MEDIUM (training data, not verified) |
+| Connector pipeline pattern | Derived from existing codebase analysis | HIGH |
+| Tauri future-proofing via services layer | Standard DI pattern, training data | MEDIUM |
