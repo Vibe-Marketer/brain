@@ -16,17 +16,27 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Not started (defining requirements)
+**Phase:** Phase 13 — Strategy + Pricing (not started)
 
 **Plan:** —
 
-**Status:** Defining requirements
+**Status:** Roadmap complete. Ready to begin Phase 13.
 
-**Last activity:** 2026-02-22 — Milestone v2.0 started
+**Last activity:** 2026-02-23 — v2.0 roadmap created (10 phases, Phases 13–22)
 
 **Progress:**
 ```
-[          ] 0/? plans (v2 roadmap being created)
+[          ] 0/? plans · 0/10 phases complete
+Phase 13: Strategy + Pricing    [ ] not started
+Phase 14: Foundation            [ ] not started
+Phase 15: Data Migration        [ ] not started
+Phase 16: Workspace Redesign    [ ] not started
+Phase 17: Import Pipeline       [ ] not started
+Phase 18: Import Routing Rules  [ ] not started
+Phase 19: MCP Audit + Tokens    [ ] not started
+Phase 20: MCP Differentiators   [ ] not started
+Phase 21: AI Bridge + Export    [ ] not started
+Phase 22: Backend Cleanup       [ ] not started
 ```
 
 ---
@@ -179,21 +189,30 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 ## Session Continuity
 
-**Last session:** 2026-02-21
-**Stopped at:** v1 milestone archived. Ready for v2 planning.
-**Resume with:** `/gsd-new-milestone`
+**Last session:** 2026-02-23
+**Stopped at:** v2.0 roadmap created — 10 phases (13–22), 70 requirements mapped, ROADMAP.md written.
+**Resume with:** `/gsd-plan-phase 13`
 
 ### Context for Next Session
 
-**v1 is done. Start fresh with v2.**
+**v2.0 roadmap is done. Begin Phase 13: Strategy + Pricing.**
 
-Key reference points from v1:
+Phase 13 is pre-code. No commits. No repo. Three questions to answer:
+1. STRAT-01: AI strategy (MCP-first only vs hybrid bridge chat vs combination)
+2. STRAT-02/BILL-01: Pricing model — what do we charge for in a non-AI product?
+3. STRAT-03: Product identity — who is CallVault for, and what is it?
+
+Phase 14 (repo creation) cannot begin until all three are resolved.
+
+Key reference points:
 - Live MCP Worker: https://callvault-mcp.naegele412.workers.dev/mcp
 - Supabase project: vltmrnjsubfzrgrtdqey.supabase.co
+- Migration infrastructure already deployed: recordings table, migrate_fathom_call_to_recording(), get_unified_recordings RPC, migrate-recordings edge function
 - MCP deploy: unset CLOUDFLARE_API_TOKEN, run wrangler deploy (uses OAuth token in ~/.wrangler/config)
-- YouTube blockers: YOUTUBE_DATA_API_KEY invalid + transcript provider billing 402
-- Google OAuth: Production Workspace only (Beta badge showing)
+- YouTube blockers (carry to v2 backlog): YOUTUBE_DATA_API_KEY invalid + transcript provider billing 402
+- Google Meet: REMOVED in v2 entirely (FOUND-09)
 - All v1 archives in `.planning/milestones/`
+- v2.0 ROADMAP.md: `.planning/ROADMAP.md`
 
 ---
 
@@ -204,8 +223,10 @@ Key reference points from v1:
 | v1 Total Phases | 12 (+ inserted: 3.1, 3.2, 10.2, 10.3) |
 | v1 Total Plans | 93 |
 | v1 Requirements | 80 (70 complete, 1 Beta, 9 skipped/eliminated/deferred) |
-| v2 Status | Not yet planned |
-| Next Step | `/gsd-new-milestone` to define v2 scope |
+| v2 Phases | 10 (Phases 13–22) |
+| v2 Requirements | 70 (0 complete, 0 in-progress) |
+| v2 Status | Roadmap created — ready for Phase 13 |
+| Next Step | `/gsd-plan-phase 13` to begin Strategy + Pricing |
 
 ---
 
