@@ -57,6 +57,13 @@ v2.0 is a deliberate, scoped frontend rebuild on top of the proven Supabase back
 - BILL-03: Free tier defined (import limits, workspace limits, MCP access gating)
 - BILL-04: Upgrade prompts designed for in-context limit hits
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 13-01-PLAN.md — AI strategy document + product identity (STRAT-01, STRAT-03)
+- [ ] 13-02-PLAN.md — Pricing tiers, free tier spec, upgrade prompt designs (STRAT-02, BILL-01, BILL-03, BILL-04)
+- [ ] 13-03-PLAN.md — Update Polar billing dashboard to reflect v2 identity (BILL-02)
+
 **Success Criteria:**
 1. A written AI strategy document exists with a confident recommendation (not "both have tradeoffs") — the question "do we have AI in our product?" has a clear, documented answer
 2. Polar billing tiers have been updated with new tier names and descriptions that mention zero AI features — old "AI-powered" messaging is gone
@@ -424,7 +431,7 @@ v2.0 is a deliberate, scoped frontend rebuild on top of the proven Supabase back
 
 | Phase | Name | Status | Plans | Complete |
 |-------|------|--------|-------|---------|
-| 13 | Strategy + Pricing | Not started | — | — |
+| 13 | Strategy + Pricing | Planned | 3 plans | — |
 | 14 | Foundation | Not started | — | — |
 | 15 | Data Migration | Not started | — | — |
 | 16 | Workspace Redesign | Not started | — | — |
