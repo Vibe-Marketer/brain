@@ -16,13 +16,13 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 13 — Strategy + Pricing (not started)
+**Phase:** Phase 13 — Strategy + Pricing (planned)
 
-**Plan:** —
+**Plan:** 3 plans in 2 waves (13-01, 13-02 parallel in Wave 1; 13-03 in Wave 2)
 
-**Status:** Roadmap complete. Ready to begin Phase 13.
+**Status:** Phase 13 planned. Ready to execute.
 
-**Last activity:** 2026-02-23 — v2.0 roadmap created (10 phases, Phases 13–22)
+**Last activity:** 2026-02-23 — Phase 13 planned (3 plans, 2 waves)
 
 **Progress:**
 ```
@@ -191,18 +191,17 @@ Phase 22: Backend Cleanup       [ ] not started
 
 **Last session:** 2026-02-23
 **Stopped at:** v2.0 roadmap created — 10 phases (13–22), 70 requirements mapped, ROADMAP.md written.
-**Resume with:** `/gsd-plan-phase 13`
+**Resume with:** `/gsd:execute-phase 13`
 
 ### Context for Next Session
 
-**v2.0 roadmap is done. Begin Phase 13: Strategy + Pricing.**
+**Phase 13 is planned. Execute it.**
 
-Phase 13 is pre-code. No commits. No repo. Three questions to answer:
-1. STRAT-01: AI strategy (MCP-first only vs hybrid bridge chat vs combination)
-2. STRAT-02/BILL-01: Pricing model — what do we charge for in a non-AI product?
-3. STRAT-03: Product identity — who is CallVault for, and what is it?
+3 plans, 2 waves:
+- Wave 1: Plan 13-01 (AI strategy + product identity docs) || Plan 13-02 (pricing tiers + upgrade prompts)
+- Wave 2: Plan 13-03 (Polar dashboard update — has human checkpoint)
 
-Phase 14 (repo creation) cannot begin until all three are resolved.
+User decisions are locked in `.planning/phase-13-decisions.md`. Plans create written artifacts only (no code).
 
 Key reference points:
 - Live MCP Worker: https://callvault-mcp.naegele412.workers.dev/mcp
