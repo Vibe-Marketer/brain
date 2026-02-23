@@ -12,6 +12,22 @@ v1 shipped with the core platform stabilized, Bank/Vault architecture live, diff
 
 If Chat breaks, nothing else matters. Everything else (content generation, exports, automation) builds on top of reliable conversation intelligence retrieval.
 
+## Current Milestone: v2.0 The Pivot
+
+**Goal:** Execute the strategic pivot — strip ~89K lines of AI/chat/RAG/embeddings, rebuild the frontend clean (new repo, same Supabase), clarify the workspace model, add import routing rules, and expand the MCP server into the core product moat.
+
+**Target features:**
+- New frontend repo scaffold (Vite + React + TypeScript, same Supabase project, zero AI entanglement)
+- Remove all AI infrastructure: RAG pipeline, chat system, Content Hub, embedding pipeline, PROFITS, auto-processing, Langfuse, semantic search, AI model management (~89K lines, 23 edge functions, ~15 DB tables)
+- Keep smart import enrichment (auto-title, action items, tags, sentiment — one-time at import, not interactive AI)
+- Keep minimal bridge chat (~100 lines: select calls → transcripts as context → single LLM call)
+- Redesign workspace model for clarity (companies/coaches/programs use case — CLARITY is #1 goal)
+- Import routing rules: auto-assign calls to workspaces/folders at import based on conditions (title, participants, source, tags)
+- Import source management: per-source config, sync filters, account management
+- MCP expansion: per-org tokens, differentiating tools (vault hierarchy, speaker history, cross-call comparison, topic tracking), shareable prompts/workflows
+- Complete fathom_calls → recordings/vault_entries migration (prerequisite for new frontend)
+- Backend cleanup: drop AI tables/edge functions after v2 frontend is live
+
 ## Requirements
 
 ### Validated
@@ -59,13 +75,42 @@ If Chat breaks, nothing else matters. Everything else (content generation, expor
 
 ### Active
 
-*(Scope for next milestone — TBD via /gsd-new-milestone)*
+*(Scope for v2.0 milestone — defined 2026-02-22)*
 
-*No active requirements defined yet. Run `/gsd-new-milestone` to define v2 scope.*
+**New Frontend Repo:**
+- New GitHub repo (Vite + React + TypeScript), same Supabase project, new Vercel deployment
+- AppShell rebuilt clean: 4-pane layout, brand-compliant, zero AI component entanglement
+- Auth, routing, navigation rebuilt from scratch
+
+**Workspace Model — Clarity Overhaul:**
+- Workspace model renamed/redesigned for immediate clarity (company, coach, program use cases)
+- Workspace creation and switching UX dramatically simplified
+- Member invite flows rebuilt for clarity (viewers, coaches, team members — roles that make sense)
+- Per-workspace MCP tokens so each org/workspace gets its own MCP endpoint
+
+**Import Rules Engine:**
+- Import routing rules: auto-assign calls to workspaces/folders based on conditions at import time
+- Import source management: per-source config, active/inactive, sync filters, account switching
+- Rule editor UI: condition builder (title contains, participant is, source is, duration >, tag is) + action (assign to workspace, add to folder, apply tags)
+
+**MCP Expansion:**
+- Differentiating MCP tools: browse_workspace_hierarchy, get_speaker_history, compare_recordings, get_topic_timeline, batch_get_transcripts, get_recording_context
+- MCP Prompts (shareable templates): prepare_for_meeting, weekly_digest, compare_prospects
+- MCP Resources: callvault:// URI scheme for browsable content
+- Per-org/workspace MCP token generation (coaches can give clients their own scoped MCP)
+
+**AI Removal:**
+- Feature-flag then remove: chat system, RAG pipeline, Content Hub, embedding pipeline, PROFITS, auto-processing, AI model management, Langfuse, semantic search
+- Backend cleanup: drop ~15 AI tables, remove ~23 AI edge functions after v2 frontend is live
+- Keep smart import enrichment (auto-title, action items, tags, sentiment at import)
+- Keep minimal bridge chat (transcript-in-context, ~100 lines, no RAG/embeddings)
+
+**Data Migration:**
+- Complete fathom_calls → recordings/vault_entries unification (prerequisite for v2 frontend)
 
 ### Out of Scope
 
-*(Deferred to v2+ — documented but not in current roadmap)*
+*(Deferred to v3+ — documented but not in v2 roadmap)*
 
 **UI Polish (15 specs)**
 - SPEC-001 through SPEC-011, SPEC-036–038, SPEC-041 — Button positioning, spacing, visual tweaks
@@ -76,6 +121,12 @@ If Chat breaks, nothing else matters. Everything else (content generation, expor
 **Feature Additions (12 specs)**
 - SPEC-021 through SPEC-030, SPEC-039, SPEC-040, SPEC-046, SPEC-047 — New capabilities beyond stabilization
 
+**v2 Explicitly Out of Scope:**
+- ClawSimply (deferred — addressed in future milestone)
+- Full removal of smart import AI (kept as one-time enrichment at import)
+- Semantic/vector search (replaced with keyword search in v2)
+- Advanced analytics beyond basic call stats (deferred to v3)
+
 **Eliminated**
 - PROFITS Framework frontend trigger — The PROFITS Framework (extract-profits Edge Function) was built in Phase 7 but the frontend trigger was never wired. The entire PROFITS Framework is being dropped for v2.
 - Coach collaboration features (COACH-01–03) — Eliminated when Bank/Vault architecture superseded the team/coach model
@@ -83,6 +134,12 @@ If Chat breaks, nothing else matters. Everything else (content generation, expor
 **Deferred**
 - GROW-04: Slack Notification Action — Deferred per original CONTEXT.md decision
 - GROW-01: Coach Partner/Affiliate Program — Deferred (coach model eliminated)
+
+## Core Value
+
+**Clarity-first organized call workspace.** Users can import calls from anywhere, organize them into clear workspaces, and expose that structured context to whatever AI they already use — with zero confusion about how the system works.
+
+If workspace clarity breaks, or import rules fail to route calls, nothing else matters.
 
 ## Context
 
@@ -151,4 +208,4 @@ If Chat breaks, nothing else matters. Everything else (content generation, expor
 | Decimal phase numbering for insertions | Clear insertion semantics without renumbering existing phases | ✓ 3.1, 3.2, 10.2, 10.3 inserted cleanly |
 
 ---
-*Last updated: 2026-02-21 after v1 milestone completion*
+*Last updated: 2026-02-22 after v2.0 milestone start — strategic pivot to thin app + MCP*

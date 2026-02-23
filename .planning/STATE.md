@@ -1,32 +1,32 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-21 (v1 milestone archived — ready for next milestone planning)
+**Last Updated:** 2026-02-22 (v2.0 milestone started — strategic pivot)
 
 ## Project Reference
 
-See: `.planning/PROJECT.md` (updated 2026-02-21 after v1 milestone)
+See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
-**Core value:** Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.
+**Core value:** Clarity-first organized call workspace. Users can import calls from anywhere, organize them into clear workspaces, and expose that structured context to whatever AI they already use — with zero confusion about how the system works.
 
-**Current focus:** Planning next milestone — run `/gsd-new-milestone`
+**Current focus:** v2.0 — The Pivot (thin app + import rules + workspace clarity + MCP expansion)
 
 ---
 
 ## Current Position
 
-**Milestone:** v2 — Not yet defined
+**Milestone:** v2.0 — The Pivot
 
-**Phase:** Not started
+**Phase:** Not started (defining requirements)
 
-**Plan:** Not started
+**Plan:** —
 
-**Status:** Ready to plan next milestone
+**Status:** Defining requirements
 
-**Last activity:** 2026-02-21 — v1 milestone complete and archived
+**Last activity:** 2026-02-22 — Milestone v2.0 started
 
 **Progress:**
 ```
-[          ] 0/? plans (v2 not yet planned)
+[          ] 0/? plans (v2 roadmap being created)
 ```
 
 ---
