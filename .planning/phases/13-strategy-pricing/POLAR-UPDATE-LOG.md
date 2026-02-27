@@ -1,6 +1,6 @@
 # Polar Billing Dashboard — Clean v2 Setup
 
-**Status:** Spec ready — awaiting human execution in Polar dashboard
+**Status:** COMPLETE — 4 v2 products live in Polar
 **Created:** 2026-02-27
 **Phase:** 13-03 (Polar Dashboard Update)
 **Covers:** BILL-02
@@ -200,10 +200,10 @@ After execution, record the Polar product IDs here for use in Phase 14 billing i
 
 | Product | Polar Product ID |
 |---------|-----------------|
-| Pro Monthly | ______________________ |
-| Pro Annual | ______________________ |
-| Team Monthly | ______________________ |
-| Team Annual | ______________________ |
+| Pro Monthly | 30020903-fa8f-4534-9cf1-6e9fba26584c |
+| Pro Annual | 9ff62255-446c-41fe-a84d-c04aed23725c |
+| Team Monthly | 88f3f07e-afa3-4cb1-ac9d-d2429a1ce1b7 |
+| Team Annual | 6a1bcf14-86b4-4ec9-bcbe-660bb714b19f |
 
 These IDs will be referenced in:
 - `src/constants/billing.ts` (Phase 14)
@@ -214,5 +214,5 @@ These IDs will be referenced in:
 
 *Created: 2026-02-27*
 *Updated: 2026-02-27 — simplified to clean setup (0 subscribers, no migration needed)*
-*Status: Spec complete — awaiting user execution in Polar dashboard*
-*Next: User creates 4 v2 products, records IDs, confirms in checkpoint*
+*Status: COMPLETE — 4 v2 products created in Polar, IDs recorded*
+*Completed: 2026-02-27*
