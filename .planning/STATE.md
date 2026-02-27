@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-27 (Phase 13 Plan 01 complete — AI strategy + product identity locked)
+**Last Updated:** 2026-02-27 (Phase 13 Plan 02 complete — pricing tiers + upgrade prompts locked)
 
 ## Project Reference
 
@@ -20,14 +20,14 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Plan:** 3 plans in 2 waves (13-01, 13-02 parallel in Wave 1; 13-03 in Wave 2)
 
-**Status:** Phase 13 in progress. Plan 01 complete. Plan 02 ready to execute (Wave 1 parallel).
+**Status:** Phase 13 in progress. Plans 01 and 02 complete (Wave 1 done). Plan 03 ready to execute (Wave 2).
 
-**Last activity:** 2026-02-27 — Plan 13-01 complete (AI-STRATEGY.md + PRODUCT-IDENTITY.md)
+**Last activity:** 2026-02-27 — Plan 13-02 complete (PRICING-TIERS.md + UPGRADE-PROMPTS.md)
 
 **Progress:**
-```
-[=         ] 1/3 plans in Phase 13 · 0/10 phases complete
-Phase 13: Strategy + Pricing    [=         ] 1/3 plans complete
+[██████████] 97%
+[==        ] 2/3 plans in Phase 13 · 0/10 phases complete
+Phase 13: Strategy + Pricing    [==        ] 2/3 plans complete
 Phase 14: Foundation            [ ] not started
 Phase 15: Data Migration        [ ] not started
 Phase 16: Workspace Redesign    [ ] not started
@@ -58,6 +58,10 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-27 | Free tier: 10 imports/month, 1 org, 1 workspace, no MCP — clean limits that create conversion pressure within first month | Enough to prove value (10 calls in 2-3 days for active user), not enough to solve their problem | Drives Free->Pro conversion naturally |
+| 2026-02-27 | MCP is the Free/paid paywall, not Pro/Team wall — no demo cap, zero MCP on Free | Clean single-sentence gate; demo cap adds counter complexity without proportionate value | All MCP gating logic references this boundary |
+| 2026-02-27 | Team tier at $79/month flat rate (not per-seat) for early adoption | Lowers buying friction for managers (can approve without finance); Head of Sales approves $79 vs $395 for 5-person per-seat | Per-seat pricing deferred to enterprise motion |
+| 2026-02-27 | UpgradeGate component pattern: shared component wraps guarded features, checks tier, shows prompt | Keeps gating logic centralized; new limits added by wrapping feature not touching component | All Phase 14+ billing gating follows this pattern |
 | 2026-02-27 | CallVault is MCP-first: stores/organizes calls, hands to user's existing AI via MCP | Avoids AI lock-in, reduces infra cost to near zero, differentiates from Gong category | All v2 AI decisions flow through this constraint |
 | 2026-02-27 | Smart Import is the only in-app enrichment: auto-title, action items, tags, sentiment at import | Named feature, runs once at import, no AI label — "Calls arrive pre-organized" | AI-02 constraint: no RAG code in new repo ever |
 | 2026-02-27 | Drop RAG pipeline, embeddings, vector search, Content Hub, Langfuse entirely | Per-call embedding cost drops to $0, codebase simplifies dramatically | pg_trgm keyword search replaces semantic search |
@@ -194,21 +198,23 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-27
-**Stopped at:** Completed 13-01-PLAN.md — AI-STRATEGY.md and PRODUCT-IDENTITY.md written.
-**Resume with:** `/gsd:execute-phase 13` (run Plan 13-02 next — Wave 1 parallel with 13-01 now complete)
+**Last session:** 2026-02-27T08:36:55.842Z
+**Stopped at:** Completed 13-02-PLAN.md — pricing tiers + upgrade prompts
+**Resume with:** `/gsd:execute-phase 13` (run Plan 13-03 next — Wave 2, Polar dashboard update with human checkpoint)
 
 ### Context for Next Session
 
-**Phase 13 is in progress. Plan 13-01 is complete.**
+**Phase 13 Wave 1 is complete. Plan 13-03 is the only remaining plan.**
 
 3 plans, 2 waves:
-- Wave 1: Plan 13-01 DONE || Plan 13-02 (pricing tiers + upgrade prompts) — READY TO EXECUTE
-- Wave 2: Plan 13-03 (Polar dashboard update — has human checkpoint)
+- Wave 1: Plan 13-01 DONE (AI-STRATEGY.md + PRODUCT-IDENTITY.md) || Plan 13-02 DONE (PRICING-TIERS.md + UPGRADE-PROMPTS.md)
+- Wave 2: Plan 13-03 (Polar dashboard update — has human checkpoint — requires user to be in Polar dashboard)
 
 Key strategy documents now locked:
 - AI-STRATEGY.md: MCP-first, Smart Import only, no RAG ever, "AI-ready not AI-powered"
 - PRODUCT-IDENTITY.md: Primary buyer = Heads of Sales / RevOps at B2B companies with 5-50 reps
+- PRICING-TIERS.md: Free/Pro/Team at $0/$29/$79 flat, 10 imports/1 workspace/no MCP on Free, Team = collaboration not limits
+- UPGRADE-PROMPTS.md: Every in-context upgrade prompt designed with copy, trigger, behavior, developer notes
 
 Plans create written artifacts only (no code).
 
