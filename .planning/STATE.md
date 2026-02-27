@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-27 (Phase 14 Plan 03 complete — AppShell 4-pane layout with Motion springs)
+**Last Updated:** 2026-02-27 (Phase 14 Plan 04 complete — all non-AI routes wired, query key factory, Tauri-ready hooks)
 
 ## Project Reference
 
@@ -18,15 +18,15 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 14 — Foundation (IN PROGRESS)
 
-**Status:** Phase 14 in progress. Plan 03/05 complete (AppShell layout built).
+**Status:** Phase 14 in progress. Plan 04/05 complete (all routes wired, FOUND-05 and FOUND-06 satisfied).
 
-**Last activity:** 2026-02-27 — Phase 14 Plan 03 complete (AppShell 4-pane layout, Motion springs, Zustand v5 stores, breakpoint hook)
+**Last activity:** 2026-02-27 — Phase 14 Plan 04 complete (all non-AI routes wired with AppShell, query key factory, Tauri-ready browser API hooks)
 
 **Progress:**
 [██████████] 95%
-[█         ] 1/10 phases complete (Phase 14 in progress: 3/5 plans done)
+[█         ] 1/10 phases complete (Phase 14 in progress: 4/5 plans done)
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
-Phase 14: Foundation            [░] in progress — Plans 01-03 done (3/5)
+Phase 14: Foundation            [░] in progress — Plans 01-04 done (4/5)
 Phase 15: Data Migration        [ ] not started
 Phase 16: Workspace Redesign    [ ] not started
 Phase 17: Import Pipeline       [ ] not started
@@ -56,6 +56,9 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-27 | Settings /settings redirects to /settings/account via beforeLoad | Avoids blank settings root; TanStack Router redirect in beforeLoad is the correct pattern | All settings navigation targets /settings/$category |
+| 2026-02-27 | FOUND-06 hard boundary: TanStack Query = server state, Zustand = UI state — convention only, documented in query-config.ts | Runtime enforcement unnecessary; convention + docs prevents cache staleness bugs | All server data fetching uses queryKeys factory; Zustand stores hold UI state only |
+| 2026-02-27 | v2 queryKeys domains are narrower than v1 (no chat/contentLibrary/vaults/teams) | Aligns with MCP-first pivot; no RAG, no Content Hub; domains added as features built | query-config.ts is the source of truth for what server state exists in v2 |
 | 2026-02-27 | motion/react (not framer-motion) for all animations — motion v12 import path is motion/react | Correct import for Motion for React v12; zero framer-motion in codebase | All v2 animation imports use motion/react |
 | 2026-02-27 | AppShellProps flattened: { children, secondaryPane?, showDetailPane? } as direct props | Cleaner JSX composition at route level vs nested config object (v1 pattern) | All v2 route pages use AppShellProps interface for pane composition |
 | 2026-02-27 | PanelData discriminated union with type field as discriminator | Type-safe narrowing of panel data in Plan 04 panel components without type assertions | All v2 panel components use type narrowing on panelData |
@@ -206,13 +209,29 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-27T15:39:17Z
-**Stopped at:** Completed 14-03-PLAN.md (AppShell 4-pane layout with Motion springs)
-**Resume with:** `/gsd:execute-phase 14` (Plan 04 next: route pages + real panel components)
+**Last session:** 2026-02-27T15:46:37Z
+**Stopped at:** Completed 14-04-PLAN.md (all routes wired, query key factory, browser API hooks)
+**Resume with:** `/gsd:execute-phase 14` (Plan 05 next: billing gates + UpgradeGate component)
 
 ### Context for Next Session
 
-**Phase 14 Plan 03 DONE. Continue with Plan 04 (route pages and real panel components).**
+**Phase 14 Plan 04 DONE. Continue with Plan 05 (billing gates, UpgradeGate, tier detection).**
+
+Phase 14 Plan 04 deliverables:
+- `src/routes/_authenticated/index.tsx` — / (All Calls) with folder sidebar and AppShell
+- `src/routes/_authenticated/workspaces/index.tsx` — /workspaces list page
+- `src/routes/_authenticated/workspaces/$workspaceId.tsx` — /workspaces/:id detail page
+- `src/routes/_authenticated/calls/$callId.tsx` — /calls/:id detail with showDetailPane=true
+- `src/routes/_authenticated/folders/$folderId.tsx` — /folders/:id view page
+- `src/routes/_authenticated/import/index.tsx` — /import hub (Fathom/Zoom/YouTube/File Upload)
+- `src/routes/_authenticated/settings/index.tsx` — /settings redirect to /settings/account
+- `src/routes/_authenticated/settings/$category.tsx` — /settings/:category with nav sidebar
+- `src/routes/_authenticated/sharing/index.tsx` — /sharing (Shared With Me)
+- `src/routes/s/$token.tsx` — /s/:token public shared call view (no auth, standalone layout)
+- `src/routes/bank.tsx`, `vault.tsx`, `hub.tsx` — v1 path blockers (404 + "older version" message)
+- `src/lib/query-config.ts` — TanStack Query key factory, 7 domains, FOUND-06 boundary documented
+- `src/hooks/useClipboard.ts` — navigator.clipboard abstraction (Tauri-ready)
+- `src/hooks/useFileOpen.ts` — file input dialog abstraction (Tauri-ready)
 
 Phase 14 Plan 03 deliverables:
 - `src/components/layout/AppShell.tsx` — 4-pane layout with Motion springs, exports AppShellProps interface
