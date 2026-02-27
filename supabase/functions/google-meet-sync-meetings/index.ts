@@ -739,28 +739,25 @@ Deno.serve(async (req) => {
 
         console.log(`Google Meet sync job ${jobId} complete: ${synced.length} succeeded, ${failed.length} failed`);
 
-        // Trigger embedding generation for successfully synced meetings
+        // [DISABLED] Embedding system disabled — pipeline broken
+        // if (synced.length > 0) {
+        //   console.log(`Triggering embedding generation for ${synced.length} synced meetings...`);
+        //   supabase.functions.invoke('embed-chunks', {
+        //     body: { recording_ids: synced },
+        //     headers: { Authorization: `Bearer ${jwt}` },
+        //   }).then(({ error }: { error?: Error }) => {
+        //     if (error) {
+        //       console.error(`Embedding generation failed for sync job ${jobId}:`, error);
+        //     } else {
+        //       console.log(`Embedding generation started for ${synced.length} meetings`);
+        //     }
+        //   }).catch((err: Error) => {
+        //     console.error(`Embedding invocation failed for sync job ${jobId}:`, err);
+        //   });
+        // }
+
+        // Trigger AI title generation
         if (synced.length > 0) {
-          console.log(`Triggering embedding generation for ${synced.length} synced meetings...`);
-
-          supabase.functions.invoke('embed-chunks', {
-            body: {
-              recording_ids: synced,
-            },
-            headers: {
-              Authorization: `Bearer ${jwt}`,
-            },
-          }).then(({ error }: { error?: Error }) => {
-            if (error) {
-              console.error(`Embedding generation failed for sync job ${jobId}:`, error);
-            } else {
-              console.log(`Embedding generation started for ${synced.length} meetings`);
-            }
-          }).catch((err: Error) => {
-            console.error(`Embedding invocation failed for sync job ${jobId}:`, err);
-          });
-
-          // Trigger AI title generation
           console.log(`Triggering AI title generation for ${synced.length} synced meetings...`);
           supabase.functions.invoke('generate-ai-titles', {
             body: {

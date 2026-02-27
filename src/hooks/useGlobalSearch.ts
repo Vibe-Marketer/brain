@@ -228,7 +228,7 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
         return [];
       }
     },
-    enabled: enabled && !!user?.id && !isQueryTooShort && sanitizedQuery.length >= SEARCH_CONFIG.minQueryLength,
+    enabled: false, // Embedding system disabled — semantic search unavailable
     staleTime: 30000, // Cache results for 30 seconds
     gcTime: 60000, // Keep in cache for 1 minute
     refetchOnWindowFocus: false,

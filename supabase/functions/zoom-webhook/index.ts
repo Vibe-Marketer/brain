@@ -824,26 +824,27 @@ Deno.serve(async (req) => {
             processed_at: new Date().toISOString(),
           });
 
-        // Trigger embedding generation for synced meeting
+        // [DISABLED] Embedding system disabled — pipeline broken
+        // if (syncedUserIds.length > 0) {
+        //   const recordingId = payload.payload.object.uuid;
+        //   console.log(`Triggering embedding generation for Zoom meeting ${recordingId}...`);
+        //   try {
+        //     const { error: embedError } = await supabase.functions.invoke('embed-chunks', {
+        //       body: { recording_ids: [recordingId] },
+        //     });
+        //     if (embedError) {
+        //       console.error('Embedding generation failed:', embedError);
+        //     } else {
+        //       console.log('Embedding generation triggered successfully');
+        //     }
+        //   } catch (embedErr) {
+        //     console.error('Failed to invoke embed-chunks:', embedErr);
+        //   }
+        // }
+
+        // Trigger AI title generation for each synced user
         if (syncedUserIds.length > 0) {
           const recordingId = payload.payload.object.uuid;
-          console.log(`Triggering embedding generation for Zoom meeting ${recordingId}...`);
-
-          try {
-            const { error: embedError } = await supabase.functions.invoke('embed-chunks', {
-              body: { recording_ids: [recordingId] },
-            });
-
-            if (embedError) {
-              console.error('Embedding generation failed:', embedError);
-            } else {
-              console.log('Embedding generation triggered successfully');
-            }
-          } catch (embedErr) {
-            console.error('Failed to invoke embed-chunks:', embedErr);
-          }
-
-          // Trigger AI title generation for each synced user
           console.log(`Triggering AI title generation for Zoom meeting ${recordingId}...`);
           for (const userId of syncedUserIds) {
             try {

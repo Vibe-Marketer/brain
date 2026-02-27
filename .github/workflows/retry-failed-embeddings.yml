@@ -26,6 +26,7 @@ on:
 
 jobs:
   retry-failed-embeddings:
+    if: false # Embedding system disabled — pipeline broken, generating error emails
     runs-on: ubuntu-latest
     steps:
       - name: Retry failed embeddings from dead_letter queue

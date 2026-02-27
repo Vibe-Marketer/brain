@@ -900,29 +900,25 @@ Deno.serve(async (req) => {
 
         console.log(`Zoom sync job ${jobId} complete: ${synced.length} succeeded, ${failed.length} failed`);
 
-        // Automatically trigger embedding generation for successfully synced meetings
+        // [DISABLED] Embedding system disabled — pipeline broken
+        // if (synced.length > 0) {
+        //   console.log(`Triggering embedding generation for ${synced.length} synced Zoom meetings...`);
+        //   supabase.functions.invoke('embed-chunks', {
+        //     body: { recording_ids: synced },
+        //     headers: { Authorization: `Bearer ${jwt}` },
+        //   }).then(({ data, error }: { data: unknown; error: Error | null }) => {
+        //     if (error) {
+        //       console.error(`Embedding generation failed for Zoom sync job ${jobId}:`, error);
+        //     } else {
+        //       console.log(`Embedding generation started for ${synced.length} Zoom meetings:`, data);
+        //     }
+        //   }).catch((err: Error) => {
+        //     console.error(`Embedding invocation failed for Zoom sync job ${jobId}:`, err);
+        //   });
+        // }
+
+        // Fire-and-forget: invoke generate-ai-titles for the synced recordings
         if (synced.length > 0) {
-          console.log(`Triggering embedding generation for ${synced.length} synced Zoom meetings...`);
-
-          // Fire-and-forget: invoke embed-chunks for the synced recordings
-          supabase.functions.invoke('embed-chunks', {
-            body: {
-              recording_ids: synced,
-            },
-            headers: {
-              Authorization: `Bearer ${jwt}`,
-            },
-          }).then(({ data, error }: { data: unknown; error: Error | null }) => {
-            if (error) {
-              console.error(`Embedding generation failed for Zoom sync job ${jobId}:`, error);
-            } else {
-              console.log(`Embedding generation started for ${synced.length} Zoom meetings:`, data);
-            }
-          }).catch((err: Error) => {
-            console.error(`Embedding invocation failed for Zoom sync job ${jobId}:`, err);
-          });
-
-          // Fire-and-forget: invoke generate-ai-titles for the synced recordings
           console.log(`Triggering AI title generation for ${synced.length} synced Zoom meetings...`);
           supabase.functions.invoke('generate-ai-titles', {
             body: {

@@ -15,6 +15,7 @@ on:
 
 jobs:
   trigger-embedding-worker:
+    if: false # Embedding system disabled — pipeline broken, generating error emails
     runs-on: ubuntu-latest
     steps:
       - name: Trigger process-embeddings worker

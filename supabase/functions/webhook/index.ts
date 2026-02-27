@@ -759,21 +759,22 @@ Deno.serve(async (req) => {
             processed_at: new Date().toISOString(),
           });
 
-        // Trigger embedding generation for the synced meeting
-        // This ensures webhook-synced calls also get embeddings like manually synced ones
-        console.log(`🧠 Triggering embedding generation for meeting ${meeting.recording_id}...`);
-        try {
-          const { error: embedError } = await supabase.functions.invoke('embed-chunks', {
-            body: { recording_ids: [meeting.recording_id] },
-          });
-          if (embedError) {
-            console.error('Embedding generation failed:', embedError);
-          } else {
-            console.log('✅ Embedding generation triggered successfully');
-          }
-        } catch (embedErr) {
-          console.error('Failed to invoke embed-chunks:', embedErr);
-        }
+        // [DISABLED] Embedding system disabled — pipeline broken
+        // // Trigger embedding generation for the synced meeting
+        // // This ensures webhook-synced calls also get embeddings like manually synced ones
+        // console.log(`🧠 Triggering embedding generation for meeting ${meeting.recording_id}...`);
+        // try {
+        //   const { error: embedError } = await supabase.functions.invoke('embed-chunks', {
+        //     body: { recording_ids: [meeting.recording_id] },
+        //   });
+        //   if (embedError) {
+        //     console.error('Embedding generation failed:', embedError);
+        //   } else {
+        //     console.log('✅ Embedding generation triggered successfully');
+        //   }
+        // } catch (embedErr) {
+        //   console.error('Failed to invoke embed-chunks:', embedErr);
+        // }
 
         // Trigger AI title generation for each synced user
         console.log(`🏷️ Triggering AI title generation for meeting ${meeting.recording_id}...`);

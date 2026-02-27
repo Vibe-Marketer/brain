@@ -621,30 +621,25 @@ Deno.serve(async (req) => {
 
         console.log(`Sync job ${jobId} complete: ${synced.length} succeeded, ${failed.length} failed`);
 
-        // Automatically trigger embedding generation for successfully synced meetings
+        // [DISABLED] Embedding system disabled — pipeline broken
+        // if (synced.length > 0) {
+        //   console.log(`Triggering embedding generation for ${synced.length} synced meetings...`);
+        //   supabase.functions.invoke('embed-chunks', {
+        //     body: { recording_ids: synced },
+        //     headers: { Authorization: `Bearer ${jwt}` },
+        //   }).then(({ data, error }) => {
+        //     if (error) {
+        //       console.error(`Embedding generation failed for sync job ${jobId}:`, error);
+        //     } else {
+        //       console.log(`Embedding generation started for ${synced.length} meetings:`, data);
+        //     }
+        //   }).catch((err) => {
+        //     console.error(`Embedding invocation failed for sync job ${jobId}:`, err);
+        //   });
+        // }
+
+        // Fire-and-forget: invoke generate-ai-titles for the synced recordings
         if (synced.length > 0) {
-          console.log(`Triggering embedding generation for ${synced.length} synced meetings...`);
-
-          // Fire-and-forget: invoke embed-chunks for the synced recordings
-          // The embed-chunks function will also trigger enrich-chunk-metadata automatically
-          supabase.functions.invoke('embed-chunks', {
-            body: {
-              recording_ids: synced,
-            },
-            headers: {
-              Authorization: `Bearer ${jwt}`,
-            },
-          }).then(({ data, error }) => {
-            if (error) {
-              console.error(`Embedding generation failed for sync job ${jobId}:`, error);
-            } else {
-              console.log(`Embedding generation started for ${synced.length} meetings:`, data);
-            }
-          }).catch((err) => {
-            console.error(`Embedding invocation failed for sync job ${jobId}:`, err);
-          });
-
-          // Fire-and-forget: invoke generate-ai-titles for the synced recordings
           // This generates descriptive AI titles and auto-categorizes calls
           console.log(`Triggering AI title generation for ${synced.length} synced meetings...`);
           supabase.functions.invoke('generate-ai-titles', {
