@@ -94,6 +94,15 @@ Plans:
 - FOUND-09: Google Meet integration removed entirely — no Google OAuth scopes in new repo
 - AI-02: New repo never contains any AI/RAG/embedding/Content Hub code
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — Scaffold callvault repo with validated stack and color system (FOUND-02, FOUND-03, FOUND-09, AI-02)
+- [ ] 14-02-PLAN.md — Supabase auth, login page, OAuth callback, auth guard (FOUND-01)
+- [ ] 14-03-PLAN.md — AppShell 4-pane layout with Motion spring animations (FOUND-04)
+- [ ] 14-04-PLAN.md — Wire all routes, query config, browser API hooks (FOUND-05, FOUND-06)
+- [ ] 14-05-PLAN.md — Deploy to Vercel, auth allowlists, OAuth audit, verification (FOUND-07, FOUND-08)
+
 **Success Criteria:**
 1. An existing user can navigate to the new frontend URL, click "Sign In," authenticate with their Google account, and land on the app shell — no broken redirect, no 404, no auth error
 2. The AppShell renders 4 panes (nav sidebar, workspace list, detail pane, context panel) with spring animations that feel native — not "slide transitions" but spring physics (stiffness 200–300, damping 25–30)
@@ -432,7 +441,7 @@ Plans:
 | Phase | Name | Status | Plans | Complete |
 |-------|------|--------|-------|---------|
 | 13 | Strategy + Pricing | ✓ Complete | 3/3 | 2026-02-27 |
-| 14 | Foundation | Not started | — | — |
+| 14 | Foundation | Planned | 0/5 | — |
 | 15 | Data Migration | Not started | — | — |
 | 16 | Workspace Redesign | Not started | — | — |
 | 17 | Import Connector Pipeline | Not started | — | — |
