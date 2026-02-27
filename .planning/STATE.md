@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-27 (Phase 14 Plan 02 complete — Supabase auth + Google OAuth wired)
+**Last Updated:** 2026-02-27 (Phase 14 Plan 03 complete — AppShell 4-pane layout with Motion springs)
 
 ## Project Reference
 
@@ -18,15 +18,15 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 14 — Foundation (IN PROGRESS)
 
-**Status:** Phase 14 in progress. Plan 02/05 complete (auth + OAuth wired).
+**Status:** Phase 14 in progress. Plan 03/05 complete (AppShell layout built).
 
-**Last activity:** 2026-02-27 — Phase 14 Plan 02 complete (Supabase Google OAuth PKCE flow, AuthProvider, auth guard, login page)
+**Last activity:** 2026-02-27 — Phase 14 Plan 03 complete (AppShell 4-pane layout, Motion springs, Zustand v5 stores, breakpoint hook)
 
 **Progress:**
 [██████████] 95%
-[█         ] 1/10 phases complete (Phase 14 in progress: 2/5 plans done)
+[█         ] 1/10 phases complete (Phase 14 in progress: 3/5 plans done)
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
-Phase 14: Foundation            [░] in progress — Plans 01-02 done (2/5)
+Phase 14: Foundation            [░] in progress — Plans 01-03 done (3/5)
 Phase 15: Data Migration        [ ] not started
 Phase 16: Workspace Redesign    [ ] not started
 Phase 17: Import Pipeline       [ ] not started
@@ -56,6 +56,11 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-27 | motion/react (not framer-motion) for all animations — motion v12 import path is motion/react | Correct import for Motion for React v12; zero framer-motion in codebase | All v2 animation imports use motion/react |
+| 2026-02-27 | AppShellProps flattened: { children, secondaryPane?, showDetailPane? } as direct props | Cleaner JSX composition at route level vs nested config object (v1 pattern) | All v2 route pages use AppShellProps interface for pane composition |
+| 2026-02-27 | PanelData discriminated union with type field as discriminator | Type-safe narrowing of panel data in Plan 04 panel components without type assertions | All v2 panel components use type narrowing on panelData |
+| 2026-02-27 | Mobile layout is route-based stack (header + full-screen main) not overlay/drawer | Per CONTEXT.md locked decision: native feel via routes not DOM overlays | All mobile navigation decisions reference this pattern |
+| 2026-02-27 | SidebarNav uses TanStack Router Link (not react-router-dom) | v2 uses TanStack Router exclusively; react-router-dom has no place in codebase | All navigation in v2 uses TanStack Router Link/useNavigate |
 | 2026-02-27 | signInWithOAuth lives in useAuth hook not in login.tsx | Routes delegate to hook — clean Supabase abstraction, routes don't touch SDK directly | All v2 auth OAuth calls go through useAuth hook |
 | 2026-02-27 | _authenticated/ pathless layout route is the TanStack Router auth guard pattern | beforeLoad throws redirect to /login if no session; all protected pages nested under src/routes/_authenticated/ | All v2 protected routes use this pattern |
 | 2026-02-27 | Supabase OAuth redirect changed from origin/ (v1) to origin/oauth/callback (v2 PKCE) | v2 uses PKCE flow requiring explicit callback URL for code exchange | Add localhost:3000/oauth/callback to Supabase allowed redirect URLs |
@@ -201,13 +206,23 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-27T15:27:38Z
-**Stopped at:** Completed 14-02-PLAN.md (Supabase auth + Google OAuth PKCE)
-**Resume with:** `/gsd:execute-phase 14` (Plan 03 next: AppShell layout)
+**Last session:** 2026-02-27T15:39:17Z
+**Stopped at:** Completed 14-03-PLAN.md (AppShell 4-pane layout with Motion springs)
+**Resume with:** `/gsd:execute-phase 14` (Plan 04 next: route pages + real panel components)
 
 ### Context for Next Session
 
-**Phase 14 Plan 02 DONE. Continue with Plan 03 (AppShell layout).**
+**Phase 14 Plan 03 DONE. Continue with Plan 04 (route pages and real panel components).**
+
+Phase 14 Plan 03 deliverables:
+- `src/components/layout/AppShell.tsx` — 4-pane layout with Motion springs, exports AppShellProps interface
+- `src/components/layout/SidebarToggle.tsx` — 24px rounded-full edge-mounted circular toggle
+- `src/components/layout/SidebarNav.tsx` — TanStack Router Link nav items, data-tour attrs
+- `src/components/layout/DetailPaneOutlet.tsx` — AnimatePresence spring slide-in/out
+- `src/stores/panelStore.ts` — Zustand v5 (create<PanelState>()()) panel type/data store
+- `src/stores/preferencesStore.ts` — Zustand v5 sidebar/secondary state, localStorage cross-tab sync
+- `src/hooks/useBreakpoint.ts` — matchMedia breakpoints, exports useBreakpointFlags
+- `src/routes/_authenticated/index.tsx` — renders AppShell with 4 panes (FolderSidebarStub, CallsListStub)
 
 Phase 14 Plan 02 deliverables:
 - `src/lib/supabase.ts` — typed Supabase client, same project as v1 (vltmrnjsubfzrgrtdqey)
@@ -217,7 +232,7 @@ Phase 14 Plan 02 deliverables:
 - `src/routes/login.tsx` — /login page with Google OAuth button (glossy slate gradient)
 - `src/routes/oauth/callback.tsx` — PKCE handler, navigates to / on SIGNED_IN
 - `src/routes/_authenticated.tsx` — beforeLoad auth guard, throws redirect to /login
-- `src/routes/_authenticated/index.tsx` — placeholder home at / showing user email
+- `src/routes/_authenticated/index.tsx` — now renders 4-pane AppShell (updated in Plan 03)
 
 Phase 14 Plan 01 deliverables:
 - New callvault repo at `/Users/Naegele/dev/callvault/` (Vite 7 + React 19 + TanStack Router)
@@ -261,10 +276,10 @@ Key reference points:
 | v1 Requirements | 80 (70 complete, 1 Beta, 9 skipped/eliminated/deferred) |
 | v2 Phases | 10 (Phases 13–22) |
 | v2 Requirements | 70 (7 complete via Phase 13) |
-| v2 Status | Phase 14 in progress — Plans 01-02 complete (2/5 plans) |
-| Next Step | `/gsd:execute-phase 14` (Plan 03: AppShell layout) |
+| v2 Status | Phase 14 in progress — Plans 01-03 complete (3/5 plans) |
+| Next Step | `/gsd:execute-phase 14` (Plan 04: route pages + real panel components) |
 
 ---
 
 *State tracking initialized: 2026-01-27*
-*Last updated: 2026-02-27 (Phase 14 Plan 02 complete — Supabase auth + Google OAuth PKCE wired)*
+*Last updated: 2026-02-27 (Phase 14 Plan 03 complete — AppShell 4-pane layout with Motion spring animations)*
