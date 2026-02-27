@@ -1,6 +1,6 @@
 # CallVault + ClawSimply: Investor Pitch
 
-**Prepared by:** Tyler Naegele
+**Prepared by:** Andrew Naegele
 **Date:** February 19, 2026
 **Audience:** Angel Investors / Early Stage
 

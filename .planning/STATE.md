@@ -163,19 +163,17 @@ Phase 22: Backend Cleanup       [ ] not started
 
 ### Active TODOs
 
-*v1 complete. No active todos. Start v2 with `/gsd-new-milestone`.*
+*No active todos. All 5 v1 pending todos eliminated during v2 pivot (2026-02-26). See `.planning/todos/eliminated/`.*
 
 ### Pending Todos
 
-2 todos carry forward to v2 from `.planning/todos/pending/`:
-- **Fix missing get_available_metadata database function** (database)
-- **Make chat sources section collapsible** (ui)
+None.
 
 ### Known Blockers (carry to v2 backlog)
 
-- Project secret `YOUTUBE_DATA_API_KEY` currently invalid in runtime (`API_KEY_INVALID` from YouTube API)
-- Transcript provider key returns `402 no_active_paid_plan` for transcript fetch requests
-- Human verification of MCP end-to-end connectivity (Claude Desktop / ChatGPT) still pending
+- ~~`YOUTUBE_DATA_API_KEY` invalid~~ — **FIXED 2026-02-26** (new key deployed to Supabase)
+- ~~Transcript provider `402 no_active_paid_plan`~~ — **FIXED 2026-02-26** (credits replenished)
+- Human verification of MCP end-to-end connectivity still pending (deferred to Phase 19)
 
 ### Quick Tasks Completed
 
