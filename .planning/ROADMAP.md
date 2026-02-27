@@ -149,6 +149,13 @@ Plans:
 
 **Notes:** MUST NOT drop fathom_calls during v2.0 — archive it (rename to fathom_calls_archive or similar). Run profiling queries before migration: NULL rates on key fields, row count by user, anomaly detection. Disable triggers during batch migration to avoid overhead. Google Meet removed entirely — DATA-03 covers only Fathom, Zoom, YouTube.
 
+**Plans:** 3 plans
+
+Plans:
+- [ ] 15-01-PLAN.md — Profile data, fix migration function, run batch, verify (DATA-01, DATA-02, DATA-03, DATA-05)
+- [ ] 15-02-PLAN.md — Wire v2 frontend calls list and detail to recordings table
+- [ ] 15-03-PLAN.md — Archive fathom_calls, manual spot-check (DATA-04)
+
 ---
 
 ### Phase 16 — Workspace Redesign
@@ -442,7 +449,7 @@ Plans:
 |-------|------|--------|-------|---------|
 | 13 | Strategy + Pricing | ✓ Complete | 3/3 | 2026-02-27 |
 | 14 | Foundation | Planned | 0/5 | — |
-| 15 | Data Migration | Not started | — | — |
+| 15 | Data Migration | Planned | 0/3 | — |
 | 16 | Workspace Redesign | Not started | — | — |
 | 17 | Import Connector Pipeline | Not started | — | — |
 | 18 | Import Routing Rules | Not started | — | — |
