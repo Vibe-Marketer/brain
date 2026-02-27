@@ -212,7 +212,51 @@ Via Polar. See Section 10 for Polar product configuration details.
 
 ---
 
-## 9. Freemium + Trial Hybrid
+## 9. Price Evolution Strategy
+
+These prices are **launch prices**, not permanent prices. The goal is to buy speed, proof, and data — then raise with confidence.
+
+### Why launch at $29 / $79
+
+- 0 paid users today. No ROI stories yet. No "teams like yours got X result" proof.
+- $29 Pro / $79 Team flat makes saying "yes" easy for early adopters.
+- Clearly premium vs cheap tools, but nowhere near Gong-land ($$$).
+- Team at $79 flat is stupidly good value for a 5-15 rep squad — exactly who we want first.
+
+### Price-raise schedule (decided in advance, not "felt out")
+
+**Trigger 1: First 10 paying Pro + first 5 paying Team**
+- Raise Pro to **$39/month**
+- Raise Team to **$99/month**
+- Grandfather everyone on their original price. Never touch existing subs.
+
+**Trigger 2: Next 20-30 customer mark (if conversion stays healthy)**
+- Repeat the raise. Track trial-to-paid conversion and churn in first 60-90 days.
+- If conversion × lifetime gross profit drops, stop raising. Otherwise, keep going.
+
+This is the $100M Offers LTV play: keep raising until conversion × LTGP goes down.
+
+### When we're "in position to charge more"
+
+When we can say: "Teams like yours paid this and got X result." Specifically:
+- 5-10 paying teams
+- A couple of clear outcomes (faster ramp, better coaching, fewer lost calls)
+- Some "we will never go back" quotes
+
+Until then, we're in "prove it" mode. Launch prices buy the data to exit that mode.
+
+### Annual pricing tracks proportionally
+
+When monthly prices change, annual = monthly × 10 (2 months free framing preserved).
+
+| Trigger | Pro Monthly | Pro Annual | Team Monthly | Team Annual |
+|---------|------------|------------|-------------|-------------|
+| Launch | $29 | $278 | $79 | $758 |
+| After 10 Pro + 5 Team | $39 | $378 | $99 | $958 |
+
+---
+
+## 10. Freemium + Trial Hybrid
 
 ### Free Tier (Permanent)
 
@@ -272,57 +316,24 @@ Polar handles the billing mechanics. The "opt-in at moment of intent" UX is a fr
 
 ---
 
-## 10. Polar Configuration Notes
+## 11. Polar Configuration Notes
 
 *For use during Plan 13-03: Polar Dashboard Update*
 
-### Current v1 Polar Products
+### Polar Products (Clean Setup)
 
-| v1 Product | Price | Billing |
-|------------|-------|---------|
-| Solo | $29/month | Monthly |
-| Team | [v1 Team price — verify in dashboard] | Monthly |
-| Business | [v1 Business price — verify in dashboard] | Monthly |
+**0 paying subscribers** as of 2026-02-27. All v1 stubs (Solo/Team/Business) can be archived. This is a clean setup, not a migration.
 
-### v2 Target Products
+| v2 Product | Price | Billing | Polar Status |
+|------------|-------|---------|-------------|
+| Pro Monthly | $29/month | Monthly | Create fresh |
+| Pro Annual | $278/year | Annual | Create fresh |
+| Team Monthly | $79/month | Monthly | Create fresh |
+| Team Annual | $758/year | Annual | Create fresh |
 
-| v2 Product | Price | Billing |
-|------------|-------|---------|
-| Pro Monthly | $29/month | Monthly |
-| Pro Annual | $278/year | Annual |
-| Team Monthly | $79/month | Monthly |
-| Team Annual | $758/year | Annual |
+**Free tier** — No Polar product. Enforced in app logic only.
 
-### Migration Actions
-
-**Solo → Pro Monthly**
-- Recommended action: Rename in-place
-- Name: "Solo" → "Pro Monthly"
-- Description: Update to remove any "AI-powered" language; use v2 framing
-- Price: $29/month (unchanged — no impact on existing subscribers)
-- Billing interval: Monthly (cannot be changed — matches target)
-- Existing subscriber impact: None (price unchanged, in-place rename)
-
-**Team (v1) → Team Monthly**
-- Recommended action: Verify price in dashboard first
-  - If v1 Team = $79/month: rename in-place, update description
-  - If v1 Team ≠ $79/month: archive + create new (existing subscriber migration required — human decision)
-
-**Business (v1) → Deprecated**
-- Recommended action: Archive (existing subscribers keep access; new purchases disabled)
-- Existing subscriber impact: Users on Business plan retain their current subscription
-- Migration required: Determine if Business subscribers should be migrated to new Team plan, and at what price
-- **This is a human decision point** — do not execute automatically
-
-**Annual Products (new)**
-- Pro Annual ($278/year) — CREATE NEW
-- Team Annual ($758/year) — CREATE NEW
-- Polar requires separate products for annual billing (not a toggle on the monthly product)
-
-**Free Tier**
-- Polar does not manage the Free tier as a subscription product
-- Free tier access is enforced in app logic
-- No Polar product needed for Free
+See POLAR-UPDATE-LOG.md for the execution spec and product IDs.
 
 ### Polar Trial Configuration
 
