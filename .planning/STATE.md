@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-27 (Phase 14 Plan 04 complete — all non-AI routes wired, query key factory, Tauri-ready hooks)
+**Last Updated:** 2026-02-27 (Phase 14 Plan 05 Task 1 complete — GitHub repo created, CI workflow, all code pushed; Task 2 awaiting human verification)
 
 ## Project Reference
 
@@ -16,17 +16,17 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 14 — Foundation (IN PROGRESS)
+**Phase:** Phase 14 — Foundation (IN PROGRESS — awaiting human checkpoint)
 
-**Status:** Phase 14 in progress. Plan 04/05 complete (all routes wired, FOUND-05 and FOUND-06 satisfied).
+**Status:** Phase 14 Plan 05 Task 1 done. GitHub repo Vibe-Marketer/callvault live. Task 2 (Vercel deploy + auth allowlist + end-to-end verification) awaiting human action.
 
-**Last activity:** 2026-02-27 — Phase 14 Plan 04 complete (all non-AI routes wired with AppShell, query key factory, Tauri-ready browser API hooks)
+**Last activity:** 2026-02-27 — Phase 14 Plan 05 Task 1 complete (GitHub repo created, CI workflow live, all 9 commits pushed)
 
 **Progress:**
-[██████████] 95%
-[█         ] 1/10 phases complete (Phase 14 in progress: 4/5 plans done)
+[██████████] 98%
+[█         ] 1/10 phases complete (Phase 14 in progress: 4.5/5 plans — Task 2 awaiting human)
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
-Phase 14: Foundation            [░] in progress — Plans 01-04 done (4/5)
+Phase 14: Foundation            [░] in progress — Plans 01-04 done, Plan 05 Task 1 done (checkpoint)
 Phase 15: Data Migration        [ ] not started
 Phase 16: Workspace Redesign    [ ] not started
 Phase 17: Import Pipeline       [ ] not started
@@ -56,6 +56,7 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-27 | CI uses pnpm build (not tsc --noEmit) — Vite compilation catches both TS and bundler errors in one step | No separate type-check needed; pnpm build is the single source of truth for build health | GitHub Actions CI workflow in .github/workflows/ci.yml |
 | 2026-02-27 | Settings /settings redirects to /settings/account via beforeLoad | Avoids blank settings root; TanStack Router redirect in beforeLoad is the correct pattern | All settings navigation targets /settings/$category |
 | 2026-02-27 | FOUND-06 hard boundary: TanStack Query = server state, Zustand = UI state — convention only, documented in query-config.ts | Runtime enforcement unnecessary; convention + docs prevents cache staleness bugs | All server data fetching uses queryKeys factory; Zustand stores hold UI state only |
 | 2026-02-27 | v2 queryKeys domains are narrower than v1 (no chat/contentLibrary/vaults/teams) | Aligns with MCP-first pivot; no RAG, no Content Hub; domains added as features built | query-config.ts is the source of truth for what server state exists in v2 |
@@ -209,13 +210,25 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-27T15:46:37Z
-**Stopped at:** Completed 14-04-PLAN.md (all routes wired, query key factory, browser API hooks)
-**Resume with:** `/gsd:execute-phase 14` (Plan 05 next: billing gates + UpgradeGate component)
+**Last session:** 2026-02-27T15:52:00Z
+**Stopped at:** 14-05-PLAN.md Task 1 complete (GitHub repo + CI pushed). Task 2 checkpoint reached — awaiting human Vercel deployment + auth allowlist configuration.
+**Resume with:** After human completes Task 2 checkpoint steps, type "approved" to complete Phase 14 and proceed to Phase 15.
 
 ### Context for Next Session
 
-**Phase 14 Plan 04 DONE. Continue with Plan 05 (billing gates, UpgradeGate, tier detection).**
+**Phase 14 Plan 05 checkpoint reached. Task 1 done (GitHub + CI). Task 2 requires human Vercel deploy + Supabase allowlist + OAuth audit.**
+
+**GitHub repo:** https://github.com/Vibe-Marketer/callvault (private, all 9 Phase 14 commits pushed)
+**CI workflow:** .github/workflows/ci.yml — pnpm build on push/PR to main
+
+**Human must complete (per 14-05-SUMMARY.md):**
+1. Create Vercel project from Vibe-Marketer/callvault, set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY env vars
+2. Add Vercel domain to Supabase redirect allowlist (FOUND-07)
+3. Verify Google OAuth has no Meet/Calendar scopes (FOUND-09)
+4. Audit Fathom + Zoom OAuth callback URLs (FOUND-08)
+5. Verify end-to-end auth on deployed URL
+
+After human completes: Phase 14 is done. Next is Phase 15 (Data Migration).
 
 Phase 14 Plan 04 deliverables:
 - `src/routes/_authenticated/index.tsx` — / (All Calls) with folder sidebar and AppShell
