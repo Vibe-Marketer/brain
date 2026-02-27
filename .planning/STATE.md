@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-22 (v2.0 milestone started — strategic pivot)
+**Last Updated:** 2026-02-27 (Phase 13 Plan 01 complete — AI strategy + product identity locked)
 
 ## Project Reference
 
@@ -16,18 +16,18 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 13 — Strategy + Pricing (planned)
+**Phase:** Phase 13 — Strategy + Pricing (in progress)
 
 **Plan:** 3 plans in 2 waves (13-01, 13-02 parallel in Wave 1; 13-03 in Wave 2)
 
-**Status:** Phase 13 planned. Ready to execute.
+**Status:** Phase 13 in progress. Plan 01 complete. Plan 02 ready to execute (Wave 1 parallel).
 
-**Last activity:** 2026-02-23 — Phase 13 planned (3 plans, 2 waves)
+**Last activity:** 2026-02-27 — Plan 13-01 complete (AI-STRATEGY.md + PRODUCT-IDENTITY.md)
 
 **Progress:**
 ```
-[          ] 0/? plans · 0/10 phases complete
-Phase 13: Strategy + Pricing    [ ] not started
+[=         ] 1/3 plans in Phase 13 · 0/10 phases complete
+Phase 13: Strategy + Pricing    [=         ] 1/3 plans complete
 Phase 14: Foundation            [ ] not started
 Phase 15: Data Migration        [ ] not started
 Phase 16: Workspace Redesign    [ ] not started
@@ -58,6 +58,13 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-27 | CallVault is MCP-first: stores/organizes calls, hands to user's existing AI via MCP | Avoids AI lock-in, reduces infra cost to near zero, differentiates from Gong category | All v2 AI decisions flow through this constraint |
+| 2026-02-27 | Smart Import is the only in-app enrichment: auto-title, action items, tags, sentiment at import | Named feature, runs once at import, no AI label — "Calls arrive pre-organized" | AI-02 constraint: no RAG code in new repo ever |
+| 2026-02-27 | Drop RAG pipeline, embeddings, vector search, Content Hub, Langfuse entirely | Per-call embedding cost drops to $0, codebase simplifies dramatically | pg_trgm keyword search replaces semantic search |
+| 2026-02-27 | Marketing tagline locked: AI-ready not AI-powered | Honest claim, defensible, avoids competing on AI capability with Gong | "AI-powered" never appears positively in copy or UI |
+| 2026-02-27 | Primary buyer locked: Heads of Sales / RevOps at B2B companies with 5-50 reps | Different messaging hierarchy, competitive set, and sales motion from solo rep persona | All copy and feature decisions reference this persona |
+| 2026-02-27 | Competitive framing: Gong is the coach, CallVault is the film room and wiring | Different category, not diet Gong — avoids living inside Gong's category | Never frame as Gong without AI lock-in or Gong for Claude users |
+| 2026-02-27 | One-liner: Close more deals from the calls you're already having | Outcome-led, references existing behavior, no AI claim | Locked for all v2 marketing |
 | 2026-01-27 | Security first (Phase 1 before all else) | Can't fix chat with exposed API keys and unauthenticated endpoints | Blocks all feature work until secure |
 | 2026-01-27 | Comprehensive depth (9 phases) | Requirements naturally cluster into distinct delivery boundaries | Clear phase goals, easier verification |
 | 2026-01-27 | Chat before integrations | Chat is core value - integrations only valuable if chat works | Prioritizes user retention over acquisition |
@@ -187,19 +194,23 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-23
-**Stopped at:** v2.0 roadmap created — 10 phases (13–22), 70 requirements mapped, ROADMAP.md written.
-**Resume with:** `/gsd:execute-phase 13`
+**Last session:** 2026-02-27
+**Stopped at:** Completed 13-01-PLAN.md — AI-STRATEGY.md and PRODUCT-IDENTITY.md written.
+**Resume with:** `/gsd:execute-phase 13` (run Plan 13-02 next — Wave 1 parallel with 13-01 now complete)
 
 ### Context for Next Session
 
-**Phase 13 is planned. Execute it.**
+**Phase 13 is in progress. Plan 13-01 is complete.**
 
 3 plans, 2 waves:
-- Wave 1: Plan 13-01 (AI strategy + product identity docs) || Plan 13-02 (pricing tiers + upgrade prompts)
+- Wave 1: Plan 13-01 DONE || Plan 13-02 (pricing tiers + upgrade prompts) — READY TO EXECUTE
 - Wave 2: Plan 13-03 (Polar dashboard update — has human checkpoint)
 
-User decisions are locked in `.planning/phase-13-decisions.md`. Plans create written artifacts only (no code).
+Key strategy documents now locked:
+- AI-STRATEGY.md: MCP-first, Smart Import only, no RAG ever, "AI-ready not AI-powered"
+- PRODUCT-IDENTITY.md: Primary buyer = Heads of Sales / RevOps at B2B companies with 5-50 reps
+
+Plans create written artifacts only (no code).
 
 Key reference points:
 - Live MCP Worker: https://callvault-mcp.naegele412.workers.dev/mcp
