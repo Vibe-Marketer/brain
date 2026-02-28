@@ -26,11 +26,12 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Progress:**
 [██████████] 100% through Phase 18
-[██████    ] 6/10 phases complete
+[███████   ] 7/11 phases complete
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [✓] complete (2026-02-27)
 Phase 16: Workspace Redesign    [✓] complete (2026-02-28)
+Phase 16.1: Workspace Polish    [✓] complete (2026-02-28)
 Phase 17: Import Pipeline       [✓] complete (2026-02-28)
 Phase 18: Import Routing Rules  [✓] complete (2026-02-28)
 Phase 19: MCP Audit + Tokens    [ ] not started

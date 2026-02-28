@@ -523,7 +523,7 @@ Plans:
 | 14 | Foundation | ✓ Complete | 5/5 | 2026-02-27 |
 | 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
 | 16 | Workspace Redesign | ✓ Complete | 8/8 | 2026-02-28 |
-| 16.1 | Workspace Polish & Brand Guidelines | Planned | 0/4 | — | (INSERTED) |
+| 16.1 | Workspace Polish & Brand Guidelines | ✓ Complete | 4/4 | 2026-02-28 | (INSERTED) |
 | 17 | Import Connector Pipeline | ✓ Complete | 5/5 | 2026-02-28 |
 | 18 | Import Routing Rules | ✓ Complete | 4/4 | 2026-02-28 |
 | 19 | MCP Audit + Workspace Tokens | Planned | 0/5 | — |

@@ -7,14 +7,14 @@ description: >
 applies_to:
   - /Users/Naegele/dev/callvault/src/**
   - /Users/Naegele/dev/brain/src/**
-canonical_reference: /Users/Naegele/dev/brain/docs/design/brand-guidelines-v4.2.md
+canonical_reference: /Users/Naegele/dev/brain/docs/design/brand-guidelines-v4.3.md
 last_updated: 2026-02-28
 phase_audit: 16.1
 ---
 
 # CallVault v2 Design System — Agent Quick Reference
 
-This is a condensed, machine-optimized reference. Full canonical spec: `docs/design/brand-guidelines-v4.2.md`.
+This is a condensed, machine-optimized reference. Full canonical spec: `docs/design/brand-guidelines-v4.3.md`.
 
 ---
 
@@ -553,4 +553,4 @@ Dark mode CSS in `globals.css` is comprehensive and correct. All semantic tokens
 | `src/routes/_authenticated/index.tsx` | Radix DropdownMenu + Sub pattern |
 | `src/routes/_authenticated/settings/$category.tsx` | Empty state pattern |
 | `src/globals.css` | Full CSS variable definitions |
-| `docs/design/brand-guidelines-v4.2.md` | Canonical full spec (2900 lines) |
+| `docs/design/brand-guidelines-v4.3.md` | Canonical full spec (2900+ lines) |

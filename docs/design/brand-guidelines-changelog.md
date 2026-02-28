@@ -1,8 +1,23 @@
 # BRAND GUIDELINES CHANGELOG
 
-This file tracks all changes to `brand-guidelines-v4.1.md`.
+This file tracks all changes to the brand guidelines document.
 
 **Format:** Each entry includes version, date, time, git commit, and summary of changes.
+
+---
+
+## v4.3 (February 28, 2026)
+
+**Git Commit:** 53aa185, 35e9b3e
+**Summary:** Phase 16.1 audit findings — v2 AppShell architecture, spring animations, nav pill, import tabs, dialog buttons
+
+- **ADDED:** v2 AppShell 4-pane architecture section (motion/react spring physics, flex row composition, OrgSwitcherBar)
+- **ADDED:** Spring animation system documentation (stiffness 260, damping 28, import from `motion/react`)
+- **UPDATED:** Navigation pill indicator height from `h-4/5` to `h-[65%]` to match actual v2 implementation
+- **ADDED:** Custom button-tab pattern for Import page (Sources/Rules tab bar using button elements)
+- **ADDED:** Dialog button exception (bg-brand-500 inside Radix Dialog action buttons is acceptable)
+- **UPDATED:** File renamed from brand-guidelines-v4.2.md to brand-guidelines-v4.3.md (5 sections changed = minor version bump per docs/CLAUDE.md)
+- **ARCHIVED:** brand-guidelines-v4.2.md moved to docs/archive/
 
 ---
 
