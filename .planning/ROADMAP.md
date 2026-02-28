@@ -213,6 +213,7 @@ Plans:
 **Dependencies:** Phase 16 complete (all workspace redesign plans shipped)
 
 **Requirements:** (To be defined during `/gsd:plan-phase 16.1`)
+- **AppShell alignment:** Detail panel (Pane 4) must push/shrink Pane 3 on same z-index plane — NOT overlay/drawer. Header and background must match v1.
 - Design audit of all Phase 16 UI surfaces
 - Behavior verification and fixes across all workspace flows
 - Fit/finish polish for navigation, breadcrumbs, dialogs, onboarding
