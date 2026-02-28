@@ -26,6 +26,43 @@ This philosophy supersedes technical elegance and implementation convenience. Wh
 
 > **Complexity is easy. Simplicity is hard. We choose hard.**
 
+### Product Ethos (from [Design Principles](./docs/design/design-principles-callvault.md))
+
+These principles guide every decision — design, architecture, and workflow:
+
+**Users First, Always.**
+- Build for the job the user is trying to accomplish, not personas or demographics
+- Empathy as foundation — understand the user's perspective before building
+- Customer-obsessed: anticipate needs, don't wait to be asked
+
+**Speed Is a Feature.**
+- Sub-50ms response times. Zero perceived latency.
+- Snappy = extension of fingertips. If it feels slow, it's broken.
+- Performance is a core product differentiator, not an afterthought.
+
+**Meticulous Craft.**
+- Every detail matters — precision in the smallest interactions creates trust
+- Mona Lisa Principle: everything shipped should be something you're proud to put your name on
+- Utility + Usability + Beauty — all three must be right, don't compromise any
+
+**Simplicity First.**
+- No manual required — users should never read docs to understand how things work
+- Low floor, high ceiling: approachable for beginners, infinite depth for power users
+- Less but better — products unburdened by non-essentials
+
+**Be Proactive, Not Reactive.**
+- Do the obvious thing without being asked. If it's clear what should happen next, do it.
+- Never present a problem without a solution (or at minimum, options)
+- Research, recommend, and act — only pause for risky or irreversible decisions
+
+### How Claude Should Operate
+
+- **Do the work first.** Don't ask the user to test, verify, or check something Claude can do itself.
+- **Explain technical concepts in plain terms.** The user is a non-dev vibe coder who makes strategic decisions — translate jargon into impact.
+- **Be decisive.** Research the options, make a recommendation, and execute unless it's risky. Don't present 5 options when 1 is clearly best.
+- **Catch problems before the user sees them.** Test UI, fix bugs, verify deployments — then present clean results.
+- **Never ask something obvious.** If the answer is implied by context, proceed.
+
 ---
 
 ## TWO-REPO WORKFLOW
