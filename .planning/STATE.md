@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 17 Plan 05 Task 1 COMPLETE — All 5 edge functions deployed; frontend build passing; IMP-02 line count 389/230 (overage documented); awaiting human verification at Task 2 checkpoint)
+**Last Updated:** 2026-02-28 (Phase 18 Plan 01 COMPLETE — import_routing_rules + import_routing_defaults tables deployed; routing-engine.ts created; runPipeline() now resolves routing before insert)
 
 ## Project Reference
 
@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 17 — Import Connector Pipeline (Plan 05 Task 1 complete — awaiting checkpoint)
+**Phase:** Phase 18 — Import Routing Rules (Plan 01 complete)
 
-**Status:** Phase 16 Workspace Redesign now COMPLETE — all 7 plans finished, human verification passed, build clean, deployed to production. Phase 17 Plan 05 Task 1 complete. All 5 edge functions deployed to production (youtube-import, zoom-sync-meetings, sync-meetings, fetch-meetings, file-upload-transcribe). Frontend build passes. Zero fathom_calls inserts in any connector. IMP-02 line count: 389 lines (138 edge fn + 251 FileUploadDropzone) — EXCEEDS 230-line must_have budget. Awaiting human verification of Import Hub UI at Task 2 checkpoint.
+**Status:** Phase 17 Import Pipeline assumed complete (Plans 01-05 done). Phase 18 Plan 01 complete: import_routing_rules + import_routing_defaults tables deployed to production with RLS; routing-engine.ts created with resolveRoutingDestination() evaluating 6 condition types; runPipeline() in connector-pipeline.ts now resolves routing before insert (rules → org default → personal vault fallback). Plans 02-04 remain for Phase 18.
 
-**Last activity:** 2026-02-28 — Phase 16 Plan 07 complete (human verification approved); Phase 17 Plan 05 Task 1 complete
+**Last activity:** 2026-02-28 — Phase 18 Plan 01 complete (routing DB schema + routing engine + pipeline integration)
 
 **Progress:**
 [██████████] 98%
@@ -30,7 +30,7 @@ Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
 Phase 16: Workspace Redesign    [✓] complete (2026-02-28 — all 7 plans finished, human verification passed)
 Phase 17: Import Pipeline       [~] in progress (Plans 01-04 done, Plan 05 at checkpoint)
-Phase 18: Import Routing Rules  [ ] not started
+Phase 18: Import Routing Rules  [~] in progress (Plan 01 done, Plans 02-04 remaining)
 Phase 19: MCP Audit + Tokens    [ ] not started
 Phase 20: MCP Differentiators   [ ] not started
 Phase 21: AI Bridge + Export    [ ] not started
@@ -56,6 +56,10 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | Routing logic lives in runPipeline() pre-step (not insertRecording() parameter) — preserves insertRecording signature unchanged | insertRecording() contract is stable across all connectors; routing is pipeline-layer concern | Direct callers of insertRecording() bypass routing — acceptable per plan design |
+| 2026-02-28 | import_routing_rules is bank-scoped (org-level), not user-scoped — the whole org shares one rule list | Locked decision from CONTEXT.md: one rule list per org | Rules use bank_memberships RLS pattern (not auth.uid() = user_id direct check) |
+| 2026-02-28 | Routing resolution is fully non-blocking — failure logs and continues, never blocks import | Consistent with fail-open pattern established for dedup check; import reliability > routing correctness | All routing errors (rules query, default lookup) are caught and logged |
+| 2026-02-28 | import_routing_defaults uses bank_id as PRIMARY KEY (one default per org) — managed via upsert | Schema-enforced constraint; no race condition possible; simpler than INSERT+UNIQUE | Frontend upsert on conflict(bank_id) for default destination saves |
 | 2026-02-28 | Zoom/Fathom/YouTube connectors rewired to use checkDuplicate()+insertRecording() — broken fathom_calls VIEW writes eliminated | fathom_calls is a read-only VIEW; all new recordings must go to recordings table via pipeline | All 3 connectors now dedup via source_metadata->>'external_id'; skipped_count tracked in sync_jobs |
 | 2026-02-28 | YouTube always shown as active in Import Hub (no per-user OAuth) — sync action opens URL input dialog | YouTube uses shared API key; no import_sources row needed; "Sync" button is the user-facing entry point | YouTube card never shows "disconnected"; File Upload card toggle is no-op (always available) |
 | 2026-02-28 | Import Hub Add Source card opens "Coming soon" dialog (Grain + Fireflies in disabled state) — no routing needed for MVP | No connectors to add yet; dialog shows future roadmap without incomplete flows | Future connector additions: add to SOURCE_REGISTRY config array in ImportPage, no grid changes needed |
