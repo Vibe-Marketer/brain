@@ -1,8 +1,9 @@
 # CALLVAULT FRONTEND - CLAUDE INSTRUCTIONS
 
-**Last Updated:** 2026-01-14
-**Status:** Frontend Development Guide
-**Scope:** All frontend code under `/src`
+**Last Updated:** 2026-02-28
+**Status:** Design System & Visual Standards (shared between v1 and v2)
+**Scope:** Visual rules, brand system, component patterns
+**Note:** After migration, move these rules to `callvault/src/CLAUDE.md`
 
 ---
 
@@ -27,9 +28,7 @@ AppShell provides the unified 3-4 pane layout system for all pages. It eliminate
 
 ### Reference Implementation
 
-**Canonical Example:** `src/pages/SortingTagging.tsx`
-
-This file demonstrates the correct AppShell usage pattern:
+**v2 Pattern** (callvault repo):
 
 ```tsx
 import { AppShell } from "@/components/layout/AppShell";
@@ -37,10 +36,8 @@ import { AppShell } from "@/components/layout/AppShell";
 export default function MyPage() {
   return (
     <AppShell
-      config={{
-        secondaryPane: <MySecondaryPane />,
-        showDetailPane: true,
-      }}
+      secondaryPane={<MySecondaryPane />}
+      showDetailPane={true}
     >
       <MyMainContent />
     </AppShell>
@@ -127,19 +124,22 @@ Tablet (768-1024):  Sidebar auto-collapsed, panes visible
 Mobile (<768px):    Single-pane with overlays
 ```
 
-### AppShell Configuration
+### AppShell Behavior (MUST MATCH)
+
+**CRITICAL:** Pane 4 (Detail Panel) slides in and Pane 3 (Main Content) **shrinks** to make room. All panes operate on the **same plane/z-index**. No drawer overlays. No covering content.
 
 ```tsx
-interface AppShellConfig {
-  showNavRail?: boolean;        // Default: true
-  secondaryPane?: ReactNode;    // Optional 2nd pane content
+// v2 props (flat, no config object)
+interface AppShellProps {
+  children: ReactNode;          // Main content (Pane 3)
+  secondaryPane?: ReactNode;    // Optional Pane 2 content
   showDetailPane?: boolean;     // Default: false
-  onLibraryToggle?: () => void;
-  onSettingsClick?: () => void;
-  onSortingClick?: () => void;
-  onSyncClick?: () => void;
 }
 ```
+
+**Animation:** v2 uses spring physics via `motion/react` (import from `motion/react`, NOT `framer-motion`). The spring config should produce a 500ms ease-in-out feel.
+
+**State:** Sidebar and panel state lives in Zustand (`usePreferencesStore`), persists across routes.
 
 ## Anti-Patterns: Layout Mistakes to AVOID
 
@@ -225,17 +225,17 @@ const usesCustomLayout = ... || isMyPage;  // Add here
 
 ```text
 src/
+  routes/                  # TanStack Router file-based routes (v2)
   components/
     {domain}/              # Domain-specific components
       {ComponentName}.tsx  # Component file
-      __tests__/           # Tests alongside components
     layout/                # Layout components (AppShell, etc.)
     panels/                # Detail panel components
     panes/                 # Secondary pane components
-    ui/                    # Shared UI primitives (Button, etc.)
-  hooks/                   # Custom hooks
+    ui/                    # Shared UI primitives (shadcn/ui, Button, etc.)
+  services/                # Pure async data-access functions (no React)
+  hooks/                   # Custom hooks (wrap services with TanStack Query)
   stores/                  # Zustand stores
-  pages/                   # Page components (route entry points)
   lib/                     # Utility functions
   types/                   # TypeScript type definitions
 ```
@@ -549,36 +549,15 @@ function MyComponent() {
 
 ### Step-by-Step Verification Workflow
 
-1. **Identify Changed Pages**
-   - Review which components/pages were modified
-   - List all routes that need verification
+Use the **dev-browser skill** for all verification. NEVER ask the user to verify something dev-browser can test.
 
-2. **Start Dev Server (if not running)**
-   ```bash
-   npm run dev  # Runs on http://localhost:8080
-   ```
-
-3. **Navigate to Changed Pages**
-   ```
-   Use mcp__playwright__browser_navigate to visit each route
-   ```
-
-4. **Take Screenshots at Desktop Viewport (1440px)**
-   ```
-   Use mcp__playwright__browser_screenshot with width: 1440
-   ```
-
-5. **Check Console for Errors**
-   ```
-   Use mcp__playwright__browser_console_messages
-   ```
-
-6. **Verify Against Brand Guidelines**
-   - Check color usage matches approved patterns
-   - Verify button variants are correct
-   - Confirm typography follows Montserrat/Inter rules
-   - Ensure spacing uses 4px grid
-   - Validate dark mode behavior
+1. **Identify Changed Pages** — review which routes were modified
+2. **Use dev-browser** — navigate to each route on production (callvault.vercel.app) or localhost
+3. **Click every interactive element** — buttons, toggles, forms, tabs, dialogs
+4. **Screenshot at desktop viewport** (1280px+)
+5. **Check for console/network errors** — monitor page.on("console") and page.on("response")
+6. **Fix broken things** before presenting to user
+7. **Verify against brand guidelines** — colors, button variants, typography, spacing
 
 ### Design Review Checklist
 
