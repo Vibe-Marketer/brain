@@ -81,3 +81,6 @@ verify_jwt = true
 
 [functions.automation-email]
 verify_jwt = true
+
+[functions.file-upload-transcribe]
+verify_jwt = true
