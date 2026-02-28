@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 15 — Data Migration (Plan 01 of 4 complete)
+**Phase:** Phase 15 — Data Migration (Plan 02 of 4 complete)
 
-**Status:** Plan 01 complete — all 1,545 fathom_calls migrated, external_id backfilled, RLS verified. Plans 02-04 remaining.
+**Status:** Plan 02 complete — v2 frontend calls list (/) and call detail (/calls/:id) wired to recordings table. Plans 03-04 remaining.
 
-**Last activity:** 2026-02-27 — Phase 15 Plan 01 complete (batch migration, backfill, RLS verification)
+**Last activity:** 2026-02-28 — Phase 15 Plan 02 complete (v2 frontend wired to recordings table)
 
 **Progress:**
 [██████████] 96%
@@ -56,7 +56,9 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
-| 2026-02-27 | Task 2 (disable sync edge functions) skipped — accepted migration risk | User wanted speed; unmigrated_non_orphans = 0 confirmed no data loss | No sync functions need re-enabling; Plan 03 archive rename should still consider disabling |
+| 2026-02-28 | Service layer pattern established: src/services/*.service.ts plain async functions, hooks wrap with useQuery | Separates data access from cache management; plain functions are independently testable | All v2 data fetching follows this service+hook separation pattern |
+| 2026-02-28 | RecordingListItem = Pick<Row> for list, full Row for detail — avoids transferring full_transcript in list query | Avoids fetching kilobyte-scale transcript column for every row in the list | Pattern for all future list vs detail data shapes |
+| 2026-02-28 | Task 2 (disable sync edge functions) skipped — accepted migration risk | User wanted speed; unmigrated_non_orphans = 0 confirmed no data loss | No sync functions need re-enabling; Plan 03 archive rename should still consider disabling |
 | 2026-02-27 | external_id backfilled via UPDATE not re-migration for 1,532 pre-existing rows | Simpler, safer than re-running migration — no re-insert risk | All 1,554 migrated recordings now have external_id in source_metadata |
 | 2026-02-27 | get_migration_progress() 100.58% is expected (1,554 > 1,545) — 9 non-Fathom recordings use legacy_recording_id | YouTube imports + Google Meet + 2 deleted fathom rows explain the overage | Canonical metric is unmigrated_non_orphans = 0, not percent_complete |
 | 2026-02-27 | Production SQL run via psql direct connection (not edge function) for batch migration | Supabase CLI v2.75.0 has no db execute --project-ref; edge function requires browser JWT | Pattern for future production SQL: PGHOST=aws-1-us-east-1.pooler.supabase.com PGUSER=postgres.vltmrnjsubfzrgrtdqey |
@@ -214,13 +216,23 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T01:10:00Z
-**Stopped at:** Phase 15 Plan 01 complete — all 1,545 fathom_calls migrated, external_id backfilled on 1,554 rows, RLS verified clean.
-**Resume with:** `/gsd:execute-phase 15` to continue Phase 15 with Plan 02.
+**Last session:** 2026-02-28T01:13:00Z
+**Stopped at:** Phase 15 Plan 02 complete — v2 frontend calls list and call detail pages wired to recordings table, pnpm build passing, zero fathom_calls in authored source.
+**Resume with:** `/gsd:execute-phase 15` to continue Phase 15 with Plan 03.
 
 ### Context for Next Session
 
-**Phase 15 Plan 01 complete. Continue with Phase 15 Plan 02.**
+**Phase 15 Plan 02 complete. Continue with Phase 15 Plan 03.**
+
+**Frontend state:**
+- `/` route: live recordings list from recordings table (title, date, duration, source_app badge)
+- `/calls/:id` route: full recording detail with summary, tags, full_transcript
+- Both pages handle loading, error, and empty states
+- `src/services/recordings.service.ts` — getRecordings(), getRecordingById()
+- `src/hooks/useRecordings.ts` — useRecordings(), useRecording(id)
+- `src/lib/query-config.ts` — recordings domain added to queryKeys factory
+
+**Migration state (from Plan 01):**
 
 **Migration state:**
 - All fathom_calls migrated: unmigrated_non_orphans = 0

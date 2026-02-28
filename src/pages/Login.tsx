@@ -20,6 +20,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +82,39 @@ export default function Login() {
 
       toast.success('Signed in successfully!');
       navigate('/');
+    } catch (error: unknown) {
+      toast.error(getErrorToastMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleMagicLink = async () => {
+    if (!email) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+
+    const emailValidation = z.string().email('Invalid email address').max(255).safeParse(email);
+    if (!emailValidation.success) {
+      toast.error(emailValidation.error.errors[0].message);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: emailValidation.data,
+        options: {
+          emailRedirectTo: `${window.location.origin}/`,
+          shouldCreateUser: true,
+        },
+      });
+
+      if (error) throw error;
+
+      setMagicLinkSent(true);
+      toast.success('Magic link sent! Check your email.');
     } catch (error: unknown) {
       toast.error(getErrorToastMessage(error));
     } finally {
@@ -188,6 +222,43 @@ export default function Login() {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? 'Signing in...' : 'Sign In'}
                 </Button>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-background px-2 text-muted-foreground">Or</span>
+                  </div>
+                </div>
+
+                {magicLinkSent ? (
+                  <div className="text-center space-y-2 rounded-md border border-border p-4">
+                    <p className="text-sm font-medium">Check your email</p>
+                    <p className="text-xs text-muted-foreground">
+                      We sent a magic link to <strong>{email}</strong>
+                    </p>
+                    <Button
+                      type="button"
+                      variant="link"
+                      className="text-xs"
+                      onClick={() => setMagicLinkSent(false)}
+                      disabled={loading}
+                    >
+                      Didn't receive it? Try again
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="hollow"
+                    className="w-full"
+                    onClick={handleMagicLink}
+                    disabled={loading}
+                  >
+                    {loading ? 'Sending...' : 'Send me a Magic Link'}
+                  </Button>
+                )}
               </form>
             </TabsContent>
 
