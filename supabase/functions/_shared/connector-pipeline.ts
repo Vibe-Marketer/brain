@@ -8,6 +8,7 @@
  */
 
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { resolveRoutingDestination } from './routing-engine.ts';
 
 // ============================================================================
 // TYPES
@@ -37,6 +38,12 @@ export interface ConnectorRecord {
   bank_id?: string;
   /** If omitted, insertRecording() resolves the personal vault for the resolved bank */
   vault_id?: string;
+  /**
+   * Optional destination folder within the target vault.
+   * Set by the routing engine when a matched rule specifies a target_folder_id.
+   * Passed through to the vault_entries INSERT if present.
+   */
+  folder_id?: string;
 }
 
 /**
@@ -191,12 +198,19 @@ export async function insertRecording(
     }
 
     if (vaultId) {
+      const entryPayload: Record<string, unknown> = {
+        vault_id: vaultId,
+        recording_id: newRecording.id,
+      };
+
+      // Include folder_id if routing resolved a specific folder destination
+      if (record.folder_id) {
+        entryPayload['folder_id'] = record.folder_id;
+      }
+
       const { error: entryError } = await supabase
         .from('vault_entries')
-        .insert({
-          vault_id: vaultId,
-          recording_id: newRecording.id,
-        });
+        .insert(entryPayload);
 
       if (entryError) {
         console.error('[connector-pipeline] Failed to create vault_entry (non-blocking):', entryError);
@@ -217,7 +231,16 @@ export async function insertRecording(
 // ============================================================================
 
 /**
- * runPipeline: convenience wrapper that calls checkDuplicate then insertRecording.
+ * runPipeline: convenience wrapper that calls checkDuplicate, resolves routing destination,
+ * then calls insertRecording.
+ *
+ * Routing resolution runs between the dedup check and the insert:
+ *   1. If record.vault_id is already set (connector specified explicit destination) → skip routing
+ *   2. Resolve bank_id (use record.bank_id or look up personal bank)
+ *   3. Call resolveRoutingDestination() — evaluates import_routing_rules in priority order
+ *   4. If a rule matches → set record.vault_id, record.folder_id, merge routing trace into source_metadata
+ *   5. If no rule matches → check import_routing_defaults for org fallback destination
+ *   6. If neither → do nothing (insertRecording falls back to personal vault — existing behavior preserved)
  *
  * Returns:
  *   { success: true, recordingId }             — new recording created
@@ -226,6 +249,7 @@ export async function insertRecording(
  *
  * Connectors that need custom handling between stages should call checkDuplicate()
  * and insertRecording() directly instead of using this wrapper.
+ * NOTE: Direct callers of insertRecording() bypass routing — this is acceptable per design.
  */
 export async function runPipeline(
   supabase: SupabaseClient,
@@ -242,6 +266,71 @@ export async function runPipeline(
 
     if (isDuplicate) {
       return { success: false, skipped: true };
+    }
+
+    // -------------------------------------------------------------------------
+    // Routing resolution: only when connector didn't specify an explicit vault
+    // -------------------------------------------------------------------------
+    if (!record.vault_id) {
+      try {
+        // Resolve bank_id for routing lookup
+        let bankId = record.bank_id;
+        if (!bankId) {
+          const { data: membership, error: bankError } = await supabase
+            .from('bank_memberships')
+            .select('banks!inner(id, type)')
+            .eq('user_id', userId)
+            .eq('banks.type', 'personal')
+            .maybeSingle();
+
+          if (bankError) {
+            console.error('[connector-pipeline] Failed to resolve bank for routing (skipping routing):', bankError);
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            bankId = (membership as any)?.banks?.id;
+          }
+        }
+
+        if (bankId) {
+          // Step 1: Try routing rules — first-match-wins
+          const routing = await resolveRoutingDestination(supabase, bankId, record);
+
+          if (routing) {
+            // Routing rule matched — set destination and record trace metadata
+            record.vault_id = routing.vaultId;
+            if (routing.folderId) {
+              record.folder_id = routing.folderId;
+            }
+            // Merge routing trace into source_metadata for display in UI
+            record.source_metadata = {
+              ...record.source_metadata,
+              routed_by_rule_id: routing.matchedRuleId,
+              routed_by_rule_name: routing.matchedRuleName,
+              routed_at: new Date().toISOString(),
+            };
+          } else {
+            // Step 2: No rule matched — try org-level default destination
+            const { data: defaultDest, error: defaultError } = await supabase
+              .from('import_routing_defaults')
+              .select('target_vault_id, target_folder_id')
+              .eq('bank_id', bankId)
+              .maybeSingle();
+
+            if (defaultError) {
+              console.error('[connector-pipeline] Failed to load routing default (skipping):', defaultError);
+            } else if (defaultDest) {
+              record.vault_id = defaultDest.target_vault_id;
+              if (defaultDest.target_folder_id) {
+                record.folder_id = defaultDest.target_folder_id;
+              }
+            }
+            // Step 3: If no default either, do nothing — insertRecording uses personal vault (preserved behavior)
+          }
+        }
+      } catch (routingErr) {
+        // Non-blocking: routing failure should never prevent an import
+        console.error('[connector-pipeline] Routing resolution error (skipping routing):', routingErr);
+      }
     }
 
     const { id } = await insertRecording(supabase, userId, record);
