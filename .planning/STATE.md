@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 18 Plan 01 COMPLETE — import_routing_rules + import_routing_defaults tables deployed; routing-engine.ts created; runPipeline() now resolves routing before insert)
+**Last Updated:** 2026-02-28 (Phase 16 Plan 08 COMPLETE — workspace/folder filtering of calls list wired via vault_entries + folder_assignments; folder breadcrumb Level 3 implemented)
 
 ## Project Reference
 
@@ -23,12 +23,12 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 **Last activity:** 2026-02-28 — Phase 18 Plan 01 complete (routing DB schema + routing engine + pipeline integration)
 
 **Progress:**
-[██████████] 98%
+[█████████░] 94%
 [████      ] 3/10 phases complete
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
-Phase 16: Workspace Redesign    [✓] complete (2026-02-28 — all 7 plans finished, human verification passed)
+Phase 16: Workspace Redesign    [✓] complete (2026-02-28 — all 8 plans finished including gap closure 16-08)
 Phase 17: Import Pipeline       [~] in progress (Plans 01-04 done, Plan 05 at checkpoint)
 Phase 18: Import Routing Rules  [~] in progress (Plan 01 done, Plans 02-04 remaining)
 Phase 19: MCP Audit + Tokens    [ ] not started
@@ -58,6 +58,8 @@ Phase 22: Backend Cleanup       [ ] not started
 |------|----------|-----------|--------|
 | 2026-02-28 | Routing logic lives in runPipeline() pre-step (not insertRecording() parameter) — preserves insertRecording signature unchanged | insertRecording() contract is stable across all connectors; routing is pipeline-layer concern | Direct callers of insertRecording() bypass routing — acceptable per plan design |
 | 2026-02-28 | import_routing_rules is bank-scoped (org-level), not user-scoped — the whole org shares one rule list | Locked decision from CONTEXT.md: one rule list per org | Rules use bank_memberships RLS pattern (not auth.uid() = user_id direct check) |
+| 2026-02-28 | Two-step query for workspace/folder filtering: get IDs from vault_entries/folder_assignments then fetch recordings.in('id', ids) | Supabase JS client join syntax on non-FK relationships is awkward; two-step is explicit and debuggable | Empty workspace/folder returns empty array, not all recordings — correct UX |
+| 2026-02-28 | useFolders(activeWorkspaceId) in useBreadcrumbs reuses TanStack Query cache from WorkspaceSidebarPane | Same queryKey = same cache entry; zero extra network requests for breadcrumb folder name | Future callers of useBreadcrumbs get folder name for free as long as sidebar has loaded |
 | 2026-02-28 | Routing resolution is fully non-blocking — failure logs and continues, never blocks import | Consistent with fail-open pattern established for dedup check; import reliability > routing correctness | All routing errors (rules query, default lookup) are caught and logged |
 | 2026-02-28 | import_routing_defaults uses bank_id as PRIMARY KEY (one default per org) — managed via upsert | Schema-enforced constraint; no race condition possible; simpler than INSERT+UNIQUE | Frontend upsert on conflict(bank_id) for default destination saves |
 | 2026-02-28 | Zoom/Fathom/YouTube connectors rewired to use checkDuplicate()+insertRecording() — broken fathom_calls VIEW writes eliminated | fathom_calls is a read-only VIEW; all new recordings must go to recordings table via pipeline | All 3 connectors now dedup via source_metadata->>'external_id'; skipped_count tracked in sync_jobs |
@@ -254,8 +256,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T04:56:42.294Z
-**Stopped at:** Phase 17 Plan 05 Task 1 complete — awaiting human verification at Task 2 checkpoint
+**Last session:** 2026-02-28T05:20:10.243Z
+**Stopped at:** Completed 16-workspace-redesign-08-PLAN.md
 **Resume with:** `/gsd:execute-phase 17` to run next plan (17-04 or 17-02 if not yet done).
 
 ### Context for Next Session
