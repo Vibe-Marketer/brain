@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 17 Plan 03 COMPLETE — file-upload-transcribe edge function deployed, 138 lines, Whisper API integration, 10/month quota check, dedup via checkDuplicate(), insert via insertRecording())
+**Last Updated:** 2026-02-28 (Phase 17 Plan 04 COMPLETE — Import Hub UI deployed: 4 source cards + Add Source card, drag-and-drop file upload dropzone, FailedImportsSection with per-call retry, OAuth auto-sync on return, dedup-aware sync toasts)
 
 ## Project Reference
 
@@ -16,20 +16,20 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 17 — Import Connector Pipeline (Plan 03 complete)
+**Phase:** Phase 17 — Import Connector Pipeline (Plan 04 complete)
 
-**Status:** Plan 03 complete. file-upload-transcribe edge function created (138 lines) and deployed to production. Validates file size (25MB), MIME type (MP3/WAV/MP4/M4A/MOV/WebM), monthly quota (10/month free tier, returns 429), deduplicates via checkDuplicate() using filename+size as external_id, transcribes via Whisper API (whisper-1 model, synchronous), inserts via insertRecording() from shared pipeline.
+**Status:** Plan 04 complete. Import Hub UI deployed: import-sources.service.ts with 8 CRUD/upload/retry functions; useImportSources.ts with 7 React Query hooks; SourceCard component with status badge, toggle, sync, disconnect confirm dialog; FileUploadDropzone with drag-and-drop + 25MB/MIME validation; ImportSourceGrid responsive grid with Add Source card; FailedImportsSection with per-call retry buttons; full ImportPage rewrite with OAuth auto-sync on return and dedup-aware sync toasts.
 
-**Last activity:** 2026-02-28 — Phase 17 Plan 03 complete
+**Last activity:** 2026-02-28 — Phase 17 Plan 04 complete
 
 **Progress:**
-[██████████] 95%
+[██████████] 97%
 [███       ] 2.25/10 phases complete
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
 Phase 16: Workspace Redesign    [~] in progress (Plans 01-06 done, Plan 07 at checkpoint)
-Phase 17: Import Pipeline       [~] in progress (Plans 01, 03 done)
+Phase 17: Import Pipeline       [~] in progress (Plans 01, 02, 03, 04 done)
 Phase 18: Import Routing Rules  [ ] not started
 Phase 19: MCP Audit + Tokens    [ ] not started
 Phase 20: MCP Differentiators   [ ] not started
@@ -56,6 +56,8 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | YouTube always shown as active in Import Hub (no per-user OAuth) — sync action opens URL input dialog | YouTube uses shared API key; no import_sources row needed; "Sync" button is the user-facing entry point | YouTube card never shows "disconnected"; File Upload card toggle is no-op (always available) |
+| 2026-02-28 | Import Hub Add Source card opens "Coming soon" dialog (Grain + Fireflies in disabled state) — no routing needed for MVP | No connectors to add yet; dialog shows future roadmap without incomplete flows | Future connector additions: add to SOURCE_REGISTRY config array in ImportPage, no grid changes needed |
 | 2026-02-28 | file-upload-transcribe uses synchronous Whisper flow (no async/waitUntil) — MVP files < 25MB complete within 150s edge function limit | EdgeRuntime.waitUntil pattern adds complexity; synchronous acceptable for MVP | Plan 02 async pattern can be added later if timeouts become an issue |
 | 2026-02-28 | file-upload dedup external_id = filename + '-' + file_size — deterministic, same file re-uploaded is detected as duplicate | Simple key, no content hashing needed, works without reading file bytes twice | File upload connector dedup pattern; content hash would be more robust but adds latency |
 | 2026-02-28 | Monthly quota counts ALL recordings (not just file-upload source_app) — 10/month applies across all import sources | Per plan spec: "file uploads count toward the same 10/month limit as all other sources" | Consistent free tier limit regardless of how recordings are imported |
@@ -247,8 +249,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T04:48:15Z
-**Stopped at:** Completed 17-03-PLAN.md
+**Last session:** 2026-02-28T04:52:14.864Z
+**Stopped at:** Completed 17-04-PLAN.md
 **Resume with:** `/gsd:execute-phase 17` to run next plan (17-04 or 17-02 if not yet done).
 
 ### Context for Next Session
