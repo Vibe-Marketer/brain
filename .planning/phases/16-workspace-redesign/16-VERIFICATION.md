@@ -1,52 +1,65 @@
 ---
 phase: 16-workspace-redesign
-verified: 2026-02-28T06:00:00Z
-status: gaps_found
-score: 4/5 success criteria verified (13/13 requirements at data/service layer; 2 UX gaps remain)
-gaps:
-  - truth: "Calls list filters by active workspace (shows only that workspace's calls)"
-    status: failed
-    reason: "useFilteredRecordings() is a passthrough — returns all recordings regardless of active workspace. Code comment explicitly states 'Return all recordings until a workspace filter layer is added (Plan 16-08+)'. No vault_entries join is implemented."
-    artifacts:
-      - path: "src/routes/_authenticated/index.tsx"
-        issue: "useFilteredRecordings() returns all recordings unconditionally (lines 39-43)"
-    missing:
-      - "Filter recordings by vault_entries.vault_id = activeWorkspaceId when a workspace is selected"
-      - "Filter recordings by folder_assignments.folder_id = activeFolderId when a folder is selected"
-  - truth: "Folder name appears in breadcrumb trail when a folder is active"
-    status: partial
-    reason: "useBreadcrumbs() skips the folder level entirely — an activeFolderId produces no breadcrumb label. Code comment: 'Folder name will come from WorkspaceSidebarPane's folder query context / For now we skip the label-less crumb — Plan 16-04 wires this fully'. Plan 16-04 did build useFolders but the breadcrumb was never updated to consume it."
-    artifacts:
-      - path: "src/components/layout/WorkspaceBreadcrumb.tsx"
-        issue: "Lines 166-172: activeFolderId check exists but pushes nothing (empty if block)"
-    missing:
-      - "Call useFolders(activeWorkspaceId) in useBreadcrumbs and find the folder by activeFolderId to get its name"
-      - "Push BreadcrumbItem with folder.name when activeFolderId is set"
-
+verified: 2026-02-28T05:22:03Z
+status: human_needed
+score: 13/13 must-haves verified
+re_verification:
+  previous_status: gaps_found
+  previous_score: 11/13 truths verified
+  gaps_closed:
+    - "Calls list filters by active workspace (shows only that workspace's calls via vault_entries two-step query)"
+    - "Folder name appears in breadcrumb trail when a folder is active (Org > Workspace > Folder)"
+  gaps_remaining: []
+  regressions: []
 human_verification:
-  - test: "Navigate to production URL, activate a workspace via sidebar, check that calls list shows ONLY that workspace's calls"
-    expected: "Only calls belonging to the selected workspace appear — all other users' calls or other-workspace calls are hidden"
-    why_human: "useFilteredRecordings passthrough means this cannot be verified programmatically — the UI appears functional but shows wrong data"
-  - test: "Activate a folder in the sidebar, check breadcrumb at top of calls list"
-    expected: "Breadcrumb shows: Personal > My Calls > [Folder Name]"
-    why_human: "Folder breadcrumb level is silently skipped — no error thrown, just missing from trail"
-  - test: "Open Workspace settings page, click Invite Member, verify dialog header shows both org name and workspace name"
-    expected: "Dialog shows 'Invite to [Workspace Name]' with 'in [Org Name]' subtitle"
-    why_human: "Dialog content depends on runtime props (workspaceName, orgName) passed from WorkspaceDetailPage"
-  - test: "Complete onboarding explorer on a fresh account, confirm it does not re-appear on next login"
-    expected: "ModelExplorer shown once; after 'Get Started', never shows again on subsequent logins"
-    why_human: "user_profiles.auto_processing_preferences persistence can only be verified with a real authenticated session"
-  - test: "Verify Supabase Auth email templates contain no Bank/Vault/Hub terminology"
+  - test: "Log in, activate a workspace via sidebar, observe the calls list. Activate a folder, observe further narrowing."
+    expected: "Only calls belonging to the selected workspace appear when a workspace is active. Only calls assigned to the selected folder appear when a folder is active. Deselecting both shows all org calls."
+    why_human: "useWorkspaceRecordings correctly selects the query function based on context, but workspace/folder filtering depends on vault_entries and folder_assignments data being populated for the test account — need runtime verification to confirm the data path works end-to-end."
+  - test: "Activate a folder in the sidebar, check breadcrumb at top of calls list."
+    expected: "Breadcrumb shows: [Org Name] / [Workspace Name] / [Folder Name]"
+    why_human: "useFolders cache reuse depends on the sidebar having already loaded folders for the same workspaceId. Needs visual confirmation the folder level appears in the breadcrumb trail."
+  - test: "Open Workspace settings page, click Invite Member, verify dialog header shows both org name and workspace name."
+    expected: "Dialog shows 'Invite to [Workspace Name]' with 'in [Org Name]' subtitle text"
+    why_human: "Dialog content depends on runtime props (workspaceName, orgName) passed from WorkspaceDetailPage — verified in code but needs visual confirmation."
+  - test: "Complete onboarding explorer on a fresh account, log out, log back in."
+    expected: "ModelExplorer shown once; after 'Get Started', does not appear on subsequent logins"
+    why_human: "user_profiles.auto_processing_preferences JSONB persistence can only be verified with a real authenticated Supabase session."
+  - test: "Verify Supabase Auth email templates contain no Bank/Vault/Hub terminology."
     expected: "All email templates (confirmation, magic link, password reset, invite) use generic text or Organization/Workspace terminology"
-    why_human: "Supabase dashboard templates cannot be verified programmatically from source code — noted as manual step in Plan 16-07 Task 3"
+    why_human: "Supabase dashboard templates cannot be verified programmatically from source code — must check Supabase Dashboard -> Authentication -> Email Templates manually."
 ---
 
 # Phase 16: Workspace Redesign Verification Report
 
 **Phase Goal:** Users experience the new Organization -> Workspace -> Folder model with correct naming everywhere, working URL redirects, clear switching UX, and functional invite flows.
-**Verified:** 2026-02-28T06:00:00Z
-**Status:** gaps_found
-**Re-verification:** No — initial verification
+**Verified:** 2026-02-28T05:22:03Z
+**Status:** human_needed
+**Re-verification:** Yes — after gap closure (Plans 16-08)
+
+---
+
+## Re-Verification Summary
+
+Previous status: gaps_found (11/13 truths, 2 failed)
+Current status: human_needed (13/13 truths verified)
+
+**Gaps closed:**
+
+1. Gap 1 (Workspace/folder filtering of calls list) — CLOSED
+   - `getRecordingsByWorkspace()` added to `recordings.service.ts` (lines 51-82): two-step query via `vault_entries` where `vault_id = workspaceId`, returns matching recordings
+   - `getRecordingsByFolder()` added to `recordings.service.ts` (lines 94-126): two-step query via `folder_assignments` where `folder_id = folderId`, returns recordings by `legacy_recording_id`
+   - `useWorkspaceRecordings(workspaceId, folderId)` hook added to `useRecordings.ts` (lines 36-60): single `useQuery` call with ternary-derived `queryKey`/`queryFn` (no conditional hook violations)
+   - `useFilteredRecordings()` in `index.tsx` now calls `useWorkspaceRecordings(activeWorkspaceId, activeFolderId)` (lines 35-43), stale TODO comments removed
+   - Committed: `ad25ad9` (feat(16-08): add workspace/folder-scoped recording queries and wire into calls list)
+
+2. Gap 2 (Folder breadcrumb level missing) — CLOSED
+   - `useFolders` imported into `WorkspaceBreadcrumb.tsx` (line 26)
+   - `useFolders(activeWorkspaceId)` called in `useBreadcrumbs()` (line 143), `activeFolder` found by `activeFolderId` (line 144)
+   - Level 3 folder push implemented at lines 168-174: `if (activeFolderId && activeFolder) { items.push({ label: activeFolder.name, href: '/' }) }`
+   - Empty if-block replaced; stale Plan 16-04 TODO comments removed
+   - Committed: `5060479` (feat(16-08): wire folder name into breadcrumb trail)
+
+**Regressions:** None. All 11 previously-verified truths confirmed intact via file existence checks and spot grep verification.
 
 ---
 
@@ -56,77 +69,33 @@ human_verification:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Old /bank/, /vault/, /hub/ URLs get 301-redirected before any UI rename | VERIFIED | vercel.json has 7 redirect rules with `"permanent": true`; bank, vault, hub route files show 404-style pages |
-| 2 | Zero instances of Bank/Vault/Hub in user-facing UI strings | VERIFIED | Grep of all .tsx/.ts files returns zero matches for user-facing strings; bank.tsx, vault.tsx, hub.tsx route files show only "Page Not Found" and "older version of CallVault" |
-| 3 | User can see org switcher, switch orgs, create orgs | VERIFIED | OrgSwitcherBar.tsx (218 lines): renders dropdown with all orgs, house icon for personal, checkmark for active, Create Organization option wired to CreateOrganizationDialog |
-| 4 | User can see workspaces in sidebar, switch workspaces, see folders nested | VERIFIED | WorkspaceSidebarPane.tsx (347 lines): uses useFolders hook (not inline query — cache coherent per Plan 16-07 fix), FolderDropZone wraps each folder, Collapsible per workspace |
-| 5 | Calls list filters by active workspace when one is selected | FAILED | useFilteredRecordings() in index.tsx is a passthrough — all recordings shown regardless of active workspace (comment: "Plan 16-08+" deferred) |
-| 6 | User can invite members with Viewer/Member/Admin roles | VERIFIED | WorkspaceInviteDialog.tsx has three-option role picker (guest/member/vault_admin), shows org+workspace context in header (WKSP-10) |
-| 7 | Workspace settings shows Members tab and Pending Invites tab | VERIFIED | WorkspaceMemberPanel.tsx uses Radix Tabs with both tabs wired to useWorkspaceMembers + useInvitations hooks |
-| 8 | Invite acceptance page shows full context before user accepts | VERIFIED | join/workspace.$token.tsx renders inviter_display_name, organization_name, workspace_name, role with ROLE_DESCRIPTIONS |
-| 9 | Onboarding explorer shows Account -> Org -> Workspace -> Folder -> Call | VERIFIED | ModelExplorer.tsx (motion/react, 5 STEPS, RiHome4Line for org, Get Started/Skip) wired into _authenticated.tsx overlay |
-| 10 | Folder breadcrumb shows folder name when active | PARTIAL | useBreadcrumbs skips folder level entirely — activeFolderId check exists but pushes nothing (empty if block at lines 166-172 of WorkspaceBreadcrumb.tsx) |
-| 11 | New user signup creates Personal org with My Calls workspace (is_default = TRUE) | VERIFIED | Migration 20260228000001: handle_new_user() updated with is_default = TRUE; all 11 existing personal vaults backfilled |
-| 12 | Folders can be created, renamed, archived, restored | VERIFIED | folders.service.ts (379 lines): all CRUD + archive/restore; useFolders.ts hooks with optimistic updates and toasts |
-| 13 | DnD call-to-folder assignment works on desktop | VERIFIED | DndCallProvider.tsx (201 lines) with DndContext + onDragEnd handler; FolderDropZone.tsx (71 lines) with useDroppable; DraggableCallRow exported |
+| 1 | Old /bank/, /vault/, /hub/ URLs get 301-redirected | VERIFIED | vercel.json: 7 redirect rules with `"permanent": true` confirmed still present |
+| 2 | Zero instances of Bank/Vault/Hub in user-facing UI strings | VERIFIED | Only internal identifiers (BankRow, vaultId, vault_entries) remain — no user-visible strings; bank/vault/hub route files show "Page Not Found" only |
+| 3 | User can see org switcher, switch orgs, create orgs | VERIFIED (regression check) | OrgSwitcherBar.tsx still present (218 lines); wired to useOrgContext |
+| 4 | User can see workspaces in sidebar, switch workspaces, see folders nested | VERIFIED (regression check) | WorkspaceSidebarPane.tsx still present (347 lines) |
+| 5 | Calls list filters by active workspace when one is selected | VERIFIED | useFilteredRecordings now calls useWorkspaceRecordings(activeWorkspaceId, activeFolderId); recordings.service.ts has getRecordingsByWorkspace querying vault_entries and getRecordingsByFolder querying folder_assignments |
+| 6 | User can invite members with Viewer/Member/Admin roles | VERIFIED (regression check) | WorkspaceInviteDialog.tsx still present |
+| 7 | Workspace settings shows Members tab and Pending Invites tab | VERIFIED (regression check) | WorkspaceMemberPanel.tsx still present |
+| 8 | Invite acceptance page shows full context before user accepts | VERIFIED (regression check) | join/workspace.$token.tsx still present |
+| 9 | Onboarding explorer shows Account -> Org -> Workspace -> Folder -> Call | VERIFIED (regression check) | ModelExplorer.tsx still present |
+| 10 | Folder breadcrumb shows folder name when active | VERIFIED | WorkspaceBreadcrumb.tsx lines 26, 143-144, 168-174: useFolders imported, activeFolder found, pushed as Level 3 with label: activeFolder.name |
+| 11 | New user signup creates Personal org with My Calls workspace | VERIFIED (regression check) | Migration and handle_new_user trigger still present from Plan 16-01 |
+| 12 | Folders can be created, renamed, archived, restored | VERIFIED (regression check) | folders.service.ts still present |
+| 13 | DnD call-to-folder assignment works on desktop | VERIFIED (regression check) | DndCallProvider.tsx, FolderDropZone.tsx still present |
 
-**Score: 11/13 truths verified, 1 failed, 1 partial**
-
----
-
-### Required Artifacts
-
-| Artifact | Status | Evidence |
-|----------|--------|----------|
-| `vercel.json` | VERIFIED | 7 301-redirect rules; `"permanent": true` on all |
-| `supabase/migrations/20260228000001_workspace_redesign_schema.sql` | VERIFIED | File exists; contains workspace_invitations, is_default, vault_id, protect_default_workspace |
-| `src/types/workspace.ts` | VERIFIED | 107 lines; Organization, Workspace, Folder, WorkspaceInvitation, WorkspaceInviteDetails, ROLE_DISPLAY_NAMES |
-| `src/lib/query-config.ts` | VERIFIED | invitations domain (byWorkspace, details) confirmed by SUMMARY |
-| `src/stores/orgContextStore.ts` | VERIFIED | 139 lines; setActiveOrg resets workspace+folder to null (locked decision confirmed at line 86) |
-| `src/services/organizations.service.ts` | VERIFIED | 116 lines; from('banks') at lines 61, 84 |
-| `src/services/workspaces.service.ts` | VERIFIED | 192 lines; from('vaults') at lines 30, 60, 96 |
-| `src/hooks/useOrganizations.ts` | VERIFIED | Exists per SUMMARY; session-gated, queryKeys |
-| `src/hooks/useWorkspaces.ts` | VERIFIED | Exists per SUMMARY; useWorkspaceMembers, useUpdateMemberRole, useRemoveMember |
-| `src/hooks/useOrgContext.ts` | VERIFIED | Exists; used in OrgSwitcherBar, WorkspaceSidebarPane, WorkspaceDetailPage |
-| `src/components/layout/OrgSwitcherBar.tsx` | VERIFIED | 218 lines; RiHome4Line, switchOrg, Create Organization option |
-| `src/components/layout/WorkspaceSidebarPane.tsx` | VERIFIED | 347 lines; useFolders (not inline query), FolderDropZone, Collapsible |
-| `src/components/layout/WorkspaceBreadcrumb.tsx` | PARTIAL | Exists; folder level silently skipped (empty if block) |
-| `src/components/layout/AppShell.tsx` | VERIFIED | OrgSwitcherBar rendered above pane container at line 153 |
-| `src/components/layout/SidebarNav.tsx` | VERIFIED | Workspaces nav item added, How it works button calls setShowOnboarding(true) |
-| `src/services/folders.service.ts` | VERIFIED | 379 lines; getFolders, createFolder (depth limit enforced), archiveFolder, restoreFolder |
-| `src/hooks/useFolders.ts` | VERIFIED | 187 lines; useFolders, useArchivedFolders, useCreateFolder, useRenameFolder with optimistic update |
-| `src/hooks/useFolderAssignment.ts` | VERIFIED | Exists; useAssignToFolder, useRemoveFromFolder, useMoveToFolder |
-| `src/components/dnd/FolderDropZone.tsx` | VERIFIED | 71 lines; useDroppable from @dnd-kit/core |
-| `src/components/dnd/DndCallProvider.tsx` | VERIFIED | 201 lines; DndContext, MouseSensor, TouchSensor, DragOverlay |
-| `src/services/invitations.service.ts` | VERIFIED | 155 lines; createInvitation, revokeInvitation, getInviteDetails (RPC), acceptInvite (RPC) |
-| `src/hooks/useInvitations.ts` | VERIFIED | Exists; useCreateInvitation (auto-clipboard), useInviteDetails, useAcceptInvite |
-| `src/components/dialogs/WorkspaceInviteDialog.tsx` | VERIFIED | Tabs (email/link), role picker (Viewer/Member/Admin), WKSP-10 org+workspace in header |
-| `src/components/workspace/WorkspaceMemberPanel.tsx` | VERIFIED | Radix Tabs; Members tab + Pending Invites tab; immediate role change |
-| `src/routes/_authenticated/join/workspace.$token.tsx` | VERIFIED | inviter_display_name, organization_name, workspace_name all rendered (lines 165, 182, 196) |
-| `src/components/onboarding/ModelExplorer.tsx` | VERIFIED | motion/react import, 5 STEPS, RiHome4Line for org, Get Started + Skip |
-| `src/hooks/useOnboarding.ts` | VERIFIED | onboarding_seen_v2 key in user_profiles.auto_processing_preferences JSONB |
-| `src/routes/_authenticated.tsx` | VERIFIED | ModelExplorer overlay wired with first-login and manual re-trigger conditions |
-| `src/routes/_authenticated/index.tsx` | PARTIAL | DndCallProvider, DraggableCallRow, CallActionMenu with Move to Folder — verified. Workspace filtering is NOT implemented. |
-| `src/routes/_authenticated/workspaces/$workspaceId.tsx` | VERIFIED | WorkspaceMemberPanel rendered with workspaceId, workspaceName, orgName props |
-| `src/routes/_authenticated/settings/$category.tsx` | VERIFIED | Organizations category in SETTINGS_CATEGORIES; OrganizationsSettings component |
+**Score: 13/13 truths verified**
 
 ---
 
-### Key Link Verification
+### Key Link Verification (Gap Items)
 
 | From | To | Via | Status | Evidence |
 |------|----|-----|--------|---------|
-| OrgSwitcherBar.tsx | useOrgContext.ts | useOrgContext() called, switchOrg used | WIRED | Lines 36-44 of OrgSwitcherBar |
-| WorkspaceSidebarPane.tsx | useFolders.ts | useFolders(workspaceIdForQuery) at line 106 | WIRED | Replaced inline query per Plan 16-07 fix |
-| AppShell.tsx | OrgSwitcherBar.tsx | `<OrgSwitcherBar />` at line 153 | WIRED | Desktop+tablet layout only |
-| DndCallProvider.tsx | useFolderAssignment.ts | useAssignToFolder() called in onDragEnd | WIRED | DndCallProvider line 95+  |
-| WorkspaceInviteDialog.tsx | useInvitations.ts | useCreateInvitation() called on form submit | WIRED | Line 27 import, submit handler |
-| WorkspaceMemberPanel.tsx | useWorkspaces.ts | useWorkspaceMembers, useUpdateMemberRole, useRemoveMember | WIRED | Lines 28-29 |
-| join/workspace.$token.tsx | get_workspace_invite_details RPC | (supabase as any).rpc('get_workspace_invite_details') | WIRED | invitations.service.ts line 112 |
-| _authenticated.tsx | ModelExplorer.tsx | Conditional overlay rendering | WIRED | Lines 30-46 |
-| SidebarNav.tsx | useOnboarding.ts | setShowOnboarding(true) onClick | WIRED | Line 143 |
-| orgContextStore.setActiveOrg | activeWorkspaceId reset | set({ activeWorkspaceId: null }) | WIRED | Line 86 confirms locked decision |
-| index.tsx | workspace filter | vault_entries join | NOT WIRED | useFilteredRecordings passthrough — intentionally deferred |
+| `src/routes/_authenticated/index.tsx` | `src/hooks/useRecordings.ts` | `useWorkspaceRecordings(activeWorkspaceId, activeFolderId)` | WIRED | Line 8: import; line 37-40: called in useFilteredRecordings |
+| `src/hooks/useRecordings.ts` | `src/services/recordings.service.ts` | `getRecordingsByWorkspace` / `getRecordingsByFolder` queryFn | WIRED | Lines 4-8: imports; lines 50-53: ternary queryFn selection |
+| `src/services/recordings.service.ts` | `vault_entries` table | `supabase.from('vault_entries').select('recording_id').eq('vault_id', workspaceId)` | WIRED | Lines 54-57: exact query present |
+| `src/services/recordings.service.ts` | `folder_assignments` table | `supabase.from('folder_assignments').select('call_recording_id').eq('folder_id', folderId)` | WIRED | Lines 96-99: exact query present |
+| `src/components/layout/WorkspaceBreadcrumb.tsx` | `src/hooks/useFolders.ts` | `useFolders(activeWorkspaceId)` lookup by `activeFolderId` | WIRED | Line 26: import; lines 143-144: called, activeFolder found; lines 168-174: folder pushed to breadcrumb |
 
 ---
 
@@ -134,21 +103,21 @@ human_verification:
 
 | Requirement | Status | Notes |
 |-------------|--------|-------|
-| WKSP-01: Bank renamed to Organization everywhere | SATISFIED | Zero user-facing "Bank" strings; migration + types + UI all use Organization |
-| WKSP-02: Vault renamed to Workspace everywhere | SATISFIED | Zero user-facing "Vault" strings; services use from('vaults') internally only |
-| WKSP-03: Hub renamed to Folder everywhere | SATISFIED | Zero user-facing "Hub" strings; Import page renamed to "Import Calls" |
-| WKSP-04: 301 redirects for /bank/, /vault/, /hub/ | SATISFIED | vercel.json has 7 redirect rules with permanent:true |
-| WKSP-05: Organization creation + Personal auto-created | SATISFIED | CreateOrganizationDialog wired; migration backfills handle_new_user trigger |
-| WKSP-06: Org switcher in sidebar | SATISFIED | OrgSwitcherBar rendered in AppShell above all panes |
-| WKSP-07: Workspace creation + My Calls auto-created | SATISFIED | createWorkspace service; is_default backfill; protect_default_workspace trigger |
-| WKSP-08: Workspace switching within org | SATISFIED | WorkspaceSidebarPane onSelect calls switchWorkspace |
-| WKSP-09: Onboarding screen with 4-level model | SATISFIED | ModelExplorer 5-step interactive explorer; first-login overlay + sidebar link |
-| WKSP-10: Invite dialog shows Org + Workspace name | SATISFIED | WorkspaceInviteDialog header + join page both render organization_name + workspace_name |
-| WKSP-11: Invite with Viewer/Member/Admin roles | SATISFIED | Three-role picker (guest/member/vault_admin) in invite dialog |
-| WKSP-12: Create, rename, archive Folders | SATISFIED | folders.service.ts: createFolder, renameFolder, archiveFolder, restoreFolder; depth enforced |
-| WKSP-13: Manage Workspace membership from settings | SATISFIED | WorkspaceMemberPanel wired in $workspaceId.tsx with Members + Pending Invites tabs |
+| WKSP-01: Bank renamed to Organization everywhere | SATISFIED | Internal identifiers only (BankRow, bank_id in DB schema) — zero user-visible "Bank" strings |
+| WKSP-02: Vault renamed to Workspace everywhere | SATISFIED | Internal identifiers only (vaultId in component state, from('vaults') in services) — zero user-visible "Vault" strings |
+| WKSP-03: Hub renamed to Folder everywhere | SATISFIED | Zero user-facing "Hub" strings |
+| WKSP-04: 301 redirects for /bank/, /vault/, /hub/ | SATISFIED | 7 permanent redirect rules in vercel.json confirmed |
+| WKSP-05: Organization creation + Personal auto-created | SATISFIED | CreateOrganizationDialog + handle_new_user trigger |
+| WKSP-06: Org switcher in sidebar | SATISFIED | OrgSwitcherBar in AppShell |
+| WKSP-07: Workspace creation + My Calls auto-created | SATISFIED | createWorkspace service + is_default backfill |
+| WKSP-08: Workspace switching within org | SATISFIED | WorkspaceSidebarPane onSelect |
+| WKSP-09: Onboarding screen with 4-level model | SATISFIED | ModelExplorer 5-step interactive explorer |
+| WKSP-10: Invite dialog shows Org + Workspace name | SATISFIED | WorkspaceInviteDialog header + join page |
+| WKSP-11: Invite with Viewer/Member/Admin roles | SATISFIED | Three-role picker in invite dialog |
+| WKSP-12: Create, rename, archive Folders | SATISFIED | folders.service.ts: createFolder, renameFolder, archiveFolder, restoreFolder |
+| WKSP-13: Manage Workspace membership from settings | SATISFIED | WorkspaceMemberPanel with Members + Pending Invites tabs |
 
-**13/13 requirements satisfied at the service/component level. One functional gap: workspace filtering in calls list.**
+**13/13 requirements satisfied at service/component level.**
 
 ---
 
@@ -156,64 +125,60 @@ human_verification:
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| `src/routes/_authenticated/index.tsx` | 39-43 | `useFilteredRecordings` returns all recordings unconditionally | Warning | Calls list does not filter by active workspace — user sees all calls regardless of workspace context |
-| `src/components/layout/WorkspaceBreadcrumb.tsx` | 166-172 | Empty if block for activeFolderId — folder breadcrumb level silently skipped | Warning | Folder name never appears in breadcrumb trail |
-| `src/components/layout/WorkspaceSidebarPane.tsx` | 274 | `window.prompt('Workspace name:')` for Create Workspace | Info | Works but poor UX; functional for now, noted as stub |
-| `src/routes/_authenticated/workspaces/index.tsx` | 73 | `window.prompt` for Create Workspace on workspaces list page | Info | Same stub pattern |
-| `src/components/dialogs/WorkspaceInviteDialog.tsx` | 260 | "Email notifications are coming soon" disclaimer | Info | Known limitation documented in SUMMARY; no email infra in Phase 16 |
-| `src/components/layout/WorkspaceBreadcrumb.tsx` | 141, 168 | "will be done by Plan 16-04 / Plan 16-04 wires this fully" — but Plan 16-04 is complete and folder breadcrumb still missing | Warning | Plan 16-04 built useFolders but WorkspaceBreadcrumb was not updated to use it |
+| `src/components/layout/WorkspaceSidebarPane.tsx` | ~274 | `window.prompt('Workspace name:')` for Create Workspace | Info | Functional but poor UX — previously noted, no change |
+| `src/routes/_authenticated/workspaces/index.tsx` | ~73 | `window.prompt` for Create Workspace on workspaces list page | Info | Same stub pattern — previously noted |
+| `src/components/dialogs/WorkspaceInviteDialog.tsx` | ~260 | "Email notifications are coming soon" disclaimer | Info | Known limitation, no email infra in Phase 16 |
+
+No blocker anti-patterns. All previously-flagged WARNING-severity items (empty if-block, passthrough hook, stale comments) have been resolved.
 
 ---
 
 ### Human Verification Required
 
-**1. Workspace Filtering of Calls List**
+**1. Workspace Filtering of Calls List (End-to-End)**
 
-**Test:** Log in, activate a workspace in the sidebar, observe the calls list
-**Expected:** Only calls belonging to that workspace appear — not all calls across all workspaces
-**Why human:** useFilteredRecordings() is confirmed passthrough; this needs runtime verification against real vault_entries data to confirm the scope of impact
+**Test:** Log in, activate a workspace in the sidebar, observe the calls list. Then activate a folder within that workspace, observe further narrowing.
+**Expected:** Workspace active — only calls linked via vault_entries for that workspace appear. Folder active — only calls assigned via folder_assignments to that folder appear. Neither active — all org calls appear.
+**Why human:** Filtering depends on vault_entries and folder_assignments data being populated for the test account. The query logic is verified in code; runtime verification confirms the data path works end-to-end.
 
-**2. Folder Breadcrumb Level**
+**2. Folder Breadcrumb Level (Visual)**
 
-**Test:** Activate a folder in the sidebar, look at the breadcrumb at the top of the calls list
+**Test:** Activate a folder in the sidebar, inspect the breadcrumb at the top of the calls list.
 **Expected:** Breadcrumb shows: [Org Name] / [Workspace Name] / [Folder Name]
-**Why human:** The folder level is silently skipped — no error, just missing label
+**Why human:** useFolders cache reuse depends on the sidebar having loaded folders for the same workspaceId first. Needs visual confirmation the folder level renders and does not silently skip.
 
-**3. Invite Dialog WKSP-10 Context**
+**3. Invite Dialog Context (WKSP-10)**
 
-**Test:** Navigate to a workspace detail page, click "Invite Member", inspect the dialog header
-**Expected:** Dialog shows "Invite to [Workspace Name]" with "in [Org Name]" subtitle text
-**Why human:** Dialog receives workspaceName and orgName as runtime props — verified in code but needs visual confirmation
+**Test:** Navigate to a workspace detail page, click "Invite Member", inspect the dialog header.
+**Expected:** Dialog shows "Invite to [Workspace Name]" with "in [Org Name]" subtitle
+**Why human:** Dialog receives workspaceName and orgName as runtime props — verified in code but needs visual confirmation.
 
 **4. Onboarding Persistence**
 
-**Test:** Complete the onboarding explorer on a test account, log out, log back in
+**Test:** Complete the onboarding explorer on a test account, log out, log back in.
 **Expected:** ModelExplorer does NOT appear on subsequent logins
-**Why human:** Requires a real authenticated Supabase session to verify user_profiles JSONB persistence
+**Why human:** Requires a real authenticated Supabase session to verify user_profiles JSONB persistence.
 
 **5. Email Template Audit (WKSP-01)**
 
 **Test:** Check Supabase Dashboard -> Authentication -> Email Templates for all templates (confirmation, magic link, invite, password reset)
 **Expected:** Zero instances of "Bank", "Vault", "Hub" in any email template
-**Why human:** Supabase dashboard templates cannot be read programmatically; Plan 16-07 Task 3 flagged this as manual step
+**Why human:** Supabase dashboard templates cannot be read programmatically from source code.
 
 ---
 
-### Gaps Summary
+### Success Criteria Verification
 
-Two gaps prevent full goal achievement:
-
-**Gap 1 (Blocker for Success Criterion 2): Workspace filtering not wired**
-
-Success criterion 2 requires "a new user completes signup, sees Personal Organization and My Calls Workspace auto-created, and can navigate the 4-level model." Implicit in this is that when a user selects a workspace, the calls list scopes to that workspace. The code explicitly defers this to "Plan 16-08+" with a comment. The workspace context store is correctly tracking activeWorkspaceId, and the sidebar correctly highlights the active workspace — but the calls list ignores it entirely (all recordings always shown). This requires a vault_entries join to filter by workspace.
-
-**Gap 2 (Functional gap in navigation): Folder breadcrumb missing**
-
-When a folder is active, the breadcrumb trail shows Org / Workspace but silently drops the Folder level. The useFolders hook exists and is imported into the breadcrumb component, but the folder lookup logic to find a folder by activeFolderId was never added. The fix is small: find the folder from useFolders(activeWorkspaceId) by activeFolderId and push it to the breadcrumb items array.
-
-Both gaps are contained to the calls list page and breadcrumb component. All services, stores, hooks, migration, redirects, invite flows, onboarding, member management, and DnD infrastructure are fully verified and wired.
+| Criterion | Status | Notes |
+|-----------|--------|-------|
+| 1. User who bookmarked /bank/abc123/vault/xyz gets 301-redirected | VERIFIED | vercel.json: `/bank/:path*` and `/vault/:path*` redirect rules with permanent:true |
+| 2. New user sees "Personal" Org and "My Calls" Workspace auto-created, can navigate 4-level model | VERIFIED (code) | handle_new_user trigger, is_default backfill, ModelExplorer overlay, workspace filtering now wired | Needs human for end-to-end flow
+| 3. Zero instances of Bank/Vault/Hub visible in UI, API errors, email templates, tooltips | VERIFIED (code) / Needs human for email templates | All source code clean; email templates require dashboard check |
+| 4. Workspace owner can invite collaborator with correct context display | VERIFIED (code) | WorkspaceInviteDialog + join page both render org+workspace context | Needs human for visual confirmation |
+| 5. Workspace owner can manage member roles from Workspace settings | VERIFIED | WorkspaceMemberPanel wired with Members + Pending Invites tabs |
 
 ---
 
-_Verified: 2026-02-28T06:00:00Z_
+_Verified: 2026-02-28T05:22:03Z_
 _Verifier: Claude (gsd-verifier)_
+_Re-verification after Plan 16-08 gap closure_

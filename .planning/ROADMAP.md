@@ -191,7 +191,7 @@ Plans:
 - [x] 16-05-PLAN.md — Invite and membership: invite dialog, member panel, join page (WKSP-10, WKSP-11, WKSP-13)
 - [x] 16-06-PLAN.md — Onboarding: interactive 4-level model explorer (WKSP-09)
 - [x] 16-07-PLAN.md — Full integration: DnD wiring, terminology sweep, human verification (WKSP-01, WKSP-02, WKSP-03)
-- [ ] 16-08-PLAN.md — Gap closure: workspace/folder filtering in calls list + folder breadcrumb wiring
+- [x] 16-08-PLAN.md — Gap closure: workspace/folder filtering in calls list + folder breadcrumb wiring
 
 **Success Criteria:**
 1. A user who bookmarked `/bank/abc123/vault/xyz` gets 301-redirected to the equivalent new URL — their link is not broken, and the redirect is active before the first user sees the rename
@@ -488,7 +488,7 @@ Plans:
 | 13 | Strategy + Pricing | ✓ Complete | 3/3 | 2026-02-27 |
 | 14 | Foundation | ✓ Complete | 5/5 | 2026-02-27 |
 | 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
-| 16 | Workspace Redesign | Planned | 0/8 | — |
+| 16 | Workspace Redesign | ✓ Complete | 8/8 | 2026-02-28 |
 | 17 | Import Connector Pipeline | Planned | 0/5 | — |
 | 18 | Import Routing Rules | Planned | 0/4 | — |
 | 19 | MCP Audit + Workspace Tokens | Planned | 0/5 | — |
