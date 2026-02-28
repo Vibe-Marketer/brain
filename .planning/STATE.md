@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 16.1 Plan 02 complete — SidebarNav 4-layer active state: bg-vibe-orange/10 tint, fill icons, vibe-orange pill indicator. Replaced both window.prompt() calls with Radix CreateWorkspaceDialog. Fixed workspaces page button styling.)
+**Last Updated:** 2026-02-28 (Phase 16.1 Plan 03 complete — vibe-orange tab indicators on Import page, Radix DropdownMenu CallActionMenu with folder submenu, settings page proper empty states with icons.)
 
 ## Project Reference
 
@@ -18,11 +18,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 16.1 — Workspace Polish + Brand Guidelines
 
-**Current Plan:** Plan 02 complete (SidebarNav polish + CreateWorkspaceDialog). Plans 03-04 pending.
+**Current Plan:** Plan 03 complete (visual audit + polish). Plan 04 pending.
 
-**Status:** Phase 16.1 Plan 02 complete. SidebarNav now has Linear-quality 4-layer active state. Both window.prompt() workspace creation calls replaced with reusable Radix CreateWorkspaceDialog. Workspaces page CTA buttons use bg-foreground/text-background (no raw vibe orange). Next: Plan 03.
+**Status:** Phase 16.1 Plan 03 complete. Import tab active indicator uses border-vibe-orange per brand guidelines. CallActionMenu rewritten with Radix DropdownMenu (keyboard nav, a11y, folder submenu via DropdownMenu.Sub). Settings pages have polished empty states with category-specific icons and descriptions. Dark mode CSS reviewed — comprehensive and correct, no fixes required. Breadcrumb and WorkspaceSidebarPane audited — both look clean. Next: Plan 04.
 
-**Last activity:** 2026-02-28 — Phase 16.1 Plan 02 complete (SidebarNav active state polish, CreateWorkspaceDialog)
+**Last activity:** 2026-02-28 — Phase 16.1 Plan 03 complete (visual audit, vibe-orange tabs, Radix CallActionMenu, settings empty states)
 
 **Progress:**
 [██████████] 100% through Phase 18
@@ -62,6 +62,10 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | Import tab active indicator uses border-vibe-orange (was border-foreground = black) — per brand guidelines v4.2 "9 Approved Uses of Vibe Orange" item #1 | Black underline is brand non-compliant; vibe-orange is the correct active tab indicator per brand guidelines | All tab bars in the app must use border-vibe-orange for active tab indicator |
+| 2026-02-28 | CallActionMenu replaced hand-rolled div+useState+useRef+useEffect with Radix DropdownMenu.Root/Sub — folder picker uses DropdownMenu.Sub/SubTrigger/SubContent | Radix handles outside-click, keyboard navigation, focus management, and submenu positioning automatically; hand-rolled version had no keyboard nav | All future dropdown menus use Radix DropdownMenu primitives; no hand-rolled dropdowns |
+| 2026-02-28 | Settings empty states use centered icon (24px in 48px muted rounded container) + descriptive heading + category-specific subtitle instead of raw "Coming soon — X settings" text | Raw text is dismissive and unpolished; empty state pattern matches app-wide quality bar ("I'd show it to a customer") | All future "coming soon" feature areas use SettingsEmptyState pattern: icon + heading + subtitle |
+| 2026-02-28 | Settings sidebar active state uses bg-muted (not bg-vibe-orange/10) — visually distinguishes settings-within-page nav from primary SidebarNav | bg-vibe-orange/10 is SidebarNav's distinctive active treatment; settings sidebar uses plain bg-muted to avoid two competing orange-tinted nav systems | Settings/secondary navs use bg-muted active state; main SidebarNav uses bg-vibe-orange/10 |
 | 2026-02-28 | SidebarNav active state: 4-layer brand treatment (bg-vibe-orange/10, fill icon, text-vibe-orange, pill indicator) — replaces bg-muted simplified version | Brand guidelines require full active state; vibe-orange tint signals active clearly; fill icons distinguish active from inactive at a glance | All future sidebar nav items follow this 4-layer pattern |
 | 2026-02-28 | CTA buttons on workspaces page: bg-foreground/text-background instead of raw bg-brand-400 | Per brand guidelines: vibe orange is an accent/icon color, not a button background; bg-foreground adapts to light/dark mode automatically | All page-level CTA buttons use bg-foreground/text-background or Button component; no raw bg-brand-400 |
 | 2026-02-28 | CreateWorkspaceDialog renders conditionally with activeOrgId guard — prevents passing empty orgId to mutation | Mutation would fail at backend if orgId is empty string; guard at render level is cleaner than runtime check inside dialog | All dialogs requiring context IDs use same guard pattern |
