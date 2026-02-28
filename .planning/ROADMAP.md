@@ -97,11 +97,11 @@ Plans:
 **Plans:** 5 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — Scaffold callvault repo with validated stack and color system (FOUND-02, FOUND-03, FOUND-09, AI-02)
-- [ ] 14-02-PLAN.md — Supabase auth, login page, OAuth callback, auth guard (FOUND-01)
-- [ ] 14-03-PLAN.md — AppShell 4-pane layout with Motion spring animations (FOUND-04)
-- [ ] 14-04-PLAN.md — Wire all routes, query config, browser API hooks (FOUND-05, FOUND-06)
-- [ ] 14-05-PLAN.md — Deploy to Vercel, auth allowlists, OAuth audit, verification (FOUND-07, FOUND-08)
+- [x] 14-01-PLAN.md — Scaffold callvault repo with validated stack and color system (FOUND-02, FOUND-03, FOUND-09, AI-02)
+- [x] 14-02-PLAN.md — Supabase auth, login page, OAuth callback, auth guard (FOUND-01)
+- [x] 14-03-PLAN.md — AppShell 4-pane layout with Motion spring animations (FOUND-04)
+- [x] 14-04-PLAN.md — Wire all routes, query config, browser API hooks (FOUND-05, FOUND-06)
+- [x] 14-05-PLAN.md — Deploy to Vercel, auth allowlists, OAuth audit, verification (FOUND-07, FOUND-08)
 
 **Success Criteria:**
 1. An existing user can navigate to the new frontend URL, click "Sign In," authenticate with their Google account, and land on the app shell — no broken redirect, no 404, no auth error
@@ -152,9 +152,9 @@ Plans:
 **Plans:** 3 plans
 
 Plans:
-- [ ] 15-01-PLAN.md — Profile data, fix migration function, run batch, verify (DATA-01, DATA-02, DATA-03, DATA-05)
-- [ ] 15-02-PLAN.md — Wire v2 frontend calls list and detail to recordings table
-- [ ] 15-03-PLAN.md — Archive fathom_calls, manual spot-check (DATA-04)
+- [x] 15-01-PLAN.md — Profile data, fix migration function, run batch, verify (DATA-01, DATA-02, DATA-03, DATA-05)
+- [x] 15-02-PLAN.md — Wire v2 frontend calls list and detail to recordings table
+- [x] 15-03-PLAN.md — Archive fathom_calls, manual spot-check (DATA-04)
 
 ---
 
@@ -180,6 +180,17 @@ Plans:
 - WKSP-11: User can invite members to a Workspace with Viewer/Member/Admin roles
 - WKSP-12: User can create, rename, archive Folders inside a Workspace
 - WKSP-13: User can manage Workspace membership from Workspace settings
+
+**Plans:** 7 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — URL redirects, additive DB migration, TypeScript type aliases (WKSP-04, schema foundation)
+- [ ] 16-02-PLAN.md — Org context store, organization/workspace services and hooks (WKSP-05, WKSP-06, WKSP-07, WKSP-08)
+- [ ] 16-03-PLAN.md — Navigation redesign: OrgSwitcherBar, WorkspaceSidebarPane, breadcrumbs, AppShell integration (WKSP-06, WKSP-08)
+- [ ] 16-04-PLAN.md — Folder management: CRUD, archive, DnD infrastructure (WKSP-12)
+- [ ] 16-05-PLAN.md — Invite and membership: invite dialog, member panel, join page (WKSP-10, WKSP-11, WKSP-13)
+- [ ] 16-06-PLAN.md — Onboarding: interactive 4-level model explorer (WKSP-09)
+- [ ] 16-07-PLAN.md — Full integration: DnD wiring, terminology sweep, human verification (WKSP-01, WKSP-02, WKSP-03)
 
 **Success Criteria:**
 1. A user who bookmarked `/bank/abc123/vault/xyz` gets 301-redirected to the equivalent new URL — their link is not broken, and the redirect is active before the first user sees the rename
@@ -450,7 +461,7 @@ Plans:
 | 13 | Strategy + Pricing | ✓ Complete | 3/3 | 2026-02-27 |
 | 14 | Foundation | ✓ Complete | 5/5 | 2026-02-27 |
 | 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
-| 16 | Workspace Redesign | Not started | — | — |
+| 16 | Workspace Redesign | Planned | 0/7 | — |
 | 17 | Import Connector Pipeline | Not started | — | — |
 | 18 | Import Routing Rules | Not started | — | — |
 | 19 | MCP Audit + Workspace Tokens | Not started | — | — |
