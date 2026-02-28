@@ -260,6 +260,14 @@ Plans:
 
 **Notes:** P7 pitfall (no priority system from day 1) — `rules.priority` integer column must be in the very first migration for this feature. P8 pitfall (no rule preview) — live count against last 20 calls is required before shipping. Condition builder UX: sentence-like, field-first, max 3–4 operators in v2 (`contains`, `equals`, `starts with`, `doesn't contain`). Default destination is required to create any rule — users cannot save a rule without a fallback.
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 18-01-PLAN.md — DB schema (routing rules + defaults tables), routing engine, pipeline integration (IMP-10, IMP-06 foundation)
+- [ ] 18-02-PLAN.md — Frontend data layer, rule list with drag-to-reorder, default destination bar (IMP-06, IMP-07)
+- [ ] 18-03-PLAN.md — Condition builder, live preview, overlap warnings, slide-over editor (IMP-04, IMP-05, IMP-08)
+- [ ] 18-04-PLAN.md — Import Hub tab integration, empty state, routing trace badge, human verification (IMP-09)
+
 ---
 
 ### Phase 19 — MCP Audit + Workspace Tokens
@@ -472,7 +480,7 @@ Plans:
 | 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
 | 16 | Workspace Redesign | Planned | 0/7 | — |
 | 17 | Import Connector Pipeline | Planned | 0/5 | — |
-| 18 | Import Routing Rules | Not started | — | — |
+| 18 | Import Routing Rules | Planned | 0/4 | — |
 | 19 | MCP Audit + Workspace Tokens | Not started | — | — |
 | 20 | MCP Differentiators | Not started | — | — |
 | 21 | AI Bridge + Export + Sharing | Not started | — | — |
