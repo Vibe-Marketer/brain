@@ -56,6 +56,7 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | Zoom/Fathom/YouTube connectors rewired to use checkDuplicate()+insertRecording() — broken fathom_calls VIEW writes eliminated | fathom_calls is a read-only VIEW; all new recordings must go to recordings table via pipeline | All 3 connectors now dedup via source_metadata->>'external_id'; skipped_count tracked in sync_jobs |
 | 2026-02-28 | YouTube always shown as active in Import Hub (no per-user OAuth) — sync action opens URL input dialog | YouTube uses shared API key; no import_sources row needed; "Sync" button is the user-facing entry point | YouTube card never shows "disconnected"; File Upload card toggle is no-op (always available) |
 | 2026-02-28 | Import Hub Add Source card opens "Coming soon" dialog (Grain + Fireflies in disabled state) — no routing needed for MVP | No connectors to add yet; dialog shows future roadmap without incomplete flows | Future connector additions: add to SOURCE_REGISTRY config array in ImportPage, no grid changes needed |
 | 2026-02-28 | file-upload-transcribe uses synchronous Whisper flow (no async/waitUntil) — MVP files < 25MB complete within 150s edge function limit | EdgeRuntime.waitUntil pattern adds complexity; synchronous acceptable for MVP | Plan 02 async pattern can be added later if timeouts become an issue |
