@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 18 Plan 03 COMPLETE — rule editor slide-over: RoutingConditionBuilder 6-field sentence-like builder, useRulePreview client-side preview, useOverlapCheck, RulePreviewCount with expandable list + warnings, RoutingRuleSlideOver fixed panel with spring animation)
+**Last Updated:** 2026-02-28 (Phase 18 COMPLETE — Import Routing Rules: DB schema + routing engine, frontend data layer, condition builder + live preview, Import Hub tabs + empty state + trace badge. All 4 plans verified via dev-browser.)
 
 ## Project Reference
 
@@ -16,21 +16,21 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 18 — Import Routing Rules (Plan 03 complete)
+**Phase:** Phase 18 — Import Routing Rules (COMPLETE)
 
-**Status:** Phase 17 Import Pipeline assumed complete (Plans 01-05 done). Phase 18 Plans 01-03 complete: DB schema + routing engine (Plan 01); frontend data layer + UI components (Plan 02); condition builder + slide-over editor with live preview (Plan 03). Plan 04 remains for Phase 18 (Import Hub integration).
+**Status:** Phase 18 complete. All 4 plans executed and verified via dev-browser. Import Hub has Sources | Rules tabs, default destination gate, drag-to-reorder rule list, slide-over editor with condition builder + live preview, routing trace badge. Next: Phase 19 (MCP Audit + Workspace Tokens).
 
-**Last activity:** 2026-02-28 — Phase 18 Plan 03 complete (rule editor slide-over: RoutingConditionBuilder, useRulePreview, useOverlapCheck, RulePreviewCount, RoutingRuleSlideOver)
+**Last activity:** 2026-02-28 — Phase 18 complete (all 4 plans verified: DB schema, frontend data layer, condition builder + slide-over, Import Hub integration + trace badge)
 
 **Progress:**
-[█████████░] 94%
-[████      ] 3/10 phases complete
+[██████████] 100% through Phase 18
+[██████    ] 6/10 phases complete
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
-Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
-Phase 16: Workspace Redesign    [✓] complete (2026-02-28 — all 8 plans finished including gap closure 16-08)
-Phase 17: Import Pipeline       [~] in progress (Plans 01-04 done, Plan 05 at checkpoint)
-Phase 18: Import Routing Rules  [~] in progress (Plans 01-03 done, Plan 04 remaining)
+Phase 15: Data Migration        [✓] complete (2026-02-27)
+Phase 16: Workspace Redesign    [✓] complete (2026-02-28)
+Phase 17: Import Pipeline       [✓] complete (2026-02-28)
+Phase 18: Import Routing Rules  [✓] complete (2026-02-28)
 Phase 19: MCP Audit + Tokens    [ ] not started
 Phase 20: MCP Differentiators   [ ] not started
 Phase 21: AI Bridge + Export    [ ] not started
@@ -51,6 +51,10 @@ Phase 22: Backend Cleanup       [ ] not started
 ---
 
 ## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 16.1 inserted after Phase 16: Workspace Redesign Polish & Brand Guidelines (INSERTED) — design audit, fit/finish polish, brand guidelines skill creation
 
 ### Key Decisions
 

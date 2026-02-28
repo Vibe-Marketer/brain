@@ -204,6 +204,28 @@ Plans:
 
 ---
 
+### Phase 16.1 — Workspace Polish & Brand Guidelines (INSERTED)
+
+**Goal:** Revisit Phase 16 workspace redesign with fresh eyes — verify overall design decisions, modify looks/behaviors where needed, ensure everything functions correctly end-to-end, add final polish to areas currently lacking, and create a definitive brand guidelines skill for the CallVault design system.
+
+**Rationale:** Phase 16 shipped 8 plans rapidly. Before building more features on top (Import Pipeline, Routing Rules, MCP), this is the right time to pause and ensure the foundation looks and feels right. Design debt compounds — catching fit/finish issues now prevents them from propagating into every future phase. The brand guidelines skill ensures consistent design decisions going forward without relying on memory.
+
+**Dependencies:** Phase 16 complete (all workspace redesign plans shipped)
+
+**Requirements:** (To be defined during `/gsd:plan-phase 16.1`)
+- Design audit of all Phase 16 UI surfaces
+- Behavior verification and fixes across all workspace flows
+- Fit/finish polish for navigation, breadcrumbs, dialogs, onboarding
+- Brand guidelines skill created as a Claude Code skill for consistent design enforcement
+
+**Plans:** Not planned yet
+
+**Success Criteria:** (To be defined during `/gsd:plan-phase 16.1`)
+
+**Notes:** This is an inserted phase for quality and polish work. The brand guidelines skill should codify color system, typography, spacing, component patterns, animation conventions, and any design decisions made during this phase — becoming the single source of truth for all future UI work.
+
+---
+
 ### Phase 17 — Import Connector Pipeline
 
 **Goal:** A shared connector pipeline utility exists; existing connectors are normalized to use it; import source management UI shows connected sources; adding a new connector takes ≤ 230 lines.
@@ -489,8 +511,9 @@ Plans:
 | 14 | Foundation | ✓ Complete | 5/5 | 2026-02-27 |
 | 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
 | 16 | Workspace Redesign | ✓ Complete | 8/8 | 2026-02-28 |
-| 17 | Import Connector Pipeline | Planned | 0/5 | — |
-| 18 | Import Routing Rules | Planned | 0/4 | — |
+| 16.1 | Workspace Polish & Brand Guidelines | Not started | — | — | (INSERTED) |
+| 17 | Import Connector Pipeline | ✓ Complete | 5/5 | 2026-02-28 |
+| 18 | Import Routing Rules | ✓ Complete | 4/4 | 2026-02-28 |
 | 19 | MCP Audit + Workspace Tokens | Planned | 0/5 | — |
 | 20 | MCP Differentiators | Not started | — | — |
 | 21 | AI Bridge + Export + Sharing | Not started | — | — |
