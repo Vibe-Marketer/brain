@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 16 Plan 07 Tasks 1-2 COMPLETE — DnD integration, sidebar cache fix, action menus, terminology sweep, route wiring; awaiting human verification checkpoint)
+**Last Updated:** 2026-02-28 (Phase 17 Plan 01 COMPLETE — connector-pipeline.ts with checkDuplicate/insertRecording/runPipeline, import_sources table deployed to production with RLS)
 
 ## Project Reference
 
@@ -16,20 +16,20 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 16 — Workspace Redesign (Plans 01-06 complete, Plan 07 Tasks 1-2 complete, awaiting checkpoint)
+**Phase:** Phase 17 — Import Connector Pipeline (Plan 01 complete)
 
-**Status:** Plan 07 Tasks 1-2 complete. Task 1: WorkspaceSidebarPane now uses useFolders hook for cache coherence, index.tsx wired with DndCallProvider + DraggableCallRow + CallActionMenu (Move to Folder), calls/$callId.tsx has breadcrumbs + MoveToFolderAction, folders/$folderId.tsx full folder page. Task 2: zero Bank/Vault/Hub user-facing strings, workspaces/index.tsx real data, workspaces/$workspaceId.tsx with WorkspaceMemberPanel, settings Organizations category, import page renamed. Build clean. Awaiting Task 3 human verification checkpoint.
+**Status:** Plan 01 complete. connector-pipeline.ts created with checkDuplicate() (fail-open dedup by owner_user_id + source_app + source_metadata->>'external_id'), insertRecording() (auto-resolves personal bank, non-blocking vault_entry creation), and runPipeline() wrapper. import_sources table deployed to production with UNIQUE(user_id, source_app), 4 RLS policies, get_import_counts() RPC, and sync_jobs.skipped_count column.
 
-**Last activity:** 2026-02-28 — Phase 16 Plan 07 Tasks 1-2 complete, checkpoint reached
+**Last activity:** 2026-02-28 — Phase 17 Plan 01 complete
 
 **Progress:**
-[██████████] 96%
+[██████████] 95%
 [███       ] 2.25/10 phases complete
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
 Phase 16: Workspace Redesign    [~] in progress (Plans 01-06 done, Plan 07 at checkpoint)
-Phase 17: Import Pipeline       [ ] not started
+Phase 17: Import Pipeline       [~] in progress (Plan 01 done)
 Phase 18: Import Routing Rules  [ ] not started
 Phase 19: MCP Audit + Tokens    [ ] not started
 Phase 20: MCP Differentiators   [ ] not started
@@ -56,6 +56,9 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | connector-pipeline.ts fails open on dedup query error (isDuplicate: false) — never blocks an import due to dedup check failure | Silently dropping an import is worse than a rare false negative; dedup errors should be logged not fatal | All connectors using runPipeline() inherit this fail-open behavior |
+| 2026-02-28 | connector-pipeline.ts vault_entry creation is non-blocking (try/catch, logs only) — recording commit succeeds even if personal vault lookup fails | Phase 10 pattern: recording is the primary record; vault_entry is decorative context that can be repaired | insertRecording() always returns { id } once recordings insert succeeds |
+| 2026-02-28 | import_sources migration named 000002 (not 000001) — 000001 taken by Phase 16 workspace_redesign_schema.sql | Filename collision is a deployment blocker; sequence increment is the correct resolution | All future Phase 17+ migrations start from 000002+ for date 20260228 |
 | 2026-02-28 | user_preferences table does not exist — onboarding_seen_v2 stored in user_profiles.auto_processing_preferences JSONB | No migration needed; user_profiles already has JSONB column with full type support; server-side persistence achieved | useOnboarding reads/writes auto_processing_preferences key instead of separate table |
 | 2026-02-28 | showOnboarding UI flag lives in preferencesStore (Zustand) not useOnboarding local state | SidebarNav (trigger) and _authenticated.tsx (renderer) are separate components; local state would give each a separate instance; Zustand store is the correct cross-component UI state pattern per FOUND-06 | Both components import useOnboarding which reads/writes preferencesStore.showOnboarding |
 | 2026-02-28 | WorkspaceSidebarPane now uses useFolders/useArchivedFolders hooks (Plan 16-07 replaced inline query) — same TanStack Query cache key as folder mutations → real-time sidebar updates | Cache coherence: folder create/rename/archive invalidates queryKeys.folders.list(workspaceId) which sidebar now reads | No inline Supabase folder query in sidebar; folder mutations update sidebar immediately |
@@ -241,8 +244,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T04:15:52Z
-**Stopped at:** Phase 16 Plans 05 and 06 fully complete. Plan 05: invitation service, useInvitations hooks, WorkspaceInviteDialog, WorkspaceMemberPanel, /join/workspace/:token. Plan 07 is next.
+**Last session:** 2026-02-28T04:43:19.505Z
+**Stopped at:** Completed 17-01-PLAN.md
 **Resume with:** `/gsd:execute-phase 16` to run Plan 07.
 
 ### Context for Next Session
