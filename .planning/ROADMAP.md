@@ -221,6 +221,15 @@ Plans:
 2. A developer can add a new import source connector by writing ≤ 230 lines of code (1 adapter file + 1 edge function + 1 connector component + 1 registry line) — verified by actually building one new source this phase
 3. An import triggered from any connector (Fathom, Zoom, YouTube) writes directly to the `recordings` table via the shared pipeline — deduplication by `external_id` prevents duplicate imports
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 17-01-PLAN.md — Shared connector pipeline utility + import_sources table migration (IMP-01 foundation)
+- [ ] 17-02-PLAN.md — Rewire YouTube, Zoom, Fathom connectors to use shared pipeline (IMP-01 completion)
+- [ ] 17-03-PLAN.md — File upload connector with Whisper transcription (IMP-02 validation)
+- [ ] 17-04-PLAN.md — Import Hub UI with source cards, toggles, file upload dropzone (IMP-03)
+- [ ] 17-05-PLAN.md — Deploy, verify line counts, human verification checkpoint
+
 **Notes:** This phase is engineering infrastructure, not user-facing features. The "build one new connector" requirement (IMP-02) is the acceptance test for the pipeline. Connector candidates: direct file upload (MP3/video + Whisper) or Grain. The `_shared/connector-pipeline.ts` has 5 stages: (1) Get credentials, (2) Fetch raw meetings, (3) Dedup check by source_metadata->>'external_id', (4) Transform to recordings schema, (5) Insert recording + vault_entry.
 
 ---
@@ -462,7 +471,7 @@ Plans:
 | 14 | Foundation | ✓ Complete | 5/5 | 2026-02-27 |
 | 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
 | 16 | Workspace Redesign | Planned | 0/7 | — |
-| 17 | Import Connector Pipeline | Not started | — | — |
+| 17 | Import Connector Pipeline | Planned | 0/5 | — |
 | 18 | Import Routing Rules | Not started | — | — |
 | 19 | MCP Audit + Workspace Tokens | Not started | — | — |
 | 20 | MCP Differentiators | Not started | — | — |
