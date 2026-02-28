@@ -312,21 +312,29 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Check which meetings are already synced
-    const { data: syncedCalls, error: syncCheckError } = await supabase
-      .from('fathom_calls')
-      .select('recording_id')
-      .in('recording_id', allMeetings.map(m => m.recording_id));
+    // Check which meetings are already synced via recordings table.
+    // Fetch all fathom source_metadata for this user and extract external_ids.
+    // external_id for Fathom = String(recording_id) as stored by sync-meetings.
+    const { data: syncedRecordings, error: syncCheckError } = await supabase
+      .from('recordings')
+      .select('source_metadata')
+      .eq('owner_user_id', user.id)
+      .eq('source_app', 'fathom');
 
     if (syncCheckError) {
       console.error('Error checking sync status:', syncCheckError);
     }
 
-    console.log(`Found ${syncedCalls?.length || 0} synced calls in database`);
-    console.log('Synced recording IDs:', syncedCalls?.map(c => c.recording_id));
+    console.log(`Found ${syncedRecordings?.length || 0} fathom recordings already synced`);
 
-    // Ensure both sides are numbers for comparison
-    const syncedIds = new Set(syncedCalls?.map(c => Number(c.recording_id)) || []);
+    // Build set of synced recording IDs (as numbers) for fast lookup
+    const syncedIds = new Set(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (syncedRecordings || []).map((r: any) => {
+        const extId = r.source_metadata?.external_id;
+        return extId ? Number(extId) : null;
+      }).filter((id: number | null): id is number => id !== null)
+    );
 
     const meetingsWithSyncStatus = allMeetings.map(meeting => ({
       ...meeting,

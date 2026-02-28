@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { FathomClient } from '../_shared/fathom-client.ts';
-import { generateFingerprint, fingerprintToHash } from '../_shared/deduplication.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.ts';
 
 // Rate limiter for API calls - conservative to avoid 429 errors
 class RateLimiter {
@@ -40,6 +40,14 @@ interface TranscriptSegment {
   timestamp: string;
 }
 
+/**
+ * Syncs a single Fathom meeting to the recordings table via shared connector pipeline.
+ *
+ * Returns:
+ *   'synced'   — new recording created
+ *   'skipped'  — already exists (duplicate)
+ *   'failed'   — error during sync
+ */
 async function syncMeeting(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
@@ -47,9 +55,17 @@ async function syncMeeting(
   recordingId: number,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   meeting: any
-): Promise<boolean> {
+): Promise<'synced' | 'skipped' | 'failed'> {
   try {
     console.log(`Syncing meeting ${recordingId}: ${meeting.title}`);
+
+    // Stage 3 — Dedup check via shared pipeline (Fathom recording IDs are numeric)
+    const externalId = String(recordingId);
+    const { isDuplicate } = await checkDuplicate(supabase, userId, 'fathom', externalId);
+    if (isDuplicate) {
+      console.log(`Fathom meeting ${recordingId} already exists — skipping`);
+      return 'skipped';
+    }
 
     // Build full transcript text with consolidated speaker turns
     const transcript = meeting.transcript || [];
@@ -60,7 +76,7 @@ async function syncMeeting(
 
     transcript.forEach((seg: TranscriptSegment, index: number) => {
       const speakerName = seg.speaker?.display_name || 'Unknown';
-      
+
       if (speakerName !== currentSpeaker) {
         // Speaker changed - save previous speaker's consolidated text
         if (currentSpeaker !== null && currentTexts.length > 0) {
@@ -68,7 +84,7 @@ async function syncMeeting(
             `[${currentTimestamp || '00:00:00'}] ${currentSpeaker}: ${currentTexts.join(' ')}`
           );
         }
-        
+
         // Start new speaker turn
         currentSpeaker = speakerName;
         currentTimestamp = seg.timestamp || '00:00:00';
@@ -77,7 +93,7 @@ async function syncMeeting(
         // Same speaker - append text
         currentTexts.push(seg.text);
       }
-      
+
       // Handle last segment
       if (index === transcript.length - 1 && currentTexts.length > 0) {
         consolidatedSegments.push(
@@ -87,55 +103,9 @@ async function syncMeeting(
     });
 
     const fullTranscript = consolidatedSegments.join('\n\n');
-    
+
     // Extract summary
     const summary = meeting.default_summary?.markdown_formatted || null;
-
-    // Check if call exists and has user edits (use composite key)
-    const { data: existingCall } = await supabase
-      .from('fathom_calls')
-      .select('recording_id, title, summary, title_edited_by_user, summary_edited_by_user')
-      .eq('recording_id', meeting.recording_id)
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    // Build upsert object, preserving user edits
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const upsertData: any = {
-      recording_id: meeting.recording_id,
-      user_id: userId,
-      created_at: meeting.created_at,
-      recording_start_time: meeting.recording_start_time,
-      recording_end_time: meeting.recording_end_time,
-      url: meeting.url,
-      share_url: meeting.share_url,
-      calendar_invitees: meeting.calendar_invitees || [],
-      full_transcript: fullTranscript,
-      recorded_by_name: meeting.recorded_by?.name || null,
-      recorded_by_email: meeting.recorded_by?.email || null,
-      synced_at: new Date().toISOString(),
-    };
-
-    // Only update title if not edited by user
-    if (!existingCall?.title_edited_by_user) {
-      upsertData.title = meeting.title;
-    } else {
-      upsertData.title = existingCall.title;
-      upsertData.title_edited_by_user = true;
-    }
-
-    // Only update summary if not edited by user
-    if (!existingCall?.summary_edited_by_user) {
-      upsertData.summary = summary;
-    } else {
-      upsertData.summary = existingCall.summary;
-      upsertData.summary_edited_by_user = true;
-    }
-
-    // Generate meeting fingerprint for deduplication
-    // Extract participant emails from calendar_invitees
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const participantEmails = (meeting.calendar_invitees || []).map((inv: any) => inv.email).filter(Boolean);
 
     // Calculate duration from start/end times
     const startTime = new Date(meeting.recording_start_time);
@@ -144,41 +114,39 @@ async function syncMeeting(
       ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
       : undefined;
 
-    const fingerprint = generateFingerprint({
+    // Extract participant emails from calendar_invitees
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const participantEmails = (meeting.calendar_invitees || []).map((inv: any) => inv.email).filter(Boolean);
+
+    // Build source_metadata (external_id merged as first key by insertRecording)
+    const sourceMetadata = {
+      fathom_call_id: recordingId,
+      fathom_url: meeting.url || null,
+      fathom_share_url: meeting.share_url || null,
+      recorded_by_name: meeting.recorded_by?.name || null,
+      recorded_by_email: meeting.recorded_by?.email || null,
+      calendar_invitees: meeting.calendar_invitees || [],
+      participant_emails: participantEmails,
+      summary: summary,
+      import_source: 'sync-meetings',
+      synced_at: new Date().toISOString(),
+    };
+
+    // Stage 5 — Insert via shared pipeline
+    const result = await insertRecording(supabase, userId, {
+      external_id: externalId,
+      source_app: 'fathom',
       title: meeting.title,
-      started_at: meeting.recording_start_time,
-      ended_at: meeting.recording_end_time,
-      duration_seconds: durationSeconds,
-      participants: participantEmails,
+      full_transcript: fullTranscript,
+      recording_start_time: meeting.recording_start_time,
+      duration: durationSeconds,
+      source_metadata: sourceMetadata,
     });
 
-    upsertData.meeting_fingerprint = fingerprintToHash(fingerprint);
-    upsertData.source_platform = 'fathom';
+    console.log(`Successfully synced Fathom meeting ${recordingId} as recording ${result.id}`);
 
-    // Upsert call details (use composite primary key)
-    const { error: callError } = await supabase
-      .from('fathom_calls')
-      .upsert(upsertData, {
-        onConflict: 'recording_id,user_id'
-      });
-
-    if (callError) {
-      console.error(`Error upserting call ${recordingId}:`, callError);
-      throw callError;
-    }
-
-    // Delete existing transcripts and insert new ones (use composite key for user isolation)
+    // Insert transcript segments into fathom_transcripts for backward compat
     if (meeting.transcript && meeting.transcript.length > 0) {
-      const { error: deleteError } = await supabase
-        .from('fathom_transcripts')
-        .delete()
-        .eq('recording_id', recordingId)
-        .eq('user_id', userId);
-
-      if (deleteError) {
-        console.error(`Error deleting old transcripts for ${recordingId}:`, deleteError);
-      }
-
       const transcriptRows = meeting.transcript.map((segment: TranscriptSegment) => {
         let speakerEmail = segment.speaker.matched_calendar_invitee_email;
 
@@ -195,7 +163,7 @@ async function syncMeeting(
 
         return {
           recording_id: meeting.recording_id,
-          user_id: userId, // Include user_id for composite foreign key
+          user_id: userId,
           speaker_name: segment.speaker.display_name,
           speaker_email: speakerEmail,
           text: segment.text,
@@ -208,18 +176,17 @@ async function syncMeeting(
         .insert(transcriptRows);
 
       if (transcriptError) {
-        console.error(`Error inserting transcripts for ${recordingId}:`, transcriptError);
-        throw transcriptError;
+        // Non-blocking — transcript table is supplementary; recording already committed
+        console.error(`Error inserting transcripts for ${recordingId} (non-blocking):`, transcriptError);
+      } else {
+        console.log(`Synced ${transcriptRows.length} transcript segments for meeting ${recordingId}`);
       }
-
-      console.log(`Synced ${transcriptRows.length} transcript segments for meeting ${recordingId}`);
     }
 
-    console.log(`Successfully synced meeting ${recordingId}`);
-    return true;
+    return 'synced';
   } catch (error) {
     console.error(`Failed to sync meeting ${recordingId}:`, error);
-    return false;
+    return 'failed';
   }
 }
 
@@ -496,6 +463,7 @@ Deno.serve(async (req) => {
     const processSyncJob = async () => {
       const synced: number[] = [];
       const failed: number[] = [];
+      let skippedCount = 0;
       const rateLimiter = new RateLimiter();
 
       console.log(`Background processing started for sync job ${jobId}`);
@@ -518,64 +486,70 @@ Deno.serve(async (req) => {
               await supabase
                 .from('sync_jobs')
                 .update({
-                  progress_current: synced.length + failed.length,
+                  progress_current: synced.length + failed.length + skippedCount,
                   synced_ids: synced,
                   failed_ids: failed,
+                  skipped_count: skippedCount,
                 })
                 .eq('id', jobId);
 
               continue;
             }
 
-            const success = await syncMeeting(supabase, userId, recordingId, meeting);
+            const outcome = await syncMeeting(supabase, userId, recordingId, meeting);
 
-            if (success) {
+            if (outcome === 'synced') {
               synced.push(recordingId);
               console.log(`✓ Synced ${recordingId} (${synced.length}/${recordingIds.length})`);
 
               // Create vault entry if vault_id was validated
               if (validatedVaultId) {
                 try {
-                  // Look up recording UUID from legacy recording_id
-                  const { data: recording } = await supabase
+                  // Look up recording UUID by external_id in source_metadata
+                  const { data: rec } = await supabase
                     .from('recordings')
                     .select('id')
-                    .eq('legacy_recording_id', recordingId)
                     .eq('owner_user_id', userId)
+                    .eq('source_app', 'fathom')
+                    .filter("source_metadata->>'external_id'", 'eq', String(recordingId))
                     .maybeSingle();
 
-                  if (recording?.id) {
+                  if (rec?.id) {
                     const { error: vaultEntryError } = await supabase
                       .from('vault_entries')
                       .insert({
                         vault_id: validatedVaultId,
-                        recording_id: recording.id,
+                        recording_id: rec.id,
                       });
 
                     if (vaultEntryError) {
                       console.error(`Error creating vault entry for recording ${recordingId}:`, vaultEntryError);
                     } else {
-                      console.log(`Created vault entry for recording ${recording.id} in vault ${validatedVaultId}`);
+                      console.log(`Created vault entry for recording ${rec.id} in vault ${validatedVaultId}`);
                     }
                   } else {
-                    console.warn(`No recordings table entry found for legacy_recording_id ${recordingId}`);
+                    console.warn(`No recordings table entry found for Fathom recording_id ${recordingId}`);
                   }
                 } catch (vaultError) {
                   console.error(`Error handling vault entry for recording ${recordingId}:`, vaultError);
                 }
               }
+            } else if (outcome === 'skipped') {
+              skippedCount++;
+              console.log(`→ Skipped ${recordingId} (duplicate)`);
             } else {
               failed.push(recordingId);
               console.log(`✗ Failed to sync ${recordingId}`);
             }
 
-            // Update job progress
+            // Update job progress (skipped items count toward progress)
             await supabase
               .from('sync_jobs')
               .update({
-                progress_current: synced.length + failed.length,
+                progress_current: synced.length + failed.length + skippedCount,
                 synced_ids: synced,
                 failed_ids: failed,
+                skipped_count: skippedCount,
               })
               .eq('id', jobId);
 
@@ -589,22 +563,14 @@ Deno.serve(async (req) => {
             await supabase
               .from('sync_jobs')
               .update({
-                progress_current: synced.length + failed.length,
+                progress_current: synced.length + failed.length + skippedCount,
                 synced_ids: synced,
                 failed_ids: failed,
+                skipped_count: skippedCount,
               })
               .eq('id', jobId);
           }
         }
-
-        // DISABLED: update-contact-metrics function no longer exists
-        // Previously updated metrics for 'contacts' table which has been deleted
-        // if (synced.length > 0) {
-        //   console.log('Updating contact metrics for all contacts...');
-        //   await supabase.functions.invoke('update-contact-metrics', {
-        //     body: { userId },
-        //   });
-        // }
 
         // Mark job as completed with appropriate status
         const finalStatus = failed.length === 0 ? 'completed' :
@@ -616,27 +582,14 @@ Deno.serve(async (req) => {
           .update({
             status: finalStatus,
             completed_at: new Date().toISOString(),
+            skipped_count: skippedCount,
           })
           .eq('id', jobId);
 
-        console.log(`Sync job ${jobId} complete: ${synced.length} succeeded, ${failed.length} failed`);
+        console.log(`Sync job ${jobId} complete: ${synced.length} succeeded, ${failed.length} failed, ${skippedCount} skipped`);
 
         // [DISABLED] Embedding system disabled — pipeline broken
-        // if (synced.length > 0) {
-        //   console.log(`Triggering embedding generation for ${synced.length} synced meetings...`);
-        //   supabase.functions.invoke('embed-chunks', {
-        //     body: { recording_ids: synced },
-        //     headers: { Authorization: `Bearer ${jwt}` },
-        //   }).then(({ data, error }) => {
-        //     if (error) {
-        //       console.error(`Embedding generation failed for sync job ${jobId}:`, error);
-        //     } else {
-        //       console.log(`Embedding generation started for ${synced.length} meetings:`, data);
-        //     }
-        //   }).catch((err) => {
-        //     console.error(`Embedding invocation failed for sync job ${jobId}:`, err);
-        //   });
-        // }
+        // if (synced.length > 0) { ... }
 
         // Fire-and-forget: invoke generate-ai-titles for the synced recordings
         if (synced.length > 0) {

@@ -1,38 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
 import { parseVTTWithMetadata, consolidateBySpeaker, TranscriptSegment } from '../_shared/vtt-parser.ts';
-import {
-  generateFingerprint,
-  generateFingerprintString,
-  checkMatch,
-  MeetingFingerprint,
-  MatchResult,
-} from '../_shared/dedup-fingerprint.ts';
 import { refreshZoomOAuthTokens } from '../zoom-oauth-refresh/index.ts';
-
-/**
- * Types for deduplication priority modes.
- * Determines which meeting becomes the "primary" when duplicates are detected.
- */
-type DedupPriorityMode = 'first_synced' | 'most_recent' | 'platform_hierarchy' | 'longest_transcript';
-
-/**
- * Represents an existing meeting that could be a duplicate.
- */
-interface ExistingMeeting {
-  id: number;
-  recording_id: string;
-  title: string;
-  recording_start_time: string;
-  recording_end_time: string | null;
-  recorded_by_email: string | null;
-  calendar_invitees: string[] | null;
-  source_platform: string | null;
-  is_primary: boolean;
-  merged_from: number[] | null;
-  full_transcript: string | null;
-  synced_at: string | null;
-}
+import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 
@@ -134,7 +104,12 @@ async function fetchZoomTranscript(
 }
 
 /**
- * Syncs a single Zoom meeting to the database
+ * Syncs a single Zoom meeting to the recordings table via shared connector pipeline.
+ *
+ * Returns:
+ *   'synced'   — new recording created
+ *   'skipped'  — already exists (duplicate)
+ *   'failed'   — error during sync
  */
 async function syncZoomMeeting(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -143,13 +118,17 @@ async function syncZoomMeeting(
   recordingId: string,
   meeting: ZoomRecordingDetail,
   accessToken: string,
-  dedupSettings: {
-    priorityMode: DedupPriorityMode;
-    platformOrder: string[];
-  }
-): Promise<boolean> {
+): Promise<'synced' | 'skipped' | 'failed'> {
   try {
     console.log(`Syncing Zoom meeting ${recordingId}: ${meeting.topic}`);
+
+    // Stage 3 — Dedup check via shared pipeline
+    // Use Zoom meeting UUID as the external_id for consistent cross-sync dedup
+    const { isDuplicate } = await checkDuplicate(supabase, userId, 'zoom', recordingId);
+    if (isDuplicate) {
+      console.log(`Zoom meeting ${recordingId} already exists — skipping`);
+      return 'skipped';
+    }
 
     // Find transcript file
     const transcriptFile = meeting.recording_files?.find(
@@ -185,139 +164,39 @@ async function syncZoomMeeting(
       console.log(`No transcript file available for meeting ${recordingId}`);
     }
 
-    // Calculate meeting times
+    // Calculate meeting times and duration
     const startTime = new Date(meeting.start_time);
-    const endTime = new Date(startTime.getTime() + (meeting.duration * 60 * 1000));
+    const durationSeconds = meeting.duration * 60; // Zoom reports duration in minutes
 
-    // Generate fingerprint for deduplication
-    const fingerprint = await generateFingerprint({
-      title: meeting.topic,
-      start_time: startTime,
-      duration_minutes: meeting.duration,
-      participants: [meeting.host_email], // Zoom API doesn't easily expose participant list
-    });
-    const fingerprintString = generateFingerprintString(fingerprint);
-
-    // Deduplication: Find potential duplicates before inserting
-    const syncedAt = new Date();
-    let isPrimary = true;
-    let mergedFromIds: number[] = [];
-    let fuzzyMatchScore: number | null = null;
-    let primaryMeetingId: number | null = null;
-
-    const duplicates = await findPotentialDuplicates(supabase, userId, fingerprint, recordingId);
-
-    if (duplicates.length > 0) {
-      // Found a potential duplicate - handle the merge
-      const bestMatch = duplicates[0]; // Already sorted by score
-
-      const mergeResult = await handleDuplicateMerge(
-        supabase,
-        userId,
-        {
-          source_platform: 'zoom',
-          synced_at: syncedAt,
-          transcript_length: fullTranscript.length,
-        },
-        bestMatch,
-        dedupSettings.priorityMode,
-        dedupSettings.platformOrder
-      );
-
-      if (mergeResult.isPrimaryNew) {
-        // This new meeting is primary - collect IDs of duplicates to add to merged_from
-        isPrimary = true;
-        mergedFromIds = [bestMatch.meeting.id];
-        // Also include any previously merged IDs from the existing meeting
-        if (bestMatch.meeting.merged_from) {
-          mergedFromIds = [...mergedFromIds, ...bestMatch.meeting.merged_from];
-        }
-        fuzzyMatchScore = bestMatch.matchResult.score;
-      } else {
-        // Existing meeting remains primary - this new meeting is secondary
-        isPrimary = false;
-        primaryMeetingId = mergeResult.primaryId;
-        fuzzyMatchScore = bestMatch.matchResult.score;
-      }
-    }
-
-    // Check if call exists and has user edits (use composite key)
-    const { data: existingCall } = await supabase
-      .from('fathom_calls')
-      .select('recording_id, title, summary, title_edited_by_user, summary_edited_by_user')
-      .eq('recording_id', recordingId)
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    // Build upsert object, preserving user edits
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const upsertData: any = {
-      recording_id: recordingId, // Use UUID for Zoom
-      user_id: userId,
-      created_at: meeting.start_time,
-      recording_start_time: meeting.start_time,
-      recording_end_time: endTime.toISOString(),
-      url: meeting.share_url || null,
-      share_url: meeting.share_url || null,
-      calendar_invitees: [], // Zoom API doesn't easily provide this
-      full_transcript: fullTranscript,
-      recorded_by_name: null, // Zoom doesn't have equivalent field
-      recorded_by_email: meeting.host_email,
-      synced_at: syncedAt.toISOString(),
-      source_platform: 'zoom',
-      meeting_fingerprint: fingerprintString,
-      is_primary: isPrimary,
-      merged_from: mergedFromIds.length > 0 ? mergedFromIds : null,
-      fuzzy_match_score: fuzzyMatchScore,
+    // Build source_metadata (external_id merged as first key by insertRecording)
+    const sourceMetadata = {
+      zoom_meeting_id: recordingId,
+      zoom_numeric_id: meeting.id,
+      zoom_host_email: meeting.host_email,
+      zoom_host_id: meeting.host_id,
+      zoom_account_id: meeting.account_id,
+      zoom_share_url: meeting.share_url || null,
+      zoom_timezone: meeting.timezone,
+      zoom_type: meeting.type,
+      import_source: 'zoom-sync-meetings',
+      synced_at: new Date().toISOString(),
     };
 
-    // Only update title if not edited by user
-    if (!existingCall?.title_edited_by_user) {
-      upsertData.title = meeting.topic;
-    } else {
-      upsertData.title = existingCall.title;
-      upsertData.title_edited_by_user = true;
-    }
+    // Stage 5 — Insert via shared pipeline
+    const result = await insertRecording(supabase, userId, {
+      external_id: recordingId,
+      source_app: 'zoom',
+      title: meeting.topic,
+      full_transcript: fullTranscript,
+      recording_start_time: startTime.toISOString(),
+      duration: durationSeconds,
+      source_metadata: sourceMetadata,
+    });
 
-    // Only update summary if not edited by user
-    // Zoom doesn't provide summaries, so keep existing if edited
-    if (existingCall?.summary_edited_by_user) {
-      upsertData.summary = existingCall.summary;
-      upsertData.summary_edited_by_user = true;
-    }
+    console.log(`Successfully synced Zoom meeting ${recordingId} as recording ${result.id}`);
 
-    // Upsert call details (use composite primary key)
-    const { data: insertedCall, error: callError } = await supabase
-      .from('fathom_calls')
-      .upsert(upsertData, {
-        onConflict: 'recording_id,user_id'
-      })
-      .select('id')
-      .single();
-
-    if (callError) {
-      console.error(`Error upserting Zoom call ${recordingId}:`, callError);
-      throw callError;
-    }
-
-    // If this meeting is secondary, update the primary meeting's merged_from array
-    if (!isPrimary && primaryMeetingId && insertedCall?.id) {
-      await updateMergedFrom(supabase, primaryMeetingId, insertedCall.id, userId);
-      console.log(`Deduplication: Added meeting ${insertedCall.id} to merged_from of primary meeting ${primaryMeetingId}`);
-    }
-
-    // Delete existing transcripts and insert new ones (use composite key for user isolation)
+    // Insert transcript segments into fathom_transcripts for backward compat
     if (transcriptSegments.length > 0) {
-      const { error: deleteError } = await supabase
-        .from('fathom_transcripts')
-        .delete()
-        .eq('recording_id', recordingId)
-        .eq('user_id', userId);
-
-      if (deleteError) {
-        console.error(`Error deleting old transcripts for ${recordingId}:`, deleteError);
-      }
-
       const transcriptRows = transcriptSegments.map((segment: TranscriptSegment) => ({
         recording_id: recordingId,
         user_id: userId,
@@ -332,18 +211,17 @@ async function syncZoomMeeting(
         .insert(transcriptRows);
 
       if (transcriptError) {
-        console.error(`Error inserting transcripts for ${recordingId}:`, transcriptError);
-        throw transcriptError;
+        // Non-blocking — transcript table is supplementary; recording already committed
+        console.error(`Error inserting transcripts for ${recordingId} (non-blocking):`, transcriptError);
+      } else {
+        console.log(`Synced ${transcriptRows.length} transcript segments for Zoom meeting ${recordingId}`);
       }
-
-      console.log(`Synced ${transcriptRows.length} transcript segments for Zoom meeting ${recordingId}`);
     }
 
-    console.log(`Successfully synced Zoom meeting ${recordingId}`);
-    return true;
+    return 'synced';
   } catch (error) {
     console.error(`Failed to sync Zoom meeting ${recordingId}:`, error);
-    return false;
+    return 'failed';
   }
 }
 
@@ -378,272 +256,6 @@ async function fetchRecordingDetails(
   } catch (error) {
     console.error(`Error fetching recording details for ${recordingId}:`, error);
     return null;
-  }
-}
-
-/**
- * Reconstructs a MeetingFingerprint from an existing meeting's stored data.
- * Used for comparing against potential duplicates.
- */
-async function reconstructFingerprint(meeting: ExistingMeeting): Promise<MeetingFingerprint> {
-  // Calculate duration from start/end times
-  const startTime = new Date(meeting.recording_start_time);
-  const endTime = meeting.recording_end_time
-    ? new Date(meeting.recording_end_time)
-    : new Date(startTime.getTime() + 60 * 60 * 1000); // Default 60 min if no end time
-
-  const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (60 * 1000));
-
-  // Collect participants from recorded_by_email and calendar_invitees
-  const participants: string[] = [];
-  if (meeting.recorded_by_email) {
-    participants.push(meeting.recorded_by_email);
-  }
-  if (meeting.calendar_invitees && Array.isArray(meeting.calendar_invitees)) {
-    // calendar_invitees may be objects with email property or strings
-    for (const invitee of meeting.calendar_invitees) {
-      if (typeof invitee === 'string') {
-        participants.push(invitee);
-      } else if (invitee && typeof invitee === 'object' && 'email' in invitee) {
-        participants.push(invitee.email as string);
-      }
-    }
-  }
-
-  return await generateFingerprint({
-    title: meeting.title,
-    start_time: startTime,
-    duration_minutes: durationMinutes,
-    participants,
-  });
-}
-
-/**
- * Finds potential duplicate meetings in the database.
- * Returns meetings that are within a reasonable time window of the new meeting.
- */
-async function findPotentialDuplicates(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string,
-  newFingerprint: MeetingFingerprint,
-  excludeRecordingId: string
-): Promise<{ meeting: ExistingMeeting; matchResult: MatchResult }[]> {
-  // Query meetings that could potentially match (within 24 hours of the time bucket)
-  const timeBucket = new Date(newFingerprint.start_time_bucket);
-  const timeWindowStart = new Date(timeBucket.getTime() - 24 * 60 * 60 * 1000);
-  const timeWindowEnd = new Date(timeBucket.getTime() + 24 * 60 * 60 * 1000);
-
-  const { data: potentialMatches, error } = await supabase
-    .from('fathom_calls')
-    .select(`
-      id,
-      recording_id,
-      title,
-      recording_start_time,
-      recording_end_time,
-      recorded_by_email,
-      calendar_invitees,
-      source_platform,
-      is_primary,
-      merged_from,
-      full_transcript,
-      synced_at
-    `)
-    .eq('user_id', userId)
-    .neq('recording_id', excludeRecordingId)
-    .gte('recording_start_time', timeWindowStart.toISOString())
-    .lte('recording_start_time', timeWindowEnd.toISOString());
-
-  if (error) {
-    console.error('Error querying potential duplicates:', error);
-    return [];
-  }
-
-  if (!potentialMatches || potentialMatches.length === 0) {
-    return [];
-  }
-
-  const duplicates: { meeting: ExistingMeeting; matchResult: MatchResult }[] = [];
-
-  for (const meeting of potentialMatches as ExistingMeeting[]) {
-    try {
-      const existingFingerprint = await reconstructFingerprint(meeting);
-      const matchResult = checkMatch(newFingerprint, existingFingerprint);
-
-      if (matchResult.is_match) {
-        duplicates.push({ meeting, matchResult });
-      }
-    } catch (err) {
-      console.error(`Error checking match for meeting ${meeting.id}:`, err);
-    }
-  }
-
-  // Sort by match score (highest first)
-  duplicates.sort((a, b) => b.matchResult.score - a.matchResult.score);
-
-  return duplicates;
-}
-
-/**
- * Determines which meeting should be the primary based on user's priority mode.
- * Returns true if the new meeting should be primary, false if the existing one should remain primary.
- */
-function shouldNewMeetingBePrimary(
-  newMeeting: {
-    source_platform: string;
-    synced_at: Date;
-    transcript_length: number;
-  },
-  existingMeeting: ExistingMeeting,
-  priorityMode: DedupPriorityMode,
-  platformOrder: string[]
-): boolean {
-  switch (priorityMode) {
-    case 'first_synced': {
-      // The first synced meeting is primary
-      const existingSyncedAt = existingMeeting.synced_at ? new Date(existingMeeting.synced_at) : new Date(0);
-      return newMeeting.synced_at < existingSyncedAt;
-    }
-
-    case 'most_recent': {
-      // The most recently synced meeting is primary
-      const existingSyncedAt = existingMeeting.synced_at ? new Date(existingMeeting.synced_at) : new Date(0);
-      return newMeeting.synced_at > existingSyncedAt;
-    }
-
-    case 'platform_hierarchy': {
-      // Use the platform order array (first in array = highest priority)
-      const newPlatformIndex = platformOrder.indexOf(newMeeting.source_platform);
-      const existingPlatformIndex = platformOrder.indexOf(existingMeeting.source_platform || 'fathom');
-
-      // If platform not in order, treat as lowest priority
-      const newIndex = newPlatformIndex === -1 ? platformOrder.length : newPlatformIndex;
-      const existingIndex = existingPlatformIndex === -1 ? platformOrder.length : existingPlatformIndex;
-
-      // Lower index = higher priority
-      if (newIndex !== existingIndex) {
-        return newIndex < existingIndex;
-      }
-      // If same platform or both not in order, fall back to first_synced
-      const existingSyncedAt = existingMeeting.synced_at ? new Date(existingMeeting.synced_at) : new Date(0);
-      return newMeeting.synced_at < existingSyncedAt;
-    }
-
-    case 'longest_transcript': {
-      // The meeting with the longest transcript is primary
-      const existingLength = existingMeeting.full_transcript?.length || 0;
-      if (newMeeting.transcript_length !== existingLength) {
-        return newMeeting.transcript_length > existingLength;
-      }
-      // If same length, fall back to first_synced
-      const existingSyncedAt = existingMeeting.synced_at ? new Date(existingMeeting.synced_at) : new Date(0);
-      return newMeeting.synced_at < existingSyncedAt;
-    }
-
-    default: {
-      // Default to first_synced behavior
-      const existingSyncedAt = existingMeeting.synced_at ? new Date(existingMeeting.synced_at) : new Date(0);
-      return newMeeting.synced_at < existingSyncedAt;
-    }
-  }
-}
-
-/**
- * Handles deduplication merge when a duplicate is found.
- * Updates the primary meeting's merged_from array and sets is_primary on both meetings.
- */
-async function handleDuplicateMerge(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string,
-  newMeetingData: {
-    source_platform: string;
-    synced_at: Date;
-    transcript_length: number;
-  },
-  duplicateMatch: { meeting: ExistingMeeting; matchResult: MatchResult },
-  priorityMode: DedupPriorityMode,
-  platformOrder: string[]
-): Promise<{ primaryId: number | null; isPrimaryNew: boolean }> {
-  const { meeting: existingMeeting, matchResult } = duplicateMatch;
-
-  const newShouldBePrimary = shouldNewMeetingBePrimary(
-    newMeetingData,
-    existingMeeting,
-    priorityMode,
-    platformOrder
-  );
-
-  console.log(`Deduplication: Found duplicate match (score: ${matchResult.score.toFixed(2)})`);
-  console.log(`  Criteria met - Title: ${matchResult.criteria_met.title}, Time: ${matchResult.criteria_met.time}, Participants: ${matchResult.criteria_met.participants}`);
-  console.log(`  Priority mode: ${priorityMode}, New meeting is primary: ${newShouldBePrimary}`);
-
-  if (newShouldBePrimary) {
-    // New meeting becomes primary - update existing meeting to secondary
-    // Update existing meeting to not be primary
-    await supabase
-      .from('fathom_calls')
-      .update({
-        is_primary: false,
-        fuzzy_match_score: matchResult.score,
-      })
-      .eq('id', existingMeeting.id)
-      .eq('user_id', userId);
-
-    // Return existing meeting's ID to add to merged_from of new meeting
-    return {
-      primaryId: existingMeeting.id,
-      isPrimaryNew: true,
-    };
-  } else {
-    // Existing meeting remains primary - add new meeting to its merged_from
-    // Note: We'll add the new meeting's ID to merged_from after it's inserted
-    // For now, update the existing meeting's match score
-    await supabase
-      .from('fathom_calls')
-      .update({
-        fuzzy_match_score: matchResult.score,
-      })
-      .eq('id', existingMeeting.id)
-      .eq('user_id', userId);
-
-    return {
-      primaryId: existingMeeting.id,
-      isPrimaryNew: false,
-    };
-  }
-}
-
-/**
- * Updates the merged_from array on the primary meeting after a merge.
- */
-async function updateMergedFrom(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  primaryMeetingId: number,
-  secondaryMeetingId: number,
-  userId: string
-): Promise<void> {
-  // Get current merged_from array
-  const { data: primaryMeeting } = await supabase
-    .from('fathom_calls')
-    .select('merged_from')
-    .eq('id', primaryMeetingId)
-    .eq('user_id', userId)
-    .single();
-
-  const currentMergedFrom = primaryMeeting?.merged_from || [];
-
-  // Add secondary meeting ID if not already present
-  if (!currentMergedFrom.includes(secondaryMeetingId)) {
-    const updatedMergedFrom = [...currentMergedFrom, secondaryMeetingId];
-
-    await supabase
-      .from('fathom_calls')
-      .update({ merged_from: updatedMergedFrom })
-      .eq('id', primaryMeetingId)
-      .eq('user_id', userId);
   }
 }
 
@@ -703,10 +315,10 @@ Deno.serve(async (req) => {
 
     const userId = user.id;
 
-    // Get user's Zoom OAuth credentials and deduplication preferences
+    // Get user's Zoom OAuth credentials
     const { data: settings, error: configError } = await supabase
       .from('user_settings')
-      .select('zoom_oauth_access_token, zoom_oauth_token_expires, zoom_oauth_refresh_token, dedup_priority_mode, dedup_platform_order')
+      .select('zoom_oauth_access_token, zoom_oauth_token_expires, zoom_oauth_refresh_token')
       .eq('user_id', user.id)
       .maybeSingle();
 
@@ -715,12 +327,6 @@ Deno.serve(async (req) => {
     if (!settings?.zoom_oauth_access_token) {
       throw new Error('Zoom not connected. Please connect your Zoom account in Settings.');
     }
-
-    // Extract deduplication settings with defaults
-    const dedupSettings = {
-      priorityMode: (settings.dedup_priority_mode || 'first_synced') as DedupPriorityMode,
-      platformOrder: (settings.dedup_platform_order || []) as string[],
-    };
 
     // Determine access token to use (refresh if expired)
     let accessToken: string;
@@ -788,6 +394,7 @@ Deno.serve(async (req) => {
     const processSyncJob = async () => {
       const synced: string[] = [];
       const failed: string[] = [];
+      let skippedCount = 0;
       const rateLimiter = new RateLimiter();
 
       console.log(`Background processing started for Zoom sync job ${jobId}`);
@@ -816,35 +423,42 @@ Deno.serve(async (req) => {
               continue;
             }
 
-            const success = await syncZoomMeeting(supabase, userId, recordingId, recording, accessToken, dedupSettings);
+            const outcome = await syncZoomMeeting(
+              supabase,
+              userId,
+              recordingId,
+              recording,
+              accessToken,
+            );
 
-            if (success) {
+            if (outcome === 'synced') {
               synced.push(recordingId);
               console.log(`✓ Synced Zoom ${recordingId} (${synced.length}/${recordingIds.length})`);
 
               // Create vault entry if vault_id was validated
               if (validatedVaultId) {
                 try {
-                  // Look up recording UUID from legacy recording_id (Zoom uses string UUIDs as recording_id)
-                  const { data: recording } = await supabase
+                  // Look up recording UUID by external_id in source_metadata
+                  const { data: rec } = await supabase
                     .from('recordings')
                     .select('id')
                     .eq('owner_user_id', userId)
-                    .or(`legacy_recording_id.eq.${recordingId}`)
+                    .eq('source_app', 'zoom')
+                    .filter("source_metadata->>'external_id'", 'eq', recordingId)
                     .maybeSingle();
 
-                  if (recording?.id) {
+                  if (rec?.id) {
                     const { error: vaultEntryError } = await supabase
                       .from('vault_entries')
                       .insert({
                         vault_id: validatedVaultId,
-                        recording_id: recording.id,
+                        recording_id: rec.id,
                       });
 
                     if (vaultEntryError) {
                       console.error(`Error creating vault entry for Zoom recording ${recordingId}:`, vaultEntryError);
                     } else {
-                      console.log(`Created vault entry for Zoom recording ${recording.id} in vault ${validatedVaultId}`);
+                      console.log(`Created vault entry for Zoom recording ${rec.id} in vault ${validatedVaultId}`);
                     }
                   } else {
                     console.warn(`No recordings table entry found for Zoom recording_id ${recordingId}`);
@@ -853,18 +467,22 @@ Deno.serve(async (req) => {
                   console.error(`Error handling vault entry for Zoom recording ${recordingId}:`, vaultError);
                 }
               }
+            } else if (outcome === 'skipped') {
+              skippedCount++;
+              console.log(`→ Skipped Zoom ${recordingId} (duplicate)`);
             } else {
               failed.push(recordingId);
               console.log(`✗ Failed to sync Zoom ${recordingId}`);
             }
 
-            // Update job progress
+            // Update job progress (skipped items count toward progress)
             await supabase
               .from('sync_jobs')
               .update({
-                progress_current: synced.length + failed.length,
+                progress_current: synced.length + failed.length + skippedCount,
                 synced_ids: synced,
                 failed_ids: failed,
+                skipped_count: skippedCount,
               })
               .eq('id', jobId);
 
@@ -877,9 +495,10 @@ Deno.serve(async (req) => {
             await supabase
               .from('sync_jobs')
               .update({
-                progress_current: synced.length + failed.length,
+                progress_current: synced.length + failed.length + skippedCount,
                 synced_ids: synced,
                 failed_ids: failed,
+                skipped_count: skippedCount,
               })
               .eq('id', jobId);
           }
@@ -895,27 +514,14 @@ Deno.serve(async (req) => {
           .update({
             status: finalStatus,
             completed_at: new Date().toISOString(),
+            skipped_count: skippedCount,
           })
           .eq('id', jobId);
 
-        console.log(`Zoom sync job ${jobId} complete: ${synced.length} succeeded, ${failed.length} failed`);
+        console.log(`Zoom sync job ${jobId} complete: ${synced.length} succeeded, ${failed.length} failed, ${skippedCount} skipped`);
 
         // [DISABLED] Embedding system disabled — pipeline broken
-        // if (synced.length > 0) {
-        //   console.log(`Triggering embedding generation for ${synced.length} synced Zoom meetings...`);
-        //   supabase.functions.invoke('embed-chunks', {
-        //     body: { recording_ids: synced },
-        //     headers: { Authorization: `Bearer ${jwt}` },
-        //   }).then(({ data, error }: { data: unknown; error: Error | null }) => {
-        //     if (error) {
-        //       console.error(`Embedding generation failed for Zoom sync job ${jobId}:`, error);
-        //     } else {
-        //       console.log(`Embedding generation started for ${synced.length} Zoom meetings:`, data);
-        //     }
-        //   }).catch((err: Error) => {
-        //     console.error(`Embedding invocation failed for Zoom sync job ${jobId}:`, err);
-        //   });
-        // }
+        // if (synced.length > 0) { ... }
 
         // Fire-and-forget: invoke generate-ai-titles for the synced recordings
         if (synced.length > 0) {
