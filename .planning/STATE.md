@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 16 Plan 01 COMPLETE — vercel.json 301 redirects, workspace_redesign_schema migration applied, TypeScript type aliases)
+**Last Updated:** 2026-02-28 (Phase 16 Plan 02 COMPLETE — orgContextStore, organizations.service, workspaces.service, useOrganizations, useWorkspaces, useOrgContext)
 
 ## Project Reference
 
@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 16 — Workspace Redesign (Plan 01 of 7 complete)
+**Phase:** Phase 16 — Workspace Redesign (Plan 02 of 7 complete)
 
-**Status:** Plan 01 fully complete — 7 server-level 301 redirects in vercel.json, workspace_redesign_schema migration applied to production (workspace_invitations, folders.vault_id backfilled, vaults.is_default backfilled for 11 personal vaults, handle_new_user updated, RPCs and delete-protection trigger active), TypeScript type aliases (Organization/Workspace/Folder), invitations query keys added.
+**Status:** Plan 02 fully complete — Zustand v5 orgContextStore with localStorage cross-tab sync (callvault-org-context), organizations.service (queries banks table), workspaces.service (queries vaults table), useOrganizations/useWorkspaces TanStack Query hooks (session-gated), useOrgContext convenience hook with auto-init (personal org first). Org switch resets activeWorkspaceId to null (locked decision). Build clean.
 
-**Last activity:** 2026-02-28 — Phase 16 Plan 01 fully complete (redirects, schema, types)
+**Last activity:** 2026-02-28 — Phase 16 Plan 02 fully complete (data layer: context store + services + hooks)
 
 **Progress:**
 [██████████] 96%
@@ -28,7 +28,7 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
-Phase 16: Workspace Redesign    [~] in progress (Plan 01 of 7 done)
+Phase 16: Workspace Redesign    [~] in progress (Plans 01-02 of 7 done)
 Phase 17: Import Pipeline       [ ] not started
 Phase 18: Import Routing Rules  [ ] not started
 Phase 19: MCP Audit + Tokens    [ ] not started
@@ -56,6 +56,9 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | getWorkspaceMembers returns null displayName/email; profile enrichment deferred to UI layer (auth.users not directly accessible from browser client — requires service role or RPC) | Correct separation: data layer returns raw membership rows; UI layer enriches with profile data via dedicated RPC or profiles table | All workspace member display uses this pattern |
+| 2026-02-28 | getWorkspaces sorts is_default client-side (not SQL ORDER BY) until supabase gen types re-run includes is_default column | is_default added in Phase 16 migration but not yet in generated supabase.ts types; TypeScript error would block build | Plan 07 or type regen will switch to SQL-level ordering |
+| 2026-02-28 | orgContextStore persists activeOrgId + activeWorkspaceId to localStorage (callvault-org-context); activeFolderId is session-only | Folder selection is per-session; org/workspace selection persists for user convenience across sessions | Cross-tab sync fires on callvault-org-context-updated key via storage event |
 | 2026-02-28 | TypeScript type aliases over DB views for concept rename (Organization=Bank, Workspace=Vault, Folder=folders row) — queries unchanged, only display and TS layer uses new names | Zero migration risk; supabase.from('banks') etc. remain; aliases in src/types/workspace.ts | All Phase 16+ plans use Organization/Workspace/Folder type aliases |
 | 2026-02-28 | vaults.is_default backfilled: UPDATE vaults SET is_default = TRUE WHERE vault_type = 'personal' — covers all 11 existing personal vaults | Without backfill, protect_default_workspace trigger could never fire; every existing personal vault must be marked | protect_default_workspace BEFORE DELETE trigger now active and functional |
 | 2026-02-28 | vercel.json: redirects array added alongside existing rewrites catch-all — 7 server-level 301s for old Bank/Vault/Hub paths | Vercel processes redirects before rewrites; server-level catches external bookmarks and crawlers before SPA loads | Old /bank/, /vault/, /hub/ paths will redirect for 90+ days per WKSP-04 |
@@ -225,11 +228,27 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T03:53:00Z
-**Stopped at:** Phase 16 Plan 01 fully complete — 301 redirects in vercel.json, workspace_redesign_schema applied to production, TypeScript type aliases created. Plan 02 is next.
-**Resume with:** `/gsd:execute-phase 16` to run Plan 02.
+**Last session:** 2026-02-28T03:55:52Z
+**Stopped at:** Phase 16 Plan 02 fully complete — orgContextStore, organizations.service, workspaces.service, useOrganizations, useWorkspaces, useOrgContext all created. Plan 03 is next.
+**Resume with:** `/gsd:execute-phase 16` to run Plan 03.
 
 ### Context for Next Session
+
+**Phase 16 Plan 02 fully complete. Data layer is the backbone for all subsequent Phase 16 plans.**
+
+**Plan 02 deliverables:**
+- `src/stores/orgContextStore.ts` — Zustand v5 with activeOrgId/activeWorkspaceId/activeFolderId, localStorage persistence, cross-tab sync
+- `src/services/organizations.service.ts` — getOrganizations/getOrganizationById/createOrganization/isPersonalOrg; queries banks table
+- `src/services/workspaces.service.ts` — getWorkspaces/getWorkspaceById/createWorkspace/getWorkspaceMembers/updateMemberRole/removeMember; queries vaults table
+- `src/hooks/useOrganizations.ts` — useOrganizations(), useCreateOrganization()
+- `src/hooks/useWorkspaces.ts` — useWorkspaces(orgId), useWorkspace(id), useCreateWorkspace, useWorkspaceMembers, useUpdateMemberRole, useRemoveMember
+- `src/hooks/useOrgContext.ts` — convenience hook: combines store + org data, auto-selects personal org on init
+
+**Key patterns established:**
+- All org queries: `supabase.from('banks')` — never 'organizations'
+- All workspace queries: `supabase.from('vaults')` — never 'workspaces'
+- `setActiveOrg` always resets `activeWorkspaceId = null` (locked decision)
+- Session-gated `enabled` prop on all hooks (same as useRecordings pattern)
 
 **Phase 15 Plan 03 fully complete. All 3 tasks done. User spot-check approved at callvault.vercel.app. Plan 04 is next.**
 
