@@ -4,6 +4,51 @@ This file tracks all changes to the CallVault Brand Guidelines document.
 
 ---
 
+## v4.3 - February 28, 2026
+
+**Time:** 22:27 UTC
+**Git Commit:** (add after commit)
+
+### Changes
+
+#### Phase-16.1-01: v2 AppShell Pane Architecture
+- Added new subsection under Layout Architecture documenting the 4-pane AppShell system
+- Documents locked pane widths (P1: 72/220px, P2: 0/280px, P4: 0/320/360px)
+- Documents OrgSwitcherBar shell chrome pattern (bg-viewport, no border-b)
+- Documents DetailPaneOutlet width-only animation rule (no x offset)
+- Documents close button flex-flow pattern (not absolute inside overflow-hidden)
+- Documents border-border/60 for all pane borders (not full border-border)
+
+#### Phase-16.1-02: Spring Animation System
+- Added v2 Spring Animation System subsection to Animation Guidelines
+- Documents motion/react import (not framer-motion)
+- Documents locked spring config: stiffness 260, damping 28
+- Documents AnimatePresence panel enter/exit pattern
+- Clarifies when to use spring vs CSS transitions
+
+#### Phase-16.1-03: Navigation Pill Height Correction
+- Updated pill indicator height from h-[80%] to h-[65%] to match v2 implementation
+- Added note that both heights are acceptable depending on nav item size
+- Updated implementation snippet to use span with aria-hidden
+
+#### Phase-16.1-04: Custom Button-Tab Pattern
+- Added Custom Button-Based Tabs subsection to Tab Navigation
+- Documents border-b-2 border-vibe-orange active indicator pattern
+- Documents when to use Radix Tabs vs custom button tabs
+
+#### Phase-16.1-05: Dialog Button Exception
+- Added Dialog Action Buttons exception section to Button System
+- Documents bg-brand-500/bg-brand-600 pattern accepted inside Radix Dialog
+- Clarifies that bg-foreground text-background is also an accepted CTA pattern
+- Defines strict scope: applies inside dialog content only
+
+#### Version Bump
+- Incremented from v4.2.1 to v4.3
+- Renamed file from brand-guidelines-v4.2.md to brand-guidelines-v4.3.md
+- Archived v4.2.md to docs/archive/
+
+---
+
 ## v4.2.1 - February 10, 2026
 
 **Time:** 16:31 UTC
