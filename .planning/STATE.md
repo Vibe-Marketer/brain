@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 16 Plan 02 COMPLETE — orgContextStore, organizations.service, workspaces.service, useOrganizations, useWorkspaces, useOrgContext)
+**Last Updated:** 2026-02-28 (Phase 16 Plan 04 COMPLETE — folders.service, useFolders, useFolderAssignment, FolderDropZone, DndCallProvider, DraggableCallRow)
 
 ## Project Reference
 
@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 16 — Workspace Redesign (Plan 02 of 7 complete)
+**Phase:** Phase 16 — Workspace Redesign (Plan 04 of 7 complete)
 
-**Status:** Plan 02 fully complete — Zustand v5 orgContextStore with localStorage cross-tab sync (callvault-org-context), organizations.service (queries banks table), workspaces.service (queries vaults table), useOrganizations/useWorkspaces TanStack Query hooks (session-gated), useOrgContext convenience hook with auto-init (personal org first). Org switch resets activeWorkspaceId to null (locked decision). Build clean.
+**Status:** Plan 04 fully complete — folders.service (CRUD, archive/restore, call assignment scoped to vault_id), useFolders (optimistic rename, archive/restore with dual-list invalidation), useFolderAssignment (assign/remove/move calls to folders), FolderDropZone (@dnd-kit useDroppable with brand orange hover ring), DndCallProvider (MouseSensor 10px + TouchSensor 250ms, desktop-only), DraggableCallRow (useDraggable, disabled on mobile/tablet). @dnd-kit/core 6.3.1 installed. Build clean.
 
-**Last activity:** 2026-02-28 — Phase 16 Plan 02 fully complete (data layer: context store + services + hooks)
+**Last activity:** 2026-02-28 — Phase 16 Plan 04 fully complete (folder management: service + hooks + DnD infrastructure)
 
 **Progress:**
 [██████████] 96%
@@ -28,7 +28,7 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
-Phase 16: Workspace Redesign    [~] in progress (Plans 01-02 of 7 done)
+Phase 16: Workspace Redesign    [~] in progress (Plans 01-04 of 7 done)
 Phase 17: Import Pipeline       [ ] not started
 Phase 18: Import Routing Rules  [ ] not started
 Phase 19: MCP Audit + Tokens    [ ] not started
@@ -56,6 +56,9 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | folders.service maps DB parent_id to Folder.parent_folder_id at service layer — DB column is parent_id, Folder interface uses parent_folder_id for semantic clarity | Keeps Folder interface consistent with plan naming while preserving actual DB column name | All folder service code reads parent_id from DB, consumers use parent_folder_id via Folder type |
+| 2026-02-28 | folder_assignments.call_recording_id is a legacy numeric ID (from fathom_calls); service + hooks use number type not UUID | folder_assignments FK references fathom_calls.recording_id (bigint) not recordings.id (UUID) | useAssignToFolder/useRemoveFromFolder take callRecordingId: number parameter |
+| 2026-02-28 | DnD on desktop only (DndCallProvider is a passthrough on mobile/tablet); action menu is the assignment path on mobile | Per locked decisions: drag-and-drop on desktop; action menu everywhere | DraggableCallRow disabled on isMobileOrTablet; DndCallProvider renders children without DnD context on mobile |
 | 2026-02-28 | getWorkspaceMembers returns null displayName/email; profile enrichment deferred to UI layer (auth.users not directly accessible from browser client — requires service role or RPC) | Correct separation: data layer returns raw membership rows; UI layer enriches with profile data via dedicated RPC or profiles table | All workspace member display uses this pattern |
 | 2026-02-28 | getWorkspaces sorts is_default client-side (not SQL ORDER BY) until supabase gen types re-run includes is_default column | is_default added in Phase 16 migration but not yet in generated supabase.ts types; TypeScript error would block build | Plan 07 or type regen will switch to SQL-level ordering |
 | 2026-02-28 | orgContextStore persists activeOrgId + activeWorkspaceId to localStorage (callvault-org-context); activeFolderId is session-only | Folder selection is per-session; org/workspace selection persists for user convenience across sessions | Cross-tab sync fires on callvault-org-context-updated key via storage event |
@@ -228,15 +231,29 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T03:55:52Z
-**Stopped at:** Phase 16 Plan 02 fully complete — orgContextStore, organizations.service, workspaces.service, useOrganizations, useWorkspaces, useOrgContext all created. Plan 03 is next.
-**Resume with:** `/gsd:execute-phase 16` to run Plan 03.
+**Last session:** 2026-02-28T04:04:15Z
+**Stopped at:** Phase 16 Plan 04 fully complete — folders.service, useFolders, useFolderAssignment, FolderDropZone, DndCallProvider, DraggableCallRow all created. Plan 05 is next.
+**Resume with:** `/gsd:execute-phase 16` to run Plan 05.
 
 ### Context for Next Session
 
-**Phase 16 Plan 02 fully complete. Data layer is the backbone for all subsequent Phase 16 plans.**
+**Phase 16 Plan 04 fully complete. Folder management infrastructure ready for UI integration.**
 
-**Plan 02 deliverables:**
+**Plan 04 deliverables:**
+- `src/services/folders.service.ts` — getFolders, getArchivedFolders, createFolder (depth-limited), renameFolder, archiveFolder, restoreFolder, deleteFolder (guard), assignCallToFolder, removeCallFromFolder, moveCallToFolder
+- `src/hooks/useFolders.ts` — useFolders, useArchivedFolders, useCreateFolder, useRenameFolder (optimistic), useArchiveFolder, useRestoreFolder
+- `src/hooks/useFolderAssignment.ts` — useAssignToFolder, useRemoveFromFolder, useMoveToFolder
+- `src/components/dnd/FolderDropZone.tsx` — useDroppable with brand orange hover ring
+- `src/components/dnd/DndCallProvider.tsx` — DndContext + MouseSensor/TouchSensor; exports DraggableCallRow
+
+**Key patterns:**
+- All folder queries: `supabase.from('folders').eq('vault_id', workspaceId)`
+- DB: `parent_id` (not parent_folder_id); service maps to Folder.parent_folder_id
+- Archived columns cast via `(supabase as any)` until types regenerated
+- DnD: `folder-{id}` and `recording-{id}` prefixes in drag/drop IDs
+- `call_recording_id: number` in folder_assignments (legacy fathom numeric ID)
+
+**Plan 02 deliverables (data layer):**
 - `src/stores/orgContextStore.ts` — Zustand v5 with activeOrgId/activeWorkspaceId/activeFolderId, localStorage persistence, cross-tab sync
 - `src/services/organizations.service.ts` — getOrganizations/getOrganizationById/createOrganization/isPersonalOrg; queries banks table
 - `src/services/workspaces.service.ts` — getWorkspaces/getWorkspaceById/createWorkspace/getWorkspaceMembers/updateMemberRole/removeMember; queries vaults table
