@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 16 Plans 05 and 06 COMPLETE — Plan 05: invitation service, hooks, invite dialog, WorkspaceMemberPanel, join page; Plan 06: ModelExplorer, useOnboarding, _authenticated onboarding overlay, SidebarNav "How it works" wired)
+**Last Updated:** 2026-02-28 (Phase 16 Plan 07 Tasks 1-2 COMPLETE — DnD integration, sidebar cache fix, action menus, terminology sweep, route wiring; awaiting human verification checkpoint)
 
 ## Project Reference
 
@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 16 — Workspace Redesign (Plans 01-06 complete, Plan 07 remaining)
+**Phase:** Phase 16 — Workspace Redesign (Plans 01-06 complete, Plan 07 Tasks 1-2 complete, awaiting checkpoint)
 
-**Status:** Plans 05 and 06 both fully complete. Plan 05: invitation service + hooks (useInvitations, useCreateInvitation with auto-clipboard, useRevokeInvitation, useResendInvitation, useInviteDetails, useAcceptInvite), WorkspaceInviteDialog (two-tab email+link, role picker, WKSP-10 org+workspace context), WorkspaceMemberPanel (Members+Pending Invites tabs, role change, remove, resend, revoke), /join/workspace/:token route (WKSP-10 full context before accepting, edge case handling). Build clean.
+**Status:** Plan 07 Tasks 1-2 complete. Task 1: WorkspaceSidebarPane now uses useFolders hook for cache coherence, index.tsx wired with DndCallProvider + DraggableCallRow + CallActionMenu (Move to Folder), calls/$callId.tsx has breadcrumbs + MoveToFolderAction, folders/$folderId.tsx full folder page. Task 2: zero Bank/Vault/Hub user-facing strings, workspaces/index.tsx real data, workspaces/$workspaceId.tsx with WorkspaceMemberPanel, settings Organizations category, import page renamed. Build clean. Awaiting Task 3 human verification checkpoint.
 
-**Last activity:** 2026-02-28 — Phase 16 Plans 05 and 06 fully complete
+**Last activity:** 2026-02-28 — Phase 16 Plan 07 Tasks 1-2 complete, checkpoint reached
 
 **Progress:**
 [██████████] 96%
@@ -28,7 +28,7 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
-Phase 16: Workspace Redesign    [~] in progress (Plans 01-04 of 7 done)
+Phase 16: Workspace Redesign    [~] in progress (Plans 01-06 done, Plan 07 at checkpoint)
 Phase 17: Import Pipeline       [ ] not started
 Phase 18: Import Routing Rules  [ ] not started
 Phase 19: MCP Audit + Tokens    [ ] not started
@@ -58,7 +58,9 @@ Phase 22: Backend Cleanup       [ ] not started
 |------|----------|-----------|--------|
 | 2026-02-28 | user_preferences table does not exist — onboarding_seen_v2 stored in user_profiles.auto_processing_preferences JSONB | No migration needed; user_profiles already has JSONB column with full type support; server-side persistence achieved | useOnboarding reads/writes auto_processing_preferences key instead of separate table |
 | 2026-02-28 | showOnboarding UI flag lives in preferencesStore (Zustand) not useOnboarding local state | SidebarNav (trigger) and _authenticated.tsx (renderer) are separate components; local state would give each a separate instance; Zustand store is the correct cross-component UI state pattern per FOUND-06 | Both components import useOnboarding which reads/writes preferencesStore.showOnboarding |
+| 2026-02-28 | WorkspaceSidebarPane now uses useFolders/useArchivedFolders hooks (Plan 16-07 replaced inline query) — same TanStack Query cache key as folder mutations → real-time sidebar updates | Cache coherence: folder create/rename/archive invalidates queryKeys.folders.list(workspaceId) which sidebar now reads | No inline Supabase folder query in sidebar; folder mutations update sidebar immediately |
 | 2026-02-28 | WorkspaceSidebarPane uses inline Supabase folder query (not useFolders) — Plan 16-04 will replace with full hook | Plan 16-04 is responsible for folder service/hooks; inline query avoids cross-plan dependency | WorkspaceSidebarPane.useFoldersForWorkspace is a stub; Plan 16-04 consumers use useFolders |
+| 2026-02-28 | Workspace/folder call filtering still deferred — useFilteredRecordings remains a passthrough in Plan 07; full workspace-scoped query needs vault_entries join (Phase 17+) | Recording.bank_id ≠ workspace filter; vault_entries join is Phase 17+'s scope | index.tsx shows all recordings regardless of active workspace until vault_entries query added |
 | 2026-02-28 | Workspace/folder call filtering deferred to Plan 16-05 — useFilteredRecordings is a passthrough until vault_entries query available | Recording.bank_id ≠ workspace filter; vault_entries join is Plan 16-05's scope | index.tsx shows all recordings regardless of active workspace until Plan 16-05 |
 | 2026-02-28 | OrgSwitcherBar spans full AppShell width (above ALL panes, not just sidebar) — AppShell wrapped in flex-col | Locked decision: thin header bar above the sidebar shows org; implemented as top bar spanning all panes | AppShell desktop layout: flex-col wrapper, OrgSwitcherBar, then flex-1 pane container |
 | 2026-02-28 | folders.service maps DB parent_id to Folder.parent_folder_id at service layer — DB column is parent_id, Folder interface uses parent_folder_id for semantic clarity | Keeps Folder interface consistent with plan naming while preserving actual DB column name | All folder service code reads parent_id from DB, consumers use parent_folder_id via Folder type |
