@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-27 (Phase 14 COMPLETE — all 5 plans executed, Vercel deployed, Google OAuth verified end-to-end)
+**Last Updated:** 2026-02-27 (Phase 15 Plan 01 COMPLETE — batch migration 100%, RLS verified, external_id backfilled on all 1,554 rows)
 
 ## Project Reference
 
@@ -16,18 +16,18 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 14 — Foundation (COMPLETE)
+**Phase:** Phase 15 — Data Migration (Plan 01 of 4 complete)
 
-**Status:** All 5 plans executed. Vercel live at https://callvault.vercel.app. Google OAuth verified end-to-end.
+**Status:** Plan 01 complete — all 1,545 fathom_calls migrated, external_id backfilled, RLS verified. Plans 02-04 remaining.
 
-**Last activity:** 2026-02-27 — Phase 14 complete (all plans executed, deployed, auth verified)
+**Last activity:** 2026-02-27 — Phase 15 Plan 01 complete (batch migration, backfill, RLS verification)
 
 **Progress:**
-[██████████] 100%
-[██        ] 2/10 phases complete
+[██████████] 96%
+[███       ] 2.25/10 phases complete
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
-Phase 15: Data Migration        [ ] not started
+Phase 15: Data Migration        [~] in progress (Plan 01 done)
 Phase 16: Workspace Redesign    [ ] not started
 Phase 17: Import Pipeline       [ ] not started
 Phase 18: Import Routing Rules  [ ] not started
@@ -56,6 +56,10 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-27 | Task 2 (disable sync edge functions) skipped — accepted migration risk | User wanted speed; unmigrated_non_orphans = 0 confirmed no data loss | No sync functions need re-enabling; Plan 03 archive rename should still consider disabling |
+| 2026-02-27 | external_id backfilled via UPDATE not re-migration for 1,532 pre-existing rows | Simpler, safer than re-running migration — no re-insert risk | All 1,554 migrated recordings now have external_id in source_metadata |
+| 2026-02-27 | get_migration_progress() 100.58% is expected (1,554 > 1,545) — 9 non-Fathom recordings use legacy_recording_id | YouTube imports + Google Meet + 2 deleted fathom rows explain the overage | Canonical metric is unmigrated_non_orphans = 0, not percent_complete |
+| 2026-02-27 | Production SQL run via psql direct connection (not edge function) for batch migration | Supabase CLI v2.75.0 has no db execute --project-ref; edge function requires browser JWT | Pattern for future production SQL: PGHOST=aws-1-us-east-1.pooler.supabase.com PGUSER=postgres.vltmrnjsubfzrgrtdqey |
 | 2026-02-27 | CI uses pnpm build (not tsc --noEmit) — Vite compilation catches both TS and bundler errors in one step | No separate type-check needed; pnpm build is the single source of truth for build health | GitHub Actions CI workflow in .github/workflows/ci.yml |
 | 2026-02-27 | Settings /settings redirects to /settings/account via beforeLoad | Avoids blank settings root; TanStack Router redirect in beforeLoad is the correct pattern | All settings navigation targets /settings/$category |
 | 2026-02-27 | FOUND-06 hard boundary: TanStack Query = server state, Zustand = UI state — convention only, documented in query-config.ts | Runtime enforcement unnecessary; convention + docs prevents cache staleness bugs | All server data fetching uses queryKeys factory; Zustand stores hold UI state only |
@@ -210,9 +214,27 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-27T18:10:00Z
-**Stopped at:** Phase 14 complete. All 5 plans executed, Vercel deployed, Google OAuth verified.
-**Resume with:** `/gsd:discuss-phase 15` or `/gsd:plan-phase 15` to begin Data Migration phase.
+**Last session:** 2026-02-28T01:10:00Z
+**Stopped at:** Phase 15 Plan 01 complete — all 1,545 fathom_calls migrated, external_id backfilled on 1,554 rows, RLS verified clean.
+**Resume with:** `/gsd:execute-phase 15` to continue Phase 15 with Plan 02.
+
+### Context for Next Session
+
+**Phase 15 Plan 01 complete. Continue with Phase 15 Plan 02.**
+
+**Migration state:**
+- All fathom_calls migrated: unmigrated_non_orphans = 0
+- external_id present on all migrated recordings: missing_external_id = 0
+- RLS clean: User B sees 0 of User A's recordings
+- fathom_calls table still exists (not yet archived)
+- Sync edge functions still enabled (Task 2 was skipped)
+
+**Production DB connection:**
+- PGHOST=aws-1-us-east-1.pooler.supabase.com PGPORT=5432 PGUSER=postgres.vltmrnjsubfzrgrtdqey PGPASSWORD=x2n2KlCAA8suZjqa PGDATABASE=postgres
+
+**Key files:**
+- `.planning/phases/15-data-migration/15-01-SUMMARY.md` — full migration results
+- `supabase/migrations/20260227000001_fix_migration_function.sql` — fixed migration function
 
 ### Context for Next Session
 
