@@ -56,6 +56,9 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | WorkspaceSidebarPane uses inline Supabase folder query (not useFolders) — Plan 16-04 will replace with full hook | Plan 16-04 is responsible for folder service/hooks; inline query avoids cross-plan dependency | WorkspaceSidebarPane.useFoldersForWorkspace is a stub; Plan 16-04 consumers use useFolders |
+| 2026-02-28 | Workspace/folder call filtering deferred to Plan 16-05 — useFilteredRecordings is a passthrough until vault_entries query available | Recording.bank_id ≠ workspace filter; vault_entries join is Plan 16-05's scope | index.tsx shows all recordings regardless of active workspace until Plan 16-05 |
+| 2026-02-28 | OrgSwitcherBar spans full AppShell width (above ALL panes, not just sidebar) — AppShell wrapped in flex-col | Locked decision: thin header bar above the sidebar shows org; implemented as top bar spanning all panes | AppShell desktop layout: flex-col wrapper, OrgSwitcherBar, then flex-1 pane container |
 | 2026-02-28 | folders.service maps DB parent_id to Folder.parent_folder_id at service layer — DB column is parent_id, Folder interface uses parent_folder_id for semantic clarity | Keeps Folder interface consistent with plan naming while preserving actual DB column name | All folder service code reads parent_id from DB, consumers use parent_folder_id via Folder type |
 | 2026-02-28 | folder_assignments.call_recording_id is a legacy numeric ID (from fathom_calls); service + hooks use number type not UUID | folder_assignments FK references fathom_calls.recording_id (bigint) not recordings.id (UUID) | useAssignToFolder/useRemoveFromFolder take callRecordingId: number parameter |
 | 2026-02-28 | DnD on desktop only (DndCallProvider is a passthrough on mobile/tablet); action menu is the assignment path on mobile | Per locked decisions: drag-and-drop on desktop; action menu everywhere | DraggableCallRow disabled on isMobileOrTablet; DndCallProvider renders children without DnD context on mobile |
@@ -231,8 +234,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T04:04:15Z
-**Stopped at:** Phase 16 Plan 04 fully complete — folders.service, useFolders, useFolderAssignment, FolderDropZone, DndCallProvider, DraggableCallRow all created. Plan 05 is next.
+**Last session:** 2026-02-28T04:07:04Z
+**Stopped at:** Phase 16 Plans 03 and 04 fully complete (ran in parallel). Plan 03: OrgSwitcherBar, WorkspaceSidebarPane, WorkspaceBreadcrumb, AppShell updated, SidebarNav cleaned. Plan 04: folders.service, useFolders, useFolderAssignment, FolderDropZone, DndCallProvider, DraggableCallRow. Plan 05 is next.
 **Resume with:** `/gsd:execute-phase 16` to run Plan 05.
 
 ### Context for Next Session
