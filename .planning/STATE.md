@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 16.1 Plan 03 complete — vibe-orange tab indicators on Import page, Radix DropdownMenu CallActionMenu with folder submenu, settings page proper empty states with icons.)
+**Last Updated:** 2026-02-28 (Phase 16.1 Plan 04 complete — callvault-design-system skill for Claude Code agents, brand guidelines bumped to v4.3 with v2 AppShell + spring animation docs.)
 
 ## Project Reference
 
@@ -18,11 +18,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 16.1 — Workspace Polish + Brand Guidelines
 
-**Current Plan:** Plan 03 complete (visual audit + polish). Plan 04 pending.
+**Current Plan:** Plan 04 complete. Phase 16.1 fully complete.
 
-**Status:** Phase 16.1 Plan 03 complete. Import tab active indicator uses border-vibe-orange per brand guidelines. CallActionMenu rewritten with Radix DropdownMenu (keyboard nav, a11y, folder submenu via DropdownMenu.Sub). Settings pages have polished empty states with category-specific icons and descriptions. Dark mode CSS reviewed — comprehensive and correct, no fixes required. Breadcrumb and WorkspaceSidebarPane audited — both look clean. Next: Plan 04.
+**Status:** Phase 16.1 complete (all 4 plans done). Plan 04 created callvault-design-system.md skill (556-line machine-optimized reference) and bumped brand guidelines to v4.3. v4.3 adds v2 AppShell pane architecture docs, spring animation system (motion/react, stiffness 260, damping 28), nav pill height correction (65%), custom button-tab pattern, and dialog button exception. Phase 19 (MCP Audit + Tokens) is next.
 
-**Last activity:** 2026-02-28 — Phase 16.1 Plan 03 complete (visual audit, vibe-orange tabs, Radix CallActionMenu, settings empty states)
+**Last activity:** 2026-02-28 — Phase 16.1 Plan 04 complete (design system skill + brand guidelines v4.3)
 
 **Progress:**
 [██████████] 100% through Phase 18
@@ -62,6 +62,9 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | Brand guidelines bumped v4.2.1 -> v4.3 (minor) — 5 sections updated: AppShell pane architecture, spring animation, pill height, button-tab pattern, dialog button exception | 5 sections = minor version per docs/CLAUDE.md; audit revealed actual v2 code diverged from v4.2 spec in these areas | brand-guidelines-v4.3.md is now canonical; v4.2 archived to docs/archive/ |
+| 2026-02-28 | callvault-design-system skill is 556 lines (above 400-line target) — kept at 556 | All content is genuinely useful; shorter would omit critical detail (spring config, Radix patterns, anti-patterns) | Future GSD agents reference this skill for all UI work without reading full brand guidelines |
+| 2026-02-28 | Dialog action buttons: bg-brand-500 accepted inside Radix Dialog (in addition to bg-foreground text-background pattern) | Plan 02 established this as a working pattern; documented as formal exception in v4.3 | Agents building dialogs can use either pattern; page-level buttons still follow standard rules |
 | 2026-02-28 | Import tab active indicator uses border-vibe-orange (was border-foreground = black) — per brand guidelines v4.2 "9 Approved Uses of Vibe Orange" item #1 | Black underline is brand non-compliant; vibe-orange is the correct active tab indicator per brand guidelines | All tab bars in the app must use border-vibe-orange for active tab indicator |
 | 2026-02-28 | CallActionMenu replaced hand-rolled div+useState+useRef+useEffect with Radix DropdownMenu.Root/Sub — folder picker uses DropdownMenu.Sub/SubTrigger/SubContent | Radix handles outside-click, keyboard navigation, focus management, and submenu positioning automatically; hand-rolled version had no keyboard nav | All future dropdown menus use Radix DropdownMenu primitives; no hand-rolled dropdowns |
 | 2026-02-28 | Settings empty states use centered icon (24px in 48px muted rounded container) + descriptive heading + category-specific subtitle instead of raw "Coming soon — X settings" text | Raw text is dismissive and unpolished; empty state pattern matches app-wide quality bar ("I'd show it to a customer") | All future "coming soon" feature areas use SettingsEmptyState pattern: icon + heading + subtitle |
@@ -279,9 +282,9 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T21:46:17Z
-**Stopped at:** Phase 16.1 Plan 01 complete
-**Resume with:** `/gsd:execute-phase 16.1` to run Plan 02 (brand guidelines audit).
+**Last session:** 2026-02-28T22:33:28Z
+**Stopped at:** Phase 16.1 Plan 04 complete (phase complete)
+**Resume with:** `/gsd:execute-phase 19` to run Phase 19 (MCP Audit + Workspace Tokens).
 
 ### Context for Next Session
 
