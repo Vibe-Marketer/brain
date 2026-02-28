@@ -1,17 +1,18 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.ts';
 
 /**
  * YouTube Import Edge Function
- * 
+ *
  * Orchestrates the import of YouTube videos as call transcripts:
  * 1. Validates YouTube URL and extracts video ID
- * 2. Checks for duplicate imports
+ * 2. Checks for duplicate imports via shared connector pipeline (checkDuplicate)
  * 3. Fetches video metadata via youtube-api function
  * 4. Fetches transcript via Transcript API directly
- * 5. Creates fathom_calls record with source_platform='youtube'
- * 
- * The existing embedding pipeline will pick up new records for processing.
+ * 5. Inserts recording into recordings table via shared connector pipeline (insertRecording)
+ *
+ * All DB writes go through connector-pipeline.ts (recordings table only).
  */
 
 interface ImportRequest {
@@ -25,7 +26,7 @@ interface ImportResponse {
   success: boolean;
   step: ImportStep;
   error?: string;
-  recordingId?: number;
+  recordingId?: string;
   title?: string;
   exists?: boolean;
 }
@@ -306,19 +307,6 @@ function extractVideoId(input: string): string | null {
 }
 
 /**
- * Generate a unique recording_id for YouTube imports
- * Uses timestamp-based approach with a prefix to avoid collision with Fathom IDs
- * YouTube recording IDs use the 9000000000000+ range
- */
-function generateYouTubeRecordingId(): number {
-  // Use 9000000000000 as base to avoid collision with Fathom's recording IDs
-  // Add timestamp in milliseconds to ensure uniqueness
-  const base = 9000000000000;
-  const timestamp = Date.now();
-  return base + timestamp;
-}
-
-/**
  * Parse ISO 8601 duration (e.g., "PT1H2M10S") to seconds
  * Used to populate recordings.duration field
  */
@@ -555,37 +543,18 @@ Deno.serve(async (req) => {
     console.log(`Extracted video ID: ${videoId}`);
 
     // ========================================================================
-    // Step 2: Check for duplicate import
+    // Step 2: Check for duplicate import (Stage 3 — shared pipeline dedup)
     // ========================================================================
-    const { data: existingCall, error: checkError } = await supabase
-      .from('fathom_calls')
-      .select('recording_id, title')
-      .eq('user_id', user.id)
-      .eq('source_platform', 'youtube')
-      .filter('metadata->>youtube_video_id', 'eq', videoId)
-      .maybeSingle();
+    const { isDuplicate, existingRecordingId } = await checkDuplicate(supabase, user.id, 'youtube', videoId);
 
-    if (checkError) {
-      console.error('Error checking for duplicate:', checkError);
+    if (isDuplicate) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          step: 'checking' as ImportStep,
-          error: 'Failed to check for existing imports' 
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (existingCall) {
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           step: 'checking' as ImportStep,
           error: 'Video already imported',
           exists: true,
-          recordingId: existingCall.recording_id,
-          title: existingCall.title
+          recordingId: existingRecordingId,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
@@ -712,173 +681,65 @@ Deno.serve(async (req) => {
     console.log(`Fetched transcript: ${transcriptText.length} characters`);
 
     // ========================================================================
-    // Step 5: Create fathom_calls record
+    // Step 5: Insert recording via shared pipeline (Stage 5 — dedup + insert)
     // ========================================================================
-    const recordingId = generateYouTubeRecordingId();
-    
-    // Prepare metadata JSONB
-    const metadata = {
-      youtube_video_id: videoId,
+
+    // Parse publishedAt date for recording_start_time
+    const publishedAt = videoDetails.publishedAt
+      ? new Date(videoDetails.publishedAt).toISOString()
+      : new Date().toISOString();
+
+    // Parse duration to seconds for recordings table
+    const durationSeconds = parseDurationToSeconds(videoDetails.duration);
+
+    // Build source_metadata (external_id merged as first key by insertRecording)
+    const sourceMetadata = {
       youtube_channel_id: videoDetails.channelId,
       youtube_channel_title: videoDetails.channelTitle,
-      youtube_description: (videoDetails.description || '').substring(0, 1000), // Truncate to 1000 chars
+      youtube_description: (videoDetails.description || '').substring(0, 1000),
       youtube_thumbnail: videoDetails.thumbnails?.high?.url || videoDetails.thumbnails?.default?.url,
       youtube_duration: videoDetails.duration,
       youtube_view_count: videoDetails.viewCount,
       youtube_like_count: videoDetails.likeCount,
+      youtube_comment_count: videoDetails.commentCount || null,
+      youtube_category_id: videoDetails.categoryId || null,
       import_source: 'youtube-import',
       imported_at: new Date().toISOString(),
     };
 
-    // Parse publishedAt date for recording_start_time
-    const publishedAt = videoDetails.publishedAt 
-      ? new Date(videoDetails.publishedAt).toISOString()
-      : new Date().toISOString();
-
-    const insertData = {
-      recording_id: recordingId,
-      user_id: user.id,
-      title: videoDetails.title,
-      full_transcript: transcriptText,
-      recording_start_time: publishedAt,
-      created_at: new Date().toISOString(),
-      url: `https://www.youtube.com/watch?v=${videoId}`,
-      source_platform: 'youtube',
-      metadata: metadata,
-      // Set deduplication fields
-      is_primary: true,
-      transcript_source: 'native', // YouTube's native captions
-    };
-
-    const { error: insertError } = await supabase
-      .from('fathom_calls')
-      .insert(insertData);
-
-    if (insertError) {
-      console.error('Error inserting call record:', insertError);
+    let newRecordingId: string;
+    try {
+      const result = await insertRecording(supabase, user.id, {
+        external_id: videoId,
+        source_app: 'youtube',
+        title: videoDetails.title,
+        full_transcript: transcriptText,
+        recording_start_time: publishedAt,
+        duration: durationSeconds ?? undefined,
+        source_metadata: sourceMetadata,
+        vault_id: youtubeVaultId ?? undefined,
+      });
+      newRecordingId = result.id;
+      console.log(`Successfully imported YouTube video as recording UUID: ${newRecordingId}`);
+    } catch (pipelineError) {
+      console.error('Error inserting recording via pipeline:', pipelineError);
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           step: 'processing' as ImportStep,
-          error: 'Failed to save video import' 
+          error: 'Failed to save video import',
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Successfully imported YouTube video as recording_id: ${recordingId}`);
-
     // ========================================================================
-    // Step 6: Create recording in recordings table + vault entry
-    // ========================================================================
-    let newRecordingUuid: string | null = null;
-
-    try {
-      // Reuse the personal bank found in Step 0, or fall back to first membership
-      let recordingBankId = resolvedPersonalBankId;
-      if (!recordingBankId) {
-        const { data: userBank } = await supabase
-          .from('bank_memberships')
-          .select('bank_id')
-          .eq('user_id', user.id)
-          .limit(1)
-          .maybeSingle();
-        recordingBankId = userBank?.bank_id || null;
-      }
-
-      if (recordingBankId) {
-        // Parse duration to seconds for recordings table
-        const durationSeconds = parseDurationToSeconds(videoDetails.duration);
-
-        // Build source_metadata matching YouTubeVideoMetadata interface
-        const sourceMetadata = {
-          youtube_video_id: videoId,
-          youtube_channel_id: videoDetails.channelId,
-          youtube_channel_title: videoDetails.channelTitle,
-          youtube_description: (videoDetails.description || '').substring(0, 1000),
-          youtube_thumbnail: videoDetails.thumbnails?.high?.url || videoDetails.thumbnails?.default?.url,
-          youtube_duration: videoDetails.duration,
-          youtube_view_count: videoDetails.viewCount,
-          youtube_like_count: videoDetails.likeCount,
-          youtube_comment_count: videoDetails.commentCount || null,
-          youtube_category_id: videoDetails.categoryId || null,
-          import_source: 'youtube-import',
-          imported_at: new Date().toISOString(),
-        };
-
-        // Create recording directly in recordings table
-        const { data: newRecording, error: recordingInsertError } = await supabase
-          .from('recordings')
-          .insert({
-            bank_id: recordingBankId,
-            owner_user_id: user.id,
-            legacy_recording_id: recordingId,
-            title: videoDetails.title,
-            full_transcript: transcriptText,
-            source_app: 'youtube',
-            source_metadata: sourceMetadata,
-            duration: durationSeconds,
-            recording_start_time: publishedAt,
-            global_tags: [],
-          })
-          .select('id')
-          .single();
-
-        if (recordingInsertError) {
-          console.error('Error creating recording:', recordingInsertError);
-        } else if (newRecording) {
-          newRecordingUuid = newRecording.id;
-          console.log(`Created recording ${newRecordingUuid} with source_metadata`);
-        }
-      }
-    } catch (recordingError) {
-      // Never block import on recording table failures
-      console.error('Error creating recording entry:', recordingError);
-    }
-
-    // Create vault entry linking recording to YouTube vault
-    if (youtubeVaultId && newRecordingUuid) {
-      try {
-        // Validate vault membership
-        const { data: membership, error: membershipError } = await supabase
-          .from('vault_memberships')
-          .select('id')
-          .eq('vault_id', youtubeVaultId)
-          .eq('user_id', user.id)
-          .maybeSingle();
-
-        if (membershipError) {
-          console.error('Error checking vault membership:', membershipError);
-        } else if (!membership) {
-          console.warn(`User ${user.id} is not a member of vault ${youtubeVaultId}, skipping vault entry`);
-        } else {
-          const { error: vaultEntryError } = await supabase
-            .from('vault_entries')
-            .insert({
-              vault_id: youtubeVaultId,
-              recording_id: newRecordingUuid,
-            });
-
-          if (vaultEntryError) {
-            // Don't fail the whole import for vault entry issues
-            console.error('Error creating vault entry:', vaultEntryError);
-          } else {
-            console.log(`Created vault entry for recording ${newRecordingUuid} in vault ${youtubeVaultId}`);
-          }
-        }
-      } catch (vaultError) {
-        // Never fail the import due to vault entry issues
-        console.error('Error handling vault entry:', vaultError);
-      }
-    }
-
-    // ========================================================================
-    // Step 7: Return success
+    // Step 6: Return success
     // ========================================================================
     const response: ImportResponse & { vaultId?: string } = {
       success: true,
       step: 'done',
-      recordingId: recordingId,
+      recordingId: newRecordingId,
       title: videoDetails.title,
     };
 
