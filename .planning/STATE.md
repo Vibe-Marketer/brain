@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 15 — Data Migration (Plan 02 of 4 complete)
+**Phase:** Phase 15 — Data Migration (Plan 03 of 4 complete — awaiting Task 3 human verification)
 
-**Status:** Plan 02 complete — v2 frontend calls list (/) and call detail (/calls/:id) wired to recordings table. Plans 03-04 remaining.
+**Status:** Plan 03 Tasks 1-2 complete — fathom_calls renamed to fathom_calls_archive (1,545 rows preserved). Task 3 is a human checkpoint: user must spot-check 5-10 calls between old and new frontend. Plan 04 remaining.
 
-**Last activity:** 2026-02-28 — Phase 15 Plan 02 complete (v2 frontend wired to recordings table)
+**Last activity:** 2026-02-28 — Phase 15 Plan 03 Tasks 1-2 complete (fathom_calls archived, awaiting user spot-check)
 
 **Progress:**
 [██████████] 96%
@@ -56,6 +56,8 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | fathom_calls renamed to fathom_calls_archive via ALTER TABLE RENAME — dormant, no RLS, COMMENT documents 30-day hold and Phase 22 DROP | Archive not drop: preserves data safety net during v2 go-live period | Phase 22 Backend Cleanup will DROP fathom_calls_archive |
+| 2026-02-28 | Task 2 (re-enable sync functions) N/A in Plan 03 — sync functions were never disabled per Plan 01 user decision | User skipped Plan 01 Task 2; nothing to re-enable | Phase 17 will rewire sync functions to write to recordings table |
 | 2026-02-28 | Service layer pattern established: src/services/*.service.ts plain async functions, hooks wrap with useQuery | Separates data access from cache management; plain functions are independently testable | All v2 data fetching follows this service+hook separation pattern |
 | 2026-02-28 | RecordingListItem = Pick<Row> for list, full Row for detail — avoids transferring full_transcript in list query | Avoids fetching kilobyte-scale transcript column for every row in the list | Pattern for all future list vs detail data shapes |
 | 2026-02-28 | Task 2 (disable sync edge functions) skipped — accepted migration risk | User wanted speed; unmigrated_non_orphans = 0 confirmed no data loss | No sync functions need re-enabling; Plan 03 archive rename should still consider disabling |
@@ -216,13 +218,19 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T01:13:00Z
-**Stopped at:** Phase 15 Plan 02 complete — v2 frontend calls list and call detail pages wired to recordings table, pnpm build passing, zero fathom_calls in authored source.
-**Resume with:** `/gsd:execute-phase 15` to continue Phase 15 with Plan 03.
+**Last session:** 2026-02-28T01:14:00Z
+**Stopped at:** Phase 15 Plan 03 Tasks 1-2 complete — fathom_calls renamed to fathom_calls_archive, awaiting user spot-check (Task 3 checkpoint).
+**Resume with:** After user approves spot-check, `/gsd:execute-phase 15` to continue with Plan 04.
 
 ### Context for Next Session
 
-**Phase 15 Plan 02 complete. Continue with Phase 15 Plan 03.**
+**Phase 15 Plan 03 Tasks 1-2 complete. Task 3 (human spot-check) pending user approval. After approval, run Plan 04.**
+
+**Archive state:**
+- `fathom_calls` no longer exists in production (renamed)
+- `fathom_calls_archive` exists with 1,545 rows and COMMENT documenting Phase 22 DROP
+- Migration: `supabase/migrations/20260227000002_archive_fathom_calls.sql` committed as `ffd05e2`
+- Sync functions remain active (writing to fathom_calls_archive temporarily — Phase 17 rewires)
 
 **Frontend state:**
 - `/` route: live recordings list from recordings table (title, date, duration, source_app badge)
