@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 16 Plan 08 COMPLETE — workspace/folder filtering of calls list wired via vault_entries + folder_assignments; folder breadcrumb Level 3 implemented)
+**Last Updated:** 2026-02-28 (Phase 18 Plan 02 COMPLETE — routing rules data layer + UI components: types, hooks, Zustand store, DestinationPicker, DefaultDestinationBar, RoutingRuleCard, RoutingRulesList with @dnd-kit/sortable drag-to-reorder)
 
 ## Project Reference
 
@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 18 — Import Routing Rules (Plan 01 complete)
+**Phase:** Phase 18 — Import Routing Rules (Plan 02 complete)
 
-**Status:** Phase 17 Import Pipeline assumed complete (Plans 01-05 done). Phase 18 Plan 01 complete: import_routing_rules + import_routing_defaults tables deployed to production with RLS; routing-engine.ts created with resolveRoutingDestination() evaluating 6 condition types; runPipeline() in connector-pipeline.ts now resolves routing before insert (rules → org default → personal vault fallback). Plans 02-04 remain for Phase 18.
+**Status:** Phase 17 Import Pipeline assumed complete (Plans 01-05 done). Phase 18 Plans 01-02 complete: DB schema + routing engine (Plan 01); frontend data layer + UI components (Plan 02). Plans 03-04 remain for Phase 18.
 
-**Last activity:** 2026-02-28 — Phase 18 Plan 01 complete (routing DB schema + routing engine + pipeline integration)
+**Last activity:** 2026-02-28 — Phase 18 Plan 02 complete (routing rules data layer + list UI with drag-to-reorder)
 
 **Progress:**
 [█████████░] 94%
@@ -30,7 +30,7 @@ Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
 Phase 16: Workspace Redesign    [✓] complete (2026-02-28 — all 8 plans finished including gap closure 16-08)
 Phase 17: Import Pipeline       [~] in progress (Plans 01-04 done, Plan 05 at checkpoint)
-Phase 18: Import Routing Rules  [~] in progress (Plan 01 done, Plans 02-04 remaining)
+Phase 18: Import Routing Rules  [~] in progress (Plans 01-02 done, Plans 03-04 remaining)
 Phase 19: MCP Audit + Tokens    [ ] not started
 Phase 20: MCP Differentiators   [ ] not started
 Phase 21: AI Bridge + Export    [ ] not started
@@ -56,6 +56,8 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | activeOrgId in orgContextStore serves as bank_id for routing queries — no new activeBankId field needed (banks = organizations in CallVault) | Architectural identity: banks table IS the organizations concept; activeOrgId already holds the bank_id | All routing hooks use activeOrgId from orgContextStore rather than a separate store field |
+| 2026-02-28 | Handle-only drag in RoutingRuleCard via setActivatorNodeRef on handle button only (not card-wide) | Card body must be clickable to open edit slide-over; whole-card drag would intercept clicks | Toggle and card click both work independently; only drag handle area initiates DnD |
 | 2026-02-28 | Routing logic lives in runPipeline() pre-step (not insertRecording() parameter) — preserves insertRecording signature unchanged | insertRecording() contract is stable across all connectors; routing is pipeline-layer concern | Direct callers of insertRecording() bypass routing — acceptable per plan design |
 | 2026-02-28 | import_routing_rules is bank-scoped (org-level), not user-scoped — the whole org shares one rule list | Locked decision from CONTEXT.md: one rule list per org | Rules use bank_memberships RLS pattern (not auth.uid() = user_id direct check) |
 | 2026-02-28 | Two-step query for workspace/folder filtering: get IDs from vault_entries/folder_assignments then fetch recordings.in('id', ids) | Supabase JS client join syntax on non-FK relationships is awkward; two-step is explicit and debuggable | Empty workspace/folder returns empty array, not all recordings — correct UX |
