@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 18 COMPLETE — Import Routing Rules: DB schema + routing engine, frontend data layer, condition builder + live preview, Import Hub tabs + empty state + trace badge. All 4 plans verified via dev-browser.)
+**Last Updated:** 2026-02-28 (Phase 16.1 Plan 01 complete — AppShell animation fix: width-only spring push, bg-viewport root, consistent border-border/60 across all panes, OrgSwitcherBar integrated as shell chrome.)
 
 ## Project Reference
 
@@ -16,11 +16,13 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 18 — Import Routing Rules (COMPLETE)
+**Phase:** Phase 16.1 — Workspace Polish + Brand Guidelines
 
-**Status:** Phase 18 complete. All 4 plans executed and verified via dev-browser. Import Hub has Sources | Rules tabs, default destination gate, drag-to-reorder rule list, slide-over editor with condition builder + live preview, routing trace badge. Next: Phase 19 (MCP Audit + Workspace Tokens).
+**Current Plan:** Plan 01 complete (AppShell animation + visual cohesion). Plans 02-04 pending.
 
-**Last activity:** 2026-02-28 — Phase 18 complete (all 4 plans verified: DB schema, frontend data layer, condition builder + slide-over, Import Hub integration + trace badge)
+**Status:** Phase 16.1 Plan 01 complete. DetailPaneOutlet drawer feel eliminated (width-only spring). AppShell bg-viewport, Pane 3 border fixed to border-border/60, OrgSwitcherBar integrated as shell chrome. Next: Plan 02 (brand guidelines audit) or per ROADMAP plan sequence.
+
+**Last activity:** 2026-02-28 — Phase 16.1 Plan 01 complete (AppShell animation fix, visual cohesion polish)
 
 **Progress:**
 [██████████] 100% through Phase 18
@@ -60,6 +62,10 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | DetailPaneOutlet uses width-only spring animation (no x offset) — drawer feel eliminated | x:20 offset created a "slide in from right" drawer feel; removing it lets flex reflow create same-plane push | All future panel animations use width-only spring; x offset = overlay/drawer pattern |
+| 2026-02-28 | Close button in flex-flow header row (not absolute) — overflow-hidden clips absolute children | absolute top-3 right-3 inside overflow-hidden is invisible; flex-flow header is the correct pattern | All panel close buttons: flex-flow placement, never absolute inside overflow-hidden |
+| 2026-02-28 | OrgSwitcherBar uses bg-viewport (no border-b, no backdrop-blur) — shell chrome not pane chrome | Bar sits in bg-viewport shell; matching bg creates seamless integration instead of floating bar look | OrgSwitcherBar pattern: bg-viewport, no separator border, hover uses muted/40 |
+| 2026-02-28 | Pane 3 border changed to border-border/60 — all 4 panes now consistent | Panes 1, 2, 4 all use border-border/60; Pane 3 was using full opacity border-border | All panes: border-border/60 for consistent visual weight |
 | 2026-02-28 | Client-side preview only (useRulePreview) — no server round trips for condition evaluation | Research pitfall 4: avoid server preview round trips; useMemo on last 20 recordings gives instant feedback | evaluateConditionsClientSide mirrors server routing-engine logic in browser memory |
 | 2026-02-28 | Duration field: user enters minutes, evaluator multiplies by 60 to compare against DB seconds | DB stores duration in seconds; user-facing input in minutes is more natural | Duration conditions multiply value*60 before comparing call.duration |
 | 2026-02-28 | Zero-match yellow warning is non-blocking — allows save anyway | Rules may target future imports not yet in the last 20 call sample | User sees warning but Save button remains enabled |
@@ -266,9 +272,9 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T05:36:10.370Z
-**Stopped at:** Phase 18 Plan 04 — Task 3 checkpoint:human-verify (Tasks 1-2 complete)
-**Resume with:** `/gsd:execute-phase 17` to run next plan (17-04 or 17-02 if not yet done).
+**Last session:** 2026-02-28T21:46:17Z
+**Stopped at:** Phase 16.1 Plan 01 complete
+**Resume with:** `/gsd:execute-phase 16.1` to run Plan 02 (brand guidelines audit).
 
 ### Context for Next Session
 
