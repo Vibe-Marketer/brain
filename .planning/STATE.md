@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 16.1 Plan 01 complete — AppShell animation fix: width-only spring push, bg-viewport root, consistent border-border/60 across all panes, OrgSwitcherBar integrated as shell chrome.)
+**Last Updated:** 2026-02-28 (Phase 16.1 Plan 02 complete — SidebarNav 4-layer active state: bg-vibe-orange/10 tint, fill icons, vibe-orange pill indicator. Replaced both window.prompt() calls with Radix CreateWorkspaceDialog. Fixed workspaces page button styling.)
 
 ## Project Reference
 
@@ -18,11 +18,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 16.1 — Workspace Polish + Brand Guidelines
 
-**Current Plan:** Plan 01 complete (AppShell animation + visual cohesion). Plans 02-04 pending.
+**Current Plan:** Plan 02 complete (SidebarNav polish + CreateWorkspaceDialog). Plans 03-04 pending.
 
-**Status:** Phase 16.1 Plan 01 complete. DetailPaneOutlet drawer feel eliminated (width-only spring). AppShell bg-viewport, Pane 3 border fixed to border-border/60, OrgSwitcherBar integrated as shell chrome. Next: Plan 02 (brand guidelines audit) or per ROADMAP plan sequence.
+**Status:** Phase 16.1 Plan 02 complete. SidebarNav now has Linear-quality 4-layer active state. Both window.prompt() workspace creation calls replaced with reusable Radix CreateWorkspaceDialog. Workspaces page CTA buttons use bg-foreground/text-background (no raw vibe orange). Next: Plan 03.
 
-**Last activity:** 2026-02-28 — Phase 16.1 Plan 01 complete (AppShell animation fix, visual cohesion polish)
+**Last activity:** 2026-02-28 — Phase 16.1 Plan 02 complete (SidebarNav active state polish, CreateWorkspaceDialog)
 
 **Progress:**
 [██████████] 100% through Phase 18
@@ -62,6 +62,9 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | SidebarNav active state: 4-layer brand treatment (bg-vibe-orange/10, fill icon, text-vibe-orange, pill indicator) — replaces bg-muted simplified version | Brand guidelines require full active state; vibe-orange tint signals active clearly; fill icons distinguish active from inactive at a glance | All future sidebar nav items follow this 4-layer pattern |
+| 2026-02-28 | CTA buttons on workspaces page: bg-foreground/text-background instead of raw bg-brand-400 | Per brand guidelines: vibe orange is an accent/icon color, not a button background; bg-foreground adapts to light/dark mode automatically | All page-level CTA buttons use bg-foreground/text-background or Button component; no raw bg-brand-400 |
+| 2026-02-28 | CreateWorkspaceDialog renders conditionally with activeOrgId guard — prevents passing empty orgId to mutation | Mutation would fail at backend if orgId is empty string; guard at render level is cleaner than runtime check inside dialog | All dialogs requiring context IDs use same guard pattern |
 | 2026-02-28 | DetailPaneOutlet uses width-only spring animation (no x offset) — drawer feel eliminated | x:20 offset created a "slide in from right" drawer feel; removing it lets flex reflow create same-plane push | All future panel animations use width-only spring; x offset = overlay/drawer pattern |
 | 2026-02-28 | Close button in flex-flow header row (not absolute) — overflow-hidden clips absolute children | absolute top-3 right-3 inside overflow-hidden is invisible; flex-flow header is the correct pattern | All panel close buttons: flex-flow placement, never absolute inside overflow-hidden |
 | 2026-02-28 | OrgSwitcherBar uses bg-viewport (no border-b, no backdrop-blur) — shell chrome not pane chrome | Bar sits in bg-viewport shell; matching bg creates seamless integration instead of floating bar look | OrgSwitcherBar pattern: bg-viewport, no separator border, hover uses muted/40 |
