@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 16 Plan 04 COMPLETE — folders.service, useFolders, useFolderAssignment, FolderDropZone, DndCallProvider, DraggableCallRow)
+**Last Updated:** 2026-02-28 (Phase 16 Plan 06 COMPLETE — ModelExplorer, useOnboarding, _authenticated onboarding overlay, SidebarNav "How it works" wired)
 
 ## Project Reference
 
@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 16 — Workspace Redesign (Plan 04 of 7 complete)
+**Phase:** Phase 16 — Workspace Redesign (Plans 01-04 and 06 complete, Plans 05 and 07 remaining)
 
-**Status:** Plan 04 fully complete — folders.service (CRUD, archive/restore, call assignment scoped to vault_id), useFolders (optimistic rename, archive/restore with dual-list invalidation), useFolderAssignment (assign/remove/move calls to folders), FolderDropZone (@dnd-kit useDroppable with brand orange hover ring), DndCallProvider (MouseSensor 10px + TouchSensor 250ms, desktop-only), DraggableCallRow (useDraggable, disabled on mobile/tablet). @dnd-kit/core 6.3.1 installed. Build clean.
+**Status:** Plan 06 fully complete — ModelExplorer (5-step interactive onboarding explorer, motion/react, RiHome4Line house icon, Get Started/Skip), useOnboarding (persists onboarding_seen_v2 in user_profiles.auto_processing_preferences JSONB via TanStack Query), _authenticated.tsx (first-login overlay + manual re-trigger overlay), SidebarNav "How it works" button wired to setShowOnboarding(true). Build clean.
 
-**Last activity:** 2026-02-28 — Phase 16 Plan 04 fully complete (folder management: service + hooks + DnD infrastructure)
+**Last activity:** 2026-02-28 — Phase 16 Plan 06 fully complete (onboarding explorer: ModelExplorer + useOnboarding + layout wiring)
 
 **Progress:**
 [██████████] 96%
@@ -56,6 +56,8 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | user_preferences table does not exist — onboarding_seen_v2 stored in user_profiles.auto_processing_preferences JSONB | No migration needed; user_profiles already has JSONB column with full type support; server-side persistence achieved | useOnboarding reads/writes auto_processing_preferences key instead of separate table |
+| 2026-02-28 | showOnboarding UI flag lives in preferencesStore (Zustand) not useOnboarding local state | SidebarNav (trigger) and _authenticated.tsx (renderer) are separate components; local state would give each a separate instance; Zustand store is the correct cross-component UI state pattern per FOUND-06 | Both components import useOnboarding which reads/writes preferencesStore.showOnboarding |
 | 2026-02-28 | WorkspaceSidebarPane uses inline Supabase folder query (not useFolders) — Plan 16-04 will replace with full hook | Plan 16-04 is responsible for folder service/hooks; inline query avoids cross-plan dependency | WorkspaceSidebarPane.useFoldersForWorkspace is a stub; Plan 16-04 consumers use useFolders |
 | 2026-02-28 | Workspace/folder call filtering deferred to Plan 16-05 — useFilteredRecordings is a passthrough until vault_entries query available | Recording.bank_id ≠ workspace filter; vault_entries join is Plan 16-05's scope | index.tsx shows all recordings regardless of active workspace until Plan 16-05 |
 | 2026-02-28 | OrgSwitcherBar spans full AppShell width (above ALL panes, not just sidebar) — AppShell wrapped in flex-col | Locked decision: thin header bar above the sidebar shows org; implemented as top bar spanning all panes | AppShell desktop layout: flex-col wrapper, OrgSwitcherBar, then flex-1 pane container |
@@ -234,11 +236,25 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T04:07:04Z
-**Stopped at:** Phase 16 Plans 03 and 04 fully complete (ran in parallel). Plan 03: OrgSwitcherBar, WorkspaceSidebarPane, WorkspaceBreadcrumb, AppShell updated, SidebarNav cleaned. Plan 04: folders.service, useFolders, useFolderAssignment, FolderDropZone, DndCallProvider, DraggableCallRow. Plan 05 is next.
-**Resume with:** `/gsd:execute-phase 16` to run Plan 05.
+**Last session:** 2026-02-28T04:11:05Z
+**Stopped at:** Phase 16 Plan 06 fully complete. ModelExplorer, useOnboarding, _authenticated.tsx overlay, SidebarNav "How it works" wired. Plan 07 is next.
+**Resume with:** `/gsd:execute-phase 16` to run Plan 07.
 
 ### Context for Next Session
+
+**Phase 16 Plan 06 fully complete. Onboarding explorer ready. Plan 07 is next (workspace/org management UI).**
+
+**Plan 06 deliverables:**
+- `src/components/onboarding/ModelExplorer.tsx` — Interactive 5-step hierarchy explorer (motion/react, RiHome4Line, Get Started/Skip)
+- `src/hooks/useOnboarding.ts` — Reads/writes `onboarding_seen_v2` in `user_profiles.auto_processing_preferences` JSONB via TanStack Query
+- `src/routes/_authenticated.tsx` — First-login overlay + manual re-trigger overlay; `Outlet` renders underneath
+- `src/components/layout/SidebarNav.tsx` — "How it works" button calls `setShowOnboarding(true)`; uses `RiQuestionLine`
+- `src/stores/preferencesStore.ts` — `showOnboarding` / `setShowOnboarding` added (session-only UI state)
+
+**Key patterns from Plan 06:**
+- `user_preferences` table does not exist — use `user_profiles.auto_processing_preferences` JSONB for app-level prefs
+- Shared overlay trigger pattern: Zustand store for cross-component UI flags (not hook-local state)
+- Onboarding overlay is at `_authenticated.tsx` level (not per-page) — renders over any authenticated page
 
 **Phase 16 Plan 04 fully complete. Folder management infrastructure ready for UI integration.**
 
