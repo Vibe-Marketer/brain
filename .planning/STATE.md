@@ -18,17 +18,17 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 17 — Import Connector Pipeline (Plan 05 Task 1 complete — awaiting checkpoint)
 
-**Status:** Plan 05 Task 1 complete. All 5 edge functions deployed to production (youtube-import, zoom-sync-meetings, sync-meetings, fetch-meetings, file-upload-transcribe). Frontend build passes. Zero fathom_calls inserts in any connector. IMP-02 line count: 389 lines (138 edge fn + 251 FileUploadDropzone) — EXCEEDS 230-line must_have budget. Awaiting human verification of Import Hub UI at Task 2 checkpoint.
+**Status:** Phase 16 Workspace Redesign now COMPLETE — all 7 plans finished, human verification passed, build clean, deployed to production. Phase 17 Plan 05 Task 1 complete. All 5 edge functions deployed to production (youtube-import, zoom-sync-meetings, sync-meetings, fetch-meetings, file-upload-transcribe). Frontend build passes. Zero fathom_calls inserts in any connector. IMP-02 line count: 389 lines (138 edge fn + 251 FileUploadDropzone) — EXCEEDS 230-line must_have budget. Awaiting human verification of Import Hub UI at Task 2 checkpoint.
 
-**Last activity:** 2026-02-28 — Phase 17 Plan 05 Task 1 complete
+**Last activity:** 2026-02-28 — Phase 16 Plan 07 complete (human verification approved); Phase 17 Plan 05 Task 1 complete
 
 **Progress:**
-[██████████] 97%
-[███       ] 2.25/10 phases complete
+[██████████] 98%
+[████      ] 3/10 phases complete
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
-Phase 16: Workspace Redesign    [~] in progress (Plans 01-06 done, Plan 07 at checkpoint)
+Phase 16: Workspace Redesign    [✓] complete (2026-02-28 — all 7 plans finished, human verification passed)
 Phase 17: Import Pipeline       [~] in progress (Plans 01-04 done, Plan 05 at checkpoint)
 Phase 18: Import Routing Rules  [ ] not started
 Phase 19: MCP Audit + Tokens    [ ] not started
