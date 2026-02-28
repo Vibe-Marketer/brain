@@ -181,16 +181,17 @@ Plans:
 - WKSP-12: User can create, rename, archive Folders inside a Workspace
 - WKSP-13: User can manage Workspace membership from Workspace settings
 
-**Plans:** 7 plans
+**Plans:** 8 plans
 
 Plans:
-- [ ] 16-01-PLAN.md — URL redirects, additive DB migration, TypeScript type aliases (WKSP-04, schema foundation)
-- [ ] 16-02-PLAN.md — Org context store, organization/workspace services and hooks (WKSP-05, WKSP-06, WKSP-07, WKSP-08)
-- [ ] 16-03-PLAN.md — Navigation redesign: OrgSwitcherBar, WorkspaceSidebarPane, breadcrumbs, AppShell integration (WKSP-06, WKSP-08)
-- [ ] 16-04-PLAN.md — Folder management: CRUD, archive, DnD infrastructure (WKSP-12)
-- [ ] 16-05-PLAN.md — Invite and membership: invite dialog, member panel, join page (WKSP-10, WKSP-11, WKSP-13)
-- [ ] 16-06-PLAN.md — Onboarding: interactive 4-level model explorer (WKSP-09)
-- [ ] 16-07-PLAN.md — Full integration: DnD wiring, terminology sweep, human verification (WKSP-01, WKSP-02, WKSP-03)
+- [x] 16-01-PLAN.md — URL redirects, additive DB migration, TypeScript type aliases (WKSP-04, schema foundation)
+- [x] 16-02-PLAN.md — Org context store, organization/workspace services and hooks (WKSP-05, WKSP-06, WKSP-07, WKSP-08)
+- [x] 16-03-PLAN.md — Navigation redesign: OrgSwitcherBar, WorkspaceSidebarPane, breadcrumbs, AppShell integration (WKSP-06, WKSP-08)
+- [x] 16-04-PLAN.md — Folder management: CRUD, archive, DnD infrastructure (WKSP-12)
+- [x] 16-05-PLAN.md — Invite and membership: invite dialog, member panel, join page (WKSP-10, WKSP-11, WKSP-13)
+- [x] 16-06-PLAN.md — Onboarding: interactive 4-level model explorer (WKSP-09)
+- [x] 16-07-PLAN.md — Full integration: DnD wiring, terminology sweep, human verification (WKSP-01, WKSP-02, WKSP-03)
+- [ ] 16-08-PLAN.md — Gap closure: workspace/folder filtering in calls list + folder breadcrumb wiring
 
 **Success Criteria:**
 1. A user who bookmarked `/bank/abc123/vault/xyz` gets 301-redirected to the equivalent new URL — their link is not broken, and the redirect is active before the first user sees the rename
