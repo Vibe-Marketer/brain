@@ -288,6 +288,15 @@ Plans:
 - MCP-06: Token list shows: name, scope, last-used timestamp, revoke button
 - MCP-07: RLS enforces Workspace isolation from current DB membership (not from JWT claims at token-issuance time) — verified: scoped token cannot read calls from other Workspaces
 
+**Plans:** 5 plans
+
+Plans:
+- [ ] 19-01-PLAN.md — MCP server audit: catalogue and test all tools, resources, prompts (MCP-01)
+- [ ] 19-02-PLAN.md — Rename Bank/Vault/Hub to Organization/Workspace/Folder in Worker, redeploy (MCP-02, MCP-03)
+- [ ] 19-03-PLAN.md — workspace_mcp_tokens table + generate-mcp-token Edge Function (MCP-04 foundation)
+- [ ] 19-04-PLAN.md — Worker MCP token auth path with workspace scope enforcement (MCP-04, MCP-07)
+- [ ] 19-05-PLAN.md — Token management UI: create, list, revoke, human verification (MCP-05, MCP-06)
+
 **Success Criteria:**
 1. A documented audit exists as a file (e.g., `.planning/mcp-audit.md`) listing every MCP tool, resource, and prompt — including: current behavior, test result (pass/fail), and any gaps identified — nothing is shipped without being audited
 2. An existing MCP user can connect to the new MCP server (with updated naming) and their previously-working queries continue to work — zero regression on v1 MCP capabilities
@@ -479,10 +488,10 @@ Plans:
 | 13 | Strategy + Pricing | ✓ Complete | 3/3 | 2026-02-27 |
 | 14 | Foundation | ✓ Complete | 5/5 | 2026-02-27 |
 | 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
-| 16 | Workspace Redesign | Planned | 0/7 | — |
+| 16 | Workspace Redesign | Planned | 0/8 | — |
 | 17 | Import Connector Pipeline | Planned | 0/5 | — |
 | 18 | Import Routing Rules | Planned | 0/4 | — |
-| 19 | MCP Audit + Workspace Tokens | Not started | — | — |
+| 19 | MCP Audit + Workspace Tokens | Planned | 0/5 | — |
 | 20 | MCP Differentiators | Not started | — | — |
 | 21 | AI Bridge + Export + Sharing | Not started | — | — |
 | 22 | Backend Cleanup | Not started | — | — |
