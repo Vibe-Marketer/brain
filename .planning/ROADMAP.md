@@ -448,8 +448,8 @@ Plans:
 | Phase | Name | Status | Plans | Complete |
 |-------|------|--------|-------|---------|
 | 13 | Strategy + Pricing | ✓ Complete | 3/3 | 2026-02-27 |
-| 14 | Foundation | Planned | 0/5 | — |
-| 15 | Data Migration | Planned | 0/3 | — |
+| 14 | Foundation | ✓ Complete | 5/5 | 2026-02-27 |
+| 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
 | 16 | Workspace Redesign | Not started | — | — |
 | 17 | Import Connector Pipeline | Not started | — | — |
 | 18 | Import Routing Rules | Not started | — | — |
