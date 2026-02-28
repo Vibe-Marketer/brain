@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 17 Plan 01 COMPLETE — connector-pipeline.ts with checkDuplicate/insertRecording/runPipeline, import_sources table deployed to production with RLS)
+**Last Updated:** 2026-02-28 (Phase 17 Plan 03 COMPLETE — file-upload-transcribe edge function deployed, 138 lines, Whisper API integration, 10/month quota check, dedup via checkDuplicate(), insert via insertRecording())
 
 ## Project Reference
 
@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 17 — Import Connector Pipeline (Plan 01 complete)
+**Phase:** Phase 17 — Import Connector Pipeline (Plan 03 complete)
 
-**Status:** Plan 01 complete. connector-pipeline.ts created with checkDuplicate() (fail-open dedup by owner_user_id + source_app + source_metadata->>'external_id'), insertRecording() (auto-resolves personal bank, non-blocking vault_entry creation), and runPipeline() wrapper. import_sources table deployed to production with UNIQUE(user_id, source_app), 4 RLS policies, get_import_counts() RPC, and sync_jobs.skipped_count column.
+**Status:** Plan 03 complete. file-upload-transcribe edge function created (138 lines) and deployed to production. Validates file size (25MB), MIME type (MP3/WAV/MP4/M4A/MOV/WebM), monthly quota (10/month free tier, returns 429), deduplicates via checkDuplicate() using filename+size as external_id, transcribes via Whisper API (whisper-1 model, synchronous), inserts via insertRecording() from shared pipeline.
 
-**Last activity:** 2026-02-28 — Phase 17 Plan 01 complete
+**Last activity:** 2026-02-28 — Phase 17 Plan 03 complete
 
 **Progress:**
 [██████████] 95%
@@ -29,7 +29,7 @@ Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
 Phase 16: Workspace Redesign    [~] in progress (Plans 01-06 done, Plan 07 at checkpoint)
-Phase 17: Import Pipeline       [~] in progress (Plan 01 done)
+Phase 17: Import Pipeline       [~] in progress (Plans 01, 03 done)
 Phase 18: Import Routing Rules  [ ] not started
 Phase 19: MCP Audit + Tokens    [ ] not started
 Phase 20: MCP Differentiators   [ ] not started
@@ -56,6 +56,9 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-02-28 | file-upload-transcribe uses synchronous Whisper flow (no async/waitUntil) — MVP files < 25MB complete within 150s edge function limit | EdgeRuntime.waitUntil pattern adds complexity; synchronous acceptable for MVP | Plan 02 async pattern can be added later if timeouts become an issue |
+| 2026-02-28 | file-upload dedup external_id = filename + '-' + file_size — deterministic, same file re-uploaded is detected as duplicate | Simple key, no content hashing needed, works without reading file bytes twice | File upload connector dedup pattern; content hash would be more robust but adds latency |
+| 2026-02-28 | Monthly quota counts ALL recordings (not just file-upload source_app) — 10/month applies across all import sources | Per plan spec: "file uploads count toward the same 10/month limit as all other sources" | Consistent free tier limit regardless of how recordings are imported |
 | 2026-02-28 | connector-pipeline.ts fails open on dedup query error (isDuplicate: false) — never blocks an import due to dedup check failure | Silently dropping an import is worse than a rare false negative; dedup errors should be logged not fatal | All connectors using runPipeline() inherit this fail-open behavior |
 | 2026-02-28 | connector-pipeline.ts vault_entry creation is non-blocking (try/catch, logs only) — recording commit succeeds even if personal vault lookup fails | Phase 10 pattern: recording is the primary record; vault_entry is decorative context that can be repaired | insertRecording() always returns { id } once recordings insert succeeds |
 | 2026-02-28 | import_sources migration named 000002 (not 000001) — 000001 taken by Phase 16 workspace_redesign_schema.sql | Filename collision is a deployment blocker; sequence increment is the correct resolution | All future Phase 17+ migrations start from 000002+ for date 20260228 |
@@ -244,9 +247,9 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T04:43:19.505Z
-**Stopped at:** Completed 17-01-PLAN.md
-**Resume with:** `/gsd:execute-phase 16` to run Plan 07.
+**Last session:** 2026-02-28T04:48:15Z
+**Stopped at:** Completed 17-03-PLAN.md
+**Resume with:** `/gsd:execute-phase 17` to run next plan (17-04 or 17-02 if not yet done).
 
 ### Context for Next Session
 
