@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 17 Plan 04 COMPLETE — Import Hub UI deployed: 4 source cards + Add Source card, drag-and-drop file upload dropzone, FailedImportsSection with per-call retry, OAuth auto-sync on return, dedup-aware sync toasts)
+**Last Updated:** 2026-02-28 (Phase 17 Plan 05 Task 1 COMPLETE — All 5 edge functions deployed; frontend build passing; IMP-02 line count 389/230 (overage documented); awaiting human verification at Task 2 checkpoint)
 
 ## Project Reference
 
@@ -16,11 +16,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 17 — Import Connector Pipeline (Plan 04 complete)
+**Phase:** Phase 17 — Import Connector Pipeline (Plan 05 Task 1 complete — awaiting checkpoint)
 
-**Status:** Plan 04 complete. Import Hub UI deployed: import-sources.service.ts with 8 CRUD/upload/retry functions; useImportSources.ts with 7 React Query hooks; SourceCard component with status badge, toggle, sync, disconnect confirm dialog; FileUploadDropzone with drag-and-drop + 25MB/MIME validation; ImportSourceGrid responsive grid with Add Source card; FailedImportsSection with per-call retry buttons; full ImportPage rewrite with OAuth auto-sync on return and dedup-aware sync toasts.
+**Status:** Plan 05 Task 1 complete. All 5 edge functions deployed to production (youtube-import, zoom-sync-meetings, sync-meetings, fetch-meetings, file-upload-transcribe). Frontend build passes. Zero fathom_calls inserts in any connector. IMP-02 line count: 389 lines (138 edge fn + 251 FileUploadDropzone) — EXCEEDS 230-line must_have budget. Awaiting human verification of Import Hub UI at Task 2 checkpoint.
 
-**Last activity:** 2026-02-28 — Phase 17 Plan 04 complete
+**Last activity:** 2026-02-28 — Phase 17 Plan 05 Task 1 complete
 
 **Progress:**
 [██████████] 97%
@@ -29,7 +29,7 @@ Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [~] in progress (Plans 01-03 done, Plan 04 remaining)
 Phase 16: Workspace Redesign    [~] in progress (Plans 01-06 done, Plan 07 at checkpoint)
-Phase 17: Import Pipeline       [~] in progress (Plans 01, 02, 03, 04 done)
+Phase 17: Import Pipeline       [~] in progress (Plans 01-04 done, Plan 05 at checkpoint)
 Phase 18: Import Routing Rules  [ ] not started
 Phase 19: MCP Audit + Tokens    [ ] not started
 Phase 20: MCP Differentiators   [ ] not started
@@ -250,8 +250,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T04:52:14.864Z
-**Stopped at:** Completed 17-04-PLAN.md
+**Last session:** 2026-02-28T04:56:42.294Z
+**Stopped at:** Phase 17 Plan 05 Task 1 complete — awaiting human verification at Task 2 checkpoint
 **Resume with:** `/gsd:execute-phase 17` to run next plan (17-04 or 17-02 if not yet done).
 
 ### Context for Next Session
