@@ -212,16 +212,27 @@ Plans:
 
 **Dependencies:** Phase 16 complete (all workspace redesign plans shipped)
 
-**Requirements:** (To be defined during `/gsd:plan-phase 16.1`)
+**Requirements:**
 - **AppShell alignment:** Detail panel (Pane 4) must push/shrink Pane 3 on same z-index plane — NOT overlay/drawer. Header and background must match v1.
 - Design audit of all Phase 16 UI surfaces
 - Behavior verification and fixes across all workspace flows
 - Fit/finish polish for navigation, breadcrumbs, dialogs, onboarding
 - Brand guidelines skill created as a Claude Code skill for consistent design enforcement
 
-**Plans:** Not planned yet
+**Plans:** 4 plans
 
-**Success Criteria:** (To be defined during `/gsd:plan-phase 16.1`)
+Plans:
+- [ ] 16.1-01-PLAN.md — AppShell Pane 4 push fix, OrgSwitcherBar visual integration, background cohesion
+- [ ] 16.1-02-PLAN.md — SidebarNav active states (pill + fill icons), CreateWorkspaceDialog, button styling fixes
+- [ ] 16.1-03-PLAN.md — Import tab colors, CallActionMenu Radix migration, settings/breadcrumb/dark mode audit
+- [ ] 16.1-04-PLAN.md — Brand guidelines skill creation + brand guidelines document update
+
+**Success Criteria:**
+1. Pane 4 (DetailPaneOutlet) pushes Pane 3 via flex reflow — width-only animation, no x offset, same z-index plane as all other panes — a user comparing v1 and v2 sees the same layout behavior
+2. SidebarNav active state has 4-layer treatment: vibe-orange/10 background tint, fill icon variant with orange color, font-medium text, and left-edge pill indicator — matching Linear's nav polish level
+3. Zero instances of window.prompt() remain in the codebase — both workspace creation flows use proper Radix Dialog components
+4. Every Phase 16 surface passes visual audit at the "I'd show it to a customer" quality bar — import tabs use vibe-orange, CallActionMenu uses Radix DropdownMenu, settings pages have proper empty states, dark mode has no critical issues
+5. A brand guidelines skill exists at `.claude/skills/callvault-design-system.md` covering color tokens, layout architecture, nav states, typography, buttons, icons, animations, and anti-patterns — usable by downstream GSD agents for consistent UI work
 
 **Notes:** This is an inserted phase for quality and polish work. The brand guidelines skill should codify color system, typography, spacing, component patterns, animation conventions, and any design decisions made during this phase — becoming the single source of truth for all future UI work.
 
@@ -512,7 +523,7 @@ Plans:
 | 14 | Foundation | ✓ Complete | 5/5 | 2026-02-27 |
 | 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
 | 16 | Workspace Redesign | ✓ Complete | 8/8 | 2026-02-28 |
-| 16.1 | Workspace Polish & Brand Guidelines | Not started | — | — | (INSERTED) |
+| 16.1 | Workspace Polish & Brand Guidelines | Planned | 0/4 | — | (INSERTED) |
 | 17 | Import Connector Pipeline | ✓ Complete | 5/5 | 2026-02-28 |
 | 18 | Import Routing Rules | ✓ Complete | 4/4 | 2026-02-28 |
 | 19 | MCP Audit + Workspace Tokens | Planned | 0/5 | — |
