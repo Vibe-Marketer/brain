@@ -76,7 +76,7 @@ CallVault development spans two repositories:
 
 | Document | Purpose |
 |----------|---------|
-| [Brand Guidelines v4.3](./docs/design/brand-guidelines-v4.3.md) | Authoritative design system - colors, typography, components |
+| [Brand Guidelines v4.3](./docs/design/brand-guidelines-v4.4.md) | Authoritative design system - colors, typography, components |
 | [API Naming Conventions](./docs/architecture/api-naming-conventions.md) | Function, hook, and type naming standards |
 | [ADRs](./docs/adr/README.md) | Architecture Decision Records for major technical choices |
 | [Design Principles](./docs/design/design-principles-callvault.md) | Visual development checklist |

@@ -6,6 +6,23 @@ This file tracks all changes to the brand guidelines document.
 
 ---
 
+## v4.4 (March 1, 2026)
+
+**Git Commit:** (pending)
+**Summary:** Convert all V1 custom tokens to V2 semantic token names for v2 codebase compatibility
+
+- **CONVERTED:** `text-ink` → `text-foreground` across all code examples and references
+- **CONVERTED:** `text-ink-soft` → `text-muted-foreground` across all code examples
+- **CONVERTED:** `text-ink-muted` → `text-muted-foreground` across all code examples
+- **CONVERTED:** `border-soft` → `border-border/40` in Tailwind class usage
+- **CONVERTED:** `bg-hover` → `bg-muted` across all code examples
+- **PRESERVED:** CSS variable declarations (--ink, --ink-soft, --ink-muted) kept as-is with V2 mapping comments
+- **UPDATED:** File renamed from brand-guidelines-v4.3.md to brand-guidelines-v4.4.md
+- **ARCHIVED:** brand-guidelines-v4.3.md moved to docs/archive/
+- **REASON:** V1 token names in code examples caused Claude to generate code using nonexistent classes in V2. This ensures the canonical design spec speaks V2's language.
+
+---
+
 ## v4.3 (February 28, 2026)
 
 **Git Commit:** 53aa185, 35e9b3e

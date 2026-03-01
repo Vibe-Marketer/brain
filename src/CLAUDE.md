@@ -13,7 +13,7 @@
 | Full design system (colors, layout, buttons, icons, animations) | `callvault-design-system` skill (loads on demand) |
 | Hard constraints (icons, AI-02, vibe orange) | Root `CLAUDE.md` |
 | Tech stack, anti-patterns, project structure | `callvault/CLAUDE.md` |
-| Brand guidelines canonical spec | `docs/design/brand-guidelines-v4.3.md` |
+| Brand guidelines canonical spec | `docs/design/brand-guidelines-v4.4.md` |
 
 **Do not duplicate rules from those files here.** This file covers only what isn't documented elsewhere.
 
