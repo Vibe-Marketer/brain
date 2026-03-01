@@ -61,16 +61,16 @@ src/
 
 v2 uses **shadcn/Tailwind semantic tokens** — no custom token systems.
 
-| Use | Token | NOT this |
-|-----|-------|----------|
-| Primary text | `text-foreground` | ~~text-ink~~ |
-| Secondary text | `text-muted-foreground` | ~~text-ink-soft~~ |
-| Tertiary text / icons | `text-muted-foreground` | ~~text-cb-ink-muted~~ |
-| Page background | `bg-viewport` | hardcoded hex |
-| Pane background | `bg-card` | hardcoded hex |
-| Hover states | `bg-muted` | ~~bg-hover~~ |
-| Borders | `border-border` | ~~border-soft~~ |
-| Active accent | `text-vibe-orange`, `bg-vibe-orange` | hardcoded #FF8800 |
+| Use | Token | Light | Dark | NOT this |
+|-----|-------|-------|------|----------|
+| Primary text | `text-foreground` | `#171717` | `#FAFAFA` | ~~text-ink~~ |
+| Secondary text | `text-muted-foreground` | `#666666` | `#999999` | ~~text-ink-soft~~ |
+| Tertiary text / icons | `text-muted-foreground` | `#666666` | `#999999` | ~~text-cb-ink-muted~~ |
+| Page background | `bg-viewport` | `#FCFCFC` | `#171717` | hardcoded hex |
+| Pane background | `bg-card` | `#FFFFFF` | `#212121` | hardcoded hex |
+| Hover states | `bg-muted` | `#F2F2F2` | `#292929` | ~~bg-hover~~ |
+| Borders | `border-border` | `#E6E6E6` | `#3B3B3B` | ~~border-soft~~ |
+| Active accent | `text-vibe-orange` / `bg-vibe-orange` | `#FF8800` | `#FF8800` | hardcoded hex |
 
 The `text-ink`, `text-ink-muted`, `bg-hover`, `border-soft` tokens are from v1 brand guidelines and do NOT exist in v2. Never use them.
 

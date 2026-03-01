@@ -35,32 +35,23 @@ This is a condensed, machine-optimized reference. Full canonical spec: `docs/des
 
 ## 2. Color System
 
-### Background Hierarchy
+### Complete Token Reference (from v2 globals.css)
 
-| Token | Light | Dark | When to use |
-|-------|-------|------|-------------|
-| `bg-viewport` | `#FCFCFC` | `#161616` | AppShell root, gaps between panes, OrgSwitcherBar |
-| `bg-card` | `#FFFFFF` | `#202020` | All 4 panes, dialogs, dropdowns |
-| `bg-muted` | ~`#F4F4F5` | ~`#27272A` | Hover states, secondary inactive areas, settings nav active |
-| `bg-muted/60` | (60% muted) | (60% muted) | Empty state icon containers |
+| Token | Light | Dark | Use |
+|-------|-------|------|-----|
+| `bg-viewport` | `#FCFCFC` | `#171717` | AppShell root, gaps between panes, OrgSwitcherBar |
+| `bg-card` / `bg-background` | `#FFFFFF` | `#212121` | All 4 panes, dialogs, dropdowns |
+| `bg-muted` | `#F2F2F2` | `#292929` | Hover states, inactive areas, settings nav active |
+| `bg-popover` | `#FFFFFF` | `#212121` | Dropdown menus, tooltips |
+| `text-foreground` | `#171717` | `#FAFAFA` | Primary text, headings |
+| `text-muted-foreground` | `#666666` | `#999999` | Secondary text, inactive icons, metadata |
+| `text-vibe-orange` | `#FF8800` | `#FF8800` | Active nav icons, active indicators only |
+| `border-border` | `#E6E6E6` | `#3B3B3B` | Standard borders, use with opacity: `/60` for panes, `/40` for subtle dividers |
 
-**Rule:** Shell background is `bg-viewport`. Pane backgrounds are `bg-card`. Never hardcode colors.
-
-### Text Colors
-
-| Token | Use |
-|-------|-----|
-| `text-foreground` | Primary text |
-| `text-muted-foreground` | Secondary/inactive text, icons in default state |
-| `text-vibe-orange` | Active nav icons, active indicators only |
-
-### Border Colors
-
-| Token | When to use |
-|-------|-------------|
-| `border-border/60` | All 4 panes in AppShell (60% opacity) |
-| `border-border/40` | Subtle section dividers within panes |
-| `border-border` | Standard borders inside pane content |
+**Rules:**
+- Shell background = `bg-viewport`. Pane backgrounds = `bg-card`. Never hardcode hex values.
+- Pane borders: `border-border/60`. Subtle dividers: `border-border/40`.
+- Vibe orange is the SAME in both themes — no dark mode variant.
 
 ### Vibe Orange — Structural Accent (V1 Visual Audit, 2026-03-01)
 
@@ -545,16 +536,10 @@ const SPRING = { type: 'spring', stiffness: 260, damping: 28 } as const
 > Dark mode has NOT been reviewed/approved by the user. Do NOT codify dark mode as final.
 > When dark mode is ready for review, do a visual audit with the user before locking rules.
 
-### Known Facts (from V1 + v2 code)
+### Known Facts (from v2 globals.css, verified 2026-03-01)
 
-| Token | Light | Dark |
-|-------|-------|------|
-| `bg-viewport` | `#FCFCFC` | `#161616` |
-| `bg-card` | `#FFFFFF` | `#202020` |
-| `text-foreground` | `#111111` | `#FFFFFF` |
-| `text-muted-foreground` | `#7A7A7A` | `#6B6B6B` |
-| `border-border` | `#E5E5E5` | `#3A3A3A` |
-| `bg-vibe-orange` | `#FF8800` | `#FF8800` (unchanged) |
+See Section 2 "Complete Token Reference" for the full table with hex values.
+All values are sourced from `callvault/src/globals.css`, not from docs.
 
 ### Technical Notes
 
