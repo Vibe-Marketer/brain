@@ -140,20 +140,6 @@ const navItems: NavItem[] = [
     matchPaths: ['/', '/transcripts'],
   },
   {
-    id: 'chat',
-    name: 'AI Chat',
-    iconLine: RiSparklingLine,
-    path: '/chat',
-    matchPaths: ['/chat'],
-  },
-  {
-    id: 'content',
-    name: 'Content',
-    iconLine: RiArticleLine,
-    path: '/content',
-    matchPaths: ['/content', '/content/generators', '/content/library'],
-  },
-  {
     id: 'import',
     name: 'Import',
     iconLine: RiUpload2Line,

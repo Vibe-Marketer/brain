@@ -2,36 +2,35 @@
 > callvault@0.0.0 build
 > vite build
 
-[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
 vite v5.4.21 building for production...
 transforming...
-✓ 4660 modules transformed.
+✓ 4675 modules transformed.
 rendering chunks...
 computing gzip size...
 dist/index.html                                        1.86 kB │ gzip:     0.62 kB
 dist/assets/index-CLthobcf.css                       532.67 kB │ gzip:    57.57 kB
-dist/assets/useListKeyboardNavigation-C1AeLBJM.js      1.34 kB │ gzip:     0.76 kB │ map:     12.13 kB
-dist/assets/UserTable-BJbXVD34.js                      3.58 kB │ gzip:     1.37 kB │ map:     10.84 kB
-dist/assets/UsersTab-fkog9VLj.js                       3.97 kB │ gzip:     1.46 kB │ map:     10.85 kB
-dist/assets/RecurringTitlesTab-DmxbKDvL.js             6.68 kB │ gzip:     2.37 kB │ map:     22.92 kB
-dist/assets/TagsTab-DVXpHPxj.js                        7.40 kB │ gzip:     2.48 kB │ map:     23.90 kB
-dist/assets/AccountTab-CbvZGi2-.js                     8.37 kB │ gzip:     2.19 kB │ map:     28.92 kB
-dist/assets/FoldersTab-BI1kN6Iu.js                     9.27 kB │ gzip:     3.54 kB │ map:     43.14 kB
-dist/assets/BanksTab-DdrvDHCn.js                      12.57 kB │ gzip:     3.86 kB │ map:     39.76 kB
-dist/assets/BillingTab-gicFAYQI.js                    13.05 kB │ gzip:     4.06 kB │ map:     43.69 kB
-dist/assets/AITab-BzM9hw9u.js                         14.13 kB │ gzip:     4.49 kB │ map:     44.19 kB
-dist/assets/RulesTab-CR31lNdn.js                      14.64 kB │ gzip:     3.87 kB │ map:     48.16 kB
-dist/assets/AdminTab-DAwmSgyu.js                      15.65 kB │ gzip:     3.75 kB │ map:     45.62 kB
-dist/assets/IntegrationsTab-DmJZ10a9.js               17.39 kB │ gzip:     5.23 kB │ map:     59.02 kB
-dist/assets/purify.es-B9ZVCkUG.js                     22.68 kB │ gzip:     8.75 kB │ map:     92.93 kB
-dist/assets/BusinessProfileTab-DGztYp4Z.js            23.90 kB │ gzip:     6.14 kB │ map:     92.44 kB
-dist/assets/ContactsTab-TA5QYMZy.js                   26.81 kB │ gzip:     7.69 kB │ map:     92.71 kB
-dist/assets/index.es-BsEA6FCc.js                     150.52 kB │ gzip:    51.30 kB │ map:    642.38 kB
-dist/assets/html2canvas.esm-CBrSDip1.js              201.48 kB │ gzip:    47.75 kB │ map:    602.31 kB
-dist/assets/index-C_KEj15O.js                      4,318.39 kB │ gzip: 1,207.59 kB │ map: 18,960.70 kB
+dist/assets/useListKeyboardNavigation-BucaVP9j.js      1.34 kB │ gzip:     0.76 kB │ map:     12.13 kB
+dist/assets/UserTable-CLCPf-Ub.js                      3.58 kB │ gzip:     1.37 kB │ map:     10.84 kB
+dist/assets/UsersTab-BiEy3hrR.js                       3.97 kB │ gzip:     1.46 kB │ map:     10.85 kB
+dist/assets/RecurringTitlesTab-BjUns4Yw.js             6.68 kB │ gzip:     2.37 kB │ map:     22.92 kB
+dist/assets/TagsTab-B7DEeNzc.js                        7.40 kB │ gzip:     2.48 kB │ map:     23.90 kB
+dist/assets/AccountTab-DzDrZBKR.js                     8.37 kB │ gzip:     2.19 kB │ map:     28.92 kB
+dist/assets/FoldersTab-D7qzgdwm.js                     9.27 kB │ gzip:     3.53 kB │ map:     43.14 kB
+dist/assets/BanksTab-B0e7lT_4.js                      12.57 kB │ gzip:     3.86 kB │ map:     39.76 kB
+dist/assets/BillingTab-DNy2ab1K.js                    13.05 kB │ gzip:     4.06 kB │ map:     43.69 kB
+dist/assets/AITab-DsabgImH.js                         14.13 kB │ gzip:     4.49 kB │ map:     44.19 kB
+dist/assets/RulesTab-BDzb00we.js                      14.64 kB │ gzip:     3.87 kB │ map:     48.16 kB
+dist/assets/AdminTab-CjVsP87S.js                      15.65 kB │ gzip:     3.75 kB │ map:     45.62 kB
+dist/assets/IntegrationsTab-BoEDmgfP.js               17.39 kB │ gzip:     5.23 kB │ map:     59.02 kB
+dist/assets/purify.es-B9ZVCkUG.js                     22.68 kB │ gzip:     8.75 kB │ map:     92.90 kB
+dist/assets/BusinessProfileTab-CLqwh9ji.js            23.90 kB │ gzip:     6.14 kB │ map:     92.44 kB
+dist/assets/ContactsTab-BnqeHRcw.js                   26.81 kB │ gzip:     7.69 kB │ map:     92.71 kB
+dist/assets/index.es-CJAMYV4_.js                     150.49 kB │ gzip:    51.28 kB │ map:    636.50 kB
+dist/assets/html2canvas.esm-CBrSDip1.js              201.48 kB │ gzip:    47.75 kB │ map:    602.27 kB
+dist/assets/index-2DocQ5rO.js                      4,263.95 kB │ gzip: 1,190.58 kB │ map: 18,593.04 kB
 
 (!) Some chunks are larger than 500 kB after minification. Consider:
 - Using dynamic import() to code-split the application
 - Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 12.77s
+✓ built in 12.61s
