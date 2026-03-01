@@ -1,7 +1,7 @@
 # CALLVAULT - CLAUDE INSTRUCTIONS
 
-**Last Updated:** 2026-02-28
-**Status:** Root Guide (v3.0) — Two-Repo Workflow
+**Last Updated:** 2026-03-01
+**Status:** Root Guide (v3.1) — Two-Repo Workflow
 
 ---
 
@@ -26,42 +26,17 @@ This philosophy supersedes technical elegance and implementation convenience. Wh
 
 > **Complexity is easy. Simplicity is hard. We choose hard.**
 
-### Product Ethos (from [Design Principles](./docs/design/design-principles-callvault.md))
+### Product Ethos
 
-These principles guide every decision — design, architecture, and workflow:
-
-**Users First, Always.**
-- Build for the job the user is trying to accomplish, not personas or demographics
-- Empathy as foundation — understand the user's perspective before building
-- Customer-obsessed: anticipate needs, don't wait to be asked
-
-**Speed Is a Feature.**
-- Sub-50ms response times. Zero perceived latency.
-- Snappy = extension of fingertips. If it feels slow, it's broken.
-- Performance is a core product differentiator, not an afterthought.
-
-**Meticulous Craft.**
-- Every detail matters — precision in the smallest interactions creates trust
-- Mona Lisa Principle: everything shipped should be something you're proud to put your name on
-- Utility + Usability + Beauty — all three must be right, don't compromise any
-
-**Simplicity First.**
-- No manual required — users should never read docs to understand how things work
-- Low floor, high ceiling: approachable for beginners, infinite depth for power users
-- Less but better — products unburdened by non-essentials
-
-**Be Proactive, Not Reactive.**
-- Do the obvious thing without being asked. If it's clear what should happen next, do it.
-- Never present a problem without a solution (or at minimum, options)
-- Research, recommend, and act — only pause for risky or irreversible decisions
+See [Design Principles](./docs/design/design-principles-callvault.md) for the full philosophy. In short: Users first. Speed is a feature. Meticulous craft. Simplicity first. Be proactive, not reactive.
 
 ### How Claude Should Operate
 
+- **Reality over documentation.** When design rules conflict with what's actually built and working, the codebase wins. Update the docs, don't "fix" working code to match stale docs. Always verify rules against actual code/production before enforcing them.
 - **Do the work first.** Don't ask the user to test, verify, or check something Claude can do itself.
-- **Explain technical concepts in plain terms.** The user is a non-dev vibe coder who makes strategic decisions — translate jargon into impact.
-- **Be decisive.** Research the options, make a recommendation, and execute unless it's risky. Don't present 5 options when 1 is clearly best.
+- **Explain in plain terms.** The user is a non-dev vibe coder — translate jargon into impact. Don't present technical choices he can't evaluate.
+- **Be decisive.** Research, recommend, and execute unless it's risky.
 - **Catch problems before the user sees them.** Test UI, fix bugs, verify deployments — then present clean results.
-- **Never ask something obvious.** If the answer is implied by context, proceed.
 
 ---
 
@@ -101,7 +76,7 @@ CallVault development spans two repositories:
 
 | Document | Purpose |
 |----------|---------|
-| [Brand Guidelines v4.2](./docs/design/brand-guidelines-v4.2.md) | Authoritative design system - colors, typography, components |
+| [Brand Guidelines v4.3](./docs/design/brand-guidelines-v4.3.md) | Authoritative design system - colors, typography, components |
 | [API Naming Conventions](./docs/architecture/api-naming-conventions.md) | Function, hook, and type naming standards |
 | [ADRs](./docs/adr/README.md) | Architecture Decision Records for major technical choices |
 | [Design Principles](./docs/design/design-principles-callvault.md) | Visual development checklist |
@@ -116,7 +91,7 @@ CallVault development spans two repositories:
 | **FOUND-09** | Zero Google Meet references — removed from v2 entirely |
 | **Icons** | Remix Icons ONLY (`@remixicon/react`) — no Lucide, FontAwesome, or others |
 | **No AI label** | Never use "AI-powered" positively in UI copy — brand is "AI-ready not AI-powered" |
-| **Vibe orange** | 9 approved uses ONLY — see design system section in `src/CLAUDE.md` |
+| **Vibe orange** | Structural accent only — see design system skill for approved uses |
 
 ---
 
@@ -148,45 +123,22 @@ This is the locked-in pattern for all data access in v2.
 
 ## QUICK RULES
 
-1. **Never propose changes to code you haven't read** — research existing patterns first
-2. **Use GSD workflow for multi-step tasks** — phases, plans, executor agents
-3. **Fetch documentation before using external libraries** — don't assume APIs from memory
-4. **Ask before deviating from brand guidelines** — never assume deviations are acceptable
-5. **Vercel AI SDK first** — all AI/LLM features must use Vercel SDK + OpenRouter
-6. **Security first** — watch for OWASP top 10, validate at system boundaries
-7. **Keep it simple** — don't over-engineer; three similar lines beats a premature abstraction
-8. **Read callvault/CLAUDE.md before touching frontend code** — hard constraints live there
+1. **Use GSD workflow for multi-step tasks** — phases, plans, executor agents
+2. **Ask before deviating from brand guidelines** — never assume deviations are acceptable
+3. **Vercel AI SDK first** — all AI/LLM features must use Vercel SDK + OpenRouter
+4. **Read callvault/CLAUDE.md before touching frontend code** — hard constraints live there
+5. **Design rules come from reality** — verify against actual code/production before enforcing doc rules
 
 ---
 
 ## VERIFICATION & TESTING
 
-### HARD RULE: Never Ask User to Verify What Dev-Browser Can Do
+**HARD RULE:** Use dev-browser for ALL verification. Never ask the user to test what dev-browser can do. Fix broken things before presenting results.
 
-**Use the dev-browser skill for ALL verification** — this includes:
-- GSD phase checkpoints (human-verify tasks)
-- UI testing after changes
-- Confirming buttons, toggles, tabs, forms, empty states work
-- Visual regression checks
-
-**Only escalate to the user when:**
-- Something genuinely requires their judgment (design preference, business decision)
-- Authentication credentials that dev-browser can't access
-- You've already tested everything dev-browser can reach and fixed what's broken
-
-**Before presenting any checkpoint:** Navigate every page, click all buttons, toggle all switches, fill all forms, test all interactions, screenshot results, and fix broken things FIRST.
-
-### Testing Details
-
-**Test credentials** are in .env.local:
-- CALLVAULTAI_LOGIN — test account email
-- CALLVAULTAI_LOGIN_PASSWORD — test account password
-
-**Production testing:** https://callvault.vercel.app
-- Localhost OAuth redirects to app.callvaultai.com (known issue)
-- Always test on production URL via dev-browser when auth is involved
-
-**Visual verification:** After any UI change, use the **dev-browser skill** to navigate and screenshot. Do NOT reference `mcp__playwright__*` tools — they don't exist.
+- Test credentials in `.env.local` (CALLVAULTAI_LOGIN, CALLVAULTAI_LOGIN_PASSWORD)
+- V1 production (visual source of truth): https://app.callvaultai.com
+- V2 production: https://callvault.vercel.app (use this when localhost has OAuth issues)
+- After UI changes: screenshot with dev-browser, don't ask user to check
 
 ---
 
@@ -201,16 +153,6 @@ Scope with phase number when applicable: `feat(17-04):`, `fix(16):`, `docs(18):`
 ### Pull Requests
 
 Before PR: Run `/code-review` and `/security-review`. For UI changes, also run `/design-review`.
-
----
-
-## REVIEW COMMANDS
-
-| Command | When to Use |
-|---------|-------------|
-| /code-review | After completing features, before PRs |
-| /security-review | For auth, user input, sensitive data |
-| /design-review | For UI/UX changes |
 
 ---
 

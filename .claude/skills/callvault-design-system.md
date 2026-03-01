@@ -8,7 +8,7 @@ applies_to:
   - /Users/Naegele/dev/callvault/src/**
   - /Users/Naegele/dev/brain/src/**
 canonical_reference: /Users/Naegele/dev/brain/docs/design/brand-guidelines-v4.3.md
-last_updated: 2026-02-28
+last_updated: 2026-03-01
 phase_audit: 16.1
 ---
 
@@ -22,7 +22,7 @@ This is a condensed, machine-optimized reference. Full canonical spec: `docs/des
 
 1. All pages use `AppShell` — never build custom shell layouts
 2. Icons come from `@remixicon/react` only — no Lucide, Heroicons, Font Awesome
-3. Vibe orange (`#FF8800`) has exactly 9 approved structural uses (see Section 3) — never for text
+3. Vibe orange (`#FF8800`) is a structural accent — see Section 3 for approved uses. Never for text.
 4. Animation: import from `motion/react`, not `framer-motion`
 5. Spring config is `{ type: 'spring', stiffness: 260, damping: 28 }` — do not change
 6. Primary CTA buttons use `variant="default"` (slate gradient) — not `bg-brand-400`
@@ -62,22 +62,46 @@ This is a condensed, machine-optimized reference. Full canonical spec: `docs/des
 | `border-border/40` | Subtle section dividers within panes |
 | `border-border` | Standard borders inside pane content |
 
-### Vibe Orange — 9 Approved Uses
+### Vibe Orange — Structural Accent (V1 Visual Audit, 2026-03-01)
 
-1. Active tab underline (6px rounded pill, `border-vibe-orange` or `bg-vibe-orange`)
-2. Nav left-edge pill indicator (`bg-vibe-orange`)
-3. Nav active icon color (`text-vibe-orange`)
-4. Nav active item tint (`bg-vibe-orange/10`)
-5. Metric card left marker (6px × 56px, angled)
-6. Table sortable column underline (3px)
-7. Focus states on buttons/inputs (vibe orange ring)
-8. Circular/linear progress indicators
-9. Top status indicator bar (1–2px full-width)
+Source of truth: V1 production (app.callvaultai.com) light mode.
 
-**NEVER:** vibe orange text, vibe orange button backgrounds (outside dialogs), full area fills.
+**Navigation (every page):**
+1. Page header text — section name in orange ("HOME", "AI CHAT", etc.)
+2. Active sidebar item — orange background highlight
+3. Active secondary pane item — orange highlight + orange chevron
+4. Nav left-edge pill indicator (`bg-vibe-orange`)
+5. Nav active icon color (`text-vibe-orange`)
+6. CallVault logo — play button icon, always orange
 
-### Brand Scale (v2 globals.css)
+**Interactive Elements:**
+7. Input focus rings — orange border on focus (`--btn-focus-ring: var(--vibe-orange)`)
+8. Active tab underlines (6px rounded pill, `border-vibe-orange`)
+9. Active filter pills — highlighted state on data filter buttons
+10. IMPORT button — orange gradient CTA (`--gradient-premium`)
+11. Send button (AI Chat) — orange
+12. Create action buttons (Create Folder, etc.) — orange background
 
+**Content/Data:**
+13. Links — share links, timestamped section references
+14. Content Hub stat icons — hooks, posts, emails count icons
+
+**Theme behavior:** Orange is theme-invariant — same `hsl(32 100% 50%)` in light and dark mode. No dark-mode-specific orange tokens exist.
+
+**NEVER:** full area fills, vibe orange body text (fails WCAG contrast).
+
+### Brand Scale
+
+V1 production CSS tokens (extracted 2026-03-01):
+```css
+--vibe-orange:       32 100% 50%;   /* #FF8800 — core brand orange */
+--vibe-orange-dark:  14 100% 50%;   /* gradient darker end */
+--vibe-orange-light: 55 100% 50%;   /* gradient lighter end */
+--sidebar-primary:   32 100% 50%;   /* = vibe-orange (active sidebar) */
+--accent-orange:     28 100% 50%;   /* separate accent, slightly different hue */
+```
+
+v2 globals.css brand scale:
 ```css
 --color-brand-300: hsl(36 100% 55%);
 --color-brand-400: hsl(32 100% 50%);   /* = vibe orange */
@@ -85,7 +109,7 @@ This is a condensed, machine-optimized reference. Full canonical spec: `docs/des
 --color-brand-600: hsl(24 100% 40%);
 ```
 
-**Note:** `bg-brand-400` equals vibe orange. Using it as a button background is a brand violation except inside dialogs (Create Workspace dialog submit button uses `bg-brand-500/bg-brand-600` pattern — allowed for dialog form submission only).
+**Note:** `bg-brand-400` equals vibe orange. Using it as a page-level button background is a brand violation. Allowed inside dialogs only (Create Workspace submit uses `bg-brand-500/bg-brand-600`).
 
 ---
 
@@ -334,7 +358,7 @@ Settings page uses `bg-muted` (not `bg-vibe-orange/10`) for active state — vis
 
 ```tsx
 // Reference: CreateWorkspaceDialog.tsx, CreateOrganizationDialog.tsx
-import * as Dialog from '@radix-ui/react-dialog'
+import { Dialog } from 'radix-ui'
 
 <Dialog.Root open={open} onOpenChange={onOpenChange}>
   <Dialog.Portal>
@@ -364,7 +388,7 @@ import * as Dialog from '@radix-ui/react-dialog'
 
 ```tsx
 // Reference: OrgSwitcherBar.tsx, CallActionMenu (index.tsx)
-import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
+import { DropdownMenu } from 'radix-ui'
 
 <DropdownMenu.Root>
   <DropdownMenu.Trigger asChild>
@@ -395,7 +419,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu'
 
 ```tsx
 // Reference: WorkspaceSidebarPane.tsx
-import * as Collapsible from '@radix-ui/react-collapsible'
+import { Collapsible } from 'radix-ui'
 
 <Collapsible.Root open={open} onOpenChange={setOpen}>
   <Collapsible.Trigger>Toggle</Collapsible.Trigger>
@@ -509,15 +533,19 @@ const SPRING = { type: 'spring', stiffness: 260, damping: 28 } as const
 | Vibe orange for text | Fails WCAG 2.9:1 contrast | `text-foreground` or `text-muted-foreground` |
 | `x: 20` in panel animation | Creates drawer-slide feel | Width-only animation |
 | `absolute` close button inside `overflow-hidden` | Gets clipped | Flex-flow header row with `justify-end` |
-| `bg-card/80 backdrop-blur-sm` on OrgSwitcherBar | Makes it look like a pane | `bg-viewport` (shell chrome) |
+| `bg-card/80 backdrop-blur-*` on OrgSwitcherBar | Makes it look like a pane | `bg-viewport` (shell chrome) |
 | `border-border` on Pane 3 (not `/60`) | Inconsistent with other panes | `border-border/60` |
 | CSS transitions on panes (e.g., `duration-500`) | Wrong animation system | Motion spring |
 
 ---
 
-## 12. Dark Mode
+## 12. Dark Mode — PENDING USER APPROVAL
 
-### Token Mapping
+> Light mode is the approved visual standard (V1 visual audit, 2026-03-01).
+> Dark mode has NOT been reviewed/approved by the user. Do NOT codify dark mode as final.
+> When dark mode is ready for review, do a visual audit with the user before locking rules.
+
+### Known Facts (from V1 + v2 code)
 
 | Token | Light | Dark |
 |-------|-------|------|
@@ -528,16 +556,12 @@ const SPRING = { type: 'spring', stiffness: 260, damping: 28 } as const
 | `border-border` | `#E5E5E5` | `#3A3A3A` |
 | `bg-vibe-orange` | `#FF8800` | `#FF8800` (unchanged) |
 
-### Dark Mode Rules
+### Technical Notes
 
 - Primary (`variant="default"`) and destructive buttons: NO CHANGE in dark mode
-- Vibe orange: exact same hex in both modes
+- Vibe orange: exact same hex in both modes — theme-invariant
 - Use semantic tokens (`bg-card`, `text-foreground`) — never hardcode colors for themed surfaces
 - `@custom-variant dark (&:is(.dark *))` — Tailwind v4 syntax in globals.css
-
-### Phase 16.1 Audit Finding
-
-Dark mode CSS in `globals.css` is comprehensive and correct. All semantic tokens properly mapped under `.dark {}`. No manual dark: prefix needed when using semantic token classes.
 
 ---
 
