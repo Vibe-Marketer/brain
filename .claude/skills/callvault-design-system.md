@@ -9,7 +9,7 @@ applies_to:
   - /Users/Naegele/dev/brain/src/**
 canonical_reference: /Users/Naegele/dev/brain/docs/design/brand-guidelines-v4.4.md
 last_updated: 2026-03-01
-phase_audit: 16.1
+phase_audit: 16.2
 ---
 
 # CallVault v2 Design System — Agent Quick Reference
@@ -22,10 +22,10 @@ This is a condensed, machine-optimized reference. Full canonical spec: `docs/des
 
 1. All pages use `AppShell` — never build custom shell layouts
 2. Icons come from `@remixicon/react` only — no Lucide, Heroicons, Font Awesome
-3. Vibe orange (`#FF8800`) is a structural accent — see Section 3 for approved uses. Never for text.
+3. Vibe orange (`#FF8800`) is a structural accent — see Section 3 for approved uses. Never for body text (WCAG). Approved for page title h1s (wayfinding) and active nav labels.
 4. Animation: import from `motion/react`, not `framer-motion`
 5. Spring config is `{ type: 'spring', stiffness: 260, damping: 28 }` — do not change
-6. Primary CTA buttons use `variant="default"` (slate gradient) — not `bg-brand-400`
+6. Buttons use `src/components/ui/button.tsx` with 6 variants — `variant="default"` for primary CTA (slate gradient), never `bg-brand-400` directly
 7. Dialogs use Radix Dialog — never `window.prompt()`
 8. Dropdowns use Radix DropdownMenu — never hand-rolled div+state+ref
 9. Toasts via `sonner` — `import { toast } from 'sonner'`
@@ -45,7 +45,7 @@ This is a condensed, machine-optimized reference. Full canonical spec: `docs/des
 | `bg-popover` | `#FFFFFF` | `#212121` | Dropdown menus, tooltips |
 | `text-foreground` | `#171717` | `#FAFAFA` | Primary text, headings |
 | `text-muted-foreground` | `#666666` | `#999999` | Secondary text, inactive icons, metadata |
-| `text-vibe-orange` | `#FF8800` | `#FF8800` | Active nav icons, active indicators only |
+| `text-vibe-orange` | `#FF8800` | `#FF8800` | Active nav icons + labels, page title h1s (wayfinding), active tab indicators |
 | `border-border` | `#E6E6E6` | `#3B3B3B` | Standard borders, use with opacity: `/60` for panes, `/40` for subtle dividers |
 
 **Rules:**
@@ -183,7 +183,7 @@ className="bg-card/80 backdrop-blur-sm border-b border-border ..."
 
 ## 4. Navigation Active States — 4-Layer System
 
-From `SidebarNav.tsx` (v2 actual implementation):
+From `SidebarNav.tsx` (v2 actual implementation, updated Phase 16.2):
 
 ```tsx
 // NavItem interface
@@ -195,20 +195,15 @@ interface NavItem {
   to: string
 }
 
-// Active state rendering
+// Active state rendering (expanded sidebar)
 <Link
   className={cn(
     'relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm',
     isActive
-      ? 'bg-vibe-orange/10 font-medium text-foreground'
+      ? 'cv-side-indicator-pill bg-vibe-orange/10 font-semibold text-vibe-orange'
       : 'text-muted-foreground hover:bg-muted/70',
   )}
 >
-  {/* Layer 4: Left-edge pill indicator */}
-  {isActive && (
-    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-[65%] rounded-r-full bg-vibe-orange" />
-  )}
-
   {/* Layer 2+3: Fill icon + vibe-orange color */}
   <Icon
     size={16}
@@ -218,14 +213,27 @@ interface NavItem {
 </Link>
 ```
 
+The `cv-side-indicator-pill` utility class (defined in globals.css) handles Layer 4 (left-edge pill indicator) via `::before` pseudo-element.
+
+**Collapsed sidebar icon treatment (glossy 3D):**
+```tsx
+// Active collapsed icon — ring + orange dot below
+<div className="bg-gradient-to-br from-white to-gray-200 border border-gray-200/80
+  shadow-[inset_0_1px_0_rgba(255,255,255,0.9),inset_0_-1px_0_rgba(0,0,0,0.05),0_2px_4px_rgba(0,0,0,0.12)]
+  ring-2 ring-vibe-orange/50 rounded-xl p-2">
+  <Icon size={20} className="text-vibe-orange" />
+</div>
+// Orange 1.5px dot renders below icon to indicate active
+```
+
 ### 4 Layers Summary
 
 | Layer | Element | Active | Inactive |
 |-------|---------|--------|----------|
 | 1 (lowest) | Background | `bg-vibe-orange/10` | transparent |
 | 2 | Icon variant | `-Fill` (`RiPhoneFill`) | `-Line` (`RiPhoneLine`) |
-| 3 | Icon + text color | `text-vibe-orange` | `text-muted-foreground` |
-| 4 (highest) | Left pill | `w-1 h-[65%] rounded-r-full bg-vibe-orange` | hidden |
+| 3 | Icon + text color | `text-vibe-orange font-semibold` | `text-muted-foreground` |
+| 4 (highest) | Left pill | `cv-side-indicator-pill` (globals.css) | hidden |
 
 ### v2 Nav Items
 
@@ -236,9 +244,13 @@ interface NavItem {
 | `/import` | `RiDownloadLine` | `RiDownloadFill` |
 | `/settings` | `RiSettings3Line` | `RiSettings3Fill` |
 
-### Settings Sidebar (Different Pattern)
+### Settings Sidebar (Same 4-Layer Pattern)
 
-Settings page uses `bg-muted` (not `bg-vibe-orange/10`) for active state — visually distinguishes settings-within-page nav from primary SidebarNav.
+Settings sidebar uses the same 4-layer pattern as SidebarNav — pill + orange icon + orange text + `bg-vibe-orange/10`. No longer uses `bg-muted`.
+
+### WorkspaceSidebarPane and OrgSidebar
+
+Both also use the 4-layer pattern: `cv-side-indicator-pill bg-vibe-orange/10 text-vibe-orange` for active items.
 
 ---
 
@@ -246,13 +258,21 @@ Settings page uses `bg-muted` (not `bg-vibe-orange/10`) for active state — vis
 
 ### Typefaces
 
-- **Display/Headers:** `font-montserrat` (Montserrat ExtraBold 800)
+- **Display/Headers:** `font-montserrat` (Montserrat — heading base is 700, extrabold via `font-extrabold` class is 800)
 - **Body/UI:** `font-inter` (Inter — default in v2)
+
+**Note:** `globals.css` now sets Montserrat as the base font for all h1-h6 (font-weight 700). Individual components add `font-extrabold` (800) as needed.
 
 ### Heading Rules
 
 ```tsx
-// Pane heading: font-montserrat font-extrabold uppercase tracking-wide
+// Page title h1 — wayfinding indicator (vibe orange). Used on ALL authenticated routes.
+// Exception: login "CallVault" h1 stays text-foreground (brand logo, not wayfinding).
+<h1 className="font-montserrat font-extrabold text-xl uppercase tracking-wide text-vibe-orange">
+  ALL CALLS
+</h1>
+
+// Pane/section heading (h2): stays text-foreground — content structure, not wayfinding
 <h2 className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
   WORKSPACE CONTENT
 </h2>
@@ -262,6 +282,8 @@ Settings page uses `bg-muted` (not `bg-vibe-orange/10`) for active state — vis
   FOLDERS
 </p>
 ```
+
+**Page title pattern:** Every authenticated route renders its primary page h1 as `text-vibe-orange` — this is the "you are HERE" wayfinding signal. Dialog/modal titles and sub-headings (h2/h3) keep `text-foreground` or `text-muted-foreground`.
 
 ### Size Hierarchy
 
@@ -277,6 +299,25 @@ Settings page uses `bg-muted` (not `bg-vibe-orange/10`) for active state — vis
 ---
 
 ## 6. Button System
+
+**Component:** `src/components/ui/button.tsx` — created Phase 16.2 Plan 01. Use this for ALL buttons.
+
+```tsx
+import { Button } from '@/components/ui/button'
+```
+
+### All 6 Variants
+
+| Variant | Use | Visual |
+|---------|-----|--------|
+| `default` | Primary page CTA | Slate gradient (`from-slate-700 to-slate-900`) |
+| `hollow` | Secondary action | Bordered, adapts to dark mode |
+| `ghost` | Icon-only minimal | Transparent hover |
+| `destructive` | Dangerous action | Red gradient |
+| `link` | Inline text link | Orange underline on hover |
+| `outline` | Outlined | `border-border` |
+
+### Sizes: `default` (36px), `sm` (32px), `lg` (40px), `icon` (32px square)
 
 ### Correct Variant Mapping
 
@@ -487,29 +528,39 @@ const SPRING = { type: 'spring', stiffness: 260, damping: 28 } as const
 
 ## 10. Tab Navigation
 
-### Import Page Pattern (from import/index.tsx)
+### Radix Tabs Component (Preferred — Phase 16.2 Plan 01)
+
+**Component:** `src/components/ui/tabs.tsx` — use for new tab implementations.
 
 ```tsx
-// Custom button-based tabs (not Radix Tabs) — used on Import page
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+
+<Tabs defaultValue="members">
+  <TabsList>
+    <TabsTrigger value="members">Members 1</TabsTrigger>
+    <TabsTrigger value="pending">Pending Invites</TabsTrigger>
+  </TabsList>
+  <TabsContent value="members">...</TabsContent>
+  <TabsContent value="pending">...</TabsContent>
+</Tabs>
+```
+
+Active trigger gets a 6px rounded-bottom orange pill via `data-[state=active]:after:*` pseudo-element. No JS needed — Radix manages state via data attributes. TabsList enforces `justify-start gap-6` layout (brand-required, cannot be overridden).
+
+### Legacy Button-Based Tabs (Import page only)
+
+Some existing pages use custom button tabs. Keep as-is when editing; use Radix Tabs for new work.
+
+```tsx
 <button
-  onClick={() => setActiveTab('sources')}
   className={cn(
     'px-1 pb-2 text-sm font-medium transition-colors',
-    activeTab === 'sources'
-      ? 'border-b-2 border-vibe-orange text-foreground'  // Active
-      : 'text-muted-foreground hover:text-foreground'     // Inactive
+    isActive ? 'border-b-2 border-vibe-orange text-foreground' : 'text-muted-foreground hover:text-foreground'
   )}
 >
   Sources
 </button>
 ```
-
-### Active Tab State
-
-| State | Classes |
-|-------|---------|
-| Active | `border-b-2 border-vibe-orange text-foreground` |
-| Inactive | `text-muted-foreground hover:text-foreground` |
 
 ---
 
@@ -521,7 +572,7 @@ const SPRING = { type: 'spring', stiffness: 260, damping: 28 } as const
 | `bg-brand-400` on page buttons | Brand violation (vibe orange buttons) | `variant="default"` or `bg-foreground text-background` |
 | Hand-rolled dropdown menus | No keyboard nav, no outside-click, no a11y | Radix DropdownMenu |
 | `import { motion } from 'framer-motion'` | Wrong package | `import { motion } from 'motion/react'` |
-| Vibe orange for text | Fails WCAG 2.9:1 contrast | `text-foreground` or `text-muted-foreground` |
+| Vibe orange for body text / paragraphs | Fails WCAG 2.9:1 contrast | `text-foreground` or `text-muted-foreground` (exception: page title h1s and active nav labels — approved) |
 | `x: 20` in panel animation | Creates drawer-slide feel | Width-only animation |
 | `absolute` close button inside `overflow-hidden` | Gets clipped | Flex-flow header row with `justify-end` |
 | `bg-card/80 backdrop-blur-*` on OrgSwitcherBar | Makes it look like a pane | `bg-viewport` (shell chrome) |
@@ -554,12 +605,16 @@ All values are sourced from `callvault/src/globals.css`, not from docs.
 
 | File | Purpose |
 |------|---------|
+| `src/components/ui/button.tsx` | Button component — 6 variants, 4 sizes, cva + cn() |
+| `src/components/ui/tabs.tsx` | Tabs component — Radix primitives + orange pill indicator |
 | `src/components/layout/AppShell.tsx` | Pane system, spring config, widths |
-| `src/components/layout/SidebarNav.tsx` | 4-layer active state, nav items |
+| `src/components/layout/SidebarNav.tsx` | 4-layer active state, collapsed glossy icons |
+| `src/components/layout/WorkspaceSidebarPane.tsx` | Folder + workspace 4-layer active state |
 | `src/components/layout/DetailPaneOutlet.tsx` | Width-only animation, close button |
 | `src/components/layout/OrgSwitcherBar.tsx` | Shell chrome pattern |
 | `src/components/layout/CreateWorkspaceDialog.tsx` | Radix Dialog pattern |
 | `src/routes/_authenticated/index.tsx` | Radix DropdownMenu + Sub pattern |
-| `src/routes/_authenticated/settings/$category.tsx` | Empty state pattern |
-| `src/globals.css` | Full CSS variable definitions |
+| `src/routes/_authenticated/settings/$category.tsx` | Settings sidebar active state + empty state pattern |
+| `src/routes/_authenticated/workspaces/index.tsx` | OrgSidebar active state pattern |
+| `src/globals.css` | Full CSS variable definitions, cv-side-indicator-pill, heading base font |
 | `docs/design/brand-guidelines-v4.4.md` | Canonical full spec (2900+ lines) |
