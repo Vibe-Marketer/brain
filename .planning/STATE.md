@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-02-28 (Phase 16.1 Plan 04 complete — callvault-design-system skill for Claude Code agents, brand guidelines bumped to v4.3 with v2 AppShell + spring animation docs.)
+**Last Updated:** 2026-03-01 (Phase 16.2 inserted — V2 Visual Alignment with V1. CLAUDE.md audit + V1 visual audit complete, brand guidelines v4.4 with V2 tokens + hex values.)
 
 ## Project Reference
 
@@ -16,22 +16,23 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Milestone:** v2.0 — The Pivot
 
-**Phase:** Phase 16.1 — Workspace Polish + Brand Guidelines
+**Phase:** Phase 16.2 — V2 Visual Alignment with V1
 
-**Current Plan:** Plan 04 complete. Phase 16.1 fully complete.
+**Current Plan:** Not planned yet. Run `/gsd:plan-phase 16.2` to create plans.
 
-**Status:** Phase 16.1 complete (all 4 plans done). Plan 04 created callvault-design-system.md skill (556-line machine-optimized reference) and bumped brand guidelines to v4.3. v4.3 adds v2 AppShell pane architecture docs, spring animation system (motion/react, stiffness 260, damping 28), nav pill height correction (65%), custom button-tab pattern, and dialog button exception. Phase 19 (MCP Audit + Tokens) is next.
+**Status:** Phase 16.2 inserted after CLAUDE.md audit revealed V2 visual drift from V1. The audit documented 14 vibe orange contexts, extracted 124 CSS tokens from V1 production, converted brand guidelines to V2 semantics (v4.4), and added hex values to all token tables. Phase 16.2 applies these findings to the actual V2 codebase. V2 must look exactly like V1's approved light mode.
 
-**Last activity:** 2026-02-28 — Phase 16.1 Plan 04 complete (design system skill + brand guidelines v4.3)
+**Last activity:** 2026-03-01 — Phase 16.2 inserted, CLAUDE.md audit + brand guidelines v4.4 committed
 
 **Progress:**
 [██████████] 100% through Phase 18
-[███████   ] 7/11 phases complete
+[███████   ] 7/12 phases complete
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [✓] complete (2026-02-27)
 Phase 16: Workspace Redesign    [✓] complete (2026-02-28)
 Phase 16.1: Workspace Polish    [✓] complete (2026-02-28)
+Phase 16.2: V2 Visual Alignment [ ] not planned ← YOU ARE HERE
 Phase 17: Import Pipeline       [✓] complete (2026-02-28)
 Phase 18: Import Routing Rules  [✓] complete (2026-02-28)
 Phase 19: MCP Audit + Tokens    [ ] not started
@@ -58,6 +59,7 @@ Phase 22: Backend Cleanup       [ ] not started
 ### Roadmap Evolution
 
 - Phase 16.1 inserted after Phase 16: Workspace Redesign Polish & Brand Guidelines (INSERTED) — design audit, fit/finish polish, brand guidelines skill creation
+- Phase 16.2 inserted after Phase 16.1: V2 Visual Alignment with V1 (URGENT) — CLAUDE.md audit + V1 visual audit revealed V2 has drifted from V1's approved look. This phase applies the audit findings to actual V2 code. V2 must match V1 exactly (light mode).
 
 ### Key Decisions
 

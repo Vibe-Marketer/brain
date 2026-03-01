@@ -27,6 +27,7 @@ v2.0 is a deliberate, scoped frontend rebuild on top of the proven Supabase back
 | 14 | Foundation | New repo with auth working, AppShell rendered, routes wired | FOUND-01–09, AI-02 | 5 criteria |
 | 15 | Data Migration | All existing calls queryable in new frontend; RLS verified | DATA-01–05 | 4 criteria |
 | 16 | Workspace Redesign | Organization → Workspace → Folder model live with correct naming, routing, and UX | WKSP-01–13 | 5 criteria |
+| 16.2 | V2 Visual Alignment with V1 | Fix every visual drift so V2 matches V1's approved light mode look | V1 audit findings | 5 criteria |
 | 17 | Import Connector Pipeline | Shared connector utility; source management UI; first new connector validated | IMP-01–03 | 3 criteria |
 | 18 | Import Routing Rules | Condition builder, priority, preview, default destination | IMP-04–10 | 5 criteria |
 | 19 | MCP Audit + Workspace Tokens | Audit current MCP; per-workspace token generation, scoping, revocation | MCP-01–07 | 5 criteria |
@@ -235,6 +236,36 @@ Plans:
 5. A brand guidelines skill exists at `.claude/skills/callvault-design-system.md` covering color tokens, layout architecture, nav states, typography, buttons, icons, animations, and anti-patterns — usable by downstream GSD agents for consistent UI work
 
 **Notes:** This is an inserted phase for quality and polish work. The brand guidelines skill should codify color system, typography, spacing, component patterns, animation conventions, and any design decisions made during this phase — becoming the single source of truth for all future UI work.
+
+---
+
+### Phase 16.2 — V2 Visual Alignment with V1 (INSERTED)
+
+**Goal:** Fix every visual drift between V2 and V1 production so that V2 matches V1's approved light mode look exactly. The audit is done (Phase 16.1 + CLAUDE.md audit session) — this phase is the execution.
+
+**Rationale:** The CLAUDE.md audit and V1 visual audit (2026-03-01) revealed that V2 has drifted from V1's approved visual feel. 14 vibe orange contexts were documented, 124 CSS tokens extracted from V1 production, brand guidelines converted to V2 semantics (v4.4), and hex values added to all token tables. But the documentation fixes don't change the actual V2 code. This phase takes everything learned and applies it to the V2 codebase so that a user comparing V1 and V2 side-by-side sees the same visual language.
+
+**Dependencies:** Phase 16.1 complete (brand guidelines skill and audit findings provide the spec to build against)
+
+**Requirements:**
+- Color tokens in V2 match V1's approved light mode appearance
+- Vibe orange usage in V2 matches the 14 documented structural contexts from V1
+- Typography (Montserrat headings, Inter body, uppercase labels) matches V1
+- Button styles (slate gradient default, hollow secondary, ghost icon-only) match V1
+- Nav active states (pill indicator, fill icons, orange tint) match V1
+- Component styling (tabs, cards, dialogs, empty states) matches V1
+- Spacing and layout (AppShell panes, gutters, padding) matches V1
+
+**Plans:** TBD (created by `/gsd:plan-phase 16.2`)
+
+**Success Criteria:**
+1. A side-by-side screenshot comparison of V1 (app.callvaultai.com) and V2 (callvault.vercel.app) shows matching visual language — same colors, typography, spacing, and component styling across all major pages
+2. Every vibe orange instance in V2 matches one of the 14 documented structural contexts from the V1 audit — no unauthorized orange usage, no missing orange where V1 has it
+3. All V2 components use the correct semantic tokens from brand guidelines v4.4 — zero instances of dead V1 tokens (text-ink, bg-hover, border-soft) in the codebase
+4. The design system skill's token reference table (with hex values) accurately describes what V2 renders — documentation and reality are in sync
+5. Dev-browser visual verification confirms V2 passes the "show it to a customer" bar on all pages: home, call detail, settings, import, workspace management
+
+**Notes:** This phase uses dev-browser for all verification. The V1 screenshots from the audit session (in `~/.config/claude-code/dev-browser/tmp/v1-*.png`) serve as the visual reference. The design system skill and brand guidelines v4.4 are the spec. Light mode only — dark mode is pending user approval and is NOT in scope for this phase.
 
 ---
 
@@ -524,6 +555,7 @@ Plans:
 | 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
 | 16 | Workspace Redesign | ✓ Complete | 8/8 | 2026-02-28 |
 | 16.1 | Workspace Polish & Brand Guidelines | ✓ Complete | 4/4 | 2026-02-28 | (INSERTED) |
+| 16.2 | V2 Visual Alignment with V1 | Not planned | — | — | (INSERTED) |
 | 17 | Import Connector Pipeline | ✓ Complete | 5/5 | 2026-02-28 |
 | 18 | Import Routing Rules | ✓ Complete | 4/4 | 2026-02-28 |
 | 19 | MCP Audit + Workspace Tokens | Planned | 0/5 | — |
