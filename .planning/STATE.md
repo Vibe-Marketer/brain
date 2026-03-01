@@ -18,9 +18,9 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 16.2 — V2 Visual Alignment with V1
 
-**Current Plan:** Plan 03 of 4 complete. Plan 04 (Dev-browser verification + skill sync + user approval) next.
+**Current Plan:** Not started
 
-**Status:** Phase 16.2 in progress. Plans 01, 02, and 03 complete. Plan 01: Button + Tabs component infrastructure. Plan 02: Nav active states alignment — all 4 sidebar components updated with orange active text, pill indicators, and glossy collapsed icons. Plan 03: Vibe orange page titles on all 9 authenticated routes, Montserrat heading base font, dead V1 border-soft token removed, warm empty state microcopy. Plan 04: Dev-browser verification + skill sync + user approval.
+**Status:** Ready to plan
 
 **Last activity:** 2026-03-01 — Plan 03 complete (vibe orange h1 page titles: All Calls, call detail, Settings, Import Calls, Workspaces, workspace detail, folder view, Shared With Me, join workspace; Montserrat heading base; border-soft removed; warm empty states)
 

@@ -35,14 +35,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { AppShell } from '@/components/layout/AppShell';
 import { Spinner } from '@/components/ui/spinner';
-import { InsightCard } from '@/components/loop/InsightCard';
-import { ContentGenerator } from '@/components/loop/ContentGenerator';
-import { PROFITSReport } from '@/components/profits/PROFITSReport';
 import { supabase } from '@/integrations/supabase/client';
 import { VaultBadgeList } from '@/components/vault/VaultBadgeList';
 import { parseYouTubeDuration, formatCompactNumber } from '@/lib/youtube-utils';
-import type { PROFITSCitation } from '@/hooks/usePROFITS';
-import type { ChatLocationState, ContextAttachment } from '@/types/chat';
+
 
 /**
  * Format transcript text into paragraphs for readable display.
@@ -87,8 +83,6 @@ function formatTranscriptDisplay(transcript: string): React.ReactNode[] {
 export const CallDetailPage: React.FC = () => {
   const { callId } = useParams<{ callId: string }>();
   const navigate = useNavigate();
-  const [showContentGenerator, setShowContentGenerator] = useState(false);
-  const [selectedInsights, setSelectedInsights] = useState<any[]>([]);
 
   // Parse callId to number for recording_id query
   const recordingId = callId ? parseInt(callId, 10) : undefined;
@@ -184,17 +178,7 @@ export const CallDetailPage: React.FC = () => {
     negative: 'bg-danger-bg text-danger-text border border-danger-border',
   }[sentiment || 'neutral'];
 
-  // Build Chat link state for YouTube "Open in AI Chat"
-  const chatState: ChatLocationState = {
-    initialContext: [{
-      type: 'call' as const,
-      id: call.recording_id,
-      title: call.title || 'Untitled',
-      date: call.created_at,
-    }],
-    callTitle: call.title || undefined,
-    newSession: true,
-  };
+
 
   // ─────── YouTube Layout ───────
   if (isYouTube) {
@@ -236,12 +220,7 @@ export const CallDetailPage: React.FC = () => {
                   </a>
                 </Button>
               )}
-              <Button variant="outline" asChild>
-                <Link to="/chat" state={chatState}>
-                  <RiChat3Line className="w-4 h-4 mr-2" />
-                  Ask AI
-                </Link>
-              </Button>
+
             </div>
           </header>
 
@@ -356,26 +335,7 @@ export const CallDetailPage: React.FC = () => {
               )}
             </Tabs>
 
-            {/* AI Chat CTA */}
-            <div className="bg-card rounded-lg border border-border p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0">
-                  <RiChat3Line className="w-5 h-5 text-vibe-orange" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-foreground mb-1">Chat about this video</h3>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Ask AI questions about this video's content — summarize, find key points, or explore topics.
-                  </p>
-                  <Button asChild size="sm">
-                    <Link to="/chat" state={chatState}>
-                      Open in AI Chat
-                      <RiExternalLinkLine className="w-3.5 h-3.5 ml-1.5" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
       </AppShell>
@@ -408,17 +368,6 @@ export const CallDetailPage: React.FC = () => {
             <Button variant="ghost" onClick={() => navigate(-1)} className="gap-2">
               <RiArrowLeftLine className="w-4 h-4" />
               Back
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedInsights(insights || []);
-                setShowContentGenerator(true);
-              }}
-              disabled={!insights || insights.length === 0}
-            >
-              <RiSparklingLine className="w-4 h-4 mr-2" />
-              Generate Content
             </Button>
             <Button variant="outline">
               <RiShareLine className="w-4 h-4 mr-2" />
@@ -482,40 +431,10 @@ export const CallDetailPage: React.FC = () => {
             </TabsList>
 
             <TabsContent value="insights" className="space-y-6">
-              {insightsLoading ? (
-                <div className="text-center py-8">
-                  <Spinner size="lg" className="mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Loading insights...</p>
-                </div>
-              ) : insights && insights.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {insights.map((insight: any) => (
-                    <InsightCard
-                      key={insight.id}
-                      id={insight.id}
-                      type={insight.category}
-                      content={insight.exact_quote}
-                      source={{
-                        callId: String(call.recording_id),
-                        callTitle: call.title || 'Untitled Call',
-                        date: new Date(call.created_at),
-                      }}
-                      confidence={insight.score}
-                      tags={[]}
-                      onUse={() => {
-                        setSelectedInsights([insight]);
-                        setShowContentGenerator(true);
-                      }}
-                      onViewContext={() => {}}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <RiLightbulbLine className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No insights extracted yet</p>
-                </div>
-              )}
+              <div className="text-center py-16">
+                <RiLightbulbLine className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Insights temporarily disabled during refactor</p>
+              </div>
             </TabsContent>
 
             <TabsContent value="transcript">
@@ -527,16 +446,8 @@ export const CallDetailPage: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="profits">
-              <div className="bg-card rounded-lg border border-border">
-                <PROFITSReport
-                  recordingId={recordingId}
-                  onCitationClick={(citation: PROFITSCitation) => {
-                    const transcriptTab = document.querySelector('[value="transcript"]');
-                    if (transcriptTab instanceof HTMLElement) {
-                      transcriptTab.click();
-                    }
-                  }}
-                />
+              <div className="bg-card rounded-lg border border-border p-6 text-center">
+                <p className="text-muted-foreground">PROFITS framework temporarily disabled during refactor</p>
               </div>
             </TabsContent>
 
@@ -548,12 +459,6 @@ export const CallDetailPage: React.FC = () => {
             </TabsContent>
           </Tabs>
         </div>
-
-        <ContentGenerator
-          open={showContentGenerator}
-          onOpenChange={setShowContentGenerator}
-          insights={selectedInsights}
-        />
       </div>
     </AppShell>
   );

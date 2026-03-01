@@ -28,7 +28,7 @@ v2.0 is a deliberate, scoped frontend rebuild on top of the proven Supabase back
 | 15 | Data Migration | All existing calls queryable in new frontend; RLS verified | DATA-01–05 | 4 criteria |
 | 16 | Workspace Redesign | Organization → Workspace → Folder model live with correct naming, routing, and UX | WKSP-01–13 | 5 criteria |
 | 16.2 | V2 Visual Alignment with V1 | Fix every visual drift so V2 matches V1's approved light mode look | V1 audit findings | 5 criteria |
-| 17 | Import Connector Pipeline | Shared connector utility; source management UI; first new connector validated | IMP-01–03 | 3 criteria |
+| 17 | Import Connector Pipeline | Complete    | 2026-03-01 | 3 criteria |
 | 18 | Import Routing Rules | Condition builder, priority, preview, default destination | IMP-04–10 | 5 criteria |
 | 19 | MCP Audit + Workspace Tokens | Audit current MCP; per-workspace token generation, scoping, revocation | MCP-01–07 | 5 criteria |
 | 20 | MCP Differentiators | Differentiating tools, prompts, resources; multi-client verification | MCP-08–11 | 4 criteria |
@@ -293,7 +293,7 @@ Plans:
 2. A developer can add a new import source connector by writing ≤ 230 lines of code (1 adapter file + 1 edge function + 1 connector component + 1 registry line) — verified by actually building one new source this phase
 3. An import triggered from any connector (Fathom, Zoom, YouTube) writes directly to the `recordings` table via the shared pipeline — deduplication by `external_id` prevents duplicate imports
 
-**Plans:** 5 plans
+**Plans:** 5/5 plans complete
 
 Plans:
 - [ ] 17-01-PLAN.md — Shared connector pipeline utility + import_sources table migration (IMP-01 foundation)

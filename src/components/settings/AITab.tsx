@@ -20,7 +20,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { AdminModelManager } from "./AdminModelManager";
 import { Label } from "@/components/ui/label";
-import { useAvailableModels } from "@/components/chat/model-selector";
+// Stub useAvailableModels since chat directory was deleted
+const dummyModels = [
+  { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'OpenAI', contextLength: 128000, pricing: { prompt: 5, completion: 15 } },
+  { id: 'anthropic/claude-3-5-sonnet', name: 'Claude 3.5 Sonnet', provider: 'Anthropic', contextLength: 200000, pricing: { prompt: 3, completion: 15 } }
+];
+
+function useAvailableModels() {
+  return {
+    models: dummyModels,
+    defaultModel: 'anthropic/claude-3-5-sonnet',
+    isLoading: false
+  };
+}
 
 export default function AITab() {
   const [loading, setLoading] = useState(true);

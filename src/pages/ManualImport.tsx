@@ -27,7 +27,6 @@ import { Button } from '@/components/ui/button';
 import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
 import { cn } from '@/lib/utils';
 import { queryKeys } from '@/lib/query-config';
-import type { ChatLocationState } from '@/types/chat';
 
 interface ImportResult {
   recordingId: number;
@@ -125,35 +124,7 @@ export default function ManualImport() {
                   </Button>
                 </div>
 
-                {/* Quick link to chat */}
-                <div className="text-center pt-4 border-t border-border">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Or ask AI about this video
-                  </p>
-                  <Button
-                    variant="ghost"
-                    asChild
-                    className="text-vibe-orange hover:text-vibe-orange/80"
-                  >
-                    <Link
-                      to="/chat"
-                      state={{
-                        initialContext: [{
-                          type: 'call',
-                          id: importResult.recordingId,
-                          title: importResult.title,
-                          date: new Date().toISOString(),
-                        }],
-                        callTitle: importResult.title,
-                        newSession: true,
-                      } satisfies ChatLocationState}
-                    >
-                      Open AI Chat
-                      <RiExternalLinkLine className="w-3.5 h-3.5 ml-1.5" />
-                    </Link>
-                  </Button>
                 </div>
-              </div>
             ) : (
               /* Import form */
               <div className="space-y-6">

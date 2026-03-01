@@ -247,10 +247,6 @@ export default function VaultJoin() {
                 <RiCheckLine className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
                 <span>Collaborate with other hub members</span>
               </li>
-              <li className="flex items-start gap-2">
-                <RiCheckLine className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                <span>Use AI chat scoped to hub recordings</span>
-              </li>
             </ul>
           </div>
 
