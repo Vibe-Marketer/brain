@@ -256,7 +256,13 @@ Plans:
 - Component styling (tabs, cards, dialogs, empty states) matches V1
 - Spacing and layout (AppShell panes, gutters, padding) matches V1
 
-**Plans:** TBD (created by `/gsd:plan-phase 16.2`)
+**Plans:** 4 plans
+
+Plans:
+- [ ] 16.2-01-PLAN.md — UI component infrastructure (Button + Tabs)
+- [ ] 16.2-02-PLAN.md — Navigation active states (SidebarNav, Settings, WorkspaceSidebar)
+- [ ] 16.2-03-PLAN.md — Page title headings + empty state microcopy
+- [ ] 16.2-04-PLAN.md — Visual verification checkpoint
 
 **Success Criteria:**
 1. A side-by-side screenshot comparison of V1 (app.callvaultai.com) and V2 (callvault.vercel.app) shows matching visual language — same colors, typography, spacing, and component styling across all major pages
@@ -555,7 +561,7 @@ Plans:
 | 15 | Data Migration | ✓ Complete | 3/3 | 2026-02-28 |
 | 16 | Workspace Redesign | ✓ Complete | 8/8 | 2026-02-28 |
 | 16.1 | Workspace Polish & Brand Guidelines | ✓ Complete | 4/4 | 2026-02-28 | (INSERTED) |
-| 16.2 | V2 Visual Alignment with V1 | Not planned | — | — | (INSERTED) |
+| 16.2 | V2 Visual Alignment with V1 | Planned | 0/4 | — | (INSERTED) |
 | 17 | Import Connector Pipeline | ✓ Complete | 5/5 | 2026-02-28 |
 | 18 | Import Routing Rules | ✓ Complete | 4/4 | 2026-02-28 |
 | 19 | MCP Audit + Workspace Tokens | Planned | 0/5 | — |
