@@ -1,0 +1,29 @@
+
+> callvault@0.0.0 build
+> vite build
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+vite v5.4.21 building for production...
+transforming...
+✓ 4660 modules transformed.
+x Build failed in 5.72s
+error during build:
+src/lib/api-client.ts (7:9): "retryWithBackoff" is not exported by "src/lib/utils.ts", imported by "src/lib/api-client.ts".
+file: /Users/Naegele/dev/brain/src/lib/api-client.ts:7:9
+
+5: 
+6: import { supabase } from "@/integrations/supabase/client";
+7: import { retryWithBackoff, getErrorMessage } from "./utils";
+            ^
+8: import { logger } from "./logger";
+
+    at getRollupError (file:///Users/Naegele/dev/brain/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/parseAst.js:402:41)
+    at error (file:///Users/Naegele/dev/brain/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/parseAst.js:398:42)
+    at Module.error (file:///Users/Naegele/dev/brain/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:17040:16)
+    at Module.traceVariable (file:///Users/Naegele/dev/brain/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:17452:29)
+    at ModuleScope.findVariable (file:///Users/Naegele/dev/brain/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:15070:39)
+    at FunctionScope.findVariable (file:///Users/Naegele/dev/brain/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at FunctionBodyScope.findVariable (file:///Users/Naegele/dev/brain/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at BlockScope.findVariable (file:///Users/Naegele/dev/brain/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at TrackingScope.findVariable (file:///Users/Naegele/dev/brain/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
+    at BlockScope.findVariable (file:///Users/Naegele/dev/brain/node_modules/.pnpm/rollup@4.59.0/node_modules/rollup/dist/es/shared/node-entry.js:5673:38)
