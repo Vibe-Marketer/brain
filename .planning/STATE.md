@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-03-01 (Phase 16.2 inserted — V2 Visual Alignment with V1. CLAUDE.md audit + V1 visual audit complete, brand guidelines v4.4 with V2 tokens + hex values.)
+**Last Updated:** 2026-03-01 (Phase 16.2 Plan 01 complete — Button (6 variants, cva) + Tabs (Radix, vibe-orange pill) components created in callvault/src/components/ui/)
 
 ## Project Reference
 
@@ -65,6 +65,8 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-03-01 | Button + Tabs components created in callvault/src/components/ui/ using cva + Radix primitives from 'radix-ui' package | V2 had zero shared UI components; inconsistent ad-hoc inline Tailwind everywhere | All future button/tab usage imports from @/components/ui/ |
+| 2026-03-01 | Tabs orange pill indicator uses data-[state=active]:after: CSS-only — no JS state tracking | Radix sets data-state attribute; Tailwind arbitrary data-* utilities handle visual change entirely in CSS | Zero JS overhead for tab active indicator; Radix handles ARIA and keyboard |
 | 2026-02-28 | Brand guidelines bumped v4.2.1 -> v4.3 (minor) — 5 sections updated: AppShell pane architecture, spring animation, pill height, button-tab pattern, dialog button exception | 5 sections = minor version per docs/CLAUDE.md; audit revealed actual v2 code diverged from v4.2 spec in these areas | brand-guidelines-v4.3.md is now canonical; v4.2 archived to docs/archive/ |
 | 2026-02-28 | callvault-design-system skill is 556 lines (above 400-line target) — kept at 556 | All content is genuinely useful; shorter would omit critical detail (spring config, Radix patterns, anti-patterns) | Future GSD agents reference this skill for all UI work without reading full brand guidelines |
 | 2026-02-28 | Dialog action buttons: bg-brand-500 accepted inside Radix Dialog (in addition to bg-foreground text-background pattern) | Plan 02 established this as a working pattern; documented as formal exception in v4.3 | Agents building dialogs can use either pattern; page-level buttons still follow standard rules |
