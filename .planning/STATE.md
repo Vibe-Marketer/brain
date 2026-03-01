@@ -18,11 +18,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 16.2 — V2 Visual Alignment with V1
 
-**Current Plan:** Not planned yet. Run `/gsd:plan-phase 16.2` to create plans.
+**Current Plan:** Planned — 4 plans in 3 waves. Ready for execution.
 
-**Status:** Phase 16.2 inserted after CLAUDE.md audit revealed V2 visual drift from V1. The audit documented 14 vibe orange contexts, extracted 124 CSS tokens from V1 production, converted brand guidelines to V2 semantics (v4.4), and added hex values to all token tables. Phase 16.2 applies these findings to the actual V2 codebase. V2 must look exactly like V1's approved light mode.
+**Status:** Phase 16.2 planned. 4 plans created: (1) Button + Tabs component infrastructure, (2) Nav active states alignment, (3) Page title colors + empty states + dead token cleanup, (4) Dev-browser verification + skill sync + user approval. Research identified 14 gaps; 5 already correct, 9 need fixing. Checker passed on iteration 2 after resolving 4 blockers + 3 warnings.
 
-**Last activity:** 2026-03-01 — Phase 16.2 inserted, CLAUDE.md audit + brand guidelines v4.4 committed
+**Last activity:** 2026-03-01 — Phase 16.2 planned, verified, committed
 
 **Progress:**
 [██████████] 100% through Phase 18
