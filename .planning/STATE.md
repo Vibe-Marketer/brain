@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-03-01 (Phase 16.2 Plan 01 complete — Button (6 variants, cva) + Tabs (Radix, vibe-orange pill) components created in callvault/src/components/ui/)
+**Last Updated:** 2026-03-01 (Phase 16.2 Plan 03 complete — Vibe orange page titles, Montserrat heading base, warm empty states, dead V1 border-soft token removed)
 
 ## Project Reference
 
@@ -18,11 +18,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 16.2 — V2 Visual Alignment with V1
 
-**Current Plan:** Plan 02 of 4 complete. Plan 03 (Page title colors + empty states + dead token cleanup) next.
+**Current Plan:** Plan 03 of 4 complete. Plan 04 (Dev-browser verification + skill sync + user approval) next.
 
-**Status:** Phase 16.2 in progress. Plans 01 and 02 complete. Plan 01: Button + Tabs component infrastructure. Plan 02: Nav active states alignment — all 4 sidebar components updated with orange active text, pill indicators, and glossy collapsed icons. Plan 03: Page title colors + empty states + dead token cleanup. Plan 04: Dev-browser verification + skill sync + user approval.
+**Status:** Phase 16.2 in progress. Plans 01, 02, and 03 complete. Plan 01: Button + Tabs component infrastructure. Plan 02: Nav active states alignment — all 4 sidebar components updated with orange active text, pill indicators, and glossy collapsed icons. Plan 03: Vibe orange page titles on all 9 authenticated routes, Montserrat heading base font, dead V1 border-soft token removed, warm empty state microcopy. Plan 04: Dev-browser verification + skill sync + user approval.
 
-**Last activity:** 2026-03-01 — Plan 02 complete (nav active states: SidebarNav, WorkspaceSidebarPane, Settings sidebar, OrgSidebar)
+**Last activity:** 2026-03-01 — Plan 03 complete (vibe orange h1 page titles: All Calls, call detail, Settings, Import Calls, Workspaces, workspace detail, folder view, Shared With Me, join workspace; Montserrat heading base; border-soft removed; warm empty states)
 
 **Progress:**
 [█████████░] 93%
@@ -65,6 +65,9 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-03-01 | Login h1 stays text-foreground: "CallVault" on login is a brand logo wordmark, not a page navigation title — vibe orange is reserved for in-app wayfinding headings | Vibe orange on page titles = context #6 (Wayfinding/Step indication); login page predates the app navigation | Login h1 stays text-foreground permanently; all in-app page h1s use text-vibe-orange |
+| 2026-03-01 | Montserrat set as heading base font in globals.css (font-weight 700); individual components override with font-extrabold (800) via Tailwind class | Base 700 ensures headings look better than the old Inter 600 default even without the extrabold override | All headings now default to Montserrat 700; page titles add font-extrabold for 800 |
+| 2026-03-01 | Folder rename input uses text-vibe-orange to match display heading — editing state is visually continuous with display state | User editing a folder name should see the same color as the result; different color would feel jarring | All inline-editable headings should match their display color class |
 | 2026-03-01 | Button + Tabs components created in callvault/src/components/ui/ using cva + Radix primitives from 'radix-ui' package | V2 had zero shared UI components; inconsistent ad-hoc inline Tailwind everywhere | All future button/tab usage imports from @/components/ui/ |
 | 2026-03-01 | Tabs orange pill indicator uses data-[state=active]:after: CSS-only — no JS state tracking | Radix sets data-state attribute; Tailwind arbitrary data-* utilities handle visual change entirely in CSS | Zero JS overhead for tab active indicator; Radix handles ARIA and keyboard |
 | 2026-02-28 | Brand guidelines bumped v4.2.1 -> v4.3 (minor) — 5 sections updated: AppShell pane architecture, spring animation, pill height, button-tab pattern, dialog button exception | 5 sections = minor version per docs/CLAUDE.md; audit revealed actual v2 code diverged from v4.2 spec in these areas | brand-guidelines-v4.3.md is now canonical; v4.2 archived to docs/archive/ |
