@@ -1,5 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
-import { useFolders, type Folder } from "@/hooks/useFolders";
+import {
+  useFolders,
+  useFolderAssignments,
+  useRenameFolder,
+  useDeleteFolder,
+} from "@/hooks/useFolders";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import type { Folder } from "@/types/workspace";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,7 +56,16 @@ export function FolderDetailPanel({
   onFolderUpdated,
   onFolderDeleted,
 }: FolderDetailPanelProps) {
-  const { folders, folderAssignments, updateFolder, deleteFolder, isLoading, refetch } = useFolders();
+  const { activeVaultId } = useOrganizationContext();
+  const { data: folders = [], isLoading, refetch } = useFolders(activeVaultId);
+  const { data: folderAssignments = {} } = useFolderAssignments(activeVaultId);
+  const { mutateAsync: updateFolderMutation } = useRenameFolder();
+  const { mutateAsync: deleteFolder } = useDeleteFolder();
+
+  const updateFolder = async (id: string, data: { name: string; description?: string | null; parent_id?: string | null; icon?: string | null }) => {
+    return updateFolderMutation({ folderId: id, name: data.name });
+  };
+
   const { closePanel, togglePin, isPinned } = usePanelStore();
 
   // Find the folder from the list

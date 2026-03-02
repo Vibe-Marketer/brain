@@ -83,7 +83,7 @@ export default function Settings() {
       account: "profile",
       business: "profile", // Business uses profile help for now
       contacts: "profile", // Contacts uses profile help for now
-      banks: "profile", // Banks/Workspaces uses profile help for now
+      organizations: "profile", // Organizations/Workspaces uses profile help for now
       users: "users",
       billing: "billing",
       integrations: "integrations",

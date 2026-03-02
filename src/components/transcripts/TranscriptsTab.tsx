@@ -8,7 +8,7 @@ import { logger } from "@/lib/logger";
 import { Meeting } from "@/types/meetings";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { requireUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 
 import { TranscriptTable } from "@/components/transcript-library/TranscriptTable";
 import { CallDetailDialog } from "@/components/CallDetailDialog";
@@ -83,8 +83,8 @@ export function TranscriptsTab({
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Bank context for filtering calls by active workspace
-  const { activeBankId, isPersonalBank, isLoading: bankContextLoading } = useBankContext();
+  // Organization context for filtering calls by active workspace
+  const { activeOrganizationId, isPersonalOrganization, isLoading: bankContextLoading } = useOrganizationContext();
 
   // Selection & interaction state
   const [selectedCalls, setSelectedCalls] = useState<number[]>([]);
@@ -174,15 +174,15 @@ export function TranscriptsTab({
   // Fetch tags
   // Fetch tags scoped to active bank/workspace
   const { data: tags = [] } = useQuery({
-    queryKey: ["tags", activeBankId],
+    queryKey: ["tags", activeOrganizationId],
     queryFn: async () => {
       let query = supabase
         .from("call_tags")
         .select("*")
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;
@@ -238,19 +238,19 @@ export function TranscriptsTab({
 
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading } = useQuery({
-    queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize, activeBankId, isPersonalBank],
+    queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize, activeOrganizationId, isPersonalOrganization],
     queryFn: async () => {
       const offset = (page - 1) * pageSize;
 
-      // Bank-aware filtering: For business banks, look up recording IDs
+      // Organization-aware filtering: For business organizations, look up recording IDs
       // from the recordings table that belong to this bank, then filter fathom_calls
       let bankRecordingIds: number[] | null = null;
-      if (activeBankId && !isPersonalBank) {
+      if (activeOrganizationId && !isPersonalOrganization) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { data: bankRecordings } = await (supabase as any)
           .from('recordings')
           .select('legacy_recording_id')
-          .eq('bank_id', activeBankId);
+          .eq('organization_id', activeOrganizationId);
 
         if (bankRecordings && bankRecordings.length > 0) {
           bankRecordingIds = bankRecordings
@@ -273,7 +273,7 @@ export function TranscriptsTab({
       // Exclude YouTube imports from the main recordings list — they live in the YouTube hub
       query = query.or('source_platform.is.null,source_platform.neq.youtube');
 
-      // Apply bank filter for business banks
+      // Apply bank filter for business organizations
       if (bankRecordingIds !== null) {
         query = query.in("recording_id", bankRecordingIds);
       }

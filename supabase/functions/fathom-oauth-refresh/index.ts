@@ -29,6 +29,22 @@ export async function refreshOAuthTokens(userId: string, refreshToken: string) {
   if (!tokenResponse.ok) {
     const errorText = await tokenResponse.text();
     console.error('Token refresh failed:', tokenResponse.status, errorText);
+
+    if (tokenResponse.status >= 400 && tokenResponse.status < 500) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
+      await supabase
+        .from('user_settings')
+        .update({
+          oauth_access_token: null,
+          oauth_refresh_token: null,
+          oauth_token_expires: null,
+        })
+        .eq('user_id', userId);
+    }
+
     throw new Error('Failed to refresh access token');
   }
 

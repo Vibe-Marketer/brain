@@ -181,7 +181,7 @@ export function SortingCategoryPane({
             className="text-sm font-bold text-ink uppercase tracking-wide"
             id="sorting-category-title"
           >
-            Organization
+            Sorting & Tagging
           </h2>
           <p className="text-xs text-ink-muted">
             {SORTING_CATEGORIES_BASE.length} categories

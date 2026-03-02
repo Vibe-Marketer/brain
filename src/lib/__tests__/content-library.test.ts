@@ -99,7 +99,7 @@ describe('Content Library CRUD Functions', () => {
 
       await fetchContentItems({ content_type: 'email' }, 'test-bank-id');
 
-      expect(mockEq).toHaveBeenCalledWith('bank_id', 'test-bank-id');
+      expect(mockEq).toHaveBeenCalledWith('organization_id', 'test-bank-id');
       expect(mockEq).toHaveBeenCalledWith('content_type', 'email');
     });
 

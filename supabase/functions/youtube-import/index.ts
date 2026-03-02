@@ -17,7 +17,7 @@ import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.t
 
 interface ImportRequest {
   videoUrl: string;
-  vault_id?: string;
+  workspace_id?: string;
 }
 
 type ImportStep = 'validating' | 'checking' | 'fetching' | 'transcribing' | 'processing' | 'done';
@@ -431,16 +431,16 @@ Deno.serve(async (req) => {
     // ========================================================================
     // Step 0: Ensure YouTube vault exists (auto-create on first import)
     // ========================================================================
-    let youtubeVaultId: string | null = body.vault_id || null;
+    let youtubeVaultId: string | null = body.workspace_id || null;
     let resolvedPersonalBankId: string | null = null;
 
     if (!youtubeVaultId) {
       try {
-        // Find user's personal bank via bank_memberships
+        // Find user's personal bank via organization_memberships
         // Use two separate queries instead of a join to avoid PostgREST join issues
         const { data: bankMemberships, error: bankError } = await supabase
-          .from('bank_memberships')
-          .select('bank_id')
+          .from('organization_memberships')
+          .select('organization_id')
           .eq('user_id', user.id);
 
         if (bankError) {
@@ -448,10 +448,10 @@ Deno.serve(async (req) => {
         }
 
         if (bankMemberships && bankMemberships.length > 0) {
-          // Look up which of these banks is a personal bank
-          const bankIds = bankMemberships.map(bm => bm.bank_id);
+          // Look up which of these organizations is a personal bank
+          const bankIds = bankMemberships.map(bm => bm.organization_id);
           const { data: personalBank, error: personalBankError } = await supabase
-            .from('banks')
+            .from('organizations')
             .select('id')
             .in('id', bankIds)
             .eq('type', 'personal')
@@ -472,10 +472,10 @@ Deno.serve(async (req) => {
         if (personalBankId) {
           // Check for existing YouTube vault in that bank
           const { data: existingVault, error: vaultCheckError } = await supabase
-            .from('vaults')
+            .from('workspaces')
             .select('id')
-            .eq('bank_id', personalBankId)
-            .eq('vault_type', 'youtube')
+            .eq('organization_id', personalBankId)
+            .eq('workspace_type', 'youtube')
             .maybeSingle();
 
           if (vaultCheckError) {
@@ -488,11 +488,11 @@ Deno.serve(async (req) => {
           } else {
             // Create YouTube vault
             const { data: newVault, error: createVaultError } = await supabase
-              .from('vaults')
+              .from('workspaces')
               .insert({
-                bank_id: personalBankId,
+                organization_id: personalBankId,
                 name: 'YouTube Vault',
-                vault_type: 'youtube',
+                workspace_type: 'youtube',
               })
               .select('id')
               .single();
@@ -503,13 +503,13 @@ Deno.serve(async (req) => {
               youtubeVaultId = newVault.id;
               console.log(`Created YouTube vault: ${youtubeVaultId}`);
 
-              // Create vault_membership for user as vault_owner
+              // Create vault_membership for user as workspace_owner
               const { error: membershipError } = await supabase
-                .from('vault_memberships')
+                .from('workspace_memberships')
                 .insert({
-                  vault_id: newVault.id,
+                  workspace_id: newVault.id,
                   user_id: user.id,
-                  role: 'vault_owner',
+                  role: 'workspace_owner',
                 });
 
               if (membershipError) {
@@ -717,7 +717,7 @@ Deno.serve(async (req) => {
         recording_start_time: publishedAt,
         duration: durationSeconds ?? undefined,
         source_metadata: sourceMetadata,
-        vault_id: youtubeVaultId ?? undefined,
+        workspace_id: youtubeVaultId ?? undefined,
       });
       newRecordingId = result.id;
       console.log(`Successfully imported YouTube video as recording UUID: ${newRecordingId}`);

@@ -34,7 +34,7 @@ interface RoutingRule {
   priority: number;
   conditions: RoutingCondition[];
   logic_operator: 'AND' | 'OR';
-  target_vault_id: string;
+  target_workspace_id: string;
   target_folder_id: string | null;
 }
 
@@ -71,8 +71,8 @@ export async function resolveRoutingDestination(
   // Query active rules for this bank ordered by priority ascending (lowest first)
   const { data: rules, error } = await supabase
     .from('import_routing_rules')
-    .select('id, name, priority, conditions, logic_operator, target_vault_id, target_folder_id')
-    .eq('bank_id', bankId)
+    .select('id, name, priority, conditions, logic_operator, target_workspace_id, target_folder_id')
+    .eq('organization_id', bankId)
     .eq('enabled', true)
     .order('priority', { ascending: true });
 
@@ -90,7 +90,7 @@ export async function resolveRoutingDestination(
   for (const rule of rules as RoutingRule[]) {
     if (evaluateRule(rule, record)) {
       return {
-        vaultId: rule.target_vault_id,
+        vaultId: rule.target_workspace_id,
         folderId: rule.target_folder_id,
         matchedRuleId: rule.id,
         matchedRuleName: rule.name,

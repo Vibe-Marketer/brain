@@ -59,9 +59,16 @@ export const queryKeys = {
   // Folders
   folders: {
     all: ['folders'] as const,
-    list: () => ['folders', 'list'] as const,
+    list: (workspaceId?: string) => ['folders', 'list', workspaceId] as const,
     detail: (folderId: string) => ['folders', 'detail', folderId] as const,
-    assignments: () => ['folder-assignments'] as const,
+    assignments: (workspaceId?: string) => ['folder-assignments', workspaceId] as const,
+  },
+
+  // Tags
+  tags: {
+    all: ['tags'] as const,
+    list: (bankId?: string) => ['tags', 'list', bankId] as const,
+    assignments: (recordingIds: number | number[]) => ['tag-assignments', recordingIds] as const,
   },
 
   // Sharing (Single Call Share)
@@ -119,20 +126,45 @@ export const queryKeys = {
     unread: () => ['notifications', 'unread'] as const,
   },
 
-  // Vaults
-  vaults: {
-    all: ['vaults'] as const,
-    list: () => ['vaults', 'list'] as const,
-    detail: (id: string) => ['vaults', 'detail', id] as const,
-    members: (vaultId: string) => ['vaults', 'members', vaultId] as const,
-    recordings: (vaultId: string) => ['vaults', 'recordings', vaultId] as const,
+  // Workspaces (formerly Vaults)
+  workspaces: {
+    all: ['workspaces'] as const,
+    list: (orgId?: string) => ['workspaces', 'list', orgId] as const,
+    detail: (id: string) => ['workspaces', 'detail', id] as const,
+    members: (workspaceId: string) => ['workspaces', 'members', workspaceId] as const,
+    recordings: (workspaceId: string) => ['workspaces', 'recordings', workspaceId] as const,
   },
 
-  // Vault Entries (recording <-> vault assignments)
-  vaultEntries: {
-    all: ['vault-entries'] as const,
-    byRecording: (recordingId: string) => ['vault-entries', 'recording', recordingId] as const,
-    byVault: (vaultId: string) => ['vault-entries', 'vault', vaultId] as const,
+  // Workspace Entries (recording <-> workspace assignments)
+  workspaceEntries: {
+    all: ['workspace-entries'] as const,
+    byRecording: (recordingId: string) => ['workspace-entries', 'recording', recordingId] as const,
+    byWorkspace: (workspaceId: string) => ['workspace-entries', 'workspace', workspaceId] as const,
+  },
+
+  // Organizations
+  organizations: {
+    all: ['organizations'] as const,
+    list: () => ['organizations', 'list'] as const,
+    detail: (orgId: string) => ['organizations', 'detail', orgId] as const,
+    members: (orgId: string) => ['organizations', 'members', orgId] as const,
+  },
+
+  // Imports (V2 architecture)
+  imports: {
+    all: ['imports'] as const,
+    sources: () => ['imports', 'sources'] as const,
+    counts: () => ['imports', 'counts'] as const,
+    history: () => ['imports', 'history'] as const,
+    failed: () => ['imports', 'failed'] as const,
+  },
+
+  // Routing Rules (V2 architecture)
+  routingRules: {
+    all: ['routing-rules'] as const,
+    list: (bankId?: string) => ['routing-rules', 'list', bankId] as const,
+    defaults: (bankId?: string) => ['routing-rules', 'defaults', bankId] as const,
+    preview: (bankId?: string) => ['routing-rules', 'preview', bankId] as const,
   },
 } as const;
 

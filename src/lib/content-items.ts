@@ -65,7 +65,7 @@ export async function fetchContentItems(
     let query = supabase
       .from("content_items")
       .select("*")
-      .eq("bank_id", bankId)
+      .eq("organization_id", bankId)
       .order("created_at", { ascending: false });
 
     // Apply content_type filter
@@ -172,7 +172,7 @@ export async function createContentItem(
     if (!bankId) {
       return {
         data: null,
-        error: new ContentItemsError("Bank ID is required"),
+        error: new ContentItemsError("Organization ID is required"),
       };
     }
 
@@ -210,7 +210,7 @@ export async function createContentItem(
       .from("content_items")
       .insert({
         user_id: user.id,
-        bank_id: bankId,
+        organization_id: bankId,
         hook_id: input.hook_id || null,
         content_type: input.content_type,
         content_text: input.content_text.trim(),

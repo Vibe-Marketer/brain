@@ -42,8 +42,8 @@ interface RequestBody {
     folder_ids?: string[];
   };
   sessionFilters?: {
-    bank_id?: string | null;
-    vault_id?: string | null;
+    organization_id?: string | null;
+    workspace_id?: string | null;
   };
   sessionId?: string;
 }
@@ -62,8 +62,8 @@ interface BusinessProfileContext {
 
 // Bank/Vault context for multi-tenant scoping
 interface BankVaultContext {
-  bank_id?: string;
-  vault_id?: string | null;  // null = all vaults in bank
+  organization_id?: string;
+  workspace_id?: string | null;  // null = all workspaces in bank
 }
 
 interface SessionFilters {
@@ -73,7 +73,7 @@ interface SessionFilters {
   categories?: string[];
   recording_ids?: number[];
   folder_ids?: string[];
-  bank_id?: string;
+  organization_id?: string;
 }
 
 // ============================================
@@ -228,8 +228,8 @@ Today's date: ${todayStr}
 
 VAULT ATTRIBUTION:
 - Each search result may include a vault_name field indicating which vault the content comes from
-- When displaying results from multiple vaults, mention which vault the content comes from
-- Use format: "From [Vault Name]: ..." when attributing sources across vaults
+- When displaying results from multiple workspaces, mention which vault the content comes from
+- Use format: "From [Vault Name]: ..." when attributing sources across workspaces
 - This helps users understand which knowledge container each result comes from
 - In single-vault mode, vault attribution is still present for consistency
 
@@ -345,8 +345,8 @@ function mergeFilters(
     intent_signals: toolFilters.intent_signals,
     user_tags: toolFilters.user_tags,
     // Always apply bank/vault context from request
-    bank_id: bankId,
-    vault_id: vaultId,
+    organization_id: bankId,
+    workspace_id: vaultId,
   };
 }
 
@@ -616,10 +616,10 @@ function createTools(
           };
           
           if (useScopedSearch) {
-            rpcParams.filter_bank_id = bankId || null;
-            rpcParams.filter_vault_id = vaultId || null;
+            rpcParams.filter_organization_id = bankId || null;
+            rpcParams.filter_workspace_id = vaultId || null;
           } else {
-            rpcParams.filter_bank_id = sessionFilters?.bank_id || null;
+            rpcParams.filter_organization_id = sessionFilters?.organization_id || null;
           }
           
           const { data: candidates, error } = await supabase.rpc(rpcFunction, rpcParams);
@@ -671,7 +671,7 @@ function createTools(
               entity_name,
               text: r.chunk_text,
               relevance: Math.round((r.rrf_score || 0) * 100) + '%',
-              vault_id: r.vault_id || null,
+              workspace_id: r.workspace_id || null,
               vault_name: r.vault_name || null,
             })),
             total_found: filtered.length,
@@ -712,30 +712,30 @@ function createTools(
             if (vaultId) {
               // Specific vault - verify membership
               const { data: membership } = await supabase
-                .from('vault_memberships')
+                .from('workspace_memberships')
                 .select('id')
-                .eq('vault_id', vaultId)
+                .eq('workspace_id', vaultId)
                 .eq('user_id', userId)
                 .maybeSingle();
               if (membership) accessibleVaultIds.push(vaultId);
             } else if (bankId) {
               // Bank-level - get all vault memberships in this bank
               const { data: memberships } = await supabase
-                .from('vault_memberships')
-                .select('vault_id, vaults!inner(bank_id)')
+                .from('workspace_memberships')
+                .select('workspace_id, workspaces!inner(organization_id)')
                 .eq('user_id', userId)
-                .eq('vaults.bank_id', bankId);
+                .eq('workspaces.organization_id', bankId);
               if (memberships) {
-                memberships.forEach((m: { vault_id: string }) => accessibleVaultIds.push(m.vault_id));
+                memberships.forEach((m: { workspace_id: string }) => accessibleVaultIds.push(m.workspace_id));
               }
             }
             
             if (accessibleVaultIds.length > 0) {
               // Check if recording is in any accessible vault via legacy_recording_id
               const { data: entry } = await supabase
-                .from('vault_entries')
+                .from('workspace_entries')
                 .select('id, recordings!inner(legacy_recording_id)')
-                .in('vault_id', accessibleVaultIds)
+                .in('workspace_id', accessibleVaultIds)
                 .eq('recordings.legacy_recording_id', numericId)
                 .maybeSingle();
               
@@ -871,29 +871,29 @@ function createTools(
             
             if (vaultId) {
               const { data: membership } = await supabase
-                .from('vault_memberships')
+                .from('workspace_memberships')
                 .select('id')
-                .eq('vault_id', vaultId)
+                .eq('workspace_id', vaultId)
                 .eq('user_id', userId)
                 .maybeSingle();
               if (membership) accessibleVaultIds.push(vaultId);
             } else if (bankId) {
               const { data: memberships } = await supabase
-                .from('vault_memberships')
-                .select('vault_id, vaults!inner(bank_id)')
+                .from('workspace_memberships')
+                .select('workspace_id, workspaces!inner(organization_id)')
                 .eq('user_id', userId)
-                .eq('vaults.bank_id', bankId);
+                .eq('workspaces.organization_id', bankId);
               if (memberships) {
-                memberships.forEach((m: { vault_id: string }) => accessibleVaultIds.push(m.vault_id));
+                memberships.forEach((m: { workspace_id: string }) => accessibleVaultIds.push(m.workspace_id));
               }
             }
             
             if (accessibleVaultIds.length > 0) {
               // Get legacy recording IDs from accessible vault entries
               const { data: entries } = await supabase
-                .from('vault_entries')
+                .from('workspace_entries')
                 .select('recordings!inner(legacy_recording_id)')
-                .in('vault_id', accessibleVaultIds);
+                .in('workspace_id', accessibleVaultIds);
               
               if (entries && entries.length > 0) {
                 vaultScopedRecordingIds = entries
@@ -904,7 +904,7 @@ function createTools(
             
             // No accessible recordings - return empty
             if (!vaultScopedRecordingIds || vaultScopedRecordingIds.length === 0) {
-              return { message: 'No calls found in accessible vaults.' };
+              return { message: 'No calls found in accessible workspaces.' };
             }
           }
 
@@ -917,9 +917,9 @@ function createTools(
           // Apply vault scoping if present
           if (vaultScopedRecordingIds) {
             callsQuery = callsQuery.in('recording_id', vaultScopedRecordingIds);
-          } else if (sessionFilters?.bank_id) {
+          } else if (sessionFilters?.organization_id) {
             // Fall back to bank filter on fathom_calls
-            callsQuery = callsQuery.eq('bank_id', sessionFilters.bank_id);
+            callsQuery = callsQuery.eq('organization_id', sessionFilters.organization_id);
           }
 
           // Apply filters (tool args override session filters)
@@ -1045,36 +1045,36 @@ function createTools(
             return { error: true, message: 'Must provide at least 2 valid recording IDs to compare' };
           }
 
-          // If vault context is present, filter recording_ids to accessible vaults
+          // If vault context is present, filter recording_ids to accessible workspaces
           let scopedNumericIds = numericIds;
           if (bankId || vaultId) {
             const accessibleVaultIds: string[] = [];
             
             if (vaultId) {
               const { data: membership } = await supabase
-                .from('vault_memberships')
+                .from('workspace_memberships')
                 .select('id')
-                .eq('vault_id', vaultId)
+                .eq('workspace_id', vaultId)
                 .eq('user_id', userId)
                 .maybeSingle();
               if (membership) accessibleVaultIds.push(vaultId);
             } else if (bankId) {
               const { data: memberships } = await supabase
-                .from('vault_memberships')
-                .select('vault_id, vaults!inner(bank_id)')
+                .from('workspace_memberships')
+                .select('workspace_id, workspaces!inner(organization_id)')
                 .eq('user_id', userId)
-                .eq('vaults.bank_id', bankId);
+                .eq('workspaces.organization_id', bankId);
               if (memberships) {
-                memberships.forEach((m: { vault_id: string }) => accessibleVaultIds.push(m.vault_id));
+                memberships.forEach((m: { workspace_id: string }) => accessibleVaultIds.push(m.workspace_id));
               }
             }
             
             if (accessibleVaultIds.length > 0) {
               // Get accessible legacy recording IDs
               const { data: entries } = await supabase
-                .from('vault_entries')
+                .from('workspace_entries')
                 .select('recordings!inner(legacy_recording_id)')
-                .in('vault_id', accessibleVaultIds);
+                .in('workspace_id', accessibleVaultIds);
               
               const accessibleRecIds = new Set(
                 (entries || [])
@@ -1099,8 +1099,8 @@ function createTools(
             .in('recording_id', scopedNumericIds)
             .eq('user_id', userId);
           
-          if (sessionFilters?.bank_id && !vaultId) {
-            callsQuery = callsQuery.eq('bank_id', sessionFilters.bank_id);
+          if (sessionFilters?.organization_id && !vaultId) {
+            callsQuery = callsQuery.eq('organization_id', sessionFilters.organization_id);
           }
           
           const { data: calls, error: callsError } = await callsQuery;
@@ -1134,10 +1134,10 @@ function createTools(
               };
               
               if (useScopedSearch) {
-                focusRpcParams.filter_bank_id = bankId || null;
-                focusRpcParams.filter_vault_id = vaultId || null;
+                focusRpcParams.filter_organization_id = bankId || null;
+                focusRpcParams.filter_workspace_id = vaultId || null;
               } else {
-                focusRpcParams.filter_bank_id = sessionFilters?.bank_id || null;
+                focusRpcParams.filter_organization_id = sessionFilters?.organization_id || null;
               }
               
               const { data: chunks, error: chunksError } = await supabase.rpc(focusRpcFunction, focusRpcParams);
@@ -1253,8 +1253,8 @@ Deno.serve(async (req: Request) => {
     const { messages, model: requestedModel, filters: requestFilters, sessionId, sessionFilters: bankVaultContext } = body;
 
     // Extract bank/vault context for multi-tenant scoping
-    const bankId = bankVaultContext?.bank_id || undefined;
-    const vaultId = bankVaultContext?.vault_id; // null means "all vaults in bank"
+    const bankId = bankVaultContext?.organization_id || undefined;
+    const vaultId = bankVaultContext?.workspace_id; // null means "all workspaces in bank"
 
     if (!messages || !Array.isArray(messages)) {
       return new Response(
@@ -1309,11 +1309,11 @@ Deno.serve(async (req: Request) => {
       console.log(`[chat-stream-v2] Resolved ${sessionFilters.folder_ids.length} folder(s) to ${resolvedRecordingIds?.length ?? 0} recording(s)`);
     }
 
-    // ---- Set bank_id on session filters for tool access ----
+    // ---- Set organization_id on session filters for tool access ----
     if (bankId && sessionFilters) {
-      sessionFilters.bank_id = bankId;
+      sessionFilters.organization_id = bankId;
     } else if (bankId && !sessionFilters) {
-      sessionFilters = { bank_id: bankId };
+      sessionFilters = { organization_id: bankId };
     }
 
     const selectedModel = requestedModel || 'openai/gpt-4o-mini';
@@ -1370,7 +1370,7 @@ Deno.serve(async (req: Request) => {
             hasSpeakers: !!(sessionFilters.speakers?.length),
             hasCategories: !!(sessionFilters.categories?.length),
             hasRecordingIds: !!(sessionFilters.recording_ids?.length),
-            hasBankId: !!sessionFilters.bank_id,
+            hasBankId: !!sessionFilters.organization_id,
           } : null,
         },
       });

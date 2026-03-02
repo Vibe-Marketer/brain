@@ -100,7 +100,7 @@ describe('Template CRUD Functions', () => {
 
       await fetchTemplates({ content_type: 'email' }, true, 'test-bank-id');
 
-      expect(mockEq).toHaveBeenCalledWith('bank_id', 'test-bank-id');
+      expect(mockEq).toHaveBeenCalledWith('organization_id', 'test-bank-id');
       expect(mockEq).toHaveBeenCalledWith('content_type', 'email');
     });
 
@@ -155,7 +155,7 @@ describe('Template CRUD Functions', () => {
 
       await fetchTemplates({}, false, 'test-bank-id');
 
-      expect(mockEq).toHaveBeenCalledWith('bank_id', 'test-bank-id');
+      expect(mockEq).toHaveBeenCalledWith('organization_id', 'test-bank-id');
       expect(mockEq).toHaveBeenCalledWith('user_id', 'test-user-id');
     });
 
@@ -261,7 +261,7 @@ describe('Template CRUD Functions', () => {
 
       await fetchPersonalTemplates(undefined, 'test-bank-id');
 
-      expect(mockEq).toHaveBeenCalledWith('bank_id', 'test-bank-id');
+      expect(mockEq).toHaveBeenCalledWith('organization_id', 'test-bank-id');
       expect(mockEq).toHaveBeenCalledWith('user_id', 'test-user-id');
     });
   });
@@ -279,7 +279,7 @@ describe('Template CRUD Functions', () => {
 
       await fetchSharedTemplates(undefined, 'test-bank-id');
 
-      expect(chainMock.eq).toHaveBeenCalledWith('bank_id', 'test-bank-id');
+      expect(chainMock.eq).toHaveBeenCalledWith('organization_id', 'test-bank-id');
       expect(chainMock.eq).toHaveBeenCalledWith('is_shared', true);
       expect(chainMock.neq).toHaveBeenCalledWith('user_id', 'test-user-id');
     });

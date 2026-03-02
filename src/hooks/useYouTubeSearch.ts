@@ -10,7 +10,10 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { getYouTubeMetadata } from '@/types/youtube'
 import { parseYouTubeDuration } from '@/lib/youtube-utils'
-import type { VaultRecording } from '@/hooks/useVaults'
+import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
+
+/** Alias for backward compatibility */
+type VaultRecording = WorkspaceRecording
 
 /** YouTube-specific sort fields */
 export type YouTubeSortField = 'date' | 'views' | 'likes' | 'duration' | 'title'

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,8 +24,8 @@ import {
 import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
-import { EmojiPickerInline } from "@/components/ui/emoji-picker-inline";
-import { RiAddLine } from "@remixicon/react";
+import { IconPickerInline, getIconById } from "@/components/ui/icon-picker-inline";
+import { RiAddLine, RiFolderLine } from "@remixicon/react";
 
 interface QuickCreateFolderDialogProps {
   open: boolean;
@@ -53,11 +53,11 @@ export default function QuickCreateFolderDialog({
   onFolderCreated,
   parentFolderId,
 }: QuickCreateFolderDialogProps) {
-  const { activeBankId } = useBankContext();
+  const { activeOrganizationId } = useOrganizationContext();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
-  const [emoji, setEmoji] = useState("📁");
+  const [iconId, setIconId] = useState("folder");
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(parentFolderId);
   const [saving, setSaving] = useState(false);
   const [foldersWithDepth, setFoldersWithDepth] = useState<FolderWithDepth[]>([]);
@@ -103,8 +103,8 @@ export default function QuickCreateFolderDialog({
         .eq("user_id", user.id)
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;
@@ -165,7 +165,7 @@ export default function QuickCreateFolderDialog({
         }
       }
 
-      if (!activeBankId) {
+      if (!activeOrganizationId) {
         toast.error("No active workspace selected");
         return;
       }
@@ -175,7 +175,7 @@ export default function QuickCreateFolderDialog({
         .from("folders")
         .select("id")
         .eq("user_id", user.id)
-        .eq("bank_id", activeBankId)
+        .eq("organization_id", activeOrganizationId)
         .eq("name", validation.data.name);
 
       if (selectedParentId) {
@@ -202,9 +202,9 @@ export default function QuickCreateFolderDialog({
           name: validation.data.name,
           description: validation.data.description,
           user_id: user.id,
-          bank_id: activeBankId,
+          organization_id: activeOrganizationId,
           parent_id: selectedParentId || null,
-          icon: emoji,
+          icon: iconId,
           position: 0,
         })
         .select()
@@ -228,7 +228,7 @@ export default function QuickCreateFolderDialog({
     setName("");
     setDescription("");
     setShowDescription(false);
-    setEmoji("📁");
+    setIconId("folder");
     setSelectedParentId(parentFolderId);
   };
 
@@ -263,11 +263,14 @@ export default function QuickCreateFolderDialog({
             <div className="flex items-center gap-2">
               {/* Emoji indicator (non-interactive, just shows current selection) */}
               <div
-                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-border bg-cb-card"
-                aria-label={`Selected icon: ${emoji}`}
+                className="w-10 h-10 flex items-center justify-center rounded-md border border-border bg-cb-card"
+                aria-label={`Selected icon: ${iconId}`}
                 aria-hidden="true"
               >
-                {emoji}
+                {(() => {
+                  const Icon = getIconById(iconId);
+                  return <Icon size={20} />;
+                })()}
               </div>
               <Input
                 ref={nameInputRef}
@@ -292,7 +295,7 @@ export default function QuickCreateFolderDialog({
           {/* Emoji picker inline */}
           <div className="space-y-2">
             <Label>Icon</Label>
-            <EmojiPickerInline value={emoji} onChange={setEmoji} />
+            <IconPickerInline value={iconId} onChange={setIconId} />
           </div>
 
           {/* Parent Folder */}

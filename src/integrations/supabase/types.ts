@@ -12,33 +12,61 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "13.0.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
+      agents: {
+        Row: {
+          context_window_max: number | null
+          context_window_used: number | null
+          created_at: string | null
+          fallback_models: Json | null
+          gateway_url: string | null
+          id: string
+          last_active_at: string | null
+          name: string
+          primary_model: string | null
+          role: string | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          context_window_max?: number | null
+          context_window_used?: number | null
+          created_at?: string | null
+          fallback_models?: Json | null
+          gateway_url?: string | null
+          id?: string
+          last_active_at?: string | null
+          name: string
+          primary_model?: string | null
+          role?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          context_window_max?: number | null
+          context_window_used?: number | null
+          created_at?: string | null
+          fallback_models?: Json | null
+          gateway_url?: string | null
+          id?: string
+          last_active_at?: string | null
+          name?: string
+          primary_model?: string | null
+          role?: string | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_models: {
         Row: {
           context_length: number | null
@@ -343,65 +371,6 @@ export type Database = {
         }
         Relationships: []
       }
-      bank_memberships: {
-        Row: {
-          bank_id: string
-          created_at: string
-          id: string
-          role: string
-          user_id: string
-        }
-        Insert: {
-          bank_id: string
-          created_at?: string
-          id?: string
-          role: string
-          user_id: string
-        }
-        Update: {
-          bank_id?: string
-          created_at?: string
-          id?: string
-          role?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "bank_memberships_bank_id_fkey"
-            columns: ["bank_id"]
-            isOneToOne: false
-            referencedRelation: "banks"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      banks: {
-        Row: {
-          created_at: string
-          cross_bank_default: string | null
-          id: string
-          name: string
-          type: string
-          updated_at: string
-        }
-        Insert: {
-          created_at?: string
-          cross_bank_default?: string | null
-          id?: string
-          name: string
-          type: string
-          updated_at?: string
-        }
-        Update: {
-          created_at?: string
-          cross_bank_default?: string | null
-          id?: string
-          name?: string
-          type?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
       business_profiles: {
         Row: {
           average_order_value: number | null
@@ -531,6 +500,45 @@ export type Database = {
         }
         Relationships: []
       }
+      call_share_links: {
+        Row: {
+          call_recording_id: number
+          created_at: string
+          created_by_user_id: string | null
+          expires_at: string | null
+          id: string
+          recipient_email: string | null
+          revoked_at: string | null
+          share_token: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          call_recording_id: number
+          created_at?: string
+          created_by_user_id?: string | null
+          expires_at?: string | null
+          id?: string
+          recipient_email?: string | null
+          revoked_at?: string | null
+          share_token?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          call_recording_id?: number
+          created_at?: string
+          created_by_user_id?: string | null
+          expires_at?: string | null
+          id?: string
+          recipient_email?: string | null
+          revoked_at?: string | null
+          share_token?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       call_speakers: {
         Row: {
           call_recording_id: number
@@ -559,6 +567,13 @@ export type Database = {
             columns: ["call_recording_id", "user_id"]
             isOneToOne: false
             referencedRelation: "fathom_calls"
+            referencedColumns: ["recording_id", "user_id"]
+          },
+          {
+            foreignKeyName: "call_speakers_recording_user_fkey"
+            columns: ["call_recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls_archive"
             referencedColumns: ["recording_id", "user_id"]
           },
           {
@@ -613,6 +628,13 @@ export type Database = {
             referencedRelation: "fathom_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
+          {
+            foreignKeyName: "call_tag_assignments_recording_user_fkey"
+            columns: ["call_recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls_archive"
+            referencedColumns: ["recording_id", "user_id"]
+          },
         ]
       }
       call_tags: {
@@ -624,6 +646,7 @@ export type Database = {
           id: string
           is_system: boolean | null
           name: string
+          organization_id: string
           updated_at: string | null
           user_id: string | null
         }
@@ -635,6 +658,7 @@ export type Database = {
           id?: string
           is_system?: boolean | null
           name: string
+          organization_id: string
           updated_at?: string | null
           user_id?: string | null
         }
@@ -646,10 +670,19 @@ export type Database = {
           id?: string
           is_system?: boolean | null
           name?: string
+          organization_id?: string
           updated_at?: string | null
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "call_tags_bank_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_messages: {
         Row: {
@@ -719,6 +752,7 @@ export type Database = {
           is_pinned: boolean | null
           last_message_at: string | null
           message_count: number | null
+          organization_id: string
           title: string | null
           updated_at: string | null
           user_id: string
@@ -737,6 +771,7 @@ export type Database = {
           is_pinned?: boolean | null
           last_message_at?: string | null
           message_count?: number | null
+          organization_id: string
           title?: string | null
           updated_at?: string | null
           user_id: string
@@ -755,11 +790,20 @@ export type Database = {
           is_pinned?: boolean | null
           last_message_at?: string | null
           message_count?: number | null
+          organization_id?: string
           title?: string | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "chat_sessions_bank_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       chat_tool_calls: {
         Row: {
@@ -824,6 +868,47 @@ export type Database = {
           },
         ]
       }
+      connections: {
+        Row: {
+          account_identifier: string | null
+          composio_connection_id: string | null
+          connected_at: string | null
+          id: string
+          last_used_at: string | null
+          service: string
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          account_identifier?: string | null
+          composio_connection_id?: string | null
+          connected_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          service: string
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          account_identifier?: string | null
+          composio_connection_id?: string | null
+          connected_at?: string | null
+          id?: string
+          last_used_at?: string | null
+          service?: string
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connections_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       contact_call_appearances: {
         Row: {
           appeared_at: string | null
@@ -856,6 +941,13 @@ export type Database = {
             columns: ["recording_id", "user_id"]
             isOneToOne: false
             referencedRelation: "fathom_calls"
+            referencedColumns: ["recording_id", "user_id"]
+          },
+          {
+            foreignKeyName: "contact_call_appearances_recording_id_user_id_fkey"
+            columns: ["recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls_archive"
             referencedColumns: ["recording_id", "user_id"]
           },
         ]
@@ -919,6 +1011,7 @@ export type Database = {
           email_subject: string | null
           hook_id: string | null
           id: string
+          organization_id: string
           status: string | null
           updated_at: string | null
           used_at: string | null
@@ -931,6 +1024,7 @@ export type Database = {
           email_subject?: string | null
           hook_id?: string | null
           id?: string
+          organization_id: string
           status?: string | null
           updated_at?: string | null
           used_at?: string | null
@@ -943,12 +1037,20 @@ export type Database = {
           email_subject?: string | null
           hook_id?: string | null
           id?: string
+          organization_id?: string
           status?: string | null
           updated_at?: string | null
           used_at?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "content_items_bank_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "content_items_hook_id_fkey"
             columns: ["hook_id"]
@@ -965,6 +1067,7 @@ export type Database = {
           created_at: string | null
           id: string
           metadata: Json | null
+          organization_id: string
           tags: string[] | null
           team_id: string | null
           title: string
@@ -978,6 +1081,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           metadata?: Json | null
+          organization_id: string
           tags?: string[] | null
           team_id?: string | null
           title: string
@@ -991,6 +1095,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           metadata?: Json | null
+          organization_id?: string
           tags?: string[] | null
           team_id?: string | null
           title?: string
@@ -998,7 +1103,163 @@ export type Database = {
           usage_count?: number | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "content_library_bank_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_contacts: {
+        Row: {
+          company: string | null
+          contact_frequency_days: number | null
+          created_at: string | null
+          email: string | null
+          enrichment_data: Json | null
+          enrichment_status: string | null
+          full_name: string | null
+          id: string
+          last_contact_date: string | null
+          notes: string | null
+          phone: string | null
+          relationship_score: number | null
+          source: string | null
+          source_detail: string | null
+          status: string | null
+          tenant_id: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          company?: string | null
+          contact_frequency_days?: number | null
+          created_at?: string | null
+          email?: string | null
+          enrichment_data?: Json | null
+          enrichment_status?: string | null
+          full_name?: string | null
+          id?: string
+          last_contact_date?: string | null
+          notes?: string | null
+          phone?: string | null
+          relationship_score?: number | null
+          source?: string | null
+          source_detail?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          company?: string | null
+          contact_frequency_days?: number | null
+          created_at?: string | null
+          email?: string | null
+          enrichment_data?: Json | null
+          enrichment_status?: string | null
+          full_name?: string | null
+          id?: string
+          last_contact_date?: string | null
+          notes?: string | null
+          phone?: string | null
+          relationship_score?: number | null
+          source?: string | null
+          source_detail?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_contacts_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_interactions: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          id: string
+          occurred_at: string | null
+          source_id: string | null
+          summary: string | null
+          tenant_id: string | null
+          type: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          occurred_at?: string | null
+          source_id?: string | null
+          summary?: string | null
+          tenant_id?: string | null
+          type: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          occurred_at?: string | null
+          source_id?: string | null
+          summary?: string | null
+          tenant_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_interactions_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_interactions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      crm_tags: {
+        Row: {
+          contact_id: string | null
+          created_at: string | null
+          id: string
+          tag: string
+        }
+        Insert: {
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          tag: string
+        }
+        Update: {
+          contact_id?: string | null
+          created_at?: string | null
+          id?: string
+          tag?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_tags_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       embedding_jobs: {
         Row: {
@@ -1195,7 +1456,55 @@ export type Database = {
           },
         ]
       }
-      fathom_calls: {
+      enrichment_queue: {
+        Row: {
+          contact_id: string | null
+          id: string
+          priority: number | null
+          processed_at: string | null
+          queued_at: string | null
+          result: Json | null
+          status: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          contact_id?: string | null
+          id?: string
+          priority?: number | null
+          processed_at?: string | null
+          queued_at?: string | null
+          result?: Json | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          contact_id?: string | null
+          id?: string
+          priority?: number | null
+          processed_at?: string | null
+          queued_at?: string | null
+          result?: Json | null
+          status?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "enrichment_queue_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "enrichment_queue_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fathom_calls_archive: {
         Row: {
           ai_generated_title: string | null
           ai_title_generated_at: string | null
@@ -1351,6 +1660,13 @@ export type Database = {
             referencedRelation: "fathom_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
+          {
+            foreignKeyName: "fathom_transcripts_recording_user_fkey"
+            columns: ["recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls_archive"
+            referencedColumns: ["recording_id", "user_id"]
+          },
         ]
       }
       folder_assignments: {
@@ -1387,6 +1703,13 @@ export type Database = {
             referencedColumns: ["recording_id", "user_id"]
           },
           {
+            foreignKeyName: "folder_assignments_call_recording_id_user_id_fkey"
+            columns: ["call_recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls_archive"
+            referencedColumns: ["recording_id", "user_id"]
+          },
+          {
             foreignKeyName: "folder_assignments_folder_id_fkey"
             columns: ["folder_id"]
             isOneToOne: false
@@ -1397,48 +1720,64 @@ export type Database = {
       }
       folders: {
         Row: {
+          archived_at: string | null
           color: string | null
           created_at: string | null
           description: string | null
           icon: string | null
           id: string
+          is_archived: boolean
           name: string
+          organization_id: string
           parent_id: string | null
           position: number | null
           updated_at: string | null
           user_id: string
-          vault_id: string | null
           visibility: string | null
+          workspace_id: string | null
         }
         Insert: {
+          archived_at?: string | null
           color?: string | null
           created_at?: string | null
           description?: string | null
           icon?: string | null
           id?: string
+          is_archived?: boolean
           name: string
+          organization_id: string
           parent_id?: string | null
           position?: number | null
           updated_at?: string | null
           user_id: string
-          vault_id?: string | null
           visibility?: string | null
+          workspace_id?: string | null
         }
         Update: {
+          archived_at?: string | null
           color?: string | null
           created_at?: string | null
           description?: string | null
           icon?: string | null
           id?: string
+          is_archived?: boolean
           name?: string
+          organization_id?: string
           parent_id?: string | null
           position?: number | null
           updated_at?: string | null
           user_id?: string
-          vault_id?: string | null
           visibility?: string | null
+          workspace_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "folders_bank_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "folders_parent_id_fkey"
             columns: ["parent_id"]
@@ -1448,9 +1787,9 @@ export type Database = {
           },
           {
             foreignKeyName: "folders_vault_id_fkey"
-            columns: ["vault_id"]
+            columns: ["workspace_id"]
             isOneToOne: false
-            referencedRelation: "vaults"
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -1506,7 +1845,213 @@ export type Database = {
             referencedRelation: "fathom_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
+          {
+            foreignKeyName: "hooks_fathom_call_fkey"
+            columns: ["recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls_archive"
+            referencedColumns: ["recording_id", "user_id"]
+          },
         ]
+      }
+      human_tasks: {
+        Row: {
+          added_by: string | null
+          completed_at: string | null
+          created_at: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          priority: string | null
+          status: string | null
+          tenant_id: string | null
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          added_by?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          added_by?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          priority?: string | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "human_tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_routing_defaults: {
+        Row: {
+          organization_id: string
+          target_folder_id: string | null
+          target_workspace_id: string
+          updated_at: string
+          updated_by: string
+        }
+        Insert: {
+          organization_id: string
+          target_folder_id?: string | null
+          target_workspace_id: string
+          updated_at?: string
+          updated_by: string
+        }
+        Update: {
+          organization_id?: string
+          target_folder_id?: string | null
+          target_workspace_id?: string
+          updated_at?: string
+          updated_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_routing_defaults_bank_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: true
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_routing_defaults_target_folder_id_fkey"
+            columns: ["target_folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_routing_defaults_target_vault_id_fkey"
+            columns: ["target_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_routing_rules: {
+        Row: {
+          conditions: Json
+          created_at: string
+          created_by: string
+          enabled: boolean
+          id: string
+          logic_operator: string
+          name: string
+          organization_id: string
+          priority: number
+          target_folder_id: string | null
+          target_workspace_id: string
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json
+          created_at?: string
+          created_by: string
+          enabled?: boolean
+          id?: string
+          logic_operator?: string
+          name: string
+          organization_id: string
+          priority?: number
+          target_folder_id?: string | null
+          target_workspace_id: string
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json
+          created_at?: string
+          created_by?: string
+          enabled?: boolean
+          id?: string
+          logic_operator?: string
+          name?: string
+          organization_id?: string
+          priority?: number
+          target_folder_id?: string | null
+          target_workspace_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "import_routing_rules_bank_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_routing_rules_target_folder_id_fkey"
+            columns: ["target_folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "import_routing_rules_target_vault_id_fkey"
+            columns: ["target_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      import_sources: {
+        Row: {
+          account_email: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          is_active: boolean
+          last_sync_at: string | null
+          source_app: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_email?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          source_app: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_email?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          is_active?: boolean
+          last_sync_at?: string | null
+          source_app?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       insights: {
         Row: {
@@ -1562,7 +2107,76 @@ export type Database = {
             referencedRelation: "fathom_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
+          {
+            foreignKeyName: "insights_fathom_call_fkey"
+            columns: ["recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls_archive"
+            referencedColumns: ["recording_id", "user_id"]
+          },
         ]
+      }
+      organization_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          organization_id: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          organization_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_memberships_bank_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          cross_bank_default: string | null
+          id: string
+          logo_url: string | null
+          name: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cross_bank_default?: string | null
+          id?: string
+          logo_url?: string | null
+          name: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cross_bank_default?: string | null
+          id?: string
+          logo_url?: string | null
+          name?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       processed_webhooks: {
         Row: {
@@ -1648,13 +2262,13 @@ export type Database = {
       recordings: {
         Row: {
           audio_url: string | null
-          bank_id: string
           created_at: string
           duration: number | null
           full_transcript: string | null
           global_tags: string[] | null
           id: string
           legacy_recording_id: number | null
+          organization_id: string
           owner_user_id: string
           recording_end_time: string | null
           recording_start_time: string | null
@@ -1668,13 +2282,13 @@ export type Database = {
         }
         Insert: {
           audio_url?: string | null
-          bank_id: string
           created_at?: string
           duration?: number | null
           full_transcript?: string | null
           global_tags?: string[] | null
           id?: string
           legacy_recording_id?: number | null
+          organization_id: string
           owner_user_id: string
           recording_end_time?: string | null
           recording_start_time?: string | null
@@ -1688,13 +2302,13 @@ export type Database = {
         }
         Update: {
           audio_url?: string | null
-          bank_id?: string
           created_at?: string
           duration?: number | null
           full_transcript?: string | null
           global_tags?: string[] | null
           id?: string
           legacy_recording_id?: number | null
+          organization_id?: string
           owner_user_id?: string
           recording_end_time?: string | null
           recording_start_time?: string | null
@@ -1709,9 +2323,9 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "recordings_bank_id_fkey"
-            columns: ["bank_id"]
+            columns: ["organization_id"]
             isOneToOne: false
-            referencedRelation: "banks"
+            referencedRelation: "organizations"
             referencedColumns: ["id"]
           },
         ]
@@ -1754,6 +2368,7 @@ export type Database = {
           progress_current: number | null
           progress_total: number | null
           recording_ids: number[] | null
+          skipped_count: number | null
           started_at: string | null
           status: string
           synced_ids: number[] | null
@@ -1771,6 +2386,7 @@ export type Database = {
           progress_current?: number | null
           progress_total?: number | null
           recording_ids?: number[] | null
+          skipped_count?: number | null
           started_at?: string | null
           status: string
           synced_ids?: number[] | null
@@ -1788,6 +2404,7 @@ export type Database = {
           progress_current?: number | null
           progress_total?: number | null
           recording_ids?: number[] | null
+          skipped_count?: number | null
           started_at?: string | null
           status?: string
           synced_ids?: number[] | null
@@ -1920,6 +2537,69 @@ export type Database = {
           },
         ]
       }
+      tasks: {
+        Row: {
+          agent_id: string | null
+          completed_at: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          priority: string | null
+          prompt_quality_score: number | null
+          status: string | null
+          tenant_id: string | null
+          title: string
+          token_actual: number | null
+          token_estimate: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          prompt_quality_score?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          title: string
+          token_actual?: number | null
+          token_estimate?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          priority?: string | null
+          prompt_quality_score?: number | null
+          status?: string | null
+          tenant_id?: string | null
+          title?: string
+          token_actual?: number | null
+          token_estimate?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       templates: {
         Row: {
           content_type: string
@@ -1928,6 +2608,7 @@ export type Database = {
           id: string
           is_shared: boolean | null
           name: string
+          organization_id: string
           team_id: string | null
           template_content: string
           updated_at: string | null
@@ -1942,6 +2623,7 @@ export type Database = {
           id?: string
           is_shared?: boolean | null
           name: string
+          organization_id: string
           team_id?: string | null
           template_content: string
           updated_at?: string | null
@@ -1956,6 +2638,7 @@ export type Database = {
           id?: string
           is_shared?: boolean | null
           name?: string
+          organization_id?: string
           team_id?: string | null
           template_content?: string
           updated_at?: string | null
@@ -1963,7 +2646,99 @@ export type Database = {
           user_id?: string
           variables?: Json | null
         }
+        Relationships: [
+          {
+            foreignKeyName: "templates_bank_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tenants: {
+        Row: {
+          business_name: string | null
+          composio_entity_id: string | null
+          created_at: string | null
+          id: string
+          is_admin: boolean | null
+          name: string
+        }
+        Insert: {
+          business_name?: string | null
+          composio_entity_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean | null
+          name: string
+        }
+        Update: {
+          business_name?: string | null
+          composio_entity_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_admin?: boolean | null
+          name?: string
+        }
         Relationships: []
+      }
+      token_usage: {
+        Row: {
+          agent_id: string | null
+          cost_usd: number | null
+          created_at: string | null
+          error_reason: string | null
+          id: string
+          input_tokens: number | null
+          is_subscription: boolean | null
+          model: string
+          output_tokens: number | null
+          session_date: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          agent_id?: string | null
+          cost_usd?: number | null
+          created_at?: string | null
+          error_reason?: string | null
+          id?: string
+          input_tokens?: number | null
+          is_subscription?: boolean | null
+          model: string
+          output_tokens?: number | null
+          session_date?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          agent_id?: string | null
+          cost_usd?: number | null
+          created_at?: string | null
+          error_reason?: string | null
+          id?: string
+          input_tokens?: number | null
+          is_subscription?: boolean | null
+          model?: string
+          output_tokens?: number | null
+          session_date?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_usage_agent_id_fkey"
+            columns: ["agent_id"]
+            isOneToOne: false
+            referencedRelation: "agents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "token_usage_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       transcript_chunks: {
         Row: {
@@ -2052,6 +2827,13 @@ export type Database = {
             referencedRelation: "fathom_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
+          {
+            foreignKeyName: "transcript_chunks_recording_user_fkey"
+            columns: ["recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls_archive"
+            referencedColumns: ["recording_id", "user_id"]
+          },
         ]
       }
       transcript_tag_assignments: {
@@ -2082,6 +2864,13 @@ export type Database = {
             columns: ["call_recording_id", "user_id"]
             isOneToOne: false
             referencedRelation: "fathom_calls"
+            referencedColumns: ["recording_id", "user_id"]
+          },
+          {
+            foreignKeyName: "transcript_tag_assignments_recording_user_fkey"
+            columns: ["call_recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls_archive"
             referencedColumns: ["recording_id", "user_id"]
           },
           {
@@ -2375,130 +3164,37 @@ export type Database = {
         }
         Relationships: []
       }
-      vault_entries: {
+      users: {
         Row: {
-          created_at: string
-          folder_id: string | null
+          created_at: string | null
+          email: string | null
           id: string
-          local_tags: string[] | null
-          notes: string | null
-          recording_id: string
-          scores: Json | null
-          updated_at: string
-          vault_id: string
+          password_hash: string
+          tenant_id: string | null
+          username: string
         }
         Insert: {
-          created_at?: string
-          folder_id?: string | null
+          created_at?: string | null
+          email?: string | null
           id?: string
-          local_tags?: string[] | null
-          notes?: string | null
-          recording_id: string
-          scores?: Json | null
-          updated_at?: string
-          vault_id: string
+          password_hash: string
+          tenant_id?: string | null
+          username: string
         }
         Update: {
-          created_at?: string
-          folder_id?: string | null
+          created_at?: string | null
+          email?: string | null
           id?: string
-          local_tags?: string[] | null
-          notes?: string | null
-          recording_id?: string
-          scores?: Json | null
-          updated_at?: string
-          vault_id?: string
+          password_hash?: string
+          tenant_id?: string | null
+          username?: string
         }
         Relationships: [
           {
-            foreignKeyName: "vault_entries_folder_id_fkey"
-            columns: ["folder_id"]
+            foreignKeyName: "users_tenant_id_fkey"
+            columns: ["tenant_id"]
             isOneToOne: false
-            referencedRelation: "folders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vault_entries_recording_id_fkey"
-            columns: ["recording_id"]
-            isOneToOne: false
-            referencedRelation: "recordings"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "vault_entries_vault_id_fkey"
-            columns: ["vault_id"]
-            isOneToOne: false
-            referencedRelation: "vaults"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vault_memberships: {
-        Row: {
-          created_at: string
-          id: string
-          role: string
-          user_id: string
-          vault_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          role: string
-          user_id: string
-          vault_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          role?: string
-          user_id?: string
-          vault_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vault_memberships_vault_id_fkey"
-            columns: ["vault_id"]
-            isOneToOne: false
-            referencedRelation: "vaults"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      vaults: {
-        Row: {
-          bank_id: string
-          created_at: string
-          default_sharelink_ttl_days: number | null
-          id: string
-          name: string
-          updated_at: string
-          vault_type: string
-        }
-        Insert: {
-          bank_id: string
-          created_at?: string
-          default_sharelink_ttl_days?: number | null
-          id?: string
-          name: string
-          updated_at?: string
-          vault_type: string
-        }
-        Update: {
-          bank_id?: string
-          created_at?: string
-          default_sharelink_ttl_days?: number | null
-          id?: string
-          name?: string
-          updated_at?: string
-          vault_type?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "vaults_bank_id_fkey"
-            columns: ["bank_id"]
-            isOneToOne: false
-            referencedRelation: "banks"
+            referencedRelation: "tenants"
             referencedColumns: ["id"]
           },
         ]
@@ -2548,8 +3244,291 @@ export type Database = {
         }
         Relationships: []
       }
+      workspace_entries: {
+        Row: {
+          created_at: string
+          folder_id: string | null
+          id: string
+          local_tags: string[] | null
+          notes: string | null
+          recording_id: string
+          scores: Json | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          local_tags?: string[] | null
+          notes?: string | null
+          recording_id: string
+          scores?: Json | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          folder_id?: string | null
+          id?: string
+          local_tags?: string[] | null
+          notes?: string | null
+          recording_id?: string
+          scores?: Json | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_entries_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vault_entries_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vault_entries_vault_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          invited_by: string
+          role: string
+          status: string
+          token: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          email: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          role: string
+          status?: string
+          token?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          role?: string
+          status?: string
+          token?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_invitations_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_memberships_vault_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspaces: {
+        Row: {
+          created_at: string
+          default_sharelink_ttl_days: number | null
+          id: string
+          invite_expires_at: string | null
+          invite_token: string | null
+          is_default: boolean
+          name: string
+          organization_id: string
+          updated_at: string
+          workspace_type: string
+        }
+        Insert: {
+          created_at?: string
+          default_sharelink_ttl_days?: number | null
+          id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
+          is_default?: boolean
+          name: string
+          organization_id: string
+          updated_at?: string
+          workspace_type: string
+        }
+        Update: {
+          created_at?: string
+          default_sharelink_ttl_days?: number | null
+          id?: string
+          invite_expires_at?: string | null
+          invite_token?: string | null
+          is_default?: boolean
+          name?: string
+          organization_id?: string
+          updated_at?: string
+          workspace_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vaults_bank_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
+      fathom_calls: {
+        Row: {
+          ai_generated_title: string | null
+          ai_title_generated_at: string | null
+          auto_tags: string[] | null
+          auto_tags_generated_at: string | null
+          calendar_invitees: Json | null
+          created_at: string | null
+          full_transcript: string | null
+          fuzzy_match_score: number | null
+          google_calendar_event_id: string | null
+          google_drive_file_id: string | null
+          is_primary: boolean | null
+          meeting_fingerprint: string | null
+          merged_from: number[] | null
+          metadata: Json | null
+          recorded_by_email: string | null
+          recorded_by_name: string | null
+          recording_end_time: string | null
+          recording_id: number | null
+          recording_start_time: string | null
+          sentiment_cache: Json | null
+          share_url: string | null
+          source_platform: string | null
+          summary: string | null
+          summary_edited_by_user: boolean | null
+          synced_at: string | null
+          title: string | null
+          title_edited_by_user: boolean | null
+          transcript_source: string | null
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          ai_generated_title?: string | null
+          ai_title_generated_at?: string | null
+          auto_tags?: string[] | null
+          auto_tags_generated_at?: string | null
+          calendar_invitees?: Json | null
+          created_at?: string | null
+          full_transcript?: string | null
+          fuzzy_match_score?: number | null
+          google_calendar_event_id?: string | null
+          google_drive_file_id?: string | null
+          is_primary?: boolean | null
+          meeting_fingerprint?: string | null
+          merged_from?: number[] | null
+          metadata?: Json | null
+          recorded_by_email?: string | null
+          recorded_by_name?: string | null
+          recording_end_time?: string | null
+          recording_id?: number | null
+          recording_start_time?: string | null
+          sentiment_cache?: Json | null
+          share_url?: string | null
+          source_platform?: string | null
+          summary?: string | null
+          summary_edited_by_user?: boolean | null
+          synced_at?: string | null
+          title?: string | null
+          title_edited_by_user?: boolean | null
+          transcript_source?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          ai_generated_title?: string | null
+          ai_title_generated_at?: string | null
+          auto_tags?: string[] | null
+          auto_tags_generated_at?: string | null
+          calendar_invitees?: Json | null
+          created_at?: string | null
+          full_transcript?: string | null
+          fuzzy_match_score?: number | null
+          google_calendar_event_id?: string | null
+          google_drive_file_id?: string | null
+          is_primary?: boolean | null
+          meeting_fingerprint?: string | null
+          merged_from?: number[] | null
+          metadata?: Json | null
+          recorded_by_email?: string | null
+          recorded_by_name?: string | null
+          recording_end_time?: string | null
+          recording_id?: number | null
+          recording_start_time?: string | null
+          sentiment_cache?: Json | null
+          share_url?: string | null
+          source_platform?: string | null
+          summary?: string | null
+          summary_edited_by_user?: boolean | null
+          synced_at?: string | null
+          title?: string | null
+          title_edited_by_user?: boolean | null
+          transcript_source?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       recurring_call_titles: {
         Row: {
           current_tags: string[] | null
@@ -2563,6 +3542,10 @@ export type Database = {
       }
     }
     Functions: {
+      accept_workspace_invite: {
+        Args: { p_token: string; p_user_id: string }
+        Returns: Json
+      }
       apply_tag_rules: {
         Args: { p_dry_run?: boolean; p_recording_id: number; p_user_id: string }
         Returns: {
@@ -2616,7 +3599,19 @@ export type Database = {
           user_id: string
         }[]
       }
-      ensure_personal_bank: {
+      create_business_organization: {
+        Args: {
+          p_cross_bank_default?: string
+          p_default_workspace_name?: string
+          p_logo_url?: string
+          p_name: string
+        }
+        Returns: {
+          organization_id: string
+          workspace_id: string
+        }[]
+      }
+      ensure_personal_organization: {
         Args: { p_user_id: string }
         Returns: string
       }
@@ -2624,6 +3619,13 @@ export type Database = {
       generate_automation_webhook_secret: {
         Args: { p_user_id: string }
         Returns: string
+      }
+      generate_workspace_invite: {
+        Args: { p_force?: boolean; p_workspace_id: string }
+        Returns: {
+          invite_expires_at: string
+          invite_token: string
+        }[]
       }
       get_admin_cost_summary: {
         Args: { p_period?: string }
@@ -2643,6 +3645,30 @@ export type Database = {
           value: string
         }[]
       }
+      get_calls_shared_with_me: {
+        Args: never
+        Returns: {
+          call_name: string
+          duration: string
+          owner_user_id: string
+          recording_id: number
+          recording_start_time: string
+          source_label: string
+          source_type: string
+        }[]
+      }
+      get_calls_shared_with_me_v2: {
+        Args: { p_include_expired?: boolean }
+        Returns: {
+          call_name: string
+          duration: string
+          owner_user_id: string
+          recording_id: number
+          recording_start_time: string
+          source_label: string
+          source_type: string
+        }[]
+      }
       get_embedding_cost_summary: {
         Args: { p_months?: number; p_user_id: string }
         Returns: {
@@ -2652,6 +3678,13 @@ export type Database = {
           request_count: number
           total_cost_cents: number
           total_tokens: number
+        }[]
+      }
+      get_import_counts: {
+        Args: { p_user_id: string }
+        Returns: {
+          call_count: number
+          source_app: string
         }[]
       }
       get_indexed_recording_count: {
@@ -2670,10 +3703,6 @@ export type Database = {
           total_fathom_calls: number
         }[]
       }
-      get_recording_bank_id: {
-        Args: { p_recording_id: string }
-        Returns: string
-      }
       get_recording_embedding_costs: {
         Args: { p_limit?: number; p_user_id: string }
         Returns: {
@@ -2684,6 +3713,10 @@ export type Database = {
           total_cost_cents: number
           total_tokens: number
         }[]
+      }
+      get_recording_organization_id: {
+        Args: { p_recording_id: string }
+        Returns: string
       }
       get_unindexed_recording_ids: {
         Args: { p_user_id: string }
@@ -2712,7 +3745,21 @@ export type Database = {
           speaker_name: string
         }[]
       }
-      get_vault_bank_id: { Args: { p_vault_id: string }; Returns: string }
+      get_vault_organization_id: {
+        Args: { p_workspace_id: string }
+        Returns: string
+      }
+      get_workspace_invite_details: {
+        Args: { p_token: string }
+        Returns: {
+          expires_at: string
+          invitation_id: string
+          inviter_display_name: string
+          organization_name: string
+          role: string
+          workspace_name: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -2722,11 +3769,11 @@ export type Database = {
       }
       hybrid_search_transcripts: {
         Args: {
-          filter_bank_id?: string
           filter_categories?: string[]
           filter_date_end?: string
           filter_date_start?: string
           filter_intent_signals?: string[]
+          filter_organization_id?: string
           filter_recording_ids?: number[]
           filter_sentiment?: string
           filter_source_platforms?: string[]
@@ -2762,6 +3809,50 @@ export type Database = {
           user_tags: string[]
         }[]
       }
+      hybrid_search_transcripts_scoped: {
+        Args: {
+          filter_categories?: string[]
+          filter_date_end?: string
+          filter_date_start?: string
+          filter_intent_signals?: string[]
+          filter_organization_id?: string
+          filter_recording_ids?: number[]
+          filter_sentiment?: string
+          filter_speakers?: string[]
+          filter_topics?: string[]
+          filter_user_id?: string
+          filter_user_tags?: string[]
+          filter_workspace_id?: string
+          full_text_weight?: number
+          match_count: number
+          query_embedding: string
+          query_text: string
+          rrf_k?: number
+          semantic_weight?: number
+        }
+        Returns: {
+          call_category: string
+          call_date: string
+          call_title: string
+          chunk_id: string
+          chunk_index: number
+          chunk_text: string
+          entities: Json
+          fts_rank: number
+          intent_signals: string[]
+          recording_id: number
+          rrf_score: number
+          sentiment: string
+          similarity_score: number
+          source_platform: string
+          speaker_email: string
+          speaker_name: string
+          topics: string[]
+          user_tags: string[]
+          workspace_id: string
+          workspace_name: string
+        }[]
+      }
       increment_embedding_progress: {
         Args: {
           p_chunks_created?: number
@@ -2774,24 +3865,24 @@ export type Database = {
         Args: { p_team_id: string; p_user_id: string }
         Returns: boolean
       }
-      is_bank_admin_or_owner: {
-        Args: { p_bank_id: string; p_user_id: string }
+      is_organization_admin_or_owner: {
+        Args: { p_organization_id: string; p_user_id: string }
         Returns: boolean
       }
-      is_bank_member: {
-        Args: { p_bank_id: string; p_user_id: string }
+      is_organization_member: {
+        Args: { p_organization_id: string; p_user_id: string }
         Returns: boolean
       }
       is_team_admin: {
         Args: { p_team_id: string; p_user_id: string }
         Returns: boolean
       }
-      is_vault_admin_or_owner: {
-        Args: { p_user_id: string; p_vault_id: string }
+      is_workspace_admin_or_owner: {
+        Args: { p_user_id: string; p_workspace_id: string }
         Returns: boolean
       }
-      is_vault_member: {
-        Args: { p_user_id: string; p_vault_id: string }
+      is_workspace_member: {
+        Args: { p_user_id: string; p_workspace_id: string }
         Returns: boolean
       }
       manual_google_poll_sync: { Args: never; Returns: string }
@@ -2815,6 +3906,10 @@ export type Database = {
         Returns: boolean
       }
       trigger_google_poll_sync: { Args: never; Returns: undefined }
+      update_routing_rule_priorities: {
+        Args: { p_organization_id: string; p_rule_ids: string[] }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "FREE" | "PRO" | "TEAM" | "ADMIN"
@@ -2943,9 +4038,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       app_role: ["FREE", "PRO", "TEAM", "ADMIN"],

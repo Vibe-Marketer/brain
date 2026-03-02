@@ -13,8 +13,8 @@ import { useMeetingsSync, type Meeting, type CalendarInvitee } from "@/hooks/use
 import { useIntegrationSync } from "@/hooks/useIntegrationSync";
 import { useSyncSourceFilter } from "@/hooks/useSyncSourceFilter";
 import { useSyncTabState } from "@/hooks/useSyncTabState";
-import { useBankContext } from "@/hooks/useBankContext";
-import { VaultSelector } from "@/components/vault/VaultSelector";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { WorkspaceSelector } from "@/components/workspace/WorkspaceSelector";
 import { DateRange } from "react-day-picker";
 import { logger } from "@/lib/logger";
 import { getSafeUser, requireUser } from "@/lib/auth-utils";
@@ -39,10 +39,10 @@ export function SyncTab() {
   const [perMeetingTags, setPerMeetingTags] = useState<Record<string, string>>({});
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [hasFetchedResults, setHasFetchedResults] = useState(false);
-  const [selectedVaultId, setSelectedVaultId] = useState<string>('');
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
 
-  // Bank context for filtering by bank (Phase 9 migration)
-  const { activeBankId, isLoading: bankContextLoading } = useBankContext();
+  // Organization context for filtering by bank (Phase 9 migration)
+  const { activeOrganizationId, isLoading: bankContextLoading } = useOrganizationContext();
 
   // Ref for scrolling to synced section
   const syncedSectionRef = useRef<HTMLDivElement>(null);
@@ -120,12 +120,12 @@ export function SyncTab() {
       // Note: TypeScript types need regeneration with `supabase gen types typescript`
       // until then we use type assertions
       let useRecordings = false;
-      if (activeBankId) {
+      if (activeOrganizationId) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const { count: recordingsCount } = await (supabase as any)
           .from('recordings')
           .select('*', { count: 'exact', head: true })
-          .eq('bank_id', activeBankId);
+          .eq('organization_id', activeOrganizationId);
         useRecordings = (recordingsCount ?? 0) > 0;
       }
 
@@ -220,7 +220,7 @@ export function SyncTab() {
     } catch (error) {
       logger.error("Error loading existing transcripts", error);
     }
-  }, [dateRange, searchQuery, participantFilter, existingPage, existingPageSize, activeBankId]);
+  }, [dateRange, searchQuery, participantFilter, existingPage, existingPageSize, activeOrganizationId]);
 
   // Use custom hook for state management
   const {
@@ -444,7 +444,7 @@ export function SyncTab() {
           recordingIds,
           createdAfter,
           createdBefore,
-          vault_id: selectedVaultId || undefined,
+          workspace_id: selectedWorkspaceId || undefined,
         }
       });
 
@@ -589,11 +589,11 @@ export function SyncTab() {
           </div>
         </div>
 
-        {/* Vault selector for sync destination */}
-        <VaultSelector
+        {/* Workspace selector for sync destination */}
+        <WorkspaceSelector
           integration="fathom"
-          value={selectedVaultId}
-          onVaultChange={setSelectedVaultId}
+          value={selectedWorkspaceId}
+          onWorkspaceChange={setSelectedWorkspaceId}
           label="Sync to Hub"
           disabled={syncing}
           className="mb-4"

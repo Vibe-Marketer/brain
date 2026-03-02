@@ -273,24 +273,15 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body FIRST
-    const { recordingIds, vault_id } = await req.json();
+    const { recordingIds = [], singleCallId, workspace_id } = await req.json();
 
-    if (!Array.isArray(recordingIds)) {
+    // Support single recording retry if singleCallId provided
+    const targetRecordingIds = singleCallId ? [singleCallId] : recordingIds;
+
+    if (!Array.isArray(targetRecordingIds) || targetRecordingIds.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'recordingIds must be an array' }),
+        JSON.stringify({ error: 'recordingIds must be an array or singleCallId must be provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Allow empty array - return success with no-op
-    if (recordingIds.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'No recordings to sync',
-          jobId: null,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -307,8 +298,13 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
 
     if (authError || !user) {
+      console.error('[zoom-sync-meetings] Auth failed:', {
+        error: authError?.message,
+        details: authError,
+        jwtPrefix: jwt.substring(0, 10)
+      });
       return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
+        JSON.stringify({ error: 'Invalid authentication', details: authError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -350,23 +346,23 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Validate vault membership once at the top if vault_id provided
+    // Validate vault membership once at the top if workspace_id provided
     let validatedVaultId: string | null = null;
-    if (vault_id) {
+    if (workspace_id) {
       const { data: membership, error: membershipError } = await supabase
-        .from('vault_memberships')
+        .from('workspace_memberships')
         .select('id')
-        .eq('vault_id', vault_id)
+        .eq('workspace_id', workspace_id)
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (membershipError) {
         console.error('Error checking vault membership:', membershipError);
       } else if (!membership) {
-        console.warn(`User ${user.id} is not a member of vault ${vault_id}, ignoring vault_id`);
+        console.warn(`User ${user.id} is not a member of vault ${workspace_id}, ignoring workspace_id`);
       } else {
-        validatedVaultId = vault_id;
-        console.log(`Vault ${vault_id} membership validated for user ${user.id}`);
+        validatedVaultId = workspace_id;
+        console.log(`Vault ${workspace_id} membership validated for user ${user.id}`);
       }
     }
 
@@ -377,10 +373,11 @@ Deno.serve(async (req) => {
       .from('sync_jobs')
       .insert({
         user_id: userId,
-        recording_ids: recordingIds,
+        recording_ids: targetRecordingIds,
         status: 'processing',
         progress_current: 0,
-        progress_total: recordingIds.length,
+        progress_total: targetRecordingIds.length,
+        type: 'zoom', // Explicitly set the source type
       })
       .select()
       .single();
@@ -400,7 +397,7 @@ Deno.serve(async (req) => {
       console.log(`Background processing started for Zoom sync job ${jobId}`);
 
       try {
-        for (const recordingId of recordingIds) {
+        for (const recordingId of targetRecordingIds) {
           try {
             await rateLimiter.throttle();
 
@@ -435,7 +432,7 @@ Deno.serve(async (req) => {
               synced.push(recordingId);
               console.log(`✓ Synced Zoom ${recordingId} (${synced.length}/${recordingIds.length})`);
 
-              // Create vault entry if vault_id was validated
+              // Create vault entry if workspace_id was validated
               if (validatedVaultId) {
                 try {
                   // Look up recording UUID by external_id in source_metadata
@@ -449,9 +446,9 @@ Deno.serve(async (req) => {
 
                   if (rec?.id) {
                     const { error: vaultEntryError } = await supabase
-                      .from('vault_entries')
+                      .from('workspace_entries')
                       .insert({
-                        vault_id: validatedVaultId,
+                        workspace_id: validatedVaultId,
                         recording_id: rec.id,
                       });
 
@@ -565,7 +562,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         jobId: jobId,
-        message: `Sync job started for ${recordingIds.length} Zoom meetings`,
+        message: `Sync job started for ${targetRecordingIds.length} Zoom meetings`,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

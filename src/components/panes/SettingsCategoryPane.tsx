@@ -28,14 +28,14 @@ import {
   RiSettings3Line,
   RiBuilding4Line,
   RiContactsLine,
-  RiBankLine,
+  RiBuildingLine,
 } from "@remixicon/react";
 
 export type SettingsCategory =
   | "account"
   | "business"
   | "contacts"
-  | "banks"
+  | "organizations"
   | "users"
   | "billing"
   | "integrations"
@@ -71,10 +71,10 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     icon: RiContactsLine,
   },
   {
-    id: "banks",
-    label: "Workspaces & Hubs",
-    description: "Workspaces and collaboration",
-    icon: RiBankLine,
+    id: "organizations",
+    label: "Organizations",
+    description: "Manage organizations and workspaces",
+    icon: RiBuildingLine,
   },
   {
     id: "users",

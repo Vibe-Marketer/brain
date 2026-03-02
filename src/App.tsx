@@ -16,8 +16,8 @@ import OAuthCallback from "@/pages/OAuthCallback";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CallDetailPage } from "@/pages/CallDetailPage";
 import { SharedCallView } from "@/pages/SharedCallView";
-import TeamJoin from "@/pages/TeamJoin";
-import VaultJoin from "@/pages/VaultJoin";
+import OrganizationJoin from "@/pages/OrganizationJoin";
+import WorkspaceJoin from "@/pages/WorkspaceJoin";
 import OAuthConsentPage from "@/pages/OAuthConsentPage";
 
 // Import existing pages
@@ -26,10 +26,8 @@ import SortingTagging from "@/pages/SortingTagging";
 import Settings from "@/pages/Settings";
 import Analytics from "@/pages/Analytics";
 import SharedWithMe from "@/pages/SharedWithMe";
-import VaultsPage from "@/pages/VaultsPage";
-
-// Manual Import
-import ManualImport from "@/pages/ManualImport";
+import WorkspacesPage from "@/pages/WorkspacesPage";
+import ImportPage from "@/pages/ImportPage";
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -178,32 +176,52 @@ function App() {
                     }
                   />
 
-                  {/* Vaults routes */}
+                  {/* Workspaces routes */}
                   <Route
-                    path="/vaults"
+                    path="/workspaces"
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <VaultsPage />
+                          <WorkspacesPage />
                         </Layout>
                       </ProtectedRoute>
                     }
                   />
                   <Route
-                    path="/vaults/:vaultId"
+                    path="/workspaces/:workspaceId"
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <VaultsPage />
+                          <WorkspacesPage />
                         </Layout>
                       </ProtectedRoute>
                     }
                   />
 
-                  {/* Legacy team redirect */}
+                  {/* Legacy redirects */}
+                  <Route
+                    path="/vaults"
+                    element={<Navigate to="/workspaces" replace />}
+                  />
+                  <Route
+                    path="/vaults/:workspaceId"
+                    element={<Navigate to="/workspaces/:workspaceId" replace />}
+                  />
+                  <Route
+                    path="/agents"
+                    element={<Navigate to="/workspaces" replace />}
+                  />
+                  <Route
+                    path="/agents/:workspaceId"
+                    element={<Navigate to="/workspaces/:workspaceId" replace />}
+                  />
                   <Route
                     path="/team"
-                    element={<Navigate to="/vaults" replace />}
+                    element={<Navigate to="/workspaces" replace />}
+                  />
+                  <Route
+                    path="/banks"
+                    element={<Navigate to="/settings/organizations" replace />}
                   />
 
                   {/* Call detail route for search result navigation */}
@@ -221,11 +239,11 @@ function App() {
                   {/* Shared call view - public route with token-based access */}
                   <Route path="/s/:token" element={<SharedCallView />} />
 
-                  {/* Team join page - public-ish route (redirects to login if not authenticated) */}
-                  <Route path="/join/team/:token" element={<TeamJoin />} />
+                  {/* Organization join page */}
+                  <Route path="/join/org/:token" element={<OrganizationJoin />} />
 
-                  {/* Vault join page - public-ish route (redirects to login if not authenticated) */}
-                  <Route path="/join/vault/:token" element={<VaultJoin />} />
+                  {/* Workspace join page - public-ish route (redirects to login if not authenticated) */}
+                  <Route path="/join/workspace/:token" element={<WorkspaceJoin />} />
 
                   {/* Automation Rules routes */}
                   <Route
@@ -251,7 +269,7 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <ManualImport />
+                          <ImportPage />
                         </Layout>
                       </ProtectedRoute>
                     }

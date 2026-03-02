@@ -21,6 +21,7 @@ export type PanelType =
   | 'sorting'
   | 'user-detail'
   | 'bulk-actions'
+  | 'workspace-member'
   | 'vault-member'
   | 'automation-rule'
   | null;
@@ -43,6 +44,7 @@ export type PanelData =
   | { type: 'ai-assistant' }
   | { type: 'inspector' }
   | { type: 'sorting' }
+  | { type: 'workspace-member'; workspaceId: string }
   | { type: 'vault-member'; vaultId: string }
   | { type: 'automation-rule'; ruleId: string }
   | null;

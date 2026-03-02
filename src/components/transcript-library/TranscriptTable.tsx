@@ -47,7 +47,7 @@ const columnOptions = [
   { id: "participants", label: "Invitees" },
   { id: "tags", label: "Tags" },
   { id: "folders", label: "Folders" },
-  { id: "vaults", label: "Hubs" },
+  { id: "workspaces", label: "Workspaces" },
   { id: "sharedWith", label: "Shared With" },
 ];
 
@@ -212,8 +212,8 @@ export const TranscriptTable = React.memo(({
                 {visibleColumns.folders !== false && (
                   <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">FOLDERS</TableHead>
                 )}
-                {visibleColumns.vaults !== false && (
-                  <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">HUBS</TableHead>
+                {visibleColumns.workspaces !== false && (
+                  <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">WORKSPACES</TableHead>
                 )}
                 {visibleColumns.sharedWith !== false && (
                   <TableHead className="hidden xl:table-cell min-w-[80px] h-12 whitespace-nowrap text-xs md:text-sm">SHARED</TableHead>

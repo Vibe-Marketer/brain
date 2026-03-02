@@ -20,12 +20,10 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   const getPageLabel = () => {
     if (location.pathname === '/') return 'HOME';
-    if (location.pathname.startsWith('/chat')) return 'AI CHAT';
     if (location.pathname.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
     if (location.pathname.startsWith('/settings')) return 'SETTINGS';
     if (location.pathname === '/shared-with-me') return 'SHARED WITH ME';
-    if (location.pathname.startsWith('/vaults')) return 'HUBS';
-    if (location.pathname.startsWith('/content')) return 'CONTENT HUB';
+    if (location.pathname.startsWith('/workspaces')) return 'WORKSPACES';
     return 'HOME';
   };
 

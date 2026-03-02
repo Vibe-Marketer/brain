@@ -6,12 +6,82 @@ import {
   getArchivedFolders,
   createFolder,
   renameFolder,
+  updateFolder,
   archiveFolder,
   restoreFolder,
+  deleteFolder,
+  getFolderAssignments,
+  assignCallToFolder,
 } from '@/services/folders.service'
 import { useOrgContextStore } from '@/stores/orgContextStore'
 import { useAuth } from '@/contexts/AuthContext'
 import type { Folder } from '@/types/workspace'
+
+/**
+ * Hook to get all folder assignments for the active workspace.
+ */
+export function useFolderAssignments(workspaceId: string | null) {
+  const { session } = useAuth()
+  return useQuery<Record<string, string[]>>({
+    queryKey: ['folder_assignments', workspaceId],
+    queryFn: () => getFolderAssignments(workspaceId!),
+    enabled: !!session && !!workspaceId,
+  })
+}
+
+/**
+ * Mutation to assign a call to a folder.
+ */
+export function useAssignCallToFolder() {
+  const queryClient = useQueryClient()
+  const activeWorkspaceId = useOrgContextStore((s) => s.activeWorkspaceId)
+
+  return useMutation({
+    mutationFn: ({
+      callRecordingId,
+      folderId,
+      userId,
+    }: {
+      callRecordingId: number
+      folderId: string
+      userId: string
+    }) => assignCallToFolder(callRecordingId, folderId, userId),
+    onSuccess: () => {
+      if (activeWorkspaceId) {
+        queryClient.invalidateQueries({
+          queryKey: ['folder_assignments', activeWorkspaceId],
+        })
+      }
+      toast.success('Call assigned to folder')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Failed to assign call')
+    },
+  })
+}
+
+/**
+ * Mutation to delete a folder.
+ */
+export function useDeleteFolder() {
+  const queryClient = useQueryClient()
+  const activeWorkspaceId = useOrgContextStore((s) => s.activeWorkspaceId)
+
+  return useMutation({
+    mutationFn: (folderId: string) => deleteFolder(folderId),
+    onSuccess: () => {
+      if (activeWorkspaceId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.folders.list(activeWorkspaceId),
+        })
+      }
+      toast.success('Folder deleted')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Failed to delete folder')
+    },
+  })
+}
 
 /**
  * Fetches active (non-archived) folders for the given workspace.
@@ -48,7 +118,7 @@ export function useArchivedFolders(workspaceId: string | null) {
 /**
  * Mutation to create a new folder inside the active workspace.
  *
- * Requires: workspaceId, bankId, userId (obtained from auth/context).
+ * Requires: workspaceId, organizationId, userId (obtained from auth/context).
  * On success: invalidates folders list so the new folder appears.
  */
 export function useCreateFolder() {
@@ -57,17 +127,19 @@ export function useCreateFolder() {
   return useMutation({
     mutationFn: ({
       workspaceId,
-      bankId,
+      organizationId,
       userId,
       name,
       parentFolderId,
+      metadata,
     }: {
       workspaceId: string
-      bankId: string
+      organizationId: string
       userId: string
       name: string
       parentFolderId?: string
-    }) => createFolder(workspaceId, bankId, userId, name, parentFolderId),
+      metadata?: Partial<Pick<Folder, 'description' | 'color' | 'icon' | 'visibility'>>
+    }) => createFolder(workspaceId, organizationId, userId, name, parentFolderId, metadata),
     onSuccess: (_data, { workspaceId }) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.folders.list(workspaceId),
@@ -91,8 +163,8 @@ export function useRenameFolder() {
   const activeWorkspaceId = useOrgContextStore((s) => s.activeWorkspaceId)
 
   return useMutation({
-    mutationFn: ({ folderId, name }: { folderId: string; name: string }) =>
-      renameFolder(folderId, name),
+    mutationFn: ({ folderId, ...updates }: { folderId: string } & Partial<Pick<Folder, 'name' | 'description' | 'color' | 'icon' | 'visibility' | 'position'>>) =>
+      updateFolder(folderId, updates),
 
     onMutate: async ({ folderId, name }) => {
       if (!activeWorkspaceId) return {}
@@ -128,6 +200,30 @@ export function useRenameFolder() {
           queryKey: queryKeys.folders.list(activeWorkspaceId),
         })
       }
+    },
+  })
+}
+
+/**
+ * Mutation to update any folder property.
+ */
+export function useUpdateFolder() {
+  const queryClient = useQueryClient()
+  const activeWorkspaceId = useOrgContextStore((s) => s.activeWorkspaceId)
+
+  return useMutation({
+    mutationFn: ({ folderId, ...updates }: { folderId: string } & Partial<Pick<Folder, 'name' | 'description' | 'color' | 'icon' | 'visibility' | 'position'>>) =>
+      updateFolder(folderId, updates),
+    onSuccess: () => {
+      if (activeWorkspaceId) {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.folders.list(activeWorkspaceId),
+        })
+      }
+      toast.success('Folder updated')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Failed to update folder')
     },
   })
 }

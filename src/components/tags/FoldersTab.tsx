@@ -1,5 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { useFolders, type Folder } from "@/hooks/useFolders";
+import {
+  useFolders,
+  useFolderAssignments,
+  useDeleteFolder,
+  useRenameFolder,
+  useCreateFolder,
+} from "@/hooks/useFolders";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import type { Folder } from "@/types/workspace";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Table,
   TableBody,
@@ -37,7 +46,29 @@ import { useListKeyboardNavigationWithState } from "@/hooks/useListKeyboardNavig
 import { useVirtualTable } from "@/hooks/useVirtualList";
 
 export function FoldersTab() {
-  const { folders, folderAssignments, deleteFolder, updateFolder, createFolder, isLoading, refetch } = useFolders();
+  const { activeOrgId, activeWorkspaceId } = useOrganizationContext();
+  const { user } = useAuth();
+  const { data: folders = [], isLoading, refetch } = useFolders(activeWorkspaceId);
+  const { data: folderAssignments = {} } = useFolderAssignments(activeWorkspaceId);
+  const { mutateAsync: deleteFolder } = useDeleteFolder();
+  const { mutateAsync: updateFolderMutation } = useRenameFolder();
+  const { mutateAsync: createFolderMutation } = useCreateFolder();
+
+  const updateFolder = async (id: string, data: { name: string }) => {
+    return updateFolderMutation({ folderId: id, name: data.name });
+  };
+
+  const createFolder = async (name: string, parentId?: string, color?: string, icon?: string, description?: string) => {
+    if (!user || !activeWorkspaceId || !activeOrgId) return;
+    return createFolderMutation({
+      workspaceId: activeWorkspaceId,
+      organizationId: activeOrgId,
+      userId: user.id,
+      name,
+      parentFolderId: parentId
+    });
+  };
+
   const { openPanel, panelData, panelType } = usePanelStore();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteConfirmFolder, setDeleteConfirmFolder] = useState<Folder | null>(null);

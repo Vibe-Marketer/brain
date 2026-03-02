@@ -63,7 +63,7 @@ export async function fetchContentItems(
     let query = supabase
       .from("content_library")
       .select("*")
-      .eq("bank_id", bankId)
+      .eq("organization_id", bankId)
       .order("created_at", { ascending: false });
 
     // RLS handles user/team access, but we can add explicit user filter for clarity
@@ -140,7 +140,7 @@ export async function saveContent(
     if (!bankId) {
       return {
         data: null,
-        error: new ContentLibraryError("Bank ID is required"),
+        error: new ContentLibraryError("Organization ID is required"),
       };
     }
 
@@ -178,7 +178,7 @@ export async function saveContent(
       .from("content_library")
       .insert({
         user_id: user.id,
-        bank_id: bankId,
+        organization_id: bankId,
         content_type: input.content_type,
         title: input.title.trim(),
         content: input.content,
@@ -506,7 +506,7 @@ export async function getAllTags(bankId?: string | null): Promise<ContentLibrary
     let query = supabase
       .from("content_library")
       .select("tags")
-      .eq("bank_id", bankId);
+      .eq("organization_id", bankId);
 
     const { data, error } = await query;
 

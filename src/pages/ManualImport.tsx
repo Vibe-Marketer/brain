@@ -24,6 +24,7 @@ import {
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
 import { cn } from '@/lib/utils';
 import { queryKeys } from '@/lib/query-config';
@@ -43,8 +44,8 @@ export default function ManualImport() {
     toast.success('Video imported successfully!', {
       description: title,
     });
-    // Refresh vault list so newly auto-created YouTube vault appears in sidebar
-    queryClient.invalidateQueries({ queryKey: queryKeys.vaults.all });
+    // Refresh workspace list so newly auto-created YouTube workspace appears in sidebar
+    queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
     queryClient.invalidateQueries({ queryKey: ['bankContext'] });
   }, [queryClient]);
 
@@ -61,25 +62,11 @@ export default function ManualImport() {
   return (
     <AppShell>
       <div className="h-full flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
-              aria-hidden="true"
-            >
-              <RiUpload2Line className="h-4 w-4 text-vibe-orange" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
-                IMPORT CONTENT
-              </h2>
-              <p className="text-xs text-ink-muted">
-                Import videos from YouTube to analyze with AI
-              </p>
-            </div>
-          </div>
-        </header>
+        <PageHeader 
+          title="IMPORT CONTENT"
+          subtitle="Import videos from YouTube to analyze with AI"
+          icon={RiUpload2Line}
+        />
 
         {/* Main content area */}
         <div className="flex-1 overflow-auto">

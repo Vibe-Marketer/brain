@@ -15,7 +15,10 @@ import { YouTubeVideoStats } from '@/components/youtube/YouTubeVideoStats'
 import { YouTubeOutlierBadge } from '@/components/youtube/YouTubeOutlierBadge'
 import { getYouTubeMetadata } from '@/types/youtube'
 import { parseYouTubeDuration, YOUTUBE_CATEGORIES } from '@/lib/youtube-utils'
-import type { VaultRecording } from '@/hooks/useVaults'
+import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
+
+/** Alias for backward compatibility */
+type VaultRecording = WorkspaceRecording
 
 export interface YouTubeVideoRowProps {
   /** Vault recording with YouTube source_metadata */

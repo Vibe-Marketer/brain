@@ -544,7 +544,7 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body
-    const { eventIds, vault_id } = await req.json();
+    const { eventIds, workspace_id } = await req.json();
 
     if (!Array.isArray(eventIds) || eventIds.length === 0) {
       return new Response(
@@ -612,23 +612,23 @@ Deno.serve(async (req) => {
       dedup_platform_order: settings.dedup_platform_order || [],
     };
 
-    // Validate vault membership once at the top if vault_id provided
+    // Validate vault membership once at the top if workspace_id provided
     let validatedVaultId: string | null = null;
-    if (vault_id) {
+    if (workspace_id) {
       const { data: membership, error: membershipError } = await supabase
-        .from('vault_memberships')
+        .from('workspace_memberships')
         .select('id')
-        .eq('vault_id', vault_id)
+        .eq('workspace_id', workspace_id)
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (membershipError) {
         console.error('Error checking vault membership:', membershipError);
       } else if (!membership) {
-        console.warn(`User ${user.id} is not a member of vault ${vault_id}, ignoring vault_id`);
+        console.warn(`User ${user.id} is not a member of vault ${workspace_id}, ignoring workspace_id`);
       } else {
-        validatedVaultId = vault_id;
-        console.log(`Vault ${vault_id} membership validated for user ${user.id}`);
+        validatedVaultId = workspace_id;
+        console.log(`Vault ${workspace_id} membership validated for user ${user.id}`);
       }
     }
 
@@ -673,7 +673,7 @@ Deno.serve(async (req) => {
             synced.push(result.recordingId);
             console.log(`Synced event ${eventId} (${synced.length}/${eventIds.length})`);
 
-            // Create vault entry if vault_id was validated
+            // Create vault entry if workspace_id was validated
             if (validatedVaultId) {
               try {
                 // Google Meet uses negative recording IDs - look up from recordings table
@@ -686,9 +686,9 @@ Deno.serve(async (req) => {
 
                 if (recording?.id) {
                   const { error: vaultEntryError } = await supabase
-                    .from('vault_entries')
+                    .from('workspace_entries')
                     .insert({
-                      vault_id: validatedVaultId,
+                      workspace_id: validatedVaultId,
                       recording_id: recording.id,
                     });
 

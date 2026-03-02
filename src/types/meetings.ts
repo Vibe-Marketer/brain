@@ -60,6 +60,7 @@ export interface Meeting {
   google_calendar_event_id?: string | null;
   google_drive_file_id?: string | null;
   transcript_source?: 'native' | 'whisper' | null;
+  ai_generated_title?: string | null;
 }
 
 export interface MeetingWithTranscripts extends Meeting {

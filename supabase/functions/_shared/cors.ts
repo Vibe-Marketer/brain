@@ -4,12 +4,11 @@ const allowedOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',') || ['*'];
 export function getCorsHeaders(requestOrigin?: string | null): Record<string, string> {
   let origin = '*';
 
-  if (allowedOrigins[0] !== '*' && requestOrigin) {
-    // Check if request origin is in allowed list
-    if (allowedOrigins.includes(requestOrigin)) {
+  // If a specific origin is provided, we should ideally echo it 
+  // especially for authenticated requests to avoid browser "wildcard combined with credentials" issues
+  if (requestOrigin) {
+    if (allowedOrigins[0] === '*' || allowedOrigins.includes(requestOrigin)) {
       origin = requestOrigin;
-    } else {
-      origin = allowedOrigins[0]; // Fallback to first allowed origin
     }
   }
 
@@ -17,5 +16,6 @@ export function getCorsHeaders(requestOrigin?: string | null): Record<string, st
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Max-Age': '86400',
   };
 }

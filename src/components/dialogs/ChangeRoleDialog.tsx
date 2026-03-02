@@ -27,7 +27,7 @@ import {
   RiVipCrownLine,
   RiEyeLine,
 } from '@remixicon/react'
-import type { VaultRole } from '@/types/bank'
+import type { VaultRole } from '@/types/workspace'
 
 interface ChangeRoleDialogProps {
   open: boolean
@@ -49,14 +49,14 @@ const VAULT_ROLES: Array<{
   power: number
 }> = [
   {
-    value: 'vault_owner',
+    value: 'workspace_owner',
     label: 'Owner',
     description: 'Full control. Can delete vault and manage all members.',
     icon: RiVipCrownLine,
     power: 0,
   },
   {
-    value: 'vault_admin',
+    value: 'workspace_admin',
     label: 'Admin',
     description: 'Can manage members, settings, and invite links.',
     icon: RiShieldUserLine,
@@ -86,8 +86,8 @@ const VAULT_ROLES: Array<{
 ]
 
 const ROLE_POWER: Record<VaultRole, number> = {
-  vault_owner: 0,
-  vault_admin: 1,
+  workspace_owner: 0,
+  workspace_admin: 1,
   manager: 2,
   member: 3,
   guest: 4,
@@ -131,9 +131,9 @@ export function ChangeRoleDialog({
             const Icon = role.icon
             // Disable roles higher than current user's role
             const isDisabled = role.power < currentUserPower
-            // vault_owner transfer is not supported via this dialog
-            const isOwnerTransfer = role.value === 'vault_owner' && currentRole !== 'vault_owner'
-            const isLastAdminDemotion = currentRole === 'vault_admin' && isLastAdmin && role.value !== 'vault_admin'
+            // workspace_owner transfer is not supported via this dialog
+            const isOwnerTransfer = role.value === 'workspace_owner' && currentRole !== 'workspace_owner'
+            const isLastAdminDemotion = currentRole === 'workspace_admin' && isLastAdmin && role.value !== 'workspace_admin'
             const disabled = isDisabled || isOwnerTransfer || isLastAdminDemotion || isLoading
             const isSelected = selectedRole === role.value
             const isCurrent = currentRole === role.value

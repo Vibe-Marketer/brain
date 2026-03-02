@@ -1,10 +1,19 @@
 project_id = "vltmrnjsubfzrgrtdqey"
 
 [functions.fetch-meetings]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sync-meetings]
-verify_jwt = true
+verify_jwt = false
+
+[functions.zoom-fetch-meetings]
+verify_jwt = false
+
+[functions.zoom-sync-meetings]
+verify_jwt = false
+
+[functions.youtube-import]
+verify_jwt = false
 
 [functions.webhook]
 verify_jwt = false
@@ -83,4 +92,4 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.file-upload-transcribe]
-verify_jwt = true
+verify_jwt = false

@@ -154,11 +154,11 @@ const navItems: NavItem[] = [
     matchPaths: ['/sorting-tagging'],
   },
   {
-    id: 'vaults',
-    name: 'Hubs',
+    id: 'workspaces',
+    name: 'Workspaces',
     iconLine: RiSafeLine,
-    path: '/vaults',
-    matchPaths: ['/vaults'],
+    path: '/workspaces',
+    matchPaths: ['/workspaces'],
   },
   {
     id: 'analytics',

@@ -22,6 +22,7 @@ import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   RiCloseLine,
   RiPushpinLine,
@@ -271,80 +272,49 @@ export function AnalyticsDetailPane({
       aria-label={`${meta.label} analytics`}
       tabIndex={-1}
     >
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-cb-card/50 flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          {/* Back button for mobile navigation */}
-          {showBackButton && onBack && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBack}
-              className="mr-1 -ml-1"
-              aria-label="Go back to categories"
-            >
-              <RiArrowLeftLine className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          )}
-
-          {/* Category icon - with smooth transition */}
+      <PageHeader
+        title={meta.label}
+        subtitle={meta.description}
+        icon={Icon}
+        showBackButton={showBackButton}
+        onBack={onBack}
+        actions={
           <div
-            className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 transition-all duration-200 ease-in-out"
-            aria-hidden="true"
+            className="flex items-center gap-1 flex-shrink-0"
+            role="toolbar"
+            aria-label="Pane actions"
           >
-            <Icon className="h-4 w-4 text-vibe-orange transition-transform duration-200 ease-in-out" />
+            {onTogglePin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onTogglePin}
+                aria-label={isPinned ? "Unpin pane" : "Pin pane"}
+                aria-pressed={isPinned}
+              >
+                {isPinned ? (
+                  <RiPushpinFill
+                    className="h-4 w-4 text-vibe-orange"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
+                )}
+              </Button>
+            )}
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                aria-label="Close pane"
+              >
+                <RiCloseLine className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
           </div>
-
-          {/* Category title and description */}
-          <div className="min-w-0">
-            <h2
-              className="text-sm font-bold text-ink uppercase tracking-wide truncate"
-              id="analytics-detail-title"
-            >
-              {meta.label}
-            </h2>
-            <p className="text-xs text-ink-muted truncate">
-              {meta.description}
-            </p>
-          </div>
-        </div>
-
-        {/* Header actions */}
-        <div
-          className="flex items-center gap-1 flex-shrink-0"
-          role="toolbar"
-          aria-label="Pane actions"
-        >
-          {onTogglePin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onTogglePin}
-              aria-label={isPinned ? "Unpin pane" : "Pin pane"}
-              aria-pressed={isPinned}
-            >
-              {isPinned ? (
-                <RiPushpinFill
-                  className="h-4 w-4 text-vibe-orange"
-                  aria-hidden="true"
-                />
-              ) : (
-                <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
-              )}
-            </Button>
-          )}
-          {onClose && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              aria-label="Close pane"
-            >
-              <RiCloseLine className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          )}
-        </div>
-      </header>
+        }
+      />
 
       {/* Content - scrollable with content transition animation */}
       <ScrollArea className="flex-1">

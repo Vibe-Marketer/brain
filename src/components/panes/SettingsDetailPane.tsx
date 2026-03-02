@@ -22,6 +22,7 @@ import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   RiCloseLine,
   RiPushpinLine,
@@ -35,7 +36,7 @@ import {
   RiArrowLeftLine,
   RiBuilding4Line,
   RiContactsLine,
-  RiBankLine,
+  RiBuildingLine,
 } from "@remixicon/react";
 import type { SettingsCategory } from "./SettingsCategoryPane";
 
@@ -54,7 +55,7 @@ const IntegrationsTab = React.lazy(
 const AITab = React.lazy(() => import("@/components/settings/AITab"));
 const AdminTab = React.lazy(() => import("@/components/settings/AdminTab"));
 const ContactsTab = React.lazy(() => import("@/components/settings/ContactsTab"));
-const BanksTab = React.lazy(() => import("@/components/settings/BanksTab"));
+const OrganizationsTab = React.lazy(() => import("@/components/settings/OrganizationsTab"));
 
 /** Category metadata for display */
 const CATEGORY_META: Record<
@@ -105,10 +106,10 @@ const CATEGORY_META: Record<
     description: "System administration",
     icon: RiShieldLine,
   },
-  banks: {
-    label: "Workspaces & Hubs",
-    description: "Workspaces and collaboration",
-    icon: RiBankLine,
+  organizations: {
+    label: "Organizations",
+    description: "Manage organizations and workspaces",
+    icon: RiBuildingLine,
   },
 };
 
@@ -248,8 +249,8 @@ export function SettingsDetailPane({
         return <AITab />;
       case "admin":
         return <AdminTab />;
-      case "banks":
-        return <BanksTab />;
+      case "organizations":
+        return <OrganizationsTab />;
       default:
         return (
           <div className="p-6 text-center text-muted-foreground">
@@ -275,80 +276,49 @@ export function SettingsDetailPane({
       aria-label={`${meta.label} settings`}
       tabIndex={-1}
     >
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          {/* Back button for mobile navigation */}
-          {showBackButton && onBack && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBack}
-              className="mr-1 -ml-1"
-              aria-label="Go back to categories"
-            >
-              <RiArrowLeftLine className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          )}
-
-          {/* Category icon - with smooth transition */}
+      <PageHeader
+        title={meta.label}
+        subtitle={meta.description}
+        icon={Icon}
+        showBackButton={showBackButton}
+        onBack={onBack}
+        actions={
           <div
-            className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center flex-shrink-0 transition-all duration-200 ease-in-out"
-            aria-hidden="true"
+            className="flex items-center gap-1 flex-shrink-0"
+            role="toolbar"
+            aria-label="Pane actions"
           >
-            <Icon className="h-4 w-4 text-muted-foreground transition-transform duration-200 ease-in-out" />
+            {onTogglePin && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onTogglePin}
+                aria-label={isPinned ? "Unpin pane" : "Pin pane"}
+                aria-pressed={isPinned}
+              >
+                {isPinned ? (
+                  <RiPushpinFill
+                    className="h-4 w-4 text-vibe-orange"
+                    aria-hidden="true"
+                  />
+                ) : (
+                  <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
+                )}
+              </Button>
+            )}
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+                aria-label="Close pane"
+              >
+                <RiCloseLine className="h-4 w-4" aria-hidden="true" />
+              </Button>
+            )}
           </div>
-
-          {/* Category title and description */}
-          <div className="min-w-0">
-            <h2
-              className="text-sm font-display font-extrabold text-foreground uppercase tracking-wide truncate"
-              id="settings-detail-title"
-            >
-              {meta.label}
-            </h2>
-            <p className="text-xs text-muted-foreground truncate">
-              {meta.description}
-            </p>
-          </div>
-        </div>
-
-        {/* Header actions */}
-        <div
-          className="flex items-center gap-1 flex-shrink-0"
-          role="toolbar"
-          aria-label="Pane actions"
-        >
-          {onTogglePin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onTogglePin}
-              aria-label={isPinned ? "Unpin pane" : "Pin pane"}
-              aria-pressed={isPinned}
-            >
-              {isPinned ? (
-                <RiPushpinFill
-                  className="h-4 w-4 text-vibe-orange"
-                  aria-hidden="true"
-                />
-              ) : (
-                <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
-              )}
-            </Button>
-          )}
-          {onClose && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onClose}
-              aria-label="Close pane"
-            >
-              <RiCloseLine className="h-4 w-4" aria-hidden="true" />
-            </Button>
-          )}
-        </div>
-      </header>
+        }
+      />
 
       {/* Content - scrollable with content transition animation */}
       <ScrollArea className="flex-1">

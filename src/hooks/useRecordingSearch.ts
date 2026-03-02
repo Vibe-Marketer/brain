@@ -8,7 +8,10 @@
  */
 
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import type { VaultRecording } from '@/hooks/useVaults'
+import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
+
+/** Alias for backward compatibility */
+type VaultRecording = WorkspaceRecording
 
 /** Sort field options */
 export type RecordingSortField = 'date' | 'duration' | 'title'

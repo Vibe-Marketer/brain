@@ -12,8 +12,11 @@ import { useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import { RiArrowUpSLine, RiArrowDownSLine } from '@remixicon/react'
 import { YouTubeVideoRow } from '@/components/youtube/YouTubeVideoRow'
-import type { VaultRecording } from '@/hooks/useVaults'
+import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
 import type { YouTubeSortField, SortOrder } from '@/hooks/useYouTubeSearch'
+
+/** Alias for backward compatibility */
+type VaultRecording = WorkspaceRecording
 
 export interface YouTubeVideoListProps {
   /** Recordings to render */

@@ -24,7 +24,7 @@ import { TagDetailPanel } from '@/components/panels/TagDetailPanel';
 import { SettingHelpPanel } from '@/components/panels/SettingHelpPanel';
 import { UserDetailPanel } from '@/components/panels/UserDetailPanel';
 import { CallDetailPanel } from '@/components/panels/CallDetailPanel';
-import { VaultMemberPanel } from '@/components/panels/VaultMemberPanel';
+import { WorkspaceMemberPanel } from '@/components/panels/WorkspaceMemberPanel';
 import { AutomationRulePanel } from '@/components/panels/AutomationRulePanel';
 
 export interface DetailPaneOutletProps {
@@ -88,10 +88,15 @@ export function DetailPaneOutlet({
           <CallDetailPanel recordingId={panelData.recordingId} />
         ) : null;
 
-      case 'vault-member':
-        return panelData?.type === 'vault-member' ? (
-          <VaultMemberPanel vaultId={panelData.vaultId} />
-        ) : null;
+      case 'workspace-member':
+      case 'vault-member': // Legacy fallback
+        if (panelData?.type === 'workspace-member') {
+          return <WorkspaceMemberPanel workspaceId={panelData.workspaceId} />;
+        }
+        if (panelData?.type === 'vault-member') {
+          return <WorkspaceMemberPanel workspaceId={panelData.vaultId} />;
+        }
+        return null;
 
       case 'automation-rule':
         return panelData?.type === 'automation-rule' ? (
@@ -118,8 +123,9 @@ export function DetailPaneOutlet({
         return 'User detail panel';
       case 'call-detail':
         return 'Call detail panel';
+      case 'workspace-member':
       case 'vault-member':
-        return 'Hub member panel';
+        return 'Workspace member panel';
       case 'automation-rule':
         return 'Automation rule detail panel';
       default:

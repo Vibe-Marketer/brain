@@ -66,7 +66,7 @@ export async function fetchTemplates(
     let query = supabase
       .from("templates")
       .select("*")
-      .eq("bank_id", bankId)
+      .eq("organization_id", bankId)
       .order("created_at", { ascending: false });
 
     // RLS handles user/team access, but we can filter for personal templates only
@@ -157,7 +157,7 @@ export async function fetchSharedTemplates(
     let query = supabase
       .from("templates")
       .select("*")
-      .eq("bank_id", bankId)
+      .eq("organization_id", bankId)
       .eq("is_shared", true)
       .neq("user_id", user.id) // Exclude user's own templates
       .order("created_at", { ascending: false });
@@ -234,7 +234,7 @@ export async function saveTemplate(
     if (!bankId) {
       return {
         data: null,
-        error: new TemplateError("Bank ID is required"),
+        error: new TemplateError("Organization ID is required"),
       };
     }
 
@@ -272,7 +272,7 @@ export async function saveTemplate(
       .from("templates")
       .insert({
         user_id: user.id,
-        bank_id: bankId,
+        organization_id: bankId,
         name: input.name.trim(),
         description: input.description || null,
         template_content: input.template_content,

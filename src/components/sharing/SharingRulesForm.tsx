@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -74,7 +74,7 @@ export function SharingRulesForm({
   title = "Configure Sharing Rules",
   showShareAllToggle = true,
 }: SharingRulesFormProps) {
-  const { activeBankId } = useBankContext();
+  const { activeOrganizationId } = useOrganizationContext();
   // State
   const [folders, setFolders] = useState<FolderTreeNode[]>([]);
   const [allFoldersFlat, setAllFoldersFlat] = useState<FolderTreeNode[]>([]);
@@ -101,8 +101,8 @@ export function SharingRulesForm({
         .eq("user_id", user.id)
         .order("position");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;
@@ -132,8 +132,8 @@ export function SharingRulesForm({
         .eq("user_id", user.id)
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;

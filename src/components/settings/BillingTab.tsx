@@ -175,7 +175,7 @@ export default function BillingTab() {
               {/* Plan Header */}
               <div className="flex items-start gap-4">
                 <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                  <RiBankCardLine className="h-6 w-6 text-primary" />
+                  <RiOrganizationCardLine className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">

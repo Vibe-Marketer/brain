@@ -35,13 +35,13 @@ export interface ConnectorRecord {
    */
   source_metadata: Record<string, unknown>;
   /** If omitted, insertRecording() resolves the user's personal bank automatically */
-  bank_id?: string;
+  organization_id?: string;
   /** If omitted, insertRecording() resolves the personal vault for the resolved bank */
-  vault_id?: string;
+  workspace_id?: string;
   /**
    * Optional destination folder within the target vault.
    * Set by the routing engine when a matched rule specifies a target_folder_id.
-   * Passed through to the vault_entries INSERT if present.
+   * Passed through to the workspace_entries INSERT if present.
    */
   folder_id?: string;
 }
@@ -104,8 +104,8 @@ export async function checkDuplicate(
  * Stage 5: Insert a normalized record into the recordings table and create a vault_entry
  * in the user's personal vault.
  *
- * If bank_id is not provided on the record, resolves the user's personal bank via
- * bank_memberships JOIN banks WHERE type = 'personal'.
+ * If organization_id is not provided on the record, resolves the user's personal bank via
+ * organization_memberships JOIN organizations WHERE type = 'personal'.
  *
  * source_metadata is written with external_id as the first key, followed by any
  * additional connector-supplied metadata, for consistent structure across sources.
@@ -123,15 +123,15 @@ export async function insertRecording(
   record: ConnectorRecord,
 ): Promise<{ id: string }> {
   // -------------------------------------------------------------------------
-  // Resolve bank_id (personal bank) if not provided by caller
+  // Resolve organization_id (personal bank) if not provided by caller
   // -------------------------------------------------------------------------
-  let bankId = record.bank_id;
+  let bankId = record.organization_id;
   if (!bankId) {
     const { data: membership, error: bankError } = await supabase
-      .from('bank_memberships')
-      .select('banks!inner(id, type)')
+      .from('organization_memberships')
+      .select('organizations!inner(id, type)')
       .eq('user_id', userId)
-      .eq('banks.type', 'personal')
+      .eq('organizations.type', 'personal')
       .maybeSingle();
 
     if (bankError) {
@@ -139,7 +139,7 @@ export async function insertRecording(
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    bankId = (membership as any)?.banks?.id;
+    bankId = (membership as any)?.organizations?.id;
     if (!bankId) {
       throw new Error(`[connector-pipeline] No personal bank found for user ${userId}`);
     }
@@ -159,7 +159,7 @@ export async function insertRecording(
   const { data: newRecording, error: recordingError } = await supabase
     .from('recordings')
     .insert({
-      bank_id: bankId,
+      organization_id: bankId,
       owner_user_id: userId,
       title: record.title,
       full_transcript: record.full_transcript,
@@ -180,14 +180,14 @@ export async function insertRecording(
   // Create vault_entry in personal vault (non-blocking)
   // -------------------------------------------------------------------------
   try {
-    // Use provided vault_id or resolve personal vault for this bank
-    let vaultId = record.vault_id;
+    // Use provided workspace_id or resolve personal vault for this bank
+    let vaultId = record.workspace_id;
     if (!vaultId) {
       const { data: vault, error: vaultError } = await supabase
-        .from('vaults')
+        .from('workspaces')
         .select('id')
-        .eq('bank_id', bankId)
-        .eq('vault_type', 'personal')
+        .eq('organization_id', bankId)
+        .eq('workspace_type', 'personal')
         .maybeSingle();
 
       if (vaultError) {
@@ -199,7 +199,7 @@ export async function insertRecording(
 
     if (vaultId) {
       const entryPayload: Record<string, unknown> = {
-        vault_id: vaultId,
+        workspace_id: vaultId,
         recording_id: newRecording.id,
       };
 
@@ -209,7 +209,7 @@ export async function insertRecording(
       }
 
       const { error: entryError } = await supabase
-        .from('vault_entries')
+        .from('workspace_entries')
         .insert(entryPayload);
 
       if (entryError) {
@@ -235,10 +235,10 @@ export async function insertRecording(
  * then calls insertRecording.
  *
  * Routing resolution runs between the dedup check and the insert:
- *   1. If record.vault_id is already set (connector specified explicit destination) → skip routing
- *   2. Resolve bank_id (use record.bank_id or look up personal bank)
+ *   1. If record.workspace_id is already set (connector specified explicit destination) → skip routing
+ *   2. Resolve organization_id (use record.organization_id or look up personal bank)
  *   3. Call resolveRoutingDestination() — evaluates import_routing_rules in priority order
- *   4. If a rule matches → set record.vault_id, record.folder_id, merge routing trace into source_metadata
+ *   4. If a rule matches → set record.workspace_id, record.folder_id, merge routing trace into source_metadata
  *   5. If no rule matches → check import_routing_defaults for org fallback destination
  *   6. If neither → do nothing (insertRecording falls back to personal vault — existing behavior preserved)
  *
@@ -271,23 +271,23 @@ export async function runPipeline(
     // -------------------------------------------------------------------------
     // Routing resolution: only when connector didn't specify an explicit vault
     // -------------------------------------------------------------------------
-    if (!record.vault_id) {
+    if (!record.workspace_id) {
       try {
-        // Resolve bank_id for routing lookup
-        let bankId = record.bank_id;
+        // Resolve organization_id for routing lookup
+        let bankId = record.organization_id;
         if (!bankId) {
           const { data: membership, error: bankError } = await supabase
-            .from('bank_memberships')
-            .select('banks!inner(id, type)')
+            .from('organization_memberships')
+            .select('organizations!inner(id, type)')
             .eq('user_id', userId)
-            .eq('banks.type', 'personal')
+            .eq('organizations.type', 'personal')
             .maybeSingle();
 
           if (bankError) {
             console.error('[connector-pipeline] Failed to resolve bank for routing (skipping routing):', bankError);
           } else {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            bankId = (membership as any)?.banks?.id;
+            bankId = (membership as any)?.organizations?.id;
           }
         }
 
@@ -297,7 +297,7 @@ export async function runPipeline(
 
           if (routing) {
             // Routing rule matched — set destination and record trace metadata
-            record.vault_id = routing.vaultId;
+            record.workspace_id = routing.vaultId;
             if (routing.folderId) {
               record.folder_id = routing.folderId;
             }
@@ -312,14 +312,14 @@ export async function runPipeline(
             // Step 2: No rule matched — try org-level default destination
             const { data: defaultDest, error: defaultError } = await supabase
               .from('import_routing_defaults')
-              .select('target_vault_id, target_folder_id')
-              .eq('bank_id', bankId)
+              .select('target_workspace_id, target_folder_id')
+              .eq('organization_id', bankId)
               .maybeSingle();
 
             if (defaultError) {
               console.error('[connector-pipeline] Failed to load routing default (skipping):', defaultError);
             } else if (defaultDest) {
-              record.vault_id = defaultDest.target_vault_id;
+              record.workspace_id = defaultDest.target_workspace_id;
               if (defaultDest.target_folder_id) {
                 record.folder_id = defaultDest.target_folder_id;
               }

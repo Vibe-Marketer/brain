@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { toast } from "sonner";
 import {
   Table,
@@ -63,7 +63,7 @@ interface TitleCountData {
 
 export function RecurringTitlesTab() {
   const queryClient = useQueryClient();
-  const { activeBankId } = useBankContext();
+  const { activeOrganizationId } = useOrganizationContext();
   const [createRuleDialogOpen, setCreateRuleDialogOpen] = useState(false);
   const [selectedTitle, setSelectedTitle] = useState<string | null>(null);
   const [selectedTagId, setSelectedTagId] = useState<string>("");
@@ -109,15 +109,15 @@ export function RecurringTitlesTab() {
 
   // Fetch tags scoped to active bank/workspace
   const { data: tags } = useQuery({
-    queryKey: ["call-tags", activeBankId],
+    queryKey: ["call-tags", activeOrganizationId],
     queryFn: async () => {
       let query = supabase
         .from("call_tags")
         .select("id, name, color, description")
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;
@@ -128,15 +128,15 @@ export function RecurringTitlesTab() {
 
   // Fetch folders scoped to active bank/workspace
   const { data: folders } = useQuery({
-    queryKey: ["folders", activeBankId],
+    queryKey: ["folders", activeOrganizationId],
     queryFn: async () => {
       let query = supabase
         .from("folders")
         .select("id, name, color, icon")
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;

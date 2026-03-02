@@ -5,8 +5,8 @@ import { create } from 'zustand';
  * backward compatibility during Phase 9 migration.
  * 
  * Migration guide:
- * - import { useBankContextStore } from '@/stores/bankContextStore'
- * - activeTeamId → activeBankId (for bank context)
+ * - import { useOrganizationContextStore } from '@/stores/bankContextStore'
+ * - activeTeamId → activeOrganizationId (for bank context)
  * - null activeTeamId → personal bank (auto-selected)
  * - Team vaults → use activeVaultId for vault context
  * 

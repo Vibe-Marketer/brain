@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { AppShell } from '@/components/layout/AppShell';
 import { Spinner } from '@/components/ui/spinner';
 import { supabase } from '@/integrations/supabase/client';
-import { VaultBadgeList } from '@/components/vault/VaultBadgeList';
+import { WorkspaceBadgeList } from '@/components/workspace/WorkspaceBadgeList';
 import { parseYouTubeDuration, formatCompactNumber } from '@/lib/youtube-utils';
 
 
@@ -291,7 +291,7 @@ export const CallDetailPage: React.FC = () => {
               </div>
             </div>
 
-            <VaultBadgeList
+            <WorkspaceBadgeList
               legacyRecordingId={recordingId}
               maxVisible={3}
               size="md"
@@ -397,7 +397,7 @@ export const CallDetailPage: React.FC = () => {
             )}
           </div>
 
-          <VaultBadgeList
+          <WorkspaceBadgeList
             legacyRecordingId={recordingId}
             maxVisible={3}
             size="md"

@@ -126,7 +126,7 @@ interface SourcePlatformIndicatorProps {
   /** Primary source platform */
   sourcePlatform?: string | null;
   /** Array of merged source platforms (for merged meetings) */
-  mergedFrom?: Array<{ source_platform?: string }> | null;
+  mergedFrom?: Array<{ source_platform?: string } | number> | null;
   /** Size of each icon in pixels */
   size?: number;
 }
@@ -151,6 +151,9 @@ export function SourcePlatformIndicator({
   // Add merged platforms
   if (mergedFrom && mergedFrom.length > 0) {
     mergedFrom.forEach(merged => {
+      // Skip numeric IDs, we only want objects with platform info
+      if (typeof merged === 'number') return;
+      
       if (merged.source_platform === 'fathom') platforms.add('fathom');
       else if (merged.source_platform === 'zoom') platforms.add('zoom');
       else if (merged.source_platform === 'google_meet') platforms.add('google_meet');
