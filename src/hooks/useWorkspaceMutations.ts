@@ -21,7 +21,7 @@ const db = supabase as any
 // ─── Create Workspace ───────────────────────────────────────────────────
 
 export interface CreateWorkspaceInput {
-  orgId: string // Renamed from bankId
+  orgId: string
   name: string
   workspaceType: WorkspaceType
   defaultShareLinkTtlDays?: number
