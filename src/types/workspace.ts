@@ -7,9 +7,9 @@
  * @see docs/planning/CallVault-Final-Spaces.md
  */
 
-// Organization types (formerly Organization)
+// Organization types
 export type OrganizationType = 'personal' | 'business'
-export type OrganizationRole = 'organization_owner' | 'organization_admin' | 'organization_member' | 'bank_owner' | 'bank_admin' | 'bank_member'
+export type OrganizationRole = 'organization_owner' | 'organization_admin' | 'organization_member'
 
 // Workspace types - personal + team fully implemented, youtube for video intelligence, others schema only
 export type WorkspaceType = 'personal' | 'team' | 'coach' | 'community' | 'client' | 'youtube'
@@ -19,19 +19,17 @@ export type WorkspaceRole = 'workspace_owner' | 'workspace_admin' | 'manager' | 
 export type FolderVisibility = 'all_members' | 'managers_only' | 'owner_only'
 
 /**
- * Organization - Top-level tenant container (formerly Organization)
+ * Organization - Top-level tenant container
  * Each user has exactly one personal organization, and can belong to multiple business organizations
  */
 export interface Organization {
   id: string
   name: string
   type: OrganizationType
-  cross_organization_default: 'copy_only' | 'copy_and_remove'
+  cross_org_default: 'copy_only' | 'copy_and_remove'
   logo_url?: string | null
   created_at: string
   updated_at: string
-  // Legacy
-  cross_bank_default?: 'copy_only' | 'copy_and_remove'
 }
 
 /**
@@ -43,8 +41,6 @@ export interface OrganizationMembership {
   user_id: string
   role: OrganizationRole
   created_at: string
-  // Legacy
-  bank_id?: string
 }
 
 /**
@@ -55,14 +51,11 @@ export interface Workspace {
   id: string
   organization_id: string
   name: string
-  workspace_type: WorkspaceType // formerly vault_type
+  workspace_type: WorkspaceType
   default_sharelink_ttl_days: number
   is_default?: boolean
   created_at: string
   updated_at: string
-  // Legacy
-  bank_id?: string
-  vault_type?: WorkspaceType
 }
 
 /**
@@ -74,8 +67,6 @@ export interface WorkspaceMembership {
   user_id: string
   role: WorkspaceRole
   created_at: string
-  // Legacy
-  vault_id?: string
 }
 
 /**
@@ -86,8 +77,6 @@ export interface OrganizationWithMembership extends Organization {
   membership: OrganizationMembership
   workspaces?: Workspace[]
   member_count?: number
-  // Legacy
-  vaults?: Workspace[]
 }
 
 /**
@@ -119,8 +108,6 @@ export interface Recording {
   recording_end_time?: string | null
   created_at: string
   synced_at?: string | null
-  // Legacy
-  bank_id?: string
 }
 
 /**
@@ -140,7 +127,7 @@ export interface WorkspaceEntry {
 }
 
 /**
- * Folder - Hierarchical container within a workspace/vault
+ * Folder - Hierarchical container within a workspace
  */
 export interface Folder {
   id: string
@@ -158,8 +145,3 @@ export interface Folder {
   updated_at?: string
 }
 
-// Legacy aliases for backward compatibility (progressive migration)
-
-export type Vault = Workspace
-export type VaultWithMembership = WorkspaceWithMembership
-export type VaultWithMeta = Workspace & { member_count: number; user_role: WorkspaceRole | null }

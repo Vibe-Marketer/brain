@@ -32,19 +32,19 @@ export function DestinationPicker({
   className,
 }: DestinationPickerProps) {
   const { data: workspaces = [], isLoading: workspacesLoading } = useWorkspaces(orgId);
-  const { data: folders = [], isLoading: foldersLoading } = useFolders(value?.vaultId ?? null);
+  const { data: folders = [], isLoading: foldersLoading } = useFolders(value?.workspaceId ?? null);
 
-  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(value?.vaultId ?? null);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(value?.workspaceId ?? null);
 
   useEffect(() => {
-    setSelectedWorkspaceId(value?.vaultId ?? null);
-  }, [value?.vaultId]);
+    setSelectedWorkspaceId(value?.workspaceId ?? null);
+  }, [value?.workspaceId]);
 
   function handleWorkspaceChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const vaultId = e.target.value || null;
-    setSelectedWorkspaceId(vaultId);
-    if (vaultId) {
-      onChange({ vaultId, folderId: null });
+    const workspaceId = e.target.value || null;
+    setSelectedWorkspaceId(workspaceId);
+    if (workspaceId) {
+      onChange({ workspaceId, folderId: null });
     }
   }
 
@@ -52,7 +52,7 @@ export function DestinationPicker({
     if (!selectedWorkspaceId) return;
     const rawValue = e.target.value;
     const folderId = rawValue === '' ? null : rawValue;
-    onChange({ vaultId: selectedWorkspaceId, folderId });
+    onChange({ workspaceId: selectedWorkspaceId, folderId });
   }
 
   return (

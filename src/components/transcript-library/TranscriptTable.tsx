@@ -35,13 +35,22 @@ import type { SharingStatus, AccessLevel } from "@/types/sharing";
 import type { Folder } from "@/types/workspace";
 
 
-// Column options for visibility toggle
-const columnOptions = [
+// Column options for visibility toggle — varies by table mode
+const workspaceColumnOptions = [
   { id: "date", label: "Date" },
   { id: "duration", label: "Duration" },
   { id: "participants", label: "Invitees" },
   { id: "tags", label: "Tags" },
   { id: "folders", label: "Folders" },
+  { id: "workspaces", label: "Workspaces" },
+  { id: "sharedWith", label: "Shared With" },
+];
+
+const homeColumnOptions = [
+  { id: "date", label: "Date" },
+  { id: "duration", label: "Duration" },
+  { id: "source", label: "Source" },
+  { id: "tags", label: "Tags" },
   { id: "workspaces", label: "Workspaces" },
   { id: "sharedWith", label: "Shared With" },
 ];
@@ -79,6 +88,8 @@ interface TranscriptTableProps {
   // Sharing status per call
   sharingStatuses?: Record<string | number, SharingStatus>;
   accessLevels?: Record<string | number, AccessLevel>;
+  // Table mode: 'home' shows universal columns, 'workspace' shows full columns
+  tableMode?: 'home' | 'workspace';
 }
 
 
@@ -111,7 +122,10 @@ export const TranscriptTable = React.memo(({
   onDirectReportsFilterChange,
   sharingStatuses = {},
   accessLevels = {},
+  tableMode = 'workspace',
 }: TranscriptTableProps) => {
+  const isHome = tableMode === 'home';
+  const columnOptions = isHome ? homeColumnOptions : workspaceColumnOptions;
   const { sortField, sortDirection: _sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
 
   const SortButton = ({ field, children }: { field: string; children: React.ReactNode }) => (
@@ -195,16 +209,23 @@ export const TranscriptTable = React.memo(({
                     <SortButton field="duration">DURATION</SortButton>
                   </TableHead>
                 )}
-                {visibleColumns.participants !== false && (
+                {!isHome && visibleColumns.participants !== false && (
                   <TableHead className="hidden lg:table-cell text-center w-[85px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
                     <SortButton field="participants">INVITEES</SortButton>
                   </TableHead>
                 )}
-                <TableHead className="hidden xl:table-cell text-center w-20 h-12 whitespace-nowrap text-xs md:text-sm">COUNT</TableHead>
+                {!isHome && (
+                  <TableHead className="hidden xl:table-cell text-center w-20 h-12 whitespace-nowrap text-xs md:text-sm">COUNT</TableHead>
+                )}
+                {isHome && visibleColumns.source !== false && (
+                  <TableHead className="hidden lg:table-cell min-w-[100px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
+                    <SortButton field="source">SOURCE</SortButton>
+                  </TableHead>
+                )}
                 {visibleColumns.tags !== false && (
                   <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">TAGS</TableHead>
                 )}
-                {visibleColumns.folders !== false && (
+                {!isHome && visibleColumns.folders !== false && (
                   <TableHead className="hidden xl:table-cell min-w-[120px] h-12 whitespace-nowrap text-xs md:text-sm">FOLDERS</TableHead>
                 )}
                 {visibleColumns.workspaces !== false && (
@@ -295,6 +316,7 @@ export const TranscriptTable = React.memo(({
                     visibleColumns={visibleColumns}
                     sharingStatus={sharingStatuses[call.recording_id]}
                     accessLevel={accessLevels[call.recording_id]}
+                    tableMode={tableMode}
                     onSelect={() => onSelectCall(call.recording_id)}
                     onCallClick={() => onCallClick(call)}
                     onFolder={onFolderCall ? () => onFolderCall(call.recording_id) : undefined}

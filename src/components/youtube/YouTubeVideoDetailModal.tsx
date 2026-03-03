@@ -1,5 +1,5 @@
 /**
- * YouTubeVideoDetailModal - Full video detail overlay for YouTube vault recordings
+ * YouTubeVideoDetailModal - Full video detail overlay for YouTube workspace recordings
  *
  * Opens when clicking a video in YouTubeVideoList. Shows video summary
  * (thumbnail/title/channel/stats), collapsible description, scrollable
@@ -43,6 +43,8 @@ export interface YouTubeVideoDetailModalProps {
   /** Workspace ID for chat scoping */
   workspaceId: string
 }
+
+
 
 /**
  * Format a date string as relative time (e.g., "3 months ago")
@@ -227,7 +229,7 @@ export function YouTubeVideoDetailModal({
 
             {/* ─────── 4. Chat ─────── */}
             <YouTubeChatSection
-              vaultId={workspaceId}
+              workspaceId={workspaceId}
               recordingId={recording.legacy_recording_id ?? null}
               videoTitle={recording.title || 'Untitled video'}
               onClose={() => handleOpenChange(false)}

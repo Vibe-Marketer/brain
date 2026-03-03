@@ -378,7 +378,7 @@ export type Database = {
       banks: {
         Row: {
           created_at: string
-          cross_bank_default: string | null
+          cross_org_default: string | null
           id: string
           name: string
           type: string
@@ -386,7 +386,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          cross_bank_default?: string | null
+          cross_org_default?: string | null
           id?: string
           name: string
           type: string
@@ -394,7 +394,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          cross_bank_default?: string | null
+          cross_org_default?: string | null
           id?: string
           name?: string
           type?: string

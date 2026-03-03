@@ -23,7 +23,7 @@ export interface WorkspaceMember {
  * Queries: workspaces table filtered by organization_id (orgId).
  * Ordering: is_default DESC (default workspace first), then name ASC.
  *
- * Note: All Supabase queries use supabase.from('workspaces') — never 'workspaces'.
+ * Note: All Supabase queries use supabase.from('workspaces').
  */
 export async function getWorkspaces(orgId: string): Promise<Workspace[]> {
   const { data, error } = await supabase
@@ -73,8 +73,8 @@ export async function getWorkspaceById(workspaceId: string): Promise<Workspace |
 
 /**
  * Creates a new workspace within the given organization.
- * Inserts into workspaces with organization_id = orgId, then creates vault_membership for creator as workspace_owner.
- * If isDefault is true, sets is_default = true on the vault.
+ * Inserts into workspaces with organization_id = orgId, then creates workspace_membership for creator as workspace_owner.
+ * If isDefault is true, sets is_default = true on the workspace.
  */
 export async function createWorkspace(
   orgId: string,
@@ -82,7 +82,7 @@ export async function createWorkspace(
   name: string,
   isDefault = false
 ): Promise<Workspace> {
-  // 1. Insert the vault (DB uses organization_id and workspace_type)
+  // 1. Insert the workspace (DB uses organization_id and workspace_type)
   const insertPayload: Record<string, unknown> = {
     organization_id: orgId,
     name,
@@ -92,7 +92,7 @@ export async function createWorkspace(
     insertPayload.is_default = true
   }
 
-  const { data: vault, error: vaultError } = await supabase
+  const { data: workspace, error: workspaceError } = await supabase
     .from('workspaces')
     .insert(insertPayload as any)
     .select(
@@ -100,20 +100,20 @@ export async function createWorkspace(
     )
     .single()
 
-  if (vaultError || !vault) {
-    throw new Error(`Failed to create workspace: ${vaultError?.message ?? 'Unknown error'}`)
+  if (workspaceError || !workspace) {
+    throw new Error(`Failed to create workspace: ${workspaceError?.message ?? 'Unknown error'}`)
   }
 
-  // 2. Create vault_membership as workspace_owner
+  // 2. Create workspace_membership as workspace_owner
   const { error: memberError } = await supabase
     .from('workspace_memberships')
-    .insert({ workspace_id: vault.id, user_id: userId, role: 'workspace_owner' })
+    .insert({ workspace_id: workspace.id, user_id: userId, role: 'workspace_owner' })
 
   if (memberError) {
     throw new Error(`Workspace created but failed to set membership: ${memberError.message}`)
   }
 
-  return vault as Workspace
+  return workspace as Workspace
 }
 
 /**

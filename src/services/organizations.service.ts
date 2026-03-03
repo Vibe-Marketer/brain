@@ -19,7 +19,7 @@ export interface OrganizationWithRole extends Organization {
  * Queries: organizations table via organization_memberships join.
  * Returns: Organization[] with membership role attached.
  *
- * Note: All Supabase queries use supabase.from('organizations') — never 'organizations'.
+ * Note: All Supabase queries use supabase.from('organizations').
  */
 export async function getOrganizations(userId: string): Promise<OrganizationWithRole[]> {
   const { data, error } = await supabase
@@ -27,11 +27,11 @@ export async function getOrganizations(userId: string): Promise<OrganizationWith
     .select(`
       id,
       role,
-      bank:organizations (
+      org:organizations (
         id,
         name,
         type,
-        cross_bank_default,
+        cross_org_default,
         created_at,
         updated_at
       )
@@ -45,7 +45,7 @@ export async function getOrganizations(userId: string): Promise<OrganizationWith
   // Transform membership rows to OrganizationWithRole[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data ?? []).map((row: any) => ({
-    ...row.bank,
+    ...row.org,
     membershipRole: row.role as string,
     membershipId: row.id as string,
   })) as OrganizationWithRole[]
@@ -58,7 +58,7 @@ export async function getOrganizations(userId: string): Promise<OrganizationWith
 export async function getOrganizationById(orgId: string): Promise<Organization | null> {
   const { data, error } = await supabase
     .from('organizations')
-    .select('id, name, type, cross_bank_default, created_at, updated_at')
+    .select('id, name, type, cross_org_default, created_at, updated_at')
     .eq('id', orgId)
     .maybeSingle()
 
@@ -70,8 +70,8 @@ export async function getOrganizationById(orgId: string): Promise<Organization |
 }
 
 /**
- * Creates a new organization (business bank) for the given user.
- * Inserts into organizations with type='business', then creates bank_membership as organization_owner.
+ * Creates a new organization for the given user.
+ * Inserts into organizations with type='business', then creates organization_membership as organization_owner.
  * Returns the newly created organization.
  */
 export async function createOrganization(
@@ -82,7 +82,7 @@ export async function createOrganization(
   const { data: organization, error: orgError } = await supabase
     .from('organizations')
     .insert({ name, type: 'business' })
-    .select('id, name, type, cross_bank_default, created_at, updated_at')
+    .select('id, name, type, cross_org_default, created_at, updated_at')
     .single()
 
   if (orgError || !organization) {

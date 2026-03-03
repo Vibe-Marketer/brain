@@ -40,6 +40,9 @@ export function useTableSort<T>(data: T[], initialField: string = "date") {
         bVal = b.recording_start_time && b.recording_end_time
           ? new Date(b.recording_end_time).getTime() - new Date(b.recording_start_time).getTime()
           : 0;
+      } else if (sortField === "source") {
+        aVal = (a.source_platform || "").toLowerCase();
+        bVal = (b.source_platform || "").toLowerCase();
       } else {
         // Generic field access
         aVal = a[sortField];

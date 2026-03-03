@@ -67,7 +67,7 @@ export const queryKeys = {
   // Tags
   tags: {
     all: ['tags'] as const,
-    list: (bankId?: string) => ['tags', 'list', bankId] as const,
+    list: (orgId?: string) => ['tags', 'list', orgId] as const,
     assignments: (recordingIds: number | number[]) => ['tag-assignments', recordingIds] as const,
   },
 
@@ -126,7 +126,7 @@ export const queryKeys = {
     unread: () => ['notifications', 'unread'] as const,
   },
 
-  // Workspaces (formerly Workspaces)
+  // Workspaces
   workspaces: {
     all: ['workspaces'] as const,
     list: (orgId?: string) => ['workspaces', 'list', orgId] as const,
@@ -162,9 +162,9 @@ export const queryKeys = {
   // Routing Rules (V2 architecture)
   routingRules: {
     all: ['routing-rules'] as const,
-    list: (bankId?: string) => ['routing-rules', 'list', bankId] as const,
-    defaults: (bankId?: string) => ['routing-rules', 'defaults', bankId] as const,
-    preview: (bankId?: string) => ['routing-rules', 'preview', bankId] as const,
+    list: (orgId?: string) => ['routing-rules', 'list', orgId] as const,
+    defaults: (orgId?: string) => ['routing-rules', 'defaults', orgId] as const,
+    preview: (orgId?: string) => ['routing-rules', 'preview', orgId] as const,
   },
 } as const;
 

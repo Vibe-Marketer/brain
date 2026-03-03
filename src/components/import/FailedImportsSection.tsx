@@ -6,13 +6,7 @@ import { useState } from 'react';
 import { RiAlertLine, RiRefreshLine, RiArrowDownSLine, RiArrowUpSLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useFailedImports, useRetryFailedImport } from '@/hooks/useImportSources';
-
-const SOURCE_DISPLAY_NAMES: Record<string, string> = {
-  fathom: 'Fathom',
-  zoom: 'Zoom',
-  youtube: 'YouTube',
-  'file-upload': 'File Upload',
-};
+import { SOURCE_LABELS } from '@/lib/source-labels';
 
 export function FailedImportsSection() {
   const [isExpanded, setIsExpanded] = useState(true);
@@ -53,7 +47,7 @@ export function FailedImportsSection() {
       {isExpanded && (
         <ul className="divide-y divide-border/40 px-4 pb-3">
           {failedImports.map((item) => {
-            const sourceName = SOURCE_DISPLAY_NAMES[item.source_app] ?? item.source_app;
+            const sourceName = SOURCE_LABELS[item.source_app] ?? item.source_app;
             const isFileUpload = item.source_app === 'file-upload';
             const isRetrying =
               retryMutation.isPending &&

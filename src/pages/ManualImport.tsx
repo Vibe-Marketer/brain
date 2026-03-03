@@ -46,7 +46,7 @@ export default function ManualImport() {
     });
     // Refresh workspace list so newly auto-created YouTube workspace appears in sidebar
     queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
-    queryClient.invalidateQueries({ queryKey: ['bankContext'] });
+    queryClient.invalidateQueries({ queryKey: ['orgContext'] });
   }, [queryClient]);
 
   const handleError = useCallback((error: string) => {

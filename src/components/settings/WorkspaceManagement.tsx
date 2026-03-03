@@ -162,7 +162,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.list(orgId) })
-      queryClient.invalidateQueries({ queryKey: ['bankContext'] })
+      queryClient.invalidateQueries({ queryKey: ['orgContext'] })
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
       setCreateDialogOpen(false)
       setNewWorkspaceName('')

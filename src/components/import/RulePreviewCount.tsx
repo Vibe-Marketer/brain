@@ -6,13 +6,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { RiAlertLine, RiInformationLine, RiArrowDownSLine, RiArrowUpSLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
-
-const SOURCE_LABELS: Record<string, string> = {
-  fathom: 'Fathom',
-  zoom: 'Zoom',
-  youtube: 'YouTube',
-  'file-upload': 'File Upload',
-};
+import { SOURCE_LABELS } from '@/lib/source-labels';
 
 interface RulePreviewCountProps {
   matchingCount: number;

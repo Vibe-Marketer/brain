@@ -2151,7 +2151,7 @@ export type Database = {
       organizations: {
         Row: {
           created_at: string
-          cross_bank_default: string | null
+          cross_org_default: string | null
           id: string
           logo_url: string | null
           name: string
@@ -2160,7 +2160,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          cross_bank_default?: string | null
+          cross_org_default?: string | null
           id?: string
           logo_url?: string | null
           name: string
@@ -2169,7 +2169,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          cross_bank_default?: string | null
+          cross_org_default?: string | null
           id?: string
           logo_url?: string | null
           name?: string
@@ -3601,7 +3601,7 @@ export type Database = {
       }
       create_business_organization: {
         Args: {
-          p_cross_bank_default?: string
+          p_cross_org_default?: string
           p_default_workspace_name?: string
           p_logo_url?: string
           p_name: string

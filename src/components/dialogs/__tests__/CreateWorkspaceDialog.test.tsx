@@ -7,9 +7,9 @@ const mockMutate = vi.fn()
 vi.mock('@/hooks/useOrganizationContext', () => ({
   useOrganizationContext: () => ({
     organizations: [
-      { id: 'bank-1', name: 'Workspace', type: 'business' },
+      { id: 'org-1', name: 'Workspace', type: 'business' },
     ],
-    activeOrganizationId: 'bank-1',
+    activeOrganizationId: 'org-1',
   }),
 }))
 
@@ -92,7 +92,7 @@ describe('CreateWorkspaceDialog', () => {
       <CreateWorkspaceDialog
         open
         onOpenChange={vi.fn()}
-        bankId="bank-1"
+        orgId="org-1"
       />
     )
 
@@ -101,12 +101,12 @@ describe('CreateWorkspaceDialog', () => {
     expect(youtubeOption.hasAttribute('disabled')).toBe(false)
   })
 
-  it('submits create payload with vaultType youtube when selected', () => {
+  it('submits create payload with workspaceType youtube when selected', () => {
     render(
       <CreateWorkspaceDialog
         open
         onOpenChange={vi.fn()}
-        bankId="bank-1"
+        orgId="org-1"
       />
     )
 
@@ -120,9 +120,9 @@ describe('CreateWorkspaceDialog', () => {
     expect(mockMutate).toHaveBeenCalledTimes(1)
     expect(mockMutate).toHaveBeenCalledWith(
       expect.objectContaining({
-        bankId: 'bank-1',
+        orgId: 'org-1',
         name: 'YouTube Hub',
-        vaultType: 'youtube',
+        workspaceType: 'youtube',
       }),
       expect.any(Object)
     )

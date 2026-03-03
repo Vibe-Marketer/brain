@@ -1,5 +1,5 @@
 /**
- * ChangeRoleDialog - Change a vault member's role
+ * ChangeRoleDialog - Change a workspace member's role
  *
  * Shows current role, radio buttons for available roles,
  * disables roles higher than current user's role.
@@ -40,8 +40,8 @@ interface ChangeRoleDialogProps {
   isLoading?: boolean
 }
 
-/** All vault roles in hierarchy order */
-const VAULT_ROLES: Array<{
+/** All workspace roles in hierarchy order */
+const WORKSPACE_ROLES: Array<{
   value: WorkspaceRole
   label: string
   description: string
@@ -51,7 +51,7 @@ const VAULT_ROLES: Array<{
   {
     value: 'workspace_owner',
     label: 'Owner',
-    description: 'Full control. Can delete vault and manage all members.',
+    description: 'Full control. Can delete workspace and manage all members.',
     icon: RiVipCrownLine,
     power: 0,
   },
@@ -72,7 +72,7 @@ const VAULT_ROLES: Array<{
   {
     value: 'member',
     label: 'Member',
-    description: 'Can view and interact with vault recordings.',
+    description: 'Can view and interact with workspace recordings.',
     icon: RiUserLine,
     power: 3,
   },
@@ -113,7 +113,7 @@ export function ChangeRoleDialog({
 
   const currentUserPower = ROLE_POWER[currentUserRole]
   const hasChanged = selectedRole !== currentRole
-  const currentRoleLabel = VAULT_ROLES.find((role) => role.value === currentRole)?.label || currentRole
+  const currentRoleLabel = WORKSPACE_ROLES.find((role) => role.value === currentRole)?.label || currentRole
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -127,7 +127,7 @@ export function ChangeRoleDialog({
         </DialogHeader>
 
         <div className="space-y-2 py-2">
-          {VAULT_ROLES.map((role) => {
+          {WORKSPACE_ROLES.map((role) => {
             const Icon = role.icon
             // Disable roles higher than current user's role
             const isDisabled = role.power < currentUserPower
@@ -151,7 +151,7 @@ export function ChangeRoleDialog({
               >
                 <input
                   type="radio"
-                  name="vault-role"
+                  name="workspace-role"
                   value={role.value}
                   checked={isSelected}
                   onChange={() => !disabled && setSelectedRole(role.value)}

@@ -2,7 +2,7 @@
  * YouTubeChatSection - Click-to-start chat CTA for video detail modal
  *
  * Displays a "Chat about this video" button that navigates to /chat
- * with vault context and recording prefilter, matching the existing
+ * with workspace context and recording prefilter, matching the existing
  * ChatLocationState pattern used in Chat.tsx.
  *
  * @pattern youtube-chat-cta
@@ -17,7 +17,7 @@ import type { ChatLocationState } from '@/types/chat'
 
 export interface YouTubeChatSectionProps {
   /** Workspace ID for scoping the chat session */
-  vaultId: string
+  workspaceId: string
   /** Legacy recording ID (numeric) for prefilter */
   recordingId: number | null
   /** Video title for context display */
@@ -27,7 +27,7 @@ export interface YouTubeChatSectionProps {
 }
 
 export function YouTubeChatSection({
-  vaultId,
+  workspaceId,
   recordingId,
   videoTitle,
   onClose,

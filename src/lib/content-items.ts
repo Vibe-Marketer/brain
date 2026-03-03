@@ -56,16 +56,16 @@ export interface ContentItemsResult<T> {
  */
 export async function fetchContentItems(
   filters?: ContentItemFilters,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<ContentItemsResult<ContentItem[]>> {
   try {
     const user = await requireUser();
-    if (!bankId) return { data: [], error: null };
+    if (!orgId) return { data: [], error: null };
 
     let query = supabase
       .from("content_items")
       .select("*")
-      .eq("organization_id", bankId)
+      .eq("organization_id", orgId)
       .order("created_at", { ascending: false });
 
     // Apply content_type filter
@@ -127,9 +127,9 @@ export async function fetchContentItems(
  */
 export async function fetchPosts(
   filters?: Omit<ContentItemFilters, "content_type">,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<ContentItemsResult<ContentItem[]>> {
-  return fetchContentItems({ ...filters, content_type: "post" }, bankId);
+  return fetchContentItems({ ...filters, content_type: "post" }, orgId);
 }
 
 /**
@@ -144,9 +144,9 @@ export async function fetchPosts(
  */
 export async function fetchEmails(
   filters?: Omit<ContentItemFilters, "content_type">,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<ContentItemsResult<ContentItem[]>> {
-  return fetchContentItems({ ...filters, content_type: "email" }, bankId);
+  return fetchContentItems({ ...filters, content_type: "email" }, orgId);
 }
 
 /**
@@ -164,12 +164,12 @@ export async function fetchEmails(
  */
 export async function createContentItem(
   input: ContentItemInput,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<ContentItemsResult<ContentItem>> {
   try {
     const user = await requireUser();
 
-    if (!bankId) {
+    if (!orgId) {
       return {
         data: null,
         error: new ContentItemsError("Organization ID is required"),
@@ -210,7 +210,7 @@ export async function createContentItem(
       .from("content_items")
       .insert({
         user_id: user.id,
-        organization_id: bankId,
+        organization_id: orgId,
         hook_id: input.hook_id || null,
         content_type: input.content_type,
         content_text: input.content_text.trim(),

@@ -49,7 +49,7 @@ export function AddToWorkspaceMenu({
   compact = true,
 }: AddToWorkspaceMenuProps) {
   const [open, setOpen] = useState(false)
-  const { workspaces, personalWorkspace, isLoading: bankLoading } = useOrganizationContext()
+  const { workspaces, personalWorkspace, isLoading: orgLoading } = useOrganizationContext()
   const {
     assignedWorkspaceIds,
     effectiveRecordingId,
@@ -62,7 +62,7 @@ export function AddToWorkspaceMenu({
     open ? legacyRecordingId : null,
   )
 
-  const isLoading = bankLoading || entriesLoading
+  const isLoading = orgLoading || entriesLoading
   const isMutating = isAdding || isRemoving
   // If recording hasn't been migrated yet, we can't assign to workspaces
   const notMigrated = open && !effectiveRecordingId && !isLoading

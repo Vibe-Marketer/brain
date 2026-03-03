@@ -96,12 +96,8 @@ export function DetailPaneOutlet({
         ) : null;
 
       case 'workspace-member':
-      case 'vault-member': // Legacy fallback
         if (panelData?.type === 'workspace-member') {
           return <WorkspaceMemberPanel workspaceId={panelData.workspaceId} />;
-        }
-        if (panelData?.type === 'vault-member') {
-          return <WorkspaceMemberPanel workspaceId={panelData.vaultId} />;
         }
         return null;
 
@@ -150,7 +146,6 @@ export function DetailPaneOutlet({
       case 'call-detail':
         return 'Call detail panel';
       case 'workspace-member':
-      case 'vault-member':
         return 'Workspace member panel';
       case 'automation-rule':
         return 'Automation rule detail panel';

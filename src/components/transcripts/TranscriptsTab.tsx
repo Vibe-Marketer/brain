@@ -85,7 +85,7 @@ export function TranscriptsTab({
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Organization context for filtering calls by active workspace
-  const { activeOrganizationId, activeWorkspaceId, activeWorkspace, isPersonalOrganization, isLoading: _bankContextLoading, isInitialized } = useOrganizationContext();
+  const { activeOrganizationId, activeWorkspaceId, activeWorkspace, isPersonalOrganization, isLoading: _orgContextLoading, isInitialized } = useOrganizationContext();
 
   // Selection & interaction state
   const [selectedCalls, setSelectedCalls] = useState<number[]>([]);
@@ -106,14 +106,24 @@ export function TranscriptsTab({
     return urlParamsToFilters(searchParams);
   });
 
-  // Column visibility state
-  const [visibleColumns, setVisibleColumns] = useState({
-    date: true,
-    duration: true,
-    participants: true,
-    tags: true,
-    folders: true,
-  });
+  // Determine if we're in the Home (all calls) view vs a specific workspace
+  const isHomeView = !activeWorkspaceId;
+
+  // Column visibility state — defaults differ for home vs workspace
+  const [visibleColumns, setVisibleColumns] = useState(() =>
+    isHomeView
+      ? { date: true, duration: true, source: true, tags: true, workspaces: true, sharedWith: true }
+      : { date: true, duration: true, participants: true, tags: true, folders: true }
+  );
+
+  // Reset column defaults when switching between home and workspace views
+  useEffect(() => {
+    if (isHomeView) {
+      setVisibleColumns({ date: true, duration: true, source: true, tags: true, workspaces: true, sharedWith: true });
+    } else {
+      setVisibleColumns({ date: true, duration: true, participants: true, tags: true, folders: true });
+    }
+  }, [isHomeView]);
 
   // Dialog state
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
@@ -172,7 +182,7 @@ export function TranscriptsTab({
     };
   }, []);
 
-  // Fetch tags scoped to active bank/workspace
+  // Fetch tags scoped to active organization/workspace
   const { data: tags = [] } = useQuery({
     queryKey: ["tags", activeOrganizationId],
     queryFn: async () => {
@@ -276,11 +286,20 @@ export function TranscriptsTab({
 
         // Server-side folder filtering: look up recording IDs from folder_assignments
         // (workspace_entries.folder_id is mostly NULL — folder_assignments is the source of truth)
+        // Also includes calls from child folders (recursive) so parent folders aggregate.
         if (selectedFolderId) {
+          // Get this folder + all child folders (recursive)
+          const { data: childFolders } = await supabase
+            .from('folders')
+            .select('id')
+            .eq('parent_id', selectedFolderId);
+
+          const folderIds = [selectedFolderId, ...(childFolders || []).map((f) => f.id)];
+
           const { data: folderAssigns } = await supabase
             .from('folder_assignments')
             .select('call_recording_id')
-            .eq('folder_id', selectedFolderId);
+            .in('folder_id', folderIds);
 
           if (!folderAssigns || folderAssigns.length === 0) {
             setTotalCount(0);
@@ -326,64 +345,69 @@ export function TranscriptsTab({
         return mappedRecordings;
       }
 
-      // LEGACY / ALL CALLS PATH
-      let bankRecordingIds: number[] | null = null;
-      if (activeOrganizationId) {
-        let recordingQuery = supabase
-          .from('recordings')
-          .select('legacy_recording_id')
-          .eq('organization_id', activeOrganizationId)
-          .limit(100000);
+      // HOME / ALL CALLS PATH — merges fathom_calls (legacy) + recordings (non-legacy sources)
 
-        const { data: bankRecordings } = await recordingQuery;
-        if (bankRecordings && bankRecordings.length > 0) {
-          bankRecordingIds = bankRecordings
-            .map((r) => r.legacy_recording_id)
-            .filter((id): id is number => id != null);
-        } else if (activeOrganizationId && !isPersonalOrganization) {
-           // Business org with no recordings yet
-           setTotalCount(0);
-           onTotalCountChange?.(0);
-           return [];
+      // 1. Fetch legacy fathom_calls
+      let orgRecordingIds: number[] | null = null;
+      if (activeOrganizationId && !isPersonalOrganization) {
+        const allRecIds: number[] = [];
+        let batchPage = 0;
+        const batchSize = 1000;
+        while (true) {
+          const { data: batch } = await supabase
+            .from('recordings')
+            .select('legacy_recording_id')
+            .eq('organization_id', activeOrganizationId)
+            .range(batchPage * batchSize, (batchPage + 1) * batchSize - 1);
+
+          if (!batch || batch.length === 0) break;
+          allRecIds.push(
+            ...batch
+              .map((r) => r.legacy_recording_id)
+              .filter((id): id is number => id != null)
+          );
+          if (batch.length < batchSize) break;
+          batchPage++;
+        }
+
+        if (allRecIds.length > 0) {
+          orgRecordingIds = allRecIds;
         }
       }
 
-      let query = supabase
+      let fathomQuery = supabase
         .from("fathom_calls")
         .select("*", { count: "exact" })
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .range(offset, offset + pageSize - 1);
+        .order("created_at", { ascending: false });
 
-      // Apply source platform source filters if needed.
-      // Fix 2C: YouTube exclusion is now only for when no specific YouTube workspace is selected
-      // (but in this path, activeWorkspaceId is null, so we are in "All Calls").
-      // Usually, users want "All Calls" to keep its original clutter-free behavior.
-      query = query.or('source_platform.is.null,source_platform.neq.youtube');
-
-      if (bankRecordingIds !== null) {
-        query = query.in("recording_id", bankRecordingIds);
+      if (orgRecordingIds !== null) {
+        fathomQuery = fathomQuery.in("recording_id", orgRecordingIds);
       }
 
-      // Server-side folder filtering for legacy path:
-      // Look up call_recording_ids assigned to the selected folder
+      // Server-side folder filtering for legacy path
       if (selectedFolderId) {
+        const { data: childFolders } = await supabase
+          .from('folders')
+          .select('id')
+          .eq('parent_id', selectedFolderId);
+
+        const folderIds = [selectedFolderId, ...(childFolders || []).map((f) => f.id)];
+
         const { data: folderAssigns } = await supabase
           .from('folder_assignments')
           .select('call_recording_id')
-          .eq('folder_id', selectedFolderId);
+          .in('folder_id', folderIds);
 
         if (folderAssigns && folderAssigns.length > 0) {
           const folderCallIds = folderAssigns.map((a) => a.call_recording_id);
-          query = query.in("recording_id", folderCallIds);
+          fathomQuery = fathomQuery.in("recording_id", folderCallIds);
         } else {
-          setTotalCount(0);
-          onTotalCountChange?.(0);
-          return [];
+          // No folder assignments — still need to check recordings table below
         }
       }
 
-      // Tag filter (multiple tags)
+      // Tag filter
       if (combinedFilters.tags && combinedFilters.tags.length > 0) {
         const { data: assignments } = await supabase
           .from("call_tag_assignments")
@@ -392,37 +416,58 @@ export function TranscriptsTab({
 
         if (assignments && assignments.length > 0) {
           const recordingIds = assignments.map((a) => a.call_recording_id);
-          query = query.in("recording_id", recordingIds);
+          fathomQuery = fathomQuery.in("recording_id", recordingIds);
         } else {
-          return [];
+          // Tags matched nothing in legacy — still check recordings below
         }
       }
 
       // Search query (plain text)
       if (syntax.plainText) {
-        query = query.or(`title.ilike.%${syntax.plainText}%,summary.ilike.%${syntax.plainText}%,full_transcript.ilike.%${syntax.plainText}%`);
+        fathomQuery = fathomQuery.or(`title.ilike.%${syntax.plainText}%,summary.ilike.%${syntax.plainText}%,full_transcript.ilike.%${syntax.plainText}%`);
       }
 
       // Date filters
       if (combinedFilters.dateFrom) {
-        query = query.gte("created_at", combinedFilters.dateFrom.toISOString());
+        fathomQuery = fathomQuery.gte("created_at", combinedFilters.dateFrom.toISOString());
       }
       if (combinedFilters.dateTo) {
-        query = query.lte("created_at", combinedFilters.dateTo.toISOString());
+        fathomQuery = fathomQuery.lte("created_at", combinedFilters.dateTo.toISOString());
       }
 
-      const { data, error, count } = await query;
-      if (error) throw error;
+      // 2. Fetch non-legacy recordings (YouTube, file-upload, etc.) from recordings table
+      let recordingsQuery = supabase
+        .from('recordings')
+        .select('id, legacy_recording_id, organization_id, owner_user_id, title, audio_url, full_transcript, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at', { count: "exact" })
+        .eq('owner_user_id', user.id)
+        .in('source_app', ['youtube', 'file-upload'])
+        .order('created_at', { ascending: false });
 
-      const newTotalCount = count || 0;
-      setTotalCount(newTotalCount);
-      onTotalCountChange?.(newTotalCount);
+      if (syntax.plainText) {
+        recordingsQuery = recordingsQuery.or(`title.ilike.%${syntax.plainText}%,summary.ilike.%${syntax.plainText}%,full_transcript.ilike.%${syntax.plainText}%`);
+      }
+      if (combinedFilters.dateFrom) {
+        recordingsQuery = recordingsQuery.gte("created_at", combinedFilters.dateFrom.toISOString());
+      }
+      if (combinedFilters.dateTo) {
+        recordingsQuery = recordingsQuery.lte("created_at", combinedFilters.dateTo.toISOString());
+      }
 
-      let filteredData = data || [];
+      // Run both queries in parallel
+      const [fathomResult, recordingsResult] = await Promise.all([
+        fathomQuery.range(0, 999),
+        recordingsQuery.range(0, 999),
+      ]);
 
-      // Filter by participants
+      if (fathomResult.error) throw fathomResult.error;
+      if (recordingsResult.error) throw recordingsResult.error;
+
+      // Map fathom_calls as-is
+      let fathomData = (fathomResult.data || []) as Meeting[];
+
+      // Filter by participants (fathom only — recordings don't have calendar_invitees)
       if (combinedFilters.participants && combinedFilters.participants.length > 0) {
-        filteredData = filteredData.filter((call) => {
+        fathomData = fathomData.filter((call) => {
           const invitees = call.calendar_invitees as Array<{ name?: string; email?: string }>;
           if (!invitees) return false;
           return combinedFilters.participants!.some((p) =>
@@ -431,7 +476,36 @@ export function TranscriptsTab({
         });
       }
 
-      return filteredData as Meeting[];
+      // Map recordings to Meeting format
+      const mappedRecordings = (recordingsResult.data || []).map((rec: any) =>
+        mapRecordingToMeeting(rec)
+      );
+
+      // Merge, deduplicate by recording_id, sort by created_at desc
+      const allCalls = [...fathomData, ...mappedRecordings];
+      const seen = new Set<string | number>();
+      const deduplicated = allCalls.filter((call) => {
+        const key = String(call.recording_id);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      // Sort merged results by date descending
+      deduplicated.sort((a, b) => {
+        const aTime = new Date(a.recording_start_time || a.created_at || 0).getTime();
+        const bTime = new Date(b.recording_start_time || b.created_at || 0).getTime();
+        return bTime - aTime;
+      });
+
+      // Paginate the merged result
+      const mergedTotal = deduplicated.length;
+      const paginatedCalls = deduplicated.slice(offset, offset + pageSize);
+
+      setTotalCount(mergedTotal);
+      onTotalCountChange?.(mergedTotal);
+
+      return paginatedCalls as Meeting[];
     },
   });
 
@@ -442,15 +516,21 @@ export function TranscriptsTab({
     let filtered = calls.filter(c => c && c.recording_id != null);
 
     if (selectedFolderId) {
+      // Build set of selected folder + child folder IDs for matching
+      const matchFolderIds = new Set([selectedFolderId]);
+      folders.forEach(f => {
+        if (f.parent_id === selectedFolderId) matchFolderIds.add(f.id);
+      });
+
       filtered = filtered.filter(call => {
         const callIdKey = String(call.recording_id);
         const callFolders = folderAssignments[callIdKey] || [];
-        return callFolders.includes(selectedFolderId);
+        return callFolders.some(fid => matchFolderIds.has(fid));
       });
     }
 
     return filtered;
-  }, [calls, selectedFolderId, folderAssignments]);
+  }, [calls, selectedFolderId, folderAssignments, folders]);
 
   // Fetch tag assignments for displayed calls
   const { data: tagAssignments = {} } = useQuery({
@@ -721,6 +801,7 @@ export function TranscriptsTab({
               <div className="border-cb-gray-light dark:border-cb-gray-dark h-full">
                 <TranscriptTable
                   calls={validCalls}
+                    tableMode={isHomeView ? 'home' : 'workspace'}
                     selectedCalls={selectedCalls}
                     onSelectCall={(callId) => {
                       const newSelected = selectedCalls.includes(callId)

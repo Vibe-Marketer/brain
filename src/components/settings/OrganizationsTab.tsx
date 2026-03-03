@@ -103,7 +103,7 @@ export function OrganizationsTab() {
                         {org.type}
                       </Badge>
                       <Badge variant="secondary" className="capitalize">
-                        {(org.membership?.role || 'member').replace('bank_', '')}
+                        {(org.membership?.role || 'member').replace('organization_', '')}
                       </Badge>
                       {org.type === 'business' && org.membership?.role === 'organization_owner' && (
                         <Button
@@ -125,7 +125,7 @@ export function OrganizationsTab() {
                       <div>
                         <span className="text-muted-foreground">Cross-Organization Default:</span>
                         <span className="ml-2 capitalize">
-                          {org.cross_organization_default ? org.cross_organization_default.replace('_', ' ') : 'None'}
+                          {org.cross_org_default ? org.cross_org_default.replace('_', ' ') : 'None'}
                         </span>
                       </div>
                       <div>

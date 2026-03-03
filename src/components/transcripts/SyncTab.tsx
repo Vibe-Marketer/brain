@@ -41,8 +41,8 @@ export function SyncTab() {
   const [hasFetchedResults, setHasFetchedResults] = useState(false);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
 
-  // Organization context for filtering by bank (Phase 9 migration)
-  const { activeOrganizationId, isLoading: bankContextLoading } = useOrganizationContext();
+  // Organization context for filtering by organization (Phase 9 migration)
+  const { activeOrganizationId, isLoading: orgContextLoading } = useOrganizationContext();
 
   // Ref for scrolling to synced section
   const syncedSectionRef = useRef<HTMLDivElement>(null);
@@ -115,7 +115,7 @@ export function SyncTab() {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
-      // Phase 9 migration: Check if recordings table has data for this bank
+      // Phase 9 migration: Check if recordings table has data for this organization
       // If so, query from recordings; otherwise fall back to fathom_calls
       // Note: TypeScript types need regeneration with `supabase gen types typescript`
       // until then we use type assertions
@@ -526,7 +526,7 @@ export function SyncTab() {
   void perMeetingTags;
   void selectedCallId;
   void filterLoading;
-  void bankContextLoading; // Used for future loading state handling
+  void orgContextLoading; // Used for future loading state handling
 
   // Determine if we should show the empty state
   const showEmptyState = !hasFetchedResults && meetings.length === 0;

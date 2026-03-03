@@ -37,7 +37,7 @@ import type { WorkspaceType } from '@/types/workspace'
 export interface CreateWorkspaceDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  orgId?: string // Renamed from bankId, made optional to allow auto-select
+  orgId?: string // Organization ID, made optional to allow auto-select
   onWorkspaceCreated?: (workspaceId: string) => void
 }
 

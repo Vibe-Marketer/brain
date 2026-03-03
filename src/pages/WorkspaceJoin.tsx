@@ -1,13 +1,13 @@
 /**
  * WorkspaceJoin
  *
- * Page for accepting vault invitations via token link.
+ * Page for accepting workspace invitations via token link.
  * Follows the exact same pattern as TeamJoin.tsx.
  *
  * Features:
- * - Token-based access via /join/vault/:token route
+ * - Token-based access via /join/workspace/:token route
  * - Validates invite token and checks expiration
- * - Shows vault info + join button
+ * - Shows workspace info + join button
  * - Error handling for invalid/expired/already-member states
  * - Redirect to login if not authenticated
  */
@@ -32,7 +32,7 @@ import { getErrorToastMessage } from '@/lib/user-friendly-errors'
 
 interface WorkspaceInviteData {
   workspace_id: string
-  vault_name: string
+  workspace_name: string
   member_count: number
   expires_at: string | null
 }
@@ -58,22 +58,22 @@ export default function WorkspaceJoin() {
       }
 
       try {
-        // Find the vault by invite token
+        // Find the workspace by invite token
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: vault, error: vaultError } = await (supabase as any)
+        const { data: workspace, error: workspaceError } = await (supabase as any)
           .from('workspaces')
           .select('id, name, invite_token, invite_expires_at')
           .eq('invite_token', token)
           .single()
 
-        if (vaultError || !vault) {
+        if (workspaceError || !workspace) {
           setError('This invite link is invalid or has already been used')
           setIsLoading(false)
           return
         }
 
         // Check if expired
-        if (vault.invite_expires_at && new Date(vault.invite_expires_at) < new Date()) {
+        if (workspace.invite_expires_at && new Date(workspace.invite_expires_at) < new Date()) {
           setError('This invite link has expired')
           setIsLoading(false)
           return
@@ -85,12 +85,12 @@ export default function WorkspaceJoin() {
           const { data: existingMembership } = await (supabase as any)
             .from('workspace_memberships')
             .select('id')
-            .eq('workspace_id', vault.id)
+            .eq('workspace_id', workspace.id)
             .eq('user_id', user.id)
             .maybeSingle()
 
           if (existingMembership) {
-            setAlreadyMemberWorkspaceId(vault.id)
+            setAlreadyMemberWorkspaceId(workspace.id)
             setError("You're already a member of this hub")
             setIsLoading(false)
             return
@@ -102,13 +102,13 @@ export default function WorkspaceJoin() {
         const { data: memberData } = await (supabase as any)
           .from('workspace_memberships')
           .select('id')
-          .eq('workspace_id', vault.id)
+          .eq('workspace_id', workspace.id)
 
         setInviteData({
-          workspace_id: vault.id,
-          vault_name: vault.name,
+          workspace_id: workspace.id,
+          workspace_name: workspace.name,
           member_count: memberData?.length || 0,
-          expires_at: vault.invite_expires_at,
+          expires_at: workspace.invite_expires_at,
         })
         setIsLoading(false)
       } catch {
@@ -126,7 +126,7 @@ export default function WorkspaceJoin() {
     }
   }, [token, user, authLoading, navigate])
 
-  // Handle joining the vault
+  // Handle joining the workspace
   const handleJoinWorkspace = async () => {
     if (!inviteData || !user) return
 
@@ -148,7 +148,7 @@ export default function WorkspaceJoin() {
         return
       }
 
-      // Create vault_membership with role='member' (LOCKED: default join role is always member)
+      // Create workspace_membership with role='member' (LOCKED: default join role is always member)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { error: insertError } = await (supabase as any)
         .from('workspace_memberships')
@@ -162,7 +162,7 @@ export default function WorkspaceJoin() {
         throw insertError
       }
 
-      toast.success(`Joined hub '${inviteData.vault_name}'`)
+      toast.success(`Joined hub '${inviteData.workspace_name}'`)
       navigate(`/workspaces/${inviteData.workspace_id}`)
     } catch (err) {
       toast.error(getErrorToastMessage(err))
@@ -231,7 +231,7 @@ export default function WorkspaceJoin() {
           <CardTitle className="text-2xl">Hub Invitation</CardTitle>
           <CardDescription className="text-base mt-2">
             You've been invited to join{' '}
-            <span className="font-medium text-foreground">{inviteData?.vault_name}</span>
+            <span className="font-medium text-foreground">{inviteData?.workspace_name}</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

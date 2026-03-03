@@ -160,7 +160,7 @@ export function useCreateWorkspace() {
     onSettled: () => {
       // Invalidate workspace queries
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.list() })
-      queryClient.invalidateQueries({ queryKey: ['bankContext'] })
+      queryClient.invalidateQueries({ queryKey: ['orgContext'] })
     },
   })
 }
@@ -278,7 +278,7 @@ export function useUpdateWorkspace() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.workspaces.detail(input.workspaceId),
       })
-      queryClient.invalidateQueries({ queryKey: ['bankContext'] })
+      queryClient.invalidateQueries({ queryKey: ['orgContext'] })
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
     },
     onSuccess: () => {
@@ -350,7 +350,7 @@ export function useDeleteWorkspace() {
       // Invalidate all workspace-related queries
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaceEntries.all })
-      queryClient.invalidateQueries({ queryKey: ['bankContext'] })
+      queryClient.invalidateQueries({ queryKey: ['orgContext'] })
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
       toast.success('Workspace deleted')
     },
@@ -421,7 +421,7 @@ export function useSetDefaultWorkspace() {
     onSuccess: () => {
       toast.success('Default workspace updated')
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all })
-      queryClient.invalidateQueries({ queryKey: ['bankContext'] }) // Legacy context
+      queryClient.invalidateQueries({ queryKey: ['orgContext'] }) // Legacy context
     },
     onError: (error: Error) => {
       toast.error(`Failed to set default workspace: ${error.message}`)

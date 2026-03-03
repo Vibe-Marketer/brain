@@ -9,8 +9,9 @@ import {
   RiFolderLine,
   RiStackLine,
 } from "@remixicon/react";
-import { SourcePlatformIndicator } from "./SourcePlatformIcons";
+import { SourcePlatformIndicator, FathomIcon, ZoomIcon } from "./SourcePlatformIcons";
 import { RoutingTraceBadge } from "@/components/import/RoutingTraceBadge";
+import { getSourceLabel } from "@/lib/source-labels";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,7 @@ interface TranscriptTableRowProps {
   visibleColumns?: Record<string, boolean>;
   sharingStatus?: SharingStatus;
   accessLevel?: AccessLevel;
+  tableMode?: 'home' | 'workspace';
   onSelect: () => void;
   onCallClick: () => void;
   onFolder?: () => void;
@@ -55,12 +57,15 @@ export function TranscriptTableRow({
   visibleColumns = {},
   sharingStatus,
   accessLevel,
+  tableMode = 'workspace',
   onSelect,
   onCallClick,
   onFolder,
   onCustomDownload,
   DownloadComponent,
 }: TranscriptTableRowProps) {
+  const isHome = tableMode === 'home';
+
   const duration = call.recording_start_time && call.recording_end_time
     ? Math.round(
         (new Date(call.recording_end_time).getTime() -
@@ -96,11 +101,13 @@ export function TranscriptTableRow({
             >
               {call.title}
             </button>
-            <SourcePlatformIndicator
-              sourcePlatform={call.source_platform}
-              mergedFrom={call.merged_from}
-              size={14}
-            />
+            {!isHome && (
+              <SourcePlatformIndicator
+                sourcePlatform={call.source_platform}
+                mergedFrom={call.merged_from}
+                size={14}
+              />
+            )}
             {/* Routing Trace Badge */}
             <RoutingTraceBadge sourceMetadata={call.source_metadata} />
           </div>
@@ -169,7 +176,7 @@ export function TranscriptTableRow({
         </div>
         </TableCell>
       )}
-      {visibleColumns.participants !== false && (
+      {!isHome && visibleColumns.participants !== false && (
         <TableCell className="hidden lg:table-cell whitespace-nowrap text-center">
           <div className="flex justify-center w-full">
             <div className="w-[70px]">
@@ -182,9 +189,23 @@ export function TranscriptTableRow({
           </div>
         </TableCell>
       )}
-      <TableCell className="hidden xl:table-cell text-center align-middle py-0 whitespace-nowrap">
-        <InviteesCountCircle invitees={call.calendar_invitees} />
-      </TableCell>
+      {!isHome && (
+        <TableCell className="hidden xl:table-cell text-center align-middle py-0 whitespace-nowrap">
+          <InviteesCountCircle invitees={call.calendar_invitees} />
+        </TableCell>
+      )}
+      {/* Source column — Home view only */}
+      {isHome && visibleColumns.source !== false && (
+        <TableCell className="hidden lg:table-cell py-0 whitespace-nowrap">
+          <div className="flex items-center gap-1.5">
+            {call.source_platform === 'fathom' && <FathomIcon size={14} />}
+            {call.source_platform === 'zoom' && <ZoomIcon size={14} />}
+            <span className="text-xs text-muted-foreground">
+              {getSourceLabel(call.source_platform)}
+            </span>
+          </div>
+        </TableCell>
+      )}
       {visibleColumns.tags !== false && (
         <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
         <div className="flex flex-col justify-center h-full gap-0.5 py-0">
@@ -227,8 +248,8 @@ export function TranscriptTableRow({
           </div>
         </TableCell>
       )}
-      {/* Folders column */}
-      {visibleColumns.folders !== false && (
+      {/* Folders column — workspace view only */}
+      {!isHome && visibleColumns.folders !== false && (
         <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
           <div className="flex flex-col justify-center h-full gap-0.5 py-0">
             {folderAssignments.length > 0 ? (

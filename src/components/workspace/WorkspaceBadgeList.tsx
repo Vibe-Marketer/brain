@@ -53,7 +53,7 @@ export function WorkspaceBadgeList({
 }: WorkspaceBadgeListProps) {
   const navigate = useNavigate()
   const [overflowOpen, setOverflowOpen] = useState(false)
-  const { workspaces, isLoading: bankLoading } = useOrganizationContext()
+  const { workspaces, isLoading: orgLoading } = useOrganizationContext()
 
   const {
     assignedWorkspaceIds,
@@ -63,7 +63,7 @@ export function WorkspaceBadgeList({
     legacyRecordingId,
   )
 
-  const isLoading = bankLoading || entriesLoading
+  const isLoading = orgLoading || entriesLoading
 
   // Build list of workspaces this recording is in, with info
   const assignedWorkspaces: WorkspaceInfo[] = workspaces

@@ -57,7 +57,7 @@ export function useCreateBusinessOrganization() {
       const { data: createResult, error: createError } = await db
         .rpc('create_business_organization', {
           p_name: orgName,
-          p_cross_bank_default: input.crossOrganizationDefault || 'copy_only',
+          p_cross_org_default: input.crossOrganizationDefault || 'copy_only',
           p_logo_url: input.logoUrl || null,
           p_default_workspace_name: input.defaultWorkspaceName || null,
         })
@@ -80,7 +80,7 @@ export function useCreateBusinessOrganization() {
     },
     onSuccess: (data, variables) => {
       // Invalidate organization context queries to pick up new organization
-      queryClient.invalidateQueries({ queryKey: ['bankContext'] })
+      queryClient.invalidateQueries({ queryKey: ['orgContext'] })
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.list() })
 
@@ -137,10 +137,8 @@ export function useDeleteOrganization() {
       // Allow both owner and admin roles
       const userRole = organization.membership.role
       if (
-        userRole !== 'organization_owner' && 
-        userRole !== 'organization_admin' &&
-        userRole !== 'bank_owner' &&
-        userRole !== 'bank_admin'
+        userRole !== 'organization_owner' &&
+        userRole !== 'organization_admin'
       ) {
         throw new Error('Only organization owners and admins can delete organizations')
       }
@@ -177,7 +175,7 @@ export function useDeleteOrganization() {
       }
 
       // Invalidate all relevant queries
-      queryClient.invalidateQueries({ queryKey: ['bankContext'] })
+      queryClient.invalidateQueries({ queryKey: ['orgContext'] })
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.list() })
 
