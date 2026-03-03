@@ -45,7 +45,7 @@ export function useAssignCallToFolder() {
       callRecordingId: number
       folderId: string
       userId: string
-    }) => assignCallToFolder(callRecordingId, folderId, userId),
+    }) => assignCallToFolder(callRecordingId, folderId, userId, activeWorkspaceId),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: ['folder_assignments'],

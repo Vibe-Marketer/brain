@@ -42,7 +42,7 @@ export default function AssignFolderDialog({
   onFoldersUpdated,
   onCreateFolder,
 }: AssignFolderDialogProps) {
-  const { activeOrganizationId } = useOrganizationContext();
+  const { activeOrganizationId, activeWorkspaceId } = useOrganizationContext();
   const [folderTree, setFolderTree] = useState<FolderTreeNode[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -299,7 +299,7 @@ export default function AssignFolderDialog({
             .delete()
             .eq("call_recording_id", assignment.call_recording_id)
             .eq("folder_id", assignment.folder_id)
-            .eq("user_id", userId);  // Required for composite FK
+            .eq("user_id", userId);
         }
       }
 
@@ -310,6 +310,34 @@ export default function AssignFolderDialog({
           .insert(assignmentsToAdd);
 
         if (error) throw error;
+      }
+
+      // NEW ARCHITECTURE: Update workspace_entries.folder_id for each affected recording
+      // We pick the FIRST selected folder as the primary one for workspace_entries
+      // (as workspace_entries only supports one folder per entry, whereas folder_assignments supports many)
+      if (activeWorkspaceId) {
+        const primaryFolderId = selectedFolders.size > 0 ? Array.from(selectedFolders)[0] : null;
+        
+        // Find UUIDs for these recordings
+        const { data: recs } = await supabase
+          .from('recordings')
+          .select('id, legacy_recording_id')
+          .in('legacy_recording_id', numericRecordingIds);
+
+        if (recs && recs.length > 0) {
+          const recordingUuids = recs.map(r => r.id);
+          
+          // Update all workspace_entries in batch
+          const { error: updateError } = await (supabase as any)
+            .from('workspace_entries')
+            .update({ folder_id: primaryFolderId })
+            .in('recording_id', recordingUuids)
+            .eq('workspace_id', activeWorkspaceId);
+            
+          if (updateError) {
+            console.error('Failed to update workspace_entries in AssignFolderDialog:', updateError);
+          }
+        }
       }
 
       const count = targetRecordingIds.length;

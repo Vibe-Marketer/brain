@@ -373,7 +373,8 @@ export async function deleteFolder(folderId: string): Promise<void> {
 export async function assignCallToFolder(
   callRecordingId: number,
   folderId: string,
-  userId: string
+  userId: string,
+  workspaceId?: string | null
 ): Promise<void> {
   const { error } = await supabase
     .from('folder_assignments')
@@ -390,6 +391,26 @@ export async function assignCallToFolder(
 
   if (error) {
     throw new Error(`Failed to assign call to folder: ${error.message}`)
+  }
+
+  // 2. NEW ARCHITECTURE: Update workspace_entries.folder_id if we have a recording UUID
+  // This ensures that non-Fathom calls (YT, Zoom) also move correctly
+  const { data: rec } = await supabase
+    .from('recordings')
+    .select('id')
+    .eq('legacy_recording_id', callRecordingId)
+    .maybeSingle()
+
+  if (rec && workspaceId) {
+    const { error: entryError } = await (supabase as any)
+      .from('workspace_entries')
+      .update({ folder_id: folderId })
+      .eq('recording_id', rec.id)
+      .eq('workspace_id', workspaceId)
+
+    if (entryError) {
+      console.error('Failed to update workspace entry folder assignment:', entryError)
+    }
   }
 }
 
@@ -421,9 +442,10 @@ export async function moveCallToFolder(
   callRecordingId: number,
   fromFolderId: string,
   toFolderId: string,
-  userId: string
+  userId: string,
+  workspaceId?: string | null
 ): Promise<void> {
-  // Remove from old folder
+  // 1. LEGACY: Remove from old folder and add to new folder
   const { error: removeError } = await supabase
     .from('folder_assignments')
     .delete()
@@ -450,5 +472,24 @@ export async function moveCallToFolder(
 
   if (addError) {
     throw new Error(`Failed to add call to destination folder: ${addError.message}`)
+  }
+
+  // 2. NEW ARCHITECTURE: Update workspace_entries.folder_id if we have a recording UUID
+  const { data: rec } = await supabase
+    .from('recordings')
+    .select('id')
+    .eq('legacy_recording_id', callRecordingId)
+    .maybeSingle()
+
+  if (rec && workspaceId) {
+    const { error: entryError } = await (supabase as any)
+      .from('workspace_entries')
+      .update({ folder_id: toFolderId })
+      .eq('recording_id', rec.id)
+      .eq('workspace_id', workspaceId)
+
+    if (entryError) {
+      console.error('Failed to update workspace entry folder assignment during move:', entryError)
+    }
   }
 }

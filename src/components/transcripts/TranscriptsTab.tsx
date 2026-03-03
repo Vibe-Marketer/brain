@@ -24,6 +24,7 @@ import SmartExportDialog from "@/components/SmartExportDialog";
 import AssignFolderDialog from "@/components/AssignFolderDialog";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import { usePanelStore } from "@/stores/panelStore";
+import { useWorkspaces, useWorkspaceRecordings, mapRecordingToMeeting } from "@/hooks/useWorkspaces";
 import { Folder } from "@/types/workspace";
 import {
   FilterState,
@@ -56,7 +57,7 @@ interface TranscriptsTabProps {
   sidebarState: 'expanded' | 'collapsed';
   onToggleSidebar: () => void;
   folders: Folder[];
-  folderAssignments: Record<number, string[]>;
+  folderAssignments: Record<string, string[]>;
   assignToFolder: (recordingIds: number[], folderId: string) => void;
   dragHelpers: DragHelpers;
 }
@@ -84,7 +85,7 @@ export function TranscriptsTab({
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Organization context for filtering calls by active workspace
-  const { activeOrganizationId, activeWorkspaceId, isPersonalOrganization, isLoading: _bankContextLoading, isInitialized } = useOrganizationContext();
+  const { activeOrganizationId, activeWorkspaceId, activeWorkspace, isPersonalOrganization, isLoading: _bankContextLoading, isInitialized } = useOrganizationContext();
 
   // Selection & interaction state
   const [selectedCalls, setSelectedCalls] = useState<number[]>([]);
@@ -171,7 +172,6 @@ export function TranscriptsTab({
     };
   }, []);
 
-  // Fetch tags
   // Fetch tags scoped to active bank/workspace
   const { data: tags = [] } = useQuery({
     queryKey: ["tags", activeOrganizationId],
@@ -238,7 +238,7 @@ export function TranscriptsTab({
 
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading } = useQuery({
-    queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization],
+    queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, activeWorkspace?.workspace_type, selectedFolderId],
     enabled: isInitialized,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -246,42 +246,105 @@ export function TranscriptsTab({
 
       const offset = (page - 1) * pageSize;
 
-      // Organization-aware filtering: For business organizations, look up recording IDs
-      // from the recordings table that belong to this bank, then filter fathom_calls
-      let bankRecordingIds: number[] | null = null;
-      if (activeOrganizationId && !isPersonalOrganization) {
-        
-        let recordingQuery = supabase
-          .from('recordings')
-          .select('legacy_recording_id, id')
-          .eq('organization_id', activeOrganizationId);
+      // WORKSPACE FILTERING (Decision 19 - Fix 2A/2B/2C)
+      // If a specific workspace is active, fetch from workspace_entries -> recordings
+      if (activeWorkspaceId) {
+        let entryQuery = supabase
+          .from('workspace_entries')
+          .select(`
+            id,
+            recording:recordings (
+              id,
+              legacy_recording_id,
+              organization_id,
+              owner_user_id,
+              title,
+              audio_url,
+              full_transcript,
+              summary,
+              global_tags,
+              source_app,
+              source_metadata,
+              duration,
+              recording_start_time,
+              recording_end_time,
+              created_at,
+              synced_at
+            )
+          `, { count: "exact" })
+          .eq('workspace_id', activeWorkspaceId);
 
-        if (activeWorkspaceId) {
-          const { data: wsEntries } = await supabase
-            .from('workspace_entries')
-            .select('recording_id')
-            .eq('workspace_id', activeWorkspaceId);
-          if (wsEntries && wsEntries.length > 0) {
-            const wsRecIds = wsEntries.map(e => e.recording_id);
-            recordingQuery = recordingQuery.in('id', wsRecIds);
-          } else {
+        // Server-side folder filtering: look up recording IDs from folder_assignments
+        // (workspace_entries.folder_id is mostly NULL — folder_assignments is the source of truth)
+        if (selectedFolderId) {
+          const { data: folderAssigns } = await supabase
+            .from('folder_assignments')
+            .select('call_recording_id')
+            .eq('folder_id', selectedFolderId);
+
+          if (!folderAssigns || folderAssigns.length === 0) {
             setTotalCount(0);
             onTotalCountChange?.(0);
             return [];
           }
+
+          // Get recording UUIDs from legacy IDs
+          const legacyIds = folderAssigns.map((a) => a.call_recording_id);
+          const { data: recs } = await supabase
+            .from('recordings')
+            .select('id')
+            .in('legacy_recording_id', legacyIds);
+
+          if (!recs || recs.length === 0) {
+            setTotalCount(0);
+            onTotalCountChange?.(0);
+            return [];
+          }
+
+          const recUuids = recs.map((r) => r.id);
+          entryQuery = entryQuery.in('recording_id', recUuids);
         }
 
-        const { data: bankRecordings } = await recordingQuery;
+        const { data: entries, error: entryError, count } = await entryQuery
+          .order('created_at', { ascending: false })
+          .range(offset, offset + pageSize - 1);
 
+        if (entryError) throw entryError;
+
+        const totalCount = count || 0;
+        setTotalCount(totalCount);
+        onTotalCountChange?.(totalCount);
+
+        const mappedRecordings = (entries || [])
+          .filter((e: any) => e.recording)
+          .map((e: any) => mapRecordingToMeeting({
+            ...e.recording,
+            organization_id: e.recording.organization_id,
+            workspace_entry: { id: e.id, folder_id: e.folder_id }
+          }));
+
+        return mappedRecordings;
+      }
+
+      // LEGACY / ALL CALLS PATH
+      let bankRecordingIds: number[] | null = null;
+      if (activeOrganizationId) {
+        let recordingQuery = supabase
+          .from('recordings')
+          .select('legacy_recording_id')
+          .eq('organization_id', activeOrganizationId)
+          .limit(100000);
+
+        const { data: bankRecordings } = await recordingQuery;
         if (bankRecordings && bankRecordings.length > 0) {
           bankRecordingIds = bankRecordings
-            .map((r: { legacy_recording_id: number | null }) => r.legacy_recording_id)
-            .filter((id: number | null): id is number => id != null);
-        } else {
-          // No recordings migrated for this bank yet - show empty state
-          setTotalCount(0);
-          onTotalCountChange?.(0);
-          return [];
+            .map((r) => r.legacy_recording_id)
+            .filter((id): id is number => id != null);
+        } else if (activeOrganizationId && !isPersonalOrganization) {
+           // Business org with no recordings yet
+           setTotalCount(0);
+           onTotalCountChange?.(0);
+           return [];
         }
       }
 
@@ -292,12 +355,32 @@ export function TranscriptsTab({
         .order("created_at", { ascending: false })
         .range(offset, offset + pageSize - 1);
 
-      // Exclude YouTube imports from the main recordings list — they live in the YouTube hub
+      // Apply source platform source filters if needed.
+      // Fix 2C: YouTube exclusion is now only for when no specific YouTube workspace is selected
+      // (but in this path, activeWorkspaceId is null, so we are in "All Calls").
+      // Usually, users want "All Calls" to keep its original clutter-free behavior.
       query = query.or('source_platform.is.null,source_platform.neq.youtube');
 
-      // Apply bank filter for business organizations
       if (bankRecordingIds !== null) {
         query = query.in("recording_id", bankRecordingIds);
+      }
+
+      // Server-side folder filtering for legacy path:
+      // Look up call_recording_ids assigned to the selected folder
+      if (selectedFolderId) {
+        const { data: folderAssigns } = await supabase
+          .from('folder_assignments')
+          .select('call_recording_id')
+          .eq('folder_id', selectedFolderId);
+
+        if (folderAssigns && folderAssigns.length > 0) {
+          const folderCallIds = folderAssigns.map((a) => a.call_recording_id);
+          query = query.in("recording_id", folderCallIds);
+        } else {
+          setTotalCount(0);
+          onTotalCountChange?.(0);
+          return [];
+        }
       }
 
       // Tag filter (multiple tags)
@@ -335,7 +418,6 @@ export function TranscriptsTab({
       setTotalCount(newTotalCount);
       onTotalCountChange?.(newTotalCount);
 
-      // Client-side filtering for complex queries
       let filteredData = data || [];
 
       // Filter by participants
@@ -349,7 +431,7 @@ export function TranscriptsTab({
         });
       }
 
-      return filteredData;
+      return filteredData as Meeting[];
     },
   });
 
@@ -361,7 +443,8 @@ export function TranscriptsTab({
 
     if (selectedFolderId) {
       filtered = filtered.filter(call => {
-        const callFolders = folderAssignments[call.recording_id] || [];
+        const callIdKey = String(call.recording_id);
+        const callFolders = folderAssignments[callIdKey] || [];
         return callFolders.includes(selectedFolderId);
       });
     }

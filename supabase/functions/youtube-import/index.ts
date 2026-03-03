@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.ts';
+import { runPipeline } from '../_shared/connector-pipeline.ts';
 
 /**
  * YouTube Import Edge Function
@@ -542,24 +542,6 @@ Deno.serve(async (req) => {
 
     console.log(`Extracted video ID: ${videoId}`);
 
-    // ========================================================================
-    // Step 2: Check for duplicate import (Stage 3 — shared pipeline dedup)
-    // ========================================================================
-    const { isDuplicate, existingRecordingId } = await checkDuplicate(supabase, user.id, 'youtube', videoId);
-
-    if (isDuplicate) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          step: 'checking' as ImportStep,
-          error: 'Video already imported',
-          exists: true,
-          recordingId: existingRecordingId,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     const youtubeApiHeaders = {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${userJwtToken}`,
@@ -680,18 +662,6 @@ Deno.serve(async (req) => {
 
     console.log(`Fetched transcript: ${transcriptText.length} characters`);
 
-    // ========================================================================
-    // Step 5: Insert recording via shared pipeline (Stage 5 — dedup + insert)
-    // ========================================================================
-
-    // Parse publishedAt date for recording_start_time
-    const publishedAt = videoDetails.publishedAt
-      ? new Date(videoDetails.publishedAt).toISOString()
-      : new Date().toISOString();
-
-    // Parse duration to seconds for recordings table
-    const durationSeconds = parseDurationToSeconds(videoDetails.duration);
-
     // Build source_metadata (external_id merged as first key by insertRecording)
     const sourceMetadata = {
       youtube_channel_id: videoDetails.channelId,
@@ -703,35 +673,60 @@ Deno.serve(async (req) => {
       youtube_like_count: videoDetails.likeCount,
       youtube_comment_count: videoDetails.commentCount || null,
       youtube_category_id: videoDetails.categoryId || null,
-      import_source: 'youtube-import',
-      imported_at: new Date().toISOString(),
     };
 
-    let newRecordingId: string;
-    try {
-      const result = await insertRecording(supabase, user.id, {
-        external_id: videoId,
-        source_app: 'youtube',
-        title: videoDetails.title,
-        full_transcript: transcriptText,
-        recording_start_time: publishedAt,
-        duration: durationSeconds ?? undefined,
-        source_metadata: sourceMetadata,
-        workspace_id: youtubeVaultId ?? undefined,
-      });
-      newRecordingId = result.id;
-      console.log(`Successfully imported YouTube video as recording UUID: ${newRecordingId}`);
-    } catch (pipelineError) {
-      console.error('Error inserting recording via pipeline:', pipelineError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          step: 'processing' as ImportStep,
-          error: 'Failed to save video import',
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Parse publishedAt date for recording_start_time
+    const publishedAt = videoDetails.publishedAt
+      ? new Date(videoDetails.publishedAt).toISOString()
+      : new Date().toISOString();
+
+    // Parse duration to seconds for recordings table
+    const durationSeconds = parseDurationToSeconds(videoDetails.duration);
+
+    // Build the finalized metadata object for the connector-pipeline
+    const finalizedSourceMetadata = {
+      ...sourceMetadata,
+      youtube_metadata_fetch_success: !!videoDetails,
+      import_source: 'youtube-import',
+      synced_at: new Date().toISOString(),
+    };
+
+    // Stage 5 — Run through pipeline (Dedup -> Routing -> Insert)
+    const result = await runPipeline(supabase, user.id, {
+      external_id: videoId,
+      source_app: 'youtube',
+      title: videoDetails.title,
+      full_transcript: transcriptText,
+      recording_start_time: publishedAt,
+      duration: durationSeconds || undefined,
+      source_metadata: finalizedSourceMetadata,
+      // Target workspace from request OR fallback to YouTube vault if auto-created,
+      // but only if NO routing rules match (handled by runPipeline if we pass it as a default?)
+      // Actually runPipeline only resolves routing if workspace_id is MISSING.
+      // If we want routing to take priority over 'YouTube Vault' default, we should pass NULL
+      // and let runPipeline find the 'YouTube Vault' if no rules match. 
+      // But runPipeline doesn't know about YouTube Vault specifically.
+      workspace_id: body.workspace_id || youtubeVaultId || undefined,
+    });
+
+    if (!result.success) {
+      if (result.skipped) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            step: 'checking' as ImportStep,
+            error: 'Video already imported',
+            exists: true,
+            recordingId: result.recordingId,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw new Error(result.error || 'Pipeline failed');
     }
+
+    const newRecordingId = result.recordingId;
+    console.log(`Successfully imported YouTube video ${videoId} as recording ${newRecordingId}`);
 
     // ========================================================================
     // Step 6: Return success

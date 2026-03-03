@@ -55,11 +55,11 @@ export function useCreateBusinessOrganization() {
       }
 
       const { data: createResult, error: createError } = await db
-        .rpc('create_business_bank', {
+        .rpc('create_business_organization', {
           p_name: orgName,
           p_cross_bank_default: input.crossOrganizationDefault || 'copy_only',
           p_logo_url: input.logoUrl || null,
-          p_default_vault_name: input.defaultWorkspaceName || null,
+          p_default_workspace_name: input.defaultWorkspaceName || null,
         })
         .single()
 
@@ -134,10 +134,15 @@ export function useDeleteOrganization() {
       if (!organization) throw new Error('Organization not found')
       if (organization.type === 'personal') throw new Error('Cannot delete personal organization')
       
-      // Allow both new and legacy owner roles during transition
+      // Allow both owner and admin roles
       const userRole = organization.membership.role
-      if (userRole !== 'organization_owner' && userRole !== 'organization_owner') {
-        throw new Error('Only organization owners can delete organizations')
+      if (
+        userRole !== 'organization_owner' && 
+        userRole !== 'organization_admin' &&
+        userRole !== 'bank_owner' &&
+        userRole !== 'bank_admin'
+      ) {
+        throw new Error('Only organization owners and admins can delete organizations')
       }
 
       // If moveCallsToPersonal, move recordings to personal organization

@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.ts';
+import { runPipeline } from '../_shared/connector-pipeline.ts';
 
 const WHISPER_URL = 'https://api.openai.com/v1/audio/transcriptions';
 const MAX_FILE_SIZE = 25 * 1024 * 1024; // 25MB — Whisper API limit
@@ -81,15 +81,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Stage 3: Dedup
+    // Build external ID for dedup
     const externalId = `${file.name}-${file.size}`;
-    const { isDuplicate, existingRecordingId } = await checkDuplicate(supabase, user.id, 'file-upload', externalId);
-    if (isDuplicate) {
-      return new Response(
-        JSON.stringify({ error: 'File already imported', exists: true, recordingId: existingRecordingId }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
-    }
 
     // Stage 4: Whisper transcription
     const whisperForm = new FormData();
@@ -112,20 +105,36 @@ Deno.serve(async (req) => {
       );
     }
 
-    const transcript = await whisperRes.text();
+    const transcriptText = await whisperRes.text();
 
-    // Stage 5: Insert via shared pipeline
-    const recording = await insertRecording(supabase, user.id, {
+    // Stage 5 — Run through pipeline (Dedup -> Routing -> Insert)
+    const result = await runPipeline(supabase, user.id, {
       external_id: externalId,
       source_app: 'file-upload',
       title: file.name.replace(/\.[^.]+$/, ''),
-      full_transcript: transcript,
+      full_transcript: transcriptText,
       recording_start_time: new Date().toISOString(),
-      source_metadata: { original_filename: file.name, file_size: file.size, mime_type: file.type },
+      source_metadata: { 
+        original_filename: file.name, 
+        file_size: file.size, 
+        mime_type: file.type,
+        import_source: 'file-upload-transcribe',
+        synced_at: new Date().toISOString(),
+      },
     });
 
+    if (!result.success) {
+      if (result.skipped) {
+        return new Response(
+          JSON.stringify({ error: 'File already imported', exists: true, recordingId: result.recordingId }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+      throw new Error(result.error || 'Pipeline failed');
+    }
+
     return new Response(
-      JSON.stringify({ success: true, recordingId: recording.id }),
+      JSON.stringify({ success: true, recordingId: result.recordingId }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {

@@ -60,98 +60,100 @@ export function OrganizationSwitcher() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex items-center gap-1.5 px-3 h-8 text-sm font-medium bg-card border border-border shadow-sm hover:bg-accent"
-        >
-          {isPersonalOrg ? (
-            <>
-              <RiUserLine className="h-4 w-4 text-muted-foreground" />
-              <span className="hidden sm:inline text-foreground">Personal Organization</span>
-            </>
-          ) : (
-            <>
-              <RiBuildingLine className="h-4 w-4 text-muted-foreground" />
-              <span className="hidden sm:inline max-w-[150px] truncate text-foreground">
-                {activeOrganization.name}
-              </span>
-            </>
-          )}
-          <RiArrowDownSLine className="h-4 w-4 text-muted-foreground ml-1" />
-        </Button>
-      </DropdownMenuTrigger>
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1.5 px-3 h-8 text-sm font-medium bg-card border border-border shadow-sm hover:bg-accent"
+          >
+            {isPersonalOrg ? (
+              <>
+                <RiUserLine className="h-4 w-4 text-muted-foreground" />
+                <span className="hidden sm:inline text-foreground">Personal Organization</span>
+              </>
+            ) : (
+              <>
+                <RiBuildingLine className="h-4 w-4 text-muted-foreground" />
+                <span className="hidden sm:inline max-w-[150px] truncate text-foreground">
+                  {activeOrganization.name}
+                </span>
+              </>
+            )}
+            <RiArrowDownSLine className="h-4 w-4 text-muted-foreground ml-1" />
+          </Button>
+        </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-64 bg-background border-border z-50">
-        {/* Personal Organization Section */}
-        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-          Personal Organization
-        </DropdownMenuLabel>
-        {organizations.filter((b) => b.type === 'personal').map((org) => (
-          <OrganizationMenuItem
-            key={org.id}
-            organization={org}
-            isActive={org.id === activeOrganization.id}
-            onClick={() => switchOrganization(org.id)}
-          />
-        ))}
+        <DropdownMenuContent align="end" className="w-64 bg-background border-border z-50">
+          {/* Personal Organization Section */}
+          <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+            Personal Organization
+          </DropdownMenuLabel>
+          {organizations.filter((b) => b.type === 'personal').map((org) => (
+            <OrganizationMenuItem
+              key={org.id}
+              organization={org}
+              isActive={org.id === activeOrganization.id}
+              onClick={() => switchOrganization(org.id)}
+            />
+          ))}
 
-        {/* Business Organizations Section */}
-        <DropdownMenuSeparator />
-        <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-          Organizations
-        </DropdownMenuLabel>
-        <DropdownMenuGroup>
-          {organizations.filter((b) => b.type === 'business').length === 0 ? (
-            <div className="px-2 py-1.5 text-xs text-muted-foreground">
-              <div>No business organizations</div>
-              <div>Create one to collaborate</div>
-            </div>
-          ) : (
-            organizations.filter((b) => b.type === 'business').map((org) => (
-              <OrganizationMenuItem
-                key={org.id}
-                organization={org}
-                isActive={org.id === activeOrganization.id}
-                onClick={() => switchOrganization(org.id)}
-              />
-            ))
-          )}
-        </DropdownMenuGroup>
+          {/* Business Organizations Section */}
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
+            Organizations
+          </DropdownMenuLabel>
+          <DropdownMenuGroup>
+            {organizations.filter((b) => b.type === 'business').length === 0 ? (
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                <div>No business organizations</div>
+                <div>Create one to collaborate</div>
+              </div>
+            ) : (
+              organizations.filter((b) => b.type === 'business').map((org) => (
+                <OrganizationMenuItem
+                  key={org.id}
+                  organization={org}
+                  isActive={org.id === activeOrganization.id}
+                  onClick={() => switchOrganization(org.id)}
+                />
+              ))
+            )}
+          </DropdownMenuGroup>
 
-        {/* Remove workspace references */}
+          {/* Remove workspace references */}
 
-        <DropdownMenuSeparator />
+          <DropdownMenuSeparator />
 
-        {/* Create Business Organization */}
-        <DropdownMenuItem
-          className="cursor-pointer flex items-center gap-2 text-muted-foreground"
-          onClick={() => setCreateOrgDialogOpen(true)}
-        >
-          <RiAddLine className="h-4 w-4" />
-          <span>Create Organization</span>
-        </DropdownMenuItem>
+          {/* Create Business Organization */}
+          <DropdownMenuItem
+            className="cursor-pointer flex items-center gap-2 text-muted-foreground"
+            onClick={() => setCreateOrgDialogOpen(true)}
+          >
+            <RiAddLine className="h-4 w-4" />
+            <span>Create Organization</span>
+          </DropdownMenuItem>
 
-        {/* Manage Organizations link */}
-        <DropdownMenuItem
-          className="cursor-pointer flex items-center gap-2 text-muted-foreground"
-          onClick={() => {
-            navigate('/settings/organizations');
-          }}
-        >
-          <RiSettingsLine className="h-4 w-4" />
-          <span>Manage Organizations</span>
-        </DropdownMenuItem>
-      </DropdownMenuContent>
+          {/* Manage Organizations link */}
+          <DropdownMenuItem
+            className="cursor-pointer flex items-center gap-2 text-muted-foreground"
+            onClick={() => {
+              navigate('/settings/organizations');
+            }}
+          >
+            <RiSettingsLine className="h-4 w-4" />
+            <span>Manage Organizations</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Create Organization Dialog */}
       <CreateOrganizationDialog
         open={createOrgDialogOpen}
         onOpenChange={setCreateOrgDialogOpen}
       />
-    </DropdownMenu>
+    </>
   );
 }
 

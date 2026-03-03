@@ -323,30 +323,104 @@ Multiple elements are overflowing their container bounds on the home page. Conte
 
 ---
 
-## Bug 7: Folder Assignments Not Reflecting — Calls Not Showing in Folders
+## Bug 7: Folder Assignments Not Reflecting — Calls Not Showing in Folders (ROOT CAUSE FOUND)
 
 ### What's wrong
 
-All folders are visible in Pane 2, but none of them show the calls that were previously assigned to them. Calls that the user already organized into folders appear to have lost their folder associations.
+All folders are visible in Pane 2, but NONE of them show the calls that were previously assigned to them. Every folder appears to have 0 calls despite the user having organized hundreds of calls into folders previously.
 
-Root cause (from code audit): `folderAssignments` is fetched via `useFolderAssignments(activeWorkspaceId)`. When `activeWorkspaceId` is `null` (which is the default "Home" state), the hook returns `{}` — an empty object. This means:
-- The folder tree shows all folders (fetched by `useFolders`)
-- But clicking a folder filters by `folderAssignments[recordingId].includes(folderId)` — which is always empty
-- Result: every folder appears to have 0 calls
+### Root cause (confirmed via code trace)
 
-Additionally, the folder assignment data itself may be stale or broken if the `vault_id` (workspace_id) column on folders was backfilled incorrectly during the Phase 16 migration.
+**The folder assignment data is still in the database. The query can't find it because `folders.workspace_id` is NULL.**
+
+The failure chain:
+
+1. Migration `20260210170000_add_bank_id_to_folders_and_tags.sql` added `bank_id` to folders and backfilled it
+2. Migration `20260228000001_workspace_redesign_schema.sql` added `vault_id` (later renamed to `workspace_id`) to folders and attempted to backfill from `bank_id → vaults.bank_id`:
+   ```sql
+   UPDATE folders f SET vault_id = (
+     SELECT v.id FROM vaults v WHERE v.bank_id = f.bank_id
+     ORDER BY v.created_at ASC LIMIT 1
+   ) WHERE f.vault_id IS NULL AND f.bank_id IS NOT NULL;
+   ```
+   This backfill **silently fails** for any folder where the user's vault wasn't created yet, or where `bank_id` doesn't match any vault. Those folders keep `vault_id = NULL`.
+3. Migration `20260301000001` renamed `vault_id → workspace_id`. NULL values stayed NULL.
+4. At query time, `getFolderAssignments` in `src/services/folders.service.ts` (lines 119-165) does:
+   ```typescript
+   let folderQuery = supabase.from('folders').select('id')
+   if (workspaceId) {
+     folderQuery = folderQuery.eq('workspace_id', workspaceId)  // NULL rows DON'T MATCH
+   }
+   const folderIds = (folderIdsData ?? []).map(f => f.id)
+   if (folderIds.length === 0) return {}  // ← Returns empty HERE
+   ```
+5. `TranscriptsTab` gets `folderAssignments = {}` → clicking any folder shows 0 calls
+
+### Diagnostic SQL (run in Supabase SQL editor)
+
+```sql
+-- 1. Show folders with no workspace_id (the broken ones)
+SELECT id, name, user_id, organization_id, workspace_id
+FROM folders
+WHERE workspace_id IS NULL;
+
+-- 2. Confirm assignments still exist for those folders
+SELECT fa.*, f.name as folder_name
+FROM folder_assignments fa
+JOIN folders f ON f.id = fa.folder_id
+WHERE f.workspace_id IS NULL
+LIMIT 20;
+
+-- 3. Count total assignments per folder (should be > 0 for folders that had calls)
+SELECT f.name, f.workspace_id, count(fa.id) as assignment_count
+FROM folders f
+LEFT JOIN folder_assignments fa ON fa.folder_id = f.id
+WHERE f.user_id = auth.uid()
+GROUP BY f.id, f.name, f.workspace_id
+ORDER BY assignment_count DESC;
+```
 
 ### What to fix
 
-1. **Fix `useFolderAssignments`** to load assignments for ALL workspaces in the active org when no specific workspace is selected (or load them per-workspace as the user expands each workspace in the tree)
-2. **Verify the database** — check that `folder_assignments` rows exist for the user's previously-organized calls. Run: `SELECT count(*) FROM folder_assignments WHERE folder_id IN (SELECT id FROM folders WHERE user_id = '<user_id>')`
-3. **Verify `folders.workspace_id`** is correctly populated — the Phase 16 migration added this column and backfilled it. If backfill failed, folders may not be associated with any workspace
-4. **Show folder call counts** in the Pane 2 tree — each folder should show a count badge (e.g., "Inbound (12)") so the user can see at a glance which folders have calls
+**Part 1 — Database patch (new migration):**
+```sql
+-- Backfill workspace_id on orphaned folders
+UPDATE folders f
+SET workspace_id = (
+  SELECT w.id FROM workspaces w
+  WHERE w.organization_id = f.organization_id
+  ORDER BY w.created_at ASC
+  LIMIT 1
+)
+WHERE f.workspace_id IS NULL
+  AND f.organization_id IS NOT NULL;
+```
 
-### Files to check
-- The hook that implements `useFolderAssignments` — trace from `TranscriptsNew.tsx`
-- `supabase/migrations/` — the Phase 16 migration that added `workspace_id` to folders and backfilled it
-- `src/components/panes/WorkspaceSidebarPane.tsx` — folder rendering
+**Part 2 — Query resilience in `getFolderAssignments`:**
+Add a fallback: if no folders are found by `workspace_id`, query by `organization_id` (the RLS `user_id = auth.uid()` policy still allows access). This makes the query resilient to future NULL cases:
+```typescript
+// Primary: filter by workspace
+let folderQuery = supabase.from('folders').select('id')
+if (workspaceId) {
+  folderQuery = folderQuery.eq('workspace_id', workspaceId)
+} else if (organizationId) {
+  // Fallback: if no workspace selected, get all folders for the org
+  folderQuery = folderQuery.eq('organization_id', organizationId)
+}
+```
+
+**Part 3 — Fix the type mismatch:**
+`TranscriptsTab.tsx` declares `folderAssignments: Record<number, string[]>` but the service returns `Record<string, string[]>` (keys are `String(recording_id)`). JavaScript coerces number keys to strings so this works by accident, but the type declaration should be `Record<string, string[]>`.
+
+**Part 4 — Show folder call counts:**
+Each folder in the Pane 2 tree should show a count badge (e.g., "Inbound (12)") so the user can see at a glance which folders have calls.
+
+### Files to fix
+- `src/services/folders.service.ts` — `getFolderAssignments` function (lines 119-165)
+- `src/hooks/useFolders.ts` — the `enabled` guard at line ~28 (disabled when `workspaceId` is null)
+- `src/components/transcripts/TranscriptsTab.tsx` — type declaration for `folderAssignments` prop
+- New Supabase migration — backfill `workspace_id` on orphaned folders
+- `src/components/panes/WorkspaceSidebarPane.tsx` — add folder call counts
 
 ---
 

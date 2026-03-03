@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
 import { parseVTTWithMetadata, consolidateBySpeaker, TranscriptSegment } from '../_shared/vtt-parser.ts';
 import { refreshZoomOAuthTokens } from '../zoom-oauth-refresh/index.ts';
-import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.ts';
+import { runPipeline } from '../_shared/connector-pipeline.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 
@@ -122,14 +122,6 @@ async function syncZoomMeeting(
   try {
     console.log(`Syncing Zoom meeting ${recordingId}: ${meeting.topic}`);
 
-    // Stage 3 — Dedup check via shared pipeline
-    // Use Zoom meeting UUID as the external_id for consistent cross-sync dedup
-    const { isDuplicate } = await checkDuplicate(supabase, userId, 'zoom', recordingId);
-    if (isDuplicate) {
-      console.log(`Zoom meeting ${recordingId} already exists — skipping`);
-      return 'skipped';
-    }
-
     // Find transcript file
     const transcriptFile = meeting.recording_files?.find(
       file => file.file_type === 'TRANSCRIPT' || file.recording_type === 'audio_transcript'
@@ -182,8 +174,8 @@ async function syncZoomMeeting(
       synced_at: new Date().toISOString(),
     };
 
-    // Stage 5 — Insert via shared pipeline
-    const result = await insertRecording(supabase, userId, {
+    // Stage 5 — Run through pipeline (Dedup -> Routing -> Insert)
+    const result = await runPipeline(supabase, userId, {
       external_id: recordingId,
       source_app: 'zoom',
       title: meeting.topic,
@@ -193,7 +185,15 @@ async function syncZoomMeeting(
       source_metadata: sourceMetadata,
     });
 
-    console.log(`Successfully synced Zoom meeting ${recordingId} as recording ${result.id}`);
+    if (!result.success) {
+      if (result.skipped) {
+        console.log(`Zoom meeting ${recordingId} already exists (pipeline skipped)`);
+        return 'skipped';
+      }
+      throw new Error(result.error || 'Pipeline failed');
+    }
+
+    console.log(`Successfully synced Zoom meeting ${recordingId} as recording ${result.recordingId}`);
 
     // Insert transcript segments into fathom_transcripts for backward compat
     if (transcriptSegments.length > 0) {

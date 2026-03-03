@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { FathomClient } from '../_shared/fathom-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.ts';
+import { runPipeline } from '../_shared/connector-pipeline.ts';
 
 // Rate limiter for API calls - conservative to avoid 429 errors
 class RateLimiter {
@@ -59,13 +59,8 @@ async function syncMeeting(
   try {
     console.log(`Syncing meeting ${recordingId}: ${meeting.title}`);
 
-    // Stage 3 — Dedup check via shared pipeline (Fathom recording IDs are numeric)
+    // Build external ID
     const externalId = String(recordingId);
-    const { isDuplicate } = await checkDuplicate(supabase, userId, 'fathom', externalId);
-    if (isDuplicate) {
-      console.log(`Fathom meeting ${recordingId} already exists — skipping`);
-      return 'skipped';
-    }
 
     // Build full transcript text with consolidated speaker turns
     const transcript = meeting.transcript || [];
@@ -105,7 +100,7 @@ async function syncMeeting(
     const fullTranscript = consolidatedSegments.join('\n\n');
 
     // Extract summary
-    const summary = meeting.default_summary?.markdown_formatted || null;
+    const summaryText = meeting.default_summary?.markdown_formatted || null;
 
     // Calculate duration from start/end times
     const startTime = new Date(meeting.recording_start_time);
@@ -118,7 +113,7 @@ async function syncMeeting(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const participantEmails = (meeting.calendar_invitees || []).map((inv: any) => inv.email).filter(Boolean);
 
-    // Build source_metadata (external_id merged as first key by insertRecording)
+    // Build source_metadata
     const sourceMetadata = {
       fathom_call_id: recordingId,
       fathom_url: meeting.url || null,
@@ -127,13 +122,13 @@ async function syncMeeting(
       recorded_by_email: meeting.recorded_by?.email || null,
       calendar_invitees: meeting.calendar_invitees || [],
       participant_emails: participantEmails,
-      summary: summary,
+      summary: summaryText,
       import_source: 'sync-meetings',
       synced_at: new Date().toISOString(),
     };
 
-    // Stage 5 — Insert via shared pipeline
-    const result = await insertRecording(supabase, userId, {
+    // Stage 5 — Run through pipeline (Dedup -> Routing -> Insert)
+    const result = await runPipeline(supabase, userId, {
       external_id: externalId,
       source_app: 'fathom',
       title: meeting.title,
@@ -143,7 +138,15 @@ async function syncMeeting(
       source_metadata: sourceMetadata,
     });
 
-    console.log(`Successfully synced Fathom meeting ${recordingId} as recording ${result.id}`);
+    if (!result.success) {
+      if (result.skipped) {
+        console.log(`Fathom meeting ${recordingId} already exists (pipeline skipped)`);
+        return 'skipped';
+      }
+      throw new Error(result.error || 'Pipeline failed');
+    }
+
+    console.log(`Successfully synced Fathom meeting ${recordingId} as recording ${result.recordingId}`);
 
     // Insert transcript segments into fathom_transcripts for backward compat
     if (meeting.transcript && meeting.transcript.length > 0) {
