@@ -77,7 +77,7 @@ export function CallOverviewTab({
                 <p className="text-sm font-medium">{callSpeakers?.length || 0} spoke</p>
               </div>
 
-              {/* Bottom Row - Categories & Tags */}
+              {/* Bottom Row - Categories & Folders */}
               <div className="space-y-2">
                 <Label className="text-xs font-medium uppercase text-ink-muted">FOLDERS</Label>
                 <div className="flex flex-wrap gap-2">
@@ -90,20 +90,6 @@ export function CallOverviewTab({
                     ))
                   ) : (
                     <span className="text-xs text-muted-foreground">No folders assigned</span>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs font-medium uppercase text-ink-muted">AUTO-GENERATED TAGS</Label>
-                <div className="flex flex-wrap gap-2">
-                  {call.auto_tags && call.auto_tags.length > 0 ? (
-                    call.auto_tags.map((tag: string) => (
-                      <Badge key={tag} variant="secondary" className="text-xs">
-                        {tag}
-                      </Badge>
-                    ))
-                  ) : (
-                    <span className="text-xs text-muted-foreground">No tags generated</span>
                   )}
                 </div>
               </div>

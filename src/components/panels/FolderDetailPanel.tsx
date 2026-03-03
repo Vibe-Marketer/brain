@@ -31,8 +31,8 @@ import {
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
-import { isEmojiIcon, getIconComponent } from "@/lib/folder-icons";
-import { EmojiPickerInline } from "@/components/ui/emoji-picker-inline";
+import { getIconComponent } from "@/lib/folder-icons";
+import { IconPickerInline } from "@/components/ui/icon-picker-inline";
 import { usePanelStore } from "@/stores/panelStore";
 import {
   AlertDialog,
@@ -56,9 +56,9 @@ export function FolderDetailPanel({
   onFolderUpdated,
   onFolderDeleted,
 }: FolderDetailPanelProps) {
-  const { activeVaultId } = useOrganizationContext();
-  const { data: folders = [], isLoading, refetch } = useFolders(activeVaultId);
-  const { data: folderAssignments = {} } = useFolderAssignments(activeVaultId);
+  const { activeWorkspaceId } = useOrganizationContext();
+  const { data: folders = [], isLoading, refetch } = useFolders(activeWorkspaceId);
+  const { data: folderAssignments = {} } = useFolderAssignments(activeWorkspaceId);
   const { mutateAsync: updateFolderMutation } = useRenameFolder();
   const { mutateAsync: deleteFolder } = useDeleteFolder();
 
@@ -78,7 +78,7 @@ export function FolderDetailPanel({
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
-  const [emoji, setEmoji] = useState("📁");
+  const [icon, setIcon] = useState("folder");
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -102,7 +102,7 @@ export function FolderDetailPanel({
       setName(folder.name || "");
       setDescription(folder.description || "");
       setShowDescription(!!folder.description);
-      setEmoji(folder.icon || "📁");
+      setIcon(folder.icon || "folder");
       setSelectedParentId(folder.parent_id || undefined);
       setHasChanges(false);
     }
@@ -116,11 +116,11 @@ export function FolderDetailPanel({
     const descChanged = showDescription
       ? description !== (folder.description || "")
       : !!folder.description;
-    const emojiChanged = emoji !== (folder.icon || "📁");
+    const iconChanged = icon !== (folder.icon || "folder");
     const parentChanged = selectedParentId !== (folder.parent_id || undefined);
 
-    setHasChanges(nameChanged || descChanged || emojiChanged || parentChanged);
-  }, [folder, name, description, showDescription, emoji, selectedParentId]);
+    setHasChanges(nameChanged || descChanged || iconChanged || parentChanged);
+  }, [folder, name, description, showDescription, icon, selectedParentId]);
 
   // Get available parent folders (exclude current folder and its descendants)
   const availableParentFolders = useMemo(() => {
@@ -178,7 +178,7 @@ export function FolderDetailPanel({
         name: validation.data.name,
         description: showDescription ? validation.data.description || null : null,
         parent_id: selectedParentId || null,
-        icon: emoji,
+        icon: icon,
       });
 
       setHasChanges(false);
@@ -254,7 +254,6 @@ export function FolderDetailPanel({
   }
 
   const FolderIcon = getIconComponent(folder.icon);
-  const isEmoji = isEmojiIcon(folder.icon);
 
   return (
     <div
@@ -269,9 +268,7 @@ export function FolderDetailPanel({
             className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
             aria-hidden="true"
           >
-            {isEmoji ? (
-              <span className="text-xl" aria-hidden="true">{folder.icon}</span>
-            ) : FolderIcon ? (
+            {FolderIcon ? (
               <FolderIcon
                 className="h-5 w-5 text-vibe-orange"
                 style={{ color: folder.color }}
@@ -352,11 +349,13 @@ export function FolderDetailPanel({
             <Label htmlFor="folder-name">Folder Name</Label>
             <div className="flex items-center gap-2">
               <span
-                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-border bg-cb-card flex-shrink-0"
-                aria-label={`Selected icon: ${emoji}`}
-                role="img"
+                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-border bg-cb-card flex-shrink-0 text-vibe-orange"
+                aria-label="Selected icon"
               >
-                {emoji}
+                {(() => {
+                  const Icon = getIconComponent(icon);
+                  return <Icon className="w-6 h-6" />;
+                })()}
               </span>
               <Input
                 id="folder-name"
@@ -371,10 +370,10 @@ export function FolderDetailPanel({
             <span id="folder-name-hint" className="sr-only">Enter a name for this folder</span>
           </div>
 
-          {/* Emoji picker inline */}
+          {/* Icon picker inline */}
           <div className="space-y-2">
             <Label id="icon-picker-label">Icon</Label>
-            <EmojiPickerInline value={emoji} onChange={setEmoji} />
+            <IconPickerInline value={icon} onChange={setIcon} />
           </div>
 
           {/* Parent Folder */}

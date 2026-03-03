@@ -139,8 +139,25 @@ export interface WorkspaceEntry {
   updated_at: string
 }
 
+/**
+ * Folder - Hierarchical container within a workspace/vault
+ */
+export interface Folder {
+  id: string
+  name: string
+  description?: string | null
+  parent_id?: string | null
+  icon?: string | null
+  color?: string | null
+  user_id?: string
+  organization_id?: string
+  position?: number
+  created_at?: string
+  updated_at?: string
+}
+
 // Legacy aliases for backward compatibility (progressive migration)
 
-export type Vault = Workspace
-export type VaultWithMembership = WorkspaceWithMembership
+export type Workspace = Workspace
+export type WorkspaceWithMembership = WorkspaceWithMembership
 export type WorkspaceWithMeta = Workspace & { member_count: number; user_role: WorkspaceRole | null }

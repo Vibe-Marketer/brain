@@ -1,30 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
-  RiFolderLine, 
-  RiFolder2Line, 
-  RiFolder3Line, 
-  RiFolderChartLine,
-  RiFolderHistoryLine,
-  RiFolderKeyholeLine,
-  RiFolderLockLine,
-  RiFolderMusicLine,
-  RiFolderOpenLine,
-  RiFolderShieldLine,
-  RiFolderUserLine,
-  RiFolderVideoLine,
-  RiFolderZipLine,
-  RiHomeLine,
-  RiUserLine,
-  RiTeamLine,
-  RiCustomerService2Line,
-  RiBriefcaseLine,
-  RiLightbulbLine,
-  RiStarLine,
-  RiFlagLine,
-  RiPriceTag3Line,
-  RiArchiveLine,
-  RiInboxLine,
-  RiArrowDownSLine
+  RiFolderLine,
+  RiArrowDownSLine,
+  RiSearchLine
 } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import {
@@ -32,36 +10,8 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
-
-const COMMON_ICONS = [
-  { id: 'folder', icon: RiFolderLine },
-  { id: 'folder-2', icon: RiFolder2Line },
-  { id: 'folder-3', icon: RiFolder3Line },
-  { id: 'briefcase', icon: RiBriefcaseLine },
-  { id: 'home', icon: RiHomeLine },
-  { id: 'user', icon: RiUserLine },
-  { id: 'team', icon: RiTeamLine },
-  { id: 'star', icon: RiStarLine },
-  { id: 'lightbulb', icon: RiLightbulbLine },
-  { id: 'flag', icon: RiFlagLine },
-];
-
-const MORE_ICONS = [
-  { id: 'folder-chart', icon: RiFolderChartLine },
-  { id: 'folder-history', icon: RiFolderHistoryLine },
-  { id: 'folder-keyhole', icon: RiFolderKeyholeLine },
-  { id: 'folder-lock', icon: RiFolderLockLine },
-  { id: 'folder-music', icon: RiFolderMusicLine },
-  { id: 'folder-open', icon: RiFolderOpenLine },
-  { id: 'folder-shield', icon: RiFolderShieldLine },
-  { id: 'folder-user', icon: RiFolderUserLine },
-  { id: 'folder-video', icon: RiFolderVideoLine },
-  { id: 'folder-zip', icon: RiFolderZipLine },
-  { id: 'customer-service', icon: RiCustomerService2Line },
-  { id: 'price-tag', icon: RiPriceTag3Line },
-  { id: 'archive', icon: RiArchiveLine },
-  { id: 'inbox', icon: RiInboxLine },
-];
+import { FOLDER_ICON_OPTIONS } from '@/lib/folder-icons';
+import { Input } from './input';
 
 interface IconPickerInlineProps {
   value: string; // The ID of the icon
@@ -69,8 +19,32 @@ interface IconPickerInlineProps {
   className?: string;
 }
 
+// Show first 10 icons as quick picks
+const QUICK_ICONS = FOLDER_ICON_OPTIONS.slice(0, 10);
+
 export function IconPickerInline({ value, onChange, className }: IconPickerInlineProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const filteredIcons = useMemo(() => {
+    if (!search) return FOLDER_ICON_OPTIONS;
+    const lowerSearch = search.toLowerCase();
+    return FOLDER_ICON_OPTIONS.filter(
+      opt => opt.label.toLowerCase().includes(lowerSearch) || 
+             opt.id.toLowerCase().includes(lowerSearch) ||
+             opt.category.toLowerCase().includes(lowerSearch)
+    );
+  }, [search]);
+
+  // Group by category for the popover
+  const groupedIcons = useMemo(() => {
+    const groups: Record<string, typeof FOLDER_ICON_OPTIONS> = {};
+    filteredIcons.forEach(icon => {
+      if (!groups[icon.category]) groups[icon.category] = [];
+      groups[icon.category].push(icon);
+    });
+    return groups;
+  }, [filteredIcons]);
 
   const handleIconSelect = (iconId: string) => {
     onChange(iconId);
@@ -80,7 +54,7 @@ export function IconPickerInline({ value, onChange, className }: IconPickerInlin
   return (
     <div className={cn("flex items-center gap-1 flex-wrap", className)}>
       {/* Quick icon buttons */}
-      {COMMON_ICONS.map((item) => {
+      {QUICK_ICONS.map((item) => {
         const Icon = item.icon;
         return (
           <button
@@ -90,11 +64,11 @@ export function IconPickerInline({ value, onChange, className }: IconPickerInlin
             className={cn(
               "w-8 h-8 flex-shrink-0 flex items-center justify-center rounded transition-all",
               "hover:bg-muted border border-transparent",
-              value === item.id && "border-primary bg-primary/10 text-primary scale-105"
+              value === item.id && "border-vibe-orange bg-vibe-orange/10 text-vibe-orange scale-105"
             )}
-            title={item.id}
+            title={item.label}
           >
-            <Icon size={18} />
+            <Icon className="w-[18px] h-[18px]" />
           </button>
         );
       })}
@@ -114,29 +88,56 @@ export function IconPickerInline({ value, onChange, className }: IconPickerInlin
           </button>
         </PopoverTrigger>
         <PopoverContent
-          className="w-48 p-2 border border-border bg-popover shadow-md overflow-hidden"
+          className="w-72 p-3 border border-border bg-popover shadow-md overflow-hidden"
           align="start"
           sideOffset={4}
         >
-          <div className="grid grid-cols-4 gap-1">
-            {MORE_ICONS.map((item) => {
-              const Icon = item.icon;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => handleIconSelect(item.id)}
-                  className={cn(
-                    "w-8 h-8 flex items-center justify-center rounded transition-all",
-                    "hover:bg-muted",
-                    value === item.id && "bg-primary/10 text-primary"
-                  )}
-                  title={item.id}
-                >
-                  <Icon size={18} />
-                </button>
-              );
-            })}
+          <div className="space-y-3">
+            <div className="relative">
+              <RiSearchLine className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                placeholder="Search icons..."
+                className="pl-7 h-8 text-xs"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div className="max-h-[300px] overflow-y-auto pr-1 space-y-4 custom-scrollbar">
+              {Object.entries(groupedIcons).map(([category, icons]) => (
+                <div key={category} className="space-y-1.5">
+                  <h4 className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground/70 px-1">
+                    {category}
+                  </h4>
+                  <div className="grid grid-cols-6 gap-0.5">
+                    {icons.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => handleIconSelect(item.id)}
+                          className={cn(
+                            "w-9 h-9 flex items-center justify-center rounded transition-all",
+                            "hover:bg-muted",
+                            value === item.id && "bg-vibe-orange/10 text-vibe-orange"
+                          )}
+                          title={item.label}
+                        >
+                          <Icon className="w-5 h-5" />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {filteredIcons.length === 0 && (
+                <div className="text-center py-4 text-xs text-muted-foreground">
+                  No icons found
+                </div>
+              )}
+            </div>
           </div>
         </PopoverContent>
       </Popover>
@@ -145,6 +146,6 @@ export function IconPickerInline({ value, onChange, className }: IconPickerInlin
 }
 
 export function getIconById(id: string) {
-  const item = [...COMMON_ICONS, ...MORE_ICONS].find(i => i.id === id);
+  const item = FOLDER_ICON_OPTIONS.find(i => i.id === id);
   return item ? item.icon : RiFolderLine;
 }

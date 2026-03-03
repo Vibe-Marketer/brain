@@ -32,6 +32,8 @@ interface QuickCreateFolderDialogProps {
   onOpenChange: (open: boolean) => void;
   onFolderCreated?: (folderId: string) => void;
   parentFolderId?: string;
+  workspaceId?: string;
+  organizationId?: string;
 }
 
 interface FolderWithDepth {
@@ -52,8 +54,10 @@ export default function QuickCreateFolderDialog({
   onOpenChange,
   onFolderCreated,
   parentFolderId,
+  workspaceId,
+  organizationId,
 }: QuickCreateFolderDialogProps) {
-  const { activeOrganizationId } = useOrganizationContext();
+  const { activeOrganizationId, activeWorkspaceId } = useOrganizationContext();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
@@ -97,14 +101,19 @@ export default function QuickCreateFolderDialog({
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
+      const targetWorkspaceId = workspaceId || activeWorkspaceId;
+      const targetOrgId = organizationId || activeOrganizationId;
+
       let query = supabase
         .from("folders")
         .select("id, name, parent_id")
         .eq("user_id", user.id)
         .order("name");
 
-      if (activeOrganizationId) {
-        query = query.eq("organization_id", activeOrganizationId);
+      if (targetWorkspaceId) {
+        query = query.eq("workspace_id", targetWorkspaceId);
+      } else if (targetOrgId) {
+        query = query.eq("organization_id", targetOrgId);
       }
 
       const { data, error } = await query;
@@ -165,8 +174,11 @@ export default function QuickCreateFolderDialog({
         }
       }
 
-      if (!activeOrganizationId) {
-        toast.error("No active workspace selected");
+      const targetWorkspaceId = workspaceId || activeWorkspaceId;
+      const targetOrgId = organizationId || activeOrganizationId;
+
+      if (!targetWorkspaceId || !targetOrgId) {
+        toast.error("No active workspace or organization selected");
         return;
       }
 
@@ -175,7 +187,7 @@ export default function QuickCreateFolderDialog({
         .from("folders")
         .select("id")
         .eq("user_id", user.id)
-        .eq("organization_id", activeOrganizationId)
+        .eq("workspace_id", targetWorkspaceId)
         .eq("name", validation.data.name);
 
       if (selectedParentId) {
@@ -202,7 +214,8 @@ export default function QuickCreateFolderDialog({
           name: validation.data.name,
           description: validation.data.description,
           user_id: user.id,
-          organization_id: activeOrganizationId,
+          organization_id: targetOrgId,
+          workspace_id: targetWorkspaceId,
           parent_id: selectedParentId || null,
           icon: iconId,
           position: 0,

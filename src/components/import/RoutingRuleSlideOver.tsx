@@ -73,7 +73,7 @@ export function RoutingRuleSlideOver() {
               : [DEFAULT_CONDITION],
           logicOperator: existingRule.logic_operator,
           destination: {
-            vaultId: existingRule.target_vault_id,
+            workspaceId: existingRule.target_workspace_id,
             folderId: existingRule.target_folder_id,
           },
         });
@@ -99,11 +99,10 @@ export function RoutingRuleSlideOver() {
     if (!canSave || !form.destination) return;
 
     const payload = {
-      bank_id: activeOrgId!,
       name: form.name.trim(),
       conditions: form.conditions,
       logic_operator: form.logicOperator,
-      target_vault_id: form.destination.vaultId,
+      target_workspace_id: form.destination.workspaceId,
       target_folder_id: form.destination.folderId,
       enabled: true,
     };

@@ -93,8 +93,8 @@ export function useGenerateWorkspaceInvite(workspaceId: string) {
       // Check if workspace already has a valid invite token
       // Preferred path: SECURITY DEFINER RPC handles permissions and token generation
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: rpcData, error: rpcError } = await (supabase as any).rpc('generate_vault_invite', {
-        p_vault_id: workspaceId,
+      const { data: rpcData, error: rpcError } = await (supabase as any).rpc('generate_workspace_invite', {
+        p_workspace_id: workspaceId,
         p_force: !!options?.force,
       })
 

@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import * as RemixIcon from "@remixicon/react";
-import { IconEmojiPicker, isEmojiIcon, getIconComponent } from "@/components/ui/icon-emoji-picker";
+import { IconPickerInline, getIconById } from "@/components/ui/icon-picker-inline";
 import type { AllTranscriptsSettings } from "@/hooks/useAllTranscriptsSettings";
 
 interface EditAllTranscriptsDialogProps {
@@ -63,15 +63,14 @@ export default function EditAllTranscriptsDialog({
     onOpenChange(false);
   };
 
-  // Use shared utilities from icon-emoji-picker
-  const isEmoji = isEmojiIcon(icon);
-  const IconComponent = getIconComponent(icon);
+  // Use shared utilities from icon-picker-inline
+  const IconComponent = getIconById(icon);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Customize All Transcripts</DialogTitle>
+          <DialogTitle>Customize Home</DialogTitle>
           <DialogDescription>
             Personalize the name and icon for your main transcript view
           </DialogDescription>
@@ -83,7 +82,7 @@ export default function EditAllTranscriptsDialog({
             <Label htmlFor="all-transcripts-name">Display Name</Label>
             <Input
               id="all-transcripts-name"
-              placeholder="e.g., All Transcripts, My Calls, Library"
+              placeholder="e.g., Home, My Calls, Library"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => {
@@ -95,23 +94,18 @@ export default function EditAllTranscriptsDialog({
             />
           </div>
 
-          {/* Icon/Emoji Picker */}
           <div className="space-y-2">
-            <Label>Icon or Emoji</Label>
-            <IconEmojiPicker
+            <Label>Icon</Label>
+            <IconPickerInline
               value={icon}
               onChange={setIcon}
-              color="#6B7280" // Default gray color for All Transcripts
             />
           </div>
 
-          {/* Preview */}
           <div className="space-y-2">
             <Label>Preview</Label>
             <div className="flex items-center gap-2 p-3 rounded-md border border-border bg-cb-card">
-              {isEmoji ? (
-                <span className="text-xl">{icon}</span>
-              ) : IconComponent ? (
+              {IconComponent ? (
                 <IconComponent
                   className="h-5 w-5 text-ink-muted"
                 />
@@ -121,7 +115,7 @@ export default function EditAllTranscriptsDialog({
                 />
               )}
               <span className="font-medium">
-                {name || "All Transcripts"}
+                {name || "Home"}
               </span>
             </div>
           </div>

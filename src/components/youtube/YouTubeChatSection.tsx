@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/button'
 import type { ChatLocationState } from '@/types/chat'
 
 export interface YouTubeChatSectionProps {
-  /** Vault ID for scoping the chat session */
+  /** Workspace ID for scoping the chat session */
   vaultId: string
   /** Legacy recording ID (numeric) for prefilter */
   recordingId: number | null

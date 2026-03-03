@@ -126,7 +126,7 @@ export const queryKeys = {
     unread: () => ['notifications', 'unread'] as const,
   },
 
-  // Workspaces (formerly Vaults)
+  // Workspaces (formerly Workspaces)
   workspaces: {
     all: ['workspaces'] as const,
     list: (orgId?: string) => ['workspaces', 'list', orgId] as const,

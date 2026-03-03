@@ -16,13 +16,13 @@ import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
 import type { YouTubeSortField, SortOrder } from '@/hooks/useYouTubeSearch'
 
 /** Alias for backward compatibility */
-type VaultRecording = WorkspaceRecording
+type WorkspaceRecording = WorkspaceRecording
 
 export interface YouTubeVideoListProps {
   /** Recordings to render */
-  recordings: VaultRecording[]
+  recordings: WorkspaceRecording[]
   /** Click handler for video selection */
-  onVideoClick: (recording: VaultRecording) => void
+  onVideoClick: (recording: WorkspaceRecording) => void
   /** Current sort field */
   sortBy: YouTubeSortField
   /** Current sort order */

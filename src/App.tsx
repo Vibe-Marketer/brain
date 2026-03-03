@@ -26,7 +26,6 @@ import SortingTagging from "@/pages/SortingTagging";
 import Settings from "@/pages/Settings";
 import Analytics from "@/pages/Analytics";
 import SharedWithMe from "@/pages/SharedWithMe";
-import WorkspacesPage from "@/pages/WorkspacesPage";
 import ImportPage from "@/pages/ImportPage";
 
 // Optimized QueryClient configuration with smart caching
@@ -176,44 +175,30 @@ function App() {
                     }
                   />
 
-                  {/* Workspaces routes */}
+                  {/* Legacy redirects */}
                   <Route
                     path="/workspaces"
-                    element={
-                      <ProtectedRoute>
-                        <Layout>
-                          <WorkspacesPage />
-                        </Layout>
-                      </ProtectedRoute>
-                    }
+                    element={<Navigate to="/" replace />}
                   />
                   <Route
                     path="/workspaces/:workspaceId"
-                    element={
-                      <ProtectedRoute>
-                        <Layout>
-                          <WorkspacesPage />
-                        </Layout>
-                      </ProtectedRoute>
-                    }
+                    element={<Navigate to="/" replace />}
                   />
-
-                  {/* Legacy redirects */}
                   <Route
                     path="/vaults"
-                    element={<Navigate to="/workspaces" replace />}
+                    element={<Navigate to="/" replace />}
                   />
                   <Route
                     path="/vaults/:workspaceId"
-                    element={<Navigate to="/workspaces/:workspaceId" replace />}
+                    element={<Navigate to="/" replace />}
                   />
                   <Route
                     path="/agents"
-                    element={<Navigate to="/workspaces" replace />}
+                    element={<Navigate to="/" replace />}
                   />
                   <Route
                     path="/agents/:workspaceId"
-                    element={<Navigate to="/workspaces/:workspaceId" replace />}
+                    element={<Navigate to="/" replace />}
                   />
                   <Route
                     path="/team"

@@ -35,10 +35,11 @@ import { OrganizationSwitcher } from '@/components/header/OrganizationSwitcher';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { useOrgContext } from '@/hooks/useOrgContext';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
-import { useFolders } from '@/hooks/useFolders';
+import { useFolders, useFolderAssignments } from '@/hooks/useFolders';
 import { queryKeys } from '@/lib/query-config';
 import type { WorkspaceType, WorkspaceWithMeta } from '@/types/workspace';
 import type { Folder } from '@/types/workspace';
+import { getIconComponent } from '@/lib/folder-icons';
 
 export interface WorkspaceListPaneProps {
   /** Currently selected workspace ID */
@@ -91,23 +92,30 @@ function FolderItem({
   folder,
   isActive,
   onSelect,
+  count = 0,
+  depth = 0,
 }: {
   folder: Folder;
   isActive: boolean;
   onSelect: (folderId: string) => void;
+  count?: number;
+  depth?: number;
 }) {
+  const FolderIcon = getIconComponent(folder.icon);
+
   return (
     <button
       type="button"
       onClick={() => onSelect(folder.id)}
       className={cn(
-        'relative w-full flex items-center gap-2 rounded-md pl-9 pr-2 py-1.5',
+        'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
         'text-xs transition-all duration-200 text-left group',
         'hover:bg-hover/50',
         isActive
           ? 'bg-vibe-orange/5 text-vibe-orange font-semibold'
           : 'text-muted-foreground hover:text-foreground',
       )}
+      style={{ paddingLeft: `${2.25 + depth * 0.75}rem` }}
     >
       {isActive && (
         <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3 rounded-r-full bg-vibe-orange" aria-hidden="true" />
@@ -117,7 +125,12 @@ function FolderItem({
       ) : (
         <RiFolder3Line size={14} className="flex-shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" aria-hidden="true" />
       )}
-      <span className="truncate">{folder.name}</span>
+      <span className="truncate flex-1">{folder.name}</span>
+      {count > 0 && (
+        <span className="text-[10px] tabular-nums font-bold text-muted-foreground/40 group-hover:text-vibe-orange/60 transition-colors">
+          {count}
+        </span>
+      )}
     </button>
   );
 }
@@ -137,6 +150,8 @@ function WorkspaceListItem({
 }) {
   const [isOpen, setIsOpen] = React.useState(isActive);
   const { data: folders = [] } = useFolders(isOpen ? workspace.id : null);
+  const { data: assignments = {} } = useFolderAssignments(isOpen ? workspace.id : null);
+  
   const typeConfig = WORKSPACE_TYPE_CONFIG[workspace.workspace_type] || WORKSPACE_TYPE_CONFIG.personal;
   const TypeIcon = typeConfig.icon;
   const WorkspaceIcon = RiSafeLine;
@@ -145,17 +160,59 @@ function WorkspaceListItem({
     if (isActive) setIsOpen(true);
   }, [isActive]);
 
+  // Group folders by parent_id
+  const foldersByParent = React.useMemo(() => {
+    const map: Record<string, Folder[]> = {};
+    folders.forEach(f => {
+      const parentId = f.parent_id || 'root';
+      if (!map[parentId]) map[parentId] = [];
+      map[parentId].push(f);
+    });
+    return map;
+  }, [folders]);
+
+  const renderFolderTree = (parentId: string = 'root', depth: number = 0) => {
+    const currentFolders = foldersByParent[parentId] || [];
+    if (currentFolders.length === 0 && parentId === 'root') {
+      return (
+        <p className="pl-9 py-1.5 text-[10px] font-medium text-muted-foreground/40 italic">
+          No folders found
+        </p>
+      );
+    }
+
+    return currentFolders.sort((a, b) => (a.position || 0) - (b.position || 0)).map(folder => (
+      <React.Fragment key={folder.id}>
+        <FolderItem
+          folder={folder}
+          isActive={activeFolderId === folder.id}
+          onSelect={(id) => onFolderSelect(activeFolderId === id ? null : id)}
+          count={assignments[folder.id]?.length}
+          depth={depth}
+        />
+        {renderFolderTree(folder.id, depth + 1)}
+      </React.Fragment>
+    ));
+  };
+
   return (
     <Collapsible.Root open={isOpen} onOpenChange={setIsOpen} className="mb-1">
       <div className="relative">
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           onClick={() => {
             onSelect(workspace.id);
             if (!isOpen) setIsOpen(true);
           }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              onSelect(workspace.id);
+              if (!isOpen) setIsOpen(true);
+            }
+          }}
           className={cn(
-            'relative w-full flex items-start gap-3 px-3 py-3 rounded-lg',
+            'relative w-full flex items-start gap-3 px-3 py-3 rounded-lg cursor-pointer',
             'text-left transition-all duration-300 ease-in-out',
             'hover:bg-hover/70',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
@@ -195,6 +252,7 @@ function WorkspaceListItem({
                     setIsOpen(!isOpen);
                   }}
                   className="p-1 hover:bg-muted rounded transition-colors"
+                  aria-label={isOpen ? "Collapse" : "Expand"}
                 >
                   <RiArrowRightSLine
                     size={16}
@@ -218,27 +276,12 @@ function WorkspaceListItem({
               </span>
             </div>
           </div>
-        </button>
+        </div>
       </div>
 
       <Collapsible.Content className="overflow-hidden data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 mt-1">
         <div className="flex flex-col gap-0.5 ml-1 border-l border-border/40 pb-1">
-          {folders.length > 0 ? (
-            folders.map((folder) => (
-              <FolderItem
-                key={folder.id}
-                folder={folder}
-                isActive={activeFolderId === folder.id}
-                onSelect={(id) => onFolderSelect(activeFolderId === id ? null : id)}
-              />
-            ))
-          ) : (
-            isOpen && !isActive ? null : (
-               <p className="pl-9 py-1.5 text-[10px] font-medium text-muted-foreground/40 italic">
-                 No folders found
-               </p>
-            )
-          )}
+          {renderFolderTree()}
         </div>
       </Collapsible.Content>
     </Collapsible.Root>
@@ -370,7 +413,7 @@ export function WorkspaceListPane({
                 <RiSafeLine className="h-5 w-5 text-vibe-orange" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-[11px] font-black text-ink uppercase tracking-[0.15em] leading-none mb-1">Vaults</h2>
+                <h2 className="text-[11px] font-black text-ink uppercase tracking-[0.15em] leading-none mb-1">Workspaces</h2>
                 <p className="text-[10px] font-medium text-ink-muted uppercase tracking-wider">Workspace Management</p>
               </div>
             </div>

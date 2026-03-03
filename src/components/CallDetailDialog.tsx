@@ -14,6 +14,8 @@ import { ResyncConfirmDialog } from "@/components/transcript-library/ResyncConfi
 import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
+import { Badge } from "@/components/ui/badge";
+import { RiCheckboxCircleLine } from "@remixicon/react";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
 import { CallParticipantsTab } from "@/components/call-detail/CallParticipantsTab";
@@ -244,27 +246,6 @@ export function CallDetailDialog({
     revertSegmentMutation.mutate({ segmentId });
   }, [revertSegmentMutation]);
 
-  const handleChatWithAI = useCallback(() => {
-    onOpenChange(false);
-    if (!call?.recording_id) return;
-
-    const initialContext = [{
-      type: 'call' as const,
-      id: Number(call.recording_id),
-      title: call.title || `Call ${call.recording_id}`,
-      date: call.created_at
-    }];
-
-    navigate('/chat', {
-      state: {
-        prefilter: { recordingIds: [call.recording_id] },
-        callTitle: call.title,
-        initialContext,
-        newSession: true // Treat as new session to ensure context loading
-      }
-    });
-  }, [call?.recording_id, call?.title, call?.created_at, navigate, onOpenChange]);
-
   // Create grouped props using useMemo for optimal performance
   const transcriptViewState: TranscriptViewState = useMemo(() => ({
     includeTimestamps,
@@ -333,7 +314,6 @@ export function CallDetailDialog({
           setEditedSummary={setEditedSummary}
           onSave={handleSave}
           isSaving={updateCallMutation.isPending}
-          onChatWithAI={handleChatWithAI}
         />
 
         <Tabs defaultValue="overview" className="w-full flex-1 flex flex-col overflow-hidden">

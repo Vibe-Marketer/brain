@@ -52,7 +52,7 @@ export interface Meeting {
   auto_tags?: string[] | null;
   // Multi-source deduplication fields
   meeting_fingerprint?: string | null;
-  source_platform?: 'fathom' | 'google_meet' | null;
+  source_platform?: 'fathom' | 'zoom' | 'youtube' | 'file-upload' | null;
   is_primary?: boolean | null;
   merged_from?: number[] | null;
   fuzzy_match_score?: number | null;
@@ -61,6 +61,7 @@ export interface Meeting {
   google_drive_file_id?: string | null;
   transcript_source?: 'native' | 'whisper' | null;
   ai_generated_title?: string | null;
+  source_metadata?: Record<string, any> | null;
 }
 
 export interface MeetingWithTranscripts extends Meeting {

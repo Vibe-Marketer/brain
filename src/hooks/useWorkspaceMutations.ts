@@ -370,3 +370,61 @@ export function useDeleteWorkspace() {
     },
   })
 }
+// ─── Set Default Workspace ─────────────────────────────────────────────
+
+export interface SetDefaultWorkspaceInput {
+  workspaceId: string
+}
+
+/**
+ * useSetDefaultWorkspace - Marks a workspace as the default for its organization
+ *
+ * First unsets is_default for all other workspaces in the same organization,
+ * then sets it for the target workspace.
+ */
+export function useSetDefaultWorkspace() {
+  const queryClient = useQueryClient()
+  const { user } = useAuth()
+
+  return useMutation({
+    mutationFn: async (input: SetDefaultWorkspaceInput) => {
+      if (!user) throw new Error('Not authenticated')
+
+      // 1. Get the organization_id for the target workspace
+      const { data: targetWs, error: fetchError } = await db
+        .from('workspaces')
+        .select('organization_id')
+        .eq('id', input.workspaceId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      // 2. Unset default for all workspaces in that organization
+      const { error: unsetError } = await db
+        .from('workspaces')
+        .update({ is_default: false })
+        .eq('organization_id', targetWs.organization_id)
+
+      if (unsetError) throw unsetError
+
+      // 3. Set default for the target workspace
+      const { data: updatedWs, error: setError } = await db
+        .from('workspaces')
+        .update({ is_default: true })
+        .eq('id', input.workspaceId)
+        .select()
+        .single()
+
+      if (setError) throw setError
+      return updatedWs
+    },
+    onSuccess: () => {
+      toast.success('Default workspace updated')
+      queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all })
+      queryClient.invalidateQueries({ queryKey: ['bankContext'] }) // Legacy context
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to set default workspace: ${error.message}`)
+    },
+  })
+}

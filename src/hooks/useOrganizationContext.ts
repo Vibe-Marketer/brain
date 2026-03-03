@@ -11,25 +11,24 @@
 import { useEffect, useCallback } from 'react'
 import { useOrgContext } from '@/hooks/useOrgContext'
 import { useWorkspaces } from '@/hooks/useWorkspaces'
-import type { OrganizationWithMembership, WorkspaceWithMembership, OrganizationRole, WorkspaceRole, OrganizationWithMembership } from '@/types/workspace'
+import type { OrganizationWithMembership, WorkspaceWithMembership, OrganizationRole, WorkspaceRole } from '@/types/workspace'
 
 export function useOrganizationContext(): {
   activeOrganizationId: string
   activeOrgId: string
   activeWorkspaceId: string | null
-  activeVaultId: string | null
-  activeOrganization: OrganizationWithMembership | null
   activeOrganization: OrganizationWithMembership | null
   activeWorkspace: WorkspaceWithMembership | null
   personalWorkspace: WorkspaceWithMembership | null
   organizations: OrganizationWithMembership[]
   workspaces: WorkspaceWithMembership[]
+  activeFolderId: string | null
   isLoading: boolean
   isInitialized: boolean
   error: null
   switchOrganization: (orgId: string) => void
-  switchOrganization: (orgId: string) => void
   switchWorkspace: (workspaceId: string | null) => void
+  switchFolder: (folderId: string | null) => void
   reset: () => void
   isPersonalOrganization: boolean
   isPersonalOrg: boolean
@@ -41,11 +40,13 @@ export function useOrganizationContext(): {
   const {
     activeOrgId,
     activeWorkspaceId,
+    activeFolderId,
     organizations,
     isLoading: orgsLoading,
     isInitialized,
     switchOrg,
     switchWorkspace,
+    switchFolder,
     reset,
     isPersonalOrg,
   } = useOrgContext()
@@ -95,7 +96,7 @@ export function useOrganizationContext(): {
     activeOrganizationId: activeOrgId, // Legacy alias
     activeOrgId,
     activeWorkspaceId,
-    activeVaultId: activeWorkspaceId, // Legacy alias
+    activeFolderId,
     activeOrganization,
     activeWorkspace: activeWorkspaceData,
     personalWorkspace: personalWorkspaceData,
@@ -110,6 +111,7 @@ export function useOrganizationContext(): {
     // Actions
     switchOrganization: switchOrganizationInternal,
     switchWorkspace: switchWorkspaceInternal,
+    switchFolder,
     reset,
 
     // Helpers

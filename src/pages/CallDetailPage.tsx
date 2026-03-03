@@ -383,16 +383,10 @@ export const CallDetailPage: React.FC = () => {
         <div className="flex-1 overflow-auto p-6 space-y-6">
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
             <span>{new Date(call.created_at).toLocaleDateString()}</span>
-            {sentiment && (
-              <Badge className={sentimentColor}>
-                {sentiment}
-                {sentimentScore && ` (${Math.round(sentimentScore)}%)`}
-              </Badge>
-            )}
             {call.ai_generated_title && (
               <Badge variant="outline">
-                <RiSparklingLine className="w-3 h-3 mr-1" />
-                AI PROCESSED
+                <RiCheckboxCircleLine className="w-3 h-3 mr-1" />
+                PROCESSED
               </Badge>
             )}
           </div>

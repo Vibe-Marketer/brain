@@ -1,5 +1,6 @@
 /**
  * useRoutingRules — TanStack Query hooks for import routing rule management.
+ * Column names match post-Phase-16 DB rename: bank_id→organization_id, vault_id→workspace_id.
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,7 +16,7 @@ import type { RoutingRule, RoutingDefault } from '@/types/routing';
 // ---------------------------------------------------------------------------
 
 /**
- * Fetches all routing rules for the active organization (bank).
+ * Fetches all routing rules for the active organization.
  */
 export function useRoutingRules() {
   const { user } = useAuth();
@@ -27,14 +28,14 @@ export function useRoutingRules() {
       const { data, error } = await supabase
         .from('import_routing_rules')
         .select('*')
-        .eq('bank_id', activeOrgId!)
+        .eq('organization_id', activeOrgId!)
         .order('priority', { ascending: true });
 
       if (error) {
         throw new Error(`Failed to fetch routing rules: ${error.message}`);
       }
 
-      return (data ?? []) as RoutingRule[];
+      return (data ?? []) as unknown as RoutingRule[];
     },
     enabled: !!user && !!activeOrgId,
   });
@@ -53,7 +54,7 @@ export function useRoutingDefault() {
       const { data, error } = await supabase
         .from('import_routing_defaults')
         .select('*')
-        .eq('bank_id', activeOrgId!)
+        .eq('organization_id', activeOrgId!)
         .maybeSingle();
 
       if (error) {
@@ -83,7 +84,7 @@ export function useCreateRule() {
       name: string;
       conditions: RoutingRule['conditions'];
       logic_operator: 'AND' | 'OR';
-      target_vault_id: string;
+      target_workspace_id: string;
       target_folder_id: string | null;
       enabled: boolean;
     }) => {
@@ -94,7 +95,7 @@ export function useCreateRule() {
       const { data: existing } = await supabase
         .from('import_routing_rules')
         .select('priority')
-        .eq('bank_id', activeOrgId)
+        .eq('organization_id', activeOrgId)
         .order('priority', { ascending: false })
         .limit(1);
 
@@ -104,10 +105,11 @@ export function useCreateRule() {
       const { data, error } = await supabase
         .from('import_routing_rules')
         .insert({
-          bank_id: activeOrgId,
+          organization_id: activeOrgId,
           created_by: user.id,
           priority: nextPriority,
           ...input,
+          conditions: input.conditions as unknown as import('@/integrations/supabase/types').Json,
         })
         .select()
         .single();
@@ -116,7 +118,7 @@ export function useCreateRule() {
         throw new Error(`Failed to create routing rule: ${error.message}`);
       }
 
-      return data as RoutingRule;
+      return data as unknown as RoutingRule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -146,13 +148,19 @@ export function useUpdateRule() {
       updates: Partial<
         Pick<
           RoutingRule,
-          'name' | 'conditions' | 'logic_operator' | 'target_vault_id' | 'target_folder_id' | 'enabled'
+          'name' | 'conditions' | 'logic_operator' | 'target_workspace_id' | 'target_folder_id' | 'enabled'
         >
       >;
     }) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const updatePayload: any = {
+        ...updates,
+        updated_at: new Date().toISOString(),
+      };
+
       const { data, error } = await supabase
         .from('import_routing_rules')
-        .update({ ...updates, updated_at: new Date().toISOString() })
+        .update(updatePayload)
         .eq('id', id)
         .select()
         .single();
@@ -161,7 +169,7 @@ export function useUpdateRule() {
         throw new Error(`Failed to update routing rule: ${error.message}`);
       }
 
-      return data as RoutingRule;
+      return data as unknown as RoutingRule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -205,7 +213,7 @@ export function useDeleteRule() {
 }
 
 /**
- * Toggles a routing rule's enabled/disabled state.
+ * Toggles a routing rule's enabled/disabled state (optimistic update).
  */
 export function useToggleRule() {
   const queryClient = useQueryClient();
@@ -224,7 +232,7 @@ export function useToggleRule() {
         throw new Error(`Failed to toggle routing rule: ${error.message}`);
       }
 
-      return data as RoutingRule;
+      return data as unknown as RoutingRule;
     },
     onMutate: async ({ id, enabled }) => {
       const queryKey = queryKeys.routingRules.list(activeOrgId ?? undefined);
@@ -254,7 +262,7 @@ export function useToggleRule() {
 }
 
 /**
- * Reorders routing rules.
+ * Reorders routing rules by calling the RPC with new priority order.
  */
 export function useReorderRules() {
   const queryClient = useQueryClient();
@@ -265,7 +273,7 @@ export function useReorderRules() {
       if (!activeOrgId) throw new Error('No active organization');
 
       const { error } = await supabase.rpc('update_routing_rule_priorities', {
-        p_bank_id: activeOrgId,
+        p_organization_id: activeOrgId,
         p_rule_ids: orderedIds,
       });
 
@@ -306,7 +314,7 @@ export function useReorderRules() {
 }
 
 /**
- * Upserts the default routing destination.
+ * Upserts the default routing destination for the active organization.
  */
 export function useUpsertRoutingDefault() {
   const queryClient = useQueryClient();
@@ -315,7 +323,7 @@ export function useUpsertRoutingDefault() {
 
   return useMutation({
     mutationFn: async (input: {
-      target_vault_id: string;
+      target_workspace_id: string;
       target_folder_id: string | null;
     }) => {
       if (!activeOrgId) throw new Error('No active organization');
@@ -325,12 +333,12 @@ export function useUpsertRoutingDefault() {
         .from('import_routing_defaults')
         .upsert(
           {
-            bank_id: activeOrgId,
+            organization_id: activeOrgId,
             updated_by: user.id,
             updated_at: new Date().toISOString(),
             ...input,
           },
-          { onConflict: 'bank_id' }
+          { onConflict: 'organization_id' }
         )
         .select()
         .single();

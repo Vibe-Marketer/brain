@@ -50,35 +50,13 @@ export function OrganizationsTab() {
 
   return (
     <div className="space-y-6">
-       <div>
-        <h2 className="text-2xl font-bold">Organizations & Workspaces</h2>
+      <div>
+        <h2 className="text-2xl font-bold">Workspaces</h2>
         <p className="text-muted-foreground">
-          Manage your organizations and collaboration workspaces
+          Manage your organizational structure and collaboration workspaces
         </p>
       </div>
 
-      {/* Migration banner - workspace management has moved */}
-      <div className="flex items-start gap-3 p-4 rounded-lg border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-900/20">
-        <RiInformationLine className="h-5 w-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
-            Workspace management has moved to the Workspaces page
-          </p>
-          <p className="text-xs text-blue-700 dark:text-blue-300 mt-0.5">
-            Create, manage, and invite members to workspaces from the dedicated Workspaces page.
-          </p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => navigate('/workspaces')}
-          className="flex-shrink-0 gap-1.5"
-          aria-label="Go to Workspaces"
-        >
-          Go to Workspaces
-          <RiArrowRightLine className="h-3.5 w-3.5" />
-        </Button>
-      </div>
 
       {/* Organization list as tabs */}
       {organizations.length === 0 ? (
@@ -125,9 +103,9 @@ export function OrganizationsTab() {
                         {org.type}
                       </Badge>
                       <Badge variant="secondary" className="capitalize">
-                        {org.membership.role.replace('bank_', '')}
+                        {(org.membership?.role || 'member').replace('bank_', '')}
                       </Badge>
-                      {org.type === 'business' && org.membership.role === 'organization_owner' && (
+                      {org.type === 'business' && org.membership?.role === 'organization_owner' && (
                         <Button
                           variant="ghost"
                           size="icon"
@@ -147,7 +125,7 @@ export function OrganizationsTab() {
                       <div>
                         <span className="text-muted-foreground">Cross-Organization Default:</span>
                         <span className="ml-2 capitalize">
-                          {org.cross_organization_default.replace('_', ' ')}
+                          {org.cross_organization_default ? org.cross_organization_default.replace('_', ' ') : 'None'}
                         </span>
                       </div>
                       <div>

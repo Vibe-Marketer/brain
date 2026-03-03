@@ -9,7 +9,7 @@ import type React from 'react';
 export interface FolderIconOption {
   id: string;
   label: string;
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties; size?: string | number }>;
   category: string;
 }
 
@@ -161,13 +161,9 @@ export const FOLDER_COLORS = [
   '#EC4899', // Pink
 ];
 
-/**
- * Check if a value is an emoji (not in the icon options list)
- */
-export const isEmojiIcon = (value: string | null | undefined): boolean => {
-  if (!value) return false;
-  return !FOLDER_ICON_OPTIONS.some(opt => opt.id === value);
-};
+// Emojis are no longer supported for folders. 
+// Unknown icon IDs will now fallback to the default folder icon via getIconComponent.
+export const isEmojiIcon = (value: string | null | undefined): boolean => false;
 
 /**
  * Get icon component from icon ID
@@ -175,7 +171,7 @@ export const isEmojiIcon = (value: string | null | undefined): boolean => {
  */
 export const getIconComponent = (
   iconName: string | null | undefined
-): React.ComponentType<{ className?: string; style?: React.CSSProperties }> => {
+): React.ComponentType<{ className?: string; style?: React.CSSProperties; size?: string | number }> => {
   if (!iconName) return RemixIcon.RiFolderLine;
   const iconOption = FOLDER_ICON_OPTIONS.find(opt => opt.id === iconName);
   return iconOption?.icon ?? RemixIcon.RiFolderLine;

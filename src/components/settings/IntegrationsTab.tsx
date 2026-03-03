@@ -32,13 +32,11 @@ export default function IntegrationsTab() {
 
   // Derived connection states from shared hook
   const fathomConnected = integrations.find((i) => i.platform === "fathom")?.connected ?? false;
-  const googleMeetConnected = integrations.find((i) => i.platform === "google_meet")?.connected ?? false;
   const zoomConnected = integrations.find((i) => i.platform === "zoom")?.connected ?? false;
 
   // Get connected platforms for modal
   const connectedPlatforms = [
     ...(fathomConnected ? ["fathom"] : []),
-    ...(googleMeetConnected ? ["google_meet"] : []),
     ...(zoomConnected ? ["zoom"] : []),
   ];
 

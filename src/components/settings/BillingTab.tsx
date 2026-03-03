@@ -73,12 +73,12 @@ function getPlanDetails(tier: SubscriptionTier) {
         displayName: "Solo",
         price: "$29/mo",
         annualPrice: "$278/yr (save $70)",
-        description: "Perfect for individuals with unlimited calls and AI features.",
+        description: "Perfect for individuals with unlimited calls and transcription features.",
         badgeVariant: "default" as const,
         features: [
           "1 user",
-          "Unlimited calls & AI summaries",
-          "Folders, tags, AI search",
+          "Unlimited calls & transcriptions",
+          "Folders, tags, global search",
           "10 notes per call",
         ],
       };
@@ -175,7 +175,7 @@ export default function BillingTab() {
               {/* Plan Header */}
               <div className="flex items-start gap-4">
                 <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
-                  <RiOrganizationCardLine className="h-6 w-6 text-primary" />
+                  <RiBankCardLine className="h-6 w-6 text-primary" />
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">

@@ -34,31 +34,31 @@ export function DestinationPicker({
   const { data: workspaces = [], isLoading: workspacesLoading } = useWorkspaces(orgId);
   const { data: folders = [], isLoading: foldersLoading } = useFolders(value?.vaultId ?? null);
 
-  const [selectedVaultId, setSelectedVaultId] = useState<string | null>(value?.vaultId ?? null);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(value?.vaultId ?? null);
 
   useEffect(() => {
-    setSelectedVaultId(value?.vaultId ?? null);
+    setSelectedWorkspaceId(value?.vaultId ?? null);
   }, [value?.vaultId]);
 
   function handleWorkspaceChange(e: React.ChangeEvent<HTMLSelectElement>) {
     const vaultId = e.target.value || null;
-    setSelectedVaultId(vaultId);
+    setSelectedWorkspaceId(vaultId);
     if (vaultId) {
       onChange({ vaultId, folderId: null });
     }
   }
 
   function handleFolderChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    if (!selectedVaultId) return;
+    if (!selectedWorkspaceId) return;
     const rawValue = e.target.value;
     const folderId = rawValue === '' ? null : rawValue;
-    onChange({ vaultId: selectedVaultId, folderId });
+    onChange({ vaultId: selectedWorkspaceId, folderId });
   }
 
   return (
     <div className={cn('flex items-center gap-2', className)}>
       <select
-        value={selectedVaultId ?? ''}
+        value={selectedWorkspaceId ?? ''}
         onChange={handleWorkspaceChange}
         disabled={disabled || workspacesLoading}
         aria-label="Select workspace"
@@ -74,7 +74,7 @@ export function DestinationPicker({
         ))}
       </select>
 
-      {selectedVaultId && (
+      {selectedWorkspaceId && (
         <>
           <span className="text-muted-foreground text-sm">/</span>
           <select

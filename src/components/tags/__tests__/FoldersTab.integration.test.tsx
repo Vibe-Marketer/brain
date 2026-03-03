@@ -91,19 +91,19 @@ vi.mock('sonner', () => ({
 vi.mock('@/hooks/useOrganizationContext', () => ({
   useOrganizationContext: vi.fn(() => ({
     activeOrganizationId: 'test-bank-id',
-    activeVaultId: null,
+    activeWorkspaceId: null,
     isLoading: false,
     isInitialized: true,
     error: null,
     organizations: [],
     workspaces: [],
     activeOrganization: null,
-    activeVault: null,
+    activeWorkspace: null,
     isPersonalOrganization: true,
     setActiveOrganization: vi.fn(),
-    setActiveVault: vi.fn(),
+    setActiveWorkspace: vi.fn(),
     switchOrganization: vi.fn(),
-    switchVault: vi.fn(),
+    switchWorkspace: vi.fn(),
     refresh: vi.fn(),
   })),
 }));

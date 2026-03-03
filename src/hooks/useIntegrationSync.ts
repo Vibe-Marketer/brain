@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getSafeUser } from "@/lib/auth-utils";
 
-export type IntegrationPlatform = "fathom" | "google_meet" | "zoom";
+export type IntegrationPlatform = "fathom" | "zoom";
 
 export interface IntegrationStatus {
   platform: IntegrationPlatform;
@@ -93,20 +93,6 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
         email: undefined,
       });
 
-      // Check Google Meet connection
-      const googleConnected = !!(
-        settings?.google_oauth_access_token &&
-        settings?.google_oauth_token_expires &&
-        settings.google_oauth_token_expires > now
-      );
-
-      result.push({
-        platform: "google_meet",
-        connected: googleConnected,
-        lastSyncAt: (settings as UserSettings)?.google_last_poll_at || null,
-        syncStatus: syncingPlatforms.has("google_meet") ? "syncing" : "idle",
-        email: (settings as UserSettings)?.google_oauth_email || undefined,
-      });
 
       // Check Zoom connection
       const zoomConnected = !!(
@@ -144,18 +130,7 @@ export function useIntegrationSync(): UseIntegrationSyncReturn {
     forceUpdate({});
 
     try {
-      if (platform === "google_meet") {
-        // Trigger google-poll-sync for this user
-        const { error: invokeError } = await supabase.functions.invoke("google-poll-sync", {
-          body: {},
-        });
-
-        if (invokeError) {
-          throw invokeError;
-        }
-
-        toast.success("Google Meet sync triggered");
-      } else if (platform === "zoom") {
+      if (platform === "zoom") {
         // Trigger zoom-sync-meetings for this user
         const { error: invokeError } = await supabase.functions.invoke("zoom-sync-meetings", {
           body: {},

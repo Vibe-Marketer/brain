@@ -14,16 +14,19 @@
 import { TopBar } from "@/components/ui/top-bar";
 import { useLocation } from "react-router-dom";
 import { DebugPanel } from "@/components/debug-panel";
+import { useFeatureFlags } from "@/hooks/useFeatureFlags";
+import { useUserRole } from "@/hooks/useUserRole";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const { role } = useUserRole();
+  const { isFeatureEnabled } = useFeatureFlags(role);
 
   const getPageLabel = () => {
     if (location.pathname === '/') return 'HOME';
     if (location.pathname.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
     if (location.pathname.startsWith('/settings')) return 'SETTINGS';
     if (location.pathname === '/shared-with-me') return 'SHARED WITH ME';
-    if (location.pathname.startsWith('/workspaces')) return 'WORKSPACES';
     return 'HOME';
   };
 
@@ -38,7 +41,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       <main className="fixed inset-2.5 top-[52px]">
         {children}
       </main>
-      <DebugPanel />
+      {isFeatureEnabled('debug_panel') && <DebugPanel />}
     </div>
   );
 }

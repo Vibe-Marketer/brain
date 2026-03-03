@@ -10,7 +10,7 @@ import {
   RiRefreshLine,
   RiExternalLinkLine,
 } from "@remixicon/react";
-import { FathomIcon, GoogleMeetIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
+import { FathomIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getGoogleOAuthUrl, getFathomOAuthUrl, getZoomOAuthUrl } from "@/lib/api-client";
@@ -59,7 +59,7 @@ export function InlineConnectionWizard({
 
   // Get platform display name
   const getPlatformName = useCallback(() => {
-    return platform === "google_meet" ? "Google" : platform === "zoom" ? "Zoom" : "Fathom";
+    return platform === "zoom" ? "Zoom" : "Fathom";
   }, [platform]);
 
   // Handle cancellation - ALWAYS works regardless of state (PRD-020)
@@ -121,9 +121,7 @@ export function InlineConnectionWizard({
       }, CONNECTION_TIMEOUT_MS);
 
       let response;
-      if (platform === "google_meet") {
-        response = await getGoogleOAuthUrl();
-      } else if (platform === "fathom") {
+      if (platform === "fathom") {
         response = await getFathomOAuthUrl();
       } else if (platform === "zoom") {
         response = await getZoomOAuthUrl();
@@ -170,55 +168,6 @@ export function InlineConnectionWizard({
   // Platform-specific configurations (streamlined - no features list)
   const platformConfig = {
     fathom: {
-      name: "Fathom",
-      icon: <FathomIcon className="h-6 w-6" />,
-      color: "text-info-text",
-      warningTitle: "API Access Required",
-      warningContent: (
-        <p className="text-sm text-muted-foreground">
-          You'll need a Fathom account with API access. Personal plans include this feature.
-          Enterprise users should check with their admin.
-        </p>
-      ),
-    },
-    google_meet: {
-      name: "Google Meet (Beta)",
-      icon: <GoogleMeetIcon className="h-6 w-6" />,
-      color: "text-blue-600 dark:text-blue-400",
-      warningTitle: "Recording Requirements",
-      warningContent: (
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground">
-            Google Meet recordings are only available for:
-          </p>
-          <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-            <li>Google Workspace Business Standard, Plus, or Enterprise</li>
-            <li>Google Workspace Education Plus</li>
-            <li>Teaching and Learning Upgrade</li>
-          </ul>
-          <p className="text-sm text-muted-foreground">
-            Personal accounts can sync meeting data but won't have recordings.
-          </p>
-          <div className="mt-3 pt-3 border-t border-border">
-            <p className="text-sm font-medium">Have a personal Google account?</p>
-            <p className="text-sm text-muted-foreground mt-1">
-              Connect Fathom instead - it's free and works with any account.
-            </p>
-            <a
-              href="https://vibelinks.co/fathom"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 mt-2 px-3 py-1.5 text-sm font-medium rounded-md border border-border bg-card hover:bg-muted transition-colors"
-            >
-              <FathomIcon size={16} />
-              Sign up for Fathom (Free)
-            </a>
-          </div>
-        </div>
-      ),
-      // No alternativeContent - the Fathom suggestion is already in warningContent
-    },
-    zoom: {
       name: "Zoom",
       icon: <ZoomIcon className="h-6 w-6" />,
       color: "text-sky-600 dark:text-sky-400",

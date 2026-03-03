@@ -32,13 +32,8 @@ import { TranscriptTableRow } from "./TranscriptTableRow";
 import { DownloadPopover } from "./DownloadPopover";
 import type { Meeting } from "@/types";
 import type { SharingStatus, AccessLevel } from "@/types/sharing";
+import type { Folder } from "@/types/workspace";
 
-interface Folder {
-  id: string;
-  name: string;
-  color: string;
-  icon: string;
-}
 
 // Column options for visibility toggle
 const columnOptions = [

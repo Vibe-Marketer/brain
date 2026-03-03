@@ -85,7 +85,7 @@ export function RoutingRulesList({
             <RoutingRuleCard
               key={rule.id}
               rule={rule}
-              workspaceName={workspaceNames?.[rule.target_vault_id]}
+              workspaceName={workspaceNames?.[rule.target_workspace_id]}
               folderName={rule.target_folder_id ? folderNames?.[rule.target_folder_id] : undefined}
               onEdit={onEdit}
               onToggle={onToggle}

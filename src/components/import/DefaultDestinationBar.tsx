@@ -16,14 +16,14 @@ export function DefaultDestinationBar() {
 
   const currentDestination: RoutingDestination | null = routingDefault
     ? {
-        vaultId: routingDefault.target_vault_id,
+        workspaceId: routingDefault.target_workspace_id,
         folderId: routingDefault.target_folder_id,
       }
     : null;
 
   function handleDestinationChange(dest: RoutingDestination) {
     upsertDefault({
-      target_vault_id: dest.vaultId,
+      target_workspace_id: dest.workspaceId,
       target_folder_id: dest.folderId,
     });
   }

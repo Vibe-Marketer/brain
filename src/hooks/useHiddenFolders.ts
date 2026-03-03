@@ -4,7 +4,7 @@ const STORAGE_KEY = 'callvault-hidden-folders';
 
 /**
  * Hook to manage hidden folders with localStorage persistence.
- * Hidden folders are excluded from the "All Transcripts" view.
+ * Hidden folders are excluded from the "Home" view.
  */
 export function useHiddenFolders() {
   const [hiddenFolders, setHiddenFolders] = useState<Set<string>>(() => {

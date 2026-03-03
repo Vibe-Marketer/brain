@@ -57,7 +57,7 @@ export default function SortingTagging() {
     }
     // Note: selectedCategory removed from deps to prevent circular updates
     // URL is the source of truth, handled by urlCategory changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [urlCategory, navigate]);
 
   // Note: URL sync is handled by user interaction handlers below

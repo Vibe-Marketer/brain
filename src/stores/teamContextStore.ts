@@ -8,7 +8,7 @@ import { create } from 'zustand';
  * - import { useOrganizationContextStore } from '@/stores/bankContextStore'
  * - activeTeamId → activeOrganizationId (for bank context)
  * - null activeTeamId → personal bank (auto-selected)
- * - Team vaults → use activeVaultId for vault context
+ * - Team vaults → use activeWorkspaceId for vault context
  * 
  * TODO: Remove after Phase 9 verification
  */

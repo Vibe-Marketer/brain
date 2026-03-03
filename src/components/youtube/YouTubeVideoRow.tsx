@@ -18,13 +18,13 @@ import { parseYouTubeDuration, YOUTUBE_CATEGORIES } from '@/lib/youtube-utils'
 import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
 
 /** Alias for backward compatibility */
-type VaultRecording = WorkspaceRecording
+type WorkspaceRecording = WorkspaceRecording
 
 export interface YouTubeVideoRowProps {
-  /** Vault recording with YouTube source_metadata */
-  recording: VaultRecording
+  /** Workspace recording with YouTube source_metadata */
+  recording: WorkspaceRecording
   /** Click handler when user clicks title or thumbnail */
-  onVideoClick: (recording: VaultRecording) => void
+  onVideoClick: (recording: WorkspaceRecording) => void
   /** Optional className override */
   className?: string
 }

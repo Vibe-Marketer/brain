@@ -83,7 +83,7 @@ export function RoutingRuleCard({
     ? folderName
       ? `${workspaceName} / ${folderName}`
       : workspaceName
-    : rule.target_vault_id;
+    : rule.target_workspace_id;
 
   return (
     <div

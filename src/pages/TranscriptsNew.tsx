@@ -9,8 +9,9 @@ import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/ui/page-header";
 import { TranscriptsTab } from "@/components/transcripts/TranscriptsTab";
 import { SyncTab } from "@/components/transcripts/SyncTab";
-import { FolderSidebar } from "@/components/transcript-library/FolderSidebar";
+import WorkspaceSidebarPane from "@/components/panes/WorkspaceSidebarPane";
 import { AppShell } from "@/components/layout/AppShell";
+import { BreadcrumbItem } from "@/components/ui/breadcrumb";
 import {
   useFolders,
   useFolderAssignments,
@@ -107,14 +108,16 @@ const TranscriptsNew = () => {
     return () => window.removeEventListener(FOCUS_INLINE_SEARCH_EVENT, handleFocusSearch);
   }, [activeTab]);
 
-  // Folder selection
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
-
   // Folder hooks
-  const { activeOrganizationId, activeVaultId } = useOrganizationContext();
+  const { 
+    activeOrganizationId, 
+    activeWorkspaceId, 
+    activeFolderId, 
+    switchFolder 
+  } = useOrganizationContext();
   const { user } = useAuth();
-  const { data: folders = [], isLoading: foldersLoading } = useFolders(activeVaultId);
-  const { data: folderAssignments = {} } = useFolderAssignments(activeVaultId);
+  const { data: folders = [], isLoading: foldersLoading } = useFolders(activeWorkspaceId);
+  const { data: folderAssignments = {} } = useFolderAssignments(activeWorkspaceId);
   const { mutate: deleteFolder } = useDeleteFolder();
   const { mutate: assignToFolderMutation } = useAssignCallToFolder();
 
@@ -150,7 +153,7 @@ const TranscriptsNew = () => {
     return counts;
   }, [folderAssignments]);
 
-  // Total count for "All Transcripts"
+  // Total count for "Home"
   const [totalCount, setTotalCount] = useState(0);
 
   // Dialog state
@@ -171,6 +174,26 @@ const TranscriptsNew = () => {
     dragHelpers.handleDragEnd(event);
   };
 
+  const selectedFolder = useMemo(() => 
+    folders.find(f => f.id === activeFolderId),
+    [folders, activeFolderId]
+  );
+
+  const breadcrumbs = useMemo(() => {
+    const items: BreadcrumbItem[] = [{ label: "Home", onClick: () => {
+      switchFolder(null);
+      handleTabChange("transcripts");
+    }}];
+    
+    if (activeTab === "sync") {
+      items.push({ label: "Import" });
+    } else if (selectedFolder) {
+      items.push({ label: selectedFolder.name });
+    }
+    
+    return items;
+  }, [activeTab, selectedFolder]);
+
   return (
     <DndContext
       onDragStart={(e) => dragHelpers.handleDragStart(e, [])}
@@ -180,36 +203,18 @@ const TranscriptsNew = () => {
       <AppShell
         config={{
           secondaryPane: (
-            <FolderSidebar
-                  folders={folders}
-                  folderCounts={folderCounts}
-                  totalCount={totalCount}
-                  selectedFolderId={selectedFolderId}
-                  onSelectFolder={(id) => {
-                    setSelectedFolderId(id);
-                    // If we select a folder, ensure we are on the transcripts tab
-                    if (activeTab === "sync") {
-                      handleTabChange("transcripts");
-                    }
-                  }}
-                  onNewFolder={() => setQuickCreateFolderOpen(true)}
-                  onManageFolders={() => setFolderManagementOpen(true)}
-                  onEditFolder={setEditingFolder}
-                  onDeleteFolder={(f) => deleteFolder(f.id)}
-                  hiddenFolders={hiddenFolders}
-                  onToggleHidden={toggleHidden}
-                  onEditAllTranscripts={() => setEditAllTranscriptsOpen(true)}
-                  isCollapsed={false}
-                />
+            <WorkspaceSidebarPane />
           ),
+          showDetailPane: true,
           onSyncClick: () => handleTabChange("sync")
         }}
       >
         <div className="flex flex-col h-full overflow-hidden">
           <PageHeader 
-            title={currentConfig.title}
+            title={activeTab === "sync" ? "Import Meetings" : (selectedFolder?.name || "Home")}
             subtitle={currentConfig.subtitle}
             icon={currentConfig.icon}
+            breadcrumbs={breadcrumbs}
             actions={(
               <div className="relative w-64 flex-shrink-0 hidden md:block">
                 <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
@@ -230,7 +235,7 @@ const TranscriptsNew = () => {
             <TabsContent value="transcripts" className="mt-0 h-full absolute inset-0">
               <TranscriptsTab
                 searchQuery={searchQuery}
-                selectedFolderId={selectedFolderId}
+                selectedFolderId={activeFolderId}
                 onTotalCountChange={setTotalCount}
                 sidebarState="expanded"
                 onToggleSidebar={() => {}}

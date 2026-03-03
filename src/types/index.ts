@@ -4,3 +4,4 @@ export * from './sharing';
 export * from './content-library';
 export * from './content-hub';
 export * from './chat';
+export * from './workspace';

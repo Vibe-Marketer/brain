@@ -6,7 +6,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine, RiRobotLine, RiShareLine } from "@remixicon/react";
+import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine, RiShareLine } from "@remixicon/react";
 import { Meeting } from "@/types";
 import { ShareCallDialog } from "@/components/sharing/ShareCallDialog";
 
@@ -19,7 +19,6 @@ interface CallDetailHeaderProps {
   setEditedSummary: Dispatch<SetStateAction<string>>;
   onSave: () => void;
   isSaving: boolean;
-  onChatWithAI?: () => void;
 }
 
 export function CallDetailHeader({
@@ -31,7 +30,6 @@ export function CallDetailHeader({
   setEditedSummary,
   onSave,
   isSaving,
-  onChatWithAI,
 }: CallDetailHeaderProps) {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
@@ -116,16 +114,6 @@ export function CallDetailHeader({
               </>
             ) : (
               <>
-                {onChatWithAI && (
-                  <Button
-                    variant="hollow"
-                    size="sm"
-                    onClick={onChatWithAI}
-                  >
-                    <RiRobotLine className="h-4 w-4 mr-2" />
-                    AI CHAT
-                  </Button>
-                )}
                 <Button
                   variant="hollow"
                   size="sm"
@@ -151,7 +139,7 @@ export function CallDetailHeader({
       <ShareCallDialog
         open={shareDialogOpen}
         onOpenChange={setShareDialogOpen}
-        callId={call.id}
+        callId={String(call.recording_id)}
         callTitle={call.title}
       />
     </>

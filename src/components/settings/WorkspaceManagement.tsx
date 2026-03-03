@@ -23,6 +23,7 @@ import {
 import { supabase } from '@/integrations/supabase/client'
 import { useAuth } from '@/contexts/AuthContext'
 import { queryKeys } from '@/lib/query-config'
+import { usePanelStore } from '@/stores/panelStore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -59,6 +60,7 @@ interface WorkspaceQueryResult {
   name: string
   workspace_type: string
   default_sharelink_ttl_days: number
+  is_default: boolean
   created_at: string
   updated_at: string
   memberships: Array<{
@@ -92,6 +94,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
           name,
           workspace_type:workspace_type,
           default_sharelink_ttl_days,
+          is_default,
           created_at,
           updated_at,
           memberships:workspace_memberships (
@@ -101,6 +104,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
           )
         `)
         .eq('organization_id', orgId)
+        .order('is_default', { ascending: false })
         .order('created_at', { ascending: false })
 
       if (error) throw error
@@ -183,24 +187,6 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
 
   return (
     <div className="space-y-4">
-      {/* Deprecation notice */}
-      <div className="flex items-start gap-3 p-3 rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20">
-        <RiInformationLine className="h-4 w-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <p className="text-xs text-amber-800 dark:text-amber-200">
-            Workspace management is now available on the{' '}
-            <button
-              type="button"
-              onClick={() => navigate('/workspaces')}
-              className="font-medium underline hover:no-underline"
-              aria-label="Go to Workspaces page"
-            >
-              Workspaces page
-            </button>
-            . This settings view will be removed in a future update.
-          </p>
-        </div>
-      </div>
 
       <div className="flex items-center justify-between">
         <div>
@@ -305,7 +291,7 @@ interface WorkspaceCardProps {
 }
 
 function WorkspaceCard({ workspace, canManage }: WorkspaceCardProps) {
-  const navigate = useNavigate()
+  const { openPanel } = usePanelStore()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const memberCount = workspace.memberships?.length || 0
 
@@ -317,7 +303,14 @@ function WorkspaceCard({ workspace, canManage }: WorkspaceCardProps) {
             <div className="flex items-center gap-3">
               <RiTeamLine className="h-5 w-5 text-muted-foreground" />
               <div>
-                <CardTitle className="text-base">{workspace.name}</CardTitle>
+                <CardTitle className="text-base flex items-center gap-2">
+                  {workspace.name}
+                  {workspace.is_default && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 bg-vibe-orange/10 text-vibe-orange border-vibe-orange/20">
+                      Default
+                    </Badge>
+                  )}
+                </CardTitle>
                 <CardDescription className="text-xs">
                   {memberCount} member{memberCount !== 1 ? 's' : ''} &middot; {workspace.workspace_type}
                 </CardDescription>
@@ -341,8 +334,8 @@ function WorkspaceCard({ workspace, canManage }: WorkspaceCardProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Open workspace"
-                onClick={() => navigate(`/workspaces/${workspace.id}`)}
+                aria-label="Open workspace detail"
+                onClick={() => openPanel('workspace-detail', { type: 'workspace-detail', workspaceId: workspace.id })}
               >
                 <RiArrowRightSLine className="h-4 w-4" />
               </Button>

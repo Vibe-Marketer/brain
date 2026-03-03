@@ -259,7 +259,7 @@ export function useWorkspaceDetail(workspaceId: string | null) {
       if (queryError) throw queryError
 
       // Transform to WorkspaceRecording format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       return (entries || [])
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         .filter((e: any) => e.recording)

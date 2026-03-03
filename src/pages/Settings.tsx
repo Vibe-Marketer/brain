@@ -87,7 +87,6 @@ export default function Settings() {
       users: "users",
       billing: "billing",
       integrations: "integrations",
-      ai: "ai",
       admin: "admin",
     };
     return topicMap[category] || "profile";

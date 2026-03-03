@@ -18,6 +18,7 @@ import { ImportSourceGrid } from '@/components/import/ImportSourceGrid';
 import { FileUploadDropzone } from '@/components/import/FileUploadDropzone';
 import { FailedImportsSection } from '@/components/import/FailedImportsSection';
 import { RoutingRulesTab } from '@/components/import/RoutingRulesTab';
+import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
 import { useImportSources, useImportCounts, useToggleSource, useDisconnectSource } from '@/hooks/useImportSources';
 import { upsertImportSource } from '@/services/import-sources.service';
 import type { ImportSource } from '@/services/import-sources.service';
@@ -125,8 +126,6 @@ export default function ImportPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('sources');
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
-  const [youtubeUrl, setYoutubeUrl] = useState('');
-  const [youtubeLoading, setYoutubeLoading] = useState(false);
 
   const { data: sources = [], isLoading: sourcesLoading } = useImportSources();
   const { data: counts = {} } = useImportCounts();
@@ -172,25 +171,7 @@ export default function ImportPage() {
     void handleOAuthReturn();
   }, []);
 
-  async function handleYoutubeImport(e: React.FormEvent) {
-    e.preventDefault();
-    if (!youtubeUrl.trim()) return;
-    setYoutubeLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('youtube-import', {
-        body: { videoUrl: youtubeUrl.trim() },
-      });
-      if (error) throw error;
-      const res = data as { recordingId?: string; title?: string } | null;
-      toast.success(res?.title ? `Imported "${res.title}" from YouTube` : 'YouTube import complete');
-      setYoutubeUrl('');
-      setYoutubeDialogOpen(false);
-    } catch (err) {
-      toast.error(`Import failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
-    } finally {
-      setYoutubeLoading(false);
-    }
-  }
+  // YouTube Import is handled natively by YouTubeImportForm component
 
   async function handleFathomSync() {
     const toastId = toast.loading('Fetching meetings from Fathom...');
@@ -427,61 +408,42 @@ export default function ImportPage() {
           <Dialog.Content
             className={cn(
               'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50',
-              'w-full max-w-sm',
-              'bg-background border border-border rounded-xl shadow-2xl p-5',
+              'w-full max-w-xl', // Increased width for the complex form
+              'bg-background border border-border rounded-xl shadow-2xl p-6',
               'animate-in zoom-in-95 fade-in duration-200',
               'focus:outline-none',
             )}
           >
-            <Dialog.Title className="font-display font-extrabold text-base uppercase tracking-wide text-foreground mb-1">
-              Import from YouTube
-            </Dialog.Title>
-            <Dialog.Description className="text-xs text-muted-foreground mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <Dialog.Title className="font-display font-extrabold text-lg uppercase tracking-wide text-foreground">
+                Import from YouTube
+              </Dialog.Title>
+              <Dialog.Close asChild>
+                <button
+                  type="button"
+                  className="rounded-full p-2 hover:bg-muted/60 transition-colors focus:outline-none text-muted-foreground"
+                  aria-label="Close"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </Dialog.Close>
+            </div>
+            <Dialog.Description className="text-sm text-muted-foreground mb-6">
               Paste a YouTube video URL to import and transcribe.
             </Dialog.Description>
-            <form onSubmit={handleYoutubeImport} className="space-y-3">
-              <input
-                type="url"
-                value={youtubeUrl}
-                onChange={(e) => setYoutubeUrl(e.target.value)}
-                placeholder="https://youtube.com/watch?v=..."
-                required
-                className={cn(
-                  'w-full rounded-lg border border-border bg-muted/30 px-3 py-2',
-                  'text-sm text-foreground placeholder:text-muted-foreground/60',
-                  'focus:outline-none focus:ring-2 focus:ring-vibe-orange focus:border-transparent',
-                  'transition-colors',
-                )}
-              />
-              <div className="flex gap-2">
-                <Dialog.Close asChild>
-                  <button
-                    type="button"
-                    className={cn(
-                      'flex-1 rounded-lg border border-border py-2',
-                      'text-xs font-medium text-foreground',
-                      'hover:bg-muted/60 transition-colors',
-                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    )}
-                  >
-                    Cancel
-                  </button>
-                </Dialog.Close>
-                <button
-                  type="submit"
-                  disabled={youtubeLoading || !youtubeUrl.trim()}
-                  className={cn(
-                    'flex-1 rounded-lg bg-vibe-orange py-2',
-                    'text-xs font-semibold uppercase tracking-wide text-white',
-                    'hover:bg-vibe-orange-dark transition-colors',
-                    'disabled:opacity-50 disabled:cursor-not-allowed',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  )}
-                >
-                  {youtubeLoading ? 'Importing…' : 'Import'}
-                </button>
-              </div>
-            </form>
+            
+            <YouTubeImportForm
+              onSuccess={(id, title) => {
+                toast.success(`Imported "${title}" successfully from YouTube`);
+                setYoutubeDialogOpen(false);
+              }}
+              onError={(err) => {
+                toast.error(`Import failed: ${err}`);
+              }}
+            />
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

@@ -2,7 +2,7 @@
  * useRecordingSearch - Client-side search, filter, and sort for vault recordings
  *
  * Provides debounced title search (300ms), date range filtering, and
- * multi-field sorting for VaultRecording arrays.
+ * multi-field sorting for WorkspaceRecording arrays.
  *
  * @pattern client-side-filter-hook
  */
@@ -11,7 +11,7 @@ import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
 
 /** Alias for backward compatibility */
-type VaultRecording = WorkspaceRecording
+type WorkspaceRecording = WorkspaceRecording
 
 /** Sort field options */
 export type RecordingSortField = 'date' | 'duration' | 'title'
@@ -27,7 +27,7 @@ export interface DateRange {
 
 /** Hook options */
 export interface UseRecordingSearchOptions {
-  recordings: VaultRecording[]
+  recordings: WorkspaceRecording[]
 }
 
 /** Hook return type */
@@ -53,7 +53,7 @@ export interface UseRecordingSearchReturn {
   /** Whether any filter is active */
   hasActiveFilters: boolean
   /** Filtered and sorted recordings */
-  filteredRecordings: VaultRecording[]
+  filteredRecordings: WorkspaceRecording[]
   /** Total count before filtering */
   totalCount: number
   /** Count after filtering */
@@ -85,7 +85,7 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 /**
  * useRecordingSearch - Search, filter, and sort vault recordings client-side
  *
- * @param options.recordings - Source recordings array from useVaultRecordings
+ * @param options.recordings - Source recordings array from useWorkspaceRecordings
  * @returns Search/filter state + filtered results
  */
 export function useRecordingSearch({ recordings }: UseRecordingSearchOptions): UseRecordingSearchReturn {

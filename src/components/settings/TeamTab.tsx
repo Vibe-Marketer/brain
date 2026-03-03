@@ -266,7 +266,7 @@ export default function TeamTab() {
               Team Management
             </h2>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-              Ready to collaborate? Create a team to unlock Call Vault&apos;s full potential.
+              Ready to collaborate? Create a team to unlock Call Workspace&apos;s full potential.
             </p>
           </div>
 

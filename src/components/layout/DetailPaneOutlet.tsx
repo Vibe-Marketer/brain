@@ -26,6 +26,8 @@ import { UserDetailPanel } from '@/components/panels/UserDetailPanel';
 import { CallDetailPanel } from '@/components/panels/CallDetailPanel';
 import { WorkspaceMemberPanel } from '@/components/panels/WorkspaceMemberPanel';
 import { AutomationRulePanel } from '@/components/panels/AutomationRulePanel';
+import { WorkspaceDetailPanel } from '@/components/panels/WorkspaceDetailPanel';
+import { BulkActionToolbarEnhanced } from '@/components/transcript-library/BulkActionToolbarEnhanced';
 
 export interface DetailPaneOutletProps {
   /** Whether we're on tablet breakpoint (affects width) */
@@ -88,6 +90,11 @@ export function DetailPaneOutlet({
           <CallDetailPanel recordingId={panelData.recordingId} />
         ) : null;
 
+      case 'workspace-detail':
+        return panelData?.type === 'workspace-detail' ? (
+          <WorkspaceDetailPanel workspaceId={panelData.workspaceId} />
+        ) : null;
+
       case 'workspace-member':
       case 'vault-member': // Legacy fallback
         if (panelData?.type === 'workspace-member') {
@@ -101,6 +108,20 @@ export function DetailPaneOutlet({
       case 'automation-rule':
         return panelData?.type === 'automation-rule' ? (
           <AutomationRulePanel ruleId={panelData.ruleId} />
+        ) : null;
+        
+      case 'bulk-actions':
+        return panelData?.type === 'bulk-actions' ? (
+          <BulkActionToolbarEnhanced
+            selectedCount={panelData.selectedIds.length}
+            selectedCalls={[]} // Will be populated by the TranscriptsTab instead
+            tags={[]}
+            onClearSelection={() => {
+              // Implementation relies on TranscriptsTab closing pane instead, we just support rendering
+              usePanelStore.getState().closePanel();
+            }}
+            onDelete={() => {}}
+          />
         ) : null;
 
       default:
@@ -128,6 +149,8 @@ export function DetailPaneOutlet({
         return 'Workspace member panel';
       case 'automation-rule':
         return 'Automation rule detail panel';
+      case 'bulk-actions':
+        return 'Bulk actions panel';
       default:
         return 'Detail panel';
     }

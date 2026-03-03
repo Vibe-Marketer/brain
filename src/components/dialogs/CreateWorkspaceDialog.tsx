@@ -30,6 +30,8 @@ import {
 } from '@/components/ui/select'
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { useCreateWorkspace } from '@/hooks/useWorkspaceMutations'
+import { useFeatureFlags } from '@/hooks/useFeatureFlags'
+import { useUserRole } from '@/hooks/useUserRole'
 import type { WorkspaceType } from '@/types/workspace'
 
 export interface CreateWorkspaceDialogProps {
@@ -89,6 +91,8 @@ export function CreateWorkspaceDialog({
   
   const { organizations, activeOrgId } = useOrganizationContext()
   const createWorkspace = useCreateWorkspace()
+  const { role } = useUserRole();
+  const { isFeatureEnabled } = useFeatureFlags(role);
 
   const businessOrganizations = useMemo(
     () => organizations.filter((org) => org.type === 'business'),
@@ -96,6 +100,13 @@ export function CreateWorkspaceDialog({
   )
 
   const showOrgSelect = businessOrganizations.length > 1
+
+  const availableOptions = useMemo(() => {
+    return WORKSPACE_TYPE_OPTIONS.filter((opt) => {
+      if (opt.value === 'youtube') return isFeatureEnabled('beta_youtube');
+      return true;
+    });
+  }, [isFeatureEnabled]);
 
   useEffect(() => {
     if (!open) return
@@ -205,7 +216,7 @@ export function CreateWorkspaceDialog({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {WORKSPACE_TYPE_OPTIONS.map((opt) => (
+                {availableOptions.map((opt) => (
                   <SelectItem
                     key={opt.value}
                     value={opt.value}

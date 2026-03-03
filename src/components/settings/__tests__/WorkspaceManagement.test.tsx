@@ -85,7 +85,7 @@ vi.mock('@/components/ui/select', async () => {
     SelectValue: ({ placeholder }: { placeholder?: string }) => <span>{placeholder ?? ''}</span>,
     SelectContent: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     SelectItem: ({ children, value, disabled }: { children: React.ReactNode; value: string; disabled?: boolean }) => {
-      // eslint-disable-next-line react-hooks/rules-of-hooks
+       
       const context = React.useContext(SelectContext)
       return (
         <button

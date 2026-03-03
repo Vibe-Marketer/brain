@@ -26,7 +26,7 @@ import { WorkspaceSelector } from '@/components/workspace/WorkspaceSelector';
 
 interface YouTubeImportFormProps {
   /** Callback when import succeeds */
-  onSuccess: (recordingId: number, title: string) => void;
+  onSuccess: (recordingId: string, title: string) => void;
   /** Callback when import fails */
   onError: (error: string) => void;
   /** Additional CSS classes */
@@ -37,7 +37,7 @@ interface ImportResponse {
   success: boolean;
   step: ImportStep;
   error?: string;
-  recordingId?: number;
+  recordingId?: string;
   title?: string;
   exists?: boolean;
 }
@@ -191,7 +191,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
     setUrl('');
     setCurrentStep('idle');
     setError(undefined);
-    // Keep selectedVaultId — user likely wants same vault for next import
+    // Keep selectedWorkspaceId — user likely wants same vault for next import
   }, []);
 
   const isValid = url.trim().length > 0 && isValidYouTubeInput(url.trim());

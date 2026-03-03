@@ -10,6 +10,7 @@ import {
   RiStackLine,
 } from "@remixicon/react";
 import { SourcePlatformIndicator } from "./SourcePlatformIcons";
+import { RoutingTraceBadge } from "@/components/import/RoutingTraceBadge";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -20,13 +21,8 @@ import { AddToWorkspaceMenu } from "@/components/workspace/AddToWorkspaceMenu";
 import { WorkspaceBadgeList } from "@/components/workspace/WorkspaceBadgeList";
 import type { Meeting } from "@/types";
 import type { SharingStatus, AccessLevel } from "@/types/sharing";
+import type { Folder } from "@/types/workspace";
 
-interface Folder {
-  id: string;
-  name: string;
-  color: string;
-  icon: string;
-}
 
 interface TranscriptTableRowProps {
   call: Meeting;
@@ -105,6 +101,8 @@ export function TranscriptTableRow({
               mergedFrom={call.merged_from}
               size={14}
             />
+            {/* Routing Trace Badge */}
+            <RoutingTraceBadge sourceMetadata={call.source_metadata} />
           </div>
           {/* Second line: Metadata badges and subtitle */}
           <div className="flex items-center gap-1 mt-0">

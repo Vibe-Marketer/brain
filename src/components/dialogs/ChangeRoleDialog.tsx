@@ -27,22 +27,22 @@ import {
   RiVipCrownLine,
   RiEyeLine,
 } from '@remixicon/react'
-import type { VaultRole } from '@/types/workspace'
+import type { WorkspaceRole } from '@/types/workspace'
 
 interface ChangeRoleDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   memberName: string
-  currentRole: VaultRole
-  currentUserRole: VaultRole
+  currentRole: WorkspaceRole
+  currentUserRole: WorkspaceRole
   isLastAdmin?: boolean
-  onConfirm: (newRole: VaultRole) => void
+  onConfirm: (newRole: WorkspaceRole) => void
   isLoading?: boolean
 }
 
 /** All vault roles in hierarchy order */
 const VAULT_ROLES: Array<{
-  value: VaultRole
+  value: WorkspaceRole
   label: string
   description: string
   icon: typeof RiVipCrownLine
@@ -85,7 +85,7 @@ const VAULT_ROLES: Array<{
   },
 ]
 
-const ROLE_POWER: Record<VaultRole, number> = {
+const ROLE_POWER: Record<WorkspaceRole, number> = {
   workspace_owner: 0,
   workspace_admin: 1,
   manager: 2,
@@ -103,7 +103,7 @@ export function ChangeRoleDialog({
   onConfirm,
   isLoading = false,
 }: ChangeRoleDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<VaultRole>(currentRole)
+  const [selectedRole, setSelectedRole] = useState<WorkspaceRole>(currentRole)
 
   const handleConfirm = () => {
     if (selectedRole !== currentRole) {

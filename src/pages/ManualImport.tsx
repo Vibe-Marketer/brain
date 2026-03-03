@@ -30,7 +30,7 @@ import { cn } from '@/lib/utils';
 import { queryKeys } from '@/lib/query-config';
 
 interface ImportResult {
-  recordingId: number;
+  recordingId: string;
   title: string;
 }
 
@@ -39,7 +39,7 @@ export default function ManualImport() {
   const queryClient = useQueryClient();
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
-  const handleSuccess = useCallback((recordingId: number, title: string) => {
+  const handleSuccess = useCallback((recordingId: string, title: string) => {
     setImportResult({ recordingId, title });
     toast.success('Video imported successfully!', {
       description: title,

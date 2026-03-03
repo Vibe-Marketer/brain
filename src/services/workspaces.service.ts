@@ -190,4 +190,4 @@ export async function removeMember(workspaceId: string, userId: string): Promise
 
 // Re-export type so consumers don't need a separate import
 export type { WorkspaceMembershipRow }
-export type VaultMembershipRow = WorkspaceMembershipRow // Legacy alias
+export type WorkspaceMembershipRow = WorkspaceMembershipRow // Legacy alias

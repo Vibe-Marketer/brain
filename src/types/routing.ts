@@ -2,9 +2,7 @@
  * Routing Rule Types — Phase 18 Import Routing Rules
  *
  * These types mirror the import_routing_rules and import_routing_defaults
- * DB tables.
- *
- * Note: bank_id in the DB = activeOrgId in orgContextStore (banks = organizations).
+ * DB tables (post Phase 16 rename: banks→organizations, vaults→workspaces).
  */
 
 export interface RoutingCondition {
@@ -15,13 +13,13 @@ export interface RoutingCondition {
 
 export interface RoutingRule {
   id: string;
-  bank_id: string;
+  organization_id: string;
   name: string;
   priority: number;
   enabled: boolean;
   conditions: RoutingCondition[];
   logic_operator: 'AND' | 'OR';
-  target_vault_id: string;
+  target_workspace_id: string;
   target_folder_id: string | null;
   created_by: string;
   created_at: string;
@@ -29,14 +27,14 @@ export interface RoutingRule {
 }
 
 export interface RoutingDefault {
-  bank_id: string;
-  target_vault_id: string;
+  organization_id: string;
+  target_workspace_id: string;
   target_folder_id: string | null;
   updated_by: string;
   updated_at: string;
 }
 
 export interface RoutingDestination {
-  vaultId: string;
+  workspaceId: string;
   folderId: string | null;
 }

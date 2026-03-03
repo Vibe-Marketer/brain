@@ -104,9 +104,10 @@ Deno.serve(async (req) => {
     });
 
     if (!whisperRes.ok) {
-      console.error('[file-upload-transcribe] Whisper error:', whisperRes.status, await whisperRes.text());
+      const errorText = await whisperRes.text();
+      console.error('[file-upload-transcribe] Whisper error:', whisperRes.status, errorText);
       return new Response(
-        JSON.stringify({ error: `Transcription failed (Whisper ${whisperRes.status})` }),
+        JSON.stringify({ error: `Transcription failed: ${errorText} (Whisper ${whisperRes.status})` }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }

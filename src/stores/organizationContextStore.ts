@@ -25,9 +25,9 @@ interface OrganizationContextState {
 
   // Legacy aliases
   activeOrganizationId: string | null
-  activeVaultId: string | null
+  activeWorkspaceId: string | null
   setActiveOrganization: (bankId: string) => void
-  setActiveVault: (vaultId: string | null) => void
+  setActiveWorkspace: (vaultId: string | null) => void
 }
 
 /**
@@ -49,7 +49,7 @@ export const useOrganizationContextStore = create<OrganizationContextState>((set
 
   // Legacy initial state
   activeOrganizationId: null,
-  activeVaultId: null,
+  activeWorkspaceId: null,
 
   // Set active organization (clears workspace selection, triggers cross-tab sync)
   setActiveOrganization: (orgId) => {
@@ -57,7 +57,7 @@ export const useOrganizationContextStore = create<OrganizationContextState>((set
       activeOrganizationId: orgId,
       activeWorkspaceId: null,
       activeOrganizationId: orgId,
-      activeVaultId: null,
+      activeWorkspaceId: null,
       error: null
     })
     // Trigger cross-tab sync
@@ -72,7 +72,7 @@ export const useOrganizationContextStore = create<OrganizationContextState>((set
   setActiveWorkspace: (workspaceId) => {
     set({
       activeWorkspaceId: workspaceId,
-      activeVaultId: workspaceId,
+      activeWorkspaceId: workspaceId,
       error: null
     })
     if (typeof window !== 'undefined') {
@@ -80,7 +80,7 @@ export const useOrganizationContextStore = create<OrganizationContextState>((set
     }
   },
 
-  setActiveVault: (vaultId) => get().setActiveWorkspace(vaultId),
+  setActiveWorkspace: (vaultId) => get().setActiveWorkspace(vaultId),
 
   // Initialize from database (called by useOrganizationContext hook on mount)
   initialize: (orgId, workspaceId) => {
@@ -88,7 +88,7 @@ export const useOrganizationContextStore = create<OrganizationContextState>((set
       activeOrganizationId: orgId,
       activeWorkspaceId: workspaceId,
       activeOrganizationId: orgId,
-      activeVaultId: workspaceId,
+      activeWorkspaceId: workspaceId,
       isLoading: false,
       isInitialized: true,
       error: null,
@@ -107,7 +107,7 @@ export const useOrganizationContextStore = create<OrganizationContextState>((set
       activeOrganizationId: null,
       activeWorkspaceId: null,
       activeOrganizationId: null,
-      activeVaultId: null,
+      activeWorkspaceId: null,
       isLoading: true,
       isInitialized: false,
       error: null,

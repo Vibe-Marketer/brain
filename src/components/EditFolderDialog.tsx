@@ -30,9 +30,9 @@ import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 
 interface Folder {
   id: string;
-  user_id: string;
+  user_id?: string;
   name: string;
-  description: string | null;
+  description?: string | null;
   color?: string | null;
   icon?: string | null;
   parent_id?: string | null;
@@ -44,6 +44,8 @@ interface EditFolderDialogProps {
   onOpenChange: (open: boolean) => void;
   folder: Folder | null;
   onFolderUpdated?: () => void;
+  workspaceId?: string;
+  organizationId?: string;
 }
 
 interface FolderOption {
@@ -58,8 +60,10 @@ export default function EditFolderDialog({
   onOpenChange,
   folder,
   onFolderUpdated,
+  workspaceId,
+  organizationId,
 }: EditFolderDialogProps) {
-  const { activeOrganizationId } = useOrganizationContext();
+  const { activeOrganizationId, activeWorkspaceId } = useOrganizationContext();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
@@ -105,16 +109,19 @@ export default function EditFolderDialog({
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
-      // Note: Do NOT query 'depth' column - it doesn't exist in the database
-      // Depth is computed client-side to avoid database schema dependencies
+      const targetWorkspaceId = workspaceId || folder?.workspace_id || activeWorkspaceId;
+      const targetOrgId = organizationId || folder?.organization_id || activeOrganizationId;
+
       let query = supabase
         .from("folders")
         .select("id, name, parent_id")
         .eq("user_id", user.id)
         .order("name");
 
-      if (activeOrganizationId) {
-        query = query.eq("organization_id", activeOrganizationId);
+      if (targetWorkspaceId) {
+        query = query.eq("workspace_id", targetWorkspaceId);
+      } else if (targetOrgId) {
+        query = query.eq("organization_id", targetOrgId);
       }
 
       const { data, error } = await query;
@@ -206,8 +213,13 @@ export default function EditFolderDialog({
         .eq("name", validation.data.name)
         .neq("id", folder.id);
 
-      if (activeOrganizationId) {
-        duplicateQuery = duplicateQuery.eq("organization_id", activeOrganizationId);
+      const targetOrgId = organizationId || folder.organization_id || activeOrganizationId;
+      const targetWorkspaceId = workspaceId || folder.workspace_id || activeWorkspaceId;
+
+      if (targetWorkspaceId) {
+        duplicateQuery = duplicateQuery.eq("workspace_id", targetWorkspaceId);
+      } else if (targetOrgId) {
+        duplicateQuery = duplicateQuery.eq("organization_id", targetOrgId);
       }
 
       if (selectedParentId) {

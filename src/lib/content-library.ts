@@ -503,7 +503,7 @@ export async function getAllTags(bankId?: string | null): Promise<ContentLibrary
 
     // Fetch all items and extract unique tags
     // Note: This could be optimized with a database function for large datasets
-    let query = supabase
+    const query = supabase
       .from("content_library")
       .select("tags")
       .eq("organization_id", bankId);

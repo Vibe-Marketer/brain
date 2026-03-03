@@ -7,12 +7,12 @@ export interface AllTranscriptsSettings {
 
 const STORAGE_KEY = 'all-transcripts-settings';
 const DEFAULT_SETTINGS: AllTranscriptsSettings = {
-  name: 'All Transcripts',
+  name: 'Home',
   icon: 'file-text', // RiFileTextLine
 };
 
 /**
- * Hook to manage customizable settings for the "All Transcripts" view
+ * Hook to manage customizable settings for the "Home" view
  * Persists to localStorage
  */
 export function useAllTranscriptsSettings() {

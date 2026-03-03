@@ -32,7 +32,7 @@ describe('useAllTranscriptsSettings', () => {
       const { result } = renderHook(() => useAllTranscriptsSettings());
 
       expect(result.current.settings).toEqual({
-        name: 'All Transcripts',
+        name: 'Home',
         icon: 'file-text',
       });
     });
@@ -53,7 +53,7 @@ describe('useAllTranscriptsSettings', () => {
       const { result } = renderHook(() => useAllTranscriptsSettings());
 
       expect(result.current.settings).toEqual({
-        name: 'All Transcripts',
+        name: 'Home',
         icon: 'file-text',
       });
     });
@@ -66,7 +66,7 @@ describe('useAllTranscriptsSettings', () => {
       const { result } = renderHook(() => useAllTranscriptsSettings());
 
       expect(result.current.settings).toEqual({
-        name: 'All Transcripts',
+        name: 'Home',
         icon: 'file-text',
       });
     });
@@ -78,7 +78,7 @@ describe('useAllTranscriptsSettings', () => {
       const { result } = renderHook(() => useAllTranscriptsSettings());
 
       expect(result.current.settings).toEqual({
-        name: 'All Transcripts',
+        name: 'Home',
         icon: 'file-text',
       });
     });
@@ -107,7 +107,7 @@ describe('useAllTranscriptsSettings', () => {
       });
 
       expect(result.current.settings).toEqual({
-        name: 'All Transcripts', // unchanged
+        name: 'Home', // unchanged
         icon: '📞', // updated
       });
     });
@@ -146,7 +146,7 @@ describe('useAllTranscriptsSettings', () => {
       });
 
       expect(result.current.settings).toEqual({
-        name: 'All Transcripts',
+        name: 'Home',
         icon: 'file-text',
       });
     });
@@ -175,7 +175,7 @@ describe('useAllTranscriptsSettings', () => {
 
       // Settings should still be reset in memory
       expect(result.current.settings).toEqual({
-        name: 'All Transcripts',
+        name: 'Home',
         icon: 'file-text',
       });
     });
@@ -186,7 +186,7 @@ describe('useAllTranscriptsSettings', () => {
       const { result } = renderHook(() => useAllTranscriptsSettings());
 
       expect(result.current.defaultSettings).toEqual({
-        name: 'All Transcripts',
+        name: 'Home',
         icon: 'file-text',
       });
     });

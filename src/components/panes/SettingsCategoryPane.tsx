@@ -23,23 +23,19 @@ import {
   RiTeamLine,
   RiWalletLine,
   RiPlugLine,
-  RiRobot2Line,
   RiShieldLine,
   RiSettings3Line,
-  RiBuilding4Line,
   RiContactsLine,
   RiBuildingLine,
 } from "@remixicon/react";
 
 export type SettingsCategory =
   | "account"
-  | "business"
   | "contacts"
   | "organizations"
   | "users"
   | "billing"
   | "integrations"
-  | "ai"
   | "admin";
 
 interface CategoryItem {
@@ -59,12 +55,6 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     icon: RiUserLine,
   },
   {
-    id: "business",
-    label: "Business Profile",
-    description: "AI content personalization",
-    icon: RiBuilding4Line,
-  },
-  {
     id: "contacts",
     label: "Contacts",
     description: "Track call attendees",
@@ -72,8 +62,8 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
   },
   {
     id: "organizations",
-    label: "Organizations",
-    description: "Manage organizations and workspaces",
+    label: "Workspaces",
+    description: "Manage team workspaces",
     icon: RiBuildingLine,
   },
   {
@@ -94,12 +84,6 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     label: "Integrations",
     description: "Connected services",
     icon: RiPlugLine,
-  },
-  {
-    id: "ai",
-    label: "AI",
-    description: "Models and knowledge base",
-    icon: RiRobot2Line,
   },
   {
     id: "admin",

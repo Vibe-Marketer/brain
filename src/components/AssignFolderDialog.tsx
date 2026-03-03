@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { RiArrowRightSLine, RiArrowDownSLine, RiFolderLine, RiCheckLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
-import { isEmojiIcon, getIconComponent } from "@/components/ui/icon-emoji-picker";
+import { getIconComponent } from "@/lib/folder-icons";
 import type { FolderWithDepth } from "@/types/folders";
 
 // Extended folder type for tree structure
@@ -359,7 +359,6 @@ export default function AssignFolderDialog({
     const isSelected = selectedFolders.has(folder.id);
 
     // Get the appropriate icon
-    const folderIsEmoji = folder.icon ? isEmojiIcon(folder.icon) : false;
     const FolderIcon = folder.icon ? getIconComponent(folder.icon) : null;
 
     return (
@@ -402,9 +401,8 @@ export default function AssignFolderDialog({
           />
 
           {/* Folder Icon */}
-          {folderIsEmoji ? (
-            <span className="text-base flex-shrink-0">{folder.icon}</span>
-          ) : FolderIcon ? (
+          {/* Folder Icon */}
+          {FolderIcon ? (
             <FolderIcon
               className="h-4 w-4 flex-shrink-0"
               style={{ color: folder.color || '#6B7280' }}

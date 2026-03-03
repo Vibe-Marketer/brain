@@ -2,14 +2,16 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from './button';
 import { RiArrowLeftLine } from '@remixicon/react';
+import { Breadcrumb, type BreadcrumbItem } from './breadcrumb';
 
 export interface PageHeaderProps {
   title: string;
-  subtitle?: string;
+  subtitle?: React.ReactNode;
   icon?: React.ElementType;
   onBack?: () => void;
   showBackButton?: boolean;
   actions?: React.ReactNode;
+  breadcrumbs?: BreadcrumbItem[];
   children?: React.ReactNode;
   className?: string;
 }
@@ -27,6 +29,7 @@ export function PageHeader({
   onBack,
   showBackButton = false,
   actions,
+  breadcrumbs,
   children,
   className,
 }: PageHeaderProps) {
@@ -51,6 +54,9 @@ export function PageHeader({
         {Icon && <Icon className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />}
 
         <div className="min-w-0">
+          {breadcrumbs && breadcrumbs.length > 0 && (
+            <Breadcrumb items={breadcrumbs} className="mb-0.5" />
+          )}
           <h2 className="font-display font-extrabold text-sm uppercase tracking-wide truncate">
             {title}
           </h2>

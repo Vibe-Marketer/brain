@@ -61,7 +61,6 @@ const PRIORITY_MODE_OPTIONS: {
 
 const PLATFORM_LABELS: Record<string, string> = {
   fathom: "Fathom",
-  google_meet: "Google Meet",
   zoom: "Zoom",
 };
 
@@ -69,7 +68,7 @@ export default function SourcePriorityModal({
   open,
   onComplete,
   onDismiss,
-  connectedPlatforms = ["fathom", "google_meet"],
+  connectedPlatforms = ["fathom"],
 }: SourcePriorityModalProps) {
   const [priorityMode, setPriorityMode] = useState<DedupPriorityMode>("first_synced");
   const [platformOrder, setPlatformOrder] = useState<string[]>(connectedPlatforms);
@@ -205,7 +204,7 @@ export default function SourcePriorityModal({
           <div className="py-6 space-y-6">
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                When the same meeting is recorded by multiple platforms (e.g., Fathom and Google Meet),
+                When the same meeting is recorded by multiple platforms (e.g., Fathom and Zoom),
                 which source should be used as the primary record?
               </p>
 

@@ -46,13 +46,11 @@ const TRANSITION_DURATION = 250;
 // Lazy load settings tab components
 // Note: TeamTab has moved to CollaborationPage
 const AccountTab = React.lazy(() => import("@/components/settings/AccountTab"));
-const BusinessProfileTab = React.lazy(() => import("@/components/settings/BusinessProfileTab"));
 const UsersTab = React.lazy(() => import("@/components/settings/UsersTab"));
 const BillingTab = React.lazy(() => import("@/components/settings/BillingTab"));
 const IntegrationsTab = React.lazy(
   () => import("@/components/settings/IntegrationsTab")
 );
-const AITab = React.lazy(() => import("@/components/settings/AITab"));
 const AdminTab = React.lazy(() => import("@/components/settings/AdminTab"));
 const ContactsTab = React.lazy(() => import("@/components/settings/ContactsTab"));
 const OrganizationsTab = React.lazy(() => import("@/components/settings/OrganizationsTab"));
@@ -70,11 +68,6 @@ const CATEGORY_META: Record<
     label: "Account",
     description: "Profile and preferences",
     icon: RiUserLine,
-  },
-  business: {
-    label: "Business Profile",
-    description: "AI content personalization",
-    icon: RiBuilding4Line,
   },
   contacts: {
     label: "Contacts",
@@ -96,19 +89,14 @@ const CATEGORY_META: Record<
     description: "Connected services",
     icon: RiPlugLine,
   },
-  ai: {
-    label: "AI",
-    description: "Models and knowledge base",
-    icon: RiRobot2Line,
-  },
   admin: {
     label: "Admin",
     description: "System administration",
     icon: RiShieldLine,
   },
   organizations: {
-    label: "Organizations",
-    description: "Manage organizations and workspaces",
+    label: "Workspaces",
+    description: "Manage team workspaces",
     icon: RiBuildingLine,
   },
 };
@@ -235,8 +223,6 @@ export function SettingsDetailPane({
     switch (category) {
       case "account":
         return <AccountTab />;
-      case "business":
-        return <BusinessProfileTab />;
       case "contacts":
         return <ContactsTab />;
       case "users":
@@ -245,8 +231,6 @@ export function SettingsDetailPane({
         return <BillingTab />;
       case "integrations":
         return <IntegrationsTab />;
-      case "ai":
-        return <AITab />;
       case "admin":
         return <AdminTab />;
       case "organizations":
@@ -278,7 +262,16 @@ export function SettingsDetailPane({
     >
       <PageHeader
         title={meta.label}
-        subtitle={meta.description}
+        subtitle={
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-1 text-[10px] font-bold text-ink-muted uppercase tracking-widest opacity-70">
+              <span>Settings</span>
+              <span className="text-[8px] opacity-40">/</span>
+              <span>{meta.label}</span>
+            </div>
+            <span>{meta.description}</span>
+          </div>
+        }
         icon={Icon}
         showBackButton={showBackButton}
         onBack={onBack}

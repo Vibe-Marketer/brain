@@ -1,5 +1,5 @@
 /**
- * VaultJoin
+ * WorkspaceJoin
  *
  * Page for accepting vault invitations via token link.
  * Follows the exact same pattern as TeamJoin.tsx.
@@ -30,23 +30,23 @@ import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { getErrorToastMessage } from '@/lib/user-friendly-errors'
 
-interface VaultInviteData {
+interface WorkspaceInviteData {
   workspace_id: string
   vault_name: string
   member_count: number
   expires_at: string | null
 }
 
-export default function VaultJoin() {
+export default function WorkspaceJoin() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
   const { user, loading: authLoading } = useAuth()
 
-  const [inviteData, setInviteData] = useState<VaultInviteData | null>(null)
+  const [inviteData, setInviteData] = useState<WorkspaceInviteData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isJoining, setIsJoining] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [alreadyMemberVaultId, setAlreadyMemberVaultId] = useState<string | null>(null)
+  const [alreadyMemberWorkspaceId, setAlreadyMemberWorkspaceId] = useState<string | null>(null)
 
   // Fetch invite data when component mounts
   useEffect(() => {
@@ -90,7 +90,7 @@ export default function VaultJoin() {
             .maybeSingle()
 
           if (existingMembership) {
-            setAlreadyMemberVaultId(vault.id)
+            setAlreadyMemberWorkspaceId(vault.id)
             setError("You're already a member of this hub")
             setIsLoading(false)
             return
@@ -121,13 +121,13 @@ export default function VaultJoin() {
       fetchInviteData()
     } else if (!authLoading && !user) {
       // Store the current URL to redirect back after login
-      sessionStorage.setItem('pendingVaultInviteToken', token || '')
+      sessionStorage.setItem('pendingWorkspaceInviteToken', token || '')
       navigate('/login')
     }
   }, [token, user, authLoading, navigate])
 
   // Handle joining the vault
-  const handleJoinVault = async () => {
+  const handleJoinWorkspace = async () => {
     if (!inviteData || !user) return
 
     setIsJoining(true)
@@ -142,7 +142,7 @@ export default function VaultJoin() {
         .maybeSingle()
 
       if (existingMembership) {
-        setAlreadyMemberVaultId(inviteData.workspace_id)
+        setAlreadyMemberWorkspaceId(inviteData.workspace_id)
         setError("You're already a member of this hub")
         setIsJoining(false)
         return
@@ -197,8 +197,8 @@ export default function VaultJoin() {
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3">
-            {alreadyMemberVaultId ? (
-              <Button onClick={() => navigate(`/workspaces/${alreadyMemberVaultId}`)} className="w-full">
+            {alreadyMemberWorkspaceId ? (
+              <Button onClick={() => navigate(`/workspaces/${alreadyMemberWorkspaceId}`)} className="w-full">
                 <RiSafeLine className="w-4 h-4 mr-2" />
                 Go to Hub
               </Button>
@@ -277,7 +277,7 @@ export default function VaultJoin() {
           {/* Action buttons */}
           <div className="flex flex-col gap-3">
             <Button
-              onClick={handleJoinVault}
+              onClick={handleJoinWorkspace}
               disabled={isJoining}
               className="w-full"
             >

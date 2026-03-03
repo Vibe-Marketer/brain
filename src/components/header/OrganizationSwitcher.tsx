@@ -7,9 +7,6 @@ import {
   RiArrowDownSLine,
   RiAddLine,
   RiSettingsLine,
-  RiFolderLine,
-  RiTeamLine,
-  RiBriefcaseLine,
 } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
@@ -30,28 +27,19 @@ import { CreateOrganizationDialog } from '@/components/dialogs/CreateOrganizatio
 import type { OrganizationWithMembership, WorkspaceWithMembership } from '@/types/workspace';
 
 /**
- * OrganizationSwitcher - Dropdown for switching between organizations and workspaces
+ * OrganizationSwitcher - Dropdown for switching between organizations
  *
- * Replaces OrganizationSwitcher with the new organization/workspace architecture:
  * - Shows current organization with icon (personal vs business)
- * - Shows current workspace if selected
  * - Dropdown lists all user's organizations
- * - Workspaces section within active organization
- * - "All Recordings" option for no workspace filter
  * - "Create Organization" CTA for new orgs
- *
- * @pattern follows OrganizationSwitcher for consistency
  */
 export function OrganizationSwitcher() {
   const navigate = useNavigate();
   const {
     activeOrganization,
-    activeWorkspace,
     organizations,
-    workspaces,
     isLoading,
     switchOrganization,
-    switchWorkspace,
     isPersonalOrg,
   } = useOrganizationContext();
 
@@ -75,32 +63,24 @@ export function OrganizationSwitcher() {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="flex items-center gap-1.5 px-2 h-8 text-sm font-medium"
+          className="flex items-center gap-1.5 px-3 h-8 text-sm font-medium bg-card border border-border shadow-sm hover:bg-accent"
         >
           {isPersonalOrg ? (
             <>
               <RiUserLine className="h-4 w-4 text-muted-foreground" />
-                <span className="hidden sm:inline">Personal Organization</span>
+              <span className="hidden sm:inline text-foreground">Personal Organization</span>
             </>
           ) : (
             <>
               <RiBuildingLine className="h-4 w-4 text-muted-foreground" />
-              <span className="hidden sm:inline max-w-[100px] truncate">
+              <span className="hidden sm:inline max-w-[150px] truncate text-foreground">
                 {activeOrganization.name}
               </span>
             </>
           )}
-          {activeWorkspace && (
-            <>
-              <span className="text-muted-foreground">/</span>
-              <span className="hidden sm:inline max-w-[80px] truncate text-muted-foreground">
-                {activeWorkspace.name}
-              </span>
-            </>
-          )}
-          <RiArrowDownSLine className="h-4 w-4 text-muted-foreground" />
+          <RiArrowDownSLine className="h-4 w-4 text-muted-foreground ml-1" />
         </Button>
       </DropdownMenuTrigger>
 
@@ -141,42 +121,7 @@ export function OrganizationSwitcher() {
           )}
         </DropdownMenuGroup>
 
-        {/* Workspaces in active organization */}
-        {workspaces.length > 0 && (
-          <>
-            <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
-              Workspaces in {activeOrganization.name}
-            </DropdownMenuLabel>
-            <DropdownMenuGroup>
-              {/* Show all recordings (no workspace filter) */}
-              <DropdownMenuItem
-                className={cn(
-                  'cursor-pointer flex items-center justify-between',
-                  !activeWorkspace && 'bg-accent'
-                )}
-                onClick={() => switchWorkspace(null)}
-              >
-                <div className="flex items-center gap-2">
-                  <RiFolderLine className="h-4 w-4" />
-                  <span>All Recordings</span>
-                </div>
-                {!activeWorkspace && (
-                  <RiCheckLine className="h-4 w-4 text-vibe-orange" />
-                )}
-              </DropdownMenuItem>
-
-              {workspaces.map((workspace) => (
-                <WorkspaceMenuItem
-                  key={workspace.id}
-                  workspace={workspace}
-                  isActive={workspace.id === activeWorkspace?.id}
-                  onClick={() => switchWorkspace(workspace.id)}
-                />
-              ))}
-            </DropdownMenuGroup>
-          </>
-        )}
+        {/* Remove workspace references */}
 
         <DropdownMenuSeparator />
 
@@ -252,51 +197,6 @@ function OrganizationMenuItem({
         <Badge variant="outline" className="text-xs capitalize">
           {roleDisplay}
         </Badge>
-        {isActive && <RiCheckLine className="h-4 w-4 text-vibe-orange" />}
-      </div>
-    </DropdownMenuItem>
-  );
-}
-
-/**
- * Workspace menu item with type indicator
- */
-function WorkspaceMenuItem({
-  workspace,
-  isActive,
-  onClick,
-}: {
-  workspace: WorkspaceWithMembership;
-  isActive: boolean;
-  onClick: () => void;
-}) {
-  // Map workspace types to icons
-  const workspaceTypeIcons = {
-    personal: RiUserLine,
-    team: RiTeamLine,
-    coach: RiUserLine,
-    community: RiTeamLine,
-    client: RiBriefcaseLine,
-    youtube: RiFolderLine,
-  };
-  const Icon = (workspaceTypeIcons as any)[workspace.workspace_type] || RiFolderLine;
-
-  return (
-    <DropdownMenuItem
-      className={cn(
-        'cursor-pointer flex items-center justify-between pl-6',
-        isActive && 'bg-accent'
-      )}
-      onClick={onClick}
-    >
-      <div className="flex items-center gap-2">
-        <Icon className="h-4 w-4" />
-        <span className="truncate max-w-[120px]">{workspace.name}</span>
-      </div>
-      <div className="flex items-center gap-1.5">
-        <span className="text-xs text-muted-foreground capitalize">
-          {workspace.workspace_type}
-        </span>
         {isActive && <RiCheckLine className="h-4 w-4 text-vibe-orange" />}
       </div>
     </DropdownMenuItem>

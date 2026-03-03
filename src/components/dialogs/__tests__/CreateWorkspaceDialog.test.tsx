@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { CreateVaultDialog } from '@/components/dialogs/CreateVaultDialog'
+import { CreateWorkspaceDialog } from '@/components/dialogs/CreateWorkspaceDialog'
 
 const mockMutate = vi.fn()
 
@@ -82,14 +82,14 @@ vi.mock('@/components/ui/select', async () => {
   }
 })
 
-describe('CreateVaultDialog', () => {
+describe('CreateWorkspaceDialog', () => {
   beforeEach(() => {
     mockMutate.mockClear()
   })
 
   it('shows YouTube as an available hub type option', () => {
     render(
-      <CreateVaultDialog
+      <CreateWorkspaceDialog
         open
         onOpenChange={vi.fn()}
         bankId="bank-1"
@@ -103,7 +103,7 @@ describe('CreateVaultDialog', () => {
 
   it('submits create payload with vaultType youtube when selected', () => {
     render(
-      <CreateVaultDialog
+      <CreateWorkspaceDialog
         open
         onOpenChange={vi.fn()}
         bankId="bank-1"

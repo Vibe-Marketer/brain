@@ -83,8 +83,8 @@ export function DeleteWorkspaceDialog({
           setTransferEnabled(false)
           setTransferWorkspaceId('')
           onOpenChange(false)
-          // Navigate back to workspaces list
-          navigate('/workspaces')
+          // Navigate back to home
+          navigate('/')
         },
       }
     )
