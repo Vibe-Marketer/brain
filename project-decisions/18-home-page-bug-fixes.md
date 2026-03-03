@@ -1,9 +1,9 @@
 # Home Page Bug Fixes & Pane Architecture Corrections
 
-**Date:** 2026-03-02
+**Date:** 2026-03-02 (updated 2026-03-03)
 **Status:** Ready for implementation
-**Scope:** brain repo (v1 frontend) — `src/` directory
-**Priority:** High — core navigation and data filtering are broken
+**Scope:** brain repo (v1 frontend + Supabase edge functions)
+**Priority:** CRITICAL — data isolation gap + core navigation broken
 
 ---
 
@@ -11,7 +11,11 @@
 
 The home page (`TranscriptsNew.tsx`) has accumulated multiple bugs from features being added at different times. The org/workspace/folder hierarchy exists in the store and UI components, but the actual call filtering is broken — switching orgs, workspaces, or folders doesn't properly filter the displayed calls. The pane architecture also has layout issues.
 
-**Reference:** See `project-decisions/17-unified-home-navigation.md` for the target navigation architecture.
+**ACTIVE DATA BREACH:** Calls ARE bleeding between user accounts in production. Three independent investigations confirmed multiple vectors. The `recordings` table RLS is too broad (any org member sees all org recordings), the personal org query path has zero user filtering, and there are additional unfiltered query paths on `CallDetailPage` and `RecurringTitlesTab`.
+
+**References:**
+- `project-decisions/17-unified-home-navigation.md` — target navigation architecture
+- `project-decisions/000-workspace-per-import-source-architecture.md` — workspace-per-source rules (NOT yet implemented)
 
 ---
 
@@ -28,6 +32,134 @@ Each element has exactly ONE job:
 | **Pane 4** | Inspect details (call detail, bulk actions, workspace members) | Must be rendered via AppShell's detail pane system, NOT inline in Pane 3 |
 
 **Org switching = TopBar. Workspace/folder switching = Pane 2. Never mix these.**
+
+---
+
+## Bug 0: ACTIVE DATA BREACH — Multiple Call Bleed Vectors (FIX FIRST)
+
+### Summary
+
+Calls are actively bleeding between user accounts. Three independent code audits confirmed FIVE unsafe query paths and one overly-broad RLS policy. This is not theoretical — the user is seeing other users' calls in their account RIGHT NOW.
+
+### Vector 0A: `recordings` RLS Policy Is Too Broad
+
+**File:** `supabase/migrations/20260301000002_recreate_rls_policies.sql`, line 246
+
+The current SELECT policy on `recordings` is:
+```sql
+CREATE POLICY "Users can view recordings in their organizations"
+  ON recordings FOR SELECT
+  USING (is_organization_member(organization_id, auth.uid()));
+```
+
+This means **ANY member of an organization can see ALL recordings in that organization** — not just their own. If User A and User B are both members of the same org (via workspace invites, team membership, or a migration bug), they see each other's calls. This is the most likely cause of the active bleed.
+
+**Fix — new migration required:**
+```sql
+-- Drop the overly broad policy
+DROP POLICY IF EXISTS "Users can view recordings in their organizations" ON recordings;
+
+-- Users can ALWAYS see their own recordings
+CREATE POLICY "Users can view own recordings"
+  ON recordings FOR SELECT
+  USING (owner_user_id = auth.uid());
+
+-- Users can see recordings shared into workspaces they belong to
+CREATE POLICY "Users can view shared recordings in their workspaces"
+  ON recordings FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM workspace_entries we
+      JOIN workspace_memberships wm ON wm.workspace_id = we.workspace_id
+      WHERE we.recording_id = recordings.id
+        AND wm.user_id = auth.uid()
+    )
+  );
+```
+
+### Vector 0B: Personal Org Query Has No user_id Filter
+
+**File:** `src/components/transcripts/TranscriptsTab.tsx`, lines ~246-278
+
+When `isPersonalOrganization` is `true`, the query executes with ZERO user filtering:
+```sql
+SELECT * FROM fathom_calls ORDER BY created_at DESC LIMIT 20
+-- NO user_id FILTER
+```
+
+The code relies entirely on RLS to prevent cross-account reads. But RLS is only one layer — if there is ANY gap (which there IS, see Vector 0A above on the `recordings` table), calls bleed.
+
+**Fix:** ALWAYS add `.eq("user_id", user.id)` to the query, regardless of org type:
+```typescript
+// ALWAYS filter by user_id — defense in depth
+const { data: { user } } = await supabase.auth.getUser();
+if (user) {
+  query = query.eq("user_id", user.id);
+}
+// THEN also apply org/workspace filters on top
+```
+
+### Vector 0C: CallDetailPage Has No user_id Filter
+
+**File:** `src/pages/CallDetailPage.tsx`, line ~95
+```typescript
+supabase.from('fathom_calls').select('*').eq('recording_id', recordingId!).single()
+```
+No `user_id` filter. Anyone who knows a `recording_id` (a sequential integer) can view any call by navigating to `/calls/12345`. Fix: add `.eq("user_id", user.id)`.
+
+### Vector 0D: RecurringTitlesTab Has No Filters At All
+
+**File:** `src/components/transcripts/RecurringTitlesTab.tsx`, line ~79
+```typescript
+supabase.from("fathom_calls").select("title").not("title", "is", null)
+```
+Zero user filtering. Returns titles from ALL users' calls. Fix: add `.eq("user_id", user.id)`.
+
+### Vector 0E: `isPersonalOrganization` Race Condition
+
+**File:** `src/hooks/useOrganizationContext.ts`, line ~118
+
+During initialization (before orgs load), `activeOrganization` is `null`, so `isPersonalOrganization` evaluates to `false` — triggering the business org code path even for personal org users. This means during startup, the wrong query path briefly executes.
+
+**Fix:** Add a loading guard — don't query calls until `isInitialized` is `true` and `activeOrganization` is resolved.
+
+### Vector 0F: Dual Org Context Store (Dead Code Risk)
+
+Two separate org context stores exist:
+- `src/stores/orgContextStore.ts` — the active v2 store
+- `src/stores/organizationContextStore.ts` — a broken legacy store with DUPLICATE property declarations
+
+If ANY component imports the legacy store instead of the v2 store, it would have unsynchronized state. **Fix:** Delete `organizationContextStore.ts` entirely and grep for any imports of it.
+
+### Complete Unsafe Query Audit
+
+| File | Line | Filter | Status |
+|------|------|--------|--------|
+| `TranscriptsTab.tsx` | ~267 | **NONE** (personal org path) | **UNSAFE** |
+| `CallDetailPage.tsx` | ~95 | `.eq('recording_id', id)` only | **UNSAFE** |
+| `RecurringTitlesTab.tsx` | ~79 | **NONE** | **UNSAFE** |
+| `FilterBar.tsx` | ~73 | `.eq("user_id", user.id)` | Safe |
+| `CallDetailPanel.tsx` | ~58 | `.eq("user_id", user.id)` | Safe |
+| `SyncTab.tsx` | ~97 | `.eq("user_id", user.id)` | Safe |
+| `useCallDetailQueries.ts` | ~73 | `.eq("user_id", userId)` | Safe |
+| `useCallAnalytics.ts` | ~46 | `.eq("user_id", user.id)` | Safe |
+| `useContacts.ts` | ~318 | `.eq("user_id", user.id)` | Safe |
+| All other query paths | — | Have `user_id` filter | Safe |
+
+### Implementation — Do This FIRST Before Anything Else
+
+1. **New Supabase migration** — tighten `recordings` SELECT RLS to `owner_user_id = auth.uid()` plus workspace-based sharing (see SQL above)
+2. **Add `.eq("user_id", user.id)` to ALL three unsafe query paths** — TranscriptsTab, CallDetailPage, RecurringTitlesTab
+3. **Delete `organizationContextStore.ts`** — grep for imports first, redirect any to `orgContextStore.ts`
+4. **Add loading guard** — don't run call queries until org context is fully initialized
+5. **Audit edge functions** in `supabase/functions/` — any function using `SUPABASE_SERVICE_ROLE_KEY` that reads `fathom_calls` or `recordings` MUST have `.eq('owner_user_id', userId)`. Service role bypasses ALL RLS.
+6. **Verify `fathom_calls` table status** — migration `20260227000002_archive_fathom_calls.sql` renamed it to `fathom_calls_archive`. If this migration has been applied to production, ALL queries to `fathom_calls` are silently failing. If it HASN'T been applied, the old table is live and the bleed is through it. Run: `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'fathom%';`
+
+### Also Check: Cross-Org Isolation
+
+When a user has BOTH personal and business orgs, calls must NOT bleed between them:
+- **Fathom sync always assigns calls to the personal org** (via `connector-pipeline.ts` line ~130) regardless of which org is active. This is by design but means business org view may appear empty if calls were never explicitly moved/shared.
+- **Switching orgs must fully reset** — `setActiveOrg` resets workspace and folder to null. Verify TanStack Query cache is invalidated (it should be — `activeOrganizationId` is in the query key)
 
 ---
 
@@ -191,16 +323,122 @@ Multiple elements are overflowing their container bounds on the home page. Conte
 
 ---
 
+## Bug 7: Folder Assignments Not Reflecting — Calls Not Showing in Folders
+
+### What's wrong
+
+All folders are visible in Pane 2, but none of them show the calls that were previously assigned to them. Calls that the user already organized into folders appear to have lost their folder associations.
+
+Root cause (from code audit): `folderAssignments` is fetched via `useFolderAssignments(activeWorkspaceId)`. When `activeWorkspaceId` is `null` (which is the default "Home" state), the hook returns `{}` — an empty object. This means:
+- The folder tree shows all folders (fetched by `useFolders`)
+- But clicking a folder filters by `folderAssignments[recordingId].includes(folderId)` — which is always empty
+- Result: every folder appears to have 0 calls
+
+Additionally, the folder assignment data itself may be stale or broken if the `vault_id` (workspace_id) column on folders was backfilled incorrectly during the Phase 16 migration.
+
+### What to fix
+
+1. **Fix `useFolderAssignments`** to load assignments for ALL workspaces in the active org when no specific workspace is selected (or load them per-workspace as the user expands each workspace in the tree)
+2. **Verify the database** — check that `folder_assignments` rows exist for the user's previously-organized calls. Run: `SELECT count(*) FROM folder_assignments WHERE folder_id IN (SELECT id FROM folders WHERE user_id = '<user_id>')`
+3. **Verify `folders.workspace_id`** is correctly populated — the Phase 16 migration added this column and backfilled it. If backfill failed, folders may not be associated with any workspace
+4. **Show folder call counts** in the Pane 2 tree — each folder should show a count badge (e.g., "Inbound (12)") so the user can see at a glance which folders have calls
+
+### Files to check
+- The hook that implements `useFolderAssignments` — trace from `TranscriptsNew.tsx`
+- `supabase/migrations/` — the Phase 16 migration that added `workspace_id` to folders and backfilled it
+- `src/components/panes/WorkspaceSidebarPane.tsx` — folder rendering
+
+---
+
+## Bug 8: Workspace Switching Does Nothing — YouTube, Zoom, etc. Show No Calls
+
+### What's wrong
+
+Clicking a workspace (e.g., "YouTube") in Pane 2 does not filter the call list. All workspaces show the same calls. The YouTube workspace should show only YouTube imports, the Fathom workspace should show only Fathom calls, etc.
+
+This is a combination of Bug 1 (query doesn't include `activeWorkspaceId`) and the fact that the workspace-per-import-source architecture from `project-decisions/000-workspace-per-import-source-architecture.md` has NOT been implemented yet.
+
+### What's supposed to happen (per 000-workspace-per-import-source-architecture.md)
+
+1. **Every import source gets its own auto-created workspace** — Fathom workspace, YouTube workspace, Zoom workspace, Uploads workspace
+2. **Each source workspace has a source-optimized table** — the YouTube workspace shows YouTube-specific columns (channel, views, etc.), the Fathom workspace shows Fathom-specific columns (participants, invitees, etc.)
+3. **An "All Calls" view** shows calls from all sources using a universal table with only common fields (title, date, duration, source badge, summary)
+4. **User-created workspaces** always use the universal table schema
+5. **Data movement is by reference** — calls live in their source workspace, other workspaces reference them
+
+### Current state
+
+- Source workspaces MAY exist in the database but the UI doesn't filter by them
+- There is only ONE table component (`TranscriptTable.tsx`) designed for Fathom's schema
+- No source-optimized tables exist for YouTube, Zoom, or Uploads
+- No universal "All Calls" table exists
+- The query in `TranscriptsTab` ignores `activeWorkspaceId` entirely
+
+### What to fix (scope for THIS directive)
+
+This is a large architectural change. For this bug fix round, the minimum viable fix is:
+
+1. **Make workspace switching actually filter calls** — when a workspace is selected, only show calls that belong to that workspace (via `workspace_entries` table)
+2. **When no workspace is selected, show all calls** for the active org (the "All Calls" behavior)
+3. **Source-optimized tables are a separate phase** — document this as a gap but don't block the current fixes on it
+
+The full workspace-per-source architecture (auto-creation of source workspaces, source-optimized tables, universal table) should be planned as its own GSD phase.
+
+---
+
+## Bug 9: `call_tags` RLS Is Stale
+
+### What's wrong
+
+The `call_tags` table had its `bank_id` column renamed to `organization_id` in the workspace redesign migration, but the RLS policies were never updated. The current RLS is:
+
+```sql
+CREATE POLICY "Users can view system and own tags"
+  ON call_tags FOR SELECT TO authenticated
+  USING (user_id IS NULL OR auth.uid() = user_id);
+```
+
+This doesn't use `organization_id` at all. While low severity (tags are user-owned), it means org-scoped tag filtering in `TranscriptsTab` is application-level only, not enforced by RLS.
+
+### What to fix
+
+Create a new migration that updates `call_tags` RLS to include `organization_id` awareness, matching the pattern used in `20260301000002_recreate_rls_policies.sql` for other tables.
+
+### Files to check
+- `supabase/migrations/20260301000002_recreate_rls_policies.sql` — the recreate migration (does NOT include `call_tags`)
+- `supabase/migrations/20251130000001_rename_categories_to_tags.sql` — original `call_tags` RLS
+
+---
+
 ## Implementation Order
 
-Do these in sequence — each one builds on the previous:
+### Phase 1: STOP THE BLEED (do immediately, deploy same day)
 
-1. **Bug 5** (sidebar label) — trivial rename, 1 line
-2. **Bug 4** (TopBar org dropdown) — clean up the dropdown, remove workspace items
-3. **Bug 3** (Pane 2 glass styling) — remove glassmorphism, match sidebar styling
-4. **Bug 6** (overflow issues) — fix container bounds after styling is corrected
-5. **Bug 1** (filtering) — the core data flow fix, most complex
-6. **Bug 2** (BulkActionToolbarEnhanced → Pane 4) — architectural change, do last
+1. **Bug 0A** — New Supabase migration: tighten `recordings` SELECT RLS to `owner_user_id` + workspace sharing
+2. **Bug 0B** — Add `.eq("user_id", user.id)` to `TranscriptsTab.tsx` personal org path
+3. **Bug 0C** — Add `.eq("user_id", user.id)` to `CallDetailPage.tsx`
+4. **Bug 0D** — Add `.eq("user_id", user.id)` to `RecurringTitlesTab.tsx`
+5. **Bug 0F** — Delete `organizationContextStore.ts` (dead code risk)
+6. **Bug 0E** — Add loading guard: don't query calls until org context is initialized
+7. **Verify** — Check if `fathom_calls` was renamed to `fathom_calls_archive` in production. If yes, ALL call queries are broken and need to target the correct table.
+
+### Phase 2: UI/UX Fixes (after bleed is stopped)
+
+8. **Bug 5** (sidebar label) — trivial rename, 1 line
+9. **Bug 4** (TopBar org dropdown) — clean up the dropdown, remove workspace items
+10. **Bug 3** (Pane 2 glass styling) — remove glassmorphism, match sidebar styling
+11. **Bug 6** (overflow issues) — fix container bounds after styling is corrected
+
+### Phase 3: Data Flow Fixes
+
+12. **Bug 1** (workspace filtering) — add `activeWorkspaceId` to query key, filter by workspace
+13. **Bug 7** (folder assignments) — fix `useFolderAssignments` to load correctly, verify data exists
+14. **Bug 8** (workspace switching) — minimum viable workspace filtering via `workspace_entries`
+15. **Bug 9** (call_tags RLS) — migration, can be done independently
+
+### Phase 4: Architecture
+
+16. **Bug 2** (BulkActionToolbarEnhanced → Pane 4) — move to proper pane system
 
 ---
 
@@ -208,15 +446,48 @@ Do these in sequence — each one builds on the previous:
 
 After all fixes, verify these scenarios work:
 
-- [ ] Switch org in TopBar → call list updates to show only that org's calls
+### Data Isolation (VERIFY BEFORE DEPLOYING ANYTHING ELSE)
+- [ ] Run SQL: `SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename LIKE 'fathom%';` — determine if archive migration was applied
+- [ ] Personal org user sees ONLY their own calls (verify `user_id` filter is applied in query AND in RLS)
+- [ ] Business org user sees only their OWN calls + calls explicitly shared into their workspaces
+- [ ] Business org admin does NOT see all org members' calls by default (only shared workspace content)
+- [ ] Switching from personal to business org shows completely different call sets
+- [ ] No calls from other accounts/users ever appear
+- [ ] `/calls/<random-number>` returns 404 or unauthorized, NOT another user's call
+- [ ] `organizationContextStore.ts` is deleted, no imports reference it
+- [ ] All edge functions using service role key have explicit `owner_user_id` filters
+
+### Workspace & Folder Navigation
 - [ ] Click a workspace in Pane 2 → call list filters to that workspace's calls
+- [ ] Click YouTube workspace → only YouTube imports appear
+- [ ] Click Fathom workspace → only Fathom calls appear
 - [ ] Click a folder in Pane 2 → call list filters to that folder's calls
-- [ ] Click Home / deselect → shows all calls for the active org
-- [ ] Calls previously assigned to folders appear in those folders
+- [ ] Calls previously assigned to folders APPEAR in those folders
+- [ ] Click Home / deselect all → shows all calls for the active org
+- [ ] Folder call counts are visible in Pane 2
+
+### Org Switching
+- [ ] Switch org in TopBar → call list updates to show only that org's calls
+- [ ] Org dropdown shows ONLY orgs, has white card background with border
+- [ ] Org dropdown has NO workspace items, NO breadcrumbs
+
+### Pane Architecture
 - [ ] Select multiple calls → BulkActionToolbarEnhanced opens as Pane 4 (full height, pushes from right)
 - [ ] Deselect all calls → Pane 4 closes
 - [ ] Pane 2 has no glass/blur effects, matches sidebar styling
-- [ ] Org dropdown shows ONLY orgs, has white card background with border
-- [ ] Org dropdown has NO workspace items, NO breadcrumbs
 - [ ] No content overflows pane boundaries
 - [ ] Sidebar toggle says "Workspace Panel" not "Library Panel"
+
+---
+
+## Out of Scope (Future Phases)
+
+These items from `000-workspace-per-import-source-architecture.md` are NOT part of this fix round but must be tracked:
+
+- [ ] Auto-creation of source workspaces when import sources are connected
+- [ ] Source-optimized table components (YouTube table, Zoom table, Uploads table)
+- [ ] Universal "All Calls" table with only common fields
+- [ ] Source badge column in universal table
+- [ ] Call detail modal dynamic tab configuration per source type
+- [ ] `display_name` vs original source name on workspace labels
+- [ ] Workspace hide/unhide (instead of delete) for source workspaces

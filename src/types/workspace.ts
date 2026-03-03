@@ -149,8 +149,10 @@ export interface Folder {
   parent_id?: string | null
   icon?: string | null
   color?: string | null
+  visibility?: string | null
   user_id?: string
   organization_id?: string
+  workspace_id?: string
   position?: number
   created_at?: string
   updated_at?: string
@@ -158,6 +160,6 @@ export interface Folder {
 
 // Legacy aliases for backward compatibility (progressive migration)
 
-export type Workspace = Workspace
-export type WorkspaceWithMembership = WorkspaceWithMembership
-export type WorkspaceWithMeta = Workspace & { member_count: number; user_role: WorkspaceRole | null }
+export type Vault = Workspace
+export type VaultWithMembership = WorkspaceWithMembership
+export type VaultWithMeta = Workspace & { member_count: number; user_role: WorkspaceRole | null }

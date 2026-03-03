@@ -20,12 +20,12 @@ import type { Folder } from '@/types/workspace'
 /**
  * Hook to get all folder assignments for the active workspace.
  */
-export function useFolderAssignments(workspaceId: string | null) {
+export function useFolderAssignments(workspaceId: string | null, organizationId?: string | null) {
   const { session } = useAuth()
   return useQuery<Record<string, string[]>>({
-    queryKey: ['folder_assignments', workspaceId],
-    queryFn: () => getFolderAssignments(workspaceId!),
-    enabled: !!session && !!workspaceId,
+    queryKey: ['folder_assignments', workspaceId, organizationId],
+    queryFn: () => getFolderAssignments({ workspaceId, organizationId }),
+    enabled: !!session && (!!workspaceId || !!organizationId),
   })
 }
 
@@ -47,11 +47,9 @@ export function useAssignCallToFolder() {
       userId: string
     }) => assignCallToFolder(callRecordingId, folderId, userId),
     onSuccess: () => {
-      if (activeWorkspaceId) {
-        queryClient.invalidateQueries({
-          queryKey: ['folder_assignments', activeWorkspaceId],
-        })
-      }
+      queryClient.invalidateQueries({
+        queryKey: ['folder_assignments'],
+      })
       toast.success('Call assigned to folder')
     },
     onError: (error: Error) => {

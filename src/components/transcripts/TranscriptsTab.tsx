@@ -16,6 +16,7 @@ import ManualTagDialog from "@/components/ManualTagDialog";
 import QuickCreateTagDialog from "@/components/QuickCreateTagDialog";
 import { TagManagementDialog } from "@/components/transcript-library/TagManagementDialog";
 import { FilterBar } from "@/components/transcript-library/FilterBar";
+import { BulkActionToolbarEnhanced } from "@/components/transcript-library/BulkActionToolbarEnhanced";
 import { DragDropZones } from "@/components/transcript-library/DragDropZones";
 import { EmptyState } from "@/components/transcript-library/EmptyStates";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
@@ -83,7 +84,7 @@ export function TranscriptsTab({
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Organization context for filtering calls by active workspace
-  const { activeOrganizationId, isPersonalOrganization, isLoading: _bankContextLoading } = useOrganizationContext();
+  const { activeOrganizationId, activeWorkspaceId, isPersonalOrganization, isLoading: _bankContextLoading, isInitialized } = useOrganizationContext();
 
   // Selection & interaction state
   const [selectedCalls, setSelectedCalls] = useState<number[]>([]);
@@ -237,19 +238,40 @@ export function TranscriptsTab({
 
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading } = useQuery({
-    queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize, activeOrganizationId, isPersonalOrganization],
+    queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization],
+    enabled: isInitialized,
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const offset = (page - 1) * pageSize;
 
       // Organization-aware filtering: For business organizations, look up recording IDs
       // from the recordings table that belong to this bank, then filter fathom_calls
       let bankRecordingIds: number[] | null = null;
       if (activeOrganizationId && !isPersonalOrganization) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: bankRecordings } = await (supabase as any)
+        
+        let recordingQuery = supabase
           .from('recordings')
-          .select('legacy_recording_id')
+          .select('legacy_recording_id, id')
           .eq('organization_id', activeOrganizationId);
+
+        if (activeWorkspaceId) {
+          const { data: wsEntries } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('workspace_id', activeWorkspaceId);
+          if (wsEntries && wsEntries.length > 0) {
+            const wsRecIds = wsEntries.map(e => e.recording_id);
+            recordingQuery = recordingQuery.in('id', wsRecIds);
+          } else {
+            setTotalCount(0);
+            onTotalCountChange?.(0);
+            return [];
+          }
+        }
+
+        const { data: bankRecordings } = await recordingQuery;
 
         if (bankRecordings && bankRecordings.length > 0) {
           bankRecordingIds = bankRecordings
@@ -266,6 +288,7 @@ export function TranscriptsTab({
       let query = supabase
         .from("fathom_calls")
         .select("*", { count: "exact" })
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .range(offset, offset + pageSize - 1);
 
@@ -612,10 +635,9 @@ export function TranscriptsTab({
             />
           ) : (
             <>
-              <ErrorBoundary>
-                <div className="border-cb-gray-light dark:border-cb-gray-dark">
-                  <TranscriptTable
-                    calls={validCalls}
+              <div className="border-cb-gray-light dark:border-cb-gray-dark h-full">
+                <TranscriptTable
+                  calls={validCalls}
                     selectedCalls={selectedCalls}
                     onSelectCall={(callId) => {
                       const newSelected = selectedCalls.includes(callId)
@@ -648,8 +670,7 @@ export function TranscriptsTab({
                     }
                     onExport={() => setSmartExportOpen(true)}
                   />
-                </div>
-              </ErrorBoundary>
+              </div>
             </>
           )}
           </div>
@@ -720,7 +741,7 @@ export function TranscriptsTab({
         onOpenChange={setSmartExportOpen}
         selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id as number))}
         folderAssignments={folderAssignments}
-        folders={folders.map(f => ({ id: String(f.id), name: f.name, color: (f as unknown as { color?: string }).color || "" }))}
+        folders={folders.map(f => ({ id: String(f.id), name: f.name, color: (f as any).color || "" }))}
         tagAssignments={tagAssignments}
         tags={tags}
       />

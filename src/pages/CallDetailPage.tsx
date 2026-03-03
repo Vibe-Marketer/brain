@@ -91,10 +91,14 @@ export const CallDetailPage: React.FC = () => {
   const { data: call, isLoading: callLoading } = useQuery({
     queryKey: ['call', callId],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase
         .from('fathom_calls')
         .select('*')
         .eq('recording_id', recordingId!)
+        .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
@@ -129,10 +133,14 @@ export const CallDetailPage: React.FC = () => {
   const { data: insights, isLoading: insightsLoading } = useQuery({
     queryKey: ['call-insights', callId],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase
         .from('insights')
         .select('*')
         .eq('recording_id', recordingId!)
+        .eq('user_id', user.id)
         .order('score', { ascending: false });
 
       if (error) throw error;

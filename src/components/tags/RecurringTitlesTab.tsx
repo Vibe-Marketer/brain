@@ -74,10 +74,14 @@ export function RecurringTitlesTab() {
   const { data: recurringTitles, isLoading: titlesLoading } = useQuery({
     queryKey: ["recurring-titles"],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       // Query the view directly - it's already filtered by user via RLS
       const { data, error } = await supabase
         .from("fathom_calls")
         .select("title")
+        .eq("user_id", user.id)
         .not("title", "is", null)
         .order("created_at", { ascending: false });
 

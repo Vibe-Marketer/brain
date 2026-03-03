@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,6 +67,8 @@ export default function QuickCreateFolderDialog({
   const [saving, setSaving] = useState(false);
   const [foldersWithDepth, setFoldersWithDepth] = useState<FolderWithDepth[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
+  const { workspaces = [] } = useWorkspaces(activeOrganizationId);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
 
   // Inline parent folder creation
   const [inlineParentDialogOpen, setInlineParentDialogOpen] = useState(false);
@@ -101,7 +104,7 @@ export default function QuickCreateFolderDialog({
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
-      const targetWorkspaceId = workspaceId || activeWorkspaceId;
+      const targetWorkspaceId = workspaceId || activeWorkspaceId || selectedWorkspaceId;
       const targetOrgId = organizationId || activeOrganizationId;
 
       let query = supabase
@@ -174,11 +177,15 @@ export default function QuickCreateFolderDialog({
         }
       }
 
-      const targetWorkspaceId = workspaceId || activeWorkspaceId;
+      const targetWorkspaceId = workspaceId || activeWorkspaceId || selectedWorkspaceId;
       const targetOrgId = organizationId || activeOrganizationId;
 
-      if (!targetWorkspaceId || !targetOrgId) {
-        toast.error("No active workspace or organization selected");
+      if (!targetOrgId) {
+        toast.error("No active organization selected");
+        return;
+      }
+      if (!targetWorkspaceId) {
+        toast.error("Please select a workspace for this folder");
         return;
       }
 
@@ -243,6 +250,7 @@ export default function QuickCreateFolderDialog({
     setShowDescription(false);
     setIconId("folder");
     setSelectedParentId(parentFolderId);
+    setSelectedWorkspaceId(undefined);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -344,6 +352,28 @@ export default function QuickCreateFolderDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Workspace Selection (Only if no workspace is active/provided) */}
+          {(!activeWorkspaceId && !workspaceId) && (
+            <div className="space-y-2">
+              <Label htmlFor="workspace-select">Workspace <span className="text-red-500">*</span></Label>
+              <Select
+                value={selectedWorkspaceId || ""}
+                onValueChange={setSelectedWorkspaceId}
+              >
+                <SelectTrigger id="workspace-select">
+                  <SelectValue placeholder="Select a workspace" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workspaces.map((ws) => (
+                    <SelectItem key={ws.id} value={ws.id}>
+                      {ws.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Optional Description */}
           <div className="space-y-2">

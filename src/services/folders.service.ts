@@ -113,17 +113,30 @@ export async function getArchivedFolders(workspaceId: string): Promise<Folder[]>
 }
 
 /**
- * Fetches all folder assignments for the given workspace.
+ * Fetches all folder assignments.
  * Returns a map of callRecordingId (number) -> folderId[] (string[]).
  */
-export async function getFolderAssignments(
-  workspaceId: string
-): Promise<Record<string, string[]>> {
-  // 1. Get all folder IDs for this workspace
-  const { data: folderIdsData } = await (supabase as any)
+export async function getFolderAssignments({
+  workspaceId,
+  organizationId,
+}: {
+  workspaceId?: string | null
+  organizationId?: string | null
+}): Promise<Record<string, string[]>> {
+  if (!workspaceId && !organizationId) return {}
+
+  // 1. Get all folder IDs for this scope
+  let folderQuery = (supabase as any)
     .from('folders')
     .select('id')
-    .eq('workspace_id', workspaceId)
+    
+  if (workspaceId) {
+    folderQuery = folderQuery.eq('workspace_id', workspaceId)
+  } else if (organizationId) {
+    folderQuery = folderQuery.eq('organization_id', organizationId)
+  }
+
+  const { data: folderIdsData } = await folderQuery
 
   const folderIds = (folderIdsData ?? []).map((f: any) => f.id)
 

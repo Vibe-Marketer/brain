@@ -117,7 +117,7 @@ const TranscriptsNew = () => {
   } = useOrganizationContext();
   const { user } = useAuth();
   const { data: folders = [], isLoading: foldersLoading } = useFolders(activeWorkspaceId);
-  const { data: folderAssignments = {} } = useFolderAssignments(activeWorkspaceId);
+  const { data: folderAssignments = {} } = useFolderAssignments(activeWorkspaceId, activeOrganizationId);
   const { mutate: deleteFolder } = useDeleteFolder();
   const { mutate: assignToFolderMutation } = useAssignCallToFolder();
 
@@ -230,7 +230,7 @@ const TranscriptsNew = () => {
           />
 
           {/* Content */}
-          <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabValue)} className="flex-1 min-h-0 overflow-hidden">
+          <Tabs value={activeTab} onValueChange={(v) => handleTabChange(v as TabValue)} className="flex-1 min-h-0 overflow-hidden flex flex-col">
             <div className="flex-1 min-h-0 overflow-hidden relative h-full">
             <TabsContent value="transcripts" className="mt-0 h-full absolute inset-0">
               <TranscriptsTab
