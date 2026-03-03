@@ -16,15 +16,14 @@ import ManualTagDialog from "@/components/ManualTagDialog";
 import QuickCreateTagDialog from "@/components/QuickCreateTagDialog";
 import { TagManagementDialog } from "@/components/transcript-library/TagManagementDialog";
 import { FilterBar } from "@/components/transcript-library/FilterBar";
-import { BulkActionToolbarEnhanced } from "@/components/transcript-library/BulkActionToolbarEnhanced";
 import { DragDropZones } from "@/components/transcript-library/DragDropZones";
 import { EmptyState } from "@/components/transcript-library/EmptyStates";
-import { AIProcessingProgress } from "@/components/transcripts/AIProcessingProgress";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SmartExportDialog from "@/components/SmartExportDialog";
 import AssignFolderDialog from "@/components/AssignFolderDialog";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
-import { Folder } from "@/types/folders";
+import { usePanelStore } from "@/stores/panelStore";
+import { Folder } from "@/types/workspace";
 import {
   FilterState,
   parseSearchSyntax,
@@ -73,18 +72,18 @@ export function TranscriptsTab({
   onSearchChange,
   selectedFolderId,
   onTotalCountChange,
-  sidebarState,
-  onToggleSidebar,
+  sidebarState: _sidebarState,
+  onToggleSidebar: _onToggleSidebar,
   folders,
   folderAssignments,
-  assignToFolder,
+  assignToFolder: _assignToFolder,
   dragHelpers,
 }: TranscriptsTabProps) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Organization context for filtering calls by active workspace
-  const { activeOrganizationId, isPersonalOrganization, isLoading: bankContextLoading } = useOrganizationContext();
+  const { activeOrganizationId, isPersonalOrganization, isLoading: _bankContextLoading } = useOrganizationContext();
 
   // Selection & interaction state
   const [selectedCalls, setSelectedCalls] = useState<number[]>([]);
@@ -525,6 +524,33 @@ export function TranscriptsTab({
     deleteCallsMutation.mutate(selectedCalls);
   };
 
+  // Keep bulk actions pane in sync
+  useEffect(() => {
+    if (selectedCalls.length > 0) {
+      usePanelStore.getState().openPanel('bulk-actions', {
+        type: 'bulk-actions',
+        selectedIds: selectedCalls.map(String),
+        selectedCalls: validCalls.filter(c => selectedCalls.includes(c.recording_id as number)),
+        tags,
+        onClearSelection: () => {
+          setSelectedCalls([]);
+          usePanelStore.getState().closePanel();
+        },
+        onDelete: handleDeleteCalls,
+        onTag: (tagId: string) => tagMutation.mutate({ callIds: selectedCalls, tagId }),
+        onRemoveTag: () => untagMutation.mutate({ callIds: selectedCalls }),
+        onCreateNewTag: () => {
+          setIsQuickCreateOpen(true);
+          setPendingTagTranscripts(selectedCalls);
+        },
+        onAssignFolder: () => setFolderDialogOpen(true)
+      });
+    } else if (usePanelStore.getState().panelType === 'bulk-actions') {
+      usePanelStore.getState().closePanel();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCalls, validCalls, tags]);
+
   return (
     <>
       {/* Drag Drop Zones - Shows when dragging */}
@@ -586,26 +612,22 @@ export function TranscriptsTab({
             />
           ) : (
             <>
-              {/* AI Processing Progress */}
-              <AIProcessingProgress onJobsComplete={() => queryClient.invalidateQueries({ queryKey: ["transcript-calls"] })} />
-
               <ErrorBoundary>
                 <div className="border-cb-gray-light dark:border-cb-gray-dark">
                   <TranscriptTable
                     calls={validCalls}
                     selectedCalls={selectedCalls}
                     onSelectCall={(callId) => {
-                      if (selectedCalls.includes(callId)) {
-                        setSelectedCalls(selectedCalls.filter(id => id !== callId));
-                      } else {
-                        setSelectedCalls([...selectedCalls, callId]);
-                      }
+                      const newSelected = selectedCalls.includes(callId)
+                        ? selectedCalls.filter(id => id !== callId)
+                        : [...selectedCalls, callId];
+                      setSelectedCalls(newSelected);
                     }}
                     onSelectAll={() => {
                       if (selectedCalls.length === validCalls.length) {
                         setSelectedCalls([]);
                       } else {
-                        setSelectedCalls(validCalls.map(c => c.recording_id));
+                        setSelectedCalls(validCalls.map(c => c.recording_id as number));
                       }
                     }}
                     onCallClick={(call) => setSelectedCall(call)}
@@ -633,34 +655,7 @@ export function TranscriptsTab({
           </div>
         </div>
 
-        {/* Bulk Actions Pane - 4th pane position */}
-        {selectedCalls.length > 0 && (
-          <ErrorBoundary>
-            <BulkActionToolbarEnhanced
-              selectedCount={selectedCalls.length}
-              selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
-              tags={tags}
-              onTag={(tagId) => {
-                tagMutation.mutate({
-                  callIds: selectedCalls,
-                  tagId,
-                });
-              }}
-              onRemoveTag={() => {
-                untagMutation.mutate({
-                  callIds: selectedCalls,
-                });
-              }}
-              onClearSelection={() => setSelectedCalls([])}
-              onDelete={handleDeleteCalls}
-              onCreateNewTag={() => {
-                setIsQuickCreateOpen(true);
-                setPendingTagTranscripts(selectedCalls);
-              }}
-              onAssignFolder={() => setFolderDialogOpen(true)}
-            />
-          </ErrorBoundary>
-        )}
+        {/* Bulk Actions Pane - rendered via DetailPaneOutlet using panelStore state instead */}
       </div>
 
       {/* Dialogs */}
@@ -723,9 +718,9 @@ export function TranscriptsTab({
       <SmartExportDialog
         open={smartExportOpen}
         onOpenChange={setSmartExportOpen}
-        selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
+        selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id as number))}
         folderAssignments={folderAssignments}
-        folders={folders}
+        folders={folders.map(f => ({ id: String(f.id), name: f.name, color: (f as unknown as { color?: string }).color || "" }))}
         tagAssignments={tagAssignments}
         tags={tags}
       />

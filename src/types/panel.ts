@@ -36,7 +36,18 @@ export type PanelData =
   | { type: 'tag-detail'; tagId: string }
   | { type: 'user-detail'; userId: string; onUserUpdated?: () => void }
   | { type: 'workspace-detail'; workspaceId: string }
-  | { type: 'bulk-actions'; selectedIds: string[] }
+  | { 
+      type: 'bulk-actions'; 
+      selectedIds: string[];
+      selectedCalls?: any[];
+      tags?: any[];
+      onClearSelection?: () => void;
+      onDelete?: () => void;
+      onTag?: (tagId: string) => void;
+      onRemoveTag?: () => void;
+      onCreateNewTag?: () => void;
+      onAssignFolder?: () => void;
+    }
   | { type: 'setting-help'; topic?: string }
   | { type: 'settings'; tab?: string }
   | { type: 'insight-detail'; insightId: string }

@@ -114,13 +114,18 @@ export function DetailPaneOutlet({
         return panelData?.type === 'bulk-actions' ? (
           <BulkActionToolbarEnhanced
             selectedCount={panelData.selectedIds.length}
-            selectedCalls={[]} // Will be populated by the TranscriptsTab instead
-            tags={[]}
+            selectedCalls={panelData.selectedCalls || []}
+            tags={panelData.tags || []}
             onClearSelection={() => {
-              // Implementation relies on TranscriptsTab closing pane instead, we just support rendering
-              usePanelStore.getState().closePanel();
+              if (panelData.onClearSelection) panelData.onClearSelection();
             }}
-            onDelete={() => {}}
+            onDelete={() => {
+              if (panelData.onDelete) panelData.onDelete();
+            }}
+            onTag={panelData.onTag}
+            onRemoveTag={panelData.onRemoveTag}
+            onCreateNewTag={panelData.onCreateNewTag}
+            onAssignFolder={panelData.onAssignFolder}
           />
         ) : null;
 
