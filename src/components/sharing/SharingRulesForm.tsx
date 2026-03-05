@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Switch } from "@/components/ui/switch";
@@ -17,7 +17,7 @@ import {
   RiAlertLine,
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
-import { isEmojiIcon, getIconComponent } from "@/components/ui/icon-emoji-picker";
+import { getIconComponent } from "@/lib/folder-icons";
 import type { ShareType, TeamShareWithDetails } from "@/types/sharing";
 
 // ============================================================================
@@ -74,7 +74,7 @@ export function SharingRulesForm({
   title = "Configure Sharing Rules",
   showShareAllToggle = true,
 }: SharingRulesFormProps) {
-  const { activeBankId } = useBankContext();
+  const { activeOrganizationId } = useOrganizationContext();
   // State
   const [folders, setFolders] = useState<FolderTreeNode[]>([]);
   const [allFoldersFlat, setAllFoldersFlat] = useState<FolderTreeNode[]>([]);
@@ -101,8 +101,8 @@ export function SharingRulesForm({
         .eq("user_id", user.id)
         .order("position");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;
@@ -132,8 +132,8 @@ export function SharingRulesForm({
         .eq("user_id", user.id)
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;
@@ -334,7 +334,6 @@ export function SharingRulesForm({
     const isDisabled = shareAll;
 
     // Get the appropriate icon
-    const folderIsEmoji = folder.icon ? isEmojiIcon(folder.icon) : false;
     const FolderIcon = folder.icon ? getIconComponent(folder.icon) : null;
 
     return (
@@ -378,9 +377,8 @@ export function SharingRulesForm({
           />
 
           {/* Folder Icon */}
-          {folderIsEmoji ? (
-            <span className="text-base flex-shrink-0">{folder.icon}</span>
-          ) : FolderIcon ? (
+          {/* Folder Icon */}
+          {FolderIcon ? (
             <FolderIcon
               className="h-4 w-4 flex-shrink-0"
               style={{ color: folder.color || '#6B7280' }}

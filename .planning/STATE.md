@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-03-01 (Phase 16.2 inserted — V2 Visual Alignment with V1. CLAUDE.md audit + V1 visual audit complete, brand guidelines v4.4 with V2 tokens + hex values.)
+**Last Updated:** 2026-03-01 (Phase 16.2 Plan 03 complete — Vibe orange page titles, Montserrat heading base, warm empty states, dead V1 border-soft token removed)
 
 ## Project Reference
 
@@ -18,14 +18,14 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 16.2 — V2 Visual Alignment with V1
 
-**Current Plan:** Planned — 4 plans in 3 waves. Ready for execution.
+**Current Plan:** Not started
 
-**Status:** Phase 16.2 planned. 4 plans created: (1) Button + Tabs component infrastructure, (2) Nav active states alignment, (3) Page title colors + empty states + dead token cleanup, (4) Dev-browser verification + skill sync + user approval. Research identified 14 gaps; 5 already correct, 9 need fixing. Checker passed on iteration 2 after resolving 4 blockers + 3 warnings.
+**Status:** Ready to plan
 
-**Last activity:** 2026-03-01 — Phase 16.2 planned, verified, committed
+**Last activity:** 2026-03-01 — Plan 03 complete (vibe orange h1 page titles: All Calls, call detail, Settings, Import Calls, Workspaces, workspace detail, folder view, Shared With Me, join workspace; Montserrat heading base; border-soft removed; warm empty states)
 
 **Progress:**
-[██████████] 100% through Phase 18
+[█████████░] 93%
 [███████   ] 7/12 phases complete
 Phase 13: Strategy + Pricing    [✓] complete (2026-02-27)
 Phase 14: Foundation            [✓] complete (2026-02-27)
@@ -65,6 +65,11 @@ Phase 22: Backend Cleanup       [ ] not started
 
 | Date | Decision | Rationale | Impact |
 |------|----------|-----------|--------|
+| 2026-03-01 | Login h1 stays text-foreground: "CallVault" on login is a brand logo wordmark, not a page navigation title — vibe orange is reserved for in-app wayfinding headings | Vibe orange on page titles = context #6 (Wayfinding/Step indication); login page predates the app navigation | Login h1 stays text-foreground permanently; all in-app page h1s use text-vibe-orange |
+| 2026-03-01 | Montserrat set as heading base font in globals.css (font-weight 700); individual components override with font-extrabold (800) via Tailwind class | Base 700 ensures headings look better than the old Inter 600 default even without the extrabold override | All headings now default to Montserrat 700; page titles add font-extrabold for 800 |
+| 2026-03-01 | Folder rename input uses text-vibe-orange to match display heading — editing state is visually continuous with display state | User editing a folder name should see the same color as the result; different color would feel jarring | All inline-editable headings should match their display color class |
+| 2026-03-01 | Button + Tabs components created in callvault/src/components/ui/ using cva + Radix primitives from 'radix-ui' package | V2 had zero shared UI components; inconsistent ad-hoc inline Tailwind everywhere | All future button/tab usage imports from @/components/ui/ |
+| 2026-03-01 | Tabs orange pill indicator uses data-[state=active]:after: CSS-only — no JS state tracking | Radix sets data-state attribute; Tailwind arbitrary data-* utilities handle visual change entirely in CSS | Zero JS overhead for tab active indicator; Radix handles ARIA and keyboard |
 | 2026-02-28 | Brand guidelines bumped v4.2.1 -> v4.3 (minor) — 5 sections updated: AppShell pane architecture, spring animation, pill height, button-tab pattern, dialog button exception | 5 sections = minor version per docs/CLAUDE.md; audit revealed actual v2 code diverged from v4.2 spec in these areas | brand-guidelines-v4.3.md is now canonical; v4.2 archived to docs/archive/ |
 | 2026-02-28 | callvault-design-system skill is 556 lines (above 400-line target) — kept at 556 | All content is genuinely useful; shorter would omit critical detail (spring config, Radix patterns, anti-patterns) | Future GSD agents reference this skill for all UI work without reading full brand guidelines |
 | 2026-02-28 | Dialog action buttons: bg-brand-500 accepted inside Radix Dialog (in addition to bg-foreground text-background pattern) | Plan 02 established this as a working pattern; documented as formal exception in v4.3 | Agents building dialogs can use either pattern; page-level buttons still follow standard rules |
@@ -285,8 +290,8 @@ None.
 
 ## Session Continuity
 
-**Last session:** 2026-02-28T22:33:28Z
-**Stopped at:** Phase 16.1 Plan 04 complete (phase complete)
+**Last session:** 2026-03-01T11:17:24.023Z
+**Stopped at:** Completed 16.2-02-PLAN.md (Nav active states alignment)
 **Resume with:** `/gsd:execute-phase 19` to run Phase 19 (MCP Audit + Workspace Tokens).
 
 ### Context for Next Session

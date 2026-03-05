@@ -142,14 +142,31 @@ serve(async (req) => {
 
     console.log('Fetching meeting with recording_id:', recording_id);
 
-    // First, check if we have the meeting date in our database for optimized search
-    // Use composite key (recording_id, user_id) for the lookup
-    const { data: existingCall } = await supabaseClient
-      .from('fathom_calls')
-      .select('created_at')
-      .eq('recording_id', recording_id)
-      .eq('user_id', user_id)
+    // First, check if we have the meeting date in our database for optimized search.
+    // Check recordings table (new) and then fathom_calls (legacy).
+    let createdAt: string | null = null;
+
+    const { data: rec } = await supabaseClient
+      .from('recordings')
+      .select('recording_start_time')
+      .eq('owner_user_id', user_id)
+      .filter("source_metadata->>'external_id'", 'eq', String(recording_id))
       .maybeSingle();
+    
+    if (rec?.recording_start_time) {
+      createdAt = rec.recording_start_time;
+    } else {
+      const { data: legacyCall } = await supabaseClient
+        .from('fathom_raw_calls')
+        .select('created_at')
+        .eq('recording_id', recording_id)
+        .eq('user_id', user_id)
+        .maybeSingle();
+      
+      if (legacyCall?.created_at) {
+        createdAt = legacyCall.created_at;
+      }
+    }
 
     // Use the specific recordings endpoint to get summary and transcript directly
     const [summaryResponse, transcriptResponse] = await Promise.all([
@@ -236,8 +253,8 @@ serve(async (req) => {
     };
 
     // Strategy 1: If we have the date from database, search within a 14-day window
-    if (existingCall?.created_at) {
-      const meetingDate = new Date(existingCall.created_at);
+    if (createdAt) {
+      const meetingDate = new Date(createdAt);
       const searchStart = new Date(meetingDate);
       searchStart.setDate(searchStart.getDate() - 7);
       const searchEnd = new Date(meetingDate);

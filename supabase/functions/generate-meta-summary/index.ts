@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
 
     // Fetch all calls
     const { data: calls, error: callsError } = await supabase
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .select('recording_id, title, summary, full_transcript, recording_start_time, recording_end_time, calendar_invitees, recorded_by_name, created_at')
       .in('recording_id', recording_ids)
       .eq('user_id', user.id)

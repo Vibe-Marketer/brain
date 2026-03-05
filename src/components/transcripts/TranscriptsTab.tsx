@@ -8,7 +8,9 @@ import { logger } from "@/lib/logger";
 import { Meeting } from "@/types/meetings";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { requireUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { getSourceLabel } from "@/lib/source-labels";
+import type { DeleteMode } from "@/components/DeleteConfirmDialog";
 
 import { TranscriptTable } from "@/components/transcript-library/TranscriptTable";
 import { CallDetailDialog } from "@/components/CallDetailDialog";
@@ -19,12 +21,14 @@ import { FilterBar } from "@/components/transcript-library/FilterBar";
 import { BulkActionToolbarEnhanced } from "@/components/transcript-library/BulkActionToolbarEnhanced";
 import { DragDropZones } from "@/components/transcript-library/DragDropZones";
 import { EmptyState } from "@/components/transcript-library/EmptyStates";
-import { AIProcessingProgress } from "@/components/transcripts/AIProcessingProgress";
 import DeleteConfirmDialog from "@/components/DeleteConfirmDialog";
 import SmartExportDialog from "@/components/SmartExportDialog";
 import AssignFolderDialog from "@/components/AssignFolderDialog";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
-import { Folder } from "@/types/folders";
+import { usePanelStore } from "@/stores/panelStore";
+import { queryKeys } from "@/lib/query-config";
+import { useWorkspaces, useWorkspaceRecordings, mapRecordingToMeeting } from "@/hooks/useWorkspaces";
+import { Folder } from "@/types/workspace";
 import {
   FilterState,
   parseSearchSyntax,
@@ -56,7 +60,7 @@ interface TranscriptsTabProps {
   sidebarState: 'expanded' | 'collapsed';
   onToggleSidebar: () => void;
   folders: Folder[];
-  folderAssignments: Record<number, string[]>;
+  folderAssignments: Record<string, string[]>;
   assignToFolder: (recordingIds: number[], folderId: string) => void;
   dragHelpers: DragHelpers;
 }
@@ -73,21 +77,21 @@ export function TranscriptsTab({
   onSearchChange,
   selectedFolderId,
   onTotalCountChange,
-  sidebarState,
-  onToggleSidebar,
+  sidebarState: _sidebarState,
+  onToggleSidebar: _onToggleSidebar,
   folders,
   folderAssignments,
-  assignToFolder,
+  assignToFolder: _assignToFolder,
   dragHelpers,
 }: TranscriptsTabProps) {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Bank context for filtering calls by active workspace
-  const { activeBankId, isPersonalBank, isLoading: bankContextLoading } = useBankContext();
+  // Organization context for filtering calls by active workspace
+  const { activeOrganizationId, activeWorkspaceId, activeWorkspace, isPersonalOrganization, isLoading: _orgContextLoading, isInitialized } = useOrganizationContext();
 
   // Selection & interaction state
-  const [selectedCalls, setSelectedCalls] = useState<number[]>([]);
+  const [selectedCalls, setSelectedCalls] = useState<(number | string)[]>([]);
   const [selectedCall, setSelectedCall] = useState<Meeting | null>(null);
   // Use external search if provided, otherwise local state for backwards compatibility
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
@@ -105,14 +109,20 @@ export function TranscriptsTab({
     return urlParamsToFilters(searchParams);
   });
 
-  // Column visibility state
-  const [visibleColumns, setVisibleColumns] = useState({
-    date: true,
-    duration: true,
-    participants: true,
-    tags: true,
-    folders: true,
-  });
+  // Determine if we're in the Home (all calls) view vs a specific workspace
+  // The personal/default workspace IS the home view — show all calls, with source column
+  const isHomeView = !activeWorkspaceId;
+
+  // Column visibility — derived from current view, resets on workspace switch
+  const homeColumns = { date: true, duration: true, source: true, tags: true, workspaces: true, sharedWith: true };
+  const workspaceColumns = { date: true, duration: true, participants: true, tags: true, folders: true, workspaces: true, sharedWith: true };
+  const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(isHomeView ? homeColumns : workspaceColumns);
+
+  // Reset column defaults when switching between home and workspace views
+  useEffect(() => {
+    setVisibleColumns(isHomeView ? homeColumns : workspaceColumns);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeWorkspaceId]);
 
   // Dialog state
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
@@ -123,7 +133,10 @@ export function TranscriptsTab({
   const [quickCreateFolderOpen, setQuickCreateFolderOpen] = useState(false);
   const [folderingCallId, setFolderingCallId] = useState<number | null>(null);
   const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
-  const [pendingTagTranscripts, setPendingTagTranscripts] = useState<number[]>([]);
+  const [pendingTagTranscripts, setPendingTagTranscripts] = useState<(number | string)[]>([]);
+  const [deleteMode, setDeleteMode] = useState<DeleteMode>('permanent-delete');
+  const [deleteSourceLabels, setDeleteSourceLabels] = useState<string[]>([]);
+  const [deleteLastWorkspaceCount, setDeleteLastWorkspaceCount] = useState(0);
 
   // Load host email
   useEffect(() => {
@@ -171,18 +184,17 @@ export function TranscriptsTab({
     };
   }, []);
 
-  // Fetch tags
-  // Fetch tags scoped to active bank/workspace
+  // Fetch tags scoped to active organization/workspace
   const { data: tags = [] } = useQuery({
-    queryKey: ["tags", activeBankId],
+    queryKey: ["tags", activeOrganizationId],
     queryFn: async () => {
       let query = supabase
         .from("call_tags")
         .select("*")
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;
@@ -238,96 +250,160 @@ export function TranscriptsTab({
 
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading } = useQuery({
-    queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize, activeBankId, isPersonalBank],
+    queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, activeWorkspace?.workspace_type, selectedFolderId],
+    enabled: isInitialized,
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const offset = (page - 1) * pageSize;
 
-      // Bank-aware filtering: For business banks, look up recording IDs
-      // from the recordings table that belong to this bank, then filter fathom_calls
-      let bankRecordingIds: number[] | null = null;
-      if (activeBankId && !isPersonalBank) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: bankRecordings } = await (supabase as any)
+      // WORKSPACE FILTERING (Decision 19 - Fix 2A/2B/2C)
+      // If a specific workspace is active, fetch from workspace_entries -> recordings
+      if (activeWorkspaceId) {
+        let entryQuery = supabase
+          .from('workspace_entries')
+          .select(`
+            id,
+            recording:recordings (
+              id,
+              legacy_recording_id,
+              organization_id,
+              owner_user_id,
+              title,
+              audio_url,
+              full_transcript,
+              summary,
+              global_tags,
+              source_app,
+              source_metadata,
+              duration,
+              recording_start_time,
+              recording_end_time,
+              created_at,
+              synced_at
+            )
+          `, { count: "exact" })
+          .eq('workspace_id', activeWorkspaceId);
+
+        // Server-side folder filtering: look up recording IDs from folder_assignments
+        // (workspace_entries.folder_id is mostly NULL — folder_assignments is the source of truth)
+        // Also includes calls from child folders (recursive) so parent folders aggregate.
+        if (selectedFolderId) {
+          // Get this folder + all child folders (recursive)
+          const { data: childFolders } = await supabase
+            .from('folders')
+            .select('id')
+            .eq('parent_id', selectedFolderId);
+
+          const folderIds = [selectedFolderId, ...(childFolders || []).map((f) => f.id)];
+
+          const { data: folderAssigns } = await supabase
+            .from('folder_assignments')
+            .select('call_recording_id')
+            .in('folder_id', folderIds);
+
+          if (!folderAssigns || folderAssigns.length === 0) {
+            setTotalCount(0);
+            onTotalCountChange?.(0);
+            return [];
+          }
+
+          // Get recording UUIDs from legacy IDs
+          const legacyIds = folderAssigns.map((a) => a.call_recording_id);
+          const { data: recs } = await supabase
+            .from('recordings')
+            .select('id')
+            .in('legacy_recording_id', legacyIds);
+
+          if (!recs || recs.length === 0) {
+            setTotalCount(0);
+            onTotalCountChange?.(0);
+            return [];
+          }
+
+          const recUuids = recs.map((r) => r.id);
+          entryQuery = entryQuery.in('recording_id', recUuids);
+        }
+
+        const { data: entries, error: entryError, count } = await entryQuery
+          .order('created_at', { ascending: false })
+          .range(offset, offset + pageSize - 1);
+
+        if (entryError) throw entryError;
+
+        const totalCount = count || 0;
+        setTotalCount(totalCount);
+        onTotalCountChange?.(totalCount);
+
+        const mappedRecordings = (entries || [])
+          .filter((e: any) => e.recording)
+          .map((e: any) => mapRecordingToMeeting({
+            ...e.recording,
+            organization_id: e.recording.organization_id,
+            workspace_entry: { id: e.id, folder_id: e.folder_id }
+          }));
+
+        return mappedRecordings;
+      }
+
+      // ALL CALLS PATH — every recording in the organization, regardless of source or workspace.
+      // recordings is the single source of truth. No fathom_calls query needed.
+
+      const BATCH_SIZE = 1000;
+      const allRecordings: any[] = [];
+      let batchOffset = 0;
+
+      while (true) {
+        let q = supabase
           .from('recordings')
-          .select('legacy_recording_id')
-          .eq('bank_id', activeBankId);
+          .select('id, legacy_recording_id, organization_id, owner_user_id, title, audio_url, full_transcript, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at')
+          .order('created_at', { ascending: false });
 
-        if (bankRecordings && bankRecordings.length > 0) {
-          bankRecordingIds = bankRecordings
-            .map((r: { legacy_recording_id: number | null }) => r.legacy_recording_id)
-            .filter((id: number | null): id is number => id != null);
+        // Scope to organization
+        if (activeOrganizationId) {
+          q = q.eq('organization_id', activeOrganizationId);
         } else {
-          // No recordings migrated for this bank yet - show empty state
-          setTotalCount(0);
-          onTotalCountChange?.(0);
-          return [];
+          q = q.eq('owner_user_id', user.id);
         }
-      }
 
-      let query = supabase
-        .from("fathom_calls")
-        .select("*", { count: "exact" })
-        .order("created_at", { ascending: false })
-        .range(offset, offset + pageSize - 1);
-
-      // Exclude YouTube imports from the main recordings list — they live in the YouTube hub
-      query = query.or('source_platform.is.null,source_platform.neq.youtube');
-
-      // Apply bank filter for business banks
-      if (bankRecordingIds !== null) {
-        query = query.in("recording_id", bankRecordingIds);
-      }
-
-      // Tag filter (multiple tags)
-      if (combinedFilters.tags && combinedFilters.tags.length > 0) {
-        const { data: assignments } = await supabase
-          .from("call_tag_assignments")
-          .select("call_recording_id")
-          .in("tag_id", combinedFilters.tags);
-
-        if (assignments && assignments.length > 0) {
-          const recordingIds = assignments.map((a) => a.call_recording_id);
-          query = query.in("recording_id", recordingIds);
-        } else {
-          return [];
+        // Search filter
+        if (syntax.plainText) {
+          q = q.or(`title.ilike.%${syntax.plainText}%,summary.ilike.%${syntax.plainText}%,full_transcript.ilike.%${syntax.plainText}%`);
         }
+        if (combinedFilters.dateFrom) {
+          q = q.gte('created_at', combinedFilters.dateFrom.toISOString());
+        }
+        if (combinedFilters.dateTo) {
+          q = q.lte('created_at', combinedFilters.dateTo.toISOString());
+        }
+
+        const { data, error } = await q.range(batchOffset, batchOffset + BATCH_SIZE - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        allRecordings.push(...data);
+        if (data.length < BATCH_SIZE) break;
+        batchOffset += BATCH_SIZE;
       }
 
-      // Search query (plain text)
-      if (syntax.plainText) {
-        query = query.or(`title.ilike.%${syntax.plainText}%,summary.ilike.%${syntax.plainText}%,full_transcript.ilike.%${syntax.plainText}%`);
-      }
+      // Map all recordings to Meeting format for table compatibility
+      const allCalls = allRecordings.map((rec: any) => mapRecordingToMeeting(rec));
 
-      // Date filters
-      if (combinedFilters.dateFrom) {
-        query = query.gte("created_at", combinedFilters.dateFrom.toISOString());
-      }
-      if (combinedFilters.dateTo) {
-        query = query.lte("created_at", combinedFilters.dateTo.toISOString());
-      }
+      // Sort by date descending
+      allCalls.sort((a, b) => {
+        const aTime = new Date(a.recording_start_time || a.created_at || 0).getTime();
+        const bTime = new Date(b.recording_start_time || b.created_at || 0).getTime();
+        return bTime - aTime;
+      });
 
-      const { data, error, count } = await query;
-      if (error) throw error;
+      // Paginate
+      const mergedTotal = allCalls.length;
+      const paginatedCalls = allCalls.slice(offset, offset + pageSize);
 
-      const newTotalCount = count || 0;
-      setTotalCount(newTotalCount);
-      onTotalCountChange?.(newTotalCount);
+      setTotalCount(mergedTotal);
+      onTotalCountChange?.(mergedTotal);
 
-      // Client-side filtering for complex queries
-      let filteredData = data || [];
-
-      // Filter by participants
-      if (combinedFilters.participants && combinedFilters.participants.length > 0) {
-        filteredData = filteredData.filter((call) => {
-          const invitees = call.calendar_invitees as Array<{ name?: string; email?: string }>;
-          if (!invitees) return false;
-          return combinedFilters.participants!.some((p) =>
-            invitees.some((inv) => inv.name?.toLowerCase().includes(p.toLowerCase()) || inv.email?.toLowerCase().includes(p.toLowerCase()))
-          );
-        });
-      }
-
-      return filteredData;
+      return paginatedCalls as Meeting[];
     },
   });
 
@@ -338,14 +414,21 @@ export function TranscriptsTab({
     let filtered = calls.filter(c => c && c.recording_id != null);
 
     if (selectedFolderId) {
+      // Build set of selected folder + child folder IDs for matching
+      const matchFolderIds = new Set([selectedFolderId]);
+      folders.forEach(f => {
+        if (f.parent_id === selectedFolderId) matchFolderIds.add(f.id);
+      });
+
       filtered = filtered.filter(call => {
-        const callFolders = folderAssignments[call.recording_id] || [];
-        return callFolders.includes(selectedFolderId);
+        const callIdKey = String(call.recording_id);
+        const callFolders = folderAssignments[callIdKey] || [];
+        return callFolders.some(fid => matchFolderIds.has(fid));
       });
     }
 
     return filtered;
-  }, [calls, selectedFolderId, folderAssignments]);
+  }, [calls, selectedFolderId, folderAssignments, folders]);
 
   // Fetch tag assignments for displayed calls
   const { data: tagAssignments = {} } = useQuery({
@@ -442,88 +525,244 @@ export function TranscriptsTab({
     },
   });
 
-  // Delete calls mutation
-  const deleteCallsMutation = useMutation({
-    mutationFn: async (ids: number[]) => {
-      const user = await requireUser();
+  // --- Workspace-aware deletion helpers ---
 
-      logger.info("Starting delete for IDs", ids);
+  /** Resolve mixed (number | string)[] IDs to recording UUIDs + legacy IDs + source labels */
+  const resolveRecordingIds = async (ids: (number | string)[]) => {
+    const numericIds = ids.filter((id): id is number => typeof id === 'number');
+    const stringIds = ids.filter((id): id is string => typeof id === 'string');
 
-      const { error: assignmentsError } = await supabase
-        .from("call_tag_assignments")
+    const results: { uuid: string; legacyId: number | null; sourceApp: string | null }[] = [];
+
+    if (numericIds.length > 0) {
+      const { data } = await supabase
+        .from('recordings')
+        .select('id, legacy_recording_id, source_app')
+        .in('legacy_recording_id', numericIds);
+      (data || []).forEach((r) => results.push({
+        uuid: r.id,
+        legacyId: r.legacy_recording_id,
+        sourceApp: r.source_app,
+      }));
+    }
+
+    if (stringIds.length > 0) {
+      const { data } = await supabase
+        .from('recordings')
+        .select('id, legacy_recording_id, source_app')
+        .in('id', stringIds);
+      (data || []).forEach((r) => results.push({
+        uuid: r.id,
+        legacyId: r.legacy_recording_id,
+        sourceApp: r.source_app,
+      }));
+    }
+
+    return results;
+  };
+
+  /** Count how many workspaces each recording is in */
+  const getWorkspaceEntryCounts = async (uuids: string[]) => {
+    const counts: Record<string, number> = {};
+    if (uuids.length === 0) return counts;
+
+    const { data } = await supabase
+      .from('workspace_entries')
+      .select('recording_id')
+      .in('recording_id', uuids);
+
+    (data || []).forEach((entry) => {
+      counts[entry.recording_id] = (counts[entry.recording_id] || 0) + 1;
+    });
+
+    return counts;
+  };
+
+  // Remove from workspace mutation (soft — only removes workspace_entry)
+  const removeFromWorkspaceMutation = useMutation({
+    mutationFn: async (ids: (number | string)[]) => {
+      if (!activeWorkspaceId) throw new Error('No active workspace');
+      const resolved = await resolveRecordingIds(ids);
+      const uuids = resolved.map((r) => r.uuid);
+
+      const { error } = await supabase
+        .from('workspace_entries')
         .delete()
-        .in("call_recording_id", ids);
-      if (assignmentsError) {
-        logger.error("Error deleting tag assignments", assignmentsError);
-        throw assignmentsError;
-      }
+        .eq('workspace_id', activeWorkspaceId)
+        .in('recording_id', uuids);
 
-      const { error: tagsError } = await supabase
-        .from("transcript_tag_assignments")
-        .delete()
-        .in("call_recording_id", ids);
-      if (tagsError) {
-        logger.error("Error deleting tag assignments", tagsError);
-        throw tagsError;
-      }
-
-      const { error: speakersError } = await supabase
-        .from("call_speakers")
-        .delete()
-        .in("call_recording_id", ids);
-      if (speakersError) {
-        logger.error("Error deleting speakers", speakersError);
-        throw speakersError;
-      }
-
-      const { error: transcriptsError } = await supabase
-        .from("fathom_transcripts")
-        .delete()
-        .in("recording_id", ids);
-      if (transcriptsError) {
-        logger.error("Error deleting transcripts", transcriptsError);
-        throw transcriptsError;
-      }
-
-      const { data: deletedCalls, error } = await supabase
-        .from("fathom_calls")
-        .delete()
-        .in("recording_id", ids)
-        .eq("user_id", user.id)
-        .select();
-
-      if (error) {
-        logger.error("Error deleting fathom_calls", error);
-        throw error;
-      }
-
-      logger.info("Successfully deleted calls", deletedCalls);
-      return deletedCalls;
+      if (error) throw error;
+      return resolved.length;
     },
-    onSuccess: async (deletedCalls) => {
-      logger.info("Delete mutation succeeded, refetching queries");
-      await queryClient.invalidateQueries({ queryKey: ["tag-calls"] });
-      await queryClient.invalidateQueries({ queryKey: ["tag-assignments"] });
+    onSuccess: async (count) => {
+      await queryClient.invalidateQueries({ queryKey: ['tag-calls'] });
+      if (activeWorkspaceId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.recordings(activeWorkspaceId) });
+      }
       setSelectedCalls([]);
       setShowDeleteDialog(false);
-      const count = deletedCalls?.length || 0;
-      toast.success(`${count} transcript${count > 1 ? "s" : ""} deleted successfully`);
+      toast.success(`Removed ${count} from ${activeWorkspace?.name || 'workspace'}`);
     },
     onError: (error: Error) => {
       setShowDeleteDialog(false);
-      logger.error("Delete mutation failed", error);
-      toast.error(`Failed to delete transcript(s): ${error.message || "Unknown error"}`);
+      toast.error(`Failed to remove: ${error.message || 'Unknown error'}`);
     },
   });
 
-  const handleDeleteCalls = () => {
+  // Permanent delete mutation (hard — removes all workspace_entries then recording)
+  const permanentDeleteMutation = useMutation({
+    mutationFn: async (ids: (number | string)[]) => {
+      const user = await requireUser();
+      const resolved = await resolveRecordingIds(ids);
+      const uuids = resolved.map((r) => r.uuid);
+      const legacyIds = resolved.map((r) => r.legacyId).filter((id): id is number => id !== null);
+
+      logger.info('Permanent delete — UUIDs:', uuids, 'Legacy IDs:', legacyIds);
+
+      // 1. Delete ALL workspace_entries (required before recording can be deleted — RLS policy)
+      const { error: weError } = await supabase
+        .from('workspace_entries')
+        .delete()
+        .in('recording_id', uuids);
+      if (weError) {
+        logger.error('Error deleting workspace_entries', weError);
+        throw weError;
+      }
+
+      // 2. Clean up legacy tables (only for recordings that have legacy IDs)
+      if (legacyIds.length > 0) {
+        const { error: assignmentsError } = await supabase
+          .from('call_tag_assignments')
+          .delete()
+          .in('call_recording_id', legacyIds);
+        if (assignmentsError) logger.warn('Error deleting tag assignments', assignmentsError);
+
+        const { error: tagsError } = await supabase
+          .from('transcript_tag_assignments')
+          .delete()
+          .in('call_recording_id', legacyIds);
+        if (tagsError) logger.warn('Error deleting transcript tag assignments', tagsError);
+
+        const { error: speakersError } = await supabase
+          .from('call_speakers')
+          .delete()
+          .in('call_recording_id', legacyIds);
+        if (speakersError) logger.warn('Error deleting speakers', speakersError);
+
+        const { error: folderError } = await supabase
+          .from('folder_assignments')
+          .delete()
+          .in('call_recording_id', legacyIds);
+        if (folderError) logger.warn('Error deleting folder assignments', folderError);
+      }
+
+      // 3. Delete recordings (RLS ensures owner_user_id match; raw tables have ON DELETE SET NULL)
+      const { error: recError } = await supabase
+        .from('recordings')
+        .delete()
+        .in('id', uuids)
+        .eq('owner_user_id', user.id);
+      if (recError) {
+        logger.error('Error deleting recordings', recError);
+        throw recError;
+      }
+
+      return uuids.length;
+    },
+    onSuccess: async (count) => {
+      await queryClient.invalidateQueries({ queryKey: ['tag-calls'] });
+      await queryClient.invalidateQueries({ queryKey: ['tag-assignments'] });
+      if (activeWorkspaceId) {
+        await queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.recordings(activeWorkspaceId) });
+      }
+      setSelectedCalls([]);
+      setShowDeleteDialog(false);
+      toast.success(`${count} transcript${count > 1 ? 's' : ''} permanently deleted`);
+    },
+    onError: (error: Error) => {
+      setShowDeleteDialog(false);
+      logger.error('Permanent delete failed', error);
+      toast.error(`Failed to delete: ${error.message || 'Unknown error'}`);
+    },
+  });
+
+  // Pre-delete scenario check
+  const handleDeleteCalls = async () => {
     if (selectedCalls.length === 0) return;
+
+    if (!activeWorkspaceId) {
+      // All Calls view — always permanent
+      const resolved = await resolveRecordingIds(selectedCalls);
+      setDeleteMode('permanent-delete');
+      setDeleteSourceLabels(resolved.map((r) => getSourceLabel(r.sourceApp)));
+      setDeleteLastWorkspaceCount(0);
+      setShowDeleteDialog(true);
+      return;
+    }
+
+    // Workspace view — determine scenario
+    const resolved = await resolveRecordingIds(selectedCalls);
+    const uuids = resolved.map((r) => r.uuid);
+    const entryCounts = await getWorkspaceEntryCounts(uuids);
+
+    const lastWorkspaceItems = resolved.filter((r) => (entryCounts[r.uuid] || 0) <= 1);
+    const multiWorkspaceItems = resolved.filter((r) => (entryCounts[r.uuid] || 0) > 1);
+
+    setDeleteSourceLabels(resolved.map((r) => getSourceLabel(r.sourceApp)));
+
+    if (lastWorkspaceItems.length === 0) {
+      // All calls are in 2+ workspaces → safe remove
+      setDeleteMode('remove-from-workspace');
+      setDeleteLastWorkspaceCount(0);
+    } else if (multiWorkspaceItems.length === 0) {
+      // All calls are in only 1 workspace → permanent
+      setDeleteMode('permanent-last-workspace');
+      setDeleteLastWorkspaceCount(lastWorkspaceItems.length);
+    } else {
+      // Mixed — remove from workspace but warn about permanent ones
+      setDeleteMode('remove-from-workspace');
+      setDeleteLastWorkspaceCount(lastWorkspaceItems.length);
+    }
+
     setShowDeleteDialog(true);
   };
 
+  // Dispatch delete based on mode
   const confirmDeleteCalls = () => {
-    deleteCallsMutation.mutate(selectedCalls);
+    if (deleteMode === 'remove-from-workspace') {
+      removeFromWorkspaceMutation.mutate(selectedCalls);
+    } else {
+      permanentDeleteMutation.mutate(selectedCalls);
+    }
   };
+
+  // Keep bulk actions pane in sync
+  useEffect(() => {
+    if (selectedCalls.length > 0) {
+      usePanelStore.getState().openPanel('bulk-actions', {
+        type: 'bulk-actions',
+        selectedIds: selectedCalls.map(String),
+        selectedCalls: validCalls.filter(c => selectedCalls.includes(c.recording_id)),
+        tags,
+        onClearSelection: () => {
+          setSelectedCalls([]);
+          usePanelStore.getState().closePanel();
+        },
+        onDelete: handleDeleteCalls,
+        onTag: (tagId: string) => tagMutation.mutate({ callIds: selectedCalls as number[], tagId }),
+        onRemoveTag: () => untagMutation.mutate({ callIds: selectedCalls as number[] }),
+        onCreateNewTag: () => {
+          setIsQuickCreateOpen(true);
+          setPendingTagTranscripts(selectedCalls);
+        },
+        onAssignFolder: () => setFolderDialogOpen(true),
+        deleteLabel: isHomeView ? 'Delete Selected' : 'Remove from Workspace'
+      });
+    } else if (usePanelStore.getState().panelType === 'bulk-actions') {
+      usePanelStore.getState().closePanel();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedCalls, validCalls, tags]);
 
   return (
     <>
@@ -586,20 +825,16 @@ export function TranscriptsTab({
             />
           ) : (
             <>
-              {/* AI Processing Progress */}
-              <AIProcessingProgress onJobsComplete={() => queryClient.invalidateQueries({ queryKey: ["transcript-calls"] })} />
-
-              <ErrorBoundary>
-                <div className="border-cb-gray-light dark:border-cb-gray-dark">
-                  <TranscriptTable
-                    calls={validCalls}
+              <div className="border-cb-gray-light dark:border-cb-gray-dark h-full">
+                <TranscriptTable
+                  calls={validCalls}
+                    tableMode={isHomeView ? 'home' : 'workspace'}
                     selectedCalls={selectedCalls}
                     onSelectCall={(callId) => {
-                      if (selectedCalls.includes(callId)) {
-                        setSelectedCalls(selectedCalls.filter(id => id !== callId));
-                      } else {
-                        setSelectedCalls([...selectedCalls, callId]);
-                      }
+                      const newSelected = selectedCalls.includes(callId)
+                        ? selectedCalls.filter(id => id !== callId)
+                        : [...selectedCalls, callId];
+                      setSelectedCalls(newSelected);
                     }}
                     onSelectAll={() => {
                       if (selectedCalls.length === validCalls.length) {
@@ -626,41 +861,13 @@ export function TranscriptsTab({
                     }
                     onExport={() => setSmartExportOpen(true)}
                   />
-                </div>
-              </ErrorBoundary>
+              </div>
             </>
           )}
           </div>
         </div>
 
-        {/* Bulk Actions Pane - 4th pane position */}
-        {selectedCalls.length > 0 && (
-          <ErrorBoundary>
-            <BulkActionToolbarEnhanced
-              selectedCount={selectedCalls.length}
-              selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
-              tags={tags}
-              onTag={(tagId) => {
-                tagMutation.mutate({
-                  callIds: selectedCalls,
-                  tagId,
-                });
-              }}
-              onRemoveTag={() => {
-                untagMutation.mutate({
-                  callIds: selectedCalls,
-                });
-              }}
-              onClearSelection={() => setSelectedCalls([])}
-              onDelete={handleDeleteCalls}
-              onCreateNewTag={() => {
-                setIsQuickCreateOpen(true);
-                setPendingTagTranscripts(selectedCalls);
-              }}
-              onAssignFolder={() => setFolderDialogOpen(true)}
-            />
-          </ErrorBoundary>
-        )}
+        {/* Bulk Actions Pane - rendered via DetailPaneOutlet using panelStore state instead */}
       </div>
 
       {/* Dialogs */}
@@ -725,7 +932,7 @@ export function TranscriptsTab({
         onOpenChange={setSmartExportOpen}
         selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
         folderAssignments={folderAssignments}
-        folders={folders}
+        folders={folders.map(f => ({ id: String(f.id), name: f.name, color: (f as any).color || "" }))}
         tagAssignments={tagAssignments}
         tags={tags}
       />
@@ -735,9 +942,11 @@ export function TranscriptsTab({
         open={showDeleteDialog}
         onOpenChange={setShowDeleteDialog}
         onConfirm={confirmDeleteCalls}
-        title="Delete Transcripts"
-        description="Are you sure you want to delete"
+        mode={deleteMode}
         itemCount={selectedCalls.length}
+        workspaceName={activeWorkspace?.name}
+        sourceLabels={deleteSourceLabels}
+        lastWorkspaceCount={deleteLastWorkspaceCount}
       />
 
       {/* Folder Assignment Dialog (Bulk) */}

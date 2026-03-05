@@ -24,7 +24,7 @@ export function EmptyState({ type, onAction }: EmptyStateProps) {
       icon: RiFolderOpenLine,
       title: "No transcripts in this category",
       description: "Start organizing by categorizing transcripts from your library.",
-      actionLabel: "View All Transcripts",
+      actionLabel: "View Home",
     },
   };
 

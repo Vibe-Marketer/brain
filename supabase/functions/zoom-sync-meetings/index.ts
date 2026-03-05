@@ -2,7 +2,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
 import { parseVTTWithMetadata, consolidateBySpeaker, TranscriptSegment } from '../_shared/vtt-parser.ts';
 import { refreshZoomOAuthTokens } from '../zoom-oauth-refresh/index.ts';
-import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.ts';
+import { runPipeline } from '../_shared/connector-pipeline.ts';
+import { generateFingerprint, generateFingerprintString } from '../_shared/dedup-fingerprint.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 
@@ -122,14 +123,6 @@ async function syncZoomMeeting(
   try {
     console.log(`Syncing Zoom meeting ${recordingId}: ${meeting.topic}`);
 
-    // Stage 3 — Dedup check via shared pipeline
-    // Use Zoom meeting UUID as the external_id for consistent cross-sync dedup
-    const { isDuplicate } = await checkDuplicate(supabase, userId, 'zoom', recordingId);
-    if (isDuplicate) {
-      console.log(`Zoom meeting ${recordingId} already exists — skipping`);
-      return 'skipped';
-    }
-
     // Find transcript file
     const transcriptFile = meeting.recording_files?.find(
       file => file.file_type === 'TRANSCRIPT' || file.recording_type === 'audio_transcript'
@@ -182,8 +175,8 @@ async function syncZoomMeeting(
       synced_at: new Date().toISOString(),
     };
 
-    // Stage 5 — Insert via shared pipeline
-    const result = await insertRecording(supabase, userId, {
+    // Stage 5 — Run through pipeline (Dedup -> Routing -> Insert)
+    const result = await runPipeline(supabase, userId, {
       external_id: recordingId,
       source_app: 'zoom',
       title: meeting.topic,
@@ -193,9 +186,58 @@ async function syncZoomMeeting(
       source_metadata: sourceMetadata,
     });
 
-    console.log(`Successfully synced Zoom meeting ${recordingId} as recording ${result.id}`);
+    if (!result.success) {
+      if (result.skipped) {
+        console.log(`Zoom meeting ${recordingId} already exists (pipeline skipped)`);
+        return 'skipped';
+      }
+      throw new Error(result.error || 'Pipeline failed');
+    }
 
-    // Insert transcript segments into fathom_transcripts for backward compat
+    console.log(`Successfully synced Zoom meeting ${recordingId} as recording ${result.recordingId}`);
+
+    // Write to zoom_raw_calls for source-specific detail
+    try {
+      const fingerprint = await generateFingerprint({
+        title: meeting.topic,
+        start_time: new Date(meeting.start_time),
+        duration_minutes: meeting.duration,
+        participants: [meeting.host_email],
+      });
+      const fingerprintString = generateFingerprintString(fingerprint);
+
+      const { error: rawError } = await supabase
+        .from('zoom_raw_calls')
+        .upsert({
+          recording_id: result.recordingId,
+          user_id: userId,
+          zoom_meeting_id: String(meeting.id),
+          zoom_meeting_uuid: recordingId,
+          host_email: meeting.host_email,
+          host_id: meeting.host_id,
+          account_id: meeting.account_id,
+          topic: meeting.topic,
+          start_time: meeting.start_time,
+          duration: durationSeconds,
+          timezone: meeting.timezone,
+          meeting_type: meeting.type,
+          share_url: meeting.share_url || null,
+          full_transcript: fullTranscript,
+          meeting_fingerprint: fingerprintString,
+          raw_payload: meeting,
+          synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,zoom_meeting_uuid',
+        });
+
+      if (rawError) {
+        console.error(`Error inserting zoom_raw_calls for ${recordingId} (non-blocking):`, rawError);
+      }
+    } catch (rawErr) {
+      console.error(`Error writing zoom_raw_calls for ${recordingId} (non-blocking):`, rawErr);
+    }
+
+    // Insert transcript segments into fathom_raw_transcripts for backward compat
     if (transcriptSegments.length > 0) {
       const transcriptRows = transcriptSegments.map((segment: TranscriptSegment) => ({
         recording_id: recordingId,
@@ -207,7 +249,7 @@ async function syncZoomMeeting(
       }));
 
       const { error: transcriptError } = await supabase
-        .from('fathom_transcripts')
+        .from('fathom_raw_transcripts')
         .insert(transcriptRows);
 
       if (transcriptError) {
@@ -273,24 +315,15 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body FIRST
-    const { recordingIds, vault_id } = await req.json();
+    const { recordingIds = [], singleCallId, workspace_id } = await req.json();
 
-    if (!Array.isArray(recordingIds)) {
+    // Support single recording retry if singleCallId provided
+    const targetRecordingIds = singleCallId ? [singleCallId] : recordingIds;
+
+    if (!Array.isArray(targetRecordingIds) || targetRecordingIds.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'recordingIds must be an array' }),
+        JSON.stringify({ error: 'recordingIds must be an array or singleCallId must be provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Allow empty array - return success with no-op
-    if (recordingIds.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: 'No recordings to sync',
-          jobId: null,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -307,8 +340,13 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
 
     if (authError || !user) {
+      console.error('[zoom-sync-meetings] Auth failed:', {
+        error: authError?.message,
+        details: authError,
+        jwtPrefix: jwt.substring(0, 10)
+      });
       return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
+        JSON.stringify({ error: 'Invalid authentication', details: authError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -350,23 +388,23 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Validate vault membership once at the top if vault_id provided
+    // Validate vault membership once at the top if workspace_id provided
     let validatedVaultId: string | null = null;
-    if (vault_id) {
+    if (workspace_id) {
       const { data: membership, error: membershipError } = await supabase
-        .from('vault_memberships')
+        .from('workspace_memberships')
         .select('id')
-        .eq('vault_id', vault_id)
+        .eq('workspace_id', workspace_id)
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (membershipError) {
         console.error('Error checking vault membership:', membershipError);
       } else if (!membership) {
-        console.warn(`User ${user.id} is not a member of vault ${vault_id}, ignoring vault_id`);
+        console.warn(`User ${user.id} is not a member of vault ${workspace_id}, ignoring workspace_id`);
       } else {
-        validatedVaultId = vault_id;
-        console.log(`Vault ${vault_id} membership validated for user ${user.id}`);
+        validatedVaultId = workspace_id;
+        console.log(`Vault ${workspace_id} membership validated for user ${user.id}`);
       }
     }
 
@@ -377,10 +415,11 @@ Deno.serve(async (req) => {
       .from('sync_jobs')
       .insert({
         user_id: userId,
-        recording_ids: recordingIds,
+        recording_ids: targetRecordingIds,
         status: 'processing',
         progress_current: 0,
-        progress_total: recordingIds.length,
+        progress_total: targetRecordingIds.length,
+        type: 'zoom', // Explicitly set the source type
       })
       .select()
       .single();
@@ -400,7 +439,7 @@ Deno.serve(async (req) => {
       console.log(`Background processing started for Zoom sync job ${jobId}`);
 
       try {
-        for (const recordingId of recordingIds) {
+        for (const recordingId of targetRecordingIds) {
           try {
             await rateLimiter.throttle();
 
@@ -435,7 +474,7 @@ Deno.serve(async (req) => {
               synced.push(recordingId);
               console.log(`✓ Synced Zoom ${recordingId} (${synced.length}/${recordingIds.length})`);
 
-              // Create vault entry if vault_id was validated
+              // Create vault entry if workspace_id was validated
               if (validatedVaultId) {
                 try {
                   // Look up recording UUID by external_id in source_metadata
@@ -449,9 +488,9 @@ Deno.serve(async (req) => {
 
                   if (rec?.id) {
                     const { error: vaultEntryError } = await supabase
-                      .from('vault_entries')
+                      .from('workspace_entries')
                       .insert({
-                        vault_id: validatedVaultId,
+                        workspace_id: validatedVaultId,
                         recording_id: rec.id,
                       });
 
@@ -565,7 +604,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         jobId: jobId,
-        message: `Sync job started for ${recordingIds.length} Zoom meetings`,
+        message: `Sync job started for ${targetRecordingIds.length} Zoom meetings`,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

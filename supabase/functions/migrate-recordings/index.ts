@@ -1,5 +1,5 @@
 // supabase/functions/migrate-recordings/index.ts
-// Background migration Edge Function for fathom_calls -> recordings + vault_entries
+// Background migration Edge Function for fathom_calls -> recordings + workspace_entries
 // Phase: 09-06 Bank/Vault Architecture
 //
 // Features:
@@ -68,7 +68,7 @@ Deno.serve(async (req) => {
 
     // Get migration stats before running batch
     const { count: totalCalls } = await supabase
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .select('*', { count: 'exact', head: true })
 
     const { count: migratedCallsBefore } = await supabase

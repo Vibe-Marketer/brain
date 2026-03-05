@@ -8,12 +8,11 @@
  * Detects source_platform to render the appropriate layout.
  */
 
-import React, { useState, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useMemo } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   RiArrowLeftLine,
-  RiSparklingLine,
   RiFileTextLine,
   RiLightbulbLine,
   RiCheckboxCircleLine,
@@ -24,8 +23,6 @@ import {
   RiPlayLine,
   RiTimeLine,
   RiCalendarLine,
-  RiExternalLinkLine,
-  RiChat3Line,
   RiEyeLine,
   RiThumbUpLine,
   RiInformationLine,
@@ -35,14 +32,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { AppShell } from '@/components/layout/AppShell';
 import { Spinner } from '@/components/ui/spinner';
-import { InsightCard } from '@/components/loop/InsightCard';
-import { ContentGenerator } from '@/components/loop/ContentGenerator';
-import { PROFITSReport } from '@/components/profits/PROFITSReport';
 import { supabase } from '@/integrations/supabase/client';
-import { VaultBadgeList } from '@/components/vault/VaultBadgeList';
+import { WorkspaceBadgeList } from '@/components/workspace/WorkspaceBadgeList';
 import { parseYouTubeDuration, formatCompactNumber } from '@/lib/youtube-utils';
-import type { PROFITSCitation } from '@/hooks/usePROFITS';
-import type { ChatLocationState, ContextAttachment } from '@/types/chat';
+import { getRecordingById, getRecordingByLegacyId } from '@/services/recordings.service';
+import { getRawCallData } from '@/services/raw-calls.service';
+import { queryKeys } from '@/lib/query-config';
+import type { YouTubeRawCall, FathomRawCall } from '@/types/raw-calls';
+
 
 /**
  * Format transcript text into paragraphs for readable display.
@@ -87,64 +84,95 @@ function formatTranscriptDisplay(transcript: string): React.ReactNode[] {
 export const CallDetailPage: React.FC = () => {
   const { callId } = useParams<{ callId: string }>();
   const navigate = useNavigate();
-  const [showContentGenerator, setShowContentGenerator] = useState(false);
-  const [selectedInsights, setSelectedInsights] = useState<any[]>([]);
 
-  // Parse callId to number for recording_id query
-  const recordingId = callId ? parseInt(callId, 10) : undefined;
-  
-  // Fetch call details
+  // Try to parse callId as integer (legacy) or use as UUID
+  const legacyId = callId ? parseInt(callId, 10) : NaN;
+  const isLegacyId = !isNaN(legacyId);
+
+  // Fetch canonical recording from recordings table
   const { data: call, isLoading: callLoading } = useQuery({
-    queryKey: ['call', callId],
+    queryKey: queryKeys.calls.detail(callId || ''),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('fathom_calls')
-        .select('*')
-        .eq('recording_id', recordingId!)
-        .single();
-
-      if (error) throw error;
-      return data;
+      if (!callId) return null;
+      // Try legacy ID first (most existing URLs use integer IDs), then UUID
+      if (isLegacyId) {
+        return getRecordingByLegacyId(legacyId);
+      }
+      return getRecordingById(callId);
     },
-    enabled: !!recordingId && !isNaN(recordingId),
+    enabled: !!callId,
   });
 
-  // Determine if this is a YouTube import
-  const isYouTube = call?.source_platform === 'youtube';
-  const metadata = call?.metadata as Record<string, unknown> | null;
+  // Fetch source-specific raw data based on source_app
+  const { data: rawData } = useQuery({
+    queryKey: call?.source_app
+      ? queryKeys.rawCalls[call.source_app as keyof typeof queryKeys.rawCalls]?.(call.id) ?? ['raw-calls', call.source_app, call.id]
+      : ['raw-calls', 'none'],
+    queryFn: async () => {
+      if (!call) return null;
+      return getRawCallData(call.id, call.source_app);
+    },
+    enabled: !!call?.id && !!call?.source_app,
+  });
 
-  // YouTube-specific metadata
+  // Determine source type
+  const isYouTube = call?.source_app === 'youtube';
+  const ytRaw = isYouTube ? (rawData as YouTubeRawCall | null) : null;
+
+  // YouTube-specific metadata — prefer raw table, fall back to source_metadata
   const ytMeta = useMemo(() => {
-    if (!isYouTube || !metadata) return null;
+    if (!isYouTube) return null;
+    if (ytRaw) {
+      return {
+        videoId: ytRaw.youtube_video_id,
+        channelTitle: ytRaw.youtube_channel_title ?? undefined,
+        thumbnail: ytRaw.youtube_thumbnail ?? undefined,
+        duration: ytRaw.youtube_duration ?? undefined,
+        viewCount: ytRaw.youtube_view_count ?? undefined,
+        likeCount: ytRaw.youtube_like_count ?? undefined,
+        description: ytRaw.youtube_description ?? undefined,
+      };
+    }
+    // Fallback to source_metadata JSONB
+    const meta = call?.source_metadata as Record<string, unknown> | null;
+    if (!meta) return null;
     return {
-      videoId: metadata.youtube_video_id as string | undefined,
-      channelTitle: metadata.youtube_channel_title as string | undefined,
-      thumbnail: metadata.youtube_thumbnail as string | undefined,
-      duration: metadata.youtube_duration as string | undefined,
-      viewCount: metadata.youtube_view_count as number | undefined,
-      likeCount: metadata.youtube_like_count as number | undefined,
-      description: metadata.youtube_description as string | undefined,
+      videoId: meta.youtube_video_id as string | undefined,
+      channelTitle: meta.youtube_channel_title as string | undefined,
+      thumbnail: meta.youtube_thumbnail as string | undefined,
+      duration: meta.youtube_duration as string | undefined,
+      viewCount: meta.youtube_view_count as number | undefined,
+      likeCount: meta.youtube_like_count as number | undefined,
+      description: meta.youtube_description as string | undefined,
     };
-  }, [isYouTube, metadata]);
+  }, [isYouTube, ytRaw, call?.source_metadata]);
 
   const ytDuration = useMemo(() => {
     return ytMeta?.duration ? parseYouTubeDuration(ytMeta.duration) : null;
   }, [ytMeta?.duration]);
 
+  // Fathom-specific raw data (for sentiment, AI title, etc.)
+  const fathomRaw = call?.source_app === 'fathom' ? (rawData as FathomRawCall | null) : null;
+
   // Fetch insights for this call (only for non-YouTube)
-  const { data: insights, isLoading: insightsLoading } = useQuery({
-    queryKey: ['call-insights', callId],
+  const recordingLegacyId = call?.legacy_recording_id;
+  const { data: insights } = useQuery({
+    queryKey: ['call-insights', call?.id],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
       const { data, error } = await supabase
         .from('insights')
         .select('*')
-        .eq('recording_id', recordingId!)
+        .eq('recording_id', recordingLegacyId!)
+        .eq('user_id', user.id)
         .order('score', { ascending: false });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!recordingId && !isNaN(recordingId) && !isYouTube,
+    enabled: !!recordingLegacyId && !isYouTube,
   });
 
   if (callLoading) {
@@ -173,28 +201,11 @@ export const CallDetailPage: React.FC = () => {
     );
   }
 
-  // Extract sentiment from sentiment_cache if available (regular calls only)
-  const sentimentCache = call.sentiment_cache as { sentiment?: string; score?: number } | null;
+  // Extract sentiment from fathom raw data if available (regular calls only)
+  const sentimentCache = (fathomRaw as Record<string, unknown> | null)?.sentiment_cache as { sentiment?: string; score?: number } | null;
   const sentiment = !isYouTube ? sentimentCache?.sentiment : undefined;
-  const sentimentScore = !isYouTube ? sentimentCache?.score : undefined;
-  
-  const sentimentColor = {
-    positive: 'bg-success-bg text-success-text border border-success-border',
-    neutral: 'bg-neutral-bg text-neutral-text border border-neutral-border',
-    negative: 'bg-danger-bg text-danger-text border border-danger-border',
-  }[sentiment || 'neutral'];
 
-  // Build Chat link state for YouTube "Open in AI Chat"
-  const chatState: ChatLocationState = {
-    initialContext: [{
-      type: 'call' as const,
-      id: call.recording_id,
-      title: call.title || 'Untitled',
-      date: call.created_at,
-    }],
-    callTitle: call.title || undefined,
-    newSession: true,
-  };
+
 
   // ─────── YouTube Layout ───────
   if (isYouTube) {
@@ -236,12 +247,7 @@ export const CallDetailPage: React.FC = () => {
                   </a>
                 </Button>
               )}
-              <Button variant="outline" asChild>
-                <Link to="/chat" state={chatState}>
-                  <RiChat3Line className="w-4 h-4 mr-2" />
-                  Ask AI
-                </Link>
-              </Button>
+
             </div>
           </header>
 
@@ -312,8 +318,9 @@ export const CallDetailPage: React.FC = () => {
               </div>
             </div>
 
-            <VaultBadgeList
-              legacyRecordingId={recordingId}
+            <WorkspaceBadgeList
+              recordingId={call.id}
+              legacyRecordingId={call.legacy_recording_id ?? undefined}
               maxVisible={3}
               size="md"
             />
@@ -356,26 +363,7 @@ export const CallDetailPage: React.FC = () => {
               )}
             </Tabs>
 
-            {/* AI Chat CTA */}
-            <div className="bg-card rounded-lg border border-border p-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0">
-                  <RiChat3Line className="w-5 h-5 text-vibe-orange" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-foreground mb-1">Chat about this video</h3>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Ask AI questions about this video's content — summarize, find key points, or explore topics.
-                  </p>
-                  <Button asChild size="sm">
-                    <Link to="/chat" state={chatState}>
-                      Open in AI Chat
-                      <RiExternalLinkLine className="w-3.5 h-3.5 ml-1.5" />
-                    </Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
       </AppShell>
@@ -409,17 +397,6 @@ export const CallDetailPage: React.FC = () => {
               <RiArrowLeftLine className="w-4 h-4" />
               Back
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedInsights(insights || []);
-                setShowContentGenerator(true);
-              }}
-              disabled={!insights || insights.length === 0}
-            >
-              <RiSparklingLine className="w-4 h-4 mr-2" />
-              Generate Content
-            </Button>
             <Button variant="outline">
               <RiShareLine className="w-4 h-4 mr-2" />
               Share
@@ -433,23 +410,23 @@ export const CallDetailPage: React.FC = () => {
 
         <div className="flex-1 overflow-auto p-6 space-y-6">
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span>{new Date(call.created_at).toLocaleDateString()}</span>
-            {sentiment && (
-              <Badge className={sentimentColor}>
-                {sentiment}
-                {sentimentScore && ` (${Math.round(sentimentScore)}%)`}
+            <span>{new Date(call.recording_start_time || call.created_at).toLocaleDateString()}</span>
+            {fathomRaw?.ai_generated_title && (
+              <Badge variant="outline">
+                <RiCheckboxCircleLine className="w-3 h-3 mr-1" />
+                PROCESSED
               </Badge>
             )}
-            {call.ai_generated_title && (
-              <Badge variant="outline">
-                <RiSparklingLine className="w-3 h-3 mr-1" />
-                AI PROCESSED
+            {call.source_app && (
+              <Badge variant="outline" className="text-xs">
+                {call.source_app}
               </Badge>
             )}
           </div>
 
-          <VaultBadgeList
-            legacyRecordingId={recordingId}
+          <WorkspaceBadgeList
+            recordingId={call.id}
+            legacyRecordingId={call.legacy_recording_id ?? undefined}
             maxVisible={3}
             size="md"
           />
@@ -482,40 +459,10 @@ export const CallDetailPage: React.FC = () => {
             </TabsList>
 
             <TabsContent value="insights" className="space-y-6">
-              {insightsLoading ? (
-                <div className="text-center py-8">
-                  <Spinner size="lg" className="mx-auto mb-4" />
-                  <p className="text-sm text-muted-foreground">Loading insights...</p>
-                </div>
-              ) : insights && insights.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {insights.map((insight: any) => (
-                    <InsightCard
-                      key={insight.id}
-                      id={insight.id}
-                      type={insight.category}
-                      content={insight.exact_quote}
-                      source={{
-                        callId: String(call.recording_id),
-                        callTitle: call.title || 'Untitled Call',
-                        date: new Date(call.created_at),
-                      }}
-                      confidence={insight.score}
-                      tags={[]}
-                      onUse={() => {
-                        setSelectedInsights([insight]);
-                        setShowContentGenerator(true);
-                      }}
-                      onViewContext={() => {}}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-16">
-                  <RiLightbulbLine className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No insights extracted yet</p>
-                </div>
-              )}
+              <div className="text-center py-16">
+                <RiLightbulbLine className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">Insights temporarily disabled during refactor</p>
+              </div>
             </TabsContent>
 
             <TabsContent value="transcript">
@@ -527,16 +474,8 @@ export const CallDetailPage: React.FC = () => {
             </TabsContent>
 
             <TabsContent value="profits">
-              <div className="bg-card rounded-lg border border-border">
-                <PROFITSReport
-                  recordingId={recordingId}
-                  onCitationClick={(citation: PROFITSCitation) => {
-                    const transcriptTab = document.querySelector('[value="transcript"]');
-                    if (transcriptTab instanceof HTMLElement) {
-                      transcriptTab.click();
-                    }
-                  }}
-                />
+              <div className="bg-card rounded-lg border border-border p-6 text-center">
+                <p className="text-muted-foreground">PROFITS framework temporarily disabled during refactor</p>
               </div>
             </TabsContent>
 
@@ -548,12 +487,6 @@ export const CallDetailPage: React.FC = () => {
             </TabsContent>
           </Tabs>
         </div>
-
-        <ContentGenerator
-          open={showContentGenerator}
-          onOpenChange={setShowContentGenerator}
-          insights={selectedInsights}
-        />
       </div>
     </AppShell>
   );

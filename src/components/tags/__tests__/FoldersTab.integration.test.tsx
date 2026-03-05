@@ -87,23 +87,23 @@ vi.mock('sonner', () => ({
   },
 }));
 
-// Mock useBankContext (used by QuickCreateFolderDialog for bank-scoped folder operations)
-vi.mock('@/hooks/useBankContext', () => ({
-  useBankContext: vi.fn(() => ({
-    activeBankId: 'test-bank-id',
-    activeVaultId: null,
+// Mock useOrganizationContext (used by QuickCreateFolderDialog for bank-scoped folder operations)
+vi.mock('@/hooks/useOrganizationContext', () => ({
+  useOrganizationContext: vi.fn(() => ({
+    activeOrganizationId: 'test-bank-id',
+    activeWorkspaceId: null,
     isLoading: false,
     isInitialized: true,
     error: null,
-    banks: [],
-    vaults: [],
-    activeBank: null,
-    activeVault: null,
-    isPersonalBank: true,
-    setActiveBank: vi.fn(),
-    setActiveVault: vi.fn(),
-    switchBank: vi.fn(),
-    switchVault: vi.fn(),
+    organizations: [],
+    workspaces: [],
+    activeOrganization: null,
+    activeWorkspace: null,
+    isPersonalOrganization: true,
+    setActiveOrganization: vi.fn(),
+    setActiveWorkspace: vi.fn(),
+    switchOrganization: vi.fn(),
+    switchWorkspace: vi.fn(),
     refresh: vi.fn(),
   })),
 }));
@@ -120,7 +120,7 @@ import type { Folder } from '@/hooks/useFolders';
 const createMockFolder = (overrides: Partial<Folder> = {}): Folder => ({
   id: 'folder-1',
   user_id: 'user-1',
-  bank_id: 'test-bank-id',
+  organization_id: 'test-bank-id',
   name: 'Test Folder',
   description: null,
   color: '#6B7280',

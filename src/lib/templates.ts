@@ -57,16 +57,16 @@ export interface TemplateResult<T> {
 export async function fetchTemplates(
   filters?: TemplateFilters,
   includeShared: boolean = true,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<TemplateResult<Template[]>> {
   try {
     const user = await requireUser();
-    if (!bankId) return { data: [], error: null };
+    if (!orgId) return { data: [], error: null };
 
     let query = supabase
       .from("templates")
       .select("*")
-      .eq("bank_id", bankId)
+      .eq("organization_id", orgId)
       .order("created_at", { ascending: false });
 
     // RLS handles user/team access, but we can filter for personal templates only
@@ -135,9 +135,9 @@ export async function fetchTemplates(
  */
 export async function fetchPersonalTemplates(
   filters?: TemplateFilters,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<TemplateResult<Template[]>> {
-  return fetchTemplates(filters, false, bankId);
+  return fetchTemplates(filters, false, orgId);
 }
 
 /**
@@ -148,16 +148,16 @@ export async function fetchPersonalTemplates(
  */
 export async function fetchSharedTemplates(
   filters?: TemplateFilters,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<TemplateResult<Template[]>> {
   try {
     const user = await requireUser();
-    if (!bankId) return { data: [], error: null };
+    if (!orgId) return { data: [], error: null };
 
     let query = supabase
       .from("templates")
       .select("*")
-      .eq("bank_id", bankId)
+      .eq("organization_id", orgId)
       .eq("is_shared", true)
       .neq("user_id", user.id) // Exclude user's own templates
       .order("created_at", { ascending: false });
@@ -226,15 +226,15 @@ export async function fetchSharedTemplates(
  */
 export async function saveTemplate(
   input: TemplateInput,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<TemplateResult<Template>> {
   try {
     const user = await requireUser();
 
-    if (!bankId) {
+    if (!orgId) {
       return {
         data: null,
-        error: new TemplateError("Bank ID is required"),
+        error: new TemplateError("Organization ID is required"),
       };
     }
 
@@ -272,7 +272,7 @@ export async function saveTemplate(
       .from("templates")
       .insert({
         user_id: user.id,
-        bank_id: bankId,
+        organization_id: orgId,
         name: input.name.trim(),
         description: input.description || null,
         template_content: input.template_content,

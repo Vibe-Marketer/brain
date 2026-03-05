@@ -1,15 +1,15 @@
 import { create } from 'zustand';
 
 /**
- * @deprecated Use bankContextStore instead. This store is retained for
+ * @deprecated Use orgContextStore instead. This store is retained for
  * backward compatibility during Phase 9 migration.
- * 
+ *
  * Migration guide:
- * - import { useBankContextStore } from '@/stores/bankContextStore'
- * - activeTeamId → activeBankId (for bank context)
- * - null activeTeamId → personal bank (auto-selected)
- * - Team vaults → use activeVaultId for vault context
- * 
+ * - import { useOrganizationContextStore } from '@/stores/orgContextStore'
+ * - activeTeamId → activeOrganizationId (for organization context)
+ * - null activeTeamId → personal organization (auto-selected)
+ * - Team workspaces → use activeWorkspaceId for workspace context
+ *
  * TODO: Remove after Phase 9 verification
  */
 

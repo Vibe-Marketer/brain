@@ -53,8 +53,8 @@ async function testQuery(token: string, messages: any[], testName: string) {
     }
 
     let fullResponse = '';
-    let toolCalls: any[] = [];
-    let toolResults: any[] = [];
+    const toolCalls: any[] = [];
+    const toolResults: any[] = [];
     
     const decoder = new TextDecoder();
     

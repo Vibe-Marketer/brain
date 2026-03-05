@@ -23,7 +23,6 @@ export type SettingHelpTopic =
   | "users"
   | "billing"
   | "integrations"
-  | "ai"
   | "admin"
   | "display-name"
   | "timezone"
@@ -128,17 +127,6 @@ const helpContent: Record<SettingHelpTopic, HelpContent> = {
       "Calendar integrations help track scheduled calls",
       "CRM integrations sync customer data automatically",
       "Disconnect integrations you no longer use",
-    ],
-  },
-  ai: {
-    title: "AI Settings",
-    icon: <RiRobot2Line className="h-5 w-5" />,
-    description: "Configure how AI processes and analyzes your calls.",
-    tips: [
-      "AI insights are generated automatically from call transcripts",
-      "Customize AI prompts for more relevant insights",
-      "AI tagging helps organize calls automatically",
-      "Review AI suggestions to improve accuracy over time",
     ],
   },
   admin: {

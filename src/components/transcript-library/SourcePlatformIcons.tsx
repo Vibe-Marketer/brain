@@ -120,13 +120,55 @@ export function ZoomIcon({ className, size }: IconProps) {
   );
 }
 
+/**
+ * YouTube icon - red circle with white play button
+ */
+export function YouTubeIcon({ className, size }: IconProps) {
+  const computedSize = size ?? getSizeFromClassName(className) ?? 16;
+  return (
+    <svg
+      width={computedSize}
+      height={computedSize}
+      viewBox="0 0 100 100"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Red circular background */}
+      <circle cx="50" cy="50" r="50" fill="#FF0000" />
+      {/* White play triangle */}
+      <polygon points="40,30 40,70 72,50" fill="#FFFFFF" />
+    </svg>
+  );
+}
+
+/**
+ * Upload/File icon - gray circle with white up-arrow
+ */
+export function UploadIcon({ className, size }: IconProps) {
+  const computedSize = size ?? getSizeFromClassName(className) ?? 16;
+  return (
+    <svg
+      width={computedSize}
+      height={computedSize}
+      viewBox="0 0 100 100"
+      className={className}
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      {/* Gray circular background */}
+      <circle cx="50" cy="50" r="50" fill="#6B7280" />
+      {/* White up-arrow */}
+      <path d="M50 25L30 50H43V70H57V50H70L50 25Z" fill="#FFFFFF" />
+    </svg>
+  );
+}
+
 type SourcePlatform = 'fathom' | 'zoom' | 'google_meet';
 
 interface SourcePlatformIndicatorProps {
   /** Primary source platform */
   sourcePlatform?: string | null;
   /** Array of merged source platforms (for merged meetings) */
-  mergedFrom?: Array<{ source_platform?: string }> | null;
+  mergedFrom?: Array<{ source_platform?: string } | number> | null;
   /** Size of each icon in pixels */
   size?: number;
 }
@@ -151,6 +193,9 @@ export function SourcePlatformIndicator({
   // Add merged platforms
   if (mergedFrom && mergedFrom.length > 0) {
     mergedFrom.forEach(merged => {
+      // Skip numeric IDs, we only want objects with platform info
+      if (typeof merged === 'number') return;
+      
       if (merged.source_platform === 'fathom') platforms.add('fathom');
       else if (merged.source_platform === 'zoom') platforms.add('zoom');
       else if (merged.source_platform === 'google_meet') platforms.add('google_meet');

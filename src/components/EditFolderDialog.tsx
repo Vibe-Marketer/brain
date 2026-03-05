@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,15 +24,15 @@ import {
 import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
-import { EmojiPickerInline } from "@/components/ui/emoji-picker-inline";
+import { IconPickerInline, getIconById } from "@/components/ui/icon-picker-inline";
 import { RiAddLine } from "@remixicon/react";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 
 interface Folder {
   id: string;
-  user_id: string;
+  user_id?: string;
   name: string;
-  description: string | null;
+  description?: string | null;
   color?: string | null;
   icon?: string | null;
   parent_id?: string | null;
@@ -44,6 +44,8 @@ interface EditFolderDialogProps {
   onOpenChange: (open: boolean) => void;
   folder: Folder | null;
   onFolderUpdated?: () => void;
+  workspaceId?: string;
+  organizationId?: string;
 }
 
 interface FolderOption {
@@ -58,12 +60,14 @@ export default function EditFolderDialog({
   onOpenChange,
   folder,
   onFolderUpdated,
+  workspaceId,
+  organizationId,
 }: EditFolderDialogProps) {
-  const { activeBankId } = useBankContext();
+  const { activeOrganizationId, activeWorkspaceId } = useOrganizationContext();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
-  const [emoji, setEmoji] = useState("📁");
+  const [iconId, setIconId] = useState("folder");
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(undefined);
   const [saving, setSaving] = useState(false);
   const [folders, setFolders] = useState<FolderOption[]>([]);
@@ -93,7 +97,7 @@ export default function EditFolderDialog({
       setName(folder.name || "");
       setDescription(folder.description || "");
       setShowDescription(!!folder.description);
-      setEmoji(folder.icon || "📁");
+      setIconId(folder.icon || "folder");
       setSelectedParentId(folder.parent_id || undefined);
       loadFolders();
     }
@@ -105,16 +109,19 @@ export default function EditFolderDialog({
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
-      // Note: Do NOT query 'depth' column - it doesn't exist in the database
-      // Depth is computed client-side to avoid database schema dependencies
+      const targetWorkspaceId = workspaceId || folder?.workspace_id || activeWorkspaceId;
+      const targetOrgId = organizationId || folder?.organization_id || activeOrganizationId;
+
       let query = supabase
         .from("folders")
         .select("id, name, parent_id")
         .eq("user_id", user.id)
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (targetWorkspaceId) {
+        query = query.eq("workspace_id", targetWorkspaceId);
+      } else if (targetOrgId) {
+        query = query.eq("organization_id", targetOrgId);
       }
 
       const { data, error } = await query;
@@ -206,8 +213,13 @@ export default function EditFolderDialog({
         .eq("name", validation.data.name)
         .neq("id", folder.id);
 
-      if (activeBankId) {
-        duplicateQuery = duplicateQuery.eq("bank_id", activeBankId);
+      const targetOrgId = organizationId || folder.organization_id || activeOrganizationId;
+      const targetWorkspaceId = workspaceId || folder.workspace_id || activeWorkspaceId;
+
+      if (targetWorkspaceId) {
+        duplicateQuery = duplicateQuery.eq("workspace_id", targetWorkspaceId);
+      } else if (targetOrgId) {
+        duplicateQuery = duplicateQuery.eq("organization_id", targetOrgId);
       }
 
       if (selectedParentId) {
@@ -234,7 +246,7 @@ export default function EditFolderDialog({
           name: validation.data.name,
           description: showDescription ? validation.data.description : null,
           parent_id: selectedParentId || null,
-          icon: emoji,
+          icon: iconId,
           updated_at: new Date().toISOString(),
         })
         .eq("id", folder.id)
@@ -291,11 +303,14 @@ export default function EditFolderDialog({
             <div className="flex items-center gap-2">
               {/* Emoji indicator (non-interactive, just shows current selection) */}
               <div
-                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-border bg-cb-card"
-                aria-label={`Selected icon: ${emoji}`}
+                className="w-10 h-10 flex items-center justify-center rounded-md border border-border bg-cb-card"
+                aria-label={`Selected icon: ${iconId}`}
                 aria-hidden="true"
               >
-                {emoji}
+                {(() => {
+                  const Icon = getIconById(iconId);
+                  return <Icon size={20} />;
+                })()}
               </div>
               <Input
                 ref={nameInputRef}
@@ -320,7 +335,7 @@ export default function EditFolderDialog({
           {/* Emoji picker inline */}
           <div className="space-y-2">
             <Label>Icon</Label>
-            <EmojiPickerInline value={emoji} onChange={setEmoji} />
+            <IconPickerInline value={iconId} onChange={setIconId} />
           </div>
 
           {/* Parent Folder */}

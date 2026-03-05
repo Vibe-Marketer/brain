@@ -2,12 +2,20 @@
  * Utility functions for transcript processing and formatting
  */
 
-interface TranscriptSegment {
+export interface TranscriptSegment {
+  id?: string;
+  recording_id?: number | string;
   speaker_name: string;
-  speaker_email: string | null;
+  speaker_email?: string | null;
+  text?: string;
+  timestamp?: string;
+  display_text?: string;
+  display_speaker_name?: string;
+  display_speaker_email?: string | null;
+  has_edits?: boolean;
 }
 
-interface SpeakerGroup {
+export interface SpeakerGroup {
   speaker: string;
   email: string | null;
   messages: TranscriptSegment[];

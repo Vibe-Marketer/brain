@@ -1,5 +1,5 @@
 /**
- * YouTubeVideoDetailModal - Full video detail overlay for YouTube vault recordings
+ * YouTubeVideoDetailModal - Full video detail overlay for YouTube workspace recordings
  *
  * Opens when clicking a video in YouTubeVideoList. Shows video summary
  * (thumbnail/title/channel/stats), collapsible description, scrollable
@@ -31,7 +31,7 @@ import {
 } from '@remixicon/react'
 import { getYouTubeMetadata } from '@/types/youtube'
 import { parseYouTubeDuration, formatCompactNumber, YOUTUBE_CATEGORIES } from '@/lib/youtube-utils'
-import type { VaultRecording } from '@/hooks/useVaults'
+import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
 
 export interface YouTubeVideoDetailModalProps {
   /** Whether the modal is open */
@@ -39,10 +39,12 @@ export interface YouTubeVideoDetailModalProps {
   /** Callback to change open state */
   onOpenChange: (open: boolean) => void
   /** Recording to display (null when no selection) */
-  recording: VaultRecording | null
-  /** Vault ID for chat scoping */
-  vaultId: string
+  recording: WorkspaceRecording | null
+  /** Workspace ID for chat scoping */
+  workspaceId: string
 }
+
+
 
 /**
  * Format a date string as relative time (e.g., "3 months ago")
@@ -68,7 +70,7 @@ export function YouTubeVideoDetailModal({
   open,
   onOpenChange,
   recording,
-  vaultId,
+  workspaceId,
 }: YouTubeVideoDetailModalProps) {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false)
 
@@ -227,7 +229,7 @@ export function YouTubeVideoDetailModal({
 
             {/* ─────── 4. Chat ─────── */}
             <YouTubeChatSection
-              vaultId={vaultId}
+              workspaceId={workspaceId}
               recordingId={recording.legacy_recording_id ?? null}
               videoTitle={recording.title || 'Untitled video'}
               onClose={() => handleOpenChange(false)}

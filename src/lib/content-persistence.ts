@@ -33,7 +33,7 @@ export async function saveWizardContent(
   selectedHookIds: string[],
   generatedHooks: Hook[],
   generatedContent: Record<string, StreamingContent>,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<SaveResult> {
   const result: SaveResult = {
     success: true,
@@ -56,11 +56,11 @@ export async function saveWizardContent(
     };
   }
 
-  if (!bankId) {
+  if (!orgId) {
     return {
       ...result,
       success: false,
-      errors: ['Bank ID is required for saving content.'],
+      errors: ['Organization ID is required for saving content.'],
     };
   }
 
@@ -113,7 +113,7 @@ export async function saveWizardContent(
         .from('content_items')
         .insert({
           user_id: user.id,
-          bank_id: bankId,
+          organization_id: orgId,
           hook_id: savedHook.id, // Use NEW database ID, not client-side ID
           content_type: 'post' as const,
           content_text: content.social_post_text,
@@ -136,7 +136,7 @@ export async function saveWizardContent(
         .from('content_items')
         .insert({
           user_id: user.id,
-          bank_id: bankId,
+          organization_id: orgId,
           hook_id: savedHook.id,
           content_type: 'email' as const,
           content_text: content.email_body_opening,

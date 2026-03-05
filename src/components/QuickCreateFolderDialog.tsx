@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { useWorkspaces } from "@/hooks/useWorkspaces";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,14 +25,16 @@ import {
 import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
-import { EmojiPickerInline } from "@/components/ui/emoji-picker-inline";
-import { RiAddLine } from "@remixicon/react";
+import { IconPickerInline, getIconById } from "@/components/ui/icon-picker-inline";
+import { RiAddLine, RiFolderLine } from "@remixicon/react";
 
 interface QuickCreateFolderDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onFolderCreated?: (folderId: string) => void;
   parentFolderId?: string;
+  workspaceId?: string;
+  organizationId?: string;
 }
 
 interface FolderWithDepth {
@@ -52,16 +55,20 @@ export default function QuickCreateFolderDialog({
   onOpenChange,
   onFolderCreated,
   parentFolderId,
+  workspaceId,
+  organizationId,
 }: QuickCreateFolderDialogProps) {
-  const { activeBankId } = useBankContext();
+  const { activeOrganizationId, activeWorkspaceId } = useOrganizationContext();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [showDescription, setShowDescription] = useState(false);
-  const [emoji, setEmoji] = useState("📁");
+  const [iconId, setIconId] = useState("folder");
   const [selectedParentId, setSelectedParentId] = useState<string | undefined>(parentFolderId);
   const [saving, setSaving] = useState(false);
   const [foldersWithDepth, setFoldersWithDepth] = useState<FolderWithDepth[]>([]);
   const [loadingFolders, setLoadingFolders] = useState(false);
+  const { workspaces = [] } = useWorkspaces(activeOrganizationId);
+  const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | undefined>();
 
   // Inline parent folder creation
   const [inlineParentDialogOpen, setInlineParentDialogOpen] = useState(false);
@@ -97,14 +104,19 @@ export default function QuickCreateFolderDialog({
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
+      const targetWorkspaceId = workspaceId || activeWorkspaceId || selectedWorkspaceId;
+      const targetOrgId = organizationId || activeOrganizationId;
+
       let query = supabase
         .from("folders")
         .select("id, name, parent_id")
         .eq("user_id", user.id)
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (targetWorkspaceId) {
+        query = query.eq("workspace_id", targetWorkspaceId);
+      } else if (targetOrgId) {
+        query = query.eq("organization_id", targetOrgId);
       }
 
       const { data, error } = await query;
@@ -165,8 +177,15 @@ export default function QuickCreateFolderDialog({
         }
       }
 
-      if (!activeBankId) {
-        toast.error("No active workspace selected");
+      const targetWorkspaceId = workspaceId || activeWorkspaceId || selectedWorkspaceId;
+      const targetOrgId = organizationId || activeOrganizationId;
+
+      if (!targetOrgId) {
+        toast.error("No active organization selected");
+        return;
+      }
+      if (!targetWorkspaceId) {
+        toast.error("Please select a workspace for this folder");
         return;
       }
 
@@ -175,7 +194,7 @@ export default function QuickCreateFolderDialog({
         .from("folders")
         .select("id")
         .eq("user_id", user.id)
-        .eq("bank_id", activeBankId)
+        .eq("workspace_id", targetWorkspaceId)
         .eq("name", validation.data.name);
 
       if (selectedParentId) {
@@ -202,9 +221,10 @@ export default function QuickCreateFolderDialog({
           name: validation.data.name,
           description: validation.data.description,
           user_id: user.id,
-          bank_id: activeBankId,
+          organization_id: targetOrgId,
+          workspace_id: targetWorkspaceId,
           parent_id: selectedParentId || null,
-          icon: emoji,
+          icon: iconId,
           position: 0,
         })
         .select()
@@ -228,8 +248,9 @@ export default function QuickCreateFolderDialog({
     setName("");
     setDescription("");
     setShowDescription(false);
-    setEmoji("📁");
+    setIconId("folder");
     setSelectedParentId(parentFolderId);
+    setSelectedWorkspaceId(undefined);
   };
 
   const handleOpenChange = (newOpen: boolean) => {
@@ -263,11 +284,14 @@ export default function QuickCreateFolderDialog({
             <div className="flex items-center gap-2">
               {/* Emoji indicator (non-interactive, just shows current selection) */}
               <div
-                className="w-10 h-10 flex items-center justify-center text-xl rounded-md border border-border bg-cb-card"
-                aria-label={`Selected icon: ${emoji}`}
+                className="w-10 h-10 flex items-center justify-center rounded-md border border-border bg-cb-card"
+                aria-label={`Selected icon: ${iconId}`}
                 aria-hidden="true"
               >
-                {emoji}
+                {(() => {
+                  const Icon = getIconById(iconId);
+                  return <Icon size={20} />;
+                })()}
               </div>
               <Input
                 ref={nameInputRef}
@@ -292,7 +316,7 @@ export default function QuickCreateFolderDialog({
           {/* Emoji picker inline */}
           <div className="space-y-2">
             <Label>Icon</Label>
-            <EmojiPickerInline value={emoji} onChange={setEmoji} />
+            <IconPickerInline value={iconId} onChange={setIconId} />
           </div>
 
           {/* Parent Folder */}
@@ -328,6 +352,28 @@ export default function QuickCreateFolderDialog({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Workspace Selection (Only if no workspace is active/provided) */}
+          {(!activeWorkspaceId && !workspaceId) && (
+            <div className="space-y-2">
+              <Label htmlFor="workspace-select">Workspace <span className="text-red-500">*</span></Label>
+              <Select
+                value={selectedWorkspaceId || ""}
+                onValueChange={setSelectedWorkspaceId}
+              >
+                <SelectTrigger id="workspace-select">
+                  <SelectValue placeholder="Select a workspace" />
+                </SelectTrigger>
+                <SelectContent>
+                  {workspaces.map((ws) => (
+                    <SelectItem key={ws.id} value={ws.id}>
+                      {ws.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           {/* Optional Description */}
           <div className="space-y-2">

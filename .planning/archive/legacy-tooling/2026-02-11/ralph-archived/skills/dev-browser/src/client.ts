@@ -440,7 +440,7 @@ export async function connect(serverUrl = "http://localhost:9222"): Promise<DevB
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const w = globalThis as any;
         if (!w.__devBrowser_getAISnapshot) {
-          // eslint-disable-next-line no-eval
+           
           eval(script);
         }
         return w.__devBrowser_getAISnapshot();
@@ -504,7 +504,7 @@ export async function connect(serverUrl = "http://localhost:9222"): Promise<DevB
       const maxDepth = options.maxDepth ?? 6;
 
       const result = await page.evaluate(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         ({ selector, maxDepth }: { selector: string; maxDepth: number }) => {
           // Browser context - use globalThis for DOM access
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -523,7 +523,7 @@ export async function connect(serverUrl = "http://localhost:9222"): Promise<DevB
             "LINK",
           ]);
 
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+           
           function truncate(text: string, maxLen: number) {
             text = text.trim().replace(/\s+/g, " ");
             return text.length > maxLen ? text.slice(0, maxLen) + "..." : text;
@@ -806,7 +806,7 @@ export async function connect(serverUrl = "http://localhost:9222"): Promise<DevB
       const limit = options.limit ?? 10000;
 
       const result = await page.evaluate(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         ({ selector, limit }: { selector: string; limit: number }) => {
           // Browser context - use globalThis for DOM access
           // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -38,6 +38,8 @@ import {
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface NavItem {
   id: string;
@@ -140,46 +142,11 @@ const navItems: NavItem[] = [
     matchPaths: ['/', '/transcripts'],
   },
   {
-    id: 'chat',
-    name: 'AI Chat',
-    iconLine: RiSparklingLine,
-    path: '/chat',
-    matchPaths: ['/chat'],
-  },
-  {
-    id: 'content',
-    name: 'Content',
-    iconLine: RiArticleLine,
-    path: '/content',
-    matchPaths: ['/content', '/content/generators', '/content/library'],
-  },
-  {
     id: 'import',
     name: 'Import',
     iconLine: RiUpload2Line,
     path: '/import',
     matchPaths: ['/import'],
-  },
-  {
-    id: 'sorting',
-    name: 'Sorting',
-    iconLine: RiPriceTag3Line,
-    path: '/sorting-tagging',
-    matchPaths: ['/sorting-tagging'],
-  },
-  {
-    id: 'vaults',
-    name: 'Hubs',
-    iconLine: RiSafeLine,
-    path: '/vaults',
-    matchPaths: ['/vaults'],
-  },
-  {
-    id: 'analytics',
-    name: 'Analytics',
-    iconLine: RiPieChart2Line,
-    path: '/analytics',
-    matchPaths: ['/analytics'],
   },
   {
     id: 'settings',
@@ -193,6 +160,17 @@ const navItems: NavItem[] = [
 export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggle, onSettingsClick, onSortingClick, onAnalyticsClick }: SidebarNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { role } = useUserRole();
+  const { isFeatureEnabled } = useFeatureFlags(role);
+
+  // Filter nav items based on feature flags
+  const filteredNavItems = React.useMemo(() => {
+    return navItems.filter((item) => {
+      if (item.id === 'import') return isFeatureEnabled('beta_imports');
+      if (item.id === 'analytics') return isFeatureEnabled('beta_analytics');
+      return true;
+    });
+  }, [navItems, isFeatureEnabled]);
 
   // Refs for nav buttons to enable keyboard focus management
   const buttonRefs = React.useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -209,15 +187,15 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
 
   // Focus a nav item by index (wraps around)
   const focusNavItemByIndex = React.useCallback((index: number) => {
-    const wrappedIndex = ((index % navItems.length) + navItems.length) % navItems.length;
-    const itemId = navItems[wrappedIndex].id;
+    const wrappedIndex = ((index % filteredNavItems.length) + filteredNavItems.length) % filteredNavItems.length;
+    const itemId = filteredNavItems[wrappedIndex].id;
     const button = buttonRefs.current.get(itemId);
     button?.focus();
-  }, []);
+  }, [filteredNavItems]);
 
   // Keyboard navigation handler
   const handleKeyDown = React.useCallback((event: React.KeyboardEvent, itemId: string) => {
-    const currentIndex = navItems.findIndex(item => item.id === itemId);
+    const currentIndex = filteredNavItems.findIndex(item => item.id === itemId);
 
     switch (event.key) {
       case 'ArrowDown':
@@ -234,7 +212,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
         break;
       case 'End':
         event.preventDefault();
-        focusNavItemByIndex(navItems.length - 1);
+        focusNavItemByIndex(filteredNavItems.length - 1);
         break;
     }
   }, [focusNavItemByIndex]);
@@ -251,7 +229,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
         aria-label="Main navigation"
       >
         {/* Import Button - Primary CTA at top */}
-        {onSyncClick && (
+        {onSyncClick && isFeatureEnabled('beta_imports') && (
           <div className="relative flex flex-col">
              <button
               type="button"
@@ -292,7 +270,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
         )}
 
         {/* Separator between Import and nav items */}
-        {onSyncClick && (
+        {onSyncClick && isFeatureEnabled('beta_imports') && (
           isCollapsed ? (
             <div className="w-8 h-px bg-border my-1 mx-auto" />
           ) : (
@@ -301,7 +279,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
         )}
 
         {/* Main Nav Items */}
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           const active = isActive(item);
           return (
             <div key={item.id} className="relative flex flex-col mb-1">
@@ -391,7 +369,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 'hover:bg-hover',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
               )}
-              title="Toggle Library Panel"
+              title="Toggle Workspace Panel"
             >
                <div className={cn(
                       "flex-shrink-0 flex items-center justify-center",
@@ -403,7 +381,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                     <RiLayoutColumnLine className="w-5 h-5" />
                   )}
               </div>
-              {!isCollapsed && <span className="text-sm text-muted-foreground truncate">Library Panel</span>}
+              {!isCollapsed && <span className="text-sm text-muted-foreground truncate">Workspace Panel</span>}
             </button>
              {isCollapsed && <div className="w-8 h-px bg-cb-border mt-2 mx-auto" />}
           </div>

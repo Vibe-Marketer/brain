@@ -3,12 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TabsContent } from "@/components/ui/tabs";
 
-interface CalendarInvitee {
-  name: string;
-  email: string;
-  is_external?: boolean;
-  matched_speaker_display_name?: string;
-}
+import { CalendarInvitee } from "@/types";
 
 interface CallInviteesTabProps {
   calendarInvitees?: CalendarInvitee[];
@@ -39,7 +34,7 @@ export function CallInviteesTab({ calendarInvitees }: CallInviteesTabProps) {
                       <p className="font-medium">{invitee.name}</p>
                       <p className="text-sm text-ink-muted">{invitee.email}</p>
                       <div className="flex gap-2 mt-2">
-                        {invitee.is_external ? (
+                        {invitee.external ? (
                           <Badge variant="hollow">External</Badge>
                         ) : (
                           <Badge variant="secondary">Internal</Badge>

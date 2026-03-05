@@ -8,6 +8,7 @@ import {
   MeetingFingerprint,
   MatchResult,
 } from '../_shared/dedup-fingerprint.ts';
+import { runPipeline } from '../_shared/connector-pipeline.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 
@@ -215,7 +216,7 @@ async function findPotentialDuplicates(
   const timeWindowEnd = new Date(timeBucket.getTime() + 24 * 60 * 60 * 1000);
 
   const { data: potentialMatches, error } = await supabase
-    .from('fathom_calls')
+    .from('zoom_raw_calls')
     .select(`
       id,
       recording_id,
@@ -349,7 +350,7 @@ async function handleDuplicateMerge(
 
   if (newShouldBePrimary) {
     await supabase
-      .from('fathom_calls')
+      .from('zoom_raw_calls')
       .update({
         is_primary: false,
         fuzzy_match_score: matchResult.score,
@@ -363,7 +364,7 @@ async function handleDuplicateMerge(
     };
   } else {
     await supabase
-      .from('fathom_calls')
+      .from('zoom_raw_calls')
       .update({
         fuzzy_match_score: matchResult.score,
       })
@@ -388,7 +389,7 @@ async function updateMergedFrom(
   userId: string
 ): Promise<void> {
   const { data: primaryMeeting } = await supabase
-    .from('fathom_calls')
+    .from('zoom_raw_calls')
     .select('merged_from')
     .eq('id', primaryMeetingId)
     .eq('user_id', userId)
@@ -400,7 +401,7 @@ async function updateMergedFrom(
     const updatedMergedFrom = [...currentMergedFrom, secondaryMeetingId];
 
     await supabase
-      .from('fathom_calls')
+      .from('zoom_raw_calls')
       .update({ merged_from: updatedMergedFrom })
       .eq('id', primaryMeetingId)
       .eq('user_id', userId);
@@ -410,6 +411,8 @@ async function updateMergedFrom(
 /**
  * Processes a Zoom recording.transcript_completed webhook event.
  * Syncs the meeting to all users with matching host_email.
+ *
+ * Pipeline: zoom_raw_calls (source-specific) + recordings + workspace_entries (canonical)
  */
 async function processZoomWebhook(
   payload: ZoomWebhookPayload,
@@ -425,7 +428,7 @@ async function processZoomWebhook(
   // Find ALL users with matching host_email (team support)
   const { data: userSettings, error: lookupError } = await supabase
     .from('user_settings')
-    .select('user_id, zoom_oauth_access_token, zoom_oauth_token_expires, zoom_oauth_refresh_token, dedup_priority_mode, dedup_platform_order')
+    .select('user_id, zoom_oauth_access_token, zoom_oauth_token_expires, zoom_oauth_refresh_token')
     .eq('host_email', hostEmail);
 
   if (lookupError) {
@@ -452,14 +455,7 @@ async function processZoomWebhook(
         continue;
       }
 
-      // Use the access token (auto-refresh would happen during manual sync, not webhook)
       const accessToken = settings.zoom_oauth_access_token;
-
-      // Extract deduplication settings
-      const dedupSettings = {
-        priorityMode: (settings.dedup_priority_mode || 'first_synced') as DedupPriorityMode,
-        platformOrder: (settings.dedup_platform_order || []) as string[],
-      };
 
       // Find transcript file
       const transcriptFile = recording.recording_files?.find(
@@ -495,125 +491,95 @@ async function processZoomWebhook(
 
       // Calculate meeting times
       const startTime = new Date(recording.start_time);
-      const endTime = new Date(startTime.getTime() + (recording.duration * 60 * 1000));
+      const durationSeconds = recording.duration * 60; // Zoom reports duration in minutes
 
-      // Generate fingerprint for deduplication
-      const fingerprint = await generateFingerprint({
+      // =====================================================================
+      // PIPELINE: Insert into canonical recordings + workspace_entries
+      // =====================================================================
+      const pipelineResult = await runPipeline(supabase, userId, {
+        external_id: recordingId,
+        source_app: 'zoom',
         title: recording.topic,
-        start_time: startTime,
-        duration_minutes: recording.duration,
-        participants: [hostEmail],
-      });
-      const fingerprintString = generateFingerprintString(fingerprint);
-
-      // Deduplication logic
-      const syncedAt = new Date();
-      let isPrimary = true;
-      let mergedFromIds: number[] = [];
-      let fuzzyMatchScore: number | null = null;
-      let primaryMeetingId: number | null = null;
-
-      const duplicates = await findPotentialDuplicates(supabase, userId, fingerprint, recordingId);
-
-      if (duplicates.length > 0) {
-        const bestMatch = duplicates[0];
-
-        const mergeResult = await handleDuplicateMerge(
-          supabase,
-          userId,
-          {
-            source_platform: 'zoom',
-            synced_at: syncedAt,
-            transcript_length: fullTranscript.length,
-          },
-          bestMatch,
-          dedupSettings.priorityMode,
-          dedupSettings.platformOrder
-        );
-
-        if (mergeResult.isPrimaryNew) {
-          isPrimary = true;
-          mergedFromIds = [bestMatch.meeting.id];
-          if (bestMatch.meeting.merged_from) {
-            mergedFromIds = [...mergedFromIds, ...bestMatch.meeting.merged_from];
-          }
-          fuzzyMatchScore = bestMatch.matchResult.score;
-        } else {
-          isPrimary = false;
-          primaryMeetingId = mergeResult.primaryId;
-          fuzzyMatchScore = bestMatch.matchResult.score;
-        }
-      }
-
-      // Check if call exists and has user edits
-      const { data: existingCall } = await supabase
-        .from('fathom_calls')
-        .select('recording_id, title, summary, title_edited_by_user, summary_edited_by_user')
-        .eq('recording_id', recordingId)
-        .eq('user_id', userId)
-        .maybeSingle();
-
-      // Build upsert data
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const upsertData: any = {
-        recording_id: recordingId,
-        user_id: userId,
-        created_at: recording.start_time,
-        recording_start_time: recording.start_time,
-        recording_end_time: endTime.toISOString(),
-        url: recording.share_url || null,
-        share_url: recording.share_url || null,
-        calendar_invitees: [],
         full_transcript: fullTranscript,
-        recorded_by_name: null,
-        recorded_by_email: hostEmail,
-        synced_at: syncedAt.toISOString(),
-        source_platform: 'zoom',
-        meeting_fingerprint: fingerprintString,
-        is_primary: isPrimary,
-        merged_from: mergedFromIds.length > 0 ? mergedFromIds : null,
-        fuzzy_match_score: fuzzyMatchScore,
-      };
+        recording_start_time: recording.start_time,
+        duration: durationSeconds,
+        source_metadata: {
+          zoom_meeting_id: recordingId,
+          zoom_numeric_id: recording.id,
+          zoom_host_email: hostEmail,
+          zoom_host_id: recording.host_id,
+          zoom_account_id: recording.account_id,
+          zoom_share_url: recording.share_url || null,
+          zoom_timezone: recording.timezone,
+          zoom_type: recording.type,
+          import_source: 'zoom-webhook',
+          synced_at: new Date().toISOString(),
+        },
+      });
 
-      // Preserve user edits
-      if (!existingCall?.title_edited_by_user) {
-        upsertData.title = recording.topic;
-      } else {
-        upsertData.title = existingCall.title;
-        upsertData.title_edited_by_user = true;
-      }
-
-      if (existingCall?.summary_edited_by_user) {
-        upsertData.summary = existingCall.summary;
-        upsertData.summary_edited_by_user = true;
-      }
-
-      // Upsert call
-      const { data: insertedCall, error: callError } = await supabase
-        .from('fathom_calls')
-        .upsert(upsertData, {
-          onConflict: 'recording_id,user_id'
-        })
-        .select('id')
-        .single();
-
-      if (callError) {
-        console.error(`Error upserting Zoom call ${recordingId} for user ${userId}:`, callError);
+      if (pipelineResult.skipped) {
+        console.log(`Zoom recording ${recordingId} already exists for user ${userId} (skipped)`);
+        syncedUserIds.push(userId); // Still count as synced for AI title gen
         continue;
       }
 
-      console.log(`Synced Zoom call to user ${userId}`);
-
-      // Update merged_from if this meeting is secondary
-      if (!isPrimary && primaryMeetingId && insertedCall?.id) {
-        await updateMergedFrom(supabase, primaryMeetingId, insertedCall.id, userId);
-        console.log(`Deduplication: Added meeting ${insertedCall.id} to merged_from of primary meeting ${primaryMeetingId}`);
+      if (!pipelineResult.success) {
+        console.error(`Pipeline failed for Zoom recording ${recordingId}, user ${userId}: ${pipelineResult.error}`);
+        continue;
       }
 
-      // Insert transcript segments
+      console.log(`Pipeline: created recording ${pipelineResult.recordingId} for user ${userId}`);
+
+      // =====================================================================
+      // RAW TABLE: Insert into zoom_raw_calls for source-specific detail
+      // =====================================================================
+      try {
+        const fingerprint = await generateFingerprint({
+          title: recording.topic,
+          start_time: startTime,
+          duration_minutes: recording.duration,
+          participants: [hostEmail],
+        });
+        const fingerprintString = generateFingerprintString(fingerprint);
+
+        const { error: rawError } = await supabase
+          .from('zoom_raw_calls')
+          .upsert({
+            recording_id: pipelineResult.recordingId,
+            user_id: userId,
+            zoom_meeting_id: String(recording.id),
+            zoom_meeting_uuid: recordingId,
+            host_email: hostEmail,
+            host_id: recording.host_id,
+            account_id: recording.account_id,
+            topic: recording.topic,
+            start_time: recording.start_time,
+            duration: durationSeconds,
+            timezone: recording.timezone,
+            meeting_type: recording.type,
+            recording_url: recording.share_url || null,
+            share_url: recording.share_url || null,
+            full_transcript: fullTranscript,
+            meeting_fingerprint: fingerprintString,
+            raw_payload: payload.payload,
+            synced_at: new Date().toISOString(),
+          }, {
+            onConflict: 'user_id,zoom_meeting_uuid',
+          });
+
+        if (rawError) {
+          console.error(`Error inserting zoom_raw_calls for ${recordingId} (non-blocking):`, rawError);
+        }
+      } catch (rawErr) {
+        console.error(`Error writing zoom_raw_calls for ${recordingId} (non-blocking):`, rawErr);
+      }
+
+      // =====================================================================
+      // TRANSCRIPTS: Insert segments into fathom_raw_transcripts (backward compat)
+      // =====================================================================
       if (transcriptSegments.length > 0) {
         await supabase
-          .from('fathom_transcripts')
+          .from('fathom_raw_transcripts')
           .delete()
           .eq('recording_id', recordingId)
           .eq('user_id', userId);
@@ -628,7 +594,7 @@ async function processZoomWebhook(
         }));
 
         const { error: transcriptError } = await supabase
-          .from('fathom_transcripts')
+          .from('fathom_raw_transcripts')
           .insert(transcriptRows);
 
         if (transcriptError) {

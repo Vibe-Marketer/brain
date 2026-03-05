@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
+import { runPipeline } from '../_shared/connector-pipeline.ts';
 
 // Fathom's simple signature verification (for OAuth webhooks)
 // Per Fathom docs: HMAC-SHA256 of raw body with secret, base64 encoded
@@ -349,7 +350,7 @@ async function processMeetingWebhook(
 
       // Upsert call for this user
       const { error: callError } = await supabase
-        .from('fathom_calls')
+        .from('fathom_raw_calls')
         .upsert({
           recording_id: meeting.recording_id,
           user_id: userId,
@@ -381,7 +382,7 @@ async function processMeetingWebhook(
       if (meeting.transcript && meeting.transcript.length > 0) {
         // Delete existing transcripts for this user's copy
         await supabase
-          .from('fathom_transcripts')
+          .from('fathom_raw_transcripts')
           .delete()
           .eq('recording_id', meeting.recording_id)
           .eq('user_id', userId);
@@ -413,7 +414,7 @@ async function processMeetingWebhook(
         });
 
         const { error: transcriptError } = await supabase
-          .from('fathom_transcripts')
+          .from('fathom_raw_transcripts')
           .insert(transcriptRows);
 
         if (transcriptError) {
@@ -423,6 +424,62 @@ async function processMeetingWebhook(
         }
 
         console.log(`   ✅ Inserted ${transcriptRows.length} transcript segments for user ${userId}`);
+      }
+
+      // =====================================================================
+      // PIPELINE: Also upsert to canonical recordings + workspace_entries
+      // =====================================================================
+      try {
+        // Extract participant emails from calendar_invitees
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const participantEmails = (meeting.calendar_invitees || []).map((inv: any) => inv.email).filter(Boolean);
+
+        const startTime = new Date(meeting.recording_start_time);
+        const endTime = meeting.recording_end_time ? new Date(meeting.recording_end_time) : null;
+        const durationSeconds = endTime
+          ? Math.floor((endTime.getTime() - startTime.getTime()) / 1000)
+          : undefined;
+
+        const pipelineResult = await runPipeline(supabase, userId, {
+          external_id: String(meeting.recording_id),
+          source_app: 'fathom',
+          title: meeting.title,
+          full_transcript: fullTranscript,
+          recording_start_time: meeting.recording_start_time,
+          duration: durationSeconds,
+          source_metadata: {
+            fathom_call_id: meeting.recording_id,
+            fathom_url: meeting.url || null,
+            fathom_share_url: meeting.share_url || null,
+            recorded_by_name: meeting.recorded_by?.name || null,
+            recorded_by_email: meeting.recorded_by?.email || null,
+            calendar_invitees: meeting.calendar_invitees || [],
+            participant_emails: participantEmails,
+            summary: summary,
+            import_source: 'webhook',
+            synced_at: new Date().toISOString(),
+          },
+        });
+
+        if (pipelineResult.success) {
+          console.log(`   ✅ Pipeline: created recording ${pipelineResult.recordingId} for user ${userId}`);
+
+          // Link the fathom_raw_calls row to the canonical recording
+          if (pipelineResult.recordingId) {
+            await supabase
+              .from('fathom_raw_calls')
+              .update({ canonical_recording_id: pipelineResult.recordingId })
+              .eq('recording_id', meeting.recording_id)
+              .eq('user_id', userId);
+          }
+        } else if (pipelineResult.skipped) {
+          console.log(`   → Pipeline: recording already exists for user ${userId} (skipped)`);
+        } else {
+          console.error(`   ✗ Pipeline: failed for user ${userId}: ${pipelineResult.error}`);
+        }
+      } catch (pipelineError) {
+        // Non-blocking — raw call is already committed, pipeline failure shouldn't break webhook
+        console.error(`   ✗ Pipeline error for user ${userId} (non-blocking):`, pipelineError);
       }
     }
 

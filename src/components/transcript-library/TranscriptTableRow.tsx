@@ -9,24 +9,21 @@ import {
   RiFolderLine,
   RiStackLine,
 } from "@remixicon/react";
-import { SourcePlatformIndicator } from "./SourcePlatformIcons";
+import { FathomIcon, ZoomIcon, YouTubeIcon, UploadIcon } from "./SourcePlatformIcons";
+import { RoutingTraceBadge } from "@/components/import/RoutingTraceBadge";
+import { getSourceLabel } from "@/lib/source-labels";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { InviteesPopover } from "./InviteesPopover";
 import { InviteesCountCircle } from "./InviteesCountCircle";
 import { SharedWithIndicator } from "@/components/sharing/SharedWithIndicator";
-import { AddToVaultMenu } from "@/components/vault/AddToVaultMenu";
-import { VaultBadgeList } from "@/components/vault/VaultBadgeList";
+import { AddToWorkspaceMenu } from "@/components/workspace/AddToWorkspaceMenu";
+import { WorkspaceBadgeList } from "@/components/workspace/WorkspaceBadgeList";
 import type { Meeting } from "@/types";
 import type { SharingStatus, AccessLevel } from "@/types/sharing";
+import type { Folder } from "@/types/workspace";
 
-interface Folder {
-  id: string;
-  name: string;
-  color: string;
-  icon: string;
-}
 
 interface TranscriptTableRowProps {
   call: Meeting;
@@ -40,6 +37,7 @@ interface TranscriptTableRowProps {
   visibleColumns?: Record<string, boolean>;
   sharingStatus?: SharingStatus;
   accessLevel?: AccessLevel;
+  tableMode?: 'home' | 'workspace';
   onSelect: () => void;
   onCallClick: () => void;
   onFolder?: () => void;
@@ -59,12 +57,15 @@ export function TranscriptTableRow({
   visibleColumns = {},
   sharingStatus,
   accessLevel,
+  tableMode = 'workspace',
   onSelect,
   onCallClick,
   onFolder,
   onCustomDownload,
   DownloadComponent,
 }: TranscriptTableRowProps) {
+  const isHome = tableMode === 'home';
+
   const duration = call.recording_start_time && call.recording_end_time
     ? Math.round(
         (new Date(call.recording_end_time).getTime() -
@@ -92,7 +93,7 @@ export function TranscriptTableRow({
       </TableCell>
       <TableCell className="py-0 whitespace-nowrap">
         <div className="space-y-0">
-          {/* First line: Title + Source Platform Icons */}
+          {/* First line: Title */}
           <div className="flex items-center gap-1.5">
             <button
               onClick={onCallClick}
@@ -100,11 +101,8 @@ export function TranscriptTableRow({
             >
               {call.title}
             </button>
-            <SourcePlatformIndicator
-              sourcePlatform={call.source_platform}
-              mergedFrom={call.merged_from}
-              size={14}
-            />
+            {/* Routing Trace Badge */}
+            <RoutingTraceBadge sourceMetadata={call.source_metadata} />
           </div>
           {/* Second line: Metadata badges and subtitle */}
           <div className="flex items-center gap-1 mt-0">
@@ -171,7 +169,7 @@ export function TranscriptTableRow({
         </div>
         </TableCell>
       )}
-      {visibleColumns.participants !== false && (
+      {!isHome && visibleColumns.participants !== false && (
         <TableCell className="hidden lg:table-cell whitespace-nowrap text-center">
           <div className="flex justify-center w-full">
             <div className="w-[70px]">
@@ -184,9 +182,25 @@ export function TranscriptTableRow({
           </div>
         </TableCell>
       )}
-      <TableCell className="hidden xl:table-cell text-center align-middle py-0 whitespace-nowrap">
-        <InviteesCountCircle invitees={call.calendar_invitees} />
-      </TableCell>
+      {!isHome && (
+        <TableCell className="hidden xl:table-cell text-center align-middle py-0 whitespace-nowrap">
+          <InviteesCountCircle invitees={call.calendar_invitees} />
+        </TableCell>
+      )}
+      {/* Source column — Home view only */}
+      {isHome && visibleColumns.source !== false && (
+        <TableCell className="hidden lg:table-cell py-0 whitespace-nowrap">
+          <div className="flex items-center gap-1.5">
+            {call.source_platform === 'fathom' && <FathomIcon size={14} />}
+            {call.source_platform === 'zoom' && <ZoomIcon size={14} />}
+            {call.source_platform === 'youtube' && <YouTubeIcon size={14} />}
+            {call.source_platform === 'file-upload' && <UploadIcon size={14} />}
+            <span className="text-xs text-muted-foreground">
+              {getSourceLabel(call.source_platform)}
+            </span>
+          </div>
+        </TableCell>
+      )}
       {visibleColumns.tags !== false && (
         <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
         <div className="flex flex-col justify-center h-full gap-0.5 py-0">
@@ -229,8 +243,8 @@ export function TranscriptTableRow({
           </div>
         </TableCell>
       )}
-      {/* Folders column */}
-      {visibleColumns.folders !== false && (
+      {/* Folders column — workspace view only */}
+      {!isHome && visibleColumns.folders !== false && (
         <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
           <div className="flex flex-col justify-center h-full gap-0.5 py-0">
             {folderAssignments.length > 0 ? (
@@ -260,11 +274,11 @@ export function TranscriptTableRow({
           </div>
         </TableCell>
       )}
-      {/* Vaults column */}
-      {visibleColumns.vaults !== false && (
+      {/* Workspaces column */}
+      {visibleColumns.workspaces !== false && (
         <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
           <div onClick={(e) => e.stopPropagation()}>
-            <VaultBadgeList
+            <WorkspaceBadgeList
               recordingId={typeof call.recording_id === 'string' ? call.recording_id : undefined}
               legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : undefined}
               maxVisible={2}
@@ -303,7 +317,7 @@ export function TranscriptTableRow({
               <RiFolderLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
             </button>
           )}
-          <AddToVaultMenu
+          <AddToWorkspaceMenu
             recordingId={typeof call.recording_id === 'string' ? call.recording_id : null}
             legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : null}
             compact

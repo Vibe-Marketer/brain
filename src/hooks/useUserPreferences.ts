@@ -1,8 +1,8 @@
 /**
  * useUserPreferences - localStorage-based preferences for import defaults
  *
- * Stores per-integration default vault selections so users don't have to
- * re-select their preferred vault every time they import.
+ * Stores per-integration default workspace selections so users don't have to
+ * re-select their preferred workspace every time they import.
  *
  * @pattern localStorage persistence with React state sync
  */
@@ -14,12 +14,12 @@ const STORAGE_KEY = 'callvault-user-preferences'
 type IntegrationKey = 'youtube' | 'zoom' | 'google_meet' | 'fathom'
 
 interface UserPreferences {
-  /** Default vault ID per integration for imports */
-  defaultImportVault: Partial<Record<IntegrationKey, string>>
+  /** Default workspace ID per integration for imports */
+  defaultImportWorkspace: Partial<Record<IntegrationKey, string>>
 }
 
 const DEFAULT_PREFERENCES: UserPreferences = {
-  defaultImportVault: {},
+  defaultImportWorkspace: {},
 }
 
 function loadPreferences(): UserPreferences {
@@ -27,12 +27,16 @@ function loadPreferences(): UserPreferences {
     const stored = localStorage.getItem(STORAGE_KEY)
     if (!stored) return DEFAULT_PREFERENCES
     const parsed = JSON.parse(stored)
+    // Handle migration from old key if it exists
+    const legacyWorkspaces = (parsed as any).defaultImportWorkspace || {}
+
     return {
       ...DEFAULT_PREFERENCES,
       ...parsed,
-      defaultImportVault: {
-        ...DEFAULT_PREFERENCES.defaultImportVault,
-        ...(parsed.defaultImportVault || {}),
+      defaultImportWorkspace: {
+        ...DEFAULT_PREFERENCES.defaultImportWorkspace,
+        ...legacyWorkspaces,
+        ...(parsed.defaultImportWorkspace || {}),
       },
     }
   } catch {
@@ -62,21 +66,21 @@ export function useUserPreferences() {
     return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
-  const getDefaultVault = useCallback(
+  const getDefaultWorkspace = useCallback(
     (integration: IntegrationKey): string | undefined => {
-      return preferences.defaultImportVault[integration]
+      return preferences.defaultImportWorkspace[integration]
     },
     [preferences]
   )
 
-  const setDefaultVault = useCallback(
-    (integration: IntegrationKey, vaultId: string) => {
+  const setDefaultWorkspace = useCallback(
+    (integration: IntegrationKey, workspaceId: string) => {
       setPreferences((prev) => {
         const next: UserPreferences = {
           ...prev,
-          defaultImportVault: {
-            ...prev.defaultImportVault,
-            [integration]: vaultId,
+          defaultImportWorkspace: {
+            ...prev.defaultImportWorkspace,
+            [integration]: workspaceId,
           },
         }
         savePreferences(next)
@@ -88,7 +92,7 @@ export function useUserPreferences() {
 
   return {
     preferences,
-    getDefaultVault,
-    setDefaultVault,
+    getDefaultWorkspace,
+    setDefaultWorkspace,
   }
 }

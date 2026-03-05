@@ -35,7 +35,7 @@ async function getSnapshot(): Promise<string> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const w = globalThis as any;
     if (!w.__devBrowser_getAISnapshot) {
-      // eslint-disable-next-line no-eval
+       
       eval(s);
     }
     return w.__devBrowser_getAISnapshot();

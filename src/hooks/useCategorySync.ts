@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getSafeUser, requireUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 
 export interface Tag {
   id: string;
@@ -16,12 +16,12 @@ export type Category = Tag;
 export function useTagSync() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [tagAssignments, setTagAssignments] = useState<Record<string, string[]>>({});
-  const { activeBankId } = useBankContext();
+  const { activeOrgId } = useOrganizationContext();
 
-  // Reload tags when active bank changes
+  // Reload tags when active organization changes
   useEffect(() => {
     loadTags();
-  }, [activeBankId]);
+  }, [activeOrgId]);
 
   const loadTags = async () => {
     try {
@@ -33,9 +33,9 @@ export function useTagSync() {
         .select("id, name")
         .order("name");
 
-      // Scope tags to the active bank/workspace
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      // Scope tags to the active organization/workspace
+      if (activeOrgId) {
+        query = (query as any).eq("organization_id", activeOrgId);
       }
 
       const { data, error } = await query;
@@ -75,6 +75,8 @@ export function useTagSync() {
     try {
       const numericId = parseInt(recordingId);
 
+      const user = await requireUser();
+
       // Delete existing assignments
       await supabase
         .from("call_tag_assignments")
@@ -87,6 +89,7 @@ export function useTagSync() {
           call_recording_id: numericId,
           tag_id: tagId,
           auto_assigned: false,
+          user_id: user.id,
         }));
 
         const { error } = await supabase
@@ -114,10 +117,12 @@ export function useTagSync() {
     tagId: string
   ) => {
     try {
+      const user = await requireUser();
       const assignments = selectedIds.map((id) => ({
         call_recording_id: id,
         tag_id: tagId,
         auto_assigned: false,
+        user_id: user.id,
       }));
 
       const { error } = await supabase
@@ -154,11 +159,11 @@ export function useTagSync() {
   ) => {
     try {
       const user = await requireUser();
-      if (!activeBankId) throw new Error("No active workspace selected");
+      if (!activeOrgId) throw new Error("No active workspace selected");
 
       const { data, error } = await supabase
         .from("call_tags")
-        .insert({ name, description, color, user_id: user.id, bank_id: activeBankId })
+        .insert({ name, description, color, user_id: user.id, organization_id: activeOrgId })
         .select()
         .single();
 

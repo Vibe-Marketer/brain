@@ -1,7 +1,7 @@
 import { IntegrationButtonGroup } from "@/components/integrations/IntegrationButtonGroup";
 import { IntegrationConnectModal } from "@/components/integrations/IntegrationConnectModal";
 
-export type IntegrationPlatform = "fathom" | "google_meet" | "zoom";
+export type IntegrationPlatform = "fathom" | "zoom";
 
 interface IntegrationSyncPaneProps {
   onIntegrationChange?: () => void;

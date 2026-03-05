@@ -1,5 +1,5 @@
 /**
- * ChangeRoleDialog - Change a vault member's role
+ * ChangeRoleDialog - Change a workspace member's role
  *
  * Shows current role, radio buttons for available roles,
  * disables roles higher than current user's role.
@@ -27,36 +27,36 @@ import {
   RiVipCrownLine,
   RiEyeLine,
 } from '@remixicon/react'
-import type { VaultRole } from '@/types/bank'
+import type { WorkspaceRole } from '@/types/workspace'
 
 interface ChangeRoleDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   memberName: string
-  currentRole: VaultRole
-  currentUserRole: VaultRole
+  currentRole: WorkspaceRole
+  currentUserRole: WorkspaceRole
   isLastAdmin?: boolean
-  onConfirm: (newRole: VaultRole) => void
+  onConfirm: (newRole: WorkspaceRole) => void
   isLoading?: boolean
 }
 
-/** All vault roles in hierarchy order */
-const VAULT_ROLES: Array<{
-  value: VaultRole
+/** All workspace roles in hierarchy order */
+const WORKSPACE_ROLES: Array<{
+  value: WorkspaceRole
   label: string
   description: string
   icon: typeof RiVipCrownLine
   power: number
 }> = [
   {
-    value: 'vault_owner',
+    value: 'workspace_owner',
     label: 'Owner',
-    description: 'Full control. Can delete vault and manage all members.',
+    description: 'Full control. Can delete workspace and manage all members.',
     icon: RiVipCrownLine,
     power: 0,
   },
   {
-    value: 'vault_admin',
+    value: 'workspace_admin',
     label: 'Admin',
     description: 'Can manage members, settings, and invite links.',
     icon: RiShieldUserLine,
@@ -72,7 +72,7 @@ const VAULT_ROLES: Array<{
   {
     value: 'member',
     label: 'Member',
-    description: 'Can view and interact with vault recordings.',
+    description: 'Can view and interact with workspace recordings.',
     icon: RiUserLine,
     power: 3,
   },
@@ -85,9 +85,9 @@ const VAULT_ROLES: Array<{
   },
 ]
 
-const ROLE_POWER: Record<VaultRole, number> = {
-  vault_owner: 0,
-  vault_admin: 1,
+const ROLE_POWER: Record<WorkspaceRole, number> = {
+  workspace_owner: 0,
+  workspace_admin: 1,
   manager: 2,
   member: 3,
   guest: 4,
@@ -103,7 +103,7 @@ export function ChangeRoleDialog({
   onConfirm,
   isLoading = false,
 }: ChangeRoleDialogProps) {
-  const [selectedRole, setSelectedRole] = useState<VaultRole>(currentRole)
+  const [selectedRole, setSelectedRole] = useState<WorkspaceRole>(currentRole)
 
   const handleConfirm = () => {
     if (selectedRole !== currentRole) {
@@ -113,7 +113,7 @@ export function ChangeRoleDialog({
 
   const currentUserPower = ROLE_POWER[currentUserRole]
   const hasChanged = selectedRole !== currentRole
-  const currentRoleLabel = VAULT_ROLES.find((role) => role.value === currentRole)?.label || currentRole
+  const currentRoleLabel = WORKSPACE_ROLES.find((role) => role.value === currentRole)?.label || currentRole
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -127,13 +127,13 @@ export function ChangeRoleDialog({
         </DialogHeader>
 
         <div className="space-y-2 py-2">
-          {VAULT_ROLES.map((role) => {
+          {WORKSPACE_ROLES.map((role) => {
             const Icon = role.icon
             // Disable roles higher than current user's role
             const isDisabled = role.power < currentUserPower
-            // vault_owner transfer is not supported via this dialog
-            const isOwnerTransfer = role.value === 'vault_owner' && currentRole !== 'vault_owner'
-            const isLastAdminDemotion = currentRole === 'vault_admin' && isLastAdmin && role.value !== 'vault_admin'
+            // workspace_owner transfer is not supported via this dialog
+            const isOwnerTransfer = role.value === 'workspace_owner' && currentRole !== 'workspace_owner'
+            const isLastAdminDemotion = currentRole === 'workspace_admin' && isLastAdmin && role.value !== 'workspace_admin'
             const disabled = isDisabled || isOwnerTransfer || isLastAdminDemotion || isLoading
             const isSelected = selectedRole === role.value
             const isCurrent = currentRole === role.value
@@ -151,7 +151,7 @@ export function ChangeRoleDialog({
               >
                 <input
                   type="radio"
-                  name="vault-role"
+                  name="workspace-role"
                   value={role.value}
                   checked={isSelected}
                   onChange={() => !disabled && setSelectedRole(role.value)}

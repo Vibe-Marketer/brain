@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { getSafeUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import type { Tag } from "@/hooks/useCategorySync";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 
@@ -37,7 +37,7 @@ export function useSyncTabState({
   checkSyncStatus,
   setMeetings
 }: UseSyncTabStateProps) {
-  const { activeBankId } = useBankContext();
+  const { activeOrgId } = useOrganizationContext();
   const [userTimezone, setUserTimezone] = useState<string>("America/New_York");
   const [hostEmail, setHostEmail] = useState<string>("");
   const [tags, setTags] = useState<Tag[]>([]);
@@ -107,8 +107,8 @@ export function useSyncTabState({
         .select("id, name")
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrgId) {
+        query = (query as any).eq("organization_id", activeOrgId);
       }
 
       const { data, error } = await query;

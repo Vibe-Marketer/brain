@@ -24,13 +24,13 @@ import {
 import { toast } from 'sonner';
 import { AppShell } from '@/components/layout/AppShell';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
 import { cn } from '@/lib/utils';
 import { queryKeys } from '@/lib/query-config';
-import type { ChatLocationState } from '@/types/chat';
 
 interface ImportResult {
-  recordingId: number;
+  recordingId: string;
   title: string;
 }
 
@@ -39,14 +39,14 @@ export default function ManualImport() {
   const queryClient = useQueryClient();
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
-  const handleSuccess = useCallback((recordingId: number, title: string) => {
+  const handleSuccess = useCallback((recordingId: string, title: string) => {
     setImportResult({ recordingId, title });
     toast.success('Video imported successfully!', {
       description: title,
     });
-    // Refresh vault list so newly auto-created YouTube vault appears in sidebar
-    queryClient.invalidateQueries({ queryKey: queryKeys.vaults.all });
-    queryClient.invalidateQueries({ queryKey: ['bankContext'] });
+    // Refresh workspace list so newly auto-created YouTube workspace appears in sidebar
+    queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
+    queryClient.invalidateQueries({ queryKey: ['orgContext'] });
   }, [queryClient]);
 
   const handleError = useCallback((error: string) => {
@@ -62,25 +62,11 @@ export default function ManualImport() {
   return (
     <AppShell>
       <div className="h-full flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="flex items-center justify-between px-4 py-3 border-b border-border bg-card/50 flex-shrink-0">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0"
-              aria-hidden="true"
-            >
-              <RiUpload2Line className="h-4 w-4 text-vibe-orange" />
-            </div>
-            <div className="min-w-0">
-              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
-                IMPORT CONTENT
-              </h2>
-              <p className="text-xs text-ink-muted">
-                Import videos from YouTube to analyze with AI
-              </p>
-            </div>
-          </div>
-        </header>
+        <PageHeader 
+          title="IMPORT CONTENT"
+          subtitle="Import videos from YouTube to analyze with AI"
+          icon={RiUpload2Line}
+        />
 
         {/* Main content area */}
         <div className="flex-1 overflow-auto">
@@ -125,35 +111,7 @@ export default function ManualImport() {
                   </Button>
                 </div>
 
-                {/* Quick link to chat */}
-                <div className="text-center pt-4 border-t border-border">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    Or ask AI about this video
-                  </p>
-                  <Button
-                    variant="ghost"
-                    asChild
-                    className="text-vibe-orange hover:text-vibe-orange/80"
-                  >
-                    <Link
-                      to="/chat"
-                      state={{
-                        initialContext: [{
-                          type: 'call',
-                          id: importResult.recordingId,
-                          title: importResult.title,
-                          date: new Date().toISOString(),
-                        }],
-                        callTitle: importResult.title,
-                        newSession: true,
-                      } satisfies ChatLocationState}
-                    >
-                      Open AI Chat
-                      <RiExternalLinkLine className="w-3.5 h-3.5 ml-1.5" />
-                    </Link>
-                  </Button>
                 </div>
-              </div>
             ) : (
               /* Import form */
               <div className="space-y-6">

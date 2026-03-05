@@ -37,8 +37,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/query-config";
 import { groupTranscriptsBySpeaker } from "@/lib/transcriptUtils";
-import { Meeting, TranscriptSegmentDisplay, Speaker, Category } from "@/types";
+import { TranscriptSegmentDisplay, Speaker, Category } from "@/types";
 import { logger } from "@/lib/logger";
+import { getRecordingByLegacyId } from "@/services/recordings.service";
+import { getRawCallData } from "@/services/raw-calls.service";
+import type { RecordingDetail } from "@/services/recordings.service";
+import type { FathomRawCall } from "@/types/raw-calls";
 
 interface CallDetailPanelProps {
   recordingId: number;
@@ -49,25 +53,30 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
   const { user } = useAuth();
   const { closePanel, togglePin, isPinned } = usePanelStore();
 
-  // Fetch call data
+  // Fetch canonical recording from recordings table
   const { data: call, isLoading: isLoadingCall } = useQuery({
     queryKey: queryKeys.calls.detail(recordingId),
     queryFn: async () => {
       if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from("fathom_calls")
-        .select("*")
-        .eq("recording_id", recordingId)
-        .eq("user_id", user.id)
-        .single();
-      if (error) {
-        logger.error("Failed to fetch call:", error);
-        throw error;
-      }
-      return data as Meeting;
+      return getRecordingByLegacyId(recordingId);
     },
     enabled: !!user?.id && !!recordingId,
   });
+
+  // Fetch source-specific raw data
+  const { data: rawData } = useQuery({
+    queryKey: call?.source_app
+      ? queryKeys.rawCalls[call.source_app as keyof typeof queryKeys.rawCalls]?.(call.id) ?? ['raw-calls', call.source_app, call.id]
+      : ['raw-calls', 'none'],
+    queryFn: async () => {
+      if (!call) return null;
+      return getRawCallData(call.id, call.source_app);
+    },
+    enabled: !!call?.id && !!call?.source_app,
+  });
+
+  // Cast raw data for source-specific fields
+  const fathomRaw = call?.source_app === 'fathom' ? (rawData as FathomRawCall | null) : null;
 
   // Fetch user settings for host email
   const { data: userSettings } = useQuery({
@@ -91,25 +100,16 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
     queryFn: async () => {
       if (!call || !user?.id) return [];
 
-      // PRIMARY METHOD: Parse from full_transcript field
-      const { data: callData, error: callError } = await supabase
-        .from("fathom_calls")
-        .select("full_transcript")
-        .eq("recording_id", recordingId)
-        .eq("user_id", user.id)
-        .single();
+      // PRIMARY METHOD: Parse from canonical recordings.full_transcript
+      const transcript = call.full_transcript;
 
-      if (callError) {
-        logger.error("Error fetching full_transcript", callError);
-      }
-
-      if (callData?.full_transcript) {
+      if (transcript) {
         const segmentRegex = /\[(\d{2}:\d{2}:\d{2})\]\s+([^:]+):\s+([^\n]+)/g;
         const segments: TranscriptSegmentDisplay[] = [];
         let match;
         let segmentIndex = 0;
 
-        while ((match = segmentRegex.exec(callData.full_transcript)) !== null) {
+        while ((match = segmentRegex.exec(transcript)) !== null) {
           segments.push({
             id: `parsed-${segmentIndex}`,
             recording_id: recordingId,
@@ -133,52 +133,79 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
         return segments;
       }
 
-      // Fallback: fetch from fathom_transcripts
-      const { data, error } = await supabase
-        .from("fathom_transcripts")
-        .select("*")
-        .eq("recording_id", recordingId)
-        .eq("user_id", user.id)
-        .order("timestamp")
-        .limit(1000);
+      // Fallback: fetch from fathom_transcripts (for Fathom-sourced calls)
+      if (call.source_app === 'fathom' && call.legacy_recording_id) {
+        const { data, error } = await supabase
+          .from("fathom_transcripts")
+          .select("*")
+          .eq("recording_id", call.legacy_recording_id)
+          .eq("user_id", user.id)
+          .order("timestamp")
+          .limit(1000);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      return (data || []).map((t): TranscriptSegmentDisplay => ({
-        ...t,
-        display_text: t.edited_text || t.text,
-        display_speaker_name: t.edited_speaker_name || t.speaker_name,
-        display_speaker_email: t.edited_speaker_email || t.speaker_email,
-        has_edits: !!(t.edited_text || t.edited_speaker_name),
-      }));
+        return (data || []).map((t): TranscriptSegmentDisplay => ({
+          ...t,
+          display_text: t.edited_text || t.text,
+          display_speaker_name: t.edited_speaker_name || t.speaker_name,
+          display_speaker_email: t.edited_speaker_email || t.speaker_email,
+          has_edits: !!(t.edited_text || t.edited_speaker_name),
+        }));
+      }
+
+      return [];
     },
     enabled: !!call && !!user?.id,
   });
 
-  // Fetch speakers for this call
+  // Fetch speakers for this call (from fathom_transcripts for Fathom, or from parsed transcript)
   const { data: callSpeakers } = useQuery({
     queryKey: queryKeys.calls.speakers(recordingId),
     queryFn: async () => {
       if (!call || !user?.id) return [];
-      const { data, error } = await supabase
-        .from("fathom_transcripts")
-        .select("speaker_name, speaker_email")
-        .eq("recording_id", recordingId)
-        .eq("user_id", user.id);
 
-      if (error) throw error;
+      // For Fathom calls, query fathom_transcripts for speaker data
+      if (call.source_app === 'fathom' && call.legacy_recording_id) {
+        const { data, error } = await supabase
+          .from("fathom_transcripts")
+          .select("speaker_name, speaker_email")
+          .eq("recording_id", call.legacy_recording_id)
+          .eq("user_id", user.id);
 
-      const speakerMap = new Map<string, string | null>();
-      data?.forEach((t) => {
-        if (!speakerMap.has(t.speaker_name)) {
-          speakerMap.set(t.speaker_name, t.speaker_email || null);
+        if (error) throw error;
+
+        const speakerMap = new Map<string, string | null>();
+        data?.forEach((t) => {
+          if (!speakerMap.has(t.speaker_name)) {
+            speakerMap.set(t.speaker_name, t.speaker_email || null);
+          }
+        });
+
+        return Array.from(speakerMap.entries()).map(([name, email]) => ({
+          speaker_name: name,
+          speaker_email: email,
+        })) as Speaker[];
+      }
+
+      // For other sources, extract speakers from full_transcript
+      if (call.full_transcript) {
+        const speakerMap = new Map<string, null>();
+        const regex = /\[[\d:]+\]\s+([^:]+):/g;
+        let match;
+        while ((match = regex.exec(call.full_transcript)) !== null) {
+          const name = (match[1] || "").trim();
+          if (name && !speakerMap.has(name)) {
+            speakerMap.set(name, null);
+          }
         }
-      });
+        return Array.from(speakerMap.keys()).map((name) => ({
+          speaker_name: name,
+          speaker_email: null,
+        })) as Speaker[];
+      }
 
-      return Array.from(speakerMap.entries()).map(([name, email]) => ({
-        speaker_name: name,
-        speaker_email: email,
-      })) as Speaker[];
+      return [];
     },
     enabled: !!call && !!user?.id,
   });
@@ -223,23 +250,29 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
     return groupTranscriptsBySpeaker(transcripts);
   }, [transcripts]);
 
+  // Derive source-specific fields
+  const shareUrl = fathomRaw?.share_url ?? null;
+  const recordedByName = fathomRaw?.recorded_by_name ?? null;
+  const recordedByEmail = fathomRaw?.recorded_by_email ?? null;
+  const calendarInvitees = fathomRaw?.calendar_invitees ?? null;
+
   // Handle chat with AI navigation
   const handleChatWithAI = () => {
-    if (!call?.recording_id) return;
+    if (!call?.id) return;
     closePanel();
 
     const initialContext = [
       {
         type: "call" as const,
-        id: Number(call.recording_id),
-        title: call.title || `Call ${call.recording_id}`,
+        id: call.legacy_recording_id ?? call.id,
+        title: call.title || `Call ${call.id}`,
         date: call.created_at,
       },
     ];
 
     navigate("/chat", {
       state: {
-        prefilter: { recordingIds: [call.recording_id] },
+        prefilter: { recordingIds: [call.legacy_recording_id ?? call.id] },
         callTitle: call.title,
         initialContext,
         newSession: true,
@@ -249,16 +282,16 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
 
   // Handle copy share link
   const handleCopyLink = () => {
-    if (call?.share_url) {
-      navigator.clipboard.writeText(call.share_url);
+    if (shareUrl) {
+      navigator.clipboard.writeText(shareUrl);
       toast.success("Link copied to clipboard");
     }
   };
 
   // Handle view in Fathom
   const handleViewInFathom = () => {
-    if (call?.share_url) {
-      window.open(call.share_url, "_blank");
+    if (shareUrl) {
+      window.open(shareUrl, "_blank");
     }
   };
 
@@ -306,10 +339,10 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
   // Determine host email for styling
   const hostEmail = (
     userSettings?.host_email ||
-    call.recorded_by_email ||
+    recordedByEmail ||
     ""
   ).toLowerCase();
-  const hostName = (call.recorded_by_name || "").toLowerCase();
+  const hostName = (recordedByName || "").toLowerCase();
 
   return (
     <div
@@ -371,7 +404,7 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
           <RiRobotLine className="h-4 w-4" />
           Chat with AI
         </Button>
-        {call.share_url && (
+        {shareUrl && (
           <>
             <Button
               variant="hollow"
@@ -441,13 +474,13 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
                     <span className="text-xs">Invitees</span>
                   </div>
                   <p className="text-sm font-medium text-ink">
-                    {call.calendar_invitees?.length || 0}
+                    {calendarInvitees?.length || 0}
                   </p>
                 </div>
               </div>
 
               {/* Missing Data Warning */}
-              {(!call.recording_start_time || !call.recording_end_time || !call.share_url) && (
+              {(!call.recording_start_time || !call.recording_end_time || !shareUrl) && (
                 <div className="p-3 bg-cb-warning-bg border border-cb-warning-border rounded-md text-cb-warning-text">
                   <div className="flex gap-2 text-sm">
                     <RiErrorWarningLine className="h-4 w-4 flex-shrink-0 mt-0.5" />
@@ -471,12 +504,12 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
                 </div>
               )}
 
-              {/* Auto Tags */}
-              {call.auto_tags && call.auto_tags.length > 0 && (
+              {/* Global Tags */}
+              {call.global_tags && call.global_tags.length > 0 && (
                 <div className="space-y-2">
-                  <Label className="text-xs font-medium uppercase text-ink-muted">Auto Tags</Label>
+                  <Label className="text-xs font-medium uppercase text-ink-muted">Tags</Label>
                   <div className="flex flex-wrap gap-2">
-                    {call.auto_tags.map((tag: string) => (
+                    {call.global_tags.map((tag: string) => (
                       <Badge key={tag} variant="secondary" className="text-xs">
                         {tag}
                       </Badge>

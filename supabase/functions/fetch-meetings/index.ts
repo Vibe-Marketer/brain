@@ -145,11 +145,17 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
+      console.error('[fetch-meetings] Auth failed:', {
+        error: userError?.message,
+        details: userError,
+        tokenPrefix: token.substring(0, 10)
+      });
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    console.log('[fetch-meetings] Auth success for user:', user.id);
 
     // Get user's Fathom credentials (OAuth or API key) and host_email
     const { data: settings, error: configError } = await supabase

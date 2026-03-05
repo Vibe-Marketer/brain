@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.ts';
+import { runPipeline } from '../_shared/connector-pipeline.ts';
 
 /**
  * YouTube Import Edge Function
@@ -17,7 +17,7 @@ import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.t
 
 interface ImportRequest {
   videoUrl: string;
-  vault_id?: string;
+  workspace_id?: string;
 }
 
 type ImportStep = 'validating' | 'checking' | 'fetching' | 'transcribing' | 'processing' | 'done';
@@ -431,16 +431,16 @@ Deno.serve(async (req) => {
     // ========================================================================
     // Step 0: Ensure YouTube vault exists (auto-create on first import)
     // ========================================================================
-    let youtubeVaultId: string | null = body.vault_id || null;
+    let youtubeVaultId: string | null = body.workspace_id || null;
     let resolvedPersonalBankId: string | null = null;
 
     if (!youtubeVaultId) {
       try {
-        // Find user's personal bank via bank_memberships
+        // Find user's personal bank via organization_memberships
         // Use two separate queries instead of a join to avoid PostgREST join issues
         const { data: bankMemberships, error: bankError } = await supabase
-          .from('bank_memberships')
-          .select('bank_id')
+          .from('organization_memberships')
+          .select('organization_id')
           .eq('user_id', user.id);
 
         if (bankError) {
@@ -448,10 +448,10 @@ Deno.serve(async (req) => {
         }
 
         if (bankMemberships && bankMemberships.length > 0) {
-          // Look up which of these banks is a personal bank
-          const bankIds = bankMemberships.map(bm => bm.bank_id);
+          // Look up which of these organizations is a personal bank
+          const bankIds = bankMemberships.map(bm => bm.organization_id);
           const { data: personalBank, error: personalBankError } = await supabase
-            .from('banks')
+            .from('organizations')
             .select('id')
             .in('id', bankIds)
             .eq('type', 'personal')
@@ -472,10 +472,10 @@ Deno.serve(async (req) => {
         if (personalBankId) {
           // Check for existing YouTube vault in that bank
           const { data: existingVault, error: vaultCheckError } = await supabase
-            .from('vaults')
+            .from('workspaces')
             .select('id')
-            .eq('bank_id', personalBankId)
-            .eq('vault_type', 'youtube')
+            .eq('organization_id', personalBankId)
+            .eq('workspace_type', 'youtube')
             .maybeSingle();
 
           if (vaultCheckError) {
@@ -488,11 +488,11 @@ Deno.serve(async (req) => {
           } else {
             // Create YouTube vault
             const { data: newVault, error: createVaultError } = await supabase
-              .from('vaults')
+              .from('workspaces')
               .insert({
-                bank_id: personalBankId,
+                organization_id: personalBankId,
                 name: 'YouTube Vault',
-                vault_type: 'youtube',
+                workspace_type: 'youtube',
               })
               .select('id')
               .single();
@@ -503,13 +503,13 @@ Deno.serve(async (req) => {
               youtubeVaultId = newVault.id;
               console.log(`Created YouTube vault: ${youtubeVaultId}`);
 
-              // Create vault_membership for user as vault_owner
+              // Create vault_membership for user as workspace_owner
               const { error: membershipError } = await supabase
-                .from('vault_memberships')
+                .from('workspace_memberships')
                 .insert({
-                  vault_id: newVault.id,
+                  workspace_id: newVault.id,
                   user_id: user.id,
-                  role: 'vault_owner',
+                  role: 'workspace_owner',
                 });
 
               if (membershipError) {
@@ -541,24 +541,6 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Extracted video ID: ${videoId}`);
-
-    // ========================================================================
-    // Step 2: Check for duplicate import (Stage 3 — shared pipeline dedup)
-    // ========================================================================
-    const { isDuplicate, existingRecordingId } = await checkDuplicate(supabase, user.id, 'youtube', videoId);
-
-    if (isDuplicate) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          step: 'checking' as ImportStep,
-          error: 'Video already imported',
-          exists: true,
-          recordingId: existingRecordingId,
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
 
     const youtubeApiHeaders = {
       'Content-Type': 'application/json',
@@ -680,18 +662,6 @@ Deno.serve(async (req) => {
 
     console.log(`Fetched transcript: ${transcriptText.length} characters`);
 
-    // ========================================================================
-    // Step 5: Insert recording via shared pipeline (Stage 5 — dedup + insert)
-    // ========================================================================
-
-    // Parse publishedAt date for recording_start_time
-    const publishedAt = videoDetails.publishedAt
-      ? new Date(videoDetails.publishedAt).toISOString()
-      : new Date().toISOString();
-
-    // Parse duration to seconds for recordings table
-    const durationSeconds = parseDurationToSeconds(videoDetails.duration);
-
     // Build source_metadata (external_id merged as first key by insertRecording)
     const sourceMetadata = {
       youtube_channel_id: videoDetails.channelId,
@@ -703,34 +673,89 @@ Deno.serve(async (req) => {
       youtube_like_count: videoDetails.likeCount,
       youtube_comment_count: videoDetails.commentCount || null,
       youtube_category_id: videoDetails.categoryId || null,
-      import_source: 'youtube-import',
-      imported_at: new Date().toISOString(),
     };
 
-    let newRecordingId: string;
+    // Parse publishedAt date for recording_start_time
+    const publishedAt = videoDetails.publishedAt
+      ? new Date(videoDetails.publishedAt).toISOString()
+      : new Date().toISOString();
+
+    // Parse duration to seconds for recordings table
+    const durationSeconds = parseDurationToSeconds(videoDetails.duration);
+
+    // Build the finalized metadata object for the connector-pipeline
+    const finalizedSourceMetadata = {
+      ...sourceMetadata,
+      youtube_metadata_fetch_success: !!videoDetails,
+      import_source: 'youtube-import',
+      synced_at: new Date().toISOString(),
+    };
+
+    // Stage 5 — Run through pipeline (Dedup -> Routing -> Insert)
+    const result = await runPipeline(supabase, user.id, {
+      external_id: videoId,
+      source_app: 'youtube',
+      title: videoDetails.title,
+      full_transcript: transcriptText,
+      recording_start_time: publishedAt,
+      duration: durationSeconds || undefined,
+      source_metadata: finalizedSourceMetadata,
+      // Target workspace from request OR fallback to YouTube vault if auto-created,
+      // but only if NO routing rules match (handled by runPipeline if we pass it as a default?)
+      // Actually runPipeline only resolves routing if workspace_id is MISSING.
+      // If we want routing to take priority over 'YouTube Vault' default, we should pass NULL
+      // and let runPipeline find the 'YouTube Vault' if no rules match. 
+      // But runPipeline doesn't know about YouTube Vault specifically.
+      workspace_id: body.workspace_id || youtubeVaultId || undefined,
+    });
+
+    if (!result.success) {
+      if (result.skipped) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            step: 'checking' as ImportStep,
+            error: 'Video already imported',
+            exists: true,
+            recordingId: result.recordingId,
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      throw new Error(result.error || 'Pipeline failed');
+    }
+
+    const newRecordingId = result.recordingId;
+    console.log(`Successfully imported YouTube video ${videoId} as recording ${newRecordingId}`);
+
+    // Write to youtube_raw_calls for source-specific detail
     try {
-      const result = await insertRecording(supabase, user.id, {
-        external_id: videoId,
-        source_app: 'youtube',
-        title: videoDetails.title,
-        full_transcript: transcriptText,
-        recording_start_time: publishedAt,
-        duration: durationSeconds ?? undefined,
-        source_metadata: sourceMetadata,
-        vault_id: youtubeVaultId ?? undefined,
-      });
-      newRecordingId = result.id;
-      console.log(`Successfully imported YouTube video as recording UUID: ${newRecordingId}`);
-    } catch (pipelineError) {
-      console.error('Error inserting recording via pipeline:', pipelineError);
-      return new Response(
-        JSON.stringify({
-          success: false,
-          step: 'processing' as ImportStep,
-          error: 'Failed to save video import',
-        }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const { error: rawError } = await supabase
+        .from('youtube_raw_calls')
+        .insert({
+          recording_id: newRecordingId,
+          user_id: user.id,
+          youtube_video_id: videoId,
+          youtube_channel_id: videoDetails.channelId || null,
+          youtube_channel_title: videoDetails.channelTitle || null,
+          youtube_description: (videoDetails.description || '').substring(0, 1000),
+          youtube_thumbnail: videoDetails.thumbnails?.high?.url || videoDetails.thumbnails?.default?.url || null,
+          youtube_duration: videoDetails.duration || null,
+          youtube_category_id: videoDetails.categoryId || null,
+          youtube_published_at: videoDetails.publishedAt || null,
+          youtube_view_count: videoDetails.viewCount || null,
+          youtube_like_count: videoDetails.likeCount || null,
+          youtube_comment_count: videoDetails.commentCount || null,
+          import_source: 'youtube-import',
+          full_transcript: transcriptText,
+          raw_payload: transcriptData,
+        });
+
+      if (rawError) {
+        console.error(`Error inserting youtube_raw_calls for ${videoId} (non-blocking):`, rawError);
+      }
+    } catch (rawErr) {
+      console.error(`Error writing youtube_raw_calls for ${videoId} (non-blocking):`, rawErr);
     }
 
     // ========================================================================

@@ -1,30 +1,14 @@
 /**
- * Folder type definitions - Single source of truth
- * Fields match Supabase schema (snake_case)
+ * Folder type definitions - Unified with Workspace Redesign (Phase 16)
+ *
+ * This file now re-exports the Folder interface from workspace.ts to ensure
+ * a single source of truth across V1 and V2 components.
  */
 
-export interface Folder {
-  id: string;
-  user_id: string;
-  bank_id: string;
-  name: string;
-  description: string | null;
-  color: string;
-  icon: string;
-  parent_id: string | null;
-  position: number;
-  created_at: string;
-  updated_at: string;
-}
+export type { Folder, FolderAssignment } from './workspace'
 
 // Extended type for UI components that need depth calculation
-export interface FolderWithDepth extends Folder {
+import type { Folder as BaseFolder } from './workspace'
+export interface FolderWithDepth extends BaseFolder {
   depth?: number;
-}
-
-// For folder assignment records
-export interface FolderAssignment {
-  folder_id: string;
-  call_recording_id: number;
-  assigned_at: string;
 }

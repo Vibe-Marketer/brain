@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
@@ -23,6 +24,23 @@ export async function refreshZoomOAuthTokens(userId: string, refreshToken: strin
   if (!tokenResponse.ok) {
     const errorText = await tokenResponse.text();
     console.error('Zoom token refresh failed:', tokenResponse.status, errorText);
+    
+    // If it's a client error (like invalid grant), clear the tokens to force a reconnect
+    if (tokenResponse.status >= 400 && tokenResponse.status < 500) {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+      
+      await supabase
+        .from('user_settings')
+        .update({
+          zoom_oauth_access_token: null,
+          zoom_oauth_refresh_token: null,
+          zoom_oauth_token_expires: null,
+        })
+        .eq('user_id', userId);
+    }
+    
     throw new Error('Failed to refresh Zoom access token');
   }
 

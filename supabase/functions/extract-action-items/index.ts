@@ -166,7 +166,7 @@ Deno.serve(async (req) => {
 
     // Fetch the call - verify user ownership
     const { data: call, error: callError } = await supabase
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .select('recording_id, title, full_transcript')
       .eq('recording_id', recording_id)
       .eq('user_id', user.id)

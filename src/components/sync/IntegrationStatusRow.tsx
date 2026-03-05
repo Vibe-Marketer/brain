@@ -9,7 +9,7 @@ import {
 import { cn } from "@/lib/utils";
 import { type IntegrationStatus } from "@/hooks/useIntegrationSync";
 import { formatDistanceToNow } from "date-fns";
-import { FathomIcon, GoogleMeetIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
+import { FathomIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 
 interface IntegrationStatusRowProps {
   integration: IntegrationStatus;
@@ -21,13 +21,11 @@ interface IntegrationStatusRowProps {
 
 const platformIcons = {
   fathom: FathomIcon,
-  google_meet: GoogleMeetIcon,
   zoom: ZoomIcon,
 };
 
 const platformNames = {
   fathom: "Fathom",
-  google_meet: "Google Meet (Beta)",
   zoom: "Zoom",
 };
 

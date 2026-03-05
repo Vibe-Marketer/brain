@@ -10,7 +10,10 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { getYouTubeMetadata } from '@/types/youtube'
 import { parseYouTubeDuration } from '@/lib/youtube-utils'
-import type { VaultRecording } from '@/hooks/useVaults'
+import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
+
+/** Alias for backward compatibility */
+type WorkspaceRecording = WorkspaceRecording
 
 /** YouTube-specific sort fields */
 export type YouTubeSortField = 'date' | 'views' | 'likes' | 'duration' | 'title'
@@ -20,7 +23,7 @@ export type SortOrder = 'asc' | 'desc'
 
 /** Hook options */
 export interface UseYouTubeSearchOptions {
-  recordings: VaultRecording[]
+  recordings: WorkspaceRecording[]
 }
 
 /** Hook return type */
@@ -44,7 +47,7 @@ export interface UseYouTubeSearchReturn {
   /** Whether any filter is active */
   hasActiveFilters: boolean
   /** Filtered and sorted recordings */
-  filteredRecordings: VaultRecording[]
+  filteredRecordings: WorkspaceRecording[]
   /** Total count before filtering */
   totalCount: number
   /** Count after filtering */
@@ -76,7 +79,7 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 /**
  * Get the published date timestamp for a recording (for tie-breaking)
  */
-function getPublishedTimestamp(recording: VaultRecording): number {
+function getPublishedTimestamp(recording: WorkspaceRecording): number {
   const dateStr = recording.recording_start_time || recording.created_at
   return new Date(dateStr).getTime()
 }
@@ -84,7 +87,7 @@ function getPublishedTimestamp(recording: VaultRecording): number {
 /**
  * useYouTubeSearch - YouTube-specific search/sort extending useRecordingSearch pattern
  *
- * @param options.recordings - Source recordings array from useVaultRecordings
+ * @param options.recordings - Source recordings array from useWorkspaceRecordings
  * @returns Search/filter state + filtered results with YouTube-specific sort fields
  */
 export function useYouTubeSearch({ recordings }: UseYouTubeSearchOptions): UseYouTubeSearchReturn {

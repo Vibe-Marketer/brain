@@ -1,5 +1,14 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { useFolders, type Folder } from "@/hooks/useFolders";
+import {
+  useFolders,
+  useFolderAssignments,
+  useDeleteFolder,
+  useRenameFolder,
+  useCreateFolder,
+} from "@/hooks/useFolders";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import type { Folder } from "@/types/workspace";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Table,
   TableBody,
@@ -11,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RiAddLine, RiDeleteBinLine, RiFolderLine, RiPencilLine, RiFileCopyLine, RiLoader4Line } from "@remixicon/react";
-import { isEmojiIcon, getIconComponent } from "@/lib/folder-icons";
+import { getIconComponent } from "@/lib/folder-icons";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import {
   AlertDialog,
@@ -37,7 +46,29 @@ import { useListKeyboardNavigationWithState } from "@/hooks/useListKeyboardNavig
 import { useVirtualTable } from "@/hooks/useVirtualList";
 
 export function FoldersTab() {
-  const { folders, folderAssignments, deleteFolder, updateFolder, createFolder, isLoading, refetch } = useFolders();
+  const { activeOrgId, activeWorkspaceId } = useOrganizationContext();
+  const { user } = useAuth();
+  const { data: folders = [], isLoading, refetch } = useFolders(activeWorkspaceId);
+  const { data: folderAssignments = {} } = useFolderAssignments(activeWorkspaceId);
+  const { mutateAsync: deleteFolder } = useDeleteFolder();
+  const { mutateAsync: updateFolderMutation } = useRenameFolder();
+  const { mutateAsync: createFolderMutation } = useCreateFolder();
+
+  const updateFolder = async (id: string, data: { name: string }) => {
+    return updateFolderMutation({ folderId: id, name: data.name });
+  };
+
+  const createFolder = async (name: string, parentId?: string, color?: string, icon?: string, description?: string) => {
+    if (!user || !activeWorkspaceId || !activeOrgId) return;
+    return createFolderMutation({
+      workspaceId: activeWorkspaceId,
+      organizationId: activeOrgId,
+      userId: user.id,
+      name,
+      parentFolderId: parentId
+    });
+  };
+
   const { openPanel, panelData, panelType } = usePanelStore();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteConfirmFolder, setDeleteConfirmFolder] = useState<Folder | null>(null);
@@ -251,7 +282,6 @@ export function FoldersTab() {
   const renderFolderRow = (folder: Folder): React.ReactNode => {
     const depth = depthMap[folder.id] || 0;
     const FolderIcon = getIconComponent(folder.icon);
-    const isEmoji = isEmojiIcon(folder.icon);
     const isSelected = selectedFolderId === folder.id;
     const isFocused = focusedId === folder.id;
     const isEditing = editingFolderId === folder.id;
@@ -276,9 +306,7 @@ export function FoldersTab() {
           >
             <TableCell style={{ paddingLeft: `${depth * 24 + 16}px` }}>
                 <div className="flex items-center gap-2">
-                  {isEmoji ? (
-                    <span className="text-base">{folder.icon}</span>
-                  ) : FolderIcon ? (
+                  {FolderIcon ? (
                     <FolderIcon className="h-4 w-4" style={{ color: folder.color }} />
                   ) : (
                     <RiFolderLine className="h-4 w-4" style={{ color: folder.color }} />

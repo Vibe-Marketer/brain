@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,7 +28,7 @@ export default function QuickCreateTagDialog({
   onOpenChange,
   onTagCreated,
 }: QuickCreateTagDialogProps) {
-  const { activeBankId } = useBankContext();
+  const { activeOrganizationId } = useOrganizationContext();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -48,7 +48,7 @@ export default function QuickCreateTagDialog({
         return;
       }
 
-      if (!activeBankId) {
+      if (!activeOrganizationId) {
         toast.error("No active workspace selected");
         return;
       }
@@ -58,7 +58,7 @@ export default function QuickCreateTagDialog({
         .insert({
           name: validation.data.name,
           user_id: user.id,
-          bank_id: activeBankId,
+          organization_id: activeOrganizationId,
         })
         .select()
         .single();

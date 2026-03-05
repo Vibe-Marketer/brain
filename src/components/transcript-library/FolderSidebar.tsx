@@ -29,11 +29,13 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
 import { cn } from '@/lib/utils';
-import type { Folder } from '@/hooks/useFolders';
+import type { Folder } from '@/types/folders';
 
 // Import shared utilities from centralized location
-import { isEmojiIcon, getIconComponent } from '@/components/ui/icon-emoji-picker';
+import { getIconComponent } from "@/lib/folder-icons";
 import type { AllTranscriptsSettings } from '@/hooks/useAllTranscriptsSettings';
+import { useOrgContext } from '@/hooks/useOrgContext';
+import { RiSafeLine, RiLockLine, RiTeamLine, RiCommunityLine, RiBriefcaseLine } from '@remixicon/react';
 
 interface FolderSidebarProps {
   folders: Folder[];
@@ -48,10 +50,10 @@ interface FolderSidebarProps {
   isDragging?: boolean;
   isLoading?: boolean;
   isCollapsed?: boolean;
-  // All Transcripts customization
+  // Home customization
   allTranscriptsSettings?: AllTranscriptsSettings;
   onEditAllTranscripts?: () => void;
-  // Hidden folders (excluded from All Transcripts view)
+  // Hidden folders (excluded from Home view)
   hiddenFolders?: Set<string>;
   onToggleHidden?: (folderId: string) => void;
 }
@@ -113,7 +115,6 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
 
   // Get the appropriate icon for this folder
   const FolderIcon = getIconComponent(folder.icon);
-  const folderIsEmoji = isEmojiIcon(folder.icon);
 
   // Folder row content (shared between context menu and regular view)
   const folderRowContent = (
@@ -165,9 +166,7 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
 
       {/* Folder Icon - use custom icon or emoji if set */}
       {/* Emojis and custom icons don't change on selection; default folder uses fill variant when selected */}
-      {folderIsEmoji ? (
-        <span className="text-base flex-shrink-0 mr-2">{folder.icon}</span>
-      ) : FolderIcon ? (
+      {FolderIcon ? (
         <FolderIcon
           className="h-4 w-4 flex-shrink-0 mr-2"
           style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
@@ -216,8 +215,8 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
                   ? "text-vibe-orange bg-vibe-orange/10 hover:bg-vibe-orange/20"
                   : "text-ink-muted hover:bg-cb-border/50 hover:text-ink"
               )}
-              aria-label={isHidden ? `Show ${folder.name} in All Transcripts` : `Hide ${folder.name} from All Transcripts`}
-              title={isHidden ? "Click to show in All Transcripts" : "Click to hide from All Transcripts"}
+              aria-label={isHidden ? `Show ${folder.name} in Home` : `Hide ${folder.name} from Home`}
+              title={isHidden ? "Click to show in Home" : "Click to hide from Home"}
             >
               {/* When hidden: show eye (click to reveal), when visible: show eye-off (click to hide) */}
               {isHidden ? <RiEyeLine className="h-3.5 w-3.5" /> : <RiEyeOffLine className="h-3.5 w-3.5" />}
@@ -366,6 +365,9 @@ export function FolderSidebar({
   hiddenFolders,
   onToggleHidden,
 }: FolderSidebarProps) {
+  const { activeWorkspaceId, workspaces, activeOrg } = useOrgContext();
+  const activeWorkspace = React.useMemo(() => workspaces.find(w => w.id === activeWorkspaceId), [workspaces, activeWorkspaceId]);
+  
   const [expandedFolders, setExpandedFolders] = React.useState<Set<string>>(new Set());
   const [focusedIndex, setFocusedIndex] = React.useState<number>(-1);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -492,10 +494,9 @@ export function FolderSidebar({
 
   // Collapsed view - icons only
   if (isCollapsed) {
-    // Get All Transcripts icon info
-    const allIcon = allTranscriptsSettings?.icon || 'file-text';
-    const allIsEmoji = isEmojiIcon(allIcon);
-    const AllIconComponent = getIconComponent(allIcon);
+    // Get Home icon info
+    const allIconName = allTranscriptsSettings?.icon || 'file-text';
+    const AllIconComponent = getIconComponent(allIconName);
 
     return (
       <TooltipProvider delayDuration={300}>
@@ -503,7 +504,7 @@ export function FolderSidebar({
           className="h-full flex flex-col items-center py-2"
           data-component="FOLDER-SIDEBAR-COLLAPSED"
         >
-          {/* All Transcripts icon */}
+          {/* Home icon */}
           <button
             type="button"
             onClick={() => onSelectFolder(null)}
@@ -511,11 +512,9 @@ export function FolderSidebar({
               'w-9 h-9 flex items-center justify-center rounded-lg mb-1 transition-colors',
               selectedFolderId === null ? 'bg-hover' : 'hover:bg-hover/50'
             )}
-            title={allTranscriptsSettings?.name || 'All Transcripts'}
+            title={allTranscriptsSettings?.name || 'Home'}
           >
-            {allIsEmoji ? (
-              <span className="text-base">{allIcon}</span>
-            ) : AllIconComponent ? (
+            {AllIconComponent ? (
               <AllIconComponent className="h-4 w-4 text-ink-muted" />
             ) : (
               <RiFileTextLine className="h-4 w-4 text-ink-muted" />
@@ -530,7 +529,6 @@ export function FolderSidebar({
             <div className="flex flex-col items-center gap-0.5 px-1">
               {filteredRootFolders.map((folder) => {
                 const FolderIcon = getIconComponent(folder.icon);
-                const folderIsEmoji = isEmojiIcon(folder.icon);
                 const isSelected = selectedFolderId === folder.id;
                 const isHidden = hiddenFolders?.has(folder.id) ?? false;
 
@@ -546,10 +544,8 @@ export function FolderSidebar({
                     )}
                     title={isHidden ? `${folder.name} (hidden)` : folder.name}
                   >
-                    {/* Emojis and custom icons don't change on selection; default folder uses fill variant when selected */}
-                    {folderIsEmoji ? (
-                      <span className="text-base">{folder.icon}</span>
-                    ) : FolderIcon ? (
+                    {/* Custom icons don't change on selection; default folder uses fill variant when selected */}
+                    {FolderIcon ? (
                       <FolderIcon
                         className="h-4 w-4"
                         style={{ color: folder.color || '#6B7280' }}
@@ -630,45 +626,87 @@ export function FolderSidebar({
         role="listbox"
         aria-label="Folder navigation"
       >
-        {/* Header - standardized pattern matching other category panes */}
-        <header className="flex items-center gap-3 px-4 py-3 border-b border-border bg-card/50">
-          <div
-            className="w-8 h-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 text-vibe-orange"
-            aria-hidden="true"
-          >
-            <RiFolderLine className="h-5 w-5" />
+        {/* Header - aligned with Workspace architecture */}
+        <header className="flex-shrink-0 border-b border-border/40 bg-card/60 backdrop-blur-md">
+          <div className="px-4 py-4 space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-3 min-w-0" id="library-pane-title">
+                <div className="w-9 h-9 rounded-xl bg-vibe-orange/10 flex items-center justify-center flex-shrink-0 shadow-sm border border-vibe-orange/20" aria-hidden="true">
+                  <RiFolderLine className="h-5 w-5 text-vibe-orange" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h2 className="text-[11px] font-black text-ink uppercase tracking-[0.15em] leading-none mb-1">Library</h2>
+                  <p className="text-[10px] font-medium text-ink-muted uppercase tracking-wider">
+                    {folders.length} {folders.length === 1 ? 'folder' : 'folders'}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                {/* Search toggle button - only shown when >10 folders */}
+                {folders.length > 10 && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={cn(
+                      "h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all",
+                      isSearchVisible && "bg-hover text-ink"
+                    )}
+                    onClick={handleToggleSearch}
+                    aria-label={isSearchVisible ? "Close search" : "Search folders"}
+                    aria-expanded={isSearchVisible}
+                    title={isSearchVisible ? "Close search" : "Search folders"}
+                  >
+                    {isSearchVisible ? (
+                      <RiCloseLine className="h-4 w-4" />
+                    ) : (
+                      <RiSearchLine className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all" 
+                  onClick={onNewFolder} 
+                  aria-label="New folder"
+                  title="New Folder"
+                >
+                  <RiAddLine className="h-4.5 w-4.5" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Current Workspace display */}
+            <div className="p-3 rounded-2xl bg-white/40 dark:bg-black/20 border border-white/60 dark:border-white/5 shadow-sm space-y-3">
+              <div className="min-w-0 px-0.5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <div className={cn(
+                    "w-1.5 h-1.5 rounded-full shadow-[0_0_8px]",
+                    activeWorkspace?.workspace_type === 'personal' ? "bg-info-text shadow-info-text/50" : "bg-success-text shadow-success-text/50"
+                  )} />
+                  <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/80 truncate">
+                    {activeOrg?.name || 'Organization'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 pl-0.5">
+                  {activeWorkspace?.workspace_type === 'personal' ? (
+                    <RiLockLine className="h-4 w-4 text-muted-foreground shrink-0" />
+                  ) : activeWorkspace?.workspace_type === 'team' ? (
+                    <RiTeamLine className="h-4 w-4 text-muted-foreground shrink-0" />
+                  ) : activeWorkspace?.workspace_type === 'coach' ? (
+                    <RiBriefcaseLine className="h-4 w-4 text-muted-foreground shrink-0" />
+                  ) : activeWorkspace?.workspace_type === 'community' ? (
+                    <RiCommunityLine className="h-4 w-4 text-muted-foreground shrink-0" />
+                  ) : (
+                    <RiSafeLine className="h-4 w-4 text-muted-foreground shrink-0" />
+                  )}
+                  <p className="text-sm font-display font-black uppercase tracking-wider text-foreground truncate">
+                    {activeWorkspace?.name || 'Workspace'}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-sm font-semibold text-ink uppercase tracking-wide">
-              Library
-            </h2>
-            <p className="text-xs text-ink-muted">
-              {folders.length} {folders.length === 1 ? 'folder' : 'folders'}
-            </p>
-          </div>
-          {/* Search toggle button - only shown when >10 folders */}
-          {folders.length > 10 && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "h-6 w-6 flex-shrink-0 transition-colors",
-                isSearchVisible && "bg-hover text-ink"
-              )}
-              onClick={handleToggleSearch}
-              aria-label={isSearchVisible ? "Close search" : "Search folders"}
-              aria-expanded={isSearchVisible}
-            >
-              {isSearchVisible ? (
-                <RiCloseLine className="h-4 w-4" />
-              ) : (
-                <RiSearchLine className="h-4 w-4" />
-              )}
-            </Button>
-          )}
-          <Button variant="ghost" size="icon" className="h-6 w-6 flex-shrink-0" onClick={onNewFolder} aria-label="New folder">
-            <RiAddLine className="h-4 w-4" />
-          </Button>
         </header>
 
         {/* Search input - hidden by default, toggleable via search icon */}
@@ -698,13 +736,12 @@ export function FolderSidebar({
             <FolderSidebarSkeleton />
           ) : (
             <div className="p-2 space-y-0.5 overflow-hidden">
-            {/* All Transcripts - shows ALL transcripts (primary view) */}
+            {/* Home - shows ALL transcripts (primary view) */}
             {(() => {
-              // Determine icon to display for All Transcripts
-              const allIcon = allTranscriptsSettings?.icon || 'file-text';
-              const allName = allTranscriptsSettings?.name || 'All Transcripts';
-              const allIsEmoji = isEmojiIcon(allIcon);
-              const AllIconComponent = getIconComponent(allIcon);
+              // Determine icon to display for Home
+              const allIconName = allTranscriptsSettings?.icon || 'file-text';
+              const allName = allTranscriptsSettings?.name || 'Home';
+              const AllIconComponent = getIconComponent(allIconName);
 
               const allTranscriptsContent = (
                 <div
@@ -728,9 +765,7 @@ export function FolderSidebar({
                     aria-hidden="true"
                   />
                   <div className="w-6 flex-shrink-0" />
-                  {allIsEmoji ? (
-                    <span className="text-base flex-shrink-0 mr-2">{allIcon}</span>
-                  ) : AllIconComponent ? (
+                  {AllIconComponent ? (
                     <AllIconComponent className="h-4 w-4 flex-shrink-0 mr-2 text-ink-muted" />
                   ) : (
                     <RiFileTextLine className="h-4 w-4 flex-shrink-0 mr-2 text-ink-muted" />
@@ -753,7 +788,7 @@ export function FolderSidebar({
                           onEditAllTranscripts();
                         }}
                         className="h-6 w-6 flex items-center justify-center rounded hover:bg-cb-border/50 text-ink-muted hover:text-ink"
-                        aria-label="Customize All Transcripts"
+                        aria-label="Customize Home"
                       >
                         <RiPaletteLine className="h-3.5 w-3.5" />
                       </button>

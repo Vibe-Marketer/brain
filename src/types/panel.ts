@@ -21,7 +21,7 @@ export type PanelType =
   | 'sorting'
   | 'user-detail'
   | 'bulk-actions'
-  | 'vault-member'
+  | 'workspace-member'
   | 'automation-rule'
   | null;
 
@@ -35,7 +35,19 @@ export type PanelData =
   | { type: 'tag-detail'; tagId: string }
   | { type: 'user-detail'; userId: string; onUserUpdated?: () => void }
   | { type: 'workspace-detail'; workspaceId: string }
-  | { type: 'bulk-actions'; selectedIds: string[] }
+  | { 
+      type: 'bulk-actions';
+      selectedIds: string[];
+      selectedCalls?: any[];
+      tags?: any[];
+      onClearSelection?: () => void;
+      onDelete?: () => void;
+      onTag?: (tagId: string) => void;
+      onRemoveTag?: () => void;
+      onCreateNewTag?: () => void;
+      onAssignFolder?: () => void;
+      deleteLabel?: string;
+    }
   | { type: 'setting-help'; topic?: string }
   | { type: 'settings'; tab?: string }
   | { type: 'insight-detail'; insightId: string }
@@ -43,7 +55,7 @@ export type PanelData =
   | { type: 'ai-assistant' }
   | { type: 'inspector' }
   | { type: 'sorting' }
-  | { type: 'vault-member'; vaultId: string }
+  | { type: 'workspace-member'; workspaceId: string }
   | { type: 'automation-rule'; ruleId: string }
   | null;
 

@@ -1,7 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { FathomClient } from '../_shared/fathom-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { checkDuplicate, insertRecording } from '../_shared/connector-pipeline.ts';
+import { runPipeline } from '../_shared/connector-pipeline.ts';
 
 // Rate limiter for API calls - conservative to avoid 429 errors
 class RateLimiter {
@@ -59,13 +59,8 @@ async function syncMeeting(
   try {
     console.log(`Syncing meeting ${recordingId}: ${meeting.title}`);
 
-    // Stage 3 — Dedup check via shared pipeline (Fathom recording IDs are numeric)
+    // Build external ID
     const externalId = String(recordingId);
-    const { isDuplicate } = await checkDuplicate(supabase, userId, 'fathom', externalId);
-    if (isDuplicate) {
-      console.log(`Fathom meeting ${recordingId} already exists — skipping`);
-      return 'skipped';
-    }
 
     // Build full transcript text with consolidated speaker turns
     const transcript = meeting.transcript || [];
@@ -105,7 +100,7 @@ async function syncMeeting(
     const fullTranscript = consolidatedSegments.join('\n\n');
 
     // Extract summary
-    const summary = meeting.default_summary?.markdown_formatted || null;
+    const summaryText = meeting.default_summary?.markdown_formatted || null;
 
     // Calculate duration from start/end times
     const startTime = new Date(meeting.recording_start_time);
@@ -118,7 +113,7 @@ async function syncMeeting(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const participantEmails = (meeting.calendar_invitees || []).map((inv: any) => inv.email).filter(Boolean);
 
-    // Build source_metadata (external_id merged as first key by insertRecording)
+    // Build source_metadata
     const sourceMetadata = {
       fathom_call_id: recordingId,
       fathom_url: meeting.url || null,
@@ -127,13 +122,13 @@ async function syncMeeting(
       recorded_by_email: meeting.recorded_by?.email || null,
       calendar_invitees: meeting.calendar_invitees || [],
       participant_emails: participantEmails,
-      summary: summary,
+      summary: summaryText,
       import_source: 'sync-meetings',
       synced_at: new Date().toISOString(),
     };
 
-    // Stage 5 — Insert via shared pipeline
-    const result = await insertRecording(supabase, userId, {
+    // Stage 5 — Run through pipeline (Dedup -> Routing -> Insert)
+    const result = await runPipeline(supabase, userId, {
       external_id: externalId,
       source_app: 'fathom',
       title: meeting.title,
@@ -143,9 +138,48 @@ async function syncMeeting(
       source_metadata: sourceMetadata,
     });
 
-    console.log(`Successfully synced Fathom meeting ${recordingId} as recording ${result.id}`);
+    if (!result.success) {
+      if (result.skipped) {
+        console.log(`Fathom meeting ${recordingId} already exists (pipeline skipped)`);
+        return 'skipped';
+      }
+      throw new Error(result.error || 'Pipeline failed');
+    }
 
-    // Insert transcript segments into fathom_transcripts for backward compat
+    console.log(`Successfully synced Fathom meeting ${recordingId} as recording ${result.recordingId}`);
+
+    // Write to fathom_raw_calls for source-specific detail
+    try {
+      const { error: rawError } = await supabase
+        .from('fathom_raw_calls')
+        .upsert({
+          recording_id: recordingId,
+          user_id: userId,
+          canonical_recording_id: result.recordingId,
+          title: meeting.title,
+          created_at: meeting.created_at,
+          recording_start_time: meeting.recording_start_time,
+          recording_end_time: meeting.recording_end_time || null,
+          url: meeting.url || null,
+          share_url: meeting.share_url || null,
+          full_transcript: fullTranscript,
+          summary: summaryText,
+          recorded_by_name: meeting.recorded_by?.name || null,
+          recorded_by_email: meeting.recorded_by?.email || null,
+          calendar_invitees: meeting.calendar_invitees || null,
+          synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'recording_id,user_id'
+        });
+
+      if (rawError) {
+        console.error(`Error inserting fathom_raw_calls for ${recordingId} (non-blocking):`, rawError);
+      }
+    } catch (rawErr) {
+      console.error(`Error writing fathom_raw_calls for ${recordingId} (non-blocking):`, rawErr);
+    }
+
+    // Insert transcript segments into fathom_raw_transcripts for backward compat
     if (meeting.transcript && meeting.transcript.length > 0) {
       const transcriptRows = meeting.transcript.map((segment: TranscriptSegment) => {
         let speakerEmail = segment.speaker.matched_calendar_invitee_email;
@@ -172,7 +206,7 @@ async function syncMeeting(
       });
 
       const { error: transcriptError } = await supabase
-        .from('fathom_transcripts')
+        .from('fathom_raw_transcripts')
         .insert(transcriptRows);
 
       if (transcriptError) {
@@ -204,11 +238,14 @@ Deno.serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     // Parse request body FIRST
-    const { recordingIds, createdAfter, createdBefore, vault_id } = await req.json();
+    const { recordingIds = [], singleCallId, createdAfter, createdBefore, workspace_id } = await req.json();
 
-    if (!Array.isArray(recordingIds) || recordingIds.length === 0) {
+    // Support single recording retry
+    const targetRecordingIds = singleCallId ? [singleCallId] : recordingIds;
+
+    if (!Array.isArray(targetRecordingIds) || targetRecordingIds.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Invalid recording IDs' }),
+        JSON.stringify({ error: 'recordingIds must be an array or singleCallId must be provided' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -226,8 +263,13 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabase.auth.getUser(jwt);
 
     if (authError || !user) {
+      console.error('[sync-meetings] Auth failed:', {
+        error: authError?.message,
+        details: authError,
+        jwtPrefix: jwt.substring(0, 10)
+      });
       return new Response(
-        JSON.stringify({ error: 'Invalid authentication' }),
+        JSON.stringify({ error: 'Invalid authentication', details: authError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -285,6 +327,18 @@ Deno.serve(async (req) => {
         if (!tokenResponse.ok) {
           const errorText = await tokenResponse.text();
           console.error('Token refresh failed:', tokenResponse.status, errorText);
+
+          if (tokenResponse.status >= 400 && tokenResponse.status < 500) {
+            await supabase
+              .from('user_settings')
+              .update({
+                oauth_access_token: null,
+                oauth_refresh_token: null,
+                oauth_token_expires: null,
+              })
+              .eq('user_id', user.id);
+          }
+
           throw new Error('Failed to refresh access token. Please reconnect Fathom in Settings.');
         }
 
@@ -324,23 +378,23 @@ Deno.serve(async (req) => {
     }
 
 
-    // Validate vault membership once at the top if vault_id provided
+    // Validate vault membership once at the top if workspace_id provided
     let validatedVaultId: string | null = null;
-    if (vault_id) {
+    if (workspace_id) {
       const { data: membership, error: membershipError } = await supabase
-        .from('vault_memberships')
+        .from('workspace_memberships')
         .select('id')
-        .eq('vault_id', vault_id)
+        .eq('workspace_id', workspace_id)
         .eq('user_id', user.id)
         .maybeSingle();
 
       if (membershipError) {
         console.error('Error checking vault membership:', membershipError);
       } else if (!membership) {
-        console.warn(`User ${user.id} is not a member of vault ${vault_id}, ignoring vault_id`);
+        console.warn(`User ${user.id} is not a member of vault ${workspace_id}, ignoring workspace_id`);
       } else {
-        validatedVaultId = vault_id;
-        console.log(`Vault ${vault_id} membership validated for user ${user.id}`);
+        validatedVaultId = workspace_id;
+        console.log(`Vault ${workspace_id} membership validated for user ${user.id}`);
       }
     }
 
@@ -351,10 +405,11 @@ Deno.serve(async (req) => {
       .from('sync_jobs')
       .insert({
         user_id: userId,
-        recording_ids: recordingIds,
+        recording_ids: targetRecordingIds,
         status: 'processing',
         progress_current: 0,
-        progress_total: recordingIds.length,
+        progress_total: targetRecordingIds.length,
+        type: 'fathom', // Explicitly set the source type
       })
       .select()
       .single();
@@ -397,7 +452,7 @@ Deno.serve(async (req) => {
         }
 
         const data = await response.json();
-        const found = data.items?.find((m: {recording_id: number}) => m.recording_id === targetRecordingId);
+        const found = data.items?.find((m: {recording_id: number}) => m.recording_id === Number(targetRecordingId));
 
         if (found) {
           return found;
@@ -471,7 +526,8 @@ Deno.serve(async (req) => {
 
       try {
         // Process each meeting individually using direct recording_id endpoints
-        for (const recordingId of recordingIds) {
+        for (const rawId of targetRecordingIds) {
+          const recordingId = Number(rawId);
           try {
             await rateLimiter.throttle();
 
@@ -502,7 +558,7 @@ Deno.serve(async (req) => {
               synced.push(recordingId);
               console.log(`✓ Synced ${recordingId} (${synced.length}/${recordingIds.length})`);
 
-              // Create vault entry if vault_id was validated
+              // Create vault entry if workspace_id was validated
               if (validatedVaultId) {
                 try {
                   // Look up recording UUID by external_id in source_metadata
@@ -516,9 +572,9 @@ Deno.serve(async (req) => {
 
                   if (rec?.id) {
                     const { error: vaultEntryError } = await supabase
-                      .from('vault_entries')
+                      .from('workspace_entries')
                       .insert({
-                        vault_id: validatedVaultId,
+                        workspace_id: validatedVaultId,
                         recording_id: rec.id,
                       });
 
@@ -634,7 +690,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         jobId: jobId,
-        message: `Sync job started for ${recordingIds.length} meetings`,
+        message: `Sync job started for ${targetRecordingIds.length} meetings`,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );

@@ -11,8 +11,9 @@ import { toast } from "sonner";
 import { RiDownloadLine, RiFileCopyLine, RiRefreshLine } from "@remixicon/react";
 import { saveAs } from "file-saver";
 import { TranscriptSegmentContextMenu } from "@/components/transcript-library/TranscriptSegmentContextMenu";
-import { groupTranscriptsBySpeaker } from "@/lib/transcriptUtils";
+import { groupTranscriptsBySpeaker, type TranscriptSegment as libTranscriptSegment } from "@/lib/transcriptUtils";
 import { Meeting, TranscriptSegmentDisplay, Speaker } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
 
 /**
  * View state for the transcript tab - groups all UI state together
@@ -103,6 +104,8 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
     onRevert,
     onResyncCall,
   } = handlers;
+
+  const { user } = useAuth();
 
   // Helper to update view state
   const updateViewState = <K extends keyof TranscriptViewState>(key: K, value: TranscriptViewState[K]) => {
@@ -238,29 +241,38 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                   <div className="space-y-6 py-4 px-4 bg-card">
                     {transcripts && transcripts.length > 0 ? (
                       (() => {
-                        // Determine host email for blue bubble: prefer explicit host_email,
-                        // but fall back to recorded_by_email from the call if needed.
-                        const hostEmail = (
-                          userSettings?.host_email ||
-                          call.recorded_by_email ||
-                          ""
-                        )
-                          .toString()
-                          .toLowerCase() || null;
+                        // Determine identifiers for the current user ("Andrew")
+                        // 1. Current Auth User ID (strongest match if mapped in DB)
+                        const currentUserId = user?.id || null;
+                        
+                        // 2. Explicit host email from settings (A@VIBEOS.COM or ANDREW@AISIMPLE.CO)
+                        const settingsHostEmail = userSettings?.host_email?.toLowerCase() || null;
+                        
+                        // 3. Email from the call record
+                        const callHostEmail = call.recorded_by_email?.toLowerCase() || null;
+                        
+                        // 4. Name from the call record (Andrew Naegele -> Andrew)
+                        const callHostName = call.recorded_by_name?.toLowerCase() || "";
+                        const firstName = callHostName.split(' ')[0] || "";
 
-                        const hostName = (call.recorded_by_name || "")
-                          .toString()
-                          .toLowerCase() || null;
-
-                        const groups = groupTranscriptsBySpeaker(transcripts);
+                        const groups = groupTranscriptsBySpeaker(transcripts as libTranscriptSegment[]);
 
                         return groups.map((group, groupIndex) => {
-                          const speakerEmail = group.email?.toLowerCase();
-                          const speakerName = group.speaker?.toLowerCase();
+                          const speakerEmail = group.email?.toLowerCase() || "";
+                          const speakerName = group.speaker?.toLowerCase() || "";
+                          const speakerUserId = (group.messages[0] as any).user_id;
 
+                          // Identification Logic:
+                          // - If user_id matches, it's definitely Andrew
+                          // - If email matches either settings or call host, it's Andrew
+                          // - If name exactly matches the call host name, it's likely Andrew
+                          // - If name starts with the call host's first name, it's likely Andrew
                           const isHost = (
-                            (hostEmail && speakerEmail && speakerEmail === hostEmail) ||
-                            (hostName && speakerName && speakerName === hostName)
+                            (currentUserId && speakerUserId && speakerUserId === currentUserId) ||
+                            (settingsHostEmail && speakerEmail && speakerEmail === settingsHostEmail) ||
+                            (callHostEmail && speakerEmail && speakerEmail === callHostEmail) ||
+                            (callHostName && speakerName && speakerName === callHostName) ||
+                            (firstName && speakerName.startsWith(firstName))
                           );
 
                           return (

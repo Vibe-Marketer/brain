@@ -6,57 +6,142 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { RiAlertLine } from "@remixicon/react";
+import { RiAlertLine, RiDeleteBin6Line } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
+
+export type DeleteMode = 'remove-from-workspace' | 'permanent-delete' | 'permanent-last-workspace';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
+  mode: DeleteMode;
+  itemCount: number;
+  workspaceName?: string;
+  sourceLabels?: string[];
+  lastWorkspaceCount?: number;
+}
+
+const CONTENT: Record<DeleteMode, {
   title: string;
-  description: string;
-  itemCount?: number;
+  destructive: boolean;
+  buttonLabel: string;
+}> = {
+  'remove-from-workspace': {
+    title: 'Remove from Workspace',
+    destructive: false,
+    buttonLabel: 'Remove',
+  },
+  'permanent-last-workspace': {
+    title: 'Delete Permanently',
+    destructive: true,
+    buttonLabel: 'Delete Permanently',
+  },
+  'permanent-delete': {
+    title: 'Delete Permanently',
+    destructive: true,
+    buttonLabel: 'Delete Permanently',
+  },
+};
+
+function formatSourceLabels(labels?: string[]): string {
+  if (!labels || labels.length === 0) return '';
+  const unique = [...new Set(labels)];
+  if (unique.length === 1) return unique[0];
+  if (unique.length === 2) return `${unique[0]} or ${unique[1]}`;
+  return `${unique.slice(0, -1).join(', ')}, or ${unique[unique.length - 1]}`;
 }
 
 export default function DeleteConfirmDialog({
   open,
   onOpenChange,
   onConfirm,
-  title,
-  description,
+  mode,
   itemCount,
+  workspaceName,
+  sourceLabels,
+  lastWorkspaceCount,
 }: DeleteConfirmDialogProps) {
   const handleConfirm = () => {
     onConfirm();
     onOpenChange(false);
   };
 
+  const config = CONTENT[mode];
+  const plural = itemCount > 1;
+  const sourceText = formatSourceLabels(sourceLabels);
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
-          <div className="flex items-center gap-2 text-destructive mb-2">
-            <RiAlertLine className="h-5 w-5" />
-            <AlertDialogTitle>{title}</AlertDialogTitle>
+          <div className={`flex items-center gap-2 mb-2 ${config.destructive ? 'text-destructive' : 'text-foreground'}`}>
+            {config.destructive ? (
+              <RiAlertLine className="h-5 w-5" />
+            ) : (
+              <RiDeleteBin6Line className="h-5 w-5" />
+            )}
+            <AlertDialogTitle>{config.title}</AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="text-left space-y-2">
-            <p className="text-foreground">
-              {description}
-              {itemCount !== undefined && itemCount > 0 && (
-                <strong className="text-destructive"> {itemCount} item{itemCount > 1 ? 's' : ''}</strong>
+          <AlertDialogDescription className="text-left space-y-2" asChild>
+            <div>
+              {mode === 'remove-from-workspace' && (
+                <>
+                  <p className="text-foreground">
+                    Remove <strong>{itemCount} item{plural ? 's' : ''}</strong> from{' '}
+                    <strong>{workspaceName || 'this workspace'}</strong>?
+                    {' '}They'll remain in your other workspaces.
+                  </p>
+                  {lastWorkspaceCount != null && lastWorkspaceCount > 0 && (
+                    <p className="text-sm text-destructive">
+                      {lastWorkspaceCount} of these {lastWorkspaceCount === 1 ? 'is' : 'are'} only
+                      in this workspace and will be permanently deleted.
+                    </p>
+                  )}
+                </>
               )}
-            </p>
-            <p className="text-sm text-muted-foreground">
-              This transcript can still be synced from Fathom again in the future. This only deletes it from our database, not from Fathom.
-            </p>
+
+              {mode === 'permanent-last-workspace' && (
+                <>
+                  <p className="text-foreground">
+                    This is the only workspace for{' '}
+                    <strong>{itemCount} item{plural ? 's' : ''}</strong>.
+                    Removing will permanently delete {plural ? 'them' : 'it'}.
+                  </p>
+                  {sourceText && (
+                    <p className="text-sm text-muted-foreground">
+                      You can re-import from {sourceText} in the future.
+                    </p>
+                  )}
+                </>
+              )}
+
+              {mode === 'permanent-delete' && (
+                <>
+                  <p className="text-foreground">
+                    Permanently delete{' '}
+                    <strong className="text-destructive">{itemCount} item{plural ? 's' : ''}</strong>{' '}
+                    from all workspaces?
+                  </p>
+                  {sourceText && (
+                    <p className="text-sm text-muted-foreground">
+                      You can re-import from {sourceText} in the future.
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <Button variant="hollow" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button variant="destructive" onClick={handleConfirm}>
-            Delete
+          <Button
+            variant={config.destructive ? 'destructive' : 'default'}
+            onClick={handleConfirm}
+          >
+            {config.buttonLabel}
           </Button>
         </AlertDialogFooter>
       </AlertDialogContent>

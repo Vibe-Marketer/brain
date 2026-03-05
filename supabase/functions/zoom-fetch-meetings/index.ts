@@ -136,11 +136,17 @@ Deno.serve(async (req) => {
     const { data: { user }, error: userError } = await supabase.auth.getUser(token);
 
     if (userError || !user) {
+      console.error('[zoom-fetch-meetings] Auth failed:', {
+        error: userError?.message,
+        details: userError,
+        tokenPrefix: token.substring(0, 10)
+      });
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+    console.log('[zoom-fetch-meetings] Auth success for user:', user.id);
 
     // Get user's Zoom OAuth credentials
     const { data: settings, error: configError } = await supabase
@@ -190,11 +196,11 @@ Deno.serve(async (req) => {
       // Empty body is OK - will use defaults
     }
 
-    // Default to last 30 days if no date range specified
+    // Default to last 90 days if no date range specified
     if (!fromDate) {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      fromDate = thirtyDaysAgo.toISOString().split('T')[0];
+      const ninetyDaysAgo = new Date();
+      ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+      fromDate = ninetyDaysAgo.toISOString().split('T')[0];
     }
     if (!toDate) {
       toDate = new Date().toISOString().split('T')[0];
@@ -301,21 +307,27 @@ Deno.serve(async (req) => {
       };
     });
 
-    // Check which meetings are already synced (using UUID as recording_id with source_platform='zoom')
+    // Check which meetings are already synced via recordings table.
     if (meetings.length > 0) {
-      const { data: syncedCalls, error: syncCheckError } = await supabase
-        .from('fathom_calls')
-        .select('recording_id')
-        .eq('source_platform', 'zoom')
-        .in('recording_id', meetings.map(m => m.recording_id));
+      const { data: syncedRecordings, error: syncCheckError } = await supabase
+        .from('recordings')
+        .select('source_metadata')
+        .eq('owner_user_id', user.id)
+        .eq('source_app', 'zoom');
 
       if (syncCheckError) {
         console.error('Error checking sync status:', syncCheckError);
       }
 
-      console.log(`Found ${syncedCalls?.length || 0} synced Zoom calls in database`);
+      console.log(`Found ${syncedRecordings?.length || 0} Zoom recordings already synced`);
 
-      const syncedIds = new Set(syncedCalls?.map(c => c.recording_id) || []);
+      // Build set of synced recording IDs (UUIDs) for fast lookup
+      const syncedIds = new Set(
+        (syncedRecordings || []).map((r: any) => {
+          const extId = r.source_metadata?.external_id;
+          return extId || null;
+        }).filter((id: string | null): id is string => id !== null)
+      );
 
       meetings.forEach(meeting => {
         meeting.synced = syncedIds.has(meeting.recording_id);

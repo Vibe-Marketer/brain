@@ -14,11 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import type { CalendarInvitee } from "@/types";
 
-interface Folder {
-  id: string;
-  name: string;
-  description: string | null;
-}
+import { Folder } from "@/types/workspace";
 
 interface FilterBarProps {
   filters: {

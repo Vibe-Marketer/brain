@@ -3,7 +3,6 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RiBankCardLine, RiCpuLine, RiCalendarLine } from "@remixicon/react";
 import { BarChart } from "@tremor/react";
-import { useEmbeddingCosts } from "@/hooks/useEmbeddingCosts";
 import { useSubscription, type SubscriptionTier } from "@/hooks/useSubscription";
 import { PlanCards } from "@/components/billing/PlanCards";
 import { UpgradeButton } from "@/components/billing/UpgradeButton";
@@ -74,12 +73,12 @@ function getPlanDetails(tier: SubscriptionTier) {
         displayName: "Solo",
         price: "$29/mo",
         annualPrice: "$278/yr (save $70)",
-        description: "Perfect for individuals with unlimited calls and AI features.",
+        description: "Perfect for individuals with unlimited calls and transcription features.",
         badgeVariant: "default" as const,
         features: [
           "1 user",
-          "Unlimited calls & AI summaries",
-          "Folders, tags, AI search",
+          "Unlimited calls & transcriptions",
+          "Folders, tags, global search",
           "10 notes per call",
         ],
       };
@@ -135,17 +134,6 @@ function formatDate(date: Date | null): string {
 
 export default function BillingTab() {
   const {
-    totalCostUsd,
-    totalTokens,
-    avgCostPerTranscript,
-    totalTranscripts,
-    monthlyTrends,
-    costByOperationType,
-    isLoading,
-    error,
-  } = useEmbeddingCosts(6);
-
-  const {
     tier,
     status,
     periodEnd,
@@ -158,128 +146,6 @@ export default function BillingTab() {
     <div>
       {/* Top separator for breathing room */}
       <Separator className="mb-12" />
-
-      {/* Embedding Costs Section */}
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-            AI Usage
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Embedding and search costs for your transcripts
-          </p>
-        </div>
-        <div className="lg:col-span-2">
-          <div className="flex items-start gap-4">
-            <div className="h-12 w-12 rounded-lg bg-gradient-to-br from-blue-500/20 to-blue-500/10 flex items-center justify-center">
-              <RiCpuLine className="h-6 w-6 text-blue-500" />
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-3 mb-4">
-                <h3 className="text-lg font-semibold">Embedding Costs</h3>
-                <Badge variant="outline">OpenAI</Badge>
-              </div>
-
-              {isLoading ? (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Skeleton className="h-20" />
-                    <Skeleton className="h-20" />
-                  </div>
-                  <Skeleton className="h-48" />
-                </div>
-              ) : error ? (
-                <div className="p-4 bg-red-50 dark:bg-red-950/20 rounded-lg text-sm text-red-600 dark:text-red-400">
-                  Failed to load usage data: {error.message}
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Cost Stats Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                        Total Cost
-                      </p>
-                      <p className="text-2xl font-bold mt-1">
-                        {formatUsd(totalCostUsd)}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                        Avg per Transcript
-                      </p>
-                      <p className="text-2xl font-bold mt-1">
-                        {formatUsd(avgCostPerTranscript)}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                        Total Tokens
-                      </p>
-                      <p className="text-2xl font-bold mt-1">
-                        {formatTokens(totalTokens)}
-                      </p>
-                    </div>
-                    <div className="p-4 bg-muted/50 rounded-lg">
-                      <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                        Transcripts
-                      </p>
-                      <p className="text-2xl font-bold mt-1">
-                        {totalTranscripts}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Monthly Trend Chart */}
-                  {monthlyTrends.length > 0 ? (
-                    <div className="p-4 bg-muted/30 rounded-lg">
-                      <h4 className="text-sm font-medium text-muted-foreground mb-4">
-                        Monthly Cost Trend (Last 6 Months)
-                      </h4>
-                      <BarChart
-                        data={monthlyTrends}
-                        index="name"
-                        categories={["cost"]}
-                        colors={["blue"]}
-                        valueFormatter={(value) => formatUsd(value)}
-                        yAxisWidth={60}
-                        className="h-48"
-                        showAnimation={true}
-                      />
-                    </div>
-                  ) : (
-                    <div className="p-4 bg-muted/30 rounded-lg text-center text-sm text-muted-foreground">
-                      <p>No usage data yet. Costs will appear here as you process transcripts.</p>
-                    </div>
-                  )}
-
-                  {/* Cost by Operation Type */}
-                  {costByOperationType.length > 0 && (
-                    <div className="p-4 bg-muted/30 rounded-lg">
-                      <h4 className="text-sm font-medium text-muted-foreground mb-3">
-                        Cost by Operation Type
-                      </h4>
-                      <div className="space-y-2">
-                        {costByOperationType.map((op) => (
-                          <div
-                            key={op.name}
-                            className="flex items-center justify-between text-sm"
-                          >
-                            <span className="text-muted-foreground">{op.name}</span>
-                            <span className="font-medium">{formatUsd(op.value)}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Separator className="my-16" />
 
       {/* Current Plan Section */}
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">

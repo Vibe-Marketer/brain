@@ -289,7 +289,7 @@ export function AppShell({
           <div
             className={cn(
               // Base styles
-              "flex-shrink-0 bg-card/80 backdrop-blur-md rounded-2xl border border-border/60 shadow-sm",
+              "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm",
               "flex flex-col h-full z-10 overflow-hidden",
               // Transitions - 500ms for premium feel
               "transition-all duration-500 ease-in-out",

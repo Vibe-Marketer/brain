@@ -29,7 +29,7 @@ export interface SearchResult {
   similarity_score: number;
   rerank_score?: number;
   // Vault attribution (from scoped search)
-  vault_id?: string | null;
+  workspace_id?: string | null;
   vault_name?: string | null;
 }
 
@@ -45,8 +45,8 @@ export interface SearchFilters {
   user_tags?: string[];
   recording_ids?: number[];
   // Bank/Vault scoping
-  bank_id?: string;
-  vault_id?: string | null;  // null = all vaults in bank
+  organization_id?: string;
+  workspace_id?: string | null;  // null = all workspaces in bank
 }
 
 /** Final formatted result returned to tool callers. */
@@ -63,7 +63,7 @@ export interface FormattedSearchResult {
   relevance: string;
   share_url?: string | null;
   // Vault attribution
-  vault_id?: string | null;
+  workspace_id?: string | null;
   vault_name?: string | null;
 }
 
@@ -285,7 +285,7 @@ export async function executeHybridSearch(
     filters = {},
   } = params;
 
-  const useScopedSearch = !!(filters.bank_id || filters.vault_id);
+  const useScopedSearch = !!(filters.organization_id || filters.workspace_id);
   console.log(`Hybrid search: "${query}" with filters:`, filters, `scoped: ${useScopedSearch}`);
   const searchStartTime = Date.now();
 
@@ -320,8 +320,8 @@ export async function executeHybridSearch(
 
   // Add bank/vault params only for scoped search
   if (useScopedSearch) {
-    rpcParams.filter_bank_id = filters.bank_id || null;
-    rpcParams.filter_vault_id = filters.vault_id || null;
+    rpcParams.filter_organization_id = filters.organization_id || null;
+    rpcParams.filter_workspace_id = filters.workspace_id || null;
   }
 
   const { data: candidates, error } = await supabase.rpc(rpcFunction, rpcParams);
@@ -351,7 +351,7 @@ export async function executeHybridSearch(
 
   if (uniqueRecordingIds.length > 0) {
     const { data: calls } = await supabase
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .select('recording_id, share_url')
       .in('recording_id', uniqueRecordingIds)
       .eq('user_id', userId);
@@ -379,7 +379,7 @@ export async function executeHybridSearch(
         ? Math.round(r.rerank_score * 100) + '%'
         : Math.round(r.rrf_score * 100) + '%',
       share_url: shareUrlMap.get(r.recording_id) || null,
-      vault_id: r.vault_id || null,
+      workspace_id: r.workspace_id || null,
       vault_name: r.vault_name || null,
     })),
     total_found: candidates.length,

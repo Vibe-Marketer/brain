@@ -19,7 +19,7 @@ import type { ConnectorRecord } from './connector-pipeline.ts';
  * Includes trace metadata so the caller can record which rule fired.
  */
 export interface RoutingDestination {
-  vaultId: string;
+  workspaceId: string;
   folderId: string | null;
   matchedRuleId: string;
   matchedRuleName: string;
@@ -34,7 +34,7 @@ interface RoutingRule {
   priority: number;
   conditions: RoutingCondition[];
   logic_operator: 'AND' | 'OR';
-  target_vault_id: string;
+  target_workspace_id: string;
   target_folder_id: string | null;
 }
 
@@ -54,25 +54,25 @@ interface RoutingCondition {
 /**
  * resolveRoutingDestination: Evaluates org routing rules against an incoming record.
  *
- * Queries import_routing_rules for the bank ordered by priority (ascending).
+ * Queries import_routing_rules for the organization ordered by priority (ascending).
  * Evaluates each enabled rule's conditions against the record.
  * Returns the first matching rule's destination, or null if no rules match.
  *
- * @param supabase  Supabase client (service role — reads rules bypassing per-user RLS)
- * @param bankId    Organization (bank) to load rules for
- * @param record    Normalized connector record to evaluate conditions against
- * @returns         RoutingDestination for the first matching rule, or null
+ * @param supabase        Supabase client (service role — reads rules bypassing per-user RLS)
+ * @param organizationId  Organization to load rules for
+ * @param record          Normalized connector record to evaluate conditions against
+ * @returns               RoutingDestination for the first matching rule, or null
  */
 export async function resolveRoutingDestination(
   supabase: SupabaseClient,
-  bankId: string,
+  organizationId: string,
   record: ConnectorRecord,
 ): Promise<RoutingDestination | null> {
-  // Query active rules for this bank ordered by priority ascending (lowest first)
+  // Query active rules for this organization ordered by priority ascending (lowest first)
   const { data: rules, error } = await supabase
     .from('import_routing_rules')
-    .select('id, name, priority, conditions, logic_operator, target_vault_id, target_folder_id')
-    .eq('bank_id', bankId)
+    .select('id, name, priority, conditions, logic_operator, target_workspace_id, target_folder_id')
+    .eq('organization_id', organizationId)
     .eq('enabled', true)
     .order('priority', { ascending: true });
 
@@ -90,7 +90,7 @@ export async function resolveRoutingDestination(
   for (const rule of rules as RoutingRule[]) {
     if (evaluateRule(rule, record)) {
       return {
-        vaultId: rule.target_vault_id,
+        workspaceId: rule.target_workspace_id,
         folderId: rule.target_folder_id,
         matchedRuleId: rule.id,
         matchedRuleName: rule.name,

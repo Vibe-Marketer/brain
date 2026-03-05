@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
 
       // Get all user's recordings with transcripts
       const { data: allCalls, error: callsError } = await supabase
-        .from('fathom_calls')
+        .from('fathom_raw_calls')
         .select('recording_id')
         .eq('user_id', user.id)
         .not('full_transcript', 'is', null);

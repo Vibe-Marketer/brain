@@ -54,16 +54,16 @@ export interface ContentLibraryResult<T> {
  */
 export async function fetchContentItems(
   filters?: ContentLibraryFilters,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<ContentLibraryResult<ContentLibraryItem[]>> {
   try {
     const user = await requireUser();
-    if (!bankId) return { data: [], error: null };
+    if (!orgId) return { data: [], error: null };
 
     let query = supabase
       .from("content_library")
       .select("*")
-      .eq("bank_id", bankId)
+      .eq("organization_id", orgId)
       .order("created_at", { ascending: false });
 
     // RLS handles user/team access, but we can add explicit user filter for clarity
@@ -132,15 +132,15 @@ export async function fetchContentItems(
  */
 export async function saveContent(
   input: ContentLibraryInput,
-  bankId?: string | null
+  orgId?: string | null
 ): Promise<ContentLibraryResult<ContentLibraryItem>> {
   try {
     const user = await requireUser();
 
-    if (!bankId) {
+    if (!orgId) {
       return {
         data: null,
-        error: new ContentLibraryError("Bank ID is required"),
+        error: new ContentLibraryError("Organization ID is required"),
       };
     }
 
@@ -178,7 +178,7 @@ export async function saveContent(
       .from("content_library")
       .insert({
         user_id: user.id,
-        bank_id: bankId,
+        organization_id: orgId,
         content_type: input.content_type,
         title: input.title.trim(),
         content: input.content,
@@ -496,17 +496,17 @@ export async function getContentById(
  * const { data: tags, error } = await getAllTags();
  * // tags: ['follow-up', 'sales', 'marketing', ...]
  */
-export async function getAllTags(bankId?: string | null): Promise<ContentLibraryResult<string[]>> {
+export async function getAllTags(orgId?: string | null): Promise<ContentLibraryResult<string[]>> {
   try {
     const user = await requireUser();
-    if (!bankId) return { data: [], error: null };
+    if (!orgId) return { data: [], error: null };
 
     // Fetch all items and extract unique tags
     // Note: This could be optimized with a database function for large datasets
-    let query = supabase
+    const query = supabase
       .from("content_library")
       .select("tags")
-      .eq("bank_id", bankId);
+      .eq("organization_id", orgId);
 
     const { data, error } = await query;
 

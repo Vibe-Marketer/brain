@@ -210,7 +210,7 @@ Deno.serve(async (req) => {
     // If recording_id is provided, fetch the call and check cache
     if (recording_id) {
       const { data: call, error: callError } = await supabase
-        .from('fathom_calls')
+        .from('fathom_raw_calls')
         .select('recording_id, full_transcript, sentiment_cache')
         .eq('recording_id', recording_id)
         .eq('user_id', user.id)
@@ -318,7 +318,7 @@ Deno.serve(async (req) => {
       };
 
       const { error: updateError } = await supabase
-        .from('fathom_calls')
+        .from('fathom_raw_calls')
         .update({ sentiment_cache: cacheData })
         .eq('recording_id', recording_id)
         .eq('user_id', user.id);

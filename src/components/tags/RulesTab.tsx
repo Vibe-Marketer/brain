@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { supabase } from "@/integrations/supabase/client";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { toast } from "sonner";
 import {
   Table,
@@ -94,7 +94,7 @@ const RULE_TYPES = [
 
 export function RulesTab() {
   const queryClient = useQueryClient();
-  const { activeBankId } = useBankContext();
+  const { activeOrganizationId } = useOrganizationContext();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<Rule | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
@@ -150,15 +150,15 @@ export function RulesTab() {
 
   // Fetch tags scoped to active bank/workspace
   const { data: tags } = useQuery({
-    queryKey: ["call-tags", activeBankId],
+    queryKey: ["call-tags", activeOrganizationId],
     queryFn: async () => {
       let query = supabase
         .from("call_tags")
         .select("id, name, color")
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;
@@ -169,15 +169,15 @@ export function RulesTab() {
 
   // Fetch folders scoped to active bank/workspace
   const { data: folders } = useQuery({
-    queryKey: ["folders", activeBankId],
+    queryKey: ["folders", activeOrganizationId],
     queryFn: async () => {
       let query = supabase
         .from("folders")
         .select("id, name, color, icon")
         .order("name");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;

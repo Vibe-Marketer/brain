@@ -60,14 +60,13 @@ type AutomationRule = Database['public']['Tables']['automation_rules']['Row'];
 type TriggerType =
   | "call_created"
   | "transcript_phrase"
-  | "sentiment"
   | "duration"
   | "webhook"
   | "scheduled";
 
 // Type guard for trigger_type since DB stores as string
 function isTriggerType(value: string): value is TriggerType {
-  return ["call_created", "transcript_phrase", "sentiment", "duration", "webhook", "scheduled"].includes(value);
+  return ["call_created", "transcript_phrase", "duration", "webhook", "scheduled"].includes(value);
 }
 
 // ============================================================================
@@ -80,8 +79,6 @@ const getTriggerIcon = (triggerType: string) => {
       return RiPlayCircleLine;
     case "transcript_phrase":
       return RiChatVoiceLine;
-    case "sentiment":
-      return RiEmotionLine;
     case "duration":
       return RiTimeLine;
     case "webhook":
@@ -99,8 +96,6 @@ const getTriggerLabel = (triggerType: string): string => {
       return "Call Created";
     case "transcript_phrase":
       return "Phrase Match";
-    case "sentiment":
-      return "Sentiment";
     case "duration":
       return "Duration";
     case "webhook":
@@ -118,8 +113,6 @@ const getTriggerColor = (triggerType: string): string => {
       return "bg-success-bg text-success-text";
     case "transcript_phrase":
       return "bg-info-bg text-info-text";
-    case "sentiment":
-      return "bg-neutral-bg text-neutral-text";
     case "duration":
       return "bg-warning-bg text-warning-text";
     case "webhook":
@@ -618,7 +611,7 @@ export default function AutomationRules() {
                 <h2 className="text-lg font-semibold mb-1">No automation rules yet</h2>
                 <p className="text-sm text-muted-foreground max-w-md">
                   Create automation rules to automatically organize calls, send notifications,
-                  run AI analysis, and more based on triggers like sentiment, duration, or keywords.
+                  and more based on triggers like duration or keywords.
                 </p>
               </div>
               <Button onClick={handleCreateRule} className="gap-2 mt-2">
@@ -634,10 +627,6 @@ export default function AutomationRules() {
                 <Badge variant="secondary" className={cn("text-xs", getTriggerColor("transcript_phrase"))}>
                   <RiChatVoiceLine className="h-3 w-3 mr-1" />
                   Phrase Match
-                </Badge>
-                <Badge variant="secondary" className={cn("text-xs", getTriggerColor("sentiment"))}>
-                  <RiEmotionLine className="h-3 w-3 mr-1" />
-                  Sentiment
                 </Badge>
                 <Badge variant="secondary" className={cn("text-xs", getTriggerColor("duration"))}>
                   <RiTimeLine className="h-3 w-3 mr-1" />

@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
 
     // Get all recording IDs for this user
     const { data: existingCalls, error: callsError } = await supabase
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .select('recording_id, title, summary, title_edited_by_user, summary_edited_by_user')
       .eq('user_id', userId);
 
@@ -237,7 +237,7 @@ Deno.serve(async (req) => {
 
         // Upsert call details (use composite primary key)
         const { error: callError } = await supabase
-          .from('fathom_calls')
+          .from('fathom_raw_calls')
           .upsert(upsertData, { onConflict: 'recording_id,user_id' });
 
         if (callError) throw callError;
@@ -246,7 +246,7 @@ Deno.serve(async (req) => {
         if (meeting.transcript && Array.isArray(meeting.transcript)) {
           // Delete existing transcripts (use composite key for user isolation)
           await supabase
-            .from('fathom_transcripts')
+            .from('fathom_raw_transcripts')
             .delete()
             .eq('recording_id', meeting.recording_id)
             .eq('user_id', userId);
@@ -279,7 +279,7 @@ Deno.serve(async (req) => {
           });
 
           const { error: transcriptError } = await supabase
-            .from('fathom_transcripts')
+            .from('fathom_raw_transcripts')
             .insert(transcriptRows);
 
           if (transcriptError) throw transcriptError;

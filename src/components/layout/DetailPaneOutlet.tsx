@@ -24,8 +24,10 @@ import { TagDetailPanel } from '@/components/panels/TagDetailPanel';
 import { SettingHelpPanel } from '@/components/panels/SettingHelpPanel';
 import { UserDetailPanel } from '@/components/panels/UserDetailPanel';
 import { CallDetailPanel } from '@/components/panels/CallDetailPanel';
-import { VaultMemberPanel } from '@/components/panels/VaultMemberPanel';
+import { WorkspaceMemberPanel } from '@/components/panels/WorkspaceMemberPanel';
 import { AutomationRulePanel } from '@/components/panels/AutomationRulePanel';
+import { WorkspaceDetailPanel } from '@/components/panels/WorkspaceDetailPanel';
+import { BulkActionToolbarEnhanced } from '@/components/transcript-library/BulkActionToolbarEnhanced';
 
 export interface DetailPaneOutletProps {
   /** Whether we're on tablet breakpoint (affects width) */
@@ -88,14 +90,40 @@ export function DetailPaneOutlet({
           <CallDetailPanel recordingId={panelData.recordingId} />
         ) : null;
 
-      case 'vault-member':
-        return panelData?.type === 'vault-member' ? (
-          <VaultMemberPanel vaultId={panelData.vaultId} />
+      case 'workspace-detail':
+        return panelData?.type === 'workspace-detail' ? (
+          <WorkspaceDetailPanel workspaceId={panelData.workspaceId} />
         ) : null;
+
+      case 'workspace-member':
+        if (panelData?.type === 'workspace-member') {
+          return <WorkspaceMemberPanel workspaceId={panelData.workspaceId} />;
+        }
+        return null;
 
       case 'automation-rule':
         return panelData?.type === 'automation-rule' ? (
           <AutomationRulePanel ruleId={panelData.ruleId} />
+        ) : null;
+        
+      case 'bulk-actions':
+        return panelData?.type === 'bulk-actions' ? (
+          <BulkActionToolbarEnhanced
+            selectedCount={panelData.selectedIds.length}
+            selectedCalls={panelData.selectedCalls || []}
+            tags={panelData.tags || []}
+            onClearSelection={() => {
+              if (panelData.onClearSelection) panelData.onClearSelection();
+            }}
+            onDelete={() => {
+              if (panelData.onDelete) panelData.onDelete();
+            }}
+            onTag={panelData.onTag}
+            onRemoveTag={panelData.onRemoveTag}
+            onCreateNewTag={panelData.onCreateNewTag}
+            onAssignFolder={panelData.onAssignFolder}
+            deleteLabel={panelData.deleteLabel}
+          />
         ) : null;
 
       default:
@@ -118,10 +146,12 @@ export function DetailPaneOutlet({
         return 'User detail panel';
       case 'call-detail':
         return 'Call detail panel';
-      case 'vault-member':
-        return 'Hub member panel';
+      case 'workspace-member':
+        return 'Workspace member panel';
       case 'automation-rule':
         return 'Automation rule detail panel';
+      case 'bulk-actions':
+        return 'Bulk actions panel';
       default:
         return 'Detail panel';
     }

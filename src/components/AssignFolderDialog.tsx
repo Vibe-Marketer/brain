@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
-import { useBankContext } from "@/hooks/useBankContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { RiArrowRightSLine, RiArrowDownSLine, RiFolderLine, RiCheckLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
-import { isEmojiIcon, getIconComponent } from "@/components/ui/icon-emoji-picker";
+import { getIconComponent } from "@/lib/folder-icons";
 import type { FolderWithDepth } from "@/types/folders";
 
 // Extended folder type for tree structure
@@ -42,7 +42,7 @@ export default function AssignFolderDialog({
   onFoldersUpdated,
   onCreateFolder,
 }: AssignFolderDialogProps) {
-  const { activeBankId } = useBankContext();
+  const { activeOrganizationId, activeWorkspaceId } = useOrganizationContext();
   const [folderTree, setFolderTree] = useState<FolderTreeNode[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -110,8 +110,8 @@ export default function AssignFolderDialog({
         .select("id, name, color, parent_id, icon, position")
         .order("position");
 
-      if (activeBankId) {
-        query = query.eq("bank_id", activeBankId);
+      if (activeOrganizationId) {
+        query = query.eq("organization_id", activeOrganizationId);
       }
 
       const { data, error } = await query;
@@ -299,7 +299,7 @@ export default function AssignFolderDialog({
             .delete()
             .eq("call_recording_id", assignment.call_recording_id)
             .eq("folder_id", assignment.folder_id)
-            .eq("user_id", userId);  // Required for composite FK
+            .eq("user_id", userId);
         }
       }
 
@@ -310,6 +310,34 @@ export default function AssignFolderDialog({
           .insert(assignmentsToAdd);
 
         if (error) throw error;
+      }
+
+      // NEW ARCHITECTURE: Update workspace_entries.folder_id for each affected recording
+      // We pick the FIRST selected folder as the primary one for workspace_entries
+      // (as workspace_entries only supports one folder per entry, whereas folder_assignments supports many)
+      if (activeWorkspaceId) {
+        const primaryFolderId = selectedFolders.size > 0 ? Array.from(selectedFolders)[0] : null;
+        
+        // Find UUIDs for these recordings
+        const { data: recs } = await supabase
+          .from('recordings')
+          .select('id, legacy_recording_id')
+          .in('legacy_recording_id', numericRecordingIds);
+
+        if (recs && recs.length > 0) {
+          const recordingUuids = recs.map(r => r.id);
+          
+          // Update all workspace_entries in batch
+          const { error: updateError } = await (supabase as any)
+            .from('workspace_entries')
+            .update({ folder_id: primaryFolderId })
+            .in('recording_id', recordingUuids)
+            .eq('workspace_id', activeWorkspaceId);
+            
+          if (updateError) {
+            console.error('Failed to update workspace_entries in AssignFolderDialog:', updateError);
+          }
+        }
       }
 
       const count = targetRecordingIds.length;
@@ -359,7 +387,6 @@ export default function AssignFolderDialog({
     const isSelected = selectedFolders.has(folder.id);
 
     // Get the appropriate icon
-    const folderIsEmoji = folder.icon ? isEmojiIcon(folder.icon) : false;
     const FolderIcon = folder.icon ? getIconComponent(folder.icon) : null;
 
     return (
@@ -402,9 +429,8 @@ export default function AssignFolderDialog({
           />
 
           {/* Folder Icon */}
-          {folderIsEmoji ? (
-            <span className="text-base flex-shrink-0">{folder.icon}</span>
-          ) : FolderIcon ? (
+          {/* Folder Icon */}
+          {FolderIcon ? (
             <FolderIcon
               className="h-4 w-4 flex-shrink-0"
               style={{ color: folder.color || '#6B7280' }}
