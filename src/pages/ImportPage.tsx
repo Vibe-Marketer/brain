@@ -25,6 +25,8 @@ import type { ImportSource } from '@/services/import-sources.service';
 import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { useFeatureFlags } from '@/hooks/useFeatureFlags';
+import { useUserRole } from '@/hooks/useUserRole';
 
 // OAuth URL edge functions
 async function connectFathom() {
@@ -126,6 +128,10 @@ export default function ImportPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('sources');
   const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
+
+  const { role } = useUserRole();
+  const { isFeatureEnabled } = useFeatureFlags(role);
+  const showZoom = isFeatureEnabled('beta_zoom');
 
   const { data: sources = [], isLoading: sourcesLoading } = useImportSources();
   const { data: counts = {} } = useImportCounts();
@@ -318,29 +324,31 @@ export default function ImportPage() {
                       }
                     />
 
-                    <SourceCard
-                      name="Zoom"
-                      sourceApp="zoom"
-                      icon={<RiVideoLine size={18} />}
-                      status={deriveStatus(zoomRow)}
-                      accountEmail={zoomRow?.account_email ?? undefined}
-                      lastSyncAt={zoomRow?.last_sync_at}
-                      callCount={counts['zoom'] ?? 0}
-                      isActive={zoomRow?.is_active ?? false}
-                      errorMessage={zoomRow?.error_message}
-                      onToggle={(active) => {
-                        if (zoomRow) {
-                          toggleSource.mutate({ sourceId: zoomRow.id, isActive: active });
+                    {showZoom && (
+                      <SourceCard
+                        name="Zoom"
+                        sourceApp="zoom"
+                        icon={<RiVideoLine size={18} />}
+                        status={deriveStatus(zoomRow)}
+                        accountEmail={zoomRow?.account_email ?? undefined}
+                        lastSyncAt={zoomRow?.last_sync_at}
+                        callCount={counts['zoom'] ?? 0}
+                        isActive={zoomRow?.is_active ?? false}
+                        errorMessage={zoomRow?.error_message}
+                        onToggle={(active) => {
+                          if (zoomRow) {
+                            toggleSource.mutate({ sourceId: zoomRow.id, isActive: active });
+                          }
+                        }}
+                        onConnect={connectZoom}
+                        onSync={zoomRow ? handleZoomSync : undefined}
+                        onDisconnect={
+                          zoomRow
+                            ? () => disconnectSource.mutate(zoomRow.id)
+                            : undefined
                         }
-                      }}
-                      onConnect={connectZoom}
-                      onSync={zoomRow ? handleZoomSync : undefined}
-                      onDisconnect={
-                        zoomRow
-                          ? () => disconnectSource.mutate(zoomRow.id)
-                          : undefined
-                      }
-                    />
+                      />
+                    )}
 
                     <SourceCard
                       name="YouTube"
