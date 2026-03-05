@@ -129,5 +129,20 @@ CREATE POLICY "Service role can manage fathom_raw_transcripts"
   WITH CHECK (true);
 
 -- ============================================================================
+-- 6. Add service_role policies to tables with FORCE ROW LEVEL SECURITY
+-- ============================================================================
+-- FORCE ROW LEVEL SECURITY blocks even the table owner and service_role.
+-- Edge functions use service_role to insert recordings and workspace_entries,
+-- so they need explicit policies.
+
+CREATE POLICY "Service role full access" ON recordings
+  FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+CREATE POLICY "Service role full access" ON workspace_entries
+  FOR ALL TO service_role
+  USING (true) WITH CHECK (true);
+
+-- ============================================================================
 -- END OF MIGRATION
 -- ============================================================================
