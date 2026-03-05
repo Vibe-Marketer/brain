@@ -452,7 +452,7 @@ Deno.serve(async (req) => {
         }
 
         const data = await response.json();
-        const found = data.items?.find((m: {recording_id: number}) => m.recording_id === targetRecordingId);
+        const found = data.items?.find((m: {recording_id: number}) => m.recording_id === Number(targetRecordingId));
 
         if (found) {
           return found;
@@ -526,7 +526,8 @@ Deno.serve(async (req) => {
 
       try {
         // Process each meeting individually using direct recording_id endpoints
-        for (const recordingId of targetRecordingIds) {
+        for (const rawId of targetRecordingIds) {
+          const recordingId = Number(rawId);
           try {
             await rateLimiter.throttle();
 
