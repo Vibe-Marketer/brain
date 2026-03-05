@@ -382,7 +382,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const isHomeActive = activeWorkspaceId === null && activeFolderId === null;
 
   const handleHomeClick = useCallback(() => {
-    switchWorkspace(null as any);
+    switchWorkspace(null);
   }, [switchWorkspace]);
 
   return (

@@ -36,7 +36,7 @@ export type PanelData =
   | { type: 'user-detail'; userId: string; onUserUpdated?: () => void }
   | { type: 'workspace-detail'; workspaceId: string }
   | { 
-      type: 'bulk-actions'; 
+      type: 'bulk-actions';
       selectedIds: string[];
       selectedCalls?: any[];
       tags?: any[];
@@ -46,6 +46,7 @@ export type PanelData =
       onRemoveTag?: () => void;
       onCreateNewTag?: () => void;
       onAssignFolder?: () => void;
+      deleteLabel?: string;
     }
   | { type: 'setting-help'; topic?: string }
   | { type: 'settings'; tab?: string }

@@ -671,7 +671,7 @@ async function executeSearchTranscripts(
     const keywords = query.split(/\s+/).filter(word => word.length > 3).slice(0, 5);
     if (keywords.length > 0) {
       let summaryQuery = supabase
-        .from('fathom_calls')
+        .from('fathom_raw_calls')
         .select('recording_id, title, created_at, summary, recorded_by_name')
         .eq('user_id', user.id)
         .not('summary', 'is', null);
@@ -752,7 +752,7 @@ async function executeGetCallDetails(
   console.log(`Getting call details for: ${recording_id}`);
 
   const { data: call, error } = await supabase
-    .from('fathom_calls')
+    .from('fathom_raw_calls')
     .select('*')
     .eq('recording_id', recording_id)
     .eq('user_id', user.id)
@@ -763,7 +763,7 @@ async function executeGetCallDetails(
   }
 
   const { data: speakers } = await supabase
-    .from('fathom_transcripts')
+    .from('fathom_raw_transcripts')
     .select('speaker_name, speaker_email')
     .eq('recording_id', recording_id)
     .eq('user_id', user.id)
@@ -794,7 +794,7 @@ async function executeSummarizeCalls(
   console.log(`Summarizing calls with filters`);
 
   let callsQuery = supabase
-    .from('fathom_calls')
+    .from('fathom_raw_calls')
     .select('recording_id, title, created_at, summary, recorded_by_name')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
@@ -1098,7 +1098,7 @@ async function executeGetCallsList(
   console.log('Getting calls list with filters:', { date_start, date_end, category, speaker, limit });
 
   let callsQuery = supabase
-    .from('fathom_calls')
+    .from('fathom_raw_calls')
     .select('recording_id, title, created_at, summary, recorded_by_name')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
@@ -1224,7 +1224,7 @@ async function executeCompareCalls(
 
   // Fetch call details for all recordings
   const { data: calls, error: callsError } = await supabase
-    .from('fathom_calls')
+    .from('fathom_raw_calls')
     .select('recording_id, title, created_at, summary, recorded_by_name')
     .in('recording_id', recording_ids)
     .eq('user_id', user.id);

@@ -160,7 +160,7 @@ Deno.serve(async (req: Request) => {
 
     // Get call details
     const { data: call, error: callError } = await supabase
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .select('title, summary')
       .eq('recording_id', recording_id)
       .eq('user_id', user.id)

@@ -47,15 +47,10 @@ export function useOrgContext() {
     const personalOrg = organizations.find((org) => isPersonalOrg(org))
     const defaultOrg = personalOrg ?? organizations[0]
     
-    // We initialized org, but we should also check if we can pick a workspace
-    // If workspaces are already loaded for this org, pick one
-    if (!workspacesLoading && workspaces) {
-      const defaultWorkspace = workspaces.find(w => w.is_default) ?? workspaces.find(w => w.workspace_type === 'personal') ?? workspaces[0]
-      initialize(defaultOrg.id, defaultWorkspace?.id)
-    } else if (!workspacesLoading) {
-      // Fallback if no workspaces found
-      initialize(defaultOrg.id)
-    }
+    // Initialize with org only — no default workspace.
+    // null activeWorkspaceId = "All Calls" (every recording in the org).
+    // User explicitly picks a workspace from the sidebar to filter.
+    initialize(defaultOrg.id)
   }, [organizations, orgsLoading, isInitialized, initialize, workspaces, workspacesLoading])
 
   // Derived: find the active org object from the list
@@ -73,9 +68,9 @@ export function useOrgContext() {
     [setActiveOrg]
   )
 
-  /** Switch to a different workspace within the active org. */
+  /** Switch to a different workspace, or null for "All Calls" (org-wide view). */
   const switchWorkspace = useCallback(
-    (workspaceId: string) => {
+    (workspaceId: string | null) => {
       setActiveWorkspace(workspaceId)
     },
     [setActiveWorkspace]

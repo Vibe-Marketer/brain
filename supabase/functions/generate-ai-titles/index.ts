@@ -219,7 +219,7 @@ Deno.serve(async (req) => {
       console.log(`Auto-discovering calls without AI titles for user ${userId} (limit: ${limit})`);
 
       const { data: callsWithoutTitles, error: discoverError } = await supabase
-        .from('fathom_calls')
+        .from('fathom_raw_calls')
         .select('recording_id')
         .eq('user_id', userId)
         .is('ai_generated_title', null)
@@ -263,7 +263,7 @@ Deno.serve(async (req) => {
       try {
         // Fetch call data including participant info
         const { data: call, error: callError } = await supabase
-          .from('fathom_calls')
+          .from('fathom_raw_calls')
           .select('recording_id, title, full_transcript, created_at, recorded_by_name, recorded_by_email, calendar_invitees')
           .eq('recording_id', recordingId)
           .eq('user_id', userId)
@@ -365,7 +365,7 @@ ${cleanedTranscript}`;
 
         // Update database with AI-generated title and timestamp
         const { error: updateError } = await supabase
-          .from('fathom_calls')
+          .from('fathom_raw_calls')
           .update({
             ai_generated_title: aiTitle,
             ai_title_generated_at: new Date().toISOString(),

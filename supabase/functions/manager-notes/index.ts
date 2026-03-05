@@ -157,7 +157,7 @@ async function handleCreateNote(
 
   // Verify the call exists and belongs to the report
   const { data: call, error: callError } = await supabaseClient
-    .from('fathom_calls')
+    .from('fathom_raw_calls')
     .select('recording_id, user_id')
     .eq('recording_id', call_recording_id)
     .eq('user_id', report_user_id)

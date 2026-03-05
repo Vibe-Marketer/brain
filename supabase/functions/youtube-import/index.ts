@@ -728,6 +728,36 @@ Deno.serve(async (req) => {
     const newRecordingId = result.recordingId;
     console.log(`Successfully imported YouTube video ${videoId} as recording ${newRecordingId}`);
 
+    // Write to youtube_raw_calls for source-specific detail
+    try {
+      const { error: rawError } = await supabase
+        .from('youtube_raw_calls')
+        .insert({
+          recording_id: newRecordingId,
+          user_id: user.id,
+          youtube_video_id: videoId,
+          youtube_channel_id: videoDetails.channelId || null,
+          youtube_channel_title: videoDetails.channelTitle || null,
+          youtube_description: (videoDetails.description || '').substring(0, 1000),
+          youtube_thumbnail: videoDetails.thumbnails?.high?.url || videoDetails.thumbnails?.default?.url || null,
+          youtube_duration: videoDetails.duration || null,
+          youtube_category_id: videoDetails.categoryId || null,
+          youtube_published_at: videoDetails.publishedAt || null,
+          youtube_view_count: videoDetails.viewCount || null,
+          youtube_like_count: videoDetails.likeCount || null,
+          youtube_comment_count: videoDetails.commentCount || null,
+          import_source: 'youtube-import',
+          full_transcript: transcriptText,
+          raw_payload: transcriptData,
+        });
+
+      if (rawError) {
+        console.error(`Error inserting youtube_raw_calls for ${videoId} (non-blocking):`, rawError);
+      }
+    } catch (rawErr) {
+      console.error(`Error writing youtube_raw_calls for ${videoId} (non-blocking):`, rawErr);
+    }
+
     // ========================================================================
     // Step 6: Return success
     // ========================================================================

@@ -94,7 +94,7 @@ async function getHistoricalPatterns(
 ): Promise<HistoricalPattern[]> {
   // Get historical calls with tags to learn patterns
   const { data, error } = await supabase
-    .from('fathom_calls')
+    .from('fathom_raw_calls')
     .select('auto_tags, title, calendar_invitees')
     .eq('user_id', userId)
     .not('auto_tags', 'is', null)
@@ -266,7 +266,7 @@ Deno.serve(async (req) => {
       try {
         // Fetch call data
         const { data: call, error: callError } = await supabase
-          .from('fathom_calls')
+          .from('fathom_raw_calls')
           .select('recording_id, title, full_transcript, summary, calendar_invitees')
           .eq('recording_id', recordingId)
           .eq('user_id', user.id)
@@ -371,7 +371,7 @@ Select the ONE most appropriate tag from the approved list.`;
 
         // Update database with SINGLE tag in array format (for backward compatibility)
         const { error: updateError } = await supabase
-          .from('fathom_calls')
+          .from('fathom_raw_calls')
           .update({
             auto_tags: [selectedTag], // Single tag in array
             auto_tags_generated_at: new Date().toISOString(),

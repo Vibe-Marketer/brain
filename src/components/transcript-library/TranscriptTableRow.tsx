@@ -9,7 +9,7 @@ import {
   RiFolderLine,
   RiStackLine,
 } from "@remixicon/react";
-import { SourcePlatformIndicator, FathomIcon, ZoomIcon } from "./SourcePlatformIcons";
+import { FathomIcon, ZoomIcon, YouTubeIcon, UploadIcon } from "./SourcePlatformIcons";
 import { RoutingTraceBadge } from "@/components/import/RoutingTraceBadge";
 import { getSourceLabel } from "@/lib/source-labels";
 import { TableCell, TableRow } from "@/components/ui/table";
@@ -93,7 +93,7 @@ export function TranscriptTableRow({
       </TableCell>
       <TableCell className="py-0 whitespace-nowrap">
         <div className="space-y-0">
-          {/* First line: Title + Source Platform Icons */}
+          {/* First line: Title */}
           <div className="flex items-center gap-1.5">
             <button
               onClick={onCallClick}
@@ -101,13 +101,6 @@ export function TranscriptTableRow({
             >
               {call.title}
             </button>
-            {!isHome && (
-              <SourcePlatformIndicator
-                sourcePlatform={call.source_platform}
-                mergedFrom={call.merged_from}
-                size={14}
-              />
-            )}
             {/* Routing Trace Badge */}
             <RoutingTraceBadge sourceMetadata={call.source_metadata} />
           </div>
@@ -200,6 +193,8 @@ export function TranscriptTableRow({
           <div className="flex items-center gap-1.5">
             {call.source_platform === 'fathom' && <FathomIcon size={14} />}
             {call.source_platform === 'zoom' && <ZoomIcon size={14} />}
+            {call.source_platform === 'youtube' && <YouTubeIcon size={14} />}
+            {call.source_platform === 'file-upload' && <UploadIcon size={14} />}
             <span className="text-xs text-muted-foreground">
               {getSourceLabel(call.source_platform)}
             </span>

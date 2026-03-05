@@ -750,7 +750,7 @@ function createTools(
           // Select additional fields for YouTube imports
           const selectFields = 'recording_id, title, created_at, recording_start_time, recording_end_time, recorded_by_name, summary, url, share_url, source_platform, full_transcript, metadata';
           const { data: call, error: callError } = await supabase
-            .from('fathom_calls')
+            .from('fathom_raw_calls')
             .select(selectFields)
             .eq('recording_id', numericId)
             .eq('user_id', userId)
@@ -766,7 +766,7 @@ function createTools(
           let uniqueSpeakers: string[] = [];
           if (!isYouTubeCall) {
             const { data: speakers } = await supabase
-              .from('fathom_transcripts')
+              .from('fathom_raw_transcripts')
               .select('speaker_name, speaker_email')
               .eq('recording_id', numericId)
               .eq('user_id', userId)
@@ -909,7 +909,7 @@ function createTools(
           }
 
           let callsQuery = supabase
-            .from('fathom_calls')
+            .from('fathom_raw_calls')
             .select('recording_id, title, created_at, summary, recorded_by_name, share_url')
             .eq('user_id', userId)
             .order('created_at', { ascending: false });
@@ -1094,7 +1094,7 @@ function createTools(
 
           // Fetch call details for all recordings
           let callsQuery = supabase
-            .from('fathom_calls')
+            .from('fathom_raw_calls')
             .select('recording_id, title, created_at, summary, recorded_by_name')
             .in('recording_id', scopedNumericIds)
             .eq('user_id', userId);

@@ -88,7 +88,7 @@ export interface WorkspaceWithMembership extends Workspace {
 }
 
 /**
- * Recording - Base call object (migrated from fathom_calls)
+ * Recording - Base call object (canonical recordings table)
  * Owned by an organization, can appear in multiple workspaces via WorkspaceEntry
  */
 export interface Recording {
@@ -102,6 +102,7 @@ export interface Recording {
   summary?: string | null
   global_tags: string[]
   source_app?: string | null
+  source_call_id?: string | null
   source_metadata?: Record<string, unknown> | null
   duration?: number | null
   recording_start_time?: string | null
@@ -109,6 +110,13 @@ export interface Recording {
   created_at: string
   synced_at?: string | null
 }
+
+/**
+ * Call - UI-facing alias for Recording.
+ * The canonical type for all list views, detail views, and components.
+ * Named "Call" because that's the domain concept; DB table is still "recordings".
+ */
+export type Call = Recording
 
 /**
  * WorkspaceEntry - Recording's presence in a workspace with local context

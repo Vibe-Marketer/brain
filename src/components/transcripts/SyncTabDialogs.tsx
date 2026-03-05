@@ -110,9 +110,9 @@ export function SyncTabDialogs({
           }
           setShowDeleteDialog(false);
         }}
-        title="Delete Transcripts"
-        description={`Are you sure you want to delete ${selectedExistingTranscripts.length} transcript(s)? This action cannot be undone.`}
+        mode="permanent-delete"
         itemCount={selectedExistingTranscripts.length}
+        sourceLabels={['Fathom']}
       />
     </>
   );

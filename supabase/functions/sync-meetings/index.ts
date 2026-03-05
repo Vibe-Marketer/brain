@@ -148,7 +148,38 @@ async function syncMeeting(
 
     console.log(`Successfully synced Fathom meeting ${recordingId} as recording ${result.recordingId}`);
 
-    // Insert transcript segments into fathom_transcripts for backward compat
+    // Write to fathom_raw_calls for source-specific detail
+    try {
+      const { error: rawError } = await supabase
+        .from('fathom_raw_calls')
+        .upsert({
+          recording_id: recordingId,
+          user_id: userId,
+          canonical_recording_id: result.recordingId,
+          title: meeting.title,
+          created_at: meeting.created_at,
+          recording_start_time: meeting.recording_start_time,
+          recording_end_time: meeting.recording_end_time || null,
+          url: meeting.url || null,
+          share_url: meeting.share_url || null,
+          full_transcript: fullTranscript,
+          summary: summaryText,
+          recorded_by_name: meeting.recorded_by?.name || null,
+          recorded_by_email: meeting.recorded_by?.email || null,
+          calendar_invitees: meeting.calendar_invitees || null,
+          synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'recording_id,user_id'
+        });
+
+      if (rawError) {
+        console.error(`Error inserting fathom_raw_calls for ${recordingId} (non-blocking):`, rawError);
+      }
+    } catch (rawErr) {
+      console.error(`Error writing fathom_raw_calls for ${recordingId} (non-blocking):`, rawErr);
+    }
+
+    // Insert transcript segments into fathom_raw_transcripts for backward compat
     if (meeting.transcript && meeting.transcript.length > 0) {
       const transcriptRows = meeting.transcript.map((segment: TranscriptSegment) => {
         let speakerEmail = segment.speaker.matched_calendar_invitee_email;
@@ -175,7 +206,7 @@ async function syncMeeting(
       });
 
       const { error: transcriptError } = await supabase
-        .from('fathom_transcripts')
+        .from('fathom_raw_transcripts')
         .insert(transcriptRows);
 
       if (transcriptError) {

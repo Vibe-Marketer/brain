@@ -166,6 +166,14 @@ export const queryKeys = {
     defaults: (orgId?: string) => ['routing-rules', 'defaults', orgId] as const,
     preview: (orgId?: string) => ['routing-rules', 'preview', orgId] as const,
   },
+
+  // Raw Calls (source-specific detail data)
+  rawCalls: {
+    fathom: (recordingId: string) => ['raw-calls', 'fathom', recordingId] as const,
+    zoom: (recordingId: string) => ['raw-calls', 'zoom', recordingId] as const,
+    youtube: (recordingId: string) => ['raw-calls', 'youtube', recordingId] as const,
+    upload: (recordingId: string) => ['raw-calls', 'upload', recordingId] as const,
+  },
 } as const;
 
 // Type helper for query keys

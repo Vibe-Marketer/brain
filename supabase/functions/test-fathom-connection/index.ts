@@ -262,7 +262,7 @@ Deno.serve(async (req) => {
       try {
         // Get a recent synced call to test transcript retrieval
         const { data: recentCall } = await supabase
-          .from('fathom_calls')
+          .from('fathom_raw_calls')
           .select('recording_id')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })

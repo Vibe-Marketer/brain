@@ -351,7 +351,7 @@ export async function executeHybridSearch(
 
   if (uniqueRecordingIds.length > 0) {
     const { data: calls } = await supabase
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .select('recording_id, share_url')
       .in('recording_id', uniqueRecordingIds)
       .eq('user_id', userId);

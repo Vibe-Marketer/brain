@@ -115,7 +115,7 @@ async function handleCreateShareLink(
 
   // Verify the user owns this call
   const { data: call, error: callError } = await supabaseClient
-    .from('fathom_calls')
+    .from('fathom_raw_calls')
     .select('recording_id')
     .eq('recording_id', call_recording_id)
     .eq('user_id', user_id)
@@ -220,7 +220,7 @@ async function handleGetShareCall(
 
     // Fetch the call data
     const { data: call, error: callError } = await supabaseClient
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .select(`
         recording_id,
         call_name,

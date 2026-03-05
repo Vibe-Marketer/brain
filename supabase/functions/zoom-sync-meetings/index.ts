@@ -3,6 +3,7 @@ import { ZoomClient } from '../_shared/zoom-client.ts';
 import { parseVTTWithMetadata, consolidateBySpeaker, TranscriptSegment } from '../_shared/vtt-parser.ts';
 import { refreshZoomOAuthTokens } from '../zoom-oauth-refresh/index.ts';
 import { runPipeline } from '../_shared/connector-pipeline.ts';
+import { generateFingerprint, generateFingerprintString } from '../_shared/dedup-fingerprint.ts';
 
 import { getCorsHeaders } from '../_shared/cors.ts';
 
@@ -195,7 +196,48 @@ async function syncZoomMeeting(
 
     console.log(`Successfully synced Zoom meeting ${recordingId} as recording ${result.recordingId}`);
 
-    // Insert transcript segments into fathom_transcripts for backward compat
+    // Write to zoom_raw_calls for source-specific detail
+    try {
+      const fingerprint = await generateFingerprint({
+        title: meeting.topic,
+        start_time: new Date(meeting.start_time),
+        duration_minutes: meeting.duration,
+        participants: [meeting.host_email],
+      });
+      const fingerprintString = generateFingerprintString(fingerprint);
+
+      const { error: rawError } = await supabase
+        .from('zoom_raw_calls')
+        .upsert({
+          recording_id: result.recordingId,
+          user_id: userId,
+          zoom_meeting_id: String(meeting.id),
+          zoom_meeting_uuid: recordingId,
+          host_email: meeting.host_email,
+          host_id: meeting.host_id,
+          account_id: meeting.account_id,
+          topic: meeting.topic,
+          start_time: meeting.start_time,
+          duration: durationSeconds,
+          timezone: meeting.timezone,
+          meeting_type: meeting.type,
+          share_url: meeting.share_url || null,
+          full_transcript: fullTranscript,
+          meeting_fingerprint: fingerprintString,
+          raw_payload: meeting,
+          synced_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,zoom_meeting_uuid',
+        });
+
+      if (rawError) {
+        console.error(`Error inserting zoom_raw_calls for ${recordingId} (non-blocking):`, rawError);
+      }
+    } catch (rawErr) {
+      console.error(`Error writing zoom_raw_calls for ${recordingId} (non-blocking):`, rawErr);
+    }
+
+    // Insert transcript segments into fathom_raw_transcripts for backward compat
     if (transcriptSegments.length > 0) {
       const transcriptRows = transcriptSegments.map((segment: TranscriptSegment) => ({
         recording_id: recordingId,
@@ -207,7 +249,7 @@ async function syncZoomMeeting(
       }));
 
       const { error: transcriptError } = await supabase
-        .from('fathom_transcripts')
+        .from('fathom_raw_transcripts')
         .insert(transcriptRows);
 
       if (transcriptError) {

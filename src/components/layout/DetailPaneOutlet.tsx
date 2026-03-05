@@ -122,6 +122,7 @@ export function DetailPaneOutlet({
             onRemoveTag={panelData.onRemoveTag}
             onCreateNewTag={panelData.onCreateNewTag}
             onAssignFolder={panelData.onAssignFolder}
+            deleteLabel={panelData.deleteLabel}
           />
         ) : null;
 

@@ -20,7 +20,7 @@ interface OrgContextState {
 
   // Actions
   setActiveOrg: (orgId: string) => void
-  setActiveWorkspace: (workspaceId: string) => void
+  setActiveWorkspace: (workspaceId: string | null) => void
   setActiveFolder: (folderId: string | null) => void
   initialize: (orgId: string, workspaceId?: string) => void
   reset: () => void
@@ -91,7 +91,7 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
    * Switch to a different workspace within the current organization.
    * Resets activeFolderId to null (folder context is workspace-specific).
    */
-  setActiveWorkspace: (workspaceId: string) => {
+  setActiveWorkspace: (workspaceId: string | null) => {
     set((state) => {
       persistContext(state.activeOrgId, workspaceId)
       return { activeWorkspaceId: workspaceId, activeFolderId: null }

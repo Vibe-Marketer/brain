@@ -955,7 +955,7 @@ async function executeGenerateDigest(
   let callsData: Array<{ recording_id: number; title: string; duration_seconds: number; created_at: string }> = [];
   if (include_calls) {
     const { data } = await supabase
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .select('recording_id, title, duration_seconds, created_at')
       .eq('user_id', userId)
       .gte('created_at', startDate.toISOString())

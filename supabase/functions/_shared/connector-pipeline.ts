@@ -164,6 +164,7 @@ export async function insertRecording(
       title: record.title,
       full_transcript: record.full_transcript,
       source_app: record.source_app,
+      source_call_id: record.external_id,
       source_metadata: sourceMetadata,
       duration: record.duration ?? null,
       recording_start_time: record.recording_start_time,

@@ -310,7 +310,7 @@ async function processRecordingWithSmallBatches(
 
   // Get call metadata
   const { data: call, error: callError } = await supabase
-    .from('fathom_calls')
+    .from('fathom_raw_calls')
     .select('*')
     .eq('recording_id', recording_id)
     .eq('user_id', user_id)
@@ -322,7 +322,7 @@ async function processRecordingWithSmallBatches(
 
   // Get transcript segments
   const { data: segments, error: segmentsError } = await supabase
-    .from('fathom_transcripts')
+    .from('fathom_raw_transcripts')
     .select('*')
     .eq('recording_id', recording_id)
     .eq('user_id', user_id)

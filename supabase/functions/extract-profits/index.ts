@@ -334,7 +334,7 @@ Deno.serve(async (req) => {
 
     // Fetch the call - verify user ownership
     const { data: call, error: callError } = await supabase
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .select('recording_id, title, profits_framework')
       .eq('recording_id', recording_id)
       .eq('user_id', user.id)
@@ -362,7 +362,7 @@ Deno.serve(async (req) => {
 
     // Fetch transcript segments
     const { data: transcripts, error: transcriptError } = await supabase
-      .from('fathom_transcripts')
+      .from('fathom_raw_transcripts')
       .select('id, text, speaker_name, timestamp, edited_text, edited_speaker_name')
       .eq('recording_id', recording_id)
       .eq('user_id', user.id)
@@ -432,7 +432,7 @@ Deno.serve(async (req) => {
 
     // Store in database
     const { error: updateError } = await supabase
-      .from('fathom_calls')
+      .from('fathom_raw_calls')
       .update({
         profits_framework: profitsReport,
       })

@@ -104,7 +104,7 @@ async function buildContext(
 ): Promise<EvaluationContext | null> {
   // Fetch call data
   const { data: call, error: callError } = await supabase
-    .from('fathom_calls')
+    .from('fathom_raw_calls')
     .select('*')
     .eq('recording_id', recordingId)
     .eq('user_id', userId)

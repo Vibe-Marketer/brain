@@ -89,7 +89,7 @@ export function useOrganizationContext(): {
   const personalWorkspaceData = workspacesMapped.find((v) => v.workspace_type === 'personal') || null
 
   const switchOrganizationInternal = useCallback((orgId: string) => switchOrg(orgId), [switchOrg])
-  const switchWorkspaceInternal = useCallback((workspaceId: string | null) => switchWorkspace(workspaceId || ''), [switchWorkspace])
+  const switchWorkspaceInternal = useCallback((workspaceId: string | null) => switchWorkspace(workspaceId), [switchWorkspace])
 
   return {
     // State

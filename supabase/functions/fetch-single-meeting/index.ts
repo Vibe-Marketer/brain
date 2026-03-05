@@ -157,7 +157,7 @@ serve(async (req) => {
       createdAt = rec.recording_start_time;
     } else {
       const { data: legacyCall } = await supabaseClient
-        .from('fathom_calls')
+        .from('fathom_raw_calls')
         .select('created_at')
         .eq('recording_id', recording_id)
         .eq('user_id', user_id)

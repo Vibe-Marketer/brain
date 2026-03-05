@@ -60,6 +60,7 @@ export interface BulkActionToolbarEnhancedProps {
   onRemoveTag?: () => void;
   onCreateNewTag?: () => void;
   onAssignFolder?: () => void;
+  deleteLabel?: string;
 }
 
 /**
@@ -100,6 +101,7 @@ export function BulkActionToolbarEnhanced({
   onRemoveTag,
   onCreateNewTag,
   onAssignFolder,
+  deleteLabel = 'Delete Selected',
 }: BulkActionToolbarEnhancedProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -373,7 +375,7 @@ export function BulkActionToolbarEnhanced({
           onClick={onDelete}
         >
           <RiDeleteBin6Line className="h-4 w-4 mr-2" />
-          Delete Selected
+          {deleteLabel}
         </Button>
       </footer>
 

@@ -133,6 +133,30 @@ Deno.serve(async (req) => {
       throw new Error(result.error || 'Pipeline failed');
     }
 
+    // Write to upload_raw_files for source-specific detail
+    try {
+      const { error: rawError } = await supabase
+        .from('upload_raw_files')
+        .insert({
+          recording_id: result.recordingId,
+          user_id: user.id,
+          original_filename: file.name,
+          file_size: file.size,
+          mime_type: file.type,
+          full_transcript: transcriptText,
+          raw_payload: {
+            import_source: 'file-upload-transcribe',
+            synced_at: new Date().toISOString(),
+          },
+        });
+
+      if (rawError) {
+        console.error(`[file-upload-transcribe] Error inserting upload_raw_files (non-blocking):`, rawError);
+      }
+    } catch (rawErr) {
+      console.error(`[file-upload-transcribe] Error writing upload_raw_files (non-blocking):`, rawErr);
+    }
+
     return new Response(
       JSON.stringify({ success: true, recordingId: result.recordingId }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
