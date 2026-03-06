@@ -180,11 +180,12 @@ export default function ImportPage() {
   // YouTube Import is handled natively by YouTubeImportForm component
 
   async function handleFathomSync() {
-    const toastId = toast.loading('Fetching meetings from Fathom...');
+    const toastId = toast.loading('Fetching recent meetings from Fathom...');
     try {
-      // 1. Fetch recent meetings
+      // 1. Fetch recent meetings (last 90 days to keep it fast)
+      const createdAfter = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const { data: fetchRes, error: fetchErr } = await supabase.functions.invoke('fetch-meetings', {
-        body: {} // Pass empty body to prevent JSON parse errors
+        body: { createdAfter }
       });
       if (fetchErr) throw fetchErr;
 
