@@ -94,22 +94,6 @@ export const queryKeys = {
     hierarchy: (teamId: string) => ['teams', 'hierarchy', teamId] as const,
   },
 
-  // Content Library
-  contentLibrary: {
-    all: ['content-library'] as const,
-    list: (filters?: Record<string, unknown>) => ['content-library', 'list', filters] as const,
-    detail: (itemId: string) => ['content-library', 'detail', itemId] as const,
-    tags: () => ['content-library', 'tags'] as const,
-  },
-
-  // Templates
-  templates: {
-    all: ['templates'] as const,
-    list: (filters?: Record<string, unknown>) => ['templates', 'list', filters] as const,
-    detail: (templateId: string) => ['templates', 'detail', templateId] as const,
-    shared: () => ['templates', 'shared'] as const,
-  },
-
   // Contacts
   contacts: {
     all: ['contacts'] as const,
