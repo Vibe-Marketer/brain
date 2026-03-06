@@ -344,9 +344,10 @@ export async function getFailedImports(): Promise<FailedImport[]> {
   if (!user) return []
 
   // Get all synced external_ids to filter out false-positives
+  // Check BOTH source_metadata.external_id and legacy_recording_id
   const { data: syncedRecs } = await supabase
     .from('recordings')
-    .select('source_metadata')
+    .select('source_metadata, legacy_recording_id')
     .eq('owner_user_id', user.id)
 
   const syncedIds = new Set<string>()
@@ -354,6 +355,7 @@ export async function getFailedImports(): Promise<FailedImport[]> {
     for (const r of syncedRecs) {
       const extId = (r.source_metadata as any)?.external_id
       if (extId) syncedIds.add(String(extId))
+      if ((r as any).legacy_recording_id) syncedIds.add(String((r as any).legacy_recording_id))
     }
   }
 

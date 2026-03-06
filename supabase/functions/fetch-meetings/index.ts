@@ -319,11 +319,12 @@ Deno.serve(async (req) => {
     }
 
     // Check which meetings are already synced via recordings table.
-    // Fetch all fathom source_metadata for this user and extract external_ids.
-    // external_id for Fathom = String(recording_id) as stored by sync-meetings.
+    // Two sources of truth for the Fathom recording_id:
+    //   1. source_metadata->>'external_id' (new pipeline via sync-meetings)
+    //   2. legacy_recording_id (old pipeline via migrate-recordings)
     const { data: syncedRecordings, error: syncCheckError } = await supabase
       .from('recordings')
-      .select('source_metadata')
+      .select('source_metadata, legacy_recording_id')
       .eq('owner_user_id', user.id)
       .eq('source_app', 'fathom');
 
@@ -334,13 +335,15 @@ Deno.serve(async (req) => {
     console.log(`Found ${syncedRecordings?.length || 0} fathom recordings already synced`);
 
     // Build set of synced recording IDs (as numbers) for fast lookup
-    const syncedIds = new Set(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (syncedRecordings || []).map((r: any) => {
-        const extId = r.source_metadata?.external_id;
-        return extId ? Number(extId) : null;
-      }).filter((id: number | null): id is number => id !== null)
-    );
+    // Check BOTH external_id and legacy_recording_id to catch all synced meetings
+    const syncedIds = new Set<number>();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const r of (syncedRecordings || []) as any[]) {
+      const extId = r.source_metadata?.external_id;
+      if (extId) syncedIds.add(Number(extId));
+      if (r.legacy_recording_id) syncedIds.add(Number(r.legacy_recording_id));
+    }
+    console.log(`Built syncedIds set with ${syncedIds.size} unique IDs`);
 
     const meetingsWithSyncStatus = allMeetings.map(meeting => ({
       ...meeting,
