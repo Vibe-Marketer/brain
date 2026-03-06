@@ -2,15 +2,15 @@
 
 ## What This Is
 
-CallVault is a conversation intelligence platform that ingests call recordings from multiple sources (Fathom, Zoom, Google Meet, YouTube), enriches them with AI-powered metadata (topics, sentiment, intent signals, entities), and turns them into actionable intelligence through RAG-powered chat, content generation, and automation. The platform uses a Bank/Vault multi-tenant architecture providing hard tenant isolation alongside collaborative workspace sharing.
+CallVault is a workspace clarity platform for call recordings. Users import calls from multiple sources (Fathom, Zoom, YouTube), organize them into clear workspaces with folders and tags, and expose that structured context to whatever AI tools they already use — via MCP (Model Context Protocol).
 
-v1 shipped with the core platform stabilized, Bank/Vault architecture live, differentiating features delivered (folder-level chat, client health alerts, contacts database, Polar billing, YouTube import), and the MCP server deployed remotely to Cloudflare Workers.
+v1 shipped a full conversation intelligence platform. v2 pivots to a thin, focused app: import from anywhere → organize into workspaces → expose via MCP. The AI/RAG/chat infrastructure is being stripped in favor of letting external AI tools consume CallVault's organized data.
 
 ## Core Value
 
-**Users can reliably ask questions across their entire call history and get accurate, cited answers every single time.**
+**Clarity-first organized call workspace.** Users can import calls from anywhere, organize them into clear workspaces, and expose that structured context to whatever AI they already use — with zero confusion about how the system works.
 
-If Chat breaks, nothing else matters. Everything else (content generation, exports, automation) builds on top of reliable conversation intelligence retrieval.
+If workspace clarity breaks, or import rules fail to route calls, nothing else matters.
 
 ## Current Milestone: v2.0 The Pivot
 
@@ -135,12 +135,6 @@ If Chat breaks, nothing else matters. Everything else (content generation, expor
 - GROW-04: Slack Notification Action — Deferred per original CONTEXT.md decision
 - GROW-01: Coach Partner/Affiliate Program — Deferred (coach model eliminated)
 
-## Core Value
-
-**Clarity-first organized call workspace.** Users can import calls from anywhere, organize them into clear workspaces, and expose that structured context to whatever AI they already use — with zero confusion about how the system works.
-
-If workspace clarity breaks, or import rules fail to route calls, nothing else matters.
-
 ## Context
 
 ### Current State (post-v1)
@@ -208,4 +202,4 @@ If workspace clarity breaks, or import rules fail to route calls, nothing else m
 | Decimal phase numbering for insertions | Clear insertion semantics without renumbering existing phases | ✓ 3.1, 3.2, 10.2, 10.3 inserted cleanly |
 
 ---
-*Last updated: 2026-02-22 after v2.0 milestone start — strategic pivot to thin app + MCP*
+*Last updated: 2026-03-06 — updated framing for v2 pivot (workspace clarity platform, not RAG chat)*

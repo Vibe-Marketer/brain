@@ -1,6 +1,6 @@
 # State: CallVault
 
-**Last Updated:** 2026-03-01 (Phase 16.2 Plan 03 complete — Vibe orange page titles, Montserrat heading base, warm empty states, dead V1 border-soft token removed)
+**Last Updated:** 2026-03-06 (Repo cleanup — root junk, large dirs, dead code, deprecated edge functions, v1 phases archived)
 
 ## Project Reference
 
@@ -18,11 +18,11 @@ See: `.planning/PROJECT.md` (updated 2026-02-22 after v2.0 milestone start)
 
 **Phase:** Phase 16.2 — V2 Visual Alignment with V1
 
-**Current Plan:** Not started
+**Current Plan:** Plan 03 complete, Plan 04 not started
 
-**Status:** Ready to plan
+**Status:** Partially complete (3 of 4 plans done)
 
-**Last activity:** 2026-03-01 — Plan 03 complete (vibe orange h1 page titles: All Calls, call detail, Settings, Import Calls, Workspaces, workspace detail, folder view, Shared With Me, join workspace; Montserrat heading base; border-soft removed; warm empty states)
+**Last activity:** 2026-03-06 — Repo cleanup (root junk, ~256MB dirs, dead code, deprecated edge functions, v1 phases archived to .planning/archive/)
 
 **Progress:**
 [█████████░] 93%
@@ -32,7 +32,7 @@ Phase 14: Foundation            [✓] complete (2026-02-27)
 Phase 15: Data Migration        [✓] complete (2026-02-27)
 Phase 16: Workspace Redesign    [✓] complete (2026-02-28)
 Phase 16.1: Workspace Polish    [✓] complete (2026-02-28)
-Phase 16.2: V2 Visual Alignment [ ] not planned ← YOU ARE HERE
+Phase 16.2: V2 Visual Alignment [▶] 3/4 plans done ← YOU ARE HERE
 Phase 17: Import Pipeline       [✓] complete (2026-02-28)
 Phase 18: Import Routing Rules  [✓] complete (2026-02-28)
 Phase 19: MCP Audit + Tokens    [ ] not started
