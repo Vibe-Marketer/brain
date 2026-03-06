@@ -1,0 +1,104 @@
+-- Phase 5: Organization Invitations Support
+
+-- RPC to get details for an organization invite (unauthenticated)
+CREATE OR REPLACE FUNCTION public.get_organization_invite_details(p_token TEXT)
+RETURNS TABLE (
+  invitation_id UUID,
+  organization_name TEXT,
+  inviter_display_name TEXT,
+  role TEXT,
+  expires_at TIMESTAMPTZ
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    oi.id,
+    o.name::TEXT,
+    p.display_name::TEXT,
+    oi.role,
+    oi.expires_at
+  FROM organization_invitations oi
+  JOIN organizations o ON o.id = oi.organization_id
+  JOIN user_profiles p ON p.user_id = oi.invited_by
+  WHERE oi.invite_token = p_token
+    AND oi.status = 'pending'
+    AND oi.expires_at > NOW();
+END;
+$$;
+
+-- RPC to accept an organization invite
+CREATE OR REPLACE FUNCTION public.accept_organization_invite(
+  p_token TEXT,
+  p_user_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_invitation organization_invitations%ROWTYPE;
+  v_user_email TEXT;
+BEGIN
+  -- Verify the calling user matches the p_user_id parameter
+  IF auth.uid() IS DISTINCT FROM p_user_id THEN
+    RETURN jsonb_build_object('error', 'User ID mismatch');
+  END IF;
+
+  -- Look up the invitation
+  SELECT * INTO v_invitation
+  FROM organization_invitations
+  WHERE invite_token = p_token
+    AND status = 'pending'
+    AND expires_at > NOW()
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('error', 'Invitation not found, already used, or expired');
+  END IF;
+
+  -- Verify the invited email matches the authenticated user's email
+  SELECT email INTO v_user_email
+  FROM auth.users
+  WHERE id = p_user_id;
+
+  IF v_user_email IS DISTINCT FROM v_invitation.email THEN
+    RETURN jsonb_build_object('error', 'This invitation was sent to a different email address');
+  END IF;
+
+  -- Create organization membership
+  -- Map 'bank_*' roles to 'organization_*' roles if necessary, or just use as is if schema matches
+  -- The table organization_invitations uses: 'bank_owner', 'bank_admin', 'bank_member'
+  -- The table organization_memberships uses: 'organization_owner', 'organization_admin', 'manager', 'member', 'guest'
+  
+  DECLARE
+    v_target_role TEXT;
+  BEGIN
+    v_target_role := CASE 
+      WHEN v_invitation.role = 'bank_owner' THEN 'organization_owner'
+      WHEN v_invitation.role = 'bank_admin' THEN 'organization_admin'
+      ELSE 'member'
+    END;
+
+    INSERT INTO public.organization_memberships (organization_id, user_id, role)
+    VALUES (v_invitation.organization_id, p_user_id, v_target_role)
+    ON CONFLICT (organization_id, user_id) DO UPDATE
+      SET role = EXCLUDED.role;
+  END;
+
+  -- Mark invitation as accepted
+  UPDATE organization_invitations
+  SET status = 'accepted',
+      updated_at = NOW()
+  WHERE id = v_invitation.id;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'organization_id', v_invitation.organization_id
+  );
+END;
+$$;

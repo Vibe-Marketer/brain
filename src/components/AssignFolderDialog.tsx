@@ -66,35 +66,42 @@ export default function AssignFolderDialog({
     setLoading(true);
     try {
       const numericRecordingIds = targetRecordingIds.map(id => parseInt(id));
+      const uuidRecordingIds = targetRecordingIds;
 
-      const { data, error } = await supabase
+      // Legacy assignments
+      const { data: legacyData, error: legacyError } = await supabase
         .from("folder_assignments")
         .select("call_recording_id, folder_id")
         .in("call_recording_id", numericRecordingIds);
 
-      if (error) throw error;
+      if (legacyError) throw legacyError;
+
+      // Personal assignments
+      const { data: personalData, error: personalError } = await (supabase as any)
+        .from('personal_folder_recordings')
+        .select('recording_id, folder_id')
+        .in('recording_id', uuidRecordingIds);
+
+      if (personalError) throw personalError;
+
+      const combined = [
+        ...(legacyData || []).map(a => a.folder_id),
+        ...(personalData || []).map(a => a.folder_id)
+      ];
 
       if (isBulkMode) {
-        // For bulk mode, show folders that ALL selected calls have in common
-        const folderCounts = new Map<string, number>();
-        data?.forEach(assignment => {
-          const count = folderCounts.get(assignment.folder_id) || 0;
-          folderCounts.set(assignment.folder_id, count + 1);
-        });
+        // Simple intersection for bulk mode
+        const counts = new Map<string, number>();
+        legacyData?.forEach(a => counts.set(a.folder_id, (counts.get(a.folder_id) || 0) + 1));
+        personalData?.forEach(a => counts.set(a.folder_id, (counts.get(a.folder_id) || 0) + 1));
 
-        // Only pre-select folders that ALL calls have
-        const commonFolders = new Set<string>();
-        folderCounts.forEach((count, folderId) => {
-          if (count === numericRecordingIds.length) {
-            commonFolders.add(folderId);
-          }
+        const common = new Set<string>();
+        counts.forEach((count, id) => {
+          if (count === targetRecordingIds.length) common.add(id);
         });
-
-        setSelectedFolders(commonFolders);
+        setSelectedFolders(common);
       } else {
-        // For single mode, show all assigned folders
-        const assigned = new Set(data?.map(a => a.folder_id) || []);
-        setSelectedFolders(assigned);
+        setSelectedFolders(new Set(combined));
       }
     } catch (error) {
       logger.error("Error loading folder assignments", error);
@@ -105,32 +112,42 @@ export default function AssignFolderDialog({
 
   const loadFolders = useCallback(async () => {
     try {
-      let query = supabase
+      // 1. Fetch Legacy Folders
+      let legacyQuery = supabase
         .from("folders")
         .select("id, name, color, parent_id, icon, position")
         .order("position");
 
       if (activeOrganizationId) {
-        query = query.eq("organization_id", activeOrganizationId);
+        legacyQuery = legacyQuery.eq("organization_id", activeOrganizationId);
       }
 
-      const { data, error } = await query;
+      const { data: legacyData, error: legacyError } = await legacyQuery;
+      if (legacyError) throw legacyError;
 
-      if (error) throw error;
+      // 2. Fetch Personal Folders
+      const { data: personalData, error: personalError } = await (supabase as any)
+        .from('personal_folders')
+        .select('*')
+        .eq('organization_id', activeOrganizationId)
+        .order('name');
+      
+      if (personalError) throw personalError;
 
-      // Store flat list for operations
-      setAllFolders(data || []);
+      const all = [
+        ...(legacyData || []).map(f => ({ ...f, is_personal: false })),
+        ...(personalData || []).map(f => ({ ...f, is_personal: true, parent_id: null }))
+      ];
+
+      setAllFolders(all as any);
 
       // Build tree structure
-      const tree = buildFolderTree(data || []);
+      const tree = buildFolderTree(all as any);
       setFolderTree(tree);
-
-      // Auto-expand all parent folders that have selected children
-      // (will be set after loadExistingAssignments runs)
     } catch (error) {
       logger.error("Error loading folders", error);
     }
-  }, []);
+  }, [activeOrganizationId]);
 
   // Auto-expand parents of selected folders
   const autoExpandParents = useCallback((selectedIds: Set<string>, folders: FolderWithDepth[]) => {
@@ -194,9 +211,13 @@ export default function AssignFolderDialog({
       }
     });
 
-    // Sort by position, fallback to name
+    // Sort by type (Legacy vs Personal), then position, fallback to name
     const sortFolders = (folderList: FolderTreeNode[]) => {
       folderList.sort((a, b) => {
+        // Personal folders first or last? Spec says "Personal" is user's private space.
+        // Let's put personal folders at the top to be prominent.
+        if (a.is_personal !== b.is_personal) return a.is_personal ? -1 : 1;
+
         const posA = a.position ?? 999;
         const posB = b.position ?? 999;
         if (posA !== posB) return posA - posB;
@@ -241,102 +262,69 @@ export default function AssignFolderDialog({
 
     setSaving(true);
     try {
-      const numericRecordingIds = targetRecordingIds.map(id => parseInt(id));
+      const numericRecordingIds = targetRecordingIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+      const uuidRecordingIds = targetRecordingIds;
 
-      // Get existing assignments for all selected recordings
-      const { data: existingAssignments, error: fetchError } = await supabase
+      const { user } = await getSafeUser();
+      const userId = user?.id || null;
+
+      // 1. Handle Legacy Folders
+      const legacySelected = new Set(Array.from(selectedFolders).filter(id => allFolders.find(f => f.id === id && !(f as any).is_personal)));
+      
+      const { data: existingLegacy } = await supabase
         .from("folder_assignments")
         .select("call_recording_id, folder_id")
         .in("call_recording_id", numericRecordingIds);
 
-      if (fetchError) throw fetchError;
-
-      // Create a map of existing assignments by recording_id
-      const existingByRecording = new Map<number, Set<string>>();
-      existingAssignments?.forEach(assignment => {
-        if (!existingByRecording.has(assignment.call_recording_id)) {
-          existingByRecording.set(assignment.call_recording_id, new Set());
-        }
-        existingByRecording.get(assignment.call_recording_id)!.add(assignment.folder_id);
-      });
-
-      // Determine which assignments to delete and which to add
-      const assignmentsToDelete: Array<{call_recording_id: number, folder_id: string}> = [];
-      const assignmentsToAdd: Array<{call_recording_id: number, folder_id: string, assigned_by: string | null, user_id: string | null}> = [];
-
-      // Get current user ID for assigned_by
-      const { user } = await getSafeUser();
-      const userId = user?.id || null;
-
-      numericRecordingIds.forEach(recordingId => {
-        const existing = existingByRecording.get(recordingId) || new Set();
-
-        // Find folders to delete (were selected before but not now)
-        existing.forEach(folderId => {
-          if (!selectedFolders.has(folderId)) {
-            assignmentsToDelete.push({ call_recording_id: recordingId, folder_id: folderId });
-          }
-        });
-
-        // Find folders to add (selected now but weren't before)
-        selectedFolders.forEach(folderId => {
-          if (!existing.has(folderId)) {
-            assignmentsToAdd.push({
-              call_recording_id: recordingId,
-              folder_id: folderId,
-              assigned_by: userId,
-              user_id: userId,  // Required for composite FK
-            });
+      // Deletions
+      const legacyToDelete = (existingLegacy || []).filter(a => !legacySelected.has(a.folder_id));
+      for (const a of legacyToDelete) {
+        await supabase.from("folder_assignments").delete()
+          .eq("call_recording_id", a.call_recording_id).eq("folder_id", a.folder_id).eq("user_id", userId);
+      }
+      // Insertions
+      const legacyToAdd: any[] = [];
+      numericRecordingIds.forEach(rid => {
+        legacySelected.forEach(fid => {
+          if (!(existingLegacy || []).some(a => a.call_recording_id === rid && a.folder_id === fid)) {
+            legacyToAdd.push({ call_recording_id: rid, folder_id: fid, assigned_by: userId, user_id: userId });
           }
         });
       });
+      if (legacyToAdd.length > 0) await supabase.from("folder_assignments").insert(legacyToAdd);
 
-      // Delete removed assignments
-      if (assignmentsToDelete.length > 0) {
-        for (const assignment of assignmentsToDelete) {
-          await supabase
-            .from("folder_assignments")
-            .delete()
-            .eq("call_recording_id", assignment.call_recording_id)
-            .eq("folder_id", assignment.folder_id)
-            .eq("user_id", userId);
-        }
+      // 2. Handle Personal Folders
+      const personalSelected = new Set(Array.from(selectedFolders).filter(id => allFolders.find(f => f.id === id && (f as any).is_personal)));
+      
+      const { data: existingPersonal } = await (supabase as any)
+        .from('personal_folder_recordings')
+        .select('recording_id, folder_id')
+        .in('recording_id', uuidRecordingIds);
+
+      // Deletions
+      const personalToDelete = (existingPersonal || []).filter((a: any) => !personalSelected.has(a.folder_id));
+      for (const a of personalToDelete) {
+        await (supabase as any).from('personal_folder_recordings').delete()
+          .eq('recording_id', a.recording_id).eq('folder_id', a.folder_id).eq('user_id', userId);
       }
+      // Insertions
+      const personalToAdd: any[] = [];
+      uuidRecordingIds.forEach(rid => {
+        personalSelected.forEach(fid => {
+          if (!(existingPersonal || []).some((a: any) => a.recording_id === rid && a.folder_id === fid)) {
+            personalToAdd.push({ recording_id: rid, folder_id: fid, user_id: userId });
+          }
+        });
+      });
+      if (personalToAdd.length > 0) await (supabase as any).from('personal_folder_recordings').insert(personalToAdd);
 
-      // Insert new assignments
-      if (assignmentsToAdd.length > 0) {
-        const { error } = await supabase
-          .from("folder_assignments")
-          .insert(assignmentsToAdd);
-
-        if (error) throw error;
-      }
-
-      // NEW ARCHITECTURE: Update workspace_entries.folder_id for each affected recording
-      // We pick the FIRST selected folder as the primary one for workspace_entries
-      // (as workspace_entries only supports one folder per entry, whereas folder_assignments supports many)
-      if (activeWorkspaceId) {
-        const primaryFolderId = selectedFolders.size > 0 ? Array.from(selectedFolders)[0] : null;
-        
-        // Find UUIDs for these recordings
-        const { data: recs } = await supabase
-          .from('recordings')
-          .select('id, legacy_recording_id')
-          .in('legacy_recording_id', numericRecordingIds);
-
+      // 3. Update workspace_entries (Legacy logic)
+      if (activeWorkspaceId && legacySelected.size > 0) {
+        const primaryFolderId = Array.from(legacySelected)[0];
+        const { data: recs } = await supabase.from('recordings').select('id').in('legacy_recording_id', numericRecordingIds);
         if (recs && recs.length > 0) {
-          const recordingUuids = recs.map(r => r.id);
-          
-          // Update all workspace_entries in batch
-          const { error: updateError } = await (supabase as any)
-            .from('workspace_entries')
-            .update({ folder_id: primaryFolderId })
-            .in('recording_id', recordingUuids)
-            .eq('workspace_id', activeWorkspaceId);
-            
-          if (updateError) {
-            console.error('Failed to update workspace_entries in AssignFolderDialog:', updateError);
-          }
+          await (supabase as any).from('workspace_entries').update({ folder_id: primaryFolderId })
+            .in('recording_id', recs.map(r => r.id)).eq('workspace_id', activeWorkspaceId);
         }
       }
 
@@ -451,6 +439,9 @@ export default function AssignFolderDialog({
             )}
           >
             {folder.name}
+            {folder.is_personal && (
+              <span className="ml-2 text-[10px] bg-vibe-orange/10 text-vibe-orange px-1 rounded uppercase font-bold tracking-tighter">Personal</span>
+            )}
           </label>
 
           {/* Selected indicator */}

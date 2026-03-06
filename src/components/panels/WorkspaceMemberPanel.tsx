@@ -185,7 +185,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
         <div className="flex items-center gap-2 min-w-0">
           <RiGroupLine className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wide truncate">
-            Workspace Members
+            {workspaceName ? `${workspaceName} ` : ''}Members
           </h3>
           {!isLoading && (
             <Badge

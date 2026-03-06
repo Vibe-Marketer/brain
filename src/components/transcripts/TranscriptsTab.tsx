@@ -28,6 +28,7 @@ import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import { usePanelStore } from "@/stores/panelStore";
 import { queryKeys } from "@/lib/query-config";
 import { useWorkspaces, useWorkspaceRecordings, mapRecordingToMeeting } from "@/hooks/useWorkspaces";
+import { usePersonalTags, usePersonalTagAssignments } from "@/hooks/usePersonalTags";
 import { Folder } from "@/types/workspace";
 import {
   FilterState,
@@ -185,7 +186,7 @@ export function TranscriptsTab({
   }, []);
 
   // Fetch tags scoped to active organization/workspace
-  const { data: tags = [] } = useQuery({
+  const { data: legacyTags = [] } = useQuery({
     queryKey: ["tags", activeOrganizationId],
     queryFn: async () => {
       let query = supabase
@@ -202,6 +203,14 @@ export function TranscriptsTab({
       return data as Tag[];
     },
   });
+
+  const { data: personalTags = [] } = usePersonalTags(activeOrganizationId);
+  const { data: personalTagAssignments = {} } = usePersonalTagAssignments(activeOrganizationId);
+
+  const tags = useMemo(() => [
+    ...legacyTags,
+    ...personalTags.map(t => ({ ...t, is_personal: true }))
+  ], [legacyTags, personalTags]);
 
   // Update URL params when filters change (preserve tab param)
   useEffect(() => {
@@ -367,6 +376,51 @@ export function TranscriptsTab({
           q = q.eq('owner_user_id', user.id);
         }
 
+        // Folder filtering (Decision 19 - All Calls Folder support)
+        if (selectedFolderId) {
+          // Determine if it's a personal folder
+          const selectedFolder = folders.find(f => f.id === selectedFolderId);
+          const isPersonal = selectedFolder && !(selectedFolder as any).workspace_id;
+          
+          let recIds: string[] = [];
+
+          if (isPersonal) {
+            const { data: personalAssigns } = await (supabase as any)
+              .from('personal_folder_recordings')
+              .select('recording_id')
+              .eq('folder_id', selectedFolderId);
+            recIds = (personalAssigns || []).map((a: any) => a.recording_id);
+          } else {
+            // Legacy folder
+            const { data: childFolders } = await supabase
+              .from('folders')
+              .select('id')
+              .eq('parent_id', selectedFolderId);
+            const folderIds = [selectedFolderId, ...(childFolders || []).map((f) => f.id)];
+
+            const { data: folderAssigns } = await supabase
+              .from('folder_assignments')
+              .select('call_recording_id')
+              .in('folder_id', folderIds);
+            
+            if (folderAssigns && folderAssigns.length > 0) {
+              const legacyIds = folderAssigns.map((a) => a.call_recording_id);
+              const { data: recs } = await supabase
+                .from('recordings')
+                .select('id')
+                .in('legacy_recording_id', legacyIds);
+              recIds = (recs || []).map((r) => r.id);
+            }
+          }
+
+          if (recIds.length === 0) {
+            setTotalCount(0);
+            onTotalCountChange?.(0);
+            return [];
+          }
+          q = q.in('id', recIds);
+        }
+
         // Search filter
         if (syntax.plainText) {
           q = q.or(`title.ilike.%${syntax.plainText}%,summary.ilike.%${syntax.plainText}%,full_transcript.ilike.%${syntax.plainText}%`);
@@ -451,9 +505,17 @@ export function TranscriptsTab({
         assignments[assignment.call_recording_id].push(assignment.tag_id);
       });
 
-      return assignments;
+      const merged = { ...assignments };
+      Object.entries(personalTagAssignments).forEach(([callId, tagIds]) => {
+        if (!merged[callId]) {
+          merged[callId] = [];
+        }
+        merged[callId] = Array.from(new Set([...merged[callId], ...tagIds]));
+      });
+
+      return merged;
     },
-    enabled: calls.length > 0,
+    enabled: calls.length > 0 && isInitialized,
   });
 
   // Bulk tag mutation

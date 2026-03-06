@@ -25,6 +25,7 @@ import { SettingHelpPanel } from '@/components/panels/SettingHelpPanel';
 import { UserDetailPanel } from '@/components/panels/UserDetailPanel';
 import { CallDetailPanel } from '@/components/panels/CallDetailPanel';
 import { WorkspaceMemberPanel } from '@/components/panels/WorkspaceMemberPanel';
+import { OrganizationMemberPanel } from '@/components/panels/OrganizationMemberPanel';
 import { AutomationRulePanel } from '@/components/panels/AutomationRulePanel';
 import { WorkspaceDetailPanel } from '@/components/panels/WorkspaceDetailPanel';
 import { BulkActionToolbarEnhanced } from '@/components/transcript-library/BulkActionToolbarEnhanced';
@@ -95,9 +96,15 @@ export function DetailPaneOutlet({
           <WorkspaceDetailPanel workspaceId={panelData.workspaceId} />
         ) : null;
 
-      case 'workspace-member':
-        if (panelData?.type === 'workspace-member') {
-          return <WorkspaceMemberPanel workspaceId={panelData.workspaceId} />;
+      case 'workspace_members':
+        if (panelData?.type === 'workspace_members') {
+          return <WorkspaceMemberPanel workspaceId={panelData.workspaceId} workspaceName={panelData.workspaceName || ''} />;
+        }
+        return null;
+
+      case 'organization_members':
+        if (panelData?.type === 'organization_members') {
+          return <OrganizationMemberPanel organizationId={panelData.organizationId} organizationName={panelData.organizationName || ''} />;
         }
         return null;
 
@@ -146,8 +153,10 @@ export function DetailPaneOutlet({
         return 'User detail panel';
       case 'call-detail':
         return 'Call detail panel';
-      case 'workspace-member':
+      case 'workspace_members':
         return 'Workspace member panel';
+      case 'organization_members':
+        return 'Organization member panel';
       case 'automation-rule':
         return 'Automation rule detail panel';
       case 'bulk-actions':

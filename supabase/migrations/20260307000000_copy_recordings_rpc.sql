@@ -1,0 +1,113 @@
+-- Phase 6: Cross-Organization Copy Logic
+
+CREATE OR REPLACE FUNCTION public.copy_recordings_to_organization(
+  p_recording_ids UUID[],
+  p_target_organization_id UUID,
+  p_remove_source BOOLEAN DEFAULT FALSE
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_recording RECORD;
+  v_new_recording_id UUID;
+  v_target_home_workspace_id UUID;
+  v_copied_count INTEGER := 0;
+  v_recording_id UUID;
+BEGIN
+  -- 1. Get the target organization's HOME workspace
+  SELECT id INTO v_target_home_workspace_id
+  FROM workspaces
+  WHERE organization_id = p_target_organization_id
+    AND is_home = TRUE
+  LIMIT 1;
+
+  IF v_target_home_workspace_id IS NULL THEN
+    -- Fallback: any workspace in that org if HOME not found (integrity safety)
+    SELECT id INTO v_target_home_workspace_id
+    FROM workspaces
+    WHERE organization_id = p_target_organization_id
+    LIMIT 1;
+  END IF;
+
+  IF v_target_home_workspace_id IS NULL THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Target organization has no workspaces');
+  END IF;
+
+  -- 2. Iterate through recordings and copy
+  FOREACH v_recording_id IN ARRAY p_recording_ids
+  LOOP
+    -- Get recording data
+    SELECT * INTO v_recording FROM recordings WHERE id = v_recording_id;
+    
+    IF v_recording IS NOT NULL THEN
+      -- Create new recording in target organization
+      INSERT INTO recordings (
+        organization_id,
+        owner_user_id,
+        title,
+        audio_url,
+        video_url,
+        full_transcript,
+        summary,
+        global_tags,
+        source_app,
+        source_metadata,
+        duration,
+        recording_start_time,
+        recording_end_time,
+        created_at,
+        synced_at
+      )
+      VALUES (
+        p_target_organization_id,
+        auth.uid(), -- The person copying becomes the owner in the target org
+        v_recording.title,
+        v_recording.audio_url,
+        v_recording.video_url,
+        v_recording.full_transcript,
+        v_recording.summary,
+        v_recording.global_tags,
+        v_recording.source_app,
+        v_recording.source_metadata,
+        v_recording.duration,
+        v_recording.recording_start_time,
+        v_recording.recording_end_time,
+        NOW(), -- New created_at for the copy
+        v_recording.synced_at
+      )
+      RETURNING id INTO v_new_recording_id;
+
+      -- Create workspace_entry in target HOME workspace
+      INSERT INTO workspace_entries (
+        workspace_id,
+        recording_id,
+        created_at
+      )
+      VALUES (
+        v_target_home_workspace_id,
+        v_new_recording_id,
+        NOW()
+      );
+
+      -- Optional: Remove from source org?
+      -- The spec says we should only do this if it was the ONLY copy? 
+      -- Or just delete the recording from the source org?
+      IF p_remove_source THEN
+        -- Note: RLS and integrity might prevent this if there are other entries
+        -- But for now, we follow the instruction.
+        DELETE FROM recordings WHERE id = v_recording_id;
+      END IF;
+
+      v_copied_count := v_copied_count + 1;
+    END IF;
+  END LOOP;
+
+  RETURN jsonb_build_object(
+    'success', true,
+    'copied_count', v_copied_count
+  );
+END;
+$$;
