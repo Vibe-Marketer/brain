@@ -75,9 +75,10 @@ export default function OAuthCallback() {
         setMessage(`Successfully connected to ${provider}!`);
         toast.success(`Successfully connected to ${provider}!`);
 
-        // Redirect to Sync tab after a brief delay
+        // Redirect to Import Hub after a brief delay with source info for auto-sync
+        const sourceParam = isZoomCallback ? 'zoom' : isGoogleCallback ? 'meet' : 'fathom';
         setTimeout(() => {
-          navigate("/?tab=sync", { replace: true });
+          navigate(`/import?source=${sourceParam}&connected=true`, { replace: true });
         }, 1500);
 
       } catch (error) {
@@ -87,9 +88,9 @@ export default function OAuthCallback() {
         setMessage(errorMessage);
         toast.error(errorMessage);
 
-        // Redirect to Sync tab after error display
+        // Redirect to Import Hub after error display
         setTimeout(() => {
-          navigate("/?tab=sync", { replace: true });
+          navigate("/import", { replace: true });
         }, 3000);
       }
     };
@@ -132,7 +133,7 @@ export default function OAuthCallback() {
         {/* Redirect notice */}
         {(state === "success" || state === "error") && (
           <p className="text-sm text-muted-foreground">
-            Redirecting to settings...
+            Redirecting to Import Hub...
           </p>
         )}
       </div>

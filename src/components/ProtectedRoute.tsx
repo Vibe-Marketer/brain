@@ -60,14 +60,15 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/settings" replace />;
   }
 
-  // If wizard completed but no transcripts synced, redirect to sync tab
-  // (unless already on home page, settings, chat, or content pages)
+  // If wizard completed but no transcripts synced, redirect to import hub
+  // (unless already on home page, settings, chat, content, or import pages)
   if (wizardCompleted && hasTranscripts === false &&
-      location.pathname !== '/' && 
-      !location.pathname.startsWith('/settings') && 
+      location.pathname !== '/' &&
+      !location.pathname.startsWith('/settings') &&
       !location.pathname.startsWith('/chat') &&
-      !location.pathname.startsWith('/content')) {
-    return <Navigate to="/?tab=sync" replace />;
+      !location.pathname.startsWith('/content') &&
+      !location.pathname.startsWith('/import')) {
+    return <Navigate to="/import" replace />;
   }
 
   return <>{children}</>;

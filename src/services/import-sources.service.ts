@@ -129,7 +129,7 @@ export async function getImportSources(): Promise<ImportSource[]> {
 
 /**
  * Returns a mapping of source_app -> call count for the current user.
- * Merges counts from the new 'recordings' table and the legacy 'fathom_calls' table.
+ * Counts from the recordings table only (single source of truth).
  */
 export async function getImportCounts(): Promise<Record<string, number>> {
   const {
@@ -138,7 +138,6 @@ export async function getImportCounts(): Promise<Record<string, number>> {
 
   if (!user) return {}
 
-  // 1. Get counts from new recordings table via RPC
   const { data: rpcData, error: rpcError } = await supabase.rpc('get_import_counts', {
     p_user_id: user.id,
   })
@@ -147,20 +146,6 @@ export async function getImportCounts(): Promise<Record<string, number>> {
   if (!rpcError && Array.isArray(rpcData)) {
     for (const row of rpcData as { source_app: string; call_count: number }[]) {
       counts[row.source_app] = (counts[row.source_app] || 0) + Number(row.call_count)
-    }
-  }
-
-  // 2. Get counts from legacy fathom_calls table
-  // Filter by source_platform (if exists) or default to fathom
-  const { data: legacyData, error: legacyError } = await supabase
-    .from('fathom_calls')
-    .select('source_platform')
-    .eq('user_id', user.id)
-
-  if (!legacyError && Array.isArray(legacyData)) {
-    for (const row of legacyData as { source_platform: string | null }[]) {
-      const platform = row.source_platform || 'fathom'
-      counts[platform] = (counts[platform] || 0) + 1
     }
   }
 

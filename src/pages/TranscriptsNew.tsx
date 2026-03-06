@@ -206,7 +206,7 @@ const TranscriptsNew = () => {
             <WorkspaceSidebarPane />
           ),
           showDetailPane: true,
-          onSyncClick: () => handleTabChange("sync")
+          onSyncClick: () => window.location.href = '/import'
         }}
       >
         <div className="flex flex-col h-full overflow-hidden">
