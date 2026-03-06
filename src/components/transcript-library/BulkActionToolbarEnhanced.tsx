@@ -21,6 +21,8 @@ import {
   RiChatQuoteLine,
   RiDownloadLine,
   RiFileTextLine,
+  RiExpandLeftRightLine,
+  RiBuildingLine,
 } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +32,8 @@ import SmartExportDialog from "@/components/SmartExportDialog";
 import ManualTagDialog from "@/components/ManualTagDialog";
 import { TagDropdown } from "./TagDropdown";
 import { ExportDropdown } from "./ExportDropdown";
+import { MoveToWorkspaceDialog } from "@/components/dialogs/MoveToWorkspaceDialog";
+import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
 import { exportToPDF, exportToDOCX, exportToTXT, exportToJSON, exportToZIP } from "@/lib/export-utils";
 import { autoTagCalls, generateAiTitles } from "@/lib/api-client";
 import { logger } from "@/lib/logger";
@@ -107,6 +111,8 @@ export function BulkActionToolbarEnhanced({
   const navigate = useNavigate();
   const [showSmartExport, setShowSmartExport] = useState(false);
   const [showManualTagDialog, setShowManualTagDialog] = useState(false);
+  const [showMoveToWsDialog, setShowMoveToWsDialog] = useState(false);
+  const [showCopyToOrgDialog, setShowCopyToOrgDialog] = useState(false);
 
   if (selectedCount === 0) return null;
 
@@ -359,6 +365,22 @@ export function BulkActionToolbarEnhanced({
           <Button 
             variant="outline" 
             className="w-full justify-start"
+            onClick={() => setShowMoveToWsDialog(true)}
+          >
+            <RiExpandLeftRightLine className="h-4 w-4 mr-2" />
+            Move to Hub
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start text-vibe-orange hover:text-vibe-orange/80"
+            onClick={() => setShowCopyToOrgDialog(true)}
+          >
+            <RiBuildingLine className="h-4 w-4 mr-2" />
+            Copy to Organization
+          </Button>
+          <Button 
+            variant="outline" 
+            className="w-full justify-start"
             onClick={handleShare}
           >
             <RiShareForwardLine className="h-4 w-4 mr-2" />
@@ -394,6 +416,26 @@ export function BulkActionToolbarEnhanced({
           .map(c => String(c.recording_id))}
         onTagsUpdated={() => {
           setShowManualTagDialog(false);
+          onClearSelection();
+        }}
+      />
+
+      <MoveToWorkspaceDialog
+        open={showMoveToWsDialog}
+        onOpenChange={setShowMoveToWsDialog}
+        recordingIds={selectedCalls.map(c => String(c.recording_id))}
+        currentWorkspaceId={null} // We could pass this from context if needed
+        onSuccess={() => {
+          onClearSelection();
+          queryClient.invalidateQueries({ queryKey: ["transcript-calls"] });
+        }}
+      />
+
+      <CopyToOrganizationDialog
+        open={showCopyToOrgDialog}
+        onOpenChange={setShowCopyToOrgDialog}
+        recordingIds={selectedCalls.map(c => String(c.recording_id))}
+        onSuccess={() => {
           onClearSelection();
         }}
       />

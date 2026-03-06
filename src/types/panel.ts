@@ -21,7 +21,8 @@ export type PanelType =
   | 'sorting'
   | 'user-detail'
   | 'bulk-actions'
-  | 'workspace-member'
+  | 'workspace_members'
+  | 'organization_members'
   | 'automation-rule'
   | null;
 
@@ -55,7 +56,8 @@ export type PanelData =
   | { type: 'ai-assistant' }
   | { type: 'inspector' }
   | { type: 'sorting' }
-  | { type: 'workspace-member'; workspaceId: string }
+  | { type: 'workspace_members'; workspaceId: string; workspaceName?: string }
+  | { type: 'organization_members'; organizationId: string; organizationName?: string }
   | { type: 'automation-rule'; ruleId: string }
   | null;
 

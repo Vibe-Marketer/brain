@@ -1,6 +1,8 @@
 -- Migration: Add get_available_metadata RPC function
 -- Purpose: Enables chat tool #12 to discover available speakers, categories, topics, and tags
 
+DROP FUNCTION IF EXISTS public.get_available_metadata(UUID, TEXT);
+
 CREATE OR REPLACE FUNCTION public.get_available_metadata(
   p_user_id UUID,
   p_metadata_type TEXT
