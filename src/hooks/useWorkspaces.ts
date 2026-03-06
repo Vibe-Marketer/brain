@@ -382,6 +382,10 @@ export function useWorkspaceMembers(workspaceId: string | null) {
  * @returns Meeting-compatible object for TranscriptTable consumption
  */
 export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
+  // Extract metadata fields from source_metadata (stored during sync)
+  const meta = (recording.source_metadata ?? {}) as Record<string, unknown>;
+  const invitees = Array.isArray(meta.calendar_invitees) ? meta.calendar_invitees : null;
+
   return {
     // Use legacy_recording_id for TranscriptTable compatibility (it expects number | string)
     recording_id: recording.legacy_recording_id ?? recording.id,
@@ -391,16 +395,16 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
     created_at: recording.created_at,
     recording_start_time: recording.recording_start_time || null,
     recording_end_time: recording.recording_end_time || null,
-    // Fields not available on Recording - set sensible defaults
-    url: null,
-    share_url: null,
-    recorded_by_name: null,
-    recorded_by_email: null,
-    calendar_invitees: null,
+    url: (meta.fathom_url as string) || null,
+    share_url: (meta.fathom_share_url as string) || null,
+    recorded_by_name: (meta.recorded_by_name as string) || null,
+    recorded_by_email: (meta.recorded_by_email as string) || null,
+    calendar_invitees: invitees,
     synced: true,
     user_id: recording.owner_user_id,
     synced_at: recording.synced_at || undefined,
     auto_tags: recording.global_tags || null,
+    source_metadata: recording.source_metadata || null,
     // Source tracking
     source_platform: (recording.source_app as Meeting['source_platform']) || null,
     // Not applicable for workspace recordings

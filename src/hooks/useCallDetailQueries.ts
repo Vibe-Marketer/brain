@@ -67,27 +67,33 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
         return call.unsyncedTranscripts;
       }
 
-      // PRIMARY METHOD: Parse from full_transcript field (complete data, single query)
-      // Use composite key (recording_id, user_id) for lookup
-      const { data: callData, error: callError } = await supabase
-        .from("fathom_calls")
-        .select("full_transcript")
-        .eq("recording_id", call.recording_id)
-        .eq("user_id", userId)
-        .single();
+      // PRIMARY METHOD: Use full_transcript from the Meeting object (already loaded from recordings table)
+      // This works for both legacy (fathom_calls) and new pipeline (recordings) calls.
+      let fullTranscript = call.full_transcript || null;
 
-      if (callError) {
-        logger.error("Error fetching full_transcript", callError);
+      // FALLBACK: If not on the Meeting object, try fathom_calls (legacy path)
+      if (!fullTranscript && typeof call.recording_id === 'number') {
+        const { data: callData, error: callError } = await supabase
+          .from("fathom_calls")
+          .select("full_transcript")
+          .eq("recording_id", call.recording_id)
+          .eq("user_id", userId)
+          .single();
+
+        if (callError) {
+          logger.error("Error fetching full_transcript from fathom_calls", callError);
+        }
+        fullTranscript = callData?.full_transcript || null;
       }
 
       // Parse full_transcript into segments
-      if (callData?.full_transcript) {
+      if (fullTranscript) {
         const segmentRegex = /\[(\d{2}:\d{2}:\d{2})\]\s+([^:]+):\s+([^\n]+)/g;
         const segments = [];
         let match;
         let segmentIndex = 0;
 
-        while ((match = segmentRegex.exec(callData.full_transcript)) !== null) {
+        while ((match = segmentRegex.exec(fullTranscript)) !== null) {
           segments.push({
             id: `parsed-${segmentIndex}`,
             recording_id: call.recording_id,
@@ -104,40 +110,57 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
           segmentIndex++;
         }
 
-        // Fetch speaker email mapping from fathom_transcripts to restore email data
-        // Use composite key (recording_id, user_id) for lookup
-        const { data: speakerData, error: speakerError } = await supabase
-          .from("fathom_transcripts")
-          .select("speaker_name, speaker_email")
-          .eq("recording_id", call.recording_id)
-          .eq("user_id", userId);
+        // Build speaker email mapping from available sources
+        const speakerEmailMap = new Map<string, string>();
 
-        if (!speakerError && speakerData) {
-          // Create speaker name -> email mapping (use first non-null email for each speaker)
-          const speakerEmailMap = new Map<string, string>();
-          speakerData.forEach((row: { speaker_name: string; speaker_email: string | null }) => {
-            if (row.speaker_email && !speakerEmailMap.has(row.speaker_name)) {
-              speakerEmailMap.set(row.speaker_name, row.speaker_email);
+        // Source 1: fathom_transcripts (only for legacy numeric recording IDs)
+        if (typeof call.recording_id === 'number') {
+          const { data: speakerData, error: speakerError } = await supabase
+            .from("fathom_transcripts")
+            .select("speaker_name, speaker_email")
+            .eq("recording_id", call.recording_id)
+            .eq("user_id", userId);
+
+          if (!speakerError && speakerData) {
+            speakerData.forEach((row: { speaker_name: string; speaker_email: string | null }) => {
+              if (row.speaker_email && !speakerEmailMap.has(row.speaker_name)) {
+                speakerEmailMap.set(row.speaker_name, row.speaker_email);
+              }
+            });
+          }
+        }
+
+        // Source 2: calendar_invitees from Meeting object (works for all pipeline types)
+        if (call.calendar_invitees) {
+          for (const inv of call.calendar_invitees) {
+            const name = inv.matched_speaker_display_name || inv.name;
+            if (name && inv.email && !speakerEmailMap.has(name)) {
+              speakerEmailMap.set(name, inv.email);
             }
-          });
+          }
+        }
 
-          // Apply email mapping to parsed segments
+        // Apply email mapping to parsed segments
+        if (speakerEmailMap.size > 0) {
           segments.forEach(segment => {
             const email = speakerEmailMap.get(segment.speaker_name);
             if (email) {
               segment.speaker_email = email;
             }
           });
-
-          logger.info(`Parsed ${segments.length} segments with ${speakerEmailMap.size} speaker email mappings`);
-        } else {
-          logger.info(`Parsed ${segments.length} segments from full_transcript (no email mapping available)`);
         }
+
+        logger.info(`Parsed ${segments.length} segments with ${speakerEmailMap.size} speaker email mappings`);
 
         return segments;
       }
 
-      // FALLBACK METHOD: Fetch from fathom_transcripts with pagination to handle 10K limit
+      // FALLBACK METHOD: Fetch from fathom_transcripts (only works for legacy numeric IDs)
+      if (typeof call.recording_id !== 'number') {
+        logger.info("No transcript available for non-legacy call");
+        return [];
+      }
+
       logger.info("full_transcript not available, using paginated query fallback");
       const segments = [];
       let from = 0;
@@ -145,7 +168,6 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       let hasMore = true;
 
       while (hasMore) {
-        // Use composite key (recording_id, user_id) for lookup
         const { data, error } = await supabase
           .from("fathom_transcripts")
           .select("*")

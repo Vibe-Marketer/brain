@@ -57,21 +57,44 @@ export function useCallDetailMutations({
   const updateCall = useMutation({
     mutationFn: async ({ title, summary, originalTitle, originalSummary }: UpdateCallParams) => {
       if (!call || !userId) return;
-      // Use composite key (recording_id, user_id) for update
-      const { error } = await supabase
-        .from("fathom_calls")
-        .update({
-          title: title,
-          summary: summary,
-          title_edited_by_user: title !== originalTitle,
-          summary_edited_by_user: summary !== (originalSummary || ""),
-        })
-        .eq("recording_id", call.recording_id)
-        .eq("user_id", userId);
-      if (error) throw error;
+
+      const recordingId = call.recording_id;
+      const isLegacyId = typeof recordingId === 'number';
+      const updatePayload = { title, summary, updated_at: new Date().toISOString() };
+
+      // 1. Update the canonical recordings table (SSoT for title/summary)
+      if (isLegacyId) {
+        const { error } = await supabase
+          .from("recordings")
+          .update(updatePayload)
+          .eq("legacy_recording_id", recordingId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from("recordings")
+          .update(updatePayload)
+          .eq("id", recordingId);
+        if (error) throw error;
+      }
+
+      // 2. Also update fathom_calls for legacy compat (best-effort)
+      if (isLegacyId) {
+        await supabase
+          .from("fathom_calls")
+          .update({
+            title,
+            summary,
+            title_edited_by_user: title !== originalTitle,
+            summary_edited_by_user: summary !== (originalSummary || ""),
+          })
+          .eq("recording_id", recordingId)
+          .eq("user_id", userId);
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.calls.list() });
+      // Invalidate all views that display call data
+      queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
       toast.success("Call updated successfully");
       onDataChange?.();
     },
