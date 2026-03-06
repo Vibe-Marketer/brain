@@ -319,31 +319,45 @@ Deno.serve(async (req) => {
     }
 
     // Check which meetings are already synced via recordings table.
-    // Two sources of truth for the Fathom recording_id:
-    //   1. source_metadata->>'external_id' (new pipeline via sync-meetings)
-    //   2. legacy_recording_id (old pipeline via migrate-recordings)
-    const { data: syncedRecordings, error: syncCheckError } = await supabase
-      .from('recordings')
-      .select('source_metadata, legacy_recording_id')
-      .eq('owner_user_id', user.id)
-      .eq('source_app', 'fathom');
-
-    if (syncCheckError) {
-      console.error('Error checking sync status:', syncCheckError);
-    }
-
-    console.log(`Found ${syncedRecordings?.length || 0} fathom recordings already synced`);
-
-    // Build set of synced recording IDs (as numbers) for fast lookup
-    // Check BOTH external_id and legacy_recording_id to catch all synced meetings
+    // Instead of fetching ALL recordings (which hits PostgREST's db_max_rows=1000 limit),
+    // query only for the specific Fathom recording IDs we need to check.
+    const meetingIds = allMeetings.map(m => Number(m.recording_id));
     const syncedIds = new Set<number>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    for (const r of (syncedRecordings || []) as any[]) {
-      const extId = r.source_metadata?.external_id;
-      if (extId) syncedIds.add(Number(extId));
-      if (r.legacy_recording_id) syncedIds.add(Number(r.legacy_recording_id));
+
+    if (meetingIds.length > 0) {
+      // Check by legacy_recording_id (bigint column — handles old pipeline)
+      const { data: legacyMatches, error: legacyErr } = await supabase
+        .from('recordings')
+        .select('legacy_recording_id')
+        .eq('owner_user_id', user.id)
+        .eq('source_app', 'fathom')
+        .in('legacy_recording_id', meetingIds);
+
+      if (legacyErr) console.error('Error checking legacy IDs:', legacyErr);
+      for (const r of (legacyMatches || []) as { legacy_recording_id: number }[]) {
+        if (r.legacy_recording_id) syncedIds.add(Number(r.legacy_recording_id));
+      }
+
+      // For any IDs not yet matched, check source_metadata->>'external_id' (new pipeline)
+      const unmatchedIds = meetingIds.filter(id => !syncedIds.has(id));
+      if (unmatchedIds.length > 0) {
+        const { data: extIdMatches, error: extIdErr } = await supabase
+          .from('recordings')
+          .select('source_metadata')
+          .eq('owner_user_id', user.id)
+          .eq('source_app', 'fathom')
+          .filter('source_metadata->>external_id', 'in', `(${unmatchedIds.map(String).join(',')})`);
+
+        if (extIdErr) console.error('Error checking external IDs:', extIdErr);
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const r of (extIdMatches || []) as any[]) {
+          const extId = r.source_metadata?.external_id;
+          if (extId) syncedIds.add(Number(extId));
+        }
+      }
+
+      console.log(`Sync check: ${meetingIds.length} meeting IDs checked, ${syncedIds.size} already synced`);
     }
-    console.log(`Built syncedIds set with ${syncedIds.size} unique IDs`);
 
     const meetingsWithSyncStatus = allMeetings.map(meeting => ({
       ...meeting,
