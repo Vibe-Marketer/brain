@@ -6,10 +6,10 @@
 // Date: 2026-01-28
 // Phase: 02-chat-foundation (plan 05)
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { streamText, tool, convertToModelMessages } from 'https://esm.sh/ai@6.0.66';
-import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@2.1.1';
-import { z } from 'https://esm.sh/zod@3.23.8';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2?target=deno';
+import { streamText, tool, convertToModelMessages } from 'https://esm.sh/ai@6.0.116?target=deno';
+import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@2.1.1?target=deno';
+import { z } from 'https://esm.sh/zod@4?target=deno';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { executeHybridSearch, diversityFilter } from '../_shared/search-pipeline.ts';
 import { generateQueryEmbedding } from '../_shared/embeddings.ts';
