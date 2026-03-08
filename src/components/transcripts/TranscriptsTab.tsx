@@ -354,9 +354,10 @@ export function TranscriptsTab({
           entryQuery = entryQuery.lte('recording.created_at', combinedFilters.dateTo.toISOString());
         }
 
-        // Apply source filter (use select alias 'recording', not table name 'recordings')
+        // Apply source filter via .or() with referencedTable (avoids dot-notation with .in())
         if (combinedFilters.sources && combinedFilters.sources.length > 0) {
-          entryQuery = entryQuery.in('recording.source_app', combinedFilters.sources);
+          const sourceOrFilter = combinedFilters.sources.map((s: string) => `source_app.eq.${s}`).join(',');
+          entryQuery = entryQuery.or(sourceOrFilter, { referencedTable: 'recordings' });
         }
 
         const { data: entries, error: entryError, count } = await entryQuery

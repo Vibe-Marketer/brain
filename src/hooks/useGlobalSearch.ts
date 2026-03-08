@@ -191,9 +191,10 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
             .order('created_at', { ascending: false, referencedTable: 'recordings' })
             .limit(limit);
 
-          // Apply source filter using the select alias (recording, not recordings)
+          // Apply source filter via .or() with referencedTable (avoids dot-notation with .in())
           if (sourceFilters.length > 0) {
-            q = q.in('recording.source_app', sourceFilters);
+            const sourceOrFilter = sourceFilters.map(s => `source_app.eq.${s}`).join(',');
+            q = q.or(sourceOrFilter, { referencedTable: 'recordings' });
           }
 
           const { data: entries, error: queryError } = await q;
