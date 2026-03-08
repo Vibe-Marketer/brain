@@ -14,6 +14,10 @@ const rawOrigins = Deno.env.get('ALLOWED_ORIGINS')
 
 const allowedOrigins = rawOrigins && rawOrigins.length > 0 ? rawOrigins : DEFAULT_ORIGINS;
 
+// Static default headers for imports that don't have access to the request origin.
+// Prefer getCorsHeaders(requestOrigin) in handlers where the request is available.
+export const corsHeaders = getCorsHeaders();
+
 export function getCorsHeaders(requestOrigin?: string | null): Record<string, string> {
   // Default to first allowed origin (never wildcard)
   let origin = allowedOrigins[0];
