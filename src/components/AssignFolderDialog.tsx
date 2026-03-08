@@ -76,13 +76,13 @@ export default function AssignFolderDialog({
 
       if (legacyError) throw legacyError;
 
-      // Personal assignments
+      // Personal assignments — table may not exist yet (migration pending)
       const { data: personalData, error: personalError } = await (supabase as any)
         .from('personal_folder_recordings')
         .select('recording_id, folder_id')
         .in('recording_id', uuidRecordingIds);
 
-      if (personalError) throw personalError;
+      if (personalError && !personalError.message?.includes('does not exist') && personalError.code !== '42P01') throw personalError;
 
       const combined = [
         ...(legacyData || []).map(a => a.folder_id),
@@ -125,14 +125,14 @@ export default function AssignFolderDialog({
       const { data: legacyData, error: legacyError } = await legacyQuery;
       if (legacyError) throw legacyError;
 
-      // 2. Fetch Personal Folders
+      // 2. Fetch Personal Folders — table may not exist yet (migration pending)
       const { data: personalData, error: personalError } = await (supabase as any)
         .from('personal_folders')
         .select('*')
         .eq('organization_id', activeOrganizationId)
         .order('name');
-      
-      if (personalError) throw personalError;
+
+      if (personalError && !personalError.message?.includes('does not exist') && personalError.code !== '42P01') throw personalError;
 
       const all = [
         ...(legacyData || []).map(f => ({ ...f, is_personal: false })),
