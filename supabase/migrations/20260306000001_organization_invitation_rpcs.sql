@@ -71,24 +71,12 @@ BEGIN
   END IF;
 
   -- Create organization membership
-  -- Map 'bank_*' roles to 'organization_*' roles if necessary, or just use as is if schema matches
-  -- The table organization_invitations uses: 'bank_owner', 'bank_admin', 'bank_member'
-  -- The table organization_memberships uses: 'organization_owner', 'organization_admin', 'manager', 'member', 'guest'
-  
-  DECLARE
-    v_target_role TEXT;
-  BEGIN
-    v_target_role := CASE 
-      WHEN v_invitation.role = 'bank_owner' THEN 'organization_owner'
-      WHEN v_invitation.role = 'bank_admin' THEN 'organization_admin'
-      ELSE 'member'
-    END;
-
-    INSERT INTO public.organization_memberships (organization_id, user_id, role)
-    VALUES (v_invitation.organization_id, p_user_id, v_target_role)
-    ON CONFLICT (organization_id, user_id) DO UPDATE
-      SET role = EXCLUDED.role;
-  END;
+  -- The invitation role values now match organization_memberships role values directly
+  -- (organization_owner, organization_admin, member)
+  INSERT INTO public.organization_memberships (organization_id, user_id, role)
+  VALUES (v_invitation.organization_id, p_user_id, v_invitation.role)
+  ON CONFLICT (organization_id, user_id) DO UPDATE
+    SET role = EXCLUDED.role;
 
   -- Mark invitation as accepted
   UPDATE organization_invitations

@@ -57,7 +57,7 @@ CREATE TABLE IF NOT EXISTS organization_invitations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   email TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('bank_owner', 'bank_admin', 'bank_member')),
+  role TEXT NOT NULL CHECK (role IN ('organization_owner', 'organization_admin', 'member')),
   status TEXT NOT NULL CHECK (status IN ('pending', 'accepted', 'expired', 'revoked')) DEFAULT 'pending',
   invited_by UUID NOT NULL REFERENCES auth.users(id),
   invite_token TEXT NOT NULL,
@@ -105,7 +105,7 @@ USING (
     SELECT 1 FROM organization_memberships om 
     WHERE om.user_id = auth.uid() 
     AND om.organization_id = organization_invitations.organization_id 
-    AND om.role IN ('bank_owner', 'bank_admin')
+    AND om.role IN ('organization_owner', 'organization_admin')
   )
 );
 
@@ -154,7 +154,7 @@ DECLARE
 BEGIN
   FOR org IN SELECT id FROM organizations LOOP
     IF NOT EXISTS (SELECT 1 FROM workspaces WHERE organization_id = org.id AND is_home = true) THEN
-      INSERT INTO workspaces (organization_id, name, type, is_home)
+      INSERT INTO workspaces (organization_id, name, workspace_type, is_home)
       VALUES (org.id, 'Home Workspace', 'team', true);
     END IF;
   END LOOP;

@@ -17,6 +17,11 @@ DECLARE
   v_copied_count INTEGER := 0;
   v_recording_id UUID;
 BEGIN
+  -- 0. Permission checks: caller must be a member of the target organization
+  IF NOT is_organization_member(p_target_organization_id, auth.uid()) THEN
+    RAISE EXCEPTION 'Access denied: not a member of target organization';
+  END IF;
+
   -- 1. Get the target organization's HOME workspace
   SELECT id INTO v_target_home_workspace_id
   FROM workspaces
@@ -25,15 +30,7 @@ BEGIN
   LIMIT 1;
 
   IF v_target_home_workspace_id IS NULL THEN
-    -- Fallback: any workspace in that org if HOME not found (integrity safety)
-    SELECT id INTO v_target_home_workspace_id
-    FROM workspaces
-    WHERE organization_id = p_target_organization_id
-    LIMIT 1;
-  END IF;
-
-  IF v_target_home_workspace_id IS NULL THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Target organization has no workspaces');
+    RAISE EXCEPTION 'Target organization has no HOME workspace';
   END IF;
 
   -- 2. Iterate through recordings and copy
@@ -41,8 +38,12 @@ BEGIN
   LOOP
     -- Get recording data
     SELECT * INTO v_recording FROM recordings WHERE id = v_recording_id;
-    
+
     IF v_recording IS NOT NULL THEN
+      -- Verify caller has access to the source recording's organization
+      IF NOT is_organization_member(v_recording.organization_id, auth.uid()) THEN
+        RAISE EXCEPTION 'Access denied: not a member of source organization for recording %', v_recording_id;
+      END IF;
       -- Create new recording in target organization
       INSERT INTO recordings (
         organization_id,
