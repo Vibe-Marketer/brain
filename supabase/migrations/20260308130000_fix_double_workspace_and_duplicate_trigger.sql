@@ -205,11 +205,11 @@ BEGIN
       -- Delete remaining duplicate memberships
       DELETE FROM workspace_memberships WHERE workspace_id = home_ws_id;
 
-      -- Set is_home on My Calls
-      UPDATE workspaces SET is_home = TRUE WHERE id = my_calls_id;
-
-      -- Delete the orphaned Home Workspace
+      -- Delete the orphaned Home Workspace FIRST to clear the unique partial index
       DELETE FROM workspaces WHERE id = home_ws_id;
+
+      -- Now safe to set is_home on My Calls (no unique index conflict)
+      UPDATE workspaces SET is_home = TRUE WHERE id = my_calls_id;
     END IF;
 
     -- Handle case where only My Calls exists but isn't marked as home
