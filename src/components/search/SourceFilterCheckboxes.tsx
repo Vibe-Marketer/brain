@@ -1,9 +1,10 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import { FathomIcon, GoogleMeetIcon } from "@/components/transcript-library/SourcePlatformIcons";
+import { FathomIcon, ZoomIcon, YouTubeIcon, UploadIcon } from "@/components/transcript-library/SourcePlatformIcons";
+import type { SourcePlatform } from "@/types/search";
 
-export type SourcePlatform = "fathom" | "google_meet";
+export type { SourcePlatform };
 
 interface SourceFilterCheckboxesProps {
   selectedSources: SourcePlatform[];
@@ -22,9 +23,19 @@ const sourceOptions: Array<{
     Icon: FathomIcon,
   },
   {
-    platform: "google_meet",
-    label: "Google Meet",
-    Icon: GoogleMeetIcon,
+    platform: "zoom",
+    label: "Zoom",
+    Icon: ZoomIcon,
+  },
+  {
+    platform: "youtube",
+    label: "YouTube",
+    Icon: YouTubeIcon,
+  },
+  {
+    platform: "file-upload",
+    label: "Upload",
+    Icon: UploadIcon,
   },
 ];
 
@@ -35,10 +46,8 @@ export function SourceFilterCheckboxes({
 }: SourceFilterCheckboxesProps) {
   const handleToggle = (platform: SourcePlatform) => {
     if (selectedSources.includes(platform)) {
-      // Remove platform
       onChange(selectedSources.filter((p) => p !== platform));
     } else {
-      // Add platform
       onChange([...selectedSources, platform]);
     }
   };

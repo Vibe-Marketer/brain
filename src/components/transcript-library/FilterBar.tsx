@@ -7,6 +7,7 @@ import { TagFilterPopover } from "./TagFilterPopover";
 import { FolderFilterPopover } from "./FolderFilterPopover";
 import { ParticipantsFilterPopover } from "./ParticipantsFilterPopover";
 import { DurationFilterPopover } from "./DurationFilterPopover";
+import { SourceFilterPopover } from "./SourceFilterPopover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -25,6 +26,7 @@ interface FilterBarProps {
     durationMax?: number;
     tags?: string[];
     folders?: string[];
+    sources?: string[];
   };
   onFiltersChange: (filters: FilterBarProps['filters']) => void;
   tags: Array<{ id: string; name: string; description?: string | null }>;
@@ -128,6 +130,7 @@ export function FilterBar({
   const hasActiveFilters =
     (filters.tags && filters.tags.length > 0) ||
     (filters.folders && filters.folders.length > 0) ||
+    (filters.sources && filters.sources.length > 0) ||
     filters.dateFrom ||
     filters.dateTo ||
     (filters.participants && filters.participants.length > 0) ||
@@ -143,6 +146,7 @@ export function FilterBar({
       durationMax: undefined,
       tags: [],
       folders: [],
+      sources: [],
     });
   };
 
@@ -199,6 +203,12 @@ export function FilterBar({
           durationMin={filters.durationMin}
           durationMax={filters.durationMax}
           onDurationChange={(min, max) => onFiltersChange({ ...filters, durationMin: min, durationMax: max })}
+        />
+
+        {/* Source Filter */}
+        <SourceFilterPopover
+          selectedSources={filters.sources}
+          onSourcesChange={(sources) => onFiltersChange({ ...filters, sources })}
         />
       </div>
 
@@ -264,6 +274,13 @@ export function FilterBar({
               label="Duration"
               value={formatDuration(filters.durationMin, filters.durationMax)}
               onRemove={() => onFiltersChange({ ...filters, durationMin: undefined, durationMax: undefined })}
+            />
+          )}
+          {filters.sources && filters.sources.length > 0 && (
+            <FilterPill
+              label="Source"
+              value={`${filters.sources.length} source${filters.sources.length > 1 ? "s" : ""}`}
+              onRemove={() => onFiltersChange({ ...filters, sources: [] })}
             />
           )}
         </div>

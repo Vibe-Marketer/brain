@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
-import { semanticSearch, type SemanticSearchResult, type SourcePlatform } from '@/lib/embeddings';
-import type { SearchResult, SearchResultType } from '@/types/search';
+import { supabase } from '@/integrations/supabase/client';
+import type { SearchResult, SearchResultType, SourcePlatform } from '@/types/search';
 import { useSearchStore } from '@/stores/searchStore';
+import { useOrganizationContext } from '@/hooks/useOrganizationContext';
+import { escapeIlike } from '@/lib/filter-utils';
 
 /**
  * Default search configuration
@@ -31,10 +33,6 @@ interface UseGlobalSearchOptions {
   types?: SearchResultType[];
   /** Whether search is enabled */
   enabled?: boolean;
-  /** Filter by active organization */
-  organizationId?: string | null;
-  /** Filter by active workspace */
-  workspaceId?: string | null;
 }
 
 /**
@@ -58,56 +56,24 @@ interface UseGlobalSearchResult {
 }
 
 /**
- * Transform semantic search result to SearchResult
- */
-function transformSemanticResult(result: SemanticSearchResult): SearchResult {
-  const snippet = result.chunk_text.length > 200
-    ? result.chunk_text.substring(0, 200) + '...'
-    : result.chunk_text;
-
-  return {
-    id: result.id,
-    type: 'transcript',
-    title: result.speaker_name
-      ? `${result.speaker_name} in ${result.call_title || 'Untitled Call'}`
-      : result.call_title || 'Untitled Call',
-    snippet,
-    timestamp: result.call_date || undefined,
-    sourceCallId: String(result.recording_id),
-    sourceCallTitle: result.call_title || 'Untitled Call',
-    sourcePlatform: result.source_platform || null,
-    metadata: {
-      speakerName: result.speaker_name || undefined,
-      speakerEmail: result.speaker_email,
-      // Include relevance score as confidence
-      confidence: Math.round(result.relevance_score * 100),
-    },
-  };
-}
-
-/**
  * Sanitize search query to handle edge cases
  */
 function sanitizeQuery(query: string): string {
-  // Trim and limit length
   let sanitized = query.trim().substring(0, SEARCH_CONFIG.maxQueryLength);
-
-  // Collapse multiple spaces
   sanitized = sanitized.replace(/\s+/g, ' ').trim();
-
   return sanitized;
 }
 
 /**
- * Custom hook for global semantic search across transcripts
+ * Custom hook for global keyword search across recordings
  *
  * Features:
  * - 300ms debouncing to reduce API calls
- * - Hybrid semantic + keyword search using RRF
+ * - Keyword search using ILIKE on title + full_transcript
+ * - Organization and workspace scoping
  * - Loading and error states
  * - Query sanitization
- * - Automatic user scoping via RLS
- * - Relevance scoring
+ * - Source platform filtering
  *
  * @example
  * ```tsx
@@ -124,12 +90,11 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
     debounceMs = SEARCH_CONFIG.debounceMs,
     limit = SEARCH_CONFIG.defaultLimit,
     enabled = true,
-    organizationId,
-    workspaceId,
   } = options;
 
   const { user } = useAuth();
   const { sourceFilters } = useSearchStore();
+  const { activeOrganizationId, activeWorkspaceId } = useOrganizationContext();
 
   // Raw query input (updates immediately on user input)
   const [query, setQueryRaw] = useState('');
@@ -143,18 +108,15 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
 
   /**
    * Debounced query setter
-   * Updates raw query immediately, debounces the search trigger
    */
   const setQuery = useCallback((newQuery: string) => {
     setQueryRaw(newQuery);
     setError(null);
 
-    // Clear existing timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
 
-    // Set new timeout for debounced update
     debounceTimeoutRef.current = setTimeout(() => {
       setDebouncedQuery(newQuery);
     }, debounceMs);
@@ -186,59 +148,99 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
   const isQueryTooShort = sanitizedQuery.length < SEARCH_CONFIG.minQueryLength;
 
   /**
-   * Semantic search query
-   * Uses hybrid search (semantic + keyword) with RRF ranking
+   * Keyword search query
+   * Searches recordings.title and recordings.full_transcript using ILIKE
+   * Scoped to active organization and optionally workspace
    */
   const {
     data: results = [],
     isLoading,
     isFetching,
   } = useQuery({
-    queryKey: ['global-search', sanitizedQuery, limit, sourceFilters, organizationId, workspaceId],
+    queryKey: ['global-search', sanitizedQuery, limit, sourceFilters, activeOrganizationId, activeWorkspaceId],
     queryFn: async (): Promise<SearchResult[]> => {
       if (!user?.id || isQueryTooShort) {
         return [];
       }
 
       try {
-        // Call semantic search edge function with source platform filters
-        const { results: semanticResults, error: searchError } = await semanticSearch(
-          sanitizedQuery,
-          {
-            limit,
-            sourcePlatforms: sourceFilters.length > 0 ? sourceFilters as SourcePlatform[] : undefined,
-            organizationId: organizationId || undefined,
-            workspaceId: workspaceId || undefined,
+        const escapedQuery = escapeIlike(sanitizedQuery);
+
+        if (activeWorkspaceId) {
+          // Workspace-scoped search: join through workspace_entries
+          // Use !inner so filters on recordings actually exclude non-matching parent rows
+          let q = supabase
+            .from('workspace_entries')
+            .select(`
+              id,
+              recording:recordings!inner (
+                id,
+                legacy_recording_id,
+                title,
+                full_transcript,
+                summary,
+                source_app,
+                source_metadata,
+                duration,
+                recording_start_time,
+                created_at
+              )
+            `)
+            .eq('workspace_id', activeWorkspaceId)
+            .or(`title.ilike.%${escapedQuery}%,full_transcript.ilike.%${escapedQuery}%,summary.ilike.%${escapedQuery}%`, { referencedTable: 'recordings' })
+            .order('created_at', { ascending: false, referencedTable: 'recordings' })
+            .limit(limit);
+
+          // Apply source filter via .or() with referencedTable (avoids dot-notation with .in())
+          if (sourceFilters.length > 0) {
+            const sourceOrFilter = sourceFilters.map(s => `source_app.eq.${s}`).join(',');
+            q = q.or(sourceOrFilter, { referencedTable: 'recordings' });
           }
-        );
 
-        if (searchError) {
-          throw new Error(searchError);
+          const { data: entries, error: queryError } = await q;
+          if (queryError) throw queryError;
+
+          return (entries || [])
+            .filter((e: Record<string, unknown>) => e.recording)
+            .map((e: Record<string, unknown>) => {
+              const rec = e.recording as Record<string, unknown>;
+              return transformRecordingToResult(rec);
+            });
+        } else {
+          // Organization-scoped search: query recordings directly
+          let q = supabase
+            .from('recordings')
+            .select('id, legacy_recording_id, title, full_transcript, summary, source_app, source_metadata, duration, recording_start_time, created_at')
+            .or(`title.ilike.%${escapedQuery}%,full_transcript.ilike.%${escapedQuery}%,summary.ilike.%${escapedQuery}%`)
+            .order('created_at', { ascending: false })
+            .limit(limit);
+
+          // Scope to organization
+          if (activeOrganizationId) {
+            q = q.eq('organization_id', activeOrganizationId);
+          } else {
+            q = q.eq('owner_user_id', user.id);
+          }
+
+          // Apply source filter
+          if (sourceFilters.length > 0) {
+            q = q.in('source_app', sourceFilters);
+          }
+
+          const { data: recordings, error: queryError } = await q;
+          if (queryError) throw queryError;
+
+          return (recordings || []).map((rec: Record<string, unknown>) => transformRecordingToResult(rec));
         }
-
-        // Group by recording_id to avoid showing too many results from same call
-        const seenRecordings = new Map<number, number>();
-        const maxPerRecording = 3;
-
-        return semanticResults
-          .filter((result) => {
-            const count = seenRecordings.get(result.recording_id) || 0;
-            if (count >= maxPerRecording) {
-              return false;
-            }
-            seenRecordings.set(result.recording_id, count + 1);
-            return true;
-          })
-          .map(transformSemanticResult);
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Search failed';
         setError(errorMessage);
         return [];
       }
     },
-    enabled: false, // Embedding system disabled — semantic search unavailable
-    staleTime: 30000, // Cache results for 30 seconds
-    gcTime: 60000, // Keep in cache for 1 minute
+    enabled: enabled && !!user?.id && !isQueryTooShort && sanitizedQuery.length >= SEARCH_CONFIG.minQueryLength,
+    staleTime: 30000,
+    gcTime: 60000,
     refetchOnWindowFocus: false,
   });
 
@@ -250,5 +252,37 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
     error,
     clear,
     isQueryTooShort: query.trim().length > 0 && isQueryTooShort,
+  };
+}
+
+/**
+ * Transform a recording row to a SearchResult
+ */
+function transformRecordingToResult(rec: Record<string, unknown>): SearchResult {
+  const title = (rec.title as string) || 'Untitled Recording';
+  const transcript = rec.full_transcript as string | null;
+  const summary = rec.summary as string | null;
+  const snippet = summary
+    ? (summary.length > 200 ? summary.substring(0, 200) + '...' : summary)
+    : transcript
+      ? (transcript.length > 200 ? transcript.substring(0, 200) + '...' : transcript)
+      : '';
+
+  const sourceApp = rec.source_app as string | null;
+  const meta = (rec.source_metadata ?? {}) as Record<string, unknown>;
+
+  return {
+    id: String(rec.id),
+    type: 'transcript',
+    title,
+    snippet,
+    timestamp: (rec.recording_start_time as string) || (rec.created_at as string) || undefined,
+    sourceCallId: String(rec.legacy_recording_id ?? rec.id),
+    sourceCallTitle: title,
+    sourcePlatform: (sourceApp as SourcePlatform) || null,
+    metadata: {
+      speakerName: (meta.recorded_by_name as string) || undefined,
+      speakerEmail: (meta.recorded_by_email as string) || undefined,
+    },
   };
 }
