@@ -134,8 +134,9 @@ export function useWorkspaceAssignment(
       toast.error('Failed to add recording to hub')
     },
     onSettled: (_data, _error, { workspaceId }) => {
+      // Invalidate all workspace entry queries (individual + batch) via prefix match
       queryClient.invalidateQueries({
-        queryKey: queryKeys.workspaceEntries.byRecording(effectiveRecordingId || ''),
+        queryKey: queryKeys.workspaceEntries.all,
       })
       // Also invalidate workspace recordings so WorkspaceDetailPane refreshes
       queryClient.invalidateQueries({
@@ -188,8 +189,9 @@ export function useWorkspaceAssignment(
       toast.error('Failed to remove recording from hub')
     },
     onSettled: (_data, _error, { workspaceId }) => {
+      // Invalidate all workspace entry queries (individual + batch) via prefix match
       queryClient.invalidateQueries({
-        queryKey: queryKeys.workspaceEntries.byRecording(effectiveRecordingId || ''),
+        queryKey: queryKeys.workspaceEntries.all,
       })
       // Also invalidate workspace recordings so WorkspaceDetailPane refreshes
       queryClient.invalidateQueries({
