@@ -332,7 +332,17 @@ export function useBulkApplyRules() {
       });
 
       if (error) {
-        throw new Error(`Failed to apply routing rules: ${error.message}`);
+        // Supabase FunctionsHttpError wraps the response — extract the real message
+        let detail = error.message;
+        try {
+          if ('context' in error && error.context instanceof Response) {
+            const body = await error.context.json();
+            if (body?.error) detail = body.error;
+          }
+        } catch {
+          // Fall through with default message
+        }
+        throw new Error(detail || 'Failed to apply routing rules');
       }
 
       return data as BulkApplyResult;

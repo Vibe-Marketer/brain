@@ -27,8 +27,9 @@ export interface RoutingDestination {
 
 /**
  * Shape of a routing rule row from import_routing_rules.
+ * Exported so callers can cache loaded rules for batch evaluation.
  */
-interface RoutingRule {
+export interface RoutingRule {
   id: string;
   name: string;
   priority: number;
@@ -88,6 +89,61 @@ export async function resolveRoutingDestination(
 
   // Evaluate each rule in priority order; return on first match
   for (const rule of rules as RoutingRule[]) {
+    if (evaluateRule(rule, record)) {
+      return {
+        workspaceId: rule.target_workspace_id,
+        folderId: rule.target_folder_id,
+        matchedRuleId: rule.id,
+        matchedRuleName: rule.name,
+      };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * loadRoutingRules: Loads active routing rules for an organization.
+ * Use this to cache rules when evaluating multiple records in a batch.
+ *
+ * @param supabase        Supabase client (service role)
+ * @param organizationId  Organization to load rules for
+ * @returns               Array of active rules sorted by priority, or empty array on error
+ */
+export async function loadRoutingRules(
+  supabase: SupabaseClient,
+  organizationId: string,
+): Promise<RoutingRule[]> {
+  const { data: rules, error } = await supabase
+    .from('import_routing_rules')
+    .select('id, name, priority, conditions, logic_operator, target_workspace_id, target_folder_id')
+    .eq('organization_id', organizationId)
+    .eq('enabled', true)
+    .order('priority', { ascending: true });
+
+  if (error) {
+    console.error('[routing-engine] Failed to load routing rules:', error);
+    return [];
+  }
+
+  return (rules ?? []) as RoutingRule[];
+}
+
+/**
+ * evaluateRecordAgainstRules: Evaluates a record against pre-loaded rules.
+ * Avoids redundant DB queries when processing multiple records in a batch.
+ *
+ * @param rules   Pre-loaded rules from loadRoutingRules()
+ * @param record  Normalized connector record to evaluate
+ * @returns       RoutingDestination for the first matching rule, or null
+ */
+export function evaluateRecordAgainstRules(
+  rules: RoutingRule[],
+  record: ConnectorRecord,
+): RoutingDestination | null {
+  if (rules.length === 0) return null;
+
+  for (const rule of rules) {
     if (evaluateRule(rule, record)) {
       return {
         workspaceId: rule.target_workspace_id,
