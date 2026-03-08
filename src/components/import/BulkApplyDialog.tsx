@@ -34,14 +34,18 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
   // Fetch dry-run preview when dialog opens
   useEffect(() => {
     if (!open) return;
+    let stale = false;
     setPreview(null);
     setApplied(false);
     bulkApply.mutate(
       { dryRun: true },
       {
-        onSuccess: (data) => setPreview(data),
+        onSuccess: (data) => {
+          if (!stale) setPreview(data);
+        },
       },
     );
+    return () => { stale = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
