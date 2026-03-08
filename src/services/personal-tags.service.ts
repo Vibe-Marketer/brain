@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
+import { isTableMissing } from '@/lib/supabase-errors'
 
 export interface PersonalTag {
   id: string
@@ -17,8 +18,11 @@ export async function getPersonalTags(organizationId: string): Promise<PersonalT
     .eq('organization_id', organizationId)
     .order('name', { ascending: true })
 
-  if (error) throw new Error(`Failed to fetch personal tags: ${error.message}`)
-  
+  if (error) {
+    if (isTableMissing(error)) return []
+    throw new Error(`Failed to fetch personal tags: ${error.message}`)
+  }
+
   return data as PersonalTag[]
 }
 
@@ -39,7 +43,10 @@ export async function createPersonalTag(organizationId: string, name: string, co
     .select()
     .single()
 
-  if (error) throw new Error(`Failed to create personal tag: ${error.message}`)
+  if (error) {
+    if (isTableMissing(error)) throw new Error('Personal tags are not available yet — migration pending')
+    throw new Error(`Failed to create personal tag: ${error.message}`)
+  }
 
   return data as PersonalTag
 }
@@ -50,7 +57,10 @@ export async function updatePersonalTag(tagId: string, updates: Partial<{ name: 
     .update(updates)
     .eq('id', tagId)
 
-  if (error) throw new Error(`Failed to update personal tag: ${error.message}`)
+  if (error) {
+    if (isTableMissing(error)) throw new Error('Personal tags are not available yet — migration pending')
+    throw new Error(`Failed to update personal tag: ${error.message}`)
+  }
 }
 
 export async function deletePersonalTag(tagId: string): Promise<void> {
@@ -59,7 +69,10 @@ export async function deletePersonalTag(tagId: string): Promise<void> {
     .delete()
     .eq('id', tagId)
 
-  if (error) throw new Error(`Failed to delete personal tag: ${error.message}`)
+  if (error) {
+    if (isTableMissing(error)) throw new Error('Personal tags are not available yet — migration pending')
+    throw new Error(`Failed to delete personal tag: ${error.message}`)
+  }
 }
 
 export async function getPersonalTagAssignments(organizationId: string): Promise<Record<string, string[]>> {
@@ -68,7 +81,10 @@ export async function getPersonalTagAssignments(organizationId: string): Promise
     .select('id')
     .eq('organization_id', organizationId)
 
-  if (tagsError) throw new Error(`Failed to fetch tags for assignments: ${tagsError.message}`)
+  if (tagsError) {
+    if (isTableMissing(tagsError)) return {}
+    throw new Error(`Failed to fetch tags for assignments: ${tagsError.message}`)
+  }
   
   const tagIds = (tags ?? []).map((t) => t.id)
   
@@ -79,7 +95,10 @@ export async function getPersonalTagAssignments(organizationId: string): Promise
     .select('recording_id, tag_id')
     .in('tag_id', tagIds)
 
-  if (error) throw new Error(`Failed to fetch personal tag assignments: ${error.message}`)
+  if (error) {
+    if (isTableMissing(error)) return {}
+    throw new Error(`Failed to fetch personal tag assignments: ${error.message}`)
+  }
 
   const assignments: Record<string, string[]> = {}
   ;(data ?? []).forEach((row) => {
@@ -107,7 +126,10 @@ export async function assignTagToRecording(recordingId: string, tagId: string): 
       user_id: userId,
     }, { onConflict: 'tag_id,recording_id' })
 
-  if (error) throw new Error(`Failed to assign tag to recording: ${error.message}`)
+  if (error) {
+    if (isTableMissing(error)) throw new Error('Personal tags are not available yet — migration pending')
+    throw new Error(`Failed to assign tag to recording: ${error.message}`)
+  }
 }
 
 export async function removeTagFromRecording(recordingId: string, tagId: string): Promise<void> {
@@ -117,5 +139,8 @@ export async function removeTagFromRecording(recordingId: string, tagId: string)
     .eq('recording_id', recordingId)
     .eq('tag_id', tagId)
 
-  if (error) throw new Error(`Failed to remove tag from recording: ${error.message}`)
+  if (error) {
+    if (isTableMissing(error)) throw new Error('Personal tags are not available yet — migration pending')
+    throw new Error(`Failed to remove tag from recording: ${error.message}`)
+  }
 }

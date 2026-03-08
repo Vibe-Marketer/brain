@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { isTableMissing } from "@/lib/supabase-errors";
 import { RiArrowRightSLine, RiArrowDownSLine, RiFolderLine, RiCheckLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { getIconComponent } from "@/lib/folder-icons";
@@ -76,13 +77,13 @@ export default function AssignFolderDialog({
 
       if (legacyError) throw legacyError;
 
-      // Personal assignments
+      // Personal assignments — table may not exist yet (migration pending)
       const { data: personalData, error: personalError } = await (supabase as any)
         .from('personal_folder_recordings')
         .select('recording_id, folder_id')
         .in('recording_id', uuidRecordingIds);
 
-      if (personalError) throw personalError;
+      if (personalError && !isTableMissing(personalError)) throw personalError;
 
       const combined = [
         ...(legacyData || []).map(a => a.folder_id),
@@ -125,14 +126,14 @@ export default function AssignFolderDialog({
       const { data: legacyData, error: legacyError } = await legacyQuery;
       if (legacyError) throw legacyError;
 
-      // 2. Fetch Personal Folders
+      // 2. Fetch Personal Folders — table may not exist yet (migration pending)
       const { data: personalData, error: personalError } = await (supabase as any)
         .from('personal_folders')
         .select('*')
         .eq('organization_id', activeOrganizationId)
         .order('name');
-      
-      if (personalError) throw personalError;
+
+      if (personalError && !isTableMissing(personalError)) throw personalError;
 
       const all = [
         ...(legacyData || []).map(f => ({ ...f, is_personal: false })),
@@ -293,30 +294,34 @@ export default function AssignFolderDialog({
       });
       if (legacyToAdd.length > 0) await supabase.from("folder_assignments").insert(legacyToAdd);
 
-      // 2. Handle Personal Folders
+      // 2. Handle Personal Folders — skip entirely when table doesn't exist yet
       const personalSelected = new Set(Array.from(selectedFolders).filter(id => allFolders.find(f => f.id === id && (f as any).is_personal)));
-      
-      const { data: existingPersonal } = await (supabase as any)
+
+      const { data: existingPersonal, error: existingPersonalError } = await (supabase as any)
         .from('personal_folder_recordings')
         .select('recording_id, folder_id')
         .in('recording_id', uuidRecordingIds);
 
-      // Deletions
-      const personalToDelete = (existingPersonal || []).filter((a: any) => !personalSelected.has(a.folder_id));
-      for (const a of personalToDelete) {
-        await (supabase as any).from('personal_folder_recordings').delete()
-          .eq('recording_id', a.recording_id).eq('folder_id', a.folder_id).eq('user_id', userId);
-      }
-      // Insertions
-      const personalToAdd: any[] = [];
-      uuidRecordingIds.forEach(rid => {
-        personalSelected.forEach(fid => {
-          if (!(existingPersonal || []).some((a: any) => a.recording_id === rid && a.folder_id === fid)) {
-            personalToAdd.push({ recording_id: rid, folder_id: fid, user_id: userId });
-          }
+      if (existingPersonalError && !isTableMissing(existingPersonalError)) throw existingPersonalError;
+
+      if (!existingPersonalError) {
+        // Deletions
+        const personalToDelete = (existingPersonal || []).filter((a: any) => !personalSelected.has(a.folder_id));
+        for (const a of personalToDelete) {
+          await (supabase as any).from('personal_folder_recordings').delete()
+            .eq('recording_id', a.recording_id).eq('folder_id', a.folder_id).eq('user_id', userId);
+        }
+        // Insertions
+        const personalToAdd: any[] = [];
+        uuidRecordingIds.forEach(rid => {
+          personalSelected.forEach(fid => {
+            if (!(existingPersonal || []).some((a: any) => a.recording_id === rid && a.folder_id === fid)) {
+              personalToAdd.push({ recording_id: rid, folder_id: fid, user_id: userId });
+            }
+          });
         });
-      });
-      if (personalToAdd.length > 0) await (supabase as any).from('personal_folder_recordings').insert(personalToAdd);
+        if (personalToAdd.length > 0) await (supabase as any).from('personal_folder_recordings').insert(personalToAdd);
+      }
 
       const count = targetRecordingIds.length;
       const folderCount = selectedFolders.size;
