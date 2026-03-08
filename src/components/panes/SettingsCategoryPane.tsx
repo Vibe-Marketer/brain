@@ -62,8 +62,8 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
   },
   {
     id: "organizations",
-    label: "Workspaces",
-    description: "Manage team workspaces",
+    label: "Hubs",
+    description: "Manage organization hubs",
     icon: RiBuildingLine,
   },
   {

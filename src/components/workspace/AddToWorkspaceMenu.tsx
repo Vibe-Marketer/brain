@@ -88,7 +88,7 @@ export function AddToWorkspaceMenu({
               {compact ? (
                 <button
                   className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-hover dark:hover:bg-cb-panel-dark transition-colors"
-                  title="Add to workspace"
+                  title="Add to hub"
                 >
                   <RiSafeLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
                 </button>
@@ -108,7 +108,7 @@ export function AddToWorkspaceMenu({
       <PopoverContent align="end" className="w-56 p-2">
         <div className="space-y-1">
           <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            Workspaces
+            Hubs
           </p>
 
           {isLoading ? (
@@ -117,11 +117,11 @@ export function AddToWorkspaceMenu({
             </div>
           ) : notMigrated ? (
             <p className="px-2 py-3 text-sm text-muted-foreground text-center">
-              Recording not yet migrated to workspace system
+              Recording not yet migrated
             </p>
           ) : workspaces.length === 0 ? (
             <p className="px-2 py-3 text-sm text-muted-foreground text-center">
-              No workspaces available
+              No hubs available
             </p>
           ) : (
             workspaces.map((workspace) => {

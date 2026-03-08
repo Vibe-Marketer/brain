@@ -599,7 +599,7 @@ export function SyncTab() {
           className="mb-4"
         />
         <p className="text-xs text-muted-foreground -mt-2 mb-4">
-          Calls sync to your current workspace. Switch workspace in the header to sync elsewhere.
+          Calls sync to your current hub. Switch hub in the header to sync elsewhere.
         </p>
 
         {/* Active Sync Jobs Status - Shows real-time progress */}

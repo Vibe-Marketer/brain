@@ -319,10 +319,10 @@ function WorkspaceListEmpty({
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
       <RiSafeLine className="h-16 w-16 text-muted-foreground/30 mb-5" aria-hidden="true" />
       <p className="text-sm font-display font-extrabold uppercase tracking-widest text-foreground/80 mb-2">
-        No workspaces yet
+        No hubs yet
       </p>
       <p className="text-xs text-muted-foreground mb-6 max-w-[180px] leading-relaxed">
-        Start by creating a workspace to organize your team's meetings.
+        Start by creating a hub to organize your team's meetings.
       </p>
       <Button
         variant="default"
@@ -332,7 +332,7 @@ function WorkspaceListEmpty({
         disabled={!canCreate}
       >
         <RiAddLine className="h-4 w-4" />
-        New Workspace
+        New Hub
       </Button>
     </div>
   );
@@ -413,8 +413,8 @@ export function WorkspaceListPane({
                 <RiSafeLine className="h-5 w-5 text-vibe-orange" />
               </div>
               <div className="min-w-0">
-                <h2 className="text-[11px] font-black text-ink uppercase tracking-[0.15em] leading-none mb-1">Workspaces</h2>
-                <p className="text-[10px] font-medium text-ink-muted uppercase tracking-wider">Workspace Management</p>
+                <h2 className="text-[11px] font-black text-ink uppercase tracking-[0.15em] leading-none mb-1">Hubs</h2>
+                <p className="text-[10px] font-medium text-ink-muted uppercase tracking-wider">Hub Management</p>
               </div>
             </div>
             {canCreateWorkspace && (
@@ -423,7 +423,7 @@ export function WorkspaceListPane({
                 size="icon"
                 onClick={handleCreateWorkspace}
                 className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-                title="Create Workspace"
+                title="Create Hub"
               >
                 <RiAddLine className="h-4.5 w-4.5" />
               </Button>

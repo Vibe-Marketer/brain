@@ -312,11 +312,11 @@ function WorkspaceListItem({
           <ContextMenuSeparator />
           <ContextMenuItem onClick={() => onRenameWorkspace(workspace)}>
             <RiPencilLine className="h-4 w-4 mr-2" />
-            Rename Workspace
+            Rename Hub
           </ContextMenuItem>
           <ContextMenuItem onClick={() => onManageDetail(workspace.id)}>
             <RiSettings3Line className="h-4 w-4 mr-2" />
-            Workspace Settings
+            Hub Settings
           </ContextMenuItem>
           {canManage && !workspace.is_default && (
              <ContextMenuItem onClick={() => setDefaultWorkspace({ workspaceId: workspace.id })}>
@@ -332,7 +332,7 @@ function WorkspaceListItem({
                 className="text-destructive focus:text-destructive"
               >
                 <RiDeleteBinLine className="h-4 w-4 mr-2" />
-                Delete Workspace
+                Delete Hub
               </ContextMenuItem>
             </>
           )}
@@ -405,7 +405,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
              </div>
              <div>
                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground leading-none">Navigation</h2>
-               <p className="text-[9px] text-muted-foreground/60 uppercase">Workspace Navigator</p>
+               <p className="text-[9px] text-muted-foreground/60 uppercase">Hub Navigator</p>
              </div>
            </div>
            {canCreateWorkspace && (
@@ -514,7 +514,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
            {/* Section: Workspaces */}
            <div>
              <div className="px-3 mb-2 flex items-center justify-between">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Your Workspaces</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Your Hubs</h3>
              </div>
              
              {isLoading ? (

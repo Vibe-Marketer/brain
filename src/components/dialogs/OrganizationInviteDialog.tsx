@@ -43,7 +43,7 @@ export function OrganizationInviteDialog({
   organizationName,
 }: OrganizationInviteDialogProps) {
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'bank_admin' | 'bank_member'>('bank_member')
+  const [role, setRole] = useState<'organization_admin' | 'member'>('member')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [inviteUrl, setInviteUrl] = useState<string | null>(null)
   const [isCopied, setIsCopied] = useState(false)
@@ -91,7 +91,7 @@ export function OrganizationInviteDialog({
             Invite to {organizationName}
           </DialogTitle>
           <DialogDescription>
-            Invite teammates to join this organization. They will have access to all public workspaces within the organization.
+            Invite teammates to join this organization. They will have access to all public hubs within the organization.
           </DialogDescription>
         </DialogHeader>
 
@@ -120,8 +120,8 @@ export function OrganizationInviteDialog({
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="bank_member">Member (Can view all calls)</SelectItem>
-                  <SelectItem value="bank_admin">Admin (Can manage members)</SelectItem>
+                  <SelectItem value="member">Member (Can view all calls)</SelectItem>
+                  <SelectItem value="organization_admin">Admin (Can manage members)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

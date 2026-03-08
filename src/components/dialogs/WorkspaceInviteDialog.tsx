@@ -203,7 +203,7 @@ export function WorkspaceInviteDialog({
                   <SelectContent>
                     <SelectItem value="member">Member (Can view/add calls)</SelectItem>
                     <SelectItem value="manager">Manager (Can manage folders)</SelectItem>
-                    <SelectItem value="workspace_admin">Admin (Can manage members)</SelectItem>
+                    <SelectItem value="workspace_admin">Hub Admin (Can manage members)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

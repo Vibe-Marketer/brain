@@ -184,7 +184,7 @@ export function WorkspaceDetailPane({
     return (
       <div className={cn('h-full flex flex-col', className)}>
         <PageHeader 
-          title="Workspaces"
+          title="Hubs"
           icon={RiSafeLine}
           showBackButton={showBackButton}
           onBack={onBack}
@@ -192,9 +192,9 @@ export function WorkspaceDetailPane({
         <div className="flex-1 flex items-center justify-center p-6 text-ink">
           <div className="text-center">
             <RiArrowLeftLine className="h-12 w-12 text-ink-muted/30 mx-auto mb-3" aria-hidden="true" />
-            <p className="text-sm font-bold uppercase tracking-wide mb-1">Select a workspace</p>
+            <p className="text-sm font-bold uppercase tracking-wide mb-1">Select a hub</p>
             <p className="text-xs text-ink-muted max-w-xs">
-              Choose a workspace from the list to view recordings and members
+              Choose a hub from the list to view recordings and members
             </p>
           </div>
         </div>
@@ -211,7 +211,7 @@ export function WorkspaceDetailPane({
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center">
           <RiErrorWarningLine className="h-12 w-12 text-destructive/60 mx-auto mb-3" aria-hidden="true" />
-          <p className="text-sm font-semibold text-foreground mb-1">Unable to load this workspace</p>
+          <p className="text-sm font-semibold text-foreground mb-1">Unable to load this hub</p>
           <p className="text-xs text-muted-foreground mb-4">
             Please try again in a moment.
           </p>
@@ -233,7 +233,7 @@ export function WorkspaceDetailPane({
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="text-center">
           <RiSafeLine className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">Workspace not found</p>
+          <p className="text-sm text-muted-foreground">Hub not found</p>
         </div>
       </div>
     )
@@ -284,7 +284,7 @@ export function WorkspaceDetailPane({
               size="sm"
               onClick={handleOpenMembers}
               className="flex items-center gap-1.5 text-xs"
-              aria-label={`View ${workspace.member_count} workspace members`}
+              aria-label={`View ${workspace.member_count} hub members`}
             >
               <RiGroupLine className="h-4 w-4" aria-hidden="true" />
               <span className="tabular-nums">{workspace.member_count}</span>
@@ -391,12 +391,12 @@ export function WorkspaceDetailPane({
                 <RiMicLine className="h-16 w-16 text-muted-foreground/20 mb-4" aria-hidden="true" />
               )}
               <h3 className="text-sm font-semibold text-foreground mb-1">
-                {isYouTubeWorkspace ? 'No videos in this workspace' : 'No recordings in this workspace'}
+                {isYouTubeWorkspace ? 'No videos in this hub' : 'No recordings in this hub'}
               </h3>
               <p className="text-xs text-muted-foreground text-center max-w-xs">
                 {isYouTubeWorkspace
                   ? 'Import YouTube videos to start building your video library.'
-                  : 'Recordings you add to this workspace will appear here.'}
+                  : 'Recordings you add to this hub will appear here.'}
               </p>
               <Button
                 variant="ghost"

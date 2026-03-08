@@ -1,10 +1,10 @@
 /**
- * WorkspaceCard Component
+ * HubCard Component
  * 
- * Visual card for displaying workspaces in grid layout
+ * Visual card for displaying hubs in grid layout
  * Features:
  * - Gradient hero image
- * - Workspace emoji/icon
+ * - Hub emoji/icon
  * - Title and metadata
  * - Member avatars
  * - Hover effects
@@ -15,7 +15,7 @@ import { Link } from 'react-router-dom';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 
-export interface WorkspaceCardProps {
+export interface HubCardProps {
   id: string;
   title: string;
   emoji: string;
@@ -31,7 +31,7 @@ export interface WorkspaceCardProps {
   path: string;
 }
 
-export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
+export const HubCard: React.FC<HubCardProps> = ({
   id,
   title,
   emoji,
@@ -75,7 +75,7 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/20" />
         
-        {/* Workspace Emoji - Overlapping */}
+        {/* Hub Emoji - Overlapping */}
         <div className="absolute -bottom-6 left-4">
           <div className="w-12 h-12 bg-white dark:bg-gray-900 rounded-xl shadow-lg flex items-center justify-center text-2xl border-2 border-white dark:border-gray-800">
             {emoji}
@@ -124,7 +124,7 @@ export const WorkspaceCard: React.FC<WorkspaceCardProps> = ({
 };
 
 // Predefined gradient options
-export const WORKSPACE_GRADIENTS = [
+export const HUB_GRADIENTS = [
   'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
   'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
