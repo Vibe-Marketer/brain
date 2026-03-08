@@ -165,3 +165,37 @@ export async function getRecordingByLegacyId(legacyId: number): Promise<Recordin
 
   return data
 }
+
+/** Response shape from the delete_recording RPC */
+export interface DeleteRecordingResult {
+  success?: boolean
+  error?: string
+  deleted_recording_id?: string
+  cleaned_up?: {
+    workspace_entries: number
+    folder_assignments: number
+    call_tags: number
+  }
+}
+
+/**
+ * Deletes a recording and all related workspace entries, folder assignments,
+ * and call tags via the delete_recording RPC. The RPC runs as SECURITY DEFINER
+ * to bypass the RLS guard that blocks deletion when workspace_entries exist.
+ */
+export async function deleteRecording(recordingId: string): Promise<DeleteRecordingResult> {
+  const { data, error } = await supabase.rpc('delete_recording', {
+    p_recording_id: recordingId,
+  })
+
+  if (error) {
+    throw new Error(`Failed to delete recording: ${error.message}`)
+  }
+
+  const result = data as DeleteRecordingResult
+  if (result?.error) {
+    throw new Error(result.error)
+  }
+
+  return result
+}
