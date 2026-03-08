@@ -6,10 +6,6 @@ import type { Folder } from '@/types/workspace'
  *
  * All queries use supabase.from('folders') scoped by workspaceId.
  *
- * IMPORTANT: folders table has columns added in Phase 16 migration that are
- * not yet in generated supabase.ts types (is_archived, archived_at). We use
- * the Folder interface from @/types/workspace and cast to `any` where needed.
- *
  * NOTE: The DB uses `parent_id` (not `parent_folder_id`) — this is the actual
  * FK column on the folders table.
  *
@@ -30,8 +26,7 @@ export async function getFolders(
   workspaceId: string,
   includeArchived = false
 ): Promise<Folder[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let query = (supabase as any)
+  let query = supabase
     .from('folders')
     .select(
       'id, name, user_id, organization_id, workspace_id, parent_id, description, color, icon, visibility, position, is_archived, archived_at, created_at, updated_at'
@@ -51,8 +46,7 @@ export async function getFolders(
   }
 
   // Map parent_id to parent_folder_id for Folder interface compatibility
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).map((row) => ({
     id: row.id,
     name: row.name,
     user_id: row.user_id,
@@ -77,8 +71,7 @@ export async function getFolders(
  * Ordered by archived_at DESC (most recently archived first).
  */
 export async function getArchivedFolders(workspaceId: string): Promise<Folder[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('folders')
     .select(
       'id, name, user_id, organization_id, workspace_id, parent_id, description, color, icon, visibility, position, is_archived, archived_at, created_at, updated_at'
@@ -91,8 +84,7 @@ export async function getArchivedFolders(workspaceId: string): Promise<Folder[]>
     throw new Error(`Failed to fetch archived folders: ${error.message}`)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).map((row) => ({
     id: row.id,
     name: row.name,
     user_id: row.user_id,
@@ -126,7 +118,7 @@ export async function getFolderAssignments({
   if (!workspaceId && !organizationId) return {}
 
   // 1. Get all folder IDs for this scope
-  let folderQuery = (supabase as any)
+  let folderQuery = supabase
     .from('folders')
     .select('id')
     
@@ -138,7 +130,7 @@ export async function getFolderAssignments({
 
   const { data: folderIdsData } = await folderQuery
 
-  const folderIds = (folderIdsData ?? []).map((f: any) => f.id)
+  const folderIds = (folderIdsData ?? []).map((f) => f.id)
 
   if (folderIds.length === 0) return {}
 
@@ -187,8 +179,7 @@ export async function createFolder(
 ): Promise<Folder> {
   // Enforce depth limit: if a parent is provided, verify it has no parent
   if (parentFolderId) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: parent, error: parentError } = await (supabase as any)
+    const { data: parent, error: parentError } = await supabase
       .from('folders')
       .select('id, parent_id')
       .eq('id', parentFolderId)
@@ -208,8 +199,7 @@ export async function createFolder(
   }
 
   // Calculate next position for siblings
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let positionQuery = (supabase as any)
+  let positionQuery = supabase
     .from('folders')
     .select('position')
     .eq('workspace_id', workspaceId)
@@ -240,8 +230,7 @@ export async function createFolder(
     insertPayload.parent_id = parentFolderId
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('folders')
     .insert(insertPayload)
     .select(
@@ -275,8 +264,7 @@ export async function updateFolder(
   folderId: string,
   updates: Partial<Pick<Folder, 'name' | 'description' | 'color' | 'icon' | 'visibility' | 'parent_id' | 'position'>>
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('folders')
     .update(updates)
     .eq('id', folderId)
@@ -301,8 +289,7 @@ export async function renameFolder(folderId: string, name: string): Promise<void
  * from main sidebar view. Can be fully restored."
  */
 export async function archiveFolder(folderId: string): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('folders')
     .update({ is_archived: true, archived_at: new Date().toISOString() })
     .eq('id', folderId)
@@ -317,8 +304,7 @@ export async function archiveFolder(folderId: string): Promise<void> {
  * Sets is_archived = false and archived_at = null.
  */
 export async function restoreFolder(folderId: string): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('folders')
     .update({ is_archived: false, archived_at: null })
     .eq('id', folderId)
@@ -402,7 +388,7 @@ export async function assignCallToFolder(
     .maybeSingle()
 
   if (rec && workspaceId) {
-    const { error: entryError } = await (supabase as any)
+    const { error: entryError } = await supabase
       .from('workspace_entries')
       .update({ folder_id: folderId })
       .eq('recording_id', rec.id)
@@ -482,7 +468,7 @@ export async function moveCallToFolder(
     .maybeSingle()
 
   if (rec && workspaceId) {
-    const { error: entryError } = await (supabase as any)
+    const { error: entryError } = await supabase
       .from('workspace_entries')
       .update({ folder_id: toFolderId })
       .eq('recording_id', rec.id)

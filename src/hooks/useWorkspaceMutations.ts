@@ -14,9 +14,9 @@ import { queryKeys } from '@/lib/query-config'
 import { toast } from 'sonner'
 import type { WorkspaceType, WorkspaceWithMeta } from '@/types/workspace'
 
-// Type-safe supabase client wrapper for tables not yet in generated types
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any
+import type { Database } from '@/types/supabase'
+
+type WorkspaceInsert = Database['public']['Tables']['workspaces']['Insert']
 
 // ─── Create Workspace ───────────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ export function useCreateWorkspace() {
       if (!user) throw new Error('Not authenticated')
 
       // Create workspace
-      const { data: workspace, error: workspaceError } = await db
+      const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
         .insert({
           organization_id: input.orgId,
@@ -66,7 +66,7 @@ export function useCreateWorkspace() {
       if (workspaceError) throw workspaceError
 
       // Create workspace membership for creator as owner
-      const { error: membershipError } = await db
+      const { error: membershipError } = await supabase
         .from('workspace_memberships')
         .insert({
           workspace_id: workspace.id,
@@ -189,7 +189,7 @@ export function useUpdateWorkspace() {
         updates.default_sharelink_ttl_days = input.defaultShareLinkTtlDays
       }
 
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('workspaces')
         .update(updates)
         .eq('id', input.workspaceId)
@@ -228,8 +228,7 @@ export function useUpdateWorkspace() {
       // Optimistically update the detail cache
       queryClient.setQueryData(
         queryKeys.workspaces.detail(input.workspaceId),
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (old: any) => {
+        (old: WorkspaceWithMeta | undefined) => {
           if (!old) return old
           return {
             ...old,
@@ -309,7 +308,7 @@ export function useDeleteWorkspace() {
         input.transferRecordingsToWorkspaceId &&
         input.transferRecordingsToWorkspaceId !== input.workspaceId
       ) {
-        const { error: transferError } = await db
+        const { error: transferError } = await supabase
           .from('workspace_entries')
           .update({ workspace_id: input.transferRecordingsToWorkspaceId })
           .eq('workspace_id', input.workspaceId)
@@ -317,7 +316,7 @@ export function useDeleteWorkspace() {
         if (transferError) throw transferError
       }
 
-      const { error } = await db
+      const { error } = await supabase
         .from('workspaces')
         .delete()
         .eq('id', input.workspaceId)
@@ -391,7 +390,7 @@ export function useSetDefaultWorkspace() {
       if (!user) throw new Error('Not authenticated')
 
       // 1. Get the organization_id for the target workspace
-      const { data: targetWs, error: fetchError } = await db
+      const { data: targetWs, error: fetchError } = await supabase
         .from('workspaces')
         .select('organization_id')
         .eq('id', input.workspaceId)
@@ -400,7 +399,7 @@ export function useSetDefaultWorkspace() {
       if (fetchError) throw fetchError
 
       // 2. Unset default for all workspaces in that organization
-      const { error: unsetError } = await db
+      const { error: unsetError } = await supabase
         .from('workspaces')
         .update({ is_default: false })
         .eq('organization_id', targetWs.organization_id)
@@ -408,7 +407,7 @@ export function useSetDefaultWorkspace() {
       if (unsetError) throw unsetError
 
       // 3. Set default for the target workspace
-      const { data: updatedWs, error: setError } = await db
+      const { data: updatedWs, error: setError } = await supabase
         .from('workspaces')
         .update({ is_default: true })
         .eq('id', input.workspaceId)

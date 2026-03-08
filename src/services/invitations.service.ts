@@ -8,10 +8,6 @@
  * (no Resend, no Mailgun) as of Phase 16. Creating an invitation generates
  * the DB record and produces a shareable link. Email delivery is deferred
  * to Phase 17+ or via Supabase webhooks.
- *
- * All queries use supabase.from('workspace_invitations') — this table was
- * created in the Phase 16-01 migration and is not yet in the generated
- * supabase.ts types, so we cast via `as any` where needed.
  */
 
 import { supabase } from '@/integrations/supabase/client'
@@ -22,8 +18,7 @@ import type { WorkspaceInvitation, WorkspaceInviteDetails } from '@/types/worksp
  * Returns invitations with status = 'pending' (not accepted, revoked, or expired).
  */
 export async function getInvitations(workspaceId: string): Promise<WorkspaceInvitation[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('workspace_invitations')
     .select('id, workspace_id, invited_by, email, role, token, status, expires_at, created_at, accepted_at')
     .eq('workspace_id', workspaceId)
@@ -48,8 +43,7 @@ export async function createInvitation(
   email: string,
   role: WorkspaceInvitation['role']
 ): Promise<WorkspaceInvitation> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data, error } = await supabase
     .from('workspace_invitations')
     .insert({
       workspace_id: workspaceId,
@@ -72,8 +66,7 @@ export async function createInvitation(
  * Revoked invitations cannot be accepted.
  */
 export async function revokeInvitation(invitationId: string): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('workspace_invitations')
     .update({ status: 'revoked' })
     .eq('id', invitationId)
@@ -91,8 +84,7 @@ export async function resendInvitation(invitationId: string): Promise<void> {
   const newExpiry = new Date()
   newExpiry.setDate(newExpiry.getDate() + 7)
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('workspace_invitations')
     .update({ expires_at: newExpiry.toISOString() })
     .eq('id', invitationId)
@@ -108,8 +100,7 @@ export async function resendInvitation(invitationId: string): Promise<void> {
  * Returns workspace name, org name, inviter name, role, and expiry.
  */
 export async function getInviteDetails(token: string): Promise<WorkspaceInviteDetails> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any).rpc('get_workspace_invite_details', { p_token: token })
+  const { data, error } = await supabase.rpc('get_workspace_invite_details', { p_token: token })
 
   if (error) {
     throw new Error(`Failed to get invite details: ${error.message}`)
@@ -119,7 +110,7 @@ export async function getInviteDetails(token: string): Promise<WorkspaceInviteDe
     throw new Error('Invitation not found or has expired')
   }
 
-  // RPC may return an array (single row) or a single object depending on definition
+  // RPC returns an array; take the first row
   const result = Array.isArray(data) ? data[0] : data
 
   if (!result) {
@@ -135,8 +126,7 @@ export async function getInviteDetails(token: string): Promise<WorkspaceInviteDe
  * The invitation status is updated to 'accepted'.
  */
 export async function acceptInvite(token: string, userId: string): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any).rpc('accept_workspace_invite', {
+  const { error } = await supabase.rpc('accept_workspace_invite', {
     p_token: token,
     p_user_id: userId,
   })

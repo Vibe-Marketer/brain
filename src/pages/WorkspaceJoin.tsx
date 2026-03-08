@@ -49,7 +49,7 @@ export default function WorkspaceJoin() {
 
       try {
         // 1. Try email-based invitation first (via RPC)
-        const { data: inviteDetails, error: rpcError } = await (supabase as any).rpc('get_workspace_invite_details', {
+        const { data: inviteDetails, error: rpcError } = await supabase.rpc('get_workspace_invite_details', {
           p_token: token,
         })
 
@@ -72,7 +72,7 @@ export default function WorkspaceJoin() {
 
         // 2. Fallback to shareable link (stored on workspaces table)
         const { data: workspace, error: workspaceError } = await supabase
-          .from('workspaces' as any)
+          .from('workspaces')
           .select(`
             id, 
             name, 
@@ -129,7 +129,7 @@ export default function WorkspaceJoin() {
     try {
       if (inviteData.is_email_invite) {
         // Use RPC to accept email-based invite
-        const { data, error } = await (supabase as any).rpc('accept_workspace_invite', {
+        const { data, error } = await supabase.rpc('accept_workspace_invite', {
           p_token: token,
           p_user_id: user.id
         })
@@ -137,7 +137,7 @@ export default function WorkspaceJoin() {
         if (error || (data && data.error)) throw new Error(error?.message || data?.error)
       } else {
         // Directly insert for shareable links
-        const { error: joinError } = await (supabase as any)
+        const { error: joinError } = await supabase
           .from('workspace_memberships')
           .insert({
             workspace_id: inviteData.workspace_id,

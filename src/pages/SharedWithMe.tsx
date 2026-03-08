@@ -125,8 +125,7 @@ function useSharedWithMe(options: UseSharedWithMeOptions) {
     queryKey: queryKeys.sharing.sharedWithMe(),
     queryFn: async () => {
       // Preferred path: RPC backed by SECURITY DEFINER function
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rpcResult = await (supabase as any).rpc("get_calls_shared_with_me_v2", {
+      const rpcResult = await supabase.rpc("get_calls_shared_with_me_v2", {
         p_include_expired: false,
       });
 
