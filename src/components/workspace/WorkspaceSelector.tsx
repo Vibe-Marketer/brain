@@ -25,7 +25,7 @@ import { useUserPreferences } from '@/hooks/useUserPreferences'
 import { cn } from '@/lib/utils'
 import type { WorkspaceWithMembership } from '@/types/workspace'
 
-type IntegrationKey = 'youtube' | 'zoom' | 'google_meet' | 'fathom'
+type IntegrationKey = 'youtube' | 'zoom' | 'fathom'
 
 export interface WorkspaceSelectorProps {
   /** Which integration this selector is for (used to remember default) */

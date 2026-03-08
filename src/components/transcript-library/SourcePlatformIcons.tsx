@@ -55,44 +55,6 @@ export function FathomIcon({ className, size }: IconProps) {
 }
 
 /**
- * Google Meet icon - Google "G" on white circular background with subtle border
- */
-export function GoogleMeetIcon({ className, size }: IconProps) {
-  const computedSize = size ?? getSizeFromClassName(className) ?? 16;
-  return (
-    <svg
-      width={computedSize}
-      height={computedSize}
-      viewBox="0 0 100 100"
-      className={className}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      {/* White circular background with subtle gray border */}
-      <circle cx="50" cy="50" r="48" fill="#FFFFFF" stroke="#E0E0E0" strokeWidth="2" />
-      {/* Google "G" logo - simplified and centered */}
-      <g transform="translate(18, 18) scale(0.64)">
-        <path
-          d="M99.9,51.1c0-3.5-0.3-6.9-0.9-10.2H51v19.3h27.4c-1.2,6.3-4.8,11.6-10.1,15.2v12.6h16.4C93.3,79.6,99.9,66.6,99.9,51.1z"
-          fill="#4285F4"
-        />
-        <path
-          d="M51,100c13.7,0,25.2-4.5,33.6-12.3l-16.4-12.6c-4.5,3-10.3,4.8-17.2,4.8c-13.2,0-24.4-8.9-28.4-20.9H5.6v13C14.1,88.6,31.4,100,51,100z"
-          fill="#34A853"
-        />
-        <path
-          d="M22.6,59.1c-1-3-1.6-6.2-1.6-9.5s0.6-6.5,1.6-9.5V27.1H5.6C2,34.3,0,42.4,0,51s2,16.7,5.6,23.9L22.6,59.1z"
-          fill="#FBBC05"
-        />
-        <path
-          d="M51,20.1c7.4,0,14.1,2.6,19.4,7.6l14.5-14.5C76.1,5.1,64.6,0,51,0C31.4,0,14.1,11.4,5.6,28.1l17,13C26.6,29,37.8,20.1,51,20.1z"
-          fill="#EA4335"
-        />
-      </g>
-    </svg>
-  );
-}
-
-/**
  * Zoom icon - video camera on blue circular background (already circular in original)
  */
 export function ZoomIcon({ className, size }: IconProps) {
@@ -162,7 +124,7 @@ export function UploadIcon({ className, size }: IconProps) {
   );
 }
 
-type SourcePlatform = 'fathom' | 'zoom' | 'google_meet';
+type SourcePlatform = 'fathom' | 'zoom';
 
 interface SourcePlatformIndicatorProps {
   /** Primary source platform */
@@ -188,7 +150,6 @@ export function SourcePlatformIndicator({
 
   if (sourcePlatform === 'fathom') platforms.add('fathom');
   else if (sourcePlatform === 'zoom') platforms.add('zoom');
-  else if (sourcePlatform === 'google_meet') platforms.add('google_meet');
 
   // Add merged platforms
   if (mergedFrom && mergedFrom.length > 0) {
@@ -198,24 +159,21 @@ export function SourcePlatformIndicator({
       
       if (merged.source_platform === 'fathom') platforms.add('fathom');
       else if (merged.source_platform === 'zoom') platforms.add('zoom');
-      else if (merged.source_platform === 'google_meet') platforms.add('google_meet');
     });
   }
 
   // No platforms to show
   if (platforms.size === 0) return null;
 
-  // Order: Fathom first, then Zoom, then Google Meet
+  // Order: Fathom first, then Zoom
   const orderedPlatforms: SourcePlatform[] = [];
   if (platforms.has('fathom')) orderedPlatforms.push('fathom');
   if (platforms.has('zoom')) orderedPlatforms.push('zoom');
-  if (platforms.has('google_meet')) orderedPlatforms.push('google_meet');
 
   // Build tooltip content
   const platformNames: Record<SourcePlatform, string> = {
     fathom: 'Fathom',
     zoom: 'Zoom',
-    google_meet: 'Google Meet',
   };
 
   const tooltipText = orderedPlatforms.length === 1
@@ -240,9 +198,7 @@ export function SourcePlatformIndicator({
             {orderedPlatforms.map((platform, index) => {
               const Icon = platform === 'fathom'
                 ? FathomIcon
-                : platform === 'zoom'
-                  ? ZoomIcon
-                  : GoogleMeetIcon;
+                : ZoomIcon;
 
               return (
                 <div

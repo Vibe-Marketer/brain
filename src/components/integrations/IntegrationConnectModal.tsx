@@ -13,7 +13,6 @@ interface IntegrationConnectModalProps {
 
 const platformNames = {
   fathom: "Fathom",
-  google_meet: "Google Meet",
   zoom: "Zoom",
 };
 

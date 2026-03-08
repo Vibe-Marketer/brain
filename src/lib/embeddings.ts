@@ -15,7 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 /**
  * Source platform type for filtering
  */
-export type SourcePlatform = 'fathom' | 'google_meet';
+export type SourcePlatform = 'fathom' | 'zoom';
 
 /**
  * Result from semantic search

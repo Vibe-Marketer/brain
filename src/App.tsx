@@ -5,7 +5,6 @@ import {
   Navigate,
 } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
@@ -57,14 +56,6 @@ function App() {
                   {/* OAuth callback routes */}
                   <Route
                     path="/oauth/callback"
-                    element={
-                      <ProtectedRoute>
-                        <OAuthCallback />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/oauth/callback/meet"
                     element={
                       <ProtectedRoute>
                         <OAuthCallback />
@@ -264,7 +255,6 @@ function App() {
                   {/* 404 */}
                   <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>
-                <Toaster />
                 <SonnerToaster position="bottom-right" richColors />
               </Router>
             </ThemeProvider>
