@@ -27,8 +27,7 @@ jobs:
 
       # Deno format/lint for edge functions
       - name: Deno Lint
-        run: |
-          for d in supabase/functions/*; do deno lint "$d"; done
+        run: deno lint supabase/functions/
 
       # Deno security static analysis
       - name: Deno Check
