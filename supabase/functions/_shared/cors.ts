@@ -1,15 +1,21 @@
-// Allow all origins in development, restrict in production
-const allowedOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',') || ['*'];
+// Default allowed origins — used when ALLOWED_ORIGINS env var is not set.
+// Includes production domains and common local dev ports.
+const DEFAULT_ORIGINS = [
+  'https://callvault.vercel.app',
+  'https://app.callvaultai.com',
+  'http://localhost:8080',
+  'http://localhost:5173',
+];
+
+const allowedOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',') || DEFAULT_ORIGINS;
 
 export function getCorsHeaders(requestOrigin?: string | null): Record<string, string> {
-  let origin = '*';
+  // Default to first allowed origin (never wildcard)
+  let origin = allowedOrigins[0];
 
-  // If a specific origin is provided, we should ideally echo it 
-  // especially for authenticated requests to avoid browser "wildcard combined with credentials" issues
-  if (requestOrigin) {
-    if (allowedOrigins[0] === '*' || allowedOrigins.includes(requestOrigin)) {
-      origin = requestOrigin;
-    }
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    // Echo back the request origin if it's in our allow list
+    origin = requestOrigin;
   }
 
   return {

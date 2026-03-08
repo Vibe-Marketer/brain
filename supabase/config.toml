@@ -1,22 +1,84 @@
 project_id = "vltmrnjsubfzrgrtdqey"
 
+# ============================================================================
+# JWT VERIFICATION AUDIT (2026-03-08)
+#
+# verify_jwt = false means Supabase gateway does NOT enforce JWT.
+# Functions with verify_jwt = false MUST either:
+#   (a) perform manual JWT verification in their handler code, OR
+#   (b) be legitimately called without a user JWT (webhooks, cron workers)
+#
+# AUDIT RESULTS — all verify_jwt=false functions reviewed:
+#
+# SHOULD USE verify_jwt = true (do manual JWT check anyway — belt+suspenders):
+#   fetch-meetings       — user-initiated, has manual JWT check in code
+#   sync-meetings        — user-initiated, has manual JWT check in code
+#   zoom-fetch-meetings  — user-initiated, has manual JWT check in code
+#   zoom-sync-meetings   — user-initiated, has manual JWT check in code
+#   youtube-import       — user-initiated, has manual JWT check in code
+#   file-upload-transcribe — user-initiated, has manual JWT check in code
+#
+# LEGITIMATELY NO JWT (webhooks/workers — cannot have user JWT):
+#   webhook              — receives external Fathom webhook callbacks
+#   automation-webhook   — receives external webhook triggers
+#   process-embeddings   — worker invoked by pg_cron / self-invocation
+#   automation-scheduler — worker invoked by pg_cron
+#
+# ACTION: The 6 user-initiated functions above should be migrated to
+# verify_jwt = true. They already do manual JWT checks, so enabling
+# gateway-level JWT just adds defense in depth. Filed as future work.
+# ============================================================================
+
+# --- User-initiated functions (verify_jwt = false, has manual JWT check) ---
+# TODO(security): migrate these to verify_jwt = true for defense in depth
+
 [functions.fetch-meetings]
+# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
 verify_jwt = false
 
 [functions.sync-meetings]
+# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
 verify_jwt = false
 
 [functions.zoom-fetch-meetings]
+# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
 verify_jwt = false
 
 [functions.zoom-sync-meetings]
+# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
 verify_jwt = false
 
 [functions.youtube-import]
+# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
 verify_jwt = false
 
-[functions.webhook]
+[functions.file-upload-transcribe]
+# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
 verify_jwt = false
+
+# --- Webhook receivers (no user JWT available) ---
+
+[functions.webhook]
+# Receives external Fathom webhook callbacks — no user JWT available
+verify_jwt = false
+
+[functions.automation-webhook]
+# Receives external webhook triggers — no user JWT available
+verify_jwt = false
+
+# --- Worker functions (invoked by pg_cron / self-invocation) ---
+
+[functions.process-embeddings]
+# Worker function called by self-invocation and pg_cron
+# Needs to work without user JWT (uses service role)
+verify_jwt = false
+
+[functions.automation-scheduler]
+# Worker function called by pg_cron for scheduled rule execution
+# Needs to work without user JWT (uses service role)
+verify_jwt = false
+
+# --- User-initiated functions (verify_jwt = true) ---
 
 [functions.save-fathom-key]
 verify_jwt = true
@@ -57,11 +119,6 @@ verify_jwt = true
 [functions.embed-chunks]
 verify_jwt = true
 
-[functions.process-embeddings]
-# Worker function called by self-invocation and pg_cron
-# Needs to work without user JWT (uses service role)
-verify_jwt = false
-
 [functions.chat-stream]
 verify_jwt = true
 
@@ -74,14 +131,6 @@ verify_jwt = true
 [functions.automation-sentiment]
 verify_jwt = true
 
-[functions.automation-webhook]
-verify_jwt = false
-
-[functions.automation-scheduler]
-# Worker function called by pg_cron for scheduled rule execution
-# Needs to work without user JWT (uses service role)
-verify_jwt = false
-
 [functions.generate-content]
 verify_jwt = true
 
@@ -90,6 +139,3 @@ verify_jwt = true
 
 [functions.automation-email]
 verify_jwt = true
-
-[functions.file-upload-transcribe]
-verify_jwt = false
