@@ -1,5 +1,4 @@
 import { supabase } from '@/integrations/supabase/client'
-import { toast } from 'sonner'
 
 export interface MoveOptions {
   sourceWorkspaceId?: string | null
@@ -72,6 +71,4 @@ export async function copyRecordingsToOrganization(
   })
 
   if (error) throw new Error(`Failed to copy to organization: ${error.message}`)
-
-  toast.success(`Successfully copied ${recordingIds.length} recording(s)`)
 }
