@@ -75,15 +75,15 @@ Key policies:
 ## Backend Logic (Phase 3)
 
 ### HOME workspace auto-shows ALL calls in org
-**MISSING** — No automatic mechanism ensures the default workspace contains all org calls. Recordings are added to workspaces via `workspace_entries` inserts. New recordings from import pipeline go to a target workspace, not automatically to HOME.
+**DONE** — Migration `20260303000011_ensure_workspace_entries.sql` backfills workspace_entries for all recordings into the user's default (`is_default = TRUE`) workspace. The `handle_new_user()` trigger creates the default workspace on signup, and the import pipeline creates workspace_entries when importing new calls.
 
-The `handle_new_user()` trigger creates a personal workspace with `is_default = TRUE`, but there's no trigger/mechanism to auto-populate it with all calls.
+Note: This is a one-time backfill migration, not a live trigger. New calls added via the connector pipeline create workspace_entries at import time. There is no DB trigger that auto-creates an entry in the default workspace for every new recording insert.
 
 ### Adding/removing calls from custom workspaces via links
 **DONE** — `workspace_entries` table supports INSERT (adding recording to workspace) and DELETE (removing). UNIQUE constraint prevents duplicates. RLS controls who can add/remove.
 
 ### Deleting a call removes it from HOME + all workspaces + all folders/tags
-**DONE** — `recordings` FK has `ON DELETE CASCADE` from `workspace_entries`. Deleting a recording cascades to all workspace entries. However, deletion is blocked if any workspace_entries exist (RLS policy: `NOT EXISTS (SELECT 1 FROM workspace_entries ...)`), requiring entries to be removed first.
+**PARTIAL** — `workspace_entries` has `ON DELETE CASCADE` from the `recordings` FK, so if a recording is deleted, all workspace entries cascade. However, the RLS policy on `recordings` **blocks deletion if any workspace_entries exist**: `NOT EXISTS (SELECT 1 FROM workspace_entries WHERE recording_id = recordings.id)`. This is inverted logic — the spec implies deletion should cascade through, but the implementation prevents deletion while entries exist. Entries must be manually removed first, then the recording can be deleted. This may be intentional (recordings are immutable while shared) or a gap.
 
 ### Cross-org copy creates NEW call with new ID
 **PARTIAL** — The `cross_bank_default` column on organizations supports `copy_only` and `copy_and_remove` policies. The `migrate_fathom_call_to_recording()` RPC creates new recordings with new IDs when copying. However, there is no general-purpose "copy recording to another org" RPC — the existing function is migration-specific.
@@ -159,7 +159,7 @@ The `handle_new_user()` trigger creates a personal workspace with `is_default = 
 **DONE** — Folders are organizational tools; folder ownership (`user_id`) and workspace membership are checked independently. No folder/tag RLS policy grants data access — they only control who can see/edit the folder itself.
 
 ### hybrid_search_transcripts_scoped RPC respects workspace scope
-**DONE** — Implemented in `20260301000001_rename_vaults_to_workspaces.sql`. The function:
+**DONE** — Implemented in `20260301000001_rename_vaults_to_workspaces.sql`, later updated in `20260306060000_fix_rag_search_path.sql`. The function:
 
 1. If `filter_workspace_id` provided: verifies user has membership, returns only matching results
 2. If `filter_organization_id` provided: aggregates all user's workspace memberships in that org, scopes to those recordings
@@ -214,6 +214,10 @@ These are design differences, not gaps. The actual implementation achieves the s
 4. **No org member management UI:** Users can manage workspace members but not organization-level members. Adding someone to an org requires creating them through workspace invitations.
 
 5. **Stale generated types:** Frontend services use old table names (`banks`, `vaults`) in Supabase queries because the generated types haven't been regenerated after the rename migration. This works (DB aliases) but creates confusion.
+
+6. **Recording deletion inverted logic:** RLS blocks recording deletion if workspace_entries exist, requiring manual cleanup first. Spec says deletion should cascade through all workspaces — need to clarify if this is intentional safety or a gap.
+
+7. **No live trigger for default workspace entries:** The backfill migration ensures existing recordings appear in the default workspace, but new recordings rely on the import pipeline to create entries. If a recording is created outside the pipeline (e.g., direct DB insert), it won't appear in the default workspace automatically.
 
 ---
 
