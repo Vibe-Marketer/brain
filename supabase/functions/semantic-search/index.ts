@@ -57,6 +57,8 @@ interface HybridSearchResult {
   similarity_score: number;
   fts_rank: number;
   rrf_score: number;
+  workspace_id?: string;
+  workspace_name?: string;
 }
 
 /**
@@ -76,6 +78,7 @@ interface SearchResultForUI {
   source_platform: string;
   relevance_score: number;
   similarity_score: number;
+  workspace_name?: string;
 }
 
 Deno.serve(async (req) => {
@@ -114,7 +117,7 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { query, limit = 20, sourcePlatforms } = body;
+    const { query, limit = 20, sourcePlatforms, organizationId, workspaceId } = body;
 
     // Validate sourcePlatforms if provided
     const validPlatforms = ['fathom', 'google_meet', 'zoom', 'other'];
@@ -165,16 +168,18 @@ Deno.serve(async (req) => {
     const EMBEDDING_DIMS = 1536;
     const effectiveEmbedding = queryEmbedding ?? new Array(EMBEDDING_DIMS).fill(0);
 
-    // Call hybrid search RPC
+    // Call hybrid search RPC (scoped)
     const searchStartTime = Date.now();
     const rpcParams: Record<string, unknown> = {
       query_text: trimmedQuery,
       query_embedding: effectiveEmbedding,
       match_count: limit,
       full_text_weight: 1.0,
-      semantic_weight: queryEmbedding ? 1.0 : 0.0,  // Disable vector scoring on fallback
+      semantic_weight: queryEmbedding ? 1.0 : 0.0,
       rrf_k: 60,
       filter_user_id: user.id,
+      filter_organization_id: organizationId || null,
+      filter_workspace_id: workspaceId || null,
     };
 
     // Add source platform filter if specified
@@ -182,7 +187,7 @@ Deno.serve(async (req) => {
       rpcParams.filter_source_platforms = filterSourcePlatforms;
     }
 
-    const { data: candidates, error: searchError } = await supabase.rpc('hybrid_search_transcripts', rpcParams);
+    const { data: candidates, error: searchError } = await supabase.rpc('hybrid_search_transcripts_scoped', rpcParams);
 
     if (searchError) {
       console.error('Hybrid search error:', searchError);
@@ -209,6 +214,7 @@ Deno.serve(async (req) => {
       source_platform: r.source_platform || 'fathom',
       relevance_score: r.rrf_score,
       similarity_score: r.similarity_score,
+      workspace_name: r.workspace_name,
     }));
 
     return new Response(

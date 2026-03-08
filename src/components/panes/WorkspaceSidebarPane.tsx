@@ -21,6 +21,8 @@ import { usePanelStore } from '@/stores/panelStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { useOrgContext } from '@/hooks/useOrgContext';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
+import { usePersonalFolders, usePersonalFolderAssignments } from '@/hooks/usePersonalFolders';
+import { usePersonalTags } from '@/hooks/usePersonalTags';
 import { OrganizationSwitcher } from '@/components/header/OrganizationSwitcher';
 import { CreateWorkspaceDialog } from '@/components/dialogs/CreateWorkspaceDialog';
 import { CreateOrganizationDialog } from '@/components/dialogs/CreateOrganizationDialog';
@@ -28,6 +30,8 @@ import QuickCreateFolderDialog from '@/components/QuickCreateFolderDialog';
 import EditFolderDialog from '@/components/EditFolderDialog';
 import { EditWorkspaceDialog } from '@/components/dialogs/EditWorkspaceDialog';
 import { DeleteWorkspaceDialog } from '@/components/dialogs/DeleteWorkspaceDialog';
+import { WorkspaceMemberPanel } from '@/components/panels/WorkspaceMemberPanel';
+import { OrganizationMemberPanel } from '@/components/panels/OrganizationMemberPanel';
 import { queryKeys } from '@/lib/query-config';
 import * as Collapsible from '@radix-ui/react-collapsible';
 import { cn } from '@/lib/utils';
@@ -59,7 +63,9 @@ import {
   RiCheckLine, 
   RiFolderAddLine,
   RiShareForwardLine,
-  RiArchiveLine
+  RiArchiveLine,
+  RiPriceTag3Line,
+  RiFolder3Line,
 } from '@remixicon/react';
 import type { WorkspaceWithMeta, WorkspaceRole } from '@/types/workspace';
 import type { Folder } from '@/types/workspace';
@@ -295,7 +301,7 @@ function WorkspaceListItem({
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-56">
-          <ContextMenuItem onClick={() => onManageDetail(workspace.id)}>
+          <ContextMenuItem onClick={() => openPanel('workspace_members', { workspaceId: workspace.id, workspaceName: workspace.name })}>
             <RiGroupLine className="h-4 w-4 mr-2" />
             Manage Members
           </ContextMenuItem>
@@ -306,11 +312,11 @@ function WorkspaceListItem({
           <ContextMenuSeparator />
           <ContextMenuItem onClick={() => onRenameWorkspace(workspace)}>
             <RiPencilLine className="h-4 w-4 mr-2" />
-            Rename Workspace
+            Rename Hub
           </ContextMenuItem>
           <ContextMenuItem onClick={() => onManageDetail(workspace.id)}>
             <RiSettings3Line className="h-4 w-4 mr-2" />
-            Workspace Settings
+            Hub Settings
           </ContextMenuItem>
           {canManage && !workspace.is_default && (
              <ContextMenuItem onClick={() => setDefaultWorkspace({ workspaceId: workspace.id })}>
@@ -326,7 +332,7 @@ function WorkspaceListItem({
                 className="text-destructive focus:text-destructive"
               >
                 <RiDeleteBinLine className="h-4 w-4 mr-2" />
-                Delete Workspace
+                Delete Hub
               </ContextMenuItem>
             </>
           )}
@@ -360,6 +366,9 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
     switchFolder 
   } = useOrgContext();
   const { workspaces, isLoading, error } = useWorkspaces(activeOrgId);
+  const { data: personalFolders = [], isLoading: personalFoldersLoading } = usePersonalFolders(activeOrgId);
+  const { data: personalTags = [] } = usePersonalTags(activeOrgId);
+  const { data: personalFolderAssignments = {} } = usePersonalFolderAssignments(activeOrgId);
   
   const canCreateWorkspace = 
     activeOrgRole === 'organization_owner' || 
@@ -396,7 +405,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
              </div>
              <div>
                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground leading-none">Navigation</h2>
-               <p className="text-[9px] text-muted-foreground/60 uppercase">Workspace Navigator</p>
+               <p className="text-[9px] text-muted-foreground/60 uppercase">Hub Navigator</p>
              </div>
            </div>
            {canCreateWorkspace && (
@@ -407,9 +416,21 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
         </div>
         
         <div className="p-2 border border-border rounded-xl bg-card">
-           <div className="flex items-center gap-1 mb-2 px-1">
-             <div className="w-1.5 h-1.5 rounded-full bg-success-bg shadow-[0_0_8px_rgba(var(--success-bg),0.5)]" />
-             <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Organization</span>
+           <div className="flex items-center justify-between gap-1 mb-2 px-1">
+             <div className="flex items-center gap-1">
+               <div className="w-1.5 h-1.5 rounded-full bg-success-bg shadow-[0_0_8px_rgba(var(--success-bg),0.5)]" />
+               <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Organization</span>
+             </div>
+             {activeOrg && (
+               <Button 
+                 variant="ghost" 
+                 size="icon" 
+                 className="h-4 w-4 text-muted-foreground hover:text-foreground"
+                 onClick={() => openPanel('organization_members', { organizationId: activeOrgId, organizationName: activeOrg.name })}
+               >
+                 <RiGroupLine size={10} />
+               </Button>
+             )}
            </div>
            <OrganizationSwitcher />
         </div>
@@ -440,12 +461,60 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                 </span>
                 <Badge variant="secondary" className="ml-auto text-[10px] px-1 bg-cb-border/30">ALL</Badge>
               </button>
+            {/* Section: Personal */}
+            {(personalFolders.length > 0 || personalTags.length > 0) && (
+              <div className="space-y-1">
+                <div className="px-3 mb-2 flex items-center justify-between">
+                   <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Personal</h3>
+                </div>
+                
+                {personalFolders.map((folder) => (
+                  <button
+                    key={folder.id}
+                    onClick={() => {
+                      switchWorkspace(null);
+                      switchFolder(folder.id);
+                    }}
+                    className={cn(
+                      'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
+                      'text-xs transition-all duration-200 text-left group px-3',
+                      'hover:bg-hover/50',
+                      activeFolderId === folder.id
+                        ? 'bg-vibe-orange/5 text-vibe-orange font-semibold font-display italic tracking-tight'
+                        : 'text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <RiFolder3Line size={14} className={cn("flex-shrink-0", activeFolderId === folder.id ? "text-vibe-orange" : "text-muted-foreground")} />
+                    <span className="truncate flex-1">{folder.name}</span>
+                    {personalFolderAssignments[folder.id]?.length > 0 && (
+                      <Badge variant="secondary" className="text-[9px] h-4 px-1 tabular-nums bg-muted/40 text-muted-foreground/60">
+                        {personalFolderAssignments[folder.id].length}
+                      </Badge>
+                    )}
+                  </button>
+                ))}
+
+                {personalTags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    className={cn(
+                      'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
+                      'text-xs transition-all duration-200 text-left group px-3',
+                      'hover:bg-hover/50 text-muted-foreground hover:text-foreground',
+                    )}
+                  >
+                    <RiPriceTag3Line size={14} className="flex-shrink-0 text-muted-foreground" style={{ color: tag.color || undefined }} />
+                    <span className="truncate flex-1">{tag.name}</span>
+                  </button>
+                ))}
+              </div>
+            )}
            </div>
 
            {/* Section: Workspaces */}
            <div>
              <div className="px-3 mb-2 flex items-center justify-between">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Your Workspaces</h3>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Your Hubs</h3>
              </div>
              
              {isLoading ? (

@@ -28,6 +28,7 @@ import { useGlobalSearch } from '@/hooks/useGlobalSearch';
 import { useSearchShortcut } from '@/hooks/useKeyboardShortcut';
 import { SearchResultItem, getResultRoute } from './SearchResultItem';
 import { SourceFilterCheckboxes, type SourcePlatform } from './SourceFilterCheckboxes';
+import { useOrgContext } from '@/hooks/useOrgContext';
 import { cn } from '@/lib/utils';
 import type { SearchResult } from '@/types/search';
 
@@ -115,6 +116,9 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
   // Search store for modal state and source filters
   const { isModalOpen, openModal, closeModal, sourceFilters, setSourceFilters } = useSearchStore();
 
+  // Org/Workspace context for scoping search
+  const { activeOrgId, activeWorkspaceId } = useOrgContext();
+
   // Global search hook for querying
   const {
     query,
@@ -124,7 +128,11 @@ export const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({
     error,
     clear,
     isQueryTooShort,
-  } = useGlobalSearch({ enabled: isModalOpen });
+  } = useGlobalSearch({ 
+    enabled: isModalOpen,
+    organizationId: activeOrgId,
+    workspaceId: activeWorkspaceId
+  });
 
   // Register global keyboard shortcut (Cmd/Ctrl+K)
   useSearchShortcut(() => {

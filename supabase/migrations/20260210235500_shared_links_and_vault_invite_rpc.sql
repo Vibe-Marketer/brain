@@ -21,6 +21,11 @@ CREATE TABLE IF NOT EXISTS public.call_share_links (
   revoked_at TIMESTAMPTZ
 );
 
+ALTER TABLE public.call_share_links ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE public.call_share_links ADD COLUMN IF NOT EXISTS recipient_email TEXT;
+ALTER TABLE public.call_share_links ADD COLUMN IF NOT EXISTS revoked_at TIMESTAMPTZ;
+ALTER TABLE public.call_share_links ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'revoked', 'expired'));
+
 CREATE INDEX IF NOT EXISTS idx_call_share_links_recipient_email
   ON public.call_share_links(recipient_email);
 

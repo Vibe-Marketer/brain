@@ -51,7 +51,7 @@ const WORKSPACE_TYPE_OPTIONS: Array<{
   {
     value: 'team',
     label: 'Team',
-    description: 'Shared workspace for your team',
+    description: 'Shared hub for your team',
   },
   {
     value: 'youtube',
@@ -177,16 +177,16 @@ export function CreateWorkspaceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby="create-workspace-description">
         <DialogHeader>
-          <DialogTitle>Create New Workspace</DialogTitle>
+          <DialogTitle>Create New Hub</DialogTitle>
           <DialogDescription id="create-workspace-description">
-            A workspace is a shared space inside an organization for one team, client, or community.
+            A hub is a shared space inside an organization for one team, client, or community.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Workspace name */}
           <div className="space-y-2">
-            <Label htmlFor="workspace-name">Workspace Name</Label>
+            <Label htmlFor="workspace-name">Hub Name</Label>
             <Input
               id="workspace-name"
               value={name}
@@ -200,14 +200,14 @@ export function CreateWorkspaceDialog({
             </p>
             {name.length > 0 && !isNameValid && (
               <p className="text-xs text-destructive">
-                Workspace name must be between 3 and 50 characters.
+                Hub name must be between 3 and 50 characters.
               </p>
             )}
           </div>
 
           {/* Workspace type */}
           <div className="space-y-2">
-            <Label htmlFor="workspace-type">Workspace Type</Label>
+            <Label htmlFor="workspace-type">Hub Type</Label>
             <Select
               value={workspaceType}
               onValueChange={(v) => setWorkspaceType(v as WorkspaceType)}

@@ -60,6 +60,10 @@ export interface SemanticSearchOptions {
   limit?: number;
   /** Filter by source platforms (empty/undefined = all sources) */
   sourcePlatforms?: SourcePlatform[];
+  /** Filter by active organization */
+  organizationId?: string;
+  /** Filter by active workspace */
+  workspaceId?: string;
 }
 
 /**
@@ -97,6 +101,9 @@ export async function semanticSearch(
         limit,
         // Only include sourcePlatforms if it has items
         ...(sourcePlatforms && sourcePlatforms.length > 0 && { sourcePlatforms }),
+        // Include org/workspace scoping
+        ...(options.organizationId && { organizationId: options.organizationId }),
+        ...(options.workspaceId && { workspaceId: options.workspaceId }),
       },
     });
 

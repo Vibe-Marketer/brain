@@ -19,7 +19,9 @@ import {
   useDeleteFolder,
   useCreateFolder,
 } from "@/hooks/useFolders";
-import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { useOrgContext } from "@/hooks/useOrgContext";
+import { usePersonalFolders, usePersonalFolderAssignments, useAssignCallToPersonalFolder } from "@/hooks/usePersonalFolders";
+import { usePersonalTags } from "@/hooks/usePersonalTags";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Folder } from "@/types/workspace";
 import { useHiddenFolders } from "@/hooks/useHiddenFolders";
@@ -110,48 +112,79 @@ const TranscriptsNew = () => {
 
   // Folder hooks
   const { 
-    activeOrganizationId, 
+    activeOrgId, 
     activeWorkspaceId, 
     activeFolderId, 
     switchFolder 
-  } = useOrganizationContext();
+  } = useOrgContext();
+  const activeOrganizationId = activeOrgId; // alias for compatibility
   const { user } = useAuth();
   const { data: folders = [], isLoading: foldersLoading } = useFolders(activeWorkspaceId);
   const { data: folderAssignments = {} } = useFolderAssignments(activeWorkspaceId, activeOrganizationId);
   const { mutate: deleteFolder } = useDeleteFolder();
   const { mutate: assignToFolderMutation } = useAssignCallToFolder();
 
+  const { settings: allTranscriptsSettings, updateSettings: updateAllTranscriptsSettings, resetSettings: resetAllTranscriptsSettings, defaultSettings: allTranscriptsDefaults } = useAllTranscriptsSettings();
+  const { hiddenFolders, toggleHidden } = useHiddenFolders();
+  
+  // Personal data
+  const { data: personalFolders = [] } = usePersonalFolders(activeOrgId);
+  const { data: personalFolderAssignments = {} } = usePersonalFolderAssignments(activeOrgId);
+  const { mutate: assignToPersonalFolderMutation } = useAssignCallToPersonalFolder();
+
+  // Combine legacy and personal folders
+  const allFolders = useMemo(() => [
+    ...folders,
+    ...personalFolders.map(f => ({ ...f, workspace_id: null })) // Mark as personal
+  ], [folders, personalFolders]);
+
+  // Combine assignments
+  const allFolderAssignments = useMemo(() => {
+    const combined = { ...folderAssignments };
+    Object.entries(personalFolderAssignments).forEach(([callId, folderIds]) => {
+      if (!combined[callId]) {
+        combined[callId] = [];
+      }
+      combined[callId] = Array.from(new Set([...combined[callId], ...folderIds]));
+    });
+    return combined;
+  }, [folderAssignments, personalFolderAssignments]);
+
   const assignToFolder = (callIds: number[], folderId: string) => {
     if (!user) return;
+    
+    // Determine if it's a personal folder
+    const isPersonal = personalFolders.some(f => f.id === folderId);
+
     callIds.forEach(callId => {
-      assignToFolderMutation({
-        callRecordingId: callId,
-        folderId,
-        userId: user.id
-      });
+      if (isPersonal) {
+        assignToPersonalFolderMutation({
+          recordingId: String(callId),
+          folderId
+        });
+      } else {
+        assignToFolderMutation({
+          callRecordingId: callId,
+          folderId,
+          userId: user.id
+        });
+      }
     });
   };
-  const { hiddenFolders, toggleHidden } = useHiddenFolders();
-  const {
-    settings: allTranscriptsSettings,
-    updateSettings: updateAllTranscriptsSettings,
-    resetSettings: resetAllTranscriptsSettings,
-    defaultSettings: allTranscriptsDefaults,
-  } = useAllTranscriptsSettings();
 
   // Drag and drop for folder assignment
   const dragHelpers = useDragAndDrop();
 
-  // Calculate folder counts from folderAssignments
+  // Calculate folder counts from allFolderAssignments
   const folderCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    Object.values(folderAssignments).forEach((folderIds) => {
+    Object.values(allFolderAssignments).forEach((folderIds) => {
       folderIds.forEach((folderId) => {
         counts[folderId] = (counts[folderId] || 0) + 1;
       });
     });
     return counts;
-  }, [folderAssignments]);
+  }, [allFolderAssignments]);
 
   // Total count for "Home"
   const [totalCount, setTotalCount] = useState(0);
@@ -175,8 +208,8 @@ const TranscriptsNew = () => {
   };
 
   const selectedFolder = useMemo(() => 
-    folders.find(f => f.id === activeFolderId),
-    [folders, activeFolderId]
+    allFolders.find(f => f.id === activeFolderId),
+    [allFolders, activeFolderId]
   );
 
   const breadcrumbs = useMemo(() => {
@@ -239,8 +272,8 @@ const TranscriptsNew = () => {
                 onTotalCountChange={setTotalCount}
                 sidebarState="expanded"
                 onToggleSidebar={() => {}}
-                folders={folders}
-                folderAssignments={folderAssignments}
+                folders={allFolders as any}
+                folderAssignments={allFolderAssignments}
                 assignToFolder={assignToFolder}
                 dragHelpers={{
                   ...dragHelpers,

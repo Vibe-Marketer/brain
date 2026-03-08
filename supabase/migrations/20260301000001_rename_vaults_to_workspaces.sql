@@ -600,9 +600,9 @@ BEGIN
   INSERT INTO organization_memberships (organization_id, user_id, role)
   VALUES (v_organization_id, NEW.id, 'organization_owner');
 
-  -- Create default personal vault with is_default = TRUE
-  INSERT INTO workspaces (organization_id, name, workspace_type, is_default)
-  VALUES (v_organization_id, 'My Calls', 'personal', TRUE)
+  -- Create default personal vault with is_default = TRUE and is_home = TRUE
+  INSERT INTO workspaces (organization_id, name, workspace_type, is_default, is_home)
+  VALUES (v_organization_id, 'My Calls', 'personal', TRUE, TRUE)
   RETURNING id INTO v_workspace_id;
 
   -- Create vault membership as owner
