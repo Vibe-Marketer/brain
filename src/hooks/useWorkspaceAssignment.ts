@@ -92,50 +92,61 @@ export function useWorkspaceAssignment(
       return data as WorkspaceEntry
     },
     onMutate: async ({ workspaceId }) => {
-      // Cancel outgoing refetches
+      const recId = effectiveRecordingId || ''
+
+      // Cancel outgoing refetches for both individual and batch queries
       await queryClient.cancelQueries({
-        queryKey: queryKeys.workspaceEntries.byRecording(effectiveRecordingId || ''),
+        queryKey: queryKeys.workspaceEntries.all,
       })
 
       // Snapshot previous value
       const previous = queryClient.getQueryData<WorkspaceEntry[]>(
-        queryKeys.workspaceEntries.byRecording(effectiveRecordingId || '')
+        queryKeys.workspaceEntries.byRecording(recId)
       )
 
-      // Optimistically add the entry
+      const optimisticEntry: WorkspaceEntry = {
+        id: `temp-${workspaceId}`,
+        workspace_id: workspaceId,
+        recording_id: recId,
+        folder_id: null,
+        local_tags: [],
+        scores: null,
+        notes: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      // Optimistically add the entry to individual query
       queryClient.setQueryData<WorkspaceEntry[]>(
-        queryKeys.workspaceEntries.byRecording(effectiveRecordingId || ''),
-        (old = []) => [
-          ...old,
-          {
-            id: `temp-${workspaceId}`,
-            workspace_id: workspaceId,
-            recording_id: effectiveRecordingId || '',
-            folder_id: null,
-            local_tags: [],
-            scores: null,
-            notes: null,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-        ]
+        queryKeys.workspaceEntries.byRecording(recId),
+        (old = []) => [...old, optimisticEntry]
+      )
+
+      // Also optimistically update any batch queries containing this recording
+      queryClient.setQueriesData<WorkspaceEntry[]>(
+        { queryKey: ['workspace-entries', 'recording-batch'] },
+        (old) => old ? [...old, optimisticEntry] : undefined,
       )
 
       return { previous }
     },
     onError: (_err, _variables, context) => {
-      // Rollback on error
+      // Rollback on error — invalidate all to refetch clean state
       if (context?.previous) {
         queryClient.setQueryData(
           queryKeys.workspaceEntries.byRecording(effectiveRecordingId || ''),
           context.previous
         )
       }
+      queryClient.invalidateQueries({
+        queryKey: ['workspace-entries', 'recording-batch'],
+      })
       toast.error('Failed to add recording to hub')
     },
     onSettled: (_data, _error, { workspaceId }) => {
+      // Invalidate all workspace entry queries (individual + batch) via prefix match
       queryClient.invalidateQueries({
-        queryKey: queryKeys.workspaceEntries.byRecording(effectiveRecordingId || ''),
+        queryKey: queryKeys.workspaceEntries.all,
       })
       // Also invalidate workspace recordings so WorkspaceDetailPane refreshes
       queryClient.invalidateQueries({
@@ -162,34 +173,50 @@ export function useWorkspaceAssignment(
       if (error) throw error
     },
     onMutate: async ({ workspaceId }) => {
+      const recId = effectiveRecordingId || ''
+
+      // Cancel outgoing refetches for both individual and batch queries
       await queryClient.cancelQueries({
-        queryKey: queryKeys.workspaceEntries.byRecording(effectiveRecordingId || ''),
+        queryKey: queryKeys.workspaceEntries.all,
       })
 
       const previous = queryClient.getQueryData<WorkspaceEntry[]>(
-        queryKeys.workspaceEntries.byRecording(effectiveRecordingId || '')
+        queryKeys.workspaceEntries.byRecording(recId)
       )
 
-      // Optimistically remove the entry
+      // Optimistically remove the entry from individual query
       queryClient.setQueryData<WorkspaceEntry[]>(
-        queryKeys.workspaceEntries.byRecording(effectiveRecordingId || ''),
+        queryKeys.workspaceEntries.byRecording(recId),
         (old = []) => old.filter((ve) => ve.workspace_id !== workspaceId)
+      )
+
+      // Also optimistically remove from any batch queries
+      queryClient.setQueriesData<WorkspaceEntry[]>(
+        { queryKey: ['workspace-entries', 'recording-batch'] },
+        (old) => old
+          ? old.filter((ve) => !(ve.recording_id === recId && ve.workspace_id === workspaceId))
+          : undefined,
       )
 
       return { previous }
     },
     onError: (_err, _variables, context) => {
+      // Rollback on error — invalidate all to refetch clean state
       if (context?.previous) {
         queryClient.setQueryData(
           queryKeys.workspaceEntries.byRecording(effectiveRecordingId || ''),
           context.previous
         )
       }
+      queryClient.invalidateQueries({
+        queryKey: ['workspace-entries', 'recording-batch'],
+      })
       toast.error('Failed to remove recording from hub')
     },
     onSettled: (_data, _error, { workspaceId }) => {
+      // Invalidate all workspace entry queries (individual + batch) via prefix match
       queryClient.invalidateQueries({
-        queryKey: queryKeys.workspaceEntries.byRecording(effectiveRecordingId || ''),
+        queryKey: queryKeys.workspaceEntries.all,
       })
       // Also invalidate workspace recordings so WorkspaceDetailPane refreshes
       queryClient.invalidateQueries({
