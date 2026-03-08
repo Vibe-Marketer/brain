@@ -1,9 +1,10 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { RiArrowUpDownLine, RiLayoutColumnLine, RiFileDownloadLine, RiTeamLine } from "@remixicon/react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { WorkspaceEntriesBatchProvider } from "@/hooks/useWorkspaceEntriesBatch";
 import {
   Table,
   TableBody,
@@ -128,6 +129,14 @@ export const TranscriptTable = React.memo(({
   const columnOptions = isHome ? homeColumnOptions : workspaceColumnOptions;
   const { sortField, sortDirection: _sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
 
+  // Extract UUID recording IDs for batch workspace entries fetch
+  const recordingUuids = useMemo(
+    () => calls
+      .map((c) => c.recording_id)
+      .filter((id): id is string => typeof id === 'string'),
+    [calls],
+  );
+
   const SortButton = ({ field, children }: { field: string; children: React.ReactNode }) => (
     <button
       onClick={() => handleSort(field)}
@@ -147,6 +156,7 @@ export const TranscriptTable = React.memo(({
   }
 
   return (
+    <WorkspaceEntriesBatchProvider recordingIds={recordingUuids}>
     <div className="space-y-4">
       {/* Direct Reports Filter */}
       {showDirectReportsFilter && onDirectReportsFilterChange && (
@@ -340,6 +350,7 @@ export const TranscriptTable = React.memo(({
         />
       )}
     </div>
+    </WorkspaceEntriesBatchProvider>
   );
 });
 

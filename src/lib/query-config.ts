@@ -123,6 +123,7 @@ export const queryKeys = {
   workspaceEntries: {
     all: ['workspace-entries'] as const,
     byRecording: (recordingId: string) => ['workspace-entries', 'recording', recordingId] as const,
+    byRecordingBatch: (recordingIds: string[]) => ['workspace-entries', 'recording-batch', recordingIds] as const,
     byWorkspace: (workspaceId: string) => ['workspace-entries', 'workspace', workspaceId] as const,
   },
 

@@ -8,13 +8,14 @@
  * @brand-version v4.2
  */
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RiSafeLine } from '@remixicon/react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
 import { WorkspaceBadge } from '@/components/workspace/WorkspaceBadge'
 import { useWorkspaceAssignment } from '@/hooks/useWorkspaceAssignment'
+import { useWorkspaceEntriesBatch } from '@/hooks/useWorkspaceEntriesBatch'
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { cn } from '@/lib/utils'
 import type { WorkspaceType } from '@/types/workspace'
@@ -55,14 +56,27 @@ export function WorkspaceBadgeList({
   const [overflowOpen, setOverflowOpen] = useState(false)
   const { workspaces, isLoading: orgLoading } = useOrganizationContext()
 
+  // Use batch context if available (list views), otherwise fall back to individual query
+  const batchContext = useWorkspaceEntriesBatch()
+  const hasBatchData = batchContext !== null && typeof recordingId === 'string'
+
   const {
-    assignedWorkspaceIds,
-    isLoading: entriesLoading,
+    assignedWorkspaceIds: individualAssignedIds,
+    isLoading: individualLoading,
   } = useWorkspaceAssignment(
-    recordingId || null,
-    legacyRecordingId,
+    hasBatchData ? null : (recordingId || null),
+    hasBatchData ? null : legacyRecordingId,
   )
 
+  // Derive assigned workspace IDs from batch context when available
+  const batchAssignedIds = useMemo(() => {
+    if (!hasBatchData || !recordingId) return new Set<string>()
+    const entries = batchContext.entriesByRecording.get(recordingId) || []
+    return new Set(entries.map((e) => e.workspace_id))
+  }, [hasBatchData, batchContext, recordingId])
+
+  const assignedWorkspaceIds = hasBatchData ? batchAssignedIds : individualAssignedIds
+  const entriesLoading = hasBatchData ? batchContext.isLoading : individualLoading
   const isLoading = orgLoading || entriesLoading
 
   // Build list of workspaces this recording is in, with info
