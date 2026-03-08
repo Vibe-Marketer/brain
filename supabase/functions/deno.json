@@ -1,0 +1,16 @@
+{
+  "lint": {
+    "exclude": ["**/__tests__/**"],
+    "rules": {
+      "exclude": [
+        "no-import-prefix",
+        "no-explicit-any",
+        "no-unused-vars",
+        "no-node-globals",
+        "no-unversioned-import",
+        "require-await",
+        "ban-ts-comment"
+      ]
+    }
+  }
+}
