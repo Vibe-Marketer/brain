@@ -74,6 +74,13 @@ playwright/.auth/
 .claude/skills/dev-browser/profiles/browser-data/
 .claude/skills/dev-browser/node_modules/
 
+# One-off debug/fix scripts (use scripts/ directory instead)
+/apply-fix*.ts
+/fix_*.ts
+/test-*.ts
+/refactor_*.py
+/check_*.sql
+
 # Archived/historical content (preserved in git history)
 ralph-archived/
 playwright-report/
