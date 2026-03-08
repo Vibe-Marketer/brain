@@ -302,7 +302,9 @@ export default function AssignFolderDialog({
         .select('recording_id, folder_id')
         .in('recording_id', uuidRecordingIds);
 
-      if (!isTableMissing(existingPersonalError)) {
+      if (existingPersonalError && !isTableMissing(existingPersonalError)) throw existingPersonalError;
+
+      if (!existingPersonalError) {
         // Deletions
         const personalToDelete = (existingPersonal || []).filter((a: any) => !personalSelected.has(a.folder_id));
         for (const a of personalToDelete) {
