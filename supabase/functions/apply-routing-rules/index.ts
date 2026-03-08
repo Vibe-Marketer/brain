@@ -225,22 +225,8 @@ Deno.serve(async (req) => {
 
       const results = await Promise.allSettled(
         batch.map(async (match) => {
-          // Remove existing workspace entries for this recording so it moves
-          // rather than appearing in both old and new workspaces.
-          const { error: deleteError } = await supabase
-            .from('workspace_entries')
-            .delete()
-            .eq('recording_id', match.recording_id);
-
-          if (deleteError) {
-            console.error(
-              `[apply-routing-rules] Failed to remove old workspace_entries for ${match.recording_id}:`,
-              deleteError,
-            );
-            // Continue anyway — better to duplicate than to skip the move entirely
-          }
-
-          // Insert workspace_entry for the matched workspace
+          // Insert new workspace_entry FIRST, then delete old ones.
+          // This order prevents orphaning: if insert fails, old entry is preserved.
           const entryPayload: Record<string, unknown> = {
             workspace_id: match.target_workspace_id,
             recording_id: match.recording_id,
@@ -253,6 +239,21 @@ Deno.serve(async (req) => {
 
           if (entryError) {
             throw new Error(`workspace_entry insert failed for ${match.recording_id}: ${entryError.message}`);
+          }
+
+          // Now safe to remove old workspace entries (excluding the one we just inserted)
+          const { error: deleteError } = await supabase
+            .from('workspace_entries')
+            .delete()
+            .eq('recording_id', match.recording_id)
+            .neq('workspace_id', match.target_workspace_id);
+
+          if (deleteError) {
+            console.error(
+              `[apply-routing-rules] Failed to remove old workspace_entries for ${match.recording_id}:`,
+              deleteError,
+            );
+            // Non-fatal: recording may appear in both workspaces temporarily
           }
 
           // Atomic JSONB merge — avoids read-modify-write race condition.
