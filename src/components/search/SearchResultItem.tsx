@@ -19,7 +19,7 @@ import {
   RiAlertLine,
   RiQuestionLine,
 } from '@remixicon/react';
-import { FathomIcon, ZoomIcon, YouTubeIcon } from '@/components/transcript-library/SourcePlatformIcons';
+import { FathomIcon, ZoomIcon, YouTubeIcon, UploadIcon } from '@/components/transcript-library/SourcePlatformIcons';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { SearchResult, SearchInsightType, SourcePlatform } from '@/types/search';
@@ -81,6 +81,10 @@ const SOURCE_PLATFORM_CONFIG: Record<
   youtube: {
     Icon: YouTubeIcon,
     label: 'YouTube',
+  },
+  'file-upload': {
+    Icon: UploadIcon,
+    label: 'Upload',
   },
 };
 

@@ -377,17 +377,19 @@ export function TranscriptsTab({
             workspace_entry: { id: e.id, folder_id: e.folder_id }
           }));
 
-        // Client-side duration filter (duration is in seconds in the DB)
+        // Client-side duration filter
+        // duration_seconds is always in seconds; start/end time diff gives milliseconds
+        // Filter values (durationMin/durationMax) are in minutes
         if (combinedFilters.durationMin !== undefined || combinedFilters.durationMax !== undefined) {
           mappedRecordings = mappedRecordings.filter((call: any) => {
-            const durationMin = call.source_metadata?.duration_seconds
-              ?? (call.recording_start_time && call.recording_end_time
-                ? (new Date(call.recording_end_time).getTime() - new Date(call.recording_start_time).getTime()) / 60000
-                : null);
-            if (durationMin === null) return true;
-            const durationMinutes = typeof durationMin === 'number' && durationMin > 1000
-              ? durationMin / 60 // was in seconds
-              : durationMin;
+            // Get duration in minutes
+            let durationMinutes: number | null = null;
+            if (call.source_metadata?.duration_seconds != null) {
+              durationMinutes = call.source_metadata.duration_seconds / 60;
+            } else if (call.recording_start_time && call.recording_end_time) {
+              durationMinutes = (new Date(call.recording_end_time).getTime() - new Date(call.recording_start_time).getTime()) / 60000;
+            }
+            if (durationMinutes === null) return true;
             if (combinedFilters.durationMin !== undefined && durationMinutes < combinedFilters.durationMin) return false;
             if (combinedFilters.durationMax !== undefined && durationMinutes > combinedFilters.durationMax) return false;
             return true;

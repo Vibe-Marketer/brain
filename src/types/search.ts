@@ -32,9 +32,8 @@ export interface SearchResultMetadata {
 
 /**
  * Source platform for search filtering
- * Note: google_meet removed per FOUND-09
  */
-export type SourcePlatform = 'fathom' | 'zoom' | 'youtube';
+export type SourcePlatform = 'fathom' | 'zoom' | 'youtube' | 'file-upload';
 
 /**
  * A unified search result that can represent transcripts, insights, or quotes

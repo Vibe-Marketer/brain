@@ -2,7 +2,7 @@ import { RiVideoLine } from "@remixicon/react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterButton } from "./FilterButton";
-import { FathomIcon, ZoomIcon, YouTubeIcon } from "./SourcePlatformIcons";
+import { FathomIcon, ZoomIcon, YouTubeIcon, UploadIcon } from "./SourcePlatformIcons";
 
 interface SourceFilterPopoverProps {
   selectedSources?: string[];
@@ -13,6 +13,7 @@ const sourceOptions = [
   { value: "fathom", label: "Fathom", Icon: FathomIcon },
   { value: "zoom", label: "Zoom", Icon: ZoomIcon },
   { value: "youtube", label: "YouTube", Icon: YouTubeIcon },
+  { value: "file-upload", label: "Upload", Icon: UploadIcon },
 ] as const;
 
 export function SourceFilterPopover({
