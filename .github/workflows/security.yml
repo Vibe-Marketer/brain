@@ -16,16 +16,20 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 2
 
-      # Node.js code linting (frontend and utility TS/JS)
+      # Node.js setup and lint
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Node.js Lint
         run: npm ci && npm run lint
 
-      # Deno format/lint for edge functions
+      # Deno setup, format/lint, and type-check for edge functions
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
       - name: Deno Lint
         run: |
           for d in supabase/functions/*; do deno lint "$d"; done
-
-      # Deno security static analysis
       - name: Deno Check
         run: |
           for f in supabase/functions/*/index.ts; do deno check "$f"; done
