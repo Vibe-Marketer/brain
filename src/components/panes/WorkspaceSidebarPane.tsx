@@ -301,7 +301,7 @@ function WorkspaceListItem({
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent className="w-56">
-          <ContextMenuItem onClick={() => openPanel('workspace_members', { workspaceId: workspace.id, workspaceName: workspace.name })}>
+          <ContextMenuItem onClick={() => openPanel('workspace_members', { type: 'workspace_members', workspaceId: workspace.id, workspaceName: workspace.name })}>
             <RiGroupLine className="h-4 w-4 mr-2" />
             Manage Members
           </ContextMenuItem>
@@ -426,7 +426,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                  variant="ghost" 
                  size="icon" 
                  className="h-4 w-4 text-muted-foreground hover:text-foreground"
-                 onClick={() => openPanel('organization_members', { organizationId: activeOrgId, organizationName: activeOrg.name })}
+                 onClick={() => openPanel('organization_members', { type: 'organization_members', organizationId: activeOrgId, organizationName: activeOrg.name })}
                >
                  <RiGroupLine size={10} />
                </Button>
