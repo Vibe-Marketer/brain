@@ -38,3 +38,24 @@ export interface RoutingDestination {
   workspaceId: string;
   folderId: string | null;
 }
+
+/** Single match result from bulk apply dry run / execution. */
+export interface BulkApplyMatch {
+  recording_id: string;
+  title: string;
+  rule_name: string;
+  rule_id: string;
+  target_workspace_id: string;
+  target_workspace_name: string | null;
+  target_folder_id: string | null;
+}
+
+/** Response from the apply-routing-rules edge function. */
+export interface BulkApplyResult {
+  total_evaluated: number;
+  matched: number;
+  moved: number;
+  skipped: number;
+  dry_run: boolean;
+  matches: BulkApplyMatch[];
+}

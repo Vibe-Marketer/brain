@@ -9,7 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { queryKeys } from '@/lib/query-config';
 import { useOrgContextStore } from '@/stores/orgContextStore';
 import { useAuth } from '@/contexts/AuthContext';
-import type { RoutingRule, RoutingDefault } from '@/types/routing';
+import type { RoutingRule, RoutingDefault, BulkApplyResult } from '@/types/routing';
 
 // ---------------------------------------------------------------------------
 // Queries
@@ -309,6 +309,44 @@ export function useReorderRules() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.routingRules.list(activeOrgId ?? undefined),
       });
+    },
+  });
+}
+
+/**
+ * Bulk apply routing rules to existing recordings (dry run or execute).
+ */
+export function useBulkApplyRules() {
+  const queryClient = useQueryClient();
+  const activeOrgId = useOrgContextStore((s) => s.activeOrgId);
+
+  return useMutation({
+    mutationFn: async ({ dryRun }: { dryRun: boolean }): Promise<BulkApplyResult> => {
+      if (!activeOrgId) throw new Error('No active organization');
+
+      const { data, error } = await supabase.functions.invoke('apply-routing-rules', {
+        body: {
+          organization_id: activeOrgId,
+          dry_run: dryRun,
+        },
+      });
+
+      if (error) {
+        throw new Error(`Failed to apply routing rules: ${error.message}`);
+      }
+
+      return data as BulkApplyResult;
+    },
+    onSuccess: (data) => {
+      if (!data.dry_run) {
+        // Invalidate workspace entries and recordings after actual apply
+        queryClient.invalidateQueries({ queryKey: queryKeys.workspaceEntries.all });
+        queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+        toast.success(`Moved ${data.moved} recording${data.moved !== 1 ? 's' : ''} to matching workspaces`);
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message ?? 'Failed to apply routing rules');
     },
   });
 }
