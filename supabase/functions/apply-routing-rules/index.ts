@@ -235,10 +235,10 @@ Deno.serve(async (req) => {
 
           const { error: entryError } = await supabase
             .from('workspace_entries')
-            .insert(entryPayload);
+            .upsert(entryPayload, { onConflict: 'workspace_id,recording_id' });
 
           if (entryError) {
-            throw new Error(`workspace_entry insert failed for ${match.recording_id}: ${entryError.message}`);
+            throw new Error(`workspace_entry upsert failed for ${match.recording_id}: ${entryError.message}`);
           }
 
           // Now safe to remove old workspace entries (excluding the one we just inserted)
