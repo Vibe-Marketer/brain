@@ -49,7 +49,7 @@ export default function QuickCreateTagDialog({
       }
 
       if (!activeOrganizationId) {
-        toast.error("No active workspace selected");
+        toast.error("No active organization selected");
         return;
       }
 

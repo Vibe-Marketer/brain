@@ -74,7 +74,7 @@ export interface WorkspaceDetailPaneProps {
 /** Loading skeleton for workspace detail */
 function WorkspaceDetailSkeleton() {
   return (
-    <div className="p-6 space-y-6" aria-label="Loading workspace detail">
+    <div className="p-6 space-y-6" aria-label="Loading hub detail">
       <div className="flex items-center gap-3">
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-5 w-16" />
@@ -219,7 +219,7 @@ export function WorkspaceDetailPane({
             variant="outline"
             size="sm"
             onClick={() => queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.detail(workspaceId) })}
-            aria-label="Retry loading workspace"
+            aria-label="Retry loading hub"
           >
             Try Again
           </Button>
@@ -273,7 +273,7 @@ export function WorkspaceDetailPane({
                 size="icon"
                 onClick={handleOpenSettings}
                 className="h-8 w-8"
-                aria-label="Workspace settings"
+                aria-label="Hub settings"
               >
                 <RiSettings3Line className="h-4 w-4" aria-hidden="true" />
               </Button>

@@ -131,7 +131,7 @@ export function useWorkspaceAssignment(
           context.previous
         )
       }
-      toast.error('Failed to add recording to workspace')
+      toast.error('Failed to add recording to hub')
     },
     onSettled: (_data, _error, { workspaceId }) => {
       queryClient.invalidateQueries({
@@ -144,7 +144,7 @@ export function useWorkspaceAssignment(
     },
     onSuccess: (_data, { workspaceId }) => {
       const workspace = workspaces.find((workspace) => workspace.id === workspaceId)
-      toast.success(`Added to ${workspace?.name || 'workspace'}`)
+      toast.success(`Added to ${workspace?.name || 'hub'}`)
     },
   })
 
@@ -185,7 +185,7 @@ export function useWorkspaceAssignment(
           context.previous
         )
       }
-      toast.error('Failed to remove recording from workspace')
+      toast.error('Failed to remove recording from hub')
     },
     onSettled: (_data, _error, { workspaceId }) => {
       queryClient.invalidateQueries({
@@ -198,7 +198,7 @@ export function useWorkspaceAssignment(
     },
     onSuccess: (_data, { workspaceId }) => {
       const workspace = workspaces.find((workspace) => workspace.id === workspaceId)
-      toast.success(`Removed from ${workspace?.name || 'workspace'}`)
+      toast.success(`Removed from ${workspace?.name || 'hub'}`)
     },
   })
 
@@ -206,7 +206,7 @@ export function useWorkspaceAssignment(
   const toggleWorkspace = (workspaceId: string) => {
     // Don't allow removing from personal workspace
     if (personalWorkspace && workspaceId === personalWorkspace.id) {
-      toast.error('Recordings cannot be removed from your personal workspace')
+      toast.error('Recordings cannot be removed from your personal hub')
       return
     }
 

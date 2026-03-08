@@ -93,23 +93,23 @@ export function MoveToWorkspaceDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RiExpandLeftRightLine className="h-5 w-5 text-vibe-orange" />
-            Move to Workspace
+            Move to Hub
           </DialogTitle>
           <DialogDescription>
-            Move {count} {label} to another workspace within this organization.
+            Move {count} {label} to another hub within this organization.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="workspace">Target Workspace</Label>
+            <Label htmlFor="workspace">Target Hub</Label>
             <Select
               value={targetWorkspaceId}
               onValueChange={setTargetWorkspaceId}
               disabled={isLoading}
             >
               <SelectTrigger id="workspace">
-                <SelectValue placeholder={isLoading ? "Loading workspaces..." : "Select a workspace"} />
+                <SelectValue placeholder={isLoading ? "Loading hubs..." : "Select a hub"} />
               </SelectTrigger>
               <SelectContent>
                 {workspaces
@@ -133,14 +133,14 @@ export function MoveToWorkspaceDialog({
               htmlFor="keepInSource"
               className="text-xs font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
             >
-              Also keep in current workspace (copy instead of move)
+              Also keep in current hub (copy instead of move)
             </Label>
           </div>
 
           <div className="p-3 rounded-lg bg-info-bg/10 border border-info-border/20 flex gap-3">
             <RiInformationLine className="h-4 w-4 text-info-text mt-0.5 flex-shrink-0" />
             <p className="text-[11px] text-info-text leading-relaxed">
-              Moving a call to another workspace shares it with that workspace's members.
+              Moving a call to another hub shares it with that hub's members.
               The call stays in the same organization.
             </p>
           </div>

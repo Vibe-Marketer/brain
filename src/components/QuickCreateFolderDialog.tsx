@@ -185,7 +185,7 @@ export default function QuickCreateFolderDialog({
         return;
       }
       if (!targetWorkspaceId) {
-        toast.error("Please select a workspace for this folder");
+        toast.error("Please select a hub for this folder");
         return;
       }
 
@@ -356,13 +356,13 @@ export default function QuickCreateFolderDialog({
           {/* Workspace Selection (Only if no workspace is active/provided) */}
           {(!activeWorkspaceId && !workspaceId) && (
             <div className="space-y-2">
-              <Label htmlFor="workspace-select">Workspace <span className="text-red-500">*</span></Label>
+              <Label htmlFor="workspace-select">Hub <span className="text-red-500">*</span></Label>
               <Select
                 value={selectedWorkspaceId || ""}
                 onValueChange={setSelectedWorkspaceId}
               >
                 <SelectTrigger id="workspace-select">
-                  <SelectValue placeholder="Select a workspace" />
+                  <SelectValue placeholder="Select a hub" />
                 </SelectTrigger>
                 <SelectContent>
                   {workspaces.map((ws) => (

@@ -28,7 +28,7 @@ const CONTENT: Record<DeleteMode, {
   buttonLabel: string;
 }> = {
   'remove-from-workspace': {
-    title: 'Remove from Workspace',
+    title: 'Remove from Hub',
     destructive: false,
     buttonLabel: 'Remove',
   },
@@ -89,13 +89,13 @@ export default function DeleteConfirmDialog({
                 <>
                   <p className="text-foreground">
                     Remove <strong>{itemCount} item{plural ? 's' : ''}</strong> from{' '}
-                    <strong>{workspaceName || 'this workspace'}</strong>?
-                    {' '}They'll remain in your other workspaces.
+                    <strong>{workspaceName || 'this hub'}</strong>?
+                    {' '}They'll remain in your other hubs.
                   </p>
                   {lastWorkspaceCount != null && lastWorkspaceCount > 0 && (
                     <p className="text-sm text-destructive">
                       {lastWorkspaceCount} of these {lastWorkspaceCount === 1 ? 'is' : 'are'} only
-                      in this workspace and will be permanently deleted.
+                      in this hub and will be permanently deleted.
                     </p>
                   )}
                 </>
@@ -104,7 +104,7 @@ export default function DeleteConfirmDialog({
               {mode === 'permanent-last-workspace' && (
                 <>
                   <p className="text-foreground">
-                    This is the only workspace for{' '}
+                    This is the only hub for{' '}
                     <strong>{itemCount} item{plural ? 's' : ''}</strong>.
                     Removing will permanently delete {plural ? 'them' : 'it'}.
                   </p>
@@ -121,7 +121,7 @@ export default function DeleteConfirmDialog({
                   <p className="text-foreground">
                     Permanently delete{' '}
                     <strong className="text-destructive">{itemCount} item{plural ? 's' : ''}</strong>{' '}
-                    from all workspaces?
+                    from all hubs?
                   </p>
                   {sourceText && (
                     <p className="text-sm text-muted-foreground">

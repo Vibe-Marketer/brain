@@ -247,16 +247,16 @@ export function CreateOrganizationDialog({
 
           {/* Default Workspace Name (optional) */}
           <div className="space-y-2">
-            <Label htmlFor="default-workspace-name">Default Workspace Name</Label>
+            <Label htmlFor="default-workspace-name">Default Hub Name</Label>
             <Input
               id="default-workspace-name"
               value={defaultWorkspaceName}
               onChange={(e) => setDefaultWorkspaceName(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder={name.trim() ? `${name.trim()}'s Workspace` : "Your first workspace in this organization"}
+              placeholder={name.trim() ? `${name.trim()}'s Hub` : "Your first hub in this organization"}
             />
             <p className="text-xs text-muted-foreground">
-              Your first workspace in this organization. Leave blank for default.
+              Your first hub in this organization. Leave blank for default.
             </p>
           </div>
 

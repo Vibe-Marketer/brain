@@ -344,7 +344,7 @@ function WorkspaceListError({ onRetry }: { onRetry: () => void }) {
       <RiErrorWarningLine className="h-12 w-12 text-destructive/40 mb-3" aria-hidden="true" />
       <p className="text-sm font-bold text-foreground">Sync Error</p>
       <p className="text-xs text-muted-foreground mt-1 mb-5 max-w-[200px]">
-        We encountered a problem fetching your workspaces.
+        We encountered a problem fetching your hubs.
       </p>
       <Button variant="outline" size="sm" onClick={onRetry} className="h-8 text-xs">
         Reconnect
@@ -402,7 +402,7 @@ export function WorkspaceListPane({
         className
       )}
       role="navigation"
-      aria-label="Workspace list"
+      aria-label="Hub list"
     >
       {/* Header */}
       <header className="flex-shrink-0 border-b border-border/40 bg-card/60 backdrop-blur-md">
