@@ -1,7 +1,6 @@
 import { useState } from "react";
 import {
   FathomIcon,
-  GoogleMeetIcon,
   ZoomIcon,
 } from "@/components/transcript-library/SourcePlatformIcons";
 import { Switch } from "@/components/ui/switch";
@@ -10,13 +9,11 @@ import type { IntegrationPlatform } from "@/hooks/useIntegrationSync";
 
 const platformIcons = {
   fathom: FathomIcon,
-  google_meet: GoogleMeetIcon,
   zoom: ZoomIcon,
 };
 
 const platformNames = {
   fathom: "Fathom",
-  google_meet: "Google Meet",
   zoom: "Zoom",
 };
 

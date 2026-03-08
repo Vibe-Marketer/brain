@@ -11,7 +11,7 @@ import { useState, useCallback, useEffect } from 'react'
 
 const STORAGE_KEY = 'callvault-user-preferences'
 
-type IntegrationKey = 'youtube' | 'zoom' | 'google_meet' | 'fathom'
+type IntegrationKey = 'youtube' | 'zoom' | 'fathom'
 
 interface UserPreferences {
   /** Default workspace ID per integration for imports */

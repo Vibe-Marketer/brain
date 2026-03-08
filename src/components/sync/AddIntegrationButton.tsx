@@ -13,7 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { type IntegrationStatus } from "@/hooks/useIntegrationSync";
 import { type IntegrationPlatform } from "./IntegrationSyncPane";
-import { FathomIcon, GoogleMeetIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
+import { FathomIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 
 interface AddIntegrationButtonProps {
   integrations: IntegrationStatus[];
@@ -31,12 +31,6 @@ const availableIntegrations: Array<{
     platform: "fathom",
     name: "Fathom",
     Icon: FathomIcon,
-    available: true,
-  },
-  {
-    platform: "google_meet",
-    name: "Google Meet (Beta)",
-    Icon: GoogleMeetIcon,
     available: true,
   },
   {
