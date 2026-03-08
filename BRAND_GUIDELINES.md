@@ -1,1 +1,0 @@
-docs/design/brand-guidelines-v4.1.md

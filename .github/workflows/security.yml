@@ -16,7 +16,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 2
 
-      # Node.js code linting (frontend and utility TS/JS)
+      # Node.js setup and lint
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Node.js Lint
         run: npm ci && npm run lint
 
