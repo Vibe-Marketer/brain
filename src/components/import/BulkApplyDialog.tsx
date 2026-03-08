@@ -49,6 +49,13 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
+  const handleRetry = useCallback(() => {
+    bulkApply.mutate(
+      { dryRun: true },
+      { onSuccess: (data) => setPreview(data) },
+    );
+  }, [bulkApply]);
+
   const handleApply = useCallback(() => {
     bulkApply.mutate(
       { dryRun: false },
@@ -114,7 +121,7 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
               <p className="text-sm text-destructive">Failed to load preview</p>
               <button
                 type="button"
-                onClick={() => bulkApply.mutate({ dryRun: true }, { onSuccess: (data) => setPreview(data) })}
+                onClick={handleRetry}
                 className="mt-2 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
               >
                 Retry
