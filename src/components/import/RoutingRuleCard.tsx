@@ -127,10 +127,10 @@ export function RoutingRuleCard({
         >
           {rule.name}
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+        <p className="text-xs text-muted-foreground mt-0.5 whitespace-normal break-words">
           {conditionSummary}
         </p>
-        <p className="text-xs text-muted-foreground mt-0.5 truncate">
+        <p className="text-xs text-muted-foreground mt-0.5 whitespace-normal break-words">
           <span className="text-foreground/60">Route to:</span> {destination}
         </p>
       </button>

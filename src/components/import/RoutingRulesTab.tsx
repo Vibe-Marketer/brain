@@ -3,16 +3,15 @@
  */
 
 import { useState } from 'react';
-import { RiRouteLine, RiPlayCircleLine } from '@remixicon/react';
+import { RiRouteLine, RiFlashlightLine, RiLoader2Line } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useRoutingRules, useRoutingDefault, useReorderRules, useToggleRule } from '@/hooks/useRoutingRules';
-import { useRoutingRuleStore } from '@/stores/routingRuleStore';
+import { usePanelStore } from '@/stores/panelStore';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
 import { useOrgContextStore } from '@/stores/orgContextStore';
+import { useBulkApplyRules } from '@/hooks/useBulkApplyRules';
 import { DefaultDestinationBar } from './DefaultDestinationBar';
 import { RoutingRulesList } from './RoutingRulesList';
-import { RoutingRuleSlideOver } from './RoutingRuleSlideOver';
-import { BulkApplyDialog } from './BulkApplyDialog';
 
 function HelpContent() {
   return (
@@ -22,7 +21,7 @@ function HelpContent() {
         <li>Rules are evaluated top-to-bottom in priority order</li>
         <li>The first matching rule wins — lower rules are skipped</li>
         <li>Calls that match no rule go to the default destination</li>
-        <li>Rules apply to new imports automatically — use "Apply to existing" for older calls</li>
+        <li>Rules only apply to newly imported calls — not historical data</li>
         <li>Drag rule cards to reorder their priority</li>
       </ul>
     </div>
@@ -31,16 +30,17 @@ function HelpContent() {
 
 export function RoutingRulesTab() {
   const [showHelp, setShowHelp] = useState(false);
-  const [bulkApplyOpen, setBulkApplyOpen] = useState(false);
 
   const activeOrgId = useOrgContextStore((s) => s.activeOrgId);
   const { data: rules = [], isLoading: rulesLoading } = useRoutingRules();
   const { data: routingDefault } = useRoutingDefault();
   const reorderMutation = useReorderRules();
   const toggleMutation = useToggleRule();
-  const openSlideOver = useRoutingRuleStore((s) => s.openSlideOver);
+  const { openPanel } = usePanelStore();
 
-  const { data: workspaces = [] } = useWorkspaces(activeOrgId);
+  const { workspaces = [] } = useWorkspaces(activeOrgId);
+  const bulkApply = useBulkApplyRules();
+  const [bulkDryRunResult, setBulkDryRunResult] = useState<{ matched: number; details: Array<{ matchedRuleName: string }> } | null>(null);
 
   const workspaceNames: Record<string, string> = {};
   for (const ws of workspaces) {
@@ -53,11 +53,11 @@ export function RoutingRulesTab() {
   const hasRules = rules.length > 0;
 
   function handleOpenCreate() {
-    openSlideOver(null);
+    openPanel('routing-rule', { type: 'routing-rule', ruleId: null });
   }
 
   function handleEdit(id: string) {
-    openSlideOver(id);
+    openPanel('routing-rule', { type: 'routing-rule', ruleId: id });
   }
 
   function handleToggle(id: string, enabled: boolean) {
@@ -66,6 +66,16 @@ export function RoutingRulesTab() {
 
   function handleReorder(orderedIds: string[]) {
     reorderMutation.mutate(orderedIds);
+  }
+
+  async function handleBulkDryRun() {
+    const result = await bulkApply.mutateAsync({ dryRun: true });
+    setBulkDryRunResult(result);
+  }
+
+  async function handleBulkApply() {
+    await bulkApply.mutateAsync({ dryRun: false });
+    setBulkDryRunResult(null);
   }
 
   if (rulesLoading) {
@@ -97,40 +107,104 @@ export function RoutingRulesTab() {
       )}
 
       {hasRules && (
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={handleOpenCreate}
-            disabled={!hasDefault}
-            title={!hasDefault ? 'Set a default destination above before creating rules' : undefined}
-            className={cn(
-              'rounded-lg px-4 py-2 text-sm font-semibold',
-              'bg-foreground text-background',
-              'hover:bg-foreground/90 transition-colors',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleOpenCreate}
+              disabled={!hasDefault}
+              title={!hasDefault ? 'Set a default destination above before creating rules' : undefined}
+              className={cn(
+                'rounded-lg px-4 py-2 text-sm font-semibold',
+                'bg-foreground text-background',
+                'hover:bg-foreground/90 transition-colors',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'disabled:opacity-50 disabled:cursor-not-allowed',
+              )}
+            >
+              Create Rule
+            </button>
+            {!hasDefault && (
+              <p className="text-xs text-amber-500">
+                Set a default destination above before creating rules
+              </p>
             )}
-          >
-            Create Rule
-          </button>
-          <button
-            type="button"
-            onClick={() => setBulkApplyOpen(true)}
-            className={cn(
-              'inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold',
-              'border border-border/60 text-foreground',
-              'hover:bg-muted transition-colors',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+          </div>
+
+          {/* Bulk Apply section */}
+          <div className="rounded-xl border border-border/50 bg-muted/20 p-4 space-y-3">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold text-foreground flex items-center gap-1.5">
+                  <RiFlashlightLine className="h-4 w-4 text-amber-500" />
+                  Apply to existing calls
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Retroactively route historical calls to match your current rules. Calls already in a Hub are skipped.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleBulkDryRun}
+                  disabled={bulkApply.isPending}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-xs font-medium',
+                    'border border-border bg-background text-foreground',
+                    'hover:bg-muted transition-colors',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5',
+                  )}
+                >
+                  {bulkApply.isPending ? <RiLoader2Line className="h-3 w-3 animate-spin" /> : null}
+                  Preview
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkApply}
+                  disabled={bulkApply.isPending}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-xs font-semibold',
+                    'bg-foreground text-background',
+                    'hover:bg-foreground/90 transition-colors',
+                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                    'disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5',
+                  )}
+                >
+                  {bulkApply.isPending ? <RiLoader2Line className="h-3 w-3 animate-spin" /> : null}
+                  Apply Now
+                </button>
+              </div>
+            </div>
+
+            {/* Dry run result summary */}
+            {bulkDryRunResult && (
+              <div className="rounded-lg border border-amber-400/30 bg-amber-50/10 dark:bg-amber-900/10 p-3">
+                {bulkDryRunResult.matched === 0 ? (
+                  <p className="text-xs text-muted-foreground">No existing calls match your current rules.</p>
+                ) : (
+                  <>
+                    <p className="text-xs font-semibold text-foreground mb-1.5">
+                      Preview: {bulkDryRunResult.matched} call{bulkDryRunResult.matched !== 1 ? 's' : ''} would be routed
+                    </p>
+                    <div className="space-y-0.5 max-h-24 overflow-y-auto">
+                      {bulkDryRunResult.details.slice(0, 10).map((d, i) => (
+                        <p key={i} className="text-[11px] text-muted-foreground truncate">
+                          <span className="text-foreground/60">Rule:</span> {d.matchedRuleName}
+                        </p>
+                      ))}
+                      {bulkDryRunResult.details.length > 10 && (
+                        <p className="text-[11px] text-muted-foreground">+{bulkDryRunResult.details.length - 10} more...</p>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5">
+                      Click "Apply Now" to confirm routing.
+                    </p>
+                  </>
+                )}
+              </div>
             )}
-          >
-            <RiPlayCircleLine size={16} />
-            Apply to existing
-          </button>
-          {!hasDefault && (
-            <p className="text-xs text-amber-500">
-              Set a default destination above before creating rules
-            </p>
-          )}
+          </div>
         </div>
       )}
 
@@ -147,7 +221,7 @@ export function RoutingRulesTab() {
           </h2>
 
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
-            Send calls from each source to the right workspace and folder as soon as they're imported.
+            Send calls from each source to the right hub and folder as soon as they're imported.
             No more dragging recordings around.
           </p>
 
@@ -189,9 +263,6 @@ export function RoutingRulesTab() {
           )}
         </div>
       )}
-
-      <RoutingRuleSlideOver />
-      <BulkApplyDialog open={bulkApplyOpen} onOpenChange={setBulkApplyOpen} />
     </div>
   );
 }

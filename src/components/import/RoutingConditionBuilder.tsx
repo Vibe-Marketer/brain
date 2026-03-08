@@ -20,19 +20,19 @@ const ROUTING_CONDITION_FIELDS: FieldConfig[] = [
   {
     value: 'title',
     label: 'Title',
-    operators: ['contains', 'not_contains', 'equals', 'starts_with'],
+    operators: ['contains', 'not_contains', 'equals', 'not_equals', 'starts_with'],
     valueType: 'text',
   },
   {
     value: 'participant',
     label: 'Participant',
-    operators: ['contains', 'equals'],
+    operators: ['contains', 'not_contains', 'equals', 'not_equals'],
     valueType: 'text',
   },
   {
     value: 'source',
     label: 'Source',
-    operators: ['equals'],
+    operators: ['equals', 'not_equals'],
     valueType: 'select',
     options: [
       { value: 'fathom', label: 'Fathom' },
@@ -50,7 +50,7 @@ const ROUTING_CONDITION_FIELDS: FieldConfig[] = [
   {
     value: 'tag',
     label: 'Tag',
-    operators: ['equals', 'contains'],
+    operators: ['equals', 'not_equals', 'contains', 'not_contains'],
     valueType: 'text',
   },
   {
@@ -65,6 +65,7 @@ const OPERATOR_LABELS: Record<string, string> = {
   contains:     'contains',
   not_contains: 'does not contain',
   equals:       'is',
+  not_equals:   'is not',
   starts_with:  'starts with',
   greater_than: 'greater than',
   less_than:    'less than',
@@ -75,7 +76,7 @@ const OPERATOR_LABELS: Record<string, string> = {
 const MAX_CONDITIONS = 5;
 
 const controlClass = cn(
-  'h-8 rounded-md border border-border bg-background px-2.5 py-1',
+  'h-8 rounded-md border border-border bg-background px-2.5 pr-8 py-1',
   'text-sm text-foreground',
   'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0',
   'disabled:opacity-50 disabled:cursor-not-allowed'
@@ -160,7 +161,7 @@ export function RoutingConditionBuilder({
 
         return (
           <div key={index}>
-            <div className="flex items-center gap-2 py-1.5">
+            <div className="flex flex-wrap items-center gap-2 py-1.5">
               <span className="text-sm text-muted-foreground w-10 shrink-0 text-right">
                 {index === 0 ? 'When' : ''}
               </span>

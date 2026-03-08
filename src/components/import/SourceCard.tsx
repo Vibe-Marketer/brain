@@ -226,9 +226,9 @@ export function SourceCard({
               type="button"
               onClick={onSync}
               className={cn(
-                'flex-1 rounded-lg border border-border py-1.5 px-3',
-                'text-xs font-medium text-foreground',
-                'hover:bg-muted/60 transition-colors',
+                'flex-1 rounded-lg bg-gradient-to-b from-[#627285] to-[#394655] py-1.5 px-3',
+                'text-xs font-medium text-white',
+                'hover:from-[#6d7f93] hover:to-[#445566] transition-colors',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               )}
             >

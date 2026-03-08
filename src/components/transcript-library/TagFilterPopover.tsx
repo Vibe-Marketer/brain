@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { RiPriceTag3Line } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,13 @@ export function TagFilterPopover({
   onTagsChange,
 }: TagFilterPopoverProps) {
   const { activeOrganizationId } = useOrganizationContext();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredTags = tags.filter(tag =>
+    tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    tag.description?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const handleTagToggle = (tagId: string, checked: boolean) => {
     if (checked) {
       onTagsChange([...selectedTags, tagId]);
@@ -64,18 +72,23 @@ export function TagFilterPopover({
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0 bg-white dark:bg-card" align="start">
         <div className="space-y-0">
-          <div className="p-4 pb-3">
-            <div className="text-sm font-medium">Select Tags</div>
+          <div className="p-2 border-b">
+            <Input
+              placeholder="Search tags..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="h-8 text-xs"
+            />
           </div>
-          <div className="max-h-[300px] overflow-y-auto px-2 pb-2">
-            {!tags || tags.length === 0 ? (
+          <div className="max-h-[300px] overflow-y-auto px-2 pb-2 mt-2">
+            {!filteredTags || filteredTags.length === 0 ? (
               <div className="text-sm text-muted-foreground py-4 text-center px-2">
-                No tags yet. Add one below.
+                {searchQuery ? "No matching tags found" : "No tags yet. Add one below."}
               </div>
             ) : (
-              <div className="space-y-2 px-2">
-                {tags.map((tag) => (
-                  <div key={tag.id} className="flex items-center gap-2">
+              <div className="space-y-1.5 px-2">
+                {filteredTags.map((tag) => (
+                  <div key={tag.id} className="flex items-center gap-2 py-0.5">
                     <Checkbox
                       id={`tag-${tag.id}`}
                       checked={selectedTags.includes(tag.id)}

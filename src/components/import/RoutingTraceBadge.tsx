@@ -5,6 +5,8 @@
 import { useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
 import { cn } from '@/lib/utils';
+import { RiNodeTree } from '@remixicon/react';
+import { Badge } from '@/components/ui/badge';
 
 interface RoutingTraceBadgeProps {
   sourceMetadata: Record<string, unknown> | null | undefined;
@@ -47,17 +49,13 @@ export function RoutingTraceBadge({ sourceMetadata }: RoutingTraceBadgeProps) {
           }}
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={() => setOpen(false)}
-          className={cn(
-            'inline-flex items-center rounded-full px-2 py-0.5',
-            'bg-muted text-muted-foreground',
-            'text-[11px] font-medium',
-            'cursor-pointer hover:bg-muted/80 transition-colors',
-            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            'shrink-0',
-          )}
+          className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
           aria-label={`Routed by rule: ${ruleName}`}
         >
-          Routed by: {ruleName}
+          <Badge variant="outline" className="text-[9px] md:text-2xs px-1 md:px-1.5 py-0 h-3.5 md:h-4 flex items-center gap-0.5 cursor-pointer hover:bg-muted/50 transition-colors">
+            <RiNodeTree className="h-2.5 w-2.5 text-muted-foreground" />
+            <span className="text-muted-foreground">{ruleName}</span>
+          </Badge>
         </button>
       </Popover.Trigger>
 
