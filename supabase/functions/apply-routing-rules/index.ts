@@ -225,7 +225,22 @@ Deno.serve(async (req) => {
 
       const results = await Promise.allSettled(
         batch.map(async (match) => {
-          // Upsert workspace_entry for the matched workspace
+          // Remove existing workspace entries for this recording so it moves
+          // rather than appearing in both old and new workspaces.
+          const { error: deleteError } = await supabase
+            .from('workspace_entries')
+            .delete()
+            .eq('recording_id', match.recording_id);
+
+          if (deleteError) {
+            console.error(
+              `[apply-routing-rules] Failed to remove old workspace_entries for ${match.recording_id}:`,
+              deleteError,
+            );
+            // Continue anyway — better to duplicate than to skip the move entirely
+          }
+
+          // Insert workspace_entry for the matched workspace
           const entryPayload: Record<string, unknown> = {
             workspace_id: match.target_workspace_id,
             recording_id: match.recording_id,
@@ -237,12 +252,10 @@ Deno.serve(async (req) => {
 
           const { error: entryError } = await supabase
             .from('workspace_entries')
-            .upsert(entryPayload, {
-              onConflict: 'workspace_id,recording_id',
-            });
+            .insert(entryPayload);
 
           if (entryError) {
-            throw new Error(`workspace_entry upsert failed for ${match.recording_id}: ${entryError.message}`);
+            throw new Error(`workspace_entry insert failed for ${match.recording_id}: ${entryError.message}`);
           }
 
           // Atomic JSONB merge — avoids read-modify-write race condition.
