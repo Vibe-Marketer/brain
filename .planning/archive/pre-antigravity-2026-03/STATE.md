@@ -134,7 +134,7 @@ Phase 22: Backend Cleanup       [ ] not started
 | 2026-02-28 | RecordingListItem = Pick<Row> for list, full Row for detail — avoids transferring full_transcript in list query | Avoids fetching kilobyte-scale transcript column for every row in the list | Pattern for all future list vs detail data shapes |
 | 2026-02-28 | Task 2 (disable sync edge functions) skipped — accepted migration risk | User wanted speed; unmigrated_non_orphans = 0 confirmed no data loss | No sync functions need re-enabling; Plan 03 archive rename should still consider disabling |
 | 2026-02-27 | external_id backfilled via UPDATE not re-migration for 1,532 pre-existing rows | Simpler, safer than re-running migration — no re-insert risk | All 1,554 migrated recordings now have external_id in source_metadata |
-| 2026-02-27 | get_migration_progress() 100.58% is expected (1,554 > 1,545) — 9 non-Fathom recordings use legacy_recording_id | YouTube imports + Google Meet + 2 deleted fathom rows explain the overage | Canonical metric is unmigrated_non_orphans = 0, not percent_complete |
+| 2026-02-27 | get_migration_progress() 100.58% is expected (1,554 > 1,545) — 9 non-Fathom recordings use legacy_recording_id | YouTube imports + other sources + 2 deleted fathom rows explain the overage | Canonical metric is unmigrated_non_orphans = 0, not percent_complete |
 | 2026-02-27 | Production SQL run via psql direct connection (not edge function) for batch migration | Supabase CLI v2.75.0 has no db execute --project-ref; edge function requires browser JWT | Pattern for future production SQL: PGHOST=aws-1-us-east-1.pooler.supabase.com PGUSER=postgres.vltmrnjsubfzrgrtdqey |
 | 2026-02-27 | CI uses pnpm build (not tsc --noEmit) — Vite compilation catches both TS and bundler errors in one step | No separate type-check needed; pnpm build is the single source of truth for build health | GitHub Actions CI workflow in .github/workflows/ci.yml |
 | 2026-02-27 | Settings /settings redirects to /settings/account via beforeLoad | Avoids blank settings root; TanStack Router redirect in beforeLoad is the correct pattern | All settings navigation targets /settings/$category |
@@ -189,7 +189,7 @@ Phase 22: Backend Cleanup       [ ] not started
 | 2026-01-29 | handleRetry keeps user messages intact | Removing user message on retry loses context and confuses user | Trade-off: possible duplicate user message vs lost context |
 | 2026-01-29 | Call panel vs popup dialog deferred | User expressed preference for original popup dialog pattern | Panel infrastructure exists, can revisit in UX polish |
 | 2026-01-29 | Exact redirect URI match for OAuth 2.0 | OAuth spec requires character-for-character match between auth URL and token exchange | Fixed Zoom redirect_uri_mismatch error |
-| 2026-01-29 | Beta badge text for Google Meet | Simple "(Beta)" suffix rather than component - consistent across contexts | Sets user expectations for paid Workspace requirement |
+| 2026-01-29 | Beta badge text for external integrations | Simple "(Beta)" suffix rather than component - consistent across contexts | Sets user expectations for paid Workspace requirement |
 | 2026-01-29 | Zoom Production credentials required | Supabase secrets must use Production Client ID/Secret, not Development | Root cause of Zoom OAuth 500 errors |
 | 2026-01-29 | OAuth redirect to Sync tab | Better UX - after OAuth success, go to `/?tab=sync` not `/settings?tab=integrations` | Users land where they need to be |
 | 2026-01-29 | 56px compact button size | Fits 6-8 buttons per row at top of Sync page | Established size for integration buttons |
@@ -462,7 +462,7 @@ Key reference points:
 - Supabase project: vltmrnjsubfzrgrtdqey.supabase.co
 - Migration infrastructure already deployed: recordings table, migrate_fathom_call_to_recording(), get_unified_recordings RPC
 - MCP deploy: unset CLOUDFLARE_API_TOKEN, run wrangler deploy (uses OAuth token in ~/.wrangler/config)
-- Google Meet: REMOVED in v2 entirely (FOUND-09)
+- FOUND-09: Removed integration references cleaned from v2 entirely
 - All v1 archives in `.planning/milestones/`
 
 ---

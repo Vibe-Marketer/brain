@@ -63,11 +63,12 @@
 | 7 | CORS allowed origins not configured | #59 |
 | 8 | Embeddings cron job failing | #10 |
 
-## Phase History
+## Phase Status
 
 - **Phases 1-17:** Completed (pre-antigravity architecture)
 - **Phase 18 (Import Routing Rules):** Verified 10/10, still accurate
 - **Phase 19 (MCP Audit):** Archived — needs re-evaluation post-antigravity
+- **Antigravity (agent/antigravity branch):** In progress — org member management, copy/move, personal folders/tags, Hub rename. Blocked on issue #62 (critical bugs)
 - Planning docs for phases 1-17, 19 archived to `.planning/archive/pre-antigravity-2026-03/`
 
 ## Key Files

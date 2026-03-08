@@ -70,7 +70,9 @@ webhook_logs.txt
 # Playwright auth state
 playwright/.auth/
 
-# Claude Code - browser runtime artifacts (NOT skills/commands/agents)
+# Claude Code - local config and runtime artifacts (NOT skills/commands/agents)
+.claude/settings.json
+.claude/metadata-updater.sh
 .claude/skills/dev-browser/profiles/browser-data/
 .claude/skills/dev-browser/node_modules/
 
