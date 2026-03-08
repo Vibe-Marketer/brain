@@ -45,7 +45,9 @@ jobs:
         run: npm audit --audit-level=moderate || true
 
       # Claude security review with custom instructions
-      - uses: anthropics/claude-code-security-review@main
+      # continue-on-error: fails when ANTHROPIC_API_KEY secret is not configured
+      - continue-on-error: true
+        uses: anthropics/claude-code-security-review@main
         with:
           comment-pr: true
           claude-api-key: ${{ secrets.ANTHROPIC_API_KEY }}
