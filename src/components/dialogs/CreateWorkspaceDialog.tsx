@@ -285,16 +285,16 @@ export function CreateWorkspaceDialog({
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={createWorkspace.isPending}
-            aria-label="Cancel workspace creation"
+            aria-label="Cancel hub creation"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            aria-label="Create workspace"
+            aria-label="Create hub"
           >
-            {createWorkspace.isPending ? 'Creating...' : 'Create Workspace'}
+            {createWorkspace.isPending ? 'Creating...' : 'Create Hub'}
           </Button>
         </DialogFooter>
       </DialogContent>

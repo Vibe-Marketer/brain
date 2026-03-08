@@ -159,7 +159,7 @@ export function useTagSync() {
   ) => {
     try {
       const user = await requireUser();
-      if (!activeOrgId) throw new Error("No active workspace selected");
+      if (!activeOrgId) throw new Error("No active organization selected");
 
       const { data, error } = await supabase
         .from("call_tags")

@@ -86,7 +86,7 @@ export function useGenerateWorkspaceInvite(workspaceId: string) {
 
       const currentRole = membership?.role as WorkspaceRole | undefined
       if (currentRole !== 'workspace_owner' && currentRole !== 'workspace_admin') {
-        throw new Error('Only workspace owners and admins can generate invite links')
+        throw new Error('Only hub owners and admins can generate invite links')
       }
 
       // Check if workspace already has a valid invite token
@@ -120,10 +120,10 @@ export function useGenerateWorkspaceInvite(workspaceId: string) {
       if (updateError) {
         const message = updateError?.message || ''
         if (message.includes('row-level security')) {
-          throw new Error('You do not have permission to generate invite links for this workspace.')
+          throw new Error('You do not have permission to generate invite links for this hub.')
         }
         if (message.includes('invite_token') || message.includes('invite_expires_at')) {
-          throw new Error('Workspace invite schema is not fully deployed yet. Please run the latest Supabase migrations and try again.')
+          throw new Error('Hub invite schema is not fully deployed yet. Please run the latest Supabase migrations and try again.')
         }
         throw updateError
       }
@@ -169,12 +169,12 @@ export function useChangeRole(workspaceId: string) {
     }) => {
       // Permission check: must be owner or admin
       if (currentUserRole !== 'workspace_owner' && currentUserRole !== 'workspace_admin') {
-        throw new Error('Only workspace owners and admins can change roles')
+        throw new Error('Only hub owners and admins can change roles')
       }
 
       // Cannot change workspace_owner role via this action
       if (targetRole === 'workspace_owner') {
-        throw new Error('Cannot change the workspace owner role')
+        throw new Error('Cannot change the hub owner role')
       }
 
       if (targetRole === 'workspace_admin' && isLastAdmin && newRole !== 'workspace_admin') {
@@ -227,12 +227,12 @@ export function useRemoveMember(workspaceId: string) {
       currentUserRole: WorkspaceRole
     }) => {
       if (currentUserRole !== 'workspace_owner' && currentUserRole !== 'workspace_admin') {
-        throw new Error('Only workspace owners and admins can remove members')
+        throw new Error('Only hub owners and admins can remove members')
       }
 
       // Cannot remove workspace_owner
       if (targetRole === 'workspace_owner') {
-        throw new Error('Cannot remove the workspace owner')
+        throw new Error('Cannot remove the hub owner')
       }
 
       const { error } = await supabase
@@ -269,7 +269,7 @@ export function useLeaveWorkspace(workspaceId: string) {
   return useMutation({
     mutationFn: async ({ membershipId, userRole }: { membershipId: string; userRole: WorkspaceRole }) => {
       if (userRole === 'workspace_owner') {
-        throw new Error('Workspace owners cannot leave. Transfer ownership first.')
+        throw new Error('Hub owners cannot leave. Transfer ownership first.')
       }
 
       if (!user) throw new Error('Not authenticated')
@@ -283,12 +283,12 @@ export function useLeaveWorkspace(workspaceId: string) {
       if (error) throw error
     },
     onSuccess: () => {
-      toast.success('You left the workspace')
+      toast.success('You left the hub')
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all })
       navigate('/workspaces')
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Failed to leave workspace')
+      toast.error(error.message || 'Failed to leave hub')
     },
   })
 }

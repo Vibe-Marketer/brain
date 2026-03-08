@@ -163,16 +163,16 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
       setCreateDialogOpen(false)
       setNewWorkspaceName('')
-      toast.success('Workspace created successfully')
+      toast.success('Hub created successfully')
     },
     onError: (error) => {
-      toast.error(`Failed to create workspace: ${error.message}`)
+      toast.error(`Failed to create hub: ${error.message}`)
     },
   })
 
   const handleCreateWorkspace = () => {
     if (!newWorkspaceName.trim()) {
-      toast.error('Workspace name is required')
+      toast.error('Hub name is required')
       return
     }
     createWorkspace.mutate({ name: newWorkspaceName.trim(), type: newWorkspaceType })
@@ -243,7 +243,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
                 <Button
                   variant="outline"
                   onClick={() => setCreateDialogOpen(false)}
-                  aria-label="Cancel workspace creation"
+                  aria-label="Cancel hub creation"
                 >
                   Cancel
                 </Button>

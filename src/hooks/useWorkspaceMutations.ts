@@ -138,7 +138,7 @@ export function useCreateWorkspace() {
       if (context?.previousList && context.listKey) {
         queryClient.setQueryData(context.listKey, context.previousList)
       }
-      toast.error(`Failed to create workspace: ${error.message}`)
+      toast.error(`Failed to create hub: ${error.message}`)
     },
     onSuccess: (workspace, variables, context) => {
       if (context?.listKey && context.tempId) {
@@ -154,7 +154,7 @@ export function useCreateWorkspace() {
           )
         )
       }
-      toast.success(`Workspace '${variables.name.trim()}' created`)
+      toast.success(`Hub '${variables.name.trim()}' created`)
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
     },
     onSettled: () => {
@@ -270,7 +270,7 @@ export function useUpdateWorkspace() {
           queryClient.setQueryData(key, data)
         }
       }
-      toast.error('Failed to update workspace')
+      toast.error('Failed to update hub')
     },
     onSettled: (_data, _error, input) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.list() })
@@ -281,7 +281,7 @@ export function useUpdateWorkspace() {
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
     },
     onSuccess: () => {
-      toast.success('Workspace updated')
+      toast.success('Hub updated')
     },
   })
 }
@@ -351,7 +351,7 @@ export function useDeleteWorkspace() {
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaceEntries.all })
       queryClient.invalidateQueries({ queryKey: ['orgContext'] })
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
-      toast.success('Workspace deleted')
+      toast.success('Hub deleted')
     },
     onError: (error: Error, input, context) => {
       if (context?.previousDetail) {
@@ -365,7 +365,7 @@ export function useDeleteWorkspace() {
           queryClient.setQueryData(key, data)
         }
       }
-      toast.error(`Failed to delete workspace: ${error.message}`)
+      toast.error(`Failed to delete hub: ${error.message}`)
     },
   })
 }
@@ -418,12 +418,12 @@ export function useSetDefaultWorkspace() {
       return updatedWs
     },
     onSuccess: () => {
-      toast.success('Default workspace updated')
+      toast.success('Default hub updated')
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all })
       queryClient.invalidateQueries({ queryKey: ['orgContext'] }) // Legacy context
     },
     onError: (error: Error) => {
-      toast.error(`Failed to set default workspace: ${error.message}`)
+      toast.error(`Failed to set default hub: ${error.message}`)
     },
   })
 }

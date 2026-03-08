@@ -154,7 +154,7 @@ export function DetailPaneOutlet({
       case 'call-detail':
         return 'Call detail panel';
       case 'workspace_members':
-        return 'Workspace member panel';
+        return 'Hub member panel';
       case 'organization_members':
         return 'Organization member panel';
       case 'automation-rule':

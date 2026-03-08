@@ -701,7 +701,7 @@ export function FolderSidebar({
                     <RiSafeLine className="h-4 w-4 text-muted-foreground shrink-0" />
                   )}
                   <p className="text-sm font-display font-black uppercase tracking-wider text-foreground truncate">
-                    {activeWorkspace?.name || 'Workspace'}
+                    {activeWorkspace?.name || 'Hub'}
                   </p>
                 </div>
               </div>
