@@ -1,18 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
-
-/**
- * Returns true when a Supabase error indicates the table does not exist
- * (HTTP 404 / PGRST code 42P01).  This happens when migration 20260306
- * has not yet been deployed to the hosted instance.
- */
-function isTableMissing(error: { code?: string; message?: string; details?: string } | null): boolean {
-  if (!error) return false
-  if (error.code === '42P01') return true
-  // PostgREST returns a message like "relation … does not exist"
-  if (error.message?.includes('does not exist')) return true
-  if (error.details?.includes('does not exist')) return true
-  return false
-}
+import { isTableMissing } from '@/lib/supabase-errors'
 
 export interface PersonalFolder {
   id: string
