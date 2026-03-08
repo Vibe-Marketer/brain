@@ -1,9 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from '../_shared/cors.ts';
-
-// Dynamic CORS headers - set per-request from origin
-let corsHeaders: Record<string, string> = {};
+import { authenticateRequest } from '../_shared/auth.ts';
 
 /**
  * Manager Notes Edge Function
@@ -15,28 +13,23 @@ let corsHeaders: Record<string, string> = {};
  *
  * Notes are private to the manager who created them - other managers
  * and the direct report cannot see each other's notes.
+ *
+ * Security: user_id is derived from JWT — never trusted from request body.
  */
 
 interface CreateNoteInput {
-  user_id: string; // The manager making the request
   call_recording_id: number;
   report_user_id: string; // The call owner (direct report)
   note: string;
 }
 
 interface UpdateNoteInput {
-  user_id: string;
   note_id: string;
   note: string;
 }
 
-interface DeleteNoteInput {
-  user_id: string;
-}
-
 serve(async (req) => {
-  const origin = req.headers.get('Origin');
-  corsHeaders = getCorsHeaders(origin);
+  const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -49,16 +42,21 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Authenticate and derive user_id from JWT
+    const authResult = await authenticateRequest(req, supabaseClient, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const { userId } = authResult;
+
     const url = new URL(req.url);
 
     // Route by HTTP method
     switch (req.method) {
       case 'POST':
-        return handleCreateOrUpdateNote(req, supabaseClient);
+        return handleCreateOrUpdateNote(req, supabaseClient, userId, corsHeaders);
       case 'GET':
-        return handleGetNotes(url, supabaseClient);
+        return handleGetNotes(url, supabaseClient, userId, corsHeaders);
       case 'DELETE':
-        return handleDeleteNote(req, supabaseClient, url);
+        return handleDeleteNote(supabaseClient, url, userId, corsHeaders);
       default:
         return new Response(
           JSON.stringify({ error: 'Method not allowed' }),
@@ -83,17 +81,19 @@ serve(async (req) => {
  */
 async function handleCreateOrUpdateNote(
   req: Request,
-  supabaseClient: ReturnType<typeof createClient>
+  supabaseClient: ReturnType<typeof createClient>,
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
   const body = await req.json();
 
   // Check if this is an update request
   if (body.note_id) {
-    return handleUpdateNote(body as UpdateNoteInput, supabaseClient);
+    return handleUpdateNote(body as UpdateNoteInput, supabaseClient, userId, corsHeaders);
   }
 
   // Otherwise, create a new note
-  return handleCreateNote(body as CreateNoteInput, supabaseClient);
+  return handleCreateNote(body as CreateNoteInput, supabaseClient, userId, corsHeaders);
 }
 
 /**
@@ -101,17 +101,11 @@ async function handleCreateOrUpdateNote(
  */
 async function handleCreateNote(
   input: CreateNoteInput,
-  supabaseClient: ReturnType<typeof createClient>
+  supabaseClient: ReturnType<typeof createClient>,
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
-  const { user_id, call_recording_id, report_user_id, note } = input;
-
-  // Validate required fields
-  if (!user_id) {
-    return new Response(
-      JSON.stringify({ error: 'user_id is required' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
+  const { call_recording_id, report_user_id, note } = input;
 
   if (!call_recording_id) {
     return new Response(
@@ -137,7 +131,7 @@ async function handleCreateNote(
   // Verify the manager has a valid manager relationship with the report
   const { data: isManagerResult, error: managerError } = await supabaseClient
     .rpc('is_manager_of', {
-      p_manager_user_id: user_id,
+      p_manager_user_id: userId,
       p_report_user_id: report_user_id,
     });
 
@@ -174,7 +168,7 @@ async function handleCreateNote(
   const { data: existingNote } = await supabaseClient
     .from('manager_notes')
     .select('id')
-    .eq('manager_user_id', user_id)
+    .eq('manager_user_id', userId)
     .eq('call_recording_id', call_recording_id)
     .eq('user_id', report_user_id)
     .maybeSingle();
@@ -212,7 +206,7 @@ async function handleCreateNote(
   const { data: newNote, error: insertError } = await supabaseClient
     .from('manager_notes')
     .insert({
-      manager_user_id: user_id,
+      manager_user_id: userId,
       call_recording_id,
       user_id: report_user_id,
       note: note.trim(),
@@ -242,16 +236,11 @@ async function handleCreateNote(
  */
 async function handleUpdateNote(
   input: UpdateNoteInput,
-  supabaseClient: ReturnType<typeof createClient>
+  supabaseClient: ReturnType<typeof createClient>,
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
-  const { user_id, note_id, note } = input;
-
-  if (!user_id) {
-    return new Response(
-      JSON.stringify({ error: 'user_id is required' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
+  const { note_id, note } = input;
 
   if (!note_id) {
     return new Response(
@@ -282,7 +271,7 @@ async function handleUpdateNote(
   }
 
   // Verify user is the manager who owns this note
-  if (existingNote.manager_user_id !== user_id) {
+  if (existingNote.manager_user_id !== userId) {
     return new Response(
       JSON.stringify({ error: 'You can only update your own notes' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -321,24 +310,19 @@ async function handleUpdateNote(
  * Get notes for a specific call or all notes for the manager
  *
  * Query params:
- * - user_id: The manager requesting notes (required)
  * - call_recording_id: Get notes for a specific call
  * - report_user_id: The call owner (required with call_recording_id)
+ *
+ * user_id is derived from JWT — not accepted as a query parameter.
  */
 async function handleGetNotes(
   url: URL,
-  supabaseClient: ReturnType<typeof createClient>
+  supabaseClient: ReturnType<typeof createClient>,
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
-  const userId = url.searchParams.get('user_id');
   const callRecordingId = url.searchParams.get('call_recording_id');
   const reportUserId = url.searchParams.get('report_user_id');
-
-  if (!userId) {
-    return new Response(
-      JSON.stringify({ error: 'user_id query parameter is required' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
 
   // Build base query - notes where user is the manager
   let query = supabaseClient
@@ -409,22 +393,16 @@ async function handleGetNotes(
 /**
  * DELETE /manager-notes?id=xxx
  * Delete a manager note
+ *
+ * user_id is derived from JWT — ownership is always verified.
  */
 async function handleDeleteNote(
-  req: Request,
   supabaseClient: ReturnType<typeof createClient>,
-  url: URL
+  url: URL,
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
   const noteId = url.searchParams.get('id');
-
-  // Get user_id from body
-  let userId: string | null = null;
-  try {
-    const body = await req.json() as DeleteNoteInput;
-    userId = body.user_id;
-  } catch {
-    // Body might be empty
-  }
 
   if (!noteId) {
     return new Response(
@@ -447,8 +425,8 @@ async function handleDeleteNote(
     );
   }
 
-  // Verify user is the manager who owns this note (if user_id provided)
-  if (userId && existingNote.manager_user_id !== userId) {
+  // Always verify ownership — user_id comes from JWT
+  if (existingNote.manager_user_id !== userId) {
     return new Response(
       JSON.stringify({ error: 'You can only delete your own notes' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

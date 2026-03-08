@@ -5,8 +5,6 @@ interface SecretTest {
   name: string;
   exists: boolean;
   hasValue: boolean;
-  length?: number;
-  preview?: string;
 }
 
 Deno.serve(async (req) => {
@@ -106,8 +104,6 @@ Deno.serve(async (req) => {
         name: key,
         exists,
         hasValue,
-        length: hasValue ? value.length : 0,
-        preview: hasValue ? `${value.substring(0, 10)}...${value.substring(value.length - 4)}` : undefined,
       });
 
       if (required && !hasValue) {
@@ -190,11 +186,10 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error('Error testing secrets:', error);
     return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
+      JSON.stringify({
+        error: 'Internal server error',
       }),
-      { 
+      {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }

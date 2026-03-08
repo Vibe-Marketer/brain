@@ -1,24 +1,26 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from '../_shared/cors.ts';
-
-// Dynamic CORS headers - set per-request from origin
-let corsHeaders: Record<string, string> = {};
+import { authenticateRequest } from '../_shared/auth.ts';
 
 /**
  * Share Call Edge Function
  *
  * Handles single call share link management:
- * - POST /share-call - Create a new share link
- * - GET /share-call?token=xxx - Fetch shared call by token (for recipients)
- * - GET /share-call?id=xxx - Get share link details (for owner)
- * - DELETE /share-call?id=xxx - Revoke a share link
- * - GET /share-call/access-log?id=xxx - Get access log for a share link
+ * - POST /share-call - Create a new share link (auth required)
+ * - GET /share-call?token=xxx - Fetch shared call by token (no auth — token is the credential)
+ * - GET /share-call?id=xxx - Get share link details (auth required)
+ * - DELETE /share-call?id=xxx - Revoke a share link (auth required)
+ * - GET /share-call/access-log?id=xxx - Get access log (auth required)
+ * - POST /share-call/access-log - Log an access event (no auth — public share access)
+ *
+ * Security: user_id is derived from JWT for authenticated operations.
+ * Token-based access (GET ?token=xxx) is intentionally unauthenticated — the
+ * share token itself serves as the access credential.
  */
 
 interface ShareLinkInput {
   call_recording_id: number;
-  user_id: string;
   recipient_email?: string;
 }
 
@@ -40,8 +42,7 @@ function generateShareToken(): string {
 }
 
 serve(async (req) => {
-  const origin = req.headers.get('Origin');
-  corsHeaders = getCorsHeaders(origin);
+  const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -62,17 +63,17 @@ serve(async (req) => {
 
     // Handle access-log endpoint
     if (action === 'access-log') {
-      return handleAccessLog(req, supabaseClient, url);
+      return handleAccessLog(req, supabaseClient, url, corsHeaders);
     }
 
     // Route by HTTP method
     switch (req.method) {
       case 'POST':
-        return handleCreateShareLink(req, supabaseClient);
+        return handleCreateShareLink(req, supabaseClient, corsHeaders);
       case 'GET':
-        return handleGetShareCall(req, supabaseClient, url);
+        return handleGetShareCall(req, supabaseClient, url, corsHeaders);
       case 'DELETE':
-        return handleRevokeShareLink(req, supabaseClient, url);
+        return handleRevokeShareLink(req, supabaseClient, url, corsHeaders);
       default:
         return new Response(
           JSON.stringify({ error: 'Method not allowed' }),
@@ -90,25 +91,25 @@ serve(async (req) => {
 
 /**
  * POST /share-call - Create a new share link
+ *
+ * Requires JWT auth. user_id derived from token.
  */
 async function handleCreateShareLink(
   req: Request,
-  supabaseClient: ReturnType<typeof createClient>
+  supabaseClient: ReturnType<typeof createClient>,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
-  const body = await req.json() as ShareLinkInput;
+  // Authenticate — user_id comes from JWT
+  const authResult = await authenticateRequest(req, supabaseClient, corsHeaders);
+  if (authResult instanceof Response) return authResult;
+  const { userId } = authResult;
 
-  const { call_recording_id, user_id, recipient_email } = body;
+  const body = await req.json() as ShareLinkInput;
+  const { call_recording_id, recipient_email } = body;
 
   if (!call_recording_id) {
     return new Response(
       JSON.stringify({ error: 'call_recording_id is required' }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  if (!user_id) {
-    return new Response(
-      JSON.stringify({ error: 'user_id is required' }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
@@ -118,7 +119,7 @@ async function handleCreateShareLink(
     .from('fathom_raw_calls')
     .select('recording_id')
     .eq('recording_id', call_recording_id)
-    .eq('user_id', user_id)
+    .eq('user_id', userId)
     .maybeSingle();
 
   if (callError) {
@@ -143,8 +144,8 @@ async function handleCreateShareLink(
     .from('call_share_links')
     .insert({
       call_recording_id,
-      user_id,
-      created_by_user_id: user_id,
+      user_id: userId,
+      created_by_user_id: userId,
       share_token,
       recipient_email: recipient_email || null,
       status: 'active',
@@ -168,9 +169,13 @@ async function handleCreateShareLink(
 /**
  * GET /share-call - Fetch share link/call by token or id
  *
+ * Token-based access (for recipients) does NOT require auth — the share token
+ * is the credential (like a signed URL). This is by design.
+ * ID-based access (for owners viewing their own links) requires JWT auth.
+ *
  * Query params:
  * - token: Share token for recipients to access shared call
- * - id: Share link ID for owners to view link details
+ * - id: Share link ID for owners to view link details (requires auth)
  * - log_access: If true, logs the access (for token-based access)
  * - accessor_user_id: User ID of the person accessing (for logging)
  * - ip_address: IP address (for logging)
@@ -178,7 +183,8 @@ async function handleCreateShareLink(
 async function handleGetShareCall(
   req: Request,
   supabaseClient: ReturnType<typeof createClient>,
-  url: URL
+  url: URL,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
   const token = url.searchParams.get('token');
   const id = url.searchParams.get('id');
@@ -186,7 +192,9 @@ async function handleGetShareCall(
   const accessorUserId = url.searchParams.get('accessor_user_id');
   const ipAddress = url.searchParams.get('ip_address');
 
-  // Token-based access (for share link recipients)
+  // Token-based access (for share link recipients) — no auth required.
+  // The 32-char cryptographic token serves as the access credential,
+  // similar to a pre-signed URL pattern.
   if (token) {
     // Find share link by token
     const { data: shareLink, error: linkError } = await supabaseClient
@@ -269,8 +277,12 @@ async function handleGetShareCall(
     );
   }
 
-  // ID-based access (for share link owners)
+  // ID-based access (for share link owners) — requires auth
   if (id) {
+    const authResult = await authenticateRequest(req, supabaseClient, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const { userId } = authResult;
+
     const { data: shareLink, error: linkError } = await supabaseClient
       .from('call_share_links')
       .select('*')
@@ -281,6 +293,14 @@ async function handleGetShareCall(
       return new Response(
         JSON.stringify({ error: 'Share link not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify ownership
+    if (shareLink.user_id !== userId) {
+      return new Response(
+        JSON.stringify({ error: 'You do not have permission to view this share link' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
@@ -298,22 +318,21 @@ async function handleGetShareCall(
 
 /**
  * DELETE /share-call?id=xxx - Revoke a share link
+ *
+ * Requires JWT auth. Ownership verified via JWT user_id.
  */
 async function handleRevokeShareLink(
   req: Request,
   supabaseClient: ReturnType<typeof createClient>,
-  url: URL
+  url: URL,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
-  const id = url.searchParams.get('id');
+  // Authenticate — user_id comes from JWT
+  const authResult = await authenticateRequest(req, supabaseClient, corsHeaders);
+  if (authResult instanceof Response) return authResult;
+  const { userId } = authResult;
 
-  // Also try to get from body for flexibility
-  let userId: string | null = null;
-  try {
-    const body = await req.json();
-    userId = body.user_id;
-  } catch {
-    // Body might be empty, which is fine
-  }
+  const id = url.searchParams.get('id');
 
   if (!id) {
     return new Response(
@@ -336,8 +355,8 @@ async function handleRevokeShareLink(
     );
   }
 
-  // If user_id provided, verify ownership
-  if (userId && shareLink.user_id !== userId) {
+  // Verify ownership via JWT
+  if (shareLink.user_id !== userId) {
     return new Response(
       JSON.stringify({ error: 'You do not have permission to revoke this share link' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -375,15 +394,16 @@ async function handleRevokeShareLink(
 }
 
 /**
- * GET /share-call/access-log?id=xxx - Get access log for a share link
- * POST /share-call/access-log - Log an access event
+ * GET /share-call/access-log?id=xxx - Get access log for a share link (auth required)
+ * POST /share-call/access-log - Log an access event (no auth — public share access logging)
  */
 async function handleAccessLog(
   req: Request,
   supabaseClient: ReturnType<typeof createClient>,
-  url: URL
+  url: URL,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
-  // POST - Log access
+  // POST - Log access (no auth required — public share access logging)
   if (req.method === 'POST') {
     const body = await req.json() as LogAccessInput;
     const { share_link_id, user_id, ip_address } = body;
@@ -440,9 +460,12 @@ async function handleAccessLog(
     );
   }
 
-  // GET - Fetch access log
+  // GET - Fetch access log (requires auth + ownership)
+  const authResult = await authenticateRequest(req, supabaseClient, corsHeaders);
+  if (authResult instanceof Response) return authResult;
+  const { userId } = authResult;
+
   const id = url.searchParams.get('id');
-  const userId = url.searchParams.get('user_id');
 
   if (!id) {
     return new Response(
@@ -465,8 +488,8 @@ async function handleAccessLog(
     );
   }
 
-  // Verify ownership if user_id provided
-  if (userId && shareLink.user_id !== userId) {
+  // Verify ownership via JWT
+  if (shareLink.user_id !== userId) {
     return new Response(
       JSON.stringify({ error: 'You do not have permission to view this access log' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -487,20 +510,18 @@ async function handleAccessLog(
     );
   }
 
-  // Enhance logs with user info
+  // Enhance logs with user info from user_settings
   const enhancedLogs = await Promise.all(
     (accessLogs || []).map(async (log) => {
-      // Get user email using auth.users table via service role
-      const { data: userData } = await supabaseClient
-        .from('auth.users')
-        .select('email, raw_user_meta_data')
-        .eq('id', log.accessed_by_user_id)
-        .single();
+      const { data: userSettings } = await supabaseClient
+        .from('user_settings')
+        .select('display_name')
+        .eq('user_id', log.accessed_by_user_id)
+        .maybeSingle();
 
       return {
         ...log,
-        user_email: userData?.email || null,
-        user_name: userData?.raw_user_meta_data?.name || null,
+        user_name: userSettings?.display_name || null,
       };
     })
   );
