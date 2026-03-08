@@ -656,12 +656,21 @@ function createTools(
           }
 
           // Apply diversity filter
-          // deno-lint-ignore no-explicit-any
-          const diverse = diversityFilter(filtered as any[], 2, limit);
+          interface EntitySearchResult {
+            recording_id: number;
+            call_title: string;
+            call_date: string;
+            speaker_name: string;
+            chunk_text: string;
+            rrf_score?: number;
+            workspace_id?: string;
+            vault_name?: string;
+            entities?: Record<string, string[]>;
+          }
+          const diverse = diversityFilter(filtered as EntitySearchResult[], 2, limit);
 
           return {
-            // deno-lint-ignore no-explicit-any
-            results: diverse.map((r: any, i: number) => ({
+            results: diverse.map((r: EntitySearchResult, i: number) => ({
               index: i + 1,
               recording_id: r.recording_id,
               call_title: r.call_title,

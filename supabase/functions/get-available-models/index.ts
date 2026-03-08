@@ -75,7 +75,7 @@ Deno.serve(async (req: Request) => {
         name: string;
         provider: string;
         context_length: number;
-        pricing: any;
+        pricing: Record<string, string>;
         is_featured: boolean;
         is_default: boolean;
         min_tier: string;
@@ -106,7 +106,7 @@ Deno.serve(async (req: Request) => {
                 is_featured: true,
                 is_default: true,
                 min_tier: 'FREE' 
-            } as any];
+            } satisfies AIModelDB];
         }
     }
 
@@ -121,12 +121,12 @@ Deno.serve(async (req: Request) => {
       isDefault: m.is_default
     }));
 
-    const providers = [...new Set(mappedModels.map((m: any) => m.provider))];
-    
+    const providers = [...new Set(mappedModels.map((m) => m.provider))];
+
     // Determine Default
-    const systemDefaultId = mappedModels.find((m: any) => m.isDefault)?.id;
-    const defaultModel = systemDefaultId 
-        || mappedModels.find((m: any) => m.isFeatured)?.id 
+    const systemDefaultId = mappedModels.find((m) => m.isDefault)?.id;
+    const defaultModel = systemDefaultId
+        || mappedModels.find((m) => m.isFeatured)?.id
         || mappedModels[0]?.id;
 
     return new Response(
@@ -140,11 +140,11 @@ Deno.serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error('CRITICAL ERROR:', err);
     return new Response(
-      JSON.stringify({ 
-          error: `Failed to load models: ${err.message || 'Unknown error'}`,
+      JSON.stringify({
+          error: `Failed to load models: ${err instanceof Error ? err.message : 'Unknown error'}`,
           models: [] 
       }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

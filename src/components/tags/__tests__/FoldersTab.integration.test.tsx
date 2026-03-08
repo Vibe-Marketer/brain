@@ -68,6 +68,7 @@ vi.mock('@/hooks/useListKeyboardNavigation', () => ({
 // Mock virtual list hook
 vi.mock('@/hooks/useVirtualList', () => ({
   useVirtualTable: vi.fn(({ items }) => ({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     visibleItems: items.map((item: any, index: number) => ({ item, index })),
     isVirtualized: false,
     containerRef: { current: null },

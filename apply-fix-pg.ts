@@ -24,6 +24,7 @@ async function main() {
   try {
     await client.query(sql);
     console.log('✓ Migration applied successfully!');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (err: any) {
     console.error('Error:', err.message);
     throw err;

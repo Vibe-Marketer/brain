@@ -61,7 +61,7 @@ export interface Meeting {
   google_drive_file_id?: string | null;
   transcript_source?: 'native' | 'whisper' | null;
   ai_generated_title?: string | null;
-  source_metadata?: Record<string, any> | null;
+  source_metadata?: Record<string, unknown> | null;
 }
 
 export interface MeetingWithTranscripts extends Meeting {

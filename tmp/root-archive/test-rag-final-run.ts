@@ -23,6 +23,7 @@ async function getAuthToken(): Promise<string> {
   return data.session.access_token;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function testQuery(token: string, messages: any[], testName: string) {
   console.log(`\n${'='.repeat(70)}`);
   console.log(`${testName}`);
@@ -53,7 +54,9 @@ async function testQuery(token: string, messages: any[], testName: string) {
     }
 
     let fullResponse = '';
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const toolCalls: any[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const toolResults: any[] = [];
     
     const decoder = new TextDecoder();
@@ -101,6 +104,7 @@ async function testQuery(token: string, messages: any[], testName: string) {
       toolResults,
     };
     
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error('❌ Request failed:', error.message);
     return { success: false, error };
@@ -125,6 +129,7 @@ async function runTests() {
     { name: 'Tool 8: advancedSearch', messages: [{ role: 'user', content: 'Find mentions of planning in team meetings' }] },
   ];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const results = { passed: 0, failed: 0, details: [] as any[] };
 
   for (const test of tests) {

@@ -94,6 +94,7 @@ export async function createWorkspace(
 
   const { data: workspace, error: workspaceError } = await supabase
     .from('workspaces')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     .insert(insertPayload as any)
     .select(
       'id, name, organization_id:organization_id, workspace_type:workspace_type, default_sharelink_ttl_days, created_at, updated_at'

@@ -38,8 +38,8 @@ export type PanelData =
   | { 
       type: 'bulk-actions';
       selectedIds: string[];
-      selectedCalls?: any[];
-      tags?: any[];
+      selectedCalls?: unknown[];
+      tags?: unknown[];
       onClearSelection?: () => void;
       onDelete?: () => void;
       onTag?: (tagId: string) => void;

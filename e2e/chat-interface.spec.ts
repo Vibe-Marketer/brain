@@ -402,6 +402,7 @@ test.describe("Chat Interface - Complete Flows", () => {
 
   test("should handle context attachments for filtered search", async ({ page }) => {
     // Set up request interception
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let capturedFilters: any = null;
 
     await page.route("**/functions/v1/chat-stream", async (route) => {
@@ -870,6 +871,7 @@ test.describe("Chat Interface - API Integration", () => {
 
   test("should make proper API calls with correct parameters", async ({ page }) => {
     // Intercept API calls
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const apiCalls: Array<{ url: string; body: any }> = [];
 
     await page.route("**/functions/v1/chat-stream", async (route) => {

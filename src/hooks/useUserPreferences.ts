@@ -28,7 +28,7 @@ function loadPreferences(): UserPreferences {
     if (!stored) return DEFAULT_PREFERENCES
     const parsed = JSON.parse(stored)
     // Handle migration from old key if it exists
-    const legacyWorkspaces = (parsed as any).defaultImportWorkspace || {}
+    const legacyWorkspaces = (parsed as Record<string, unknown>).defaultImportWorkspace || {}
 
     return {
       ...DEFAULT_PREFERENCES,

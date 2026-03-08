@@ -115,6 +115,7 @@ async function main() {
         results.push({ name: testCase.name, status: 'PASSED (direct)' });
       }
       
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       console.log(`  ❌ Error: ${err.message}`);
       failed++;

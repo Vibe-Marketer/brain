@@ -35,6 +35,7 @@ export function useTagSync() {
 
       // Scope tags to the active organization/workspace
       if (activeOrgId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         query = (query as any).eq("organization_id", activeOrgId);
       }
 

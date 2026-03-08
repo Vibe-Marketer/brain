@@ -285,6 +285,7 @@ test.describe("Chat Context Attachments - subtask-2-4", () => {
 
   test("should pass filter_recording_ids in API request when context attached", async ({ page }) => {
     // Intercept API requests to verify filter parameter
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let capturedFilters: any = null;
     let capturedRecordingIds: number[] | null = null;
 
@@ -353,6 +354,7 @@ test.describe("Chat Context Attachments - subtask-2-4", () => {
 
   test("should include context mention in message when sending", async ({ page }) => {
     // Intercept API requests to verify message content
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let capturedMessages: any[] = [];
 
     await page.route("**/functions/v1/chat-stream", async (route) => {
@@ -614,6 +616,7 @@ test.describe("Chat Context Attachments - Results Filtering", () => {
 
   test("should only return results from attached calls when querying", async ({ page }) => {
     // Intercept to verify filter is applied
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let requestFilters: any = null;
 
     await page.route("**/functions/v1/chat-stream", async (route) => {

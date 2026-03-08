@@ -20,6 +20,7 @@ import AxeBuilder from "@axe-core/playwright";
 
 // Helper to check for critical and serious accessibility violations
 async function checkAccessibility(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   page: any,
   options?: { skipRules?: string[] }
 ) {

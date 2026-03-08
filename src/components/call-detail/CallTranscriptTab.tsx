@@ -260,7 +260,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                         return groups.map((group, groupIndex) => {
                           const speakerEmail = group.email?.toLowerCase() || "";
                           const speakerName = group.speaker?.toLowerCase() || "";
-                          const speakerUserId = (group.messages[0] as any).user_id;
+                          const speakerUserId = (group.messages[0] as unknown as { user_id?: string }).user_id;
 
                           // Identification Logic:
                           // - If user_id matches, it's definitely Andrew

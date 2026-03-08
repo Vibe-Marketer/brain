@@ -370,6 +370,7 @@ test.describe("Model Selector - API Integration", () => {
 
   test("should fetch models from get-available-models endpoint", async ({ page }) => {
     // Intercept the get-available-models API call
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let modelsResponse: any = null;
 
     await page.route("**/functions/v1/get-available-models", async (route) => {

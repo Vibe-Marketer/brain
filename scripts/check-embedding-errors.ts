@@ -34,6 +34,7 @@ async function main() {
     console.error('Error:', failError);
   } else {
     console.log(`Found ${failed?.length || 0} failed items`);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     failed?.forEach((item: any) => {
       console.log(`\n  Recording ${item.recording_id}:`);
       console.log(`    Attempts: ${item.attempts}/${item.max_attempts}`);
@@ -51,6 +52,7 @@ async function main() {
     .limit(10);
 
   if (completed && completed.length > 0) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recordingIds = completed.map((c: any) => c.recording_id);
     console.log(`Checking ${recordingIds.length} completed recordings...`);
 
@@ -63,6 +65,7 @@ async function main() {
     if (chunkError) {
       console.error('Error:', chunkError);
     } else {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const chunkedRecordings = new Set(chunks?.map((c: any) => c.recording_id) || []);
       console.log(`  Completed in queue: ${recordingIds.length}`);
       console.log(`  Actually have chunks: ${chunkedRecordings.size}`);

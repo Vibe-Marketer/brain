@@ -127,6 +127,7 @@ export function TagsTab() {
   const { data: tags, isLoading, error: tagsError } = useQuery({
     queryKey: ["call-tags", activeOrgId],
     queryFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let query: any = supabase
         .from("call_tags")
         .select("id, name, color, description, is_system")

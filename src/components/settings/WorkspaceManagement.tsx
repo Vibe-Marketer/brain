@@ -389,6 +389,7 @@ function DeleteWorkspaceDialogWrapper({
           role: m.role as WorkspaceRole,
           created_at: workspace.created_at,
         })),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any}
       recordingCount={0}
     />

@@ -353,14 +353,16 @@ export async function getFailedImports(): Promise<FailedImport[]> {
   const syncedIds = new Set<string>()
   if (syncedRecs) {
     for (const r of syncedRecs) {
-      const extId = (r.source_metadata as any)?.external_id
+      const extId = (r.source_metadata as Record<string, unknown> | null)?.external_id
       if (extId) syncedIds.add(String(extId))
-      if ((r as any).legacy_recording_id) syncedIds.add(String((r as any).legacy_recording_id))
+      const rec = r as unknown as { legacy_recording_id?: number }
+      if (rec.legacy_recording_id) syncedIds.add(String(rec.legacy_recording_id))
     }
   }
 
   // Flatten: one FailedImport per failed external_id
   const results: FailedImport[] = []
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const jobs = data as any[]
   for (const job of jobs) {
     if (!job.failed_ids || job.failed_ids.length === 0) continue

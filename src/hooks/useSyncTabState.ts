@@ -108,6 +108,7 @@ export function useSyncTabState({
         .order("name");
 
       if (activeOrgId) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         query = (query as any).eq("organization_id", activeOrgId);
       }
 

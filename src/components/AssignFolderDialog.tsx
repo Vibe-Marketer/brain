@@ -328,6 +328,7 @@ export default function AssignFolderDialog({
           const recordingUuids = recs.map(r => r.id);
           
           // Update all workspace_entries in batch
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const { error: updateError } = await (supabase as any)
             .from('workspace_entries')
             .update({ folder_id: primaryFolderId })

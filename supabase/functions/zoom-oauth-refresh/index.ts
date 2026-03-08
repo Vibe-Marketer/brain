@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ZoomClient } from '../_shared/zoom-client.ts';
 import { getCorsHeaders } from '../_shared/cors.ts';

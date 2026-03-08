@@ -533,6 +533,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       <EditWorkspaceDialog
         open={editWsOpen}
         onOpenChange={setEditWsOpen}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         workspace={wsToEdit as any}
         userRole={wsToEdit?.user_role || null}
         onDeleteRequest={() => {
@@ -543,6 +544,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       <DeleteWorkspaceDialog
         open={deleteWsOpen}
         onOpenChange={setDeleteWsOpen}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         workspace={wsToDelete as any}
         recordingCount={null}
       />

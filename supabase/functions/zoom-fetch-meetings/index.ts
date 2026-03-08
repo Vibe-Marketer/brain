@@ -323,7 +323,7 @@ Deno.serve(async (req) => {
 
       // Build set of synced recording IDs (UUIDs) for fast lookup
       const syncedIds = new Set(
-        (syncedRecordings || []).map((r: any) => {
+        (syncedRecordings || []).map((r: { source_metadata?: { external_id?: string } }) => {
           const extId = r.source_metadata?.external_id;
           return extId || null;
         }).filter((id: string | null): id is string => id !== null)

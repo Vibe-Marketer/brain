@@ -106,6 +106,7 @@ async function verifyFunctions() {
       console.log('   ✅ Function executed successfully');
       console.log(`   Results: ${data?.length || 0} chunks`);
     }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     console.log('   ❌ Exception:', e.message);
   }

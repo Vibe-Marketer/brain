@@ -336,6 +336,7 @@ export function TranscriptsTab({
         setTotalCount(totalCount);
         onTotalCountChange?.(totalCount);
 
+        /* eslint-disable @typescript-eslint/no-explicit-any */
         const mappedRecordings = (entries || [])
           .filter((e: any) => e.recording)
           .map((e: any) => mapRecordingToMeeting({
@@ -343,6 +344,7 @@ export function TranscriptsTab({
             organization_id: e.recording.organization_id,
             workspace_entry: { id: e.id, folder_id: e.folder_id }
           }));
+        /* eslint-enable @typescript-eslint/no-explicit-any */
 
         return mappedRecordings;
       }
@@ -351,6 +353,7 @@ export function TranscriptsTab({
       // recordings is the single source of truth. No fathom_calls query needed.
 
       const BATCH_SIZE = 1000;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allRecordings: any[] = [];
       let batchOffset = 0;
 
@@ -387,6 +390,7 @@ export function TranscriptsTab({
       }
 
       // Map all recordings to Meeting format for table compatibility
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const allCalls = allRecordings.map((rec: any) => mapRecordingToMeeting(rec));
 
       // Sort by date descending
@@ -932,7 +936,7 @@ export function TranscriptsTab({
         onOpenChange={setSmartExportOpen}
         selectedCalls={validCalls.filter(c => selectedCalls.includes(c.recording_id))}
         folderAssignments={folderAssignments}
-        folders={folders.map(f => ({ id: String(f.id), name: f.name, color: (f as any).color || "" }))}
+        folders={folders.map(f => ({ id: String(f.id), name: f.name, color: f.color || "" }))}
         tagAssignments={tagAssignments}
         tags={tags}
       />

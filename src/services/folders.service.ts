@@ -126,6 +126,7 @@ export async function getFolderAssignments({
   if (!workspaceId && !organizationId) return {}
 
   // 1. Get all folder IDs for this scope
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let folderQuery = (supabase as any)
     .from('folders')
     .select('id')
@@ -138,6 +139,7 @@ export async function getFolderAssignments({
 
   const { data: folderIdsData } = await folderQuery
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const folderIds = (folderIdsData ?? []).map((f: any) => f.id)
 
   if (folderIds.length === 0) return {}
@@ -402,6 +404,7 @@ export async function assignCallToFolder(
     .maybeSingle()
 
   if (rec && workspaceId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: entryError } = await (supabase as any)
       .from('workspace_entries')
       .update({ folder_id: folderId })
@@ -482,6 +485,7 @@ export async function moveCallToFolder(
     .maybeSingle()
 
   if (rec && workspaceId) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error: entryError } = await (supabase as any)
       .from('workspace_entries')
       .update({ folder_id: toFolderId })

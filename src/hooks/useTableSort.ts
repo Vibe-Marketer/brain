@@ -16,8 +16,11 @@ export function useTableSort<T>(data: T[], initialField: string = "date") {
   };
 
   const sortedData = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return [...data].sort((a: any, b: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let aVal: any;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let bVal: any;
 
       // Handle common field patterns
