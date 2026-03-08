@@ -1,4 +1,21 @@
-import { useState, useCallback, useMemo, useEffect } from 'react'
+/**
+ * OrganizationMemberPanel - Slide-in detail panel (4th pane) for org member management
+ *
+ * Features:
+ * - Tabs: "Members" | "Pending Invites"
+ * - Member list with roles, avatars, join dates
+ * - Role management: change member roles (owner can change admin<->member)
+ * - Remove member from org (cascades to all workspace memberships via DB)
+ * - Invite member to org via email
+ * - View and revoke pending invitations
+ *
+ * Security: RLS enforces that only admins/owners can mutate. Client-side
+ * checks are for UX only (hide buttons for non-admins).
+ *
+ * @pattern detail-panel
+ */
+
+import { useState, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -21,133 +38,144 @@ import {
   RiTeamLine,
   RiMoreLine,
   RiShieldUserLine,
-  RiLogoutCircleLine,
   RiDeleteBinLine,
   RiMailLine,
+  RiTimeLine,
+  RiCloseCircleLine,
 } from '@remixicon/react'
 import { usePanelStore } from '@/stores/panelStore'
 import { useAuth } from '@/contexts/AuthContext'
-import { supabase } from '@/integrations/supabase/client'
-import { toast } from 'sonner'
 import { OrganizationInviteDialog } from '@/components/dialogs/OrganizationInviteDialog'
+import {
+  useOrganizationMembers,
+  useOrganizationInvitations,
+  useUpdateOrgMemberRole,
+  useRemoveOrgMember,
+  useRevokeOrgInvitation,
+} from '@/hooks/useOrganizationMembers'
+import type { OrganizationMember, OrganizationRole } from '@/hooks/useOrganizationMembers'
 
-/** Role badge styling */
-const ROLE_BADGE_STYLES: Record<string, { bg: string; text: string }> = {
-  organization_owner: { bg: 'bg-vibe-orange/15', text: 'text-vibe-orange' },
-  organization_admin: { bg: 'bg-info-bg', text: 'text-info-text' },
-  member: { bg: 'bg-neutral-bg', text: 'text-neutral-text' },
+// ─── Constants ──────────────────────────────────────────────────────
+
+type OrgRole = 'organization_owner' | 'organization_admin' | 'member'
+
+const ROLE_BADGE_STYLES: Record<OrgRole, { bg: string; text: string; border: string }> = {
+  organization_owner: { bg: 'bg-vibe-orange/10', text: 'text-vibe-orange', border: 'border-vibe-orange/20' },
+  organization_admin: { bg: 'bg-blue-500/10', text: 'text-blue-500', border: 'border-blue-500/20' },
+  member: { bg: 'bg-muted/50', text: 'text-muted-foreground', border: 'border-border/50' },
 }
 
-export interface OrganizationMember {
-  id: string
-  user_id: string
-  email: string
-  display_name: string
-  role: string
-  created_at: string
+const ROLE_LABELS: Record<OrgRole, string> = {
+  organization_owner: 'Owner',
+  organization_admin: 'Admin',
+  member: 'Member',
 }
 
-export function OrganizationMemberPanel({ organizationId, organizationName }: { organizationId: string, organizationName: string }) {
+type Tab = 'members' | 'invites'
+
+// ─── Sub-components ─────────────────────────────────────────────────
+
+function MemberListSkeleton() {
+  return (
+    <div className="space-y-3 p-4" aria-label="Loading members">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-8 w-8 rounded-full" />
+          <div className="flex-1 space-y-1">
+            <Skeleton className="h-3.5 w-32" />
+            <Skeleton className="h-3 w-24" />
+          </div>
+          <Skeleton className="h-5 w-14" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Main Component ─────────────────────────────────────────────────
+
+export interface OrganizationMemberPanelProps {
+  organizationId: string
+  organizationName: string
+}
+
+export function OrganizationMemberPanel({ organizationId, organizationName }: OrganizationMemberPanelProps) {
   const { closePanel } = usePanelStore()
   const { user } = useAuth()
-  const [members, setMembers] = useState<OrganizationMember[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+
+  // Data hooks
+  const { members, isLoading: membersLoading } = useOrganizationMembers(organizationId)
+  const { invitations, isLoading: invitationsLoading } = useOrganizationInvitations(organizationId)
+
+  // Mutation hooks
+  const updateRole = useUpdateOrgMemberRole(organizationId)
+  const removeMember = useRemoveOrgMember(organizationId)
+  const revokeInvitation = useRevokeOrgInvitation(organizationId)
+
+  // UI state
+  const [activeTab, setActiveTab] = useState<Tab>('members')
   const [searchTerm, setSearchTerm] = useState('')
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
 
-  const fetchMembers = useCallback(async () => {
-    setIsLoading(true)
-    try {
-      // Fetch memberships joined with profiles
-      const { data, error } = await supabase
-        .from('organization_memberships')
-        .select(`
-          id,
-          user_id,
-          role,
-          created_at,
-          profiles:user_profiles!user_id (
-            email,
-            display_name
-          )
-        `)
-        .eq('organization_id', organizationId)
+  // Derived state
+  const currentUserMembership = useMemo(
+    () => members.find((m) => m.user_id === user?.id) || null,
+    [members, user?.id]
+  )
+  const currentUserRole = currentUserMembership?.role || null
+  const canManage = currentUserRole === 'organization_owner' || currentUserRole === 'organization_admin'
+  const isOwner = currentUserRole === 'organization_owner'
 
-      if (error) throw error
-
-      const formattedMembers = (data || []).map((m: any) => ({
-        id: m.id,
-        user_id: m.user_id,
-        role: m.role,
-        created_at: m.created_at,
-        email: m.profiles?.email || '',
-        display_name: m.profiles?.display_name || ''
-      }))
-
-      setMembers(formattedMembers)
-    } catch (error: any) {
-      toast.error('Failed to load members')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [organizationId])
-
-  useEffect(() => {
-    fetchMembers()
-  }, [fetchMembers])
+  const ownerCount = useMemo(
+    () => members.filter((m) => m.role === 'organization_owner').length,
+    [members]
+  )
 
   const filteredMembers = useMemo(() => {
-    return members.filter(m => 
-      m.display_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      m.email?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
+    if (!searchTerm.trim()) return members
+    const term = searchTerm.trim().toLowerCase()
+    return members.filter((m) => {
+      const name = m.display_name?.toLowerCase() || ''
+      const email = m.email?.toLowerCase() || ''
+      return name.includes(term) || email.includes(term)
+    })
   }, [members, searchTerm])
 
-  const currentUserMembership = members.find(m => m.user_id === user?.id)
-  const currentUserRole = currentUserMembership?.role
-  const canManage = currentUserRole === 'organization_owner' || currentUserRole === 'organization_admin'
+  const pendingInvitations = useMemo(
+    () => invitations.filter((inv) => inv.status === 'pending'),
+    [invitations]
+  )
 
-  const handleRemoveMember = async (member: OrganizationMember) => {
-    if (member.role === 'organization_owner') {
-      toast.error('Cannot remove organization owner')
-      return
-    }
-    if (!confirm(`Remove ${member.display_name || member.email} from organization?`)) return
+  // Handlers
+  const handleChangeRole = useCallback(
+    (member: OrganizationMember, newRole: OrganizationRole) => {
+      updateRole.mutate({ membershipId: member.id, newRole })
+    },
+    [updateRole]
+  )
 
-    try {
-      const { error } = await supabase
-        .from('organization_memberships')
-        .delete()
-        .eq('id', member.id)
-      
-      if (error) throw error
-      toast.success('Member removed')
-      fetchMembers()
-    } catch (error: any) {
-      toast.error('Failed to remove member')
-    }
-  }
+  const handleRemoveMember = useCallback(
+    (member: OrganizationMember) => {
+      if (member.role === 'organization_owner' && ownerCount <= 1) return
+      if (!confirm(`Remove ${member.display_name || member.email} from this organization? This will also remove them from all workspaces.`)) return
+      removeMember.mutate({ membershipId: member.id })
+    },
+    [removeMember, ownerCount]
+  )
 
-  const handleChangeRole = async (member: OrganizationMember, newRole: string) => {
-    if (member.role === 'organization_owner') return
+  const handleRevokeInvitation = useCallback(
+    (invitationId: string) => {
+      if (!confirm('Revoke this invitation?')) return
+      revokeInvitation.mutate({ invitationId })
+    },
+    [revokeInvitation]
+  )
 
-    try {
-      const { error } = await supabase
-        .from('organization_memberships')
-        .update({ role: newRole })
-        .eq('id', member.id)
-      
-      if (error) throw error
-      toast.success('Role updated')
-      fetchMembers()
-    } catch (error: any) {
-      toast.error('Failed to update role')
-    }
-  }
+  const showSearch = members.length > 5
 
   return (
     <div className="h-full flex flex-col bg-card/30 backdrop-blur-xl">
-      {/* Premium Header */}
+      {/* Header */}
       <header className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="w-8 h-8 rounded-xl bg-vibe-orange/10 flex items-center justify-center border border-vibe-orange/20">
@@ -173,86 +201,292 @@ export function OrganizationMemberPanel({ organizationId, organizationName }: { 
         </Button>
       </header>
 
-      <ScrollArea className="flex-1">
-        <div className="p-3 space-y-4">
-          <div className="flex items-center gap-2">
-            <Input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search members"
-              className="h-8 text-xs"
-            />
-            {canManage && (
-              <Button size="sm" className="h-8 px-2" onClick={() => setInviteDialogOpen(true)}>
-                <RiUserAddLine className="h-3.5 w-3.5" />
-              </Button>
+      {/* Tabs */}
+      <div className="flex border-b border-border/40 px-3 flex-shrink-0">
+        <button
+          className={cn(
+            'px-3 py-2 text-xs font-medium transition-colors relative',
+            activeTab === 'members'
+              ? 'text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+          onClick={() => setActiveTab('members')}
+        >
+          Members
+          <Badge variant="secondary" className="ml-1.5 text-[9px] px-1 h-4 min-w-[16px]">
+            {members.length}
+          </Badge>
+          {activeTab === 'members' && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-vibe-orange rounded-full" />
+          )}
+        </button>
+        {canManage && (
+          <button
+            className={cn(
+              'px-3 py-2 text-xs font-medium transition-colors relative',
+              activeTab === 'invites'
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
             )}
-          </div>
+            onClick={() => setActiveTab('invites')}
+          >
+            Pending Invites
+            {pendingInvitations.length > 0 && (
+              <Badge variant="secondary" className="ml-1.5 text-[9px] px-1 h-4 min-w-[16px]">
+                {pendingInvitations.length}
+              </Badge>
+            )}
+            {activeTab === 'invites' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-vibe-orange rounded-full" />
+            )}
+          </button>
+        )}
+      </div>
 
-          {isLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="flex items-center gap-3">
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                  <div className="flex-1 space-y-1">
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="h-2 w-32" />
-                  </div>
-                </div>
-              ))}
+      {/* Content */}
+      <ScrollArea className="flex-1">
+        {activeTab === 'members' ? (
+          <div className="p-3 space-y-2">
+            {/* Search + Invite */}
+            <div className="flex items-center gap-2">
+              {showSearch && (
+                <Input
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search members"
+                  className="h-8 text-xs flex-1"
+                  aria-label="Search organization members"
+                />
+              )}
+              {canManage && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 flex-shrink-0"
+                  onClick={() => setInviteDialogOpen(true)}
+                  aria-label="Invite member"
+                >
+                  <RiUserAddLine className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                  <span className="text-xs">Invite</span>
+                </Button>
+              )}
             </div>
-          ) : (
-            <div className="space-y-1">
-              {filteredMembers.map(member => (
-                <div key={member.id} className="group flex items-center gap-3 p-2 rounded-md hover:bg-accent/50 transition-colors">
-                  <div className="h-8 w-8 rounded-full bg-vibe-orange/10 flex items-center justify-center border border-vibe-orange/20">
-                    <RiUserLine className="h-4 w-4 text-vibe-orange" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-sm font-medium truncate">{member.display_name || 'No Name'}</span>
-                      {member.user_id === user?.id && (
-                        <Badge variant="secondary" className="text-[10px] px-1 h-3.5 bg-vibe-orange/10 text-vibe-orange border-none">You</Badge>
+
+            {/* Member list */}
+            {membersLoading ? (
+              <MemberListSkeleton />
+            ) : filteredMembers.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4">
+                <RiTeamLine className="h-12 w-12 text-muted-foreground/50 mb-3" aria-hidden="true" />
+                <p className="text-sm font-medium text-foreground mb-1">
+                  {searchTerm ? 'No matches' : 'No members yet'}
+                </p>
+                <p className="text-xs text-muted-foreground text-center">
+                  {searchTerm ? 'Try a different search term.' : 'Invite team members to collaborate.'}
+                </p>
+              </div>
+            ) : (
+              filteredMembers.map((member) => {
+                const roleKey = member.role as OrgRole
+                const roleStyle = ROLE_BADGE_STYLES[roleKey] || ROLE_BADGE_STYLES.member
+                const roleLabel = ROLE_LABELS[roleKey] || member.role
+                const joinDate = member.created_at
+                  ? format(new Date(member.created_at), 'MMM d, yyyy')
+                  : null
+                const isCurrentUser = member.user_id === user?.id
+                const isMemberOwner = member.role === 'organization_owner'
+                // Owners can change anyone except themselves; admins can change members only
+                const canChangeThisMember =
+                  canManage && !isCurrentUser && !isMemberOwner
+                // Cannot remove last owner
+                const canRemoveThisMember =
+                  canChangeThisMember && !(isMemberOwner && ownerCount <= 1)
+
+                return (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-border/40 group"
+                  >
+                    {/* Avatar */}
+                    {member.avatar_url ? (
+                      <img
+                        src={member.avatar_url}
+                        alt=""
+                        className="h-8 w-8 rounded-full object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                        <RiUserLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                      </div>
+                    )}
+
+                    {/* Name + email + join date */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium text-foreground truncate">
+                          {member.display_name || member.email || 'Unknown user'}
+                        </p>
+                        {isCurrentUser && (
+                          <Badge
+                            variant="outline"
+                            className="text-[9px] px-1 py-0 h-4 uppercase tracking-wider"
+                          >
+                            You
+                          </Badge>
+                        )}
+                      </div>
+                      {member.display_name && member.email && (
+                        <p className="text-xs text-muted-foreground truncate">{member.email}</p>
+                      )}
+                      {joinDate && (
+                        <p className="text-[10px] text-muted-foreground/70">Joined {joinDate}</p>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground truncate">{member.email}</span>
-                      <span className="text-[10px] text-muted-foreground/60">•</span>
-                      <span className={cn("text-[10px] font-medium uppercase tracking-wider", ROLE_BADGE_STYLES[member.role]?.text)}>
-                        {member.role.replace('organization_', '')}
-                      </span>
-                    </div>
+
+                    {/* Role badge */}
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        'text-[9px] px-1.5 py-0 h-5 uppercase tracking-[0.1em] font-bold border flex-shrink-0',
+                        roleStyle.bg,
+                        roleStyle.text,
+                        roleStyle.border
+                      )}
+                    >
+                      {roleLabel}
+                    </Badge>
+
+                    {/* Actions dropdown */}
+                    {canChangeThisMember && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                            aria-label="Member actions"
+                          >
+                            <RiMoreLine className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          {/* Role changes */}
+                          {isOwner && member.role !== 'organization_admin' && (
+                            <DropdownMenuItem onClick={() => handleChangeRole(member, 'organization_admin')}>
+                              <RiShieldUserLine className="h-4 w-4 mr-2" />
+                              Make Admin
+                            </DropdownMenuItem>
+                          )}
+                          {canManage && member.role !== 'member' && (
+                            <DropdownMenuItem onClick={() => handleChangeRole(member, 'member')}>
+                              <RiUserLine className="h-4 w-4 mr-2" />
+                              Make Member
+                            </DropdownMenuItem>
+                          )}
+
+                          {/* Remove */}
+                          {canRemoveThisMember && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => handleRemoveMember(member)}
+                              >
+                                <RiDeleteBinLine className="h-4 w-4 mr-2" />
+                                Remove from Org
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </div>
-                  
-                  {canManage && member.user_id !== user?.id && member.role !== 'organization_owner' && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <RiMoreLine className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleChangeRole(member, 'organization_admin')}>
-                          Make Admin
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleChangeRole(member, 'member')}>
-                          Make Member
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive focus:text-destructive" onClick={() => handleRemoveMember(member)}>
-                          <RiDeleteBinLine className="h-3.5 w-3.5 mr-2" />
-                          Remove
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+                )
+              })
+            )}
+          </div>
+        ) : (
+          /* Pending Invites Tab */
+          <div className="p-3 space-y-2">
+            {canManage && (
+              <div className="pb-2 mb-2 border-b border-border/30">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setInviteDialogOpen(true)}
+                  aria-label="Invite member"
+                >
+                  <RiUserAddLine className="h-3.5 w-3.5 mr-2" aria-hidden="true" />
+                  Send New Invite
+                </Button>
+              </div>
+            )}
+
+            {invitationsLoading ? (
+              <MemberListSkeleton />
+            ) : pendingInvitations.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 px-4">
+                <RiMailLine className="h-12 w-12 text-muted-foreground/50 mb-3" aria-hidden="true" />
+                <p className="text-sm font-medium text-foreground mb-1">No pending invites</p>
+                <p className="text-xs text-muted-foreground text-center">
+                  Invite teammates to join this organization.
+                </p>
+              </div>
+            ) : (
+              pendingInvitations.map((invitation) => {
+                const roleLabel = ROLE_LABELS[invitation.role as OrgRole] || invitation.role
+                const expiresDate = invitation.expires_at
+                  ? format(new Date(invitation.expires_at), 'MMM d, yyyy')
+                  : null
+
+                return (
+                  <div
+                    key={invitation.id}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-border/40 group"
+                  >
+                    <div className="h-8 w-8 rounded-full bg-muted/60 flex items-center justify-center flex-shrink-0">
+                      <RiMailLine className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">
+                        {invitation.email}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground/70 uppercase tracking-wider">
+                          {roleLabel}
+                        </span>
+                        {expiresDate && (
+                          <>
+                            <span className="text-[10px] text-muted-foreground/40">|</span>
+                            <span className="text-[10px] text-muted-foreground/70 flex items-center gap-0.5">
+                              <RiTimeLine className="h-2.5 w-2.5" aria-hidden="true" />
+                              Expires {expiresDate}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 text-destructive hover:text-destructive"
+                      onClick={() => handleRevokeInvitation(invitation.id)}
+                      aria-label="Revoke invitation"
+                    >
+                      <RiCloseCircleLine className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )
+              })
+            )}
+          </div>
+        )}
       </ScrollArea>
 
+      {/* Invite Dialog */}
       <OrganizationInviteDialog
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}

@@ -132,6 +132,7 @@ export const queryKeys = {
     list: () => ['organizations', 'list'] as const,
     detail: (orgId: string) => ['organizations', 'detail', orgId] as const,
     members: (orgId: string) => ['organizations', 'members', orgId] as const,
+    invitations: (orgId: string) => ['organizations', 'invitations', orgId] as const,
   },
 
   // Imports (V2 architecture)
