@@ -219,7 +219,7 @@ export function TranscriptsTab({
 
     const currentTab = newParams.get("tab");
 
-    ["from", "to", "participants", "categories", "durMin", "durMax", "tags", "folders"].forEach(key => {
+    ["from", "to", "participants", "categories", "durMin", "durMax", "tags", "folders", "sources"].forEach(key => {
       newParams.delete(key);
     });
 
@@ -259,7 +259,7 @@ export function TranscriptsTab({
 
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading } = useQuery({
-    queryKey: ["tag-calls", searchQuery, combinedFilters, page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, activeWorkspace?.workspace_type, selectedFolderId],
+    queryKey: ["tag-calls", searchQuery, JSON.stringify(combinedFilters), page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, activeWorkspace?.workspace_type, selectedFolderId],
     enabled: isInitialized,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -335,6 +335,27 @@ export function TranscriptsTab({
           entryQuery = entryQuery.in('recording_id', recUuids);
         }
 
+        // Apply search filter on recordings (title, summary, transcript)
+        if (syntax.plainText) {
+          entryQuery = entryQuery.or(
+            `title.ilike.%${syntax.plainText}%,summary.ilike.%${syntax.plainText}%,full_transcript.ilike.%${syntax.plainText}%`,
+            { referencedTable: 'recordings' }
+          );
+        }
+
+        // Apply date filters
+        if (combinedFilters.dateFrom) {
+          entryQuery = entryQuery.gte('recording.created_at', combinedFilters.dateFrom.toISOString());
+        }
+        if (combinedFilters.dateTo) {
+          entryQuery = entryQuery.lte('recording.created_at', combinedFilters.dateTo.toISOString());
+        }
+
+        // Apply source filter
+        if (combinedFilters.sources && combinedFilters.sources.length > 0) {
+          entryQuery = entryQuery.in('recording.source_app', combinedFilters.sources);
+        }
+
         const { data: entries, error: entryError, count } = await entryQuery
           .order('created_at', { ascending: false })
           .range(offset, offset + pageSize - 1);
@@ -345,13 +366,30 @@ export function TranscriptsTab({
         setTotalCount(totalCount);
         onTotalCountChange?.(totalCount);
 
-        const mappedRecordings = (entries || [])
+        let mappedRecordings = (entries || [])
           .filter((e: any) => e.recording)
           .map((e: any) => mapRecordingToMeeting({
             ...e.recording,
             organization_id: e.recording.organization_id,
             workspace_entry: { id: e.id, folder_id: e.folder_id }
           }));
+
+        // Client-side duration filter (duration is in seconds in the DB)
+        if (combinedFilters.durationMin !== undefined || combinedFilters.durationMax !== undefined) {
+          mappedRecordings = mappedRecordings.filter((call: any) => {
+            const durationMin = call.source_metadata?.duration_seconds
+              ?? (call.recording_start_time && call.recording_end_time
+                ? (new Date(call.recording_end_time).getTime() - new Date(call.recording_start_time).getTime()) / 60000
+                : null);
+            if (durationMin === null) return true;
+            const durationMinutes = typeof durationMin === 'number' && durationMin > 1000
+              ? durationMin / 60 // was in seconds
+              : durationMin;
+            if (combinedFilters.durationMin !== undefined && durationMinutes < combinedFilters.durationMin) return false;
+            if (combinedFilters.durationMax !== undefined && durationMinutes > combinedFilters.durationMax) return false;
+            return true;
+          });
+        }
 
         return mappedRecordings;
       }
@@ -430,6 +468,10 @@ export function TranscriptsTab({
         }
         if (combinedFilters.dateTo) {
           q = q.lte('created_at', combinedFilters.dateTo.toISOString());
+        }
+        // Source filter
+        if (combinedFilters.sources && combinedFilters.sources.length > 0) {
+          q = q.in('source_app', combinedFilters.sources);
         }
 
         const { data, error } = await q.range(batchOffset, batchOffset + BATCH_SIZE - 1);

@@ -12,6 +12,7 @@ export interface FilterState {
   status: string[];
   tags?: string[];
   folders?: string[];
+  sources?: string[];
 }
 
 export interface SearchSyntax {
@@ -24,6 +25,7 @@ export interface SearchSyntax {
     status?: string[];
     tag?: string[];
     folder?: string[];
+    source?: string[];
   };
 }
 
@@ -87,6 +89,11 @@ export function parseSearchSyntax(query: string): SearchSyntax {
         case 'f':
           if (!result.filters.folder) result.filters.folder = [];
           result.filters.folder.push(value);
+          break;
+        case 'source':
+        case 'src':
+          if (!result.filters.source) result.filters.source = [];
+          result.filters.source.push(value);
           break;
         default:
           plainTextParts.push(part);
@@ -176,6 +183,9 @@ export function syntaxToFilters(syntax: SearchSyntax): Partial<FilterState> {
   if (syntax.filters.folder) {
     filters.folders = syntax.filters.folder;
   }
+  if (syntax.filters.source) {
+    filters.sources = syntax.filters.source;
+  }
 
   return filters;
 }
@@ -213,6 +223,9 @@ export function filtersToURLParams(filters: Partial<FilterState>): URLSearchPara
   if (filters.folders && filters.folders.length > 0) {
     params.set('folders', filters.folders.join(','));
   }
+  if (filters.sources && filters.sources.length > 0) {
+    params.set('sources', filters.sources.join(','));
+  }
 
   return params;
 }
@@ -232,6 +245,7 @@ export function urlParamsToFilters(params: URLSearchParams): Partial<FilterState
   const status = params.get('status');
   const tags = params.get('tags');
   const folders = params.get('folders');
+  const sources = params.get('sources');
 
   if (from) filters.dateFrom = new Date(from);
   if (to) filters.dateTo = new Date(to);
@@ -242,6 +256,7 @@ export function urlParamsToFilters(params: URLSearchParams): Partial<FilterState
   if (status) filters.status = status.split(',');
   if (tags) filters.tags = tags.split(',');
   if (folders) filters.folders = folders.split(',');
+  if (sources) filters.sources = sources.split(',');
 
   return filters;
 }
