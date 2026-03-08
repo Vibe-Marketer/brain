@@ -20,6 +20,11 @@ jobs:
       - name: Node.js Lint
         run: npm ci && npm run lint
 
+      # Install Deno for edge function linting
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       # Deno format/lint for edge functions
       - name: Deno Lint
         run: |
