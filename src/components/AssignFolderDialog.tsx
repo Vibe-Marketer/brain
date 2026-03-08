@@ -318,16 +318,6 @@ export default function AssignFolderDialog({
       });
       if (personalToAdd.length > 0) await (supabase as any).from('personal_folder_recordings').insert(personalToAdd);
 
-      // 3. Update workspace_entries (Legacy logic)
-      if (activeWorkspaceId && legacySelected.size > 0) {
-        const primaryFolderId = Array.from(legacySelected)[0];
-        const { data: recs } = await supabase.from('recordings').select('id').in('legacy_recording_id', numericRecordingIds);
-        if (recs && recs.length > 0) {
-          await (supabase as any).from('workspace_entries').update({ folder_id: primaryFolderId })
-            .in('recording_id', recs.map(r => r.id)).eq('workspace_id', activeWorkspaceId);
-        }
-      }
-
       const count = targetRecordingIds.length;
       const folderCount = selectedFolders.size;
 
