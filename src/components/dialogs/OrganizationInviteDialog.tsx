@@ -55,7 +55,7 @@ export function OrganizationInviteDialog({
     setIsSubmitting(true)
     try {
       const invite = await createOrganizationInvitation(organizationId, email, role)
-      const url = getShareableLink(invite.token) // Note: getShareableLink needs to be implemented or imported
+      const url = getShareableLink(invite.invite_token)
       setInviteUrl(url)
       toast.success(`Invite created for ${email}`)
     } catch (error: any) {

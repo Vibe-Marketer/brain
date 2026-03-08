@@ -46,7 +46,7 @@ DECLARE
 BEGIN
   -- Verify the calling user matches the p_user_id parameter
   IF auth.uid() IS DISTINCT FROM p_user_id THEN
-    RETURN jsonb_build_object('error', 'User ID mismatch');
+    RAISE EXCEPTION 'User ID mismatch';
   END IF;
 
   -- Look up the invitation
@@ -58,7 +58,7 @@ BEGIN
   FOR UPDATE;
 
   IF NOT FOUND THEN
-    RETURN jsonb_build_object('error', 'Invitation not found, already used, or expired');
+    RAISE EXCEPTION 'Invitation not found, already used, or expired';
   END IF;
 
   -- Verify the invited email matches the authenticated user's email
@@ -67,7 +67,7 @@ BEGIN
   WHERE id = p_user_id;
 
   IF v_user_email IS DISTINCT FROM v_invitation.email THEN
-    RETURN jsonb_build_object('error', 'This invitation was sent to a different email address');
+    RAISE EXCEPTION 'This invitation was sent to a different email address';
   END IF;
 
   -- Create organization membership

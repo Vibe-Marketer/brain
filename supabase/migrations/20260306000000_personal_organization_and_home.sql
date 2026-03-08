@@ -109,13 +109,8 @@ USING (
   )
 );
 
--- Anyone can read an invite if they have the token (for the join page)
-CREATE POLICY "Anyone can look up a valid invite by token" 
-ON organization_invitations 
-FOR SELECT 
-USING (
-  status = 'pending' AND expires_at > NOW()
-);
+-- Invite lookup for join page is done via SECURITY DEFINER RPC (get_organization_invite_details).
+-- No broad SELECT policy needed — that would expose all pending invites to any user.
 
 -- Org Admins and Owners can see all recordings in their org
 CREATE POLICY "Org Admins can view all recordings in org"

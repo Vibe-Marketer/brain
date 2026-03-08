@@ -40,9 +40,10 @@ BEGIN
     SELECT * INTO v_recording FROM recordings WHERE id = v_recording_id;
 
     IF v_recording IS NOT NULL THEN
-      -- Verify caller has access to the source recording's organization
-      IF NOT is_organization_member(v_recording.organization_id, auth.uid()) THEN
-        RAISE EXCEPTION 'Access denied: not a member of source organization for recording %', v_recording_id;
+      -- Verify caller owns this recording or is a member of the source org
+      IF v_recording.owner_user_id IS DISTINCT FROM auth.uid()
+         AND NOT is_organization_member(v_recording.organization_id, auth.uid()) THEN
+        RAISE EXCEPTION 'Access denied: no access to recording %', v_recording_id;
       END IF;
       -- Create new recording in target organization
       INSERT INTO recordings (
@@ -93,12 +94,13 @@ BEGIN
         NOW()
       );
 
-      -- Optional: Remove from source org?
-      -- The spec says we should only do this if it was the ONLY copy? 
-      -- Or just delete the recording from the source org?
+      -- Optional: Remove from source org (only if caller owns the recording)
       IF p_remove_source THEN
-        -- Note: RLS and integrity might prevent this if there are other entries
-        -- But for now, we follow the instruction.
+        IF v_recording.owner_user_id IS DISTINCT FROM auth.uid() THEN
+          RAISE EXCEPTION 'Access denied: only the owner can remove source recording %', v_recording_id;
+        END IF;
+        -- Remove workspace entries first so the delete trigger doesn't block
+        DELETE FROM workspace_entries WHERE recording_id = v_recording_id;
         DELETE FROM recordings WHERE id = v_recording_id;
       END IF;
 

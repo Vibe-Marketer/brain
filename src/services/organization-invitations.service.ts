@@ -6,7 +6,7 @@ export interface OrganizationInvitation {
   invited_by: string
   email: string
   role: 'organization_owner' | 'organization_admin' | 'member'
-  token: string
+  invite_token: string
   status: 'pending' | 'accepted' | 'expired' | 'revoked'
   expires_at: string
   created_at: string
@@ -73,26 +73,21 @@ export async function revokeOrganizationInvitation(invitationId: string): Promis
 }
 
 export async function getOrganizationInviteDetails(token: string): Promise<OrganizationInviteDetails> {
-  // We can query the table directly if the RLS allows it (which it does for pending ones)
-  const { data, error } = await (supabase as any)
-    .from('organization_invitations')
-    .select(`
-      role,
-      expires_at,
-      organization:organizations ( name ),
-      inviter:profiles!invited_by ( display_name, email )
-    `)
-    .eq('invite_token', token)
-    .eq('status', 'pending')
-    .single()
+  // Use the SECURITY DEFINER RPC which bypasses RLS and has correct joins
+  const { data, error } = await (supabase as any).rpc('get_organization_invite_details', {
+    p_token: token,
+  })
 
-  if (error || !data) throw new Error('Invitation not found or has expired')
+  if (error) throw new Error('Invitation not found or has expired')
+
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row) throw new Error('Invitation not found or has expired')
 
   return {
-    organization_name: data.organization.name,
-    inviter_name: data.inviter.display_name || data.inviter.email,
-    role: data.role,
-    expires_at: data.expires_at,
+    organization_name: row.organization_name,
+    inviter_name: row.inviter_display_name,
+    role: row.role,
+    expires_at: row.expires_at,
   }
 }
 
@@ -110,5 +105,5 @@ export async function acceptOrganizationInvite(token: string): Promise<void> {
 }
 
 export function getShareableLink(token: string): string {
-  return `${window.location.origin}/join/organization/${token}`
+  return `${window.location.origin}/join/org/${token}`
 }
