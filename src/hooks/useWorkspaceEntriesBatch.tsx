@@ -1,7 +1,7 @@
-import { createContext, useContext, useMemo } from 'react'
+import { createContext, useContext, useMemo, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
 import { queryKeys } from '@/lib/query-config'
+import { getWorkspaceEntriesByRecordings } from '@/services/workspace-entries.service'
 import type { WorkspaceEntry } from '@/types/workspace'
 
 /**
@@ -36,17 +36,7 @@ export function useWorkspaceEntriesBatch() {
 function useWorkspaceEntriesBatchQuery(recordingIds: string[]) {
   return useQuery({
     queryKey: queryKeys.workspaceEntries.byRecordingBatch(recordingIds),
-    queryFn: async (): Promise<WorkspaceEntry[]> => {
-      if (recordingIds.length === 0) return []
-
-      const { data, error } = await supabase
-        .from('workspace_entries')
-        .select('id, workspace_id:workspace_id, recording_id, folder_id, local_tags, scores, notes, created_at, updated_at')
-        .in('recording_id', recordingIds)
-
-      if (error) throw error
-      return (data || []) as WorkspaceEntry[]
-    },
+    queryFn: () => getWorkspaceEntriesByRecordings(recordingIds),
     enabled: recordingIds.length > 0,
     staleTime: 2 * 60 * 1000, // 2 minutes — same as individual queries
   })
@@ -55,7 +45,7 @@ function useWorkspaceEntriesBatchQuery(recordingIds: string[]) {
 interface WorkspaceEntriesBatchProviderProps {
   /** Recording UUIDs to batch-fetch entries for */
   recordingIds: string[]
-  children: React.ReactNode
+  children: ReactNode
 }
 
 /**
