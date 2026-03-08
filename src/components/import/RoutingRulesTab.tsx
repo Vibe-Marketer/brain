@@ -3,7 +3,7 @@
  */
 
 import { useState } from 'react';
-import { RiRouteLine } from '@remixicon/react';
+import { RiRouteLine, RiPlayCircleLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useRoutingRules, useRoutingDefault, useReorderRules, useToggleRule } from '@/hooks/useRoutingRules';
 import { useRoutingRuleStore } from '@/stores/routingRuleStore';
@@ -12,6 +12,7 @@ import { useOrgContextStore } from '@/stores/orgContextStore';
 import { DefaultDestinationBar } from './DefaultDestinationBar';
 import { RoutingRulesList } from './RoutingRulesList';
 import { RoutingRuleSlideOver } from './RoutingRuleSlideOver';
+import { BulkApplyDialog } from './BulkApplyDialog';
 
 function HelpContent() {
   return (
@@ -21,7 +22,7 @@ function HelpContent() {
         <li>Rules are evaluated top-to-bottom in priority order</li>
         <li>The first matching rule wins — lower rules are skipped</li>
         <li>Calls that match no rule go to the default destination</li>
-        <li>Rules only apply to newly imported calls — not historical data</li>
+        <li>Rules apply to new imports automatically — use "Apply to existing" for older calls</li>
         <li>Drag rule cards to reorder their priority</li>
       </ul>
     </div>
@@ -30,6 +31,7 @@ function HelpContent() {
 
 export function RoutingRulesTab() {
   const [showHelp, setShowHelp] = useState(false);
+  const [bulkApplyOpen, setBulkApplyOpen] = useState(false);
 
   const activeOrgId = useOrgContextStore((s) => s.activeOrgId);
   const { data: rules = [], isLoading: rulesLoading } = useRoutingRules();
@@ -111,6 +113,19 @@ export function RoutingRulesTab() {
           >
             Create Rule
           </button>
+          <button
+            type="button"
+            onClick={() => setBulkApplyOpen(true)}
+            className={cn(
+              'inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-semibold',
+              'border border-border/60 text-foreground',
+              'hover:bg-muted transition-colors',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            )}
+          >
+            <RiPlayCircleLine size={16} />
+            Apply to existing
+          </button>
           {!hasDefault && (
             <p className="text-xs text-amber-500">
               Set a default destination above before creating rules
@@ -176,6 +191,7 @@ export function RoutingRulesTab() {
       )}
 
       <RoutingRuleSlideOver />
+      <BulkApplyDialog open={bulkApplyOpen} onOpenChange={setBulkApplyOpen} />
     </div>
   );
 }
