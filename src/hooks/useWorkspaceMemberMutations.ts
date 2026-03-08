@@ -77,8 +77,7 @@ export function useGenerateWorkspaceInvite(workspaceId: string) {
       if (!user) throw new Error('Not authenticated')
 
       // Permission check: must be workspace_owner or workspace_admin
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: membership } = await (supabase as any)
+      const { data: membership } = await supabase
         .from('workspace_memberships')
         .select('role')
         .eq('workspace_id', workspaceId)
@@ -92,8 +91,7 @@ export function useGenerateWorkspaceInvite(workspaceId: string) {
 
       // Check if workspace already has a valid invite token
       // Preferred path: SECURITY DEFINER RPC handles permissions and token generation
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: rpcData, error: rpcError } = await (supabase as any).rpc('generate_workspace_invite', {
+      const { data: rpcData, error: rpcError } = await supabase.rpc('generate_workspace_invite', {
         p_workspace_id: workspaceId,
         p_force: !!options?.force,
       })
@@ -111,8 +109,7 @@ export function useGenerateWorkspaceInvite(workspaceId: string) {
       const inviteToken = generateInviteToken()
       const inviteExpiresAt = getInviteExpiration()
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error: updateError } = await (supabase as any)
+      const { error: updateError } = await supabase
         .from('workspaces')
         .update({
           invite_token: inviteToken,
@@ -190,8 +187,7 @@ export function useChangeRole(workspaceId: string) {
       }
 
       // Update the membership
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('workspace_memberships')
         .update({ role: newRole })
         .eq('id', membershipId)
@@ -239,8 +235,7 @@ export function useRemoveMember(workspaceId: string) {
         throw new Error('Cannot remove the workspace owner')
       }
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('workspace_memberships')
         .delete()
         .eq('id', membershipId)
@@ -279,8 +274,7 @@ export function useLeaveWorkspace(workspaceId: string) {
 
       if (!user) throw new Error('Not authenticated')
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('workspace_memberships')
         .delete()
         .eq('id', membershipId)

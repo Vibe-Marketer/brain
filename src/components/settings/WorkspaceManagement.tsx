@@ -70,9 +70,6 @@ interface WorkspaceQueryResult {
   }>
 }
 
-// Type-safe supabase client wrapper for tables not yet in generated types
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any
 
 export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementProps) {
   const navigate = useNavigate()
@@ -86,7 +83,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
   const { data: workspaces, isLoading } = useQuery({
     queryKey: queryKeys.workspaces.list(orgId),
     queryFn: async (): Promise<WorkspaceQueryResult[]> => {
-      const { data, error } = await db
+      const { data, error } = await supabase
         .from('workspaces')
         .select(`
           id,
@@ -117,7 +114,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
   const createWorkspace = useMutation({
     mutationFn: async ({ name, type }: { name: string; type: WorkspaceType }) => {
       // Create workspace
-      const { data: workspace, error: workspaceError } = await db
+      const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
         .insert({
           organization_id: orgId,
@@ -130,7 +127,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
       if (workspaceError) throw workspaceError
 
       // Create workspace membership for creator as owner
-      const { error: membershipError } = await db
+      const { error: membershipError } = await supabase
         .from('workspace_memberships')
         .insert({
           workspace_id: workspace.id,

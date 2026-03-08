@@ -30,7 +30,7 @@ export async function moveRecordingsToWorkspace(
     recording_id: id,
   }))
 
-  const { error: insertError } = await (supabase as any)
+  const { error: insertError } = await supabase
     .from('workspace_entries')
     .upsert(entries, { onConflict: 'workspace_id,recording_id' })
 
@@ -38,7 +38,7 @@ export async function moveRecordingsToWorkspace(
 
   // 2. Remove from source workspace if requested and not the same as target
   if (!keepInSource && sourceWorkspaceId && sourceWorkspaceId !== targetWorkspaceId) {
-    const { error: deleteError } = await (supabase as any)
+    const { error: deleteError } = await supabase
       .from('workspace_entries')
       .delete()
       .eq('workspace_id', sourceWorkspaceId)
@@ -65,6 +65,7 @@ export async function copyRecordingsToOrganization(
   const { removeSource = false } = options
 
   // For now, we'll use an RPC for this complex operation
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any).rpc('copy_recordings_to_organization', {
     p_recording_ids: recordingIds,
     p_target_organization_id: targetOrgId,

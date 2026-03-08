@@ -51,8 +51,7 @@ export async function getRecordings(): Promise<RecordingListItem[]> {
  */
 export async function getRecordingsByWorkspace(workspaceId: string): Promise<RecordingListItem[]> {
   // Step 1: Get recording IDs from workspace_entries
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: entries, error: entriesError } = await (supabase as any)
+  const { data: entries, error: entriesError } = await supabase
     .from('workspace_entries')
     .select('recording_id')
     .eq('workspace_id', workspaceId)

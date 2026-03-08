@@ -16,9 +16,6 @@ import { toast } from 'sonner'
 import { useNavigate } from 'react-router-dom'
 import type { OrganizationWithMembership } from '@/types/workspace'
 
-// Type-safe supabase client wrapper for tables not yet in generated types
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const db = supabase as any
 
 // ─── Create Business Organization ───────────────────────────────────
 
@@ -54,7 +51,7 @@ export function useCreateBusinessOrganization() {
         throw new Error('Organization name must be between 3 and 50 characters')
       }
 
-      const { data: createResult, error: createError } = await db
+      const { data: createResult, error: createError } = await supabase
         .rpc('create_business_organization', {
           p_name: orgName,
           p_cross_org_default: input.crossOrganizationDefault || 'copy_only',
@@ -68,7 +65,7 @@ export function useCreateBusinessOrganization() {
         throw new Error('Business organization creation did not return an organization id')
       }
 
-      const { data: organization, error: orgError } = await db
+      const { data: organization, error: orgError } = await supabase
         .from('organizations')
         .select('*')
         .eq('id', createResult.organization_id)
@@ -148,7 +145,7 @@ export function useDeleteOrganization() {
         const personalOrg = organizations.find((b: OrganizationWithMembership) => b.type === 'personal')
         if (personalOrg) {
           // Update recordings to point to personal organization
-          const { error: moveError } = await db
+          const { error: moveError } = await supabase
             .from('recordings')
             .update({ organization_id: personalOrg.id })
             .eq('organization_id', input.organizationId)
@@ -158,7 +155,7 @@ export function useDeleteOrganization() {
       }
 
       // Delete the organization (cascading deletes handle workspaces, memberships, workspace_entries)
-      const { error: deleteError } = await db
+      const { error: deleteError } = await supabase
         .from('organizations')
         .delete()
         .eq('id', input.organizationId)

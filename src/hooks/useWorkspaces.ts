@@ -85,13 +85,15 @@ export function useWorkspaces(orgId: string | null) {
       if (queryError) throw queryError
 
       // Filter to only workspaces in the specified organization
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const orgWorkspaces = (memberships || []).filter((m: any) => m.workspace && m.workspace.organization_id === orgId)
+      type MembershipWithWorkspace = (typeof memberships)[number]
+      const orgWorkspaces = (memberships || []).filter((m: MembershipWithWorkspace) => {
+        const ws = m.workspace as Record<string, unknown> | null
+        return ws && ws.organization_id === orgId
+      })
 
       // For each workspace, get member count
       const workspaceIds = orgWorkspaces
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((m: any) => m.workspace?.id)
+        .map((m) => (m.workspace as Record<string, unknown> | null)?.id as string | undefined)
         .filter(Boolean) as string[]
 
       // Get member counts in a single query
@@ -111,15 +113,16 @@ export function useWorkspaces(orgId: string | null) {
       }
 
       // Transform to WorkspaceWithMeta format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      return orgWorkspaces.map((m: any) => ({
-        ...m.workspace,
-        member_count: memberCounts[m.workspace.id] || 0,
-        user_role: m.role as WorkspaceRole,
-        // Legacy fields for backward compatibility
-        organization_id: m.workspace.organization_id,
-        workspace_type: m.workspace.workspace_type,
-      })) as WorkspaceWithMeta[]
+      return orgWorkspaces.map((m) => {
+        const ws = m.workspace as Record<string, unknown>
+        return {
+          ...ws,
+          member_count: memberCounts[ws.id as string] || 0,
+          user_role: m.role as WorkspaceRole,
+          organization_id: ws.organization_id,
+          workspace_type: ws.workspace_type,
+        }
+      }) as WorkspaceWithMeta[]
     },
     enabled: !!user && !!orgId,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -259,22 +262,23 @@ export function useWorkspaceDetail(workspaceId: string | null) {
       if (queryError) throw queryError
 
       // Transform to WorkspaceRecording format
-       
+      type EntryWithRecording = (typeof entries)[number]
       return (entries || [])
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .filter((e: any) => e.recording)
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        .map((e: any) => ({
-          ...e.recording,
-          organization_id: e.recording.organization_id,
-          workspace_entry: {
-            id: e.id,
-            local_tags: e.local_tags,
-            scores: e.scores,
-            notes: e.notes,
-            folder_id: e.folder_id,
-          },
-        })) as WorkspaceRecording[]
+        .filter((e: EntryWithRecording) => e.recording)
+        .map((e: EntryWithRecording) => {
+          const rec = e.recording as Record<string, unknown>
+          return {
+            ...rec,
+            organization_id: rec.organization_id,
+            workspace_entry: {
+              id: e.id,
+              local_tags: e.local_tags,
+              scores: e.scores,
+              notes: e.notes,
+              folder_id: e.folder_id,
+            },
+          }
+        }) as WorkspaceRecording[]
     },
     enabled: !!user && !!workspaceId,
     staleTime: 5 * 60 * 1000,
@@ -304,8 +308,7 @@ export function useWorkspaceMembers(workspaceId: string | null) {
       if (!user || !workspaceId) return []
 
       // Fetch memberships for this workspace
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: memberships, error: memberError } = await (supabase as any)
+      const { data: memberships, error: memberError } = await supabase
         .from('workspace_memberships')
         .select('id, user_id, role, created_at')
         .eq('workspace_id', workspaceId)
@@ -314,12 +317,10 @@ export function useWorkspaceMembers(workspaceId: string | null) {
       if (!memberships || memberships.length === 0) return []
 
       // Fetch user profiles for each member
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const userIds = memberships.map((m: any) => m.user_id) as string[]
+      const userIds = memberships.map((m) => m.user_id)
 
       // Use user_profiles table if available, otherwise fall back to auth metadata
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: profiles, error: profileError } = await (supabase as any)
+      const { data: profiles, error: profileError } = await supabase
         .from('user_profiles')
         .select('id, email, display_name, avatar_url')
         .in('id', userIds)
@@ -327,8 +328,7 @@ export function useWorkspaceMembers(workspaceId: string | null) {
       // Build profile lookup
       const profileMap = new Map<string, { email: string | null; display_name: string | null; avatar_url: string | null }>()
       if (!profileError && profiles) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        for (const p of profiles as any[]) {
+        for (const p of profiles) {
           profileMap.set(p.id, {
             email: p.email || null,
             display_name: p.display_name || null,
@@ -338,8 +338,7 @@ export function useWorkspaceMembers(workspaceId: string | null) {
       }
 
       // Transform and sort by role hierarchy
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const members: WorkspaceMember[] = memberships.map((m: any) => {
+      const members: WorkspaceMember[] = memberships.map((m) => {
         const profile = profileMap.get(m.user_id)
         return {
           id: m.id,

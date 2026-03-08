@@ -573,7 +573,7 @@ export type Database = {
             foreignKeyName: "call_speakers_recording_user_fkey"
             columns: ["call_recording_id", "user_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls_archive"
+            referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
           {
@@ -632,7 +632,7 @@ export type Database = {
             foreignKeyName: "call_tag_assignments_recording_user_fkey"
             columns: ["call_recording_id", "user_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls_archive"
+            referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
         ]
@@ -947,7 +947,7 @@ export type Database = {
             foreignKeyName: "contact_call_appearances_recording_id_user_id_fkey"
             columns: ["recording_id", "user_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls_archive"
+            referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
         ]
@@ -1504,13 +1504,14 @@ export type Database = {
           },
         ]
       }
-      fathom_calls_archive: {
+      fathom_raw_calls: {
         Row: {
           ai_generated_title: string | null
           ai_title_generated_at: string | null
           auto_tags: string[] | null
           auto_tags_generated_at: string | null
           calendar_invitees: Json | null
+          canonical_recording_id: string | null
           created_at: string
           full_transcript: string | null
           fuzzy_match_score: number | null
@@ -1543,6 +1544,7 @@ export type Database = {
           auto_tags?: string[] | null
           auto_tags_generated_at?: string | null
           calendar_invitees?: Json | null
+          canonical_recording_id?: string | null
           created_at: string
           full_transcript?: string | null
           fuzzy_match_score?: number | null
@@ -1575,6 +1577,7 @@ export type Database = {
           auto_tags?: string[] | null
           auto_tags_generated_at?: string | null
           calendar_invitees?: Json | null
+          canonical_recording_id?: string | null
           created_at?: string
           full_transcript?: string | null
           fuzzy_match_score?: number | null
@@ -1601,9 +1604,17 @@ export type Database = {
           url?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fathom_raw_calls_canonical_recording_id_fkey"
+            columns: ["canonical_recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      fathom_transcripts: {
+      fathom_raw_transcripts: {
         Row: {
           created_at: string | null
           edited_at: string | null
@@ -1664,10 +1675,37 @@ export type Database = {
             foreignKeyName: "fathom_transcripts_recording_user_fkey"
             columns: ["recording_id", "user_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls_archive"
+            referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
         ]
+      }
+      feature_flags: {
+        Row: {
+          description: string | null
+          enabled_for_roles: string[] | null
+          id: string
+          is_enabled: boolean
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          description?: string | null
+          enabled_for_roles?: string[] | null
+          id: string
+          is_enabled?: boolean
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          description?: string | null
+          enabled_for_roles?: string[] | null
+          id?: string
+          is_enabled?: boolean
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       folder_assignments: {
         Row: {
@@ -1706,7 +1744,7 @@ export type Database = {
             foreignKeyName: "folder_assignments_call_recording_id_user_id_fkey"
             columns: ["call_recording_id", "user_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls_archive"
+            referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
           {
@@ -1849,7 +1887,7 @@ export type Database = {
             foreignKeyName: "hooks_fathom_call_fkey"
             columns: ["recording_id", "user_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls_archive"
+            referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
         ]
@@ -2111,7 +2149,7 @@ export type Database = {
             foreignKeyName: "insights_fathom_call_fkey"
             columns: ["recording_id", "user_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls_archive"
+            referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
         ]
@@ -2273,6 +2311,7 @@ export type Database = {
           recording_end_time: string | null
           recording_start_time: string | null
           source_app: string | null
+          source_call_id: string | null
           source_metadata: Json | null
           summary: string | null
           synced_at: string | null
@@ -2293,6 +2332,7 @@ export type Database = {
           recording_end_time?: string | null
           recording_start_time?: string | null
           source_app?: string | null
+          source_call_id?: string | null
           source_metadata?: Json | null
           summary?: string | null
           synced_at?: string | null
@@ -2313,6 +2353,7 @@ export type Database = {
           recording_end_time?: string | null
           recording_start_time?: string | null
           source_app?: string | null
+          source_call_id?: string | null
           source_metadata?: Json | null
           summary?: string | null
           synced_at?: string | null
@@ -2745,6 +2786,7 @@ export type Database = {
           call_category: string | null
           call_date: string | null
           call_title: string | null
+          canonical_recording_id: string | null
           chunk_index: number
           chunk_text: string
           created_at: string | null
@@ -2771,6 +2813,7 @@ export type Database = {
           call_category?: string | null
           call_date?: string | null
           call_title?: string | null
+          canonical_recording_id?: string | null
           chunk_index: number
           chunk_text: string
           created_at?: string | null
@@ -2797,6 +2840,7 @@ export type Database = {
           call_category?: string | null
           call_date?: string | null
           call_title?: string | null
+          canonical_recording_id?: string | null
           chunk_index?: number
           chunk_text?: string
           created_at?: string | null
@@ -2821,6 +2865,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "transcript_chunks_canonical_recording_id_fkey"
+            columns: ["canonical_recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "transcript_chunks_recording_user_fkey"
             columns: ["recording_id", "user_id"]
             isOneToOne: false
@@ -2831,7 +2882,7 @@ export type Database = {
             foreignKeyName: "transcript_chunks_recording_user_fkey"
             columns: ["recording_id", "user_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls_archive"
+            referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
         ]
@@ -2870,7 +2921,7 @@ export type Database = {
             foreignKeyName: "transcript_tag_assignments_recording_user_fkey"
             columns: ["call_recording_id", "user_id"]
             isOneToOne: false
-            referencedRelation: "fathom_calls_archive"
+            referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
           {
@@ -2908,6 +2959,112 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      trial_purchases: {
+        Row: {
+          amount: number | null
+          created_at: string | null
+          crm_contact_id: string | null
+          currency: string | null
+          email: string | null
+          id: string
+          name: string | null
+          source: string | null
+          status: string | null
+          stripe_customer_id: string | null
+          stripe_payment_intent: string | null
+          stripe_session_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string | null
+          crm_contact_id?: string | null
+          currency?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          source?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_payment_intent?: string | null
+          stripe_session_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string | null
+          crm_contact_id?: string | null
+          currency?: string | null
+          email?: string | null
+          id?: string
+          name?: string | null
+          source?: string | null
+          status?: string | null
+          stripe_customer_id?: string | null
+          stripe_payment_intent?: string | null
+          stripe_session_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trial_purchases_crm_contact_id_fkey"
+            columns: ["crm_contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      upload_raw_files: {
+        Row: {
+          created_at: string
+          file_size: number | null
+          full_transcript: string | null
+          id: string
+          mime_type: string | null
+          original_filename: string
+          raw_payload: Json | null
+          recording_id: string | null
+          storage_path: string | null
+          transcription_language: string | null
+          user_id: string
+          whisper_model: string | null
+        }
+        Insert: {
+          created_at?: string
+          file_size?: number | null
+          full_transcript?: string | null
+          id?: string
+          mime_type?: string | null
+          original_filename: string
+          raw_payload?: Json | null
+          recording_id?: string | null
+          storage_path?: string | null
+          transcription_language?: string | null
+          user_id: string
+          whisper_model?: string | null
+        }
+        Update: {
+          created_at?: string
+          file_size?: number | null
+          full_transcript?: string | null
+          id?: string
+          mime_type?: string | null
+          original_filename?: string
+          raw_payload?: Json | null
+          recording_id?: string | null
+          storage_path?: string | null
+          transcription_language?: string | null
+          user_id?: string
+          whisper_model?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "upload_raw_files_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_contact_settings: {
         Row: {
@@ -3428,6 +3585,175 @@ export type Database = {
           },
         ]
       }
+      youtube_raw_calls: {
+        Row: {
+          created_at: string
+          full_transcript: string | null
+          id: string
+          import_source: string | null
+          raw_payload: Json | null
+          recording_id: string | null
+          user_id: string
+          youtube_category_id: string | null
+          youtube_channel_id: string | null
+          youtube_channel_title: string | null
+          youtube_comment_count: number | null
+          youtube_description: string | null
+          youtube_duration: string | null
+          youtube_like_count: number | null
+          youtube_published_at: string | null
+          youtube_subscriber_count: number | null
+          youtube_thumbnail: string | null
+          youtube_video_id: string
+          youtube_view_count: number | null
+        }
+        Insert: {
+          created_at?: string
+          full_transcript?: string | null
+          id?: string
+          import_source?: string | null
+          raw_payload?: Json | null
+          recording_id?: string | null
+          user_id: string
+          youtube_category_id?: string | null
+          youtube_channel_id?: string | null
+          youtube_channel_title?: string | null
+          youtube_comment_count?: number | null
+          youtube_description?: string | null
+          youtube_duration?: string | null
+          youtube_like_count?: number | null
+          youtube_published_at?: string | null
+          youtube_subscriber_count?: number | null
+          youtube_thumbnail?: string | null
+          youtube_video_id: string
+          youtube_view_count?: number | null
+        }
+        Update: {
+          created_at?: string
+          full_transcript?: string | null
+          id?: string
+          import_source?: string | null
+          raw_payload?: Json | null
+          recording_id?: string | null
+          user_id?: string
+          youtube_category_id?: string | null
+          youtube_channel_id?: string | null
+          youtube_channel_title?: string | null
+          youtube_comment_count?: number | null
+          youtube_description?: string | null
+          youtube_duration?: string | null
+          youtube_like_count?: number | null
+          youtube_published_at?: string | null
+          youtube_subscriber_count?: number | null
+          youtube_thumbnail?: string | null
+          youtube_video_id?: string
+          youtube_view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "youtube_raw_calls_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      zoom_raw_calls: {
+        Row: {
+          account_id: string | null
+          created_at: string
+          duration: number | null
+          full_transcript: string | null
+          fuzzy_match_score: number | null
+          host_email: string | null
+          host_id: string | null
+          id: string
+          is_primary: boolean | null
+          meeting_fingerprint: string | null
+          meeting_type: number | null
+          merged_from: number[] | null
+          participants: Json | null
+          raw_payload: Json | null
+          recording_id: string | null
+          recording_url: string | null
+          share_url: string | null
+          start_time: string | null
+          synced_at: string | null
+          timezone: string | null
+          topic: string | null
+          transcript_url: string | null
+          user_id: string
+          zoom_meeting_id: string | null
+          zoom_meeting_uuid: string | null
+          zoom_numeric_id: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          created_at?: string
+          duration?: number | null
+          full_transcript?: string | null
+          fuzzy_match_score?: number | null
+          host_email?: string | null
+          host_id?: string | null
+          id?: string
+          is_primary?: boolean | null
+          meeting_fingerprint?: string | null
+          meeting_type?: number | null
+          merged_from?: number[] | null
+          participants?: Json | null
+          raw_payload?: Json | null
+          recording_id?: string | null
+          recording_url?: string | null
+          share_url?: string | null
+          start_time?: string | null
+          synced_at?: string | null
+          timezone?: string | null
+          topic?: string | null
+          transcript_url?: string | null
+          user_id: string
+          zoom_meeting_id?: string | null
+          zoom_meeting_uuid?: string | null
+          zoom_numeric_id?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          created_at?: string
+          duration?: number | null
+          full_transcript?: string | null
+          fuzzy_match_score?: number | null
+          host_email?: string | null
+          host_id?: string | null
+          id?: string
+          is_primary?: boolean | null
+          meeting_fingerprint?: string | null
+          meeting_type?: number | null
+          merged_from?: number[] | null
+          participants?: Json | null
+          raw_payload?: Json | null
+          recording_id?: string | null
+          recording_url?: string | null
+          share_url?: string | null
+          start_time?: string | null
+          synced_at?: string | null
+          timezone?: string | null
+          topic?: string | null
+          transcript_url?: string | null
+          user_id?: string
+          zoom_meeting_id?: string | null
+          zoom_meeting_uuid?: string | null
+          zoom_numeric_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "zoom_raw_calls_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       fathom_calls: {
@@ -3528,6 +3854,72 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      fathom_transcripts: {
+        Row: {
+          created_at: string | null
+          edited_at: string | null
+          edited_by: string | null
+          edited_speaker_email: string | null
+          edited_speaker_name: string | null
+          edited_text: string | null
+          id: string | null
+          is_deleted: boolean | null
+          recording_id: number | null
+          speaker_email: string | null
+          speaker_name: string | null
+          text: string | null
+          timestamp: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          edited_at?: string | null
+          edited_by?: string | null
+          edited_speaker_email?: string | null
+          edited_speaker_name?: string | null
+          edited_text?: string | null
+          id?: string | null
+          is_deleted?: boolean | null
+          recording_id?: number | null
+          speaker_email?: string | null
+          speaker_name?: string | null
+          text?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          edited_at?: string | null
+          edited_by?: string | null
+          edited_speaker_email?: string | null
+          edited_speaker_name?: string | null
+          edited_text?: string | null
+          id?: string | null
+          is_deleted?: boolean | null
+          recording_id?: number | null
+          speaker_email?: string | null
+          speaker_name?: string | null
+          text?: string | null
+          timestamp?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fathom_transcripts_recording_user_fkey"
+            columns: ["recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_calls"
+            referencedColumns: ["recording_id", "user_id"]
+          },
+          {
+            foreignKeyName: "fathom_transcripts_recording_user_fkey"
+            columns: ["recording_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "fathom_raw_calls"
+            referencedColumns: ["recording_id", "user_id"]
+          },
+        ]
       }
       recurring_call_titles: {
         Row: {
@@ -3759,6 +4151,10 @@ export type Database = {
           role: string
           workspace_name: string
         }[]
+      }
+      get_workspace_organization_id: {
+        Args: { p_workspace_id: string }
+        Returns: string
       }
       has_role: {
         Args: {
@@ -4044,3 +4440,4 @@ export const Constants = {
     },
   },
 } as const
+

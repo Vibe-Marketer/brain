@@ -3,6 +3,7 @@ import type { Database } from '@/types/supabase'
 import type { Workspace } from '@/types/workspace'
 
 type WorkspaceMembershipRow = Database['public']['Tables']['workspace_memberships']['Row']
+type WorkspaceInsert = Database['public']['Tables']['workspaces']['Insert']
 
 /**
  * Workspace member with profile information for UI display.
@@ -29,7 +30,7 @@ export async function getWorkspaces(orgId: string): Promise<Workspace[]> {
   const { data, error } = await supabase
     .from('workspaces')
     .select(
-      'id, name, organization_id:organization_id, workspace_type:workspace_type, default_sharelink_ttl_days, created_at, updated_at'
+      'id, name, organization_id, workspace_type, default_sharelink_ttl_days, is_default, created_at, updated_at'
     )
     .eq('organization_id', orgId)
     .order('name', { ascending: true })
@@ -38,10 +39,8 @@ export async function getWorkspaces(orgId: string): Promise<Workspace[]> {
     throw new Error(`Failed to fetch workspaces: ${error.message}`)
   }
 
-  // Sort client-side: is_default first (not in generated types yet), then by name
-  // is_default column added via Phase 16 migration; cast to any for access
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const workspaces = (data ?? []) as any[]
+  // Sort client-side: is_default first, then by name
+  const workspaces = data ?? []
   workspaces.sort((a, b) => {
     if (a.is_default && !b.is_default) return -1
     if (!a.is_default && b.is_default) return 1
@@ -83,18 +82,16 @@ export async function createWorkspace(
   isDefault = false
 ): Promise<Workspace> {
   // 1. Insert the workspace (DB uses organization_id and workspace_type)
-  const insertPayload: Record<string, unknown> = {
+  const insertPayload: WorkspaceInsert = {
     organization_id: orgId,
     name,
     workspace_type: 'team', // default to team for business orgs
-  }
-  if (isDefault) {
-    insertPayload.is_default = true
+    ...(isDefault ? { is_default: true } : {}),
   }
 
   const { data: workspace, error: workspaceError } = await supabase
     .from('workspaces')
-    .insert(insertPayload as any)
+    .insert(insertPayload)
     .select(
       'id, name, organization_id:organization_id, workspace_type:workspace_type, default_sharelink_ttl_days, created_at, updated_at'
     )
@@ -141,8 +138,7 @@ export async function getWorkspaceMembers(workspaceId: string): Promise<Workspac
   }
 
   // Map to WorkspaceMember shape
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((row: any) => ({
+  return (data ?? []).map((row) => ({
     id: row.id,
     userId: row.user_id,
     workspaceId: row.workspace_id,
@@ -190,4 +186,3 @@ export async function removeMember(workspaceId: string, userId: string): Promise
 
 // Re-export type so consumers don't need a separate import
 export type { WorkspaceMembershipRow }
-export type WorkspaceMembershipRow = WorkspaceMembershipRow // Legacy alias

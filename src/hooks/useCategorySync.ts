@@ -35,7 +35,7 @@ export function useTagSync() {
 
       // Scope tags to the active organization/workspace
       if (activeOrgId) {
-        query = (query as any).eq("organization_id", activeOrgId);
+        query = query.eq("organization_id", activeOrgId);
       }
 
       const { data, error } = await query;

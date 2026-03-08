@@ -121,8 +121,7 @@ export function SyncTab() {
       // until then we use type assertions
       let useRecordings = false;
       if (activeOrganizationId) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { count: recordingsCount } = await (supabase as any)
+        const { count: recordingsCount } = await supabase
           .from('recordings')
           .select('*', { count: 'exact', head: true })
           .eq('organization_id', activeOrganizationId);
