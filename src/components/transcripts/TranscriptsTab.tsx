@@ -361,7 +361,7 @@ export function TranscriptsTab({
         }
 
         const { data: entries, error: entryError, count } = await entryQuery
-          .order('created_at', { ascending: false })
+          .order('created_at', { ascending: false, referencedTable: 'recordings' })
           .range(offset, offset + pageSize - 1);
 
         if (entryError) throw entryError;
