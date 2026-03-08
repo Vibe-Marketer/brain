@@ -2,24 +2,23 @@
  * Sidebar Navigation
  *
  * Navigation icons that sit at the top of the sidebar.
- * Loop-inspired design with clean, modern aesthetics.
+ * Clean, modern aesthetics — same icon style in both expanded and collapsed modes.
  * Uses Remix Icons with line/fill variants for active states.
  *
  * ## Design Specification
  *
  * - **Position**: Top of sidebar, above folder list
  * - **Layout**: Vertical column with icons and labels
- * - **Size**: 44x44px icon buttons (collapsed) or full-width items (expanded)
+ * - **Size**: Consistent icon size in both modes, centered when collapsed
  * - **Styling**:
- *   - Clean, modern appearance
- *   - Glossy 3D icons in collapsed mode
+ *   - Clean, cohesive appearance in both modes
  *   - Active state: left border indicator (vibe orange) + fill icon
  *   - Inactive state: line icon
  *   - Hover: subtle background highlight
  * - **Separator**: Thin gray line between sections
  *
  * @pattern sidebar-nav
- * @brand-version v4.1
+ * @brand-version v4.2
  */
 
 import * as React from 'react';
@@ -28,12 +27,7 @@ import {
   RiLayoutColumnLine,
   RiAddLine,
   RiHome4Line,
-  RiSparklingLine,
-  RiArticleLine,
-  RiPriceTag3Line,
-  RiSafeLine,
   RiSettings3Line,
-  RiPieChart2Line,
   RiUpload2Line,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
@@ -66,69 +60,6 @@ interface SidebarNavProps {
   /** Optional callback when Analytics nav item is clicked (to open category pane) */
   onAnalyticsClick?: () => void;
 }
-
-/**
- * NavIcon Props - supports both Remix Icon components and React nodes
- */
-interface NavIconProps {
-  /** Remix Icon component type for line variant (inactive state) */
-  icon?: RemixiconComponentType;
-  /** Whether the icon is in active state */
-  isActive?: boolean;
-  /** Optional children (for backward compatibility with pre-rendered icons) */
-  children?: React.ReactNode;
-}
-
-/**
- * Glossy 3D icon wrapper with dark mode support.
- * Light mode: White to light gray gradient
- * Dark mode: Dark gray gradient with adjusted shadows
- *
- * Supports two usage patterns:
- * 1. Pass Remix Icon components directly via icon props
- * 2. Pass pre-rendered React nodes as children (backward compatible)
- */
-const NavIcon = React.memo(({ icon: IconLine, isActive, children }: NavIconProps) => {
-  // Determine which icon to render based on props and active state
-  const renderIcon = () => {
-    // If icon components are provided, render the appropriate one
-    if (IconLine) {
-      const IconComponent = IconLine;
-      if (IconComponent) {
-        return (
-          <IconComponent
-            className={cn(
-              iconClass,
-              isActive && "text-vibe-orange"
-            )}
-          />
-        );
-      }
-    }
-    // Fall back to children for backward compatibility
-    return children;
-  };
-
-  return (
-    <div
-      className={cn(
-        'w-full h-full flex items-center justify-center rounded-xl transition-all duration-150',
-        // Light mode styles
-        'bg-gradient-to-br from-white to-gray-200',
-        'border border-border',
-        'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
-        // Dark mode styles
-        'dark:from-gray-700 dark:to-gray-800',
-        'dark:border-border',
-        'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
-        // Active state
-        isActive && 'ring-2 ring-vibe-orange/50'
-      )}
-    >
-      {renderIcon()}
-    </div>
-  );
-});
 
 // Icon class for consistent styling - muted gray for inactive state
 const iconClass = 'w-5 h-5 text-muted-foreground';
@@ -310,9 +241,10 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 onKeyDown={(e) => handleKeyDown(e, item.id)}
                 className={cn(
                   'relative flex items-center',
-                  isCollapsed ? 'justify-center w-11 h-11 px-0' : 'justify-start w-full px-3 h-10 gap-3',
+                  isCollapsed ? 'justify-center w-10 h-10 px-0' : 'justify-start w-full px-3 h-10 gap-3',
                   'rounded-lg border border-transparent transition-all duration-500 ease-in-out',
                   'hover:bg-hover/70',
+                  isCollapsed && active && 'bg-vibe-orange/10',
                   active && !isCollapsed && [
                     'bg-hover border-border pl-4',
                     "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange"
@@ -321,24 +253,15 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 )}
                 title={item.name}
               >
-                  {/* Icon Container */}
+                  {/* Icon — same clean rendering in both modes */}
                   <div className={cn(
                       "flex-shrink-0 flex items-center justify-center",
-                       isCollapsed ? "w-11 h-11" : "w-5 h-5"
+                       isCollapsed ? "w-10 h-10" : "w-5 h-5"
                   )}>
-                     {isCollapsed ? (
-                       // Collapsed mode: Use NavIcon with icon props for glossy 3D effect
-                        <NavIcon
-                          icon={item.iconLine}
-                          isActive={active}
-                        />
-                     ) : (
-                       // Expanded mode: Render icon directly
-                       (() => {
-                          const IconComponent = item.iconLine;
-                         return <IconComponent className={cn(iconClass, active && "text-vibe-orange")} />;
-                       })()
-                     )}
+                     {(() => {
+                        const IconComponent = item.iconLine;
+                        return <IconComponent className={cn(iconClass, active && "text-vibe-orange")} />;
+                     })()}
                   </div>
 
                   {/* Label - Visible only when expanded */}
@@ -373,13 +296,9 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
             >
                <div className={cn(
                       "flex-shrink-0 flex items-center justify-center",
-                       isCollapsed ? "w-11 h-11" : "w-5 h-5 text-muted-foreground"
+                       isCollapsed ? "w-10 h-10" : "w-5 h-5 text-muted-foreground"
                   )}>
-                  {isCollapsed ? (
-                      <NavIcon icon={RiLayoutColumnLine} />
-                  ) : (
-                    <RiLayoutColumnLine className="w-5 h-5" />
-                  )}
+                  <RiLayoutColumnLine className={iconClass} />
               </div>
               {!isCollapsed && <span className="text-sm text-muted-foreground truncate">Hub Panel</span>}
             </button>

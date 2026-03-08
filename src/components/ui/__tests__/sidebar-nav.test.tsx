@@ -404,20 +404,12 @@ describe('SidebarNav', () => {
       expect(mutedIcons.length).toBeGreaterThanOrEqual(3);
     });
 
-    it('should have orange ring on active NavIcon in collapsed mode', () => {
+    it('should have orange tint on active item in collapsed mode', () => {
       const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
 
-      // Active NavIcon should have ring-vibe-orange class (via ring-2 ring-vibe-orange/50)
-      const activeNavIconWrapper = container.querySelector('.ring-vibe-orange\\/50');
-      expect(activeNavIconWrapper).toBeInTheDocument();
-    });
-
-    it('should not have orange ring on inactive NavIcon in collapsed mode', () => {
-      const { container } = renderWithRouter({ isCollapsed: true }, ['/']);
-
-      // Count elements with ring styling - only active item should have it
-      const ringElements = container.querySelectorAll('.ring-vibe-orange\\/50');
-      expect(ringElements.length).toBe(1);
+      // Active collapsed item should have bg-vibe-orange/10 tint
+      const activeItem = container.querySelector('.bg-vibe-orange\\/10');
+      expect(activeItem).toBeInTheDocument();
     });
 
     it('should apply gray background on active item in expanded mode', () => {
@@ -436,12 +428,12 @@ describe('SidebarNav', () => {
       expect(homeButton).not.toHaveClass('bg-gray-100');
     });
 
-    it('should render glossy 3D icon wrapper in collapsed mode', () => {
+    it('should render clean icons without glossy wrapper in collapsed mode', () => {
       const { container } = renderWithRouter({ isCollapsed: true });
 
-      // NavIcon should have gradient background for glossy effect
+      // NavIcon glossy wrapper should NOT be present — icons render clean
       const glossyWrapper = container.querySelector('.bg-gradient-to-br.from-white.to-gray-200');
-      expect(glossyWrapper).toBeInTheDocument();
+      expect(glossyWrapper).not.toBeInTheDocument();
     });
 
     it('should show active text color on label when active in expanded mode', () => {
