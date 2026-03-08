@@ -27,6 +27,7 @@ import Settings from "@/pages/Settings";
 import Analytics from "@/pages/Analytics";
 import SharedWithMe from "@/pages/SharedWithMe";
 import ImportPage from "@/pages/ImportPage";
+import RoutingRulesPage from "@/pages/RoutingRulesPage";
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -247,6 +248,18 @@ function App() {
                       <ProtectedRoute>
                         <Layout>
                           <ImportPage />
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Routing Rules route */}
+                  <Route
+                    path="/rules"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <RoutingRulesPage />
                         </Layout>
                       </ProtectedRoute>
                     }

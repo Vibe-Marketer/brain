@@ -2,11 +2,12 @@ import { useState } from "react";
 import { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 
 export function useDragAndDrop() {
-  const [activeDragId, setActiveDragId] = useState<number | null>(null);
-  const [draggedItems, setDraggedItems] = useState<number[]>([]);
+  const [activeDragId, setActiveDragId] = useState<string | number | null>(null);
+  const [draggedItems, setDraggedItems] = useState<(string | number)[]>([]);
 
-  const handleDragStart = (event: DragStartEvent, selectedIds: number[]) => {
-    const draggedId = Number(event.active.id);
+  const handleDragStart = (event: DragStartEvent, selectedIds: (string | number)[]) => {
+    const rawId = event.active.id;
+    const draggedId = typeof rawId === 'string' ? rawId : Number(rawId);
     setActiveDragId(draggedId);
     
     // If dragging a selected item, drag all selected items

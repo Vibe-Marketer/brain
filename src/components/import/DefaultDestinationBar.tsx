@@ -30,9 +30,9 @@ export function DefaultDestinationBar() {
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center gap-3 rounded-xl border border-border/60 bg-card p-3.5">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-foreground">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 rounded-xl border border-border/60 bg-card p-3.5">
+        <div className="flex-1 min-w-0 shrink-0">
+          <p className="text-sm font-medium text-foreground whitespace-nowrap">
             Unmatched calls go to
           </p>
           {!routingDefault && !isLoading && (
@@ -42,12 +42,14 @@ export function DefaultDestinationBar() {
           )}
         </div>
 
-        <DestinationPicker
-          value={currentDestination}
-          onChange={handleDestinationChange}
-          orgId={activeOrgId}
-          disabled={isLoading || isPending}
-        />
+        <div className="flex-1 flex sm:justify-end min-w-0 w-full sm:w-auto">
+          <DestinationPicker
+            value={currentDestination}
+            onChange={handleDestinationChange}
+            orgId={activeOrgId}
+            disabled={isLoading || isPending}
+          />
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground px-0.5">

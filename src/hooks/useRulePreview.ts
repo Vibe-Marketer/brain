@@ -68,6 +68,7 @@ function evaluateSingleCondition(condition: RoutingCondition, call: PreviewCall)
       case 'contains':     return h.includes(n);
       case 'not_contains': return !h.includes(n);
       case 'equals':       return h === n;
+      case 'not_equals':   return h !== n;
       case 'starts_with':  return h.startsWith(n);
       default:             return false;
     }
@@ -102,8 +103,10 @@ function evaluateSingleCondition(condition: RoutingCondition, call: PreviewCall)
     case 'tag': {
       const tags = call.global_tags ?? [];
       const needle = String(value).toLowerCase();
-      if (operator === 'equals')   return tags.some((t) => t.toLowerCase() === needle);
-      if (operator === 'contains') return tags.some((t) => t.toLowerCase().includes(needle));
+      if (operator === 'equals')       return tags.some((t) => t.toLowerCase() === needle);
+      if (operator === 'not_equals')   return tags.every((t) => t.toLowerCase() !== needle);
+      if (operator === 'contains')     return tags.some((t) => t.toLowerCase().includes(needle));
+      if (operator === 'not_contains') return tags.every((t) => !t.toLowerCase().includes(needle));
       return false;
     }
 

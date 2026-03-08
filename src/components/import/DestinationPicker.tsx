@@ -17,11 +17,11 @@ interface DestinationPickerProps {
 }
 
 const selectClass = cn(
-  'h-8 rounded-md border border-border bg-background px-2.5 py-1',
-  'text-sm text-foreground',
+  'h-9 rounded-md border border-border bg-background pl-3 pr-8 py-1',
+  'text-sm text-foreground overflow-hidden text-ellipsis whitespace-nowrap',
   'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-0',
   'disabled:opacity-50 disabled:cursor-not-allowed',
-  'cursor-pointer'
+  'cursor-pointer w-full sm:w-auto min-w-[120px] max-w-full sm:max-w-[200px]'
 );
 
 export function DestinationPicker({
@@ -31,7 +31,7 @@ export function DestinationPicker({
   disabled = false,
   className,
 }: DestinationPickerProps) {
-  const { data: workspaces = [], isLoading: workspacesLoading } = useWorkspaces(orgId);
+  const { workspaces = [], isLoading: workspacesLoading } = useWorkspaces(orgId);
   const { data: folders = [], isLoading: foldersLoading } = useFolders(value?.workspaceId ?? null);
 
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(value?.workspaceId ?? null);
@@ -56,7 +56,7 @@ export function DestinationPicker({
   }
 
   return (
-    <div className={cn('flex items-center gap-2', className)}>
+    <div className={cn('flex flex-wrap items-center gap-2 w-full sm:w-auto', className)}>
       <select
         value={selectedWorkspaceId ?? ''}
         onChange={handleWorkspaceChange}

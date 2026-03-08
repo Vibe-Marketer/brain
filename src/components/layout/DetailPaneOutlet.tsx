@@ -27,6 +27,7 @@ import { CallDetailPanel } from '@/components/panels/CallDetailPanel';
 import { WorkspaceMemberPanel } from '@/components/panels/WorkspaceMemberPanel';
 import { OrganizationMemberPanel } from '@/components/panels/OrganizationMemberPanel';
 import { AutomationRulePanel } from '@/components/panels/AutomationRulePanel';
+import { RoutingRulePanel } from '@/components/panels/RoutingRulePanel';
 import { WorkspaceDetailPanel } from '@/components/panels/WorkspaceDetailPanel';
 import { BulkActionToolbarEnhanced } from '@/components/transcript-library/BulkActionToolbarEnhanced';
 
@@ -113,6 +114,11 @@ export function DetailPaneOutlet({
           <AutomationRulePanel ruleId={panelData.ruleId} />
         ) : null;
         
+      case 'routing-rule':
+        return panelData?.type === 'routing-rule' ? (
+          <RoutingRulePanel ruleId={panelData.ruleId} />
+        ) : null;
+
       case 'bulk-actions':
         return panelData?.type === 'bulk-actions' ? (
           <BulkActionToolbarEnhanced
@@ -159,6 +165,8 @@ export function DetailPaneOutlet({
         return 'Organization member panel';
       case 'automation-rule':
         return 'Automation rule detail panel';
+      case 'routing-rule':
+        return 'Routing rule panel';
       case 'bulk-actions':
         return 'Bulk actions panel';
       default:

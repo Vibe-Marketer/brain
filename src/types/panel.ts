@@ -24,6 +24,7 @@ export type PanelType =
   | 'workspace_members'
   | 'organization_members'
   | 'automation-rule'
+  | 'routing-rule'
   | null;
 
 /**
@@ -59,6 +60,7 @@ export type PanelData =
   | { type: 'workspace_members'; workspaceId: string; workspaceName?: string }
   | { type: 'organization_members'; organizationId: string; organizationName?: string }
   | { type: 'automation-rule'; ruleId: string }
+  | { type: 'routing-rule'; ruleId: string | null }
   | null;
 
 /**
