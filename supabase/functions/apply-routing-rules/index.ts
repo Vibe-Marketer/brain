@@ -148,7 +148,7 @@ Deno.serve(async (req) => {
         .from('recordings')
         .select('id, title, source_app, duration, recording_start_time, source_metadata, global_tags')
         .eq('organization_id', organizationId)
-        .is('source_metadata->>routed_by_rule_id', null)
+        .filter("source_metadata->>'routed_by_rule_id'", 'is', 'null')
         .order('recording_start_time', { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
 
@@ -244,11 +244,8 @@ Deno.serve(async (req) => {
           const entryPayload: Record<string, unknown> = {
             workspace_id: match.target_workspace_id,
             recording_id: match.recording_id,
+            folder_id: match.target_folder_id ?? null,
           };
-
-          if (match.target_folder_id) {
-            entryPayload['folder_id'] = match.target_folder_id;
-          }
 
           const { error: entryError } = await supabase
             .from('workspace_entries')

@@ -104,6 +104,20 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
             </div>
           )}
 
+          {/* Error state */}
+          {bulkApply.isError && !preview && !isLoading && (
+            <div className="text-center py-6">
+              <p className="text-sm text-destructive">Failed to load preview</p>
+              <button
+                type="button"
+                onClick={() => bulkApply.mutate({ dryRun: true }, { onSuccess: (data) => setPreview(data) })}
+                className="mt-2 text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
           {/* Preview results */}
           {preview && !isLoading && (
             <div className="space-y-4">

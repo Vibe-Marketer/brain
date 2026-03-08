@@ -25,8 +25,9 @@ AS $$
   WHERE id = p_recording_id;
 $$;
 
--- Grant execute to authenticated users (edge functions use service role)
-GRANT EXECUTE ON FUNCTION jsonb_merge_source_metadata(UUID, JSONB) TO authenticated;
+-- Only service_role needs access — edge functions use service role client.
+-- No grant to authenticated: prevents direct PostgREST calls that could
+-- modify any recording's metadata without org membership checks.
 GRANT EXECUTE ON FUNCTION jsonb_merge_source_metadata(UUID, JSONB) TO service_role;
 
 COMMENT ON FUNCTION jsonb_merge_source_metadata IS
