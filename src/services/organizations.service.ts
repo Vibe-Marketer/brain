@@ -111,5 +111,97 @@ export function isPersonalOrg(org: Organization): boolean {
   return org.type === 'personal'
 }
 
+// ─── Organization Member Types ──────────────────────────────────────
+
+export type OrganizationRole = 'organization_owner' | 'organization_admin' | 'member'
+
+export interface OrganizationMember {
+  id: string
+  user_id: string
+  email: string
+  display_name: string
+  avatar_url: string | null
+  role: OrganizationRole
+  created_at: string
+}
+
+// ─── Organization Member Queries ────────────────────────────────────
+
+/**
+ * Fetches all members of an organization with their profile info.
+ * RLS ensures only org members can see this data.
+ */
+export async function getOrganizationMembers(organizationId: string): Promise<OrganizationMember[]> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from('organization_memberships')
+    .select(`
+      id,
+      user_id,
+      role,
+      created_at,
+      profiles:user_profiles!user_id (
+        email,
+        display_name,
+        avatar_url
+      )
+    `)
+    .eq('organization_id', organizationId)
+    .order('created_at', { ascending: true })
+
+  if (error) {
+    throw new Error(`Failed to fetch organization members: ${error.message}`)
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data ?? []).map((m: any) => ({
+    id: m.id,
+    user_id: m.user_id,
+    role: m.role as OrganizationRole,
+    created_at: m.created_at,
+    email: m.profiles?.email || '',
+    display_name: m.profiles?.display_name || '',
+    avatar_url: m.profiles?.avatar_url || null,
+  }))
+}
+
+// ─── Organization Member Mutations ──────────────────────────────────
+
+/**
+ * Updates a member's role within an organization.
+ * RLS enforces that only admins/owners can perform this action.
+ */
+export async function updateOrganizationMemberRole(
+  membershipId: string,
+  newRole: OrganizationRole
+): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('organization_memberships')
+    .update({ role: newRole })
+    .eq('id', membershipId)
+
+  if (error) {
+    throw new Error(`Failed to update member role: ${error.message}`)
+  }
+}
+
+/**
+ * Removes a member from an organization.
+ * RLS enforces that only admins/owners can perform this action.
+ * Cascading deletes handle workspace memberships via DB constraints.
+ */
+export async function removeOrganizationMember(membershipId: string): Promise<void> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from('organization_memberships')
+    .delete()
+    .eq('id', membershipId)
+
+  if (error) {
+    throw new Error(`Failed to remove organization member: ${error.message}`)
+  }
+}
+
 // Re-export type so consumers don't need a separate import
 export type { OrganizationMembershipRow }
