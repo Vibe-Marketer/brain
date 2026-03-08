@@ -48,12 +48,12 @@ import { ChangeRoleDialog } from '@/components/dialogs/ChangeRoleDialog'
 import type { WorkspaceRole } from '@/types/workspace'
 
 /** Role badge styling */
-const ROLE_BADGE_STYLES: Record<WorkspaceRole, { bg: string; text: string }> = {
-  workspace_owner: { bg: 'bg-vibe-orange/15', text: 'text-vibe-orange' },
-  workspace_admin: { bg: 'bg-info-bg', text: 'text-info-text' },
-  manager: { bg: 'bg-success-bg', text: 'text-success-text' },
-  member: { bg: 'bg-neutral-bg', text: 'text-neutral-text' },
-  guest: { bg: 'bg-neutral-bg', text: 'text-neutral-text' },
+const ROLE_BADGE_STYLES: Record<WorkspaceRole, { bg: string; text: string; border: string }> = {
+  workspace_owner: { bg: 'bg-vibe-orange/10', text: 'text-vibe-orange', border: 'border-vibe-orange/20' },
+  workspace_admin: { bg: 'bg-blue-500/10', text: 'text-blue-500', border: 'border-blue-500/20' },
+  manager: { bg: 'bg-emerald-500/10', text: 'text-emerald-500', border: 'border-emerald-500/20' },
+  member: { bg: 'bg-muted/50', text: 'text-muted-foreground', border: 'border-border/50' },
+  guest: { bg: 'bg-muted/30', text: 'text-muted-foreground/80', border: 'border-border/30' },
 }
 
 /** Human-readable role labels */
@@ -155,10 +155,10 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   )
 
   // Handle member removal
-  const handleRemoveMember = useCallback(
+  const handleRemoveHubMember = useCallback(
     (member: WorkspaceMember) => {
       if (!currentUserRole) return
-      if (!confirm(`Remove ${member.display_name || member.email || 'this member'} from this workspace?`)) return
+      if (!confirm(`Remove ${member.display_name || member.email || 'this member'} from this hub?`)) return
       removeMember.mutate({
         membershipId: member.id,
         targetRole: member.role,
@@ -169,9 +169,9 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   )
 
   // Handle leave workspace
-  const handleLeaveWorkspace = useCallback(() => {
+  const handleLeaveHub = useCallback(() => {
     if (!currentUserMembership || !currentUserRole) return
-    if (!confirm('Are you sure you want to leave this workspace?')) return
+    if (!confirm('Are you sure you want to leave this hub?')) return
     leaveWorkspace.mutate({
       membershipId: currentUserMembership.id,
       userRole: currentUserRole,
@@ -179,26 +179,26 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   }, [currentUserMembership, currentUserRole, leaveWorkspace])
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border/40 flex-shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <RiGroupLine className="h-4 w-4 text-muted-foreground flex-shrink-0" aria-hidden="true" />
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide truncate">
-            {workspaceName ? `${workspaceName} ` : ''}Members
-          </h3>
-          {!isLoading && (
-            <Badge
-              variant="outline"
-              className="text-2xs px-1.5 py-0 h-5 tabular-nums"
-            >
-              {members.length}
-            </Badge>
-          )}
+    <div className="h-full flex flex-col bg-card/30 backdrop-blur-xl">
+      {/* Premium Header */}
+      <header className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-vibe-orange/10 flex items-center justify-center border border-vibe-orange/20">
+            <RiGroupLine className="h-4.5 w-4.5 text-vibe-orange" aria-hidden="true" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none mb-1">
+              Hub Collaborators
+            </h3>
+            <p className="text-sm font-bold text-foreground truncate max-w-[180px]">
+              {workspaceName || 'Members'}
+            </p>
+          </div>
         </div>
         <Button
           variant="ghost"
-          size="sm"
+          size="icon"
+          className="h-8 w-8 rounded-full hover:bg-muted/80 transition-colors"
           onClick={handleClose}
           aria-label="Close members panel"
         >
@@ -238,7 +238,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search members"
                 className="h-8 text-xs"
-                aria-label="Search workspace members"
+                aria-label="Search hub members"
               />
             )}
             {/* Invite button at top — only for workspace_owner/workspace_admin */}
@@ -275,7 +275,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
               return (
                 <div
                   key={member.id}
-                  className="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-muted/50 transition-colors group"
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-muted/50 transition-all duration-200 border border-transparent hover:border-border/40 group"
                 >
                   {/* Avatar */}
                   {member.avatar_url ? (
@@ -321,9 +321,10 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
                   <Badge
                     variant="outline"
                     className={cn(
-                      'text-2xs px-1.5 py-0 h-5 uppercase tracking-wider font-medium border-0 flex-shrink-0',
+                      'text-[9px] px-1.5 py-0 h-5 uppercase tracking-[0.1em] font-bold border flex-shrink-0',
                       roleStyle.bg,
-                      roleStyle.text
+                      roleStyle.text,
+                      roleStyle.border
                     )}
                   >
                     {roleLabel}
@@ -360,10 +361,10 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
                             <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
-                                onClick={() => handleRemoveMember(member)}
+                                onClick={() => handleRemoveHubMember(member)}
                               >
                                 <RiDeleteBinLine className="h-4 w-4 mr-2" />
-                                Remove from Workspace
+                                Remove from Hub
                               </DropdownMenuItem>
                             </>
                           )}
@@ -371,10 +372,10 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
                           {isCurrentUser && currentUserRole !== 'workspace_owner' && (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
-                              onClick={handleLeaveWorkspace}
+                              onClick={handleLeaveHub}
                              >
                               <RiLogoutCircleLine className="h-4 w-4 mr-2" />
-                              Leave Workspace
+                              Leave Hub
                             </DropdownMenuItem>
                           )}
                       </DropdownMenuContent>
@@ -393,7 +394,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
         workspaceId={workspaceId}
-        workspaceName={workspaceName || 'this workspace'}
+        workspaceName={workspaceName || 'this hub'}
       />
 
       {/* Change Role Dialog */}

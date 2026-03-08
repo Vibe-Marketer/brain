@@ -146,21 +146,30 @@ export function OrganizationMemberPanel({ organizationId, organizationName }: { 
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-border/40 flex-shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <RiBuildingLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-          <h3 className="text-sm font-bold text-foreground uppercase tracking-wide truncate">
-            Organization Members
-          </h3>
-          {!isLoading && (
-            <Badge variant="outline" className="text-2xs px-1.5 py-0 h-5">
-              {members.length}
-            </Badge>
-          )}
+    <div className="h-full flex flex-col bg-card/30 backdrop-blur-xl">
+      {/* Premium Header */}
+      <header className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-card/50 backdrop-blur-md sticky top-0 z-10 flex-shrink-0">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-xl bg-vibe-orange/10 flex items-center justify-center border border-vibe-orange/20">
+            <RiBuildingLine className="h-4.5 w-4.5 text-vibe-orange" aria-hidden="true" />
+          </div>
+          <div className="flex flex-col min-w-0">
+            <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none mb-1">
+              Organization
+            </h3>
+            <p className="text-sm font-bold text-foreground truncate max-w-[180px]">
+              {organizationName || 'Members'}
+            </p>
+          </div>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => closePanel()}>
-          <RiCloseLine className="h-4 w-4" />
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 rounded-full hover:bg-muted/80 transition-colors"
+          onClick={() => closePanel()}
+          aria-label="Close members panel"
+        >
+          <RiCloseLine className="h-4 w-4" aria-hidden="true" />
         </Button>
       </header>
 

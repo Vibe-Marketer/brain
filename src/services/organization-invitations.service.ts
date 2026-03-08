@@ -5,7 +5,7 @@ export interface OrganizationInvitation {
   organization_id: string
   invited_by: string
   email: string
-  role: 'bank_owner' | 'bank_admin' | 'bank_member'
+  role: 'organization_owner' | 'organization_admin' | 'member'
   token: string
   status: 'pending' | 'accepted' | 'expired' | 'revoked'
   expires_at: string

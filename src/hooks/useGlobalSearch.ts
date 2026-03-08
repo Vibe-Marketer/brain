@@ -31,6 +31,10 @@ interface UseGlobalSearchOptions {
   types?: SearchResultType[];
   /** Whether search is enabled */
   enabled?: boolean;
+  /** Filter by active organization */
+  organizationId?: string | null;
+  /** Filter by active workspace */
+  workspaceId?: string | null;
 }
 
 /**
@@ -120,6 +124,8 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
     debounceMs = SEARCH_CONFIG.debounceMs,
     limit = SEARCH_CONFIG.defaultLimit,
     enabled = true,
+    organizationId,
+    workspaceId,
   } = options;
 
   const { user } = useAuth();
@@ -188,7 +194,7 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
     isLoading,
     isFetching,
   } = useQuery({
-    queryKey: ['global-search', sanitizedQuery, limit, sourceFilters],
+    queryKey: ['global-search', sanitizedQuery, limit, sourceFilters, organizationId, workspaceId],
     queryFn: async (): Promise<SearchResult[]> => {
       if (!user?.id || isQueryTooShort) {
         return [];
@@ -201,6 +207,8 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
           {
             limit,
             sourcePlatforms: sourceFilters.length > 0 ? sourceFilters as SourcePlatform[] : undefined,
+            organizationId: organizationId || undefined,
+            workspaceId: workspaceId || undefined,
           }
         );
 

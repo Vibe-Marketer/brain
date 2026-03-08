@@ -100,25 +100,25 @@ export function EditWorkspaceDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent aria-describedby="edit-workspace-description">
           <DialogHeader>
-            <DialogTitle>Workspace Settings</DialogTitle>
+            <DialogTitle>Hub Settings</DialogTitle>
             <DialogDescription id="edit-workspace-description">
-              Update workspace name and configuration
+              Update hub name and configuration
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-4">
             {/* Workspace name */}
             <div className="space-y-2">
-              <Label htmlFor="edit-workspace-name">Workspace Name</Label>
+              <Label htmlFor="edit-workspace-name">Hub Name</Label>
               <Input
                 id="edit-workspace-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="Workspace name"
+                placeholder="Hub name"
                 disabled={!canEdit}
                 autoFocus
-                aria-label="Edit workspace name"
+                aria-label="Edit hub name"
               />
             </div>
 
@@ -142,12 +142,12 @@ export function EditWorkspaceDialog({
 
             {/* Workspace type (read-only) */}
             <div className="space-y-2">
-              <Label>Workspace Type</Label>
+              <Label>Hub Type</Label>
               <p className="text-sm text-muted-foreground capitalize">
                 {workspace.workspace_type}
               </p>
               <p className="text-xs text-muted-foreground">
-                Workspace type cannot be changed after creation.
+                Hub type cannot be changed after creation.
               </p>
             </div>
           </div>
@@ -161,10 +161,10 @@ export function EditWorkspaceDialog({
                   onDeleteRequest?.()
                 }}
                 className="w-full gap-1.5"
-                aria-label="Request to delete this workspace"
+                aria-label="Request to delete this hub"
               >
                 <RiDeleteBinLine className="h-4 w-4" aria-hidden="true" />
-                Delete Workspace
+                Delete Hub
               </Button>
             </div>
           )}

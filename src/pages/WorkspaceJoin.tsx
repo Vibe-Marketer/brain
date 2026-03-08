@@ -71,8 +71,8 @@ export default function WorkspaceJoin() {
         }
 
         // 2. Fallback to shareable link (stored on workspaces table)
-        const { data: workspace, error: workspaceError } = await (supabase as any)
-          .from('workspaces')
+        const { data: workspace, error: workspaceError } = await supabase
+          .from('workspaces' as any)
           .select(`
             id, 
             name, 
