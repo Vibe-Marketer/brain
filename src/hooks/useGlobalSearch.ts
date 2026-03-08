@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { SearchResult, SearchResultType, SourcePlatform } from '@/types/search';
 import { useSearchStore } from '@/stores/searchStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
+import { escapeIlike } from '@/lib/filter-utils';
 
 /**
  * Default search configuration
@@ -61,13 +62,6 @@ function sanitizeQuery(query: string): string {
   let sanitized = query.trim().substring(0, SEARCH_CONFIG.maxQueryLength);
   sanitized = sanitized.replace(/\s+/g, ' ').trim();
   return sanitized;
-}
-
-/**
- * Escape special characters for PostgREST ILIKE patterns
- */
-function escapeIlike(str: string): string {
-  return str.replace(/%/g, '\\%').replace(/_/g, '\\_');
 }
 
 /**
@@ -174,6 +168,7 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
 
         if (activeWorkspaceId) {
           // Workspace-scoped search: join through workspace_entries
+          // Use !inner so filters on recordings actually exclude non-matching parent rows
           let q = supabase
             .from('workspace_entries')
             .select(`
@@ -196,9 +191,9 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
             .order('created_at', { ascending: false, referencedTable: 'recordings' })
             .limit(limit);
 
-          // Apply source filter on the referenced table
+          // Apply source filter using the select alias (recording, not recordings)
           if (sourceFilters.length > 0) {
-            q = q.in('recordings.source_app', sourceFilters);
+            q = q.in('recording.source_app', sourceFilters);
           }
 
           const { data: entries, error: queryError } = await q;

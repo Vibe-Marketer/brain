@@ -2,8 +2,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { FathomIcon, ZoomIcon, YouTubeIcon } from "@/components/transcript-library/SourcePlatformIcons";
+import type { SourcePlatform } from "@/types/search";
 
-export type SourcePlatform = "fathom" | "zoom" | "youtube";
+export type { SourcePlatform };
 
 interface SourceFilterCheckboxesProps {
   selectedSources: SourcePlatform[];

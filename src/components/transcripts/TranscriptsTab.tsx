@@ -36,6 +36,7 @@ import {
   syntaxToFilters,
   filtersToURLParams,
   urlParamsToFilters,
+  escapeIlike,
 } from "@/lib/filter-utils";
 
 interface Tag {
@@ -269,12 +270,13 @@ export function TranscriptsTab({
 
       // WORKSPACE FILTERING (Decision 19 - Fix 2A/2B/2C)
       // If a specific workspace is active, fetch from workspace_entries -> recordings
+      // Use !inner join so date/source/search filters on recordings exclude non-matching entries
       if (activeWorkspaceId) {
         let entryQuery = supabase
           .from('workspace_entries')
           .select(`
             id,
-            recording:recordings (
+            recording:recordings!inner (
               id,
               legacy_recording_id,
               organization_id,
@@ -337,13 +339,14 @@ export function TranscriptsTab({
 
         // Apply search filter on recordings (title, summary, transcript)
         if (syntax.plainText) {
+          const escaped = escapeIlike(syntax.plainText);
           entryQuery = entryQuery.or(
-            `title.ilike.%${syntax.plainText}%,summary.ilike.%${syntax.plainText}%,full_transcript.ilike.%${syntax.plainText}%`,
+            `title.ilike.%${escaped}%,summary.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%`,
             { referencedTable: 'recordings' }
           );
         }
 
-        // Apply date filters
+        // Apply date filters (use select alias 'recording', not table name 'recordings')
         if (combinedFilters.dateFrom) {
           entryQuery = entryQuery.gte('recording.created_at', combinedFilters.dateFrom.toISOString());
         }
@@ -351,7 +354,7 @@ export function TranscriptsTab({
           entryQuery = entryQuery.lte('recording.created_at', combinedFilters.dateTo.toISOString());
         }
 
-        // Apply source filter
+        // Apply source filter (use select alias 'recording', not table name 'recordings')
         if (combinedFilters.sources && combinedFilters.sources.length > 0) {
           entryQuery = entryQuery.in('recording.source_app', combinedFilters.sources);
         }
@@ -419,7 +422,7 @@ export function TranscriptsTab({
           // Determine if it's a personal folder
           const selectedFolder = folders.find(f => f.id === selectedFolderId);
           const isPersonal = selectedFolder && !(selectedFolder as any).workspace_id;
-          
+
           let recIds: string[] = [];
 
           if (isPersonal) {
@@ -440,7 +443,7 @@ export function TranscriptsTab({
               .from('folder_assignments')
               .select('call_recording_id')
               .in('folder_id', folderIds);
-            
+
             if (folderAssigns && folderAssigns.length > 0) {
               const legacyIds = folderAssigns.map((a) => a.call_recording_id);
               const { data: recs } = await supabase
@@ -459,9 +462,10 @@ export function TranscriptsTab({
           q = q.in('id', recIds);
         }
 
-        // Search filter
+        // Search filter (escape special chars to prevent PostgREST injection)
         if (syntax.plainText) {
-          q = q.or(`title.ilike.%${syntax.plainText}%,summary.ilike.%${syntax.plainText}%,full_transcript.ilike.%${syntax.plainText}%`);
+          const escaped = escapeIlike(syntax.plainText);
+          q = q.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%`);
         }
         if (combinedFilters.dateFrom) {
           q = q.gte('created_at', combinedFilters.dateFrom.toISOString());

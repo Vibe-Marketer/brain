@@ -2,6 +2,20 @@
  * Filter utilities for parsing search syntax and managing filter state
  */
 
+/**
+ * Escape special characters for PostgREST ILIKE patterns.
+ * Escapes: % _ (ILIKE wildcards), , . ( ) (PostgREST operators)
+ */
+export function escapeIlike(str: string): string {
+  return str
+    .replace(/%/g, '\\%')
+    .replace(/_/g, '\\_')
+    .replace(/,/g, '\\,')
+    .replace(/\./g, '\\.')
+    .replace(/\(/g, '\\(')
+    .replace(/\)/g, '\\)');
+}
+
 export interface FilterState {
   dateFrom?: Date;
   dateTo?: Date;

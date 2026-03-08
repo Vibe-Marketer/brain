@@ -54,7 +54,7 @@ export interface SearchResult {
   sourceCallId: string;
   /** Title of the source call/recording */
   sourceCallTitle: string;
-  /** Source platform (fathom, google_meet) */
+  /** Source platform (fathom, zoom, youtube) */
   sourcePlatform?: SourcePlatform | null;
   /** Additional metadata specific to the result type */
   metadata?: SearchResultMetadata;
