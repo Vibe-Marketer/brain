@@ -30,7 +30,10 @@ ALTER FUNCTION public.would_create_circular_hierarchy(UUID, UUID) SET search_pat
 --    Also revoke anon access (issue: unauthenticated users could query counts)
 -- ============================================================================
 ALTER FUNCTION public.get_indexed_recording_count(UUID) SET search_path = public;
+REVOKE EXECUTE ON FUNCTION public.get_indexed_recording_count(UUID) FROM PUBLIC;
 REVOKE EXECUTE ON FUNCTION public.get_indexed_recording_count(UUID) FROM anon;
+-- Re-grant only to authenticated (the intended audience)
+GRANT EXECUTE ON FUNCTION public.get_indexed_recording_count(UUID) TO authenticated;
 
 -- ============================================================================
 -- 6. get_import_counts — import source stats

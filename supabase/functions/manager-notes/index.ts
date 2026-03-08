@@ -1,9 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { getCorsHeaders } from '../_shared/cors.ts';
-
-// Dynamic CORS headers - set per-request from origin
-let corsHeaders: Record<string, string> = {};
+import { authenticateRequest } from '../_shared/auth.ts';
 
 /**
  * Manager Notes Edge Function
@@ -30,37 +28,8 @@ interface UpdateNoteInput {
   note: string;
 }
 
-/**
- * Authenticate the request and return the user ID from JWT.
- */
-async function authenticateRequest(
-  req: Request,
-  supabaseClient: ReturnType<typeof createClient>
-): Promise<{ userId: string } | Response> {
-  const authHeader = req.headers.get('Authorization');
-  if (!authHeader) {
-    return new Response(
-      JSON.stringify({ error: 'No authorization header' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-  const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-
-  if (userError || !user) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
-  return { userId: user.id };
-}
-
 serve(async (req) => {
-  const origin = req.headers.get('Origin');
-  corsHeaders = getCorsHeaders(origin);
+  const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
 
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -74,7 +43,7 @@ serve(async (req) => {
     );
 
     // Authenticate and derive user_id from JWT
-    const authResult = await authenticateRequest(req, supabaseClient);
+    const authResult = await authenticateRequest(req, supabaseClient, corsHeaders);
     if (authResult instanceof Response) return authResult;
     const { userId } = authResult;
 
@@ -83,11 +52,11 @@ serve(async (req) => {
     // Route by HTTP method
     switch (req.method) {
       case 'POST':
-        return handleCreateOrUpdateNote(req, supabaseClient, userId);
+        return handleCreateOrUpdateNote(req, supabaseClient, userId, corsHeaders);
       case 'GET':
-        return handleGetNotes(url, supabaseClient, userId);
+        return handleGetNotes(url, supabaseClient, userId, corsHeaders);
       case 'DELETE':
-        return handleDeleteNote(supabaseClient, url, userId);
+        return handleDeleteNote(supabaseClient, url, userId, corsHeaders);
       default:
         return new Response(
           JSON.stringify({ error: 'Method not allowed' }),
@@ -113,17 +82,18 @@ serve(async (req) => {
 async function handleCreateOrUpdateNote(
   req: Request,
   supabaseClient: ReturnType<typeof createClient>,
-  userId: string
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
   const body = await req.json();
 
   // Check if this is an update request
   if (body.note_id) {
-    return handleUpdateNote(body as UpdateNoteInput, supabaseClient, userId);
+    return handleUpdateNote(body as UpdateNoteInput, supabaseClient, userId, corsHeaders);
   }
 
   // Otherwise, create a new note
-  return handleCreateNote(body as CreateNoteInput, supabaseClient, userId);
+  return handleCreateNote(body as CreateNoteInput, supabaseClient, userId, corsHeaders);
 }
 
 /**
@@ -132,7 +102,8 @@ async function handleCreateOrUpdateNote(
 async function handleCreateNote(
   input: CreateNoteInput,
   supabaseClient: ReturnType<typeof createClient>,
-  userId: string
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
   const { call_recording_id, report_user_id, note } = input;
 
@@ -266,7 +237,8 @@ async function handleCreateNote(
 async function handleUpdateNote(
   input: UpdateNoteInput,
   supabaseClient: ReturnType<typeof createClient>,
-  userId: string
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
   const { note_id, note } = input;
 
@@ -346,7 +318,8 @@ async function handleUpdateNote(
 async function handleGetNotes(
   url: URL,
   supabaseClient: ReturnType<typeof createClient>,
-  userId: string
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
   const callRecordingId = url.searchParams.get('call_recording_id');
   const reportUserId = url.searchParams.get('report_user_id');
@@ -426,7 +399,8 @@ async function handleGetNotes(
 async function handleDeleteNote(
   supabaseClient: ReturnType<typeof createClient>,
   url: URL,
-  userId: string
+  userId: string,
+  corsHeaders: Record<string, string>
 ): Promise<Response> {
   const noteId = url.searchParams.get('id');
 
