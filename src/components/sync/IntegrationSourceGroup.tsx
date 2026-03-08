@@ -13,7 +13,7 @@ interface IntegrationSourceGroupProps {
 /**
  * IntegrationSourceGroup - Grid of integration source cards for sync flow
  * 
- * Shows Fathom, Google Meet, Zoom as compact cards
+ * Shows Fathom, Zoom as compact cards
  * Each connected source has an on/off toggle below it
  * 
  * @brand-version v4.2

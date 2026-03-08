@@ -13,7 +13,7 @@ import {
 import { FathomIcon, ZoomIcon } from "@/components/transcript-library/SourcePlatformIcons";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { getGoogleOAuthUrl, getFathomOAuthUrl, getZoomOAuthUrl } from "@/lib/api-client";
+import { getFathomOAuthUrl, getZoomOAuthUrl } from "@/lib/api-client";
 import { type IntegrationPlatform } from "./IntegrationSyncPane";
 
 // Connection timeout in milliseconds (30 seconds per PRD-018 requirement)
@@ -333,7 +333,6 @@ export function InlineConnectionWizard({
         </div>
       </div>
 
-      {/* Note: Fathom alternative suggestion is now inline in warningContent for Google Meet */}
 
       {/* Help text */}
       <p className="text-xs text-ink-muted text-center">

@@ -45,7 +45,7 @@ export interface Meeting {
   summary?: string | null;
   unsyncedTranscripts?: UnsyncedTranscriptSegment[];
   /** Source platform for multi-source deduplication */
-  source_platform?: 'fathom' | 'google_meet' | 'zoom' | null;
+  source_platform?: 'fathom' | 'zoom' | null;
 }
 
 interface SyncJob {
