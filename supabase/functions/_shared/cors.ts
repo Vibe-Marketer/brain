@@ -7,7 +7,12 @@ const DEFAULT_ORIGINS = [
   'http://localhost:5173',
 ];
 
-const allowedOrigins = Deno.env.get('ALLOWED_ORIGINS')?.split(',') || DEFAULT_ORIGINS;
+const rawOrigins = Deno.env.get('ALLOWED_ORIGINS')
+  ?.split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+const allowedOrigins = rawOrigins && rawOrigins.length > 0 ? rawOrigins : DEFAULT_ORIGINS;
 
 export function getCorsHeaders(requestOrigin?: string | null): Record<string, string> {
   // Default to first allowed origin (never wildcard)
@@ -23,5 +28,6 @@ export function getCorsHeaders(requestOrigin?: string | null): Record<string, st
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, sentry-trace, baggage',
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
     'Access-Control-Max-Age': '86400',
+    'Vary': 'Origin',
   };
 }

@@ -10,75 +10,39 @@ project_id = "vltmrnjsubfzrgrtdqey"
 #
 # AUDIT RESULTS — all verify_jwt=false functions reviewed:
 #
-# SHOULD USE verify_jwt = true (do manual JWT check anyway — belt+suspenders):
-#   fetch-meetings       — user-initiated, has manual JWT check in code
-#   sync-meetings        — user-initiated, has manual JWT check in code
-#   zoom-fetch-meetings  — user-initiated, has manual JWT check in code
-#   zoom-sync-meetings   — user-initiated, has manual JWT check in code
-#   youtube-import       — user-initiated, has manual JWT check in code
-#   file-upload-transcribe — user-initiated, has manual JWT check in code
+# MIGRATED to verify_jwt = true (had manual JWT check — now belt+suspenders):
+#   fetch-meetings, sync-meetings, zoom-fetch-meetings, zoom-sync-meetings,
+#   youtube-import, file-upload-transcribe
 #
 # LEGITIMATELY NO JWT (webhooks/workers — cannot have user JWT):
 #   webhook              — receives external Fathom webhook callbacks
+#   zoom-webhook         — receives external Zoom webhook callbacks
+#   polar-webhook        — receives external Polar payment webhook callbacks
 #   automation-webhook   — receives external webhook triggers
 #   process-embeddings   — worker invoked by pg_cron / self-invocation
 #   automation-scheduler — worker invoked by pg_cron
-#
-# ACTION: The 6 user-initiated functions above should be migrated to
-# verify_jwt = true. They already do manual JWT checks, so enabling
-# gateway-level JWT just adds defense in depth. Filed as future work.
 # ============================================================================
 
-# --- User-initiated functions (verify_jwt = false, has manual JWT check) ---
-# TODO(security): migrate these to verify_jwt = true for defense in depth
+# --- User-initiated functions (verify_jwt = true) ---
+# These all perform manual JWT checks in code as well (defense in depth)
 
 [functions.fetch-meetings]
-# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
-verify_jwt = false
+verify_jwt = true
 
 [functions.sync-meetings]
-# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
-verify_jwt = false
+verify_jwt = true
 
 [functions.zoom-fetch-meetings]
-# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
-verify_jwt = false
+verify_jwt = true
 
 [functions.zoom-sync-meetings]
-# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
-verify_jwt = false
+verify_jwt = true
 
 [functions.youtube-import]
-# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
-verify_jwt = false
+verify_jwt = true
 
 [functions.file-upload-transcribe]
-# User-initiated: has manual JWT check in code. Should be verify_jwt = true.
-verify_jwt = false
-
-# --- Webhook receivers (no user JWT available) ---
-
-[functions.webhook]
-# Receives external Fathom webhook callbacks — no user JWT available
-verify_jwt = false
-
-[functions.automation-webhook]
-# Receives external webhook triggers — no user JWT available
-verify_jwt = false
-
-# --- Worker functions (invoked by pg_cron / self-invocation) ---
-
-[functions.process-embeddings]
-# Worker function called by self-invocation and pg_cron
-# Needs to work without user JWT (uses service role)
-verify_jwt = false
-
-[functions.automation-scheduler]
-# Worker function called by pg_cron for scheduled rule execution
-# Needs to work without user JWT (uses service role)
-verify_jwt = false
-
-# --- User-initiated functions (verify_jwt = true) ---
+verify_jwt = true
 
 [functions.save-fathom-key]
 verify_jwt = true
@@ -119,7 +83,7 @@ verify_jwt = true
 [functions.embed-chunks]
 verify_jwt = true
 
-[functions.chat-stream]
+[functions.chat-stream-v2]
 verify_jwt = true
 
 [functions.youtube-api]
@@ -139,3 +103,33 @@ verify_jwt = true
 
 [functions.automation-email]
 verify_jwt = true
+
+# --- Webhook receivers (no user JWT available) ---
+
+[functions.webhook]
+# Receives external Fathom webhook callbacks — no user JWT available
+verify_jwt = false
+
+[functions.zoom-webhook]
+# Receives external Zoom webhook callbacks — no user JWT available
+verify_jwt = false
+
+[functions.polar-webhook]
+# Receives external Polar payment webhook callbacks — no user JWT available
+verify_jwt = false
+
+[functions.automation-webhook]
+# Receives external webhook triggers — no user JWT available
+verify_jwt = false
+
+# --- Worker functions (invoked by pg_cron / self-invocation) ---
+
+[functions.process-embeddings]
+# Worker function called by self-invocation and pg_cron
+# Needs to work without user JWT (uses service role)
+verify_jwt = false
+
+[functions.automation-scheduler]
+# Worker function called by pg_cron for scheduled rule execution
+# Needs to work without user JWT (uses service role)
+verify_jwt = false
