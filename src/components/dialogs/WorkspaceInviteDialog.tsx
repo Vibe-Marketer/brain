@@ -74,7 +74,9 @@ export function WorkspaceInviteDialog({
       const result = await generateInvite.mutateAsync({})
       setInviteUrl(result.invite_url)
       setExpiresAt(result.invite_expires_at)
-    } catch {}
+    } catch {
+      // Mutation error handled by TanStack Query UI state
+    }
   }, [generateInvite])
 
   const handleRegenerate = useCallback(async () => {
@@ -84,7 +86,9 @@ export function WorkspaceInviteDialog({
       const result = await generateInvite.mutateAsync({ force: true })
       setInviteUrl(result.invite_url)
       setExpiresAt(result.invite_expires_at)
-    } catch {}
+    } catch {
+      // Mutation error handled by TanStack Query UI state
+    }
   }, [generateInvite])
 
   const handleCopy = useCallback(async () => {
