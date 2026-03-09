@@ -4137,10 +4137,6 @@ export type Database = {
           speaker_name: string
         }[]
       }
-      get_vault_organization_id: {
-        Args: { p_workspace_id: string }
-        Returns: string
-      }
       get_workspace_invite_details: {
         Args: { p_token: string }
         Returns: {
@@ -4257,20 +4253,12 @@ export type Database = {
         }
         Returns: undefined
       }
-      is_active_team_member: {
-        Args: { p_team_id: string; p_user_id: string }
-        Returns: boolean
-      }
       is_organization_admin_or_owner: {
         Args: { p_organization_id: string; p_user_id: string }
         Returns: boolean
       }
       is_organization_member: {
         Args: { p_organization_id: string; p_user_id: string }
-        Returns: boolean
-      }
-      is_team_admin: {
-        Args: { p_team_id: string; p_user_id: string }
         Returns: boolean
       }
       is_workspace_admin_or_owner: {
