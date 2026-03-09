@@ -68,8 +68,8 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
   },
   {
     id: "users",
-    label: "Users",
-    description: "Manage organization users",
+    label: "People",
+    description: "Your team and workspace members",
     icon: RiTeamLine,
     requiredRoles: ["TEAM", "ADMIN"],
   },

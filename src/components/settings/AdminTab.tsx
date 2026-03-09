@@ -17,9 +17,11 @@ import {
   RiSearchLine,
   RiShieldLine,
   RiPulseLine,
+  RiLockLine,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
+import { useUserRole } from "@/hooks/useUserRole";
 import { UserTable } from "@/components/settings/UserTable";
 import { supabase } from "@/integrations/supabase/client";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
@@ -55,6 +57,7 @@ interface FeatureFlag {
 
 
 export default function AdminTab() {
+  const { isAdmin, loading: roleLoading } = useUserRole();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserProfile[]>([]);
   const [stats, setStats] = useState<SystemStats>({
@@ -219,6 +222,26 @@ export default function AdminTab() {
       setUpdatingFlagId(null);
     }
   };
+
+  if (roleLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RiLoader2Line className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 border border-dashed border-border rounded-xl">
+        <RiLockLine className="h-12 w-12 text-muted-foreground mb-4" />
+        <p className="text-sm font-medium text-foreground mb-1">Admin access required</p>
+        <p className="text-xs text-muted-foreground">
+          This section is restricted to platform administrators.
+        </p>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
