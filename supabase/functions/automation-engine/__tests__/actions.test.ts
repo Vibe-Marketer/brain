@@ -279,8 +279,29 @@ async function executeRemoveFromFolder(
 }
 
 /**
+ * Resolve the canonical recordings UUID for a call (mirrors production logic).
+ * Uses canonical_recording_id from context, falls back to DB lookup (issue #125).
+ */
+async function resolveCanonicalRecordingId(
+  supabase: ReturnType<typeof createMockSupabase>,
+  context: EvaluationContext
+): Promise<string | null> {
+  if (context.call?.canonical_recording_id) {
+    return context.call.canonical_recording_id;
+  }
+  const legacyId = context.call?.recording_id;
+  if (!legacyId) return null;
+  const { data } = await supabase
+    .from('recordings')
+    .select('id')
+    .eq('legacy_recording_id', legacyId)
+    .maybeSingle();
+  return (data as { id: string } | null)?.id ?? null;
+}
+
+/**
  * Execute add_tag action
- * Uses canonical_recording_id (UUID) since call_tag_assignments.recording_id is now UUID (issue #125).
+ * Uses recording UUID since call_tag_assignments.recording_id is now UUID (issue #125).
  */
 async function executeAddTag(
   supabase: ReturnType<typeof createMockSupabase>,
@@ -289,14 +310,14 @@ async function executeAddTag(
   userId: string
 ): Promise<ActionResult> {
   const { tag_id } = config;
-  const canonicalRecordingId = context.call?.canonical_recording_id;
 
   if (!tag_id) {
     return { success: false, error: 'Missing tag_id in action config' };
   }
 
+  const canonicalRecordingId = await resolveCanonicalRecordingId(supabase, context);
   if (!canonicalRecordingId) {
-    return { success: false, error: 'Missing canonical_recording_id in context — recording may not be migrated yet' };
+    return { success: false, error: 'Could not resolve canonical recording UUID — recording may not exist yet' };
   }
 
   const { error } = await supabase
@@ -312,6 +333,42 @@ async function executeAddTag(
 
   if (error) {
     return { success: false, error: `Failed to add tag: ${error.message}` };
+  }
+
+  return {
+    success: true,
+    details: { tag_id, recording_id: canonicalRecordingId },
+  };
+}
+
+/**
+ * Execute remove_tag action
+ * Uses recording UUID since call_tag_assignments.recording_id is now UUID (issue #125).
+ */
+async function executeRemoveTag(
+  supabase: ReturnType<typeof createMockSupabase>,
+  config: TagActionConfig,
+  context: EvaluationContext
+): Promise<ActionResult> {
+  const { tag_id } = config;
+
+  if (!tag_id) {
+    return { success: false, error: 'Missing tag_id in action config' };
+  }
+
+  const canonicalRecordingId = await resolveCanonicalRecordingId(supabase, context);
+  if (!canonicalRecordingId) {
+    return { success: false, error: 'Could not resolve canonical recording UUID — recording may not exist yet' };
+  }
+
+  const { error } = await supabase
+    .from('call_tag_assignments')
+    .delete()
+    .eq('tag_id', tag_id)
+    .eq('recording_id', canonicalRecordingId);
+
+  if (error) {
+    return { success: false, error: `Failed to remove tag: ${error.message}` };
   }
 
   return {
@@ -964,7 +1021,41 @@ describe('Action Executors', () => {
       const result = await executeAddTag(supabase, config, contextWithoutUUID, testUserId);
 
       expect(result.success).toBe(false);
-      expect(result.error).toContain('canonical_recording_id');
+      expect(result.error).toContain('canonical recording UUID');
+    });
+  });
+
+  describe('Remove Tag Action', () => {
+    it('should successfully remove tag from call', async () => {
+      const supabase = createMockSupabase();
+      const config: TagActionConfig = { tag_id: 'tag-456' };
+
+      const result = await executeRemoveTag(supabase, config, testContext);
+
+      expect(result.success).toBe(true);
+      expect(result.details?.tag_id).toBe('tag-456');
+      expect(result.details?.recording_id).toBe('aaaaaaaa-0000-0000-0000-000000000001');
+    });
+
+    it('should fail when tag_id is missing', async () => {
+      const supabase = createMockSupabase();
+      const config: TagActionConfig = { tag_id: '' };
+
+      const result = await executeRemoveTag(supabase, config, testContext);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('Missing tag_id');
+    });
+
+    it('should fail when canonical_recording_id is missing', async () => {
+      const supabase = createMockSupabase();
+      const config: TagActionConfig = { tag_id: 'tag-456' };
+      const contextWithoutUUID: EvaluationContext = { call: { recording_id: 12345 } };
+
+      const result = await executeRemoveTag(supabase, config, contextWithoutUUID);
+
+      expect(result.success).toBe(false);
+      expect(result.error).toContain('canonical recording UUID');
     });
   });
 
