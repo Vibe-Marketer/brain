@@ -4,6 +4,7 @@ import {
   RiUserLine,
   RiScissorsLine,
   RiArrowGoBackLine,
+  RiSplitCellsHorizontal,
 } from "@remixicon/react";
 import {
   DropdownMenu,
@@ -21,7 +22,9 @@ interface TranscriptSegmentContextMenuProps {
   onChangeSpeaker: () => void;
   onTrimThis: () => void;
   onTrimBefore: () => void;
+  onTrimAfter: () => void;
   onRevert: () => void;
+  onSplitHere?: () => void;
 }
 
 export function TranscriptSegmentContextMenu({
@@ -31,7 +34,9 @@ export function TranscriptSegmentContextMenu({
   onChangeSpeaker,
   onTrimThis,
   onTrimBefore,
+  onTrimAfter,
   onRevert,
+  onSplitHere,
 }: TranscriptSegmentContextMenuProps) {
   return (
     <DropdownMenu>
@@ -54,6 +59,12 @@ export function TranscriptSegmentContextMenu({
             Change speaker
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          {onSplitHere && (
+            <DropdownMenuItem onClick={onSplitHere}>
+              <RiSplitCellsHorizontal className="mr-2 h-4 w-4" />
+              Split here
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={onTrimThis} className="text-destructive">
             <RiScissorsLine className="mr-2 h-4 w-4" />
             Trim this section
@@ -61,6 +72,10 @@ export function TranscriptSegmentContextMenu({
           <DropdownMenuItem onClick={onTrimBefore} className="text-destructive">
             <RiScissorsLine className="mr-2 h-4 w-4" />
             Trim all before this
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onTrimAfter} className="text-destructive">
+            <RiScissorsLine className="mr-2 h-4 w-4" />
+            Trim all after this
           </DropdownMenuItem>
           {hasEdits && (
             <>

@@ -52,6 +52,10 @@ interface VideoDetailsParams {
   videoId: string;
 }
 
+interface ChannelDetailsParams {
+  channelId: string;
+}
+
 interface TranscriptParams {
   videoId: string;
 }
@@ -61,8 +65,8 @@ interface BatchTranscriptsParams {
 }
 
 interface YouTubeApiRequest {
-  action: 'search' | 'channel-videos' | 'video-details' | 'transcript' | 'batch-transcripts';
-  params: YouTubeSearchParams | ChannelVideosParams | VideoDetailsParams | TranscriptParams | BatchTranscriptsParams;
+  action: 'search' | 'channel-videos' | 'video-details' | 'channel-details' | 'transcript' | 'batch-transcripts';
+  params: YouTubeSearchParams | ChannelVideosParams | VideoDetailsParams | ChannelDetailsParams | TranscriptParams | BatchTranscriptsParams;
 }
 
 /**
@@ -173,6 +177,44 @@ async function getVideoDetails(videoId: string, apiKey: string) {
     viewCount: parseInt(video.statistics.viewCount || '0'),
     likeCount: parseInt(video.statistics.likeCount || '0'),
     commentCount: parseInt(video.statistics.commentCount || '0'),
+  };
+}
+
+/**
+ * Get detailed information about a channel including subscriber count and video count
+ */
+async function getChannelDetails(channelId: string, apiKey: string) {
+  const url = new URL(`${YOUTUBE_API_BASE}/channels`);
+  url.searchParams.append('part', 'statistics,snippet');
+  url.searchParams.append('id', channelId);
+  url.searchParams.append('key', apiKey);
+
+  const response = await fetch(url.toString());
+
+  if (!response.ok) {
+    throw createApiHttpError('YouTube API channel details', response.status, await response.text());
+  }
+
+  const data = await response.json();
+
+  if (!data.items || data.items.length === 0) {
+    throw new Error(`Channel ${channelId} not found`);
+  }
+
+  const channel = data.items[0];
+
+  const hiddenSubscriberCount = channel.statistics.hiddenSubscriberCount === true;
+
+  return {
+    channelId: channel.id,
+    title: channel.snippet.title,
+    description: channel.snippet.description,
+    thumbnails: channel.snippet.thumbnails,
+    // null when hidden — callers should not interpret 0 as "no subscribers"
+    subscriberCount: hiddenSubscriberCount ? null : parseInt(channel.statistics.subscriberCount || '0'),
+    videoCount: parseInt(channel.statistics.videoCount || '0'),
+    viewCount: parseInt(channel.statistics.viewCount || '0'),
+    hiddenSubscriberCount,
   };
 }
 
@@ -414,6 +456,18 @@ Deno.serve(async (req) => {
           );
         }
         result = await getVideoDetails(videoId, youtubeApiKey);
+        break;
+      }
+
+      case 'channel-details': {
+        const { channelId } = params as ChannelDetailsParams;
+        if (!channelId) {
+          return new Response(
+            JSON.stringify({ error: 'Missing channelId parameter' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        result = await getChannelDetails(channelId, youtubeApiKey);
         break;
       }
 

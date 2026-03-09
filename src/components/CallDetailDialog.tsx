@@ -11,11 +11,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ChangeSpeakerDialog } from "@/components/transcript-library/ChangeSpeakerDialog";
 import { TrimConfirmDialog } from "@/components/transcript-library/TrimConfirmDialog";
 import { ResyncConfirmDialog } from "@/components/transcript-library/ResyncConfirmDialog";
+import { SplitConfirmDialog } from "@/components/transcript-library/SplitConfirmDialog";
 import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
 import { Badge } from "@/components/ui/badge";
-import { RiCheckboxCircleLine } from "@remixicon/react";
+import { RiCheckboxCircleLine, RiRefreshLine } from "@remixicon/react";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
 import { CallParticipantsTab } from "@/components/call-detail/CallParticipantsTab";
@@ -29,6 +30,48 @@ import {
 } from "@/components/call-detail/CallTranscriptTab";
 import { logger } from "@/lib/logger";
 import { Meeting } from "@/types";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+/**
+ * Row in the post-split dialog that shows a recording title and a
+ * "Regenerate summary" button with proper async handling.
+ */
+function SplitSummaryRow({
+  title,
+  recordingId,
+}: {
+  title: string;
+  recordingId: string | number | null | undefined;
+}) {
+  const handleRegenerate = async () => {
+    if (!recordingId) return;
+    const toastId = toast.loading(`Regenerating summary for "${title}"…`);
+    try {
+      const { error } = await supabase.functions.invoke('summarize-call', {
+        body: { recording_id: recordingId, force_refresh: true },
+      });
+      if (error) throw error;
+      toast.success(`Summary regenerated for "${title}"`, { id: toastId });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to regenerate summary: ${msg}`, { id: toastId });
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
+      <span className="text-sm font-medium truncate">{title}</span>
+      <button
+        onClick={handleRegenerate}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-2 shrink-0"
+      >
+        <RiRefreshLine className="h-3 w-3" />
+        Regenerate
+      </button>
+    </div>
+  );
+}
 
 interface CallDetailDialogProps {
   call: Meeting | null;
@@ -69,10 +112,19 @@ export function CallDetailDialog({
   }>({ open: false, segmentId: null, currentSpeaker: "", currentEmail: undefined });
   const [trimDialog, setTrimDialog] = useState<{
     open: boolean;
-    type: "this" | "before";
+    type: "this" | "before" | "after";
     segmentId: string | null;
   }>({ open: false, type: "this", segmentId: null });
   const [resyncDialog, setResyncDialog] = useState(false);
+  const [splitDialog, setSplitDialog] = useState<{
+    open: boolean;
+    segmentId: string | null;
+  }>({ open: false, segmentId: null });
+  const [splitResult, setSplitResult] = useState<{
+    part1Title: string;
+    part2RecordingId: string;
+    part2Title: string;
+  } | null>(null);
 
   // Use custom hooks for queries and mutations
   const {
@@ -100,6 +152,7 @@ export function CallDetailDialog({
     trimSegment: trimSegmentMutation,
     revertSegment: revertSegmentMutation,
     resyncCall: resyncCallMutation,
+    splitRecording: splitRecordingMutation,
   } = useCallDetailMutations({
     call,
     userId: user?.id,
@@ -149,6 +202,20 @@ export function CallDetailDialog({
     }
   }, [resyncCallMutation.isSuccess]);
 
+  // Handle split recording success
+  useEffect(() => {
+    if (splitRecordingMutation.isSuccess && splitRecordingMutation.data) {
+      const result = splitRecordingMutation.data;
+      setSplitDialog({ open: false, segmentId: null });
+      setSplitResult({
+        part1Title: result.part1_title,
+        part2RecordingId: result.part2_recording_id,
+        part2Title: result.part2_title,
+      });
+      toast.success(`Recording split into "${result.part1_title}" and "${result.part2_title}"`);
+    }
+  }, [splitRecordingMutation.isSuccess, splitRecordingMutation.data]);
+
   // Debug logging for missing data
   const duration = call?.recording_start_time && call?.recording_end_time
     ? Math.round((new Date(call.recording_end_time).getTime() - new Date(call.recording_start_time).getTime()) / 1000 / 60)
@@ -196,12 +263,19 @@ export function CallDetailDialog({
 
     if (trimDialog.type === "this") {
       trimSegmentMutation.mutate({ segmentIds: [trimDialog.segmentId] });
-    } else {
+    } else if (trimDialog.type === "before") {
       // Find the index in VISIBLE transcripts (excluding deleted)
       const segmentIndex = transcripts.findIndex((t: { id: string }) => t.id === trimDialog.segmentId);
       // Get all VISIBLE segments before it
       const segmentIds = transcripts.slice(0, segmentIndex).map((t: { id: string }) => t.id);
       logger.info("Trimming segments", segmentIds);
+      trimSegmentMutation.mutate({ segmentIds });
+    } else {
+      // Find the index in VISIBLE transcripts (excluding deleted)
+      const segmentIndex = transcripts.findIndex((t: { id: string }) => t.id === trimDialog.segmentId);
+      // Get all VISIBLE segments after it (not including the selected segment)
+      const segmentIds = transcripts.slice(segmentIndex + 1).map((t: { id: string }) => t.id);
+      logger.info("Trimming segments after", segmentIds);
       trimSegmentMutation.mutate({ segmentIds });
     }
   };
@@ -242,9 +316,26 @@ export function CallDetailDialog({
     setTrimDialog({ open: true, type: "before", segmentId });
   }, []);
 
+  const handleTrimAfter = useCallback((segmentId: string) => {
+    setTrimDialog({ open: true, type: "after", segmentId });
+  }, []);
+
   const handleRevert = useCallback((segmentId: string) => {
     revertSegmentMutation.mutate({ segmentId });
   }, [revertSegmentMutation]);
+
+  const handleSplitHere = useCallback((segmentId: string) => {
+    // Pass the segment's database id directly to the backend so it can do an exact
+    // lookup in fathom_transcripts (filtering out deleted segments). This avoids both
+    // the "trimmed segments reappear in split" bug (full_transcript isn't filtered) and
+    // the "wrong segment if speaker was edited" bug (name in full_transcript is original).
+    setSplitDialog({ open: true, segmentId });
+  }, []);
+
+  const handleConfirmSplit = useCallback(() => {
+    if (!splitDialog.segmentId) return;
+    splitRecordingMutation.mutate({ segmentId: splitDialog.segmentId });
+  }, [splitDialog.segmentId, splitRecordingMutation]);
 
   // Create grouped props using useMemo for optimal performance
   const transcriptViewState: TranscriptViewState = useMemo(() => ({
@@ -270,8 +361,10 @@ export function CallDetailDialog({
     onChangeSpeaker: handleChangeSpeaker,
     onTrimThis: handleTrimThis,
     onTrimBefore: handleTrimBefore,
+    onTrimAfter: handleTrimAfter,
     onRevert: handleRevert,
     onResyncCall: handleResyncCall,
+    onSplitHere: handleSplitHere,
   }), [
     handleExport,
     handleCopyTranscript,
@@ -281,8 +374,10 @@ export function CallDetailDialog({
     handleChangeSpeaker,
     handleTrimThis,
     handleTrimBefore,
+    handleTrimAfter,
     handleRevert,
     handleResyncCall,
+    handleSplitHere,
   ]);
 
   const transcriptData: TranscriptData = useMemo(() => ({
@@ -342,7 +437,10 @@ export function CallDetailDialog({
             duration={duration}
           />
 
-          <CallInviteesTab calendarInvitees={call.calendar_invitees} />
+          <CallInviteesTab
+            calendarInvitees={call.calendar_invitees}
+            callSpeakers={callSpeakers}
+          />
 
           <CallParticipantsTab
             callSpeakers={callSpeakers}
@@ -395,6 +493,53 @@ export function CallDetailDialog({
         deletedCount={deletedCount}
         onConfirm={() => resyncCallMutation.mutate()}
       />
+
+      {/* Split Confirm Dialog */}
+      <SplitConfirmDialog
+        open={splitDialog.open}
+        onOpenChange={(open) => setSplitDialog((s) => ({ ...s, open }))}
+        onConfirm={handleConfirmSplit}
+        isPending={splitRecordingMutation.isPending}
+      />
+
+      {/* Post-split: Regenerate summary banner */}
+      {splitResult && (
+        <Dialog open={!!splitResult} onOpenChange={() => setSplitResult(null)}>
+          <DialogContent className="max-w-md bg-card" aria-describedby="split-result-description">
+            <DialogDescription id="split-result-description" className="sr-only">
+              Recording split successfully.
+            </DialogDescription>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <RiCheckboxCircleLine className="h-5 w-5 text-green-500" />
+                <h3 className="font-semibold text-foreground">Recording split successfully</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Your call has been split into two recordings. Each summary has been cleared —
+                regenerate them to get accurate summaries for each part.
+              </p>
+              <div className="space-y-2">
+                <SplitSummaryRow
+                  title={splitResult.part1Title}
+                  recordingId={call?.recording_id}
+                />
+                <SplitSummaryRow
+                  title={splitResult.part2Title}
+                  recordingId={splitResult.part2RecordingId}
+                />
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setSplitResult(null)}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }

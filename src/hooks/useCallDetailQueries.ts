@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { groupTranscriptsBySpeaker } from "@/lib/transcriptUtils";
+import { groupTranscriptsBySpeaker, parseYouTubeTranscript, isYouTubeTranscriptFormat } from "@/lib/transcriptUtils";
 import { logger } from "@/lib/logger";
 import { queryKeys } from "@/lib/query-config";
 import { Meeting, TranscriptSegment, TranscriptSegmentDisplay, Speaker, Category } from "@/types";
@@ -87,7 +87,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
         fullTranscript = recData?.full_transcript || null;
       }
 
-      // FALLBACK B: If not on the Meeting object, try fathom_calls (legacy path)
+      // FALLBACK B: For legacy numeric IDs, try fathom_calls
       if (!fullTranscript && typeof call.recording_id === 'number') {
         const { data: callData, error: callError } = await supabase
           .from("fathom_calls")
@@ -164,6 +164,13 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
               segment.speaker_email = email;
             }
           });
+        }
+
+        // If the Fathom/Zoom regex found no segments, try YouTube format
+        if (segments.length === 0 && isYouTubeTranscriptFormat(fullTranscript)) {
+          const ytSegments = parseYouTubeTranscript(fullTranscript, call.recording_id);
+          logger.info(`Parsed ${ytSegments.length} YouTube transcript segments`);
+          return ytSegments;
         }
 
         logger.info(`Parsed ${segments.length} segments with ${speakerEmailMap.size} speaker email mappings`);
@@ -381,13 +388,36 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
     enabled: open && !!call && !!userId,
   });
 
+  // For non-numeric IDs (new pipeline), callSpeakers query is disabled.
+  // Fall back to speakers derived from the already-fetched allTranscripts.
+  const speakersFromTranscripts = useMemo((): Speaker[] => {
+    if (callSpeakers && callSpeakers.length > 0) return callSpeakers;
+    if (!allTranscripts || allTranscripts.length === 0) return [];
+
+    const speakerMap = new Map<string, string | null>();
+    allTranscripts.forEach((t) => {
+      const name = t.speaker_name;
+      if (!name) return;
+      if (!speakerMap.has(name)) {
+        speakerMap.set(name, t.speaker_email ?? null);
+      } else if (t.speaker_email && !speakerMap.get(name)) {
+        speakerMap.set(name, t.speaker_email);
+      }
+    });
+
+    return Array.from(speakerMap.entries()).map(([speaker_name, speaker_email]) => ({
+      speaker_name,
+      speaker_email,
+    }));
+  }, [callSpeakers, allTranscripts]);
+
   return {
     userSettings,
     allTranscripts: allTranscripts || [],
     transcripts,
     callCategories: callCategories || [],
     callTags: callTags || [],
-    callSpeakers: callSpeakers || [],
+    callSpeakers: speakersFromTranscripts,
     transcriptStats,
     editedCount,
     deletedCount,

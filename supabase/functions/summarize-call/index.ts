@@ -34,9 +34,13 @@ function createOpenRouterProvider(apiKey: string) {
   });
 }
 
-// Request schema
+// Request schema — accepts both legacy BIGINT recording IDs and UUID-based IDs
+// (UUIDs are used for recordings created via split or the new recordings table)
 const RequestSchema = z.object({
-  recording_id: z.number().int().positive('recording_id must be a positive integer'),
+  recording_id: z.union([
+    z.number().int().positive('recording_id must be a positive integer'),
+    z.string().uuid('recording_id must be a UUID or a positive integer'),
+  ]),
   force_refresh: z.boolean().optional().default(false),
 });
 
@@ -143,32 +147,71 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { recording_id, force_refresh } = validation.data;
+    const { recording_id, force_refresh } = validation.data as SummarizeRequest;
+    const isUuid = typeof recording_id === 'string';
 
-    // Fetch the call - verify user ownership
-    const { data: call, error: callError } = await supabase
-      .from('fathom_raw_calls')
-      .select('recording_id, title, full_transcript, summary, summary_edited_by_user')
-      .eq('recording_id', recording_id)
-      .eq('user_id', user.id)
-      .single();
+    // Fetch the call — UUID-based recordings use the `recordings` table;
+    // legacy BIGINT IDs use `fathom_raw_calls`.
+    let callTitle = '';
+    let fullTranscript = '';
+    let currentSummary: string | null = null;
+    let summaryEditedByUser = false;
 
-    if (callError || !call) {
-      return new Response(
-        JSON.stringify({ error: 'Recording not found or unauthorized' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    if (isUuid) {
+      const { data: rec, error: recError } = await supabase
+        .from('recordings')
+        .select('id, title, full_transcript, summary, owner_user_id')
+        .eq('id', recording_id)
+        .single();
+
+      if (recError || !rec) {
+        return new Response(
+          JSON.stringify({ error: 'Recording not found or unauthorized' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      if (rec.owner_user_id !== user.id) {
+        return new Response(
+          JSON.stringify({ error: 'Recording not found or unauthorized' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      callTitle = rec.title || '';
+      fullTranscript = rec.full_transcript || '';
+      currentSummary = rec.summary || null;
+      summaryEditedByUser = false; // recordings table has no summary_edited_by_user flag
+    } else {
+      const { data: call, error: callError } = await supabase
+        .from('fathom_raw_calls')
+        .select('recording_id, title, full_transcript, summary, summary_edited_by_user')
+        .eq('recording_id', recording_id)
+        .eq('user_id', user.id)
+        .single();
+
+      if (callError || !call) {
+        return new Response(
+          JSON.stringify({ error: 'Recording not found or unauthorized' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      callTitle = call.title || '';
+      fullTranscript = call.full_transcript || '';
+      currentSummary = call.summary || null;
+      summaryEditedByUser = call.summary_edited_by_user || false;
     }
 
     // Check if we already have a summary (and respect user edits unless force_refresh)
-    if (!force_refresh && call.summary) {
+    if (!force_refresh && currentSummary) {
       // If user has edited the summary, never overwrite
-      if (call.summary_edited_by_user) {
+      if (summaryEditedByUser) {
         return new Response(
           JSON.stringify({
             success: true,
             recording_id,
-            summary: call.summary,
+            summary: currentSummary,
             cached: true,
             user_edited: true,
             message: 'Summary was edited by user and will not be regenerated',
@@ -182,7 +225,7 @@ Deno.serve(async (req) => {
         JSON.stringify({
           success: true,
           recording_id,
-          summary: call.summary,
+          summary: currentSummary,
           cached: true,
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -190,7 +233,7 @@ Deno.serve(async (req) => {
     }
 
     // Validate transcript exists
-    if (!call.full_transcript || call.full_transcript.trim().length === 0) {
+    if (!fullTranscript || fullTranscript.trim().length === 0) {
       return new Response(
         JSON.stringify({ error: 'No transcript available for this recording' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -205,32 +248,39 @@ Deno.serve(async (req) => {
       name: 'summarize-call',
       userId: user.id,
       model: 'openai/gpt-5-nano',
-      input: { title: call.title, transcriptLength: call.full_transcript.length },
+      input: { title: callTitle, transcriptLength: fullTranscript.length },
       metadata: { recording_id },
     });
 
     let summary: string;
     try {
-      summary = await generateSummary(call.full_transcript, call.title || '', openrouter);
+      summary = await generateSummary(fullTranscript, callTitle, openrouter);
       await trace?.end(summary);
     } catch (error) {
       await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
 
-    // Store the summary in the database
-    const { error: updateError } = await supabase
-      .from('fathom_raw_calls')
-      .update({
-        summary,
-        // Don't set summary_edited_by_user since this is AI-generated
-      })
-      .eq('recording_id', recording_id)
-      .eq('user_id', user.id);
+    // Store the summary back in the appropriate table
+    if (isUuid) {
+      const { error: updateError } = await supabase
+        .from('recordings')
+        .update({ summary })
+        .eq('id', recording_id);
 
-    if (updateError) {
-      console.error('Failed to store summary:', updateError);
-      // Still return the summary even if storage failed
+      if (updateError) {
+        console.error('Failed to store summary in recordings:', updateError);
+      }
+    } else {
+      const { error: updateError } = await supabase
+        .from('fathom_raw_calls')
+        .update({ summary })
+        .eq('recording_id', recording_id)
+        .eq('user_id', user.id);
+
+      if (updateError) {
+        console.error('Failed to store summary in fathom_raw_calls:', updateError);
+      }
     }
 
     // Flush Langfuse traces before response

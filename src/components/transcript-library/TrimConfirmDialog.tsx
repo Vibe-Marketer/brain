@@ -5,7 +5,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 interface TrimConfirmDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  type: "this" | "before";
+  type: "this" | "before" | "after";
   onConfirm: () => void;
 }
 
@@ -20,14 +20,16 @@ export function TrimConfirmDialog({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {type === "this" ? "Trim This Section?" : "Trim All Before This?"}
+            {type === "this" ? "Trim This Section?" : type === "before" ? "Trim All Before This?" : "Trim All After This?"}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-2">
               <p>
                 {type === "this"
                   ? "This will hide this section from the transcript."
-                  : "This will hide all sections before this one from the transcript."}
+                  : type === "before"
+                  ? "This will hide all sections before this one from the transcript."
+                  : "This will hide all sections after this one from the transcript."}
               </p>
               <div className="flex items-start gap-2 p-3 bg-muted rounded-md">
                 <RiInformationLine className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
@@ -58,7 +60,7 @@ export function TrimConfirmDialog({
             onClick={onConfirm}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Yes, trim {type === "this" ? "this section" : "all before"}
+            Yes, trim {type === "this" ? "this section" : type === "before" ? "all before" : "all after"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
 import { getSafeUser } from "@/lib/auth-utils";
+import { usePreferencesStore } from "@/stores/preferencesStore";
 
 const timezones = [
   { value: "America/New_York", label: "Eastern Time (ET)" },
@@ -55,8 +57,11 @@ export default function AccountTab() {
   const [_showCurrentPassword, _setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
 
+  const { preferences, isLoading: prefsLoading, loadPreferences, updatePreference } = usePreferencesStore();
+
   useEffect(() => {
     loadProfileData();
+    loadPreferences();
   }, []);
 
   const loadProfileData = async () => {
@@ -414,6 +419,62 @@ export default function AccountTab() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      </div>
+
+      <Separator className="my-16" />
+
+      {/* Auto-Processing Section */}
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-50">Auto-Processing</h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+            Automatically enhance calls when they are imported
+          </p>
+        </div>
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="auto-naming">Auto-Naming</Label>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                Generate descriptive titles for imported calls
+              </p>
+            </div>
+            <Switch
+              id="auto-naming"
+              checked={preferences.autoProcessingTitleGeneration}
+              disabled={prefsLoading}
+              onCheckedChange={async (checked) => {
+                try {
+                  await updatePreference("autoProcessingTitleGeneration", checked);
+                  toast.success(checked ? "Auto-naming enabled" : "Auto-naming disabled");
+                } catch {
+                  toast.error("Failed to update preference");
+                }
+              }}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label htmlFor="auto-tagging">Auto-Tagging</Label>
+              <p className="text-sm text-gray-500 dark:text-gray-500">
+                Automatically assign tags to imported calls
+              </p>
+            </div>
+            <Switch
+              id="auto-tagging"
+              checked={preferences.autoProcessingTagging}
+              disabled={prefsLoading}
+              onCheckedChange={async (checked) => {
+                try {
+                  await updatePreference("autoProcessingTagging", checked);
+                  toast.success(checked ? "Auto-tagging enabled" : "Auto-tagging disabled");
+                } catch {
+                  toast.error("Failed to update preference");
+                }
+              }}
+            />
           </div>
         </div>
       </div>

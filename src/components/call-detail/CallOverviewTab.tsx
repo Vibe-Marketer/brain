@@ -4,7 +4,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { RiErrorWarningLine } from "@remixicon/react";
 import ReactMarkdown from "react-markdown";
 import { Meeting, Category, Speaker } from "@/types";
 
@@ -95,22 +94,6 @@ export function CallOverviewTab({
               </div>
             </div>
 
-            {/* Show warning if critical data is missing */}
-            {(!call.recording_start_time || !call.recording_end_time || !call.share_url) && (
-              <div className="mt-4 p-3 bg-cb-warning-bg border border-cb-warning-border rounded-md text-cb-warning-text">
-                <div className="flex gap-2 text-sm">
-                  <RiErrorWarningLine className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="font-medium">Some meeting data is unavailable:</p>
-                    <ul className="mt-1 text-xs space-y-0.5">
-                      {!call.recording_start_time && <li>• Recording start time</li>}
-                      {!call.recording_end_time && <li>• Recording end time</li>}
-                      {!call.share_url && <li>• Fathom share link</li>}
-                    </ul>
-                  </div>
-                </div>
-              </div>
-            )}
           </div>
 
           <div className="space-y-6">

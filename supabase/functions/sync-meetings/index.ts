@@ -649,11 +649,12 @@ Deno.serve(async (req) => {
 
         // Fire-and-forget: invoke generate-ai-titles for the synced recordings
         if (synced.length > 0) {
-          // This generates descriptive AI titles and auto-categorizes calls
+          // This generates descriptive AI titles - respects user preference
           console.log(`Triggering AI title generation for ${synced.length} synced meetings...`);
           supabase.functions.invoke('generate-ai-titles', {
             body: {
               recordingIds: synced,
+              respectPreference: true,
             },
             headers: {
               Authorization: `Bearer ${jwt}`,
@@ -666,6 +667,26 @@ Deno.serve(async (req) => {
             }
           }).catch((err) => {
             console.error(`AI title invocation failed for sync job ${jobId}:`, err);
+          });
+
+          // Fire-and-forget: invoke auto-tag-calls for the synced recordings
+          console.log(`Triggering auto-tagging for ${synced.length} synced meetings...`);
+          supabase.functions.invoke('auto-tag-calls', {
+            body: {
+              recordingIds: synced,
+              respectPreference: true,
+            },
+            headers: {
+              Authorization: `Bearer ${jwt}`,
+            },
+          }).then(({ data, error }) => {
+            if (error) {
+              console.error(`Auto-tagging failed for sync job ${jobId}:`, error);
+            } else {
+              console.log(`Auto-tagging completed for ${synced.length} meetings:`, data);
+            }
+          }).catch((err) => {
+            console.error(`Auto-tag invocation failed for sync job ${jobId}:`, err);
           });
         }
       } catch (error) {
