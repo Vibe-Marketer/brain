@@ -191,7 +191,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
     setUrl('');
     setCurrentStep('idle');
     setError(undefined);
-    // Keep selectedWorkspaceId — user likely wants same vault for next import
+    // Keep selectedWorkspaceId — user likely wants same workspace for next import
   }, []);
 
   const isValid = url.trim().length > 0 && isValidYouTubeInput(url.trim());

@@ -33,7 +33,7 @@ export function useOrganizationContext(): {
   isPersonalOrganization: boolean
   isPersonalOrg: boolean
   isBusinessOrganization: boolean
-  bankRole: OrganizationRole | null
+  organizationRole: OrganizationRole | null
   orgRole: OrganizationRole | null
   workspaceRole: WorkspaceRole | null
 } {
@@ -118,7 +118,7 @@ export function useOrganizationContext(): {
     isPersonalOrganization: activeOrganization?.type === 'personal', // Legacy alias
     isPersonalOrg: isPersonalOrg, // Already a boolean from useOrgContext
     isBusinessOrganization: activeOrganization?.type === 'business', // Legacy alias
-    bankRole: activeOrganization?.membership.role || null, // Legacy alias
+    organizationRole: activeOrganization?.membership.role || null, // Legacy alias
     orgRole: activeOrganization?.membership.role || null,
     workspaceRole: activeWorkspaceData?.membership.role || null,
   }

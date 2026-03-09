@@ -40,7 +40,7 @@ export async function getRecordings(): Promise<RecordingListItem[]> {
 }
 
 /**
- * Fetches recordings belonging to a specific workspace (vault).
+ * Fetches recordings belonging to a specific workspace.
  *
  * Two-step query:
  * 1. Get recording_id values from workspace_entries where workspace_id = workspaceId
@@ -57,7 +57,7 @@ export async function getRecordingsByWorkspace(workspaceId: string): Promise<Rec
     .eq('workspace_id', workspaceId)
 
   if (entriesError) {
-    throw new Error(`Failed to fetch vault entries for workspace: ${entriesError.message}`)
+    throw new Error(`Failed to fetch workspace entries: ${entriesError.message}`)
   }
 
   const recordingIds: string[] = (entries ?? []).map((e: { recording_id: string }) => e.recording_id)

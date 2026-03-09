@@ -1,5 +1,5 @@
 /**
- * useYouTubeSearch - YouTube-specific search, filter, and sort for vault recordings
+ * useYouTubeSearch - YouTube-specific search, filter, and sort for workspace recordings
  *
  * Extends the useRecordingSearch pattern with YouTube-specific sort fields
  * (views, likes) and published-date tie-breaker logic.

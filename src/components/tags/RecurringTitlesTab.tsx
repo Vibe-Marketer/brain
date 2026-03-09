@@ -111,7 +111,7 @@ export function RecurringTitlesTab() {
     },
   });
 
-  // Fetch tags scoped to active bank/workspace
+  // Fetch tags scoped to active organization/workspace
   const { data: tags } = useQuery({
     queryKey: ["call-tags", activeOrganizationId],
     queryFn: async () => {
@@ -130,7 +130,7 @@ export function RecurringTitlesTab() {
     },
   });
 
-  // Fetch folders scoped to active bank/workspace
+  // Fetch folders scoped to active organization/workspace
   const { data: folders } = useQuery({
     queryKey: ["folders", activeOrganizationId],
     queryFn: async () => {

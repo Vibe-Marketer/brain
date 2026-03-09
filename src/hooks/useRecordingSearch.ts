@@ -1,5 +1,5 @@
 /**
- * useRecordingSearch - Client-side search, filter, and sort for vault recordings
+ * useRecordingSearch - Client-side search, filter, and sort for workspace recordings
  *
  * Provides debounced title search (300ms), date range filtering, and
  * multi-field sorting for WorkspaceRecording arrays.
@@ -83,7 +83,7 @@ function useDebouncedValue<T>(value: T, delay: number): T {
 }
 
 /**
- * useRecordingSearch - Search, filter, and sort vault recordings client-side
+ * useRecordingSearch - Search, filter, and sort workspace recordings client-side
  *
  * @param options.recordings - Source recordings array from useWorkspaceRecordings
  * @returns Search/filter state + filtered results

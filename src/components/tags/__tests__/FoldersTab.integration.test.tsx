@@ -87,10 +87,10 @@ vi.mock('sonner', () => ({
   },
 }));
 
-// Mock useOrganizationContext (used by QuickCreateFolderDialog for bank-scoped folder operations)
+// Mock useOrganizationContext (used by QuickCreateFolderDialog for organization-scoped folder operations)
 vi.mock('@/hooks/useOrganizationContext', () => ({
   useOrganizationContext: vi.fn(() => ({
-    activeOrganizationId: 'test-bank-id',
+    activeOrganizationId: 'test-organization-id',
     activeWorkspaceId: null,
     isLoading: false,
     isInitialized: true,
@@ -120,7 +120,7 @@ import type { Folder } from '@/hooks/useFolders';
 const createMockFolder = (overrides: Partial<Folder> = {}): Folder => ({
   id: 'folder-1',
   user_id: 'user-1',
-  organization_id: 'test-bank-id',
+  organization_id: 'test-organization-id',
   name: 'Test Folder',
   description: null,
   color: '#6B7280',
