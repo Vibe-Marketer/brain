@@ -39,6 +39,7 @@ export interface TranscriptHandlers {
   onTrimBefore: (segmentId: string) => void;
   onRevert: (segmentId: string) => void;
   onResyncCall: () => void;
+  onSplitHere: (segmentId: string) => void;
 }
 
 /**
@@ -103,6 +104,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
     onTrimBefore,
     onRevert,
     onResyncCall,
+    onSplitHere,
   } = handlers;
 
   const { user } = useAuth();
@@ -340,6 +342,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                                           onTrimThis={() => onTrimThis(message.id)}
                                           onTrimBefore={() => onTrimBefore(message.id)}
                                           onRevert={() => onRevert(message.id)}
+                                          onSplitHere={() => onSplitHere(message.id)}
                                         />
                                       </div>
                                     )}

@@ -11,11 +11,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ChangeSpeakerDialog } from "@/components/transcript-library/ChangeSpeakerDialog";
 import { TrimConfirmDialog } from "@/components/transcript-library/TrimConfirmDialog";
 import { ResyncConfirmDialog } from "@/components/transcript-library/ResyncConfirmDialog";
+import { SplitConfirmDialog } from "@/components/transcript-library/SplitConfirmDialog";
 import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
 import { Badge } from "@/components/ui/badge";
-import { RiCheckboxCircleLine } from "@remixicon/react";
+import { RiCheckboxCircleLine, RiRefreshLine } from "@remixicon/react";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
 import { CallParticipantsTab } from "@/components/call-detail/CallParticipantsTab";
@@ -29,6 +30,8 @@ import {
 } from "@/components/call-detail/CallTranscriptTab";
 import { logger } from "@/lib/logger";
 import { Meeting } from "@/types";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CallDetailDialogProps {
   call: Meeting | null;
@@ -73,6 +76,15 @@ export function CallDetailDialog({
     segmentId: string | null;
   }>({ open: false, type: "this", segmentId: null });
   const [resyncDialog, setResyncDialog] = useState(false);
+  const [splitDialog, setSplitDialog] = useState<{
+    open: boolean;
+    segmentId: string | null;
+  }>({ open: false, segmentId: null });
+  const [splitResult, setSplitResult] = useState<{
+    part1Title: string;
+    part2RecordingId: string;
+    part2Title: string;
+  } | null>(null);
 
   // Use custom hooks for queries and mutations
   const {
@@ -100,6 +112,7 @@ export function CallDetailDialog({
     trimSegment: trimSegmentMutation,
     revertSegment: revertSegmentMutation,
     resyncCall: resyncCallMutation,
+    splitRecording: splitRecordingMutation,
   } = useCallDetailMutations({
     call,
     userId: user?.id,
@@ -148,6 +161,20 @@ export function CallDetailDialog({
       setResyncDialog(false);
     }
   }, [resyncCallMutation.isSuccess]);
+
+  // Handle split recording success
+  useEffect(() => {
+    if (splitRecordingMutation.isSuccess && splitRecordingMutation.data) {
+      const result = splitRecordingMutation.data;
+      setSplitDialog({ open: false, segmentId: null });
+      setSplitResult({
+        part1Title: result.part1_title,
+        part2RecordingId: result.part2_recording_id,
+        part2Title: result.part2_title,
+      });
+      toast.success(`Recording split into "${result.part1_title}" and "${result.part2_title}"`);
+    }
+  }, [splitRecordingMutation.isSuccess, splitRecordingMutation.data]);
 
   // Debug logging for missing data
   const duration = call?.recording_start_time && call?.recording_end_time
@@ -246,6 +273,20 @@ export function CallDetailDialog({
     revertSegmentMutation.mutate({ segmentId });
   }, [revertSegmentMutation]);
 
+  const handleSplitHere = useCallback((segmentId: string) => {
+    setSplitDialog({ open: true, segmentId });
+  }, []);
+
+  const handleConfirmSplit = useCallback(() => {
+    if (!splitDialog.segmentId || !transcripts) return;
+    const segmentIndex = transcripts.findIndex((t) => t.id === splitDialog.segmentId);
+    if (segmentIndex <= 0) {
+      toast.error("Cannot split at the first segment — choose a later segment");
+      return;
+    }
+    splitRecordingMutation.mutate({ segmentIndex });
+  }, [splitDialog.segmentId, transcripts, splitRecordingMutation]);
+
   // Create grouped props using useMemo for optimal performance
   const transcriptViewState: TranscriptViewState = useMemo(() => ({
     includeTimestamps,
@@ -272,6 +313,7 @@ export function CallDetailDialog({
     onTrimBefore: handleTrimBefore,
     onRevert: handleRevert,
     onResyncCall: handleResyncCall,
+    onSplitHere: handleSplitHere,
   }), [
     handleExport,
     handleCopyTranscript,
@@ -283,6 +325,7 @@ export function CallDetailDialog({
     handleTrimBefore,
     handleRevert,
     handleResyncCall,
+    handleSplitHere,
   ]);
 
   const transcriptData: TranscriptData = useMemo(() => ({
@@ -395,6 +438,75 @@ export function CallDetailDialog({
         deletedCount={deletedCount}
         onConfirm={() => resyncCallMutation.mutate()}
       />
+
+      {/* Split Confirm Dialog */}
+      <SplitConfirmDialog
+        open={splitDialog.open}
+        onOpenChange={(open) => setSplitDialog({ ...splitDialog, open })}
+        onConfirm={handleConfirmSplit}
+        isPending={splitRecordingMutation.isPending}
+      />
+
+      {/* Post-split: Regenerate summary banner */}
+      {splitResult && (
+        <Dialog open={!!splitResult} onOpenChange={() => setSplitResult(null)}>
+          <DialogContent className="max-w-md bg-card" aria-describedby="split-result-description">
+            <DialogDescription id="split-result-description" className="sr-only">
+              Recording split successfully.
+            </DialogDescription>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <RiCheckboxCircleLine className="h-5 w-5 text-green-500" />
+                <h3 className="font-semibold text-foreground">Recording split successfully</h3>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Your call has been split into two recordings. Each summary has been cleared —
+                regenerate them to get accurate summaries for each part.
+              </p>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
+                  <span className="text-sm font-medium truncate">{splitResult.part1Title}</span>
+                  <button
+                    onClick={() => {
+                      supabase.functions.invoke('summarize-call', {
+                        body: { recording_id: call?.recording_id, force_refresh: true },
+                      });
+                      toast.success("Regenerating summary for Part 1…");
+                    }}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-2 shrink-0"
+                  >
+                    <RiRefreshLine className="h-3 w-3" />
+                    Regenerate
+                  </button>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
+                  <span className="text-sm font-medium truncate">{splitResult.part2Title}</span>
+                  <button
+                    onClick={() => {
+                      supabase.functions.invoke('summarize-call', {
+                        body: { recording_id: splitResult.part2RecordingId, force_refresh: true },
+                      });
+                      toast.success("Regenerating summary for Part 2…");
+                    }}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-2 shrink-0"
+                  >
+                    <RiRefreshLine className="h-3 w-3" />
+                    Regenerate
+                  </button>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  onClick={() => setSplitResult(null)}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </Dialog>
   );
 }

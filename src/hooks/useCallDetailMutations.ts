@@ -38,6 +38,19 @@ interface RevertSegmentParams {
   segmentId: string;
 }
 
+interface SplitRecordingParams {
+  segmentIndex: number;
+}
+
+export interface SplitRecordingResult {
+  part1_recording_id: string | number;
+  part2_recording_id: string;
+  part1_title: string;
+  part2_title: string;
+  part1_segment_count: number;
+  part2_segment_count: number;
+}
+
 export interface UseCallDetailMutationsReturn {
   updateCall: UseMutationResult<void, Error, UpdateCallParams, unknown>;
   editSegment: UseMutationResult<void, Error, EditSegmentParams, unknown>;
@@ -45,6 +58,7 @@ export interface UseCallDetailMutationsReturn {
   trimSegment: UseMutationResult<void, Error, TrimSegmentParams, unknown>;
   revertSegment: UseMutationResult<void, Error, RevertSegmentParams, unknown>;
   resyncCall: UseMutationResult<void, Error, void, unknown>;
+  splitRecording: UseMutationResult<SplitRecordingResult, Error, SplitRecordingParams, unknown>;
 }
 
 export function useCallDetailMutations({
@@ -284,6 +298,33 @@ export function useCallDetailMutations({
     }
   });
 
+  const splitRecording = useMutation({
+    mutationFn: async ({ segmentIndex }: SplitRecordingParams): Promise<SplitRecordingResult> => {
+      if (!call) throw new Error("No call loaded");
+
+      const { data, error } = await supabase.functions.invoke('split-recording', {
+        body: {
+          recording_id: call.recording_id,
+          segment_index: segmentIndex,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.success) throw new Error(data?.error || 'Split failed');
+
+      return data as SplitRecordingResult;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
+      onDataChange?.();
+    },
+    onError: (error: Error) => {
+      logger.error("Split recording error", error);
+      toast.error("Failed to split recording: " + (error.message || "Unknown error"));
+    },
+  });
+
   return {
     updateCall,
     editSegment,
@@ -291,5 +332,6 @@ export function useCallDetailMutations({
     trimSegment,
     revertSegment,
     resyncCall,
+    splitRecording,
   };
 }

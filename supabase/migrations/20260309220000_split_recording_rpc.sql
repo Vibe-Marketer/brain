@@ -1,0 +1,17 @@
+-- Migration: Split Recording Support
+-- Purpose: No schema changes required — split logic is implemented in the
+--          split-recording edge function which uses the existing recordings,
+--          workspace_entries, and fathom_calls tables.
+--
+-- This file serves as a migration marker for issue #148 (split recording feature).
+-- The split-recording edge function handles:
+--   1. Parsing full_transcript into segments
+--   2. Creating Part 2 as a new recordings row
+--   3. Copying workspace_entries for the new recording
+--   4. Renaming Part 1 with "(Part 1)" suffix
+--
+-- No DDL changes are required.
+
+-- ============================================================================
+-- END OF MIGRATION
+-- ============================================================================
