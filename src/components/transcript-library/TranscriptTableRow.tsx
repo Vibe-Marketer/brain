@@ -178,7 +178,7 @@ export function TranscriptTableRow({
               {call.calendar_invitees && call.calendar_invitees.length > 0 ? (
                 <InviteesPopover invitees={call.calendar_invitees} hostEmail={hostEmail} />
               ) : (
-                <span className="text-muted-foreground text-2xs">No participants</span>
+                <span className="text-muted-foreground text-2xs">No contacts</span>
               )}
             </div>
           </div>

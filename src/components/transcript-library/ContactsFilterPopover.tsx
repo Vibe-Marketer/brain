@@ -6,17 +6,17 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterButton } from "./FilterButton";
 
-interface ParticipantsFilterPopoverProps {
+interface ContactsFilterPopoverProps {
   selectedParticipants?: string[];
   allParticipants: string[];
   onParticipantsChange: (participants: string[]) => void;
 }
 
-export function ParticipantsFilterPopover({
+export function ContactsFilterPopover({
   selectedParticipants = [],
   allParticipants,
   onParticipantsChange,
-}: ParticipantsFilterPopoverProps) {
+}: ContactsFilterPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -46,7 +46,7 @@ export function ParticipantsFilterPopover({
       <PopoverTrigger asChild>
         <FilterButton
           icon={<RiUserLine className="h-3.5 w-3.5" />}
-          label="Participants"
+          label="Contacts"
           count={selectedParticipants.length}
           active={selectedParticipants.length > 0}
         />
@@ -55,7 +55,7 @@ export function ParticipantsFilterPopover({
         <div className="flex flex-col">
           <div className="p-3 border-b">
             <Input
-              placeholder="Search participants..."
+              placeholder="Search contacts..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-8 text-xs"
@@ -64,7 +64,7 @@ export function ParticipantsFilterPopover({
           <div className="max-h-[300px] overflow-y-auto p-2 space-y-1">
             {filteredParticipants.length === 0 ? (
               <div className="text-sm text-muted-foreground py-6 text-center">
-                {searchQuery ? "No matching participants" : "No participants found"}
+                {searchQuery ? "No matching contacts" : "No contacts found"}
               </div>
             ) : (
               filteredParticipants.map((participant) => (
