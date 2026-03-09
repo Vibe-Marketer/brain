@@ -33,6 +33,46 @@ import { Meeting } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * Row in the post-split dialog that shows a recording title and a
+ * "Regenerate summary" button with proper async handling.
+ */
+function SplitSummaryRow({
+  title,
+  recordingId,
+}: {
+  title: string;
+  recordingId: string | number | null | undefined;
+}) {
+  const handleRegenerate = async () => {
+    if (!recordingId) return;
+    const toastId = toast.loading(`Regenerating summary for "${title}"…`);
+    try {
+      const { error } = await supabase.functions.invoke('summarize-call', {
+        body: { recording_id: recordingId, force_refresh: true },
+      });
+      if (error) throw error;
+      toast.success(`Summary regenerated for "${title}"`, { id: toastId });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Unknown error";
+      toast.error(`Failed to regenerate summary: ${msg}`, { id: toastId });
+    }
+  };
+
+  return (
+    <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
+      <span className="text-sm font-medium truncate">{title}</span>
+      <button
+        onClick={handleRegenerate}
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-2 shrink-0"
+      >
+        <RiRefreshLine className="h-3 w-3" />
+        Regenerate
+      </button>
+    </div>
+  );
+}
+
 interface CallDetailDialogProps {
   call: Meeting | null;
   open: boolean;
@@ -79,7 +119,9 @@ export function CallDetailDialog({
   const [splitDialog, setSplitDialog] = useState<{
     open: boolean;
     segmentId: string | null;
-  }>({ open: false, segmentId: null });
+    splitTimestamp: string | null;
+    splitSpeaker: string | null;
+  }>({ open: false, segmentId: null, splitTimestamp: null, splitSpeaker: null });
   const [splitResult, setSplitResult] = useState<{
     part1Title: string;
     part2RecordingId: string;
@@ -274,18 +316,27 @@ export function CallDetailDialog({
   }, [revertSegmentMutation]);
 
   const handleSplitHere = useCallback((segmentId: string) => {
-    setSplitDialog({ open: true, segmentId });
-  }, []);
+    // Look up the segment to capture its timestamp and speaker name as a stable locator.
+    // Sending timestamp+speaker (not an array index) to the backend avoids an index
+    // mismatch that would occur if the user has previously trimmed/deleted segments
+    // (the frontend filtered array and the backend's parsed full_transcript differ).
+    const segment = transcripts?.find((t) => t.id === segmentId);
+    if (!segment) return;
+    setSplitDialog({
+      open: true,
+      segmentId,
+      splitTimestamp: segment.timestamp,
+      splitSpeaker: segment.display_speaker_name,
+    });
+  }, [transcripts]);
 
   const handleConfirmSplit = useCallback(() => {
-    if (!splitDialog.segmentId || !transcripts) return;
-    const segmentIndex = transcripts.findIndex((t) => t.id === splitDialog.segmentId);
-    if (segmentIndex <= 0) {
-      toast.error("Cannot split at the first segment — choose a later segment");
-      return;
-    }
-    splitRecordingMutation.mutate({ segmentIndex });
-  }, [splitDialog.segmentId, transcripts, splitRecordingMutation]);
+    if (!splitDialog.splitTimestamp || !splitDialog.splitSpeaker) return;
+    splitRecordingMutation.mutate({
+      splitTimestamp: splitDialog.splitTimestamp,
+      splitSpeaker: splitDialog.splitSpeaker,
+    });
+  }, [splitDialog.splitTimestamp, splitDialog.splitSpeaker, splitRecordingMutation]);
 
   // Create grouped props using useMemo for optimal performance
   const transcriptViewState: TranscriptViewState = useMemo(() => ({
@@ -442,7 +493,7 @@ export function CallDetailDialog({
       {/* Split Confirm Dialog */}
       <SplitConfirmDialog
         open={splitDialog.open}
-        onOpenChange={(open) => setSplitDialog({ ...splitDialog, open })}
+        onOpenChange={(open) => setSplitDialog((s) => ({ ...s, open }))}
         onConfirm={handleConfirmSplit}
         isPending={splitRecordingMutation.isPending}
       />
@@ -464,36 +515,14 @@ export function CallDetailDialog({
                 regenerate them to get accurate summaries for each part.
               </p>
               <div className="space-y-2">
-                <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
-                  <span className="text-sm font-medium truncate">{splitResult.part1Title}</span>
-                  <button
-                    onClick={() => {
-                      supabase.functions.invoke('summarize-call', {
-                        body: { recording_id: call?.recording_id, force_refresh: true },
-                      });
-                      toast.success("Regenerating summary for Part 1…");
-                    }}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-2 shrink-0"
-                  >
-                    <RiRefreshLine className="h-3 w-3" />
-                    Regenerate
-                  </button>
-                </div>
-                <div className="flex items-center justify-between rounded-md border border-border bg-muted/40 px-3 py-2">
-                  <span className="text-sm font-medium truncate">{splitResult.part2Title}</span>
-                  <button
-                    onClick={() => {
-                      supabase.functions.invoke('summarize-call', {
-                        body: { recording_id: splitResult.part2RecordingId, force_refresh: true },
-                      });
-                      toast.success("Regenerating summary for Part 2…");
-                    }}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground ml-2 shrink-0"
-                  >
-                    <RiRefreshLine className="h-3 w-3" />
-                    Regenerate
-                  </button>
-                </div>
+                <SplitSummaryRow
+                  title={splitResult.part1Title}
+                  recordingId={call?.recording_id}
+                />
+                <SplitSummaryRow
+                  title={splitResult.part2Title}
+                  recordingId={splitResult.part2RecordingId}
+                />
               </div>
               <div className="flex justify-end">
                 <button

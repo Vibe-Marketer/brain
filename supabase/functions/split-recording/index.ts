@@ -5,9 +5,16 @@
  * segment boundary. Part 1 keeps segments before the split; Part 2 gets the
  * rest (including the segment the user right-clicked).
  *
+ * The critical DB writes (Part 1 update + Part 2 insert) are performed inside
+ * the `split_recording_atomic` Postgres RPC, ensuring they are atomic.
+ *
  * Endpoint:
  *   POST /functions/v1/split-recording
- *   Body: { recording_id: number | string, segment_index: number }
+ *   Body: {
+ *     recording_id: number | string,
+ *     split_timestamp: string,   // "HH:MM:SS" — timestamp of the split segment
+ *     split_speaker: string,     // speaker name of the split segment
+ *   }
  *   Returns: { success, part1_recording_id, part2_recording_id, part1_title, part2_title }
  */
 
@@ -20,7 +27,10 @@ const RequestSchema = z.object({
     z.number().int().positive(),
     z.string().uuid(),
   ]),
-  segment_index: z.number().int().min(0),
+  /** Timestamp of the segment to split at, in "HH:MM:SS" format. */
+  split_timestamp: z.string().regex(/^\d{2}:\d{2}:\d{2}$/, 'split_timestamp must be HH:MM:SS'),
+  /** Speaker name of the segment to split at (for disambiguation). */
+  split_speaker: z.string().min(1),
 });
 
 type SplitRequest = z.infer<typeof RequestSchema>;
@@ -54,6 +64,12 @@ function buildTranscriptText(
   return segments
     .map((s) => `[${s.timestamp}] ${s.speaker}: ${s.text}`)
     .join('\n');
+}
+
+// Parse "HH:MM:SS" timestamp into total seconds for duration math.
+function timestampToSeconds(ts: string): number {
+  const parts = ts.split(':').map(Number);
+  return (parts[0] ?? 0) * 3600 + (parts[1] ?? 0) * 60 + (parts[2] ?? 0);
 }
 
 Deno.serve(async (req) => {
@@ -107,7 +123,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { recording_id, segment_index } = validation.data as SplitRequest;
+    const { recording_id, split_timestamp, split_speaker } = validation.data as SplitRequest;
     const isLegacyId = typeof recording_id === 'number';
 
     // -------------------------------------------------------------------------
@@ -118,14 +134,10 @@ Deno.serve(async (req) => {
     let organizationId: string | null = null;
     let audioUrl: string | null = null;
     let videoUrl: string | null = null;
-    let duration: number | null = null;
     let recordingStartTime: string | null = null;
     let recordingEndTime: string | null = null;
     let sourceApp: string | null = null;
     let sourceMetadata: Record<string, unknown> = {};
-    let calendarInvitees: unknown = null;
-    let recordedByName: string | null = null;
-    let recordedByEmail: string | null = null;
     let recordingsUuid: string | null = null;
 
     if (isLegacyId) {
@@ -146,17 +158,13 @@ Deno.serve(async (req) => {
 
       sourceTitle = call.title || 'Untitled';
       fullTranscript = call.full_transcript || '';
-      calendarInvitees = call.calendar_invitees || null;
-      recordedByName = call.recorded_by_name || null;
-      recordedByEmail = call.recorded_by_email || null;
       recordingStartTime = call.recording_start_time || null;
       recordingEndTime = call.recording_end_time || null;
-      duration = null; // Will recalculate from segments
 
-      // Also try to fetch from recordings table for richer data + org/workspace linkage
+      // Enrich with recordings table row if it exists
       const { data: recRow } = await supabase
         .from('recordings')
-        .select('id, organization_id, audio_url, video_url, source_app, source_metadata, duration')
+        .select('id, organization_id, audio_url, video_url, source_app, source_metadata')
         .eq('legacy_recording_id', recording_id)
         .maybeSingle();
 
@@ -167,7 +175,6 @@ Deno.serve(async (req) => {
         videoUrl = recRow.video_url || null;
         sourceApp = recRow.source_app || 'fathom';
         sourceMetadata = (recRow.source_metadata as Record<string, unknown>) || {};
-        duration = recRow.duration || null;
       }
     } else {
       // UUID-based recording
@@ -184,7 +191,6 @@ Deno.serve(async (req) => {
         );
       }
 
-      // Ownership check via org membership (RLS handles this via service role only in a limited way)
       if (recRow.owner_user_id !== user.id) {
         return new Response(
           JSON.stringify({ error: 'Recording not found or unauthorized' }),
@@ -200,13 +206,12 @@ Deno.serve(async (req) => {
       videoUrl = recRow.video_url || null;
       sourceApp = recRow.source_app || null;
       sourceMetadata = (recRow.source_metadata as Record<string, unknown>) || {};
-      duration = recRow.duration || null;
       recordingStartTime = recRow.recording_start_time || null;
       recordingEndTime = recRow.recording_end_time || null;
     }
 
     // -------------------------------------------------------------------------
-    // 2. Parse and split transcript at segment_index
+    // 2. Parse transcript and find split point by timestamp + speaker
     // -------------------------------------------------------------------------
     if (!fullTranscript.trim()) {
       return new Response(
@@ -224,70 +229,81 @@ Deno.serve(async (req) => {
       );
     }
 
-    if (segment_index <= 0 || segment_index >= allSegments.length) {
-      return new Response(
-        JSON.stringify({
-          error: `segment_index must be between 1 and ${allSegments.length - 1} (got ${segment_index})`,
-        }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Find split point using timestamp + speaker as a unique locator.
+    // This avoids the index-mismatch bug that occurs when the frontend uses
+    // a filtered (deleted-excluded) transcript array but the backend parses
+    // the raw full_transcript which still contains all original segments.
+    const splitIndex = allSegments.findIndex(
+      (s) => s.timestamp === split_timestamp && s.speaker === split_speaker
+    );
+
+    if (splitIndex <= 0) {
+      if (splitIndex === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Cannot split at the first segment — choose a later segment' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      // No match found — try matching by timestamp only (speaker name may have been edited)
+      const timestampOnlyIndex = allSegments.findIndex((s) => s.timestamp === split_timestamp);
+      if (timestampOnlyIndex <= 0) {
+        return new Response(
+          JSON.stringify({
+            error: `Split point not found in transcript (timestamp: ${split_timestamp}, speaker: ${split_speaker})`,
+          }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    const part1Segments = allSegments.slice(0, segment_index);
-    const part2Segments = allSegments.slice(segment_index);
+    const resolvedSplitIndex = splitIndex >= 0
+      ? splitIndex
+      : allSegments.findIndex((s) => s.timestamp === split_timestamp);
+
+    const part1Segments = allSegments.slice(0, resolvedSplitIndex);
+    const part2Segments = allSegments.slice(resolvedSplitIndex);
 
     const part1Transcript = buildTranscriptText(part1Segments);
     const part2Transcript = buildTranscriptText(part2Segments);
 
-    // Derive per-part speakers from segments (unique speaker names in each half)
-    const getSpeakers = (segs: typeof allSegments) =>
-      Array.from(new Set(segs.map((s) => s.speaker)));
+    // -------------------------------------------------------------------------
+    // 3. Compute per-part timing metadata from segment timestamps
+    // -------------------------------------------------------------------------
+    // Part 1 keeps the original start time; end time approximated from last segment.
+    // Part 2 start time approximated from its first segment; duration from range.
+    const part1LastTimestamp = part1Segments.at(-1)?.timestamp;
+    const part2FirstTimestamp = part2Segments[0]?.timestamp;
+    const part2LastTimestamp = part2Segments.at(-1)?.timestamp;
 
-    const _part1Speakers = getSpeakers(part1Segments);
-    const _part2Speakers = getSpeakers(part2Segments);
+    let part2StartTime: string | null = null;
+    let part2Duration: number | null = null;
+
+    if (recordingStartTime && part2FirstTimestamp) {
+      // Offset part2 start from the original call's start time
+      const offsetSeconds = timestampToSeconds(part2FirstTimestamp);
+      const base = new Date(recordingStartTime);
+      base.setSeconds(base.getSeconds() + offsetSeconds);
+      part2StartTime = base.toISOString();
+    }
+
+    if (part2FirstTimestamp && part2LastTimestamp) {
+      part2Duration = timestampToSeconds(part2LastTimestamp) - timestampToSeconds(part2FirstTimestamp);
+    }
+
+    // Part 1 duration: from recording start to last segment timestamp
+    let part1Duration: number | null = null;
+    if (part1LastTimestamp) {
+      part1Duration = timestampToSeconds(part1LastTimestamp);
+    }
 
     // Naming
     const part1Title = `${sourceTitle} (Part 1)`;
     const part2Title = `${sourceTitle} (Part 2)`;
 
     // -------------------------------------------------------------------------
-    // 3. Update Part 1 — rename in recordings table (and fathom_calls if legacy)
+    // 4. Resolve organization_id (needed for the RPC + workspace lookup)
     // -------------------------------------------------------------------------
-    if (recordingsUuid) {
-      const { error: updateErr } = await supabase
-        .from('recordings')
-        .update({
-          title: part1Title,
-          full_transcript: part1Transcript,
-          summary: null, // Reset — user should regenerate
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', recordingsUuid);
-
-      if (updateErr) {
-        throw new Error(`Failed to update Part 1 recording: ${updateErr.message}`);
-      }
-    }
-
-    if (isLegacyId) {
-      await supabase
-        .from('fathom_calls')
-        .update({
-          title: part1Title,
-          full_transcript: part1Transcript,
-          summary: null,
-        })
-        .eq('recording_id', recording_id)
-        .eq('user_id', user.id);
-    }
-
-    // -------------------------------------------------------------------------
-    // 4. Create Part 2 recording in recordings table
-    // -------------------------------------------------------------------------
-
-    // Need organization_id for Part 2 — required by recordings table
     if (!organizationId) {
-      // Try to find any organization the user belongs to as owner
       const { data: orgMember } = await supabase
         .from('organization_members')
         .select('organization_id')
@@ -305,39 +321,58 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { data: part2Row, error: part2Err } = await supabase
-      .from('recordings')
-      .insert({
-        organization_id: organizationId,
-        owner_user_id: user.id,
-        title: part2Title,
-        full_transcript: part2Transcript,
-        audio_url: audioUrl,
-        video_url: videoUrl,
-        source_app: sourceApp,
-        source_metadata: {
+    // -------------------------------------------------------------------------
+    // 5. Atomic DB writes via RPC (Part 1 update + Part 2 insert in one tx)
+    // -------------------------------------------------------------------------
+    const { data: part2RecordingId, error: rpcError } = await supabase.rpc(
+      'split_recording_atomic',
+      {
+        p_part1_recordings_id:  recordingsUuid ?? null,
+        p_part1_fathom_id:      isLegacyId ? recording_id : null,
+        p_part1_title:          part1Title,
+        p_part1_transcript:     part1Transcript,
+        p_part2_title:          part2Title,
+        p_part2_transcript:     part2Transcript,
+        p_organization_id:      organizationId,
+        p_owner_user_id:        user.id,
+        p_source_app:           sourceApp,
+        p_source_metadata:      {
           ...sourceMetadata,
           split_from: isLegacyId ? recording_id : recordingsUuid,
-          split_segment_index: segment_index,
           split_at: new Date().toISOString(),
+          split_timestamp,
         },
-        duration: duration,
-        recording_start_time: recordingStartTime,
-        recording_end_time: recordingEndTime,
-        created_at: new Date().toISOString(),
-        synced_at: new Date().toISOString(),
-      })
-      .select('id')
-      .single();
+        p_recording_start_time: part2StartTime,
+        p_recording_end_time:   null, // Not reliably known from segments
+        p_audio_url:            audioUrl,
+        p_video_url:            videoUrl,
+      }
+    );
 
-    if (part2Err || !part2Row) {
-      throw new Error(`Failed to create Part 2 recording: ${part2Err?.message || 'unknown'}`);
+    if (rpcError) {
+      throw new Error(`Atomic split failed: ${rpcError.message}`);
     }
 
-    const part2RecordingId = part2Row.id as string;
+    const part2Id = part2RecordingId as string;
+
+    // Also update Part 1 duration in recordings table if we computed one
+    if (recordingsUuid && part1Duration !== null) {
+      await supabase
+        .from('recordings')
+        .update({ duration: part1Duration })
+        .eq('id', recordingsUuid);
+    }
+
+    // Update Part 2 duration
+    if (part2Duration !== null) {
+      await supabase
+        .from('recordings')
+        .update({ duration: part2Duration })
+        .eq('id', part2Id);
+    }
 
     // -------------------------------------------------------------------------
-    // 5. Copy workspace_entries for Part 2 (same workspaces as Part 1)
+    // 6. Copy workspace_entries for Part 2 (non-critical — runs after atomic writes)
     // -------------------------------------------------------------------------
     if (recordingsUuid) {
       const { data: existingEntries } = await supabase
@@ -348,7 +383,7 @@ Deno.serve(async (req) => {
       if (existingEntries && existingEntries.length > 0) {
         const newEntries = existingEntries.map((e: { workspace_id: string }) => ({
           workspace_id: e.workspace_id,
-          recording_id: part2RecordingId,
+          recording_id: part2Id,
           created_at: new Date().toISOString(),
         }));
 
@@ -357,11 +392,11 @@ Deno.serve(async (req) => {
           .insert(newEntries);
 
         if (entryErr) {
-          console.error('Failed to copy workspace_entries for Part 2:', entryErr);
-          // Non-fatal: Part 2 was created, just missing workspace linkage
+          // Non-fatal — Part 2 recording exists, workspace linkage can be repaired
+          console.error('Failed to copy workspace_entries for Part 2:', entryErr.message);
         }
       } else {
-        // No existing workspace entries found — add to home workspace
+        // No workspace entries found — add Part 2 to the home workspace
         const { data: homeWs } = await supabase
           .from('workspaces')
           .select('id')
@@ -372,15 +407,11 @@ Deno.serve(async (req) => {
         if (homeWs) {
           await supabase
             .from('workspace_entries')
-            .insert({
-              workspace_id: homeWs.id,
-              recording_id: part2RecordingId,
-              created_at: new Date().toISOString(),
-            });
+            .insert({ workspace_id: homeWs.id, recording_id: part2Id });
         }
       }
     } else {
-      // No recordings UUID — add Part 2 to home workspace
+      // Legacy recording without a recordings row — add Part 2 to home workspace
       const { data: homeWs } = await supabase
         .from('workspaces')
         .select('id')
@@ -391,22 +422,18 @@ Deno.serve(async (req) => {
       if (homeWs) {
         await supabase
           .from('workspace_entries')
-          .insert({
-            workspace_id: homeWs.id,
-            recording_id: part2RecordingId,
-            created_at: new Date().toISOString(),
-          });
+          .insert({ workspace_id: homeWs.id, recording_id: part2Id });
       }
     }
 
     // -------------------------------------------------------------------------
-    // 6. Return result
+    // 7. Return result
     // -------------------------------------------------------------------------
     return new Response(
       JSON.stringify({
         success: true,
         part1_recording_id: recordingsUuid || recording_id,
-        part2_recording_id: part2RecordingId,
+        part2_recording_id: part2Id,
         part1_title: part1Title,
         part2_title: part2Title,
         part1_segment_count: part1Segments.length,

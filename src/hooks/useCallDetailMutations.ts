@@ -39,7 +39,10 @@ interface RevertSegmentParams {
 }
 
 interface SplitRecordingParams {
-  segmentIndex: number;
+  /** HH:MM:SS timestamp of the segment to split at (used as locator in the backend). */
+  splitTimestamp: string;
+  /** Speaker name of the segment to split at (used for disambiguation). */
+  splitSpeaker: string;
 }
 
 export interface SplitRecordingResult {
@@ -299,13 +302,14 @@ export function useCallDetailMutations({
   });
 
   const splitRecording = useMutation({
-    mutationFn: async ({ segmentIndex }: SplitRecordingParams): Promise<SplitRecordingResult> => {
+    mutationFn: async ({ splitTimestamp, splitSpeaker }: SplitRecordingParams): Promise<SplitRecordingResult> => {
       if (!call) throw new Error("No call loaded");
 
       const { data, error } = await supabase.functions.invoke('split-recording', {
         body: {
           recording_id: call.recording_id,
-          segment_index: segmentIndex,
+          split_timestamp: splitTimestamp,
+          split_speaker: splitSpeaker,
         },
       });
 
