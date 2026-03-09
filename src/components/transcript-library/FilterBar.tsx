@@ -5,7 +5,7 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { FilterPill } from "./FilterPill";
 import { TagFilterPopover } from "./TagFilterPopover";
 import { FolderFilterPopover } from "./FolderFilterPopover";
-import { ParticipantsFilterPopover } from "./ParticipantsFilterPopover";
+import { ContactsFilterPopover } from "./ContactsFilterPopover";
 import { DurationFilterPopover } from "./DurationFilterPopover";
 import { SourceFilterPopover } from "./SourceFilterPopover";
 import { format } from "date-fns";
@@ -51,13 +51,13 @@ export function FilterBar({
 }: FilterBarProps) {
   const isMobile = useIsMobile();
   const { activeOrganizationId } = useOrganizationContext();
-  const [allParticipants, setAllParticipants] = useState<string[]>([]);
+  const [allContacts, setAllContacts] = useState<string[]>([]);
 
-  // Fetch all unique participants from org-scoped call_participants table
+  // Fetch all unique contacts from org-scoped call_participants table
   useEffect(() => {
     let isMounted = true;
 
-    const fetchParticipants = async () => {
+    const fetchContacts = async () => {
       try {
         if (!activeOrganizationId) return;
 
@@ -70,25 +70,25 @@ export function FilterBar({
 
         if (fetchError) {
           if (isMounted) {
-            logger.error("Error fetching participants data", fetchError);
+            logger.error("Error fetching contacts data", fetchError);
           }
           return;
         }
 
         if (isMounted && data) {
-          const participantsSet = new Set<string>();
+          const contactsSet = new Set<string>();
           data.forEach((row: { email?: string | null }) => {
-            if (row.email) participantsSet.add(row.email);
+            if (row.email) contactsSet.add(row.email);
           });
-          setAllParticipants(Array.from(participantsSet).sort());
+          setAllContacts(Array.from(contactsSet).sort());
         }
       } catch (error) {
         if (isMounted) {
-          logger.error("Error fetching participants", error);
+          logger.error("Error fetching contacts", error);
         }
       }
     };
-    fetchParticipants();
+    fetchContacts();
 
     return () => {
       isMounted = false;
@@ -177,10 +177,10 @@ export function FilterBar({
           onCreateFolder={onCreateFolder}
         />
 
-        {/* Participants Filter */}
-        <ParticipantsFilterPopover
+        {/* Contacts Filter */}
+        <ContactsFilterPopover
           selectedParticipants={filters.participants}
-          allParticipants={allParticipants}
+          allParticipants={allContacts}
           onParticipantsChange={(participants) => onFiltersChange({ ...filters, participants })}
         />
 
@@ -250,8 +250,8 @@ export function FilterBar({
           )}
           {filters.participants && filters.participants.length > 0 && (
             <FilterPill
-              label="Participants"
-              value={`${filters.participants.length} participant${filters.participants.length > 1 ? "s" : ""}`}
+              label="Contacts"
+              value={`${filters.participants.length} contact${filters.participants.length > 1 ? "s" : ""}`}
               onRemove={() => onFiltersChange({ ...filters, participants: [] })}
             />
           )}

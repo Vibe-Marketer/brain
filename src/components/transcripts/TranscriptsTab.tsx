@@ -120,9 +120,11 @@ export function TranscriptsTab({
   const workspaceColumns = { date: true, duration: true, participants: true, tags: true, folders: true, workspaces: true, sharedWith: true };
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(isHomeView ? homeColumns : workspaceColumns);
 
-  // Reset column defaults when switching between home and workspace views
+  // Reset column defaults and filters when switching workspaces
   useEffect(() => {
     setVisibleColumns(isHomeView ? homeColumns : workspaceColumns);
+    setFilters({});
+    setSelectedCalls([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkspaceId]);
 
@@ -376,6 +378,7 @@ export function TranscriptsTab({
         }
 
         const { data: entries, error: entryError, count } = await entryQuery
+          .order('created_at', { ascending: false })
           .order('created_at', { ascending: false, referencedTable: 'recordings' })
           .range(offset, offset + pageSize - 1);
 
