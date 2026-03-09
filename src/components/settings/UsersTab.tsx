@@ -8,7 +8,6 @@ import {
   RiBuilding4Line,
   RiBuildingLine,
   RiMailLine,
-  RiUserAddLine,
   RiCloseLine,
   RiTimeLine,
 } from "@remixicon/react";
@@ -19,9 +18,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { getOrganizations } from "@/services/organizations.service";
 import {
   getOrganizationMembers,
-  updateOrganizationMemberRole,
   removeOrganizationMember,
 } from "@/services/organizations.service";
+import {
+  getOrganizationInvitations,
+  revokeOrganizationInvitation,
+} from "@/services/organization-invitations.service";
 import type {
   OrganizationMember,
   OrganizationRole,
@@ -207,25 +209,12 @@ export default function UsersTab() {
       // 2. For each org, fetch members and pending invites
       const orgResults = await Promise.all(
         organizations.map(async (orgWithRole) => {
-          const [members, inviteData] = await Promise.all([
+          const [members, orgInvitations] = await Promise.all([
             getOrganizationMembers(orgWithRole.id).catch(() => [] as OrganizationMember[]),
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (supabase as any)
-              .from("organization_invitations")
-              .select("id, email, role, created_at, expires_at")
-              .eq("organization_id", orgWithRole.id)
-              .eq("status", "pending")
-              .order("created_at", { ascending: false })
-              .then(({ data }: { data: unknown[] | null }) => data ?? []),
+            getOrganizationInvitations(orgWithRole.id).catch(() => []),
           ]);
 
-          const pendingInvites: PendingInvite[] = (inviteData as Array<{
-            id: string;
-            email: string;
-            role: string;
-            created_at: string;
-            expires_at: string;
-          }>).map((inv) => ({
+          const pendingInvites: PendingInvite[] = orgInvitations.map((inv) => ({
             id: inv.id,
             email: inv.email,
             role: inv.role,
@@ -263,43 +252,61 @@ export default function UsersTab() {
 
       if (wsError) throw wsError;
 
-      // 4. For each workspace, fetch all members + pending invites
-      const wsResults = await Promise.all(
-        (wsMemberships ?? []).map(async (wm) => {
-          const ws = wm.workspace as { id: string; name: string; organization_id: string } | null;
-          if (!ws) return null;
+      // Collect all workspace member user IDs for a single batch profile fetch
+      const workspaceIds = (wsMemberships ?? [])
+        .map((wm) => (wm.workspace as { id: string } | null)?.id)
+        .filter(Boolean) as string[];
 
-          // Fetch workspace members
-          const { data: memberships, error: memberError } = await supabase
-            .from("workspace_memberships")
-            .select("id, user_id, role, created_at")
-            .eq("workspace_id", ws.id);
+      // Fetch all workspace memberships in one query
+      let allWsMemberships: Array<{ id: string; user_id: string; role: string; created_at: string; workspace_id: string }> = [];
+      if (workspaceIds.length > 0) {
+        const { data: allMemberships, error: allMemberError } = await supabase
+          .from("workspace_memberships")
+          .select("id, user_id, role, created_at, workspace_id")
+          .in("workspace_id", workspaceIds);
 
-          if (memberError) {
-            logger.warn("Failed to fetch workspace members", memberError);
-            return null;
-          }
+        if (allMemberError) throw allMemberError;
+        allWsMemberships = allMemberships ?? [];
+      }
 
-          // Fetch profiles for members
-          const userIds = (memberships ?? []).map((m) => m.user_id);
-          const profileMap = new Map<string, { email: string; display_name: string; avatar_url: string | null }>();
+      // Batch-fetch all user profiles in a single query (user_profiles.user_id = auth.users.id)
+      const allMemberUserIds = [...new Set(allWsMemberships.map((m) => m.user_id))];
+      const profileMap = new Map<string, { email: string; display_name: string; avatar_url: string | null }>();
 
-          if (userIds.length > 0) {
-            const { data: profiles } = await supabase
-              .from("user_profiles")
-              .select("id, email, display_name, avatar_url")
-              .in("id", userIds);
+      if (allMemberUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from("user_profiles")
+          .select("user_id, email, display_name, avatar_url")
+          .in("user_id", allMemberUserIds);
 
-            for (const p of profiles ?? []) {
-              profileMap.set(p.id, {
-                email: p.email ?? "",
-                display_name: p.display_name ?? "",
-                avatar_url: p.avatar_url ?? null,
-              });
-            }
-          }
+        for (const p of profiles ?? []) {
+          profileMap.set(p.user_id, {
+            email: p.email ?? "",
+            display_name: p.display_name ?? "",
+            avatar_url: p.avatar_url ?? null,
+          });
+        }
+      }
 
-          const members: WorkspaceMember[] = (memberships ?? []).map((m) => {
+      // Fetch all pending workspace invitations in one query
+      let allWsInvites: Array<{ id: string; workspace_id: string; email: string; role: string; created_at: string; expires_at: string }> = [];
+      if (workspaceIds.length > 0) {
+        const { data: wsInviteData } = await supabase
+          .from("workspace_invitations")
+          .select("id, workspace_id, email, role, created_at, expires_at")
+          .in("workspace_id", workspaceIds)
+          .eq("status", "pending");
+        allWsInvites = wsInviteData ?? [];
+      }
+
+      // 4. Build workspace results using the batch-fetched data
+      const wsResults: WorkspaceWithMembers[] = (wsMemberships ?? []).map((wm) => {
+        const ws = wm.workspace as { id: string; name: string; organization_id: string } | null;
+        if (!ws) return null;
+
+        const wsMembers = allWsMemberships
+          .filter((m) => m.workspace_id === ws.id)
+          .map((m) => {
             const profile = profileMap.get(m.user_id);
             return {
               id: m.id,
@@ -312,14 +319,9 @@ export default function UsersTab() {
             };
           });
 
-          // Fetch pending workspace invitations
-          const { data: wsInvites } = await supabase
-            .from("workspace_invitations")
-            .select("id, email, role, created_at, expires_at")
-            .eq("workspace_id", ws.id)
-            .eq("status", "pending");
-
-          const pendingInvites: PendingInvite[] = (wsInvites ?? []).map((inv) => ({
+        const pendingInvites: PendingInvite[] = allWsInvites
+          .filter((inv) => inv.workspace_id === ws.id)
+          .map((inv) => ({
             id: inv.id,
             email: inv.email,
             role: inv.role,
@@ -330,17 +332,16 @@ export default function UsersTab() {
             contextId: ws.id,
           }));
 
-          return {
-            workspaceId: ws.id,
-            workspaceName: ws.name,
-            orgId: ws.organization_id,
-            members,
-            pendingInvites,
-          } satisfies WorkspaceWithMembers;
-        })
-      );
+        return {
+          workspaceId: ws.id,
+          workspaceName: ws.name,
+          orgId: ws.organization_id,
+          members: wsMembers,
+          pendingInvites,
+        };
+      }).filter(Boolean) as WorkspaceWithMembers[];
 
-      setWorkspacesWithMembers(wsResults.filter(Boolean) as WorkspaceWithMembers[]);
+      setWorkspacesWithMembers(wsResults);
     } catch (error) {
       logger.error("Error loading team data", error);
       toast.error("Failed to load team data");
@@ -353,7 +354,7 @@ export default function UsersTab() {
     loadData();
   }, [loadData]);
 
-  const handleRemoveOrgMember = async (membershipId: string, _orgId: string) => {
+  const handleRemoveOrgMember = async (membershipId: string) => {
     setRemovingId(membershipId);
     try {
       await removeOrganizationMember(membershipId);
@@ -364,17 +365,6 @@ export default function UsersTab() {
       toast.error("Failed to remove member");
     } finally {
       setRemovingId(null);
-    }
-  };
-
-  const handleUpdateOrgMemberRole = async (membershipId: string, newRole: OrganizationRole) => {
-    try {
-      await updateOrganizationMemberRole(membershipId, newRole);
-      toast.success("Role updated");
-      await loadData();
-    } catch (error) {
-      logger.error("Error updating member role", error);
-      toast.error("Failed to update role");
     }
   };
 
@@ -399,12 +389,7 @@ export default function UsersTab() {
   const handleRevokeOrgInvite = async (inviteId: string) => {
     setRevokingId(inviteId);
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { error } = await (supabase as any)
-        .from("organization_invitations")
-        .update({ status: "revoked" })
-        .eq("id", inviteId);
-      if (error) throw error;
+      await revokeOrganizationInvitation(inviteId);
       toast.success("Invitation revoked");
       await loadData();
     } catch (error) {
@@ -432,12 +417,6 @@ export default function UsersTab() {
       setRevokingId(null);
     }
   };
-
-  // Collect all pending invites across orgs + workspaces
-  const allPendingInvites: PendingInvite[] = [
-    ...orgsWithMembers.flatMap((o) => o.pendingInvites),
-    ...workspacesWithMembers.flatMap((w) => w.pendingInvites),
-  ];
 
   if (loading) {
     return (
@@ -495,7 +474,7 @@ export default function UsersTab() {
                     badge={<OrgRoleBadge role={member.role} />}
                     onRemove={
                       member.role !== "organization_owner"
-                        ? () => handleRemoveOrgMember(member.id, org.id)
+                        ? () => handleRemoveOrgMember(member.id)
                         : undefined
                     }
                     removing={removingId === member.id}
@@ -603,44 +582,6 @@ export default function UsersTab() {
             </div>
           ))}
         </section>
-      )}
-
-      {/* ── All pending invites summary (if any) ─────────────────── */}
-      {allPendingInvites.length > 0 && (
-        <>
-          <Separator />
-          <section className="space-y-4">
-            <div className="flex items-center gap-2">
-              <RiUserAddLine className="h-4 w-4 text-muted-foreground" />
-              <div>
-                <h2 className="font-semibold text-foreground">All Pending Invitations</h2>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {allPendingInvites.length} outstanding invitation{allPendingInvites.length !== 1 ? "s" : ""}
-                </p>
-              </div>
-            </div>
-            <div className="border border-dashed border-border rounded-xl overflow-hidden">
-              <div className="divide-y divide-border">
-                {allPendingInvites.map((invite) => (
-                  <div key={invite.id} className="flex items-center justify-between py-3 px-4">
-                    <div className="flex items-center gap-3 min-w-0">
-                      <RiMailLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate">{invite.email}</p>
-                        <p className="text-xs text-muted-foreground truncate">
-                          {invite.type === "org" ? "Organization" : "Workspace"}: {invite.contextName}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="ml-4 flex-shrink-0 text-xs">
-                      {invite.type === "org" ? "Org Invite" : "Workspace Invite"}
-                    </Badge>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </section>
-        </>
       )}
     </div>
   );
