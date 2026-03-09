@@ -1,6 +1,6 @@
 /**
  * useRoutingRules — TanStack Query hooks for import routing rule management.
- * Column names match post-Phase-16 DB rename: bank_id→organization_id, vault_id→workspace_id.
+ * Column names: organization_id (formerly bank_id), workspace_id (formerly vault_id).
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

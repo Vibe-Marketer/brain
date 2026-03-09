@@ -2,7 +2,7 @@
  * Routing Rule Types — Phase 18 Import Routing Rules
  *
  * These types mirror the import_routing_rules and import_routing_defaults
- * DB tables (post Phase 16 rename: banks→organizations, vaults→workspaces).
+ * DB tables: organizations (formerly banks) and workspaces (formerly vaults).
  */
 
 export interface RoutingCondition {

@@ -155,7 +155,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   )
 
   // Handle member removal
-  const handleRemoveHubMember = useCallback(
+  const handleRemoveWorkspaceMember = useCallback(
     (member: WorkspaceMember) => {
       if (!currentUserRole) return
       if (!confirm(`Remove ${member.display_name || member.email || 'this member'} from this workspace?`)) return
@@ -169,7 +169,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   )
 
   // Handle leave workspace
-  const handleLeaveHub = useCallback(() => {
+  const handleLeaveWorkspace = useCallback(() => {
     if (!currentUserMembership || !currentUserRole) return
     if (!confirm('Are you sure you want to leave this workspace?')) return
     leaveWorkspace.mutate({
@@ -361,7 +361,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
                             <DropdownMenuSeparator />
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
-                                onClick={() => handleRemoveHubMember(member)}
+                                onClick={() => handleRemoveWorkspaceMember(member)}
                               >
                                 <RiDeleteBinLine className="h-4 w-4 mr-2" />
                                 Remove from Workspace
@@ -372,7 +372,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
                           {isCurrentUser && currentUserRole !== 'workspace_owner' && (
                             <DropdownMenuItem
                               className="text-destructive focus:text-destructive"
-                              onClick={handleLeaveHub}
+                              onClick={handleLeaveWorkspace}
                              >
                               <RiLogoutCircleLine className="h-4 w-4 mr-2" />
                               Leave Workspace

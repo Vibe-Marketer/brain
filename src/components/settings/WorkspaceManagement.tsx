@@ -270,7 +270,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
           </Card>
         ) : (
           workspaces?.map((workspace) => (
-            <HubCard
+            <WorkspaceCard
               key={workspace.id}
               workspace={workspace}
               canManage={canManage}
@@ -282,12 +282,12 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
   )
 }
 
-interface HubCardProps {
+interface WorkspaceCardProps {
   workspace: WorkspaceQueryResult
   canManage: boolean
 }
 
-function HubCard({ workspace, canManage }: HubCardProps) {
+function WorkspaceCard({ workspace, canManage }: WorkspaceCardProps) {
   const { openPanel } = usePanelStore()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const memberCount = workspace.memberships?.length || 0
