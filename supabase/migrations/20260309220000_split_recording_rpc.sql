@@ -43,12 +43,15 @@ AS $$
 DECLARE
   v_part2_id UUID;
 BEGIN
-  -- Validate: caller must be the owner of the source recording
+  -- Validate: p_owner_user_id must be the owner of the source recording.
+  -- Note: this RPC is called with the service role key (via the edge function),
+  -- so auth.uid() is NULL. We use the p_owner_user_id parameter instead, which
+  -- is already validated by the edge function against the user's JWT.
   IF p_part1_recordings_id IS NOT NULL THEN
     IF NOT EXISTS (
       SELECT 1 FROM recordings
       WHERE id = p_part1_recordings_id
-        AND owner_user_id = auth.uid()
+        AND owner_user_id = p_owner_user_id
     ) THEN
       RAISE EXCEPTION 'Access denied: not the owner of recording %', p_part1_recordings_id;
     END IF;

@@ -237,6 +237,11 @@ Deno.serve(async (req) => {
       (s) => s.timestamp === split_timestamp && s.speaker === split_speaker
     );
 
+    // Timestamp-only fallback index (computed once, reused below to avoid double scan)
+    const timestampOnlyIndex = splitIndex < 0
+      ? allSegments.findIndex((s) => s.timestamp === split_timestamp)
+      : -1; // not needed when primary match succeeded
+
     if (splitIndex <= 0) {
       if (splitIndex === 0) {
         return new Response(
@@ -244,8 +249,9 @@ Deno.serve(async (req) => {
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      // No match found — try matching by timestamp only (speaker name may have been edited)
-      const timestampOnlyIndex = allSegments.findIndex((s) => s.timestamp === split_timestamp);
+      // Primary match failed — fall back to timestamp-only.
+      // The frontend sends the original speaker_name (not the edited display name),
+      // so this fallback is a safety net for edge cases rather than the common path.
       if (timestampOnlyIndex <= 0) {
         return new Response(
           JSON.stringify({
@@ -256,9 +262,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const resolvedSplitIndex = splitIndex >= 0
-      ? splitIndex
-      : allSegments.findIndex((s) => s.timestamp === split_timestamp);
+    const resolvedSplitIndex = splitIndex >= 0 ? splitIndex : timestampOnlyIndex;
 
     const part1Segments = allSegments.slice(0, resolvedSplitIndex);
     const part2Segments = allSegments.slice(resolvedSplitIndex);

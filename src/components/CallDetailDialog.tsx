@@ -326,7 +326,9 @@ export function CallDetailDialog({
       open: true,
       segmentId,
       splitTimestamp: segment.timestamp,
-      splitSpeaker: segment.display_speaker_name,
+      // Use the original speaker_name (not display_speaker_name) so the backend
+      // can match against full_transcript which stores original names, not edited ones.
+      splitSpeaker: segment.speaker_name,
     });
   }, [transcripts]);
 
