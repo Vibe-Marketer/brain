@@ -512,18 +512,32 @@ export function TranscriptsTab({
     return calls.filter(c => c && c.recording_id != null);
   }, [calls]);
 
-  // Fetch tag assignments for displayed calls.
-  const recordingIds = validCalls.map(c => String(c.recording_id));
+  // Map recording_id → uuid for quick lookup (needed because selectedCalls uses recording_id)
+  const idToUuid = useMemo(() => {
+    const map = new Map<string, string>();
+    validCalls.forEach(c => {
+      map.set(String(c.recording_id), c.canonical_uuid);
+    });
+    return map;
+  }, [validCalls]);
+
+  /** Convert selectedCalls (recording_id) to UUIDs for DB queries on UUID columns */
+  const selectedToUuids = (ids: (number | string)[]): string[] =>
+    ids.map(id => idToUuid.get(String(id)) || String(id));
+
+  // Fetch tag assignments for displayed calls using UUID keys
+  // (call_tag_assignments.recording_id is UUID, not legacy BIGINT)
+  const recordingUuids = validCalls.map(c => c.canonical_uuid).filter(Boolean);
 
   const { data: tagAssignments = {} } = useQuery({
-    queryKey: ["tag-assignments", recordingIds],
+    queryKey: ["tag-assignments", recordingUuids],
     queryFn: async () => {
-      if (recordingIds.length === 0) return {};
+      if (recordingUuids.length === 0) return {};
 
       const { data, error } = await supabase
         .from("call_tag_assignments")
         .select("recording_id, tag_id")
-        .in("recording_id", recordingIds);
+        .in("recording_id", recordingUuids);
 
       if (error) throw error;
 
@@ -845,8 +859,8 @@ export function TranscriptsTab({
           usePanelStore.getState().closePanel();
         },
         onDelete: handleDeleteCalls,
-        onTag: (tagId: string) => tagMutation.mutate({ callIds: selectedCalls.map(String), tagId }),
-        onRemoveTag: () => untagMutation.mutate({ callIds: selectedCalls.map(String) }),
+        onTag: (tagId: string) => tagMutation.mutate({ callIds: selectedToUuids(selectedCalls), tagId }),
+        onRemoveTag: () => untagMutation.mutate({ callIds: selectedToUuids(selectedCalls) }),
         onCreateNewTag: () => {
           setIsQuickCreateOpen(true);
           setPendingTagTranscripts(selectedCalls);
@@ -869,13 +883,13 @@ export function TranscriptsTab({
           isDragging={true}
           onDrop={(tagId) => {
             tagMutation.mutate({
-              callIds: dragHelpers.draggedItems.map(String),
+              callIds: selectedToUuids(dragHelpers.draggedItems),
               tagId,
             });
           }}
           onUntag={() => {
             untagMutation.mutate({
-              callIds: dragHelpers.draggedItems.map(String),
+              callIds: selectedToUuids(dragHelpers.draggedItems),
             });
           }}
           onCreateNew={() => {
@@ -999,7 +1013,7 @@ export function TranscriptsTab({
           onTagCreated={(tagId) => {
             if (pendingTagTranscripts.length > 0) {
               tagMutation.mutate({
-                callIds: pendingTagTranscripts.map(String),
+                callIds: selectedToUuids(pendingTagTranscripts),
                 tagId,
               });
               setPendingTagTranscripts([]);

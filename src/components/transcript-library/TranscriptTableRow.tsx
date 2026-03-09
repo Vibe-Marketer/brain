@@ -114,8 +114,10 @@ export function TranscriptTableRow({
               </Badge>
             )}
             {(() => {
-              // Only show "NO TRANSCRIPT" badge for SYNCED meetings where we can verify
-              if (!isUnsyncedView) {
+              // Only show "NO TRANSCRIPT" badge when full_transcript was actually
+              // selected and is empty/short. When full_transcript is undefined
+              // (omitted from SELECT for performance), skip the badge entirely.
+              if (!isUnsyncedView && 'full_transcript' in call) {
                 const transcriptLength = call.full_transcript?.length || 0;
                 const hasNoTranscript = transcriptLength === 0 || transcriptLength < 500;
 

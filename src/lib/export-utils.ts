@@ -777,7 +777,7 @@ export async function exportByTag(
   const untaggedCalls: ExportableCall[] = [];
 
   calls.forEach(call => {
-    const callTags = tagAssignments[call.recording_id] || [];
+    const callTags = tagAssignments[call.canonical_uuid] || tagAssignments[call.recording_id] || [];
     if (callTags.length === 0) {
       untaggedCalls.push(call);
     } else {

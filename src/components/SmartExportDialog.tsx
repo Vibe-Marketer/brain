@@ -145,7 +145,7 @@ export default function SmartExportDialog({
     // Tag groups
     const tagGroups = new Set<string>();
     selectedCalls.forEach((call) => {
-      const callTags = tagAssignments[call.recording_id] || [];
+      const callTags = tagAssignments[call.canonical_uuid] || tagAssignments[call.recording_id] || [];
       callTags.forEach((t) => tagGroups.add(t));
     });
 
