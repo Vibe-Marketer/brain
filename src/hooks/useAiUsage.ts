@@ -6,11 +6,11 @@ import { useSubscription } from '@/hooks/useSubscription';
 
 export type AiActionType = 'smart_import' | 'auto_name' | 'auto_tag' | 'chat_message';
 
-/** Returns the current month in YYYY-MM format */
+/** Returns the current month in YYYY-MM format (UTC — matches edge function) */
 function currentMonthYear(): string {
   const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  return `${now.getFullYear()}-${month}`;
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+  return `${now.getUTCFullYear()}-${month}`;
 }
 
 export interface AiUsageState {
@@ -67,7 +67,7 @@ export function useAiUsage(): AiUsageState {
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return 0;
 
-      const { data, error } = await supabase
+      const { count, error } = await supabase
         .from('ai_usage')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', user.id)
@@ -78,7 +78,7 @@ export function useAiUsage(): AiUsageState {
         return 0;
       }
 
-      return data?.length ?? 0;
+      return count ?? 0;
     },
     staleTime: 30000, // 30 seconds — relatively fresh for enforcement
     gcTime: 120000,

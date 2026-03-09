@@ -16,6 +16,15 @@
  *   limit: number
  *   remaining: number
  * }
+ *
+ * NOTE on concurrency: The check-then-insert pattern has a known soft TOCTOU race.
+ * Two simultaneous requests can both read `used < limit` and both insert, allowing
+ * a user to slightly exceed their monthly limit in burst scenarios (e.g., batch imports).
+ * This is intentional: limits are soft caps, not hard financial guarantees.
+ * The window is small (single-user burst) and the over-count is bounded by concurrency.
+ * If hard enforcement is needed in the future, replace with an atomic SQL INSERT
+ * conditional on a sub-select count — e.g.:
+ *   INSERT INTO ai_usage (...) SELECT ... WHERE (SELECT COUNT(*) ... < limit)
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -44,7 +53,7 @@ function getActionLimit(productId: string | null, status: string | null): number
   return AI_ACTION_LIMITS[productId] ?? AI_ACTION_LIMITS['free'];
 }
 
-/** Returns YYYY-MM string for the current month */
+/** Returns YYYY-MM string for the current month in UTC */
 function currentMonthYear(): string {
   const now = new Date();
   const month = String(now.getUTCMonth() + 1).padStart(2, '0');
@@ -133,25 +142,48 @@ Deno.serve(async (req) => {
         effectiveProductId = null;
         effectiveStatus = null;
 
-        // Revert trial fields in background (non-blocking)
+        // Revert trial fields — log any failure so it's observable
         supabase
           .from('user_profiles')
           .update({ subscription_status: null, product_id: null, current_period_end: null })
           .eq('user_id', user.id)
-          .then(() => {
-            console.log(`Trial expired for user ${user.id} — reverted to free`);
+          .then(({ error: revertError }) => {
+            if (revertError) {
+              console.error(`Failed to revert expired trial for user ${user.id}:`, revertError);
+            } else {
+              console.log(`Trial expired for user ${user.id} — reverted to free`);
+            }
           });
       }
     }
 
     const limit = getActionLimit(effectiveProductId, effectiveStatus);
 
-    // Count current month usage
-    // For team orgs, count at org level if orgId provided
+    // Validate org membership before using orgId for pooled counting.
+    // Without this check, a user could pass any org's ID to consume their quota
+    // or benefit from a higher team limit they're not entitled to.
+    const resolvedOrgId = typeof orgId === 'string' && orgId ? orgId : null;
+    if (resolvedOrgId) {
+      const { data: membership } = await supabase
+        .from('organization_memberships')
+        .select('id')
+        .eq('organization_id', resolvedOrgId)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!membership) {
+        return new Response(
+          JSON.stringify({ error: 'Not a member of this organization' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
+    // Count current month usage (org-level for team pooling, user-level otherwise)
     let used: number;
-    if (orgId && typeof orgId === 'string') {
+    if (resolvedOrgId) {
       const { data: orgCount } = await supabase.rpc('get_monthly_org_ai_usage', {
-        p_org_id: orgId,
+        p_org_id: resolvedOrgId,
         p_month_year: monthYear,
       });
       used = (orgCount as number | null) ?? 0;
@@ -174,12 +206,14 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Record the action
+    // Record the action.
+    // Note: there is a soft TOCTOU race between the count check above and this
+    // insert — see the file-level comment for details and the chosen trade-off.
     const { error: insertError } = await supabase
       .from('ai_usage')
       .insert({
         user_id: user.id,
-        org_id: (typeof orgId === 'string' && orgId) ? orgId : null,
+        org_id: resolvedOrgId,
         action_type: actionType as ActionType,
         recording_id: (typeof recordingId === 'string' && recordingId) ? recordingId : null,
         month_year: monthYear,
