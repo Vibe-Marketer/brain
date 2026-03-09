@@ -60,7 +60,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/settings" replace />;
   }
 
-  // If wizard completed but no transcripts synced, redirect to import hub
+  // If wizard completed but no transcripts synced, redirect to import page
   // (unless already on home page, settings, chat, content, or import pages)
   if (wizardCompleted && hasTranscripts === false &&
       location.pathname !== '/' &&

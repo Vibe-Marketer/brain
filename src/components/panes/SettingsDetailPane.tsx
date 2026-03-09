@@ -95,8 +95,8 @@ const CATEGORY_META: Record<
     icon: RiShieldLine,
   },
   organizations: {
-    label: "Hubs",
-    description: "Manage organization hubs",
+    label: "Workspaces",
+    description: "Manage organization workspaces",
     icon: RiBuildingLine,
   },
 };

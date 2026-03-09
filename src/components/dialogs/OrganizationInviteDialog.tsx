@@ -91,7 +91,7 @@ export function OrganizationInviteDialog({
             Invite to {organizationName}
           </DialogTitle>
           <DialogDescription>
-            Invite teammates to join this organization. They will have access to all public hubs within the organization.
+            Invite teammates to join this organization. They will have access to all public workspaces within the organization.
           </DialogDescription>
         </DialogHeader>
 

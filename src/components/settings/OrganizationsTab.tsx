@@ -51,9 +51,9 @@ export function OrganizationsTab() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold">Hubs</h2>
+        <h2 className="text-2xl font-bold">Workspaces</h2>
         <p className="text-muted-foreground">
-          Manage your organizational structure and collaboration hubs
+          Manage your organizational structure and collaboration workspaces
         </p>
       </div>
 

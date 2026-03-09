@@ -112,11 +112,11 @@ export function DeleteWorkspaceDialog({
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-destructive/10">
               <RiAlertLine className="h-4 w-4 text-destructive" />
             </div>
-            <DialogTitle>Delete Hub</DialogTitle>
+            <DialogTitle>Delete Workspace</DialogTitle>
           </div>
           <DialogDescription id="delete-workspace-description">
             This action cannot be undone. All recordings will be removed from
-            this hub (recordings themselves are not deleted from your organization).
+            this workspace (recordings themselves are not deleted from your organization).
           </DialogDescription>
         </DialogHeader>
 
@@ -127,15 +127,15 @@ export function DeleteWorkspaceDialog({
               Deleting <strong>{workspace.name}</strong> will:
             </p>
             <ul className="mt-2 space-y-1 text-sm text-muted-foreground list-disc pl-4">
-              <li>Remove all hub memberships ({workspace.member_count} members)</li>
-              <li>Remove all hub entry assignments</li>
-              <li>Delete all hub-specific notes, tags, and scores</li>
+              <li>Remove all workspace memberships ({workspace.member_count} members)</li>
+              <li>Remove all workspace entry assignments</li>
+              <li>Delete all workspace-specific notes, tags, and scores</li>
             </ul>
             {typeof recordingCount === 'number' && (
               <p className="mt-2 text-xs text-muted-foreground">
                 {recordingCount === 0
-                  ? 'This hub has no recordings.'
-                  : `This hub has ${recordingCount} recording${recordingCount !== 1 ? 's' : ''}.`}
+                  ? 'This workspace has no recordings.'
+                  : `This workspace has ${recordingCount} recording${recordingCount !== 1 ? 's' : ''}.`}
               </p>
             )}
           </div>
@@ -149,7 +149,7 @@ export function DeleteWorkspaceDialog({
                   onCheckedChange={(checked) => setTransferEnabled(Boolean(checked))}
                 />
                 <Label htmlFor="transfer-recordings">
-                  Transfer recordings to another hub
+                  Transfer recordings to another workspace
                 </Label>
               </div>
               {transferEnabled && (
@@ -157,7 +157,7 @@ export function DeleteWorkspaceDialog({
                   <Label htmlFor="transfer-workspace">Transfer to</Label>
                   <Select value={transferWorkspaceId} onValueChange={setTransferWorkspaceId}>
                     <SelectTrigger id="transfer-workspace">
-                      <SelectValue placeholder="Select a hub" />
+                      <SelectValue placeholder="Select a workspace" />
                     </SelectTrigger>
                     <SelectContent>
                       {transferOptions.map((option) => (
@@ -201,7 +201,7 @@ export function DeleteWorkspaceDialog({
             onClick={handleDelete}
             disabled={!canDelete || deleteWorkspace.isPending}
           >
-            {deleteWorkspace.isPending ? 'Deleting...' : 'Delete Hub'}
+            {deleteWorkspace.isPending ? 'Deleting...' : 'Delete Workspace'}
           </Button>
         </DialogFooter>
       </DialogContent>

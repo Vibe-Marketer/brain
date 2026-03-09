@@ -163,16 +163,16 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
       queryClient.invalidateQueries({ queryKey: queryKeys.organizations.all })
       setCreateDialogOpen(false)
       setNewWorkspaceName('')
-      toast.success('Hub created successfully')
+      toast.success('Workspace created successfully')
     },
     onError: (error) => {
-      toast.error(`Failed to create hub: ${error.message}`)
+      toast.error(`Failed to create workspace: ${error.message}`)
     },
   })
 
   const handleCreateWorkspace = () => {
     if (!newWorkspaceName.trim()) {
-      toast.error('Hub name is required')
+      toast.error('Workspace name is required')
       return
     }
     createWorkspace.mutate({ name: newWorkspaceName.trim(), type: newWorkspaceType })
@@ -187,38 +187,38 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
 
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-medium">Hubs</h3>
+          <h3 className="text-lg font-medium">Workspaces</h3>
           <p className="text-sm text-muted-foreground">
-            Manage collaboration hubs within this organization
+            Manage collaboration workspaces within this organization
           </p>
         </div>
         {canManage && (
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" aria-label="Create hub">
+              <Button size="sm" aria-label="Create workspace">
                 <RiAddLine className="h-4 w-4 mr-2" />
-                Create Hub
+                Create Workspace
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Create New Hub</DialogTitle>
+                <DialogTitle>Create New Workspace</DialogTitle>
                 <DialogDescription>
-                  A hub is a shared space inside an organization for one team, client, or community.
+                  A workspace is a shared space inside an organization for one team, client, or community.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Hub Name</label>
+                  <label className="text-sm font-medium">Workspace Name</label>
                   <Input
                     value={newWorkspaceName}
                     onChange={(e) => setNewWorkspaceName(e.target.value)}
                     placeholder="e.g., Sales, Client A"
-                    aria-label="Hub name"
+                    aria-label="Workspace name"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Hub Type</label>
+                  <label className="text-sm font-medium">Workspace Type</label>
                   <Select
                     value={newWorkspaceType}
                     onValueChange={(v) => setNewWorkspaceType(v as WorkspaceType)}
@@ -243,16 +243,16 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
                 <Button
                   variant="outline"
                   onClick={() => setCreateDialogOpen(false)}
-                  aria-label="Cancel hub creation"
+                  aria-label="Cancel workspace creation"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleCreateWorkspace}
                   disabled={createWorkspace.isPending}
-                  aria-label="Create hub"
+                  aria-label="Create workspace"
                 >
-                  {createWorkspace.isPending ? 'Creating...' : 'Create Hub'}
+                  {createWorkspace.isPending ? 'Creating...' : 'Create Workspace'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -265,7 +265,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
         {workspaces?.length === 0 ? (
           <Card>
             <CardContent className="pt-6 text-center text-muted-foreground">
-              No hubs yet. Create one to get started.
+              No workspaces yet. Create one to get started.
             </CardContent>
           </Card>
         ) : (
@@ -321,7 +321,7 @@ function HubCard({ workspace, canManage }: HubCardProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label="Delete hub"
+                  aria-label="Delete workspace"
                   onClick={() => setDeleteDialogOpen(true)}
                   className="text-destructive hover:text-destructive hover:bg-destructive/10"
                 >
@@ -331,7 +331,7 @@ function HubCard({ workspace, canManage }: HubCardProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label="Open hub detail"
+                aria-label="Open workspace detail"
                 onClick={() => openPanel('workspace-detail', { type: 'workspace-detail', workspaceId: workspace.id })}
               >
                 <RiArrowRightSLine className="h-4 w-4" />

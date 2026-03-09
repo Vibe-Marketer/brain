@@ -87,7 +87,7 @@ describe('CreateWorkspaceDialog', () => {
     mockMutate.mockClear()
   })
 
-  it('shows YouTube as an available hub type option', () => {
+  it('shows YouTube as an available workspace type option', () => {
     render(
       <CreateWorkspaceDialog
         open
@@ -110,18 +110,18 @@ describe('CreateWorkspaceDialog', () => {
       />
     )
 
-    fireEvent.change(screen.getByLabelText(/hub name/i), {
-      target: { value: 'YouTube Hub' },
+    fireEvent.change(screen.getByLabelText(/workspace name/i), {
+      target: { value: 'YouTube Workspace' },
     })
 
     fireEvent.click(screen.getByRole('button', { name: /youtube/i }))
-    fireEvent.click(screen.getByRole('button', { name: /create hub/i }))
+    fireEvent.click(screen.getByRole('button', { name: /create workspace/i }))
 
     expect(mockMutate).toHaveBeenCalledTimes(1)
     expect(mockMutate).toHaveBeenCalledWith(
       expect.objectContaining({
         orgId: 'org-1',
-        name: 'YouTube Hub',
+        name: 'YouTube Workspace',
         workspaceType: 'youtube',
       }),
       expect.any(Object)

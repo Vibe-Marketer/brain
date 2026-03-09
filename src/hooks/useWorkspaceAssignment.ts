@@ -141,7 +141,7 @@ export function useWorkspaceAssignment(
       queryClient.invalidateQueries({
         queryKey: ['workspace-entries', 'recording-batch'],
       })
-      toast.error('Failed to add recording to hub')
+      toast.error('Failed to add recording to workspace')
     },
     onSettled: (_data, _error, { workspaceId }) => {
       // Invalidate all workspace entry queries (individual + batch) via prefix match
@@ -155,7 +155,7 @@ export function useWorkspaceAssignment(
     },
     onSuccess: (_data, { workspaceId }) => {
       const workspace = workspaces.find((workspace) => workspace.id === workspaceId)
-      toast.success(`Added to ${workspace?.name || 'hub'}`)
+      toast.success(`Added to ${workspace?.name || 'workspace'}`)
     },
   })
 
@@ -211,7 +211,7 @@ export function useWorkspaceAssignment(
       queryClient.invalidateQueries({
         queryKey: ['workspace-entries', 'recording-batch'],
       })
-      toast.error('Failed to remove recording from hub')
+      toast.error('Failed to remove recording from workspace')
     },
     onSettled: (_data, _error, { workspaceId }) => {
       // Invalidate all workspace entry queries (individual + batch) via prefix match
@@ -225,7 +225,7 @@ export function useWorkspaceAssignment(
     },
     onSuccess: (_data, { workspaceId }) => {
       const workspace = workspaces.find((workspace) => workspace.id === workspaceId)
-      toast.success(`Removed from ${workspace?.name || 'hub'}`)
+      toast.success(`Removed from ${workspace?.name || 'workspace'}`)
     },
   })
 
@@ -233,7 +233,7 @@ export function useWorkspaceAssignment(
   const toggleWorkspace = (workspaceId: string) => {
     // Don't allow removing from personal workspace
     if (personalWorkspace && workspaceId === personalWorkspace.id) {
-      toast.error('Recordings cannot be removed from your personal hub')
+      toast.error('Recordings cannot be removed from your personal workspace')
       return
     }
 

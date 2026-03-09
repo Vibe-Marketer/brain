@@ -132,7 +132,7 @@ export function WorkspaceInviteDialog({
             Invite to {workspaceName}
           </DialogTitle>
           <DialogDescription>
-            Invite others to collaborate in this hub.
+            Invite others to collaborate in this workspace.
           </DialogDescription>
         </DialogHeader>
 
@@ -207,7 +207,7 @@ export function WorkspaceInviteDialog({
                   <SelectContent>
                     <SelectItem value="member">Member (Can view/add calls)</SelectItem>
                     <SelectItem value="manager">Manager (Can manage folders)</SelectItem>
-                    <SelectItem value="workspace_admin">Hub Admin (Can manage members)</SelectItem>
+                    <SelectItem value="workspace_admin">Workspace Admin (Can manage members)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -224,7 +224,7 @@ export function WorkspaceInviteDialog({
         <DialogFooter className="border-t border-border/40 pt-4 mt-2">
           <div className="flex-1 flex items-center gap-2 text-[10px] text-muted-foreground">
             <RiInformationLine className="h-3 w-3" />
-            <span>Invited members will see all calls available in this hub.</span>
+            <span>Invited members will see all calls available in this workspace.</span>
           </div>
           <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
             Close

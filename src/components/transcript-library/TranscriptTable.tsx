@@ -43,7 +43,7 @@ const workspaceColumnOptions = [
   { id: "participants", label: "Invitees" },
   { id: "tags", label: "Tags" },
   { id: "folders", label: "Folders" },
-  { id: "workspaces", label: "Hubs" },
+  { id: "workspaces", label: "Workspaces" },
   { id: "sharedWith", label: "Shared With" },
 ];
 
@@ -52,7 +52,7 @@ const homeColumnOptions = [
   { id: "duration", label: "Duration" },
   { id: "source", label: "Source" },
   { id: "tags", label: "Tags" },
-  { id: "workspaces", label: "Hubs" },
+  { id: "workspaces", label: "Workspaces" },
   { id: "sharedWith", label: "Shared With" },
 ];
 

@@ -51,7 +51,7 @@ const WORKSPACE_TYPE_OPTIONS: Array<{
   {
     value: 'team',
     label: 'Team',
-    description: 'Shared hub for your team',
+    description: 'Shared workspace for your team',
   },
   {
     value: 'youtube',
@@ -177,22 +177,22 @@ export function CreateWorkspaceDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent aria-describedby="create-workspace-description">
         <DialogHeader>
-          <DialogTitle>Create New Hub</DialogTitle>
+          <DialogTitle>Create New Workspace</DialogTitle>
           <DialogDescription id="create-workspace-description">
-            A hub is a shared space inside an organization for one team, client, or community.
+            A workspace is a shared space inside an organization for one team, client, or community.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
           {/* Workspace name */}
           <div className="space-y-2">
-            <Label htmlFor="workspace-name">Hub Name</Label>
+            <Label htmlFor="workspace-name">Workspace Name</Label>
             <Input
               id="workspace-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="e.g., Sales Hub, Client A"
+              placeholder="e.g., Sales, Client A"
               autoFocus
             />
             <p className="text-xs text-muted-foreground">
@@ -200,14 +200,14 @@ export function CreateWorkspaceDialog({
             </p>
             {name.length > 0 && !isNameValid && (
               <p className="text-xs text-destructive">
-                Hub name must be between 3 and 50 characters.
+                Workspace name must be between 3 and 50 characters.
               </p>
             )}
           </div>
 
           {/* Workspace type */}
           <div className="space-y-2">
-            <Label htmlFor="workspace-type">Hub Type</Label>
+            <Label htmlFor="workspace-type">Workspace Type</Label>
             <Select
               value={workspaceType}
               onValueChange={(v) => setWorkspaceType(v as WorkspaceType)}
@@ -285,16 +285,16 @@ export function CreateWorkspaceDialog({
             variant="ghost"
             onClick={() => onOpenChange(false)}
             disabled={createWorkspace.isPending}
-            aria-label="Cancel hub creation"
+            aria-label="Cancel workspace creation"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!canSubmit}
-            aria-label="Create hub"
+            aria-label="Create workspace"
           >
-            {createWorkspace.isPending ? 'Creating...' : 'Create Hub'}
+            {createWorkspace.isPending ? 'Creating...' : 'Create Workspace'}
           </Button>
         </DialogFooter>
       </DialogContent>

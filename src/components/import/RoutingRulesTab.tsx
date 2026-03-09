@@ -1,5 +1,5 @@
 /**
- * RoutingRulesTab — Rules tab content for the Import Hub.
+ * RoutingRulesTab — Rules tab content for the Import page.
  */
 
 import { useState } from 'react';
@@ -140,7 +140,7 @@ export function RoutingRulesTab() {
                   Apply to existing calls
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Retroactively route historical calls to match your current rules. Calls already in a Hub are skipped.
+                  Retroactively route historical calls to match your current rules. Calls already in a workspace are skipped.
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -221,7 +221,7 @@ export function RoutingRulesTab() {
           </h2>
 
           <p className="text-sm text-muted-foreground max-w-sm mb-6">
-            Send calls from each source to the right hub and folder as soon as they're imported.
+            Send calls from each source to the right workspace and folder as soon as they're imported.
             No more dragging recordings around.
           </p>
 

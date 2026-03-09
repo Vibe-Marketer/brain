@@ -71,7 +71,7 @@ export default function OAuthCallback() {
         setMessage(`Successfully connected to ${provider}!`);
         toast.success(`Successfully connected to ${provider}!`);
 
-        // Redirect to Import Hub after a brief delay with source info for auto-sync
+        // Redirect to Import page after a brief delay with source info for auto-sync
         const sourceParam = isZoomCallback ? 'zoom' : 'fathom';
         setTimeout(() => {
           navigate(`/import?source=${sourceParam}&connected=true`, { replace: true });
@@ -84,7 +84,7 @@ export default function OAuthCallback() {
         setMessage(errorMessage);
         toast.error(errorMessage);
 
-        // Redirect to Import Hub after error display
+        // Redirect to Import page after error display
         setTimeout(() => {
           navigate("/import", { replace: true });
         }, 3000);
@@ -129,7 +129,7 @@ export default function OAuthCallback() {
         {/* Redirect notice */}
         {(state === "success" || state === "error") && (
           <p className="text-sm text-muted-foreground">
-            Redirecting to Import Hub...
+            Redirecting to Import...
           </p>
         )}
       </div>

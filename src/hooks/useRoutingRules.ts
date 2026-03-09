@@ -352,7 +352,7 @@ export function useBulkApplyRules() {
         // Invalidate workspace entries and recordings after actual apply
         queryClient.invalidateQueries({ queryKey: queryKeys.workspaceEntries.all });
         queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
-        toast.success(`Moved ${data.moved} recording${data.moved !== 1 ? 's' : ''} to matching hubs`);
+        toast.success(`Moved ${data.moved} recording${data.moved !== 1 ? 's' : ''} to matching workspaces`);
       }
     },
     onError: (error: Error) => {

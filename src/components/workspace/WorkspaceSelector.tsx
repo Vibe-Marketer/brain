@@ -59,7 +59,7 @@ export function WorkspaceSelector({
   integration,
   onWorkspaceChange,
   value,
-  label = 'Import to hub',
+  label = 'Import to workspace',
   className,
   disabled = false,
 }: WorkspaceSelectorProps) {
@@ -170,12 +170,12 @@ export function WorkspaceSelector({
         disabled={disabled}
       >
         <SelectTrigger className="w-full h-10">
-          <SelectValue placeholder="Select a hub..." />
+          <SelectValue placeholder="Select a workspace..." />
         </SelectTrigger>
         <SelectContent>
           <SelectGroup>
             <SelectLabel className="text-xs text-muted-foreground uppercase tracking-wide">
-              Hubs
+              Workspaces
             </SelectLabel>
             {sortedWorkspaces.map((workspace) => (
               <SelectItem key={workspace.id} value={workspace.id}>

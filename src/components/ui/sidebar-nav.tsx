@@ -292,7 +292,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 'hover:bg-hover',
                 'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
               )}
-              title="Toggle Hub Panel"
+              title="Toggle Workspace Panel"
             >
                <div className={cn(
                       "flex-shrink-0 flex items-center justify-center",
@@ -300,7 +300,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   )}>
                   <RiLayoutColumnLine className={iconClass} />
               </div>
-              {!isCollapsed && <span className="text-sm text-muted-foreground truncate">Hub Panel</span>}
+              {!isCollapsed && <span className="text-sm text-muted-foreground truncate">Workspace Panel</span>}
             </button>
              {isCollapsed && <div className="w-8 h-px bg-cb-border mt-2 mx-auto" />}
           </div>

@@ -158,7 +158,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   const handleRemoveHubMember = useCallback(
     (member: WorkspaceMember) => {
       if (!currentUserRole) return
-      if (!confirm(`Remove ${member.display_name || member.email || 'this member'} from this hub?`)) return
+      if (!confirm(`Remove ${member.display_name || member.email || 'this member'} from this workspace?`)) return
       removeMember.mutate({
         membershipId: member.id,
         targetRole: member.role,
@@ -171,7 +171,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   // Handle leave workspace
   const handleLeaveHub = useCallback(() => {
     if (!currentUserMembership || !currentUserRole) return
-    if (!confirm('Are you sure you want to leave this hub?')) return
+    if (!confirm('Are you sure you want to leave this workspace?')) return
     leaveWorkspace.mutate({
       membershipId: currentUserMembership.id,
       userRole: currentUserRole,
@@ -188,7 +188,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
           </div>
           <div className="flex flex-col min-w-0">
             <h3 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em] leading-none mb-1">
-              Hub Collaborators
+              Workspace Members
             </h3>
             <p className="text-sm font-bold text-foreground truncate max-w-[180px]">
               {workspaceName || 'Members'}
@@ -238,7 +238,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder="Search members"
                 className="h-8 text-xs"
-                aria-label="Search hub members"
+                aria-label="Search workspace members"
               />
             )}
             {/* Invite button at top — only for workspace_owner/workspace_admin */}
@@ -364,7 +364,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
                                 onClick={() => handleRemoveHubMember(member)}
                               >
                                 <RiDeleteBinLine className="h-4 w-4 mr-2" />
-                                Remove from Hub
+                                Remove from Workspace
                               </DropdownMenuItem>
                             </>
                           )}
@@ -375,7 +375,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
                               onClick={handleLeaveHub}
                              >
                               <RiLogoutCircleLine className="h-4 w-4 mr-2" />
-                              Leave Hub
+                              Leave Workspace
                             </DropdownMenuItem>
                           )}
                       </DropdownMenuContent>
@@ -394,7 +394,7 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
         open={inviteDialogOpen}
         onOpenChange={setInviteDialogOpen}
         workspaceId={workspaceId}
-        workspaceName={workspaceName || 'this hub'}
+        workspaceName={workspaceName || 'this workspace'}
       />
 
       {/* Change Role Dialog */}

@@ -208,7 +208,7 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
                   Apply to existing calls
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5 max-w-sm">
-                  Retroactively route historical calls to match your current rule. Calls already in a Hub are skipped.
+                  Retroactively route historical calls to match your current rule. Calls already in a workspace are skipped.
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">

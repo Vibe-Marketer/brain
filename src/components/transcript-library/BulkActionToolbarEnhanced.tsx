@@ -368,7 +368,7 @@ export function BulkActionToolbarEnhanced({
             onClick={() => setShowMoveToWsDialog(true)}
           >
             <RiExpandLeftRightLine className="h-4 w-4 mr-2" />
-            Move to Hub
+            Move to Workspace
           </Button>
           <Button 
             variant="outline" 

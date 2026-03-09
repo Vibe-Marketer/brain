@@ -265,7 +265,7 @@ export default function ImportPage() {
     <AppShell>
       <div className="flex flex-col h-full overflow-hidden">
         <PageHeader
-          title="Import Hub"
+          title="Import"
           subtitle="Connect meeting sources and upload recordings"
           icon={RiDownloadCloud2Line}
         />

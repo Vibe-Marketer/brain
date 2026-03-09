@@ -91,7 +91,7 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
   if (!workspace) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-6 text-center">
-        <p className="text-sm text-muted-foreground">Hub not found</p>
+        <p className="text-sm text-muted-foreground">Workspace not found</p>
         <Button variant="ghost" size="sm" onClick={closePanel} className="mt-4">
           Close
         </Button>
@@ -106,7 +106,7 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
         <div className="flex items-center gap-2 min-w-0">
           <RiSafeLine className="h-4 w-4 text-vibe-orange flex-shrink-0" aria-hidden="true" />
           <h3 className="text-sm font-bold text-foreground uppercase tracking-wide truncate">
-            Hub Detail
+            Workspace Detail
           </h3>
         </div>
         <Button variant="ghost" size="sm" onClick={closePanel} aria-label="Close detail panel">
@@ -147,7 +147,7 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground mt-0.5 capitalize">
-                  {workspace.workspace_type} Hub
+                  {workspace.workspace_type} Workspace
                 </p>
               </div>
               <div className="w-12 h-12 rounded-2xl bg-vibe-orange/10 flex items-center justify-center border border-vibe-orange/20">
@@ -159,10 +159,10 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
             <div className="pt-2 flex items-center justify-between gap-4">
               <div className="space-y-0.5">
                 <Label htmlFor="default-workspace" className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                  Default Hub
+                  Default Workspace
                 </Label>
                 <p className="text-[10px] text-muted-foreground/60 leading-tight pr-4">
-                  Open this hub automatically on login.
+                  Open this workspace automatically on login.
                 </p>
               </div>
               <Switch 

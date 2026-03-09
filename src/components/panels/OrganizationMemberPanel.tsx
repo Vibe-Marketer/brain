@@ -157,7 +157,7 @@ export function OrganizationMemberPanel({ organizationId, organizationName }: Or
   const handleRemoveMember = useCallback(
     (member: OrganizationMember) => {
       if (member.role === 'organization_owner' && ownerCount <= 1) return
-      if (!confirm(`Remove ${member.display_name || member.email} from this organization? This will also remove them from all hubs.`)) return
+      if (!confirm(`Remove ${member.display_name || member.email} from this organization? This will also remove them from all workspaces.`)) return
       removeMember.mutate({ membershipId: member.id })
     },
     [removeMember, ownerCount]

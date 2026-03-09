@@ -61,11 +61,11 @@ export function DestinationPicker({
         value={selectedWorkspaceId ?? ''}
         onChange={handleWorkspaceChange}
         disabled={disabled || workspacesLoading}
-        aria-label="Select hub"
+        aria-label="Select workspace"
         className={selectClass}
       >
         <option value="">
-          {workspacesLoading ? 'Loading…' : 'Select hub'}
+          {workspacesLoading ? 'Loading…' : 'Select workspace'}
         </option>
         {workspaces.map((ws) => (
           <option key={ws.id} value={ws.id}>

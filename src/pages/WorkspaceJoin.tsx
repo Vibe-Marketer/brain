@@ -158,7 +158,7 @@ export default function WorkspaceJoin() {
       toast.success(`Joined ${inviteData.workspace_name}!`)
       navigate('/')
     } catch (err: any) {
-      toast.error(err.message || 'Failed to join hub')
+      toast.error(err.message || 'Failed to join workspace')
     } finally {
       setIsJoining(false)
     }
@@ -201,9 +201,9 @@ export default function WorkspaceJoin() {
           <div className="mx-auto h-16 w-16 rounded-2xl bg-vibe-orange/10 flex items-center justify-center mb-6 border border-vibe-orange/20">
             <RiGroupLine className="h-8 w-8 text-vibe-orange" />
           </div>
-          <CardTitle className="text-2xl font-bold tracking-tight">Hub Invite</CardTitle>
+          <CardTitle className="text-2xl font-bold tracking-tight">Workspace Invite</CardTitle>
           <CardDescription>
-            You've been invited to join a hub on CallVault
+            You've been invited to join a workspace on CallVault
           </CardDescription>
         </CardHeader>
 

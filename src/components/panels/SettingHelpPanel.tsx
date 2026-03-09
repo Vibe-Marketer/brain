@@ -54,7 +54,7 @@ const helpContent: Record<SettingHelpTopic, HelpContent> = {
     tips: [
       "Use your full name for easy recognition",
       "This name appears in call transcripts and insights",
-      "Team members will see this name in shared hubs",
+      "Team members will see this name in shared workspaces",
     ],
   },
   preferences: {
@@ -104,7 +104,7 @@ const helpContent: Record<SettingHelpTopic, HelpContent> = {
       "Invite team members by email to collaborate",
       "Assign appropriate roles based on responsibilities",
       "Remove users who no longer need access",
-      "Team members can share hubs and insights",
+      "Team members can share workspaces and insights",
     ],
   },
   billing: {

@@ -51,7 +51,7 @@ const WORKSPACE_ROLES: Array<{
   {
     value: 'workspace_owner',
     label: 'Owner',
-    description: 'Full control. Can delete hub and manage all members.',
+    description: 'Full control. Can delete workspace and manage all members.',
     icon: RiVipCrownLine,
     power: 0,
   },
@@ -72,7 +72,7 @@ const WORKSPACE_ROLES: Array<{
   {
     value: 'member',
     label: 'Member',
-    description: 'Can view and interact with hub recordings.',
+    description: 'Can view and interact with workspace recordings.',
     icon: RiUserLine,
     power: 3,
   },
