@@ -14,6 +14,7 @@
 
 import * as React from 'react';
 import { useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFolders, useFolderAssignments, useDeleteFolder, useArchiveFolder } from '@/hooks/useFolders';
 import { useSetDefaultWorkspace } from '@/hooks/useWorkspaceMutations';
@@ -65,7 +66,7 @@ import {
   RiShareForwardLine,
   RiArchiveLine,
   RiPriceTag3Line,
-  RiFolder3Line,
+  RiRouteLine,
 } from '@remixicon/react';
 import type { WorkspaceWithMeta, WorkspaceRole } from '@/types/workspace';
 import type { Folder } from '@/types/workspace';
@@ -354,6 +355,8 @@ function WorkspaceListItem({
 }
 
 export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const { openPanel } = usePanelStore();
   const { 
@@ -388,7 +391,8 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const [wsToDelete, setWsToDelete] = React.useState<WorkspaceWithMeta | null>(null);
 
   // Home (Home) item
-  const isHomeActive = activeWorkspaceId === null && activeFolderId === null;
+  const isRulesPage = location.pathname === '/rules';
+  const isHomeActive = activeWorkspaceId === null && activeFolderId === null && !isRulesPage;
 
   const handleHomeClick = useCallback(() => {
     switchWorkspace(null);
@@ -460,6 +464,23 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                   Home
                 </span>
                 <Badge variant="secondary" className="ml-auto text-[10px] px-1 bg-cb-border/30">ALL</Badge>
+              </button>
+              <button
+                onClick={() => navigate('/rules')}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300',
+                  isRulesPage ? 'bg-hover border border-border shadow-sm' : 'hover:bg-hover/50 text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <div className={cn(
+                  'w-7 h-7 rounded-lg flex items-center justify-center border transition-all',
+                  isRulesPage ? 'border-vibe-orange/20 bg-vibe-orange/10' : 'bg-card border-border'
+                )}>
+                  <RiRouteLine size={14} className={isRulesPage ? 'text-vibe-orange' : 'text-muted-foreground'} />
+                </div>
+                <span className={cn('text-xs font-bold uppercase tracking-tight', isRulesPage && 'font-display italic text-foreground')}>
+                  Routing Rules
+                </span>
               </button>
             {/* Section: Personal */}
             {(personalFolders.length > 0 || personalTags.length > 0) && (

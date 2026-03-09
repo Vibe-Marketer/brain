@@ -92,12 +92,22 @@ function evaluateSingleCondition(condition: RoutingCondition, call: PreviewCall)
     case 'participant': {
       const metadata = call.source_metadata as Record<string, unknown> | null;
       const invitees = metadata?.calendar_invitees;
-      if (!Array.isArray(invitees)) return false;
+      if (!Array.isArray(invitees)) {
+        // No invitees: negation operators match, positive operators don't
+        return operator === 'not_contains' || operator === 'not_equals';
+      }
       const needle = String(value).toLowerCase();
-      return invitees.some((inv) => {
+      const normalize = (inv: unknown) => {
         const invStr = typeof inv === 'string' ? inv : JSON.stringify(inv);
-        return invStr.toLowerCase().includes(needle);
-      });
+        return invStr.toLowerCase();
+      };
+      switch (operator) {
+        case 'contains':     return invitees.some((inv) => normalize(inv).includes(needle));
+        case 'not_contains': return invitees.every((inv) => !normalize(inv).includes(needle));
+        case 'equals':       return invitees.some((inv) => normalize(inv) === needle);
+        case 'not_equals':   return invitees.every((inv) => normalize(inv) !== needle);
+        default:             return false;
+      }
     }
 
     case 'tag': {

@@ -92,13 +92,16 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
   async function handleSave() {
     if (!canSave || !form.destination) return;
 
+    // Preserve enabled state on edit; default to true for new rules
+    const existingRule = ruleId !== null ? allRules.find((r) => r.id === ruleId) : null;
+
     const payload = {
       name: form.name.trim(),
       conditions: form.conditions,
       logic_operator: form.logicOperator,
       target_workspace_id: form.destination.workspaceId,
       target_folder_id: form.destination.folderId,
-      enabled: true,
+      enabled: existingRule?.enabled ?? true,
     };
 
     if (ruleId === null) {

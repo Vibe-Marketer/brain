@@ -69,13 +69,21 @@ export function RoutingRulesTab() {
   }
 
   async function handleBulkDryRun() {
-    const result = await bulkApply.mutateAsync({ dryRun: true });
-    setBulkDryRunResult(result);
+    try {
+      const result = await bulkApply.mutateAsync({ dryRun: true });
+      setBulkDryRunResult(result);
+    } catch {
+      // Error toast handled by useBulkApplyRules onError
+    }
   }
 
   async function handleBulkApply() {
-    await bulkApply.mutateAsync({ dryRun: false });
-    setBulkDryRunResult(null);
+    try {
+      await bulkApply.mutateAsync({ dryRun: false });
+      setBulkDryRunResult(null);
+    } catch {
+      // Error toast handled by useBulkApplyRules onError
+    }
   }
 
   if (rulesLoading) {
