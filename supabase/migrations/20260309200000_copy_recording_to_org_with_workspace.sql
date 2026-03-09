@@ -81,7 +81,10 @@ BEGIN
   FROM recordings
   WHERE id = p_recording_id;
 
-  IF v_source IS NULL THEN
+  -- Use IF NOT FOUND (PL/pgSQL special variable), not IS NULL.
+  -- SELECT INTO a RECORD leaves all fields NULL when no row matches,
+  -- so IS NULL would pass even when the recording doesn't exist.
+  IF NOT FOUND THEN
     RAISE EXCEPTION 'Recording not found: %', p_recording_id;
   END IF;
 
@@ -181,6 +184,7 @@ BEGIN
   -- would collide with the source rows. After the schema fix in section 0,
   -- recording_id is nullable, so NULL is valid and means "copy — no Fathom ID".
   -- ---------------------------------------------------------------
+  -- fts is GENERATED ALWAYS AS — omit from INSERT; Postgres recomputes it automatically.
   INSERT INTO transcript_chunks (
     canonical_recording_id,
     user_id,
@@ -198,7 +202,6 @@ BEGIN
     entities,
     source_platform,
     embedding,
-    fts,
     created_at
   )
   SELECT
@@ -218,7 +221,6 @@ BEGIN
     tc.entities,
     tc.source_platform,
     tc.embedding,
-    tc.fts,
     NOW()
   FROM transcript_chunks tc
   WHERE tc.canonical_recording_id = p_recording_id;
