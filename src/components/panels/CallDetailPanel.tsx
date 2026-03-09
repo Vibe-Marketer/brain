@@ -478,7 +478,6 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
                 </div>
               </div>
 
-
               {/* Folders */}
               {callCategories && callCategories.length > 0 && (
                 <div className="space-y-2">
