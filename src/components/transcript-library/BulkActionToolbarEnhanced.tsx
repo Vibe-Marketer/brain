@@ -423,7 +423,7 @@ export function BulkActionToolbarEnhanced({
       <MoveToWorkspaceDialog
         open={showMoveToWsDialog}
         onOpenChange={setShowMoveToWsDialog}
-        recordingIds={selectedCalls.map(c => String(c.recording_id))}
+        recordingIds={selectedCalls.map(c => c.canonical_uuid || String(c.recording_id))}
         currentWorkspaceId={null} // We could pass this from context if needed
         onSuccess={() => {
           onClearSelection();
@@ -434,7 +434,7 @@ export function BulkActionToolbarEnhanced({
       <CopyToOrganizationDialog
         open={showCopyToOrgDialog}
         onOpenChange={setShowCopyToOrgDialog}
-        recordingIds={selectedCalls.map(c => String(c.recording_id))}
+        recordingIds={selectedCalls.map(c => c.canonical_uuid || String(c.recording_id))}
         onSuccess={() => {
           onClearSelection();
         }}

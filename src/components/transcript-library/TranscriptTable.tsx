@@ -130,11 +130,12 @@ export const TranscriptTable = React.memo(({
   const { sortField, sortDirection: _sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
 
   // Extract UUID recording IDs for batch workspace entries fetch
+  // Use canonical_uuid (always UUID) instead of recording_id (may be legacy BIGINT)
   // Sorted for stable query key regardless of table sort order
   const recordingUuids = useMemo(
     () => calls
-      .map((c) => c.recording_id)
-      .filter((id): id is string => typeof id === 'string')
+      .map((c) => c.canonical_uuid)
+      .filter((id): id is string => !!id)
       .sort(),
     [calls],
   );

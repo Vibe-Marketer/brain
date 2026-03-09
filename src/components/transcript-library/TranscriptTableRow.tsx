@@ -281,7 +281,7 @@ export function TranscriptTableRow({
         <TableCell className="hidden xl:table-cell py-0 whitespace-nowrap">
           <div onClick={(e) => e.stopPropagation()}>
             <WorkspaceBadgeList
-              recordingId={typeof call.recording_id === 'string' ? call.recording_id : undefined}
+              recordingId={call.canonical_uuid || (typeof call.recording_id === 'string' ? call.recording_id : undefined)}
               legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : undefined}
               maxVisible={2}
               size="sm"
@@ -320,7 +320,7 @@ export function TranscriptTableRow({
             </button>
           )}
           <AddToWorkspaceMenu
-            recordingId={typeof call.recording_id === 'string' ? call.recording_id : null}
+            recordingId={call.canonical_uuid || (typeof call.recording_id === 'string' ? call.recording_id : null)}
             legacyRecordingId={typeof call.recording_id === 'number' ? call.recording_id : null}
             compact
           />

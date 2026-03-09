@@ -140,7 +140,7 @@ export function CallDetailHeader({
       <CopyToOrganizationDialog
         open={copyToOrgOpen}
         onOpenChange={setCopyToOrgOpen}
-        recordingIds={[String(call.recording_id)]}
+        recordingIds={[call.canonical_uuid || String(call.recording_id)]}
       />
     </>
   );
