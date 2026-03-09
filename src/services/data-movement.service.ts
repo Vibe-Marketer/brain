@@ -53,8 +53,7 @@ export async function moveRecordingsToWorkspace(
 /**
  * Copies recordings to another organization.
  * This is a "hard" copy: new recording IDs are generated.
- * This should ideally be handled by a database function (RPC) or an Edge Function
- * to ensure all related data (transcripts, etc) are copied atomically.
+ * Uses copy_recording_to_org RPC (per-recording), targeting the org's HOME workspace.
  */
 export async function copyRecordingsToOrganization(
   recordingIds: string[],
@@ -63,13 +62,26 @@ export async function copyRecordingsToOrganization(
 ): Promise<void> {
   const { removeSource = false } = options
 
-  // For now, we'll use an RPC for this complex operation
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any).rpc('copy_recordings_to_organization', {
-    p_recording_ids: recordingIds,
-    p_target_organization_id: targetOrgId,
-    p_remove_source: removeSource,
-  })
+  // Look up the HOME workspace for the target org (required by the RPC)
+  const { data: workspace, error: wsError } = await supabase
+    .from('workspaces')
+    .select('id')
+    .eq('organization_id', targetOrgId)
+    .eq('is_home', true)
+    .maybeSingle()
 
-  if (error) throw new Error(`Failed to copy to organization: ${error.message}`)
+  if (wsError) throw new Error(`Failed to look up target workspace: ${wsError.message}`)
+  if (!workspace) throw new Error('Target organization has no HOME workspace')
+
+  // Call RPC once per recording (current DB function is per-recording)
+  for (const recordingId of recordingIds) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).rpc('copy_recording_to_org', {
+      p_recording_id: recordingId,
+      p_target_org_id: targetOrgId,
+      p_target_workspace_id: workspace.id,
+      p_delete_original: removeSource,
+    })
+    if (error) throw new Error(`Failed to copy recording: ${error.message}`)
+  }
 }
