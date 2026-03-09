@@ -5,10 +5,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { toast } from "sonner";
 import { RiSaveLine, RiCloseLine, RiVidiconLine, RiFileCopyLine, RiEditLine, RiShareLine } from "@remixicon/react";
 import { Meeting } from "@/types";
 import { ShareCallDialog } from "@/components/sharing/ShareCallDialog";
+import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
 
 interface CallDetailHeaderProps {
   call: Meeting | null;
@@ -32,6 +32,7 @@ export function CallDetailHeader({
   isSaving,
 }: CallDetailHeaderProps) {
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+  const [copyToOrgOpen, setCopyToOrgOpen] = useState(false);
 
   // Early return if call is null to prevent white screen crashes
   if (!call) {
@@ -69,29 +70,14 @@ export function CallDetailHeader({
           </DialogTitle>
           <div className="flex gap-2">
             {call?.share_url && (
-              <>
-                <Button
-                  variant="hollow"
-                  size="sm"
-                  onClick={() => call?.share_url && window.open(call.share_url, "_blank")}
-                >
-                  <RiVidiconLine className="h-4 w-4 mr-2" />
-                  VIEW
-                </Button>
-                <Button
-                  variant="hollow"
-                  size="sm"
-                  onClick={() => {
-                    if (call?.share_url) {
-                      navigator.clipboard.writeText(call.share_url);
-                      toast.success("Link copied to clipboard");
-                    }
-                  }}
-                >
-                  <RiFileCopyLine className="h-4 w-4 mr-2" />
-                  COPY
-                </Button>
-              </>
+              <Button
+                variant="hollow"
+                size="sm"
+                onClick={() => call?.share_url && window.open(call.share_url, "_blank")}
+              >
+                <RiVidiconLine className="h-4 w-4 mr-2" />
+                VIEW
+              </Button>
             )}
             {isEditing ? (
               <>
@@ -114,6 +100,14 @@ export function CallDetailHeader({
               </>
             ) : (
               <>
+                <Button
+                  variant="hollow"
+                  size="sm"
+                  onClick={() => setCopyToOrgOpen(true)}
+                >
+                  <RiFileCopyLine className="h-4 w-4 mr-2" />
+                  COPY
+                </Button>
                 <Button
                   variant="hollow"
                   size="sm"
@@ -141,6 +135,12 @@ export function CallDetailHeader({
         onOpenChange={setShareDialogOpen}
         callId={String(call.recording_id)}
         callTitle={call.title}
+      />
+
+      <CopyToOrganizationDialog
+        open={copyToOrgOpen}
+        onOpenChange={setCopyToOrgOpen}
+        recordingIds={[String(call.recording_id)]}
       />
     </>
   );

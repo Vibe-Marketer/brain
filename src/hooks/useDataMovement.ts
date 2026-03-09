@@ -92,6 +92,11 @@ export function useCopyToOrganization() {
     }) => copyRecordingsToOrganization(recordingIds, targetOrgId, options),
 
     onSuccess: (_data, { recordingIds, options }) => {
+      const count = recordingIds.length
+      const label = count === 1 ? 'recording' : 'recordings'
+      const verb = options?.removeSource ? 'Moved' : 'Copied'
+      toast.success(`${verb} ${count} ${label} to organization`)
+
       // Invalidate all recording-related caches since cross-org copies
       // create new recordings in the target org
       queryClient.invalidateQueries({ queryKey: queryKeys.calls.all })
