@@ -4,7 +4,7 @@
 
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { RiDraggable } from '@remixicon/react';
+import { RiDraggable, RiArrowRightUpLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import type { RoutingRule, RoutingCondition } from '@/types/routing';
 
@@ -51,6 +51,7 @@ interface RoutingRuleCardProps {
   rule: RoutingRule;
   workspaceName?: string;
   folderName?: string;
+  targetOrgName?: string;
   onEdit: (id: string) => void;
   onToggle: (id: string, enabled: boolean) => void;
 }
@@ -59,6 +60,7 @@ export function RoutingRuleCard({
   rule,
   workspaceName,
   folderName,
+  targetOrgName,
   onEdit,
   onToggle,
 }: RoutingRuleCardProps) {
@@ -79,11 +81,17 @@ export function RoutingRuleCard({
 
   const conditionSummary = summarizeConditions(rule.conditions, rule.logic_operator);
 
-  const destination = workspaceName
-    ? folderName
-      ? `${workspaceName} / ${folderName}`
-      : workspaceName
-    : rule.target_workspace_id;
+  const isCrossOrg = !!rule.target_organization_id;
+
+  const destination = isCrossOrg
+    ? targetOrgName
+      ? `${targetOrgName} / ${workspaceName ?? rule.target_workspace_id}`
+      : workspaceName ?? rule.target_workspace_id
+    : workspaceName
+      ? folderName
+        ? `${workspaceName} / ${folderName}`
+        : workspaceName
+      : rule.target_workspace_id;
 
   return (
     <div
@@ -119,14 +127,22 @@ export function RoutingRuleCard({
         className="flex-1 min-w-0 text-left focus:outline-none"
         aria-label={`Edit rule: ${rule.name}`}
       >
-        <p
-          className={cn(
-            'text-sm font-semibold text-foreground leading-snug',
-            !rule.enabled && 'line-through'
+        <div className="flex items-center gap-2">
+          <p
+            className={cn(
+              'text-sm font-semibold text-foreground leading-snug',
+              !rule.enabled && 'line-through'
+            )}
+          >
+            {rule.name}
+          </p>
+          {isCrossOrg && (
+            <span className="inline-flex items-center gap-0.5 rounded px-1.5 py-0.5 text-[10px] font-medium bg-brand-400/10 text-brand-500 border border-brand-400/20">
+              <RiArrowRightUpLine className="h-3 w-3" />
+              Cross-org
+            </span>
           )}
-        >
-          {rule.name}
-        </p>
+        </div>
         <p className="text-xs text-muted-foreground mt-0.5 whitespace-normal break-words">
           {conditionSummary}
         </p>

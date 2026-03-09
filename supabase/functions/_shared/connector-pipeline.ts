@@ -272,6 +272,16 @@ export async function runPipeline(
     // -------------------------------------------------------------------------
     // Routing resolution: only when connector didn't specify an explicit workspace
     // -------------------------------------------------------------------------
+    // Cross-org intent is captured here so the actual insertRecording + RPC call
+    // happens OUTSIDE the routing try-catch. If insertRecording were called inside
+    // the routing catch, a DB error would be swallowed and fall through to the
+    // normal-path insertRecording below, creating a duplicate in the source org.
+    let crossOrgRouting: {
+      targetOrgId: string;
+      deleteAfterCopy: boolean;
+      workspaceId: string | null;
+    } | null = null;
+
     if (!record.workspace_id) {
       try {
         // Resolve organization_id for routing lookup
@@ -297,18 +307,31 @@ export async function runPipeline(
           const routing = await resolveRoutingDestination(supabase, organizationId, record);
 
           if (routing) {
-            // Routing rule matched — set destination and record trace metadata
-            record.workspace_id = routing.workspaceId;
-            if (routing.folderId) {
-              record.folder_id = routing.folderId;
+            if (routing.targetOrganizationId) {
+              // Cross-org rule: recording is inserted into source org first (no workspace override),
+              // then copied to the target org via route_recording_cross_org after insert.
+              // Store routing trace + cross-org marker in source_metadata for audit trail.
+              record.source_metadata = {
+                ...record.source_metadata,
+                routed_by_rule_id: routing.matchedRuleId,
+                routed_by_rule_name: routing.matchedRuleName,
+                routed_at: new Date().toISOString(),
+                cross_org_target_id: routing.targetOrganizationId,
+              };
+              // crossOrgRouting is resolved outside this closure below
+            } else {
+              // Same-org rule: set destination and record trace metadata
+              record.workspace_id = routing.workspaceId;
+              if (routing.folderId) {
+                record.folder_id = routing.folderId;
+              }
+              record.source_metadata = {
+                ...record.source_metadata,
+                routed_by_rule_id: routing.matchedRuleId,
+                routed_by_rule_name: routing.matchedRuleName,
+                routed_at: new Date().toISOString(),
+              };
             }
-            // Merge routing trace into source_metadata for display in UI
-            record.source_metadata = {
-              ...record.source_metadata,
-              routed_by_rule_id: routing.matchedRuleId,
-              routed_by_rule_name: routing.matchedRuleName,
-              routed_at: new Date().toISOString(),
-            };
           } else {
             // Step 2: No rule matched — try org-level default destination
             const { data: defaultDest, error: defaultError } = await supabase
@@ -327,11 +350,45 @@ export async function runPipeline(
             }
             // Step 3: If no default either, do nothing — insertRecording uses personal workspace (preserved behavior)
           }
+
+          // Capture cross-org intent — insert + RPC execute OUTSIDE this try-catch (see below)
+          if (routing?.targetOrganizationId) {
+            crossOrgRouting = {
+              targetOrgId: routing.targetOrganizationId,
+              deleteAfterCopy: routing.deleteAfterCopy,
+              workspaceId: routing.workspaceId || null,
+            };
+          }
         }
       } catch (routingErr) {
         // Non-blocking: routing failure should never prevent an import
         console.error('[connector-pipeline] Routing resolution error (skipping routing):', routingErr);
       }
+    }
+
+    // Cross-org path: executed OUTSIDE the routing try-catch so that insertRecording
+    // failures propagate to the outer catch (pipeline fails cleanly) rather than being
+    // swallowed and falling through to a duplicate insert in the source org.
+    if (crossOrgRouting) {
+      const { id } = await insertRecording(supabase, userId, record);
+
+      // RPC copy is non-blocking — source recording is preserved on failure
+      try {
+        const { error: crossOrgError } = await supabase.rpc('route_recording_cross_org', {
+          p_recording_id: id,
+          p_target_org_id: crossOrgRouting.targetOrgId,
+          p_user_id: userId,
+          p_delete_source: crossOrgRouting.deleteAfterCopy,
+          p_target_workspace_id: crossOrgRouting.workspaceId,
+        });
+        if (crossOrgError) {
+          console.error('[connector-pipeline] Cross-org routing RPC failed (non-blocking):', crossOrgError);
+        }
+      } catch (crossOrgErr) {
+        console.error('[connector-pipeline] Cross-org routing error (non-blocking):', crossOrgErr);
+      }
+
+      return { success: true, recordingId: id };
     }
 
     const { id } = await insertRecording(supabase, userId, record);

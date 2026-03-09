@@ -23,6 +23,13 @@ export interface RoutingDestination {
   folderId: string | null;
   matchedRuleId: string;
   matchedRuleName: string;
+  /** Set when the rule routes to a different organization (cross-org). Null = same org. */
+  targetOrganizationId: string | null;
+  /**
+   * Per-rule copy preference for cross-org rules.
+   * false = keep source recording (default), true = delete source after copy.
+   */
+  deleteAfterCopy: boolean;
 }
 
 /**
@@ -37,6 +44,10 @@ export interface RoutingRule {
   logic_operator: 'AND' | 'OR';
   target_workspace_id: string;
   target_folder_id: string | null;
+  /** Non-null when this is a cross-org rule that copies recordings to another org. */
+  target_organization_id: string | null;
+  /** Per-rule copy preference: false = keep source, true = delete source after copy. */
+  delete_after_copy: boolean;
 }
 
 /**
@@ -72,7 +83,7 @@ export async function resolveRoutingDestination(
   // Query active rules for this organization ordered by priority ascending (lowest first)
   const { data: rules, error } = await supabase
     .from('import_routing_rules')
-    .select('id, name, priority, conditions, logic_operator, target_workspace_id, target_folder_id')
+    .select('id, name, priority, conditions, logic_operator, target_workspace_id, target_folder_id, target_organization_id, delete_after_copy')
     .eq('organization_id', organizationId)
     .eq('enabled', true)
     .order('priority', { ascending: true });
@@ -95,6 +106,8 @@ export async function resolveRoutingDestination(
         folderId: rule.target_folder_id,
         matchedRuleId: rule.id,
         matchedRuleName: rule.name,
+        targetOrganizationId: rule.target_organization_id ?? null,
+        deleteAfterCopy: rule.delete_after_copy ?? false,
       };
     }
   }
@@ -116,7 +129,7 @@ export async function loadRoutingRules(
 ): Promise<RoutingRule[]> {
   const { data: rules, error } = await supabase
     .from('import_routing_rules')
-    .select('id, name, priority, conditions, logic_operator, target_workspace_id, target_folder_id')
+    .select('id, name, priority, conditions, logic_operator, target_workspace_id, target_folder_id, target_organization_id, delete_after_copy')
     .eq('organization_id', organizationId)
     .eq('enabled', true)
     .order('priority', { ascending: true });
@@ -150,6 +163,8 @@ export function evaluateRecordAgainstRules(
         folderId: rule.target_folder_id,
         matchedRuleId: rule.id,
         matchedRuleName: rule.name,
+        targetOrganizationId: rule.target_organization_id ?? null,
+        deleteAfterCopy: rule.delete_after_copy ?? false,
       };
     }
   }
