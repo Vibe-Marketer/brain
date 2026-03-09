@@ -71,12 +71,16 @@ export interface YouTubeRawCall {
   youtube_description?: string | null
   youtube_thumbnail?: string | null
   youtube_duration?: string | null
+  youtube_definition?: string | null
   youtube_category_id?: string | null
   youtube_published_at?: string | null
   youtube_view_count?: number | null
   youtube_like_count?: number | null
   youtube_comment_count?: number | null
+  youtube_tags?: string[] | null
   youtube_subscriber_count?: number | null
+  youtube_channel_video_count?: number | null
+  youtube_channel_description?: string | null
   import_source?: string | null
   full_transcript?: string | null
   raw_payload?: unknown | null

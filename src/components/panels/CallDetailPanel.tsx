@@ -29,6 +29,10 @@ import {
   RiCalendarLine,
   RiTimeLine,
   RiUserLine,
+  RiEyeLine,
+  RiThumbUpLine,
+  RiChat1Line,
+  RiYoutubeLine,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { usePanelStore } from "@/stores/panelStore";
@@ -41,7 +45,7 @@ import { logger } from "@/lib/logger";
 import { getRecordingByLegacyId } from "@/services/recordings.service";
 import { getRawCallData } from "@/services/raw-calls.service";
 import type { RecordingDetail } from "@/services/recordings.service";
-import type { FathomRawCall } from "@/types/raw-calls";
+import type { FathomRawCall, YouTubeRawCall } from "@/types/raw-calls";
 
 interface CallDetailPanelProps {
   recordingId: number;
@@ -76,6 +80,7 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
 
   // Cast raw data for source-specific fields
   const fathomRaw = call?.source_app === 'fathom' ? (rawData as FathomRawCall | null) : null;
+  const youtubeRaw = call?.source_app === 'youtube' ? (rawData as YouTubeRawCall | null) : null;
 
   // Fetch user settings for host email
   const { data: userSettings } = useQuery({
@@ -232,16 +237,20 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
     enabled: !!call && !!user?.id,
   });
 
-  // Calculate duration
+  // Calculate duration in minutes
   const duration = useMemo(() => {
-    if (!call?.recording_start_time || !call?.recording_end_time) return null;
-    return Math.round(
-      (new Date(call.recording_end_time).getTime() -
-        new Date(call.recording_start_time).getTime()) /
-        1000 /
-        60
-    );
-  }, [call?.recording_start_time, call?.recording_end_time]);
+    if (call?.recording_start_time && call?.recording_end_time) {
+      return Math.round(
+        (new Date(call.recording_end_time).getTime() -
+          new Date(call.recording_start_time).getTime()) /
+          1000 /
+          60
+      );
+    }
+    // Fallback: use stored duration (seconds → minutes) for sources like YouTube
+    if (call?.duration) return Math.round(call.duration / 60);
+    return null;
+  }, [call?.recording_start_time, call?.recording_end_time, call?.duration]);
 
   // Prepare transcript groups for display
   const transcriptGroups = useMemo(() => {
@@ -425,6 +434,17 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
             </Button>
           </>
         )}
+        {youtubeRaw?.youtube_video_id && (
+          <Button
+            variant="hollow"
+            size="sm"
+            onClick={() => window.open(`https://www.youtube.com/watch?v=${youtubeRaw.youtube_video_id}`, '_blank')}
+            className="gap-1"
+          >
+            <RiYoutubeLine className="h-4 w-4" />
+            Watch
+          </Button>
+        )}
       </div>
 
       {/* Tabs Content */}
@@ -477,6 +497,93 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
                   </p>
                 </div>
               </div>
+
+              {/* YouTube Metrics */}
+              {youtubeRaw && (
+                <div className="space-y-3">
+                  <Label className="text-xs font-medium uppercase text-ink-muted">YouTube Stats</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {youtubeRaw.youtube_view_count != null && (
+                      <div className="bg-cb-card rounded-lg p-2 border border-border text-center">
+                        <div className="flex items-center justify-center gap-1 text-ink-muted mb-1">
+                          <RiEyeLine className="h-3.5 w-3.5" />
+                        </div>
+                        <p className="text-sm font-semibold text-ink tabular-nums">
+                          {youtubeRaw.youtube_view_count.toLocaleString()}
+                        </p>
+                        <p className="text-[10px] text-ink-muted">views</p>
+                      </div>
+                    )}
+                    {youtubeRaw.youtube_like_count != null && (
+                      <div className="bg-cb-card rounded-lg p-2 border border-border text-center">
+                        <div className="flex items-center justify-center gap-1 text-ink-muted mb-1">
+                          <RiThumbUpLine className="h-3.5 w-3.5" />
+                        </div>
+                        <p className="text-sm font-semibold text-ink tabular-nums">
+                          {youtubeRaw.youtube_like_count.toLocaleString()}
+                        </p>
+                        <p className="text-[10px] text-ink-muted">likes</p>
+                      </div>
+                    )}
+                    {youtubeRaw.youtube_comment_count != null && (
+                      <div className="bg-cb-card rounded-lg p-2 border border-border text-center">
+                        <div className="flex items-center justify-center gap-1 text-ink-muted mb-1">
+                          <RiChat1Line className="h-3.5 w-3.5" />
+                        </div>
+                        <p className="text-sm font-semibold text-ink tabular-nums">
+                          {youtubeRaw.youtube_comment_count.toLocaleString()}
+                        </p>
+                        <p className="text-[10px] text-ink-muted">comments</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Channel info */}
+                  {(youtubeRaw.youtube_channel_title || youtubeRaw.youtube_subscriber_count != null) && (
+                    <div className="bg-cb-card rounded-lg p-3 border border-border space-y-1">
+                      {youtubeRaw.youtube_channel_title && (
+                        <p className="text-sm font-medium text-ink">{youtubeRaw.youtube_channel_title}</p>
+                      )}
+                      {youtubeRaw.youtube_subscriber_count != null && (
+                        <p className="text-xs text-ink-muted tabular-nums">
+                          {youtubeRaw.youtube_subscriber_count.toLocaleString()} subscribers
+                        </p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Published date */}
+                  {youtubeRaw.youtube_published_at && (
+                    <div className="space-y-1">
+                      <Label className="text-xs font-medium uppercase text-ink-muted">Published</Label>
+                      <p className="text-sm text-ink">
+                        {new Date(youtubeRaw.youtube_published_at).toLocaleDateString(undefined, {
+                          year: 'numeric', month: 'long', day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Tags */}
+                  {youtubeRaw.youtube_tags && youtubeRaw.youtube_tags.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-xs font-medium uppercase text-ink-muted">YouTube Tags</Label>
+                      <div className="flex flex-wrap gap-1">
+                        {youtubeRaw.youtube_tags.slice(0, 10).map((tag) => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
+                        {youtubeRaw.youtube_tags.length > 10 && (
+                          <Badge variant="secondary" className="text-xs text-ink-muted">
+                            +{youtubeRaw.youtube_tags.length - 10} more
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Folders */}
               {callCategories && callCategories.length > 0 && (
