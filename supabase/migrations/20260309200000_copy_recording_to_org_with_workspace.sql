@@ -5,6 +5,39 @@
 -- Date: 2026-03-09
 
 -- ============================================================================
+-- 0. SCHEMA FIX: transcript_chunks.recording_id
+-- ============================================================================
+-- The legacy BIGINT recording_id column has UNIQUE(recording_id, chunk_index).
+-- Cross-org copies must produce new chunk rows with the same chunk_index values
+-- but no valid Fathom recording_id — setting the same BIGINT would violate the
+-- unique constraint.
+--
+-- Fix: make recording_id nullable and convert the full-table UNIQUE into a
+-- partial UNIQUE (WHERE recording_id IS NOT NULL) so existing Fathom-sourced
+-- rows retain their uniqueness guarantee but copy rows can use NULL.
+--
+-- Also drop the old FK constraint name alias if it survived from before
+-- 20251201000001 (DROP IF EXISTS is safe if already gone).
+
+-- Step 1: Make the column nullable (was NOT NULL from original schema)
+ALTER TABLE public.transcript_chunks
+  ALTER COLUMN recording_id DROP NOT NULL;
+
+-- Step 2: Drop the full-table unique constraint
+ALTER TABLE public.transcript_chunks
+  DROP CONSTRAINT IF EXISTS transcript_chunks_recording_id_chunk_index_key;
+
+-- Step 3: Re-add as a partial unique constraint (only enforced when recording_id IS NOT NULL)
+CREATE UNIQUE INDEX IF NOT EXISTS uq_transcript_chunks_recording_chunk
+  ON public.transcript_chunks (recording_id, chunk_index)
+  WHERE recording_id IS NOT NULL;
+
+COMMENT ON COLUMN public.transcript_chunks.recording_id IS
+  'Legacy Fathom BIGINT recording ID. NULL for cross-org copies and non-Fathom recordings. '
+  'Unique per chunk_index only when non-NULL (partial unique index). '
+  'Modern recordings use canonical_recording_id (UUID) instead.';
+
+-- ============================================================================
 -- 1. ENHANCED COPY RPC: copy_recording_to_org
 -- ============================================================================
 -- Copies a recording to a target org + specific workspace, with optional
@@ -143,15 +176,13 @@ BEGIN
 
   -- ---------------------------------------------------------------
   -- Copy transcript_chunks (only modern UUID-linked chunks).
-  -- recording_id (BIGINT) is preserved from the source: the FK to
-  -- fathom_calls was dropped in 20251201000001, so no FK violation
-  -- is possible. The column is NOT NULL so we cannot set it to NULL.
-  -- Preserving the value is consistent with copy_recording_to_organization
-  -- and keeps the column valid for legacy hybrid search joins.
+  -- recording_id (BIGINT) is intentionally omitted (defaults to NULL).
+  -- We cannot reuse tc.recording_id because UNIQUE(recording_id, chunk_index)
+  -- would collide with the source rows. After the schema fix in section 0,
+  -- recording_id is nullable, so NULL is valid and means "copy — no Fathom ID".
   -- ---------------------------------------------------------------
   INSERT INTO transcript_chunks (
     canonical_recording_id,
-    recording_id,
     user_id,
     chunk_text,
     chunk_index,
@@ -172,8 +203,7 @@ BEGIN
   )
   SELECT
     v_new_recording_id,
-    tc.recording_id,  -- legacy BIGINT: no FK constraint, NOT NULL, preserved for compat
-    v_caller_id,
+    v_caller_id,  -- caller becomes owner of the copied chunks
     tc.chunk_text,
     tc.chunk_index,
     tc.speaker_name,
