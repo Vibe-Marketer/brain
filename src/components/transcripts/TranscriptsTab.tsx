@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useEffect, useRef, useMemo } from "react";
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useSearchParams } from "react-router-dom";
@@ -203,6 +203,7 @@ export function TranscriptsTab({
       if (error) throw error;
       return data as Tag[];
     },
+    staleTime: 5 * 60 * 1000, // tags change infrequently
   });
 
   const { data: personalTags = [] } = usePersonalTags(activeOrganizationId);
@@ -258,10 +259,23 @@ export function TranscriptsTab({
     return { ...filters, ...syntaxFilters };
   }, [syntax, filters]);
 
+  // Reset page to 1 whenever search/filter/workspace context changes
+  const prevFilterRef = useRef<string>("");
+  useEffect(() => {
+    const key = JSON.stringify({ searchQuery, combinedFilters, activeOrganizationId, activeWorkspaceId, selectedFolderId });
+    if (prevFilterRef.current && prevFilterRef.current !== key) {
+      setPage(1);
+    }
+    prevFilterRef.current = key;
+  }, [searchQuery, combinedFilters, activeOrganizationId, activeWorkspaceId, selectedFolderId]);
+
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading } = useQuery({
     queryKey: ["tag-calls", searchQuery, JSON.stringify(combinedFilters), page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, activeWorkspace?.workspace_type, selectedFolderId],
     enabled: isInitialized,
+    staleTime: 2 * 60 * 1000, // 2 minutes — don't refetch on every window focus
+    gcTime: 5 * 60 * 1000,    // keep in cache for 5 minutes
+    placeholderData: keepPreviousData, // smooth page transitions
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Not authenticated");
@@ -282,8 +296,6 @@ export function TranscriptsTab({
               organization_id,
               owner_user_id,
               title,
-              audio_url,
-              full_transcript,
               summary,
               global_tags,
               source_app,
@@ -401,137 +413,104 @@ export function TranscriptsTab({
       }
 
       // ALL CALLS PATH — every recording in the organization, regardless of source or workspace.
-      // recordings is the single source of truth. No fathom_calls query needed.
+      // Server-side pagination via .range() + count: "exact". No client-side slicing.
 
-      const BATCH_SIZE = 1000;
-      const allRecordings: any[] = [];
-      let batchOffset = 0;
+      let q = supabase
+        .from('recordings')
+        .select(
+          'id, legacy_recording_id, organization_id, owner_user_id, title, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at',
+          { count: 'exact' }
+        )
+        .order('created_at', { ascending: false });
 
-      while (true) {
-        let q = supabase
-          .from('recordings')
-          .select('id, legacy_recording_id, organization_id, owner_user_id, title, audio_url, full_transcript, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at')
-          .order('created_at', { ascending: false });
-
-        // Scope to organization
-        if (activeOrganizationId) {
-          q = q.eq('organization_id', activeOrganizationId);
-        } else {
-          q = q.eq('owner_user_id', user.id);
-        }
-
-        // Folder filtering (Decision 19 - All Calls Folder support)
-        if (selectedFolderId) {
-          // Determine if it's a personal folder
-          const selectedFolder = folders.find(f => f.id === selectedFolderId);
-          const isPersonal = selectedFolder && !(selectedFolder as any).workspace_id;
-
-          let recIds: string[] = [];
-
-          if (isPersonal) {
-            const { data: personalAssigns } = await (supabase as any)
-              .from('personal_folder_recordings')
-              .select('recording_id')
-              .eq('folder_id', selectedFolderId);
-            recIds = (personalAssigns || []).map((a: any) => a.recording_id);
-          } else {
-            // Legacy folder
-            const { data: childFolders } = await supabase
-              .from('folders')
-              .select('id')
-              .eq('parent_id', selectedFolderId);
-            const folderIds = [selectedFolderId, ...(childFolders || []).map((f) => f.id)];
-
-            const { data: folderAssigns } = await supabase
-              .from('folder_assignments')
-              .select('call_recording_id')
-              .in('folder_id', folderIds);
-
-            if (folderAssigns && folderAssigns.length > 0) {
-              const legacyIds = folderAssigns.map((a) => a.call_recording_id);
-              const { data: recs } = await supabase
-                .from('recordings')
-                .select('id')
-                .in('legacy_recording_id', legacyIds);
-              recIds = (recs || []).map((r) => r.id);
-            }
-          }
-
-          if (recIds.length === 0) {
-            setTotalCount(0);
-            onTotalCountChange?.(0);
-            return [];
-          }
-          q = q.in('id', recIds);
-        }
-
-        // Search filter (escape special chars to prevent PostgREST injection)
-        if (syntax.plainText) {
-          const escaped = escapeIlike(syntax.plainText);
-          q = q.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%`);
-        }
-        if (combinedFilters.dateFrom) {
-          q = q.gte('created_at', combinedFilters.dateFrom.toISOString());
-        }
-        if (combinedFilters.dateTo) {
-          q = q.lte('created_at', combinedFilters.dateTo.toISOString());
-        }
-        // Source filter
-        if (combinedFilters.sources && combinedFilters.sources.length > 0) {
-          q = q.in('source_app', combinedFilters.sources);
-        }
-
-        const { data, error } = await q.range(batchOffset, batchOffset + BATCH_SIZE - 1);
-        if (error) throw error;
-        if (!data || data.length === 0) break;
-        allRecordings.push(...data);
-        if (data.length < BATCH_SIZE) break;
-        batchOffset += BATCH_SIZE;
+      // Scope to organization
+      if (activeOrganizationId) {
+        q = q.eq('organization_id', activeOrganizationId);
+      } else {
+        q = q.eq('owner_user_id', user.id);
       }
 
-      // Map all recordings to Meeting format for table compatibility
-      const allCalls = allRecordings.map((rec: any) => mapRecordingToMeeting(rec));
+      // Folder filtering (Decision 19 - All Calls Folder support)
+      if (selectedFolderId) {
+        // Determine if it's a personal folder
+        const selectedFolder = folders.find(f => f.id === selectedFolderId);
+        const isPersonal = selectedFolder && !(selectedFolder as any).workspace_id;
 
-      // Sort by date descending
-      allCalls.sort((a, b) => {
-        const aTime = new Date(a.recording_start_time || a.created_at || 0).getTime();
-        const bTime = new Date(b.recording_start_time || b.created_at || 0).getTime();
-        return bTime - aTime;
-      });
+        let recIds: string[] = [];
 
-      // Paginate
-      const mergedTotal = allCalls.length;
-      const paginatedCalls = allCalls.slice(offset, offset + pageSize);
+        if (isPersonal) {
+          const { data: personalAssigns } = await (supabase as any)
+            .from('personal_folder_recordings')
+            .select('recording_id')
+            .eq('folder_id', selectedFolderId);
+          recIds = (personalAssigns || []).map((a: any) => a.recording_id);
+        } else {
+          // Legacy folder
+          const { data: childFolders } = await supabase
+            .from('folders')
+            .select('id')
+            .eq('parent_id', selectedFolderId);
+          const folderIds = [selectedFolderId, ...(childFolders || []).map((f) => f.id)];
 
+          const { data: folderAssigns } = await supabase
+            .from('folder_assignments')
+            .select('call_recording_id')
+            .in('folder_id', folderIds);
+
+          if (folderAssigns && folderAssigns.length > 0) {
+            const legacyIds = folderAssigns.map((a) => a.call_recording_id);
+            const { data: recs } = await supabase
+              .from('recordings')
+              .select('id')
+              .in('legacy_recording_id', legacyIds);
+            recIds = (recs || []).map((r) => r.id);
+          }
+        }
+
+        if (recIds.length === 0) {
+          setTotalCount(0);
+          onTotalCountChange?.(0);
+          return [];
+        }
+        q = q.in('id', recIds);
+      }
+
+      // Search filter (escape special chars to prevent PostgREST injection)
+      // Note: filtering on full_transcript/summary without selecting them is valid in PostgREST
+      if (syntax.plainText) {
+        const escaped = escapeIlike(syntax.plainText);
+        q = q.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%`);
+      }
+      if (combinedFilters.dateFrom) {
+        q = q.gte('created_at', combinedFilters.dateFrom.toISOString());
+      }
+      if (combinedFilters.dateTo) {
+        q = q.lte('created_at', combinedFilters.dateTo.toISOString());
+      }
+      // Source filter
+      if (combinedFilters.sources && combinedFilters.sources.length > 0) {
+        q = q.in('source_app', combinedFilters.sources);
+      }
+
+      // Server-side pagination — no client-side slicing
+      const { data, error, count } = await q.range(offset, offset + pageSize - 1);
+      if (error) throw error;
+
+      const mergedTotal = count ?? 0;
       setTotalCount(mergedTotal);
       onTotalCountChange?.(mergedTotal);
 
-      return paginatedCalls as Meeting[];
+      return (data || []).map((rec: any) => mapRecordingToMeeting(rec)) as Meeting[];
     },
   });
 
-  // Filter by selected folder
+  // Server-side pagination handles all filtering (workspace, folder, search, date, source).
+  // Only filter out records with a null recording_id here (data integrity guard).
   // Note: Deduplication merged_from data is passed through to TranscriptTableRow
   // which displays "X sources" badge for primary records with merged duplicates
   const validCalls = useMemo(() => {
-    let filtered = calls.filter(c => c && c.recording_id != null);
-
-    if (selectedFolderId) {
-      // Build set of selected folder + child folder IDs for matching
-      const matchFolderIds = new Set([selectedFolderId]);
-      folders.forEach(f => {
-        if (f.parent_id === selectedFolderId) matchFolderIds.add(f.id);
-      });
-
-      filtered = filtered.filter(call => {
-        const callIdKey = String(call.recording_id);
-        const callFolders = folderAssignments[callIdKey] || [];
-        return callFolders.some(fid => matchFolderIds.has(fid));
-      });
-    }
-
-    return filtered;
-  }, [calls, selectedFolderId, folderAssignments, folders]);
+    return calls.filter(c => c && c.recording_id != null);
+  }, [calls]);
 
   // Fetch tag assignments for displayed calls.
   const recordingIds = validCalls.map(c => String(c.recording_id));
@@ -567,6 +546,7 @@ export function TranscriptsTab({
       return merged;
     },
     enabled: calls.length > 0 && isInitialized,
+    staleTime: 2 * 60 * 1000,
   });
 
   // Bulk tag mutation
@@ -965,7 +945,7 @@ export function TranscriptsTab({
                     folders={folders}
                     folderAssignments={folderAssignments}
                     onFolderCall={(callId) => setFolderingCallId(callId as number)}
-                    totalCount={selectedFolderId ? validCalls.length : totalCount}
+                    totalCount={totalCount}
                     page={page}
                     pageSize={pageSize}
                     onPageChange={setPage}

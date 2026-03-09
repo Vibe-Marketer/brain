@@ -71,7 +71,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       // This works for both legacy (fathom_calls) and new pipeline (recordings) calls.
       let fullTranscript = call.full_transcript || null;
 
-      // FALLBACK: If not on the Meeting object, try fathom_calls (legacy path)
+      // FALLBACK for legacy numeric IDs: try fathom_calls
       if (!fullTranscript && typeof call.recording_id === 'number') {
         const { data: callData, error: callError } = await supabase
           .from("fathom_calls")
@@ -84,6 +84,21 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
           logger.error("Error fetching full_transcript from fathom_calls", callError);
         }
         fullTranscript = callData?.full_transcript || null;
+      }
+
+      // FALLBACK for UUID-based recordings: fetch full_transcript from recordings table.
+      // The list query omits full_transcript to reduce payload — fetch it lazily here.
+      if (!fullTranscript && typeof call.recording_id === 'string') {
+        const { data: recData, error: recError } = await supabase
+          .from("recordings")
+          .select("full_transcript")
+          .eq("id", call.recording_id)
+          .maybeSingle();
+
+        if (recError) {
+          logger.error("Error fetching full_transcript from recordings", recError);
+        }
+        fullTranscript = recData?.full_transcript || null;
       }
 
       // Parse full_transcript into segments
