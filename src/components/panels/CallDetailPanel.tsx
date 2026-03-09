@@ -237,16 +237,20 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
     enabled: !!call && !!user?.id,
   });
 
-  // Calculate duration
+  // Calculate duration in minutes
   const duration = useMemo(() => {
-    if (!call?.recording_start_time || !call?.recording_end_time) return null;
-    return Math.round(
-      (new Date(call.recording_end_time).getTime() -
-        new Date(call.recording_start_time).getTime()) /
-        1000 /
-        60
-    );
-  }, [call?.recording_start_time, call?.recording_end_time]);
+    if (call?.recording_start_time && call?.recording_end_time) {
+      return Math.round(
+        (new Date(call.recording_end_time).getTime() -
+          new Date(call.recording_start_time).getTime()) /
+          1000 /
+          60
+      );
+    }
+    // Fallback: use stored duration (seconds → minutes) for sources like YouTube
+    if (call?.duration) return Math.round(call.duration / 60);
+    return null;
+  }, [call?.recording_start_time, call?.recording_end_time, call?.duration]);
 
   // Prepare transcript groups for display
   const transcriptGroups = useMemo(() => {

@@ -66,7 +66,7 @@ interface YouTubeChannelDetails {
   channelId: string;
   title?: string;
   description?: string;
-  subscriberCount?: number;
+  subscriberCount?: number | null;
   videoCount?: number;
   hiddenSubscriberCount?: boolean;
 }
@@ -324,7 +324,7 @@ function extractVideoId(input: string): string | null {
 function parseDurationToSeconds(iso8601: string | undefined | null): number | null {
   if (!iso8601 || typeof iso8601 !== 'string') return null;
   const match = iso8601.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!match) return null;
+  if (!match || (!match[1] && !match[2] && !match[3])) return null;
   const hours = parseInt(match[1] || '0', 10);
   const minutes = parseInt(match[2] || '0', 10);
   const secs = parseInt(match[3] || '0', 10);
@@ -726,7 +726,8 @@ Deno.serve(async (req) => {
       youtube_category_id: videoDetails.categoryId || null,
       youtube_tags: videoDetails.tags && videoDetails.tags.length > 0 ? videoDetails.tags : null,
       // Channel metrics (from separate channel API call)
-      youtube_channel_subscriber_count: channelDetails?.hiddenSubscriberCount ? null : (channelDetails?.subscriberCount ?? null),
+      // Use youtube_subscriber_count to match youtube_raw_calls column name
+      youtube_subscriber_count: channelDetails?.subscriberCount ?? null,
       youtube_channel_video_count: channelDetails?.videoCount ?? null,
       youtube_channel_description: channelDetails?.description ? channelDetails.description.substring(0, 500) : null,
     };

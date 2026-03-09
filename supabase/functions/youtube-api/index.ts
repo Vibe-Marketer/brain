@@ -203,15 +203,18 @@ async function getChannelDetails(channelId: string, apiKey: string) {
 
   const channel = data.items[0];
 
+  const hiddenSubscriberCount = channel.statistics.hiddenSubscriberCount === true;
+
   return {
     channelId: channel.id,
     title: channel.snippet.title,
     description: channel.snippet.description,
     thumbnails: channel.snippet.thumbnails,
-    subscriberCount: parseInt(channel.statistics.subscriberCount || '0'),
+    // null when hidden — callers should not interpret 0 as "no subscribers"
+    subscriberCount: hiddenSubscriberCount ? null : parseInt(channel.statistics.subscriberCount || '0'),
     videoCount: parseInt(channel.statistics.videoCount || '0'),
     viewCount: parseInt(channel.statistics.viewCount || '0'),
-    hiddenSubscriberCount: channel.statistics.hiddenSubscriberCount === true,
+    hiddenSubscriberCount,
   };
 }
 

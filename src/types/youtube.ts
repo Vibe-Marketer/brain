@@ -45,7 +45,7 @@ export interface YouTubeVideoMetadata {
   /** Array of video tags from YouTube */
   youtube_tags?: string[]
   /** Channel subscriber count (null if hidden by channel owner) */
-  youtube_channel_subscriber_count?: number
+  youtube_subscriber_count?: number
   /** Total public video count on the channel */
   youtube_channel_video_count?: number
   /** Channel description (truncated) */
