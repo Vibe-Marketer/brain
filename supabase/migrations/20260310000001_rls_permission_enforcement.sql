@@ -2,9 +2,10 @@
 -- Purpose:
 --   1. SECURITY DEFINER helper: has_other_workspace_owner()
 --   2. Allow workspace members to leave workspaces themselves (self-removal)
---   3. Guard against removing the last workspace_owner (TOCTOU-safe trigger)
---   4. Note: workspace_memberships indexes already exist from vault rename; no new ones needed
---   5. Verify all critical tables have RLS enabled
+--   3. Guard DELETE path: prevent removing last workspace_owner (TOCTOU-safe, deadlock-safe)
+--   4. Guard UPDATE path: prevent demoting last workspace_owner via role change
+--   5. Note: workspace_memberships indexes already exist from vault rename; no new ones needed
+--   6. Verify all critical tables have RLS enabled
 -- Issue: #97
 -- Date: 2026-03-10
 
@@ -64,17 +65,20 @@ CREATE POLICY "Members can leave workspaces"
   );
 
 -- ============================================================================
--- 3. Guard: prevent removing last workspace owner via any path (TOCTOU-safe)
+-- 3. Guard DELETE path: prevent removing last workspace_owner (TOCTOU + deadlock safe)
 -- ============================================================================
--- The trigger is the authoritative last-owner guard. It fires BEFORE DELETE on
--- any path (admin removal, self-removal, or service role). It prevents the race
--- condition where two concurrent owner self-removals both pass the check and
--- both succeed, leaving the workspace ownerless.
+-- The trigger fires BEFORE DELETE on any path (admin removal, self-removal, service role).
 --
--- TOCTOU fix: the trigger acquires a row-level FOR UPDATE lock on all owner
--- rows for this workspace before counting. This serializes concurrent removals —
--- if two owners try to leave simultaneously, one will block until the first
--- commits, then re-evaluate and fail if no other owner remains.
+-- TOCTOU fix: acquires FOR UPDATE lock on all owner rows before counting, serializing
+-- concurrent removals so the second transaction re-evaluates against committed state.
+--
+-- Deadlock fix: ORDER BY user_id ensures all concurrent transactions acquire locks in
+-- the same deterministic order, preventing lock-ordering deadlocks when multiple owners
+-- attempt simultaneous self-removal.
+--
+-- Note: the trigger does NOT delegate to has_other_workspace_owner() here because that
+-- helper is a plain SQL STABLE function that cannot acquire FOR UPDATE locks. The trigger
+-- must issue its own locking query.
 
 CREATE OR REPLACE FUNCTION public.prevent_last_workspace_owner_removal()
 RETURNS TRIGGER
@@ -85,18 +89,16 @@ AS $$
 DECLARE
   v_other_owner_count INT;
 BEGIN
-  -- Only check when removing a workspace_owner row
   IF OLD.role = 'workspace_owner' THEN
-    -- Lock all workspace_owner rows for this workspace to prevent concurrent
-    -- deletions from both passing the "other owner exists" check.
-    -- This is safe in a BEFORE DELETE trigger: the row being deleted still
-    -- exists at this point, so we can lock it along with any other owners.
+    -- Lock all workspace_owner rows in deterministic order (ORDER BY user_id) to
+    -- prevent deadlocks when two owners concurrently try to leave the same workspace.
+    -- SECURITY DEFINER bypasses SELECT RLS on workspace_memberships.
     PERFORM 1 FROM workspace_memberships
     WHERE workspace_id = OLD.workspace_id
       AND role = 'workspace_owner'
+    ORDER BY user_id
     FOR UPDATE;
 
-    -- Count remaining owners excluding the one about to be deleted
     SELECT COUNT(*) INTO v_other_owner_count
     FROM workspace_memberships
     WHERE workspace_id = OLD.workspace_id
@@ -118,10 +120,59 @@ BEFORE DELETE ON workspace_memberships
 FOR EACH ROW EXECUTE FUNCTION public.prevent_last_workspace_owner_removal();
 
 COMMENT ON FUNCTION public.prevent_last_workspace_owner_removal() IS
-  'Trigger: raises exception if deleting the last workspace_owner membership. Uses SELECT FOR UPDATE to prevent TOCTOU race between concurrent owner self-removals. Applies to all DELETE paths (admin removal, self-removal, service role).';
+  'BEFORE DELETE trigger: prevents removing the last workspace_owner. Uses SELECT FOR UPDATE ORDER BY user_id for TOCTOU and deadlock safety.';
 
 -- ============================================================================
--- 4. Performance: index notes for workspace_memberships cascade lookups
+-- 4. Guard UPDATE path: prevent demoting last workspace_owner via role change
+-- ============================================================================
+-- The DELETE trigger does not fire on UPDATE. An admin could do:
+--   UPDATE workspace_memberships SET role = 'member' WHERE ...
+-- on the sole owner row, bypassing the last-owner guard entirely.
+-- This trigger closes that gap.
+
+CREATE OR REPLACE FUNCTION public.prevent_last_workspace_owner_demotion()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_other_owner_count INT;
+BEGIN
+  -- Only check when a workspace_owner is being demoted to a non-owner role
+  IF OLD.role = 'workspace_owner' AND NEW.role <> 'workspace_owner' THEN
+    -- Same locking pattern as the DELETE trigger: ORDER BY user_id prevents deadlocks
+    PERFORM 1 FROM workspace_memberships
+    WHERE workspace_id = OLD.workspace_id
+      AND role = 'workspace_owner'
+    ORDER BY user_id
+    FOR UPDATE;
+
+    SELECT COUNT(*) INTO v_other_owner_count
+    FROM workspace_memberships
+    WHERE workspace_id = OLD.workspace_id
+      AND user_id <> OLD.user_id
+      AND role = 'workspace_owner';
+
+    IF v_other_owner_count = 0 THEN
+      RAISE EXCEPTION 'Cannot demote the last workspace owner. Assign another owner first.';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS prevent_last_workspace_owner_demotion ON workspace_memberships;
+
+CREATE TRIGGER prevent_last_workspace_owner_demotion
+BEFORE UPDATE ON workspace_memberships
+FOR EACH ROW EXECUTE FUNCTION public.prevent_last_workspace_owner_demotion();
+
+COMMENT ON FUNCTION public.prevent_last_workspace_owner_demotion() IS
+  'BEFORE UPDATE trigger: prevents demoting the last workspace_owner to a non-owner role. Same TOCTOU/deadlock protections as the DELETE trigger.';
+
+-- ============================================================================
+-- 5. Performance: index notes for workspace_memberships cascade lookups
 -- ============================================================================
 -- The recordings RLS policy joins workspace_entries → workspace_memberships.
 -- No new indexes needed here: workspace_memberships already has equivalent
@@ -136,7 +187,7 @@ COMMENT ON FUNCTION public.prevent_last_workspace_owner_removal() IS
 -- write amplification and storage overhead.
 
 -- ============================================================================
--- 5. Ensure RLS is enabled on all permission-sensitive tables
+-- 6. Ensure RLS is enabled on all permission-sensitive tables
 -- ============================================================================
 -- These should already be set from prior migrations, but we verify here.
 
@@ -153,7 +204,7 @@ ALTER TABLE personal_folder_recordings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE personal_tag_recordings ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
--- 6. Comment: Full permission model summary
+-- 7. Comment: Full permission model summary
 -- ============================================================================
 -- Recordings visibility tiers:
 --   1. Org admin/owner (organization_owner, organization_admin):

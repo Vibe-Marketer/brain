@@ -345,6 +345,53 @@ ROLLBACK;
 -- Expected outcome: Session 1 succeeds, Session 2 raises exception. Workspace always has ≥1 owner.
 
 -- =============================================================================
+-- TEST 14: Last owner cannot be demoted via UPDATE (trigger blocks it)
+-- =============================================================================
+-- An admin could bypass the DELETE trigger by doing UPDATE SET role = 'member'
+-- on the sole owner. The BEFORE UPDATE trigger must block this.
+BEGIN;
+  -- Verify the workspace has exactly one owner
+  SELECT COUNT(*) AS owner_count
+  FROM workspace_memberships
+  WHERE workspace_id = '<WORKSPACE_ID>'
+    AND role = 'workspace_owner';
+  -- Expected: 1
+
+  -- Attempt demotion of the sole owner (run as workspace admin or service role)
+  UPDATE workspace_memberships
+  SET role = 'member'
+  WHERE workspace_id = '<WORKSPACE_ID>'
+    AND user_id = '<SOLE_OWNER_USER_ID>';
+  -- Expected: ERROR — "Cannot demote the last workspace owner. Assign another owner first."
+
+ROLLBACK;
+
+-- =============================================================================
+-- TEST 15: Owner demotion succeeds when another owner exists
+-- =============================================================================
+BEGIN;
+  -- With two owners, demoting one should succeed
+  SELECT COUNT(*) AS owner_count
+  FROM workspace_memberships
+  WHERE workspace_id = '<WORKSPACE_ID>'
+    AND role = 'workspace_owner';
+  -- Expected: 2 (or more)
+
+  UPDATE workspace_memberships
+  SET role = 'workspace_admin'
+  WHERE workspace_id = '<WORKSPACE_ID>'
+    AND user_id = '<ONE_OF_TWO_OWNERS>';
+  -- Expected: success (other owner still remains)
+
+  SELECT COUNT(*) AS remaining_owners
+  FROM workspace_memberships
+  WHERE workspace_id = '<WORKSPACE_ID>'
+    AND role = 'workspace_owner';
+  -- Expected: 1 (the other owner still there)
+
+ROLLBACK;
+
+-- =============================================================================
 -- DIAGNOSTIC: Check RLS policies on key tables
 -- =============================================================================
 SELECT
