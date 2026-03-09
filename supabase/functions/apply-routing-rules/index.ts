@@ -27,7 +27,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
-import { loadRoutingRules, evaluateRecordAgainstRules } from '../_shared/routing-engine.ts';
+import { evaluateRecordAgainstRules } from '../_shared/routing-engine.ts';
+import type { RoutingRule } from '../_shared/routing-engine.ts';
 import type { ConnectorRecord } from '../_shared/connector-pipeline.ts';
 
 const BATCH_SIZE = 50;
@@ -109,8 +110,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Load routing rules once — reused for all recordings (fixes N+1)
-    const rules = await loadRoutingRules(supabase, organizationId);
+    // Load routing rules once — reused for all recordings (fixes N+1).
+    // Query inline so DB errors surface as 500 rather than a false "no rules" 200.
+    const { data: rulesData, error: rulesError } = await supabase
+      .from('import_routing_rules')
+      .select('id, name, priority, conditions, logic_operator, target_workspace_id, target_folder_id')
+      .eq('organization_id', organizationId)
+      .eq('enabled', true)
+      .order('priority', { ascending: true });
+
+    if (rulesError) {
+      return new Response(
+        JSON.stringify({ error: `Failed to load routing rules: ${rulesError.message}` }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    const rules = (rulesData ?? []) as RoutingRule[];
 
     if (rules.length === 0) {
       return new Response(

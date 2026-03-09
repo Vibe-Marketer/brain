@@ -29,6 +29,7 @@ export interface BulkApplyDialogProps {
 export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
   const [preview, setPreview] = useState<BulkApplyResult | null>(null);
   const [applied, setApplied] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
   const bulkApply = useBulkApplyRules();
 
   // Fetch dry-run preview when dialog opens
@@ -37,6 +38,7 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
     let stale = false;
     setPreview(null);
     setApplied(false);
+    setApplyError(null);
     bulkApply.mutate(
       { dryRun: true },
       {
@@ -50,6 +52,7 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
   }, [open]);
 
   const handleRetry = useCallback(() => {
+    setApplyError(null);
     bulkApply.mutate(
       { dryRun: true },
       { onSuccess: (data) => setPreview(data) },
@@ -57,12 +60,16 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
   }, [bulkApply]);
 
   const handleApply = useCallback(() => {
+    setApplyError(null);
     bulkApply.mutate(
       { dryRun: false },
       {
         onSuccess: (data) => {
           setPreview(data);
           setApplied(true);
+        },
+        onError: (err) => {
+          setApplyError(err instanceof Error ? err.message : 'Failed to apply rules');
         },
       },
     );
@@ -115,7 +122,7 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
             </div>
           )}
 
-          {/* Error state */}
+          {/* Dry-run error state */}
           {bulkApply.isError && !preview && !isLoading && (
             <div className="text-center py-6">
               <p className="text-sm text-destructive">Failed to load preview</p>
@@ -126,6 +133,13 @@ export function BulkApplyDialog({ open, onOpenChange }: BulkApplyDialogProps) {
               >
                 Retry
               </button>
+            </div>
+          )}
+
+          {/* Apply error state — shown after a failed execute when preview is still visible */}
+          {applyError && (
+            <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              {applyError}
             </div>
           )}
 
