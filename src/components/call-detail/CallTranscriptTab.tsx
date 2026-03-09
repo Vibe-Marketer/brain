@@ -245,16 +245,39 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                   <div className="space-y-6 py-4 px-4 bg-card">
                     {transcripts && transcripts.length > 0 ? (
                       (() => {
+                        // YouTube source: speaker-less paragraph view with timestamps
+                        const isYouTubeSource =
+                          call.source_platform === 'youtube' ||
+                          (transcripts.length > 0 && transcripts.every(t => t.speaker_name === ''));
+
+                        if (isYouTubeSource) {
+                          return (
+                            <div className="space-y-1">
+                              {transcripts.map((segment, idx) => (
+                                <div key={segment.id || idx} className="flex gap-3 py-2 border-b border-border/30 last:border-0">
+                                  <span className="shrink-0 w-11 text-right text-[11px] font-mono text-ink-muted mt-[3px] select-none">
+                                    {segment.timestamp}
+                                  </span>
+                                  <p className="flex-1 text-[15px] leading-[22px] text-ink">
+                                    {segment.display_text}
+                                  </p>
+                                </div>
+                              ))}
+                            </div>
+                          );
+                        }
+
+                        // Standard Fathom/Zoom source: chat bubble view
                         // Determine identifiers for the current user ("Andrew")
                         // 1. Current Auth User ID (strongest match if mapped in DB)
                         const currentUserId = user?.id || null;
-                        
+
                         // 2. Explicit host email from settings (A@VIBEOS.COM or ANDREW@AISIMPLE.CO)
                         const settingsHostEmail = userSettings?.host_email?.toLowerCase() || null;
-                        
+
                         // 3. Email from the call record
                         const callHostEmail = call.recorded_by_email?.toLowerCase() || null;
-                        
+
                         // 4. Name from the call record (Andrew Naegele -> Andrew)
                         const callHostName = call.recorded_by_name?.toLowerCase() || "";
                         const firstName = callHostName.split(' ')[0] || "";
