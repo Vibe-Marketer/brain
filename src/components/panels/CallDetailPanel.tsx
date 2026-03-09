@@ -29,7 +29,6 @@ import {
   RiCalendarLine,
   RiTimeLine,
   RiUserLine,
-  RiErrorWarningLine,
 } from "@remixicon/react";
 import { toast } from "sonner";
 import { usePanelStore } from "@/stores/panelStore";
@@ -479,15 +478,6 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
                 </div>
               </div>
 
-              {/* Missing Data Warning */}
-              {(!call.recording_start_time || !call.recording_end_time || !shareUrl) && (
-                <div className="p-3 bg-cb-warning-bg border border-cb-warning-border rounded-md text-cb-warning-text">
-                  <div className="flex gap-2 text-sm">
-                    <RiErrorWarningLine className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                    <span>Some meeting data is unavailable</span>
-                  </div>
-                </div>
-              )}
 
               {/* Folders */}
               {callCategories && callCategories.length > 0 && (
