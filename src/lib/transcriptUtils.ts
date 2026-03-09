@@ -90,7 +90,7 @@ export function parseYouTubeTranscript(
     if (text) {
       segments.push({
         id: `yt-${segIdx++}`,
-        recording_id: recordingId as number,
+        recording_id: recordingId,
         timestamp,
         speaker_name: '',
         speaker_email: null,
@@ -121,13 +121,25 @@ export function parseYouTubeTranscript(
 
 /**
  * Returns true if the transcript string is in YouTube format.
- * YouTube format has [M:SS] markers but no "Speaker Name: text" lines.
+ *
+ * YouTube and Fathom/Zoom use structurally different timestamp formats:
+ *   - YouTube (under 1 hour): [M:SS]  — 2-part, e.g. [0:30], [12:45]
+ *   - YouTube (over 1 hour):  [H:MM:SS] — 3-part, single-digit hour, e.g. [1:00:00]
+ *   - Fathom/Zoom:            [HH:MM:SS] — 3-part, always zero-padded, e.g. [00:00:08]
+ *
+ * The 2-part [M:SS] pattern is unambiguous — Fathom never produces it.
+ * The single-digit-hour [H:MM:SS] pattern is also unique to YouTube (Fathom
+ * would produce [01:00:00] not [1:00:00]).
+ * This avoids relying on the presence of speaker labels, which may be absent in
+ * malformed or partial Fathom transcripts.
  */
 export function isYouTubeTranscriptFormat(transcript: string): boolean {
-  const hasTimestampMarkers = /\[\d{1,2}:\d{2}(?::\d{2})?\]/.test(transcript);
-  // Standard Fathom/Zoom format has "Speaker: text" after an [HH:MM:SS] header
-  const hasStandardSpeakerFormat = /\[\d{2}:\d{2}:\d{2}\]\s+\S[^:\n]*:/.test(transcript);
-  return hasTimestampMarkers && !hasStandardSpeakerFormat;
+  // 2-part [M:SS]: uniquely YouTube — Fathom always uses 3-part [HH:MM:SS]
+  const hasTwoPart = /\[\d{1,2}:\d{2}\]/.test(transcript);
+  // 3-part [H:MM:SS] with a single-digit hour: YouTube over 1 hour
+  // (Fathom zero-pads to [HH:MM:SS], so single-digit hour can only be YouTube)
+  const hasThreePartSingleHour = /\[\d:\d{2}:\d{2}\]/.test(transcript);
+  return hasTwoPart || hasThreePartSingleHour;
 }
 
 /**

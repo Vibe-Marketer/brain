@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { parseYouTubeTranscript, isYouTubeTranscriptFormat } from '../transcriptUtils';
 
 describe('isYouTubeTranscriptFormat', () => {
-  it('returns true for YouTube-format transcript', () => {
+  it('returns true for YouTube 2-part [M:SS] format', () => {
     const transcript = `[0:00]
 Hello and welcome to this video
 more text here
@@ -13,20 +13,36 @@ continues here`;
     expect(isYouTubeTranscriptFormat(transcript)).toBe(true);
   });
 
-  it('returns false for Fathom/Zoom format transcript', () => {
+  it('returns false for Fathom/Zoom [HH:MM:SS] format with speakers', () => {
     const transcript = `[00:00:08] Andrew Naegele: Hello this is a test
 [00:00:15] Other Person: Yes I agree with that`;
     expect(isYouTubeTranscriptFormat(transcript)).toBe(false);
+  });
+
+  it('returns false for malformed Fathom transcript missing speaker labels', () => {
+    // Key regression case: [HH:MM:SS] format without speakers should NOT be detected
+    // as YouTube just because speakers are missing — the 3-part zero-padded format
+    // is structurally distinct from YouTube's 2-part [M:SS] format.
+    const malformedFathom = `[00:00:08]
+some transcript text without a speaker label
+[00:00:45]
+more text here`;
+    expect(isYouTubeTranscriptFormat(malformedFathom)).toBe(false);
   });
 
   it('returns false for empty string', () => {
     expect(isYouTubeTranscriptFormat('')).toBe(false);
   });
 
-  it('handles hour-long YouTube videos', () => {
+  it('returns true for YouTube over-1-hour format [H:MM:SS] with single-digit hour', () => {
     const transcript = `[1:00:00]
 text at one hour`;
     expect(isYouTubeTranscriptFormat(transcript)).toBe(true);
+  });
+
+  it('returns false for Fathom over-1-hour format [HH:MM:SS] with zero-padded hour', () => {
+    const transcript = `[01:00:00] Speaker: text at one hour`;
+    expect(isYouTubeTranscriptFormat(transcript)).toBe(false);
   });
 });
 

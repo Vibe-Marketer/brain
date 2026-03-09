@@ -12,7 +12,7 @@
  * @brand-version v4.2
  */
 
-import { useState, useMemo, Fragment } from 'react'
+import { useState, useMemo } from 'react'
 import { cn } from '@/lib/utils'
 import {
   Dialog,
@@ -231,16 +231,14 @@ export function YouTubeVideoDetailModal({
                     // Parsed YouTube format: timestamped paragraphs
                     <div className="space-y-0.5">
                       {transcriptSegments.map((seg, idx) => (
-                        <Fragment key={seg.id || idx}>
-                          <div className="flex gap-3 py-1.5 border-b border-border/20 last:border-0">
-                            <span className="shrink-0 w-10 text-right text-[11px] font-mono text-muted-foreground/70 mt-[2px] select-none">
-                              {seg.timestamp}
-                            </span>
-                            <p className="flex-1 text-sm text-foreground/85 leading-relaxed">
-                              {seg.text}
-                            </p>
-                          </div>
-                        </Fragment>
+                        <div key={seg.id || idx} className="flex gap-3 py-1.5 border-b border-border/20 last:border-0">
+                          <span className="shrink-0 w-10 text-right text-[11px] font-mono text-muted-foreground/70 mt-[2px] select-none">
+                            {seg.timestamp}
+                          </span>
+                          <p className="flex-1 text-sm text-foreground/85 leading-relaxed">
+                            {seg.text}
+                          </p>
+                        </div>
                       ))}
                     </div>
                   ) : (
