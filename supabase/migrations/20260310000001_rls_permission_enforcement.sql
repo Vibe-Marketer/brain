@@ -1,9 +1,10 @@
 -- Migration: RLS Permission Enforcement — Gaps from Issue #97
 -- Purpose:
---   1. Allow workspace members to leave workspaces themselves (self-removal)
---   2. Guard against removing the last workspace_owner
---   3. Add missing index for workspace_memberships lookup performance
---   4. Verify all critical tables have RLS enabled
+--   1. SECURITY DEFINER helper: has_other_workspace_owner()
+--   2. Allow workspace members to leave workspaces themselves (self-removal)
+--   3. Guard against removing the last workspace_owner (TOCTOU-safe trigger)
+--   4. Note: workspace_memberships indexes already exist from vault rename; no new ones needed
+--   5. Verify all critical tables have RLS enabled
 -- Issue: #97
 -- Date: 2026-03-10
 
@@ -120,19 +121,22 @@ COMMENT ON FUNCTION public.prevent_last_workspace_owner_removal() IS
   'Trigger: raises exception if deleting the last workspace_owner membership. Uses SELECT FOR UPDATE to prevent TOCTOU race between concurrent owner self-removals. Applies to all DELETE paths (admin removal, self-removal, service role).';
 
 -- ============================================================================
--- 3. Performance: index for workspace_memberships cascade lookups
+-- 4. Performance: index notes for workspace_memberships cascade lookups
 -- ============================================================================
 -- The recordings RLS policy joins workspace_entries → workspace_memberships.
--- This index speeds up the workspace_memberships lookup in that join path.
-
-CREATE INDEX IF NOT EXISTS idx_workspace_memberships_workspace_user
-  ON workspace_memberships (workspace_id, user_id);
-
-CREATE INDEX IF NOT EXISTS idx_workspace_memberships_user
-  ON workspace_memberships (user_id);
+-- No new indexes needed here: workspace_memberships already has equivalent
+-- coverage from the vault_memberships original schema (carried over via
+-- ALTER TABLE vault_memberships RENAME TO workspace_memberships):
+--
+--   • UNIQUE(workspace_id, user_id)  — implicit unique index covering both columns
+--   • idx_vault_memberships_user_id  — explicit index on (user_id)
+--
+-- Adding idx_workspace_memberships_workspace_user / idx_workspace_memberships_user
+-- would be duplicate indexes with only a name difference, causing unnecessary
+-- write amplification and storage overhead.
 
 -- ============================================================================
--- 4. Ensure RLS is enabled on all permission-sensitive tables
+-- 5. Ensure RLS is enabled on all permission-sensitive tables
 -- ============================================================================
 -- These should already be set from prior migrations, but we verify here.
 
@@ -149,7 +153,7 @@ ALTER TABLE personal_folder_recordings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE personal_tag_recordings ENABLE ROW LEVEL SECURITY;
 
 -- ============================================================================
--- 5. Comment: Full permission model summary
+-- 6. Comment: Full permission model summary
 -- ============================================================================
 -- Recordings visibility tiers:
 --   1. Org admin/owner (organization_owner, organization_admin):
