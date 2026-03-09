@@ -333,13 +333,36 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
     enabled: open && !!call && !!userId && typeof call?.recording_id === 'number',
   });
 
+  // For non-numeric IDs (new pipeline), callSpeakers query is disabled.
+  // Fall back to speakers derived from the already-fetched allTranscripts.
+  const speakersFromTranscripts = useMemo((): Speaker[] => {
+    if (callSpeakers && callSpeakers.length > 0) return callSpeakers;
+    if (!allTranscripts || allTranscripts.length === 0) return [];
+
+    const speakerMap = new Map<string, string | null>();
+    allTranscripts.forEach((t) => {
+      const name = t.speaker_name;
+      if (!name) return;
+      if (!speakerMap.has(name)) {
+        speakerMap.set(name, t.speaker_email ?? null);
+      } else if (t.speaker_email && !speakerMap.get(name)) {
+        speakerMap.set(name, t.speaker_email);
+      }
+    });
+
+    return Array.from(speakerMap.entries()).map(([speaker_name, speaker_email]) => ({
+      speaker_name,
+      speaker_email,
+    }));
+  }, [callSpeakers, allTranscripts]);
+
   return {
     userSettings,
     allTranscripts: allTranscripts || [],
     transcripts,
     callCategories: callCategories || [],
     callTags: callTags || [],
-    callSpeakers: callSpeakers || [],
+    callSpeakers: speakersFromTranscripts,
     transcriptStats,
     editedCount,
     deletedCount,

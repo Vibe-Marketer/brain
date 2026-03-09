@@ -5,16 +5,12 @@ import { TabsContent } from "@/components/ui/tabs";
 import {
   Tooltip,
   TooltipContent,
+  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { RiInformationLine } from "@remixicon/react";
 
-import { CalendarInvitee } from "@/types";
-
-interface Speaker {
-  speaker_name: string;
-  speaker_email?: string | null;
-}
+import type { CalendarInvitee, Speaker } from "@/types";
 
 interface CallInviteesTabProps {
   calendarInvitees?: CalendarInvitee[];
@@ -23,8 +19,6 @@ interface CallInviteesTabProps {
 
 export function CallInviteesTab({ calendarInvitees, callSpeakers }: CallInviteesTabProps) {
   const hasInvitees = calendarInvitees && calendarInvitees.length > 0;
-  const hasSpeakers = callSpeakers && callSpeakers.length > 0;
-  const showSpeakerFallback = !hasInvitees && hasSpeakers;
 
   return (
     <TabsContent value="invitees" className="flex-1 overflow-hidden">
@@ -37,16 +31,18 @@ export function CallInviteesTab({ calendarInvitees, callSpeakers }: CallInvitees
                   <h3 className="font-display text-sm font-extrabold uppercase">
                     MEETING INVITEES ({calendarInvitees.length})
                   </h3>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button type="button" aria-label="About invitees vs participants">
-                        <RiInformationLine className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Invitees are from the calendar invite. Participants are those who actually spoke.</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" aria-label="About invitees vs participants">
+                          <RiInformationLine className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Invitees are from the calendar invite. Participants are those who actually spoke.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
                   People who were invited to this meeting via calendar invite
@@ -63,7 +59,7 @@ export function CallInviteesTab({ calendarInvitees, callSpeakers }: CallInvitees
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium">{invitee.name}</p>
+                      <p className="font-medium">{invitee.name || "Unknown"}</p>
                       <p className="text-sm text-muted-foreground">{invitee.email}</p>
                       <div className="flex gap-2 mt-2">
                         {invitee.external ? (
@@ -80,31 +76,33 @@ export function CallInviteesTab({ calendarInvitees, callSpeakers }: CallInvitees
                 ))}
               </div>
             </div>
-          ) : showSpeakerFallback ? (
+          ) : callSpeakers && callSpeakers.length > 0 ? (
             <div className="space-y-6">
               <div>
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="font-display text-sm font-extrabold uppercase">
-                    PARTICIPANTS ({callSpeakers!.length})
+                    PARTICIPANTS ({callSpeakers.length})
                   </h3>
                   <Badge variant="secondary" className="text-xs">Ad-hoc call</Badge>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <button type="button" aria-label="Why participants instead of invitees">
-                        <RiInformationLine className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>No calendar invitees found. Showing speakers from the transcript instead.</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button type="button" aria-label="Why participants instead of invitees">
+                          <RiInformationLine className="h-4 w-4 text-muted-foreground" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>No calendar invitees found. Showing speakers from the transcript instead.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
                   This appears to be an impromptu or ad-hoc call — no calendar invitees were found. Showing transcript speakers instead.
                 </p>
               </div>
               <div className="space-y-3">
-                {callSpeakers!.map((speaker, idx) => (
+                {callSpeakers.map((speaker, idx) => (
                   <div key={idx} className="relative flex items-start gap-3 py-2 px-4 bg-card border border-border rounded-lg">
                     {/* Vibe orange angled marker - STANDARDIZED DIMENSIONS */}
                     <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-14 bg-vibe-orange cv-vertical-marker" />
@@ -114,7 +112,7 @@ export function CallInviteesTab({ calendarInvitees, callSpeakers }: CallInvitees
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1">
-                      <p className="font-medium">{speaker.speaker_name}</p>
+                      <p className="font-medium">{speaker.speaker_name || "Unknown"}</p>
                       {speaker.speaker_email && (
                         <p className="text-sm text-muted-foreground">{speaker.speaker_email}</p>
                       )}
