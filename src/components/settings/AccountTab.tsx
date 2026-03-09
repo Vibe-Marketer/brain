@@ -438,7 +438,7 @@ export default function AccountTab() {
             <div className="space-y-1">
               <Label htmlFor="auto-naming">Auto-Naming</Label>
               <p className="text-sm text-gray-500 dark:text-gray-500">
-                Generate AI-powered titles for imported calls
+                Generate descriptive titles for imported calls
               </p>
             </div>
             <Switch

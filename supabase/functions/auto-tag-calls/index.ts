@@ -277,7 +277,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       const prefs = profile?.auto_processing_preferences as { autoProcessingTagging?: boolean } | null;
-      if (prefs?.autoProcessingTagging === false) {
+      if (prefs?.autoProcessingTagging !== true) {
         console.log(`Auto-tagging disabled for user ${userId}, skipping`);
         return new Response(
           JSON.stringify({ success: true, message: 'Auto-tagging disabled by user preference', totalProcessed: 0 }),
@@ -452,7 +452,8 @@ Select the ONE most appropriate tag from the approved list.`;
             auto_tags: [selectedTag], // Single tag in array
             auto_tags_generated_at: new Date().toISOString(),
           })
-          .eq('recording_id', recordingId);
+          .eq('recording_id', recordingId)
+          .eq('user_id', userId);
 
         if (updateError) {
           console.error(`Error updating tag for ${recordingId}:`, updateError);

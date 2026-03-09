@@ -222,7 +222,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       const prefs = profile?.auto_processing_preferences as { autoProcessingTitleGeneration?: boolean } | null;
-      if (prefs?.autoProcessingTitleGeneration === false) {
+      if (prefs?.autoProcessingTitleGeneration !== true) {
         console.log(`Auto-naming disabled for user ${userId}, skipping`);
         return new Response(
           JSON.stringify({ success: true, message: 'Auto-naming disabled by user preference', totalProcessed: 0 }),
