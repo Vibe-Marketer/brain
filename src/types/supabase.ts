@@ -539,6 +539,54 @@ export type Database = {
         }
         Relationships: []
       }
+      call_participants: {
+        Row: {
+          id: string
+          recording_id: string
+          organization_id: string
+          name: string | null
+          email: string | null
+          participant_type: string
+          sources: string[]
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          recording_id: string
+          organization_id: string
+          name?: string | null
+          email?: string | null
+          participant_type?: string
+          sources?: string[]
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          recording_id?: string
+          organization_id?: string
+          name?: string | null
+          email?: string | null
+          participant_type?: string
+          sources?: string[]
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_participants_recording_id_fkey"
+            columns: ["recording_id"]
+            isOneToOne: false
+            referencedRelation: "recordings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_participants_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       call_speakers: {
         Row: {
           recording_id: string

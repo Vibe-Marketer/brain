@@ -388,6 +388,9 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
   return {
     // Use legacy_recording_id for TranscriptTable compatibility (it expects number | string)
     recording_id: recording.legacy_recording_id ?? recording.id,
+    // Always expose the canonical UUID so detail queries can target UUID-keyed tables
+    // (call_tag_assignments, call_participants) regardless of recording_id type.
+    canonical_uuid: recording.id,
     title: recording.title,
     full_transcript: recording.full_transcript || null,
     summary: recording.summary || null,

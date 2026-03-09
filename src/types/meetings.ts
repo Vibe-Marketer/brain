@@ -35,6 +35,8 @@ export interface TranscriptSegmentDisplay extends TranscriptSegment {
 
 export interface Meeting {
   recording_id: string | number;
+  /** Canonical UUID from recordings.id — always set for recordings-table rows. Used for UUID-keyed queries (call_tag_assignments, call_participants, etc.). */
+  canonical_uuid?: string;
   title: string;
   created_at: string;
   recording_start_time?: string | null;

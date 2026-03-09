@@ -71,7 +71,23 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       // This works for both legacy (fathom_calls) and new pipeline (recordings) calls.
       let fullTranscript = call.full_transcript || null;
 
-      // FALLBACK for legacy numeric IDs: try fathom_calls
+      // FALLBACK A: For UUID recordings where full_transcript wasn't on the Meeting object
+      // (e.g. list views that omit the column for performance), fetch directly from recordings table.
+      if (!fullTranscript && (call.canonical_uuid || typeof call.recording_id === 'string')) {
+        const uuid = call.canonical_uuid ?? (call.recording_id as string);
+        const { data: recData, error: recError } = await supabase
+          .from("recordings")
+          .select("full_transcript")
+          .eq("id", uuid)
+          .maybeSingle();
+
+        if (recError) {
+          logger.error("Error fetching full_transcript from recordings", recError);
+        }
+        fullTranscript = recData?.full_transcript || null;
+      }
+
+      // FALLBACK B: For legacy numeric IDs, try fathom_calls
       if (!fullTranscript && typeof call.recording_id === 'number') {
         const { data: callData, error: callError } = await supabase
           .from("fathom_calls")
@@ -84,21 +100,6 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
           logger.error("Error fetching full_transcript from fathom_calls", callError);
         }
         fullTranscript = callData?.full_transcript || null;
-      }
-
-      // FALLBACK for UUID-based recordings: fetch full_transcript from recordings table.
-      // The list query omits full_transcript to reduce payload — fetch it lazily here.
-      if (!fullTranscript && typeof call.recording_id === 'string') {
-        const { data: recData, error: recError } = await supabase
-          .from("recordings")
-          .select("full_transcript")
-          .eq("id", call.recording_id)
-          .maybeSingle();
-
-        if (recError) {
-          logger.error("Error fetching full_transcript from recordings", recError);
-        }
-        fullTranscript = recData?.full_transcript || null;
       }
 
       // Parse full_transcript into segments
@@ -259,11 +260,17 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   }, [transcripts]);
 
   // Fetch tags for this call (system tags like TEAM, etc.)
+  // After migration 20260310125000, call_tag_assignments.recording_id is UUID.
+  // Use canonical_uuid when available (covers both legacy-migrated and new recordings).
   const { data: callCategories } = useQuery({
-    queryKey: queryKeys.calls.categories(call?.recording_id),
+    queryKey: [...queryKeys.calls.categories(call?.recording_id), call?.canonical_uuid],
     queryFn: async () => {
       if (!call || !userId) return [];
-      // Use composite key (recording_id, user_id) for lookup
+      // Resolve UUID — canonical_uuid is set by mapRecordingToMeeting for all recordings-table rows.
+      // For UUID recordings recording_id is already a string; for legacy it's a number but
+      // call_tag_assignments.recording_id is now UUID, so we must use the canonical UUID.
+      const recordingUuid = call.canonical_uuid ?? (typeof call.recording_id === 'string' ? call.recording_id : null);
+      if (!recordingUuid) return [];
       const { data, error } = await supabase
         .from("call_tag_assignments")
         .select(`
@@ -274,7 +281,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
             color
           )
         `)
-        .eq("recording_id", call.recording_id)
+        .eq("recording_id", recordingUuid)
         .eq("user_id", userId);
       if (error) throw error;
       return data?.map(d => d.call_tags).filter(Boolean) || [];
@@ -283,11 +290,13 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   });
 
   // Fetch tags for this call
+  // After migration 20260310125000, transcript_tag_assignments.recording_id is UUID.
   const { data: callTags } = useQuery({
-    queryKey: queryKeys.calls.tags(call?.recording_id),
+    queryKey: [...queryKeys.calls.tags(call?.recording_id), call?.canonical_uuid],
     queryFn: async () => {
       if (!call || !userId) return [];
-      // Use composite key (recording_id, user_id) for lookup
+      const recordingUuid = call.canonical_uuid ?? (typeof call.recording_id === 'string' ? call.recording_id : null);
+      if (!recordingUuid) return [];
       const { data, error } = await supabase
         .from("transcript_tag_assignments")
         .select(`
@@ -298,7 +307,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
             color
           )
         `)
-        .eq("recording_id", call.recording_id)
+        .eq("recording_id", recordingUuid)
         .eq("user_id", userId);
       if (error) throw error;
       return data?.map(d => d.transcript_tags).filter(Boolean) || [];
@@ -306,12 +315,37 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
     enabled: open && !!call && !!userId,
   });
 
-  // Fetch unique speakers from transcripts and enrich with calendar invitee data
+  // Fetch unique speakers from transcripts and enrich with calendar invitee data.
+  // For UUID recordings: query call_participants (canonical table, migration #120).
+  // For legacy numeric recordings: query fathom_transcripts (BIGINT recording_id).
   const { data: callSpeakers } = useQuery({
-    queryKey: queryKeys.calls.speakers(call?.recording_id),
+    queryKey: [...queryKeys.calls.speakers(call?.recording_id), call?.canonical_uuid],
     queryFn: async () => {
       if (!call || !userId) return [];
-      // Use composite key (recording_id, user_id) for lookup
+
+      // UUID recordings path: call_participants is the canonical source
+      const recordingUuid = call.canonical_uuid ?? (typeof call.recording_id === 'string' ? call.recording_id : null);
+      if (recordingUuid) {
+        const { data, error } = await supabase
+          .from("call_participants")
+          .select("name, email, participant_type")
+          .eq("recording_id", recordingUuid);
+
+        if (error) throw error;
+
+        return (data || [])
+          .filter(p => p.name)
+          .map(p => ({
+            speaker_name: p.name!,
+            speaker_email: p.email || null,
+          }));
+      }
+
+      // Legacy path: fathom_transcripts (BIGINT recording_id, numeric IDs only)
+      if (typeof call.recording_id !== 'number') {
+        return [];
+      }
+
       const { data: transcriptData, error } = await supabase
         .from("fathom_transcripts")
         .select("speaker_name, speaker_email")
@@ -333,7 +367,6 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       // Enrich with calendar invitee data if email is missing
       const speakers = Array.from(speakerMap.entries()).map(([name, email]) => {
         let finalEmail = email;
-        // If we don't have an email from transcript, try to match with calendar invitees
         if (!finalEmail && call.calendar_invitees) {
           const matchedInvitee = call.calendar_invitees.find((inv) =>
             inv.matched_speaker_display_name === name ||
@@ -351,8 +384,8 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
 
       return speakers;
     },
-    // fathom_transcripts.recording_id is BIGINT — only query for legacy numeric IDs.
-    enabled: open && !!call && !!userId && typeof call?.recording_id === 'number',
+    // Enabled for all recordings — UUID path uses call_participants, legacy path uses fathom_transcripts
+    enabled: open && !!call && !!userId,
   });
 
   // For non-numeric IDs (new pipeline), callSpeakers query is disabled.
