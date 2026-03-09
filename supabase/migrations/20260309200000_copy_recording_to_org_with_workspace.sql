@@ -33,6 +33,7 @@ DECLARE
   v_source              RECORD;
   v_new_recording_id    UUID;
   v_workspace_org_id    UUID;
+  v_delete_result       JSONB;
 BEGIN
   v_caller_id := auth.uid();
 
@@ -141,7 +142,12 @@ BEGIN
   RETURNING id INTO v_new_recording_id;
 
   -- ---------------------------------------------------------------
-  -- Copy transcript_chunks (only modern UUID-linked chunks)
+  -- Copy transcript_chunks (only modern UUID-linked chunks).
+  -- recording_id (BIGINT) is preserved from the source: the FK to
+  -- fathom_calls was dropped in 20251201000001, so no FK violation
+  -- is possible. The column is NOT NULL so we cannot set it to NULL.
+  -- Preserving the value is consistent with copy_recording_to_organization
+  -- and keeps the column valid for legacy hybrid search joins.
   -- ---------------------------------------------------------------
   INSERT INTO transcript_chunks (
     canonical_recording_id,
@@ -166,7 +172,7 @@ BEGIN
   )
   SELECT
     v_new_recording_id,
-    tc.recording_id,
+    tc.recording_id,  -- legacy BIGINT: no FK constraint, NOT NULL, preserved for compat
     v_caller_id,
     tc.chunk_text,
     tc.chunk_index,
@@ -200,17 +206,21 @@ BEGIN
 
   -- ---------------------------------------------------------------
   -- Optionally delete the original recording.
-  -- Caller must be the recording owner (checked above at line 206;
-  -- delete_recording() re-checks internally — redundant but harmless).
-  -- delete_recording() raises an exception on failure, so any error
-  -- propagates and rolls back the whole transaction.
+  -- Caller must be the recording owner (pre-checked above; delete_recording
+  -- also re-checks internally — redundant but harmless).
+  -- delete_recording() returns JSONB: success object or {error: ...}.
+  -- Capture and raise on error so the failure propagates and rolls back.
   -- ---------------------------------------------------------------
   IF p_delete_original THEN
     IF v_source.owner_user_id <> v_caller_id THEN
       RAISE EXCEPTION 'Cannot delete original: caller is not the recording owner';
     END IF;
 
-    PERFORM delete_recording(p_recording_id);
+    v_delete_result := delete_recording(p_recording_id);
+
+    IF v_delete_result ? 'error' THEN
+      RAISE EXCEPTION 'Failed to delete original recording: %', v_delete_result->>'error';
+    END IF;
   END IF;
 
   RETURN v_new_recording_id;
