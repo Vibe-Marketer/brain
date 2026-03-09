@@ -25,7 +25,7 @@ CREATE POLICY "Workspace admins can delete entries from non-home workspaces"
   USING (
     is_workspace_admin_or_owner(workspace_id, auth.uid())
     AND NOT EXISTS (
-      SELECT 1 FROM workspaces WHERE id = workspace_id AND is_home = true
+      SELECT 1 FROM workspaces WHERE id = workspace_entries.workspace_id AND is_home = true
     )
   );
 
@@ -45,7 +45,7 @@ CREATE POLICY "Members can delete own entries from non-home workspaces"
         AND recordings.owner_user_id = auth.uid()
     )
     AND NOT EXISTS (
-      SELECT 1 FROM workspaces WHERE id = workspace_id AND is_home = true
+      SELECT 1 FROM workspaces WHERE id = workspace_entries.workspace_id AND is_home = true
     )
   );
 
