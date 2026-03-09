@@ -513,25 +513,13 @@ export function TranscriptsTab({
   // Filter by selected folder
   // Note: Deduplication merged_from data is passed through to TranscriptTableRow
   // which displays "X sources" badge for primary records with merged duplicates
+  // Server-side queries already scope by folder (both workspace and all-calls paths),
+  // so no client-side folder re-filter needed. A client-side filter using folderAssignments
+  // (keyed by legacy numeric IDs) would incorrectly drop non-Fathom recordings (Zoom,
+  // YouTube, uploads) whose recording_ids are UUIDs, not legacy IDs.
   const validCalls = useMemo(() => {
-    let filtered = calls.filter(c => c && c.recording_id != null);
-
-    if (selectedFolderId) {
-      // Build set of selected folder + child folder IDs for matching
-      const matchFolderIds = new Set([selectedFolderId]);
-      folders.forEach(f => {
-        if (f.parent_id === selectedFolderId) matchFolderIds.add(f.id);
-      });
-
-      filtered = filtered.filter(call => {
-        const callIdKey = String(call.recording_id);
-        const callFolders = folderAssignments[callIdKey] || [];
-        return callFolders.some(fid => matchFolderIds.has(fid));
-      });
-    }
-
-    return filtered;
-  }, [calls, selectedFolderId, folderAssignments, folders]);
+    return calls.filter(c => c && c.recording_id != null);
+  }, [calls]);
 
   // Fetch tag assignments for displayed calls
   const { data: tagAssignments = {} } = useQuery({
