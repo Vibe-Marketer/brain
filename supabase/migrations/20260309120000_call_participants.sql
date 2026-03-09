@@ -107,7 +107,9 @@ BEGIN
   )
   WHERE id = v_recording_id;
 
-  RETURN NEW;
+  -- AFTER triggers: return value is ignored by PostgreSQL, but COALESCE(NEW, OLD)
+  -- is correct defensive practice — NEW is NULL on DELETE events.
+  RETURN COALESCE(NEW, OLD);
 END;
 $$;
 
@@ -218,6 +220,12 @@ CREATE TRIGGER populate_participants_on_insert
 -- in source_metadata. The trigger only fires for future INSERTs so this DO
 -- block handles the historical data.
 
+-- Disable the sync_participant_count trigger during backfill to avoid N unnecessary
+-- UPDATE recordings calls (one per participant insert). A single bulk UPDATE at the
+-- end of the DO block recomputes all counts in one pass, which is far more efficient
+-- for ~1,500 recordings with multiple participants each.
+ALTER TABLE call_participants DISABLE TRIGGER sync_participant_count;
+
 DO $$
 DECLARE
   v_rec         RECORD;
@@ -305,18 +313,21 @@ BEGIN
     v_count := v_count + 1;
   END LOOP;
 
-  -- Sync participant_count for all backfilled recordings
-  UPDATE recordings r
-  SET participant_count = (
-    SELECT COUNT(*) FROM call_participants cp WHERE cp.recording_id = r.id
-  )
-  WHERE EXISTS (
-    SELECT 1 FROM call_participants cp WHERE cp.recording_id = r.id
-  );
-
   RAISE NOTICE 'Backfilled call_participants for % recordings', v_count;
 END;
 $$;
+
+-- Re-enable the trigger, then bulk-sync participant_count for all recordings
+-- that now have participants. Single pass covers every affected recording.
+ALTER TABLE call_participants ENABLE TRIGGER sync_participant_count;
+
+UPDATE recordings r
+SET participant_count = (
+  SELECT COUNT(*) FROM call_participants cp WHERE cp.recording_id = r.id
+)
+WHERE EXISTS (
+  SELECT 1 FROM call_participants cp WHERE cp.recording_id = r.id
+);
 
 -- ============================================================================
 -- 8. RPC: get_people_summary
@@ -412,27 +423,52 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
+  -- Deduplicate with DISTINCT ON (r.id) to handle the case where a name-prefix
+  -- search matches multiple participants in the same recording (e.g., "John" matches
+  -- both "John Smith" and "John Doe" in the same call). We pick the highest-priority
+  -- participant type (host > speaker > attendee) via the ORDER BY inside the subquery.
+  -- Returns empty when both p_email and p_name are NULL.
   SELECT
-    r.id                   AS recording_id,
-    r.title,
-    r.recording_start_time,
-    r.duration,
-    r.participant_count,
-    cp.name                AS participant_name,
-    cp.email               AS participant_email,
-    cp.participant_type
-  FROM recordings r
-  JOIN call_participants cp ON cp.recording_id = r.id
-  WHERE r.organization_id = p_organization_id
-    AND is_organization_member(p_organization_id, auth.uid())
-    AND (
-      -- Email match (case-insensitive, exact) — preferred when provided
-      (p_email IS NOT NULL AND cp.email = lower(p_email))
-      OR
-      -- Name prefix match (case-insensitive) — fallback when only name given
-      (p_email IS NULL AND p_name IS NOT NULL AND lower(cp.name) LIKE lower(p_name) || '%')
-    )
-  ORDER BY r.recording_start_time DESC NULLS LAST;
+    recording_id,
+    title,
+    recording_start_time,
+    duration,
+    participant_count,
+    participant_name,
+    participant_email,
+    participant_type
+  FROM (
+    SELECT DISTINCT ON (r.id)
+      r.id                   AS recording_id,
+      r.title,
+      r.recording_start_time,
+      r.duration,
+      r.participant_count,
+      cp.name                AS participant_name,
+      cp.email               AS participant_email,
+      cp.participant_type,
+      -- Order key: host first, then speaker, then attendee (alphabetical of type values)
+      CASE cp.participant_type
+        WHEN 'host'     THEN 1
+        WHEN 'speaker'  THEN 2
+        ELSE                 3
+      END                    AS _type_priority
+    FROM recordings r
+    JOIN call_participants cp ON cp.recording_id = r.id
+    WHERE r.organization_id = p_organization_id
+      AND is_organization_member(p_organization_id, auth.uid())
+      AND (
+        -- Email match (case-insensitive, exact) — preferred when provided
+        (p_email IS NOT NULL AND cp.email = lower(p_email))
+        OR
+        -- Name prefix match (case-insensitive) — fallback when only name given
+        -- Note: this is prefix-based (not exact). Callers should pass the full
+        -- display_name from get_people_summary for an exact match.
+        (p_email IS NULL AND p_name IS NOT NULL AND lower(cp.name) LIKE lower(p_name) || '%')
+      )
+    ORDER BY r.id, _type_priority ASC
+  ) deduped
+  ORDER BY recording_start_time DESC NULLS LAST;
 $$;
 
 GRANT EXECUTE ON FUNCTION get_recordings_for_person(UUID, TEXT, TEXT) TO authenticated;
