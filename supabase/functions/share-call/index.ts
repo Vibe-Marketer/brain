@@ -93,6 +93,7 @@ serve(async (req) => {
  * POST /share-call - Create a new share link
  *
  * Requires JWT auth. user_id derived from token.
+ * Verifies organization membership via the recordings table.
  */
 async function handleCreateShareLink(
   req: Request,
@@ -114,7 +115,7 @@ async function handleCreateShareLink(
     );
   }
 
-  // Verify the user owns this call
+  // Verify the user owns this call (legacy fathom_raw_calls check)
   const { data: call, error: callError } = await supabaseClient
     .from('fathom_raw_calls')
     .select('recording_id')
@@ -134,6 +135,29 @@ async function handleCreateShareLink(
       JSON.stringify({ error: 'Call not found or you do not have permission to share it' }),
       { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+  }
+
+  // Verify organization membership via the canonical recordings table
+  const { data: recording } = await supabaseClient
+    .from('recordings')
+    .select('organization_id')
+    .eq('legacy_recording_id', call_recording_id)
+    .single();
+
+  if (recording) {
+    const { data: membership } = await supabaseClient
+      .from('organization_memberships')
+      .select('role')
+      .eq('organization_id', recording.organization_id)
+      .eq('user_id', userId)
+      .single();
+
+    if (!membership) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
   }
 
   // Generate unique share token
@@ -277,7 +301,7 @@ async function handleGetShareCall(
     );
   }
 
-  // ID-based access (for share link owners) — requires auth
+  // ID-based access (for share link owners) — requires auth + org membership
   if (id) {
     const authResult = await authenticateRequest(req, supabaseClient, corsHeaders);
     if (authResult instanceof Response) return authResult;
@@ -304,6 +328,29 @@ async function handleGetShareCall(
       );
     }
 
+    // Verify organization membership via the canonical recordings table
+    const { data: recording } = await supabaseClient
+      .from('recordings')
+      .select('organization_id')
+      .eq('legacy_recording_id', shareLink.call_recording_id)
+      .single();
+
+    if (recording) {
+      const { data: membership } = await supabaseClient
+        .from('organization_memberships')
+        .select('role')
+        .eq('organization_id', recording.organization_id)
+        .eq('user_id', userId)
+        .single();
+
+      if (!membership) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
+
     return new Response(
       JSON.stringify({ share_link: shareLink }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -320,6 +367,7 @@ async function handleGetShareCall(
  * DELETE /share-call?id=xxx - Revoke a share link
  *
  * Requires JWT auth. Ownership verified via JWT user_id.
+ * Organization membership verified via recordings table.
  */
 async function handleRevokeShareLink(
   req: Request,
@@ -344,7 +392,7 @@ async function handleRevokeShareLink(
   // Get the share link to verify ownership
   const { data: shareLink, error: fetchError } = await supabaseClient
     .from('call_share_links')
-    .select('user_id, status')
+    .select('user_id, status, call_recording_id')
     .eq('id', id)
     .single();
 
@@ -361,6 +409,29 @@ async function handleRevokeShareLink(
       JSON.stringify({ error: 'You do not have permission to revoke this share link' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+  }
+
+  // Verify organization membership via the canonical recordings table
+  const { data: recording } = await supabaseClient
+    .from('recordings')
+    .select('organization_id')
+    .eq('legacy_recording_id', shareLink.call_recording_id)
+    .single();
+
+  if (recording) {
+    const { data: membership } = await supabaseClient
+      .from('organization_memberships')
+      .select('role')
+      .eq('organization_id', recording.organization_id)
+      .eq('user_id', userId)
+      .single();
+
+    if (!membership) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
   }
 
   // Already revoked
@@ -477,7 +548,7 @@ async function handleAccessLog(
   // Get share link to verify ownership
   const { data: shareLink, error: linkError } = await supabaseClient
     .from('call_share_links')
-    .select('user_id')
+    .select('user_id, call_recording_id')
     .eq('id', id)
     .single();
 
@@ -494,6 +565,29 @@ async function handleAccessLog(
       JSON.stringify({ error: 'You do not have permission to view this access log' }),
       { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
+  }
+
+  // Verify organization membership via the canonical recordings table
+  const { data: recording } = await supabaseClient
+    .from('recordings')
+    .select('organization_id')
+    .eq('legacy_recording_id', shareLink.call_recording_id)
+    .single();
+
+  if (recording) {
+    const { data: membership } = await supabaseClient
+      .from('organization_memberships')
+      .select('role')
+      .eq('organization_id', recording.organization_id)
+      .eq('user_id', userId)
+      .single();
+
+    if (!membership) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
   }
 
   // Fetch access logs

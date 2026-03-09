@@ -19,6 +19,7 @@ function createOpenRouterProvider(apiKey: string) {
 interface AutoTagRequest {
   recordingIds?: number[];
   user_id?: string;            // For internal service calls (bypasses JWT auth)
+  organization_id?: string;    // Required org scope — prevents cross-org data access
   auto_discover?: boolean;     // Find all calls without auto_tags
   limit?: number;              // Max calls when auto_discover is true
   respectPreference?: boolean; // When true, skip if user has autoProcessingTagging=false
@@ -73,8 +74,13 @@ interface HistoricalPattern {
 async function getUserTagPreferences(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
-  userId: string
+  userId: string,
+  _organizationId: string
 ): Promise<TagPreference[]> {
+  // NOTE: tag_preferences table lacks organization_id column.
+  // Currently scoped by user_id only. When org-level tag preferences are needed,
+  // add organization_id to tag_preferences and filter here.
+  // TODO: migration to add organization_id to tag_preferences (issue #173)
   const { data, error } = await supabase
     .from('tag_preferences')
     .select('*')
@@ -94,13 +100,38 @@ async function getHistoricalPatterns(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,
   userId: string,
-  _currentTitle: string
+  _currentTitle: string,
+  organizationId: string
 ): Promise<HistoricalPattern[]> {
-  // Get historical calls with tags to learn patterns
+  // Get historical calls with tags to learn patterns.
+  // fathom_raw_calls lacks organization_id, so we scope via recordings join.
+  // recordings.legacy_recording_id links to fathom_raw_calls.recording_id.
+  const { data: orgRecordingIds, error: orgError } = await supabase
+    .from('recordings')
+    .select('legacy_recording_id')
+    .eq('organization_id', organizationId)
+    .not('legacy_recording_id', 'is', null)
+    .limit(200);
+
+  if (orgError || !orgRecordingIds || orgRecordingIds.length === 0) {
+    console.log('No org recordings found for historical patterns');
+    return [];
+  }
+
+  const legacyIds = orgRecordingIds
+    .map((r: { legacy_recording_id: number | null }) => r.legacy_recording_id)
+    .filter(Boolean);
+
+  if (legacyIds.length === 0) {
+    console.log('No legacy recording IDs found for historical patterns');
+    return [];
+  }
+
   const { data, error } = await supabase
     .from('fathom_raw_calls')
     .select('auto_tags, title, calendar_invitees')
     .eq('user_id', userId)
+    .in('recording_id', legacyIds)
     .not('auto_tags', 'is', null)
     .limit(100);
 
@@ -226,7 +257,7 @@ Deno.serve(async (req) => {
 
     // Parse body first to check for internal service call
     const body: AutoTagRequest = await req.json();
-    const { recordingIds: bodyRecordingIds, user_id: internalUserId, auto_discover, limit = 50, respectPreference = false } = body;
+    const { recordingIds: bodyRecordingIds, user_id: internalUserId, organization_id: bodyOrgId, auto_discover, limit = 50, respectPreference = false } = body;
 
     let userId: string;
 
@@ -268,6 +299,48 @@ Deno.serve(async (req) => {
       userId = user.id;
     }
 
+    // -----------------------------------------------------------------------
+    // Resolve organization_id and verify user membership
+    // -----------------------------------------------------------------------
+    let organizationId: string;
+
+    if (bodyOrgId) {
+      // Caller provided an explicit org — verify membership
+      const { data: membership, error: memberError } = await supabase
+        .from('organization_memberships')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('organization_id', bodyOrgId)
+        .maybeSingle();
+
+      if (memberError || !membership) {
+        return new Response(
+          JSON.stringify({ error: 'Not a member of this organization' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      organizationId = bodyOrgId;
+    } else {
+      // No org provided — fall back to user's personal org
+      const { data: personalOrg, error: orgError } = await supabase
+        .from('organization_memberships')
+        .select('organizations!inner(id, type)')
+        .eq('user_id', userId)
+        .eq('organizations.type', 'personal')
+        .maybeSingle();
+
+      if (orgError || !personalOrg) {
+        return new Response(
+          JSON.stringify({ error: 'Could not resolve organization for user. Pass organization_id in request body.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      // deno-lint-ignore no-explicit-any
+      organizationId = (personalOrg as any).organizations.id;
+    }
+
+    console.log(`Auto-tag scoped to organization: ${organizationId}`);
+
     // Check user preference when called from automated pipeline
     if (respectPreference) {
       const { data: profile } = await supabase
@@ -289,24 +362,49 @@ Deno.serve(async (req) => {
     let recordingIds: number[];
 
     if (auto_discover) {
-      // Find all calls without auto_tags
-      console.log(`Auto-discovering untagged calls for user ${userId} (limit: ${limit})`);
-      const { data: untaggedCalls, error: discoverError } = await supabase
-        .from('fathom_raw_calls')
-        .select('recording_id')
-        .eq('user_id', userId)
-        .is('auto_tags', null)
-        .order('created_at', { ascending: false })
-        .limit(limit);
+      // Find all calls without auto_tags, scoped to org via recordings join.
+      // fathom_raw_calls lacks organization_id, so we first get the org's
+      // legacy_recording_ids from the recordings table, then filter.
+      console.log(`Auto-discovering untagged calls for user ${userId} in org ${organizationId} (limit: ${limit})`);
 
-      if (discoverError) {
+      const { data: orgRecordings, error: orgRecError } = await supabase
+        .from('recordings')
+        .select('legacy_recording_id')
+        .eq('organization_id', organizationId)
+        .not('legacy_recording_id', 'is', null);
+
+      if (orgRecError) {
         return new Response(
-          JSON.stringify({ error: `Failed to discover calls: ${discoverError.message}` }),
+          JSON.stringify({ error: `Failed to fetch org recordings: ${orgRecError.message}` }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      recordingIds = (untaggedCalls || []).map(c => c.recording_id);
+      const orgLegacyIds = (orgRecordings || [])
+        .map((r: { legacy_recording_id: number | null }) => r.legacy_recording_id)
+        .filter(Boolean);
+
+      if (orgLegacyIds.length === 0) {
+        recordingIds = [];
+      } else {
+        const { data: untaggedCalls, error: discoverError } = await supabase
+          .from('fathom_raw_calls')
+          .select('recording_id')
+          .eq('user_id', userId)
+          .in('recording_id', orgLegacyIds)
+          .is('auto_tags', null)
+          .order('created_at', { ascending: false })
+          .limit(limit);
+
+        if (discoverError) {
+          return new Response(
+            JSON.stringify({ error: `Failed to discover calls: ${discoverError.message}` }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        recordingIds = (untaggedCalls || []).map(c => c.recording_id);
+      }
       console.log(`Found ${recordingIds.length} calls needing auto-tagging`);
     } else if (bodyRecordingIds && bodyRecordingIds.length > 0) {
       recordingIds = bodyRecordingIds;
@@ -326,10 +424,10 @@ Deno.serve(async (req) => {
 
     console.log(`Auto-tagging ${recordingIds.length} calls for user ${userId}`);
 
-    // Load user preferences and historical patterns ONCE
+    // Load user preferences and historical patterns ONCE (org-scoped)
     const [preferences, historicalPatterns] = await Promise.all([
-      getUserTagPreferences(supabase, userId),
-      getHistoricalPatterns(supabase, userId, ''),
+      getUserTagPreferences(supabase, userId, organizationId),
+      getHistoricalPatterns(supabase, userId, '', organizationId),
     ]);
 
     const preferencesContext = buildPreferencesContext(preferences);
