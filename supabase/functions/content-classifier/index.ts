@@ -14,6 +14,7 @@ const DEFAULT_MODEL = 'openai/gpt-5-nano';
 
 interface ClassificationRequest {
   recording_id: number;
+  organization_id: string;
   model?: string;
 }
 
@@ -128,7 +129,7 @@ Deno.serve(async (req: Request) => {
 
     // Parse request
     const body: ClassificationRequest = await req.json();
-    const { recording_id, model = DEFAULT_MODEL } = body;
+    const { recording_id, organization_id, model = DEFAULT_MODEL } = body;
 
     if (!recording_id) {
       return new Response(
@@ -137,7 +138,44 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get call details
+    if (!organization_id) {
+      return new Response(
+        JSON.stringify({ error: 'organization_id is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify user is a member of the organization
+    const { data: membership } = await supabase
+      .from('organization_memberships')
+      .select('id')
+      .eq('organization_id', organization_id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (!membership) {
+      return new Response(
+        JSON.stringify({ error: 'Not a member of this organization' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify the recording belongs to the specified organization
+    const { data: recording } = await supabase
+      .from('recordings')
+      .select('id')
+      .eq('legacy_recording_id', recording_id)
+      .eq('organization_id', organization_id)
+      .maybeSingle();
+
+    if (!recording) {
+      return new Response(
+        JSON.stringify({ error: 'Recording not found in this organization' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get call details — scoped to recording verified above
     const { data: call, error: callError } = await supabase
       .from('fathom_raw_calls')
       .select('title, summary')
@@ -152,7 +190,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Get transcript chunks
+    // Get transcript chunks — scoped to recording verified above
     const { data: chunks, error: chunksError } = await supabase
       .from('transcript_chunks')
       .select('chunk_text, speaker_name')
