@@ -35,26 +35,70 @@ Deno.serve(async (req) => {
 
     const userId = user.id;
 
-    console.log(`Deleting all calls for user: ${userId}`);
+    // Parse request body — organization_id is required
+    const body = await req.json();
+    const { organization_id: organizationId } = body;
 
-    // Delete all fathom_calls for this user
-    // This will cascade delete fathom_transcripts, call_tag_assignments, etc.
-    const { error: deleteError, count } = await supabase
+    if (!organizationId) {
+      return new Response(
+        JSON.stringify({ error: 'organization_id is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Verify user has membership in the specified organization
+    const { data: membership } = await supabase
+      .from('organization_memberships')
+      .select('id')
+      .eq('organization_id', organizationId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (!membership) {
+      return new Response(
+        JSON.stringify({ error: 'Not a member of this organization' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Deleting all calls for user: ${userId}, organization: ${organizationId}`);
+
+    // Delete recordings scoped to user + organization
+    const { error: recordingsError, count: recordingsCount } = await supabase
+      .from('recordings')
+      .delete({ count: 'exact' })
+      .eq('user_id', userId)
+      .eq('organization_id', organizationId);
+
+    if (recordingsError) {
+      console.error('Error deleting recordings:', recordingsError);
+      throw recordingsError;
+    }
+
+    // Delete legacy fathom_raw_calls scoped to user_id only.
+    // NOTE: fathom_raw_calls does not have an organization_id column,
+    // so we can only scope by user_id. This is a known limitation of the
+    // legacy table — all fathom_raw_calls for the user are deleted regardless
+    // of which organization context the request came from.
+    const { error: legacyError, count: legacyCount } = await supabase
       .from('fathom_raw_calls')
       .delete({ count: 'exact' })
       .eq('user_id', userId);
 
-    if (deleteError) {
-      console.error('Error deleting calls:', deleteError);
-      throw deleteError;
+    if (legacyError) {
+      console.error('Error deleting legacy fathom_raw_calls:', legacyError);
+      throw legacyError;
     }
 
-    console.log(`Successfully deleted ${count || 0} calls for user ${userId}`);
+    const totalDeleted = (recordingsCount || 0) + (legacyCount || 0);
+    console.log(`Successfully deleted ${totalDeleted} calls (${recordingsCount || 0} recordings, ${legacyCount || 0} legacy) for user ${userId} in org ${organizationId}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        deleted: count || 0,
+        deleted: totalDeleted,
+        recordings_deleted: recordingsCount || 0,
+        legacy_calls_deleted: legacyCount || 0,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
