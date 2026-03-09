@@ -62,6 +62,20 @@ export async function copyRecordingsToOrganization(
 ): Promise<void> {
   const { removeSource = false } = options
 
+  // Verify current user has membership in the target organization
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) throw new Error('Not authenticated')
+
+  const { data: membership, error: memberError } = await supabase
+    .from('organization_memberships')
+    .select('id')
+    .eq('organization_id', targetOrgId)
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (memberError) throw new Error(`Failed to verify organization membership: ${memberError.message}`)
+  if (!membership) throw new Error('You do not have access to the target organization')
+
   // Look up the HOME workspace for the target org (required by the RPC)
   const { data: workspace, error: wsError } = await supabase
     .from('workspaces')
