@@ -314,7 +314,19 @@ export function useCallDetailMutations({
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // The Supabase client sets data=null on non-2xx responses and returns a generic
+        // FunctionsHttpError. Parse the response body to surface the specific message
+        // returned by the edge function (e.g. "Cannot split at the first segment").
+        let message = error.message;
+        try {
+          const body = await (error as { context?: Response }).context?.json();
+          if (body?.error) message = body.error;
+        } catch {
+          // ignore — fall back to the generic client message
+        }
+        throw new Error(message);
+      }
       if (!data?.success) throw new Error(data?.error || 'Split failed');
 
       return data as SplitRecordingResult;

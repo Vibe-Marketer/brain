@@ -123,5 +123,20 @@ COMMENT ON FUNCTION public.split_recording_atomic IS
   'by the caller after this function succeeds.';
 
 -- ============================================================================
+-- PERMISSIONS
+-- ============================================================================
+-- Revoke direct execution from all non-service roles.
+-- The function is SECURITY DEFINER and must only be reachable via the edge
+-- function (which uses the service role key). Without this, any authenticated
+-- user could call it directly via PostgREST and pass arbitrary p_owner_user_id /
+-- p_organization_id values — the ownership check only fires when
+-- p_part1_recordings_id IS NOT NULL, so passing NULL for both id params would
+-- skip all validation while still inserting a Part 2 row.
+REVOKE EXECUTE ON FUNCTION public.split_recording_atomic FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION public.split_recording_atomic FROM anon;
+REVOKE EXECUTE ON FUNCTION public.split_recording_atomic FROM authenticated;
+-- (The service role bypasses EXECUTE grants, so edge function calls still work.)
+
+-- ============================================================================
 -- END OF MIGRATION
 -- ============================================================================

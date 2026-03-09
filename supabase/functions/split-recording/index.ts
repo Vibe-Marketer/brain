@@ -68,6 +68,32 @@ function buildTranscriptText(
     .join('\n');
 }
 
+type Segment = { timestamp: string; speaker: string; text: string };
+
+// Shared helper: parse full_transcript and split at a "parsed-N" segment id.
+// Used by both the UUID recording path and the legacy fallback (no fathom_transcripts rows).
+// Returns the two segment arrays or an error string.
+function splitFromParsedTranscript(
+  fullTranscript: string,
+  segmentId: string,
+): { part1: Segment[]; part2: Segment[] } | { error: string; status: number } {
+  if (!fullTranscript.trim()) {
+    return { error: 'No transcript available to split', status: 400 };
+  }
+  const all = parseTranscriptSegments(fullTranscript);
+  if (all.length === 0) {
+    return { error: 'Could not parse any transcript segments', status: 400 };
+  }
+  const idx = segmentId.startsWith('parsed-') ? parseInt(segmentId.slice(7), 10) : -1;
+  if (idx === 0) {
+    return { error: 'Cannot split at the first segment — choose a later segment', status: 400 };
+  }
+  if (isNaN(idx) || idx < 0 || idx >= all.length) {
+    return { error: `Split point not found in transcript (segment: ${segmentId})`, status: 400 };
+  }
+  return { part1: all.slice(0, idx), part2: all.slice(idx) };
+}
+
 // Parse "HH:MM:SS" timestamp into total seconds for duration math.
 function timestampToSeconds(ts: string): number {
   const parts = ts.split(':').map(Number);
@@ -265,72 +291,28 @@ Deno.serve(async (req) => {
         part1Segments = rows.slice(0, splitIdx).map(({ timestamp, speaker, text }) => ({ timestamp, speaker, text }));
         part2Segments = rows.slice(splitIdx).map(({ timestamp, speaker, text }) => ({ timestamp, speaker, text }));
       } else {
-        // Fallback: no fathom_transcripts rows found — parse full_transcript.
-        if (!fullTranscript.trim()) {
+        // Fallback: no fathom_transcripts rows — split from full_transcript.
+        const parsed = splitFromParsedTranscript(fullTranscript, segment_id);
+        if ('error' in parsed) {
           return new Response(
-            JSON.stringify({ error: 'No transcript available to split' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            JSON.stringify({ error: parsed.error }),
+            { status: parsed.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
           );
         }
-        const allSegments = parseTranscriptSegments(fullTranscript);
-        if (allSegments.length === 0) {
-          return new Response(
-            JSON.stringify({ error: 'Could not parse any transcript segments' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        // segment_id for a parsed fallback is "parsed-N"
-        const splitIdx = segment_id.startsWith('parsed-')
-          ? parseInt(segment_id.slice(7), 10)
-          : -1;
-        if (splitIdx === 0) {
-          return new Response(
-            JSON.stringify({ error: 'Cannot split at the first segment — choose a later segment' }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        if (isNaN(splitIdx) || splitIdx < 0 || splitIdx >= allSegments.length) {
-          return new Response(
-            JSON.stringify({ error: `Split point not found in transcript (segment: ${segment_id})` }),
-            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-          );
-        }
-        part1Segments = allSegments.slice(0, splitIdx);
-        part2Segments = allSegments.slice(splitIdx);
+        part1Segments = parsed.part1;
+        part2Segments = parsed.part2;
       }
     } else {
       // UUID recording: parse full_transcript (trimming not supported, so blob is current).
-      if (!fullTranscript.trim()) {
+      const parsed = splitFromParsedTranscript(fullTranscript, segment_id);
+      if ('error' in parsed) {
         return new Response(
-          JSON.stringify({ error: 'No transcript available to split' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: parsed.error }),
+          { status: parsed.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      const allSegments = parseTranscriptSegments(fullTranscript);
-      if (allSegments.length === 0) {
-        return new Response(
-          JSON.stringify({ error: 'Could not parse any transcript segments' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      // segment_id for UUID recordings is "parsed-N" (synthetic id assigned by frontend)
-      const splitIdx = segment_id.startsWith('parsed-')
-        ? parseInt(segment_id.slice(7), 10)
-        : -1;
-      if (splitIdx === 0) {
-        return new Response(
-          JSON.stringify({ error: 'Cannot split at the first segment — choose a later segment' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (isNaN(splitIdx) || splitIdx < 0 || splitIdx >= allSegments.length) {
-        return new Response(
-          JSON.stringify({ error: `Split point not found in transcript (segment: ${segment_id})` }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      part1Segments = allSegments.slice(0, splitIdx);
-      part2Segments = allSegments.slice(splitIdx);
+      part1Segments = parsed.part1;
+      part2Segments = parsed.part2;
     }
 
     const part1Transcript = buildTranscriptText(part1Segments);
