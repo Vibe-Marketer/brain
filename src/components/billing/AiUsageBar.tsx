@@ -82,10 +82,6 @@ export function AiUsageBar() {
             </UpgradeButton>
           )}
         </div>
-      ) : isNearLimit ? (
-        <p className="text-xs text-muted-foreground">
-          {remaining.toLocaleString()} action{remaining !== 1 ? 's' : ''} remaining this month
-        </p>
       ) : (
         <p className="text-xs text-muted-foreground">
           {remaining.toLocaleString()} action{remaining !== 1 ? 's' : ''} remaining this month

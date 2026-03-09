@@ -28,6 +28,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 /** AI action limits per product tier */
@@ -40,13 +41,11 @@ const AI_ACTION_LIMITS: Record<string, number> = {
   'team-annual': 5000,
 };
 
-/** Derive action limit from product_id stored in user_profiles */
+/** Derive action limit from product_id + status */
 function getActionLimit(productId: string | null, status: string | null): number {
-  // Expired trial or revoked → free limit
   if (!productId || !status || status === 'revoked' || status === 'incomplete_expired') {
     return AI_ACTION_LIMITS['free'];
   }
-  // Active trial for Pro
   if (productId === 'pro-trial' && status === 'trialing') {
     return AI_ACTION_LIMITS['pro-trial'];
   }
@@ -60,8 +59,12 @@ function currentMonthYear(): string {
   return `${now.getUTCFullYear()}-${month}`;
 }
 
-const VALID_ACTION_TYPES = ['smart_import', 'auto_name', 'auto_tag', 'chat_message'] as const;
-type ActionType = typeof VALID_ACTION_TYPES[number];
+/** Zod schema for the request body */
+const bodySchema = z.object({
+  actionType: z.enum(['smart_import', 'auto_name', 'auto_tag', 'chat_message']),
+  recordingId: z.string().uuid().optional(),
+  orgId: z.string().uuid().optional(),
+});
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get('Origin'));
@@ -104,30 +107,27 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse request body
-    const body = await req.json() as { actionType?: unknown; recordingId?: unknown; orgId?: unknown };
-    const { actionType, recordingId, orgId } = body;
-
-    // Validate action type
-    if (!actionType || !VALID_ACTION_TYPES.includes(actionType as ActionType)) {
+    // Validate request body with Zod (validates UUIDs and enum values)
+    const parseResult = bodySchema.safeParse(await req.json());
+    if (!parseResult.success) {
+      const errorMessage = parseResult.error.errors[0]?.message ?? 'Invalid input';
       return new Response(
-        JSON.stringify({
-          error: `actionType must be one of: ${VALID_ACTION_TYPES.join(', ')}`,
-        }),
+        JSON.stringify({ error: errorMessage }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    const { actionType, recordingId, orgId: resolvedOrgId } = parseResult.data;
     const monthYear = currentMonthYear();
 
-    // Fetch user subscription state
+    // Fetch caller's subscription state (used for personal-tier limit)
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('product_id, subscription_status, current_period_end')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    // Check if trial has expired (handle expired trial as free)
+    // Check if personal trial has expired
     let effectiveProductId = profile?.product_id ?? null;
     let effectiveStatus = profile?.subscription_status ?? null;
 
@@ -138,7 +138,6 @@ Deno.serve(async (req) => {
     ) {
       const trialEnd = new Date(profile.current_period_end);
       if (trialEnd < new Date()) {
-        // Trial expired — treat as free
         effectiveProductId = null;
         effectiveStatus = null;
 
@@ -157,12 +156,14 @@ Deno.serve(async (req) => {
       }
     }
 
-    const limit = getActionLimit(effectiveProductId, effectiveStatus);
-
-    // Validate org membership before using orgId for pooled counting.
-    // Without this check, a user could pass any org's ID to consume their quota
-    // or benefit from a higher team limit they're not entitled to.
-    const resolvedOrgId = typeof orgId === 'string' && orgId ? orgId : null;
+    // Validate org membership and resolve org-level limit when orgId is provided.
+    // Security: without this check a user could pass any org's ID to consume their
+    // quota or benefit from a higher team limit they're not entitled to.
+    //
+    // Limit resolution: the org's Team subscription is owned by the org_owner, so we
+    // look up the owner's subscription — not the caller's — to get the correct pooled
+    // limit. This ensures all org members are gated by the Team 5,000 limit, not their
+    // own personal tier (which might be Free).
     if (resolvedOrgId) {
       const { data: membership } = await supabase
         .from('organization_memberships')
@@ -177,9 +178,29 @@ Deno.serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
+      // Fetch the org owner's subscription to get the correct tier limit
+      const { data: ownerProfile } = await supabase
+        .from('organization_memberships')
+        .select('user_profiles!inner(product_id, subscription_status)')
+        .eq('organization_id', resolvedOrgId)
+        .eq('role', 'organization_owner')
+        .maybeSingle();
+
+      if (ownerProfile) {
+        // deno-lint-ignore no-explicit-any
+        const ownerData = (ownerProfile as any).user_profiles as {
+          product_id: string | null;
+          subscription_status: string | null;
+        } | null;
+        effectiveProductId = ownerData?.product_id ?? effectiveProductId;
+        effectiveStatus = ownerData?.subscription_status ?? effectiveStatus;
+      }
     }
 
-    // Count current month usage (org-level for team pooling, user-level otherwise)
+    const limit = getActionLimit(effectiveProductId, effectiveStatus);
+
+    // Count current month usage (org-level pooled or personal)
     let used: number;
     if (resolvedOrgId) {
       const { data: orgCount } = await supabase.rpc('get_monthly_org_ai_usage', {
@@ -213,9 +234,9 @@ Deno.serve(async (req) => {
       .from('ai_usage')
       .insert({
         user_id: user.id,
-        org_id: resolvedOrgId,
-        action_type: actionType as ActionType,
-        recording_id: (typeof recordingId === 'string' && recordingId) ? recordingId : null,
+        org_id: resolvedOrgId ?? null,
+        action_type: actionType,
+        recording_id: recordingId ?? null,
         month_year: monthYear,
       });
 
