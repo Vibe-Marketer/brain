@@ -742,26 +742,29 @@ export function TranscriptsTab({
         throw weError;
       }
 
-      // 2. Clean up legacy tables (only for recordings that have legacy IDs)
-      if (legacyIds.length > 0) {
+      // 2a. Clean up migrated tables using UUID recording_id
+      if (uuids.length > 0) {
         const { error: assignmentsError } = await supabase
           .from('call_tag_assignments')
           .delete()
-          .in('call_recording_id', legacyIds);
+          .in('recording_id', uuids);
         if (assignmentsError) logger.warn('Error deleting tag assignments', assignmentsError);
 
         const { error: tagsError } = await supabase
           .from('transcript_tag_assignments')
           .delete()
-          .in('call_recording_id', legacyIds);
+          .in('recording_id', uuids);
         if (tagsError) logger.warn('Error deleting transcript tag assignments', tagsError);
 
         const { error: speakersError } = await supabase
           .from('call_speakers')
           .delete()
-          .in('call_recording_id', legacyIds);
+          .in('recording_id', uuids);
         if (speakersError) logger.warn('Error deleting speakers', speakersError);
+      }
 
+      // 2b. Clean up folder_assignments (still uses BIGINT call_recording_id)
+      if (legacyIds.length > 0) {
         const { error: folderError } = await supabase
           .from('folder_assignments')
           .delete()
@@ -862,8 +865,8 @@ export function TranscriptsTab({
           usePanelStore.getState().closePanel();
         },
         onDelete: handleDeleteCalls,
-        onTag: (tagId: string) => tagMutation.mutate({ callIds: selectedCalls as number[], tagId }),
-        onRemoveTag: () => untagMutation.mutate({ callIds: selectedCalls as number[] }),
+        onTag: (tagId: string) => tagMutation.mutate({ callIds: selectedCalls.map(String), tagId }),
+        onRemoveTag: () => untagMutation.mutate({ callIds: selectedCalls.map(String) }),
         onCreateNewTag: () => {
           setIsQuickCreateOpen(true);
           setPendingTagTranscripts(selectedCalls);
@@ -886,13 +889,13 @@ export function TranscriptsTab({
           isDragging={true}
           onDrop={(tagId) => {
             tagMutation.mutate({
-              callIds: dragHelpers.draggedItems,
+              callIds: dragHelpers.draggedItems.map(String),
               tagId,
             });
           }}
           onUntag={() => {
             untagMutation.mutate({
-              callIds: dragHelpers.draggedItems,
+              callIds: dragHelpers.draggedItems.map(String),
             });
           }}
           onCreateNew={() => {
@@ -1016,7 +1019,7 @@ export function TranscriptsTab({
           onTagCreated={(tagId) => {
             if (pendingTagTranscripts.length > 0) {
               tagMutation.mutate({
-                callIds: pendingTagTranscripts,
+                callIds: pendingTagTranscripts.map(String),
                 tagId,
               });
               setPendingTagTranscripts([]);
