@@ -121,16 +121,30 @@ async function buildContext(
     .eq('call_recording_id', recordingId)
     .maybeSingle();
 
-  // Fetch tag assignments
-  const { data: tagAssignments } = await supabase
-    .from('call_tag_assignments')
-    .select('tag_id, call_tags(id, name)')
-    .eq('call_recording_id', recordingId);
+  // Fetch tag assignments via canonical UUID (issue #125: call_tag_assignments now uses UUID).
+  // If canonical_recording_id is absent from fathom_raw_calls, fall back to a live DB lookup
+  // via recordings.legacy_recording_id — mirrors the resolveCanonicalRecordingId helper in actions.ts.
+  let canonicalRecordingId: string | null = call.canonical_recording_id ?? null;
+  if (!canonicalRecordingId) {
+    const { data: rec } = await supabase
+      .from('recordings')
+      .select('id')
+      .eq('legacy_recording_id', recordingId)
+      .maybeSingle();
+    canonicalRecordingId = rec?.id ?? null;
+  }
+  const { data: tagAssignments } = canonicalRecordingId
+    ? await supabase
+        .from('call_tag_assignments')
+        .select('tag_id, call_tags(id, name)')
+        .eq('recording_id', canonicalRecordingId)
+    : { data: [] };
 
   // Build context
   const context: EvaluationContext = {
     call: {
       recording_id: call.recording_id,
+      canonical_recording_id: canonicalRecordingId ?? undefined,
       title: call.title,
       duration_minutes: call.duration_seconds ? Math.floor(call.duration_seconds / 60) : 0,
       created_at: call.created_at,

@@ -230,7 +230,36 @@ async function executeRemoveFromFolder(
 }
 
 /**
+ * Resolve the canonical recordings UUID for a call.
+ * Prefers context.call.canonical_recording_id (populated by buildContext from
+ * fathom_raw_calls.canonical_recording_id). Falls back to a live DB lookup via
+ * recordings.legacy_recording_id for calls where the FK hasn't been backfilled yet.
+ */
+async function resolveCanonicalRecordingId(
+  supabase: SupabaseClient,
+  context: EvaluationContext
+): Promise<string | null> {
+  if (context.call?.canonical_recording_id) {
+    return context.call.canonical_recording_id;
+  }
+
+  // Fallback: look up by legacy BIGINT recording_id (issue #125 — handles un-backfilled rows)
+  const legacyId = context.call?.recording_id;
+  if (!legacyId) return null;
+
+  const { data } = await supabase
+    .from('recordings')
+    .select('id')
+    .eq('legacy_recording_id', legacyId)
+    .maybeSingle();
+
+  return data?.id ?? null;
+}
+
+/**
  * Execute add_tag action
+ * Uses recording UUID since call_tag_assignments.recording_id is now UUID (issue #125).
+ * Falls back to a live DB lookup if canonical_recording_id is not yet in context.
  */
 async function executeAddTag(
   supabase: SupabaseClient,
@@ -239,14 +268,14 @@ async function executeAddTag(
   userId: string
 ): Promise<ActionResult> {
   const { tag_id } = config;
-  const recordingId = context.call?.recording_id;
 
   if (!tag_id) {
     return { success: false, error: 'Missing tag_id in action config' };
   }
 
-  if (!recordingId) {
-    return { success: false, error: 'Missing recording_id in context' };
+  const canonicalRecordingId = await resolveCanonicalRecordingId(supabase, context);
+  if (!canonicalRecordingId) {
+    return { success: false, error: 'Could not resolve canonical recording UUID — recording may not exist yet' };
   }
 
   const { error } = await supabase
@@ -254,10 +283,10 @@ async function executeAddTag(
     .upsert(
       {
         tag_id,
-        call_recording_id: recordingId,
+        recording_id: canonicalRecordingId,
         user_id: userId,
       },
-      { onConflict: 'tag_id,call_recording_id' }
+      { onConflict: 'recording_id,tag_id' }
     );
 
   if (error) {
@@ -266,12 +295,14 @@ async function executeAddTag(
 
   return {
     success: true,
-    details: { tag_id, recording_id: recordingId },
+    details: { tag_id, recording_id: canonicalRecordingId },
   };
 }
 
 /**
  * Execute remove_tag action
+ * Uses recording UUID since call_tag_assignments.recording_id is now UUID (issue #125).
+ * Falls back to a live DB lookup if canonical_recording_id is not yet in context.
  */
 async function executeRemoveTag(
   supabase: SupabaseClient,
@@ -280,21 +311,21 @@ async function executeRemoveTag(
   _userId: string
 ): Promise<ActionResult> {
   const { tag_id } = config;
-  const recordingId = context.call?.recording_id;
 
   if (!tag_id) {
     return { success: false, error: 'Missing tag_id in action config' };
   }
 
-  if (!recordingId) {
-    return { success: false, error: 'Missing recording_id in context' };
+  const canonicalRecordingId = await resolveCanonicalRecordingId(supabase, context);
+  if (!canonicalRecordingId) {
+    return { success: false, error: 'Could not resolve canonical recording UUID — recording may not exist yet' };
   }
 
   const { error } = await supabase
     .from('call_tag_assignments')
     .delete()
     .eq('tag_id', tag_id)
-    .eq('call_recording_id', recordingId);
+    .eq('recording_id', canonicalRecordingId);
 
   if (error) {
     return { success: false, error: `Failed to remove tag: ${error.message}` };
@@ -302,7 +333,7 @@ async function executeRemoveTag(
 
   return {
     success: true,
-    details: { tag_id, recording_id: recordingId },
+    details: { tag_id, recording_id: canonicalRecordingId },
   };
 }
 

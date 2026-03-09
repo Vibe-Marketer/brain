@@ -54,6 +54,7 @@ export interface EvaluationContext {
   // Call data
   call?: {
     recording_id?: number;
+    canonical_recording_id?: string; // UUID from recordings table (issue #125)
     title?: string;
     duration_minutes?: number;
     created_at?: string;
