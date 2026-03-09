@@ -121,8 +121,18 @@ async function buildContext(
     .eq('call_recording_id', recordingId)
     .maybeSingle();
 
-  // Fetch tag assignments via canonical UUID (issue #125: call_tag_assignments now uses UUID)
-  const canonicalRecordingId: string | null = call.canonical_recording_id ?? null;
+  // Fetch tag assignments via canonical UUID (issue #125: call_tag_assignments now uses UUID).
+  // If canonical_recording_id is absent from fathom_raw_calls, fall back to a live DB lookup
+  // via recordings.legacy_recording_id — mirrors the resolveCanonicalRecordingId helper in actions.ts.
+  let canonicalRecordingId: string | null = call.canonical_recording_id ?? null;
+  if (!canonicalRecordingId) {
+    const { data: rec } = await supabase
+      .from('recordings')
+      .select('id')
+      .eq('legacy_recording_id', recordingId)
+      .maybeSingle();
+    canonicalRecordingId = rec?.id ?? null;
+  }
   const { data: tagAssignments } = canonicalRecordingId
     ? await supabase
         .from('call_tag_assignments')
