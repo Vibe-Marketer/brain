@@ -533,16 +533,23 @@ export function TranscriptsTab({
     return filtered;
   }, [calls, selectedFolderId, folderAssignments, folders]);
 
-  // Fetch tag assignments for displayed calls
+  // Fetch tag assignments for displayed calls.
+  // call_tag_assignments.call_recording_id is BIGINT (legacy Fathom numeric ID).
+  // New-pipeline recordings have UUID ids — filter those out to prevent a HTTP 400
+  // type-mismatch error when querying the BIGINT column with a UUID string.
+  const legacyRecordingIds = validCalls
+    .map(c => c.recording_id)
+    .filter((id): id is number => typeof id === 'number');
+
   const { data: tagAssignments = {} } = useQuery({
-    queryKey: ["tag-assignments", validCalls.map(c => c.recording_id)],
+    queryKey: ["tag-assignments", legacyRecordingIds],
     queryFn: async () => {
-      if (validCalls.length === 0) return {};
+      if (legacyRecordingIds.length === 0) return {};
 
       const { data, error } = await supabase
         .from("call_tag_assignments")
         .select("call_recording_id, tag_id")
-        .in("call_recording_id", validCalls.map(c => c.recording_id));
+        .in("call_recording_id", legacyRecordingIds);
 
       if (error) throw error;
 
