@@ -91,8 +91,6 @@ export interface PlanCardsProps {
   currentTier: SubscriptionTier;
   /** Whether user is currently on a trial */
   isTrialing?: boolean;
-  /** Callback when upgrade is requested (optional — UpgradeButton handles checkout internally) */
-  onUpgrade?: (productId: string) => void;
   /** Loading state */
   isLoading?: boolean;
   /** Whether to show annual pricing toggle (default: show monthly) */
@@ -110,7 +108,6 @@ export interface PlanCardsProps {
 export function PlanCards({
   currentTier,
   isTrialing = false,
-  onUpgrade: _onUpgrade, // Legacy prop — UpgradeButton handles checkout internally
   isLoading = false,
   showAnnual = false,
 }: PlanCardsProps) {
