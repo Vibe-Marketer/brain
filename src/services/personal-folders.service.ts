@@ -16,19 +16,9 @@ export interface PersonalFolderRecording {
   created_at: string
 }
 
-export async function getPersonalFolders(organizationId: string): Promise<PersonalFolder[]> {
-  const { data, error } = await (supabase as any)
-    .from('personal_folders')
-    .select('*')
-    .eq('organization_id', organizationId)
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    if (isTableMissing(error)) return []
-    throw new Error(`Failed to fetch personal folders: ${error.message}`)
-  }
-
-  return data as PersonalFolder[]
+// TODO: personal_folders table migration is pending — remove this stub when table exists
+export async function getPersonalFolders(_organizationId: string): Promise<PersonalFolder[]> {
+  return []
 }
 
 export async function createPersonalFolder(organizationId: string, name: string): Promise<PersonalFolder> {
@@ -79,43 +69,9 @@ export async function deletePersonalFolder(folderId: string): Promise<void> {
   }
 }
 
-export async function getPersonalFolderAssignments(organizationId: string): Promise<Record<string, string[]>> {
-  // Fetch folder IDs for this org
-  const { data: folders, error: foldersError } = await (supabase as any)
-    .from('personal_folders')
-    .select('id')
-    .eq('organization_id', organizationId)
-
-  if (foldersError) {
-    if (isTableMissing(foldersError)) return {}
-    throw new Error(`Failed to fetch folders for assignments: ${foldersError.message}`)
-  }
-  
-  const folderIds = (folders ?? []).map((f) => f.id)
-  
-  if (folderIds.length === 0) return {}
-
-  // Fetch recordings linked to those folders
-  const { data, error } = await (supabase as any)
-    .from('personal_folder_recordings')
-    .select('recording_id, folder_id')
-    .in('folder_id', folderIds)
-
-  if (error) {
-    if (isTableMissing(error)) return {}
-    throw new Error(`Failed to fetch personal folder assignments: ${error.message}`)
-  }
-
-  const assignments: Record<string, string[]> = {}
-  ;(data ?? []).forEach((row) => {
-    const callId = String(row.recording_id)
-    if (!assignments[callId]) {
-      assignments[callId] = []
-    }
-    assignments[callId].push(row.folder_id)
-  })
-
-  return assignments
+// TODO: personal_folders table migration is pending — remove this stub when table exists
+export async function getPersonalFolderAssignments(_organizationId: string): Promise<Record<string, string[]>> {
+  return {}
 }
 
 export async function assignCallToPersonalFolder(recordingId: string, folderId: string): Promise<void> {
