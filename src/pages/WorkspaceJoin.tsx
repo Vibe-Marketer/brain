@@ -251,9 +251,9 @@ export default function WorkspaceJoin() {
             >
               {isJoining ? 'Joining...' : 'Accept Invite & Join'}
             </Button>
-            <Button 
-              variant="ghost" 
-              className="w-full text-muted-foreground"
+            <Button
+              variant="hollow"
+              className="w-full"
               onClick={() => navigate('/')}
             >
               Decline
