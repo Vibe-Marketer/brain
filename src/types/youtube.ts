@@ -19,29 +19,43 @@ export interface YouTubeVideoMetadata {
   /** YouTube video ID (e.g., "dQw4w9WgXcQ") */
   youtube_video_id: string
   /** YouTube channel ID */
-  youtube_channel_id: string
+  youtube_channel_id?: string
   /** YouTube channel display name */
-  youtube_channel_title: string
+  youtube_channel_title?: string
   /** Video description (may be truncated) */
-  youtube_description: string
+  youtube_description?: string
   /** URL to high-res thumbnail (from i.ytimg.com) */
-  youtube_thumbnail: string
+  youtube_thumbnail?: string
+  /** Video duration in ISO 8601 format (e.g., "PT1H2M10S") — alias for youtube_duration_iso */
+  youtube_duration?: string
   /** Video duration in ISO 8601 format (e.g., "PT1H2M10S") */
-  youtube_duration: string
+  youtube_duration_iso?: string
+  /** Video definition: "hd" or "sd" */
+  youtube_definition?: string
+  /** ISO 8601 string of when the video was published on YouTube */
+  youtube_published_at?: string
   /** Total view count */
-  youtube_view_count: number
+  youtube_view_count?: number
   /** Total like count */
-  youtube_like_count: number
-  /** Total comment count (not always available) */
+  youtube_like_count?: number
+  /** Total comment count */
   youtube_comment_count?: number
   /** YouTube category ID (e.g., "22" for "People & Blogs") */
   youtube_category_id?: string
-  /** Channel subscriber count (not always available) */
-  youtube_subscriber_count?: number
+  /** Array of video tags from YouTube */
+  youtube_tags?: string[]
+  /** Channel subscriber count (null if hidden by channel owner) */
+  youtube_channel_subscriber_count?: number
+  /** Total public video count on the channel */
+  youtube_channel_video_count?: number
+  /** Channel description (truncated) */
+  youtube_channel_description?: string
   /** Import source identifier */
-  import_source: string
-  /** ISO date string of when the video was imported */
-  imported_at: string
+  import_source?: string
+  /** ISO date string of when metadata was synced */
+  synced_at?: string
+  /** Whether YouTube Data API metadata fetch succeeded */
+  youtube_metadata_fetch_success?: boolean
 }
 
 /**

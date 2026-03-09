@@ -54,10 +54,21 @@ interface YouTubeVideoDetails {
     default?: { url?: string };
   };
   duration?: string;
+  definition?: string;
   viewCount?: number;
   likeCount?: number;
   commentCount?: number;
   categoryId?: string;
+  tags?: string[];
+}
+
+interface YouTubeChannelDetails {
+  channelId: string;
+  title?: string;
+  description?: string;
+  subscriberCount?: number;
+  videoCount?: number;
+  hiddenSubscriberCount?: boolean;
 }
 
 function getStringValue(source: Record<string, unknown> | null, keys: string[]): string | undefined {
@@ -587,6 +598,42 @@ Deno.serve(async (req) => {
     }
 
     // ========================================================================
+    // Step 3b: Fetch channel details (best effort, requires channelId from video details)
+    // ========================================================================
+    let channelDetails: YouTubeChannelDetails | null = null;
+
+    if (videoDetails?.channelId) {
+      try {
+        const channelResponse = await fetch(`${supabaseUrl}/functions/v1/youtube-api`, {
+          method: 'POST',
+          headers: youtubeApiHeaders,
+          body: JSON.stringify({
+            action: 'channel-details',
+            params: { channelId: videoDetails.channelId },
+          }),
+        });
+
+        if (channelResponse.ok) {
+          const channelRaw = await channelResponse.text();
+          const channelPayload = parseJsonSafely(channelRaw);
+          const channelResult = isRecord(channelPayload) ? channelPayload : null;
+          const channelData = isRecord(channelResult?.data) ? channelResult.data : null;
+
+          if (channelResult?.success && channelData && typeof channelData.channelId === 'string') {
+            channelDetails = channelData as unknown as YouTubeChannelDetails;
+            console.log(`Fetched channel details for: "${channelDetails.title}" (${channelDetails.subscriberCount?.toLocaleString()} subscribers)`);
+          } else {
+            console.warn('[youtube-import] channel-details returned invalid payload; skipping channel metrics');
+          }
+        } else {
+          console.warn(`[youtube-import] channel-details fetch returned ${channelResponse.status}; skipping channel metrics`);
+        }
+      } catch (channelError) {
+        console.warn('[youtube-import] channel-details fetch failed (non-blocking):', channelError);
+      }
+    }
+
+    // ========================================================================
     // Step 4: Fetch transcript via Transcript API (direct)
     // ========================================================================
     const transcriptApiKey = normalizeSecret(Deno.env.get('TRANSCRIPT_API_KEY'));
@@ -664,15 +711,24 @@ Deno.serve(async (req) => {
 
     // Build source_metadata (external_id merged as first key by insertRecording)
     const sourceMetadata = {
+      youtube_video_id: videoId,
       youtube_channel_id: videoDetails.channelId,
       youtube_channel_title: videoDetails.channelTitle,
       youtube_description: (videoDetails.description || '').substring(0, 1000),
       youtube_thumbnail: videoDetails.thumbnails?.high?.url || videoDetails.thumbnails?.default?.url,
-      youtube_duration: videoDetails.duration,
-      youtube_view_count: videoDetails.viewCount,
-      youtube_like_count: videoDetails.likeCount,
-      youtube_comment_count: videoDetails.commentCount || null,
+      youtube_duration_iso: videoDetails.duration || null,
+      youtube_duration: videoDetails.duration || null,
+      youtube_definition: videoDetails.definition || null,
+      youtube_published_at: videoDetails.publishedAt || null,
+      youtube_view_count: videoDetails.viewCount ?? null,
+      youtube_like_count: videoDetails.likeCount ?? null,
+      youtube_comment_count: videoDetails.commentCount ?? null,
       youtube_category_id: videoDetails.categoryId || null,
+      youtube_tags: videoDetails.tags && videoDetails.tags.length > 0 ? videoDetails.tags : null,
+      // Channel metrics (from separate channel API call)
+      youtube_channel_subscriber_count: channelDetails?.hiddenSubscriberCount ? null : (channelDetails?.subscriberCount ?? null),
+      youtube_channel_video_count: channelDetails?.videoCount ?? null,
+      youtube_channel_description: channelDetails?.description ? channelDetails.description.substring(0, 500) : null,
     };
 
     // Parse publishedAt date for recording_start_time
@@ -741,11 +797,16 @@ Deno.serve(async (req) => {
           youtube_description: (videoDetails.description || '').substring(0, 1000),
           youtube_thumbnail: videoDetails.thumbnails?.high?.url || videoDetails.thumbnails?.default?.url || null,
           youtube_duration: videoDetails.duration || null,
+          youtube_definition: videoDetails.definition || null,
           youtube_category_id: videoDetails.categoryId || null,
           youtube_published_at: videoDetails.publishedAt || null,
-          youtube_view_count: videoDetails.viewCount || null,
-          youtube_like_count: videoDetails.likeCount || null,
-          youtube_comment_count: videoDetails.commentCount || null,
+          youtube_view_count: videoDetails.viewCount ?? null,
+          youtube_like_count: videoDetails.likeCount ?? null,
+          youtube_comment_count: videoDetails.commentCount ?? null,
+          youtube_tags: videoDetails.tags && videoDetails.tags.length > 0 ? videoDetails.tags : null,
+          youtube_subscriber_count: channelDetails?.hiddenSubscriberCount ? null : (channelDetails?.subscriberCount ?? null),
+          youtube_channel_video_count: channelDetails?.videoCount ?? null,
+          youtube_channel_description: channelDetails?.description ? channelDetails.description.substring(0, 500) : null,
           import_source: 'youtube-import',
           full_transcript: transcriptText,
           raw_payload: transcriptData,
