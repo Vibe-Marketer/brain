@@ -7,7 +7,7 @@ import { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2';
  * Designed for fire-and-forget logging that doesn't block main processing.
  */
 
-export type OperationType = 'embedding' | 'enrichment' | 'search' | 'chat';
+export type OperationType = 'embedding' | 'enrichment' | 'search' | 'chat' | 'ai_naming';
 
 // Pricing per 1M tokens (in USD)
 // Sources: OpenRouter pricing (https://openrouter.ai/models), OpenAI pricing
@@ -44,6 +44,7 @@ const PRICING: Record<string, { input: number; output: number }> = {
   'google/gemini-pro-1.5': { input: 1.25, output: 5.00 },
   'google/gemini-2.0-flash': { input: 0.10, output: 0.40 },
   'google/gemini-2.5-flash': { input: 0.15, output: 0.60 },
+  'google/gemini-2.5-flash-lite': { input: 0.10, output: 0.40 },
 
   // Chinese models via OpenRouter
   'z-ai/glm-4.6': { input: 0.05, output: 0.05 },
