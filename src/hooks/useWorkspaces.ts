@@ -385,14 +385,13 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
   const meta = (recording.source_metadata ?? {}) as Record<string, unknown>;
   const invitees = Array.isArray(meta.calendar_invitees) ? meta.calendar_invitees : null;
 
-  return {
+  const result: Meeting = {
     // Use legacy_recording_id for TranscriptTable compatibility (it expects number | string)
     recording_id: recording.legacy_recording_id ?? recording.id,
     // Always expose the canonical UUID so detail queries can target UUID-keyed tables
     // (call_tag_assignments, call_participants) regardless of recording_id type.
     canonical_uuid: recording.id,
     title: recording.title,
-    full_transcript: recording.full_transcript || null,
     summary: recording.summary || null,
     created_at: recording.created_at,
     recording_start_time: recording.recording_start_time || null,
@@ -417,5 +416,13 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
     google_calendar_event_id: null,
     google_drive_file_id: null,
     transcript_source: null,
+  };
+
+  // Only include full_transcript when it was actually fetched (not undefined from omitted SELECT).
+  // TranscriptTableRow checks 'full_transcript' in call to decide whether to show NO TRANSCRIPT badge.
+  if (recording.full_transcript !== undefined) {
+    result.full_transcript = recording.full_transcript || null;
   }
+
+  return result;
 }
