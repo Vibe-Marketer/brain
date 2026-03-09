@@ -41,6 +41,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_transcript_chunks_canonical_chunk
 --   a) Added p_target_workspace_id parameter (optional; NULL = HOME workspace).
 --   b) Chunk copy now sets recording_id = NULL (avoids BIGINT uniqueness conflict).
 --   c) After trigger places copy in HOME, relocates to target workspace if specified.
+--   d) Move semantics: explicitly delete transcript_chunks before recordings
+--      (canonical_recording_id FK is ON DELETE SET NULL, not CASCADE).
+--
+-- Drop the old 4-parameter overload created in 20260309200000: CREATE OR REPLACE
+-- with a new parameter list creates a new overload rather than replacing the old one.
+-- The old overload is dead (never called) and should be cleaned up.
+DROP FUNCTION IF EXISTS public.route_recording_cross_org(UUID, UUID, UUID, BOOLEAN);
 
 CREATE OR REPLACE FUNCTION public.route_recording_cross_org(
   p_recording_id        UUID,
@@ -164,8 +171,12 @@ BEGIN
   END IF;
 
   -- Delete source recording if requested (move semantics).
-  -- workspace_entries references recordings via FK — entries must be removed first.
+  -- Order matters for FK constraints:
+  --   1. transcript_chunks.canonical_recording_id is ON DELETE SET NULL (not CASCADE),
+  --      so chunks would be orphaned rather than removed. Delete explicitly.
+  --   2. workspace_entries.recording_id is a FK — entries must be removed before recording.
   IF p_delete_source THEN
+    DELETE FROM transcript_chunks WHERE canonical_recording_id = p_recording_id;
     DELETE FROM workspace_entries WHERE recording_id = p_recording_id;
     DELETE FROM recordings WHERE id = p_recording_id;
   END IF;
