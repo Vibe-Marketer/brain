@@ -191,16 +191,19 @@ BEGIN
   -- Create workspace_entry in the specified target workspace.
   -- The auto-entry trigger also fires (HOME workspace), but we
   -- honour the caller's explicit workspace choice here.
-  -- ON CONFLICT DO NOTHING in case HOME = target workspace.
+  -- Explicit conflict target: handles the case where HOME = target
+  -- workspace without silently swallowing unrelated violations.
   -- ---------------------------------------------------------------
   INSERT INTO workspace_entries (workspace_id, recording_id, created_at)
   VALUES (p_target_workspace_id, v_new_recording_id, NOW())
-  ON CONFLICT DO NOTHING;
+  ON CONFLICT (workspace_id, recording_id) DO NOTHING;
 
   -- ---------------------------------------------------------------
   -- Optionally delete the original recording.
-  -- Caller must be the recording owner.
-  -- We call delete_recording() which cascades workspace_entries etc.
+  -- Caller must be the recording owner (checked above at line 206;
+  -- delete_recording() re-checks internally — redundant but harmless).
+  -- delete_recording() raises an exception on failure, so any error
+  -- propagates and rolls back the whole transaction.
   -- ---------------------------------------------------------------
   IF p_delete_original THEN
     IF v_source.owner_user_id <> v_caller_id THEN
@@ -248,6 +251,17 @@ COMMENT ON COLUMN public.user_profiles.auto_processing_preferences IS
   'autoProcessingTitleGeneration (AI-generated call titles), '
   'autoProcessingTagging (automatic call tagging), '
   'crossOrgCopyBehavior ("copy_keep" or "copy_delete").';
+
+-- ============================================================================
+-- 3. DROP SUPERSEDED COPY FUNCTION
+-- ============================================================================
+-- copy_recording_to_organization(UUID, UUID) was introduced in migration
+-- 20260308100000 and always copied to the HOME workspace only. It is now a
+-- strict subset of copy_recording_to_org(UUID, UUID, UUID, BOOLEAN), which
+-- supports any target workspace and optional delete. Drop the old function to
+-- avoid two diverging code paths for the same operation.
+
+DROP FUNCTION IF EXISTS public.copy_recording_to_organization(UUID, UUID);
 
 -- ============================================================================
 -- END OF MIGRATION
