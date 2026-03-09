@@ -247,6 +247,33 @@ Deno.serve(async (req) => {
             if (crossOrgError) {
               throw new Error(`cross-org copy failed for ${match.recording_id}: ${crossOrgError.message}`);
             }
+
+            // Stamp routing trace so this recording is not re-matched on subsequent
+            // bulk-apply runs (same guard mechanism as same-org rules).
+            // Only stamp if delete_after_copy is false — if the source was deleted,
+            // there is nothing left to update.
+            if (!match.delete_after_copy) {
+              const crossOrgTrace = {
+                routed_by_rule_id: match.rule_id,
+                routed_by_rule_name: match.rule_name,
+                routed_at: now,
+                routed_retroactively: true,
+                cross_org_target_id: match.target_organization_id,
+              };
+
+              const { error: traceError } = await supabase.rpc('jsonb_merge_source_metadata', {
+                p_recording_id: match.recording_id,
+                p_merge_data: crossOrgTrace,
+              });
+
+              if (traceError) {
+                // Non-fatal: duplicate copy on next run is annoying but not destructive
+                console.error(
+                  `[apply-routing-rules] Failed to stamp cross-org routing trace for ${match.recording_id}:`,
+                  traceError,
+                );
+              }
+            }
           } else {
             // ----------------------------------------------------------------
             // Same-org rule: move within the organization via workspace entries.

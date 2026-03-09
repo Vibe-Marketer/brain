@@ -97,6 +97,7 @@ export function RoutingRuleSlideOver() {
     form.name.trim().length > 0 &&
     form.conditions.length > 0 &&
     form.destination !== null &&
+    !!form.destination?.workspaceId &&
     !createRule.isPending &&
     !updateRule.isPending;
 

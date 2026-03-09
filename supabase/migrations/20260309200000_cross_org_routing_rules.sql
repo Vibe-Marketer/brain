@@ -65,7 +65,11 @@ CREATE POLICY "Org members can update routing rules"
 -- ============================================================================
 -- Called by edge functions running as service role, so we cannot rely on
 -- auth.uid(). Instead, the caller passes p_user_id explicitly.
--- Security: verifies p_user_id is a member of the target org before copying.
+-- Security (defense-in-depth):
+--   a) REVOKE EXECUTE FROM PUBLIC + GRANT only to service_role so direct
+--      PostgREST callers cannot invoke it.
+--   b) Source org membership verified explicitly inside the function body so
+--      that even a misconfigured grant cannot leak recordings across orgs.
 -- After insert the auto_create_default_workspace_entry trigger places the copy
 -- in the target org's HOME workspace automatically.
 
@@ -91,9 +95,15 @@ BEGIN
     RAISE EXCEPTION 'Recording not found: %', p_recording_id;
   END IF;
 
-  -- Guard: user must be member of target org
+  -- Guard (a): user must be member of the SOURCE org.
+  -- This prevents cross-org exfiltration even if execute grants are misconfigured.
+  IF NOT is_organization_member(v_source.organization_id, p_user_id) THEN
+    RAISE EXCEPTION 'Access denied: user % is not a member of source organization %', p_user_id, v_source.organization_id;
+  END IF;
+
+  -- Guard (b): user must also be member of the TARGET org.
   IF NOT is_organization_member(p_target_org_id, p_user_id) THEN
-    RAISE EXCEPTION 'User % is not a member of target organization %', p_user_id, p_target_org_id;
+    RAISE EXCEPTION 'Access denied: user % is not a member of target organization %', p_user_id, p_target_org_id;
   END IF;
 
   -- Guard: cross-org only — same-org routing uses the normal workspace entry path
@@ -165,7 +175,12 @@ $$;
 COMMENT ON FUNCTION public.route_recording_cross_org(UUID, UUID, UUID, BOOLEAN) IS
   'Cross-org routing: copies a recording to a target organization and optionally deletes the source. '
   'Called by edge functions using service role — takes p_user_id explicitly instead of auth.uid(). '
-  'Verifies user membership in target org. Copied recording lands in target org HOME workspace via trigger.';
+  'Verifies user membership in BOTH source and target orgs. Copied recording lands in target HOME workspace via trigger.';
+
+-- Restrict direct invocation: only service_role (used by edge functions) may call this.
+-- Public users cannot call it via PostgREST even if they know a recording UUID.
+REVOKE EXECUTE ON FUNCTION public.route_recording_cross_org(UUID, UUID, UUID, BOOLEAN) FROM PUBLIC;
+GRANT  EXECUTE ON FUNCTION public.route_recording_cross_org(UUID, UUID, UUID, BOOLEAN) TO service_role;
 
 -- ============================================================================
 -- COLUMN COMMENTS
