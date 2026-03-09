@@ -50,6 +50,39 @@ CREATE POLICY "Members can delete own entries from non-home workspaces"
   );
 
 -- =============================================================================
+-- 2. Block UPDATE of workspace_id / recording_id for home-workspace entries
+--    A client could bypass the DELETE guard by changing the key columns
+--    (e.g. UPDATE workspace_entries SET workspace_id = <other> ...) rather
+--    than deleting the row. A BEFORE UPDATE trigger closes that loophole.
+-- =============================================================================
+
+CREATE OR REPLACE FUNCTION workspace_entries_immutable_home_keys()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Only block changes to the relationship keys; other columns (future ones) are fine
+  IF (NEW.workspace_id <> OLD.workspace_id OR NEW.recording_id <> OLD.recording_id) THEN
+    IF EXISTS (
+      SELECT 1 FROM workspaces WHERE id = OLD.workspace_id AND is_home = true
+    ) THEN
+      RAISE EXCEPTION
+        'workspace_entries: key columns are immutable for home workspace entries (workspace_id=%, recording_id=%)',
+        OLD.workspace_id, OLD.recording_id
+        USING ERRCODE = 'insufficient_privilege';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_workspace_entries_immutable_home_keys ON workspace_entries;
+CREATE TRIGGER trg_workspace_entries_immutable_home_keys
+  BEFORE UPDATE ON workspace_entries
+  FOR EACH ROW EXECUTE FUNCTION workspace_entries_immutable_home_keys();
+
+-- =============================================================================
 -- END OF MIGRATION
 -- =============================================================================
 
