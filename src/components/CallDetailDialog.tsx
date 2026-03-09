@@ -119,9 +119,7 @@ export function CallDetailDialog({
   const [splitDialog, setSplitDialog] = useState<{
     open: boolean;
     segmentId: string | null;
-    splitTimestamp: string | null;
-    splitSpeaker: string | null;
-  }>({ open: false, segmentId: null, splitTimestamp: null, splitSpeaker: null });
+  }>({ open: false, segmentId: null });
   const [splitResult, setSplitResult] = useState<{
     part1Title: string;
     part2RecordingId: string;
@@ -208,7 +206,7 @@ export function CallDetailDialog({
   useEffect(() => {
     if (splitRecordingMutation.isSuccess && splitRecordingMutation.data) {
       const result = splitRecordingMutation.data;
-      setSplitDialog({ open: false, segmentId: null, splitTimestamp: null, splitSpeaker: null });
+      setSplitDialog({ open: false, segmentId: null });
       setSplitResult({
         part1Title: result.part1_title,
         part2RecordingId: result.part2_recording_id,
@@ -316,29 +314,17 @@ export function CallDetailDialog({
   }, [revertSegmentMutation]);
 
   const handleSplitHere = useCallback((segmentId: string) => {
-    // Look up the segment to capture its timestamp and speaker name as a stable locator.
-    // Sending timestamp+speaker (not an array index) to the backend avoids an index
-    // mismatch that would occur if the user has previously trimmed/deleted segments
-    // (the frontend filtered array and the backend's parsed full_transcript differ).
-    const segment = transcripts?.find((t) => t.id === segmentId);
-    if (!segment) return;
-    setSplitDialog({
-      open: true,
-      segmentId,
-      splitTimestamp: segment.timestamp,
-      // Use the original speaker_name (not display_speaker_name) so the backend
-      // can match against full_transcript which stores original names, not edited ones.
-      splitSpeaker: segment.speaker_name,
-    });
-  }, [transcripts]);
+    // Pass the segment's database id directly to the backend so it can do an exact
+    // lookup in fathom_transcripts (filtering out deleted segments). This avoids both
+    // the "trimmed segments reappear in split" bug (full_transcript isn't filtered) and
+    // the "wrong segment if speaker was edited" bug (name in full_transcript is original).
+    setSplitDialog({ open: true, segmentId });
+  }, []);
 
   const handleConfirmSplit = useCallback(() => {
-    if (!splitDialog.splitTimestamp || !splitDialog.splitSpeaker) return;
-    splitRecordingMutation.mutate({
-      splitTimestamp: splitDialog.splitTimestamp,
-      splitSpeaker: splitDialog.splitSpeaker,
-    });
-  }, [splitDialog.splitTimestamp, splitDialog.splitSpeaker, splitRecordingMutation]);
+    if (!splitDialog.segmentId) return;
+    splitRecordingMutation.mutate({ segmentId: splitDialog.segmentId });
+  }, [splitDialog.segmentId, splitRecordingMutation]);
 
   // Create grouped props using useMemo for optimal performance
   const transcriptViewState: TranscriptViewState = useMemo(() => ({

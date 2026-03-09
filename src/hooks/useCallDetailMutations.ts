@@ -39,10 +39,12 @@ interface RevertSegmentParams {
 }
 
 interface SplitRecordingParams {
-  /** HH:MM:SS timestamp of the segment to split at (used as locator in the backend). */
-  splitTimestamp: string;
-  /** Speaker name of the segment to split at (used for disambiguation). */
-  splitSpeaker: string;
+  /**
+   * ID of the segment to split at — the fathom_transcripts row UUID for legacy recordings,
+   * or a "parsed-N" synthetic id for UUID recordings (assigned by the frontend when
+   * rendering full_transcript segments).
+   */
+  segmentId: string;
 }
 
 export interface SplitRecordingResult {
@@ -302,14 +304,13 @@ export function useCallDetailMutations({
   });
 
   const splitRecording = useMutation({
-    mutationFn: async ({ splitTimestamp, splitSpeaker }: SplitRecordingParams): Promise<SplitRecordingResult> => {
+    mutationFn: async ({ segmentId }: SplitRecordingParams): Promise<SplitRecordingResult> => {
       if (!call) throw new Error("No call loaded");
 
       const { data, error } = await supabase.functions.invoke('split-recording', {
         body: {
           recording_id: call.recording_id,
-          split_timestamp: splitTimestamp,
-          split_speaker: splitSpeaker,
+          segment_id: segmentId,
         },
       });
 

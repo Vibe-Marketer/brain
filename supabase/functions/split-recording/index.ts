@@ -12,8 +12,7 @@
  *   POST /functions/v1/split-recording
  *   Body: {
  *     recording_id: number | string,
- *     split_timestamp: string,   // "HH:MM:SS" — timestamp of the split segment
- *     split_speaker: string,     // speaker name of the split segment
+ *     segment_id: string,   // fathom_transcripts UUID for legacy; "parsed-N" for UUID recordings
  *   }
  *   Returns: { success, part1_recording_id, part2_recording_id, part1_title, part2_title }
  */
@@ -27,10 +26,13 @@ const RequestSchema = z.object({
     z.number().int().positive(),
     z.string().uuid(),
   ]),
-  /** Timestamp of the segment to split at, in "HH:MM:SS" format. */
-  split_timestamp: z.string().regex(/^\d{2}:\d{2}:\d{2}$/, 'split_timestamp must be HH:MM:SS'),
-  /** Speaker name of the segment to split at (for disambiguation). */
-  split_speaker: z.string().min(1),
+  /**
+   * ID of the segment to split at.
+   * - For legacy recordings (fathom_transcripts rows): the row UUID from fathom_transcripts.
+   * - For UUID recordings (parsed from full_transcript): the synthetic "parsed-N" id the
+   *   frontend assigns when rendering full_transcript segments.
+   */
+  segment_id: z.string().min(1),
 });
 
 type SplitRequest = z.infer<typeof RequestSchema>;
@@ -123,7 +125,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { recording_id, split_timestamp, split_speaker } = validation.data as SplitRequest;
+    const { recording_id, segment_id } = validation.data as SplitRequest;
     const isLegacyId = typeof recording_id === 'number';
 
     // -------------------------------------------------------------------------
@@ -211,61 +213,125 @@ Deno.serve(async (req) => {
     }
 
     // -------------------------------------------------------------------------
-    // 2. Parse transcript and find split point by timestamp + speaker
+    // 2. Find split point and build per-part segment arrays
+    //
+    // For legacy recordings we query fathom_transcripts (which tracks is_deleted)
+    // rather than parsing full_transcript, so that previously trimmed segments are
+    // excluded from both parts.  For UUID recordings there are no fathom_transcripts
+    // rows, so we parse full_transcript (trimming is not supported for UUID recordings,
+    // so the blob is always up-to-date).
+    //
+    // We locate the segment by its id (a fathom_transcripts UUID, or "parsed-N" for
+    // UUID recordings) — not by timestamp+speaker text matching, which breaks when a
+    // speaker name has been edited because full_transcript stores the original names.
     // -------------------------------------------------------------------------
-    if (!fullTranscript.trim()) {
-      return new Response(
-        JSON.stringify({ error: 'No transcript available to split' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    let part1Segments: Array<{ timestamp: string; speaker: string; text: string }>;
+    let part2Segments: Array<{ timestamp: string; speaker: string; text: string }>;
 
-    const allSegments = parseTranscriptSegments(fullTranscript);
+    if (isLegacyId) {
+      // Query active (non-deleted) transcript rows for this legacy recording.
+      const { data: ftRows, error: ftErr } = await supabase
+        .from('fathom_transcripts')
+        .select('id, timestamp, speaker_name, edited_speaker_name, text, edited_text')
+        .eq('recording_id', recording_id)
+        .eq('user_id', user.id)
+        .or('is_deleted.is.null,is_deleted.eq.false')
+        .order('timestamp');
 
-    if (allSegments.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'Could not parse any transcript segments' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+      if (!ftErr && ftRows && ftRows.length > 0) {
+        // Build segment array using edited values where available.
+        const rows = ftRows.map((r) => ({
+          id: r.id as string,
+          timestamp: (r.timestamp as string).trim(),
+          speaker: ((r.edited_speaker_name ?? r.speaker_name) as string).trim(),
+          text: ((r.edited_text ?? r.text) as string).trim(),
+        }));
 
-    // Find split point using timestamp + speaker as a unique locator.
-    // This avoids the index-mismatch bug that occurs when the frontend uses
-    // a filtered (deleted-excluded) transcript array but the backend parses
-    // the raw full_transcript which still contains all original segments.
-    const splitIndex = allSegments.findIndex(
-      (s) => s.timestamp === split_timestamp && s.speaker === split_speaker
-    );
+        const splitIdx = rows.findIndex((r) => r.id === segment_id);
 
-    // Timestamp-only fallback index (computed once, reused below to avoid double scan)
-    const timestampOnlyIndex = splitIndex < 0
-      ? allSegments.findIndex((s) => s.timestamp === split_timestamp)
-      : -1; // not needed when primary match succeeded
+        if (splitIdx === 0) {
+          return new Response(
+            JSON.stringify({ error: 'Cannot split at the first segment — choose a later segment' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        if (splitIdx < 0) {
+          return new Response(
+            JSON.stringify({ error: `Split point not found in transcript (segment: ${segment_id})` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
 
-    if (splitIndex <= 0) {
-      if (splitIndex === 0) {
+        part1Segments = rows.slice(0, splitIdx).map(({ timestamp, speaker, text }) => ({ timestamp, speaker, text }));
+        part2Segments = rows.slice(splitIdx).map(({ timestamp, speaker, text }) => ({ timestamp, speaker, text }));
+      } else {
+        // Fallback: no fathom_transcripts rows found — parse full_transcript.
+        if (!fullTranscript.trim()) {
+          return new Response(
+            JSON.stringify({ error: 'No transcript available to split' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        const allSegments = parseTranscriptSegments(fullTranscript);
+        if (allSegments.length === 0) {
+          return new Response(
+            JSON.stringify({ error: 'Could not parse any transcript segments' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        // segment_id for a parsed fallback is "parsed-N"
+        const splitIdx = segment_id.startsWith('parsed-')
+          ? parseInt(segment_id.slice(7), 10)
+          : -1;
+        if (splitIdx === 0) {
+          return new Response(
+            JSON.stringify({ error: 'Cannot split at the first segment — choose a later segment' }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        if (isNaN(splitIdx) || splitIdx < 0 || splitIdx >= allSegments.length) {
+          return new Response(
+            JSON.stringify({ error: `Split point not found in transcript (segment: ${segment_id})` }),
+            { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        part1Segments = allSegments.slice(0, splitIdx);
+        part2Segments = allSegments.slice(splitIdx);
+      }
+    } else {
+      // UUID recording: parse full_transcript (trimming not supported, so blob is current).
+      if (!fullTranscript.trim()) {
+        return new Response(
+          JSON.stringify({ error: 'No transcript available to split' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      const allSegments = parseTranscriptSegments(fullTranscript);
+      if (allSegments.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'Could not parse any transcript segments' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      // segment_id for UUID recordings is "parsed-N" (synthetic id assigned by frontend)
+      const splitIdx = segment_id.startsWith('parsed-')
+        ? parseInt(segment_id.slice(7), 10)
+        : -1;
+      if (splitIdx === 0) {
         return new Response(
           JSON.stringify({ error: 'Cannot split at the first segment — choose a later segment' }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      // Primary match failed — fall back to timestamp-only.
-      // The frontend sends the original speaker_name (not the edited display name),
-      // so this fallback is a safety net for edge cases rather than the common path.
-      if (timestampOnlyIndex <= 0) {
+      if (isNaN(splitIdx) || splitIdx < 0 || splitIdx >= allSegments.length) {
         return new Response(
-          JSON.stringify({
-            error: `Split point not found in transcript (timestamp: ${split_timestamp}, speaker: ${split_speaker})`,
-          }),
+          JSON.stringify({ error: `Split point not found in transcript (segment: ${segment_id})` }),
           { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+      part1Segments = allSegments.slice(0, splitIdx);
+      part2Segments = allSegments.slice(splitIdx);
     }
-
-    const resolvedSplitIndex = splitIndex >= 0 ? splitIndex : timestampOnlyIndex;
-
-    const part1Segments = allSegments.slice(0, resolvedSplitIndex);
-    const part2Segments = allSegments.slice(resolvedSplitIndex);
 
     const part1Transcript = buildTranscriptText(part1Segments);
     const part2Transcript = buildTranscriptText(part2Segments);
@@ -344,7 +410,7 @@ Deno.serve(async (req) => {
           ...sourceMetadata,
           split_from: isLegacyId ? recording_id : recordingsUuid,
           split_at: new Date().toISOString(),
-          split_timestamp,
+          split_segment_id: segment_id,
         },
         p_recording_start_time: part2StartTime,
         p_recording_end_time:   null, // Not reliably known from segments
