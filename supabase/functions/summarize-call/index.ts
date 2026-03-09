@@ -12,7 +12,7 @@
  *
  * Endpoints:
  * - POST /functions/v1/summarize-call
- *   Body: { recording_id: number, force_refresh?: boolean }
+ *   Body: { recording_id: number|string, organization_id?: string, force_refresh?: boolean }
  *   Returns: { success, summary, cached, summarized_at }
  */
 
@@ -41,6 +41,7 @@ const RequestSchema = z.object({
     z.number().int().positive('recording_id must be a positive integer'),
     z.string().uuid('recording_id must be a UUID or a positive integer'),
   ]),
+  organization_id: z.string().uuid('organization_id must be a valid UUID').optional(),
   force_refresh: z.boolean().optional().default(false),
 });
 
@@ -147,8 +148,33 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { recording_id, force_refresh } = validation.data as SummarizeRequest;
+    const { recording_id, organization_id: organizationId, force_refresh } = validation.data as SummarizeRequest;
     const isUuid = typeof recording_id === 'string';
+
+    // Warn if organization_id is missing (backwards compat — will be required in future)
+    if (!organizationId) {
+      console.warn(
+        `[summarize-call] organization_id not provided by user ${user.id} for recording ${recording_id}. ` +
+        'This will be required in a future release.'
+      );
+    }
+
+    // If organization_id was provided, verify the user is a member
+    if (organizationId) {
+      const { data: membership, error: memberError } = await supabase
+        .from('organization_memberships')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('organization_id', organizationId)
+        .maybeSingle();
+
+      if (memberError || !membership) {
+        return new Response(
+          JSON.stringify({ error: 'Not a member of this organization' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+    }
 
     // Fetch the call — UUID-based recordings use the `recordings` table;
     // legacy BIGINT IDs use `fathom_raw_calls`.
@@ -158,11 +184,17 @@ Deno.serve(async (req) => {
     let summaryEditedByUser = false;
 
     if (isUuid) {
-      const { data: rec, error: recError } = await supabase
+      // Build query with organization_id filter when available
+      let recQuery = supabase
         .from('recordings')
-        .select('id, title, full_transcript, summary, owner_user_id')
-        .eq('id', recording_id)
-        .single();
+        .select('id, title, full_transcript, summary, owner_user_id, organization_id')
+        .eq('id', recording_id);
+
+      if (organizationId) {
+        recQuery = recQuery.eq('organization_id', organizationId);
+      }
+
+      const { data: rec, error: recError } = await recQuery.single();
 
       if (recError || !rec) {
         return new Response(
@@ -171,11 +203,25 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Verify user has access: either owns the recording or is an org member
       if (rec.owner_user_id !== user.id) {
-        return new Response(
-          JSON.stringify({ error: 'Recording not found or unauthorized' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
+        // If no org_id was passed, verify membership via the recording's own org
+        if (!organizationId) {
+          const { data: orgMembership } = await supabase
+            .from('organization_memberships')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('organization_id', rec.organization_id)
+            .maybeSingle();
+
+          if (!orgMembership) {
+            return new Response(
+              JSON.stringify({ error: 'Recording not found or unauthorized' }),
+              { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+        // If organizationId was provided, membership was already verified above
       }
 
       callTitle = rec.title || '';
@@ -183,9 +229,10 @@ Deno.serve(async (req) => {
       currentSummary = rec.summary || null;
       summaryEditedByUser = false; // recordings table has no summary_edited_by_user flag
     } else {
+      // Legacy path: fathom_raw_calls uses user_id for ownership
       const { data: call, error: callError } = await supabase
         .from('fathom_raw_calls')
-        .select('recording_id, title, full_transcript, summary, summary_edited_by_user')
+        .select('recording_id, title, full_transcript, summary, summary_edited_by_user, canonical_recording_id')
         .eq('recording_id', recording_id)
         .eq('user_id', user.id)
         .single();
@@ -195,6 +242,24 @@ Deno.serve(async (req) => {
           JSON.stringify({ error: 'Recording not found or unauthorized' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
+      }
+
+      // If organization_id was provided, verify the recording belongs to that org
+      // by checking via the canonical recordings table
+      if (organizationId && call.canonical_recording_id) {
+        const { data: canonicalRec } = await supabase
+          .from('recordings')
+          .select('id')
+          .eq('id', call.canonical_recording_id)
+          .eq('organization_id', organizationId)
+          .maybeSingle();
+
+        if (!canonicalRec) {
+          return new Response(
+            JSON.stringify({ error: 'Recording not found or unauthorized' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
 
       callTitle = call.title || '';
@@ -263,10 +328,16 @@ Deno.serve(async (req) => {
 
     // Store the summary back in the appropriate table
     if (isUuid) {
-      const { error: updateError } = await supabase
+      let updateQuery = supabase
         .from('recordings')
         .update({ summary })
         .eq('id', recording_id);
+
+      if (organizationId) {
+        updateQuery = updateQuery.eq('organization_id', organizationId);
+      }
+
+      const { error: updateError } = await updateQuery;
 
       if (updateError) {
         console.error('Failed to store summary in recordings:', updateError);

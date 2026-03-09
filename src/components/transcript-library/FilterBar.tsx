@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
-import type { CalendarInvitee } from "@/types";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 
 import { Folder } from "@/types/workspace";
 
@@ -53,31 +53,23 @@ export function FilterBar({
   compact = false,
 }: FilterBarProps) {
   const isMobile = useIsMobile();
+  const { activeOrganizationId } = useOrganizationContext();
   const [allContacts, setAllContacts] = useState<string[]>([]);
 
-  // Fetch all unique contacts
+  // Fetch all unique contacts from org-scoped call_participants table
   useEffect(() => {
-    // Track if component is still mounted to prevent state updates after unmount
     let isMounted = true;
 
     const fetchContacts = async () => {
       try {
-        // Use safe destructuring to handle network errors
-        const userResponse = await supabase.auth.getUser();
-
-        // Check for errors in the response (network issues, etc.)
-        if (userResponse.error) {
-          logger.warn("Error getting user for contacts fetch", userResponse.error);
-          return;
-        }
-
-        const user = userResponse.data?.user;
-        if (!user) return;
+        if (!activeOrganizationId) return;
 
         const { data, error: fetchError } = await supabase
-          .from("fathom_calls")
-          .select("calendar_invitees")
-          .eq("user_id", user.id);
+          .from("call_participants")
+          .select("email, name")
+          .eq("organization_id", activeOrganizationId)
+          .not("email", "is", null)
+          .order("email");
 
         if (fetchError) {
           if (isMounted) {
@@ -88,17 +80,12 @@ export function FilterBar({
 
         if (isMounted && data) {
           const contactsSet = new Set<string>();
-          data.forEach((call: { calendar_invitees?: CalendarInvitee[] | null }) => {
-            if (call.calendar_invitees && Array.isArray(call.calendar_invitees)) {
-              call.calendar_invitees.forEach((invitee) => {
-                if (invitee?.email) contactsSet.add(invitee.email);
-              });
-            }
+          data.forEach((row: { email?: string | null }) => {
+            if (row.email) contactsSet.add(row.email);
           });
           setAllContacts(Array.from(contactsSet).sort());
         }
       } catch (error) {
-        // Only log errors if component is still mounted
         if (isMounted) {
           logger.error("Error fetching contacts", error);
         }
@@ -106,11 +93,10 @@ export function FilterBar({
     };
     fetchContacts();
 
-    // Cleanup: mark as unmounted to prevent state updates
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [activeOrganizationId]);
 
   const formatDateRange = (from?: Date, to?: Date) => {
     if (from && to) {

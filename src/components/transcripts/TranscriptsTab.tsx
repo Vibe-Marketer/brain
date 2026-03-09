@@ -124,9 +124,11 @@ export function TranscriptsTab({
   const workspaceColumns = { date: true, duration: true, participants: true, tags: true, folders: true, workspaces: true, sharedWith: true };
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(isHomeView ? homeColumns : workspaceColumns);
 
-  // Reset column defaults when switching between home and workspace views
+  // Reset column defaults and filters when switching workspaces
   useEffect(() => {
     setVisibleColumns(isHomeView ? homeColumns : workspaceColumns);
+    setFilters({});
+    setSelectedCalls([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeWorkspaceId]);
 
@@ -380,6 +382,7 @@ export function TranscriptsTab({
         }
 
         const { data: entries, error: entryError, count } = await entryQuery
+          .order('created_at', { ascending: false })
           .order('created_at', { ascending: false, referencedTable: 'recordings' })
           .range(offset, offset + pageSize - 1);
 
@@ -414,6 +417,22 @@ export function TranscriptsTab({
             if (combinedFilters.durationMax !== undefined && durationMinutes > combinedFilters.durationMax) return false;
             return true;
           });
+        }
+
+        // Participant filter — find recordings that have matching participants
+        if (combinedFilters.participants && combinedFilters.participants.length > 0) {
+          const { data: matchingParticipants } = await supabase
+            .from('call_participants')
+            .select('recording_id')
+            .eq('organization_id', activeOrganizationId)
+            .in('email', combinedFilters.participants);
+
+          const matchingRecordingIds = new Set(
+            (matchingParticipants || []).map((p: { recording_id: string }) => p.recording_id)
+          );
+          mappedRecordings = mappedRecordings.filter(
+            (call: any) => matchingRecordingIds.has(call.canonical_uuid)
+          );
         }
 
         return mappedRecordings;
@@ -497,6 +516,25 @@ export function TranscriptsTab({
       // Source filter
       if (combinedFilters.sources && combinedFilters.sources.length > 0) {
         q = q.in('source_app', combinedFilters.sources);
+      }
+
+      // Participant filter — restrict to recordings with matching participants
+      if (combinedFilters.participants && combinedFilters.participants.length > 0) {
+        const { data: matchingParticipants } = await supabase
+          .from('call_participants')
+          .select('recording_id')
+          .eq('organization_id', activeOrganizationId)
+          .in('email', combinedFilters.participants);
+
+        const matchingRecordingIds = (matchingParticipants || []).map(
+          (p: { recording_id: string }) => p.recording_id
+        );
+        if (matchingRecordingIds.length === 0) {
+          setTotalCount(0);
+          onTotalCountChange?.(0);
+          return [];
+        }
+        q = q.in('id', matchingRecordingIds);
       }
 
       // Server-side pagination — no client-side slicing
