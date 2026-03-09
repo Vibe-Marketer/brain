@@ -5,6 +5,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { RiCloseLine, RiInformationLine } from '@remixicon/react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { useRoutingRuleStore } from '@/stores/routingRuleStore';
@@ -165,18 +166,15 @@ export function RoutingRuleSlideOver() {
               <h2 className="text-base font-semibold text-foreground">
                 {isEditMode ? 'Edit Rule' : 'Create Rule'}
               </h2>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="icon"
                 onClick={closeSlideOver}
                 aria-label="Close"
-                className={cn(
-                  'flex items-center justify-center w-8 h-8 rounded-md',
-                  'text-muted-foreground hover:text-foreground hover:bg-muted',
-                  'transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-                )}
               >
                 <RiCloseLine className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-5 space-y-5">
@@ -245,31 +243,20 @@ export function RoutingRuleSlideOver() {
             </div>
 
             <div className="shrink-0 flex items-center justify-end gap-3 px-5 py-4 border-t border-border">
-              <button
+              <Button
                 type="button"
+                variant="hollow"
+                size="sm"
                 onClick={closeSlideOver}
                 disabled={isSaving}
-                className={cn(
-                  'h-9 px-4 rounded-md border border-border bg-transparent',
-                  'text-sm font-medium text-foreground',
-                  'hover:bg-muted transition-colors',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  'disabled:opacity-50 disabled:cursor-not-allowed'
-                )}
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
+                size="sm"
                 onClick={handleSave}
                 disabled={!canSave}
-                className={cn(
-                  'h-9 px-4 rounded-md',
-                  'text-sm font-medium text-white',
-                  'bg-brand-500 hover:bg-brand-600 transition-colors',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  'disabled:opacity-50 disabled:cursor-not-allowed'
-                )}
               >
                 {isSaving
                   ? isEditMode
@@ -278,7 +265,7 @@ export function RoutingRuleSlideOver() {
                   : isEditMode
                   ? 'Save changes'
                   : 'Create rule'}
-              </button>
+              </Button>
             </div>
           </motion.aside>
         </>

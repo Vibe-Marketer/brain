@@ -146,7 +146,7 @@ export function CopyToOrganizationDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="hollow" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button

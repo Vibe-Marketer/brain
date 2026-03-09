@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { RiRouteLine, RiFlashlightLine, RiLoader2Line } from '@remixicon/react';
-import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { useRoutingRules, useRoutingDefault, useReorderRules, useToggleRule } from '@/hooks/useRoutingRules';
 import { usePanelStore } from '@/stores/panelStore';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
@@ -109,21 +109,15 @@ export function RoutingRulesTab() {
       {hasRules && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
-            <button
+            <Button
               type="button"
+              size="sm"
               onClick={handleOpenCreate}
               disabled={!hasDefault}
               title={!hasDefault ? 'Set a default destination above before creating rules' : undefined}
-              className={cn(
-                'rounded-lg px-4 py-2 text-sm font-semibold',
-                'bg-foreground text-background',
-                'hover:bg-foreground/90 transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                'disabled:opacity-50 disabled:cursor-not-allowed',
-              )}
             >
               Create Rule
-            </button>
+            </Button>
             {!hasDefault && (
               <p className="text-xs text-amber-500">
                 Set a default destination above before creating rules
@@ -144,36 +138,27 @@ export function RoutingRulesTab() {
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                <button
+                <Button
                   type="button"
+                  variant="hollow"
+                  size="sm"
                   onClick={handleBulkDryRun}
                   disabled={bulkApply.isPending}
-                  className={cn(
-                    'rounded-lg px-3 py-1.5 text-xs font-medium',
-                    'border border-border bg-background text-foreground',
-                    'hover:bg-muted transition-colors',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    'disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5',
-                  )}
+                  className="text-xs"
                 >
                   {bulkApply.isPending ? <RiLoader2Line className="h-3 w-3 animate-spin" /> : null}
                   Preview
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="sm"
                   onClick={handleBulkApply}
                   disabled={bulkApply.isPending}
-                  className={cn(
-                    'rounded-lg px-3 py-1.5 text-xs font-semibold',
-                    'bg-foreground text-background',
-                    'hover:bg-foreground/90 transition-colors',
-                    'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                    'disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5',
-                  )}
+                  className="text-xs"
                 >
                   {bulkApply.isPending ? <RiLoader2Line className="h-3 w-3 animate-spin" /> : null}
                   Apply Now
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -225,22 +210,15 @@ export function RoutingRulesTab() {
             No more dragging recordings around.
           </p>
 
-          <button
+          <Button
             type="button"
             onClick={handleOpenCreate}
             disabled={!hasDefault}
             title={!hasDefault ? 'Set a default destination above to get started' : undefined}
-            className={cn(
-              'rounded-lg px-5 py-2.5 text-sm font-semibold',
-              'bg-foreground text-background',
-              'hover:bg-foreground/90 transition-colors',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              'disabled:opacity-50 disabled:cursor-not-allowed',
-              'mb-2',
-            )}
+            className="mb-2"
           >
             Create your first rule
-          </button>
+          </Button>
 
           {!hasDefault && (
             <p className="text-xs text-amber-500 mb-3">
@@ -248,13 +226,14 @@ export function RoutingRulesTab() {
             </p>
           )}
 
-          <button
+          <Button
             type="button"
+            variant="link"
             onClick={() => setShowHelp((v) => !v)}
-            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+            className="text-xs"
           >
             Learn how routing works
-          </button>
+          </Button>
 
           {showHelp && (
             <div className="mt-4 rounded-xl border border-border/60 bg-muted/30 p-4 text-left max-w-sm w-full">

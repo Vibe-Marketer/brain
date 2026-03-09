@@ -282,7 +282,7 @@ export function CreateWorkspaceDialog({
 
         <DialogFooter>
           <Button
-            variant="ghost"
+            variant="hollow"
             onClick={() => onOpenChange(false)}
             disabled={createWorkspace.isPending}
             aria-label="Cancel workspace creation"

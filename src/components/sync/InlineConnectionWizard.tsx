@@ -342,12 +342,13 @@ export function InlineConnectionWizard({
       </p>
 
       {/* Cancel button - always visible (PRD-020) */}
-      <button
+      <Button
+        variant="link"
         onClick={handleCancel}
-        className="w-full text-xs text-ink-muted hover:text-ink underline"
+        className="w-full text-xs"
       >
         {isConnecting ? "Cancel Connection" : "Cancel"}
-      </button>
+      </Button>
     </div>
   );
 }

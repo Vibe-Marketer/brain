@@ -171,7 +171,7 @@ export function EditWorkspaceDialog({
 
           <DialogFooter className="flex items-center justify-end">
             <Button
-              variant="ghost"
+              variant="hollow"
               onClick={() => onOpenChange(false)}
               disabled={updateWorkspace.isPending}
               aria-label="Cancel changes"

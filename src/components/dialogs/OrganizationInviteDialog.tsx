@@ -129,7 +129,7 @@ export function OrganizationInviteDialog({
             <DialogFooter className="pt-2">
               <Button
                 type="button"
-                variant="ghost"
+                variant="hollow"
                 onClick={() => onOpenChange(false)}
               >
                 Cancel

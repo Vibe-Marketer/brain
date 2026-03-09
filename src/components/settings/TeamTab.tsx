@@ -383,7 +383,7 @@ export default function TeamTab() {
           {(isAdmin || isManager) && (
             <div className="flex gap-2">
               <Button
-                variant="outline"
+                variant="hollow"
                 size="sm"
                 onClick={handleGenerateInviteLink}
                 disabled={isGeneratingInvite}

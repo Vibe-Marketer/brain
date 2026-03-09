@@ -241,7 +241,7 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
               </div>
               <DialogFooter>
                 <Button
-                  variant="outline"
+                  variant="hollow"
                   onClick={() => setCreateDialogOpen(false)}
                   aria-label="Cancel workspace creation"
                 >
