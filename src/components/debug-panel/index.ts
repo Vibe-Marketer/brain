@@ -39,6 +39,7 @@ export type {
   ViewMode,
   DebugPanelConfig,
   IgnoredPattern,
+  Severity,
 } from './types';
 
 // Constants
@@ -47,9 +48,14 @@ export { STORAGE_KEYS } from './types';
 // Utilities
 export {
   formatAsMarkdown,
+  formatAsGitHubIssue,
   generateSummary,
   groupErrors,
+  detectRootCauseGroups,
+  classifyNetworkSeverity,
+  suggestFixFromNetworkError,
   parseUserAgent,
   calculateTimeSpan,
   parseStackTrace,
 } from './debug-dump-utils';
+export type { RootCauseGroup, RootCauseType } from './debug-dump-utils';

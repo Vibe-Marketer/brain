@@ -7,6 +7,10 @@
 // Resolution status for error tracking lifecycle
 export type ResolutionStatus = 'active' | 'resolved' | 'recurring';
 
+// Severity levels: critical = production broken, high = major feature broken,
+// medium = degraded but usable, low = cosmetic/minor
+export type Severity = 'critical' | 'high' | 'medium' | 'low';
+
 export interface DebugMessage {
   id: string;
   timestamp: number;
@@ -34,6 +38,12 @@ export interface DebugMessage {
   httpStatus?: number;
   httpMethod?: string;
   url?: string;
+  responseBody?: string;          // Raw response body (for network errors — exposes DB/RLS messages)
+  // Diagnosis
+  severity?: Severity;            // Impact classification
+  rootCause?: string;             // Detected root cause (e.g., "schema_mismatch", "rls_block")
+  suggestedFix?: string;          // Actionable fix suggestion with file hints
+  affectedFeatures?: string[];    // Which features are likely broken by this error
   // Resolution tracking
   errorSignature?: string;        // Unique fingerprint to identify "same" error
   resolutionStatus?: ResolutionStatus;

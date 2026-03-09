@@ -28,14 +28,33 @@ import {
   RiEyeLine,
   RiGlobeLine,
   RiTimerLine,
+  RiGithubFill,
+  RiAlertLine,
+  RiLightbulbLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { captureDebugScreenshot } from '@/lib/screenshot';
 import { useUserRole } from '@/hooks/useUserRole';
 import { useDebugPanel, setGlobalDebugLogger } from './DebugPanelContext';
 import type { DebugMessage, DebugDump, EnhancedDebugDump, MessageFilter, CategoryFilter, ViewMode } from './types';
-import { generateSummary, parseUserAgent, formatAsMarkdown } from './debug-dump-utils';
+import { generateSummary, parseUserAgent, formatAsMarkdown, formatAsGitHubIssue, detectRootCauseGroups } from './debug-dump-utils';
+import type { RootCauseGroup } from './debug-dump-utils';
 import WebhookDeliveryViewerV2 from './WebhookDeliveryViewerV2';
+
+// Static maps hoisted to module scope to avoid recreation on every render
+const SEVERITY_BORDER_BG: Record<string, string> = {
+  critical: 'border-red-400 bg-red-50 dark:bg-red-900/20',
+  high: 'border-orange-400 bg-orange-50 dark:bg-orange-900/20',
+  medium: 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20',
+  low: 'border-blue-400 bg-blue-50 dark:bg-blue-900/20',
+};
+
+const SEVERITY_BADGE: Record<string, string> = {
+  critical: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300',
+  high: 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300',
+  medium: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300',
+  low: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300',
+};
 
 // Error Boundary to prevent debug panel crashes from affecting main app
 class DebugPanelErrorBoundary extends Component<
@@ -126,6 +145,7 @@ function DebugPanelCore() {
   const [isGeneratingDump, setIsGeneratingDump] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [copiedReport, setCopiedReport] = useState(false);
+  const [copiedGitHubIssue, setCopiedGitHubIssue] = useState(false);
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const [showIgnored, setShowIgnored] = useState(false);
 
@@ -161,6 +181,12 @@ function DebugPanelCore() {
     const lastSeen = m.lastSeen || m.timestamp;
     return (now - lastSeen) >= STALE_THRESHOLD;
   }).length;
+
+  // Root cause groups - computed whenever panel is open
+  const rootCauseGroups = useMemo<RootCauseGroup[]>(() => {
+    if (!isOpen) return [];
+    return detectRootCauseGroups(messages);
+  }, [messages, isOpen]);
 
   // Analytics data - must be called unconditionally (before early return)
   const analyticsData = useMemo(() => {
@@ -335,6 +361,19 @@ function DebugPanelCore() {
     setTimeout(() => setCopiedReport(false), 2000);
   };
 
+  // Copy as GitHub issue body - ready to paste into a new GitHub issue
+  const copyAsGitHubIssue = async () => {
+    const appState = {
+      url: window.location.href,
+      userAgent: navigator.userAgent,
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+    };
+    const markdown = formatAsGitHubIssue(messages, appState, actionTrail);
+    await navigator.clipboard.writeText(markdown);
+    setCopiedGitHubIssue(true);
+    setTimeout(() => setCopiedGitHubIssue(false), 2000);
+  };
+
   const copyMessageToClipboard = async (msg: DebugMessage) => {
     const singleMessage = {
       id: msg.id,
@@ -477,6 +516,21 @@ function DebugPanelCore() {
           >
             <RiDownloadLine className="w-3.5 h-3.5 mr-1" />
             {isGeneratingDump ? 'Generating...' : 'Download Full'}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={copyAsGitHubIssue}
+            disabled={messages.length === 0}
+            className="text-xs"
+            title="Copy as GitHub issue body — ready to paste into a new issue"
+          >
+            {copiedGitHubIssue ? (
+              <RiCheckLine className="w-3.5 h-3.5 mr-1 text-green-500" />
+            ) : (
+              <RiGithubFill className="w-3.5 h-3.5 mr-1" />
+            )}
+            {copiedGitHubIssue ? 'Copied!' : 'GitHub Issue'}
           </Button>
           <Button
             variant="outline"
@@ -648,6 +702,44 @@ function DebugPanelCore() {
                   ))}
                 </div>
               </div>
+
+              {/* Root Cause Analysis */}
+              {rootCauseGroups.length > 0 && (
+                <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                  <h4 className="font-medium text-gray-900 dark:text-white text-sm mb-3 flex items-center gap-1.5">
+                    <RiAlertLine className="w-4 h-4 text-red-500" />
+                    Root Cause Analysis
+                    <span className="ml-auto text-2xs bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 px-1.5 py-0.5 rounded-full font-medium">
+                      {rootCauseGroups.length} issue{rootCauseGroups.length > 1 ? 's' : ''}
+                    </span>
+                  </h4>
+                  <div className="space-y-3">
+                    {rootCauseGroups.map((group) => (
+                        <div key={group.rootCause} className={`border-l-4 rounded-r-lg p-3 ${SEVERITY_BORDER_BG[group.severity]}`}>
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">{group.label}</span>
+                            <span className={`text-2xs px-1.5 py-0.5 rounded font-medium uppercase ${SEVERITY_BADGE[group.severity]}`}>
+                              {group.severity}
+                            </span>
+                            <span className="text-2xs text-gray-500 dark:text-gray-400 ml-auto">
+                              {group.affectedMessages.length} error{group.affectedMessages.length > 1 ? 's' : ''}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-700 dark:text-gray-300 mb-2">{group.description}</p>
+                          <div className="flex items-start gap-1.5 text-xs text-green-700 dark:text-green-400">
+                            <RiLightbulbLine className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                            <span>{group.suggestedFix}</span>
+                          </div>
+                          {group.affectedEntities.length > 0 && (
+                            <div className="mt-2 text-2xs text-gray-500 dark:text-gray-400">
+                              Tables: {group.affectedEntities.join(', ')}
+                            </div>
+                          )}
+                        </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Resolution Status */}
               {(resolvedCount > 0 || recurringCount > 0 || resolvedErrorsCount > 0) && (
@@ -919,6 +1011,16 @@ function DebugPanelCore() {
                             ×{message.recurrenceCount}
                           </span>
                         )}
+                        {message.severity && message.type === 'error' && (
+                          <span className={`text-2xs px-1.5 py-0.5 rounded font-medium uppercase ${
+                            message.severity === 'critical' ? 'bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200' :
+                            message.severity === 'high' ? 'bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-200' :
+                            message.severity === 'medium' ? 'bg-yellow-200 dark:bg-yellow-800 text-yellow-800 dark:text-yellow-200' :
+                            'bg-blue-200 dark:bg-blue-800 text-blue-800 dark:text-blue-200'
+                          }`}>
+                            {message.severity}
+                          </span>
+                        )}
                         {message.source && (
                           <span className="text-2xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded">
                             {message.source}
@@ -933,6 +1035,12 @@ function DebugPanelCore() {
                         {message.message}
                       </p>
 
+                      {message.suggestedFix && (
+                        <div className="mt-1.5 flex items-start gap-1.5 text-2xs text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/20 rounded p-1.5">
+                          <RiLightbulbLine className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                          <span>{message.suggestedFix}</span>
+                        </div>
+                      )}
                       {(message.details || message.stack) && (
                         <div>
                           <button
