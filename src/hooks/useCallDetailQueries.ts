@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { groupTranscriptsBySpeaker } from "@/lib/transcriptUtils";
+import { groupTranscriptsBySpeaker, parseYouTubeTranscript, isYouTubeTranscriptFormat } from "@/lib/transcriptUtils";
 import { logger } from "@/lib/logger";
 import { queryKeys } from "@/lib/query-config";
 import { Meeting, TranscriptSegment, TranscriptSegmentDisplay, Speaker, Category } from "@/types";
@@ -148,6 +148,13 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
               segment.speaker_email = email;
             }
           });
+        }
+
+        // If the Fathom/Zoom regex found no segments, try YouTube format
+        if (segments.length === 0 && isYouTubeTranscriptFormat(fullTranscript)) {
+          const ytSegments = parseYouTubeTranscript(fullTranscript, call.recording_id);
+          logger.info(`Parsed ${ytSegments.length} YouTube transcript segments`);
+          return ytSegments;
         }
 
         logger.info(`Parsed ${segments.length} segments with ${speakerEmailMap.size} speaker email mappings`);

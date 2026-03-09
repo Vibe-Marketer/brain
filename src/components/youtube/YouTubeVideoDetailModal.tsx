@@ -12,7 +12,7 @@
  * @brand-version v4.2
  */
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, Fragment } from 'react'
 import { cn } from '@/lib/utils'
 import {
   Dialog,
@@ -31,6 +31,7 @@ import {
 } from '@remixicon/react'
 import { getYouTubeMetadata } from '@/types/youtube'
 import { parseYouTubeDuration, formatCompactNumber, YOUTUBE_CATEGORIES } from '@/lib/youtube-utils'
+import { parseYouTubeTranscript, isYouTubeTranscriptFormat } from '@/lib/transcriptUtils'
 import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
 
 export interface YouTubeVideoDetailModalProps {
@@ -95,6 +96,14 @@ export function YouTubeVideoDetailModal({
   const hasDescription = description.trim().length > 0
   const transcript = recording?.full_transcript || ''
   const hasTranscript = transcript.trim().length > 0
+
+  // Parse transcript into timestamped segments if in YouTube format
+  const transcriptSegments = useMemo(() => {
+    if (!hasTranscript) return null
+    if (!isYouTubeTranscriptFormat(transcript)) return null
+    const segments = parseYouTubeTranscript(transcript, recording?.id)
+    return segments.length > 0 ? segments : null
+  }, [transcript, hasTranscript, recording?.id])
 
   // Reset description expanded state when recording changes
   const handleOpenChange = (nextOpen: boolean) => {
@@ -218,9 +227,28 @@ export function YouTubeVideoDetailModal({
               </h4>
               {hasTranscript ? (
                 <div className="max-h-[300px] overflow-y-auto rounded-md border border-border/40 bg-muted/30 p-3">
-                  <p className="text-sm text-foreground/85 whitespace-pre-line leading-relaxed">
-                    {transcript}
-                  </p>
+                  {transcriptSegments ? (
+                    // Parsed YouTube format: timestamped paragraphs
+                    <div className="space-y-0.5">
+                      {transcriptSegments.map((seg, idx) => (
+                        <Fragment key={seg.id || idx}>
+                          <div className="flex gap-3 py-1.5 border-b border-border/20 last:border-0">
+                            <span className="shrink-0 w-10 text-right text-[11px] font-mono text-muted-foreground/70 mt-[2px] select-none">
+                              {seg.timestamp}
+                            </span>
+                            <p className="flex-1 text-sm text-foreground/85 leading-relaxed">
+                              {seg.text}
+                            </p>
+                          </div>
+                        </Fragment>
+                      ))}
+                    </div>
+                  ) : (
+                    // Fallback: raw text display
+                    <p className="text-sm text-foreground/85 whitespace-pre-line leading-relaxed">
+                      {transcript}
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground italic">No transcript available</p>
