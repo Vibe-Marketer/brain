@@ -2,7 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { RiCheckLine, RiStarLine } from "@remixicon/react";
+import { RiCheckLine, RiStarLine, RiFlashlightLine } from "@remixicon/react";
 import type { SubscriptionTier } from "@/hooks/useSubscription";
 import { UpgradeButton } from "./UpgradeButton";
 
@@ -13,80 +13,84 @@ interface PlanTier {
   id: string;
   name: string;
   tier: SubscriptionTier;
-  monthlyPrice: number;
-  annualPrice: number;
-  annualSavings: number;
+  monthlyPrice: number | null; // null = free
+  annualPrice: number | null;
+  annualSavings: number | null;
   description: string;
   features: string[];
   highlighted?: boolean;
-  productIdMonthly: string;
-  productIdAnnual: string;
+  productIdMonthly: string | null; // null = free (no checkout)
+  productIdAnnual: string | null;
 }
 
 /**
- * Plan definitions per CONTEXT.md
- * Solo ($29/mo), Team ($99/mo), Business ($249/mo)
+ * Plan definitions per Issue #156 — Free / Pro / Team
  */
 const PLANS: PlanTier[] = [
   {
-    id: 'solo',
-    name: 'Solo',
-    tier: 'solo',
+    id: 'free',
+    name: 'Free',
+    tier: 'free',
+    monthlyPrice: 0,
+    annualPrice: null,
+    annualSavings: null,
+    description: 'Get started with core import features and a taste of AI.',
+    features: [
+      '1 user, 1 workspace',
+      '10 imports / month',
+      '25 AI actions / month',
+      'Smart import (titles + tags)',
+      'No MCP / External AI integrations',
+      'No AI chat',
+    ],
+    productIdMonthly: null,
+    productIdAnnual: null,
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    tier: 'pro',
     monthlyPrice: 29,
     annualPrice: 278,
     annualSavings: 70,
-    description: 'Perfect for individuals with unlimited calls and transcription features.',
+    description: 'Unlimited imports, full MCP access, and 1,000 AI actions / month.',
     features: [
       '1 user',
-      'Unlimited calls & transcriptions',
-      'Folders, tags, global search',
-      '10 notes per call',
+      'Unlimited imports',
+      'Multiple workspaces',
+      'Full MCP / External AI access',
+      '1,000 AI actions / month',
+      'Minimal AI chat (5 transcripts per chat)',
     ],
-    productIdMonthly: 'solo-monthly',
-    productIdAnnual: 'solo-annual',
+    highlighted: true,
+    productIdMonthly: 'pro-monthly',
+    productIdAnnual: 'pro-annual',
   },
   {
     id: 'team',
     name: 'Team',
     tier: 'team',
-    monthlyPrice: 99,
-    annualPrice: 950,
-    annualSavings: 238,
-    description: 'Up to 5 users with team hierarchy and shared collaboration.',
+    monthlyPrice: 79,
+    annualPrice: 758,
+    annualSavings: 190,
+    description: 'Everything in Pro, shared workspaces, roles, and 5,000 pooled AI actions.',
     features: [
-      'Up to 5 full users',
-      'Team hierarchy & manager auto-access',
-      'Shared folders',
-      'Unlimited notes',
+      '3–10 users',
+      'Shared workspaces + roles',
+      'Admin dashboard',
+      '5,000 AI actions / month (pooled)',
+      'Everything in Pro',
     ],
-    highlighted: true,
     productIdMonthly: 'team-monthly',
     productIdAnnual: 'team-annual',
-  },
-  {
-    id: 'business',
-    name: 'Business',
-    tier: 'business',
-    monthlyPrice: 249,
-    annualPrice: 2390,
-    annualSavings: 598,
-    description: 'Up to 20 users with advanced admin controls and priority support.',
-    features: [
-      'Up to 20 full users',
-      'Advanced admin controls',
-      'Priority support',
-      'Custom integrations',
-    ],
-    productIdMonthly: 'business-monthly',
-    productIdAnnual: 'business-annual',
   },
 ];
 
 export interface PlanCardsProps {
   /** Current user's tier */
   currentTier: SubscriptionTier;
-  /** Callback when upgrade is requested (optional - UpgradeButton handles checkout internally) */
-  onUpgrade?: (productId: string) => void;
+  /** Whether user is currently on a trial */
+  isTrialing?: boolean;
   /** Loading state */
   isLoading?: boolean;
   /** Whether to show annual pricing toggle (default: show monthly) */
@@ -95,15 +99,15 @@ export interface PlanCardsProps {
 
 /**
  * PlanCards - Side-by-side plan comparison component
- * 
- * Displays Solo, Team, and Business tiers with feature lists.
+ *
+ * Displays Free, Pro, and Team tiers with feature lists.
  * Highlights current plan and shows upgrade buttons for higher tiers.
- * 
- * @brand-version v4.2
+ *
+ * @brand-version v4.3
  */
 export function PlanCards({
   currentTier,
-  onUpgrade: _onUpgrade, // Legacy prop - UpgradeButton handles checkout internally
+  isTrialing = false,
   isLoading = false,
   showAnnual = false,
 }: PlanCardsProps) {
@@ -126,7 +130,7 @@ export function PlanCards({
     );
   }
 
-  const tierHierarchy: SubscriptionTier[] = ['free', 'solo', 'team', 'business'];
+  const tierHierarchy: SubscriptionTier[] = ['free', 'pro', 'team'];
   const currentTierIndex = tierHierarchy.indexOf(currentTier);
 
   return (
@@ -136,10 +140,10 @@ export function PlanCards({
         const isCurrentPlan = currentTier === plan.tier;
         const isUpgrade = planTierIndex > currentTierIndex;
         const isDowngrade = planTierIndex < currentTierIndex;
-        
+
         const price = showAnnual ? plan.annualPrice : plan.monthlyPrice;
         const productId = showAnnual ? plan.productIdAnnual : plan.productIdMonthly;
-        const interval = showAnnual ? '/yr' : '/mo';
+        const interval = plan.monthlyPrice === 0 ? '' : showAnnual ? '/yr' : '/mo';
 
         return (
           <div
@@ -151,7 +155,7 @@ export function PlanCards({
               !isCurrentPlan && !plan.highlighted && "border-border"
             )}
           >
-            {/* Popular badge for highlighted plan */}
+            {/* Most Popular badge */}
             {plan.highlighted && !isCurrentPlan && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <Badge className="bg-primary text-primary-foreground px-3">
@@ -161,13 +165,23 @@ export function PlanCards({
               </div>
             )}
 
-            {/* Current plan badge */}
+            {/* Current Plan badge */}
             {isCurrentPlan && (
               <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                 <Badge variant="default" className="px-3">
                   <RiCheckLine className="h-3 w-3 mr-1" />
-                  Current Plan
+                  {isTrialing && plan.tier === 'pro' ? 'Trial Active' : 'Current Plan'}
                 </Badge>
+              </div>
+            )}
+
+            {/* Trial banner inside card */}
+            {isCurrentPlan && isTrialing && plan.tier === 'pro' && (
+              <div className="mb-3 -mx-6 -mt-6 pt-8 px-6 pb-3 bg-primary/5 rounded-t-xl border-b border-primary/10">
+                <div className="flex items-center gap-1.5 text-xs text-primary font-medium">
+                  <RiFlashlightLine className="h-3.5 w-3.5" />
+                  Pro trial — upgrade to keep full access
+                </div>
               </div>
             )}
 
@@ -175,10 +189,14 @@ export function PlanCards({
             <div className="mb-4 pt-2">
               <h3 className="text-lg font-semibold text-foreground">{plan.name}</h3>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-3xl font-bold text-foreground">${price}</span>
-                <span className="text-sm text-muted-foreground">{interval}</span>
+                <span className="text-3xl font-bold text-foreground tabular-nums">
+                  {price === 0 ? 'Free' : `$${price}`}
+                </span>
+                {interval && (
+                  <span className="text-sm text-muted-foreground">{interval}</span>
+                )}
               </div>
-              {showAnnual && (
+              {showAnnual && plan.annualSavings != null && (
                 <p className="text-xs text-success-text mt-1">
                   Save ${plan.annualSavings}/year
                 </p>
@@ -202,30 +220,44 @@ export function PlanCards({
 
             {/* Action button */}
             <div className="mt-auto">
-              {isCurrentPlan ? (
+              {isCurrentPlan && !isTrialing ? (
                 <Button variant="outline" className="w-full" disabled>
                   Current Plan
                 </Button>
-              ) : isUpgrade ? (
-                <UpgradeButton 
+              ) : isCurrentPlan && isTrialing ? (
+                // On trial — offer upgrade to paid Pro
+                <UpgradeButton
+                  productId="pro-monthly"
+                  variant="default"
+                  className="w-full"
+                >
+                  Upgrade to Pro
+                </UpgradeButton>
+              ) : plan.tier === 'free' ? (
+                // Free tier — no checkout needed, just a disabled button
+                <Button variant="outline" className="w-full" disabled={currentTier !== 'free'}>
+                  {isDowngrade ? 'Downgrade to Free' : 'Get Started Free'}
+                </Button>
+              ) : isUpgrade && productId ? (
+                <UpgradeButton
                   productId={productId}
-                  variant="default" 
+                  variant="default"
                   className="w-full"
                 >
                   Upgrade to {plan.name}
                 </UpgradeButton>
-              ) : isDowngrade ? (
-                <UpgradeButton 
+              ) : isDowngrade && productId ? (
+                <UpgradeButton
                   productId={productId}
-                  variant="outline" 
+                  variant="outline"
                   className="w-full"
                 >
                   Downgrade to {plan.name}
                 </UpgradeButton>
               ) : (
-                <UpgradeButton 
-                  productId={productId}
-                  variant="default" 
+                <UpgradeButton
+                  productId={productId ?? ''}
+                  variant="default"
                   className="w-full"
                 >
                   Get Started
@@ -236,7 +268,7 @@ export function PlanCards({
             {/* Downgrade notice */}
             {isDowngrade && currentTierIndex > 0 && (
               <p className="text-xs text-muted-foreground mt-3 text-center">
-                Excess features become read-only
+                Extra workspaces + MCP become read-only
               </p>
             )}
           </div>
