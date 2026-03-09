@@ -242,6 +242,7 @@ Deno.serve(async (req) => {
               p_target_org_id: match.target_organization_id,
               p_user_id: user.id,
               p_delete_source: match.delete_after_copy,
+              p_target_workspace_id: match.target_workspace_id || null,
             });
 
             if (crossOrgError) {

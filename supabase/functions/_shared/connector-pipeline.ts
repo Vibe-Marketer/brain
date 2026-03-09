@@ -355,6 +355,7 @@ export async function runPipeline(
                 p_target_org_id: crossOrgTargetId,
                 p_user_id: userId,
                 p_delete_source: deleteAfterCopy,
+                p_target_workspace_id: routing.workspaceId || null,
               });
               if (crossOrgError) {
                 console.error('[connector-pipeline] Cross-org routing RPC failed (non-blocking):', crossOrgError);
