@@ -210,11 +210,11 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
     enabled: !!call && !!user?.id,
   });
 
-  // Fetch folders/categories for this call
+  // Fetch folders/categories for this call — use UUID from recordings table
   const { data: callCategories } = useQuery({
-    queryKey: queryKeys.calls.categories(recordingId),
+    queryKey: queryKeys.calls.categories(call?.id),
     queryFn: async () => {
-      if (!call || !user?.id) return [];
+      if (!call?.id || !user?.id) return [];
       const { data, error } = await supabase
         .from("call_tag_assignments")
         .select(`
@@ -225,12 +225,12 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
             color
           )
         `)
-        .eq("recording_id", recordingId)
+        .eq("recording_id", call.id)
         .eq("user_id", user.id);
       if (error) throw error;
       return (data?.map((d) => d.call_tags).filter(Boolean) || []) as Category[];
     },
-    enabled: !!call && !!user?.id,
+    enabled: !!call?.id && !!user?.id,
   });
 
   // Calculate duration

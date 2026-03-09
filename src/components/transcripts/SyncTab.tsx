@@ -200,21 +200,42 @@ export function SyncTab() {
 
       setExistingTotalCount(count || 0);
 
-      // Load tag assignments
+      // Load tag assignments — resolve Fathom numeric IDs to recording UUIDs first
       if (data && data.length > 0) {
-        const recordingIds = data.map((t) => t.recording_id);
-        const { data: assignments } = await supabase
-          .from("call_tag_assignments")
-          .select("recording_id, tag_id")
-          .in("recording_id", recordingIds);
+        const numericIds = data.map((t) => t.recording_id).filter((id): id is number => id !== null);
+        if (numericIds.length > 0) {
+          const { data: recordingsData } = await supabase
+            .from('recordings')
+            .select('id, legacy_recording_id')
+            .in('legacy_recording_id', numericIds);
 
-        const assignmentMap: Record<string, string[]> = {};
-        assignments?.forEach((a) => {
-          const key = a.recording_id;
-          if (!assignmentMap[key]) assignmentMap[key] = [];
-          assignmentMap[key].push(a.tag_id);
-        });
-        setTagAssignments(assignmentMap);
+          const uuidByLegacyId = new Map<number, string>();
+          (recordingsData || []).forEach(r => {
+            if (r.legacy_recording_id !== null) uuidByLegacyId.set(r.legacy_recording_id, r.id);
+          });
+
+          const uuids = numericIds.map(id => uuidByLegacyId.get(id)).filter((id): id is string => id !== undefined);
+          if (uuids.length > 0) {
+            const { data: assignments } = await supabase
+              .from("call_tag_assignments")
+              .select("recording_id, tag_id")
+              .in("recording_id", uuids);
+
+            const assignmentMap: Record<string, string[]> = {};
+            assignments?.forEach((a) => {
+              // Key by legacy numeric string to match existingTranscripts.recording_id
+              for (const [legacyId, uuid] of uuidByLegacyId) {
+                if (uuid === a.recording_id) {
+                  const key = String(legacyId);
+                  if (!assignmentMap[key]) assignmentMap[key] = [];
+                  assignmentMap[key].push(a.tag_id);
+                  break;
+                }
+              }
+            });
+            setTagAssignments(assignmentMap);
+          }
+        }
       }
     } catch (error) {
       logger.error("Error loading existing transcripts", error);
@@ -339,16 +360,39 @@ export function SyncTab() {
 
   const loadTagAssignments = async (recordingIds: string[]) => {
     try {
+      // recordingIds are Fathom numeric IDs (as strings) — resolve to recording UUIDs
+      const numericIds = recordingIds.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+      if (numericIds.length === 0) return;
+
+      const { data: recordingsData } = await supabase
+        .from('recordings')
+        .select('id, legacy_recording_id')
+        .in('legacy_recording_id', numericIds);
+
+      const uuidByLegacyId = new Map<number, string>();
+      (recordingsData || []).forEach(r => {
+        if (r.legacy_recording_id !== null) uuidByLegacyId.set(r.legacy_recording_id, r.id);
+      });
+
+      const uuids = numericIds.map(id => uuidByLegacyId.get(id)).filter((id): id is string => id !== undefined);
+      if (uuids.length === 0) return; // no canonical recordings yet (meetings not yet synced)
+
       const { data } = await supabase
         .from('call_tag_assignments')
         .select('recording_id, tag_id')
-        .in('recording_id', recordingIds);
+        .in('recording_id', uuids);
 
       const assignments: Record<string, string[]> = {};
       (data || []).forEach(assignment => {
-        const id = assignment.recording_id;
-        if (!assignments[id]) assignments[id] = [];
-        assignments[id].push(assignment.tag_id);
+        // Key by legacy numeric string to match meeting.recording_id
+        for (const [legacyId, uuid] of uuidByLegacyId) {
+          if (uuid === assignment.recording_id) {
+            const key = String(legacyId);
+            if (!assignments[key]) assignments[key] = [];
+            assignments[key].push(assignment.tag_id);
+            break;
+          }
+        }
       });
 
       setTagAssignments(assignments);

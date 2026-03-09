@@ -326,11 +326,20 @@ export function useMeetingsSync() {
       }
 
       if (tagId && tagId !== 'none') {
-        await supabase.from('call_tag_assignments').insert({
-          recording_id: meeting.recording_id,
-          tag_id: tagId,
-          auto_assigned: false
-        });
+        // Resolve the canonical recording UUID via legacy_recording_id mapping
+        const { data: recordingData } = await supabase
+          .from('recordings')
+          .select('id')
+          .eq('legacy_recording_id', meeting.recording_id)
+          .maybeSingle();
+
+        if (recordingData?.id) {
+          await supabase.from('call_tag_assignments').insert({
+            recording_id: recordingData.id,
+            tag_id: tagId,
+            auto_assigned: false
+          });
+        }
       }
 
       toast.success("Meeting synced successfully");
