@@ -273,25 +273,29 @@ Deno.serve(async (req) => {
     let userId: string;
 
     // Check for internal service call (from webhook or other Edge Functions)
-    // These calls include user_id in body and use service role key
+    // These calls include user_id in body AND must carry the service role key as the
+    // Authorization token — this prevents unauthenticated clients from bypassing JWT
+    // by simply including a user_id in the request body.
     if (internalUserId) {
-      // Validate the internal user_id exists and check auto_naming_enabled
-      const { data: userExists } = await supabase
-        .from('user_settings')
-        .select('user_id, auto_naming_enabled')
-        .eq('user_id', internalUserId)
-        .maybeSingle();
-
-      if (!userExists) {
+      const authHeader = req.headers.get('Authorization');
+      const token = authHeader?.replace('Bearer ', '');
+      if (token !== supabaseServiceKey) {
         return new Response(
-          JSON.stringify({ error: 'Invalid user_id for internal call' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ error: 'Unauthorized internal call' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
-      // Respect the auto_naming_enabled toggle — false means skip AI naming on import
-      // The column defaults to true, so null/undefined is treated as enabled
-      if (userExists.auto_naming_enabled === false) {
+      // Check auto_naming_enabled setting.
+      // A null result (no settings row yet — new user) is treated as enabled because
+      // the column default is true. Only an explicit false blocks auto-naming.
+      const { data: userSettings } = await supabase
+        .from('user_settings')
+        .select('auto_naming_enabled')
+        .eq('user_id', internalUserId)
+        .maybeSingle();
+
+      if (userSettings?.auto_naming_enabled === false) {
         console.log(`Auto-naming disabled for user ${internalUserId} — skipping`);
         return new Response(
           JSON.stringify({ success: true, message: 'Auto-naming disabled for this user', totalProcessed: 0 }),
@@ -465,8 +469,9 @@ ${cleanedTranscript}`;
         const latencyMs = Date.now() - startMs;
 
         // Track usage — fire-and-forget, does not block the main flow
-        const inputTokens = result.usage?.promptTokens ?? estimateTokenCount(SYSTEM_PROMPT + userPrompt);
-        const outputTokens = result.usage?.completionTokens ?? estimateTokenCount(result.text);
+        // ai@5.x uses inputTokens/outputTokens (not promptTokens/completionTokens)
+        const inputTokens = result.usage?.inputTokens ?? estimateTokenCount(SYSTEM_PROMPT + userPrompt);
+        const outputTokens = result.usage?.outputTokens ?? estimateTokenCount(result.text);
         logUsage(supabase, {
           userId,
           operationType: 'ai_naming',
