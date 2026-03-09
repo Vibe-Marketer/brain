@@ -21,6 +21,7 @@ CREATE OR REPLACE FUNCTION prevent_home_workspace_entry_delete()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   -- Allow deletion when initiated by delete_recording (or another trusted caller)
