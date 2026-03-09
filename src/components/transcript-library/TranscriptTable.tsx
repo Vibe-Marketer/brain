@@ -40,7 +40,7 @@ import type { Folder } from "@/types/workspace";
 const workspaceColumnOptions = [
   { id: "date", label: "Date" },
   { id: "duration", label: "Duration" },
-  { id: "participants", label: "Invitees" },
+  { id: "participants", label: "Contacts" },
   { id: "tags", label: "Tags" },
   { id: "folders", label: "Folders" },
   { id: "workspaces", label: "Workspaces" },
@@ -224,7 +224,7 @@ export const TranscriptTable = React.memo(({
                 )}
                 {!isHome && visibleColumns.participants !== false && (
                   <TableHead className="hidden lg:table-cell text-center w-[85px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="participants">INVITEES</SortButton>
+                    <SortButton field="participants">CONTACTS</SortButton>
                   </TableHead>
                 )}
                 {!isHome && (

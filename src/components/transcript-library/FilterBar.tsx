@@ -5,7 +5,7 @@ import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { FilterPill } from "./FilterPill";
 import { TagFilterPopover } from "./TagFilterPopover";
 import { FolderFilterPopover } from "./FolderFilterPopover";
-import { ParticipantsFilterPopover } from "./ParticipantsFilterPopover";
+import { ContactsFilterPopover } from "./ContactsFilterPopover";
 import { DurationFilterPopover } from "./DurationFilterPopover";
 import { SourceFilterPopover } from "./SourceFilterPopover";
 import { format } from "date-fns";
@@ -50,21 +50,21 @@ export function FilterBar({
   compact = false,
 }: FilterBarProps) {
   const isMobile = useIsMobile();
-  const [allParticipants, setAllParticipants] = useState<string[]>([]);
+  const [allContacts, setAllContacts] = useState<string[]>([]);
 
-  // Fetch all unique participants
+  // Fetch all unique contacts
   useEffect(() => {
     // Track if component is still mounted to prevent state updates after unmount
     let isMounted = true;
 
-    const fetchParticipants = async () => {
+    const fetchContacts = async () => {
       try {
         // Use safe destructuring to handle network errors
         const userResponse = await supabase.auth.getUser();
 
         // Check for errors in the response (network issues, etc.)
         if (userResponse.error) {
-          logger.warn("Error getting user for participants fetch", userResponse.error);
+          logger.warn("Error getting user for contacts fetch", userResponse.error);
           return;
         }
 
@@ -78,30 +78,30 @@ export function FilterBar({
 
         if (fetchError) {
           if (isMounted) {
-            logger.error("Error fetching participants data", fetchError);
+            logger.error("Error fetching contacts data", fetchError);
           }
           return;
         }
 
         if (isMounted && data) {
-          const participantsSet = new Set<string>();
+          const contactsSet = new Set<string>();
           data.forEach((call: { calendar_invitees?: CalendarInvitee[] | null }) => {
             if (call.calendar_invitees && Array.isArray(call.calendar_invitees)) {
               call.calendar_invitees.forEach((invitee) => {
-                if (invitee?.email) participantsSet.add(invitee.email);
+                if (invitee?.email) contactsSet.add(invitee.email);
               });
             }
           });
-          setAllParticipants(Array.from(participantsSet).sort());
+          setAllContacts(Array.from(contactsSet).sort());
         }
       } catch (error) {
         // Only log errors if component is still mounted
         if (isMounted) {
-          logger.error("Error fetching participants", error);
+          logger.error("Error fetching contacts", error);
         }
       }
     };
-    fetchParticipants();
+    fetchContacts();
 
     // Cleanup: mark as unmounted to prevent state updates
     return () => {
@@ -191,10 +191,10 @@ export function FilterBar({
           onCreateFolder={onCreateFolder}
         />
 
-        {/* Participants Filter */}
-        <ParticipantsFilterPopover
+        {/* Contacts Filter */}
+        <ContactsFilterPopover
           selectedParticipants={filters.participants}
-          allParticipants={allParticipants}
+          allParticipants={allContacts}
           onParticipantsChange={(participants) => onFiltersChange({ ...filters, participants })}
         />
 
@@ -264,8 +264,8 @@ export function FilterBar({
           )}
           {filters.participants && filters.participants.length > 0 && (
             <FilterPill
-              label="Participants"
-              value={`${filters.participants.length} participant${filters.participants.length > 1 ? "s" : ""}`}
+              label="Contacts"
+              value={`${filters.participants.length} contact${filters.participants.length > 1 ? "s" : ""}`}
               onRemove={() => onFiltersChange({ ...filters, participants: [] })}
             />
           )}
