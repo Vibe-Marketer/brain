@@ -163,8 +163,10 @@ BEGIN
   FROM transcript_chunks tc
   WHERE tc.canonical_recording_id = p_recording_id;
 
-  -- Delete source recording if requested (move semantics)
+  -- Delete source recording if requested (move semantics).
+  -- workspace_entries references recordings via FK, so entries must be removed first.
   IF p_delete_source THEN
+    DELETE FROM workspace_entries WHERE recording_id = p_recording_id;
     DELETE FROM recordings WHERE id = p_recording_id;
   END IF;
 
