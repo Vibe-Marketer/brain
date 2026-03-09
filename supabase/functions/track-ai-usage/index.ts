@@ -193,8 +193,14 @@ Deno.serve(async (req) => {
           product_id: string | null;
           subscription_status: string | null;
         } | null;
-        effectiveProductId = ownerData?.product_id ?? effectiveProductId;
-        effectiveStatus = ownerData?.subscription_status ?? effectiveStatus;
+        // Always use the org owner's values when ownerData is found — even if
+        // they are null (null product_id = free tier). Using ?? here would
+        // incorrectly fall back to the caller's personal subscription when the
+        // org owner is on the free plan, potentially granting a higher limit.
+        if (ownerData) {
+          effectiveProductId = ownerData.product_id;
+          effectiveStatus = ownerData.subscription_status;
+        }
       }
     }
 
