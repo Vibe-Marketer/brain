@@ -342,7 +342,10 @@ export function CallDetailDialog({
             duration={duration}
           />
 
-          <CallInviteesTab calendarInvitees={call.calendar_invitees} />
+          <CallInviteesTab
+            calendarInvitees={call.calendar_invitees}
+            callSpeakers={callSpeakers}
+          />
 
           <CallParticipantsTab
             callSpeakers={callSpeakers}
