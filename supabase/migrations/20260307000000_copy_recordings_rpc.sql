@@ -81,18 +81,8 @@ BEGIN
         v_recording.synced_at
       )
       RETURNING id INTO v_new_recording_id;
-
-      -- Create workspace_entry in target HOME workspace
-      INSERT INTO workspace_entries (
-        workspace_id,
-        recording_id,
-        created_at
-      )
-      VALUES (
-        v_target_home_workspace_id,
-        v_new_recording_id,
-        NOW()
-      );
+      -- Note: the auto_home_workspace_entry trigger on recordings INSERT
+      -- automatically creates the workspace_entry in the target HOME workspace.
 
       -- Optional: Remove from source org (only if caller owns the recording)
       IF p_remove_source THEN

@@ -146,7 +146,7 @@ export default function OrganizationJoin() {
               <div className="flex items-center justify-between mb-1">
                 <span className="text-xs text-muted-foreground">Organization</span>
                 <Badge variant="outline" className="text-xs font-semibold px-2 py-0 h-5">
-                  {inviteData?.role.replace('bank_', '').replace('organization_', '')}
+                  {inviteData?.role.replace('organization_', '')}
                 </Badge>
               </div>
               <p className="text-lg font-bold text-foreground">
@@ -156,7 +156,7 @@ export default function OrganizationJoin() {
 
             <div className="flex items-center gap-2 text-xs text-muted-foreground pt-1">
               <RiTimeLine className="h-3.5 w-3.5" />
-              <span>Expires {format(new Date(inviteData?.expires_at || ''), 'MMM d, yyyy')}</span>
+              <span>Expires {inviteData?.expires_at && format(new Date(inviteData.expires_at), 'MMM d, yyyy')}</span>
             </div>
           </div>
 

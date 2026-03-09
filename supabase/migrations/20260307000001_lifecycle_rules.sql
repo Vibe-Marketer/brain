@@ -59,6 +59,8 @@ BEGIN
     INSERT INTO workspace_entries (workspace_id, recording_id)
     VALUES (v_home_workspace_id, NEW.id)
     ON CONFLICT (workspace_id, recording_id) DO NOTHING;
+  ELSE
+    RAISE WARNING 'No HOME workspace found for organization % — recording % will not appear in HOME workspace', NEW.organization_id, NEW.id;
   END IF;
 
   RETURN NEW;

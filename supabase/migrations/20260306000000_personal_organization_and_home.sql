@@ -133,7 +133,7 @@ BEGIN
   ON CONFLICT DO NOTHING;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 -- Trigger to create HOME workspace on new Orgs
 DROP TRIGGER IF EXISTS tr_ensure_home_workspace ON organizations;
