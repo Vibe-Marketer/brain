@@ -208,7 +208,7 @@ export function CallDetailDialog({
   useEffect(() => {
     if (splitRecordingMutation.isSuccess && splitRecordingMutation.data) {
       const result = splitRecordingMutation.data;
-      setSplitDialog({ open: false, segmentId: null });
+      setSplitDialog({ open: false, segmentId: null, splitTimestamp: null, splitSpeaker: null });
       setSplitResult({
         part1Title: result.part1_title,
         part2RecordingId: result.part2_recording_id,

@@ -68,15 +68,16 @@ BEGIN
     WHERE id = p_part1_recordings_id;
   END IF;
 
-  -- 2. Update Part 1 in fathom_calls for legacy compatibility (best-effort)
+  -- 2. Update Part 1 in fathom_raw_calls for legacy compatibility (best-effort)
+  -- NOTE: fathom_calls is a VIEW (not the base table); writes must target fathom_raw_calls.
   IF p_part1_fathom_id IS NOT NULL THEN
-    UPDATE fathom_calls
+    UPDATE fathom_raw_calls
     SET
       title           = p_part1_title,
       full_transcript = p_part1_transcript,
       summary         = NULL
     WHERE recording_id = p_part1_fathom_id;
-    -- Note: fathom_calls.user_id is NOT checked here because this function is
+    -- Note: fathom_raw_calls.user_id is NOT checked here because this function is
     -- SECURITY DEFINER — the ownership check on recordings above is sufficient.
     -- The RPC is only callable by an authenticated user via the edge function,
     -- which separately validates auth.uid() = p_owner_user_id.
