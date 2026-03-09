@@ -231,6 +231,7 @@ async function executeRemoveFromFolder(
 
 /**
  * Execute add_tag action
+ * Uses canonical_recording_id (UUID) since call_tag_assignments.recording_id is now UUID (issue #125).
  */
 async function executeAddTag(
   supabase: SupabaseClient,
@@ -239,14 +240,14 @@ async function executeAddTag(
   userId: string
 ): Promise<ActionResult> {
   const { tag_id } = config;
-  const recordingId = context.call?.recording_id;
+  const canonicalRecordingId = context.call?.canonical_recording_id;
 
   if (!tag_id) {
     return { success: false, error: 'Missing tag_id in action config' };
   }
 
-  if (!recordingId) {
-    return { success: false, error: 'Missing recording_id in context' };
+  if (!canonicalRecordingId) {
+    return { success: false, error: 'Missing canonical_recording_id in context — recording may not be migrated yet' };
   }
 
   const { error } = await supabase
@@ -254,10 +255,10 @@ async function executeAddTag(
     .upsert(
       {
         tag_id,
-        call_recording_id: recordingId,
+        recording_id: canonicalRecordingId,
         user_id: userId,
       },
-      { onConflict: 'tag_id,call_recording_id' }
+      { onConflict: 'recording_id,tag_id' }
     );
 
   if (error) {
@@ -266,12 +267,13 @@ async function executeAddTag(
 
   return {
     success: true,
-    details: { tag_id, recording_id: recordingId },
+    details: { tag_id, recording_id: canonicalRecordingId },
   };
 }
 
 /**
  * Execute remove_tag action
+ * Uses canonical_recording_id (UUID) since call_tag_assignments.recording_id is now UUID (issue #125).
  */
 async function executeRemoveTag(
   supabase: SupabaseClient,
@@ -280,21 +282,21 @@ async function executeRemoveTag(
   _userId: string
 ): Promise<ActionResult> {
   const { tag_id } = config;
-  const recordingId = context.call?.recording_id;
+  const canonicalRecordingId = context.call?.canonical_recording_id;
 
   if (!tag_id) {
     return { success: false, error: 'Missing tag_id in action config' };
   }
 
-  if (!recordingId) {
-    return { success: false, error: 'Missing recording_id in context' };
+  if (!canonicalRecordingId) {
+    return { success: false, error: 'Missing canonical_recording_id in context — recording may not be migrated yet' };
   }
 
   const { error } = await supabase
     .from('call_tag_assignments')
     .delete()
     .eq('tag_id', tag_id)
-    .eq('call_recording_id', recordingId);
+    .eq('recording_id', canonicalRecordingId);
 
   if (error) {
     return { success: false, error: `Failed to remove tag: ${error.message}` };
@@ -302,7 +304,7 @@ async function executeRemoveTag(
 
   return {
     success: true,
-    details: { tag_id, recording_id: recordingId },
+    details: { tag_id, recording_id: canonicalRecordingId },
   };
 }
 
