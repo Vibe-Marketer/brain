@@ -257,7 +257,9 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       if (error) throw error;
       return data?.map(d => d.call_tags).filter(Boolean) || [];
     },
-    enabled: open && !!call && !!userId,
+    // call_tag_assignments.call_recording_id is BIGINT — only query for legacy numeric IDs.
+    // New-pipeline recordings (UUID ids) store tags in recordings.global_tags, not here.
+    enabled: open && !!call && !!userId && typeof call?.recording_id === 'number',
   });
 
   // Fetch tags for this call
@@ -281,7 +283,8 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
       if (error) throw error;
       return data?.map(d => d.transcript_tags).filter(Boolean) || [];
     },
-    enabled: open && !!call && !!userId,
+    // transcript_tag_assignments.call_recording_id is BIGINT — only query for legacy numeric IDs.
+    enabled: open && !!call && !!userId && typeof call?.recording_id === 'number',
   });
 
   // Fetch unique speakers from transcripts and enrich with calendar invitee data
@@ -329,7 +332,8 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
 
       return speakers;
     },
-    enabled: open && !!call && !!userId,
+    // fathom_transcripts.recording_id is BIGINT — only query for legacy numeric IDs.
+    enabled: open && !!call && !!userId && typeof call?.recording_id === 'number',
   });
 
   return {
