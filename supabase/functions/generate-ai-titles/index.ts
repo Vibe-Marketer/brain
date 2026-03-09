@@ -20,6 +20,7 @@ interface GenerateTitlesRequest {
   auto_discover?: boolean;  // Find all calls without AI titles
   limit?: number;           // Max calls to process when auto_discover is true
   user_id?: string;         // For internal service calls (bypasses JWT auth)
+  respectPreference?: boolean; // When true, skip if user has autoProcessingTitleGeneration=false
 }
 
 /**
@@ -168,7 +169,7 @@ Deno.serve(async (req) => {
 
     // Parse body first to check for internal service call
     const body: GenerateTitlesRequest = await req.json();
-    const { recordingIds, auto_discover, limit = 50, user_id: internalUserId } = body;
+    const { recordingIds, auto_discover, limit = 50, user_id: internalUserId, respectPreference = false } = body;
 
     let userId: string;
 
@@ -210,6 +211,24 @@ Deno.serve(async (req) => {
         );
       }
       userId = user.id;
+    }
+
+    // Check user preference when called from automated pipeline
+    if (respectPreference) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('auto_processing_preferences')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      const prefs = profile?.auto_processing_preferences as { autoProcessingTitleGeneration?: boolean } | null;
+      if (prefs?.autoProcessingTitleGeneration === false) {
+        console.log(`Auto-naming disabled for user ${userId}, skipping`);
+        return new Response(
+          JSON.stringify({ success: true, message: 'Auto-naming disabled by user preference', totalProcessed: 0 }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     let idsToProcess: number[] = [];

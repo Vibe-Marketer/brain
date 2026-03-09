@@ -17,7 +17,11 @@ function createOpenRouterProvider(apiKey: string) {
 }
 
 interface AutoTagRequest {
-  recordingIds: number[];
+  recordingIds?: number[];
+  user_id?: string;            // For internal service calls (bypasses JWT auth)
+  auto_discover?: boolean;     // Find all calls without auto_tags
+  limit?: number;              // Max calls when auto_discover is true
+  respectPreference?: boolean; // When true, skip if user has autoProcessingTagging=false
 }
 
 // Approved tag list - MUST use only these tags
@@ -220,40 +224,112 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify authorization
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'No authorization header' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Parse body first to check for internal service call
+    const body: AutoTagRequest = await req.json();
+    const { recordingIds: bodyRecordingIds, user_id: internalUserId, auto_discover, limit = 50, respectPreference = false } = body;
+
+    let userId: string;
+
+    // Check for internal service call (from webhook or other Edge Functions)
+    if (internalUserId) {
+      const { data: userExists } = await supabase
+        .from('user_settings')
+        .select('user_id')
+        .eq('user_id', internalUserId)
+        .maybeSingle();
+
+      if (!userExists) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid user_id for internal call' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = internalUserId;
+      console.log(`Internal service call for user: ${userId}`);
+    } else {
+      // External call - verify JWT authorization
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'No authorization header' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+
+      if (userError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      userId = user.id;
     }
 
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    // Check user preference when called from automated pipeline
+    if (respectPreference) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('auto_processing_preferences')
+        .eq('user_id', userId)
+        .maybeSingle();
 
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      const prefs = profile?.auto_processing_preferences as { autoProcessingTagging?: boolean } | null;
+      if (prefs?.autoProcessingTagging === false) {
+        console.log(`Auto-tagging disabled for user ${userId}, skipping`);
+        return new Response(
+          JSON.stringify({ success: true, message: 'Auto-tagging disabled by user preference', totalProcessed: 0 }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
-    const { recordingIds }: AutoTagRequest = await req.json();
+    let recordingIds: number[];
 
-    if (!recordingIds || recordingIds.length === 0) {
+    if (auto_discover) {
+      // Find all calls without auto_tags
+      console.log(`Auto-discovering untagged calls for user ${userId} (limit: ${limit})`);
+      const { data: untaggedCalls, error: discoverError } = await supabase
+        .from('fathom_raw_calls')
+        .select('recording_id')
+        .eq('user_id', userId)
+        .is('auto_tags', null)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+
+      if (discoverError) {
+        return new Response(
+          JSON.stringify({ error: `Failed to discover calls: ${discoverError.message}` }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      recordingIds = (untaggedCalls || []).map(c => c.recording_id);
+      console.log(`Found ${recordingIds.length} calls needing auto-tagging`);
+    } else if (bodyRecordingIds && bodyRecordingIds.length > 0) {
+      recordingIds = bodyRecordingIds;
+    } else {
       return new Response(
-        JSON.stringify({ error: 'No recording IDs provided' }),
+        JSON.stringify({ error: 'Either recordingIds or auto_discover=true is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Auto-tagging ${recordingIds.length} calls for user ${user.id}`);
+    if (recordingIds.length === 0) {
+      return new Response(
+        JSON.stringify({ success: true, message: 'No calls to process', totalProcessed: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Auto-tagging ${recordingIds.length} calls for user ${userId}`);
 
     // Load user preferences and historical patterns ONCE
     const [preferences, historicalPatterns] = await Promise.all([
-      getUserTagPreferences(supabase, user.id),
-      getHistoricalPatterns(supabase, user.id, ''),
+      getUserTagPreferences(supabase, userId),
+      getHistoricalPatterns(supabase, userId, ''),
     ]);
 
     const preferencesContext = buildPreferencesContext(preferences);
@@ -269,7 +345,7 @@ Deno.serve(async (req) => {
           .from('fathom_raw_calls')
           .select('recording_id, title, full_transcript, summary, calendar_invitees')
           .eq('recording_id', recordingId)
-          .eq('user_id', user.id)
+          .eq('user_id', userId)
           .single();
 
         if (callError || !call) {
@@ -347,7 +423,7 @@ Select the ONE most appropriate tag from the approved list.`;
         // Start Langfuse trace
         const trace = startTrace({
           name: 'auto-tag-calls',
-          userId: user.id,
+          userId,
           model: 'openai/gpt-5-nano',
           input: { prompt: tagPrompt.substring(0, 500) + '...' },
           metadata: { recordingId, attendeeCount },

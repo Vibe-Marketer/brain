@@ -833,14 +833,15 @@ Deno.serve(async (req) => {
         //   console.error('Failed to invoke embed-chunks:', embedErr);
         // }
 
-        // Trigger AI title generation for each synced user
-        console.log(`🏷️ Triggering AI title generation for meeting ${meeting.recording_id}...`);
+        // Trigger AI title generation and auto-tagging for each synced user
+        console.log(`🏷️ Triggering AI title generation and auto-tagging for meeting ${meeting.recording_id}...`);
         for (const syncedUserId of syncedUserIds) {
           try {
             const { error: titleError } = await supabase.functions.invoke('generate-ai-titles', {
               body: {
                 recordingIds: [meeting.recording_id],
-                user_id: syncedUserId  // Pass user_id for internal service call
+                user_id: syncedUserId,  // Pass user_id for internal service call
+                respectPreference: true,
               },
             });
             if (titleError) {
@@ -850,6 +851,23 @@ Deno.serve(async (req) => {
             }
           } catch (titleErr) {
             console.error(`Failed to invoke generate-ai-titles for user ${syncedUserId}:`, titleErr);
+          }
+
+          try {
+            const { error: tagError } = await supabase.functions.invoke('auto-tag-calls', {
+              body: {
+                recordingIds: [meeting.recording_id],
+                user_id: syncedUserId,  // Pass user_id for internal service call
+                respectPreference: true,
+              },
+            });
+            if (tagError) {
+              console.error(`Auto-tagging failed for user ${syncedUserId}:`, tagError);
+            } else {
+              console.log(`✅ Auto-tagging triggered for user ${syncedUserId}`);
+            }
+          } catch (tagErr) {
+            console.error(`Failed to invoke auto-tag-calls for user ${syncedUserId}:`, tagErr);
           }
         }
 
