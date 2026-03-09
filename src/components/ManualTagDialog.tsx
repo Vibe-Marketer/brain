@@ -55,12 +55,10 @@ export default function ManualTagDialog({
 
     setLoading(true);
     try {
-      const numericRecordingIds = targetRecordingIds.map(id => parseInt(id));
-
       const { data, error } = await supabase
         .from("call_tag_assignments")
-        .select("call_recording_id, tag_id")
-        .in("call_recording_id", numericRecordingIds);
+        .select("recording_id, tag_id")
+        .in("recording_id", targetRecordingIds);
 
       if (error) throw error;
 
@@ -75,7 +73,7 @@ export default function ManualTagDialog({
         // Only pre-select tags that ALL calls have
         const commonTags = new Set<string>();
         tagCounts.forEach((count, tagId) => {
-          if (count === numericRecordingIds.length) {
+          if (count === targetRecordingIds.length) {
             commonTags.add(tagId);
           }
         });
@@ -136,36 +134,34 @@ export default function ManualTagDialog({
 
     setSaving(true);
     try {
-      const numericRecordingIds = targetRecordingIds.map(id => parseInt(id));
-
       // Get existing assignments for all selected recordings
       const { data: existingAssignments, error: fetchError } = await supabase
         .from("call_tag_assignments")
-        .select("call_recording_id, tag_id")
-        .in("call_recording_id", numericRecordingIds);
+        .select("recording_id, tag_id")
+        .in("recording_id", targetRecordingIds);
 
       if (fetchError) throw fetchError;
 
       // Create a map of existing assignments by recording_id
-      const existingByRecording = new Map<number, Set<string>>();
+      const existingByRecording = new Map<string, Set<string>>();
       existingAssignments?.forEach(assignment => {
-        if (!existingByRecording.has(assignment.call_recording_id)) {
-          existingByRecording.set(assignment.call_recording_id, new Set());
+        if (!existingByRecording.has(assignment.recording_id)) {
+          existingByRecording.set(assignment.recording_id, new Set());
         }
-        existingByRecording.get(assignment.call_recording_id)!.add(assignment.tag_id);
+        existingByRecording.get(assignment.recording_id)!.add(assignment.tag_id);
       });
 
       // Determine which assignments to delete and which to add
-      const assignmentsToDelete: Array<{call_recording_id: number, tag_id: string}> = [];
-      const assignmentsToAdd: Array<{call_recording_id: number, tag_id: string, auto_assigned: boolean}> = [];
+      const assignmentsToDelete: Array<{recording_id: string, tag_id: string}> = [];
+      const assignmentsToAdd: Array<{recording_id: string, tag_id: string, auto_assigned: boolean}> = [];
 
-      numericRecordingIds.forEach(recordingId => {
+      targetRecordingIds.forEach(recordingId => {
         const existing = existingByRecording.get(recordingId) || new Set();
 
         // Find tags to delete (were selected before but not now)
         existing.forEach(tagId => {
           if (!selectedTags.has(tagId)) {
-            assignmentsToDelete.push({ call_recording_id: recordingId, tag_id: tagId });
+            assignmentsToDelete.push({ recording_id: recordingId, tag_id: tagId });
           }
         });
 
@@ -173,7 +169,7 @@ export default function ManualTagDialog({
         selectedTags.forEach(tagId => {
           if (!existing.has(tagId)) {
             assignmentsToAdd.push({
-              call_recording_id: recordingId,
+              recording_id: recordingId,
               tag_id: tagId,
               auto_assigned: false,
             });
@@ -187,7 +183,7 @@ export default function ManualTagDialog({
           await supabase
             .from("call_tag_assignments")
             .delete()
-            .eq("call_recording_id", assignment.call_recording_id)
+            .eq("recording_id", assignment.recording_id)
             .eq("tag_id", assignment.tag_id);
         }
       }

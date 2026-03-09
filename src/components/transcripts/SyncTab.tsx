@@ -205,12 +205,12 @@ export function SyncTab() {
         const recordingIds = data.map((t) => t.recording_id);
         const { data: assignments } = await supabase
           .from("call_tag_assignments")
-          .select("call_recording_id, tag_id")
-          .in("call_recording_id", recordingIds);
+          .select("recording_id, tag_id")
+          .in("recording_id", recordingIds);
 
         const assignmentMap: Record<string, string[]> = {};
         assignments?.forEach((a) => {
-          const key = String(a.call_recording_id);
+          const key = a.recording_id;
           if (!assignmentMap[key]) assignmentMap[key] = [];
           assignmentMap[key].push(a.tag_id);
         });
@@ -341,12 +341,12 @@ export function SyncTab() {
     try {
       const { data } = await supabase
         .from('call_tag_assignments')
-        .select('call_recording_id, tag_id')
-        .in('call_recording_id', recordingIds.map(id => parseInt(id)));
+        .select('recording_id, tag_id')
+        .in('recording_id', recordingIds);
 
       const assignments: Record<string, string[]> = {};
       (data || []).forEach(assignment => {
-        const id = assignment.call_recording_id.toString();
+        const id = assignment.recording_id;
         if (!assignments[id]) assignments[id] = [];
         assignments[id].push(assignment.tag_id);
       });

@@ -51,12 +51,12 @@ export function useTagSync() {
     try {
       const { data } = await supabase
         .from("call_tag_assignments")
-        .select("call_recording_id, tag_id")
-        .in("call_recording_id", recordingIds.map((id) => parseInt(id)));
+        .select("recording_id, tag_id")
+        .in("recording_id", recordingIds);
 
       const assignmentMap: Record<string, string[]> = {};
       (data || []).forEach((a) => {
-        const key = String(a.call_recording_id);
+        const key = a.recording_id;
         if (!assignmentMap[key]) assignmentMap[key] = [];
         assignmentMap[key].push(a.tag_id);
       });
@@ -73,20 +73,18 @@ export function useTagSync() {
     onSuccess?: () => void
   ) => {
     try {
-      const numericId = parseInt(recordingId);
-
       const user = await requireUser();
 
       // Delete existing assignments
       await supabase
         .from("call_tag_assignments")
         .delete()
-        .eq("call_recording_id", numericId);
+        .eq("recording_id", recordingId);
 
       // Insert new assignments
       if (tagIds.length > 0) {
         const assignments = tagIds.map((tagId) => ({
-          call_recording_id: numericId,
+          recording_id: recordingId,
           tag_id: tagId,
           auto_assigned: false,
           user_id: user.id,
@@ -113,13 +111,13 @@ export function useTagSync() {
   }, []);
 
   const handleBulkTag = useCallback(async (
-    selectedIds: number[],
+    selectedIds: string[],
     tagId: string
   ) => {
     try {
       const user = await requireUser();
       const assignments = selectedIds.map((id) => ({
-        call_recording_id: id,
+        recording_id: id,
         tag_id: tagId,
         auto_assigned: false,
         user_id: user.id,
@@ -128,7 +126,7 @@ export function useTagSync() {
       const { error } = await supabase
         .from("call_tag_assignments")
         .upsert(assignments, {
-          onConflict: "call_recording_id,tag_id",
+          onConflict: "recording_id,tag_id",
         });
 
       if (error) throw error;

@@ -534,31 +534,26 @@ export function TranscriptsTab({
   }, [calls, selectedFolderId, folderAssignments, folders]);
 
   // Fetch tag assignments for displayed calls.
-  // call_tag_assignments.call_recording_id is BIGINT (legacy Fathom numeric ID).
-  // New-pipeline recordings have UUID ids — filter those out to prevent a HTTP 400
-  // type-mismatch error when querying the BIGINT column with a UUID string.
-  const legacyRecordingIds = validCalls
-    .map(c => c.recording_id)
-    .filter((id): id is number => typeof id === 'number');
+  const recordingIds = validCalls.map(c => String(c.recording_id));
 
   const { data: tagAssignments = {} } = useQuery({
-    queryKey: ["tag-assignments", legacyRecordingIds],
+    queryKey: ["tag-assignments", recordingIds],
     queryFn: async () => {
-      if (legacyRecordingIds.length === 0) return {};
+      if (recordingIds.length === 0) return {};
 
       const { data, error } = await supabase
         .from("call_tag_assignments")
-        .select("call_recording_id, tag_id")
-        .in("call_recording_id", legacyRecordingIds);
+        .select("recording_id, tag_id")
+        .in("recording_id", recordingIds);
 
       if (error) throw error;
 
       const assignments: Record<string, string[]> = {};
       data?.forEach((assignment) => {
-        if (!assignments[assignment.call_recording_id]) {
-          assignments[assignment.call_recording_id] = [];
+        if (!assignments[assignment.recording_id]) {
+          assignments[assignment.recording_id] = [];
         }
-        assignments[assignment.call_recording_id].push(assignment.tag_id);
+        assignments[assignment.recording_id].push(assignment.tag_id);
       });
 
       const merged = { ...assignments };
@@ -576,16 +571,16 @@ export function TranscriptsTab({
 
   // Bulk tag mutation
   const tagMutation = useMutation({
-    mutationFn: async ({ callIds, tagId }: { callIds: number[]; tagId: string }) => {
+    mutationFn: async ({ callIds, tagId }: { callIds: string[]; tagId: string }) => {
       await requireUser();
 
       await supabase
         .from("call_tag_assignments")
         .delete()
-        .in("call_recording_id", callIds);
+        .in("recording_id", callIds);
 
       const assignments = callIds.map((callId) => ({
-        call_recording_id: callId,
+        recording_id: callId,
         tag_id: tagId,
         auto_assigned: false,
       }));
@@ -624,11 +619,11 @@ export function TranscriptsTab({
 
   // Untag mutation
   const untagMutation = useMutation({
-    mutationFn: async ({ callIds }: { callIds: number[] }) => {
+    mutationFn: async ({ callIds }: { callIds: string[] }) => {
       const { error } = await supabase
         .from("call_tag_assignments")
         .delete()
-        .in("call_recording_id", callIds);
+        .in("recording_id", callIds);
       if (error) throw error;
     },
     onSuccess: (_, variables) => {

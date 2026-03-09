@@ -241,7 +241,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
     queryKey: queryKeys.calls.categories(call?.recording_id),
     queryFn: async () => {
       if (!call || !userId) return [];
-      // Use composite key (call_recording_id, user_id) for lookup
+      // Use composite key (recording_id, user_id) for lookup
       const { data, error } = await supabase
         .from("call_tag_assignments")
         .select(`
@@ -252,14 +252,12 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
             color
           )
         `)
-        .eq("call_recording_id", call.recording_id)
+        .eq("recording_id", call.recording_id)
         .eq("user_id", userId);
       if (error) throw error;
       return data?.map(d => d.call_tags).filter(Boolean) || [];
     },
-    // call_tag_assignments.call_recording_id is BIGINT — only query for legacy numeric IDs.
-    // New-pipeline recordings (UUID ids) store tags in recordings.global_tags, not here.
-    enabled: open && !!call && !!userId && typeof call?.recording_id === 'number',
+    enabled: open && !!call && !!userId,
   });
 
   // Fetch tags for this call
@@ -267,7 +265,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
     queryKey: queryKeys.calls.tags(call?.recording_id),
     queryFn: async () => {
       if (!call || !userId) return [];
-      // Use composite key (call_recording_id, user_id) for lookup
+      // Use composite key (recording_id, user_id) for lookup
       const { data, error } = await supabase
         .from("transcript_tag_assignments")
         .select(`
@@ -278,13 +276,12 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
             color
           )
         `)
-        .eq("call_recording_id", call.recording_id)
+        .eq("recording_id", call.recording_id)
         .eq("user_id", userId);
       if (error) throw error;
       return data?.map(d => d.transcript_tags).filter(Boolean) || [];
     },
-    // transcript_tag_assignments.call_recording_id is BIGINT — only query for legacy numeric IDs.
-    enabled: open && !!call && !!userId && typeof call?.recording_id === 'number',
+    enabled: open && !!call && !!userId,
   });
 
   // Fetch unique speakers from transcripts and enrich with calendar invitee data

@@ -114,7 +114,7 @@ export function useCallAnalytics(timeRange: string = '30d') {
         const { count: speakersCount } = await supabase
           .from('call_speakers')
           .select('*', { count: 'exact', head: true })
-          .in('call_recording_id', callsWithInvitees.map(c => c.recording_id));
+          .in('recording_id', callsWithInvitees.map(c => c.recording_id));
         
         totalSpeakers = speakersCount || 0;
       }

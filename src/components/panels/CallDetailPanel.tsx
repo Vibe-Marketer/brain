@@ -225,7 +225,7 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
             color
           )
         `)
-        .eq("call_recording_id", recordingId)
+        .eq("recording_id", recordingId)
         .eq("user_id", user.id);
       if (error) throw error;
       return (data?.map((d) => d.call_tags).filter(Boolean) || []) as Category[];
