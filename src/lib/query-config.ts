@@ -12,6 +12,12 @@ export const queryKeys = {
     role: (userId: string) => ['user-role', userId] as const,
   },
 
+  // Recordings
+  recordings: {
+    availableSources: (orgId: string, workspaceId?: string | null) =>
+      ['recordings', 'available-sources', orgId, workspaceId] as const,
+  },
+
   // Calls/Transcripts
   calls: {
     all: ['calls'] as const,

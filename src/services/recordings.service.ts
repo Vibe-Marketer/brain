@@ -165,6 +165,58 @@ export async function getRecordingByLegacyId(legacyId: number): Promise<Recordin
   return data
 }
 
+/**
+ * Fetches distinct source_app values for an organization.
+ * Optionally scoped to a specific workspace via workspace_entries.
+ * Returns a deduplicated, sorted array of non-null source_app strings.
+ */
+export async function getAvailableSources(
+  organizationId: string,
+  workspaceId?: string | null
+): Promise<string[]> {
+  if (workspaceId) {
+    // Workspace-scoped: get recording IDs from workspace_entries first
+    const { data: entries, error: entriesError } = await supabase
+      .from('workspace_entries')
+      .select('recording_id')
+      .eq('workspace_id', workspaceId)
+
+    if (entriesError) {
+      throw new Error(`Failed to fetch workspace entries for sources: ${entriesError.message}`)
+    }
+
+    const recordingIds = (entries ?? []).map((e: { recording_id: string }) => e.recording_id)
+    if (recordingIds.length === 0) return []
+
+    const { data, error } = await supabase
+      .from('recordings')
+      .select('source_app')
+      .in('id', recordingIds)
+      .not('source_app', 'is', null)
+
+    if (error) {
+      throw new Error(`Failed to fetch available sources for workspace: ${error.message}`)
+    }
+
+    const unique = [...new Set((data ?? []).map((r: { source_app: string | null }) => r.source_app).filter(Boolean))] as string[]
+    return unique.sort()
+  }
+
+  // Org-scoped
+  const { data, error } = await supabase
+    .from('recordings')
+    .select('source_app')
+    .eq('organization_id', organizationId)
+    .not('source_app', 'is', null)
+
+  if (error) {
+    throw new Error(`Failed to fetch available sources: ${error.message}`)
+  }
+
+  const unique = [...new Set((data ?? []).map((r: { source_app: string | null }) => r.source_app).filter(Boolean))] as string[]
+  return unique.sort()
+}
+
 /** Response shape from the delete_recording RPC */
 export interface DeleteRecordingResult {
   success?: boolean

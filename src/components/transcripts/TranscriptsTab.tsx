@@ -29,6 +29,7 @@ import { usePanelStore } from "@/stores/panelStore";
 import { queryKeys } from "@/lib/query-config";
 import { useWorkspaces, useWorkspaceRecordings, mapRecordingToMeeting } from "@/hooks/useWorkspaces";
 import { usePersonalTags, usePersonalTagAssignments } from "@/hooks/usePersonalTags";
+import { useAvailableSources } from "@/hooks/useAvailableSources";
 import { Folder } from "@/types/workspace";
 import {
   FilterState,
@@ -91,6 +92,9 @@ export function TranscriptsTab({
 
   // Organization context for filtering calls by active workspace
   const { activeOrganizationId, activeWorkspaceId, activeWorkspace, isPersonalOrganization, isLoading: _orgContextLoading, isInitialized } = useOrganizationContext();
+
+  // Dynamic source filter options scoped to current org/workspace
+  const { data: availableSources } = useAvailableSources(activeOrganizationId, activeWorkspaceId);
 
   // Selection & interaction state
   const [selectedCalls, setSelectedCalls] = useState<(number | string)[]>([]);
@@ -955,6 +959,7 @@ export function TranscriptsTab({
                   tags={tags}
                   folders={folders}
                   onCreateFolder={() => setQuickCreateFolderOpen(true)}
+                  availableSources={availableSources}
                   compact={true}
                 />
               </div>

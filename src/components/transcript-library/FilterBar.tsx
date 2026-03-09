@@ -35,6 +35,8 @@ interface FilterBarProps {
   searchQuery?: string;
   onSearchChange?: (query: string) => void;
   onCreateFolder?: () => void;
+  /** Dynamic list of source_app values available in the current org/workspace */
+  availableSources?: string[];
   // Compact mode for when search is in page header
   compact?: boolean;
 }
@@ -47,6 +49,7 @@ export function FilterBar({
   searchQuery,
   onSearchChange,
   onCreateFolder,
+  availableSources,
   compact = false,
 }: FilterBarProps) {
   const isMobile = useIsMobile();
@@ -195,6 +198,7 @@ export function FilterBar({
         <SourceFilterPopover
           selectedSources={filters.sources}
           onSourcesChange={(sources) => onFiltersChange({ ...filters, sources })}
+          availableSources={availableSources}
         />
       </div>
 
