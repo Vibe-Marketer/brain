@@ -19,6 +19,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -27,9 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { RiBuildingLine, RiErrorWarningLine } from '@remixicon/react'
+import { RiBuildingLine, RiErrorWarningLine, RiAddLine } from '@remixicon/react'
 import { useCopyToOrganization } from '@/hooks/useDataMovement'
-import { useOrganizations } from '@/hooks/useOrganizations'
+import { useOrganizations, useCreateOrganization } from '@/hooks/useOrganizations'
 import { useOrgContext } from '@/hooks/useOrgContext'
 import { Checkbox } from '@/components/ui/checkbox'
 
@@ -50,16 +51,47 @@ export function CopyToOrganizationDialog({
   const { data: organizations, isLoading } = useOrganizations()
   const [targetOrgId, setTargetOrgId] = useState<string>('')
   const [removeSource, setRemoveSource] = useState(false)
+  const [showCreateForm, setShowCreateForm] = useState(false)
+  const [newOrgName, setNewOrgName] = useState('')
 
   const copyToOrg = useCopyToOrganization()
+  const createOrg = useCreateOrganization()
+
+  const otherOrgs = organizations?.filter(org => org.id !== activeOrgId) ?? []
 
   // Reset form state when dialog opens/closes
   useEffect(() => {
     if (!open) {
       setTargetOrgId('')
       setRemoveSource(false)
+      setShowCreateForm(false)
+      setNewOrgName('')
     }
   }, [open])
+
+  const handleOrgValueChange = (value: string) => {
+    if (value === '__create_new__') {
+      setShowCreateForm(true)
+      setTargetOrgId('')
+    } else {
+      setShowCreateForm(false)
+      setTargetOrgId(value)
+    }
+  }
+
+  const handleCreateOrg = () => {
+    if (!newOrgName.trim() || newOrgName.trim().length < 3) return
+    createOrg.mutate(
+      { name: newOrgName.trim() },
+      {
+        onSuccess: (org) => {
+          setTargetOrgId(org.id)
+          setShowCreateForm(false)
+          setNewOrgName('')
+        },
+      }
+    )
+  }
 
   const handleCopy = () => {
     if (!targetOrgId) return
@@ -99,24 +131,74 @@ export function CopyToOrganizationDialog({
         <div className="space-y-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="org">Target Organization</Label>
-            <Select
-              value={targetOrgId}
-              onValueChange={setTargetOrgId}
-              disabled={isLoading}
-            >
-              <SelectTrigger id="org">
-                <SelectValue placeholder={isLoading ? "Loading organizations..." : "Select an organization"} />
-              </SelectTrigger>
-              <SelectContent>
-                {organizations
-                  ?.filter(org => org.id !== activeOrgId)
-                  .map(org => (
+            {showCreateForm ? (
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    autoFocus
+                    placeholder="Organization name (min 3 chars)"
+                    value={newOrgName}
+                    onChange={(e) => setNewOrgName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleCreateOrg()
+                      if (e.key === 'Escape') {
+                        setShowCreateForm(false)
+                        setNewOrgName('')
+                      }
+                    }}
+                    disabled={createOrg.isPending}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleCreateOrg}
+                    disabled={newOrgName.trim().length < 3 || createOrg.isPending}
+                    className="shrink-0"
+                  >
+                    {createOrg.isPending ? 'Creating...' : 'Create'}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setShowCreateForm(false); setNewOrgName('') }}
+                    disabled={createOrg.isPending}
+                    className="shrink-0"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+                {newOrgName.trim().length > 0 && newOrgName.trim().length < 3 && (
+                  <p className="text-xs text-destructive">Name must be at least 3 characters</p>
+                )}
+              </div>
+            ) : (
+              <Select
+                value={targetOrgId}
+                onValueChange={handleOrgValueChange}
+                disabled={isLoading}
+              >
+                <SelectTrigger id="org">
+                  <SelectValue placeholder={isLoading ? "Loading organizations..." : "Select an organization"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {otherOrgs.map(org => (
                     <SelectItem key={org.id} value={org.id}>
                       {org.name}
                     </SelectItem>
                   ))}
-              </SelectContent>
-            </Select>
+                  <SelectItem value="__create_new__">
+                    <span className="flex items-center gap-2 text-muted-foreground">
+                      <RiAddLine className="h-3.5 w-3.5" />
+                      Create new organization…
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+            {!isLoading && !showCreateForm && otherOrgs.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                You only have one organization. Select "Create new organization…" above to add another.
+              </p>
+            )}
           </div>
 
           <div className="flex items-center space-x-2 pt-2">
@@ -151,7 +233,7 @@ export function CopyToOrganizationDialog({
           </Button>
           <Button
             onClick={handleCopy}
-            disabled={!targetOrgId || copyToOrg.isPending}
+            disabled={!targetOrgId || copyToOrg.isPending || showCreateForm}
             className="bg-vibe-orange hover:bg-vibe-orange/90"
           >
             {copyToOrg.isPending ? 'Copying...' : `Copy ${label}`}
