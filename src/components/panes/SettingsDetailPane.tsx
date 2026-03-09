@@ -75,8 +75,8 @@ const CATEGORY_META: Record<
     icon: RiContactsLine,
   },
   users: {
-    label: "Users",
-    description: "Manage organization users",
+    label: "People",
+    description: "Your team and workspace members",
     icon: RiTeamLine,
   },
   billing: {
