@@ -256,7 +256,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   // After migration 20260310125000, call_tag_assignments.recording_id is UUID.
   // Use canonical_uuid when available (covers both legacy-migrated and new recordings).
   const { data: callCategories } = useQuery({
-    queryKey: queryKeys.calls.categories(call?.recording_id),
+    queryKey: [...queryKeys.calls.categories(call?.recording_id), call?.canonical_uuid],
     queryFn: async () => {
       if (!call || !userId) return [];
       // Resolve UUID — canonical_uuid is set by mapRecordingToMeeting for all recordings-table rows.
@@ -285,7 +285,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   // Fetch tags for this call
   // After migration 20260310125000, transcript_tag_assignments.recording_id is UUID.
   const { data: callTags } = useQuery({
-    queryKey: queryKeys.calls.tags(call?.recording_id),
+    queryKey: [...queryKeys.calls.tags(call?.recording_id), call?.canonical_uuid],
     queryFn: async () => {
       if (!call || !userId) return [];
       const recordingUuid = call.canonical_uuid ?? (typeof call.recording_id === 'string' ? call.recording_id : null);
@@ -312,7 +312,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
   // For UUID recordings: query call_participants (canonical table, migration #120).
   // For legacy numeric recordings: query fathom_transcripts (BIGINT recording_id).
   const { data: callSpeakers } = useQuery({
-    queryKey: queryKeys.calls.speakers(call?.recording_id),
+    queryKey: [...queryKeys.calls.speakers(call?.recording_id), call?.canonical_uuid],
     queryFn: async () => {
       if (!call || !userId) return [];
 
@@ -324,10 +324,7 @@ export function useCallDetailQueries(options: UseCallDetailQueriesOptions): UseC
           .select("name, email, participant_type")
           .eq("recording_id", recordingUuid);
 
-        if (error) {
-          logger.error("Error fetching call_participants for speakers", error);
-          return [];
-        }
+        if (error) throw error;
 
         return (data || [])
           .filter(p => p.name)
