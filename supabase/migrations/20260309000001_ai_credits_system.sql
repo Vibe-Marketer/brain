@@ -51,6 +51,8 @@ CREATE POLICY "Users can insert their own AI usage"
 -- FUNCTION: get_monthly_ai_usage
 -- ============================================================================
 -- Returns the count of AI actions for a given user in a given month.
+-- Only counts personal actions (org_id IS NULL) so that org-context actions
+-- are not double-counted against the user's personal limit.
 -- Called by the track-ai-usage edge function (which runs as service role).
 
 CREATE OR REPLACE FUNCTION public.get_monthly_ai_usage(
@@ -66,7 +68,8 @@ AS $$
   SELECT COUNT(*)::INTEGER
   FROM ai_usage
   WHERE user_id = p_user_id
-    AND month_year = p_month_year;
+    AND month_year = p_month_year
+    AND org_id IS NULL;
 $$;
 
 -- ============================================================================
