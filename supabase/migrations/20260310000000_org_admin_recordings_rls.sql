@@ -1,25 +1,18 @@
--- Migration: Add org admin SELECT policy on recordings
--- Issue: #100 — HOME workspace enforcement
---
--- Current state:
---   SELECT policies on recordings:
---     1. "Users can view own recordings" — owner_user_id = auth.uid()
---     2. "Users can view shared recordings in their workspaces" — workspace join
---   Missing: org admin/owner can see ALL recordings in their org regardless of workspace membership.
---
--- Per decision doc _decisions/boundaries.md §2:
---   "Org Owner/Admin: see all calls in all workspaces in that org."
---
--- Fix: Add a third SELECT policy so org admins/owners can see every recording
---      in any org they admin, regardless of workspace membership.
---
--- This is additive — existing policies are unchanged.
--- RLS is PERMISSIVE (OR semantics), so any matching policy grants access.
+-- Migration: Confirm org admin recordings RLS
+-- Purpose: The "Org admins can view all recordings" policy was already created
+--          in migration 20260308000002_tighten_recordings_select_rls.sql.
+--          This migration is intentionally a no-op to preserve the migration number.
+--          No additional policy is needed — the existing policy covers org admins.
+-- Closes: #100
+-- Date: 2026-03-10
 
-CREATE POLICY "Org admins can view all recordings in their org"
-  ON recordings
-  FOR SELECT
-  USING (is_organization_admin_or_owner(organization_id, auth.uid()));
+-- Policy already in place from 20260308000002:
+--   CREATE POLICY "Org admins can view all recordings"
+--     ON recordings FOR SELECT
+--     USING (is_organization_admin_or_owner(organization_id, auth.uid()));
+--
+-- Drop the duplicate policy if this migration was previously applied with the wrong name.
+DROP POLICY IF EXISTS "Org admins can view all recordings in their org" ON recordings;
 
 -- ============================================================================
 -- END OF MIGRATION
