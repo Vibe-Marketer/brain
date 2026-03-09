@@ -16,6 +16,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import type { DebugMessage, ActionTrailEntry, DebugPanelConfig, ResolvedErrorRecord, AppStateSnapshot, ResolutionStatus, IgnoredPattern } from './types';
 import { STORAGE_KEYS } from './types';
+import { classifyNetworkSeverity, suggestFixFromNetworkError } from './debug-dump-utils';
 
 // Sentry is OPTIONAL - only used if already installed in the host app
 // This allows the Debug Panel to work as a standalone "Sentry replacement"
@@ -578,6 +579,26 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       }
     };
 
+    // N+1 detection: track recent API call patterns
+    // Key = URL pattern (without query params), Value = array of timestamps
+    const recentApiCalls = new Map<string, number[]>();
+    const N_PLUS_ONE_THRESHOLD = 4;   // 4+ identical calls
+    const N_PLUS_ONE_WINDOW_MS = 2000; // within 2 seconds
+
+    function getUrlPattern(url: string): string {
+      try {
+        const u = new URL(url);
+        // Strip specific ID values from query strings to normalise the pattern
+        const pathname = u.pathname;
+        const params = u.searchParams;
+        // Remove eq.* filter values to detect repeated per-item queries
+        const normalized = `${pathname}?${params.toString().replace(/eq\.[^&]+/g, 'eq.*')}`;
+        return normalized.slice(0, 80);
+      } catch {
+        return url.slice(0, 80);
+      }
+    }
+
     // Intercept fetch for network errors, performance tracking, AND action trail
     window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = typeof input === 'string' ? input : input instanceof URL ? input.toString() : (input as Request).url;
@@ -597,6 +618,32 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
       // Log API call to action trail
       logActionRef.current?.('api_call', `${method} ${shortUrl}`, url);
 
+      // N+1 detection: track calls to the same URL pattern
+      if (method === 'GET') {
+        const pattern = getUrlPattern(url);
+        const now = Date.now();
+        const calls = recentApiCalls.get(pattern) ?? [];
+        // Purge old timestamps outside the window
+        const fresh = calls.filter(t => now - t < N_PLUS_ONE_WINDOW_MS);
+        fresh.push(now);
+        recentApiCalls.set(pattern, fresh);
+
+        if (fresh.length === N_PLUS_ONE_THRESHOLD) {
+          // Warn exactly once when threshold is crossed
+          addMessageRef.current?.({
+            type: 'warning',
+            message: `[N+1 DETECTED] ${N_PLUS_ONE_THRESHOLD}+ identical requests in ${N_PLUS_ONE_WINDOW_MS / 1000}s: ${shortUrl}`,
+            source: 'performance',
+            category: 'network',
+            details: `URL Pattern: ${pattern}\nCalls in window: ${fresh.length}\nThis indicates an N+1 query — fetch a batch instead of one item at a time.`,
+            url,
+            httpMethod: method,
+            severity: 'medium',
+            suggestedFix: `Replace individual \`.eq('id', itemId)\` calls with \`.in('id', ids)\` to batch the queries.`,
+          }, false);
+        }
+      }
+
       try {
         const response = await originalFetch.call(window, input, init);
         const duration = Math.round(performance.now() - startTime);
@@ -612,6 +659,7 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
             httpMethod: method,
             url,
             duration,
+            severity: 'medium',
           }, false); // Don't send to Sentry
         }
 
@@ -640,16 +688,64 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
           const isServerError = response.status >= 500;
           const type = isServerError ? 'error' : (config.track4xxAsWarnings ? 'warning' : 'error');
 
+          // Clone and read the response body to surface DB/RLS error details
+          let responseBody: string | undefined;
+          try {
+            const cloned = response.clone();
+            const text = await cloned.text();
+            responseBody = text.length > 0 ? text : undefined;
+          } catch {
+            // Can't read body — continue without it
+          }
+
+          // Parse Supabase/PostgREST error body to enrich the message
+          let errorMessage = `HTTP ${response.status}: ${response.statusText || 'Request Failed'}`;
+          let errorDetails = `URL: ${url}\nMethod: ${method}\nDuration: ${duration}ms`;
+
+          if (responseBody) {
+            try {
+              const parsed = JSON.parse(responseBody) as Record<string, unknown>;
+              // PostgREST error format: { message, details, hint, code }
+              if (parsed.message && typeof parsed.message === 'string') {
+                errorMessage = `HTTP ${response.status}: ${parsed.message}`;
+                errorDetails += `\nDB Error: ${parsed.message}`;
+                if (parsed.hint && typeof parsed.hint === 'string') {
+                  errorDetails += `\nHint: ${parsed.hint}`;
+                }
+                if (parsed.details && typeof parsed.details === 'string') {
+                  errorDetails += `\nDetails: ${parsed.details}`;
+                }
+                if (parsed.code) {
+                  errorDetails += `\nCode: ${String(parsed.code)}`;
+                }
+              }
+            } catch {
+              // Not JSON — include raw body (truncated)
+              if (responseBody.length < 300) {
+                errorDetails += `\nResponse: ${responseBody}`;
+              }
+            }
+            if (responseBody.length <= 2000) {
+              errorDetails += `\n\nRaw Response:\n${responseBody}`;
+            }
+          }
+
+          const severity = classifyNetworkSeverity(response.status, responseBody);
+          const suggestedFix = suggestFixFromNetworkError(url, response.status, responseBody);
+
           addMessageRef.current?.({
             type,
-            message: `HTTP ${response.status}: ${response.statusText || 'Request Failed'}`,
+            message: errorMessage,
             source: 'network',
             category: 'network',
-            details: `URL: ${url}\nMethod: ${method}\nDuration: ${duration}ms`,
+            details: errorDetails,
             httpStatus: response.status,
             httpMethod: method,
             url,
             duration,
+            responseBody: responseBody?.slice(0, 2000),
+            severity,
+            suggestedFix,
           }, isServerError); // Only send 5xx to Sentry by default
         }
 
@@ -665,6 +761,7 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
           httpMethod: method,
           url,
           duration,
+          severity: 'high',
         });
         throw error;
       }
