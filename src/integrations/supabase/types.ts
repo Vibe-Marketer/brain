@@ -541,21 +541,21 @@ export type Database = {
       }
       call_speakers: {
         Row: {
-          call_recording_id: number
+          recording_id: string
           created_at: string | null
           id: string
           speaker_id: string
           user_id: string
         }
         Insert: {
-          call_recording_id: number
+          recording_id: string
           created_at?: string | null
           id?: string
           speaker_id: string
           user_id: string
         }
         Update: {
-          call_recording_id?: number
+          recording_id?: string
           created_at?: string | null
           id?: string
           speaker_id?: string
@@ -564,14 +564,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "call_speakers_recording_user_fkey"
-            columns: ["call_recording_id", "user_id"]
+            columns: ["recording_id", "user_id"]
             isOneToOne: false
             referencedRelation: "fathom_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
           {
             foreignKeyName: "call_speakers_recording_user_fkey"
-            columns: ["call_recording_id", "user_id"]
+            columns: ["recording_id", "user_id"]
             isOneToOne: false
             referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
@@ -588,7 +588,7 @@ export type Database = {
       call_tag_assignments: {
         Row: {
           auto_assigned: boolean | null
-          call_recording_id: number
+          recording_id: string
           created_at: string | null
           id: string
           is_primary: boolean | null
@@ -597,7 +597,7 @@ export type Database = {
         }
         Insert: {
           auto_assigned?: boolean | null
-          call_recording_id: number
+          recording_id: string
           created_at?: string | null
           id?: string
           is_primary?: boolean | null
@@ -606,7 +606,7 @@ export type Database = {
         }
         Update: {
           auto_assigned?: boolean | null
-          call_recording_id?: number
+          recording_id?: string
           created_at?: string | null
           id?: string
           is_primary?: boolean | null
@@ -623,14 +623,14 @@ export type Database = {
           },
           {
             foreignKeyName: "call_tag_assignments_recording_user_fkey"
-            columns: ["call_recording_id", "user_id"]
+            columns: ["recording_id", "user_id"]
             isOneToOne: false
             referencedRelation: "fathom_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
           {
             foreignKeyName: "call_tag_assignments_recording_user_fkey"
-            columns: ["call_recording_id", "user_id"]
+            columns: ["recording_id", "user_id"]
             isOneToOne: false
             referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]
@@ -2889,21 +2889,21 @@ export type Database = {
       }
       transcript_tag_assignments: {
         Row: {
-          call_recording_id: number
+          recording_id: string
           created_at: string | null
           id: string
           tag_id: string
           user_id: string | null
         }
         Insert: {
-          call_recording_id: number
+          recording_id: string
           created_at?: string | null
           id?: string
           tag_id: string
           user_id?: string | null
         }
         Update: {
-          call_recording_id?: number
+          recording_id?: string
           created_at?: string | null
           id?: string
           tag_id?: string
@@ -2912,14 +2912,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "transcript_tag_assignments_recording_user_fkey"
-            columns: ["call_recording_id", "user_id"]
+            columns: ["recording_id", "user_id"]
             isOneToOne: false
             referencedRelation: "fathom_calls"
             referencedColumns: ["recording_id", "user_id"]
           },
           {
             foreignKeyName: "transcript_tag_assignments_recording_user_fkey"
-            columns: ["call_recording_id", "user_id"]
+            columns: ["recording_id", "user_id"]
             isOneToOne: false
             referencedRelation: "fathom_raw_calls"
             referencedColumns: ["recording_id", "user_id"]

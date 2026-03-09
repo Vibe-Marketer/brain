@@ -146,13 +146,12 @@ export function useMeetingsSync() {
     try {
       const { data } = await supabase
         .from('call_tag_assignments')
-        .select('call_recording_id, tag_id')
-        .in('call_recording_id', recordingIds.map(id => parseInt(id)));
+        .select('recording_id, tag_id')
+        .in('recording_id', recordingIds);
 
       const assignments: Record<string, string> = {};
       (data || []).forEach(assignment => {
-        const id = assignment.call_recording_id.toString();
-        assignments[id] = assignment.tag_id;
+        assignments[assignment.recording_id] = assignment.tag_id;
       });
 
       setPerMeetingTags(assignments);
@@ -328,7 +327,7 @@ export function useMeetingsSync() {
 
       if (tagId && tagId !== 'none') {
         await supabase.from('call_tag_assignments').insert({
-          call_recording_id: meeting.recording_id,
+          recording_id: meeting.recording_id,
           tag_id: tagId,
           auto_assigned: false
         });
