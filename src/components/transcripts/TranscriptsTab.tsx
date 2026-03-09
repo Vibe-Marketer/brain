@@ -296,6 +296,7 @@ export function TranscriptsTab({
               organization_id,
               owner_user_id,
               title,
+              summary,
               global_tags,
               source_app,
               source_metadata,
@@ -417,7 +418,7 @@ export function TranscriptsTab({
       let q = supabase
         .from('recordings')
         .select(
-          'id, legacy_recording_id, organization_id, owner_user_id, title, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at',
+          'id, legacy_recording_id, organization_id, owner_user_id, title, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at',
           { count: 'exact' }
         )
         .order('created_at', { ascending: false });
