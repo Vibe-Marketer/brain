@@ -628,7 +628,13 @@ export function DebugPanelProvider({ children, config: userConfig }: DebugPanelP
         fresh.push(now);
         recentApiCalls.set(pattern, fresh);
 
-        if (fresh.length === N_PLUS_ONE_THRESHOLD) {
+        // Cap map size to avoid unbounded growth over long sessions
+      if (recentApiCalls.size > 200) {
+        const firstKey = recentApiCalls.keys().next().value;
+        if (firstKey !== undefined) recentApiCalls.delete(firstKey);
+      }
+
+      if (fresh.length === N_PLUS_ONE_THRESHOLD) {
           // Warn exactly once when threshold is crossed
           addMessageRef.current?.({
             type: 'warning',

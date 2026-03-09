@@ -97,7 +97,7 @@ const ROOT_CAUSE_PATTERNS: Array<{
     patterns: [
       /invalid jwt/i,
       /jwt expired/i,
-      /401/,
+      /\bHTTP 401\b/i,
       /not authenticated/i,
       /session.*expired/i,
     ],

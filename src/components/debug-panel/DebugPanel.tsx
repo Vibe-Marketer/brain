@@ -41,6 +41,21 @@ import { generateSummary, parseUserAgent, formatAsMarkdown, formatAsGitHubIssue,
 import type { RootCauseGroup } from './debug-dump-utils';
 import WebhookDeliveryViewerV2 from './WebhookDeliveryViewerV2';
 
+// Static maps hoisted to module scope to avoid recreation on every render
+const SEVERITY_BORDER_BG: Record<string, string> = {
+  critical: 'border-red-400 bg-red-50 dark:bg-red-900/20',
+  high: 'border-orange-400 bg-orange-50 dark:bg-orange-900/20',
+  medium: 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20',
+  low: 'border-blue-400 bg-blue-50 dark:bg-blue-900/20',
+};
+
+const SEVERITY_BADGE: Record<string, string> = {
+  critical: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300',
+  high: 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300',
+  medium: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300',
+  low: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300',
+};
+
 // Error Boundary to prevent debug panel crashes from affecting main app
 class DebugPanelErrorBoundary extends Component<
   { children: React.ReactNode },
@@ -699,24 +714,11 @@ function DebugPanelCore() {
                     </span>
                   </h4>
                   <div className="space-y-3">
-                    {rootCauseGroups.map((group) => {
-                      const severityColors: Record<string, string> = {
-                        critical: 'border-red-400 bg-red-50 dark:bg-red-900/20',
-                        high: 'border-orange-400 bg-orange-50 dark:bg-orange-900/20',
-                        medium: 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20',
-                        low: 'border-blue-400 bg-blue-50 dark:bg-blue-900/20',
-                      };
-                      const severityBadge: Record<string, string> = {
-                        critical: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300',
-                        high: 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300',
-                        medium: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300',
-                        low: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300',
-                      };
-                      return (
-                        <div key={group.rootCause} className={`border-l-4 rounded-r-lg p-3 ${severityColors[group.severity]}`}>
+                    {rootCauseGroups.map((group) => (
+                        <div key={group.rootCause} className={`border-l-4 rounded-r-lg p-3 ${SEVERITY_BORDER_BG[group.severity]}`}>
                           <div className="flex items-center gap-2 mb-1.5">
                             <span className="text-xs font-semibold text-gray-900 dark:text-gray-100">{group.label}</span>
-                            <span className={`text-2xs px-1.5 py-0.5 rounded font-medium uppercase ${severityBadge[group.severity]}`}>
+                            <span className={`text-2xs px-1.5 py-0.5 rounded font-medium uppercase ${SEVERITY_BADGE[group.severity]}`}>
                               {group.severity}
                             </span>
                             <span className="text-2xs text-gray-500 dark:text-gray-400 ml-auto">
@@ -734,8 +736,7 @@ function DebugPanelCore() {
                             </div>
                           )}
                         </div>
-                      );
-                    })}
+                    ))}
                   </div>
                 </div>
               )}
