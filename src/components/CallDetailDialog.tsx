@@ -69,7 +69,7 @@ export function CallDetailDialog({
   }>({ open: false, segmentId: null, currentSpeaker: "", currentEmail: undefined });
   const [trimDialog, setTrimDialog] = useState<{
     open: boolean;
-    type: "this" | "before";
+    type: "this" | "before" | "after";
     segmentId: string | null;
   }>({ open: false, type: "this", segmentId: null });
   const [resyncDialog, setResyncDialog] = useState(false);
@@ -196,12 +196,19 @@ export function CallDetailDialog({
 
     if (trimDialog.type === "this") {
       trimSegmentMutation.mutate({ segmentIds: [trimDialog.segmentId] });
-    } else {
+    } else if (trimDialog.type === "before") {
       // Find the index in VISIBLE transcripts (excluding deleted)
       const segmentIndex = transcripts.findIndex((t: { id: string }) => t.id === trimDialog.segmentId);
       // Get all VISIBLE segments before it
       const segmentIds = transcripts.slice(0, segmentIndex).map((t: { id: string }) => t.id);
       logger.info("Trimming segments", segmentIds);
+      trimSegmentMutation.mutate({ segmentIds });
+    } else {
+      // Find the index in VISIBLE transcripts (excluding deleted)
+      const segmentIndex = transcripts.findIndex((t: { id: string }) => t.id === trimDialog.segmentId);
+      // Get all VISIBLE segments after it (not including the selected segment)
+      const segmentIds = transcripts.slice(segmentIndex + 1).map((t: { id: string }) => t.id);
+      logger.info("Trimming segments after", segmentIds);
       trimSegmentMutation.mutate({ segmentIds });
     }
   };
@@ -242,6 +249,10 @@ export function CallDetailDialog({
     setTrimDialog({ open: true, type: "before", segmentId });
   }, []);
 
+  const handleTrimAfter = useCallback((segmentId: string) => {
+    setTrimDialog({ open: true, type: "after", segmentId });
+  }, []);
+
   const handleRevert = useCallback((segmentId: string) => {
     revertSegmentMutation.mutate({ segmentId });
   }, [revertSegmentMutation]);
@@ -270,6 +281,7 @@ export function CallDetailDialog({
     onChangeSpeaker: handleChangeSpeaker,
     onTrimThis: handleTrimThis,
     onTrimBefore: handleTrimBefore,
+    onTrimAfter: handleTrimAfter,
     onRevert: handleRevert,
     onResyncCall: handleResyncCall,
   }), [
@@ -281,6 +293,7 @@ export function CallDetailDialog({
     handleChangeSpeaker,
     handleTrimThis,
     handleTrimBefore,
+    handleTrimAfter,
     handleRevert,
     handleResyncCall,
   ]);

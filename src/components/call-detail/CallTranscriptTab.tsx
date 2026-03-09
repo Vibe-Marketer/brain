@@ -37,6 +37,7 @@ export interface TranscriptHandlers {
   onChangeSpeaker: (segmentId: string, currentSpeaker: string, currentEmail?: string) => void;
   onTrimThis: (segmentId: string) => void;
   onTrimBefore: (segmentId: string) => void;
+  onTrimAfter: (segmentId: string) => void;
   onRevert: (segmentId: string) => void;
   onResyncCall: () => void;
 }
@@ -101,6 +102,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
     onChangeSpeaker,
     onTrimThis,
     onTrimBefore,
+    onTrimAfter,
     onRevert,
     onResyncCall,
   } = handlers;
@@ -339,6 +341,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                                           onChangeSpeaker={() => onChangeSpeaker(message.id, message.display_speaker_name, message.display_speaker_email)}
                                           onTrimThis={() => onTrimThis(message.id)}
                                           onTrimBefore={() => onTrimBefore(message.id)}
+                                          onTrimAfter={() => onTrimAfter(message.id)}
                                           onRevert={() => onRevert(message.id)}
                                         />
                                       </div>

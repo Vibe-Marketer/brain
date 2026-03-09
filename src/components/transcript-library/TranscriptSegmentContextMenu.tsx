@@ -21,6 +21,7 @@ interface TranscriptSegmentContextMenuProps {
   onChangeSpeaker: () => void;
   onTrimThis: () => void;
   onTrimBefore: () => void;
+  onTrimAfter: () => void;
   onRevert: () => void;
 }
 
@@ -31,6 +32,7 @@ export function TranscriptSegmentContextMenu({
   onChangeSpeaker,
   onTrimThis,
   onTrimBefore,
+  onTrimAfter,
   onRevert,
 }: TranscriptSegmentContextMenuProps) {
   return (
@@ -61,6 +63,10 @@ export function TranscriptSegmentContextMenu({
           <DropdownMenuItem onClick={onTrimBefore} className="text-destructive">
             <RiScissorsLine className="mr-2 h-4 w-4" />
             Trim all before this
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={onTrimAfter} className="text-destructive">
+            <RiScissorsLine className="mr-2 h-4 w-4" />
+            Trim all after this
           </DropdownMenuItem>
           {hasEdits && (
             <>
