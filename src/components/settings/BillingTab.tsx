@@ -1,100 +1,60 @@
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RiBankCardLine, RiCpuLine, RiCalendarLine } from "@remixicon/react";
-import { BarChart } from "@tremor/react";
+import { RiBankCardLine, RiCalendarLine } from "@remixicon/react";
 import { useSubscription, type SubscriptionTier } from "@/hooks/useSubscription";
 import { PlanCards } from "@/components/billing/PlanCards";
+import { AiUsageBar } from "@/components/billing/AiUsageBar";
 import { UpgradeButton } from "@/components/billing/UpgradeButton";
 
 /**
- * Format USD with appropriate precision
- * Shows more decimals for small amounts
- */
-function formatUsd(amount: number): string {
-  if (amount === 0) return "$0.00";
-  if (amount < 0.01) return `$${amount.toFixed(6)}`;
-  if (amount < 1) return `$${amount.toFixed(4)}`;
-  return `$${amount.toFixed(2)}`;
-}
-
-/**
- * Format large numbers with K/M suffix
- */
-function formatTokens(tokens: number): string {
-  if (tokens >= 1_000_000) {
-    return `${(tokens / 1_000_000).toFixed(1)}M`;
-  }
-  if (tokens >= 1_000) {
-    return `${(tokens / 1_000).toFixed(1)}K`;
-  }
-  return tokens.toString();
-}
-
-/**
  * Get plan details based on subscription tier
- * Maps Polar tiers to display information
  */
 function getPlanDetails(tier: SubscriptionTier) {
   switch (tier) {
-    case "business":
-      return {
-        name: "Business",
-        displayName: "Business",
-        price: "$249/mo",
-        annualPrice: "$2,390/yr (save $598)",
-        description: "Up to 20 users with advanced admin controls and priority support.",
-        badgeVariant: "default" as const,
-        features: [
-          "Up to 20 full users",
-          "Advanced admin controls",
-          "Priority support",
-          "Custom integrations",
-        ],
-      };
     case "team":
       return {
         name: "Team",
-        displayName: "Team",
-        price: "$99/mo",
-        annualPrice: "$950/yr (save $238)",
-        description: "Up to 5 users with team hierarchy and shared collaboration.",
+        price: "$79/mo",
+        annualPrice: "$758/yr (save $190)",
+        description: "3–10 users, shared workspaces, roles, and 5,000 pooled AI actions/month.",
         badgeVariant: "default" as const,
         features: [
-          "Up to 5 full users",
-          "Team hierarchy & manager auto-access",
-          "Shared folders",
-          "Unlimited notes",
+          "3–10 users",
+          "Shared workspaces + roles/permissions",
+          "Admin dashboard",
+          "5,000 AI actions / month (pooled)",
+          "Everything in Pro",
         ],
       };
-    case "solo":
+    case "pro":
       return {
-        name: "Solo",
-        displayName: "Solo",
+        name: "Pro",
         price: "$29/mo",
         annualPrice: "$278/yr (save $70)",
-        description: "Perfect for individuals with unlimited calls and transcription features.",
+        description: "Unlimited imports, full MCP access, and 1,000 AI actions/month.",
         badgeVariant: "default" as const,
         features: [
           "1 user",
-          "Unlimited calls & transcriptions",
-          "Folders, tags, global search",
-          "10 notes per call",
+          "Unlimited imports",
+          "Multiple workspaces",
+          "Full MCP / External AI access",
+          "1,000 AI actions / month",
         ],
       };
     case "free":
     default:
       return {
         name: "Free",
-        displayName: "Free",
         price: "$0",
-        description: "Limited usage with core features. Can view shared calls from paid users.",
+        annualPrice: undefined,
+        description: "Core import features and a taste of AI.",
         badgeVariant: "outline" as const,
         features: [
-          "1 user",
-          "300 minutes/month limit",
-          "Limited storage",
-          "View-only for shared calls",
+          "1 user, 1 workspace",
+          "10 imports / month",
+          "25 AI actions / month",
+          "Smart import (titles + tags)",
         ],
       };
   }
@@ -138,9 +98,12 @@ export default function BillingTab() {
     status,
     periodEnd,
     isPaid,
+    isTrialing,
     isLoading: subscriptionLoading,
     error: subscriptionError,
   } = useSubscription();
+
+  const plan = getPlanDetails(tier);
 
   return (
     <div>
@@ -179,21 +142,28 @@ export default function BillingTab() {
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-1">
-                    <h3 className="text-lg font-semibold">{getPlanDetails(tier).displayName} Plan</h3>
-                    <Badge variant={formatStatus(status).variant}>{formatStatus(status).label}</Badge>
-                    {getPlanDetails(tier).price && (
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {getPlanDetails(tier).price}
-                      </span>
-                    )}
+                    <h3 className="text-lg font-semibold">
+                      {plan.name} Plan
+                      {isTrialing && (
+                        <span className="ml-2 text-sm font-normal text-muted-foreground">
+                          (14-day trial)
+                        </span>
+                      )}
+                    </h3>
+                    <Badge variant={formatStatus(status).variant}>
+                      {formatStatus(status).label}
+                    </Badge>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {plan.price}
+                    </span>
                   </div>
-                  {getPlanDetails(tier).annualPrice && (
+                  {plan.annualPrice && (
                     <p className="text-xs text-muted-foreground mb-2">
-                      Or {getPlanDetails(tier).annualPrice}
+                      Or {plan.annualPrice}
                     </p>
                   )}
                   <p className="text-sm text-muted-foreground">
-                    {getPlanDetails(tier).description}
+                    {plan.description}
                   </p>
                 </div>
               </div>
@@ -204,7 +174,11 @@ export default function BillingTab() {
                   <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <RiCalendarLine className="h-4 w-4" />
                     <span>
-                      {status === 'canceled' ? 'Access until: ' : 'Renews: '}
+                      {isTrialing
+                        ? 'Trial ends: '
+                        : status === 'canceled'
+                        ? 'Access until: '
+                        : 'Renews: '}
                       {formatDate(periodEnd)}
                     </span>
                   </div>
@@ -217,7 +191,7 @@ export default function BillingTab() {
                   What's included
                 </h4>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  {getPlanDetails(tier).features?.map((feature, index) => (
+                  {plan.features.map((feature, index) => (
                     <li key={index} className="flex items-center gap-2">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                       {feature}
@@ -229,8 +203,8 @@ export default function BillingTab() {
               {/* Upgrade CTA for free users */}
               {tier === 'free' && (
                 <div className="pl-16">
-                  <UpgradeButton productId="solo-monthly" className="mt-2">
-                    Upgrade to Solo
+                  <UpgradeButton productId="pro-monthly" className="mt-2">
+                    Upgrade to Pro
                   </UpgradeButton>
                 </div>
               )}
@@ -239,7 +213,25 @@ export default function BillingTab() {
         </div>
       </div>
 
-      {/* All Plans - Interactive plan comparison with PlanCards */}
+      {/* AI Usage Section */}
+      <Separator className="my-16" />
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+            Usage
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+            Monthly AI action consumption
+          </p>
+        </div>
+        <div className="lg:col-span-2">
+          <div className="p-4 rounded-lg border border-border bg-card">
+            <AiUsageBar />
+          </div>
+        </div>
+      </div>
+
+      {/* All Plans */}
       <Separator className="my-16" />
       <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
         <div>
@@ -253,12 +245,10 @@ export default function BillingTab() {
         <div className="lg:col-span-2">
           <PlanCards
             currentTier={tier}
-            onUpgrade={() => {
-              // Handled internally by PlanCards' UpgradeButton components
-            }}
+            isTrialing={isTrialing}
             isLoading={subscriptionLoading}
           />
-          
+
           {/* Enterprise callout */}
           <div className="mt-6 p-4 bg-muted/30 rounded-lg">
             <div className="flex items-center justify-between mb-2">
@@ -266,7 +256,7 @@ export default function BillingTab() {
               <span className="text-sm text-muted-foreground">Custom pricing</span>
             </div>
             <p className="text-xs text-muted-foreground">
-              Unlimited users • SSO • Dedicated CSM • SLA • Custom security
+              Unlimited users · SSO · Dedicated CSM · SLA · Custom security
             </p>
             <p className="text-xs text-muted-foreground mt-2">
               Contact us for enterprise pricing and features.
