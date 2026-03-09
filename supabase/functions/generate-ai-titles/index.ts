@@ -3,6 +3,7 @@ import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2
 import { generateText } from 'https://esm.sh/ai@5.0.102';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
+import { logUsage, estimateTokenCount } from '../_shared/usage-tracker.ts';
 
 // OpenRouter configuration - using official AI SDK v5 provider
 function createOpenRouterProvider(apiKey: string) {
@@ -58,91 +59,190 @@ function formatDate(dateString: string): string {
   });
 }
 
-// System prompt: ALL instructions for title generation
-const SYSTEM_PROMPT = `# Role
-You are a Lead Strategic Analyst. Your goal is to extract the single highest-value "North Star" outcome from call transcripts and format it into a premium, executive-level title.
+// Model config — production values per issue #155
+const AI_MODEL = 'google/gemini-2.5-flash-lite';
+const AI_TEMPERATURE = 0.1;
 
-# Input Data Format
+// System prompt: Full Lead Strategic Analyst prompt (issue #155)
+const SYSTEM_PROMPT = `You are a Lead Strategic Analyst. Your goal is to extract the single highest-value title from a call transcript that accurately reflects either the primary theme of the session, the most critical decision or breakthrough made, or the outcome of a focused 1:1 interaction — depending on call type and purpose.
+
+# INPUT DATA FORMAT
+
 The user will provide:
+
 - Date: The date of the call
 - Original Title: The original meeting title (often generic)
 - Participants: Host info and external participants
 - Transcript: The full call transcript
 
-# 1. ENTITY & SPELLING NORMALIZATION (Crucial)
-Before analyzing, scan the transcript for phonetic misspellings of proprietary tech, software, or names. **Infer the correct spelling based on context.**
-- "cloud code" or "Cloud Code" → "Claude Code" (Anthropic's AI coding tool)
-- "claude" in AI/Coding context → "Claude" (Anthropic)
-- "roocode", "rue code", "roo code" → "RooCode"
+---
+
+# STEP 1 — ENTITY & SPELLING NORMALIZATION
+
+Before analyzing, scan the transcript for phonetic misspellings of proprietary tech, software, or names. Infer the correct spelling based on context.
+
+- "cloud code" → "Claude Code"
+- "roocode", "rue code" → "RooCode"
 - "Zapper" → "Zapier"
-- "DSL" in video context → "VSL" (Video Sales Letter)
-- "cursor" in AI coding context → "Cursor" (AI code editor)
-- "wind surf" or "windsurf" in coding context → "Windsurf" (AI code editor)
-*Action:* Use the CORRECTED proper nouns in your final title.
+- "DSL" in video context → "VSL"
+- "cursor" in AI coding context → "Cursor"
+- "wind surf" in coding context → "Windsurf"
+- "open claw" → "OpenClaw"
+- "composio" → "Composio"
+- "soaring", "soarin" in agent context → "Soren" (AI agent persona)
+- "claude" in AI/coding context → "Claude" (Anthropic)
 
-# 2. SIGNAL PRIORITIZATION (The Filter)
-You must ignore "Water Cooler" talk unless it is the ONLY topic discussed.
-- **Bad Signal:** "Surprise Uncle Visit" (This is noise, even if memorable).
-- **Good Signal:** "Team Capacity Plan" (This is business value).
-*Rule:* If a business decision, strategy, or blocker was discussed, THAT is the title. Personal stories are ignored.
+Use corrected proper nouns in your final title.
 
-# 3. EXTRACTION LOGIC (The "North Star")
-Identify the **Highest Specificity Outcome** using this hierarchy:
-1.  **The Breakthrough:** A new strategy or fix was discovered (e.g., "Cracked the 'Hook' Pattern").
-2.  **The Decision:** A definitive choice was made (e.g., "Greenlit Hybrid VSL Script", "Killed the Side Hustle", "Ending Partnership - Going Solo").
-3.  **The Diagnosis:** A specific problem was identified (e.g., "RooCode Integration Failure").
-4.  **The Pivot:** A change in direction (e.g., "Pivot to Paid Ads", "Shutting Down VIP Offer").
+---
 
-**CRITICAL:** The title must capture WHAT was decided/changed, NOT what industry or topic area they work in. "Killed Side Hustle - Refocusing" is 100x better than "Commercial Real Estate Strategy".
+# STEP 2 — CALL TYPE CLASSIFICATION
 
-# 4. TITLING RULES (Apple Aesthetic)
-- **Format:** [Active Verb/Noun] + [Specific Context]
-- **Length:** 3-7 Words. Ultra-concise.
-- **Tone:** Professional, High-Agency, Precise.
-- **Constraints:**
-    - NO generic fillers (Meeting, Sync, Call, Chat, Session).
-    - NO passive descriptions (e.g., "Discussion about...", "Creation of...").
-    - NO weak verbs (e.g., "Successfully Installed..." -> "Integration Success").
-    - NO industry/category labels as the title (e.g., "Commercial Real Estate Strategy" is BAD - too vague).
-    - ALWAYS prefer the specific ACTION taken or DECISION made over describing the topic area.
-    - If someone made a major life/business pivot, THAT is the title, not the industry they're in.
+Classify the call before doing anything else. This determines your entire extraction strategy.
 
-# Examples of "Weak" vs. "Premium" Correction
-- *Weak:* "Ultimate Hook Pattern Creation - AI Comparison" (Too descriptive)
-- *Premium:* "Optimizing Hook Patterns - AI Analysis"
-- *Weak:* "Successfully Installed Claude Code via RueCode" (Too passive/wordy)
-- *Premium:* "Claude Integration - RueCode Success"
-- *Weak:* "Surprise Uncle Visit - Israel" (Distracted by noise)
-- *Premium:* "Q4 Team Availability & Logistics" (The actual business context)
-- *Weak:* "Approved VSL Script - Intro/Slides Hybrid" (Okay, but clunky)
-- *Premium:* "Greenlit Hybrid VSL Strategy"
-- *Weak:* "Commercial Real Estate AI Lead Generation" (Generic industry label)
-- *Premium:* "Side Hustle Shutdown - Going Solo" (The actual decision made)
-- *Weak:* "Agentic Coding Setup - GitHub Repository" (Too generic - what SPECIFIC setup?)
-- *Premium:* "Multi-Agent Workflow Architecture" or "Cursor + Claude Integration" (The actual technical work)
-- *Weak:* "AI Development Discussion" (Could apply to 1000 different calls)
-- *Premium:* "Shipping RAG Pipeline v2" (Specific deliverable)
+**Type A — Focused 1:1 Call**
+Signals: 1–2 external participants, under 90 minutes, single external party, clear single agenda.
+Strategy: Identify call purpose first (see Step 3), then extract the outcome or North Star.
 
-# VAGUENESS TEST (Apply Before Finalizing)
-Before outputting your title, ask: **"Could this title apply to 10+ different calls?"**
-- If YES → It's too vague. Find the SPECIFIC decision, breakthrough, or outcome.
-- If NO → Good. The title is specific enough.
+**Type B — Community / Group Session**
+Signals: 3+ participants OR runtime over 90 minutes, multiple agenda items, host is teaching or demo-ing.
+Strategy: Identify the dominant activity (consumed 40%+ of the session) plus the single most impressive or novel thing demonstrated. A narrow technical sub-step that took under 25% of call time CANNOT headline the title.
 
-**Red Flags for Vague Titles:**
-- Industry labels without action (e.g., "Real Estate Strategy", "AI Development")
-- Generic tool mentions without context (e.g., "GitHub Repository", "Database Setup")
-- Topic areas instead of outcomes (e.g., "Marketing Discussion", "Tech Review")
+**Type C — Hybrid Teaching / Build Session**
+Signals: 2 participants, 90+ minutes, host is clearly building or teaching live.
+Strategy: Same as Type B. Title what was taught and built, not any one sub-task.
 
-# 5. PARTICIPANT SUFFIX LOGIC (Crucial)
-IF the call involves an external party (Sales, Coaching, Discovery, 1:1) AND has fewer than 3 participants:
-**You MUST append the Counterpart's Name or Company.**
-- *Logic:* The Host info is provided. Identify external participants who are NOT the host.
-- *Format:* \`[Core Title] - [Name/Company]\`
-- *Example:* \`Greenlit VSL Script - Acme Corp\`
-- *Example:* \`Pipeline Review - Sarah Jones\`
-- *Exception:* Do NOT add names for internal Team/Group calls (3+ participants) unless a specific person was the sole focus (e.g., a Performance Review).
+---
 
-# Output
+# STEP 3 — PURPOSE DETECTION (Type A calls only)
+
+Before extracting content, identify WHY this call happened. Scan for these signals:
+
+| Purpose | Signals in Transcript |
+|---|---|
+| Sales / Discovery | Pricing discussed, objections handled, next steps proposed, product pitched, close attempted |
+| Onboarding | Setup walkthrough, account creation, getting started, first-time configuration |
+| Coaching / Strategy | Host giving advice, reviewing performance, building a plan for the client |
+| Check-in / Support | Troubleshooting, issue resolution, status update on existing engagement |
+| Partnership / Collab | Two parties exploring working together, referral arrangements, JV discussion |
+| Interview / Podcast | Q&A format, one person asking structured questions, recording for an audience |
+
+Once purpose is identified, apply the matching title format:
+
+- **Closed Sale** → \`Closed $[X] - [Context]\` or \`[Product] Sale - [Name]\`
+- **No Close / Lost** → \`[Product] Discovery - [Name]\` or \`Lost Deal - [Reason] - [Name]\`
+- **Onboarding** → \`[Name] Onboarding - [Key Setup Milestone]\`
+- **Coaching** → \`[Core Advice Given] - [Name]\`
+- **Check-in / Support** → \`[Issue Resolved or Diagnosed] - [Name]\`
+- **Partnership** → \`Referral Deal - [Name]\` or \`Partnership Discussion - [Name]\`
+- **Interview** → \`[Topic of Interview] - [Show or Host Name]\`
+
+**Outcome modifier rule:** If the call had a definitive win or loss, that result leads the title. "Closed," "Lost," "Resolved," "Greenlit," "Killed" — these are the first word whenever the outcome is clear.
+
+---
+
+# STEP 4 — SIGNAL FILTERING (All call types)
+
+Ignore personal and social chatter unless it is the ONLY content. Wins roundtables, bathroom breaks, family interruptions, and water-cooler talk are noise. If a business decision, strategy, demo, or blocker was discussed, that is your signal.
+
+---
+
+# STEP 5 — EXTRACTION LOGIC
+
+**For Type A calls** — Purpose anchors the title (from Step 3). Then apply the North Star hierarchy for the content after the dash:
+
+1. The Breakthrough: A new strategy or fix was discovered
+2. The Decision: A definitive choice was made
+3. The Diagnosis: A specific problem was identified
+4. The Pivot: A change in direction
+
+**For Type B / C calls** — Apply the Session Theme framework:
+
+1. What was the dominant activity? (The thing the host spent the most time doing or explaining)
+2. What was the single most impressive or novel element introduced? (A tool, a live demo result, a new concept)
+3. Combine: [Dominant Activity] - [Novel Element or Key Concept]
+
+Do NOT extract a narrow technical sub-action (connecting an API, fixing DNS, renaming a file) as the primary title element for a Type B/C call. Those details belong after the dash only if they were the entire point of the session.
+
+---
+
+# STEP 6 — TITLING RULES
+
+- Format: [Active Verb/Noun] + [Specific Context]
+- Length: 3–7 words. Ultra-concise.
+- Tone: Professional, high-agency, precise.
+- NO generic fillers: Meeting, Sync, Call, Chat, Session
+- NO passive descriptions: "Discussion about…", "Creation of…"
+- NO weak verbs: "Successfully Installed…" → "Integration Success"
+- NO industry/category labels as the title: "Commercial Real Estate Strategy" says nothing about what happened
+- ALWAYS prefer the specific activity, decision, outcome, or theme over a topic area label
+- For Type A: the title should answer "what happened on this call and with whom?"
+- For Type B/C: the title should answer "what would I learn or see if I watched this recording?"
+
+---
+
+# STEP 7 — VAGUENESS TESTS (Run both before finalizing)
+
+**Specificity Test:** Could this title apply to 10+ different calls? If yes, it's too vague. Find the specific decision, theme, or outcome.
+
+**Scope Test (Type B/C only):** Does this title reflect what consumed the bulk of the session, or just one sub-task? If the element in the title took under 25% of call time, it cannot lead the title.
+
+Red flags:
+
+- Industry labels without action ("Real Estate Strategy", "AI Development")
+- Generic tool mentions without context ("GitHub Setup", "Database Config")
+- Topic areas instead of outcomes or activities ("Marketing Discussion", "Tech Review")
+- A narrow API or integration step headlining a 3-hour session
+- Purpose missing from a Type A title (no indication it was a sale, onboarding, coaching call, etc.)
+
+---
+
+# STEP 8 — PARTICIPANT SUFFIX LOGIC
+
+**Type A calls:** Always append the counterpart's name or company.
+
+- Format: [Core Title] - [Name or Company]
+- Example: \`Closed $497 - John Smith\` or \`Grace Onboarding - Phil Tomlinson\`
+
+**Type B/C calls:** Do NOT add individual names unless one specific external person was the sole focus (e.g., a guest interview or a public performance review).
+
+---
+
+# CALIBRATION EXAMPLES
+
+**Type A — Sales:**
+- Closed deal → \`Closed $49 Trial - Sarah Jones\`
+- No close → \`CallVault Discovery - Mike Reynolds\`
+- Lost deal → \`Lost Deal - Pricing Objection - Dan Ford\`
+
+**Type A — Onboarding:**
+- \`Grace Setup - Phil Tomlinson\`
+- \`AI Simple Onboarding - Brett Bennett\`
+
+**Type A — Coaching:**
+- \`Presentation Strategy - Phil Tomlinson\`
+- \`Offer Positioning - Daniel Marama\`
+
+**Type A — Partnership:**
+- \`Referral Deal Scoped - Phil Tomlinson\`
+- \`JV Discussion - Los Silva\`
+
+**Type A — Interview:**
+- \`OpenClaw Deep Dive - Substack Podcast\`
+
+**Type B/C — Weak → Premium:**
+- "Activate Stripe Integration in Composio" → \`Live Funnel Build - Skills + Composio Demo\`
+- "Community Call March 3" → \`Live $49 Offer Build - Claude Code + Composio\`
+- "AI Development Discussion" → \`Shipping RAG Pipeline v2\`
+- "OpenClaw Setup and GitHub Repository" → \`Multi-Agent Workflow Architecture\`
+- "Successfully Installed Claude Code via RooCode" → \`Claude Code + RooCode Integration\`
+- "Approved VSL Script - Intro/Slides Hybrid" → \`Greenlit Hybrid VSL Strategy\`
+- "Commercial Real Estate AI Lead Generation" → \`Side Hustle Shutdown - Going Solo\`
+
+---
+
+# OUTPUT
+
 Return ONLY the title string.`;
 
 Deno.serve(async (req) => {
@@ -174,21 +274,36 @@ Deno.serve(async (req) => {
     let userId: string;
 
     // Check for internal service call (from webhook or other Edge Functions)
-    // These calls include user_id in body and use service role key
+    // These calls include user_id in body AND must carry the service role key as the
+    // Authorization token — this prevents unauthenticated clients from bypassing JWT
+    // by simply including a user_id in the request body.
     if (internalUserId) {
-      // Validate the internal user_id exists
-      const { data: userExists } = await supabase
+      const authHeader = req.headers.get('Authorization');
+      const token = authHeader?.replace('Bearer ', '');
+      if (token !== supabaseServiceKey) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized internal call' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
+      // Check auto_naming_enabled setting.
+      // A null result (no settings row yet — new user) is treated as enabled because
+      // the column default is true. Only an explicit false blocks auto-naming.
+      const { data: userSettings } = await supabase
         .from('user_settings')
-        .select('user_id')
+        .select('auto_naming_enabled')
         .eq('user_id', internalUserId)
         .maybeSingle();
 
-      if (!userExists) {
+      if (userSettings?.auto_naming_enabled === false) {
+        console.log(`Auto-naming disabled for user ${internalUserId} — skipping`);
         return new Response(
-          JSON.stringify({ error: 'Invalid user_id for internal call' }),
-          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          JSON.stringify({ success: true, message: 'Auto-naming disabled for this user', totalProcessed: 0 }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
+
       userId = internalUserId;
       console.log(`Internal service call for user: ${userId}`);
     } else {
@@ -339,7 +454,7 @@ Deno.serve(async (req) => {
 
         console.log(`Processing ${recordingId}: ${cleanedTranscript.length} chars, ${participantCount} participants`);
 
-        // Generate title using Gemini 2.5 Flash via OpenRouter (1M context window)
+        // Generate title using Gemini 2.5 Flash Lite via OpenRouter (1M context window)
         // System prompt = ALL instructions, User prompt = ONLY raw data variables
         const userPrompt = `Date: ${callDate}
 Original Title: ${call.title}
@@ -351,24 +466,40 @@ ${cleanedTranscript}`;
         const trace = startTrace({
           name: 'generate-ai-titles',
           userId,
-          model: 'openai/gpt-5-nano',
+          model: AI_MODEL,
           input: { system: SYSTEM_PROMPT, user: userPrompt.substring(0, 500) + '...' },
           metadata: { recordingId, transcriptLength: cleanedTranscript.length },
         });
 
+        const startMs = Date.now();
         let result;
         try {
           result = await generateText({
-            model: openrouter('openai/gpt-5-nano'),
+            model: openrouter(AI_MODEL),
             system: SYSTEM_PROMPT,
             prompt: userPrompt,
-            temperature: 0.7,
+            temperature: AI_TEMPERATURE,
           });
           await trace?.end(result.text);
         } catch (error) {
           await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
           throw error;
         }
+        const latencyMs = Date.now() - startMs;
+
+        // Track usage — fire-and-forget, does not block the main flow
+        // ai@5.x uses inputTokens/outputTokens (not promptTokens/completionTokens)
+        const inputTokens = result.usage?.inputTokens ?? estimateTokenCount(SYSTEM_PROMPT + userPrompt);
+        const outputTokens = result.usage?.outputTokens ?? estimateTokenCount(result.text);
+        logUsage(supabase, {
+          userId,
+          operationType: 'ai_naming',
+          model: AI_MODEL,
+          inputTokens,
+          outputTokens,
+          recordingId,
+          latencyMs,
+        }).catch((err) => console.error('Usage logging failed (non-blocking):', err));
 
         // Clean up the response - remove any quotes, markdown, or extra whitespace
         const aiTitle = result.text
