@@ -21,6 +21,11 @@
 --   filter_tag_ids        — Only return calls that have at least one of these tags (optional)
 --   filter_folder_ids     — Only return calls that are in at least one of these folders (optional)
 --   match_count           — Max results per entity type for calls; others use match_count/4
+--
+-- NOTE (scalability): accessible_recording_ids is materialised into a PL/pgSQL array.
+-- This is efficient for current data volumes. If per-user recording counts grow into
+-- the tens of thousands, replace with a CTE or temp-table approach to allow Postgres
+-- to use index-based joins instead of array containment scans.
 
 DROP FUNCTION IF EXISTS global_search(
   text, uuid, uuid, timestamptz, timestamptz, text[], uuid[], uuid[], int
@@ -54,6 +59,9 @@ DECLARE
   accessible_recording_ids UUID[];
   sub_limit                INT;
   has_query                BOOLEAN;
+  -- ILIKE-safe version of query_text: backslash, %, and _ are escaped
+  -- so user input cannot manipulate LIKE pattern matching.
+  query_escaped            TEXT;
 BEGIN
   -- Validate required parameter
   IF filter_user_id IS NULL THEN
@@ -62,6 +70,13 @@ BEGIN
 
   has_query := query_text IS NOT NULL AND trim(query_text) != '';
   sub_limit := GREATEST(5, match_count / 4);
+
+  -- Build ILIKE-safe escaped query (escape order matters: backslash first)
+  IF has_query THEN
+    query_escaped := replace(replace(replace(trim(query_text), E'\\', E'\\\\'), '%', E'\\%'), '_', E'\\_');
+  ELSE
+    query_escaped := '';
+  END IF;
 
   -- ============================================================================
   -- STEP 1: Determine accessible recording UUIDs
@@ -136,30 +151,36 @@ BEGIN
     AND (filter_date_end   IS NULL OR COALESCE(r.recording_start_time, r.created_at) <= filter_date_end)
     -- Source app filter
     AND (filter_source_apps IS NULL OR r.source_app = ANY(filter_source_apps))
-    -- Tag filter: recording must have at least one matching tag (via legacy_recording_id)
+    -- Tag filter: when active, only include recordings with a matching tag.
+    -- Recordings without legacy_recording_id cannot have tags → excluded when filter is active.
     AND (
       filter_tag_ids IS NULL
-      OR r.legacy_recording_id IS NULL  -- unmigrated recordings pass through
-      OR EXISTS (
-        SELECT 1 FROM call_tag_assignments cta
-        WHERE cta.call_recording_id = r.legacy_recording_id
-          AND cta.tag_id = ANY(filter_tag_ids)
+      OR (
+        r.legacy_recording_id IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM call_tag_assignments cta
+          WHERE cta.call_recording_id = r.legacy_recording_id
+            AND cta.tag_id = ANY(filter_tag_ids)
+        )
       )
     )
-    -- Folder filter: recording must be in at least one matching folder
+    -- Folder filter: when active, only include recordings with a matching folder assignment.
+    -- Recordings without legacy_recording_id cannot be in folders → excluded when filter is active.
     AND (
       filter_folder_ids IS NULL
-      OR r.legacy_recording_id IS NULL  -- unmigrated recordings pass through
-      OR EXISTS (
-        SELECT 1 FROM folder_assignments fa
-        WHERE fa.call_recording_id = r.legacy_recording_id
-          AND fa.folder_id = ANY(filter_folder_ids)
+      OR (
+        r.legacy_recording_id IS NOT NULL
+        AND EXISTS (
+          SELECT 1 FROM folder_assignments fa
+          WHERE fa.call_recording_id = r.legacy_recording_id
+            AND fa.folder_id = ANY(filter_folder_ids)
+        )
       )
     )
     -- Text filter: title must match query (or no query)
     AND (
       NOT has_query
-      OR r.title ILIKE '%' || query_text || '%'
+      OR r.title ILIKE '%' || query_escaped || '%' ESCAPE E'\\'
       OR to_tsvector('english', COALESCE(r.title, ''))
            @@ plainto_tsquery('english', query_text)
     )
@@ -194,11 +215,11 @@ BEGIN
   FROM contacts c
   WHERE
     c.user_id = filter_user_id
-    -- Text filter
+    -- Text filter (ILIKE metacharacters escaped)
     AND (
       NOT has_query
-      OR c.name  ILIKE '%' || query_text || '%'
-      OR c.email ILIKE '%' || query_text || '%'
+      OR c.name  ILIKE '%' || query_escaped || '%' ESCAPE E'\\'
+      OR c.email ILIKE '%' || query_escaped || '%' ESCAPE E'\\'
       OR to_tsvector('english', COALESCE(c.name, '') || ' ' || COALESCE(c.email, ''))
            @@ plainto_tsquery('english', query_text)
     )
@@ -240,13 +261,13 @@ BEGIN
     END                             AS relevance_score
   FROM call_tags ct
   WHERE
-    -- User's own tags or system-wide tags
-    (ct.user_id = filter_user_id OR ct.is_system = true)
-    AND ct.is_system = false  -- Exclude system tags (SKIP, etc.) from search results
-    -- Text filter
+    -- User's own non-system tags only (system tags like SKIP are excluded from search results)
+    ct.user_id = filter_user_id
+    AND ct.is_system = false
+    -- Text filter (ILIKE metacharacters escaped)
     AND (
       NOT has_query
-      OR ct.name ILIKE '%' || query_text || '%'
+      OR ct.name ILIKE '%' || query_escaped || '%' ESCAPE E'\\'
       OR to_tsvector('english', COALESCE(ct.name, '') || ' ' || COALESCE(ct.description, ''))
            @@ plainto_tsquery('english', query_text)
     )
@@ -266,18 +287,15 @@ BEGIN
   -- ============================================================================
   RETURN QUERY
   SELECT
-    'folder'::TEXT AS entity_type,
-    f.id::TEXT     AS entity_id,
-    f.name         AS title,
-    COALESCE(
-      (SELECT w.name FROM workspaces w WHERE w.id = f.workspace_id),
-      'Folder'
-    )              AS subtitle,
+    'folder'::TEXT                              AS entity_type,
+    f.id::TEXT                                  AS entity_id,
+    f.name                                      AS title,
+    COALESCE(w.name, 'Folder')                  AS subtitle,
     jsonb_build_object(
       'workspace_id',    f.workspace_id,
       'organization_id', f.organization_id,
       'parent_id',       f.parent_id
-    )              AS metadata,
+    )                                           AS metadata,
     CASE
       WHEN NOT has_query THEN 0.3::FLOAT
       ELSE (
@@ -286,17 +304,18 @@ BEGIN
           plainto_tsquery('english', query_text)
         )::FLOAT * 0.6
       )
-    END            AS relevance_score
+    END                                         AS relevance_score
   FROM folders f
+  LEFT JOIN workspaces w ON w.id = f.workspace_id
   WHERE
     f.user_id = filter_user_id
     AND (f.is_archived IS NULL OR f.is_archived = FALSE)
     -- Workspace filter: if workspace specified, only show folders in that workspace
     AND (filter_workspace_id IS NULL OR f.workspace_id = filter_workspace_id)
-    -- Text filter
+    -- Text filter (ILIKE metacharacters escaped)
     AND (
       NOT has_query
-      OR f.name ILIKE '%' || query_text || '%'
+      OR f.name ILIKE '%' || query_escaped || '%' ESCAPE E'\\'
       OR to_tsvector('english', COALESCE(f.name, ''))
            @@ plainto_tsquery('english', query_text)
     )
@@ -333,6 +352,7 @@ COMMENT ON FUNCTION global_search IS
    Returns entity_type, entity_id, title, subtitle, metadata, and relevance_score.
    Scoped to recordings the user owns or can see via workspace membership.
    Supports optional filters: workspace, date range, source app, tag IDs, folder IDs.
+   ILIKE queries escape % and _ metacharacters to prevent pattern-manipulation.
    Implements issue #110: Global search across all entities.';
 
 -- Notify PostgREST to reload schema

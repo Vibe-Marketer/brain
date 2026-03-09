@@ -56,7 +56,8 @@ interface GroupedResults {
   total: number;
 }
 
-const VALID_SOURCE_APPS = ['fathom', 'zoom', 'youtube', 'upload', 'google_meet', 'other'];
+// google_meet is excluded per FOUND-09: "Zero Google Meet references — removed from v2 entirely"
+const VALID_SOURCE_APPS = ['fathom', 'zoom', 'youtube', 'upload', 'other'];
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
