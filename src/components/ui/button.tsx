@@ -80,13 +80,14 @@ const buttonVariants = cva(
 
         /**
          * 6. OUTLINE — Subtle bordered for toggleable/selectable items.
-         *    Light gradient hint ties it to the same family as default/hollow.
+         *    Override-friendly: transparent by default, subtle gradient on hover
+         *    ties it to the same family as default/hollow.
          */
         outline: [
-          "bg-gradient-to-b from-white/80 to-transparent border border-border/40 text-muted-foreground",
+          "bg-transparent border border-border/40 text-muted-foreground",
           "shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
           "hover:bg-gradient-to-b hover:from-gray-50 hover:to-transparent hover:text-foreground hover:border-border",
-          "dark:from-transparent dark:border-border dark:text-muted-foreground",
+          "dark:border-border dark:text-muted-foreground",
           "dark:hover:from-secondary/30 dark:hover:text-white dark:hover:border-border/80",
           "dark:shadow-[0_1px_2px_rgba(0,0,0,0.1)]",
           "rounded-lg",

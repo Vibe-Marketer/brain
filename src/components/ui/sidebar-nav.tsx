@@ -241,7 +241,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                 onKeyDown={(e) => handleKeyDown(e, item.id)}
                 className={cn(
                   'relative flex items-center',
-                  isCollapsed ? 'justify-center w-10 h-10 px-0' : 'justify-start w-full px-3 h-10 gap-3',
+                  isCollapsed ? 'justify-center w-11 h-11 px-0' : 'justify-start w-full px-3 h-10 gap-3',
                   'rounded-lg border border-transparent transition-all duration-500 ease-in-out',
                   'hover:bg-hover/70',
                   isCollapsed && active && 'bg-vibe-orange/10',
@@ -256,7 +256,7 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
                   {/* Icon — same clean rendering in both modes */}
                   <div className={cn(
                       "flex-shrink-0 flex items-center justify-center",
-                       isCollapsed ? "w-10 h-10" : "w-5 h-5"
+                       isCollapsed ? "w-11 h-11" : "w-5 h-5"
                   )}>
                      {(() => {
                         const IconComponent = item.iconLine;
@@ -296,13 +296,13 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
             >
                <div className={cn(
                       "flex-shrink-0 flex items-center justify-center",
-                       isCollapsed ? "w-10 h-10" : "w-5 h-5 text-muted-foreground"
+                       isCollapsed ? "w-11 h-11" : "w-5 h-5 text-muted-foreground"
                   )}>
                   <RiLayoutColumnLine className={iconClass} />
               </div>
               {!isCollapsed && <span className="text-sm text-muted-foreground truncate">Hub Panel</span>}
             </button>
-             {isCollapsed && <div className="w-8 h-px bg-cb-border mt-2 mx-auto" />}
+             {isCollapsed && <div className="w-8 h-px bg-border mt-2 mx-auto" />}
           </div>
         )}
 
