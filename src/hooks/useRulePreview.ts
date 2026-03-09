@@ -63,7 +63,7 @@ function evaluateSingleCondition(condition: RoutingCondition, call: PreviewCall)
 
   const stringMatch = (haystack: string | null | undefined, needle: string | number, op: string): boolean => {
     const h = (haystack ?? '').toLowerCase();
-    const n = String(value).toLowerCase();
+    const n = String(needle).toLowerCase();
     switch (op) {
       case 'contains':     return h.includes(n);
       case 'not_contains': return !h.includes(n);

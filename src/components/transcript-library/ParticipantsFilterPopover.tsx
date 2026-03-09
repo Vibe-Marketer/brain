@@ -51,7 +51,7 @@ export function ParticipantsFilterPopover({
           active={selectedParticipants.length > 0}
         />
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0 bg-white dark:bg-card" align="start">
+      <PopoverContent className="w-80 p-0 bg-popover" align="start">
         <div className="flex flex-col">
           <div className="p-3 border-b">
             <Input
