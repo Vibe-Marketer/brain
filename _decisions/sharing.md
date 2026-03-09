@@ -27,7 +27,7 @@ When a user is removed from a workspace (`workspace_memberships` row deleted):
 ## §3 — Who Can Remove Members
 
 - **Workspace admins and owners** can remove any member from their workspace (`is_workspace_admin_or_owner` check).
-- **Users can leave a workspace themselves** unless they are the last `workspace_owner` (enforced by trigger `protect_last_workspace_owner`).
+- **Users can leave a workspace themselves** unless they are the last `workspace_owner` (enforced by trigger `prevent_last_workspace_owner`).
 - **Organization owners** can remove members from any workspace in their org, but must do so through the workspace directly (not a shortcut org-level removal).
 
 ## §4 — Org Admin Exception

@@ -275,6 +275,76 @@ BEGIN;
 ROLLBACK;
 
 -- =============================================================================
+-- TEST 11: Self-removal happy path — member can leave a workspace
+-- =============================================================================
+-- A regular member (non-owner) should be able to delete their own membership.
+BEGIN;
+  SET LOCAL role = authenticated;
+  SET LOCAL "request.jwt.claims" = '{"sub": "<MEMBER_USER_ID>"}';
+
+  DELETE FROM workspace_memberships
+  WHERE workspace_id = '<WORKSPACE_ID>'
+    AND user_id = '<MEMBER_USER_ID>';
+  -- Expected: success — 1 row deleted (DELETE is allowed by "Members can leave workspaces" policy)
+
+  -- Verify member no longer sees workspace recordings
+  SELECT COUNT(*) AS visible_count
+  FROM recordings
+  WHERE organization_id = '<ORG_ID>';
+  -- Expected: 0 (removed from workspace, no longer sees its recordings)
+
+ROLLBACK;
+
+-- =============================================================================
+-- TEST 12: Last owner cannot leave (trigger blocks it)
+-- =============================================================================
+-- A workspace_owner who is the ONLY owner should NOT be able to delete themselves.
+BEGIN;
+  SET LOCAL role = authenticated;
+  SET LOCAL "request.jwt.claims" = '{"sub": "<SOLE_OWNER_USER_ID>"}';
+
+  -- Verify they are the only owner
+  SELECT COUNT(*) AS owner_count
+  FROM workspace_memberships
+  WHERE workspace_id = '<WORKSPACE_ID>'
+    AND role = 'workspace_owner';
+  -- Expected: 1 (they are the only owner)
+
+  -- Attempt self-removal (should raise exception from trigger)
+  DELETE FROM workspace_memberships
+  WHERE workspace_id = '<WORKSPACE_ID>'
+    AND user_id = '<SOLE_OWNER_USER_ID>';
+  -- Expected: ERROR — "Cannot remove the last workspace owner. Assign another owner first."
+
+ROLLBACK;
+
+-- =============================================================================
+-- TEST 13: Last owner guard — concurrent removal (TOCTOU protection)
+-- =============================================================================
+-- This test documents the expected behavior when two owners attempt simultaneous
+-- self-removal. Due to SELECT FOR UPDATE locking in the trigger, the second
+-- transaction must wait for the first to commit before its trigger evaluates.
+--
+-- Run in two separate psql sessions simultaneously:
+--
+-- Session 1:
+--   BEGIN;
+--   DELETE FROM workspace_memberships WHERE workspace_id='<WS_ID>' AND user_id='<OWNER_A>';
+--   -- Trigger acquires FOR UPDATE lock on both owner rows
+--   -- Counts remaining owners: 1 (owner B), allows deletion
+--   COMMIT;
+--
+-- Session 2 (started concurrently with Session 1):
+--   BEGIN;
+--   DELETE FROM workspace_memberships WHERE workspace_id='<WS_ID>' AND user_id='<OWNER_B>';
+--   -- Trigger tries SELECT ... FOR UPDATE — BLOCKS waiting for Session 1's lock
+--   -- After Session 1 commits: re-evaluates, counts remaining owners: 0 (A is gone)
+--   -- Raises: "Cannot remove the last workspace owner."
+--   ROLLBACK;
+--
+-- Expected outcome: Session 1 succeeds, Session 2 raises exception. Workspace always has ≥1 owner.
+
+-- =============================================================================
 -- DIAGNOSTIC: Check RLS policies on key tables
 -- =============================================================================
 SELECT

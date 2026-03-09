@@ -8,11 +8,45 @@
 -- Date: 2026-03-10
 
 -- ============================================================================
--- 1. Self-removal: allow any workspace member to leave (DELETE own membership)
+-- 1. Helper: check if a workspace has at least one OTHER owner
+-- ============================================================================
+-- SECURITY DEFINER so the subquery bypasses SELECT RLS on workspace_memberships.
+-- Used by both the self-removal RLS policy and the BEFORE DELETE trigger.
+-- Using a helper function isolates the check from future SELECT policy changes
+-- and ensures consistent behavior across both code paths.
+
+CREATE OR REPLACE FUNCTION public.has_other_workspace_owner(
+  p_workspace_id UUID,
+  p_excluded_user_id UUID
+)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM workspace_memberships
+    WHERE workspace_id = p_workspace_id
+      AND user_id <> p_excluded_user_id
+      AND role = 'workspace_owner'
+  )
+$$;
+
+COMMENT ON FUNCTION public.has_other_workspace_owner(UUID, UUID) IS
+  'Returns TRUE if the workspace has at least one workspace_owner other than the excluded user. SECURITY DEFINER to bypass SELECT RLS.';
+
+-- ============================================================================
+-- 2. Self-removal: allow any workspace member to leave (DELETE own membership)
 -- ============================================================================
 -- The existing policy only allows workspace_admin/owner to remove members.
 -- This adds the ability for any user to remove themselves from a workspace
 -- they are a member of, except if they are the last workspace_owner.
+--
+-- The last-owner check delegates to has_other_workspace_owner() (SECURITY DEFINER)
+-- rather than an inline subquery on workspace_memberships. This prevents a
+-- future tightening of the SELECT policy on workspace_memberships from silently
+-- breaking the check by filtering out other owners.
 
 DROP POLICY IF EXISTS "Members can leave workspaces" ON workspace_memberships;
 
@@ -24,20 +58,22 @@ CREATE POLICY "Members can leave workspaces"
     -- Prevent removing yourself if you are the sole workspace_owner
     AND NOT (
       role = 'workspace_owner'
-      AND NOT EXISTS (
-        SELECT 1 FROM workspace_memberships wm2
-        WHERE wm2.workspace_id = workspace_memberships.workspace_id
-          AND wm2.user_id <> auth.uid()
-          AND wm2.role = 'workspace_owner'
-      )
+      AND NOT has_other_workspace_owner(workspace_id, auth.uid())
     )
   );
 
 -- ============================================================================
--- 2. Guard: prevent removing last workspace owner via admin path too
+-- 3. Guard: prevent removing last workspace owner via any path (TOCTOU-safe)
 -- ============================================================================
--- The trigger fires on any DELETE to workspace_memberships and raises an
--- exception if it would leave the workspace with no owner.
+-- The trigger is the authoritative last-owner guard. It fires BEFORE DELETE on
+-- any path (admin removal, self-removal, or service role). It prevents the race
+-- condition where two concurrent owner self-removals both pass the check and
+-- both succeed, leaving the workspace ownerless.
+--
+-- TOCTOU fix: the trigger acquires a row-level FOR UPDATE lock on all owner
+-- rows for this workspace before counting. This serializes concurrent removals —
+-- if two owners try to leave simultaneously, one will block until the first
+-- commits, then re-evaluate and fail if no other owner remains.
 
 CREATE OR REPLACE FUNCTION public.prevent_last_workspace_owner_removal()
 RETURNS TRIGGER
@@ -45,15 +81,28 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_other_owner_count INT;
 BEGIN
-  -- Only check when removing a workspace_owner
+  -- Only check when removing a workspace_owner row
   IF OLD.role = 'workspace_owner' THEN
-    IF NOT EXISTS (
-      SELECT 1 FROM workspace_memberships
-      WHERE workspace_id = OLD.workspace_id
-        AND user_id <> OLD.user_id
-        AND role = 'workspace_owner'
-    ) THEN
+    -- Lock all workspace_owner rows for this workspace to prevent concurrent
+    -- deletions from both passing the "other owner exists" check.
+    -- This is safe in a BEFORE DELETE trigger: the row being deleted still
+    -- exists at this point, so we can lock it along with any other owners.
+    PERFORM 1 FROM workspace_memberships
+    WHERE workspace_id = OLD.workspace_id
+      AND role = 'workspace_owner'
+    FOR UPDATE;
+
+    -- Count remaining owners excluding the one about to be deleted
+    SELECT COUNT(*) INTO v_other_owner_count
+    FROM workspace_memberships
+    WHERE workspace_id = OLD.workspace_id
+      AND user_id <> OLD.user_id
+      AND role = 'workspace_owner';
+
+    IF v_other_owner_count = 0 THEN
       RAISE EXCEPTION 'Cannot remove the last workspace owner. Assign another owner first.';
     END IF;
   END IF;
@@ -68,7 +117,7 @@ BEFORE DELETE ON workspace_memberships
 FOR EACH ROW EXECUTE FUNCTION public.prevent_last_workspace_owner_removal();
 
 COMMENT ON FUNCTION public.prevent_last_workspace_owner_removal() IS
-  'Trigger: raises exception if deleting the last workspace_owner membership. Applies to both admin removal and self-removal paths.';
+  'Trigger: raises exception if deleting the last workspace_owner membership. Uses SELECT FOR UPDATE to prevent TOCTOU race between concurrent owner self-removals. Applies to all DELETE paths (admin removal, self-removal, service role).';
 
 -- ============================================================================
 -- 3. Performance: index for workspace_memberships cascade lookups
