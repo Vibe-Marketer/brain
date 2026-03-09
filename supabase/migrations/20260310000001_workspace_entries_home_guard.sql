@@ -60,6 +60,7 @@ CREATE OR REPLACE FUNCTION workspace_entries_immutable_home_keys()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY DEFINER
+SET search_path = public
 AS $$
 BEGIN
   -- Only block changes to the relationship keys; other columns (future ones) are fine
