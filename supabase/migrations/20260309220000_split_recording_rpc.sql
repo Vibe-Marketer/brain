@@ -28,12 +28,12 @@ CREATE OR REPLACE FUNCTION public.split_recording_atomic(
   p_part2_transcript      TEXT NOT NULL,
   p_organization_id       UUID NOT NULL,
   p_owner_user_id         UUID NOT NULL,
-  p_source_app            TEXT,
+  p_source_app            TEXT DEFAULT NULL,
   p_source_metadata       JSONB DEFAULT '{}',
-  p_recording_start_time  TIMESTAMPTZ,
-  p_recording_end_time    TIMESTAMPTZ,
-  p_audio_url             TEXT,
-  p_video_url             TEXT
+  p_recording_start_time  TIMESTAMPTZ DEFAULT NULL,
+  p_recording_end_time    TIMESTAMPTZ DEFAULT NULL,
+  p_audio_url             TEXT DEFAULT NULL,
+  p_video_url             TEXT DEFAULT NULL
 )
 RETURNS UUID  -- UUID of the newly created Part 2 recording
 LANGUAGE plpgsql
