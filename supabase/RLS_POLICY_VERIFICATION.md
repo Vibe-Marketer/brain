@@ -1,8 +1,119 @@
 # RLS Policy Verification Guide
 
-This document provides comprehensive manual verification steps for all Row Level Security (RLS) policies implemented for the Teams and Sharing feature.
+This document provides comprehensive manual verification steps for all Row Level Security (RLS) policies in CallVault.
 
-## Overview
+For SQL test queries you can run against the database, see [`supabase/tests/rls_permissions_test.sql`](./tests/rls_permissions_test.sql).
+
+For permission model decision docs, see:
+- [`_decisions/sharing.md`](../_decisions/sharing.md) — What happens when removed from workspace
+- [`_decisions/boundaries.md`](../_decisions/boundaries.md) — Workspace and org access boundaries
+- [`_decisions/organization.md`](../_decisions/organization.md) — Org role FAQ
+
+---
+
+## Part 1: Org + Workspace Permission Model (Issue #97)
+
+### Permission Tiers for Recordings
+
+```
+Tier 1 (Broadest): org_admin/org_owner → sees ALL recordings in org
+Tier 2:            recording owner     → always sees own recordings
+Tier 3 (Narrowest): regular member    → sees only workspace-scoped recordings
+```
+
+### Test A: Regular member sees only workspace recordings
+
+```sql
+-- Set auth context to a regular member (not org admin)
+SET LOCAL "request.jwt.claims" = '{"sub": "<MEMBER_USER_ID>"}';
+
+-- Should only return recordings from workspaces they belong to
+SELECT COUNT(*) FROM recordings WHERE organization_id = '<ORG_ID>';
+-- Expected: only recordings in their workspaces
+```
+
+### Test B: Org admin sees all recordings
+
+```sql
+SET LOCAL "request.jwt.claims" = '{"sub": "<ORG_ADMIN_USER_ID>"}';
+SELECT COUNT(*) FROM recordings WHERE organization_id = '<ORG_ID>';
+-- Expected: ALL recordings in org, regardless of workspace
+```
+
+### Test C: Remove from workspace → calls disappear
+
+```sql
+-- Before removal (as the member)
+SET LOCAL "request.jwt.claims" = '{"sub": "<MEMBER_USER_ID>"}';
+SELECT COUNT(*) FROM recordings WHERE organization_id = '<ORG_ID>';
+-- Note the count
+
+-- Remove member from workspace (as admin, outside this session)
+-- DELETE FROM workspace_memberships WHERE workspace_id='<WS_ID>' AND user_id='<MEMBER_USER_ID>'
+
+-- After removal (immediately, no cache)
+SET LOCAL "request.jwt.claims" = '{"sub": "<MEMBER_USER_ID>"}';
+SELECT COUNT(*) FROM recordings WHERE organization_id = '<ORG_ID>';
+-- Expected: 0 (or only own recordings if they own some)
+```
+
+### Test D: Recording owner always sees own recordings
+
+```sql
+SET LOCAL "request.jwt.claims" = '{"sub": "<OWNER_USER_ID>"}';
+-- Even without any workspace membership:
+SELECT COUNT(*) FROM recordings WHERE owner_user_id = '<OWNER_USER_ID>';
+-- Expected: > 0 always
+```
+
+### Test E: Verify org admin sees all workspace_entries
+
+```sql
+SET LOCAL "request.jwt.claims" = '{"sub": "<ORG_ADMIN_USER_ID>"}';
+SELECT COUNT(*) FROM workspace_entries we
+JOIN workspaces w ON w.id = we.workspace_id
+WHERE w.organization_id = '<ORG_ID>';
+-- Expected: all entries in all org workspaces
+```
+
+### Test F: Verify workspace_memberships scoping
+
+```sql
+-- Regular member sees only workspace memberships for their workspaces
+SET LOCAL "request.jwt.claims" = '{"sub": "<MEMBER_USER_ID>"}';
+SELECT DISTINCT workspace_id FROM workspace_memberships;
+-- Expected: only workspace IDs where they are a member
+```
+
+### Test G: Self-removal (leave workspace)
+
+```sql
+-- Member can leave a workspace they're in (unless last owner)
+SET LOCAL "request.jwt.claims" = '{"sub": "<MEMBER_USER_ID>"}';
+DELETE FROM workspace_memberships
+WHERE workspace_id = '<WORKSPACE_ID>' AND user_id = '<MEMBER_USER_ID>';
+-- Expected: success (row deleted)
+
+-- Last owner cannot leave
+SET LOCAL "request.jwt.claims" = '{"sub": "<LAST_OWNER_USER_ID>"}';
+DELETE FROM workspace_memberships
+WHERE workspace_id = '<WORKSPACE_ID>' AND user_id = '<LAST_OWNER_USER_ID>';
+-- Expected: exception "Cannot remove the last workspace owner"
+```
+
+### Summary Checklist (Issue #97)
+
+| Acceptance Criterion | Test | Expected |
+|---------------------|------|----------|
+| Regular member only sees calls from their workspaces | Test A | workspace-scoped count |
+| Org admin sees all calls in all workspaces | Test B | full org count |
+| Removing user from workspace instantly hides calls | Test C | count drops to 0 |
+| Personal folders/tags referencing hidden calls stop showing | `rls_permissions_test.sql` Test 6 | NULL recording join |
+| RLS enabled on all critical tables | Diagnostic query in test file | all true |
+
+---
+
+## Part 2: Teams and Sharing Feature (Legacy)
 
 The sharing system implements RLS policies across 9 tables:
 - `call_share_links` - Single call share links
