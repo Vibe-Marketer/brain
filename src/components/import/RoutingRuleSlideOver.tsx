@@ -35,6 +35,7 @@ interface RuleFormState {
   conditions: RoutingCondition[];
   logicOperator: 'AND' | 'OR';
   destination: RoutingDestination | null;
+  deleteAfterCopy: boolean;
 }
 
 export function RoutingRuleSlideOver() {
@@ -49,6 +50,7 @@ export function RoutingRuleSlideOver() {
     conditions: [DEFAULT_CONDITION],
     logicOperator: 'AND',
     destination: null,
+    deleteAfterCopy: false,
   });
 
   const initializeForm = useCallback(() => {
@@ -61,6 +63,7 @@ export function RoutingRuleSlideOver() {
         conditions: [isFirstRule ? FIRST_RULE_SUGGESTION : DEFAULT_CONDITION],
         logicOperator: 'AND',
         destination: null,
+        deleteAfterCopy: false,
       });
     } else {
       const existingRule = allRules.find((r) => r.id === activeRuleId);
@@ -75,7 +78,9 @@ export function RoutingRuleSlideOver() {
           destination: {
             workspaceId: existingRule.target_workspace_id,
             folderId: existingRule.target_folder_id,
+            targetOrganizationId: existingRule.target_organization_id,
           },
+          deleteAfterCopy: existingRule.delete_after_copy,
         });
       }
     }
@@ -98,12 +103,15 @@ export function RoutingRuleSlideOver() {
   async function handleSave() {
     if (!canSave || !form.destination) return;
 
+    const isCrossOrg = !!form.destination.targetOrganizationId;
     const payload = {
       name: form.name.trim(),
       conditions: form.conditions,
       logic_operator: form.logicOperator,
       target_workspace_id: form.destination.workspaceId,
-      target_folder_id: form.destination.folderId,
+      target_folder_id: isCrossOrg ? null : form.destination.folderId,
+      target_organization_id: form.destination.targetOrganizationId ?? null,
+      delete_after_copy: isCrossOrg ? form.deleteAfterCopy : false,
       enabled: true,
     };
 
@@ -220,15 +228,49 @@ export function RoutingRuleSlideOver() {
               </div>
 
               {activeOrgId && (
-                <div className="space-y-1.5">
-                  <label className="block text-sm font-medium text-foreground">
-                    Route matching calls to:
-                  </label>
-                  <DestinationPicker
-                    value={form.destination}
-                    onChange={(d) => setForm(p => ({ ...p, destination: d }))}
-                    orgId={activeOrgId}
-                  />
+                <div className="space-y-3">
+                  <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-foreground">
+                      Route matching calls to:
+                    </label>
+                    <DestinationPicker
+                      value={form.destination}
+                      onChange={(d) => setForm(p => ({ ...p, destination: d }))}
+                      currentOrgId={activeOrgId}
+                    />
+                  </div>
+
+                  {form.destination?.targetOrganizationId && (
+                    <div className="flex items-center justify-between rounded-lg border border-border/50 bg-muted/40 px-3 py-2.5">
+                      <div>
+                        <p className="text-xs font-medium text-foreground">Delete original after routing</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          Off = keep a copy here. On = move (delete from this org).
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={form.deleteAfterCopy}
+                        aria-label="Delete original after routing"
+                        onClick={() => setForm(p => ({ ...p, deleteAfterCopy: !p.deleteAfterCopy }))}
+                        className={cn(
+                          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent',
+                          'transition-colors duration-200 ease-in-out ml-3',
+                          'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                          form.deleteAfterCopy ? 'bg-brand-400' : 'bg-muted'
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm',
+                            'transform transition-transform duration-200 ease-in-out',
+                            form.deleteAfterCopy ? 'translate-x-4' : 'translate-x-0'
+                          )}
+                        />
+                      </button>
+                    </div>
+                  )}
                 </div>
               )}
 

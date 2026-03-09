@@ -46,6 +46,10 @@ interface MatchResult {
   target_workspace_id: string;
   target_workspace_name: string | null;
   target_folder_id: string | null;
+  /** Non-null for cross-org rules — recording is copied to this org instead of moved within same org. */
+  target_organization_id: string | null;
+  /** Per-rule copy preference: true = delete source after cross-org copy. */
+  delete_after_copy: boolean;
 }
 
 Deno.serve(async (req) => {
@@ -195,6 +199,8 @@ Deno.serve(async (req) => {
             target_workspace_id: destination.workspaceId,
             target_workspace_name: workspaceNameMap[destination.workspaceId] ?? null,
             target_folder_id: destination.folderId,
+            target_organization_id: destination.targetOrganizationId,
+            delete_after_copy: destination.deleteAfterCopy,
           });
         }
       }
@@ -225,75 +231,94 @@ Deno.serve(async (req) => {
 
       const results = await Promise.allSettled(
         batch.map(async (match) => {
-          // Insert new workspace_entry FIRST, then delete old ones.
-          // This order prevents orphaning: if insert fails, old entry is preserved.
-          const entryPayload: Record<string, unknown> = {
-            workspace_id: match.target_workspace_id,
-            recording_id: match.recording_id,
-            folder_id: match.target_folder_id ?? null,
-          };
+          if (match.target_organization_id) {
+            // ----------------------------------------------------------------
+            // Cross-org rule: copy recording to target org via RPC.
+            // The route_recording_cross_org function handles membership verification,
+            // transcript_chunks copy, and optional source deletion.
+            // ----------------------------------------------------------------
+            const { error: crossOrgError } = await supabase.rpc('route_recording_cross_org', {
+              p_recording_id: match.recording_id,
+              p_target_org_id: match.target_organization_id,
+              p_user_id: user.id,
+              p_delete_source: match.delete_after_copy,
+            });
 
-          const { error: entryError } = await supabase
-            .from('workspace_entries')
-            .upsert(entryPayload, { onConflict: 'workspace_id,recording_id' });
-
-          if (entryError) {
-            throw new Error(`workspace_entry upsert failed for ${match.recording_id}: ${entryError.message}`);
-          }
-
-          // Now safe to remove old workspace entries (excluding the one we just inserted)
-          const { error: deleteError } = await supabase
-            .from('workspace_entries')
-            .delete()
-            .eq('recording_id', match.recording_id)
-            .neq('workspace_id', match.target_workspace_id);
-
-          if (deleteError) {
-            console.error(
-              `[apply-routing-rules] Failed to remove old workspace_entries for ${match.recording_id}:`,
-              deleteError,
-            );
-            // Non-fatal: recording may appear in both workspaces temporarily
-          }
-
-          // Atomic JSONB merge — avoids read-modify-write race condition.
-          // Uses Supabase's PostgREST JSONB concatenation via the || operator
-          // by reading and updating in a single UPDATE statement.
-          const routingTrace = {
-            routed_by_rule_id: match.rule_id,
-            routed_by_rule_name: match.rule_name,
-            routed_at: now,
-            routed_retroactively: true,
-          };
-
-          const { error: updateError } = await supabase.rpc('jsonb_merge_source_metadata', {
-            p_recording_id: match.recording_id,
-            p_merge_data: routingTrace,
-          });
-
-          // Fallback: if the RPC doesn't exist yet, use direct update
-          if (updateError?.message?.includes('function') && updateError?.message?.includes('does not exist')) {
-            const { data: existingRec } = await supabase
-              .from('recordings')
-              .select('source_metadata')
-              .eq('id', match.recording_id)
-              .single();
-
-            const { error: fallbackError } = await supabase
-              .from('recordings')
-              .update({
-                source_metadata: {
-                  ...(existingRec?.source_metadata ?? {}),
-                  ...routingTrace,
-                },
-              })
-              .eq('id', match.recording_id);
-
-            if (fallbackError) {
-              throw new Error(`routing trace update failed for ${match.recording_id}: ${fallbackError.message}`);
+            if (crossOrgError) {
+              throw new Error(`cross-org copy failed for ${match.recording_id}: ${crossOrgError.message}`);
             }
-          } else if (updateError) {
-            throw new Error(`routing trace update failed for ${match.recording_id}: ${updateError.message}`);
+          } else {
+            // ----------------------------------------------------------------
+            // Same-org rule: move within the organization via workspace entries.
+            // Insert new workspace_entry FIRST, then delete old ones.
+            // This order prevents orphaning: if insert fails, old entry is preserved.
+            // ----------------------------------------------------------------
+            const entryPayload: Record<string, unknown> = {
+              workspace_id: match.target_workspace_id,
+              recording_id: match.recording_id,
+              folder_id: match.target_folder_id ?? null,
+            };
+
+            const { error: entryError } = await supabase
+              .from('workspace_entries')
+              .upsert(entryPayload, { onConflict: 'workspace_id,recording_id' });
+
+            if (entryError) {
+              throw new Error(`workspace_entry upsert failed for ${match.recording_id}: ${entryError.message}`);
+            }
+
+            // Now safe to remove old workspace entries (excluding the one we just inserted)
+            const { error: deleteError } = await supabase
+              .from('workspace_entries')
+              .delete()
+              .eq('recording_id', match.recording_id)
+              .neq('workspace_id', match.target_workspace_id);
+
+            if (deleteError) {
+              console.error(
+                `[apply-routing-rules] Failed to remove old workspace_entries for ${match.recording_id}:`,
+                deleteError,
+              );
+              // Non-fatal: recording may appear in both workspaces temporarily
+            }
+
+            // Stamp routing trace into source_metadata
+            const routingTrace = {
+              routed_by_rule_id: match.rule_id,
+              routed_by_rule_name: match.rule_name,
+              routed_at: now,
+              routed_retroactively: true,
+            };
+
+            const { error: updateError } = await supabase.rpc('jsonb_merge_source_metadata', {
+              p_recording_id: match.recording_id,
+              p_merge_data: routingTrace,
+            });
+
+            // Fallback: if the RPC doesn't exist yet, use direct update
+            if (updateError?.message?.includes('function') && updateError?.message?.includes('does not exist')) {
+              const { data: existingRec } = await supabase
+                .from('recordings')
+                .select('source_metadata')
+                .eq('id', match.recording_id)
+                .single();
+
+              const { error: fallbackError } = await supabase
+                .from('recordings')
+                .update({
+                  source_metadata: {
+                    ...(existingRec?.source_metadata ?? {}),
+                    ...routingTrace,
+                  },
+                })
+                .eq('id', match.recording_id);
+
+              if (fallbackError) {
+                throw new Error(`routing trace update failed for ${match.recording_id}: ${fallbackError.message}`);
+              }
+            } else if (updateError) {
+              throw new Error(`routing trace update failed for ${match.recording_id}: ${updateError.message}`);
+            }
           }
         }),
       );

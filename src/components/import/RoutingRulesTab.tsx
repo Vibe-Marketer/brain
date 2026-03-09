@@ -9,6 +9,7 @@ import { useRoutingRules, useRoutingDefault, useReorderRules, useToggleRule } fr
 import { usePanelStore } from '@/stores/panelStore';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
 import { useOrgContextStore } from '@/stores/orgContextStore';
+import { useOrganizations } from '@/hooks/useOrganizations';
 import { useBulkApplyRules } from '@/hooks/useBulkApplyRules';
 import { DefaultDestinationBar } from './DefaultDestinationBar';
 import { RoutingRulesList } from './RoutingRulesList';
@@ -39,12 +40,18 @@ export function RoutingRulesTab() {
   const { openPanel } = usePanelStore();
 
   const { workspaces = [] } = useWorkspaces(activeOrgId);
+  const { data: allOrgs = [] } = useOrganizations();
   const bulkApply = useBulkApplyRules();
   const [bulkDryRunResult, setBulkDryRunResult] = useState<{ matched: number; details: Array<{ matchedRuleName: string }> } | null>(null);
 
   const workspaceNames: Record<string, string> = {};
   for (const ws of workspaces) {
     workspaceNames[ws.id] = ws.name;
+  }
+
+  const orgNames: Record<string, string> = {};
+  for (const org of allOrgs) {
+    orgNames[org.id] = org.name;
   }
 
   const folderNames: Record<string, string> = {};
@@ -103,6 +110,7 @@ export function RoutingRulesTab() {
           onToggle={handleToggle}
           workspaceNames={workspaceNames}
           folderNames={folderNames}
+          orgNames={orgNames}
         />
       )}
 

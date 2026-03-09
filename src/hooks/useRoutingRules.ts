@@ -86,6 +86,8 @@ export function useCreateRule() {
       logic_operator: 'AND' | 'OR';
       target_workspace_id: string;
       target_folder_id: string | null;
+      target_organization_id: string | null;
+      delete_after_copy: boolean;
       enabled: boolean;
     }) => {
       if (!activeOrgId) throw new Error('No active organization');
@@ -148,7 +150,7 @@ export function useUpdateRule() {
       updates: Partial<
         Pick<
           RoutingRule,
-          'name' | 'conditions' | 'logic_operator' | 'target_workspace_id' | 'target_folder_id' | 'enabled'
+          'name' | 'conditions' | 'logic_operator' | 'target_workspace_id' | 'target_folder_id' | 'target_organization_id' | 'delete_after_copy' | 'enabled'
         >
       >;
     }) => {

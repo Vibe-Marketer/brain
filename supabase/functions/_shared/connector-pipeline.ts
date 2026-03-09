@@ -297,18 +297,31 @@ export async function runPipeline(
           const routing = await resolveRoutingDestination(supabase, organizationId, record);
 
           if (routing) {
-            // Routing rule matched — set destination and record trace metadata
-            record.workspace_id = routing.workspaceId;
-            if (routing.folderId) {
-              record.folder_id = routing.folderId;
+            if (routing.targetOrganizationId) {
+              // Cross-org rule: recording is inserted into source org first (no workspace override),
+              // then copied to the target org via route_recording_cross_org after insert.
+              // Store routing trace + cross-org marker in source_metadata for audit trail.
+              record.source_metadata = {
+                ...record.source_metadata,
+                routed_by_rule_id: routing.matchedRuleId,
+                routed_by_rule_name: routing.matchedRuleName,
+                routed_at: new Date().toISOString(),
+                cross_org_target_id: routing.targetOrganizationId,
+              };
+              // crossOrgRouting is resolved outside this closure below
+            } else {
+              // Same-org rule: set destination and record trace metadata
+              record.workspace_id = routing.workspaceId;
+              if (routing.folderId) {
+                record.folder_id = routing.folderId;
+              }
+              record.source_metadata = {
+                ...record.source_metadata,
+                routed_by_rule_id: routing.matchedRuleId,
+                routed_by_rule_name: routing.matchedRuleName,
+                routed_at: new Date().toISOString(),
+              };
             }
-            // Merge routing trace into source_metadata for display in UI
-            record.source_metadata = {
-              ...record.source_metadata,
-              routed_by_rule_id: routing.matchedRuleId,
-              routed_by_rule_name: routing.matchedRuleName,
-              routed_at: new Date().toISOString(),
-            };
           } else {
             // Step 2: No rule matched — try org-level default destination
             const { data: defaultDest, error: defaultError } = await supabase
@@ -326,6 +339,31 @@ export async function runPipeline(
               }
             }
             // Step 3: If no default either, do nothing — insertRecording uses personal workspace (preserved behavior)
+          }
+
+          // Capture cross-org routing intent before losing routing reference
+          if (routing?.targetOrganizationId) {
+            const crossOrgTargetId = routing.targetOrganizationId;
+            const deleteAfterCopy = routing.deleteAfterCopy;
+
+            const { id } = await insertRecording(supabase, userId, record);
+
+            // Perform cross-org copy after successful source insert (non-blocking on failure)
+            try {
+              const { error: crossOrgError } = await supabase.rpc('route_recording_cross_org', {
+                p_recording_id: id,
+                p_target_org_id: crossOrgTargetId,
+                p_user_id: userId,
+                p_delete_source: deleteAfterCopy,
+              });
+              if (crossOrgError) {
+                console.error('[connector-pipeline] Cross-org routing RPC failed (non-blocking):', crossOrgError);
+              }
+            } catch (crossOrgErr) {
+              console.error('[connector-pipeline] Cross-org routing error (non-blocking):', crossOrgErr);
+            }
+
+            return { success: true, recordingId: id };
           }
         }
       } catch (routingErr) {

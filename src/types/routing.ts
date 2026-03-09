@@ -21,6 +21,13 @@ export interface RoutingRule {
   logic_operator: 'AND' | 'OR';
   target_workspace_id: string;
   target_folder_id: string | null;
+  /** Non-null when this rule routes to a different organization (cross-org). */
+  target_organization_id: string | null;
+  /**
+   * Per-rule copy preference for cross-org rules.
+   * false = keep source recording (default), true = delete source after copy.
+   */
+  delete_after_copy: boolean;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -37,6 +44,8 @@ export interface RoutingDefault {
 export interface RoutingDestination {
   workspaceId: string;
   folderId: string | null;
+  /** Non-null = cross-org rule; the target workspace belongs to this org. */
+  targetOrganizationId?: string | null;
 }
 
 /** Single match result from bulk apply dry run / execution. */
