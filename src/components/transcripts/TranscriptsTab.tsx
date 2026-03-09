@@ -259,18 +259,21 @@ export function TranscriptsTab({
     return { ...filters, ...syntaxFilters };
   }, [syntax, filters]);
 
-  // Reset page to 1 whenever search/filter/workspace context changes
+  // Reset page to 1 and totalCount whenever search/filter/workspace context changes
   const prevFilterRef = useRef<string>("");
   useEffect(() => {
     const key = JSON.stringify({ searchQuery, combinedFilters, activeOrganizationId, activeWorkspaceId, selectedFolderId });
     if (prevFilterRef.current && prevFilterRef.current !== key) {
       setPage(1);
+      // Reset totalCount so stale counts from previous workspace don't flash
+      setTotalCount(0);
+      onTotalCountChange?.(0);
     }
     prevFilterRef.current = key;
   }, [searchQuery, combinedFilters, activeOrganizationId, activeWorkspaceId, selectedFolderId]);
 
   // Fetch calls with filters
-  const { data: calls = [], isLoading: callsLoading } = useQuery({
+  const { data: calls = [], isLoading: callsLoading, isFetching, isPlaceholderData } = useQuery({
     queryKey: ["tag-calls", searchQuery, JSON.stringify(combinedFilters), page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, activeWorkspace?.workspace_type, selectedFolderId],
     enabled: isInitialized,
     staleTime: 2 * 60 * 1000, // 2 minutes — don't refetch on every window focus
@@ -924,6 +927,8 @@ export function TranscriptsTab({
           <div className="flex-1 overflow-y-auto px-4 md:px-4 py-0 space-y-4">
             {/* Content Area */}
           {callsLoading ? (
+            <TranscriptTableSkeleton />
+          ) : (isPlaceholderData && isFetching) ? (
             <TranscriptTableSkeleton />
           ) : validCalls.length === 0 ? (
             <EmptyState

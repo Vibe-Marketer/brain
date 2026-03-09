@@ -53,6 +53,8 @@ export function useMoveToWorkspace() {
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaceEntries.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.calls.all })
+      // TranscriptsTab uses "tag-calls" as its query key (not in queryKeys factory)
+      queryClient.invalidateQueries({ queryKey: ['tag-calls'] })
 
       if (options?.sourceWorkspaceId) {
         queryClient.invalidateQueries({
@@ -102,6 +104,8 @@ export function useCopyToOrganization() {
       queryClient.invalidateQueries({ queryKey: queryKeys.calls.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all })
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaceEntries.all })
+      // TranscriptsTab uses "tag-calls" as its query key (not in queryKeys factory)
+      queryClient.invalidateQueries({ queryKey: ['tag-calls'] })
 
       // If remove_source was set, invalidate source org recordings too
       if (options?.removeSource) {
