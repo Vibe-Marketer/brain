@@ -1,7 +1,7 @@
 # CALLVAULT - CLAUDE INSTRUCTIONS
 
-**Last Updated:** 2026-03-01
-**Status:** Root Guide (v3.1) — Two-Repo Workflow
+**Last Updated:** 2026-03-09
+**Status:** Root Guide (v3.2) — Single-Repo
 
 ---
 
@@ -40,22 +40,22 @@ See [Design Principles](./docs/design/design-principles-callvault.md) for the fu
 
 ---
 
-## TWO-REPO WORKFLOW
+## PROJECT LAYOUT
 
-CallVault development spans two repositories:
+Everything lives in **one repo**: `/Users/Naegele/dev/brain`
 
-| Repo | Path | Purpose | Dev Server |
-|------|------|---------|------------|
-| **brain** | `/Users/Naegele/dev/brain` | Backend (Supabase edge functions, migrations), GSD planning (`.planning/`), docs | `supabase functions serve` |
-| **callvault** | `/Users/Naegele/dev/callvault` | v2 frontend (Vite 7 + React 19 + TanStack Router) | `pnpm dev` → http://localhost:8080 |
+| Area | Path | Dev Server |
+|------|------|------------|
+| Frontend | `src/` (Vite 5 + React 18 + react-router-dom v6) | `npm run dev` → http://localhost:3001 |
+| Backend | `supabase/` (Edge Functions, migrations) | `supabase functions serve` |
+| Planning | `.planning/` (GSD phases, roadmap, state) | — |
+| Docs | `docs/` (design, architecture, ADRs) | — |
 
-**Claude's working directory is brain/.** The callvault repo's CLAUDE.md is NOT auto-loaded.
+**Package manager:** `npm` (not pnpm, not bun)
 
-**Before touching callvault code:** Read `/Users/Naegele/dev/callvault/CLAUDE.md` for hard constraints (Tailwind v4 CSS-only, Remix Icons only, motion/react not framer-motion, etc.).
+**Production:** https://callvault.vercel.app (auto-deploys from pushes to main)
 
-**Production:** https://callvault.vercel.app (auto-deploys from callvault repo pushes)
-
-**GSD planning:** All phases, roadmap, and state tracking live in `brain/.planning/`
+**The `callvault/` repo is ABANDONED. Do NOT read from, reference, or work inside `/Users/Naegele/dev/callvault/`.**
 
 ---
 
@@ -63,10 +63,9 @@ CallVault development spans two repositories:
 
 | Location | Purpose |
 |----------|---------|
-| `brain/src/CLAUDE.md` | Design system rules, visual standards (to be migrated to callvault after transfer) |
-| `brain/supabase/CLAUDE.md` | Backend: Edge Functions, database schema, RLS policies |
-| `brain/docs/CLAUDE.md` | Documentation standards, brand guidelines versioning |
-| `callvault/CLAUDE.md` | v2 frontend: tech stack, hard constraints, project structure |
+| `src/CLAUDE.md` | Frontend: design system, visual standards, tech stack, hard constraints |
+| `supabase/CLAUDE.md` | Backend: Edge Functions, database schema, RLS policies |
+| `docs/CLAUDE.md` | Documentation standards, brand guidelines versioning |
 
 **Always check the relevant folder's CLAUDE.md before implementing in that area.**
 
@@ -83,7 +82,7 @@ CallVault development spans two repositories:
 
 ---
 
-## HARD CONSTRAINTS (applies to BOTH repos)
+## HARD CONSTRAINTS
 
 | Constraint | Rule |
 |------------|------|
@@ -97,9 +96,9 @@ CallVault development spans two repositories:
 
 ## ARCHITECTURE PRINCIPLES
 
-### v2 = Lambo Engine in Lambo Body
+### Architecture
 
-v2 has the correct modern architecture (spring physics, Zustand stores, service layer, TanStack Router). The user experience must match v1's visual feel exactly:
+The app uses Zustand stores, service layer, react-router-dom v6, and TanStack Query. The user experience must match v1's visual feel exactly:
 
 - **AppShell:** Same 4-pane layout. Pane 4 slides in and Pane 3 **shrinks** to make room. All panes operate on the **same plane/z-index** — no drawer overlays, no covering content.
 - **Transitions:** 500ms ease-in-out feel (spring physics in v2 achieve this)
@@ -126,7 +125,7 @@ This is the locked-in pattern for all data access in v2.
 1. **Use GSD workflow for multi-step tasks** — phases, plans, executor agents
 2. **Ask before deviating from brand guidelines** — never assume deviations are acceptable
 3. **Vercel AI SDK first** — all AI/LLM features must use Vercel SDK + OpenRouter
-4. **Read callvault/CLAUDE.md before touching frontend code** — hard constraints live there
+4. **Read `src/CLAUDE.md` before touching frontend code** — design system and hard constraints live there
 5. **Design rules come from reality** — verify against actual code/production before enforcing doc rules
 
 ---
@@ -137,7 +136,7 @@ This is the locked-in pattern for all data access in v2.
 
 - Test credentials in `.env.local` (CALLVAULTAI_LOGIN, CALLVAULTAI_LOGIN_PASSWORD)
 - V1 production (visual source of truth): https://app.callvaultai.com
-- V2 production: https://callvault.vercel.app (use this when localhost has OAuth issues)
+- Production: https://callvault.vercel.app (use this when localhost has OAuth issues)
 - After UI changes: screenshot with dev-browser, don't ask user to check
 
 ---
@@ -167,17 +166,12 @@ node --version    # Should resolve from /opt/homebrew/bin/node
 brew upgrade node # To update
 ```
 
-### Package Managers
+### Package Manager
 
-- **brain:** `npm`
-- **callvault:** `pnpm`
+`npm` — no pnpm, no bun, no yarn.
 
 ---
 
 **END OF ROOT CLAUDE INSTRUCTIONS**
 
-For detailed frontend implementation guidance, see:
-- `brain/src/CLAUDE.md` — Design system, visual standards
-- `callvault/CLAUDE.md` — v2 tech stack, hard constraints, project structure
-
-After migration is complete, move `brain/src/CLAUDE.md` design rules into `callvault/src/CLAUDE.md`.
+For detailed frontend implementation guidance, see `src/CLAUDE.md`.

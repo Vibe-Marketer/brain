@@ -1,8 +1,7 @@
 # CALLVAULT FRONTEND - CLAUDE INSTRUCTIONS
 
-**Last Updated:** 2026-03-01
-**Status:** Slim reference — design details live in the `callvault-design-system` skill
-**Note:** After migration, move to `callvault/src/CLAUDE.md`
+**Last Updated:** 2026-03-09
+**Status:** Authoritative frontend reference — single-repo (`brain/`)
 
 ---
 
@@ -12,10 +11,36 @@
 |------|-------|
 | Full design system (colors, layout, buttons, icons, animations) | `callvault-design-system` skill (loads on demand) |
 | Hard constraints (icons, AI-02, vibe orange) | Root `CLAUDE.md` |
-| Tech stack, anti-patterns, project structure | `callvault/CLAUDE.md` |
 | Brand guidelines canonical spec | `docs/design/brand-guidelines-v4.4.md` |
 
 **Do not duplicate rules from those files here.** This file covers only what isn't documented elsewhere.
+
+---
+
+## TECH STACK (actual, verified)
+
+| Layer | Technology | Version |
+|-------|-----------|---------|
+| Build | Vite | 5.x |
+| UI | React | 18.x |
+| Routing | react-router-dom | 6.x (`BrowserRouter`, `src/pages/` directory) |
+| Styling | Tailwind CSS | 3.x (JS config: `tailwind.config.ts`) |
+| State (server) | TanStack Query | latest |
+| State (client) | Zustand v5 | `create<T>()((set) => ({` double-invocation |
+| Icons | Remix Icons | `@remixicon/react` — ONLY icon library allowed |
+| Animation | motion | `import { motion } from 'motion/react'` (NOT framer-motion) |
+| Radix UI | Individual packages | `@radix-ui/react-dialog`, `@radix-ui/react-popover`, etc. |
+| Toasts | Sonner | `import { toast } from 'sonner'` |
+| Dates | date-fns | — |
+| Forms/validation | Zod | — |
+| Error monitoring | Sentry | `@sentry/react` |
+
+**Anti-patterns — never do these:**
+- Do NOT use `framer-motion` — use `motion/react`
+- Do NOT use Lucide, FontAwesome, or any icon library other than Remix Icons
+- Do NOT use TanStack Router or file-based routing — this project uses react-router-dom v6
+- Do NOT use `pnpm` or `bun` — this project uses `npm`
+- Do NOT reference or import from `/Users/Naegele/dev/callvault/` — that repo is abandoned
 
 ---
 
@@ -23,7 +48,7 @@
 
 ```text
 src/
-  routes/                  # TanStack Router file-based routes
+  pages/                   # Route-level page components
   components/
     {domain}/              # Domain-specific (workspace/, import/, etc.)
     layout/                # AppShell, SidebarNav, OrgSwitcherBar, etc.
@@ -36,6 +61,7 @@ src/
   stores/                  # Zustand v5 stores — create<T>()( double-invocation
   lib/                     # Utility functions
   types/                   # TypeScript type definitions
+  integrations/            # Supabase client, external service configs
 ```
 
 ### Naming Conventions
@@ -51,15 +77,15 @@ src/
 ### Import Patterns
 
 - Always use `@/` path aliases, never relative paths
-- Radix UI: `import { Dialog } from 'radix-ui'` (flat package, NOT `@radix-ui/react-*`)
+- Radix UI: `import { Dialog } from '@radix-ui/react-dialog'` (individual packages)
 - Motion: `import { motion } from 'motion/react'` (NOT `framer-motion`)
 - Order: React → external libs → components → hooks → stores → utils → types
 
 ---
 
-## TOKEN SYSTEM (v2)
+## TOKEN SYSTEM
 
-v2 uses **shadcn/Tailwind semantic tokens** — no custom token systems.
+Uses **shadcn/Tailwind semantic tokens** — no custom token systems.
 
 | Use | Token | Light | Dark | NOT this |
 |-----|-------|-------|------|----------|
@@ -72,7 +98,7 @@ v2 uses **shadcn/Tailwind semantic tokens** — no custom token systems.
 | Borders | `border-border` | `#E6E6E6` | `#3B3B3B` | ~~border-soft~~ |
 | Active accent | `text-vibe-orange` / `bg-vibe-orange` | `#FF8800` | `#FF8800` | hardcoded hex |
 
-The `text-ink`, `text-ink-muted`, `bg-hover`, `border-soft` tokens are from v1 brand guidelines and do NOT exist in v2. Never use them.
+The `text-ink`, `text-ink-muted`, `bg-hover`, `border-soft` tokens are from v1 brand guidelines and do NOT exist. Never use them.
 
 ---
 
