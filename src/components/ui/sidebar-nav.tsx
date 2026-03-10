@@ -1,34 +1,30 @@
 /**
  * Sidebar Navigation
  *
- * Navigation icons that sit at the top of the sidebar.
- * Clean, modern aesthetics — same icon style in both expanded and collapsed modes.
+ * Navigation rail for the AppShell sidebar.
+ * Clean, modern aesthetics with glossy 3D icons in collapsed mode.
  * Uses Remix Icons with line/fill variants for active states.
  *
- * ## Design Specification
- *
- * - **Position**: Top of sidebar, above folder list
- * - **Layout**: Vertical column with icons and labels
- * - **Size**: Consistent icon size in both modes, centered when collapsed
- * - **Styling**:
- *   - Clean, cohesive appearance in both modes
- *   - Active state: left border indicator (vibe orange) + fill icon
- *   - Inactive state: line icon
- *   - Hover: subtle background highlight
- * - **Separator**: Thin gray line between sections
+ * Active state: 4-layer brand treatment (bg-vibe-orange/10 tint, fill icon
+ * with text-vibe-orange color, font-semibold label, left-edge pill indicator).
+ * Matches Linear's clean, obvious active-state feel.
  *
  * @pattern sidebar-nav
- * @brand-version v4.2
+ * @brand-version v4.4
  */
 
 import * as React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  RiLayoutColumnLine,
-  RiAddLine,
-  RiHome4Line,
+  RiPhoneLine,
+  RiPhoneFill,
+  RiDownloadLine,
+  RiDownloadFill,
   RiSettings3Line,
-  RiUpload2Line,
+  RiSettings3Fill,
+  RiRouteLine,
+  RiRouteFill,
+  RiLayoutColumnLine,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
@@ -38,8 +34,8 @@ import { useUserRole } from '@/hooks/useUserRole';
 interface NavItem {
   id: string;
   name: string;
-  /** Line icon variant */
-  iconLine: RemixiconComponentType;
+  icon: RemixiconComponentType;
+  iconActive: RemixiconComponentType;
   path: string;
   matchPaths?: string[];
 }
@@ -49,46 +45,48 @@ interface SidebarNavProps {
   isCollapsed?: boolean;
   /** Additional CSS classes */
   className?: string;
-  /** Optional callback for the Sync/Plus button */
-  onSyncClick?: () => void;
   /** Optional callback to toggle the Library panel */
   onLibraryToggle?: () => void;
   /** Optional callback when Settings nav item is clicked (to open category pane) */
   onSettingsClick?: () => void;
-  /** Optional callback when Sorting nav item is clicked (to open category pane) */
-  onSortingClick?: () => void;
-  /** Optional callback when Analytics nav item is clicked (to open category pane) */
-  onAnalyticsClick?: () => void;
 }
-
-// Icon class for consistent styling - muted gray for inactive state
-const iconClass = 'w-5 h-5 text-muted-foreground';
 
 const navItems: NavItem[] = [
   {
     id: 'home',
-    name: 'Home',
-    iconLine: RiHome4Line,
+    name: 'All Calls',
+    icon: RiPhoneLine,
+    iconActive: RiPhoneFill,
     path: '/',
     matchPaths: ['/', '/transcripts'],
   },
   {
     id: 'import',
     name: 'Import',
-    iconLine: RiUpload2Line,
+    icon: RiDownloadLine,
+    iconActive: RiDownloadFill,
     path: '/import',
     matchPaths: ['/import'],
   },
   {
+    id: 'rules',
+    name: 'Rules',
+    icon: RiRouteLine,
+    iconActive: RiRouteFill,
+    path: '/rules',
+    matchPaths: ['/rules', '/sorting-tagging/rules'],
+  },
+  {
     id: 'settings',
     name: 'Settings',
-    iconLine: RiSettings3Line,
+    icon: RiSettings3Line,
+    iconActive: RiSettings3Fill,
     path: '/settings',
     matchPaths: ['/settings'],
   },
 ];
 
-export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggle, onSettingsClick, onSortingClick, onAnalyticsClick }: SidebarNavProps) {
+export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettingsClick }: SidebarNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { role } = useUserRole();
@@ -98,15 +96,11 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
   const filteredNavItems = React.useMemo(() => {
     return navItems.filter((item) => {
       if (item.id === 'import') return isFeatureEnabled('beta_imports');
-      if (item.id === 'analytics') return isFeatureEnabled('beta_analytics');
+      if (item.id === 'rules') return isFeatureEnabled('beta_imports');
       return true;
     });
-  }, [navItems, isFeatureEnabled]);
+  }, [isFeatureEnabled]);
 
-  // Refs for nav buttons to enable keyboard focus management
-  const buttonRefs = React.useRef<Map<string, HTMLButtonElement>>(new Map());
-
-  // Memoized active state checker to avoid recreating on every render
   const isActive = React.useCallback((item: NavItem) => {
     if (item.matchPaths) {
       return item.matchPaths.some(path =>
@@ -116,200 +110,134 @@ export function SidebarNav({ isCollapsed, className, onSyncClick, onLibraryToggl
     return location.pathname === item.path;
   }, [location.pathname]);
 
-  // Focus a nav item by index (wraps around)
-  const focusNavItemByIndex = React.useCallback((index: number) => {
-    const wrappedIndex = ((index % filteredNavItems.length) + filteredNavItems.length) % filteredNavItems.length;
-    const itemId = filteredNavItems[wrappedIndex].id;
-    const button = buttonRefs.current.get(itemId);
-    button?.focus();
-  }, [filteredNavItems]);
-
-  // Keyboard navigation handler
-  const handleKeyDown = React.useCallback((event: React.KeyboardEvent, itemId: string) => {
-    const currentIndex = filteredNavItems.findIndex(item => item.id === itemId);
-
-    switch (event.key) {
-      case 'ArrowDown':
-        event.preventDefault();
-        focusNavItemByIndex(currentIndex + 1);
-        break;
-      case 'ArrowUp':
-        event.preventDefault();
-        focusNavItemByIndex(currentIndex - 1);
-        break;
-      case 'Home':
-        event.preventDefault();
-        focusNavItemByIndex(0);
-        break;
-      case 'End':
-        event.preventDefault();
-        focusNavItemByIndex(filteredNavItems.length - 1);
-        break;
-    }
-  }, [focusNavItemByIndex]);
-
   return (
     <div className={cn('flex-shrink-0', className)}>
-      {/* Navigation icons */}
       <nav
         className={cn(
-          'flex gap-2 p-3',
-          isCollapsed ? 'flex-col items-center' : 'flex-col items-stretch px-4'
+          'flex flex-col gap-1 py-2',
+          isCollapsed ? 'px-1' : 'px-2'
         )}
         role="navigation"
         aria-label="Main navigation"
       >
-        {/* Import Button - Primary CTA at top */}
-        {onSyncClick && isFeatureEnabled('beta_imports') && (
-          <div className="relative flex flex-col">
-             <button
-              type="button"
-              onClick={onSyncClick}
-              className={cn(
-                'relative flex items-center',
-                isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
-                'rounded-xl transition-all duration-500 ease-in-out',
-                'hover:opacity-90 hover:scale-[1.02]',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
-              )}
-              title="Sync & Import"
-            >
-               {/* Collapsed mode: Gradient icon container */}
-               {isCollapsed ? (
-                 <div
-                   className="flex-shrink-0 w-11 h-11 flex items-center justify-center rounded-xl shadow-lg"
-                   style={{
-                     background: 'linear-gradient(135deg, #FFEB00 0%, #FF8800 50%, #FF3D00 100%)',
-                   }}
-                 >
-                   <RiAddLine className="w-5 h-5 text-white" />
-                 </div>
-               ) : (
-                 /* Expanded mode: Gradient container with icon and text */
-                 <div
-                   className="flex items-center gap-2 px-3 py-2 rounded-xl shadow-lg w-full"
-                   style={{
-                     background: 'linear-gradient(135deg, #FFEB00 0%, #FF8800 50%, #FF3D00 100%)',
-                   }}
-                 >
-                   <RiAddLine className="w-5 h-5 text-white flex-shrink-0" />
-                   <span className="text-sm font-semibold text-white uppercase tracking-wide">Import</span>
-                 </div>
-               )}
-            </button>
-          </div>
-        )}
-
-        {/* Separator between Import and nav items */}
-        {onSyncClick && isFeatureEnabled('beta_imports') && (
-          isCollapsed ? (
-            <div className="w-8 h-px bg-border my-1 mx-auto" />
-          ) : (
-            <div className="h-px bg-border my-2 mx-3" />
-          )
-        )}
-
-        {/* Main Nav Items */}
+        {/* Nav items */}
         {filteredNavItems.map((item) => {
           const active = isActive(item);
+          const Icon = active ? item.iconActive : item.icon;
+
           return (
-            <div key={item.id} className="relative flex flex-col mb-1">
+            <div key={item.id} className="flex flex-col items-center">
               <button
-                ref={(el) => {
-                  if (el) {
-                    buttonRefs.current.set(item.id, el);
-                  } else {
-                    buttonRefs.current.delete(item.id);
-                  }
-                }}
                 type="button"
                 onClick={() => {
                   navigate(item.path);
-                  // Call settings callback when Settings nav item is clicked
                   if (item.id === 'settings' && onSettingsClick) {
                     onSettingsClick();
                   }
-                  // Call sorting callback when Sorting nav item is clicked
-                  if (item.id === 'sorting' && onSortingClick) {
-                    onSortingClick();
-                  }
-                  // Call analytics callback when Analytics nav item is clicked
-                  if (item.id === 'analytics' && onAnalyticsClick) {
-                    onAnalyticsClick();
-                  }
                 }}
-                onKeyDown={(e) => handleKeyDown(e, item.id)}
                 className={cn(
-                  'relative flex items-center',
-                  isCollapsed ? 'justify-center w-10 h-10 px-0' : 'justify-start w-full px-3 h-10 gap-3',
-                  'rounded-lg border border-transparent transition-all duration-500 ease-in-out',
-                  'hover:bg-hover/70',
-                  isCollapsed && active && 'bg-vibe-orange/10',
-                  active && !isCollapsed && [
-                    'bg-hover border-border pl-4',
-                    "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange"
-                  ],
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
+                  'relative flex items-center gap-3 rounded-lg px-3 py-2',
+                  'text-sm transition-colors duration-150',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                  isCollapsed
+                    ? 'justify-center px-2 py-2 bg-transparent hover:bg-transparent'
+                    : active
+                      ? 'bg-vibe-orange/10 font-semibold text-vibe-orange'
+                      : 'text-muted-foreground hover:bg-muted/70',
+                  !isCollapsed && 'w-full',
                 )}
-                title={item.name}
+                title={isCollapsed ? item.name : undefined}
+                aria-current={active ? 'page' : undefined}
               >
-                  {/* Icon — same clean rendering in both modes */}
-                  <div className={cn(
-                      "flex-shrink-0 flex items-center justify-center",
-                       isCollapsed ? "w-10 h-10" : "w-5 h-5"
-                  )}>
-                     {(() => {
-                        const IconComponent = item.iconLine;
-                        return <IconComponent className={cn(iconClass, active && "text-vibe-orange")} />;
-                     })()}
-                  </div>
+                {/* Left-edge pill indicator for expanded active state */}
+                {!isCollapsed && active && (
+                  <span className="cv-side-indicator-pill" aria-hidden="true" />
+                )}
 
-                  {/* Label - Visible only when expanded */}
-                  {!isCollapsed && (
-                      <span className={cn(
-                        "text-sm truncate transition-colors",
-                        active ? "font-medium text-foreground" : "text-foreground"
-                      )}>{item.name}</span>
-                  )}
+                {/* Expanded: plain icon */}
+                {!isCollapsed && (
+                  <Icon
+                    className={cn(
+                      'w-4 h-4 flex-shrink-0',
+                      active ? 'text-vibe-orange' : 'text-muted-foreground',
+                    )}
+                    aria-hidden="true"
+                  />
+                )}
+
+                {/* Collapsed: glossy 3D icon button */}
+                {isCollapsed && (
+                  <div
+                    className={cn(
+                      'w-11 h-11 rounded-xl flex items-center justify-center',
+                      'bg-gradient-to-br from-white to-gray-200',
+                      'border border-gray-300/80',
+                      'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
+                      'dark:from-gray-700 dark:to-gray-800 dark:border-border',
+                      'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
+                      active && 'ring-2 ring-vibe-orange/50',
+                    )}
+                  >
+                    <Icon
+                      className={cn(
+                        'w-5 h-5 flex-shrink-0',
+                        active ? 'text-vibe-orange' : 'text-foreground',
+                      )}
+                      aria-hidden="true"
+                    />
+                  </div>
+                )}
+
+                {!isCollapsed && <span className="truncate">{item.name}</span>}
               </button>
+
+              {/* Orange dot below active collapsed icon */}
+              {isCollapsed && active && (
+                <div className="w-1.5 h-1.5 rounded-full bg-vibe-orange mx-auto mt-1" />
+              )}
             </div>
           );
         })}
-
-        {/* Separator - Visible in expanded mode */}
-        {!isCollapsed && <div className="h-px bg-border my-2 mx-3" />}
-
-        {/* Library Toggle Action - As a list item in expanded mode */}
-        {onLibraryToggle && (
-           <div className="relative flex flex-col mt-1">
-            <button
-              type="button"
-              onClick={onLibraryToggle}
-              className={cn(
-                'relative flex items-center',
-                isCollapsed ? 'justify-center w-11 h-11' : 'justify-start w-full px-3 h-10 gap-3',
-                'rounded-xl transition-all duration-500 ease-in-out',
-                'hover:bg-hover',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2'
-              )}
-              title="Toggle Workspace Panel"
-            >
-               <div className={cn(
-                      "flex-shrink-0 flex items-center justify-center",
-                       isCollapsed ? "w-10 h-10" : "w-5 h-5 text-muted-foreground"
-                  )}>
-                  <RiLayoutColumnLine className={iconClass} />
-              </div>
-              {!isCollapsed && <span className="text-sm text-muted-foreground truncate">Workspace Panel</span>}
-            </button>
-             {isCollapsed && <div className="w-8 h-px bg-cb-border mt-2 mx-auto" />}
-          </div>
-        )}
-
       </nav>
 
-      {/* Separator line */}
-      <div className="mx-3 border-t border-border" />
+      {/* Bottom section */}
+      <div className={cn('mt-2 flex flex-col gap-1 pt-2 border-t border-border/40', isCollapsed ? 'px-1' : 'px-2')}>
+        {/* Panel toggle */}
+        {onLibraryToggle && (
+          <button
+            type="button"
+            onClick={onLibraryToggle}
+            className={cn(
+              'w-full flex items-center gap-3 rounded-lg px-3 py-2',
+              'text-sm text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
+              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              isCollapsed && 'justify-center px-2 hover:bg-transparent',
+            )}
+            title={isCollapsed ? 'Toggle Workspace Panel' : undefined}
+          >
+            {isCollapsed ? (
+              <div className={cn(
+                'w-11 h-11 rounded-xl flex items-center justify-center',
+                'bg-gradient-to-br from-white to-gray-200',
+                'border border-gray-300/80',
+                'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
+                'dark:from-gray-700 dark:to-gray-800 dark:border-border',
+                'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
+              )}>
+                <RiLayoutColumnLine className="w-5 h-5 flex-shrink-0 text-foreground" aria-hidden="true" />
+              </div>
+            ) : (
+              <RiLayoutColumnLine
+                className="w-4 h-4 flex-shrink-0 text-muted-foreground"
+                aria-hidden="true"
+              />
+            )}
+            {!isCollapsed && (
+              <span className="truncate text-xs">Workspace Panel</span>
+            )}
+          </button>
+        )}
+      </div>
     </div>
   );
 }

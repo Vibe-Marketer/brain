@@ -238,8 +238,7 @@ const TranscriptsNew = () => {
           secondaryPane: (
             <WorkspaceSidebarPane />
           ),
-          showDetailPane: true,
-          onSyncClick: () => window.location.href = '/import'
+          showDetailPane: true
         }}
       >
         <div className="flex flex-col h-full overflow-hidden">

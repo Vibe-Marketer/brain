@@ -78,10 +78,6 @@ export interface AppShellConfig {
   onLibraryToggle?: () => void;
   /** Callback when Settings nav item is clicked */
   onSettingsClick?: () => void;
-  /** Callback when Sorting nav item is clicked */
-  onSortingClick?: () => void;
-  /** Callback when Sync button is clicked */
-  onSyncClick?: () => void;
 }
 
 export interface AppShellProps {
@@ -125,8 +121,6 @@ export function AppShell({
     showDetailPane = false,
     onLibraryToggle,
     onSettingsClick,
-    onSortingClick,
-    onSyncClick
   } = config;
 
   // Responsive breakpoints
@@ -204,10 +198,10 @@ export function AppShell({
           <SidebarNav
             isCollapsed={false}
             className="w-full flex-1"
-            onSyncClick={onSyncClick}
+
             onLibraryToggle={handleLibraryToggle}
             onSettingsClick={onSettingsClick}
-            onSortingClick={onSortingClick}
+
           />
         </nav>
       )}
@@ -276,10 +270,10 @@ export function AppShell({
             <SidebarNav
               isCollapsed={!isSidebarExpanded}
               className="w-full flex-1 relative z-10"
-              onSyncClick={onSyncClick}
+  
               onLibraryToggle={handleLibraryToggle}
               onSettingsClick={onSettingsClick}
-              onSortingClick={onSortingClick}
+  
             />
           </nav>
         )}
