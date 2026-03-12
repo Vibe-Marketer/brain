@@ -222,13 +222,13 @@ export const TranscriptTable = React.memo(({
                     <SortButton field="duration">DURATION</SortButton>
                   </TableHead>
                 )}
-                {!isHome && visibleColumns.participants !== false && (
+                {visibleColumns.participants !== false && (
                   <TableHead className="hidden lg:table-cell text-center w-[85px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="participants">CONTACTS</SortButton>
+                    <SortButton field="participants">INVITEES</SortButton>
                   </TableHead>
                 )}
-                {!isHome && (
-                  <TableHead className="hidden xl:table-cell text-center w-20 h-12 whitespace-nowrap text-xs md:text-sm">COUNT</TableHead>
+                {(
+                  <TableHead className="hidden xl:table-cell text-center w-20 h-12 whitespace-nowrap text-xs md:text-sm">SPOKE</TableHead>
                 )}
                 {isHome && visibleColumns.source !== false && (
                   <TableHead className="hidden lg:table-cell min-w-[100px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">

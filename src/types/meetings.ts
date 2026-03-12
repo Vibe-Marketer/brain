@@ -6,7 +6,10 @@
 export interface CalendarInvitee {
   email: string;
   name?: string;
+  /** Whether this invitee is external to the organization (Fathom field) */
   external?: boolean;
+  /** Alias used by some API versions — prefer `external` */
+  is_external?: boolean;
   matched_speaker_display_name?: string;
 }
 

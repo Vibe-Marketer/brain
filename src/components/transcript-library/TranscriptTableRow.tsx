@@ -191,20 +191,20 @@ export function TranscriptTableRow({
         </div>
         </TableCell>
       )}
-      {!isHome && visibleColumns.participants !== false && (
+      {visibleColumns.participants !== false && (
         <TableCell className="hidden lg:table-cell whitespace-nowrap text-center">
           <div className="flex justify-center w-full">
             <div className="w-[70px]">
               {call.calendar_invitees && call.calendar_invitees.length > 0 ? (
                 <InviteesPopover invitees={call.calendar_invitees} hostEmail={hostEmail} />
               ) : (
-                <span className="text-muted-foreground text-2xs">No contacts</span>
+                <span className="text-muted-foreground text-2xs">No invitees</span>
               )}
             </div>
           </div>
         </TableCell>
       )}
-      {!isHome && (
+      {(
         <TableCell className="hidden xl:table-cell text-center align-middle py-0 whitespace-nowrap">
           <InviteesCountCircle invitees={call.calendar_invitees} />
         </TableCell>
