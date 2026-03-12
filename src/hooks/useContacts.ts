@@ -36,9 +36,13 @@ function normalizeEmail(email: string): string {
 
 /**
  * Hook for managing contacts database
- * Provides CRUD operations and import functionality from call attendees
+ * Provides CRUD operations and import functionality from call attendees.
+ *
+ * @param orgId - The active organization ID used to scope all contact queries.
+ *   Pass this from useOrgContext().activeOrgId. When undefined the hook still
+ *   renders safely but all queries are disabled until an orgId is available.
  */
-export function useContacts() {
+export function useContacts(orgId?: string | null) {
   const queryClient = useQueryClient();
 
   // ============================================================================
@@ -46,27 +50,30 @@ export function useContacts() {
   // ============================================================================
 
   /**
-   * Fetch all contacts with call counts
+   * Fetch all contacts with call counts, scoped to the active org.
    */
   const { data: contacts = [], isLoading: contactsLoading, refetch: refetchContacts } = useQuery({
-    queryKey: queryKeys.contacts.list(),
+    queryKey: queryKeys.contacts.list(orgId ?? undefined),
+    enabled: !!orgId,
     queryFn: async () => {
       const user = await requireUser();
 
-      // Get contacts
+      // Get contacts scoped to the active org
       const { data: contactsData, error: contactsError } = await supabase
         .from("contacts")
         .select("*")
         .eq("user_id", user.id)
+        .eq("org_id", orgId!)
         .order("last_seen_at", { ascending: false, nullsFirst: false });
 
       if (contactsError) throw contactsError;
 
-      // Get call counts for each contact
+      // Get call counts for each contact in this org
       const { data: appearanceCounts, error: countsError } = await supabase
         .from("contact_call_appearances")
         .select("contact_id")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("org_id", orgId!);
 
       if (countsError) throw countsError;
 
@@ -122,10 +129,11 @@ export function useContacts() {
   // ============================================================================
 
   /**
-   * Create a new contact
+   * Create a new contact in the active org
    */
   const createContactMutation = useMutation({
     mutationFn: async (input: CreateContactInput) => {
+      if (!orgId) throw new Error("No active organization selected");
       const user = await requireUser();
       const email = normalizeEmail(input.email);
 
@@ -133,6 +141,7 @@ export function useContacts() {
         .from("contacts")
         .insert({
           user_id: user.id,
+          org_id: orgId,
           email,
           name: input.name || null,
           contact_type: input.contact_type || null,
@@ -147,7 +156,7 @@ export function useContacts() {
       return data as Contact;
     },
     onSuccess: (newContact) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list(orgId ?? undefined) });
       toast.success(`Contact "${newContact.name || newContact.email}" created`);
     },
     onError: (error: Error) => {
@@ -173,18 +182,17 @@ export function useContacts() {
       if (error) throw error;
     },
     onMutate: async ({ id, updates }) => {
+      const listKey = queryKeys.contacts.list(orgId ?? undefined);
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.contacts.list() });
+      await queryClient.cancelQueries({ queryKey: listKey });
 
       // Snapshot previous value
-      const previousContacts = queryClient.getQueryData<ContactWithCallCount[]>(
-        queryKeys.contacts.list()
-      );
+      const previousContacts = queryClient.getQueryData<ContactWithCallCount[]>(listKey);
 
       // Optimistically update
       if (previousContacts) {
         queryClient.setQueryData<ContactWithCallCount[]>(
-          queryKeys.contacts.list(),
+          listKey,
           previousContacts.map((contact) =>
             contact.id === id
               ? { ...contact, ...updates, updated_at: new Date().toISOString() }
@@ -196,13 +204,13 @@ export function useContacts() {
       return { previousContacts };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list(orgId ?? undefined) });
       toast.success("Contact updated");
     },
     onError: (error, _variables, context) => {
       // Rollback on error
       if (context?.previousContacts) {
-        queryClient.setQueryData(queryKeys.contacts.list(), context.previousContacts);
+        queryClient.setQueryData(queryKeys.contacts.list(orgId ?? undefined), context.previousContacts);
       }
       logger.error("Error updating contact", error);
       toast.error("Failed to update contact");
@@ -222,18 +230,17 @@ export function useContacts() {
       if (error) throw error;
     },
     onMutate: async (id) => {
+      const listKey = queryKeys.contacts.list(orgId ?? undefined);
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: queryKeys.contacts.list() });
+      await queryClient.cancelQueries({ queryKey: listKey });
 
       // Snapshot previous value
-      const previousContacts = queryClient.getQueryData<ContactWithCallCount[]>(
-        queryKeys.contacts.list()
-      );
+      const previousContacts = queryClient.getQueryData<ContactWithCallCount[]>(listKey);
 
       // Optimistically remove
       if (previousContacts) {
         queryClient.setQueryData<ContactWithCallCount[]>(
-          queryKeys.contacts.list(),
+          listKey,
           previousContacts.filter((contact) => contact.id !== id)
         );
       }
@@ -241,13 +248,13 @@ export function useContacts() {
       return { previousContacts };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list(orgId ?? undefined) });
       toast.success("Contact deleted");
     },
     onError: (error, _variables, context) => {
       // Rollback on error
       if (context?.previousContacts) {
-        queryClient.setQueryData(queryKeys.contacts.list(), context.previousContacts);
+        queryClient.setQueryData(queryKeys.contacts.list(orgId ?? undefined), context.previousContacts);
       }
       logger.error("Error deleting contact", error);
       toast.error("Failed to delete contact");
@@ -307,10 +314,11 @@ export function useContacts() {
   });
 
   /**
-   * Import contacts from a specific call's attendees
+   * Import contacts from a specific call's attendees into the active org
    */
   const importFromCallMutation = useMutation({
     mutationFn: async (recordingId: number) => {
+      if (!orgId) throw new Error("No active organization selected");
       const user = await requireUser();
 
       // Get call details with attendees
@@ -338,11 +346,12 @@ export function useContacts() {
 
         const email = normalizeEmail(invitee.email);
 
-        // Upsert contact - update last_seen if newer
+        // Upsert contact - update last_seen if newer (scoped to this org)
         const { data: existingContact, error: checkError } = await supabase
           .from("contacts")
           .select("id, last_seen_at")
           .eq("user_id", user.id)
+          .eq("org_id", orgId!)
           .eq("email", email)
           .maybeSingle();
 
@@ -369,11 +378,12 @@ export function useContacts() {
           contactId = existingContact.id;
           skipped++;
         } else {
-          // Create new contact
+          // Create new contact in the active org
           const { data: newContact, error: insertError } = await supabase
             .from("contacts")
             .insert({
               user_id: user.id,
+              org_id: orgId!,
               email,
               name: invitee.name || null,
               last_seen_at: call.recording_start_time,
@@ -394,6 +404,7 @@ export function useContacts() {
             contact_id: contactId,
             recording_id: recordingId,
             user_id: user.id,
+            org_id: orgId!,
             appeared_at: call.recording_start_time,
           }, {
             onConflict: "contact_id,recording_id,user_id",
@@ -403,7 +414,7 @@ export function useContacts() {
       return { imported, skipped };
     },
     onSuccess: ({ imported, skipped }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list(orgId ?? undefined) });
       if (imported > 0) {
         toast.success(`Imported ${imported} new contact${imported > 1 ? "s" : ""}`);
       } else if (skipped > 0) {
@@ -419,10 +430,11 @@ export function useContacts() {
   });
 
   /**
-   * Import all contacts from all calls
+   * Import all contacts from all calls into the active org
    */
   const importAllContactsMutation = useMutation({
     mutationFn: async () => {
+      if (!orgId) throw new Error("No active organization selected");
       const user = await requireUser();
 
       // Get all calls with attendees
@@ -486,11 +498,12 @@ export function useContacts() {
         }
       }
 
-      // Get existing contacts for this user
+      // Get existing contacts for this user in the active org
       const { data: existingContacts } = await supabase
         .from("contacts")
         .select("id, email")
-        .eq("user_id", user.id);
+        .eq("user_id", user.id)
+        .eq("org_id", orgId!);
 
       const existingEmailMap = new Map<string, string>();
       (existingContacts || []).forEach(c => {
@@ -514,11 +527,12 @@ export function useContacts() {
           
           totalSkipped++;
         } else {
-          // Create new contact
+          // Create new contact in the active org
           const { data: newContact, error } = await supabase
             .from("contacts")
             .insert({
               user_id: user.id,
+              org_id: orgId!,
               email,
               name: attendee.name,
               last_seen_at: attendee.lastSeenAt,
@@ -543,6 +557,7 @@ export function useContacts() {
             contact_id: contactId,
             recording_id: a.recordingId,
             user_id: user.id,
+            org_id: orgId!,
             appeared_at: a.appearedAt,
           }));
 
@@ -558,7 +573,7 @@ export function useContacts() {
       return { totalImported, totalSkipped, totalCalls: calls.length };
     },
     onSuccess: ({ totalImported, totalSkipped, totalCalls }) => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list(orgId ?? undefined) });
       if (totalImported > 0) {
         toast.success(`Imported ${totalImported} new contact${totalImported > 1 ? "s" : ""} from ${totalCalls} calls`);
       } else if (totalSkipped > 0) {

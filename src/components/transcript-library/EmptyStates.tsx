@@ -1,5 +1,6 @@
-import { RiFileTextLine, RiSearchLine, RiFolderOpenLine } from "@remixicon/react";
+import { RiFileTextLine, RiSearchLine, RiFolderOpenLine, RiPlugLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 interface EmptyStateProps {
   type: "no-transcripts" | "no-results" | "no-category-transcripts";
@@ -7,11 +8,13 @@ interface EmptyStateProps {
 }
 
 export function EmptyState({ type, onAction }: EmptyStateProps) {
+  const navigate = useNavigate();
+
   const configs = {
     "no-transcripts": {
       icon: RiFileTextLine,
-      title: "No transcripts yet",
-      description: "Sync your Fathom calls to start organizing transcripts.",
+      title: "No calls yet",
+      description: "Connect a source to get started — Fathom, Zoom, or upload a file directly.",
       actionLabel: "Go to Dashboard",
     },
     "no-results": {
@@ -30,6 +33,7 @@ export function EmptyState({ type, onAction }: EmptyStateProps) {
 
   const config = configs[type];
   const Icon = config.icon;
+  const isNoTranscripts = type === "no-transcripts";
 
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
@@ -40,10 +44,17 @@ export function EmptyState({ type, onAction }: EmptyStateProps) {
       <p className="text-sm text-muted-foreground max-w-sm mb-6">
         {config.description}
       </p>
-      {onAction && (
-        <Button onClick={onAction} variant="hollow">
-          {config.actionLabel}
+      {isNoTranscripts ? (
+        <Button onClick={() => navigate("/import")} className="gap-2">
+          <RiPlugLine className="h-4 w-4" />
+          Connect Source
         </Button>
+      ) : (
+        onAction && (
+          <Button onClick={onAction} variant="hollow">
+            {config.actionLabel}
+          </Button>
+        )
       )}
     </div>
   );

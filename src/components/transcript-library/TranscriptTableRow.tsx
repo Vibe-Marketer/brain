@@ -1,5 +1,6 @@
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
+import { useState } from "react";
 import {
   RiTimeLine,
   RiEyeLine,
@@ -8,6 +9,9 @@ import {
   RiDownloadLine,
   RiFolderLine,
   RiStackLine,
+  RiMoreLine,
+  RiBuildingLine,
+  RiExpandLeftRightLine,
 } from "@remixicon/react";
 import { FathomIcon, ZoomIcon, YouTubeIcon, UploadIcon } from "./SourcePlatformIcons";
 import { RoutingTraceBadge } from "@/components/import/RoutingTraceBadge";
@@ -20,6 +24,16 @@ import { InviteesCountCircle } from "./InviteesCountCircle";
 import { SharedWithIndicator } from "@/components/sharing/SharedWithIndicator";
 import { AddToWorkspaceMenu } from "@/components/workspace/AddToWorkspaceMenu";
 import { WorkspaceBadgeList } from "@/components/workspace/WorkspaceBadgeList";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
+import { MoveToWorkspaceDialog } from "@/components/dialogs/MoveToWorkspaceDialog";
+import { useOrgContext } from "@/hooks/useOrgContext";
 import type { Meeting } from "@/types";
 import type { SharingStatus, AccessLevel } from "@/types/sharing";
 import type { Folder } from "@/types/workspace";
@@ -65,6 +79,12 @@ export function TranscriptTableRow({
   DownloadComponent,
 }: TranscriptTableRowProps) {
   const isHome = tableMode === 'home';
+  const { activeWorkspaceId } = useOrgContext();
+  const [showCopyToOrgDialog, setShowCopyToOrgDialog] = useState(false);
+  const [showMoveToWsDialog, setShowMoveToWsDialog] = useState(false);
+
+  // Derive a stable string recording ID for dialogs
+  const recordingIdStr = call.canonical_uuid || String(call.recording_id);
 
   const duration = call.recording_start_time && call.recording_end_time
     ? Math.round(
@@ -335,8 +355,50 @@ export function TranscriptTableRow({
           ) : DownloadComponent ? (
             <DownloadComponent call={call} />
           ) : null}
+
+          {/* More actions dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-hover dark:hover:bg-cb-panel-dark transition-colors"
+                title="More actions"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <RiMoreLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); setShowMoveToWsDialog(true); }}
+              >
+                <RiExpandLeftRightLine className="h-4 w-4 mr-2 flex-shrink-0" />
+                Move to Workspace
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={(e) => { e.stopPropagation(); setShowCopyToOrgDialog(true); }}
+                className="text-vibe-orange focus:text-vibe-orange"
+              >
+                <RiBuildingLine className="h-4 w-4 mr-2 flex-shrink-0" />
+                Copy to Organization
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </TableCell>
+
+      {/* Single-call dialogs */}
+      <MoveToWorkspaceDialog
+        open={showMoveToWsDialog}
+        onOpenChange={setShowMoveToWsDialog}
+        recordingIds={[recordingIdStr]}
+        currentWorkspaceId={activeWorkspaceId ?? null}
+      />
+      <CopyToOrganizationDialog
+        open={showCopyToOrgDialog}
+        onOpenChange={setShowCopyToOrgDialog}
+        recordingIds={[recordingIdStr]}
+      />
     </TableRow>
   );
 }

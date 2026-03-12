@@ -27,6 +27,7 @@ import {
   RiSettings3Line,
   RiContactsLine,
   RiBuildingLine,
+  RiRobot2Line,
 } from "@remixicon/react";
 
 export type SettingsCategory =
@@ -36,6 +37,7 @@ export type SettingsCategory =
   | "users"
   | "billing"
   | "integrations"
+  | "mcp"
   | "admin";
 
 interface CategoryItem {
@@ -84,6 +86,12 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     label: "Integrations",
     description: "Connected services",
     icon: RiPlugLine,
+  },
+  {
+    id: "mcp",
+    label: "MCP / AI Access",
+    description: "Connect AI tools to your calls",
+    icon: RiRobot2Line,
   },
   {
     id: "admin",

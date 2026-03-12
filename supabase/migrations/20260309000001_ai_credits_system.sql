@@ -39,10 +39,12 @@ CREATE INDEX IF NOT EXISTS idx_ai_usage_org_month
 -- ============================================================================
 ALTER TABLE ai_usage ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own AI usage" ON ai_usage;
 CREATE POLICY "Users can view their own AI usage"
   ON ai_usage FOR SELECT
   USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "Users can insert their own AI usage" ON ai_usage;
 CREATE POLICY "Users can insert their own AI usage"
   ON ai_usage FOR INSERT
   WITH CHECK (auth.uid() = user_id);

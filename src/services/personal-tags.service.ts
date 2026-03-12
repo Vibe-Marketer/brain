@@ -58,7 +58,7 @@ export async function updatePersonalTag(tagId: string, updates: Partial<{ name: 
     .eq('id', tagId)
 
   if (error) {
-    if (isTableMissing(error)) throw new Error('Personal tags are not available yet — migration pending')
+    if (isTableMissing(error)) return
     throw new Error(`Failed to update personal tag: ${error.message}`)
   }
 }
@@ -70,7 +70,7 @@ export async function deletePersonalTag(tagId: string): Promise<void> {
     .eq('id', tagId)
 
   if (error) {
-    if (isTableMissing(error)) throw new Error('Personal tags are not available yet — migration pending')
+    if (isTableMissing(error)) return
     throw new Error(`Failed to delete personal tag: ${error.message}`)
   }
 }
@@ -127,7 +127,7 @@ export async function assignTagToRecording(recordingId: string, tagId: string): 
     }, { onConflict: 'tag_id,recording_id' })
 
   if (error) {
-    if (isTableMissing(error)) throw new Error('Personal tags are not available yet — migration pending')
+    if (isTableMissing(error)) return
     throw new Error(`Failed to assign tag to recording: ${error.message}`)
   }
 }
@@ -140,7 +140,7 @@ export async function removeTagFromRecording(recordingId: string, tagId: string)
     .eq('tag_id', tagId)
 
   if (error) {
-    if (isTableMissing(error)) throw new Error('Personal tags are not available yet — migration pending')
+    if (isTableMissing(error)) return
     throw new Error(`Failed to remove tag from recording: ${error.message}`)
   }
 }

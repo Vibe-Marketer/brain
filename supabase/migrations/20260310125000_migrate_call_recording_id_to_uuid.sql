@@ -106,6 +106,7 @@ DROP POLICY IF EXISTS "Users can view their own tag assignments" ON call_tag_ass
 DROP POLICY IF EXISTS "Users can manage their own tag assignments" ON call_tag_assignments;
 
 -- Read: user must be an org member of the recording's organization
+DROP POLICY IF EXISTS "Users can read own tag assignments" ON call_tag_assignments;
 CREATE POLICY "Users can read own tag assignments"
   ON call_tag_assignments FOR SELECT
   USING (
@@ -117,6 +118,7 @@ CREATE POLICY "Users can read own tag assignments"
   );
 
 -- Write (all): user must own the recording
+DROP POLICY IF EXISTS "Users can manage own tag assignments" ON call_tag_assignments;
 CREATE POLICY "Users can manage own tag assignments"
   ON call_tag_assignments FOR ALL
   USING (

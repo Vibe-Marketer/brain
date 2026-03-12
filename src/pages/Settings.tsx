@@ -87,6 +87,7 @@ export default function Settings() {
       users: "users",
       billing: "billing",
       integrations: "integrations",
+      mcp: "integrations", // MCP uses integrations help panel for now
       admin: "admin",
     };
     return topicMap[category] || "profile";

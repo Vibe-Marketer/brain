@@ -111,8 +111,15 @@ export function useCallDetailMutations({
       }
     },
     onSuccess: () => {
-      // Invalidate all views that display call data
+      // Invalidate all views that display call data.
+      // queryKeys.calls.all (['calls']) prefix-matches list + detail queries.
       queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+      // Explicitly invalidate the detail query so CallDetailPanel / CallDetailPage update.
+      if (call?.recording_id != null) {
+        queryClient.invalidateQueries({ queryKey: queryKeys.calls.detail(call.recording_id) });
+      }
+      // TranscriptsTab uses "tag-calls" as its list query key — must invalidate separately.
+      queryClient.invalidateQueries({ queryKey: ['tag-calls'] });
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.all });
       toast.success("Call updated successfully");
       onDataChange?.();
@@ -294,7 +301,9 @@ export function useCallDetailMutations({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
-      queryClient.invalidateQueries({ queryKey: queryKeys.calls.list() });
+      queryClient.invalidateQueries({ queryKey: queryKeys.calls.all });
+      // TranscriptsTab uses "tag-calls" as its list query key — must invalidate separately.
+      queryClient.invalidateQueries({ queryKey: ['tag-calls'] });
       toast.success("Call resynced from Fathom");
     },
     onError: (error: Error) => {

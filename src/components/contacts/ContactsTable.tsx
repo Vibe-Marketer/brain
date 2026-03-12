@@ -27,6 +27,7 @@ import {
   RiArrowDownLine,
 } from "@remixicon/react";
 import { useContacts, type ContactWithCallCount, type ContactType } from "@/hooks/useContacts";
+import { useOrgContext } from "@/hooks/useOrgContext";
 import { TrackingToggle } from "./TrackingToggle";
 import { ContactCard } from "./ContactCard";
 import { formatDistanceToNow } from "date-fns";
@@ -47,6 +48,9 @@ interface ContactsTableProps {
 }
 
 export function ContactsTable({ className }: ContactsTableProps) {
+  // Derive the active org from context so contacts re-fetch automatically on org switch
+  const { activeOrgId } = useOrgContext();
+
   const {
     contacts,
     settings,
@@ -58,7 +62,7 @@ export function ContactsTable({ className }: ContactsTableProps) {
     updateContact,
     deleteContact,
     importAllContacts,
-  } = useContacts();
+  } = useContacts(activeOrgId);
 
   // UI State
   const [searchQuery, setSearchQuery] = React.useState("");

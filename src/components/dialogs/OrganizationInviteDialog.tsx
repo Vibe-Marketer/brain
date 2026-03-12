@@ -28,6 +28,7 @@ import {
 import { toast } from 'sonner'
 import { createOrganizationInvitation, getShareableLink } from '@/services/organization-invitations.service'
 import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/integrations/supabase/client'
 
 interface OrganizationInviteDialogProps {
   open: boolean
@@ -42,6 +43,7 @@ export function OrganizationInviteDialog({
   organizationId,
   organizationName,
 }: OrganizationInviteDialogProps) {
+  const { user } = useAuth()
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'organization_admin' | 'member'>('member')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -57,7 +59,30 @@ export function OrganizationInviteDialog({
       const invite = await createOrganizationInvitation(organizationId, email, role)
       const url = getShareableLink(invite.invite_token)
       setInviteUrl(url)
-      toast.success(`Invite created for ${email}`)
+
+      // Send invite email via edge function (non-blocking — link shown regardless)
+      try {
+        const inviterName =
+          user?.user_metadata?.full_name ||
+          user?.user_metadata?.name ||
+          user?.email ||
+          'A teammate'
+
+        await supabase.functions.invoke('send-org-invite', {
+          body: {
+            inviteeEmail: email,
+            inviterName,
+            orgName: organizationName,
+            inviteUrl: url,
+            role,
+            context: 'organization',
+          },
+        })
+        toast.success(`Invitation sent to ${email}`)
+      } catch {
+        // Email sending is best-effort; the invite link is still valid
+        toast.success(`Invite created for ${email}`)
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to create invitation')
     } finally {

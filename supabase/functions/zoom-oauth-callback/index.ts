@@ -73,7 +73,8 @@ Deno.serve(async (req) => {
     // Get Zoom OAuth credentials
     const clientId = Deno.env.get('ZOOM_OAUTH_CLIENT_ID');
     const clientSecret = Deno.env.get('ZOOM_OAUTH_CLIENT_SECRET');
-    const redirectUri = 'https://app.callvaultai.com/oauth/callback/zoom';
+    const siteUrl = Deno.env.get('SITE_URL') || 'https://app.callvaultai.com';
+    const redirectUri = `${siteUrl}/oauth/callback/zoom`;
 
     console.log('[zoom-oauth-callback] Step 6: Credentials check - clientId exists:', !!clientId, 'clientSecret exists:', !!clientSecret);
 

@@ -8,7 +8,7 @@
  * Detects source_platform to render the appropriate layout.
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -26,6 +26,7 @@ import {
   RiEyeLine,
   RiThumbUpLine,
   RiInformationLine,
+  RiBuildingLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -38,6 +39,7 @@ import { parseYouTubeDuration, formatCompactNumber } from '@/lib/youtube-utils';
 import { getRecordingById, getRecordingByLegacyId } from '@/services/recordings.service';
 import { getRawCallData } from '@/services/raw-calls.service';
 import { queryKeys } from '@/lib/query-config';
+import { CopyToOrganizationDialog } from '@/components/dialogs/CopyToOrganizationDialog';
 import type { YouTubeRawCall, FathomRawCall } from '@/types/raw-calls';
 
 
@@ -84,6 +86,7 @@ function formatTranscriptDisplay(transcript: string): React.ReactNode[] {
 export const CallDetailPage: React.FC = () => {
   const { callId } = useParams<{ callId: string }>();
   const navigate = useNavigate();
+  const [showCopyToOrgDialog, setShowCopyToOrgDialog] = useState(false);
 
   // Try to parse callId as integer (legacy) or use as UUID
   const legacyId = callId ? parseInt(callId, 10) : NaN;
@@ -405,6 +408,14 @@ export const CallDetailPage: React.FC = () => {
               <RiDownloadLine className="w-4 h-4 mr-2" />
               Export
             </Button>
+            <Button
+              variant="outline"
+              className="text-vibe-orange border-vibe-orange/30 hover:bg-vibe-orange/5 hover:text-vibe-orange"
+              onClick={() => setShowCopyToOrgDialog(true)}
+            >
+              <RiBuildingLine className="w-4 h-4 mr-2" />
+              Copy to Org
+            </Button>
           </div>
         </header>
 
@@ -488,6 +499,13 @@ export const CallDetailPage: React.FC = () => {
           </Tabs>
         </div>
       </div>
+
+      {/* Copy to Organization dialog */}
+      <CopyToOrganizationDialog
+        open={showCopyToOrgDialog}
+        onOpenChange={setShowCopyToOrgDialog}
+        recordingIds={[call.id]}
+      />
     </AppShell>
   );
 };

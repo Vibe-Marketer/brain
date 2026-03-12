@@ -103,7 +103,7 @@ export const queryKeys = {
   // Contacts
   contacts: {
     all: ['contacts'] as const,
-    list: () => ['contacts', 'list'] as const,
+    list: (orgId?: string) => ['contacts', 'list', orgId] as const,
     detail: (contactId: string) => ['contacts', 'detail', contactId] as const,
     settings: () => ['contacts', 'settings'] as const,
     appearances: (contactId: string) => ['contacts', 'appearances', contactId] as const,

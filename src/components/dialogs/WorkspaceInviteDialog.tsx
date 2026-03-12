@@ -32,6 +32,7 @@ import {
 import { useGenerateWorkspaceInvite } from '@/hooks/useWorkspaceMemberMutations'
 import { createInvitation } from '@/services/invitations.service'
 import { useAuth } from '@/contexts/AuthContext'
+import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
@@ -110,12 +111,32 @@ export function WorkspaceInviteDialog({
     try {
       const invite = await createInvitation(workspaceId, user.id, email, role as any)
       const link = `${window.location.origin}/join/workspace/${invite.token}`
-      
-      // In a real app, we'd send an email here. 
-      // For now, we'll just show the link and success message.
-      toast.success(`Invitation created for ${email}`)
+
+      // Send invite email via edge function (non-blocking)
+      try {
+        const inviterName =
+          user?.user_metadata?.full_name ||
+          user?.user_metadata?.name ||
+          user?.email ||
+          'A teammate'
+
+        await supabase.functions.invoke('send-org-invite', {
+          body: {
+            inviteeEmail: email,
+            inviterName,
+            orgName: workspaceName,
+            inviteUrl: link,
+            role,
+            context: 'workspace',
+          },
+        })
+        toast.success(`Invitation sent to ${email}`)
+      } catch {
+        // Email sending is best-effort; the invite record is still created
+        toast.success(`Invitation created for ${email}`)
+      }
+
       onOpenChange(false)
-      // Optionally show a "success" state with the specific token/link
     } catch (err: any) {
       toast.error(err.message || 'Failed to send invite')
     } finally {

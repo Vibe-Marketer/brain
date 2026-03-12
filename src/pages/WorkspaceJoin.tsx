@@ -136,7 +136,31 @@ export default function WorkspaceJoin() {
         
         if (error || (data && data.error)) throw new Error(error?.message || data?.error)
       } else {
-        // Directly insert for shareable links
+        // Shareable link path: ensure org membership exists before workspace membership
+        // Fetch the workspace's organization_id
+        const { data: wsData, error: wsLookupError } = await supabase
+          .from('workspaces')
+          .select('organization_id')
+          .eq('id', inviteData.workspace_id)
+          .single()
+
+        if (wsLookupError || !wsData?.organization_id) {
+          throw new Error('Could not look up workspace organization')
+        }
+
+        // Upsert org membership (no-op if already a member)
+        const { error: orgMemberError } = await supabase
+          .from('organization_memberships')
+          .upsert(
+            { organization_id: wsData.organization_id, user_id: user.id, role: 'member' },
+            { onConflict: 'organization_id,user_id', ignoreDuplicates: true }
+          )
+
+        if (orgMemberError) {
+          throw orgMemberError
+        }
+
+        // Now insert workspace membership
         const { error: joinError } = await supabase
           .from('workspace_memberships')
           .insert({

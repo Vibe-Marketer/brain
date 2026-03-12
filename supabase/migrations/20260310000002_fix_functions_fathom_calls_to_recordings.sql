@@ -14,6 +14,15 @@
 -- NOT changed: get_migration_progress, migrate_batch_fathom_calls,
 -- migrate_fathom_call_to_recording — these specifically operate on legacy data.
 
+-- Drop functions with changed signatures before recreating
+DROP FUNCTION IF EXISTS apply_tag_rules(BIGINT, UUID, BOOLEAN) CASCADE;
+DROP FUNCTION IF EXISTS apply_tag_rules_to_untagged(UUID, BOOLEAN, INT) CASCADE;
+DROP FUNCTION IF EXISTS public.get_available_metadata(UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.get_calls_shared_with_me_v2(UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.get_calls_shared_with_me() CASCADE;
+DROP FUNCTION IF EXISTS public.get_unindexed_recording_ids(UUID) CASCADE;
+DROP FUNCTION IF EXISTS public.backfill_transcript_segments(INTEGER) CASCADE;
+
 -- ============================================================================
 -- 1. apply_tag_rules
 -- Queries recording details to evaluate rule conditions.

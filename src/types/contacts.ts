@@ -12,6 +12,8 @@ export type ContactType = 'client' | 'customer' | 'lead' | 'other';
 export interface Contact {
   id: string;
   user_id: string;
+  /** Organization this contact belongs to. Added in migration 20260310150000. */
+  org_id: string;
   email: string;
   name: string | null;
   
@@ -50,6 +52,8 @@ export interface ContactCallAppearance {
   contact_id: string;
   recording_id: number;
   user_id: string;
+  /** Organization this appearance belongs to. Added in migration 20260310150000. */
+  org_id: string;
   appeared_at: string | null;
 }
 

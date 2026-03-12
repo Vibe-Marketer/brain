@@ -74,10 +74,12 @@ ALTER TABLE recordings
 ALTER TABLE call_participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE call_participants FORCE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Organization members can view call participants" ON call_participants;
 CREATE POLICY "Organization members can view call participants"
   ON call_participants FOR SELECT
   USING (is_organization_member(organization_id, auth.uid()));
 
+DROP POLICY IF EXISTS "Service role full access" ON call_participants;
 CREATE POLICY "Service role full access"
   ON call_participants FOR ALL
   TO service_role

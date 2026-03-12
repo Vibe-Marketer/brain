@@ -16,11 +16,14 @@ import { useLocation } from "react-router-dom";
 import { DebugPanel } from "@/components/debug-panel";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useOnboarding } from "@/hooks/useOnboarding";
+import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { role } = useUserRole();
   const { isFeatureEnabled } = useFeatureFlags(role);
+  const { shouldShowOnboarding, loading: onboardingLoading, completeOnboarding } = useOnboarding();
 
   const getPageLabel = () => {
     if (location.pathname === '/') return 'HOME';
@@ -42,6 +45,12 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       {isFeatureEnabled('debug_panel') && <DebugPanel />}
+      {!onboardingLoading && shouldShowOnboarding && (
+        <OnboardingModal
+          open={shouldShowOnboarding}
+          onComplete={completeOnboarding}
+        />
+      )}
     </div>
   );
 }

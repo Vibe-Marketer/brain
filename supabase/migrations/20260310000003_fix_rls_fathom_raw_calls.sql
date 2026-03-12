@@ -21,7 +21,7 @@ CREATE POLICY "Users can read own call category assignments"
   USING (
     EXISTS (
       SELECT 1 FROM recordings r
-      WHERE r.legacy_recording_id = call_tag_assignments.call_recording_id
+      WHERE r.id = call_tag_assignments.recording_id
         AND r.owner_user_id = auth.uid()
     )
   );
@@ -32,14 +32,14 @@ CREATE POLICY "Users can manage own call category assignments"
   USING (
     EXISTS (
       SELECT 1 FROM recordings r
-      WHERE r.legacy_recording_id = call_tag_assignments.call_recording_id
+      WHERE r.id = call_tag_assignments.recording_id
         AND r.owner_user_id = auth.uid()
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM recordings r
-      WHERE r.legacy_recording_id = call_tag_assignments.call_recording_id
+      WHERE r.id = call_tag_assignments.recording_id
         AND r.owner_user_id = auth.uid()
     )
   );
@@ -57,7 +57,7 @@ CREATE POLICY "Users can read own call speakers"
   USING (
     EXISTS (
       SELECT 1 FROM recordings r
-      WHERE r.legacy_recording_id = call_speakers.call_recording_id
+      WHERE r.id = call_speakers.recording_id
         AND r.owner_user_id = auth.uid()
     )
   );
@@ -68,14 +68,14 @@ CREATE POLICY "Users can manage own call speakers"
   USING (
     EXISTS (
       SELECT 1 FROM recordings r
-      WHERE r.legacy_recording_id = call_speakers.call_recording_id
+      WHERE r.id = call_speakers.recording_id
         AND r.owner_user_id = auth.uid()
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM recordings r
-      WHERE r.legacy_recording_id = call_speakers.call_recording_id
+      WHERE r.id = call_speakers.recording_id
         AND r.owner_user_id = auth.uid()
     )
   );
@@ -93,7 +93,7 @@ CREATE POLICY "Users can read tag assignments for own calls"
   USING (
     EXISTS (
       SELECT 1 FROM recordings r
-      WHERE r.legacy_recording_id = transcript_tag_assignments.call_recording_id
+      WHERE r.id = transcript_tag_assignments.recording_id
         AND r.owner_user_id = auth.uid()
     )
   );
@@ -104,14 +104,14 @@ CREATE POLICY "Users can manage tag assignments for own calls"
   USING (
     EXISTS (
       SELECT 1 FROM recordings r
-      WHERE r.legacy_recording_id = transcript_tag_assignments.call_recording_id
+      WHERE r.id = transcript_tag_assignments.recording_id
         AND r.owner_user_id = auth.uid()
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM recordings r
-      WHERE r.legacy_recording_id = transcript_tag_assignments.call_recording_id
+      WHERE r.id = transcript_tag_assignments.recording_id
         AND r.owner_user_id = auth.uid()
     )
   );

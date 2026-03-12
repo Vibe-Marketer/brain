@@ -9,8 +9,9 @@
 -- ============================================================================
 DROP POLICY IF EXISTS "Users can view own recordings" ON recordings;
 DROP POLICY IF EXISTS "Users can view shared recordings in their workspaces" ON recordings;
--- Also drop the original broad policy in case it was re-applied
 DROP POLICY IF EXISTS "Users can view recordings in their organizations" ON recordings;
+DROP POLICY IF EXISTS "Org admins can view all recordings" ON recordings;
+DROP POLICY IF EXISTS "Users can view recordings in their workspaces" ON recordings;
 
 -- ============================================================================
 -- 2. Org admins/owners can see ALL recordings in their organization

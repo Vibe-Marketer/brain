@@ -20,14 +20,14 @@ CREATE OR REPLACE FUNCTION public.split_recording_atomic(
   p_part1_fathom_id       BIGINT,   -- fathom_calls.recording_id for legacy (nullable)
 
   -- Part 1 updated values
-  p_part1_title           TEXT NOT NULL,
-  p_part1_transcript      TEXT NOT NULL,
+  p_part1_title           TEXT,
+  p_part1_transcript      TEXT,
 
   -- Part 2 creation values
-  p_part2_title           TEXT NOT NULL,
-  p_part2_transcript      TEXT NOT NULL,
-  p_organization_id       UUID NOT NULL,
-  p_owner_user_id         UUID NOT NULL,
+  p_part2_title           TEXT,
+  p_part2_transcript      TEXT,
+  p_organization_id       UUID,
+  p_owner_user_id         UUID,
   p_source_app            TEXT DEFAULT NULL,
   p_source_metadata       JSONB DEFAULT '{}',
   p_recording_start_time  TIMESTAMPTZ DEFAULT NULL,

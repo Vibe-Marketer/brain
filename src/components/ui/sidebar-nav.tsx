@@ -25,6 +25,8 @@ import {
   RiRouteLine,
   RiRouteFill,
   RiLayoutColumnLine,
+  RiShareLine,
+  RiShareFill,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
@@ -59,6 +61,14 @@ const navItems: NavItem[] = [
     iconActive: RiPhoneFill,
     path: '/',
     matchPaths: ['/', '/transcripts'],
+  },
+  {
+    id: 'shared-with-me',
+    name: 'Shared With Me',
+    icon: RiShareLine,
+    iconActive: RiShareFill,
+    path: '/shared-with-me',
+    matchPaths: ['/shared-with-me'],
   },
   {
     id: 'import',
