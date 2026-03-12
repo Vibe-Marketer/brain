@@ -10,7 +10,10 @@ import {
   RiMailLine,
   RiCloseLine,
   RiTimeLine,
+  RiUserAddLine,
 } from "@remixicon/react";
+import { OrganizationInviteDialog } from "@/components/dialogs/OrganizationInviteDialog";
+import { WorkspaceInviteDialog } from "@/components/dialogs/WorkspaceInviteDialog";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/integrations/supabase/client";
@@ -198,6 +201,8 @@ export default function UsersTab() {
   const [workspacesWithMembers, setWorkspacesWithMembers] = useState<WorkspaceWithMembers[]>([]);
   const [removingId, setRemovingId] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
+  const [inviteOrgId, setInviteOrgId] = useState<string | null>(null);
+  const [inviteWorkspace, setInviteWorkspace] = useState<{ id: string; name: string } | null>(null);
 
   const loadData = useCallback(async () => {
     if (!user) return;
@@ -447,15 +452,26 @@ export default function UsersTab() {
       {/* ── Organization Members ─────────────────────────────────── */}
       {orgsWithMembers.map(({ org, members, pendingInvites }) => (
         <section key={org.id} className="space-y-4">
-          <div className="flex items-center gap-2">
-            <RiBuilding4Line className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-            <div>
-              <h2 className="font-semibold text-foreground">{org.name}</h2>
-              <p className="text-xs text-muted-foreground">
-                Organization · {members.length} member{members.length !== 1 ? "s" : ""}
-                {pendingInvites.length > 0 && ` · ${pendingInvites.length} pending`}
-              </p>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <RiBuilding4Line className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+              <div>
+                <h2 className="font-semibold text-foreground">{org.name}</h2>
+                <p className="text-xs text-muted-foreground">
+                  Organization · {members.length} member{members.length !== 1 ? "s" : ""}
+                  {pendingInvites.length > 0 && ` · ${pendingInvites.length} pending`}
+                </p>
+              </div>
             </div>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setInviteOrgId(org.id)}
+              className="flex-shrink-0"
+            >
+              <RiUserAddLine className="h-3.5 w-3.5 mr-1.5" />
+              Invite
+            </Button>
           </div>
 
           <div className="border border-border rounded-xl overflow-hidden">
@@ -507,6 +523,23 @@ export default function UsersTab() {
         </section>
       ))}
 
+      {/* Invite dialogs */}
+      {inviteOrgId && (
+        <OrganizationInviteDialog
+          open={!!inviteOrgId}
+          onOpenChange={(open) => { if (!open) { setInviteOrgId(null); loadData(); } }}
+          organizationId={inviteOrgId}
+        />
+      )}
+      {inviteWorkspace && (
+        <WorkspaceInviteDialog
+          open={!!inviteWorkspace}
+          onOpenChange={(open) => { if (!open) { setInviteWorkspace(null); loadData(); } }}
+          workspaceId={inviteWorkspace.id}
+          workspaceName={inviteWorkspace.name}
+        />
+      )}
+
       {workspacesWithMembers.length > 0 && orgsWithMembers.length > 0 && (
         <Separator />
       )}
@@ -523,15 +556,26 @@ export default function UsersTab() {
 
           {workspacesWithMembers.map((ws) => (
             <div key={ws.workspaceId} className="space-y-3">
-              <div className="flex items-center gap-2">
-                <RiBuildingLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <div>
-                  <h3 className="text-sm font-semibold text-foreground">{ws.workspaceName}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {ws.members.length} member{ws.members.length !== 1 ? "s" : ""}
-                    {ws.pendingInvites.length > 0 && ` · ${ws.pendingInvites.length} pending`}
-                  </p>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <RiBuildingLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <h3 className="text-sm font-semibold text-foreground">{ws.workspaceName}</h3>
+                    <p className="text-xs text-muted-foreground">
+                      {ws.members.length} member{ws.members.length !== 1 ? "s" : ""}
+                      {ws.pendingInvites.length > 0 && ` · ${ws.pendingInvites.length} pending`}
+                    </p>
+                  </div>
                 </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setInviteWorkspace({ id: ws.workspaceId, name: ws.workspaceName })}
+                  className="flex-shrink-0"
+                >
+                  <RiUserAddLine className="h-3.5 w-3.5 mr-1.5" />
+                  Invite
+                </Button>
               </div>
 
               <div className="border border-border rounded-xl overflow-hidden">

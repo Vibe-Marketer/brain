@@ -61,9 +61,9 @@ export function PageHeader({
             {title}
           </h2>
           {subtitle && (
-            <p className="text-xs text-muted-foreground truncate font-normal">
+            <div className="text-xs text-muted-foreground truncate font-normal">
               {subtitle}
-            </p>
+            </div>
           )}
         </div>
 

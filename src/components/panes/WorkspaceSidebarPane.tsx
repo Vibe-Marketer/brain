@@ -65,7 +65,6 @@ import {
   RiShareForwardLine,
   RiArchiveLine,
   RiPriceTag3Line,
-  RiFolder3Line,
 } from '@remixicon/react';
 import type { WorkspaceWithMeta, WorkspaceRole } from '@/types/workspace';
 import type { Folder } from '@/types/workspace';

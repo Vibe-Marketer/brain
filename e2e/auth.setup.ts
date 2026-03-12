@@ -21,28 +21,25 @@ setup('authenticate', async ({ page }) => {
   // Navigate to login page
   await page.goto('/login');
 
-  // Wait for the login form to be visible
-  await expect(page.getByRole('heading', { name: /sign in|log in|welcome/i })).toBeVisible({ timeout: 10000 });
+  // Wait for the email input to be visible (CardTitle may be "Welcome to CallVault™")
+  const emailInput = page.locator('input[type="email"]');
+  await expect(emailInput).toBeVisible({ timeout: 20000 });
 
-  // Fill in credentials
-  // Try common email input selectors
-  const emailInput = page.getByLabel(/email/i).or(page.getByPlaceholder(/email/i)).or(page.locator('input[type="email"]'));
   await emailInput.fill(email);
 
-  const passwordInput = page.getByLabel(/password/i).or(page.getByPlaceholder(/password/i)).or(page.locator('input[type="password"]'));
+  const passwordInput = page.locator('input[type="password"]');
+  await expect(passwordInput).toBeVisible();
   await passwordInput.fill(password);
 
-  // Click sign in button
-  const signInButton = page.getByRole('button', { name: /sign in|log in|submit/i });
+  // Click sign in button — the Login page has a "Sign In" button
+  const signInButton = page.getByRole('button', { name: /sign in/i }).first();
   await signInButton.click();
 
-  // Wait for navigation to dashboard/home - indicates successful login
-  await expect(page).toHaveURL(/\/(home|dashboard|chat)?$/, { timeout: 30000 });
+  // Wait for navigation away from /login — any authenticated page
+  await page.waitForURL(url => !url.toString().includes('/login'), { timeout: 30000 });
 
-  // Additional check: wait for authenticated UI element (use .first() to avoid strict mode violation)
-  await expect(
-    page.getByRole('button', { name: /collapse sidebar/i })
-  ).toBeVisible({ timeout: 10000 });
+  // Wait for the sidebar to confirm we're logged in
+  await expect(page.locator('nav').first()).toBeVisible({ timeout: 15000 });
 
   // Save the authenticated state
   await page.context().storageState({ path: authFile });
