@@ -135,20 +135,9 @@ export interface OrganizationMember {
  * RLS ensures only org members can see this data.
  */
 export async function getOrganizationMembers(organizationId: string): Promise<OrganizationMember[]> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any)
+  const { data: memberships, error } = await supabase
     .from('organization_memberships')
-    .select(`
-      id,
-      user_id,
-      role,
-      created_at,
-      profiles:user_profiles!user_id (
-        email,
-        display_name,
-        avatar_url
-      )
-    `)
+    .select('id, user_id, role, created_at')
     .eq('organization_id', organizationId)
     .order('created_at', { ascending: true })
 
@@ -156,16 +145,36 @@ export async function getOrganizationMembers(organizationId: string): Promise<Or
     throw new Error(`Failed to fetch organization members: ${error.message}`)
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data ?? []).map((m: any) => ({
-    id: m.id,
-    user_id: m.user_id,
-    role: m.role as OrganizationRole,
-    created_at: m.created_at,
-    email: m.profiles?.email || '',
-    display_name: m.profiles?.display_name || '',
-    avatar_url: m.profiles?.avatar_url || null,
-  }))
+  if (!memberships || memberships.length === 0) return []
+
+  // Batch-fetch profiles by user_id (no FK join from org_memberships → user_profiles)
+  const userIds = memberships.map((m) => m.user_id)
+  const { data: profiles } = await supabase
+    .from('user_profiles')
+    .select('user_id, email, display_name, avatar_url')
+    .in('user_id', userIds)
+
+  const profileMap = new Map<string, { email: string; display_name: string; avatar_url: string | null }>()
+  for (const p of profiles ?? []) {
+    profileMap.set(p.user_id, {
+      email: p.email || '',
+      display_name: p.display_name || '',
+      avatar_url: p.avatar_url || null,
+    })
+  }
+
+  return memberships.map((m) => {
+    const profile = profileMap.get(m.user_id)
+    return {
+      id: m.id,
+      user_id: m.user_id,
+      role: m.role as OrganizationRole,
+      created_at: m.created_at,
+      email: profile?.email || '',
+      display_name: profile?.display_name || '',
+      avatar_url: profile?.avatar_url || null,
+    }
+  })
 }
 
 // ─── Organization Member Mutations ──────────────────────────────────

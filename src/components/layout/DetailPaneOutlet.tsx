@@ -136,6 +136,7 @@ export function DetailPaneOutlet({
             onCreateNewTag={panelData.onCreateNewTag}
             onAssignFolder={panelData.onAssignFolder}
             deleteLabel={panelData.deleteLabel}
+            currentWorkspaceId={panelData.currentWorkspaceId}
           />
         ) : null;
 

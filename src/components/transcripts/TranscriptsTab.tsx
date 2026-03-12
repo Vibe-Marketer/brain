@@ -144,7 +144,6 @@ export function TranscriptsTab({
   const [pendingTagTranscripts, setPendingTagTranscripts] = useState<(number | string)[]>([]);
   const [deleteMode, setDeleteMode] = useState<DeleteMode>('permanent-delete');
   const [deleteSourceLabels, setDeleteSourceLabels] = useState<string[]>([]);
-  const [deleteLastWorkspaceCount, setDeleteLastWorkspaceCount] = useState(0);
 
   // Load host email
   useEffect(() => {
@@ -382,7 +381,6 @@ export function TranscriptsTab({
         }
 
         const { data: entries, error: entryError, count } = await entryQuery
-          .order('created_at', { ascending: false })
           .order('created_at', { ascending: false, referencedTable: 'recordings' })
           .range(offset, offset + pageSize - 1);
 
@@ -713,23 +711,6 @@ export function TranscriptsTab({
     return results;
   };
 
-  /** Count how many workspaces each recording is in */
-  const getWorkspaceEntryCounts = async (uuids: string[]) => {
-    const counts: Record<string, number> = {};
-    if (uuids.length === 0) return counts;
-
-    const { data } = await supabase
-      .from('workspace_entries')
-      .select('recording_id')
-      .in('recording_id', uuids);
-
-    (data || []).forEach((entry) => {
-      counts[entry.recording_id] = (counts[entry.recording_id] || 0) + 1;
-    });
-
-    return counts;
-  };
-
   // Remove from workspace mutation (soft — only removes workspace_entry)
   const removeFromWorkspaceMutation = useMutation({
     mutationFn: async (ids: (number | string)[]) => {
@@ -845,38 +826,16 @@ export function TranscriptsTab({
   const handleDeleteCalls = async () => {
     if (selectedCalls.length === 0) return;
 
-    if (!activeWorkspaceId) {
-      // All Calls view — always permanent
-      const resolved = await resolveRecordingIds(selectedCalls);
-      setDeleteMode('permanent-delete');
-      setDeleteSourceLabels(resolved.map((r) => getSourceLabel(r.sourceApp)));
-      setDeleteLastWorkspaceCount(0);
-      setShowDeleteDialog(true);
-      return;
-    }
-
-    // Workspace view — determine scenario
     const resolved = await resolveRecordingIds(selectedCalls);
-    const uuids = resolved.map((r) => r.uuid);
-    const entryCounts = await getWorkspaceEntryCounts(uuids);
-
-    const lastWorkspaceItems = resolved.filter((r) => (entryCounts[r.uuid] || 0) <= 1);
-    const multiWorkspaceItems = resolved.filter((r) => (entryCounts[r.uuid] || 0) > 1);
-
     setDeleteSourceLabels(resolved.map((r) => getSourceLabel(r.sourceApp)));
 
-    if (lastWorkspaceItems.length === 0) {
-      // All calls are in 2+ workspaces → safe remove
-      setDeleteMode('remove-from-workspace');
-      setDeleteLastWorkspaceCount(0);
-    } else if (multiWorkspaceItems.length === 0) {
-      // All calls are in only 1 workspace → permanent
-      setDeleteMode('permanent-last-workspace');
-      setDeleteLastWorkspaceCount(lastWorkspaceItems.length);
+    if (!activeWorkspaceId) {
+      // Home view — permanently destroy the recording
+      setDeleteMode('permanent-delete');
     } else {
-      // Mixed — remove from workspace but warn about permanent ones
+      // Workspace view — always just remove from this workspace;
+      // recording persists and remains visible in Home
       setDeleteMode('remove-from-workspace');
-      setDeleteLastWorkspaceCount(lastWorkspaceItems.length);
     }
 
     setShowDeleteDialog(true);
@@ -911,7 +870,8 @@ export function TranscriptsTab({
           setPendingTagTranscripts(selectedCalls);
         },
         onAssignFolder: () => setFolderDialogOpen(true),
-        deleteLabel: isHomeView ? 'Delete Selected' : 'Remove from Workspace'
+        deleteLabel: isHomeView ? 'Delete Selected' : 'Remove from Workspace',
+        currentWorkspaceId: activeWorkspaceId ?? null
       });
     } else if (usePanelStore.getState().panelType === 'bulk-actions') {
       usePanelStore.getState().closePanel();
@@ -1104,7 +1064,6 @@ export function TranscriptsTab({
         itemCount={selectedCalls.length}
         workspaceName={activeWorkspace?.name}
         sourceLabels={deleteSourceLabels}
-        lastWorkspaceCount={deleteLastWorkspaceCount}
       />
 
       {/* Folder Assignment Dialog (Bulk) */}

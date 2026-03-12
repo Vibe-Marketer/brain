@@ -65,6 +65,7 @@ export interface BulkActionToolbarEnhancedProps {
   onCreateNewTag?: () => void;
   onAssignFolder?: () => void;
   deleteLabel?: string;
+  currentWorkspaceId?: string | null;
 }
 
 /**
@@ -106,6 +107,7 @@ export function BulkActionToolbarEnhanced({
   onCreateNewTag,
   onAssignFolder,
   deleteLabel = 'Delete Selected',
+  currentWorkspaceId = null,
 }: BulkActionToolbarEnhancedProps) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -424,7 +426,7 @@ export function BulkActionToolbarEnhanced({
         open={showMoveToWsDialog}
         onOpenChange={setShowMoveToWsDialog}
         recordingIds={selectedCalls.map(c => c.canonical_uuid || String(c.recording_id))}
-        currentWorkspaceId={null} // We could pass this from context if needed
+        currentWorkspaceId={currentWorkspaceId}
         onSuccess={() => {
           onClearSelection();
           queryClient.invalidateQueries({ queryKey: ["transcript-calls"] });

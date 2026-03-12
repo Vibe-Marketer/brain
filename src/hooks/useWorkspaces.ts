@@ -319,17 +319,17 @@ export function useWorkspaceMembers(workspaceId: string | null) {
       // Fetch user profiles for each member
       const userIds = memberships.map((m) => m.user_id)
 
-      // Use user_profiles table if available, otherwise fall back to auth metadata
+      // Batch-fetch profiles by user_id
       const { data: profiles, error: profileError } = await supabase
         .from('user_profiles')
-        .select('id, email, display_name, avatar_url')
-        .in('id', userIds)
+        .select('user_id, email, display_name, avatar_url')
+        .in('user_id', userIds)
 
-      // Build profile lookup
+      // Build profile lookup keyed by user_id
       const profileMap = new Map<string, { email: string | null; display_name: string | null; avatar_url: string | null }>()
       if (!profileError && profiles) {
         for (const p of profiles) {
-          profileMap.set(p.id, {
+          profileMap.set(p.user_id, {
             email: p.email || null,
             display_name: p.display_name || null,
             avatar_url: p.avatar_url || null,

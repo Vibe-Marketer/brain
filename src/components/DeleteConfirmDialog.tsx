@@ -9,7 +9,7 @@ import {
 import { RiAlertLine, RiDeleteBin6Line } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
 
-export type DeleteMode = 'remove-from-workspace' | 'permanent-delete' | 'permanent-last-workspace';
+export type DeleteMode = 'remove-from-workspace' | 'permanent-delete';
 
 interface DeleteConfirmDialogProps {
   open: boolean;
@@ -19,7 +19,6 @@ interface DeleteConfirmDialogProps {
   itemCount: number;
   workspaceName?: string;
   sourceLabels?: string[];
-  lastWorkspaceCount?: number;
 }
 
 const CONTENT: Record<DeleteMode, {
@@ -31,11 +30,6 @@ const CONTENT: Record<DeleteMode, {
     title: 'Remove from Workspace',
     destructive: false,
     buttonLabel: 'Remove',
-  },
-  'permanent-last-workspace': {
-    title: 'Delete Permanently',
-    destructive: true,
-    buttonLabel: 'Delete Permanently',
   },
   'permanent-delete': {
     title: 'Delete Permanently',
@@ -60,7 +54,6 @@ export default function DeleteConfirmDialog({
   itemCount,
   workspaceName,
   sourceLabels,
-  lastWorkspaceCount,
 }: DeleteConfirmDialogProps) {
   const handleConfirm = () => {
     onConfirm();
@@ -90,29 +83,8 @@ export default function DeleteConfirmDialog({
                   <p className="text-foreground">
                     Remove <strong>{itemCount} item{plural ? 's' : ''}</strong> from{' '}
                     <strong>{workspaceName || 'this workspace'}</strong>?
-                    {' '}They'll remain in your other workspaces.
+                    {' '}They'll still appear in Home.
                   </p>
-                  {lastWorkspaceCount != null && lastWorkspaceCount > 0 && (
-                    <p className="text-sm text-destructive">
-                      {lastWorkspaceCount} of these {lastWorkspaceCount === 1 ? 'is' : 'are'} only
-                      in this workspace and will be permanently deleted.
-                    </p>
-                  )}
-                </>
-              )}
-
-              {mode === 'permanent-last-workspace' && (
-                <>
-                  <p className="text-foreground">
-                    This is the only workspace for{' '}
-                    <strong>{itemCount} item{plural ? 's' : ''}</strong>.
-                    Removing will permanently delete {plural ? 'them' : 'it'}.
-                  </p>
-                  {sourceText && (
-                    <p className="text-sm text-muted-foreground">
-                      You can re-import from {sourceText} in the future.
-                    </p>
-                  )}
                 </>
               )}
 

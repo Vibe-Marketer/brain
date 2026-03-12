@@ -49,6 +49,7 @@ export type PanelData =
       onCreateNewTag?: () => void;
       onAssignFolder?: () => void;
       deleteLabel?: string;
+      currentWorkspaceId?: string | null;
     }
   | { type: 'setting-help'; topic?: string }
   | { type: 'settings'; tab?: string }
