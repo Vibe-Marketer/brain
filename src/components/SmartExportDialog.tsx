@@ -42,10 +42,12 @@ import {
 } from "@/lib/export-utils";
 import { exportAsLLMContext, estimateTokens } from "@/lib/export-utils-advanced";
 import { generateMetaSummary } from "@/lib/api-client";
+import { supabase } from "@/integrations/supabase/client";
 import { saveAs } from "file-saver";
 
 interface Call {
   recording_id: number;
+  canonical_uuid?: string;
   title?: string;
   summary?: string;
   full_transcript?: string;
@@ -186,8 +188,27 @@ export default function SmartExportDialog({
     const loadingToast = toast.loading(`Exporting ${selectedCalls.length} meetings...`);
 
     try {
+      // Fetch full transcripts if needed — main query omits them for performance
+      let enrichedCalls = selectedCalls;
+      if (includeOptions.transcripts) {
+        const uuids = selectedCalls.map(c => c.canonical_uuid).filter(Boolean) as string[];
+        if (uuids.length > 0) {
+          const { data } = await supabase
+            .from('recordings')
+            .select('id, full_transcript')
+            .in('id', uuids);
+          if (data) {
+            const transcriptMap = new Map(data.map(r => [r.id, r.full_transcript]));
+            enrichedCalls = selectedCalls.map(c => ({
+              ...c,
+              full_transcript: transcriptMap.get(c.canonical_uuid ?? '') ?? c.full_transcript ?? undefined,
+            }));
+          }
+        }
+      }
+
       // Prepare calls with include options
-      const calls = selectedCalls.map((call) => ({
+      const calls = enrichedCalls.map((call) => ({
         ...call,
         summary: includeOptions.summaries ? call.summary : undefined,
         full_transcript: includeOptions.transcripts ? call.full_transcript : undefined,

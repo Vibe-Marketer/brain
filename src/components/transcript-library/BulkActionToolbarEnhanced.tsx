@@ -36,6 +36,7 @@ import { MoveToWorkspaceDialog } from "@/components/dialogs/MoveToWorkspaceDialo
 import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
 import { exportToPDF, exportToDOCX, exportToTXT, exportToJSON, exportToZIP } from "@/lib/export-utils";
 import { autoTagCalls, generateAiTitles } from "@/lib/api-client";
+import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import type { Meeting } from "@/types";
 
@@ -118,25 +119,46 @@ export function BulkActionToolbarEnhanced({
 
   if (selectedCount === 0) return null;
 
+  /** Enrich calls with full_transcript before export — main query omits it for performance */
+  const fetchTranscripts = async (calls: Meeting[]): Promise<Meeting[]> => {
+    const uuids = calls.map(c => c.canonical_uuid).filter(Boolean) as string[];
+    if (uuids.length === 0) return calls;
+
+    const { data, error } = await supabase
+      .from('recordings')
+      .select('id, full_transcript')
+      .in('id', uuids);
+
+    if (error || !data) return calls;
+
+    const transcriptMap = new Map(data.map(r => [r.id, r.full_transcript]));
+    return calls.map(c => ({
+      ...c,
+      full_transcript: transcriptMap.get(c.canonical_uuid ?? '') ?? c.full_transcript ?? null,
+    }));
+  };
+
   const handleExport = async (format: 'pdf' | 'docx' | 'txt' | 'json' | 'zip') => {
     const loadingToast = toast.loading(`Exporting ${selectedCount} transcript${selectedCount > 1 ? 's' : ''} as ${format.toUpperCase()}...`);
-    
+
     try {
+      const callsWithTranscripts = await fetchTranscripts(selectedCalls);
+
       switch (format) {
         case 'pdf':
-          await exportToPDF(selectedCalls);
+          await exportToPDF(callsWithTranscripts);
           break;
         case 'docx':
-          await exportToDOCX(selectedCalls);
+          await exportToDOCX(callsWithTranscripts);
           break;
         case 'txt':
-          await exportToTXT(selectedCalls);
+          await exportToTXT(callsWithTranscripts);
           break;
         case 'json':
-          await exportToJSON(selectedCalls);
+          await exportToJSON(callsWithTranscripts);
           break;
         case 'zip':
-          await exportToZIP(selectedCalls);
+          await exportToZIP(callsWithTranscripts);
           break;
       }
       toast.success(`Successfully exported ${selectedCount} transcript${selectedCount > 1 ? 's' : ''}`, { id: loadingToast });
