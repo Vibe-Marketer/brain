@@ -34,6 +34,8 @@ export interface ConnectorRecord {
    * merges it as the first key automatically to ensure consistent ordering.
    */
   source_metadata: Record<string, unknown>;
+  /** Optional summary text. Written to recordings.summary column. */
+  summary?: string | null;
   /** If omitted, insertRecording() resolves the user's personal bank automatically */
   organization_id?: string;
   /** If omitted, insertRecording() resolves the personal vault for the resolved bank */
@@ -163,6 +165,7 @@ export async function insertRecording(
       owner_user_id: userId,
       title: record.title,
       full_transcript: record.full_transcript,
+      summary: record.summary ?? null,
       source_app: record.source_app,
       source_call_id: record.external_id,
       source_metadata: sourceMetadata,

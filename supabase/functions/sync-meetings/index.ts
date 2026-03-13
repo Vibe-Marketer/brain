@@ -133,6 +133,7 @@ async function syncMeeting(
       source_app: 'fathom',
       title: meeting.title,
       full_transcript: fullTranscript,
+      summary: summaryText,
       recording_start_time: meeting.recording_start_time,
       duration: durationSeconds,
       source_metadata: sourceMetadata,

@@ -392,7 +392,7 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
     // (call_tag_assignments, call_participants) regardless of recording_id type.
     canonical_uuid: recording.id,
     title: recording.title,
-    summary: recording.summary || null,
+    summary: recording.summary || (meta.summary as string) || null,
     created_at: recording.created_at,
     recording_start_time: recording.recording_start_time || null,
     recording_end_time: recording.recording_end_time || null,
