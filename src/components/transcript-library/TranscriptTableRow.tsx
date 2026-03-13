@@ -86,13 +86,20 @@ export function TranscriptTableRow({
   // Derive a stable string recording ID for dialogs
   const recordingIdStr = call.canonical_uuid || String(call.recording_id);
 
-  const duration = call.recording_start_time && call.recording_end_time
-    ? Math.round(
+  const duration = (() => {
+    if (call.recording_start_time && call.recording_end_time) {
+      return Math.round(
         (new Date(call.recording_end_time).getTime() -
           new Date(call.recording_start_time).getTime()) /
           60000
-      )
-    : null;
+      );
+    }
+    const durSec = call.source_metadata?.duration_seconds;
+    if (durSec != null) {
+      return Math.round((durSec as number) / 60);
+    }
+    return null;
+  })();
 
   const meetingDate = call.recording_start_time
     ? toZonedTime(new Date(call.recording_start_time), "America/New_York")
