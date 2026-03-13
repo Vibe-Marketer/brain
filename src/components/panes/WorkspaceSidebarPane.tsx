@@ -565,7 +565,16 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       </ScrollArea>
 
       {/* Footer Actions */}
-      <footer className="p-3 border-t border-border bg-card">
+      <footer className="p-3 border-t border-border bg-card space-y-1">
+        {canCreateWorkspace && (
+          <button
+            onClick={() => setCreateWsOpen(true)}
+            className="w-full h-10 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground hover:bg-hover hover:text-foreground transition-all group"
+          >
+            <RiAddLine size={16} className="group-hover:text-vibe-orange" />
+            <span>New Workspace</span>
+          </button>
+        )}
         <button
           onClick={() => setCreateOrgOpen(true)}
           className="w-full h-10 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground hover:bg-hover hover:text-foreground transition-all group"

@@ -228,12 +228,14 @@ export function WorkspaceManagement({ orgId, canManage }: WorkspaceManagementPro
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="team">Team</SelectItem>
-                      <SelectItem value="youtube">YouTube</SelectItem>
+                      <SelectItem value="client" disabled>
+                        Client (Coming Soon)
+                      </SelectItem>
                       <SelectItem value="coach" disabled>
                         Coach (Coming Soon)
                       </SelectItem>
-                      <SelectItem value="client" disabled>
-                        Client (Coming Soon)
+                      <SelectItem value="community" disabled>
+                        Community (Coming Soon)
                       </SelectItem>
                     </SelectContent>
                   </Select>
