@@ -290,38 +290,33 @@ export function TranscriptsTab({
 
       const offset = (page - 1) * pageSize;
 
-      // WORKSPACE FILTERING (Decision 19 - Fix 2A/2B/2C)
-      // If a specific workspace is active, fetch from workspace_entries -> recordings
-      // Use !inner join so date/source/search filters on recordings exclude non-matching entries
+      // WORKSPACE FILTERING — two-step approach:
+      // Step 1: get recording IDs from workspace_entries (membership check only)
+      // Step 2: query recordings directly sorted by created_at DESC (same as HOME path)
+      // This avoids PostgREST embedded-resource ordering which only sorts nested rows,
+      // not the parent workspace_entries rows, causing oldest-first ordering.
       if (activeWorkspaceId) {
-        let entryQuery = supabase
+        // Step 1: get all recording IDs in this workspace
+        const { data: wsEntries, error: wsError } = await supabase
           .from('workspace_entries')
-          .select(`
-            id,
-            recording:recordings!inner (
-              id,
-              legacy_recording_id,
-              organization_id,
-              owner_user_id,
-              title,
-              summary,
-              global_tags,
-              source_app,
-              source_metadata,
-              duration,
-              recording_start_time,
-              recording_end_time,
-              created_at,
-              synced_at
-            )
-          `, { count: "exact" })
+          .select('recording_id, id, folder_id')
           .eq('workspace_id', activeWorkspaceId);
 
-        // Server-side folder filtering: look up recording IDs from folder_assignments
-        // (workspace_entries.folder_id is mostly NULL — folder_assignments is the source of truth)
-        // Also includes calls from child folders (recursive) so parent folders aggregate.
+        if (wsError) throw wsError;
+
+        let wsRecordingIds: string[] = (wsEntries || []).map((e: any) => e.recording_id).filter(Boolean);
+
+        // Build workspace_entry map so we can attach entry metadata to each recording
+        const entryMap = new Map((wsEntries || []).map((e: any) => [e.recording_id, { id: e.id, folder_id: e.folder_id }]));
+
+        if (wsRecordingIds.length === 0) {
+          setTotalCount(0);
+          onTotalCountChange?.(0);
+          return [];
+        }
+
+        // Apply folder filter: intersect wsRecordingIds with folder's recording IDs
         if (selectedFolderId) {
-          // Get this folder + all child folders (recursive)
           const { data: childFolders } = await supabase
             .from('folders')
             .select('id')
@@ -340,7 +335,6 @@ export function TranscriptsTab({
             return [];
           }
 
-          // Get recording UUIDs from legacy IDs
           const legacyIds = folderAssigns.map((a) => a.call_recording_id);
           const { data: recs } = await supabase
             .from('recordings')
@@ -353,50 +347,58 @@ export function TranscriptsTab({
             return [];
           }
 
-          const recUuids = recs.map((r) => r.id);
-          entryQuery = entryQuery.in('recording_id', recUuids);
+          const folderRecUuids = new Set(recs.map((r) => r.id));
+          wsRecordingIds = wsRecordingIds.filter((id) => folderRecUuids.has(id));
+
+          if (wsRecordingIds.length === 0) {
+            setTotalCount(0);
+            onTotalCountChange?.(0);
+            return [];
+          }
         }
 
-        // Apply search filter on recordings (title, summary, transcript)
+        // Step 2: query recordings directly, sorted by created_at DESC
+        let q = supabase
+          .from('recordings')
+          .select(
+            'id, legacy_recording_id, organization_id, owner_user_id, title, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at',
+            { count: 'exact' }
+          )
+          .in('id', wsRecordingIds)
+          .order('created_at', { ascending: false });
+
+        // Apply search filter directly on recordings columns
         if (syntax.plainText) {
           const escaped = escapeIlike(syntax.plainText);
-          entryQuery = entryQuery.or(
-            `title.ilike.%${escaped}%,summary.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%`,
-            { referencedTable: 'recordings' }
-          );
+          q = q.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%`);
         }
 
-        // Apply date filters (use select alias 'recording', not table name 'recordings')
+        // Apply date filters
         if (combinedFilters.dateFrom) {
-          entryQuery = entryQuery.gte('recording.created_at', combinedFilters.dateFrom.toISOString());
+          q = q.gte('created_at', combinedFilters.dateFrom.toISOString());
         }
         if (combinedFilters.dateTo) {
-          entryQuery = entryQuery.lte('recording.created_at', combinedFilters.dateTo.toISOString());
+          q = q.lte('created_at', combinedFilters.dateTo.toISOString());
         }
 
-        // Apply source filter via .or() with referencedTable (avoids dot-notation with .in())
+        // Apply source filter
         if (combinedFilters.sources && combinedFilters.sources.length > 0) {
-          const sourceOrFilter = combinedFilters.sources.map((s: string) => `source_app.eq.${s}`).join(',');
-          entryQuery = entryQuery.or(sourceOrFilter, { referencedTable: 'recordings' });
+          q = q.in('source_app', combinedFilters.sources);
         }
 
-        const { data: entries, error: entryError, count } = await entryQuery
-          .order('created_at', { ascending: false, referencedTable: 'recording' })
+        const { data: recordings, error: recError, count } = await q
           .range(offset, offset + pageSize - 1);
 
-        if (entryError) throw entryError;
+        if (recError) throw recError;
 
         const totalCount = count || 0;
         setTotalCount(totalCount);
         onTotalCountChange?.(totalCount);
 
-        let mappedRecordings = (entries || [])
-          .filter((e: any) => e.recording)
-          .map((e: any) => mapRecordingToMeeting({
-            ...e.recording,
-            organization_id: e.recording.organization_id,
-            workspace_entry: { id: e.id, folder_id: e.folder_id }
-          }));
+        let mappedRecordings = (recordings || []).map((rec: any) => mapRecordingToMeeting({
+          ...rec,
+          workspace_entry: entryMap.get(rec.id) || null,
+        }));
 
         // Client-side duration filter
         // duration_seconds is always in seconds; start/end time diff gives milliseconds
