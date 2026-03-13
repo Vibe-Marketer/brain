@@ -290,32 +290,14 @@ export function TranscriptsTab({
 
       const offset = (page - 1) * pageSize;
 
-      // WORKSPACE FILTERING — two-step approach:
-      // Step 1: get recording IDs from workspace_entries (membership check only)
-      // Step 2: query recordings directly sorted by created_at DESC (same as HOME path)
-      // This avoids PostgREST embedded-resource ordering which only sorts nested rows,
-      // not the parent workspace_entries rows, causing oldest-first ordering.
+      // WORKSPACE FILTERING — RPC approach.
+      // Uses get_workspace_recordings() DB function which does the JOIN + ORDER + pagination
+      // server-side. This avoids:
+      //   1. PostgREST embedded-resource ordering (only sorts nested rows, not parent rows)
+      //   2. .in() URL length limits (~8KB) that break for workspaces with 200+ recordings
       if (activeWorkspaceId) {
-        // Step 1: get all recording IDs in this workspace
-        const { data: wsEntries, error: wsError } = await supabase
-          .from('workspace_entries')
-          .select('recording_id, id, folder_id')
-          .eq('workspace_id', activeWorkspaceId);
-
-        if (wsError) throw wsError;
-
-        let wsRecordingIds: string[] = (wsEntries || []).map((e: any) => e.recording_id).filter(Boolean);
-
-        // Build workspace_entry map so we can attach entry metadata to each recording
-        const entryMap = new Map((wsEntries || []).map((e: any) => [e.recording_id, { id: e.id, folder_id: e.folder_id }]));
-
-        if (wsRecordingIds.length === 0) {
-          setTotalCount(0);
-          onTotalCountChange?.(0);
-          return [];
-        }
-
-        // Apply folder filter: intersect wsRecordingIds with folder's recording IDs
+        // Folder pre-filter: resolve recording UUIDs from folder assignments if needed
+        let folderRecordingIds: string[] | null = null;
         if (selectedFolderId) {
           const { data: childFolders } = await supabase
             .from('folders')
@@ -347,57 +329,51 @@ export function TranscriptsTab({
             return [];
           }
 
-          const folderRecUuids = new Set(recs.map((r) => r.id));
-          wsRecordingIds = wsRecordingIds.filter((id) => folderRecUuids.has(id));
-
-          if (wsRecordingIds.length === 0) {
-            setTotalCount(0);
-            onTotalCountChange?.(0);
-            return [];
-          }
+          folderRecordingIds = recs.map((r) => r.id);
         }
 
-        // Step 2: query recordings directly, sorted by created_at DESC
-        let q = supabase
-          .from('recordings')
-          .select(
-            'id, legacy_recording_id, organization_id, owner_user_id, title, summary, global_tags, source_app, source_metadata, duration, recording_start_time, recording_end_time, created_at, synced_at',
-            { count: 'exact' }
-          )
-          .in('id', wsRecordingIds)
-          .order('created_at', { ascending: false });
+        // Call RPC — single server-side JOIN + ORDER + pagination
+        const rpcParams: Record<string, unknown> = {
+          p_workspace_id: activeWorkspaceId,
+          p_limit: pageSize,
+          p_offset: offset,
+          p_search: syntax.plainText || null,
+          p_date_from: combinedFilters.dateFrom?.toISOString() ?? null,
+          p_date_to: combinedFilters.dateTo?.toISOString() ?? null,
+          p_sources: combinedFilters.sources?.length ? combinedFilters.sources : null,
+        };
 
-        // Apply search filter directly on recordings columns
-        if (syntax.plainText) {
-          const escaped = escapeIlike(syntax.plainText);
-          q = q.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%`);
+        const { data: rows, error: rpcError } = await supabase.rpc('get_workspace_recordings', rpcParams);
+
+        if (rpcError) throw rpcError;
+
+        // Apply folder filter client-side (folder_recording_ids were resolved above)
+        let filteredRows = (rows || []) as any[];
+        if (folderRecordingIds) {
+          const folderSet = new Set(folderRecordingIds);
+          filteredRows = filteredRows.filter((r: any) => folderSet.has(r.id));
         }
 
-        // Apply date filters
-        if (combinedFilters.dateFrom) {
-          q = q.gte('created_at', combinedFilters.dateFrom.toISOString());
-        }
-        if (combinedFilters.dateTo) {
-          q = q.lte('created_at', combinedFilters.dateTo.toISOString());
-        }
-
-        // Apply source filter
-        if (combinedFilters.sources && combinedFilters.sources.length > 0) {
-          q = q.in('source_app', combinedFilters.sources);
-        }
-
-        const { data: recordings, error: recError, count } = await q
-          .range(offset, offset + pageSize - 1);
-
-        if (recError) throw recError;
-
-        const totalCount = count || 0;
+        const totalCount = filteredRows.length > 0 ? Number(filteredRows[0].total_count) : 0;
         setTotalCount(totalCount);
         onTotalCountChange?.(totalCount);
 
-        let mappedRecordings = (recordings || []).map((rec: any) => mapRecordingToMeeting({
-          ...rec,
-          workspace_entry: entryMap.get(rec.id) || null,
+        let mappedRecordings = filteredRows.map((row: any) => mapRecordingToMeeting({
+          id: row.id,
+          legacy_recording_id: row.legacy_recording_id,
+          organization_id: row.organization_id,
+          owner_user_id: row.owner_user_id,
+          title: row.title,
+          summary: row.summary,
+          global_tags: row.global_tags,
+          source_app: row.source_app,
+          source_metadata: row.source_metadata,
+          duration: row.duration,
+          recording_start_time: row.recording_start_time,
+          recording_end_time: row.recording_end_time,
+          created_at: row.created_at,
+          synced_at: row.synced_at,
+          workspace_entry: { id: row.entry_id, folder_id: row.entry_folder_id },
         }));
 
         // Client-side duration filter
