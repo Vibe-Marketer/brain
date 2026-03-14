@@ -355,20 +355,26 @@ export function useAccessLog(options: UseAccessLogOptions): UseAccessLogResult {
         throw error;
       }
 
-      // For each log entry, fetch user info
-      const logsWithUsers = await Promise.all(
-        (data || []).map(async (log: ShareAccessLog) => {
-          const { data: userData } = await supabase.rpc('get_user_email', {
-            user_id: log.accessed_by_user_id
-          });
-
-          return {
-            ...log,
-            user_email: userData || null,
-            user_name: null, // Could be enhanced with profile lookup
-          } as ShareAccessLogWithUser;
-        })
+      // Batch-fetch user profiles in a single query (fixes N+1)
+      const logUserIds = Array.from(
+        new Set((data || []).map((log: ShareAccessLog) => log.accessed_by_user_id).filter(Boolean))
       );
+      const profileMap = new Map<string, { email: string; display_name: string | null }>();
+      if (logUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('user_profiles')
+          .select('user_id, email, display_name')
+          .in('user_id', logUserIds);
+        for (const p of profiles ?? []) {
+          profileMap.set(p.user_id, { email: p.email || '', display_name: p.display_name || null });
+        }
+      }
+
+      const logsWithUsers = (data || []).map((log: ShareAccessLog) => ({
+        ...log,
+        user_email: profileMap.get(log.accessed_by_user_id)?.email || null,
+        user_name: profileMap.get(log.accessed_by_user_id)?.display_name || null,
+      } as ShareAccessLogWithUser));
 
       return logsWithUsers;
     },

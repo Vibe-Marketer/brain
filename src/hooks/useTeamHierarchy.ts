@@ -150,6 +150,32 @@ function getInviteExpiration(): string {
 }
 
 /**
+ * Batch-fetch user profiles (email + display_name) for a set of user IDs.
+ * Returns a Map<userId, { email, display_name }> so callers can do O(1) lookups.
+ * This replaces the previous pattern of calling supabase.rpc('get_user_email')
+ * once per user — which caused N+1 API calls.
+ */
+async function batchFetchUserProfiles(
+  userIds: string[]
+): Promise<Map<string, { email: string; display_name: string | null }>> {
+  const profileMap = new Map<string, { email: string; display_name: string | null }>();
+  if (!userIds.length) return profileMap;
+
+  const { data: profiles } = await supabase
+    .from('user_profiles')
+    .select('user_id, email, display_name')
+    .in('user_id', userIds);
+
+  for (const p of profiles ?? []) {
+    profileMap.set(p.user_id, {
+      email: p.email || '',
+      display_name: p.display_name || null,
+    });
+  }
+  return profileMap;
+}
+
+/**
  * Builds org chart tree from flat membership list
  */
 function buildOrgChart(members: TeamMembershipWithUser[]): OrgChartNode[] {
@@ -435,31 +461,32 @@ export function useTeamMembers(options: UseTeamMembersOptions): UseTeamMembersRe
         throw error;
       }
 
-      // Enrich with user emails and manager names
-      const enrichedData = await Promise.all(
-        (data || []).map(async (member: TeamMembership) => {
-          const enriched: TeamMembershipWithUser = { ...member };
-
-          // Get user email
-          const { data: userData } = await supabase.rpc('get_user_email', {
-            user_id: member.user_id
-          });
-          enriched.user_email = userData || null;
-
-          // Get manager name if exists
-          if (member.manager_membership_id) {
-            const managerMembership = data?.find(m => m.id === member.manager_membership_id);
-            if (managerMembership) {
-              const { data: managerData } = await supabase.rpc('get_user_email', {
-                user_id: managerMembership.user_id
-              });
-              enriched.manager_name = managerData || null;
-            }
+      // Batch-fetch all user profiles in a single query (fixes N+1)
+      const allUserIds = Array.from(
+        new Set((data || []).flatMap((m: TeamMembership) => {
+          const ids = [m.user_id];
+          if (m.manager_membership_id) {
+            const mgr = data?.find((x: TeamMembership) => x.id === m.manager_membership_id);
+            if (mgr) ids.push(mgr.user_id);
           }
-
-          return enriched;
-        })
+          return ids;
+        }))
       );
+      const profileMap = await batchFetchUserProfiles(allUserIds);
+
+      const enrichedData = (data || []).map((member: TeamMembership) => {
+        const enriched: TeamMembershipWithUser = { ...member };
+        enriched.user_email = profileMap.get(member.user_id)?.email || null;
+
+        if (member.manager_membership_id) {
+          const managerMembership = data?.find((m: TeamMembership) => m.id === member.manager_membership_id);
+          if (managerMembership) {
+            enriched.manager_name = profileMap.get(managerMembership.user_id)?.email || null;
+          }
+        }
+
+        return enriched;
+      });
 
       return enrichedData;
     },
@@ -792,20 +819,17 @@ export function useDirectReports(options: UseDirectReportsOptions): UseDirectRep
         return { directReports: [], calls: [] };
       }
 
-      // Enrich direct reports with user info
-      const enrichedReports = await Promise.all(
-        reports.map(async (report: TeamMembership) => {
-          const enriched: TeamMembershipWithUser = { ...report };
-          const { data: email } = await supabase.rpc('get_user_email', {
-            user_id: report.user_id
-          });
-          enriched.user_email = email || null;
-          return enriched;
-        })
-      );
+      // Batch-fetch profiles for all direct report users (fixes N+1)
+      const directReportUserIds = reports.map((r: TeamMembership) => r.user_id);
+      const reportProfileMap = await batchFetchUserProfiles(directReportUserIds);
+
+      const enrichedReports = (reports as TeamMembership[]).map((report) => {
+        const enriched: TeamMembershipWithUser = { ...report };
+        enriched.user_email = reportProfileMap.get(report.user_id)?.email || null;
+        return enriched;
+      });
 
       // Get calls from all direct reports
-      const directReportUserIds = reports.map(r => r.user_id);
       const { data: calls, error: callsError } = await supabase
         .from("fathom_calls")
         .select("recording_id, call_name, recording_start_time, duration, user_id")
@@ -818,20 +842,13 @@ export function useDirectReports(options: UseDirectReportsOptions): UseDirectRep
         throw callsError;
       }
 
-      // Enrich calls with owner info
-      const enrichedCalls: DirectReportCall[] = await Promise.all(
-        (calls || []).map(async (call) => {
-          const { data: email } = await supabase.rpc('get_user_email', {
-            user_id: call.user_id
-          });
-          return {
-            ...call,
-            owner_email: email || '',
-            owner_name: null,
-            owner_user_id: call.user_id,
-          };
-        })
-      );
+      // Enrich calls with owner info using already-fetched profiles (no extra queries)
+      const enrichedCalls: DirectReportCall[] = (calls || []).map((call) => ({
+        ...call,
+        owner_email: reportProfileMap.get(call.user_id)?.email || '',
+        owner_name: reportProfileMap.get(call.user_id)?.display_name || null,
+        owner_user_id: call.user_id,
+      }));
 
       return {
         directReports: enrichedReports,
@@ -1035,36 +1052,28 @@ export function useTeamShares(options: UseTeamSharesOptions): UseTeamSharesResul
         throw withMeError;
       }
 
-      // Enrich with user names
-      const enrichMyShares = await Promise.all(
-        (myShares || []).map(async (share: TeamShare & { folders?: { name: string }; transcript_tags?: { name: string } }) => {
-          const { data: recipientEmail } = await supabase.rpc('get_user_email', {
-            user_id: share.recipient_user_id
-          });
-          return {
-            ...share,
-            owner_name: null, // Current user is owner
-            recipient_name: recipientEmail || null,
-            folder_name: share.folders?.name || null,
-            tag_name: share.transcript_tags?.name || null,
-          } as TeamShareWithDetails;
-        })
-      );
+      // Batch-fetch all referenced user profiles in a single query (fixes N+1)
+      const shareUserIds = Array.from(new Set([
+        ...(myShares || []).map((s: TeamShare) => s.recipient_user_id),
+        ...(sharesWithMe || []).map((s: TeamShare) => s.owner_user_id),
+      ]));
+      const shareProfileMap = await batchFetchUserProfiles(shareUserIds);
 
-      const enrichSharesWithMe = await Promise.all(
-        (sharesWithMe || []).map(async (share: TeamShare & { folders?: { name: string }; transcript_tags?: { name: string } }) => {
-          const { data: ownerEmail } = await supabase.rpc('get_user_email', {
-            user_id: share.owner_user_id
-          });
-          return {
-            ...share,
-            owner_name: ownerEmail || null,
-            recipient_name: null, // Current user is recipient
-            folder_name: share.folders?.name || null,
-            tag_name: share.transcript_tags?.name || null,
-          } as TeamShareWithDetails;
-        })
-      );
+      const enrichMyShares = (myShares || []).map((share: TeamShare & { folders?: { name: string }; transcript_tags?: { name: string } }) => ({
+        ...share,
+        owner_name: null, // Current user is owner
+        recipient_name: shareProfileMap.get(share.recipient_user_id)?.email || null,
+        folder_name: share.folders?.name || null,
+        tag_name: share.transcript_tags?.name || null,
+      } as TeamShareWithDetails));
+
+      const enrichSharesWithMe = (sharesWithMe || []).map((share: TeamShare & { folders?: { name: string }; transcript_tags?: { name: string } }) => ({
+        ...share,
+        owner_name: shareProfileMap.get(share.owner_user_id)?.email || null,
+        recipient_name: null, // Current user is recipient
+        folder_name: share.folders?.name || null,
+        tag_name: share.transcript_tags?.name || null,
+      } as TeamShareWithDetails));
 
       return {
         myShares: enrichMyShares,
@@ -1187,17 +1196,15 @@ export function useOrgChart(options: UseOrgChartOptions): UseOrgChartResult {
         throw membersError;
       }
 
-      // Enrich with user info
-      const enrichedMembers = await Promise.all(
-        (members || []).map(async (member: TeamMembership) => {
-          const enriched: TeamMembershipWithUser = { ...member };
-          const { data: email } = await supabase.rpc('get_user_email', {
-            user_id: member.user_id
-          });
-          enriched.user_email = email || null;
-          return enriched;
-        })
-      );
+      // Batch-fetch user profiles for all org chart members (fixes N+1)
+      const orgMemberUserIds = (members || []).map((m: TeamMembership) => m.user_id);
+      const orgProfileMap = await batchFetchUserProfiles(orgMemberUserIds);
+
+      const enrichedMembers = (members || []).map((member: TeamMembership) => {
+        const enriched: TeamMembershipWithUser = { ...member };
+        enriched.user_email = orgProfileMap.get(member.user_id)?.email || null;
+        return enriched;
+      });
 
       // Build tree structure
       const rootNodes = buildOrgChart(enrichedMembers);
