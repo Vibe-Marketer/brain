@@ -79,7 +79,7 @@ export function OrganizationsTab() {
                 ) : (
                   <RiBuilding4Line className="h-4 w-4" />
                 )}
-                {org.name.toUpperCase()}
+                {org.name?.toUpperCase()}
               </TabsTrigger>
             ))}
           </TabsList>
@@ -125,7 +125,7 @@ export function OrganizationsTab() {
                       <div>
                         <span className="text-muted-foreground">Cross-Organization Default:</span>
                         <span className="ml-2 capitalize">
-                          {org.cross_org_default ? org.cross_org_default.replace('_', ' ') : 'None'}
+                          {org.cross_org_default ? org.cross_org_default?.replace('_', ' ') : 'None'}
                         </span>
                       </div>
                       <div>
@@ -142,7 +142,7 @@ export function OrganizationsTab() {
               {/* Workspace management */}
               <WorkspaceManagement
                 orgId={org.id}
-                canManage={canManageOrg(org.membership.role)}
+                canManage={canManageOrg(org.membership?.role ?? null)}
               />
             </TabsContent>
           ))}
