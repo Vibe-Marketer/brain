@@ -5,12 +5,11 @@
 import { useState } from 'react';
 import { RiRouteLine, RiFlashlightLine, RiLoader2Line } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
-import { useRoutingRules, useRoutingDefault, useReorderRules, useToggleRule } from '@/hooks/useRoutingRules';
+import { useRoutingRules, useRoutingDefault, useReorderRules, useToggleRule, useBulkApplyRules } from '@/hooks/useRoutingRules';
 import { usePanelStore } from '@/stores/panelStore';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
 import { useOrgContextStore } from '@/stores/orgContextStore';
 import { useOrganizations } from '@/hooks/useOrganizations';
-import { useBulkApplyRules } from '@/hooks/useBulkApplyRules';
 import { DefaultDestinationBar } from './DefaultDestinationBar';
 import { RoutingRulesList } from './RoutingRulesList';
 
@@ -42,7 +41,7 @@ export function RoutingRulesTab() {
   const { workspaces = [] } = useWorkspaces(activeOrgId);
   const { data: allOrgs = [] } = useOrganizations();
   const bulkApply = useBulkApplyRules();
-  const [bulkDryRunResult, setBulkDryRunResult] = useState<{ matched: number; details: Array<{ matchedRuleName: string }> } | null>(null);
+  const [bulkDryRunResult, setBulkDryRunResult] = useState<{ matched: number; matches: Array<{ rule_name: string }> } | null>(null);
 
   const workspaceNames: Record<string, string> = {};
   for (const ws of workspaces) {
@@ -77,7 +76,7 @@ export function RoutingRulesTab() {
 
   async function handleBulkDryRun() {
     const result = await bulkApply.mutateAsync({ dryRun: true });
-    setBulkDryRunResult(result);
+    setBulkDryRunResult({ matched: result.matched, matches: result.matches });
   }
 
   async function handleBulkApply() {
@@ -181,13 +180,13 @@ export function RoutingRulesTab() {
                       Preview: {bulkDryRunResult.matched} call{bulkDryRunResult.matched !== 1 ? 's' : ''} would be routed
                     </p>
                     <div className="space-y-0.5 max-h-24 overflow-y-auto">
-                      {bulkDryRunResult.details.slice(0, 10).map((d, i) => (
+                      {bulkDryRunResult.matches.slice(0, 10).map((d, i) => (
                         <p key={i} className="text-[11px] text-muted-foreground truncate">
-                          <span className="text-foreground/60">Rule:</span> {d.matchedRuleName}
+                          <span className="text-foreground/60">Rule:</span> {d.rule_name}
                         </p>
                       ))}
-                      {bulkDryRunResult.details.length > 10 && (
-                        <p className="text-[11px] text-muted-foreground">+{bulkDryRunResult.details.length - 10} more...</p>
+                      {bulkDryRunResult.matches.length > 10 && (
+                        <p className="text-[11px] text-muted-foreground">+{bulkDryRunResult.matches.length - 10} more...</p>
                       )}
                     </div>
                     <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1.5">
