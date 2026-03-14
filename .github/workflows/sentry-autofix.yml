@@ -1,0 +1,68 @@
+name: Sentry Alert → Claude Autofix
+
+# When Sentry creates a GitHub issue (via Sentry's GitHub integration),
+# this workflow automatically tags @claude to investigate and open a fix PR.
+#
+# Setup required in Sentry (one-time, in the UI):
+#   1. Settings → Integrations → GitHub → Install on the ai-simple org
+#   2. Connect to the Vibe-Marketer/brain repository
+#   3. Settings → Alerts → Create Alert Rule:
+#        - Condition: "A new issue is created" (or "issue frequency > N")
+#        - Action: "Create a GitHub issue" → select Vibe-Marketer/brain
+#        - Add label: "sentry-alert" to the created issue
+#
+# Once Sentry creates a GitHub issue with the "sentry-alert" label,
+# this workflow fires and asks @claude to fix it.
+
+on:
+  issues:
+    types: [opened, labeled]
+
+jobs:
+  claude-autofix:
+    name: Tag Claude for Sentry Fix
+    # Only run if the issue has the sentry-alert label
+    if: contains(github.event.issue.labels.*.name, 'sentry-alert')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Post @claude fix request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+
+            // Don't double-comment if Claude already tagged
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+            });
+            const alreadyTagged = comments.data.some(c =>
+              c.body.includes('@claude') && c.user.type === 'Bot'
+            );
+            if (alreadyTagged) {
+              console.log('Claude already tagged — skipping.');
+              return;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issue.number,
+              body: [
+                '@claude This issue was automatically created from a **Sentry production error**.',
+                '',
+                'Please:',
+                '1. Read the error title, stack trace, and any breadcrumbs in the issue description above',
+                '2. Find the root cause in the codebase (check the file + line referenced in the stack trace)',
+                '3. Implement a fix — keep it minimal and focused on the reported error',
+                '4. Open a PR referencing this issue',
+                '',
+                '> Do not close this issue manually — it will be auto-resolved in Sentry once the fix is deployed.',
+              ].join('\n'),
+            });
+
+            console.log(`Tagged @claude on issue #${issue.number}`);

@@ -1,0 +1,48 @@
+name: Notify Sentry on Deploy
+
+# Tells Sentry exactly when a release goes live in production.
+# Without this, Sentry shows releases as "unreleased" and can't
+# accurately track when errors were introduced or resolved.
+#
+# Runs on every push to main (Vercel deploys from main).
+# Uses the same org:ci-scoped token as the Vite build plugin.
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  sentry-release:
+    name: Finalize Sentry Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history needed for set-commits --auto
+
+      - name: Finalize release and mark deployed
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ai-simple
+          SENTRY_PROJECT: call-vault
+        run: |
+          VERSION=$(git rev-parse HEAD)
+          echo "Sentry release: $VERSION"
+
+          # Associate commits with this release (enables suspect commits in Sentry)
+          npx --yes @sentry/cli releases set-commits "$VERSION" --auto --ignore-missing || true
+
+          # Mark the release as deployed to production
+          npx @sentry/cli releases deploys "$VERSION" new \
+            --env production \
+            --name "main @ $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          # Finalize (marks release as no longer accepting new artifacts)
+          npx @sentry/cli releases finalize "$VERSION"
+
+          echo "Sentry release $VERSION marked as deployed to production."
