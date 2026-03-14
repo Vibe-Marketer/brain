@@ -189,7 +189,8 @@ function WorkspaceListItem({
   const { data: assignments = {} } = useFolderAssignments(isOpen ? workspace.id : null);
   const { mutate: deleteFolder } = useDeleteFolder();
   const { mutate: archiveFolder } = useArchiveFolder();
-  
+  const { openPanel } = usePanelStore();
+
   const canManage = workspace.user_role === 'workspace_owner' || workspace.user_role === 'workspace_admin';
 
   React.useEffect(() => {
