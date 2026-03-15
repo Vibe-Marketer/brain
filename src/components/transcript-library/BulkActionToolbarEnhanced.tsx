@@ -217,7 +217,7 @@ export function BulkActionToolbarEnhanced({
         .map(c => Number(c.recording_id));
 
       if (recordingIds.length === 0) {
-        toast.error('AI title generation only works for Fathom-sourced calls. Zoom and file-upload calls are not supported.', { id: loadingToast });
+        toast.error('None of the selected calls have a Fathom recording ID. AI title generation requires calls synced from Fathom.', { id: loadingToast });
         return;
       }
 
@@ -276,7 +276,7 @@ export function BulkActionToolbarEnhanced({
         .map(c => Number(c.recording_id));
 
       if (recordingIds.length === 0) {
-        toast.error('AI tagging only works for Fathom-sourced calls. Zoom and file-upload calls are not supported.', { id: loadingToast });
+        toast.error('None of the selected calls have a Fathom recording ID. AI tagging requires calls synced from Fathom.', { id: loadingToast });
         return;
       }
 
