@@ -98,7 +98,6 @@ export function TranscriptsTab({
 
   // Selection & interaction state
   const [selectedCalls, setSelectedCalls] = useState<(number | string)[]>([]);
-  const [selectedCall, setSelectedCall] = useState<Meeting | null>(null);
   // Use external search if provided, otherwise local state for backwards compatibility
   const [internalSearchQuery, setInternalSearchQuery] = useState("");
   const searchQuery = externalSearchQuery ?? internalSearchQuery;
@@ -1290,7 +1289,13 @@ export function TranscriptsTab({
                         setSelectedCalls(validCalls.map(c => c.recording_id));
                       }
                     }}
-                    onCallClick={(call) => setSelectedCall(call)}
+                    onCallClick={(call) => {
+                      usePanelStore.getState().openPanel('call-detail', {
+                        type: 'call-detail',
+                        recordingId: call.recording_id as number,
+                        title: call.title,
+                      });
+                    }}
                     tags={tags}
                     tagAssignments={tagAssignments}
                     folders={folders}
@@ -1318,17 +1323,7 @@ export function TranscriptsTab({
       </div>
 
       {/* Dialogs */}
-      {selectedCall && (
-        <CallDetailDialog
-          call={selectedCall}
-          open={!!selectedCall}
-          onOpenChange={(open) => {
-            if (!open) {
-              setSelectedCall(null);
-            }
-          }}
-        />
-      )}
+      {/* Call detail opens in Pane 4 via panelStore — see onCallClick handler above */}
 
       {taggingCallId && (
         <ManualTagDialog

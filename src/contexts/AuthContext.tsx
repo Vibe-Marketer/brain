@@ -38,8 +38,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           logger.debug('[AuthContext] User signed in');
           setSession(session);
           setUser(session?.user ?? null);
-          // Load user preferences after sign in
-          await usePreferencesStore.getState().loadPreferences();
+          // Load preferences fire-and-forget — do NOT await here.
+          // Awaiting inside onAuthStateChange causes a Supabase auth lock
+          // deadlock: the lock held by _notifyAllSubscribers is re-acquired
+          // by loadPreferences → supabase.auth.getUser(), hanging forever.
+          void usePreferencesStore.getState().loadPreferences();
         } else {
           // For other events (INITIAL_SESSION, etc.), update state
           setSession(session);
@@ -51,7 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         logger.error('[AuthContext] Error getting session:', error);
         setSession(null);
@@ -60,9 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logger.debug('[AuthContext] Initial session loaded:', session ? 'Valid' : 'None');
         setSession(session);
         setUser(session?.user ?? null);
-        // Load user preferences if session exists
+        // Load preferences fire-and-forget — do NOT await inside getSession().then().
+        // Same deadlock risk as onAuthStateChange: supabase.auth.getUser() inside
+        // loadPreferences re-acquires the auth lock that getSession() still holds.
         if (session) {
-          await usePreferencesStore.getState().loadPreferences();
+          void usePreferencesStore.getState().loadPreferences();
         }
       }
       setLoading(false);
