@@ -1,0 +1,50 @@
+name: Auto-Merge on Label
+
+# Enables GitHub's native auto-merge on any PR labeled "auto-merge".
+# The PR will be squash-merged automatically once all required status
+# checks pass (currently: security).
+#
+# Use this label on:
+#   - Agent-generated Sentry fix PRs
+#   - Any low-risk automated fix PRs
+#
+# The workflow uses GITHUB_TOKEN to both approve and enable auto-merge,
+# which is allowed because GITHUB_TOKEN acts as the github-actions bot
+# (a different identity from the PR author).
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  auto-merge:
+    name: Enable Auto-Merge
+    if: github.event.label.name == 'auto-merge'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Approve PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.createReview({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.payload.pull_request.number,
+              event: 'APPROVE',
+              body: 'Auto-approved: labeled `auto-merge`. Will squash-merge once required checks pass.',
+            });
+            console.log(`Approved PR #${context.payload.pull_request.number}`);
+
+      - name: Enable auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge ${{ github.event.pull_request.number }} \
+            --auto \
+            --squash \
+            --repo ${{ github.repository }}
+          echo "Auto-merge enabled on PR #${{ github.event.pull_request.number }}"

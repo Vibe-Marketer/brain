@@ -59,7 +59,7 @@ jobs:
                 '1. Read the error title, stack trace, and any breadcrumbs in the issue description above',
                 '2. Find the root cause in the codebase (check the file + line referenced in the stack trace)',
                 '3. Implement a fix — keep it minimal and focused on the reported error',
-                '4. Open a PR referencing this issue',
+                '4. Open a PR referencing this issue and apply the `auto-merge` label to the PR so it merges automatically once checks pass',
                 '',
                 '> Do not close this issue manually — it will be auto-resolved in Sentry once the fix is deployed.',
               ].join('\n'),
