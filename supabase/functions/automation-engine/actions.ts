@@ -149,6 +149,9 @@ export function replaceTemplateVariables(
     }
   }
 
+  // Strip any remaining unresolved {{...}} placeholders (unknown fields → empty string)
+  result = result.replace(/\{\{[^}]+\}\}/g, '');
+
   return result;
 }
 
