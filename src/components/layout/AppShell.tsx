@@ -28,6 +28,8 @@ import { SidebarNav } from '@/components/ui/sidebar-nav';
 import { SidebarToggle } from './SidebarToggle';
 import { DetailPaneOutlet } from './DetailPaneOutlet';
 import { usePanelStore } from '@/stores/panelStore';
+import { MobileHeader } from './MobileHeader';
+import { MobileTabBar } from './MobileTabBar';
 
 /**
  * DEV-MODE CHECK: Detects if AppShell is incorrectly wrapped in Layout.tsx's card container.
@@ -177,6 +179,15 @@ export function AppShell({
 
   return (
     <>
+      {/* ── MOBILE HEADER (fixed top bar, mobile only) ── */}
+      {isMobile && (
+        <MobileHeader
+          onOpenNav={() => setShowMobileNav(true)}
+          onOpenSecondary={() => setShowMobileSecondary(true)}
+          showSecondaryToggle={!!secondaryPane}
+        />
+      )}
+
       {/* Mobile overlay backdrop */}
       {isMobile && (showMobileNav || showMobileSecondary) && (
         <div
@@ -246,10 +257,33 @@ export function AppShell({
         </div>
       )}
 
-      {/* Main pane container */}
+      {/* ── MOBILE LAYOUT WRAPPER ── */}
+      {isMobile ? (
+        <div
+          ref={containerRef}
+          className="flex flex-col h-full overflow-hidden"
+          style={{
+            paddingTop: '52px',
+            paddingBottom: 'calc(56px + env(safe-area-inset-bottom, 0px))',
+          }}
+        >
+          {/* PANE 3 (mobile): Main content fills the space between header and tab bar */}
+          <div
+            className={cn(
+              'flex-1 min-w-0 bg-card',
+              'flex flex-col h-full relative z-0 overflow-hidden',
+            )}
+          >
+            {children}
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── DESKTOP / TABLET LAYOUT ── */}
+      {!isMobile && (
       <div ref={containerRef} className="h-full flex gap-3 overflow-hidden p-1">
-        {/* PANE 1: Navigation Rail (Sidebar) - Hidden on mobile */}
-        {!isMobile && showNavRail && (
+        {/* PANE 1: Navigation Rail (Sidebar) */}
+        {showNavRail && (
           <nav
             role="navigation"
             aria-label="Main navigation"
@@ -292,8 +326,8 @@ export function AppShell({
           </nav>
         )}
 
-        {/* PANE 2: Secondary Panel - Hidden on mobile */}
-        {!isMobile && secondaryPane && (
+        {/* PANE 2: Secondary Panel */}
+        {secondaryPane && (
           <div
             className={cn(
               // Base styles
@@ -311,7 +345,7 @@ export function AppShell({
           </div>
         )}
 
-        {/* PANE 3: Main Content - Always visible */}
+        {/* PANE 3: Main Content */}
         <div
           className={cn(
             // Base styles
@@ -324,11 +358,15 @@ export function AppShell({
           {children}
         </div>
 
-        {/* PANE 4: Detail Panel Outlet - Hidden on mobile */}
-        {!isMobile && showDetailPane && (
+        {/* PANE 4: Detail Panel Outlet */}
+        {showDetailPane && (
           <DetailPaneOutlet isTablet={isTablet} />
         )}
       </div>
+      )}
+
+      {/* ── MOBILE BOTTOM TAB BAR (fixed, mobile only) ── */}
+      {isMobile && <MobileTabBar />}
     </>
   );
 }
