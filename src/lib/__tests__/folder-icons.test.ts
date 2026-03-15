@@ -86,6 +86,8 @@ describe('folder-icons utilities', () => {
   });
 
   describe('isEmojiIcon', () => {
+    // Emojis are no longer supported for folders — isEmojiIcon always returns false.
+
     it('should return false for null', () => {
       expect(isEmojiIcon(null)).toBe(false);
     });
@@ -106,21 +108,21 @@ describe('folder-icons utilities', () => {
       expect(isEmojiIcon('star')).toBe(false);
     });
 
-    it('should return true for emoji characters', () => {
-      expect(isEmojiIcon('📁')).toBe(true);
-      expect(isEmojiIcon('⭐')).toBe(true);
-      expect(isEmojiIcon('🎯')).toBe(true);
-      expect(isEmojiIcon('💼')).toBe(true);
+    it('should return false for emoji characters (emojis no longer supported)', () => {
+      expect(isEmojiIcon('📁')).toBe(false);
+      expect(isEmojiIcon('⭐')).toBe(false);
+      expect(isEmojiIcon('🎯')).toBe(false);
+      expect(isEmojiIcon('💼')).toBe(false);
     });
 
-    it('should return true for strings not in icon list', () => {
-      expect(isEmojiIcon('random-string')).toBe(true);
-      expect(isEmojiIcon('not-an-icon')).toBe(true);
+    it('should return false for strings not in icon list (fallback to default icon)', () => {
+      expect(isEmojiIcon('random-string')).toBe(false);
+      expect(isEmojiIcon('not-an-icon')).toBe(false);
     });
 
-    it('should handle multi-character emojis', () => {
-      expect(isEmojiIcon('👨‍💻')).toBe(true);
-      expect(isEmojiIcon('🏳️‍🌈')).toBe(true);
+    it('should return false for multi-character emojis', () => {
+      expect(isEmojiIcon('👨‍💻')).toBe(false);
+      expect(isEmojiIcon('🏳️‍🌈')).toBe(false);
     });
   });
 
