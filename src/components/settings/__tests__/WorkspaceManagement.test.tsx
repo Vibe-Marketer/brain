@@ -106,11 +106,11 @@ describe('WorkspaceManagement', () => {
     mockCreateMutate.mockClear()
   })
 
-  it('shows YouTube as an enabled workspace type in settings create flow', () => {
+  it('shows Team as an enabled workspace type in settings create flow', () => {
     render(<WorkspaceManagement orgId="org-1" canManage />)
 
-    const youtubeOption = screen.getByRole('button', { name: /youtube/i })
-    expect(youtubeOption).toBeDefined()
-    expect(youtubeOption.hasAttribute('disabled')).toBe(false)
+    const teamOption = screen.getByRole('button', { name: /^team$/i })
+    expect(teamOption).toBeDefined()
+    expect(teamOption.hasAttribute('disabled')).toBe(false)
   })
 })

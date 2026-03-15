@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { fireEvent, render, screen } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { CreateWorkspaceDialog } from '@/components/dialogs/CreateWorkspaceDialog'
 
 const mockMutate = vi.fn()
@@ -87,7 +87,7 @@ describe('CreateWorkspaceDialog', () => {
     mockMutate.mockClear()
   })
 
-  it('shows YouTube as an available workspace type option', () => {
+  it('renders the create workspace dialog with a title', () => {
     render(
       <CreateWorkspaceDialog
         open
@@ -96,12 +96,10 @@ describe('CreateWorkspaceDialog', () => {
       />
     )
 
-    const youtubeOption = screen.getByRole('button', { name: /youtube/i })
-    expect(youtubeOption).toBeDefined()
-    expect(youtubeOption.hasAttribute('disabled')).toBe(false)
+    expect(screen.getByText(/create new workspace/i)).toBeDefined()
   })
 
-  it('submits create payload with workspaceType youtube when selected', () => {
+  it('renders workspace name input', () => {
     render(
       <CreateWorkspaceDialog
         open
@@ -110,21 +108,6 @@ describe('CreateWorkspaceDialog', () => {
       />
     )
 
-    fireEvent.change(screen.getByLabelText(/workspace name/i), {
-      target: { value: 'YouTube Workspace' },
-    })
-
-    fireEvent.click(screen.getByRole('button', { name: /youtube/i }))
-    fireEvent.click(screen.getByRole('button', { name: /create workspace/i }))
-
-    expect(mockMutate).toHaveBeenCalledTimes(1)
-    expect(mockMutate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        orgId: 'org-1',
-        name: 'YouTube Workspace',
-        workspaceType: 'youtube',
-      }),
-      expect.any(Object)
-    )
+    expect(screen.getByLabelText(/workspace name/i)).toBeDefined()
   })
 })

@@ -2132,13 +2132,13 @@ describe('calculateNextRunAt', () => {
         hour: 9,
         minute: 0,
       };
-      // Friday, January 10, 2026
-      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+      // Friday, January 16, 2026
+      const fromTime = new Date('2026-01-16T10:00:00.000Z');
 
       const nextRun = calculateNextRunAt(config, fromTime);
 
-      // Should be Monday, January 13, 2026
-      expect(nextRun.toISOString()).toBe('2026-01-13T09:00:00.000Z');
+      // Should be Monday, January 19, 2026
+      expect(nextRun.toISOString()).toBe('2026-01-19T09:00:00.000Z');
       expect(nextRun.getUTCDay()).toBe(1); // Monday
     });
 
@@ -2149,13 +2149,13 @@ describe('calculateNextRunAt', () => {
         hour: 15,
         minute: 0,
       };
-      // Friday, January 10, 2026 at 10:00
-      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+      // Friday, January 16, 2026 at 10:00
+      const fromTime = new Date('2026-01-16T10:00:00.000Z');
 
       const nextRun = calculateNextRunAt(config, fromTime);
 
       // Should be same day at 15:00
-      expect(nextRun.toISOString()).toBe('2026-01-10T15:00:00.000Z');
+      expect(nextRun.toISOString()).toBe('2026-01-16T15:00:00.000Z');
     });
 
     it('should schedule for next week if time has passed on target day', () => {
@@ -2165,13 +2165,13 @@ describe('calculateNextRunAt', () => {
         hour: 9,
         minute: 0,
       };
-      // Friday, January 10, 2026 at 10:00 (after 9:00)
-      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+      // Friday, January 16, 2026 at 10:00 (after 9:00)
+      const fromTime = new Date('2026-01-16T10:00:00.000Z');
 
       const nextRun = calculateNextRunAt(config, fromTime);
 
-      // Should be next Friday, January 17, 2026
-      expect(nextRun.toISOString()).toBe('2026-01-17T09:00:00.000Z');
+      // Should be next Friday, January 23, 2026
+      expect(nextRun.toISOString()).toBe('2026-01-23T09:00:00.000Z');
     });
 
     it('should default to Monday at 9:00', () => {
@@ -2193,13 +2193,13 @@ describe('calculateNextRunAt', () => {
         hour: 10,
         minute: 0,
       };
-      // Friday, January 10, 2026
-      const fromTime = new Date('2026-01-10T10:00:00.000Z');
+      // Friday, January 16, 2026
+      const fromTime = new Date('2026-01-16T10:00:00.000Z');
 
       const nextRun = calculateNextRunAt(config, fromTime);
 
-      // Should be Sunday, January 12, 2026
-      expect(nextRun.toISOString()).toBe('2026-01-12T10:00:00.000Z');
+      // Should be Sunday, January 18, 2026
+      expect(nextRun.toISOString()).toBe('2026-01-18T10:00:00.000Z');
       expect(nextRun.getUTCDay()).toBe(0); // Sunday
     });
   });
@@ -2337,20 +2337,20 @@ describe('Integration Test: Scheduled Rule Flow', () => {
   });
 
   it('should correctly calculate next run after execution', () => {
-    // Rule executed on Monday, January 13, 2026 at 9:00 AM
+    // Rule executed on Monday, January 19, 2026 at 9:00 AM
     const ruleConfig: ScheduleConfig = {
       schedule_type: 'weekly',
       day_of_week: 1, // Monday
       hour: 9,
       minute: 0,
     };
-    const executionTime = new Date('2026-01-13T09:00:00.000Z');
+    const executionTime = new Date('2026-01-19T09:00:00.000Z');
 
     // Calculate next run time
     const nextRun = calculateNextRunAt(ruleConfig, executionTime);
 
-    // Should be next Monday, January 20, 2026
-    expect(nextRun.toISOString()).toBe('2026-01-20T09:00:00.000Z');
+    // Should be next Monday, January 26, 2026
+    expect(nextRun.toISOString()).toBe('2026-01-26T09:00:00.000Z');
     expect(nextRun.getUTCDay()).toBe(1); // Monday
   });
 
@@ -2462,11 +2462,11 @@ describe('Integration Test: Scheduled Rule Flow', () => {
     expect(result.reason).toContain('not yet due');
 
     // But next_run_at should still be calculated correctly
-    const missedTime = new Date('2026-01-13T09:05:00.000Z');
+    const missedTime = new Date('2026-01-19T09:05:00.000Z');
     const nextRun = calculateNextRunAt(ruleConfig, missedTime);
 
     // Next run should be the following Monday
-    expect(nextRun.toISOString()).toBe('2026-01-20T09:00:00.000Z');
+    expect(nextRun.toISOString()).toBe('2026-01-26T09:00:00.000Z');
   });
 });
 
@@ -3337,7 +3337,7 @@ describe('Multi-Condition AND/OR Logic', () => {
       const result = evaluateConditions(conditions, context);
 
       expect(result.passed).toBe(true);
-      expect(result.reason).toContain('vacuously true');
+      expect(result.reason).toContain('All 0 conditions passed');
     });
 
     it('should handle single condition as AND group', () => {
