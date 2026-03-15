@@ -2,13 +2,16 @@
  * Sidebar Navigation
  *
  * Navigation rail for the AppShell sidebar.
- * Unified design: same icon size/position in both collapsed and expanded states.
- * Text label smoothly fades and clips to zero width on collapse — icon never moves.
- *
- * Active state: bg-vibe-orange/10 tint, fill icon, font-semibold label, left-edge pill.
+ * Matches the 2nd pane design pattern exactly:
+ * - Icon in w-8 h-8 rounded-md bordered box
+ * - Active state: bg-hover (muted) background, NOT orange tint
+ * - Left pill via before: pseudo at left-1, h-[65%], bg-vibe-orange
+ * - pl-4 offset on active to clear the pill
+ * - Right chevron fades in on active
+ * - Collapsed: icon box centered, same pill treatment, text clips away
  *
  * @pattern sidebar-nav
- * @brand-version v4.5
+ * @brand-version v4.6
  */
 
 import * as React from 'react';
@@ -38,6 +41,7 @@ import { HowItWorksModal } from '@/components/onboarding/HowItWorksModal';
 interface NavItem {
   id: string;
   name: string;
+  description: string;
   icon: RemixiconComponentType;
   iconActive: RemixiconComponentType;
   path: string;
@@ -46,13 +50,9 @@ interface NavItem {
 }
 
 interface SidebarNavProps {
-  /** Whether the sidebar is collapsed */
   isCollapsed?: boolean;
-  /** Additional CSS classes */
   className?: string;
-  /** Optional callback to toggle the Library panel */
   onLibraryToggle?: () => void;
-  /** Optional callback when Settings nav item is clicked */
   onSettingsClick?: () => void;
 }
 
@@ -60,6 +60,7 @@ const navItems: NavItem[] = [
   {
     id: 'home',
     name: 'All Calls',
+    description: 'Your call library',
     icon: RiPhoneLine,
     iconActive: RiPhoneFill,
     path: '/',
@@ -69,6 +70,7 @@ const navItems: NavItem[] = [
   {
     id: 'shared-with-me',
     name: 'Shared With Me',
+    description: 'Calls others shared',
     icon: RiShareLine,
     iconActive: RiShareFill,
     path: '/shared-with-me',
@@ -77,6 +79,7 @@ const navItems: NavItem[] = [
   {
     id: 'import',
     name: 'Import',
+    description: 'Connect sources',
     icon: RiDownloadLine,
     iconActive: RiDownloadFill,
     path: '/import',
@@ -86,6 +89,7 @@ const navItems: NavItem[] = [
   {
     id: 'rules',
     name: 'Rules',
+    description: 'Auto-sort incoming calls',
     icon: RiRouteLine,
     iconActive: RiRouteFill,
     path: '/rules',
@@ -95,6 +99,7 @@ const navItems: NavItem[] = [
   {
     id: 'settings',
     name: 'Settings',
+    description: 'Account and preferences',
     icon: RiSettings3Line,
     iconActive: RiSettings3Fill,
     path: '/settings',
@@ -139,82 +144,119 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
           const Icon = active ? item.iconActive : item.icon;
 
           return (
-            <button
-              key={item.id}
-              type="button"
-              data-tour={item.dataTour}
-              onClick={() => {
-                navigate(item.path);
-                if (item.id === 'settings' && onSettingsClick) {
-                  onSettingsClick();
-                }
-              }}
-              className={cn(
-                // Base: always full-width row, icon on left, text on right
-                'relative w-full flex items-center gap-3 rounded-lg px-3 py-2',
-                'text-sm transition-colors duration-150',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                active
-                  ? 'bg-vibe-orange/10 font-semibold text-vibe-orange'
-                  : 'text-muted-foreground hover:bg-muted/70',
-              )}
-              aria-label={isCollapsed ? item.name : undefined}
-              aria-current={active ? 'page' : undefined}
-            >
-              {/* Left-edge pill — always reserve the space so icon doesn't shift */}
-              <span
+            <div key={item.id} role="listitem" className="relative mb-0.5">
+              <button
+                type="button"
+                data-tour={item.dataTour}
+                onClick={() => {
+                  navigate(item.path);
+                  if (item.id === 'settings' && onSettingsClick) {
+                    onSettingsClick();
+                  }
+                }}
                 className={cn(
-                  'absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-r-full bg-vibe-orange',
-                  'transition-all duration-300',
-                  active && !isCollapsed ? 'h-5 opacity-100' : 'h-0 opacity-0',
+                  // Base — matches 2nd pane button exactly
+                  'relative w-full flex items-center gap-3 px-3 py-3 rounded-lg',
+                  'text-left transition-all duration-150 ease-in-out',
+                  'hover:bg-muted/70',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
+                  // Active — bg-hover (muted), NOT orange tint. Pill via before:
+                  active && [
+                    'bg-muted',
+                    isCollapsed ? 'pl-3' : 'pl-4', // offset for pill when expanded
+                    "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
+                  ],
+                  // Collapsed: center the icon box
+                  isCollapsed && 'justify-center',
                 )}
-                aria-hidden="true"
-              />
-
-              {/* Icon — fixed size, fixed position, never changes */}
-              <Icon
-                className={cn(
-                  'w-4 h-4 flex-shrink-0',
-                  active ? 'text-vibe-orange' : 'text-muted-foreground',
-                )}
-                aria-hidden="true"
-              />
-
-              {/* Label — clips to zero width on collapse, fades smoothly */}
-              <span
-                className={cn(
-                  'truncate transition-all duration-300 ease-in-out',
-                  isCollapsed
-                    ? 'w-0 opacity-0 overflow-hidden'
-                    : 'opacity-100',
-                )}
+                aria-label={isCollapsed ? item.name : undefined}
+                aria-current={active ? 'page' : undefined}
               >
-                {item.name}
-              </span>
-            </button>
+                {/* Icon box — w-8 h-8 rounded-md bordered, matches 2nd pane */}
+                <div
+                  className={cn(
+                    'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0',
+                    'bg-card border border-border',
+                    'transition-all duration-300 ease-in-out',
+                    active && 'bg-muted border-border',
+                  )}
+                  aria-hidden="true"
+                >
+                  <Icon
+                    className={cn(
+                      'h-4 w-4 transition-colors duration-300 ease-in-out',
+                      active ? 'text-vibe-orange' : 'text-muted-foreground',
+                    )}
+                  />
+                </div>
+
+                {/* Label + description — clip to zero on collapse */}
+                <div
+                  className={cn(
+                    'flex-1 min-w-0 transition-all duration-300 ease-in-out overflow-hidden',
+                    isCollapsed ? 'w-0 opacity-0' : 'opacity-100',
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'block text-sm font-medium truncate transition-colors duration-300',
+                      active ? 'text-foreground' : 'text-foreground',
+                    )}
+                  >
+                    {item.name}
+                  </span>
+                  <span className="block text-xs text-muted-foreground truncate">
+                    {item.description}
+                  </span>
+                </div>
+
+                {/* Right chevron — fades in on active, matches 2nd pane */}
+                {!isCollapsed && (
+                  <div
+                    className={cn(
+                      'flex-shrink-0 transition-all duration-300 ease-in-out',
+                      active ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1',
+                    )}
+                    aria-hidden="true"
+                  >
+                    <svg
+                      className="h-4 w-4 text-muted-foreground"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                )}
+              </button>
+            </div>
           );
         })}
       </nav>
 
-      {/* Bottom section */}
+      {/* Bottom utility buttons */}
       <div className="mt-2 flex flex-col gap-0.5 pt-2 border-t border-border/40 px-2">
-        {/* Workspace panel toggle */}
         {onLibraryToggle && (
           <button
             type="button"
             onClick={onLibraryToggle}
             className={cn(
-              'w-full flex items-center gap-3 rounded-lg px-3 py-2',
-              'text-sm text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
+              'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
+              'text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+              isCollapsed && 'justify-center',
             )}
             aria-label={isCollapsed ? 'Toggle Workspace Panel' : undefined}
           >
-            <RiLayoutColumnLine className="w-4 h-4 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+            <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
+              <RiLayoutColumnLine className="h-4 w-4 text-muted-foreground" />
+            </div>
             <span
               className={cn(
-                'truncate text-xs transition-all duration-300 ease-in-out',
-                isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100',
+                'text-xs font-medium transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+                isCollapsed ? 'w-0 opacity-0' : 'opacity-100',
               )}
             >
               Workspace Panel
@@ -222,46 +264,48 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
           </button>
         )}
 
-        {/* Tour button */}
         <button
           type="button"
           onClick={startTour}
-          title="Take the tour"
           className={cn(
-            'w-full flex items-center gap-3 rounded-lg px-3 py-2',
-            'text-sm text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
+            'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
+            'text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            isCollapsed && 'justify-center',
           )}
           aria-label="Take the tour"
         >
-          <RiQuestionLine className="w-4 h-4 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
+            <RiQuestionLine className="h-4 w-4 text-muted-foreground" />
+          </div>
           <span
             className={cn(
-              'truncate text-xs transition-all duration-300 ease-in-out',
-              isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100',
+              'text-xs font-medium transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+              isCollapsed ? 'w-0 opacity-0' : 'opacity-100',
             )}
           >
             Take the tour
           </span>
         </button>
 
-        {/* How it works button */}
         <button
           type="button"
           onClick={() => setShowHowItWorks(true)}
-          title="How it works"
           className={cn(
-            'w-full flex items-center gap-3 rounded-lg px-3 py-2',
-            'text-sm text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
+            'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
+            'text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            isCollapsed && 'justify-center',
           )}
           aria-label="How it works"
         >
-          <RiInformationLine className="w-4 h-4 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+          <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
+            <RiInformationLine className="h-4 w-4 text-muted-foreground" />
+          </div>
           <span
             className={cn(
-              'truncate text-xs transition-all duration-300 ease-in-out',
-              isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100',
+              'text-xs font-medium transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
+              isCollapsed ? 'w-0 opacity-0' : 'opacity-100',
             )}
           >
             How it works
