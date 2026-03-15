@@ -34,12 +34,17 @@ export function useTableSort<T>(data: T[], initialField: string = "date") {
         aVal = a.calendar_invitees?.length || 0;
         bVal = b.calendar_invitees?.length || 0;
       } else if (sortField === "duration") {
-        aVal = a.recording_start_time && a.recording_end_time
-          ? new Date(a.recording_end_time).getTime() - new Date(a.recording_start_time).getTime()
-          : 0;
-        bVal = b.recording_start_time && b.recording_end_time
-          ? new Date(b.recording_end_time).getTime() - new Date(b.recording_start_time).getTime()
-          : 0;
+        const getDuration = (item: any): number => {
+          if (item.source_metadata?.duration_seconds != null) {
+            return Number(item.source_metadata.duration_seconds);
+          }
+          if (item.recording_start_time && item.recording_end_time) {
+            return (new Date(item.recording_end_time).getTime() - new Date(item.recording_start_time).getTime()) / 1000;
+          }
+          return 0;
+        };
+        aVal = getDuration(a);
+        bVal = getDuration(b);
       } else if (sortField === "source") {
         aVal = (a.source_platform || "").toLowerCase();
         bVal = (b.source_platform || "").toLowerCase();
