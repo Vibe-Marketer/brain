@@ -232,7 +232,7 @@ export function TranscriptsTab({
 
     const currentTab = newParams.get("tab");
 
-    ["from", "to", "participants", "categories", "durMin", "durMax", "tags", "folders", "sources"].forEach(key => {
+    ["from", "to", "participants", "categories", "durMin", "durMax", "status", "tags", "folders", "sources"].forEach(key => {
       newParams.delete(key);
     });
 
