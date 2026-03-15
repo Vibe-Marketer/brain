@@ -86,12 +86,21 @@ function NotificationItem({
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={cn(
         "p-3 border-b border-border last:border-b-0",
         "hover:bg-muted/50 transition-colors cursor-pointer",
         isUnread && "bg-muted/30"
       )}
       onClick={handleClick}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          if (isUnread) {
+            onMarkAsRead(notification.id);
+          }
+        }
+      }}
     >
       <div className="flex items-start gap-3">
         {/* Icon */}
@@ -244,7 +253,7 @@ export function NotificationPanel({ onClose, onSendToChat }: NotificationPanelPr
         <EmptyState />
       ) : (
         <ScrollArea className="flex-1">
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-border" aria-live="polite">
             {notifications.map((notification) => (
               <NotificationItem
                 key={notification.id}

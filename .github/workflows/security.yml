@@ -23,6 +23,9 @@ jobs:
       - name: Node.js Lint
         run: npm ci && npm run lint
 
+      - name: Run unit tests
+        run: npm test
+
       # Install Deno for edge function linting
       - uses: denoland/setup-deno@v2
         with:

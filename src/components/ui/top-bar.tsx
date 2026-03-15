@@ -74,7 +74,7 @@ export function TopBar({
       )}
     >
       {/* Left: Logo/Branding - CallVault™ wordmark */}
-      <button onClick={() => navigate('/')} className="flex items-center hover:opacity-80 transition-opacity">
+      <button onClick={() => navigate('/')} aria-label="Go to home" className="flex items-center hover:opacity-80 transition-opacity">
         {/* Light mode: SVG with transparent background */}
         <img
           src="/cv-wordmark.svg"

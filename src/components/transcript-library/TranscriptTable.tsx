@@ -36,6 +36,25 @@ import type { SharingStatus, AccessLevel } from "@/types/sharing";
 import type { Folder } from "@/types/workspace";
 
 
+interface SortButtonProps {
+  field: string;
+  children: React.ReactNode;
+  sortField: string;
+  onSort: (field: string) => void;
+}
+
+function SortButton({ field, children, sortField, onSort }: SortButtonProps) {
+  return (
+    <button
+      onClick={() => onSort(field)}
+      className="h-8 px-2 inline-flex items-center justify-center gap-2 hover:bg-muted/50 font-medium text-sm rounded-md transition-colors cursor-pointer"
+    >
+      {children}
+      <RiArrowUpDownLine className={`ml-2 h-3.5 w-3.5 ${sortField === field ? "text-foreground" : "text-muted-foreground"}`} />
+    </button>
+  );
+}
+
 // Column options for visibility toggle — varies by table mode
 const workspaceColumnOptions = [
   { id: "date", label: "Date" },
@@ -140,16 +159,6 @@ export const TranscriptTable = React.memo(({
     [calls],
   );
 
-  const SortButton = ({ field, children }: { field: string; children: React.ReactNode }) => (
-    <button
-      onClick={() => handleSort(field)}
-      className="h-8 px-2 inline-flex items-center justify-center gap-2 hover:bg-muted/50 font-medium text-sm rounded-md transition-colors cursor-pointer"
-    >
-      {children}
-      <RiArrowUpDownLine className={`ml-2 h-3.5 w-3.5 ${sortField === field ? "text-foreground" : "text-muted-foreground"}`} />
-    </button>
-  );
-
   if (calls.length === 0) {
     return (
       <div className="text-center py-12 text-muted-foreground">
@@ -210,21 +219,21 @@ export const TranscriptTable = React.memo(({
                   </TooltipProvider>
                 </TableHead>
                 <TableHead className="min-w-[150px] md:min-w-[200px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
-                  <SortButton field="title">TITLE</SortButton>
+                  <SortButton field="title" sortField={sortField} onSort={handleSort}>TITLE</SortButton>
                 </TableHead>
                 {visibleColumns.date !== false && (
                   <TableHead className="min-w-[100px] md:min-w-[120px] h-10 md:h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="date">DATE</SortButton>
+                    <SortButton field="date" sortField={sortField} onSort={handleSort}>DATE</SortButton>
                   </TableHead>
                 )}
                 {visibleColumns.duration !== false && (
                   <TableHead className="hidden lg:table-cell text-center w-[80px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="duration">DURATION</SortButton>
+                    <SortButton field="duration" sortField={sortField} onSort={handleSort}>DURATION</SortButton>
                   </TableHead>
                 )}
                 {visibleColumns.participants !== false && (
                   <TableHead className="hidden lg:table-cell text-center w-[85px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="participants">INVITEES</SortButton>
+                    <SortButton field="participants" sortField={sortField} onSort={handleSort}>INVITEES</SortButton>
                   </TableHead>
                 )}
                 {(
@@ -232,7 +241,7 @@ export const TranscriptTable = React.memo(({
                 )}
                 {isHome && visibleColumns.source !== false && (
                   <TableHead className="hidden lg:table-cell min-w-[100px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="source">SOURCE</SortButton>
+                    <SortButton field="source" sortField={sortField} onSort={handleSort}>SOURCE</SortButton>
                   </TableHead>
                 )}
                 {visibleColumns.tags !== false && (
@@ -330,9 +339,9 @@ export const TranscriptTable = React.memo(({
                     sharingStatus={sharingStatuses[call.recording_id]}
                     accessLevel={accessLevels[call.recording_id]}
                     tableMode={tableMode}
-                    onSelect={() => onSelectCall(call.recording_id)}
-                    onCallClick={() => onCallClick(call)}
-                    onFolder={onFolderCall ? () => onFolderCall(call.recording_id) : undefined}
+                    onSelectCall={onSelectCall}
+                    onCallClick={onCallClick}
+                    onFolderCall={onFolderCall}
                     onCustomDownload={onCustomDownload}
                     DownloadComponent={!onCustomDownload ? DownloadPopover : undefined}
                   />

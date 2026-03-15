@@ -160,7 +160,7 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent
           className="sm:max-w-lg"
-          aria-describedby="onboarding-description"
+          aria-describedby={`onboarding-description-step-${step}`}
         >
           <StepIndicator currentStep={step} />
 
@@ -171,7 +171,7 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
                 <DialogTitle className="text-2xl font-bold">
                   Welcome to CallVault
                 </DialogTitle>
-                <DialogDescription id="onboarding-description" className="text-base mt-1">
+                <DialogDescription id="onboarding-description-step-1" className="text-base mt-1">
                   The universal call vault for your team — every recording from
                   every tool in one place.
                 </DialogDescription>
@@ -221,7 +221,7 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
                 <DialogTitle className="text-2xl font-bold">
                   Organize your calls
                 </DialogTitle>
-                <DialogDescription id="onboarding-description" className="text-base mt-1">
+                <DialogDescription id="onboarding-description-step-2" className="text-base mt-1">
                   CallVault uses <strong>Organizations</strong> to group your
                   teams, <strong>Workspaces</strong> to separate projects or
                   clients, and <strong>Folders</strong> to keep calls tidy
@@ -260,7 +260,7 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
                 <DialogTitle className="text-2xl font-bold">
                   Invite your team
                 </DialogTitle>
-                <DialogDescription id="onboarding-description" className="text-base mt-1">
+                <DialogDescription id="onboarding-description-step-3" className="text-base mt-1">
                   CallVault works best with your whole team. Invite teammates so
                   everyone can access and collaborate on calls.
                 </DialogDescription>

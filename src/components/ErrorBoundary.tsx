@@ -180,6 +180,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </p>
           )}
 
+          {import.meta.env.DEV && (
           <details className="text-sm md:text-base">
             <summary className="cursor-pointer text-red-800 dark:text-red-200 mb-2 font-semibold">
               📋 Error details (tap to expand)
@@ -202,6 +203,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
               )}
             </div>
           </details>
+          )}
           <button
             onClick={this.handleManualRetry}
             className="mt-4 w-full md:w-auto px-6 py-3 bg-red-600 text-white text-base font-semibold rounded hover:bg-red-700 active:bg-red-800 transition-colors"

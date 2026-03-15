@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
+import { visualizer } from "rollup-plugin-visualizer";
 import path from "path";
 
 // https://vitejs.dev/config/
@@ -8,7 +9,6 @@ export default defineConfig({
   server: {
     host: "::",
     port: 3001,
-    allowedHosts: [".manusvm.computer"],
   },
   build: {
     sourcemap: true, // Required for Sentry source maps
@@ -25,6 +25,7 @@ export default defineConfig({
       disable: !process.env.SENTRY_AUTH_TOKEN,
       telemetry: false,
     }),
+    ...(process.env.ANALYZE ? [visualizer({ open: true, gzipSize: true, brotliSize: true })] : []),
   ],
   resolve: {
     alias: {

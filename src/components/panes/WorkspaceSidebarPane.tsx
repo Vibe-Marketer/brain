@@ -246,6 +246,13 @@ function WorkspaceListItem({
               onSelect(workspace.id);
               if (!isOpen) setIsOpen(true);
             }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onSelect(workspace.id);
+                if (!isOpen) setIsOpen(true);
+              }
+            }}
             className={cn(
               'relative w-full flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer',
               'text-left transition-all duration-300 ease-in-out',

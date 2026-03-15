@@ -17,7 +17,7 @@ export function InviteesCountCircle({ invitees }: InviteesCountCircleProps) {
   return (
     <div className="flex items-center justify-center gap-2 whitespace-nowrap">
       <div className="relative h-7 w-7 flex-shrink-0">
-        <svg className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
+        <svg aria-hidden="true" className="h-7 w-7 -rotate-90" viewBox="0 0 36 36">
           {/* Background circle */}
           <circle
             cx="18"

@@ -13,7 +13,7 @@ export function initSentry() {
     environment: import.meta.env.MODE,
 
     // Send default PII data (IP address, etc.)
-    sendDefaultPii: true,
+    sendDefaultPii: false,
 
     // Enable experimental features
     _experiments: {
@@ -26,13 +26,13 @@ export function initSentry() {
       Sentry.browserTracingIntegration(),
       // Session replay for debugging
       Sentry.replayIntegration({
-        maskAllText: false,
-        blockAllMedia: false,
+        maskAllText: true,
+        blockAllMedia: true,
       }),
     ],
 
     // Capture 100% of transactions for full visibility
-    tracesSampleRate: 1.0,
+    tracesSampleRate: 0.1,
 
     // Control distributed tracing targets
     tracePropagationTargets: [
@@ -42,7 +42,7 @@ export function initSentry() {
     ],
 
     // Session Replay - capture 100% for full debugging
-    replaysSessionSampleRate: 1.0,
+    replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
 
     // Only filter browser extension errors (not actionable)

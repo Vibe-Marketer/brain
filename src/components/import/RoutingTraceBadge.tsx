@@ -49,6 +49,8 @@ export function RoutingTraceBadge({ sourceMetadata }: RoutingTraceBadgeProps) {
           }}
           onMouseEnter={() => setOpen(true)}
           onMouseLeave={() => setOpen(false)}
+          onFocus={() => setOpen(true)}
+          onBlur={() => setOpen(false)}
           className="focus:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
           aria-label={`Routed by rule: ${ruleName}`}
         >

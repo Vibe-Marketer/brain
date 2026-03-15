@@ -128,7 +128,7 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
           isCollapsed ? 'px-1' : 'px-2'
         )}
         role="navigation"
-        aria-label="Main navigation"
+        aria-label="App navigation"
       >
         {/* Nav items */}
         {filteredNavItems.map((item) => {
@@ -156,7 +156,7 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
                       : 'text-muted-foreground hover:bg-muted/70',
                   !isCollapsed && 'w-full',
                 )}
-                title={isCollapsed ? item.name : undefined}
+                aria-label={isCollapsed ? item.name : undefined}
                 aria-current={active ? 'page' : undefined}
               >
                 {/* Left-edge pill indicator for expanded active state */}
@@ -223,7 +223,7 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
               isCollapsed && 'justify-center px-2 hover:bg-transparent',
             )}
-            title={isCollapsed ? 'Toggle Workspace Panel' : undefined}
+            aria-label={isCollapsed ? 'Toggle Workspace Panel' : undefined}
           >
             {isCollapsed ? (
               <div className={cn(

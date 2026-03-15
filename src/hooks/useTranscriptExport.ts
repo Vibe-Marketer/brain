@@ -1,6 +1,4 @@
 import { toast } from "sonner";
-import { jsPDF } from "jspdf";
-import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
 import { groupTranscriptsBySpeaker, formatSimpleTimestamp } from "@/lib/transcriptUtils";
 import { logger } from "@/lib/logger";
@@ -112,6 +110,7 @@ export function useTranscriptExport({
         const blob = new Blob([content], { type: "text/plain" });
         saveAs(blob, `${call.title.replace(/[^a-z0-9]/gi, "_")}_transcript.${format}`);
       } else if (format === "pdf") {
+        const { jsPDF } = await import("jspdf");
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
         const margin = 15;
@@ -122,6 +121,7 @@ export function useTranscriptExport({
         doc.text(lines, margin, 20);
         doc.save(`${call.title.replace(/[^a-z0-9]/gi, "_")}_transcript.pdf`);
       } else if (format === "docx") {
+        const { Document, Packer, Paragraph, TextRun } = await import("docx");
         // Build DOCX paragraphs with grouped speakers
         const paragraphs = [
           new Paragraph({

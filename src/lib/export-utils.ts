@@ -1,7 +1,4 @@
 import { saveAs } from 'file-saver';
-import jsPDF from 'jspdf';
-import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
-import JSZip from 'jszip';
 import type { Meeting } from '@/types/meetings';
 
 /**
@@ -31,6 +28,7 @@ interface _TranscriptSegment {
 }
 
 export async function exportToPDF(calls: ExportableCall[]) {
+  const { default: jsPDF } = await import('jspdf');
   const pdf = new jsPDF();
   let yPosition = 20;
 
@@ -105,6 +103,7 @@ export async function exportToPDF(calls: ExportableCall[]) {
 }
 
 export async function exportToDOCX(calls: ExportableCall[]) {
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
   const children: Paragraph[] = [];
 
   calls.forEach((call, index) => {
@@ -264,6 +263,7 @@ export async function exportToJSON(calls: ExportableCall[]) {
 }
 
 export async function exportToZIP(calls: ExportableCall[]) {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   // Add each transcript as a separate text file
@@ -477,6 +477,7 @@ function generateMarkdownContent(call: ExportableCall, includeYamlFrontmatter: b
 // Export to Markdown (single file or ZIP of individual files)
 export async function exportToMarkdown(calls: ExportableCall[], asZip: boolean = false) {
   if (asZip || calls.length > 1) {
+    const { default: JSZip } = await import('jszip');
     const zip = new JSZip();
 
     calls.forEach((call, index) => {
@@ -561,6 +562,7 @@ export async function exportToCSV(calls: ExportableCall[]) {
 
 // Export by Week (ZIP with weekly subfolders)
 export async function exportByWeek(calls: ExportableCall[], format: 'md' | 'txt' = 'md') {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   // Sort calls chronologically
@@ -671,6 +673,7 @@ export async function exportByFolder(
   folders: Array<{ id: string; name: string; color: string }>,
   format: 'md' | 'txt' = 'md'
 ) {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   // Group calls by folder
@@ -770,6 +773,7 @@ export async function exportByTag(
   tags: Array<{ id: string; name: string }>,
   format: 'md' | 'txt' = 'md'
 ) {
+  const { default: JSZip } = await import('jszip');
   const zip = new JSZip();
 
   // Group calls by tag

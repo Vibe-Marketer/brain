@@ -1,6 +1,6 @@
+import React, { useState } from "react";
 import { format } from "date-fns";
 import { toZonedTime } from "date-fns-tz";
-import { useState } from "react";
 import {
   RiTimeLine,
   RiEyeLine,
@@ -52,14 +52,14 @@ interface TranscriptTableRowProps {
   sharingStatus?: SharingStatus;
   accessLevel?: AccessLevel;
   tableMode?: 'home' | 'workspace';
-  onSelect: () => void;
-  onCallClick: () => void;
-  onFolder?: () => void;
+  onSelectCall: (id: number | string) => void;
+  onCallClick: (call: Meeting) => void;
+  onFolderCall?: (callId: number | string) => void;
   onCustomDownload?: (callId: number | string, title: string) => void;
   DownloadComponent?: React.ComponentType<{ call: Meeting }>;
 }
 
-export function TranscriptTableRow({
+export const TranscriptTableRow = React.memo(function TranscriptTableRow({
   call,
   isSelected,
   tags,
@@ -72,9 +72,9 @@ export function TranscriptTableRow({
   sharingStatus,
   accessLevel,
   tableMode = 'workspace',
-  onSelect,
+  onSelectCall,
   onCallClick,
-  onFolder,
+  onFolderCall,
   onCustomDownload,
   DownloadComponent,
 }: TranscriptTableRowProps) {
@@ -116,14 +116,14 @@ export function TranscriptTableRow({
   return (
     <TableRow key={call.recording_id} className="group h-7 md:h-8">
       <TableCell className="align-middle py-0">
-        <Checkbox checked={isSelected} onCheckedChange={onSelect} />
+        <Checkbox checked={isSelected} onCheckedChange={() => onSelectCall(call.recording_id)} />
       </TableCell>
       <TableCell className="py-0 whitespace-nowrap">
         <div className="space-y-0">
           {/* First line: Title */}
           <div className="flex items-center gap-1.5">
             <button
-              onClick={onCallClick}
+              onClick={() => onCallClick(call)}
               className="text-left hover:underline font-semibold text-xs md:text-sm truncate block max-w-[200px] md:max-w-[250px]"
             >
               {call.title}
@@ -330,16 +330,16 @@ export function TranscriptTableRow({
       <TableCell className="align-middle py-0">
         <div className="flex items-center justify-center gap-0.5 md:gap-1">
           <button
-            onClick={onCallClick}
+            onClick={() => onCallClick(call)}
             className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-hover dark:hover:bg-cb-panel-dark transition-colors"
             title="View details"
           >
             <RiEyeLine className="h-3 w-3 md:h-3.5 md:w-3.5" />
           </button>
 
-          {onFolder && (
+          {onFolderCall && (
             <button
-              onClick={onFolder}
+              onClick={() => onFolderCall(call.recording_id)}
               className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-hover dark:hover:bg-cb-panel-dark transition-colors"
               title="Assign to folder"
             >
@@ -408,4 +408,4 @@ export function TranscriptTableRow({
       />
     </TableRow>
   );
-}
+});

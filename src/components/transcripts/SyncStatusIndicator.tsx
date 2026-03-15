@@ -25,7 +25,7 @@ export function SyncStatusIndicator({ activeSyncJobs, recentlyCompletedJobs, onV
   // Active sync in progress
   if (hasActiveJobs) {
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full">
+      <div role="status" aria-label={`Syncing ${totalProgress} of ${totalTarget}`} className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full">
         <span className="relative flex h-2.5 w-2.5">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-primary"></span>
@@ -48,7 +48,7 @@ export function SyncStatusIndicator({ activeSyncJobs, recentlyCompletedJobs, onV
 
     if (isFullyFailed) {
       return (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-full">
+        <div role="status" aria-label="Sync failed" className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-full">
           <RiAlertLine className="h-4 w-4 text-red-600 dark:text-red-400" />
           <span className="text-sm font-medium text-red-700 dark:text-red-300">
             Sync Failed
@@ -59,7 +59,7 @@ export function SyncStatusIndicator({ activeSyncJobs, recentlyCompletedJobs, onV
 
     if (hasFailures) {
       return (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-full">
+        <div role="status" aria-label={`${syncedCount} synced, ${failedCount} failed`} className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-full">
           <RiAlertLine className="h-4 w-4 text-orange-600 dark:text-orange-400" />
           <span className="text-sm font-medium text-orange-700 dark:text-orange-300">
             {syncedCount} synced, {failedCount} failed
@@ -77,7 +77,7 @@ export function SyncStatusIndicator({ activeSyncJobs, recentlyCompletedJobs, onV
     }
 
     return (
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-full">
+      <div role="status" aria-label={`${syncedCount} synced`} className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-full">
         <RiCheckLine className="h-4 w-4 text-green-600 dark:text-green-400" />
         <span className="text-sm font-medium text-green-700 dark:text-green-300">
           {syncedCount} synced
