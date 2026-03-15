@@ -11,6 +11,7 @@ import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { RiCloseLine } from "@remixicon/react";
 import { SortingCategoryPane, type SortingCategory } from "@/components/panes/SortingCategoryPane";
 import { SortingDetailPane } from "@/components/panes/SortingDetailPane";
+import { SidebarNav } from "@/components/ui/sidebar-nav";
 
 // Valid category IDs for URL validation
 const VALID_CATEGORY_IDS: SortingCategory[] = ["folders", "tags", "rules", "recurring"];
@@ -163,7 +164,10 @@ export default function SortingTagging() {
                 </svg>
               </Button>
             </div>
-            <div className="w-full flex-1" />
+            <SidebarNav
+              isCollapsed={false}
+              className="w-full flex-1"
+            />
           </nav>
         )}
 

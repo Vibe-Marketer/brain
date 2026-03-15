@@ -132,9 +132,10 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event: StorageEvent) => {
     if (event.key === ORG_CONTEXT_UPDATED_KEY) {
-      // Another tab changed org context — reload from localStorage
+      // Another tab changed org context — reload from localStorage.
+      // Reset activeFolderId to null to avoid stale folder context across tabs.
       const { activeOrgId, activeWorkspaceId } = loadPersistedContext()
-      useOrgContextStore.setState({ activeOrgId, activeWorkspaceId })
+      useOrgContextStore.setState({ activeOrgId, activeWorkspaceId, activeFolderId: null })
     }
   })
 }
