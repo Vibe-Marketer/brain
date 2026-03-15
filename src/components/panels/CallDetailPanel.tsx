@@ -9,7 +9,6 @@
  */
 
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,6 @@ import {
   RiCloseLine,
   RiPushpinLine,
   RiPushpinFill,
-  RiRobotLine,
   RiVidiconLine,
   RiFileCopyLine,
   RiCalendarLine,
@@ -52,7 +50,6 @@ interface CallDetailPanelProps {
 }
 
 export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { closePanel, togglePin, isPinned } = usePanelStore();
 
@@ -264,30 +261,6 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
   const recordedByEmail = fathomRaw?.recorded_by_email ?? null;
   const calendarInvitees = fathomRaw?.calendar_invitees ?? null;
 
-  // Handle chat with AI navigation
-  const handleChatWithAI = () => {
-    if (!call?.id) return;
-    closePanel();
-
-    const initialContext = [
-      {
-        type: "call" as const,
-        id: call.legacy_recording_id ?? call.id,
-        title: call.title || `Call ${call.id}`,
-        date: call.created_at,
-      },
-    ];
-
-    navigate("/chat", {
-      state: {
-        prefilter: { recordingIds: [call.legacy_recording_id ?? call.id] },
-        callTitle: call.title,
-        initialContext,
-        newSession: true,
-      },
-    });
-  };
-
   // Handle copy share link
   const handleCopyLink = () => {
     if (shareUrl) {
@@ -403,15 +376,6 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
 
       {/* Quick Actions */}
       <div className="flex items-center gap-2 p-3 border-b border-border bg-muted/30">
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleChatWithAI}
-          className="gap-1"
-        >
-          <RiRobotLine className="h-4 w-4" />
-          Chat with AI
-        </Button>
         {shareUrl && (
           <>
             <Button
