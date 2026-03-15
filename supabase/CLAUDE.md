@@ -583,6 +583,22 @@ console.error('Authorization failed for user:', user.id);
 | Database columns | snake_case | `recording_id` |
 | Types/Interfaces | PascalCase | `Meeting`, `ApiResponse` |
 
+## Deploying Edge Functions
+
+**Docker is not running on this machine.** The default `supabase functions deploy` command hangs silently because it tries to use Docker for local bundling.
+
+**Always use `--use-api`** which bundles server-side without Docker:
+
+```bash
+# Single function
+supabase functions deploy generate-ai-titles --use-api
+
+# All functions
+supabase functions deploy --use-api
+```
+
+The CI workflow (`.github/workflows/deploy-edge-functions.yml`) already uses `--use-api`.
+
 ## Checklist Before Deploying
 
 - [ ] CORS preflight handler present

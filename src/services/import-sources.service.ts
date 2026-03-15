@@ -42,9 +42,8 @@ export interface FailedImport {
 // ---------------------------------------------------------------------------
 
 export async function getImportSources(): Promise<ImportSource[]> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) return []
 
   // 1. Fetch from import_sources (the new way)
@@ -132,9 +131,8 @@ export async function getImportSources(): Promise<ImportSource[]> {
  * Counts from the recordings table only (single source of truth).
  */
 export async function getImportCounts(): Promise<Record<string, number>> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
 
   if (!user) return {}
 

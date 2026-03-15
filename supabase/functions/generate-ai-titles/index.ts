@@ -372,7 +372,14 @@ Deno.serve(async (req) => {
       console.log(`Found ${idsToProcess.length} calls needing AI titles`);
 
     } else if (recordingIds && recordingIds.length > 0) {
-      idsToProcess = recordingIds;
+      // Filter out NaN/null values that occur when UUID-based recordings are passed
+      idsToProcess = recordingIds.filter(id => id != null && !isNaN(id) && id > 0);
+      if (idsToProcess.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'No valid legacy recording IDs provided. This feature requires Fathom-sourced calls with integer recording IDs.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     } else {
       return new Response(
         JSON.stringify({ error: 'Either recordingIds or auto_discover=true is required' }),

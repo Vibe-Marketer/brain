@@ -60,10 +60,11 @@ export const usePreferencesStore = create<PreferencesState>((set, get) => ({
     set({ isLoading: true, error: null });
 
     try {
-      // Get current user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      // Get current user from cached session (avoids N+1 network requests on page load)
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
 
-      if (authError || !user) {
+      if (!user) {
         // User not authenticated - use defaults
         set({
           preferences: DEFAULT_PREFERENCES,

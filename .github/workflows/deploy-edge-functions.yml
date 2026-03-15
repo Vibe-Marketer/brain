@@ -41,8 +41,8 @@ jobs:
           # Link to project (uses access token from env)
           supabase link --project-ref $SUPABASE_PROJECT_ID
 
-          # Deploy all functions
-          supabase functions deploy
+          # Deploy all functions (--use-api bundles server-side, no Docker required)
+          supabase functions deploy --use-api
 
           echo "Deployment complete!"
 
