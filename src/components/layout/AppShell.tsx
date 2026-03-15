@@ -72,6 +72,8 @@ export interface AppShellConfig {
   showNavRail?: boolean;
   /** Secondary pane content */
   secondaryPane?: React.ReactNode;
+  /** Title for the secondary pane header (used on mobile overlay, default: "Library") */
+  secondaryPaneTitle?: string;
   /** Show detail panel outlet (default: false) */
   showDetailPane?: boolean;
   /** Callback when Library toggle is clicked */
@@ -118,6 +120,7 @@ export function AppShell({
   const {
     showNavRail = true,
     secondaryPane,
+    secondaryPaneTitle = 'Library',
     showDetailPane = false,
     onLibraryToggle,
     onSettingsClick,
@@ -216,7 +219,7 @@ export function AppShell({
           )}
         >
           <div className="flex items-center justify-between px-4 py-4 border-b border-border/40 bg-white/50 dark:bg-black/20">
-            <h2 className="text-sm font-semibold text-foreground tracking-tight uppercase">Library</h2>
+            <h2 className="text-sm font-semibold text-foreground tracking-tight uppercase">{secondaryPaneTitle}</h2>
             <button
               onClick={() => setShowMobileSecondary(false)}
               className="text-muted-foreground hover:text-foreground h-6 w-6"
