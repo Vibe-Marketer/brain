@@ -1,40 +1,13 @@
 {
-  "model_profile": "balanced",
-  "profiles": {
-    "active_profile": "balanced",
-    "presets": {
-      "quality": {
-        "planning": "claude-opus-4-6",
-        "execution": "claude-sonnet-4-20250514",
-        "verification": "claude-opus-4-6"
-      },
-      "balanced": {
-        "planning": "claude-sonnet-4-20250514",
-        "execution": "claude-haiku-3-5-20241022",
-        "verification": "claude-sonnet-4-20250514"
-      },
-      "budget": {
-        "planning": "claude-haiku-3-5-20241022",
-        "execution": "claude-haiku-3-5-20241022",
-        "verification": "claude-haiku-3-5-20241022"
-      }
-    },
-    "custom_overrides": {
-      "quality": {},
-      "balanced": {},
-      "budget": {}
-    }
-  },
+  "project": "callvault",
+  "version": "1.0",
   "workflow": {
-    "research": true,
-    "plan_check": true,
-    "verifier": true
+    "research": false,
+    "commit_docs": true
   },
-  "planning": {
-    "commit_docs": true,
-    "search_gitignored": false
-  },
-  "git": {
-    "branching_strategy": "none"
+  "models": {
+    "researcher": "sonnet",
+    "synthesizer": "sonnet",
+    "roadmapper": "sonnet"
   }
 }

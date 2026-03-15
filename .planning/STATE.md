@@ -1,82 +1,65 @@
-# CallVault Project State
+# Project State
 
-**Last Updated:** 2026-03-08
-**Source of truth:** Codebase audit (issue #51, PR #52)
+## Project Reference
 
----
+See: .planning/PROJECT.md (updated 2026-03-15)
 
-## Architecture
+**Core value:** Every user can instantly find any call by any combination of filters — all results strictly scoped to their organization.
+**Current focus:** Phase 1 — Org Scoping
 
-- **Two repos:** brain (Supabase backend + planning) + callvault (Vite 7 + React 19 frontend)
-- **Backend:** Supabase with 107+ migrations, edge functions
-- **Data model:** Organizations > Workspaces > Recordings (via workspace_entries)
-- `is_default` (not `is_home`) marks the undeletable personal workspace per org
-- `workspace_entries` (not `call_workspace_links`) — richer join table with folder_id, local_tags, scores, notes
-- Folders scoped to workspaces via `workspace_id` FK on existing `folders` table
-- Tags: `local_tags` on workspace_entries (per-workspace) + `global_tags` on recordings (org-wide)
+## Current Position
 
-## What's Working
+Phase: 1 of 6 (Org Scoping)
+Plan: 0 of 4 in current phase
+Status: Ready to plan
+Last activity: 2026-03-15 — Roadmap created, v1.1 Sort/Filter Hardening initialized
 
-### Database Layer
-- Organizations, workspaces, workspace_entries, workspace_memberships — all with RLS
-- Hard tenant boundary: recordings belong to exactly ONE organization
-- `prevent_default_workspace_delete()` trigger protects personal workspace
-- Role hierarchy: workspace_owner > workspace_admin > manager > member > guest
-- `hybrid_search_transcripts_scoped` RPC respects workspace/org scope
+Progress: [░░░░░░░░░░] 0%
 
-### Backend
-- Workspace invite flow: `get_workspace_invite_details` + `accept_workspace_invite` RPCs
-- New user onboarding: `handle_new_user()` trigger creates personal org + default workspace
-- Legacy user backfill: `ensure_personal_organization()` RPC
-- Import pipeline creates workspace_entries at import time
+## Performance Metrics
 
-### Frontend (v2)
-- Org switching UI (OrgSwitcherBar) — one-click switching
-- Workspace sidebar with nested folders, drag-and-drop
-- Workspace member management panel (members + pending invites)
-- Invitation acceptance page (`/join/workspace/:token`)
-- Import routing rules (Phase 18 — verified 10/10)
+**Velocity:**
+- Total plans completed: 0
+- Average duration: —
+- Total execution time: —
 
-### Access Control
-- Org owner/admin sees all workspaces and entries
-- Regular members see only their workspace entries
-- Removing user from workspace revokes access instantly (RLS-based)
-- Folders/tags have no impact on permissions
+**By Phase:**
 
-## What's In Progress
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
 
-- Issue #62: Critical bugs in agent/antigravity branch
-- Issue #63: Bulk apply routing rules to existing recordings
-- Issue #64: Search/filter functionality fixes
-- Issue #65: Archive stale planning docs (this cleanup)
+**Recent Trend:** —
 
-## Known Gaps (from audit)
+*Updated after each plan completion*
 
-| # | Gap | Issue |
-|---|-----|-------|
-| 1 | Recordings RLS too permissive — any org member can SELECT any recording, not scoped to workspace | #53 |
-| 2 | No Copy/Move dialogs for cross-workspace operations | #54 |
-| 3 | No org-level member management panel (only workspace-level) | #55 |
-| 4 | Stale generated types — frontend queries use old table names (banks/vaults) | #56 |
-| 5 | Recording deletion blocked while workspace_entries exist (inverted logic) | #57 |
-| 6 | No general-purpose cross-org copy RPC | #58 |
-| 7 | CORS allowed origins not configured | #59 |
-| 8 | Embeddings cron job failing | #10 |
+## Accumulated Context
 
-## Phase Status
+### Decisions
 
-- **Phases 1-17:** Completed (pre-antigravity architecture)
-- **Phase 18 (Import Routing Rules):** Verified 10/10, still accurate
-- **Phase 19 (MCP Audit):** Archived — needs re-evaluation post-antigravity
-- **Antigravity (agent/antigravity branch):** In progress — org member management, copy/move, personal folders/tags, Hub rename. Blocked on issue #62 (critical bugs)
-- Planning docs for phases 1-17, 19 archived to `.planning/archive/pre-antigravity-2026-03/`
+- [Pre-GSD]: Fix in-place vs rebuild — fix existing architecture (rebuild too slow)
+- [Pre-GSD]: URL param persistence kept — working feature, just needs org scoping
 
-## Key Files
+### Known Facts (from codebase audit)
 
-| File | Purpose |
-|------|---------|
-| `.planning/PROJECT.md` | Project identity and milestone definition |
-| `.planning/config.json` | GSD workflow configuration |
-| `.planning/phases/18-import-routing-rules/` | Active verified phase |
-| `.planning/codebase/` | Architecture documentation |
-| `docs/audits/issue-51-org-workspace-sharing-audit.md` | Comprehensive system audit |
+- GSD initialized 2026-03-15 on existing brownfield codebase
+- Root cause likely: org_id not consistently passed to Supabase queries in filter components
+- ContactsFilterPopover most broken — name + email filtering not working
+- Filter stacking broken — likely state management issue in FilterBar or URL params
+- Dev server runs on port 3001 (`npm run dev`)
+- E2E tests use Playwright at `e2e/` directory; auth setup at `e2e/auth.setup.ts`
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+- All filter popovers likely missing org_id on Supabase calls — audit required in Phase 1 before any filter fix
+- GlobalSearchModal queries need org scoping — addressed in Phase 1 before Phase 5 search fixes
+
+## Session Continuity
+
+Last session: 2026-03-15
+Stopped at: Roadmap created — ready to plan Phase 1
+Resume file: None
