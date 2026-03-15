@@ -2,15 +2,13 @@
  * Sidebar Navigation
  *
  * Navigation rail for the AppShell sidebar.
- * Clean, modern aesthetics with glossy 3D icons in collapsed mode.
- * Uses Remix Icons with line/fill variants for active states.
+ * Unified design: same icon size/position in both collapsed and expanded states.
+ * Text label smoothly fades and clips to zero width on collapse — icon never moves.
  *
- * Active state: 4-layer brand treatment (bg-vibe-orange/10 tint, fill icon
- * with text-vibe-orange color, font-semibold label, left-edge pill indicator).
- * Matches Linear's clean, obvious active-state feel.
+ * Active state: bg-vibe-orange/10 tint, fill icon, font-semibold label, left-edge pill.
  *
  * @pattern sidebar-nav
- * @brand-version v4.4
+ * @brand-version v4.5
  */
 
 import * as React from 'react';
@@ -54,7 +52,7 @@ interface SidebarNavProps {
   className?: string;
   /** Optional callback to toggle the Library panel */
   onLibraryToggle?: () => void;
-  /** Optional callback when Settings nav item is clicked (to open category pane) */
+  /** Optional callback when Settings nav item is clicked */
   onSettingsClick?: () => void;
 }
 
@@ -112,7 +110,6 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
   const { isFeatureEnabled } = useFeatureFlags(role);
   const [showHowItWorks, setShowHowItWorks] = React.useState(false);
 
-  // Filter nav items based on feature flags
   const filteredNavItems = React.useMemo(() => {
     return navItems.filter((item) => {
       if (item.id === 'import') return isFeatureEnabled('beta_imports');
@@ -133,97 +130,75 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
   return (
     <div className={cn('flex-shrink-0', className)}>
       <nav
-        className={cn(
-          'flex flex-col gap-1 py-2',
-          isCollapsed ? 'px-1' : 'px-2'
-        )}
+        className="flex flex-col gap-0.5 py-2 px-2"
         role="navigation"
         aria-label="App navigation"
       >
-        {/* Nav items */}
         {filteredNavItems.map((item) => {
           const active = isActive(item);
           const Icon = active ? item.iconActive : item.icon;
 
           return (
-            <div key={item.id} className="flex flex-col items-center">
-              <button
-                type="button"
-                data-tour={item.dataTour}
-                onClick={() => {
-                  navigate(item.path);
-                  if (item.id === 'settings' && onSettingsClick) {
-                    onSettingsClick();
-                  }
-                }}
-                className={cn(
-                  'relative flex items-center gap-3 rounded-lg px-3 py-2',
-                  'text-sm transition-colors duration-150',
-                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                  isCollapsed
-                    ? 'justify-center px-2 py-2 bg-transparent hover:bg-transparent'
-                    : active
-                      ? 'bg-vibe-orange/10 font-semibold text-vibe-orange'
-                      : 'text-muted-foreground hover:bg-muted/70',
-                  !isCollapsed && 'w-full',
-                )}
-                aria-label={isCollapsed ? item.name : undefined}
-                aria-current={active ? 'page' : undefined}
-              >
-                {/* Left-edge pill indicator for expanded active state */}
-                {!isCollapsed && active && (
-                  <span className="cv-side-indicator-pill" aria-hidden="true" />
-                )}
-
-                {/* Expanded: plain icon */}
-                {!isCollapsed && (
-                  <Icon
-                    className={cn(
-                      'w-4 h-4 flex-shrink-0',
-                      active ? 'text-vibe-orange' : 'text-muted-foreground',
-                    )}
-                    aria-hidden="true"
-                  />
-                )}
-
-                {/* Collapsed: glossy 3D icon button */}
-                {isCollapsed && (
-                  <div
-                    className={cn(
-                      'w-11 h-11 rounded-xl flex items-center justify-center',
-                      'bg-gradient-to-br from-white to-gray-200',
-                      'border border-gray-300/80',
-                      'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
-                      'dark:from-gray-700 dark:to-gray-800 dark:border-border',
-                      'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
-                      active && 'ring-2 ring-vibe-orange/50',
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        'w-5 h-5 flex-shrink-0',
-                        active ? 'text-vibe-orange' : 'text-foreground',
-                      )}
-                      aria-hidden="true"
-                    />
-                  </div>
-                )}
-
-                {!isCollapsed && <span className="truncate">{item.name}</span>}
-              </button>
-
-              {/* Orange dot below active collapsed icon */}
-              {isCollapsed && active && (
-                <div className="w-1.5 h-1.5 rounded-full bg-vibe-orange mx-auto mt-1" />
+            <button
+              key={item.id}
+              type="button"
+              data-tour={item.dataTour}
+              onClick={() => {
+                navigate(item.path);
+                if (item.id === 'settings' && onSettingsClick) {
+                  onSettingsClick();
+                }
+              }}
+              className={cn(
+                // Base: always full-width row, icon on left, text on right
+                'relative w-full flex items-center gap-3 rounded-lg px-3 py-2',
+                'text-sm transition-colors duration-150',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                active
+                  ? 'bg-vibe-orange/10 font-semibold text-vibe-orange'
+                  : 'text-muted-foreground hover:bg-muted/70',
               )}
-            </div>
+              aria-label={isCollapsed ? item.name : undefined}
+              aria-current={active ? 'page' : undefined}
+            >
+              {/* Left-edge pill — always reserve the space so icon doesn't shift */}
+              <span
+                className={cn(
+                  'absolute left-0 top-1/2 -translate-y-1/2 w-0.5 rounded-r-full bg-vibe-orange',
+                  'transition-all duration-300',
+                  active && !isCollapsed ? 'h-5 opacity-100' : 'h-0 opacity-0',
+                )}
+                aria-hidden="true"
+              />
+
+              {/* Icon — fixed size, fixed position, never changes */}
+              <Icon
+                className={cn(
+                  'w-4 h-4 flex-shrink-0',
+                  active ? 'text-vibe-orange' : 'text-muted-foreground',
+                )}
+                aria-hidden="true"
+              />
+
+              {/* Label — clips to zero width on collapse, fades smoothly */}
+              <span
+                className={cn(
+                  'truncate transition-all duration-300 ease-in-out',
+                  isCollapsed
+                    ? 'w-0 opacity-0 overflow-hidden'
+                    : 'opacity-100',
+                )}
+              >
+                {item.name}
+              </span>
+            </button>
           );
         })}
       </nav>
 
       {/* Bottom section */}
-      <div className={cn('mt-2 flex flex-col gap-1 pt-2 border-t border-border/40', isCollapsed ? 'px-1' : 'px-2')}>
-        {/* Panel toggle */}
+      <div className="mt-2 flex flex-col gap-0.5 pt-2 border-t border-border/40 px-2">
+        {/* Workspace panel toggle */}
         {onLibraryToggle && (
           <button
             type="button"
@@ -232,34 +207,22 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
               'w-full flex items-center gap-3 rounded-lg px-3 py-2',
               'text-sm text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              isCollapsed && 'justify-center px-2 hover:bg-transparent',
             )}
             aria-label={isCollapsed ? 'Toggle Workspace Panel' : undefined}
           >
-            {isCollapsed ? (
-              <div className={cn(
-                'w-11 h-11 rounded-xl flex items-center justify-center',
-                'bg-gradient-to-br from-white to-gray-200',
-                'border border-gray-300/80',
-                'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
-                'dark:from-gray-700 dark:to-gray-800 dark:border-border',
-                'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
-              )}>
-                <RiLayoutColumnLine className="w-5 h-5 flex-shrink-0 text-foreground" aria-hidden="true" />
-              </div>
-            ) : (
-              <RiLayoutColumnLine
-                className="w-4 h-4 flex-shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-            )}
-            {!isCollapsed && (
-              <span className="truncate text-xs">Workspace Panel</span>
-            )}
+            <RiLayoutColumnLine className="w-4 h-4 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+            <span
+              className={cn(
+                'truncate text-xs transition-all duration-300 ease-in-out',
+                isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100',
+              )}
+            >
+              Workspace Panel
+            </span>
           </button>
         )}
 
-        {/* Tour help button */}
+        {/* Tour button */}
         <button
           type="button"
           onClick={startTour}
@@ -268,30 +231,18 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
             'w-full flex items-center gap-3 rounded-lg px-3 py-2',
             'text-sm text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            isCollapsed && 'justify-center px-2 hover:bg-transparent',
           )}
           aria-label="Take the tour"
         >
-          {isCollapsed ? (
-            <div className={cn(
-              'w-11 h-11 rounded-xl flex items-center justify-center',
-              'bg-gradient-to-br from-white to-gray-200',
-              'border border-gray-300/80',
-              'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
-              'dark:from-gray-700 dark:to-gray-800 dark:border-border',
-              'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
-            )}>
-              <RiQuestionLine className="w-5 h-5 flex-shrink-0 text-foreground" aria-hidden="true" />
-            </div>
-          ) : (
-            <RiQuestionLine
-              className="w-4 h-4 flex-shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
-          )}
-          {!isCollapsed && (
-            <span className="truncate text-xs">Take the tour</span>
-          )}
+          <RiQuestionLine className="w-4 h-4 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span
+            className={cn(
+              'truncate text-xs transition-all duration-300 ease-in-out',
+              isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100',
+            )}
+          >
+            Take the tour
+          </span>
         </button>
 
         {/* How it works button */}
@@ -303,34 +254,21 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
             'w-full flex items-center gap-3 rounded-lg px-3 py-2',
             'text-sm text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-            isCollapsed && 'justify-center px-2 hover:bg-transparent',
           )}
           aria-label="How it works"
         >
-          {isCollapsed ? (
-            <div className={cn(
-              'w-11 h-11 rounded-xl flex items-center justify-center',
-              'bg-gradient-to-br from-white to-gray-200',
-              'border border-gray-300/80',
-              'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
-              'dark:from-gray-700 dark:to-gray-800 dark:border-border',
-              'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
-            )}>
-              <RiInformationLine className="w-5 h-5 flex-shrink-0 text-foreground" aria-hidden="true" />
-            </div>
-          ) : (
-            <RiInformationLine
-              className="w-4 h-4 flex-shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
-          )}
-          {!isCollapsed && (
-            <span className="truncate text-xs">How it works</span>
-          )}
+          <RiInformationLine className="w-4 h-4 flex-shrink-0 text-muted-foreground" aria-hidden="true" />
+          <span
+            className={cn(
+              'truncate text-xs transition-all duration-300 ease-in-out',
+              isCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'opacity-100',
+            )}
+          >
+            How it works
+          </span>
         </button>
       </div>
 
-      {/* How it works modal */}
       <HowItWorksModal
         open={showHowItWorks}
         onComplete={() => setShowHowItWorks(false)}
