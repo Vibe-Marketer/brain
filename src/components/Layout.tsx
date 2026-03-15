@@ -30,9 +30,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   // Register a global tour starter so OnboardingModal (or any other code) can
   // call `window.__startCallVaultTour()` without importing the module directly.
   useEffect(() => {
-    (window as any).__startCallVaultTour = startTour;
+    (window as Window & { __startCallVaultTour?: typeof startTour }).__startCallVaultTour = startTour;
     return () => {
-      delete (window as any).__startCallVaultTour;
+      delete (window as Window & { __startCallVaultTour?: typeof startTour }).__startCallVaultTour;
     };
   }, []);
 

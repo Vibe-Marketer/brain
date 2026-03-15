@@ -18,10 +18,13 @@ import { cn } from "@/lib/utils";
 import { getIconComponent } from "@/lib/folder-icons";
 import type { FolderWithDepth } from "@/types/folders";
 
+// Extended folder type with is_personal flag used internally
+interface FolderWithPersonal extends FolderWithDepth {
+  is_personal: boolean;
+}
+
 // Extended folder type for tree structure
-interface FolderTreeNode extends FolderWithDepth {
-  icon?: string;
-  position?: number;
+interface FolderTreeNode extends FolderWithPersonal {
   children: FolderTreeNode[];
 }
 
@@ -42,7 +45,7 @@ export default function AssignFolderDialog({
   onFoldersUpdated,
   onCreateFolder,
 }: AssignFolderDialogProps) {
-  const { activeOrganizationId, activeWorkspaceId } = useOrganizationContext();
+  const { activeOrganizationId } = useOrganizationContext();
   const [folderTree, setFolderTree] = useState<FolderTreeNode[]>([]);
   const [selectedFolders, setSelectedFolders] = useState<Set<string>>(new Set());
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
@@ -50,7 +53,7 @@ export default function AssignFolderDialog({
   const [saving, setSaving] = useState(false);
 
   // Track all folders flat for saving operations
-  const [allFolders, setAllFolders] = useState<FolderWithDepth[]>([]);
+  const [allFolders, setAllFolders] = useState<FolderWithPersonal[]>([]);
 
   const isBulkMode = recordingIds && recordingIds.length > 1;
 
@@ -114,12 +117,12 @@ export default function AssignFolderDialog({
       if (legacyError) throw legacyError;
 
       // personal_folders table is pending migration — only legacy folders for now
-      const all = (legacyData || []).map(f => ({ ...f, is_personal: false }));
+      const all: FolderWithPersonal[] = (legacyData || []).map(f => ({ ...f, is_personal: false }));
 
-      setAllFolders(all as any);
+      setAllFolders(all);
 
       // Build tree structure
-      const tree = buildFolderTree(all as any);
+      const tree = buildFolderTree(all);
       setFolderTree(tree);
     } catch (error) {
       logger.error("Error loading folders", error);
@@ -163,7 +166,7 @@ export default function AssignFolderDialog({
   }, [selectedFolders, allFolders, autoExpandParents]);
 
   // Build a tree structure from flat folder list
-  const buildFolderTree = (folders: FolderWithDepth[]): FolderTreeNode[] => {
+  const buildFolderTree = (folders: FolderWithPersonal[]): FolderTreeNode[] => {
     const folderMap = new Map<string, FolderTreeNode>();
     const rootFolders: FolderTreeNode[] = [];
 
@@ -245,7 +248,7 @@ export default function AssignFolderDialog({
       const userId = user?.id || null;
 
       // 1. Handle Legacy Folders
-      const legacySelected = new Set(Array.from(selectedFolders).filter(id => allFolders.find(f => f.id === id && !(f as any).is_personal)));
+      const legacySelected = new Set(Array.from(selectedFolders).filter(id => allFolders.find(f => f.id === id && !f.is_personal)));
       
       const { data: existingLegacy } = await supabase
         .from("folder_assignments")
@@ -259,7 +262,7 @@ export default function AssignFolderDialog({
           .eq("call_recording_id", a.call_recording_id).eq("folder_id", a.folder_id).eq("user_id", userId);
       }
       // Insertions
-      const legacyToAdd: any[] = [];
+      const legacyToAdd: { call_recording_id: number; folder_id: string; assigned_by: string | null; user_id: string | null }[] = [];
       numericRecordingIds.forEach(rid => {
         legacySelected.forEach(fid => {
           if (!(existingLegacy || []).some(a => a.call_recording_id === rid && a.folder_id === fid)) {
