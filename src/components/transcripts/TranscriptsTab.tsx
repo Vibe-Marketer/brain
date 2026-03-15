@@ -204,19 +204,16 @@ export function TranscriptsTab({
   const { data: legacyTags = [] } = useQuery({
     queryKey: ["tags", activeOrganizationId],
     queryFn: async () => {
-      let query = supabase
+      const { data, error } = await supabase
         .from("call_tags")
         .select("*")
+        .eq("organization_id", activeOrganizationId!)
         .order("name");
 
-      if (activeOrganizationId) {
-        query = query.eq("organization_id", activeOrganizationId);
-      }
-
-      const { data, error } = await query;
       if (error) throw error;
       return data as Tag[];
     },
+    enabled: !!activeOrganizationId,
     staleTime: 5 * 60 * 1000, // tags change infrequently
   });
 
