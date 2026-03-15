@@ -181,7 +181,7 @@ export function AnalyticsCategoryPane({
           >
             Analytics
           </h2>
-          <p className="text-xs text-ink-muted">6 categories</p>
+          <p className="text-xs text-ink-muted">{ANALYTICS_CATEGORIES.length} {ANALYTICS_CATEGORIES.length === 1 ? 'category' : 'categories'}</p>
         </div>
       </header>
 
