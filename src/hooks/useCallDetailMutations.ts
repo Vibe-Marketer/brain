@@ -185,16 +185,10 @@ export function useCallDetailMutations({
         })
         .in("id", segmentIds);
       if (error) throw error;
-
-      // Add small delay to ensure database commits
-      await new Promise(resolve => setTimeout(resolve, 100));
     },
     onSuccess: async () => {
-      // Force complete cache reset for aggressive refresh
-      await queryClient.resetQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
-
-      // Wait a bit more to ensure UI updates
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await queryClient.invalidateQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
+      await queryClient.refetchQueries({ queryKey: queryKeys.calls.transcripts(call?.recording_id) });
 
       toast.success("Section(s) trimmed");
     },
