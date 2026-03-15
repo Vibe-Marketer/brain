@@ -33,6 +33,17 @@ interface UseGlobalSearchOptions {
   types?: SearchResultType[];
   /** Whether search is enabled */
   enabled?: boolean;
+  /**
+   * Organization ID to scope the search.
+   * The hook reads this from useOrganizationContext() — this field is accepted
+   * for callsite clarity but the context value is always authoritative.
+   */
+  organizationId?: string | null;
+  /**
+   * Workspace ID to further scope the search.
+   * Same as organizationId — accepted for callsite clarity; context is authoritative.
+   */
+  workspaceId?: string | null;
 }
 
 /**
