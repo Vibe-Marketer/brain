@@ -16,6 +16,9 @@ vi.mock('@/integrations/supabase/client', () => {
   const mockSupabase = {
     from: vi.fn(),
     rpc: vi.fn(),
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+    },
   };
   return { supabase: mockSupabase };
 });
@@ -136,39 +139,18 @@ describe('useTeamHierarchy', () => {
         updated_at: '2024-01-01T00:00:00Z',
       };
 
-      (mockSupabase.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
-        if (table === 'teams') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: null,
-                  error: null,
-                }),
-              }),
-            }),
-            insert: vi.fn().mockReturnValue({
-              select: vi.fn().mockReturnValue({
-                single: vi.fn().mockResolvedValue({
-                  data: createdTeam,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === 'team_memberships') {
-          return {
-            insert: vi.fn().mockResolvedValue({
-              data: null,
-              error: null,
-            }),
-          };
-        }
-        return {
-          select: vi.fn().mockResolvedValue({ data: null, error: null }),
-        };
+      // Mock auth.getSession to return a valid session
+      (mockSupabase.auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: { session: { access_token: 'test-token' } },
+        error: null,
       });
+
+      // Mock global fetch for the edge function call
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ team: createdTeam }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
 
       const wrapper = createWrapper();
       const { result } = renderHook(
@@ -184,6 +166,8 @@ describe('useTeamHierarchy', () => {
 
       expect(team.id).toBe('new-team-id');
       expect(team.name).toBe('New Sales Team');
+
+      vi.unstubAllGlobals();
     });
   });
 
@@ -268,22 +252,39 @@ describe('useTeamMembers', () => {
         },
       ];
 
-      (mockSupabase.from as ReturnType<typeof vi.fn>).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            neq: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({
-                data: mockMembers,
+      const mockProfiles = [
+        { user_id: testUserId, email: 'admin@test.com', display_name: null },
+        { user_id: 'other-user', email: 'member@test.com', display_name: null },
+      ];
+
+      (mockSupabase.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
+        if (table === 'team_memberships') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                neq: vi.fn().mockReturnValue({
+                  order: vi.fn().mockResolvedValue({
+                    data: mockMembers,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === 'user_profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({
+                data: mockProfiles,
                 error: null,
               }),
             }),
-          }),
-        }),
-      });
-
-      (mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: 'member@test.com',
-        error: null,
+          };
+        }
+        return {
+          select: vi.fn().mockResolvedValue({ data: [], error: null }),
+        };
       });
 
       const wrapper = createWrapper();
@@ -309,22 +310,38 @@ describe('useTeamMembers', () => {
         },
       ];
 
-      (mockSupabase.from as ReturnType<typeof vi.fn>).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            neq: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({
-                data: mockMembers,
+      const mockProfiles = [
+        { user_id: testUserId, email: 'admin@test.com', display_name: null },
+      ];
+
+      (mockSupabase.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
+        if (table === 'team_memberships') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                neq: vi.fn().mockReturnValue({
+                  order: vi.fn().mockResolvedValue({
+                    data: mockMembers,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === 'user_profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({
+                data: mockProfiles,
                 error: null,
               }),
             }),
-          }),
-        }),
-      });
-
-      (mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: 'admin@test.com',
-        error: null,
+          };
+        }
+        return {
+          select: vi.fn().mockResolvedValue({ data: [], error: null }),
+        };
       });
 
       const wrapper = createWrapper();
@@ -353,22 +370,38 @@ describe('useTeamMembers', () => {
         },
       ];
 
-      (mockSupabase.from as ReturnType<typeof vi.fn>).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            neq: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({
-                data: mockMembers,
+      const mockProfiles = [
+        { user_id: testUserId, email: 'manager@test.com', display_name: null },
+      ];
+
+      (mockSupabase.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
+        if (table === 'team_memberships') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                neq: vi.fn().mockReturnValue({
+                  order: vi.fn().mockResolvedValue({
+                    data: mockMembers,
+                    error: null,
+                  }),
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === 'user_profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({
+                data: mockProfiles,
                 error: null,
               }),
             }),
-          }),
-        }),
-      });
-
-      (mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: 'manager@test.com',
-        error: null,
+          };
+        }
+        return {
+          select: vi.fn().mockResolvedValue({ data: [], error: null }),
+        };
       });
 
       const wrapper = createWrapper();
@@ -407,6 +440,18 @@ describe('useTeamMembers', () => {
   describe('acceptInvite mutation', () => {
     it('should throw error for invalid token', async () => {
       (mockSupabase.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
+        if (table === 'teams') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: { message: 'Not found' },
+                }),
+              }),
+            }),
+          };
+        }
         if (table === 'team_memberships') {
           return {
             select: vi.fn().mockReturnValue({
@@ -415,12 +460,6 @@ describe('useTeamMembers', () => {
                   order: vi.fn().mockResolvedValue({
                     data: [],
                     error: null,
-                  }),
-                }),
-                eq: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue({
-                    data: null,
-                    error: { message: 'Not found' },
                   }),
                 }),
               }),
@@ -455,20 +494,44 @@ describe('useTeamMembers', () => {
         team_id: testTeamId,
       };
 
+      // Track how many times from('team_memberships') has been called
+      let teamMembershipsCallCount = 0;
       (mockSupabase.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
         if (table === 'team_memberships') {
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                neq: vi.fn().mockReturnValue({
-                  order: vi.fn().mockResolvedValue({
-                    data: [],
+          teamMembershipsCallCount++;
+          if (teamMembershipsCallCount === 1) {
+            // Initial hook mount: members list query (.eq().neq().order())
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  neq: vi.fn().mockReturnValue({
+                    order: vi.fn().mockResolvedValue({ data: [], error: null }),
+                  }),
+                }),
+              }),
+            };
+          }
+          if (teamMembershipsCallCount === 2) {
+            // Mutation: .select("role, team_id").eq("id", membershipId).single()
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: mockMembership,
                     error: null,
                   }),
                 }),
-                single: vi.fn().mockResolvedValue({
-                  data: mockMembership,
-                  error: null,
+              }),
+            };
+          }
+          // Count admins: .select("*", {count}).eq().eq().eq().neq() → count: 0
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    neq: vi.fn().mockResolvedValue({ data: [], error: null, count: 0 }),
+                  }),
                 }),
               }),
             }),
@@ -705,26 +768,39 @@ describe('useTeamShares', () => {
         },
       ];
 
-      let queryCount = 0;
-      (mockSupabase.from as ReturnType<typeof vi.fn>).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockImplementation(() => {
-                queryCount++;
-                return Promise.resolve({
-                  data: queryCount === 1 ? myShares : sharesWithMe,
-                  error: null,
-                });
+      let teamSharesCallCount = 0;
+      (mockSupabase.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
+        if (table === 'team_shares') {
+          teamSharesCallCount++;
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  order: vi.fn().mockResolvedValue({
+                    data: teamSharesCallCount === 1 ? myShares : sharesWithMe,
+                    error: null,
+                  }),
+                }),
               }),
             }),
-          }),
-        }),
-      });
-
-      (mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: 'user@test.com',
-        error: null,
+          };
+        }
+        if (table === 'user_profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({
+                data: [
+                  { user_id: 'other-user', email: 'other@test.com', display_name: null },
+                  { user_id: testUserId, email: 'user@test.com', display_name: null },
+                ],
+                error: null,
+              }),
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockResolvedValue({ data: [], error: null }),
+        };
       });
 
       const wrapper = createWrapper();
@@ -850,14 +926,18 @@ describe('useOrgChart', () => {
             }),
           };
         }
+        if (table === 'user_profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          };
+        }
         return {
-          select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
         };
-      });
-
-      (mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: 'member@test.com',
-        error: null,
       });
 
       const wrapper = createWrapper();
@@ -933,14 +1013,18 @@ describe('useOrgChart', () => {
             }),
           };
         }
+        if (table === 'user_profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          };
+        }
         return {
-          select: vi.fn().mockResolvedValue({ data: [], error: null }),
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
         };
-      });
-
-      (mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: 'member@test.com',
-        error: null,
       });
 
       const wrapper = createWrapper();

@@ -577,20 +577,39 @@ describe('useAccessLog', () => {
         },
       ];
 
-      (mockSupabase.from as ReturnType<typeof vi.fn>).mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockResolvedValue({
-              data: mockAccessLogs,
-              error: null,
-            }),
-          }),
-        }),
-      });
+      const mockProfiles = [
+        { user_id: 'user-1', email: 'user1@test.com', display_name: 'User One' },
+        { user_id: 'user-2', email: 'user2@test.com', display_name: 'User Two' },
+      ];
 
-      (mockSupabase.rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-        data: 'user@test.com',
-        error: null,
+      (mockSupabase.from as ReturnType<typeof vi.fn>).mockImplementation((table: string) => {
+        if (table === 'call_share_access_log') {
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                order: vi.fn().mockResolvedValue({
+                  data: mockAccessLogs,
+                  error: null,
+                }),
+              }),
+            }),
+          };
+        }
+        if (table === 'user_profiles') {
+          return {
+            select: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({
+                data: mockProfiles,
+                error: null,
+              }),
+            }),
+          };
+        }
+        return {
+          select: vi.fn().mockReturnValue({
+            in: vi.fn().mockResolvedValue({ data: [], error: null }),
+          }),
+        };
       });
 
       const wrapper = createWrapper();
