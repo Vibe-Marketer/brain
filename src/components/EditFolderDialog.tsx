@@ -37,6 +37,8 @@ interface Folder {
   icon?: string | null;
   parent_id?: string | null;
   depth?: number;
+  workspace_id?: string | null;
+  organization_id?: string | null;
 }
 
 interface EditFolderDialogProps {
@@ -91,19 +93,7 @@ export default function EditFolderDialog({
     }, 0);
   }, []);
 
-  // Initialize form with folder data when opened
-  useEffect(() => {
-    if (open && folder) {
-      setName(folder.name || "");
-      setDescription(folder.description || "");
-      setShowDescription(!!folder.description);
-      setIconId(folder.icon || "folder");
-      setSelectedParentId(folder.parent_id || undefined);
-      loadFolders();
-    }
-  }, [open, folder]);
-
-  const loadFolders = async () => {
+  const loadFolders = useCallback(async () => {
     setLoadingFolders(true);
     try {
       const { user, error: authError } = await getSafeUser();
@@ -136,9 +126,9 @@ export default function EditFolderDialog({
       const computeDepth = (folderId: string, visited = new Set<string>()): number => {
         if (visited.has(folderId)) return 0; // Prevent infinite loops from circular refs
         visited.add(folderId);
-        const folder = foldersMap.get(folderId);
-        if (!folder || !folder.parent_id) return 0;
-        return 1 + computeDepth(folder.parent_id, visited);
+        const folderEntry = foldersMap.get(folderId);
+        if (!folderEntry || !folderEntry.parent_id) return 0;
+        return 1 + computeDepth(folderEntry.parent_id, visited);
       };
 
       const foldersWithDepth: FolderOption[] = (data || []).map(f => ({
@@ -154,7 +144,19 @@ export default function EditFolderDialog({
     } finally {
       setLoadingFolders(false);
     }
-  };
+  }, [workspaceId, folder?.workspace_id, folder?.organization_id, activeWorkspaceId, organizationId, activeOrganizationId]);
+
+  // Initialize form with folder data when opened
+  useEffect(() => {
+    if (open && folder) {
+      setName(folder.name || "");
+      setDescription(folder.description || "");
+      setShowDescription(!!folder.description);
+      setIconId(folder.icon || "folder");
+      setSelectedParentId(folder.parent_id || undefined);
+      loadFolders();
+    }
+  }, [open, folder, loadFolders]);
 
   const handleUpdate = async () => {
     if (!folder) return;
