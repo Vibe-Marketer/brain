@@ -54,7 +54,7 @@ export function FilterBar({
 }: FilterBarProps) {
   const isMobile = useIsMobile();
   const { activeOrganizationId } = useOrganizationContext();
-  const [allContacts, setAllContacts] = useState<string[]>([]);
+  const [allContacts, setAllContacts] = useState<Array<{ email: string; name: string | null }>>([]);
 
   // Fetch all unique contacts from org-scoped call_participants table
   useEffect(() => {
@@ -79,11 +79,17 @@ export function FilterBar({
         }
 
         if (isMounted && data) {
-          const contactsSet = new Set<string>();
-          data.forEach((row: { email?: string | null }) => {
-            if (row.email) contactsSet.add(row.email);
+          const contactsMap = new Map<string, string | null>();
+          data.forEach((row: { email?: string | null; name?: string | null }) => {
+            if (row.email && !contactsMap.has(row.email)) {
+              contactsMap.set(row.email, row.name ?? null);
+            }
           });
-          setAllContacts(Array.from(contactsSet).sort());
+          setAllContacts(
+            Array.from(contactsMap.entries())
+              .map(([email, name]) => ({ email, name }))
+              .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email))
+          );
         }
       } catch (error) {
         if (isMounted) {

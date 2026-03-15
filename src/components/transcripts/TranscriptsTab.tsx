@@ -124,8 +124,17 @@ export function TranscriptsTab({
   const workspaceColumns = { date: true, duration: true, participants: true, tags: true, folders: true, workspaces: true, sharedWith: true };
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>(isHomeView ? homeColumns : workspaceColumns);
 
+  // Track whether the workspace effect is running for the first time on mount.
+  // We must NOT reset filters on initial mount — that would wipe URL-initialized filters.
+  // Only reset when the user actually switches to a different workspace.
+  const isWorkspaceFirstMount = useRef(true);
+
   // Reset column defaults and filters when switching workspaces
   useEffect(() => {
+    if (isWorkspaceFirstMount.current) {
+      isWorkspaceFirstMount.current = false;
+      return;
+    }
     setVisibleColumns(isHomeView ? homeColumns : workspaceColumns);
     setFilters({});
     setSelectedCalls([]);
@@ -396,7 +405,7 @@ export function TranscriptsTab({
         }
 
         // Participant filter — find recordings that have matching participants
-        if (combinedFilters.participants && combinedFilters.participants.length > 0) {
+        if (combinedFilters.participants && combinedFilters.participants.length > 0 && activeOrganizationId) {
           const { data: matchingParticipants } = await supabase
             .from('call_participants')
             .select('recording_id')
@@ -408,6 +417,35 @@ export function TranscriptsTab({
           );
           mappedRecordings = mappedRecordings.filter(
             (call: any) => matchingRecordingIds.has(call.canonical_uuid)
+          );
+        }
+
+        // Tag filter — show only recordings with any of the selected tags (regular or personal)
+        if (combinedFilters.tags && combinedFilters.tags.length > 0) {
+          const allTagRecordingIds = new Set<string>();
+
+          // Regular tags: query call_tag_assignments
+          const regularTagIds = combinedFilters.tags.filter((id: string) => legacyTags.some(t => t.id === id));
+          if (regularTagIds.length > 0) {
+            const { data: regularAssignments } = await supabase
+              .from('call_tag_assignments')
+              .select('recording_id')
+              .in('tag_id', regularTagIds);
+            (regularAssignments || []).forEach((a: { recording_id: string }) => allTagRecordingIds.add(a.recording_id));
+          }
+
+          // Personal tags: query personal_tag_recordings
+          const personalTagIds = combinedFilters.tags.filter((id: string) => personalTags.some(t => t.id === id));
+          if (personalTagIds.length > 0) {
+            const { data: personalAssignments } = await supabase
+              .from('personal_tag_recordings')
+              .select('recording_id')
+              .in('tag_id', personalTagIds);
+            (personalAssignments || []).forEach((a: { recording_id: string }) => allTagRecordingIds.add(a.recording_id));
+          }
+
+          mappedRecordings = mappedRecordings.filter(
+            (call: any) => allTagRecordingIds.has(call.canonical_uuid)
           );
         }
 
@@ -495,7 +533,7 @@ export function TranscriptsTab({
       }
 
       // Participant filter — restrict to recordings with matching participants
-      if (combinedFilters.participants && combinedFilters.participants.length > 0) {
+      if (combinedFilters.participants && combinedFilters.participants.length > 0 && activeOrganizationId) {
         const { data: matchingParticipants } = await supabase
           .from('call_participants')
           .select('recording_id')
@@ -511,6 +549,39 @@ export function TranscriptsTab({
           return [];
         }
         q = q.in('id', matchingRecordingIds);
+      }
+
+      // Tag filter — restrict to recordings with any of the selected tags (regular or personal)
+      if (combinedFilters.tags && combinedFilters.tags.length > 0) {
+        const allTagRecordingIds = new Set<string>();
+
+        // Regular tags: query call_tag_assignments
+        const regularTagIds = combinedFilters.tags.filter((id: string) => legacyTags.some(t => t.id === id));
+        if (regularTagIds.length > 0) {
+          const { data: regularAssignments } = await supabase
+            .from('call_tag_assignments')
+            .select('recording_id')
+            .in('tag_id', regularTagIds);
+          (regularAssignments || []).forEach((a: { recording_id: string }) => allTagRecordingIds.add(a.recording_id));
+        }
+
+        // Personal tags: query personal_tag_recordings
+        const personalTagIds = combinedFilters.tags.filter((id: string) => personalTags.some(t => t.id === id));
+        if (personalTagIds.length > 0) {
+          const { data: personalAssignments } = await supabase
+            .from('personal_tag_recordings')
+            .select('recording_id')
+            .in('tag_id', personalTagIds);
+          (personalAssignments || []).forEach((a: { recording_id: string }) => allTagRecordingIds.add(a.recording_id));
+        }
+
+        const tagRecordingIdList = Array.from(allTagRecordingIds);
+        if (tagRecordingIdList.length === 0) {
+          setTotalCount(0);
+          onTotalCountChange?.(0);
+          return [];
+        }
+        q = q.in('id', tagRecordingIdList);
       }
 
       // Server-side pagination — no client-side slicing

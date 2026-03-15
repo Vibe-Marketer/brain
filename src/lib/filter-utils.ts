@@ -182,22 +182,24 @@ export function syntaxToFilters(syntax: SearchSyntax): Partial<FilterState> {
   }
 
   // Set participants, categories, status, tags directly
-  if (syntax.filters.participant) {
+  // Guard against empty arrays — an empty array is truthy in JS but should not override
+  // panel filters. Only apply syntax filters when they have actual values.
+  if (syntax.filters.participant && syntax.filters.participant.length > 0) {
     filters.participants = syntax.filters.participant;
   }
-  if (syntax.filters.category) {
+  if (syntax.filters.category && syntax.filters.category.length > 0) {
     filters.categories = syntax.filters.category;
   }
-  if (syntax.filters.status) {
+  if (syntax.filters.status && syntax.filters.status.length > 0) {
     filters.status = syntax.filters.status;
   }
-  if (syntax.filters.tag) {
+  if (syntax.filters.tag && syntax.filters.tag.length > 0) {
     filters.tags = syntax.filters.tag;
   }
-  if (syntax.filters.folder) {
+  if (syntax.filters.folder && syntax.filters.folder.length > 0) {
     filters.folders = syntax.filters.folder;
   }
-  if (syntax.filters.source) {
+  if (syntax.filters.source && syntax.filters.source.length > 0) {
     filters.sources = syntax.filters.source;
   }
 

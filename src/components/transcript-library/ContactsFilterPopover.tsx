@@ -8,7 +8,7 @@ import { FilterButton } from "./FilterButton";
 
 interface ContactsFilterPopoverProps {
   selectedParticipants?: string[];
-  allParticipants: string[];
+  allParticipants: Array<{ email: string; name: string | null }>;
   onParticipantsChange: (participants: string[]) => void;
 }
 
@@ -20,15 +20,16 @@ export function ContactsFilterPopover({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredParticipants = allParticipants.filter(p =>
-    p.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredParticipants = allParticipants.filter(p => {
+    const q = searchQuery.toLowerCase();
+    return p.email.toLowerCase().includes(q) || (p.name || '').toLowerCase().includes(q);
+  });
 
-  const handleToggle = (participant: string, checked: boolean) => {
+  const handleToggle = (email: string, checked: boolean) => {
     if (checked) {
-      onParticipantsChange([...selectedParticipants, participant]);
+      onParticipantsChange([...selectedParticipants, email]);
     } else {
-      onParticipantsChange(selectedParticipants.filter((p) => p !== participant));
+      onParticipantsChange(selectedParticipants.filter((p) => p !== email));
     }
   };
 
@@ -68,14 +69,21 @@ export function ContactsFilterPopover({
               </div>
             ) : (
               filteredParticipants.map((participant) => (
-                <div key={participant} className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors">
+                <div key={participant.email} className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors">
                   <Checkbox
-                    id={participant}
-                    checked={selectedParticipants.includes(participant)}
-                    onCheckedChange={(checked) => handleToggle(participant, !!checked)}
+                    id={participant.email}
+                    checked={selectedParticipants.includes(participant.email)}
+                    onCheckedChange={(checked) => handleToggle(participant.email, !!checked)}
                   />
-                  <label htmlFor={participant} className="text-sm cursor-pointer flex-1 py-0.5 truncate">
-                    {participant}
+                  <label htmlFor={participant.email} className="text-sm cursor-pointer flex-1 py-0.5">
+                    {participant.name ? (
+                      <div>
+                        <div className="font-medium truncate">{participant.name}</div>
+                        <div className="text-xs text-muted-foreground truncate">{participant.email}</div>
+                      </div>
+                    ) : (
+                      <span className="truncate">{participant.email}</span>
+                    )}
                   </label>
                 </div>
               ))
