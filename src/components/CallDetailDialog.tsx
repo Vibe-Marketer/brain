@@ -15,7 +15,6 @@ import { SplitConfirmDialog } from "@/components/transcript-library/SplitConfirm
 import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
-import { Badge } from "@/components/ui/badge";
 import { RiCheckboxCircleLine, RiRefreshLine } from "@remixicon/react";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
@@ -88,7 +87,7 @@ export function CallDetailDialog({
   onDataChange,
 }: CallDetailDialogProps) {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const queryClient = useQueryClient();
 
   // Local UI state
