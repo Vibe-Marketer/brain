@@ -193,25 +193,23 @@ export function FolderFilterPopover({
               {folderTree.map((folder) => renderFolderItem(folder))}
             </div>
 
-            {/* Unorganized option */}
-            {folderTree.length > 0 && (
-              <>
-                <div className="border-t my-2" />
-                <div className="flex items-center gap-2 py-1">
-                  <Checkbox
-                    id="folder-unorganized"
-                    checked={selectedFolders.includes("unorganized")}
-                    onCheckedChange={(checked) => handleToggleUnorganized(!!checked)}
-                  />
-                  <label
-                    htmlFor="folder-unorganized"
-                    className="text-sm cursor-pointer flex-1 flex items-center gap-2"
-                  >
-                    <span className="text-muted-foreground italic">Unorganized</span>
-                  </label>
-                </div>
-              </>
-            )}
+            {/* Unorganized option — always visible so users can filter calls with no folder */}
+            <>
+              {folderTree.length > 0 && <div className="border-t my-2" />}
+              <div className="flex items-center gap-2 py-1">
+                <Checkbox
+                  id="folder-unorganized"
+                  checked={selectedFolders.includes("unorganized")}
+                  onCheckedChange={(checked) => handleToggleUnorganized(!!checked)}
+                />
+                <label
+                  htmlFor="folder-unorganized"
+                  className="text-sm cursor-pointer flex-1 flex items-center gap-2"
+                >
+                  <span className="text-muted-foreground italic">Unorganized</span>
+                </label>
+              </div>
+            </>
           </div>
 
           {/* Action buttons */}

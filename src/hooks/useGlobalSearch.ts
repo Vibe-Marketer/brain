@@ -211,12 +211,17 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
           const { data: entries, error: queryError } = await q;
           if (queryError) throw queryError;
 
-          return (entries || [])
+          const recs = (entries || [])
             .filter((e: Record<string, unknown>) => e.recording)
-            .map((e: Record<string, unknown>) => {
-              const rec = e.recording as Record<string, unknown>;
-              return transformRecordingToResult(rec);
-            });
+            .map((e: Record<string, unknown>) => e.recording as Record<string, unknown>);
+
+          // Fetch participants for the returned recordings
+          const recIds = recs.map((r) => r.id as string).filter(Boolean);
+          const participantsByRecording = await fetchParticipants(recIds, activeOrganizationId);
+
+          return recs.map((rec) =>
+            transformRecordingToResult(rec, participantsByRecording[rec.id as string] ?? [])
+          );
         } else {
           // Organization-scoped search: query recordings directly
           let q = supabase
@@ -241,7 +246,13 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
           const { data: recordings, error: queryError } = await q;
           if (queryError) throw queryError;
 
-          return (recordings || []).map((rec: Record<string, unknown>) => transformRecordingToResult(rec));
+          // Fetch participants for the returned recordings
+          const recIds = (recordings || []).map((r: Record<string, unknown>) => r.id as string).filter(Boolean);
+          const participantsByRecording = await fetchParticipants(recIds, activeOrganizationId);
+
+          return (recordings || []).map((rec: Record<string, unknown>) =>
+            transformRecordingToResult(rec, participantsByRecording[rec.id as string] ?? [])
+          );
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Search failed';
@@ -267,9 +278,41 @@ export function useGlobalSearch(options: UseGlobalSearchOptions = {}): UseGlobal
 }
 
 /**
+ * Fetch participants for a list of recording UUIDs, grouped by recording ID.
+ * Returns an empty map when recIds is empty.
+ */
+async function fetchParticipants(
+  recIds: string[],
+  orgId: string | null
+): Promise<Record<string, Array<{ name: string | null; email: string | null }>>> {
+  if (recIds.length === 0) return {};
+
+  const query = supabase
+    .from('call_participants')
+    .select('recording_id, name, email')
+    .in('recording_id', recIds)
+    .not('email', 'is', null);
+
+  if (orgId) {
+    query.eq('organization_id', orgId);
+  }
+
+  const { data } = await query;
+  const map: Record<string, Array<{ name: string | null; email: string | null }>> = {};
+  (data || []).forEach((p: { recording_id: string; name: string | null; email: string | null }) => {
+    if (!map[p.recording_id]) map[p.recording_id] = [];
+    map[p.recording_id].push({ name: p.name, email: p.email });
+  });
+  return map;
+}
+
+/**
  * Transform a recording row to a SearchResult
  */
-function transformRecordingToResult(rec: Record<string, unknown>): SearchResult {
+function transformRecordingToResult(
+  rec: Record<string, unknown>,
+  participants: Array<{ name: string | null; email: string | null }> = []
+): SearchResult {
   const title = (rec.title as string) || 'Untitled Recording';
   const transcript = rec.full_transcript as string | null;
   const summary = rec.summary as string | null;
@@ -294,6 +337,8 @@ function transformRecordingToResult(rec: Record<string, unknown>): SearchResult 
     metadata: {
       speakerName: (meta.recorded_by_name as string) || undefined,
       speakerEmail: (meta.recorded_by_email as string) || undefined,
+      participants: participants.length > 0 ? participants : undefined,
+      durationSeconds: (rec.duration as number) || null,
     },
   };
 }

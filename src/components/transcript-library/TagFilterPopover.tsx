@@ -22,7 +22,18 @@ export function TagFilterPopover({
   onTagsChange,
 }: TagFilterPopoverProps) {
   const { activeOrganizationId } = useOrganizationContext();
+  const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // Staged selections — only committed on Apply
+  const [stagedTags, setStagedTags] = useState<string[]>(selectedTags);
+
+  // Sync staged state when popover opens
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setStagedTags(selectedTags);
+    }
+    setIsOpen(open);
+  };
 
   const filteredTags = tags.filter(tag =>
     tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -31,10 +42,21 @@ export function TagFilterPopover({
 
   const handleTagToggle = (tagId: string, checked: boolean) => {
     if (checked) {
-      onTagsChange([...selectedTags, tagId]);
+      setStagedTags([...stagedTags, tagId]);
     } else {
-      onTagsChange(selectedTags.filter((id) => id !== tagId));
+      setStagedTags(stagedTags.filter((id) => id !== tagId));
     }
+  };
+
+  const handleApply = () => {
+    onTagsChange(stagedTags);
+    setIsOpen(false);
+  };
+
+  const handleClear = () => {
+    setStagedTags([]);
+    onTagsChange([]);
+    setIsOpen(false);
   };
 
   const handleCreateTag = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -61,7 +83,7 @@ export function TagFilterPopover({
   };
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <FilterButton
           icon={<RiPriceTag3Line className="h-3.5 w-3.5" />}
@@ -91,7 +113,7 @@ export function TagFilterPopover({
                   <div key={tag.id} className="flex items-center gap-2 py-0.5">
                     <Checkbox
                       id={`tag-${tag.id}`}
-                      checked={selectedTags.includes(tag.id)}
+                      checked={stagedTags.includes(tag.id)}
                       onCheckedChange={(checked) => handleTagToggle(tag.id, !!checked)}
                     />
                     <label
@@ -110,7 +132,7 @@ export function TagFilterPopover({
               </div>
             )}
           </div>
-          <div className="border-t p-3">
+          <div className="border-t p-3 space-y-2">
             <form onSubmit={handleCreateTag} className="flex gap-2">
               <Input
                 name="tagName"
@@ -123,6 +145,14 @@ export function TagFilterPopover({
                 Add
               </Button>
             </form>
+            <div className="flex justify-end gap-2">
+              <Button variant="hollow" size="sm" onClick={handleClear}>
+                Clear
+              </Button>
+              <Button size="sm" onClick={handleApply}>
+                Apply
+              </Button>
+            </div>
           </div>
         </div>
       </PopoverContent>
