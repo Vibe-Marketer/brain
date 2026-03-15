@@ -210,59 +210,6 @@ export async function refreshZoomOAuth() {
 }
 
 // =============================================
-// AI CHAT & RAG FUNCTIONS
-// =============================================
-
-/**
- * Diversity Filter Utility
- * Location: supabase/functions/_shared/diversity-filter.ts
- *
- * Purpose: Filters search results to ensure diversity across recordings and semantic topics
- *
- * Typical RAG Flow:
- *   hybrid_search_transcripts (20 results)
- *     → rerank-results (top 10 by relevance)
- *     → diversity_filter (top 5 diverse results)
- *     → LLM context
- *
- * Functions:
- *   - diversityFilter() - Full filtering with semantic similarity checking
- *   - simpleDiversityFilter() - Recording-based filtering only (no embeddings)
- *
- * Options:
- *   - maxPerRecording: Max chunks from same recording (default: 2)
- *   - minSemanticDistance: Min cosine distance between chunks (default: 0.3)
- *   - targetCount: Target number of diverse results (default: 5)
- */
-
-export interface EmbedChunksResponse {
-  success: boolean;
-  job_id: string;
-  recordings_processed: number;
-  recordings_failed: number;
-  chunks_created: number;
-  failed_recording_ids: number[];
-}
-
-/**
- * Embed transcript chunks for RAG search
- * Creates embeddings for the specified recordings and stores them in transcript_chunks table
- */
-export async function embedChunks(recordingIds: number[]): Promise<ApiResponse<EmbedChunksResponse>> {
-  return callEdgeFunction<EmbedChunksResponse>('embed-chunks', { recording_ids: recordingIds }, { retry: false });
-}
-
-/**
- * Embed all unindexed transcripts for a user
- * Finds all recordings that don't have chunks and embeds them
- */
-export async function embedAllUnindexedTranscripts(): Promise<ApiResponse<EmbedChunksResponse>> {
-  // This will be implemented by finding unindexed recordings first
-  // For now, we'll use the embed-chunks endpoint with auto-discovery
-  return callEdgeFunction<EmbedChunksResponse>('embed-chunks', { auto_discover: true }, { retry: false });
-}
-
-// =============================================
 // AI TAGGING & TITLE FUNCTIONS
 // =============================================
 
@@ -282,56 +229,6 @@ export async function autoTagCalls(recordingIds: number[]) {
  */
 export async function generateAiTitles(recordingIds: number[]) {
   return callEdgeFunction('generate-ai-titles', { recordingIds }, { retry: false });
-}
-
-/**
- * Enrich transcript chunks with metadata
- * Extracts topics, sentiment, entities, and intent signals using GPT-4o-mini
- * Can process specific chunks, recordings, or auto-discover chunks without metadata
- */
-export async function enrichChunkMetadata(params: {
-  chunk_ids?: string[];
-  recording_ids?: number[];
-  auto_discover?: boolean;
-}) {
-  return callEdgeFunction('enrich-chunk-metadata', params, { retry: false });
-}
-
-/**
- * Re-rank search results using cross-encoder model
- * Uses HuggingFace cross-encoder/ms-marco-MiniLM-L-12-v2 for accurate query-document relevance scoring
- * Takes hybrid search candidates and returns top-k most relevant chunks
- */
-export interface RerankChunkCandidate {
-  chunk_id: string;
-  chunk_text: string;
-  recording_id: number;
-  speaker_name?: string;
-  call_title?: string;
-  rrf_score: number;  // Original hybrid search score
-}
-
-export interface RerankResult extends RerankChunkCandidate {
-  rerank_score: number;
-  final_rank: number;
-}
-
-export interface RerankResponse {
-  success: boolean;
-  query: string;
-  model: string;
-  total_candidates: number;
-  returned: number;
-  results: RerankResult[];
-}
-
-export async function rerankResults(params: {
-  query: string;
-  chunks: RerankChunkCandidate[];
-  top_k?: number;
-  batch_size?: number;
-}): Promise<ApiResponse<RerankResponse>> {
-  return callEdgeFunction<RerankResponse>('rerank-results', params, { retry: false });
 }
 
 // =============================================

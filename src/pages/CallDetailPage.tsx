@@ -3,7 +3,7 @@
  * 
  * Detailed view of a single call with context-appropriate tabs:
  * - Regular calls: Insights, Transcript, PROFITS Framework, Action Items
- * - YouTube imports: Overview (thumbnail/metadata), Transcript (formatted), AI Chat CTA
+ * - YouTube imports: Overview (thumbnail/metadata), Transcript (formatted)
  *
  * Detects source_platform to render the appropriate layout.
  */

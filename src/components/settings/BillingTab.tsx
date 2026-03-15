@@ -4,7 +4,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RiBankCardLine, RiCalendarLine } from "@remixicon/react";
 import { useSubscription, type SubscriptionTier } from "@/hooks/useSubscription";
 import { PlanCards } from "@/components/billing/PlanCards";
-import { AiUsageBar } from "@/components/billing/AiUsageBar";
 import { UpgradeButton } from "@/components/billing/UpgradeButton";
 
 /**
@@ -210,24 +209,6 @@ export default function BillingTab() {
               )}
             </div>
           )}
-        </div>
-      </div>
-
-      {/* AI Usage Section */}
-      <Separator className="my-16" />
-      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
-        <div>
-          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
-            Usage
-          </h2>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
-            Monthly AI action consumption
-          </p>
-        </div>
-        <div className="lg:col-span-2">
-          <div className="p-4 rounded-lg border border-border bg-card">
-            <AiUsageBar />
-          </div>
         </div>
       </div>
 
