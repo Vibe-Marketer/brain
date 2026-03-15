@@ -264,11 +264,65 @@ export function TranscriptsTab({
     return parseSearchSyntax(searchQuery);
   }, [searchQuery]);
 
-  // Combine filters from search syntax and filter panel
+  // Combine filters from search syntax and filter panel using AND logic.
+  // For array fields (tags, participants, sources, folders, status):
+  //   - Resolve tag *names* from syntax to tag IDs using the loaded tag list
+  //   - Resolve folder *names* from syntax to folder IDs using the loaded folder list
+  //   - Union syntax values with panel values so both apply
+  // For scalar fields (dates, duration): syntax takes precedence when specified,
+  // otherwise falls back to panel values.
   const combinedFilters = useMemo(() => {
     const syntaxFilters = syntaxToFilters(syntax);
-    return { ...filters, ...syntaxFilters };
-  }, [syntax, filters]);
+
+    // Resolve tag names from syntax to IDs (panel uses IDs; syntax uses names)
+    let resolvedSyntaxTagIds: string[] = [];
+    if (syntax.filters.tag && syntax.filters.tag.length > 0) {
+      resolvedSyntaxTagIds = syntax.filters.tag.flatMap((nameOrId) => {
+        const lowerName = nameOrId.toLowerCase();
+        const match = tags.find(
+          (t) => t.name.toLowerCase() === lowerName || t.id === nameOrId
+        );
+        return match ? [match.id] : [];
+      });
+    }
+
+    // Resolve folder names from syntax to IDs (panel uses IDs; syntax uses names)
+    let resolvedSyntaxFolderIds: string[] = [];
+    if (syntax.filters.folder && syntax.filters.folder.length > 0) {
+      resolvedSyntaxFolderIds = syntax.filters.folder.flatMap((nameOrId) => {
+        const lowerName = nameOrId.toLowerCase();
+        const match = folders.find(
+          (f) => f.name.toLowerCase() === lowerName || f.id === nameOrId
+        );
+        return match ? [match.id] : [];
+      });
+    }
+
+    // Union arrays from both sources
+    const mergedTags = Array.from(new Set([...(filters.tags ?? []), ...resolvedSyntaxTagIds]));
+    const mergedFolders = Array.from(new Set([...(filters.folders ?? []), ...resolvedSyntaxFolderIds]));
+    const mergedSources = Array.from(new Set([...(filters.sources ?? []), ...(syntaxFilters.sources ?? [])]));
+    const mergedStatus = Array.from(new Set([...(filters.status ?? []), ...(syntaxFilters.status ?? [])]));
+
+    return {
+      // Scalar filters: syntax overrides panel when present
+      dateFrom: syntaxFilters.dateFrom ?? filters.dateFrom,
+      dateTo: syntaxFilters.dateTo ?? filters.dateTo,
+      durationMin: syntaxFilters.durationMin ?? filters.durationMin,
+      durationMax: syntaxFilters.durationMax ?? filters.durationMax,
+      // Panel participants: exact email strings from the Contacts picker
+      participants: filters.participants,
+      // Syntax participant: search terms matched via ILIKE name OR email in the query
+      participantSearchTerms: syntax.filters.participant ?? [],
+      // Array filters: union of both
+      tags: mergedTags.length > 0 ? mergedTags : undefined,
+      folders: mergedFolders.length > 0 ? mergedFolders : undefined,
+      sources: mergedSources.length > 0 ? mergedSources : undefined,
+      status: mergedStatus.length > 0 ? mergedStatus : undefined,
+      // Keep categories passthrough
+      categories: Array.from(new Set([...(filters.categories ?? []), ...(syntaxFilters.categories ?? [])])),
+    };
+  }, [syntax, filters, tags, folders]);
 
   // Reset page to 1 and totalCount whenever search/filter/workspace context changes
   const prevFilterRef = useRef<string>("");
@@ -338,6 +392,16 @@ export function TranscriptsTab({
           folderRecordingIds = recs.map((r) => r.id);
         }
 
+        // Ensure dateTo is inclusive by extending to end of the selected day (23:59:59.999)
+        let rpcDateTo: string | null = null;
+        if (combinedFilters.dateTo) {
+          const dateTo = new Date(combinedFilters.dateTo);
+          if (dateTo.getHours() === 0 && dateTo.getMinutes() === 0 && dateTo.getSeconds() === 0) {
+            dateTo.setHours(23, 59, 59, 999);
+          }
+          rpcDateTo = dateTo.toISOString();
+        }
+
         // Call RPC — single server-side JOIN + ORDER + pagination
         const rpcParams: Record<string, unknown> = {
           p_workspace_id: activeWorkspaceId,
@@ -345,7 +409,7 @@ export function TranscriptsTab({
           p_offset: offset,
           p_search: syntax.plainText || null,
           p_date_from: combinedFilters.dateFrom?.toISOString() ?? null,
-          p_date_to: combinedFilters.dateTo?.toISOString() ?? null,
+          p_date_to: rpcDateTo,
           p_sources: combinedFilters.sources?.length ? combinedFilters.sources : null,
         };
 
@@ -401,34 +465,59 @@ export function TranscriptsTab({
           });
         }
 
-        // Participant filter — find recordings that have matching participants
-        if (combinedFilters.participants && combinedFilters.participants.length > 0 && activeOrganizationId) {
-          const { data: matchingParticipants } = await supabase
-            .from('call_participants')
-            .select('recording_id')
-            .eq('organization_id', activeOrganizationId)
-            .in('email', combinedFilters.participants);
+        // Participant filter — two passes: exact email match (panel) and ILIKE name/email (syntax)
+        if (activeOrganizationId) {
+          const hasEmailFilter = combinedFilters.participants && combinedFilters.participants.length > 0;
+          const hasNameFilter = combinedFilters.participantSearchTerms && combinedFilters.participantSearchTerms.length > 0;
 
-          const matchingRecordingIds = new Set(
-            (matchingParticipants || []).map((p: { recording_id: string }) => p.recording_id)
-          );
-          mappedRecordings = mappedRecordings.filter(
-            (call: any) => matchingRecordingIds.has(call.canonical_uuid)
-          );
+          if (hasEmailFilter || hasNameFilter) {
+            const matchingRecordingIds = new Set<string>();
+
+            // Exact email match from filter panel
+            if (hasEmailFilter) {
+              const { data: byEmail } = await supabase
+                .from('call_participants')
+                .select('recording_id')
+                .eq('organization_id', activeOrganizationId)
+                .in('email', combinedFilters.participants!);
+              (byEmail || []).forEach((p: { recording_id: string }) => matchingRecordingIds.add(p.recording_id));
+            }
+
+            // ILIKE on name OR email for each syntax search term
+            if (hasNameFilter) {
+              for (const term of combinedFilters.participantSearchTerms!) {
+                const escaped = escapeIlike(term);
+                const { data: byName } = await supabase
+                  .from('call_participants')
+                  .select('recording_id')
+                  .eq('organization_id', activeOrganizationId)
+                  .or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%`);
+                (byName || []).forEach((p: { recording_id: string }) => matchingRecordingIds.add(p.recording_id));
+              }
+            }
+
+            mappedRecordings = mappedRecordings.filter(
+              (call: any) => matchingRecordingIds.has(call.canonical_uuid)
+            );
+          }
         }
 
-        // Tag filter — show only recordings with any of the selected tags (regular or personal)
+        // Tag filter — AND logic: recordings must carry ALL selected tags
         if (combinedFilters.tags && combinedFilters.tags.length > 0) {
-          const allTagRecordingIds = new Set<string>();
+          // Build a map of recording_id → Set of tag_ids that are assigned to it
+          const recordingTagMap = new Map<string, Set<string>>();
 
           // Regular tags: query call_tag_assignments
           const regularTagIds = combinedFilters.tags.filter((id: string) => legacyTags.some(t => t.id === id));
           if (regularTagIds.length > 0) {
             const { data: regularAssignments } = await supabase
               .from('call_tag_assignments')
-              .select('recording_id')
+              .select('recording_id, tag_id')
               .in('tag_id', regularTagIds);
-            (regularAssignments || []).forEach((a: { recording_id: string }) => allTagRecordingIds.add(a.recording_id));
+            (regularAssignments || []).forEach((a: { recording_id: string; tag_id: string }) => {
+              if (!recordingTagMap.has(a.recording_id)) recordingTagMap.set(a.recording_id, new Set());
+              recordingTagMap.get(a.recording_id)!.add(a.tag_id);
+            });
           }
 
           // Personal tags: query personal_tag_recordings
@@ -436,13 +525,88 @@ export function TranscriptsTab({
           if (personalTagIds.length > 0) {
             const { data: personalAssignments } = await supabase
               .from('personal_tag_recordings')
-              .select('recording_id')
+              .select('recording_id, tag_id')
               .in('tag_id', personalTagIds);
-            (personalAssignments || []).forEach((a: { recording_id: string }) => allTagRecordingIds.add(a.recording_id));
+            (personalAssignments || []).forEach((a: { recording_id: string; tag_id: string }) => {
+              if (!recordingTagMap.has(a.recording_id)) recordingTagMap.set(a.recording_id, new Set());
+              recordingTagMap.get(a.recording_id)!.add(a.tag_id);
+            });
           }
 
-          mappedRecordings = mappedRecordings.filter(
-            (call: any) => allTagRecordingIds.has(call.canonical_uuid)
+          // Keep only recordings that have ALL selected tags
+          const selectedTagSet = new Set(combinedFilters.tags);
+          mappedRecordings = mappedRecordings.filter((call: any) => {
+            const assignedTags = recordingTagMap.get(call.canonical_uuid);
+            if (!assignedTags) return false;
+            for (const tagId of selectedTagSet) {
+              if (!assignedTags.has(tagId)) return false;
+            }
+            return true;
+          });
+        }
+
+        // Status filter — synced = has synced_at; unsynced = synced_at is null
+        if (combinedFilters.status && combinedFilters.status.length > 0) {
+          const wantsSynced = combinedFilters.status.includes('synced');
+          const wantsUnsynced = combinedFilters.status.includes('unsynced');
+          if (wantsSynced && !wantsUnsynced) {
+            mappedRecordings = mappedRecordings.filter((call: any) => !!call.synced_at);
+          } else if (wantsUnsynced && !wantsSynced) {
+            mappedRecordings = mappedRecordings.filter((call: any) => !call.synced_at);
+          }
+          // if both selected, no filter needed
+        }
+
+        // Filter bar folder filter — handles named folders and "unorganized" (no folder assigned)
+        // Only applied when the filter bar has folder filters set (not just the sidebar folder nav)
+        if (!selectedFolderId && combinedFilters.folders && combinedFilters.folders.length > 0) {
+          const namedFolderIds = combinedFilters.folders.filter((id) => id !== 'unorganized');
+          const includeUnorganized = combinedFilters.folders.includes('unorganized');
+
+          const allowedRecordingIds = new Set<string>();
+
+          if (namedFolderIds.length > 0) {
+            // Expand each folder to include its children
+            const { data: childFolders } = await supabase
+              .from('folders')
+              .select('id')
+              .in('parent_id', namedFolderIds);
+            const allFolderIds = [...namedFolderIds, ...(childFolders || []).map((f: { id: string }) => f.id)];
+
+            const { data: folderAssigns } = await supabase
+              .from('folder_assignments')
+              .select('call_recording_id')
+              .in('folder_id', allFolderIds);
+
+            if (folderAssigns && folderAssigns.length > 0) {
+              const legacyIds = folderAssigns.map((a: { call_recording_id: number }) => a.call_recording_id);
+              const { data: recs } = await supabase
+                .from('recordings')
+                .select('id')
+                .in('legacy_recording_id', legacyIds);
+              (recs || []).forEach((r: { id: string }) => allowedRecordingIds.add(r.id));
+            }
+          }
+
+          if (includeUnorganized) {
+            // Get all legacy IDs that have a folder assignment in any folder
+            const { data: allAssigns } = await supabase
+              .from('folder_assignments')
+              .select('call_recording_id');
+            const assignedLegacyIds = new Set(
+              (allAssigns || []).map((a: { call_recording_id: number }) => a.call_recording_id)
+            );
+            // Mark workspace recordings with no folder as unorganized
+            mappedRecordings.forEach((call: any) => {
+              const legacyId = call.recording_id;
+              if (legacyId == null || !assignedLegacyIds.has(Number(legacyId))) {
+                allowedRecordingIds.add(call.canonical_uuid);
+              }
+            });
+          }
+
+          mappedRecordings = mappedRecordings.filter((call: any) =>
+            allowedRecordingIds.has(call.canonical_uuid)
           );
         }
 
@@ -512,6 +676,69 @@ export function TranscriptsTab({
         q = q.in('id', recIds);
       }
 
+      // Filter bar folder filter — handles named folders and "unorganized" (no folder assigned)
+      if (\!selectedFolderId && combinedFilters.folders && combinedFilters.folders.length > 0) {
+        const namedFolderIds = combinedFilters.folders.filter((id) => id \!== 'unorganized');
+        const includeUnorganized = combinedFilters.folders.includes('unorganized');
+
+        const allowedRecordingIds = new Set<string>();
+
+        if (namedFolderIds.length > 0) {
+          // Expand each folder to include its children
+          const { data: childFolders } = await supabase
+            .from('folders')
+            .select('id')
+            .in('parent_id', namedFolderIds);
+          const allFolderIds = [...namedFolderIds, ...(childFolders || []).map((f: { id: string }) => f.id)];
+
+          const { data: folderAssigns } = await supabase
+            .from('folder_assignments')
+            .select('call_recording_id')
+            .in('folder_id', allFolderIds);
+
+          if (folderAssigns && folderAssigns.length > 0) {
+            const legacyIds = folderAssigns.map((a: { call_recording_id: number }) => a.call_recording_id);
+            const { data: recs } = await supabase
+              .from('recordings')
+              .select('id')
+              .in('legacy_recording_id', legacyIds);
+            (recs || []).forEach((r: { id: string }) => allowedRecordingIds.add(r.id));
+          }
+        }
+
+        if (includeUnorganized) {
+          // Find all recording legacy IDs that have at least one folder assignment
+          const { data: allAssigns } = await supabase
+            .from('folder_assignments')
+            .select('call_recording_id');
+
+          const assignedLegacyIds = new Set((allAssigns || []).map((a: { call_recording_id: number }) => a.call_recording_id));
+
+          // Get all org recordings and keep those NOT in any folder
+          const orgId = activeOrganizationId;
+          if (orgId) {
+            const { data: allRecs } = await supabase
+              .from('recordings')
+              .select('id, legacy_recording_id')
+              .eq('organization_id', orgId);
+
+            (allRecs || []).forEach((r: { id: string; legacy_recording_id: number | null }) => {
+              if (r.legacy_recording_id === null || \!assignedLegacyIds.has(r.legacy_recording_id)) {
+                allowedRecordingIds.add(r.id);
+              }
+            });
+          }
+        }
+
+        const allowedList = Array.from(allowedRecordingIds);
+        if (allowedList.length === 0) {
+          setTotalCount(0);
+          onTotalCountChange?.(0);
+          return [];
+        }
+        q = q.in('id', allowedList);
+      }
+
       // Search filter (escape special chars to prevent PostgREST injection)
       // Note: filtering on full_transcript/summary without selecting them is valid in PostgREST
       if (syntax.plainText) {
@@ -522,44 +749,87 @@ export function TranscriptsTab({
         q = q.gte('created_at', combinedFilters.dateFrom.toISOString());
       }
       if (combinedFilters.dateTo) {
-        q = q.lte('created_at', combinedFilters.dateTo.toISOString());
+        // Ensure dateTo is inclusive by extending to end of the selected day (23:59:59.999)
+        const dateTo = new Date(combinedFilters.dateTo);
+        if (dateTo.getHours() === 0 && dateTo.getMinutes() === 0 && dateTo.getSeconds() === 0) {
+          dateTo.setHours(23, 59, 59, 999);
+        }
+        q = q.lte('created_at', dateTo.toISOString());
       }
       // Source filter
       if (combinedFilters.sources && combinedFilters.sources.length > 0) {
         q = q.in('source_app', combinedFilters.sources);
       }
 
-      // Participant filter — restrict to recordings with matching participants
-      if (combinedFilters.participants && combinedFilters.participants.length > 0 && activeOrganizationId) {
-        const { data: matchingParticipants } = await supabase
-          .from('call_participants')
-          .select('recording_id')
-          .eq('organization_id', activeOrganizationId)
-          .in('email', combinedFilters.participants);
+      // Participant filter — two passes: exact email (panel) and ILIKE name/email (syntax)
+      if (activeOrganizationId) {
+        const hasEmailFilter = combinedFilters.participants && combinedFilters.participants.length > 0;
+        const hasNameFilter = combinedFilters.participantSearchTerms && combinedFilters.participantSearchTerms.length > 0;
 
-        const matchingRecordingIds = (matchingParticipants || []).map(
-          (p: { recording_id: string }) => p.recording_id
-        );
-        if (matchingRecordingIds.length === 0) {
-          setTotalCount(0);
-          onTotalCountChange?.(0);
-          return [];
+        if (hasEmailFilter || hasNameFilter) {
+          const matchingRecordingIds = new Set<string>();
+
+          // Exact email match from filter panel
+          if (hasEmailFilter) {
+            const { data: byEmail } = await supabase
+              .from('call_participants')
+              .select('recording_id')
+              .eq('organization_id', activeOrganizationId)
+              .in('email', combinedFilters.participants!);
+            (byEmail || []).forEach((p: { recording_id: string }) => matchingRecordingIds.add(p.recording_id));
+          }
+
+          // ILIKE on name OR email for each syntax search term
+          if (hasNameFilter) {
+            for (const term of combinedFilters.participantSearchTerms!) {
+              const escaped = escapeIlike(term);
+              const { data: byName } = await supabase
+                .from('call_participants')
+                .select('recording_id')
+                .eq('organization_id', activeOrganizationId)
+                .or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%`);
+              (byName || []).forEach((p: { recording_id: string }) => matchingRecordingIds.add(p.recording_id));
+            }
+          }
+
+          const matchingIds = Array.from(matchingRecordingIds);
+          if (matchingIds.length === 0) {
+            setTotalCount(0);
+            onTotalCountChange?.(0);
+            return [];
+          }
+          q = q.in('id', matchingIds);
         }
-        q = q.in('id', matchingRecordingIds);
       }
 
-      // Tag filter — restrict to recordings with any of the selected tags (regular or personal)
+      // Status filter — synced = has synced_at; unsynced = synced_at is null
+      if (combinedFilters.status && combinedFilters.status.length > 0) {
+        const wantsSynced = combinedFilters.status.includes('synced');
+        const wantsUnsynced = combinedFilters.status.includes('unsynced');
+        if (wantsSynced && !wantsUnsynced) {
+          q = q.not('synced_at', 'is', null);
+        } else if (wantsUnsynced && !wantsSynced) {
+          q = q.is('synced_at', null);
+        }
+        // if both are selected, no filter needed (all rows)
+      }
+
+      // Tag filter — AND logic: recordings must carry ALL selected tags
       if (combinedFilters.tags && combinedFilters.tags.length > 0) {
-        const allTagRecordingIds = new Set<string>();
+        // Build a map of recording_id → Set of tag_ids that are assigned to it
+        const recordingTagMap = new Map<string, Set<string>>();
 
         // Regular tags: query call_tag_assignments
         const regularTagIds = combinedFilters.tags.filter((id: string) => legacyTags.some(t => t.id === id));
         if (regularTagIds.length > 0) {
           const { data: regularAssignments } = await supabase
             .from('call_tag_assignments')
-            .select('recording_id')
+            .select('recording_id, tag_id')
             .in('tag_id', regularTagIds);
-          (regularAssignments || []).forEach((a: { recording_id: string }) => allTagRecordingIds.add(a.recording_id));
+          (regularAssignments || []).forEach((a: { recording_id: string; tag_id: string }) => {
+            if (!recordingTagMap.has(a.recording_id)) recordingTagMap.set(a.recording_id, new Set());
+            recordingTagMap.get(a.recording_id)!.add(a.tag_id);
+          });
         }
 
         // Personal tags: query personal_tag_recordings
@@ -567,12 +837,25 @@ export function TranscriptsTab({
         if (personalTagIds.length > 0) {
           const { data: personalAssignments } = await supabase
             .from('personal_tag_recordings')
-            .select('recording_id')
+            .select('recording_id, tag_id')
             .in('tag_id', personalTagIds);
-          (personalAssignments || []).forEach((a: { recording_id: string }) => allTagRecordingIds.add(a.recording_id));
+          (personalAssignments || []).forEach((a: { recording_id: string; tag_id: string }) => {
+            if (!recordingTagMap.has(a.recording_id)) recordingTagMap.set(a.recording_id, new Set());
+            recordingTagMap.get(a.recording_id)!.add(a.tag_id);
+          });
         }
 
-        const tagRecordingIdList = Array.from(allTagRecordingIds);
+        // Intersect: keep only recordings that have ALL selected tags
+        const selectedTagSet = new Set(combinedFilters.tags);
+        const tagRecordingIdList = Array.from(recordingTagMap.entries())
+          .filter(([, assignedTags]) => {
+            for (const tagId of selectedTagSet) {
+              if (!assignedTags.has(tagId)) return false;
+            }
+            return true;
+          })
+          .map(([recordingId]) => recordingId);
+
         if (tagRecordingIdList.length === 0) {
           setTotalCount(0);
           onTotalCountChange?.(0);
