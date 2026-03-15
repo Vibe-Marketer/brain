@@ -1,0 +1,89 @@
+---
+title: "Routing Rules"
+description: "Automatically tag and organize calls as they come in, based on meeting title, caller name, duration, and more."
+icon: "route"
+---
+
+Routing rules run automatically when a new call is imported or uploaded. Each rule checks a set of conditions and, if they match, takes one or more actions — like filing the call into the right folder or adding a tag.
+
+Without routing rules, every new call lands in your My Calls workspace. With them, your calls are automatically organized the moment they arrive.
+
+## How routing rules work
+
+A routing rule has two parts:
+
+1. **Conditions** — criteria that the incoming call must match
+2. **Actions** — what CallVault does when the conditions match
+
+If all conditions in a rule are met, all actions in that rule run. You can have multiple rules, and multiple rules can fire on the same call.
+
+## Conditions
+
+| Condition | Description | Example |
+|---|---|---|
+| **Meeting title contains** | Matches any call whose title includes the specified keyword or phrase | `"Demo"`, `"Onboarding"`, `"Interview"` |
+| **Meeting title starts with** | Matches calls whose title starts with specific text | `"[CS]"`, `"1:1 with"` |
+| **Caller/participant name contains** | Matches calls that include a specific name in the participant list | `"Jordan"`, `"@acme.com"` |
+| **Duration is longer than** | Matches calls that exceed a specified number of minutes | `> 30 min` |
+| **Duration is shorter than** | Matches calls under a specified number of minutes | `< 5 min` (to catch short incomplete calls) |
+| **Source is** | Matches calls from a specific integration | `Fathom`, `Zoom`, `Upload` |
+| **Tag includes** | Matches calls that already have a specific tag applied | Useful for chaining rules |
+
+You can add multiple conditions to a rule. By default, **all conditions must match** (AND logic). You can switch to **any condition matches** (OR logic) per rule.
+
+## Actions
+
+| Action | Description |
+|---|---|
+| **Move to workspace** | Assign the call to a specific workspace |
+| **Move to folder** | Place the call in a specific folder within a workspace |
+| **Add tag** | Apply one or more tags to the call |
+| **Set title** | Override the call title with a custom value or pattern |
+
+Actions within a rule all run together when the conditions match.
+
+## Example rules
+
+**Route all demo calls to the Sales workspace:**
+- Condition: Meeting title contains `"Demo"`
+- Action: Move to workspace → Sales Workspace → Demo Calls folder
+
+**Flag short accidental recordings:**
+- Condition: Duration is shorter than `2 min`
+- Action: Add tag → `review-needed`
+
+**Route onboarding calls by CS team:**
+- Condition: Meeting title contains `"Onboarding"` AND Source is `Zoom`
+- Action: Move to workspace → Customer Success → Onboarding folder, Add tag → `onboarding`
+
+**Separate interview calls from other calls:**
+- Condition: Meeting title contains `"Interview"` OR Meeting title contains `"[HR]"`
+- Action: Move to workspace → Recruiting Workspace
+
+## Creating a routing rule
+
+1. Go to **Settings → Routing Rules**
+2. Click **New rule**
+3. Give the rule a name (used for your reference only)
+4. Add one or more conditions
+5. Choose AND/OR logic if you have multiple conditions
+6. Add one or more actions
+7. Click **Save and activate**
+
+New incoming calls are evaluated against all active routing rules in order. You can drag to reorder rules.
+
+## Rule priority
+
+Rules run top to bottom. If two rules conflict (e.g., two rules try to move a call to different workspaces), the last one to run wins. Arrange your more specific rules above more general ones.
+
+## Applying rules to existing calls
+
+By default, routing rules only apply to calls that arrive after the rule is created. To apply a rule retroactively:
+
+1. Open the rule
+2. Click **Apply to existing calls**
+3. Confirm — this will run the rule against all calls currently in your My Calls workspace that match the conditions
+
+<Warning>
+  Retroactive application moves calls immediately. Make sure your conditions are correct before applying to existing calls.
+</Warning>

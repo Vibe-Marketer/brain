@@ -1,0 +1,66 @@
+---
+title: "Workspace Roles"
+description: "Understand the Viewer, Editor, and Admin roles and what each one can do inside a workspace."
+icon: "shield-halved"
+---
+
+Every member of a workspace has one of three roles: **Viewer**, **Editor**, or **Admin**. Roles are set per workspace — the same person can be an Admin in one workspace and a Viewer in another.
+
+## Roles overview
+
+| Permission | Viewer | Editor | Admin |
+|---|:---:|:---:|:---:|
+| View calls and transcripts | ✓ | ✓ | ✓ |
+| Play recordings | ✓ | ✓ | ✓ |
+| Read AI summaries | ✓ | ✓ | ✓ |
+| Search within workspace | ✓ | ✓ | ✓ |
+| Export calls | ✓ | ✓ | ✓ |
+| Create share links | | ✓ | ✓ |
+| Upload calls to workspace | | ✓ | ✓ |
+| Add and remove tags | | ✓ | ✓ |
+| Move calls between folders | | ✓ | ✓ |
+| Rename and delete calls | | ✓ | ✓ |
+| Create and manage folders | | ✓ | ✓ |
+| Move calls to other workspaces | | ✓ | ✓ |
+| Add and remove workspace members | | | ✓ |
+| Change member roles | | | ✓ |
+| Edit workspace settings and name | | | ✓ |
+| Create routing rules for workspace | | | ✓ |
+| Archive or delete the workspace | | | ✓ |
+
+## Viewer
+
+Viewers have read-only access. They can browse all calls in the workspace, read transcripts and summaries, search, and export — but they can't change anything or add new calls.
+
+**Best for:** Clients, stakeholders, or team members who need to review calls but shouldn't modify anything.
+
+## Editor
+
+Editors can do everything a Viewer can, plus they can add and organize content. They can upload calls, create folders, tag and rename calls, and create share links.
+
+**Best for:** Team members who are actively working with calls — adding new recordings, organizing folders, tagging calls for routing.
+
+## Admin
+
+Admins have full control over the workspace, including managing who's in it and what settings are configured. Every workspace needs at least one Admin.
+
+**Best for:** Team leads, managers, or workspace owners who are responsible for the workspace's configuration and membership.
+
+## Org roles vs. workspace roles
+
+Organization roles (`organization_owner`, `organization_admin`, `member`) control what someone can do at the org level — managing billing, inviting people to the org, and so on.
+
+Workspace roles are separate and control what someone can do within a specific workspace.
+
+<Info>
+  `organization_owner` and `organization_admin` can access workspace settings for any workspace in the org, regardless of their workspace-level role. This allows admins to help manage workspaces across the org when needed.
+</Info>
+
+## Changing a member's workspace role
+
+1. Open the workspace
+2. Go to **⋯ → Workspace Settings → Members**
+3. Click the role badge next to the member's name
+4. Select the new role
+
+The change takes effect immediately.

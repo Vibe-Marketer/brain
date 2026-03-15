@@ -1,0 +1,80 @@
+---
+title: "Zoom Integration"
+description: "Connect Zoom to automatically import your cloud recordings into CallVault after every meeting."
+icon: "video"
+---
+
+When you connect Zoom to CallVault, your cloud recordings flow in automatically after each meeting ends. No downloads, no manual uploads.
+
+<Note>
+  This integration works with **Zoom cloud recordings**. Local recordings saved to your computer are not synced automatically — upload those manually via [file upload](/integrations/upload).
+</Note>
+
+## Prerequisites
+
+- A Zoom account with **cloud recording enabled** (available on Pro, Business, and Enterprise plans)
+- Cloud recording turned on in your Zoom settings: **Zoom Settings → Recording → Cloud recording**
+
+## Connecting Zoom
+
+<Steps>
+  <Step title="Open integrations settings">
+    In CallVault, go to **Settings → Integrations**.
+  </Step>
+  <Step title="Click Connect next to Zoom">
+    You'll be redirected to Zoom's authorization page.
+  </Step>
+  <Step title="Authorize CallVault">
+    Sign in to Zoom (if not already) and click **Allow** to grant CallVault access to your cloud recordings.
+  </Step>
+  <Step title="Confirm the connection">
+    You'll be redirected back to CallVault. The Zoom integration should now show as **Connected**.
+  </Step>
+</Steps>
+
+## What syncs
+
+After a Zoom meeting ends and the cloud recording processes, CallVault will import:
+
+- **Recording** — the cloud recording video/audio file
+- **Meeting title** — from your Zoom calendar invite
+- **Date and duration**
+- **Participants** — Zoom participant list when available
+
+CallVault then transcribes the recording and generates an AI summary.
+
+## Where synced calls land
+
+Zoom recordings land in your **My Calls** workspace by default. To route them automatically to a shared workspace or folder, set up a [Routing Rule](/automation/routing-rules) using meeting title keywords as the condition.
+
+## Sync timing
+
+There's typically a short delay between when your Zoom meeting ends and when the recording appears in CallVault:
+
+1. Zoom processes the cloud recording (a few minutes for most calls)
+2. CallVault detects the new recording and imports it (usually within 5 minutes)
+3. Transcription runs after import (1–5 minutes depending on call length)
+
+## Managing the connection
+
+To view status or disconnect:
+
+1. Go to **Settings → Integrations → Zoom**
+2. Check the connection status and last sync time
+3. Click **Disconnect** to stop future syncs
+
+Disconnecting does not delete calls that have already been imported.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="My Zoom recordings aren't showing up in CallVault">
+    First, verify that cloud recording is enabled in your Zoom account settings. Then check that the Zoom integration is still showing as **Connected** in CallVault. If it shows as disconnected, reconnect.
+  </Accordion>
+  <Accordion title="Only some meetings are syncing, not all">
+    Only meetings recorded to the Zoom cloud are synced. If you record some meetings locally, those won't appear automatically — upload them manually.
+  </Accordion>
+  <Accordion title="I reconnected Zoom but old recordings aren't importing">
+    Zoom only sends new recording notifications going forward. Historical recordings aren't automatically backfilled. You can manually download and upload older recordings.
+  </Accordion>
+</AccordionGroup>

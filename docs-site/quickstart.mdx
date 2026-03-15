@@ -1,0 +1,79 @@
+---
+title: "Quickstart"
+description: "Sign up, connect your first tool, and have your first call ready to review in under 5 minutes."
+icon: "rocket"
+---
+
+## Step 1: Create your account
+
+<Steps>
+  <Step title="Sign up">
+    Go to [app.callvault.ai/signup](https://app.callvault.ai/signup) and create your account with your work email or Google SSO.
+  </Step>
+  <Step title="Create or join an organization">
+    When you sign up for the first time, CallVault creates a personal organization for you automatically. You can rename it or create a new one for your team in **Settings → Organization**.
+
+    If a colleague has already set up a team account, ask them to invite you instead of creating a new org.
+  </Step>
+  <Step title="You're in — your default workspace is ready">
+    Every account starts with a **My Calls** workspace. This is your personal space for calls that haven't been organized into a shared workspace yet. You can start using it immediately.
+  </Step>
+</Steps>
+
+## Step 2: Connect a call source
+
+<Tabs>
+  <Tab title="Fathom">
+    1. Go to **Settings → Integrations → Fathom**
+    2. Click **Connect Fathom** and sign in to your Fathom account
+    3. Authorize CallVault to access your recordings
+    4. CallVault will begin importing your existing Fathom calls and will automatically sync new ones after each meeting
+
+    See the [Fathom integration guide](/integrations/fathom) for full details.
+  </Tab>
+  <Tab title="Zoom">
+    1. Go to **Settings → Integrations → Zoom**
+    2. Click **Connect Zoom** and complete the OAuth flow
+    3. CallVault will sync cloud recordings from your Zoom account going forward
+
+    See the [Zoom integration guide](/integrations/zoom) for full details.
+  </Tab>
+  <Tab title="File upload">
+    1. Open any workspace or folder
+    2. Click **Upload** in the top right
+    3. Select your audio or video file (MP3, MP4, M4A, WAV, and more are supported)
+    4. CallVault will transcribe it and add it to your call list
+
+    See the [Upload guide](/integrations/upload) for supported formats and size limits.
+  </Tab>
+</Tabs>
+
+## Step 3: Review your first call
+
+Once a call has been imported or uploaded:
+
+1. Click the call title to open it
+2. You'll see the **transcript** on the left and an **AI summary** on the right
+3. Use the summary to get the highlights — action items, key topics, and a brief overview
+4. Click any line in the transcript to jump to that point in the recording
+
+<Tip>
+  Press **⌘K** (Mac) or **Ctrl+K** (Windows) anywhere in the app to open the search bar and search across all your transcripts instantly.
+</Tip>
+
+## What's next?
+
+<CardGroup cols={2}>
+  <Card title="Organize with workspaces and folders" icon="folder-tree" href="/core-concepts/workspaces">
+    Set up shared workspaces for your team and organize calls into folders by client or project.
+  </Card>
+  <Card title="Invite your team" icon="user-plus" href="/collaboration/inviting-members">
+    Add teammates to your organization and give them access to the right workspaces.
+  </Card>
+  <Card title="Share a call" icon="share" href="/transcripts/sharing">
+    Send a call link to someone who doesn't have a CallVault account — no sign-up required on their end.
+  </Card>
+  <Card title="Set up routing rules" icon="route" href="/automation/routing-rules">
+    Automatically tag and file calls based on keywords, duration, or caller name.
+  </Card>
+</CardGroup>

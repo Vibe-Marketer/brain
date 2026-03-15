@@ -1,0 +1,71 @@
+---
+title: "Calls"
+description: "A call is the core unit in CallVault — every recording comes with a transcript, AI summary, tags, and more."
+icon: "phone"
+---
+
+A **call** is a single recorded conversation. It's the core object in CallVault — everything else (workspaces, folders, search, sharing) exists to help you find, review, and act on calls.
+
+## What a call record contains
+
+Every call in CallVault has:
+
+<CardGroup cols={2}>
+  <Card title="Recording" icon="circle-play">
+    The original audio or video file. Playback is synced to the transcript — click any line to jump to that moment.
+  </Card>
+  <Card title="Transcript" icon="file-lines">
+    A full text transcript with speaker labels and timestamps. Automatically generated after import or upload.
+  </Card>
+  <Card title="AI summary" icon="sparkles">
+    An AI-generated summary of the call, including key topics, action items, and a brief overview. Ready within minutes of transcription.
+  </Card>
+  <Card title="Tags" icon="tag">
+    Labels you apply to categorize calls. Add tags manually or automatically via routing rules.
+  </Card>
+</CardGroup>
+
+### Metadata
+
+Each call also shows:
+
+- **Date and time** of the recording
+- **Duration**
+- **Participants** (names/emails when available from the call source)
+- **Source** — Fathom, Zoom, or manual upload
+- **Folder** — which folder it's in (if any)
+- **Workspace** — which workspace it belongs to
+
+## Viewing a call
+
+Open a call to see its full detail view:
+
+- The **left panel** shows the playback controls and full transcript
+- The **right panel** shows the AI summary, action items, and tags
+- Use the scrubber at the bottom to navigate the recording
+- Click any transcript line to jump playback to that timestamp
+
+## Editing call details
+
+You can edit:
+
+- **Title** — rename the call to something more descriptive than the auto-generated name
+- **Tags** — add or remove tags at any time
+- **Folder** — move the call to a different folder within the same workspace
+- **Workspace** — move the call to a different workspace (requires Editor or Admin role)
+
+## Sharing a call
+
+Every call has a shareable link. People you share it with can view the transcript and play the recording without a CallVault account. See [Sharing](/transcripts/sharing) for details on link settings.
+
+## Exporting a call
+
+Calls can be exported as PDF, Word (.docx), Markdown, or CSV. See [Export](/transcripts/export) for options.
+
+## Deleting a call
+
+To delete a call, open it and select **Delete** from the **⋯** menu, or right-click the call card in the list view.
+
+<Warning>
+  Deleting a call permanently removes the recording, transcript, and AI summary. This cannot be undone.
+</Warning>

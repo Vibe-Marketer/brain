@@ -1,0 +1,68 @@
+---
+title: "Fathom Integration"
+description: "Connect Fathom to automatically sync your meeting recordings and transcripts to CallVault."
+icon: "plug"
+---
+
+Fathom is an AI meeting notetaker that records and transcribes your calls. When you connect Fathom to CallVault, your recordings sync automatically — no manual uploads needed.
+
+## Connecting Fathom
+
+<Steps>
+  <Step title="Open integrations settings">
+    In CallVault, go to **Settings → Integrations**.
+  </Step>
+  <Step title="Click Connect next to Fathom">
+    You'll be redirected to Fathom to authorize the connection.
+  </Step>
+  <Step title="Sign in to Fathom and authorize">
+    Log in with your Fathom credentials and grant CallVault permission to access your recordings.
+  </Step>
+  <Step title="Choose your import settings">
+    Decide whether to import your existing Fathom call library or only sync new calls going forward.
+  </Step>
+  <Step title="Done — calls start syncing">
+    CallVault will import your Fathom calls. Depending on your library size, the initial import may take a few minutes.
+  </Step>
+</Steps>
+
+## What syncs automatically
+
+Once connected, the following data flows from Fathom into CallVault for each meeting:
+
+- **Recording** — audio/video of the meeting
+- **Transcript** — Fathom's transcript is imported (CallVault may re-transcribe for consistency)
+- **Meeting title** — used as the call name in CallVault
+- **Date and duration**
+- **Participants** — attendee names and emails when available
+
+## Where synced calls land
+
+New calls from Fathom land in your **My Calls** workspace by default. Use [Routing Rules](/automation/routing-rules) to automatically send calls to specific workspaces or folders based on meeting title, participants, or duration.
+
+## Managing the connection
+
+To view the status of your Fathom integration or disconnect it:
+
+1. Go to **Settings → Integrations → Fathom**
+2. You'll see the connection status and last sync time
+3. Click **Disconnect** to remove the integration
+
+Disconnecting stops future syncs but does not delete calls that have already been imported.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="My calls aren't showing up after connecting">
+    The initial import can take a few minutes for large libraries. Check **Settings → Integrations → Fathom** for the sync status. If the import shows as complete but calls are missing, try disconnecting and reconnecting.
+  </Accordion>
+  <Accordion title="New calls from Fathom aren't syncing">
+    Make sure the Fathom integration is still connected — check **Settings → Integrations**. If your Fathom password changed recently, you may need to reconnect.
+  </Accordion>
+  <Accordion title="A call appears twice">
+    This can happen if a call was imported via Fathom and also uploaded manually. Delete the duplicate call from the call's **⋯** menu.
+  </Accordion>
+  <Accordion title="I want calls to go to a specific workspace, not My Calls">
+    Set up a [Routing Rule](/automation/routing-rules) with a condition matching your meeting titles and an action to assign the target workspace and folder.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,79 @@
+---
+title: "Export"
+description: "Export call transcripts and summaries as PDF, Word, Markdown, or CSV — individually or in bulk."
+icon: "file-export"
+---
+
+CallVault lets you export call content in several formats so you can share it outside the platform, archive it, or bring it into other tools.
+
+## Export formats
+
+<CardGroup cols={2}>
+  <Card title="PDF" icon="file-pdf">
+    A clean, formatted document with the call metadata, AI summary, and full transcript. Ideal for sharing with stakeholders or archiving.
+  </Card>
+  <Card title="Word (.docx)" icon="file-word">
+    Fully editable Word document with the same content as the PDF export. Use this when you need to edit the content or paste it into a client-facing document.
+  </Card>
+  <Card title="Markdown (.md)" icon="file-code">
+    Plain text with Markdown formatting. Useful for pasting into Notion, Confluence, GitHub, or any tool that renders Markdown.
+  </Card>
+  <Card title="CSV" icon="file-csv">
+    Structured data export with one row per transcript segment, including speaker, timestamp, and text. Useful for analysis in spreadsheets or data pipelines.
+  </Card>
+</CardGroup>
+
+## Exporting a single call
+
+1. Open the call you want to export
+2. Click the **Export** button (or select **Export** from the **⋯** menu)
+3. Choose your format: PDF, Word, Markdown, or CSV
+4. The file downloads to your computer
+
+## Choosing what to include
+
+When exporting, you can choose which sections to include in the document:
+
+- **Call metadata** — title, date, duration, participants, tags
+- **AI summary** — the generated overview, action items, and key topics
+- **Full transcript** — the complete timestamped transcript with speaker labels
+- **Highlights only** — just the highlighted excerpts, without the full transcript
+
+Mix and match to create the right document for your audience.
+
+## Bulk export
+
+You can export multiple calls at once:
+
+1. Go to a workspace or folder list view
+2. Select the calls you want using the checkboxes
+3. Click **Export selected** in the action bar that appears
+4. Choose your format
+
+Bulk exports are packaged as a ZIP file containing one document per call.
+
+<Note>
+  CSV bulk exports produce a single file with all calls, using a column to distinguish between them. All other formats produce one file per call, zipped together.
+</Note>
+
+## CSV format details
+
+The CSV export includes the following columns:
+
+| Column | Description |
+|---|---|
+| `call_title` | Title of the call |
+| `call_date` | Date of the recording |
+| `duration_seconds` | Total call duration |
+| `speaker` | Speaker label for this segment |
+| `timestamp_start` | Start time of the segment (in seconds) |
+| `timestamp_end` | End time of the segment (in seconds) |
+| `text` | The transcript text for this segment |
+
+This format is designed for importing into data analysis tools, CRMs, or custom reporting pipelines.
+
+## Sharing vs. exporting
+
+If you want to share a call with someone outside CallVault, a shareable link is often better than an export — recipients can read the transcript and play the recording without needing to open a document. See [Sharing](/transcripts/sharing).
+
+Use export when you need a permanent, offline copy, or when the recipient needs to edit or annotate the content.

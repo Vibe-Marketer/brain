@@ -1,0 +1,94 @@
+---
+title: "How CallVault Works"
+description: "Understand the data model behind CallVault: Organizations, Workspaces, Folders, and Calls."
+icon: "sitemap"
+---
+
+CallVault is organized around a simple four-level hierarchy. Once you understand how these pieces fit together, everything else in the product will make sense.
+
+## The hierarchy at a glance
+
+```
+Organization
+└── Workspace
+    └── Folder
+        └── Call
+```
+
+Everything in CallVault lives inside this structure. Here's what each level means.
+
+---
+
+## Organization
+
+An **organization** is the top-level account. It holds your billing, your members, and all your workspaces.
+
+Most teams have a single organization. You might have more than one if you're managing separate companies or need strict data separation between business units.
+
+When you sign up, CallVault creates an organization for you automatically. You can rename it, invite members, and manage roles from **Settings → Organization**.
+
+---
+
+## Workspace
+
+A **workspace** is a shared space within your organization. Think of it as a project room or a team channel — it has its own set of calls, folders, and members.
+
+Every account includes a **My Calls** workspace. This is your personal default workspace — calls imported from Fathom or Zoom land here unless you configure routing rules to send them elsewhere.
+
+You can create as many workspaces as you need:
+- One per client ("Acme Corp workspace")
+- One per team ("Sales workspace", "CS workspace")
+- One per project or quarter
+
+Workspaces have their own member lists and role assignments. A person can be an Admin in one workspace and a Viewer in another.
+
+---
+
+## Folder
+
+**Folders** live inside a workspace and let you organize calls within that space. They work exactly like folders on your desktop.
+
+Some ways teams use folders:
+- By rep name inside a Sales workspace
+- By month or quarter for time-based review
+- By deal stage (Discovery, Demo, Proposal, Closed)
+- By topic (Onboarding, QBR, Support Escalation)
+
+Folders are optional. Calls can sit at the workspace root without being in any folder.
+
+---
+
+## Call
+
+A **call** is a single recorded conversation. Every call in CallVault contains:
+
+- **Recording** — the original audio or video file
+- **Transcript** — a full text transcript, timestamped by speaker
+- **AI summary** — auto-generated overview, action items, and key topics
+- **Tags** — labels you apply manually or via routing rules
+- **Metadata** — date, duration, participants, source (Fathom, Zoom, or upload)
+
+---
+
+## Putting it together
+
+Here's an example of how a sales team might structure their CallVault:
+
+```
+Acme Corp (Organization)
+├── Sales Workspace
+│   ├── Q1 2025 (Folder)
+│   │   ├── Discovery call with Jordan at Initech
+│   │   ├── Demo call with Priya at Globex
+│   │   └── ...
+│   └── Q2 2025 (Folder)
+│       └── ...
+├── Customer Success Workspace
+│   ├── Onboarding (Folder)
+│   └── QBRs (Folder)
+└── My Calls (personal workspace — every user gets one)
+```
+
+<Info>
+  Routing rules can automatically place new calls into the right workspace and folder based on conditions like meeting title keywords, caller name, or call duration. See [Routing Rules](/automation/routing-rules) to set that up.
+</Info>

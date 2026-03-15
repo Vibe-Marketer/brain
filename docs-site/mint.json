@@ -1,0 +1,112 @@
+{
+  "$schema": "https://mintlify.com/schema.json",
+  "name": "CallVault",
+  "logo": {
+    "light": "/logo/callvault-light.svg",
+    "dark": "/logo/callvault-dark.svg"
+  },
+  "favicon": "/favicon.ico",
+  "colors": {
+    "primary": "#f97316",
+    "light": "#fb923c",
+    "dark": "#ea580c"
+  },
+  "topbarLinks": [
+    {
+      "name": "Sign In",
+      "url": "https://app.callvault.ai"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "Get Started",
+    "url": "https://app.callvault.ai/signup"
+  },
+  "anchors": [
+    {
+      "name": "Support",
+      "icon": "envelope",
+      "url": "mailto:support@callvault.ai"
+    },
+    {
+      "name": "Community",
+      "icon": "slack",
+      "url": "https://callvault.ai/community"
+    },
+    {
+      "name": "Status",
+      "icon": "signal",
+      "url": "https://status.callvault.ai"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "Getting Started",
+      "pages": [
+        "introduction",
+        "quickstart",
+        "how-it-works"
+      ]
+    },
+    {
+      "group": "Core Concepts",
+      "pages": [
+        "core-concepts/organizations",
+        "core-concepts/workspaces",
+        "core-concepts/folders",
+        "core-concepts/calls"
+      ]
+    },
+    {
+      "group": "Connecting Your Tools",
+      "pages": [
+        "integrations/fathom",
+        "integrations/zoom",
+        "integrations/upload"
+      ]
+    },
+    {
+      "group": "Working with Transcripts",
+      "pages": [
+        "transcripts/search",
+        "transcripts/ai-summaries",
+        "transcripts/export",
+        "transcripts/sharing"
+      ]
+    },
+    {
+      "group": "Team & Collaboration",
+      "pages": [
+        "collaboration/inviting-members",
+        "collaboration/workspace-roles",
+        "collaboration/teams"
+      ]
+    },
+    {
+      "group": "Automation",
+      "pages": [
+        "automation/routing-rules",
+        "automation/integrations"
+      ]
+    },
+    {
+      "group": "Account & Settings",
+      "pages": [
+        "settings/account-settings",
+        "settings/organization-settings",
+        "settings/security"
+      ]
+    },
+    {
+      "group": "Reference",
+      "pages": [
+        "reference/keyboard-shortcuts",
+        "reference/faq",
+        "reference/changelog"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "twitter": "https://twitter.com/callvault",
+    "linkedin": "https://linkedin.com/company/callvault"
+  }
+}

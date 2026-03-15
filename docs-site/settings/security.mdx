@@ -1,0 +1,69 @@
+---
+title: "Security & Privacy"
+description: "How CallVault handles your data, transcript storage, and shared link security."
+icon: "shield"
+---
+
+CallVault is designed to keep your call recordings and transcripts private by default. Here's what you need to know about how your data is stored and protected.
+
+## Data storage
+
+### Recordings
+
+Call recordings are stored in encrypted object storage. Files are encrypted at rest and in transit. CallVault does not process recordings for any purpose other than transcription and generating AI summaries.
+
+### Transcripts
+
+Transcripts are stored in a secure database with row-level access controls. A user can only access transcripts from workspaces they've been added to — there is no cross-workspace data leakage.
+
+### AI processing
+
+When CallVault generates transcripts and AI summaries, your audio and transcript data is sent to our AI processing providers under strict data processing agreements. Your data is not used to train AI models.
+
+## Access controls
+
+### Workspace-based isolation
+
+All call data is scoped to workspaces. Being a member of an organization does not grant access to any workspace — workspace access must be explicitly granted by a workspace Admin.
+
+### Role enforcement
+
+[Workspace roles](/collaboration/workspace-roles) are enforced server-side. The distinction between Viewer, Editor, and Admin permissions is applied at the API level, not just in the UI.
+
+## Shared links
+
+Share links provide time-limited, read-only access to individual calls for people outside your workspace.
+
+- Links are randomly generated and not guessable
+- Links can be set to expire after a specified date
+- Links can be password-protected
+- Links can be revoked instantly from the call's share settings
+- Link recipients cannot access any other calls in your workspace
+
+<Note>
+  Anyone with the share link URL can access the call — links are not tied to a specific email address. Use password protection for sensitive calls.
+</Note>
+
+## Authentication
+
+- Passwords are hashed using industry-standard algorithms (never stored in plaintext)
+- Google SSO is available for organizations that prefer centralized identity management
+- Sessions expire after a period of inactivity
+
+## Organizational data separation
+
+Data from different organizations is completely isolated. There is no way for members of one organization to see data from another.
+
+## Data deletion
+
+When you delete a call, it is permanently removed from all storage systems within 30 days, including backups.
+
+When you delete an organization, all associated data (calls, transcripts, recordings, workspaces) is queued for permanent deletion and removed within 30 days.
+
+## Compliance and certifications
+
+For information about SOC 2, GDPR, HIPAA, or other compliance matters, contact [support@callvault.ai](mailto:support@callvault.ai). Enterprise customers have access to a Data Processing Agreement (DPA) upon request.
+
+## Reporting a security issue
+
+If you discover a security vulnerability in CallVault, please report it responsibly to [security@callvault.ai](mailto:security@callvault.ai). Do not disclose the issue publicly until we've had an opportunity to investigate and address it.
