@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { RiArrowUpDownLine, RiLayoutColumnLine, RiFileDownloadLine, RiTeamLine } from "@remixicon/react";
+import { RiArrowUpDownLine, RiArrowUpLine, RiArrowDownLine, RiLayoutColumnLine, RiFileDownloadLine, RiTeamLine } from "@remixicon/react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -40,17 +40,25 @@ interface SortButtonProps {
   field: string;
   children: React.ReactNode;
   sortField: string;
+  sortDirection: "asc" | "desc";
   onSort: (field: string) => void;
 }
 
-function SortButton({ field, children, sortField, onSort }: SortButtonProps) {
+function SortButton({ field, children, sortField, sortDirection, onSort }: SortButtonProps) {
+  const isActive = sortField === field;
+  const Icon = isActive
+    ? sortDirection === "asc"
+      ? RiArrowUpLine
+      : RiArrowDownLine
+    : RiArrowUpDownLine;
+
   return (
     <button
       onClick={() => onSort(field)}
       className="h-8 px-2 inline-flex items-center justify-center gap-2 hover:bg-muted/50 font-medium text-sm rounded-md transition-colors cursor-pointer"
     >
       {children}
-      <RiArrowUpDownLine className={`ml-2 h-3.5 w-3.5 ${sortField === field ? "text-foreground" : "text-muted-foreground"}`} />
+      <Icon className={`ml-2 h-3.5 w-3.5 ${isActive ? "text-foreground" : "text-muted-foreground"}`} />
     </button>
   );
 }
@@ -146,7 +154,7 @@ export const TranscriptTable = React.memo(({
 }: TranscriptTableProps) => {
   const isHome = tableMode === 'home';
   const columnOptions = isHome ? homeColumnOptions : workspaceColumnOptions;
-  const { sortField, sortDirection: _sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
+  const { sortField, sortDirection, sortedData: sortedCalls, handleSort } = useTableSort(calls, "date");
 
   // Extract UUID recording IDs for batch workspace entries fetch
   // Use canonical_uuid (always UUID) instead of recording_id (may be legacy BIGINT)
@@ -219,21 +227,21 @@ export const TranscriptTable = React.memo(({
                   </TooltipProvider>
                 </TableHead>
                 <TableHead className="min-w-[150px] md:min-w-[200px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
-                  <SortButton field="title" sortField={sortField} onSort={handleSort}>TITLE</SortButton>
+                  <SortButton field="title" sortField={sortField} sortDirection={sortDirection} onSort={handleSort}>TITLE</SortButton>
                 </TableHead>
                 {visibleColumns.date !== false && (
                   <TableHead className="min-w-[100px] md:min-w-[120px] h-10 md:h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="date" sortField={sortField} onSort={handleSort}>DATE</SortButton>
+                    <SortButton field="date" sortField={sortField} sortDirection={sortDirection} onSort={handleSort}>DATE</SortButton>
                   </TableHead>
                 )}
                 {visibleColumns.duration !== false && (
                   <TableHead className="hidden lg:table-cell text-center w-[80px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="duration" sortField={sortField} onSort={handleSort}>DURATION</SortButton>
+                    <SortButton field="duration" sortField={sortField} sortDirection={sortDirection} onSort={handleSort}>DURATION</SortButton>
                   </TableHead>
                 )}
                 {visibleColumns.participants !== false && (
                   <TableHead className="hidden lg:table-cell text-center w-[85px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="participants" sortField={sortField} onSort={handleSort}>INVITEES</SortButton>
+                    <SortButton field="participants" sortField={sortField} sortDirection={sortDirection} onSort={handleSort}>INVITEES</SortButton>
                   </TableHead>
                 )}
                 {(
@@ -241,7 +249,7 @@ export const TranscriptTable = React.memo(({
                 )}
                 {isHome && visibleColumns.source !== false && (
                   <TableHead className="hidden lg:table-cell min-w-[100px] h-11 whitespace-nowrap py-2 text-xs md:text-sm">
-                    <SortButton field="source" sortField={sortField} onSort={handleSort}>SOURCE</SortButton>
+                    <SortButton field="source" sortField={sortField} sortDirection={sortDirection} onSort={handleSort}>SOURCE</SortButton>
                   </TableHead>
                 )}
                 {visibleColumns.tags !== false && (
