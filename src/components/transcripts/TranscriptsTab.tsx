@@ -159,14 +159,9 @@ export function TranscriptsTab({
 
     const loadHostEmail = async () => {
       try {
-        const userResponse = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
 
-        if (userResponse.error) {
-          logger.warn("Error getting user for host email", userResponse.error);
-          return;
-        }
-
-        const user = userResponse.data?.user;
         if (!user) return;
 
         const { data, error } = await supabase
@@ -344,7 +339,8 @@ export function TranscriptsTab({
     gcTime: 5 * 60 * 1000,    // keep in cache for 5 minutes
     placeholderData: keepPreviousData, // smooth page transitions
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { session } } = await supabase.auth.getSession();
+      const user = session?.user;
       if (!user) throw new Error("Not authenticated");
 
       const offset = (page - 1) * pageSize;
@@ -1292,7 +1288,7 @@ export function TranscriptsTab({
                     onCallClick={(call) => {
                       usePanelStore.getState().openPanel('call-detail', {
                         type: 'call-detail',
-                        recordingId: call.recording_id as number,
+                        recordingId: call.recording_id,
                         title: call.title,
                       });
                     }}
