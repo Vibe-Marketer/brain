@@ -3,6 +3,7 @@
 const DEFAULT_ORIGINS = [
   'https://callvault.vercel.app',
   'https://app.callvaultai.com',
+  'http://localhost:3001',
   'http://localhost:8080',
   'http://localhost:5173',
 ];
