@@ -625,9 +625,11 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                  {workspaces.length === 0 && (
                     <div className="px-3 py-6 text-center border-2 border-dashed border-border/20 rounded-xl">
                       <p className="text-[10px] text-muted-foreground/60 italic">No workspaces found in this org.</p>
-                      <Button variant="ghost" size="sm" className="mt-2 text-[10px] h-7" onClick={() => setCreateWsOpen(true)}>
-                        Create One
-                      </Button>
+                      {canCreateWorkspace && (
+                        <Button variant="ghost" size="sm" className="mt-2 text-[10px] h-7" onClick={() => setCreateWsOpen(true)}>
+                          Create One
+                        </Button>
+                      )}
                     </div>
                  )}
                </div>

@@ -28,21 +28,18 @@ export const usePanelStore = create<PanelState>((set, get) => ({
 
   openPanel: (type: PanelType, data: PanelData = null) => {
     const current = get();
-    
-    // Add current panel to history if it exists
-    if (current.panelType) {
-      set({
-        panelHistory: [
-          ...current.panelHistory,
-          { type: current.panelType, data: current.panelData }
-        ]
-      });
-    }
 
+    // Build updated history: append current panel if one exists, then cap at 10
+    const updatedHistory = current.panelType
+      ? [...current.panelHistory, { type: current.panelType, data: current.panelData }].slice(-10)
+      : current.panelHistory;
+
+    // Single atomic update to avoid one-frame visual glitches
     set({
       isPanelOpen: true,
       panelType: type,
-      panelData: data
+      panelData: data,
+      panelHistory: updatedHistory,
     });
   },
 

@@ -36,9 +36,12 @@ export default function Settings() {
           (categoryConfig.requiredRoles.includes("ADMIN") && isAdmin) ||
           (categoryConfig.requiredRoles.includes("TEAM") && (isTeam || isAdmin));
 
-        if (hasAccess && selectedCategory !== urlCategory) {
-          setSelectedCategory(urlCategory as SettingsCategory);
-        } else if (!hasAccess) {
+        if (hasAccess) {
+          // Use functional setter to read current value without a stale closure
+          setSelectedCategory((prev) =>
+            prev !== urlCategory ? (urlCategory as SettingsCategory) : prev
+          );
+        } else {
           // Redirect to base settings if user doesn't have access
           navigate("/settings", { replace: true });
         }
@@ -49,8 +52,10 @@ export default function Settings() {
     } else if (!roleLoading) {
       // Auto-select first category if no URL category
       const firstCategory = SETTINGS_CATEGORIES[0];
-      if (firstCategory && selectedCategory !== firstCategory.id) {
-        setSelectedCategory(firstCategory.id);
+      if (firstCategory) {
+        setSelectedCategory((prev) =>
+          prev !== firstCategory.id ? firstCategory.id : prev
+        );
         navigate(`/settings/${firstCategory.id}`, { replace: true });
       }
     }

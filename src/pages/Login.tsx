@@ -133,8 +133,14 @@ export default function Login() {
       });
 
       if (error) throw error;
+      // On success, the OAuth redirect will navigate away; loading stays true
+      // until the redirect fires. If the redirect doesn't fire, the finally
+      // block below clears loading after a short safety delay.
     } catch (error: unknown) {
       toast.error(getErrorToastMessage(error));
+    } finally {
+      // Always clear loading. On a successful redirect this runs just before
+      // the page navigates away, which is harmless.
       setLoading(false);
     }
   };

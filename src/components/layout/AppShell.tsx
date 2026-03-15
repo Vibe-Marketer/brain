@@ -21,11 +21,13 @@
 
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
+import { useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useBreakpointFlags } from '@/hooks/useBreakpoint';
 import { SidebarNav } from '@/components/ui/sidebar-nav';
 import { SidebarToggle } from './SidebarToggle';
 import { DetailPaneOutlet } from './DetailPaneOutlet';
+import { usePanelStore } from '@/stores/panelStore';
 
 /**
  * DEV-MODE CHECK: Detects if AppShell is incorrectly wrapped in Layout.tsx's card container.
@@ -125,6 +127,13 @@ export function AppShell({
     onLibraryToggle,
     onSettingsClick,
   } = config;
+
+  // Clear panel history on route changes
+  const location = useLocation();
+  const { clearHistory } = usePanelStore();
+  useEffect(() => {
+    clearHistory();
+  }, [location.pathname, clearHistory]);
 
   // Responsive breakpoints
   const { isMobile, isTablet } = useBreakpointFlags();
