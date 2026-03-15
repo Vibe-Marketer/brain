@@ -108,9 +108,11 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
    * Persists to localStorage for next session.
    */
   initialize: (orgId: string, workspaceId?: string) => {
-    const wsId = workspaceId ?? null
-    set({ activeOrgId: orgId, activeWorkspaceId: wsId, isInitialized: true })
-    persistContext(orgId, wsId)
+    set((state) => {
+      const wsId = workspaceId ?? state.activeWorkspaceId
+      persistContext(orgId, wsId)
+      return { activeOrgId: orgId, activeWorkspaceId: wsId, isInitialized: true }
+    })
   },
 
   /** Reset for logout — clears all context and localStorage. */
