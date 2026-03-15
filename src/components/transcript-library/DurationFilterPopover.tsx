@@ -24,6 +24,17 @@ export function DurationFilterPopover({
   const [rangeMin, setRangeMin] = useState<number>(durationMin || 15);
   const [rangeMax, setRangeMax] = useState<number>(durationMax || 60);
 
+  // Sync local state from props when popover opens so that clearing via pill
+  // and re-opening shows the correct (empty) state rather than stale values.
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setSingleValue(durationMin || durationMax || 30);
+      setRangeMin(durationMin || 15);
+      setRangeMax(durationMax || 60);
+    }
+    setIsOpen(open);
+  };
+
   const handleLessThan = () => {
     onDurationChange(undefined, singleValue);
     setIsOpen(false);
@@ -47,7 +58,7 @@ export function DurationFilterPopover({
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <FilterButton
           icon={<RiTimeLine className="h-3.5 w-3.5" />}
