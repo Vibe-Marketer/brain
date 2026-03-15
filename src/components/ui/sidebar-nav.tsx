@@ -28,12 +28,14 @@ import {
   RiShareLine,
   RiShareFill,
   RiQuestionLine,
+  RiInformationLine,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { useUserRole } from '@/hooks/useUserRole';
 import { startTour } from '@/lib/tour';
+import { HowItWorksModal } from '@/components/onboarding/HowItWorksModal';
 
 interface NavItem {
   id: string;
@@ -108,6 +110,7 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
   const location = useLocation();
   const { role } = useUserRole();
   const { isFeatureEnabled } = useFeatureFlags(role);
+  const [showHowItWorks, setShowHowItWorks] = React.useState(false);
 
   // Filter nav items based on feature flags
   const filteredNavItems = React.useMemo(() => {
@@ -290,7 +293,48 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
             <span className="truncate text-xs">Take the tour</span>
           )}
         </button>
+
+        {/* How it works button */}
+        <button
+          type="button"
+          onClick={() => setShowHowItWorks(true)}
+          title="How it works"
+          className={cn(
+            'w-full flex items-center gap-3 rounded-lg px-3 py-2',
+            'text-sm text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            isCollapsed && 'justify-center px-2 hover:bg-transparent',
+          )}
+          aria-label="How it works"
+        >
+          {isCollapsed ? (
+            <div className={cn(
+              'w-11 h-11 rounded-xl flex items-center justify-center',
+              'bg-gradient-to-br from-white to-gray-200',
+              'border border-gray-300/80',
+              'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
+              'dark:from-gray-700 dark:to-gray-800 dark:border-border',
+              'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
+            )}>
+              <RiInformationLine className="w-5 h-5 flex-shrink-0 text-foreground" aria-hidden="true" />
+            </div>
+          ) : (
+            <RiInformationLine
+              className="w-4 h-4 flex-shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+          )}
+          {!isCollapsed && (
+            <span className="truncate text-xs">How it works</span>
+          )}
+        </button>
       </div>
+
+      {/* How it works modal */}
+      <HowItWorksModal
+        open={showHowItWorks}
+        onComplete={() => setShowHowItWorks(false)}
+      />
     </div>
   );
 }

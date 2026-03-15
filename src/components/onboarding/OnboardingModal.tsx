@@ -1,10 +1,11 @@
 /**
  * OnboardingModal — First-run wizard for new CallVault users.
  *
- * 3-step flow:
+ * 4-step flow:
  *   Step 0 — Welcome (value prop + feature bullets)
  *   Step 1 — Connect your first source
- *   Step 2 — You're all set (tips + CTA)
+ *   Step 2 — How It Works (interactive model explainer)
+ *   Step 3 — You're all set (tips + CTA)
  *
  * Completion marks user_profiles.onboarding_completed = true via useOnboarding().
  *
@@ -36,6 +37,7 @@ import {
   RiCheckLine,
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";
+import { HowItWorksContent } from "./HowItWorksModal";
 
 interface OnboardingModalProps {
   open: boolean;
@@ -43,7 +45,7 @@ interface OnboardingModalProps {
   onOpenChange?: (open: boolean) => void;
 }
 
-const TOTAL_STEPS = 3;
+const TOTAL_STEPS = 4;
 
 /* ─────────────────────────── Step dot indicator ─────────────────────────── */
 
@@ -173,7 +175,7 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
         // Block close on step 0 — user must engage
         return;
       }
-      // Steps 1-2: closing completes onboarding
+      // Steps 1-3: closing completes onboarding
       handleFinish();
     }
     onOpenChange?.(nextOpen);
@@ -302,7 +304,24 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
     </motion.div>
   );
 
-  /* ── Step 2: You're ready ── */
+  /* ── Step 2: How It Works ── */
+  const stepHowItWorks = (
+    <motion.div
+      key="step-how-it-works"
+      initial={{ opacity: 0, x: 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -24 }}
+      transition={{ duration: 0.22, ease: "easeInOut" }}
+      className="flex flex-col"
+    >
+      <HowItWorksContent
+        onComplete={() => setStep(3)}
+        onBack={() => setStep(1)}
+      />
+    </motion.div>
+  );
+
+  /* ── Step 3: You're ready ── */
   const stepReady = (
     <motion.div
       key="step-ready"
@@ -320,7 +339,7 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
         You're all set!
       </DialogTitle>
       <DialogDescription className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-sm">
-        Your workspace is ready. Here's what you can do next:
+        Your workspace is ready. Take the interactive tour to see the features in action.
       </DialogDescription>
 
       <div className="mt-5 w-full space-y-3 text-left">
@@ -355,7 +374,7 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
     </motion.div>
   );
 
-  const steps = [stepWelcome, stepConnect, stepReady];
+  const steps = [stepWelcome, stepConnect, stepHowItWorks, stepReady];
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
