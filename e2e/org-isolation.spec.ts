@@ -1,4 +1,4 @@
-import { test, expect, type Page, type BrowserContext } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -7,71 +7,37 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /**
  * Phase 6 — Org Isolation Tests
  *
- * Verifies that a user from Org A cannot see Org B's data in:
+ * Verifies that data from one org does not appear in another org's:
  *  - Tags filter popover
  *  - Folders filter popover
  *  - Contacts filter popover
  *  - Transcript table search results
  *
- * Requirements:
- *   Two separate sets of credentials must be provided via environment variables:
- *     CALLVAULTAI_LOGIN          — Org A user email
- *     CALLVAULTAI_LOGIN_PASSWORD — Org A user password
- *     CALLVAULTAI_ORG_B_LOGIN    — Org B user email
- *     CALLVAULTAI_ORG_B_PASSWORD — Org B user password
- *
- *   If either Org B credential is absent, all tests in this file are skipped
- *   gracefully. This allows the suite to run in environments with only one
- *   org's credentials available.
- *
  * Strategy:
- *   1. Log in as Org B, collect the list of tags, folders, contacts, and a
- *      unique transcript title visible to Org B.
- *   2. Log in as Org A (primary credentials, already stored in storageState).
- *   3. Assert that Org B's data does NOT appear in any filter popover or
- *      search result for the Org A session.
+ *   1. Log in as the single test user (stored auth state from auth.setup.ts).
+ *   2. Open the org switcher to discover all orgs available to this user.
+ *   3. If only one org is found, skip gracefully.
+ *   4. Switch to Org B (the second org), collect its tags/folders/contacts/titles.
+ *   5. Switch back to Org A (the first org), collect the same data.
+ *   6. Assert that Org A's filter popovers and search results contain ZERO
+ *      items from Org B's data.
+ *
+ * Auth:
+ *   Uses the storageState from playwright/.auth/user.json (produced by
+ *   auth.setup.ts). No second set of credentials is needed.
  *
  * @phase 06-e2e-tests
  */
 
 // ---------------------------------------------------------------------------
-// Check if Org B credentials are available
-// ---------------------------------------------------------------------------
-const ORG_B_LOGIN = process.env.CALLVAULTAI_ORG_B_LOGIN;
-const ORG_B_PASSWORD = process.env.CALLVAULTAI_ORG_B_PASSWORD;
-const ORG_A_LOGIN = process.env.CALLVAULTAI_LOGIN;
-const ORG_A_PASSWORD = process.env.CALLVAULTAI_LOGIN_PASSWORD;
-
-const hasOrgBCredentials = !!(ORG_B_LOGIN && ORG_B_PASSWORD);
-const hasOrgACredentials = !!(ORG_A_LOGIN && ORG_A_PASSWORD);
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-async function loginAs(page: Page, email: string, password: string) {
-  await page.goto('/login');
-  const emailInput = page.locator('input[type="email"]');
-  await expect(emailInput).toBeVisible({ timeout: 20_000 });
-  await emailInput.fill(email);
-
-  const passwordInput = page.locator('input[type="password"]');
-  await expect(passwordInput).toBeVisible();
-  await passwordInput.fill(password);
-
-  const signInBtn = page.getByRole('button', { name: /sign in/i }).first();
-  await signInBtn.click();
-
-  await page.waitForURL((url) => !url.toString().includes('/login'), {
-    timeout: 30_000,
-  });
-  await expect(page.locator('nav').first()).toBeVisible({ timeout: 15_000 });
-}
-
-async function goToTranscripts(page: Page) {
+/** Navigate to /transcripts and wait for the filter bar to load. */
+async function goToTranscripts(page: import('@playwright/test').Page) {
   await page.goto('/transcripts');
   await page.waitForLoadState('networkidle');
-  // Wait for filter bar to appear
+  // Wait for at least one of the filter buttons to be visible
   await expect(
     page.getByRole('button', { name: /^tag$/i }).or(
       page.getByRole('button', { name: /^folder$/i })
@@ -79,8 +45,76 @@ async function goToTranscripts(page: Page) {
   ).toBeVisible({ timeout: 20_000 });
 }
 
+/**
+ * Open the OrganizationSwitcher dropdown and return all org names listed.
+ * The trigger button contains the current org name + a down-arrow icon.
+ * We identify it as the button that opens the org dropdown.
+ */
+async function getAvailableOrgs(page: import('@playwright/test').Page): Promise<string[]> {
+  // The org switcher trigger is a Button (variant="outline") in the top-bar header
+  // containing either "Personal Organization" text or the active org name.
+  // We click it, then collect all DropdownMenuItem texts (excluding action items).
+  const trigger = page
+    .locator('header')
+    .getByRole('button')
+    .filter({ hasText: /(Personal Organization|[A-Za-z])/ })
+    .first();
+
+  await trigger.click();
+
+  // Wait for the dropdown content to appear
+  const dropdownContent = page.locator('[data-radix-popper-content-wrapper]').last();
+  await expect(dropdownContent).toBeVisible({ timeout: 10_000 });
+
+  // Collect org names from dropdown items — exclude action items like
+  // "Create Organization" and "Manage Organizations"
+  const allItems = await dropdownContent.locator('[role="menuitem"]').allTextContents();
+  const orgNames = allItems
+    .map((t) => t.trim())
+    .filter(
+      (t) =>
+        t &&
+        !t.includes('Create Organization') &&
+        !t.includes('Manage Organizations')
+    );
+
+  // Close the dropdown without selecting anything
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(300);
+
+  return orgNames;
+}
+
+/**
+ * Switch to the org with the given name via the org switcher dropdown.
+ * Waits for the page to stabilise after switching.
+ */
+async function switchToOrg(page: import('@playwright/test').Page, orgName: string) {
+  const trigger = page
+    .locator('header')
+    .getByRole('button')
+    .filter({ hasText: /(Personal Organization|[A-Za-z])/ })
+    .first();
+
+  await trigger.click();
+
+  const dropdownContent = page.locator('[data-radix-popper-content-wrapper]').last();
+  await expect(dropdownContent).toBeVisible({ timeout: 10_000 });
+
+  // Click the menu item that contains the org name
+  await dropdownContent
+    .locator('[role="menuitem"]')
+    .filter({ hasText: orgName })
+    .first()
+    .click();
+
+  // Give the app time to update context and re-fetch data
+  await page.waitForLoadState('networkidle');
+  await page.waitForTimeout(1_000);
+}
+
 /** Collect all tag names visible in the Tag filter popover. */
-async function collectVisibleTags(page: Page): Promise<string[]> {
+async function collectVisibleTags(page: import('@playwright/test').Page): Promise<string[]> {
   const tagBtn = page.getByRole('button', { name: /^tag$/i });
   const visible = await tagBtn.isVisible().catch(() => false);
   if (!visible) return [];
@@ -88,7 +122,6 @@ async function collectVisibleTags(page: Page): Promise<string[]> {
   await tagBtn.click();
   await page.locator('input[placeholder="Search tags..."]').waitFor({ timeout: 5_000 });
 
-  // Collect all tag label texts
   const labels = await page
     .locator('div.space-y-1\\.5 label div.font-medium')
     .allTextContents();
@@ -98,7 +131,7 @@ async function collectVisibleTags(page: Page): Promise<string[]> {
 }
 
 /** Collect all folder names visible in the Folder filter popover. */
-async function collectVisibleFolders(page: Page): Promise<string[]> {
+async function collectVisibleFolders(page: import('@playwright/test').Page): Promise<string[]> {
   const folderBtn = page.getByRole('button', { name: /^folder$/i });
   const visible = await folderBtn.isVisible().catch(() => false);
   if (!visible) return [];
@@ -106,7 +139,6 @@ async function collectVisibleFolders(page: Page): Promise<string[]> {
   await folderBtn.click();
   await page.getByText('Select Folders').waitFor({ timeout: 5_000 });
 
-  // Folder labels are <span class="truncate"> inside label elements (excluding "Unorganized")
   const spans = await page
     .locator('label span.truncate')
     .allTextContents();
@@ -116,7 +148,7 @@ async function collectVisibleFolders(page: Page): Promise<string[]> {
 }
 
 /** Collect all contact names/emails visible in the Contacts filter popover. */
-async function collectVisibleContacts(page: Page): Promise<string[]> {
+async function collectVisibleContacts(page: import('@playwright/test').Page): Promise<string[]> {
   const contactsBtn = page.getByRole('button', { name: /^contacts$/i });
   const visible = await contactsBtn.isVisible().catch(() => false);
   if (!visible) return [];
@@ -124,7 +156,6 @@ async function collectVisibleContacts(page: Page): Promise<string[]> {
   await contactsBtn.click();
   await page.locator('input[placeholder="Search contacts..."]').waitFor({ timeout: 5_000 });
 
-  // Contact labels show name (font-medium) + email, or just email
   const popoverContent = page.locator('[data-radix-popper-content-wrapper]').last();
   const names = await popoverContent.locator('label div.font-medium').allTextContents();
   const emails = await popoverContent.locator('label span.truncate').allTextContents();
@@ -134,11 +165,35 @@ async function collectVisibleContacts(page: Page): Promise<string[]> {
 }
 
 /** Collect all visible transcript titles from the table first page. */
-async function collectTranscriptTitles(page: Page): Promise<string[]> {
-  // Transcript title cells are in <td> elements in tbody rows.
-  // The title link/button is inside the first data cell.
+async function collectTranscriptTitles(page: import('@playwright/test').Page): Promise<string[]> {
   const titleCells = page.locator('tbody tr[role="row"] td:nth-child(2)');
   return titleCells.allTextContents();
+}
+
+// ---------------------------------------------------------------------------
+// Org discovery — shared across all tests in this file
+// ---------------------------------------------------------------------------
+
+/**
+ * Discover which orgs are available to the test user, then return:
+ *   { orgAName, orgBName } if two or more orgs exist, or null if only one.
+ *
+ * We treat the first org in the list as "Org A" and the second as "Org B".
+ */
+async function discoverOrgs(
+  page: import('@playwright/test').Page
+): Promise<{ orgAName: string; orgBName: string } | null> {
+  await page.goto('/transcripts');
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('header')).toBeVisible({ timeout: 15_000 });
+
+  const orgs = await getAvailableOrgs(page);
+
+  if (orgs.length < 2) {
+    return null;
+  }
+
+  return { orgAName: orgs[0], orgBName: orgs[1] };
 }
 
 // ---------------------------------------------------------------------------
@@ -146,54 +201,32 @@ async function collectTranscriptTitles(page: Page): Promise<string[]> {
 // ---------------------------------------------------------------------------
 
 test.describe('Org Isolation — Cross-org data leakage check', () => {
-  test.beforeEach(async ({}) => {
-    if (!hasOrgBCredentials) {
-      test.skip();
-    }
-  });
+  // All tests in this suite use the pre-authenticated storageState
+  // (set by auth.setup.ts). No separate login step needed.
 
-  test('Org A user cannot see Org B tags in filter popover', async ({
-    browser,
-  }) => {
-    if (!hasOrgBCredentials || !hasOrgACredentials) {
-      test.skip();
+  test('Org A user cannot see Org B tags in filter popover', async ({ page }) => {
+    const orgs = await discoverOrgs(page);
+    if (!orgs) {
+      test.skip(true, 'Test user only has one org — cannot verify cross-org isolation');
       return;
     }
 
-    // --- Step 1: Collect Org B's tags ---
-    const orgBContext: BrowserContext = await browser.newContext();
-    const orgBPage = await orgBContext.newPage();
+    const { orgAName, orgBName } = orgs;
 
-    await loginAs(orgBPage, ORG_B_LOGIN!, ORG_B_PASSWORD!);
-    await goToTranscripts(orgBPage);
-    const orgBTags = await collectVisibleTags(orgBPage);
-
-    await orgBContext.close();
+    // --- Collect Org B's tags ---
+    await switchToOrg(page, orgBName);
+    await goToTranscripts(page);
+    const orgBTags = await collectVisibleTags(page);
 
     if (orgBTags.length === 0) {
-      // Org B has no tags — cannot verify isolation, skip
-      test.skip();
+      test.skip(true, 'Org B has no tags — cannot verify tag isolation');
       return;
     }
 
-    // --- Step 2: Check Org A's tags (uses auth from storageState) ---
-    // The storageState for Org A was set by auth.setup.ts and is injected
-    // automatically because this project depends on the 'setup' project.
-    // We need a fresh context without storageState to re-login as Org A here,
-    // OR we rely on the default page fixture which already has Org A's auth.
-    //
-    // Since we've already verified Org B tags exist, now we verify they don't
-    // appear for Org A. The page fixture already has Org A's auth state.
-
-    const orgAContext: BrowserContext = await browser.newContext({
-      storageState: path.join(__dirname, '../playwright/.auth/user.json'),
-    });
-    const orgAPage = await orgAContext.newPage();
-
-    await goToTranscripts(orgAPage);
-    const orgATags = await collectVisibleTags(orgAPage);
-
-    await orgAContext.close();
+    // --- Switch to Org A and check its tags ---
+    await switchToOrg(page, orgAName);
+    await goToTranscripts(page);
+    const orgATags = await collectVisibleTags(page);
 
     // Assert that none of Org B's tags appear in Org A's filter popover
     for (const orgBTag of orgBTags) {
@@ -204,39 +237,29 @@ test.describe('Org Isolation — Cross-org data leakage check', () => {
     }
   });
 
-  test('Org A user cannot see Org B folders in filter popover', async ({
-    browser,
-  }) => {
-    if (!hasOrgBCredentials || !hasOrgACredentials) {
-      test.skip();
+  test('Org A user cannot see Org B folders in filter popover', async ({ page }) => {
+    const orgs = await discoverOrgs(page);
+    if (!orgs) {
+      test.skip(true, 'Test user only has one org — cannot verify cross-org isolation');
       return;
     }
 
-    // Collect Org B's folders
-    const orgBContext: BrowserContext = await browser.newContext();
-    const orgBPage = await orgBContext.newPage();
+    const { orgAName, orgBName } = orgs;
 
-    await loginAs(orgBPage, ORG_B_LOGIN!, ORG_B_PASSWORD!);
-    await goToTranscripts(orgBPage);
-    const orgBFolders = await collectVisibleFolders(orgBPage);
-
-    await orgBContext.close();
+    // --- Collect Org B's folders ---
+    await switchToOrg(page, orgBName);
+    await goToTranscripts(page);
+    const orgBFolders = await collectVisibleFolders(page);
 
     if (orgBFolders.length === 0) {
-      test.skip();
+      test.skip(true, 'Org B has no folders — cannot verify folder isolation');
       return;
     }
 
-    // Check Org A's folders
-    const orgAContext: BrowserContext = await browser.newContext({
-      storageState: path.join(__dirname, '../playwright/.auth/user.json'),
-    });
-    const orgAPage = await orgAContext.newPage();
-
-    await goToTranscripts(orgAPage);
-    const orgAFolders = await collectVisibleFolders(orgAPage);
-
-    await orgAContext.close();
+    // --- Switch to Org A and check its folders ---
+    await switchToOrg(page, orgAName);
+    await goToTranscripts(page);
+    const orgAFolders = await collectVisibleFolders(page);
 
     for (const orgBFolder of orgBFolders) {
       expect(
@@ -246,39 +269,29 @@ test.describe('Org Isolation — Cross-org data leakage check', () => {
     }
   });
 
-  test('Org A user cannot see Org B contacts in filter popover', async ({
-    browser,
-  }) => {
-    if (!hasOrgBCredentials || !hasOrgACredentials) {
-      test.skip();
+  test('Org A user cannot see Org B contacts in filter popover', async ({ page }) => {
+    const orgs = await discoverOrgs(page);
+    if (!orgs) {
+      test.skip(true, 'Test user only has one org — cannot verify cross-org isolation');
       return;
     }
 
-    // Collect Org B's contacts
-    const orgBContext: BrowserContext = await browser.newContext();
-    const orgBPage = await orgBContext.newPage();
+    const { orgAName, orgBName } = orgs;
 
-    await loginAs(orgBPage, ORG_B_LOGIN!, ORG_B_PASSWORD!);
-    await goToTranscripts(orgBPage);
-    const orgBContacts = await collectVisibleContacts(orgBPage);
-
-    await orgBContext.close();
+    // --- Collect Org B's contacts ---
+    await switchToOrg(page, orgBName);
+    await goToTranscripts(page);
+    const orgBContacts = await collectVisibleContacts(page);
 
     if (orgBContacts.length === 0) {
-      test.skip();
+      test.skip(true, 'Org B has no contacts — cannot verify contact isolation');
       return;
     }
 
-    // Check Org A's contacts
-    const orgAContext: BrowserContext = await browser.newContext({
-      storageState: path.join(__dirname, '../playwright/.auth/user.json'),
-    });
-    const orgAPage = await orgAContext.newPage();
-
-    await goToTranscripts(orgAPage);
-    const orgAContacts = await collectVisibleContacts(orgAPage);
-
-    await orgAContext.close();
+    // --- Switch to Org A and check its contacts ---
+    await switchToOrg(page, orgAName);
+    await goToTranscripts(page);
+    const orgAContacts = await collectVisibleContacts(page);
 
     for (const orgBContact of orgBContacts) {
       expect(
@@ -288,65 +301,49 @@ test.describe('Org Isolation — Cross-org data leakage check', () => {
     }
   });
 
-  test('Org A user cannot see Org B transcripts in search results', async ({
-    browser,
-  }) => {
-    if (!hasOrgBCredentials || !hasOrgACredentials) {
-      test.skip();
+  test('Org A user cannot see Org B transcripts in search results', async ({ page }) => {
+    const orgs = await discoverOrgs(page);
+    if (!orgs) {
+      test.skip(true, 'Test user only has one org — cannot verify cross-org isolation');
       return;
     }
 
-    // Collect Org B's transcript titles
-    const orgBContext: BrowserContext = await browser.newContext();
-    const orgBPage = await orgBContext.newPage();
+    const { orgAName, orgBName } = orgs;
 
-    await loginAs(orgBPage, ORG_B_LOGIN!, ORG_B_PASSWORD!);
-    await goToTranscripts(orgBPage);
-    const orgBTitles = await collectTranscriptTitles(orgBPage);
-
-    await orgBContext.close();
+    // --- Collect Org B's transcript titles ---
+    await switchToOrg(page, orgBName);
+    await goToTranscripts(page);
+    const orgBTitles = await collectTranscriptTitles(page);
 
     if (orgBTitles.length === 0) {
-      test.skip();
+      test.skip(true, 'Org B has no transcripts — cannot verify transcript isolation');
       return;
     }
 
-    // Take the first Org B title as our canary
     const canaryTitle = orgBTitles[0].trim();
     if (!canaryTitle) {
-      test.skip();
+      test.skip(true, 'Org B transcript title is empty — cannot use as canary');
       return;
     }
 
-    // Check Org A's search results for the canary title
-    const orgAContext: BrowserContext = await browser.newContext({
-      storageState: path.join(__dirname, '../playwright/.auth/user.json'),
-    });
-    const orgAPage = await orgAContext.newPage();
+    // --- Switch to Org A and search for the Org B canary title ---
+    await switchToOrg(page, orgAName);
+    await goToTranscripts(page);
 
-    await goToTranscripts(orgAPage);
-
-    // Search for the Org B transcript title
-    const searchInput = orgAPage.locator('input[placeholder="Search"]');
+    const searchInput = page.locator('input[placeholder="Search"]');
     const hasSearch = await searchInput.isVisible().catch(() => false);
 
     if (hasSearch) {
       await searchInput.fill(canaryTitle);
-      await orgAPage.waitForTimeout(1_500); // Let search debounce settle
+      await page.waitForTimeout(1_500); // Let search debounce settle
 
-      const orgATitles = await collectTranscriptTitles(orgAPage);
-
-      // None of the results for Org A should exactly match the canary title
-      const exactMatch = orgATitles.some(
-        (t) => t.trim() === canaryTitle
-      );
+      const orgATitles = await collectTranscriptTitles(page);
+      const exactMatch = orgATitles.some((t) => t.trim() === canaryTitle);
 
       expect(
         exactMatch,
         `Org A search results must not contain Org B transcript: "${canaryTitle}"`
       ).toBe(false);
     }
-
-    await orgAContext.close();
   });
 });
