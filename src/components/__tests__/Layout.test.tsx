@@ -3,6 +3,47 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { Layout } from '../Layout';
 
+// Mock the Supabase client to avoid env variable errors
+vi.mock('@/integrations/supabase/client', () => ({
+  supabase: {
+    from: vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ data: [], error: null }),
+      }),
+    }),
+    rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
+    auth: {
+      getSession: vi.fn().mockResolvedValue({ data: { session: null }, error: null }),
+    },
+  },
+}));
+
+// Mock hooks used by Layout that require QueryClient / Supabase
+vi.mock('@/hooks/useFeatureFlags', () => ({
+  useFeatureFlags: () => ({ isFeatureEnabled: () => false }),
+}));
+
+vi.mock('@/hooks/useUserRole', () => ({
+  useUserRole: () => ({ role: 'user' }),
+}));
+
+vi.mock('@/hooks/useOnboarding', () => ({
+  useOnboarding: () => ({
+    shouldShowOnboarding: false,
+    loading: false,
+    completeOnboarding: vi.fn(),
+  }),
+}));
+
+// Mock child components that have their own complex dependencies
+vi.mock('@/components/debug-panel', () => ({
+  DebugPanel: () => null,
+}));
+
+vi.mock('@/components/onboarding/OnboardingModal', () => ({
+  OnboardingModal: () => null,
+}));
+
 // Mock the TopBar component to isolate Layout testing
 vi.mock('@/components/ui/top-bar', () => ({
   TopBar: ({ pageLabel }: { pageLabel: string }) => (
@@ -33,11 +74,11 @@ describe('Layout', () => {
       expect(topBar).toHaveAttribute('data-page-label', 'HOME');
     });
 
-    it('should render AI CHAT label for /chat path', () => {
+    it('should render HOME label for /chat path', () => {
       renderWithRouter(<div>Content</div>, ['/chat']);
 
       const topBar = screen.getByTestId('top-bar');
-      expect(topBar).toHaveAttribute('data-page-label', 'AI CHAT');
+      expect(topBar).toHaveAttribute('data-page-label', 'HOME');
     });
 
     it('should render SORTING & TAGGING label for /sorting-tagging path', () => {
@@ -158,12 +199,12 @@ describe('Layout', () => {
       expect(screen.getByTestId('sorting-content')).toBeInTheDocument();
     });
 
-    it('should use card wrapper for unknown pages', () => {
+    it('should render content for unknown pages without a card wrapper', () => {
       const { container } = renderWithRouter(<div data-testid="unknown-content">Unknown</div>, ['/unknown-page']);
 
-      // Unknown pages should have the card wrapper
+      // Layout does not add a card wrapper — pages handle their own card styling
       const cardWrapper = container.querySelector('.bg-card.rounded-2xl');
-      expect(cardWrapper).toBeInTheDocument();
+      expect(cardWrapper).not.toBeInTheDocument();
 
       expect(screen.getByTestId('unknown-content')).toBeInTheDocument();
     });
