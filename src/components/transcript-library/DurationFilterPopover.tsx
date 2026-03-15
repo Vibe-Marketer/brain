@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { RiTimeLine } from "@remixicon/react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { FilterButton } from "./FilterButton";
@@ -19,11 +20,9 @@ export function DurationFilterPopover({
   const [isOpen, setIsOpen] = useState(false);
   // Single-handle slider value (used for less-than / more-than)
   const [singleValue, setSingleValue] = useState<number>(durationMin || durationMax || 30);
-  // Dual-handle slider values for range mode [min, max]
-  const [rangeValues, setRangeValues] = useState<number[]>([
-    durationMin || 15,
-    durationMax || 60,
-  ]);
+  // Range mode: separate min and max inputs
+  const [rangeMin, setRangeMin] = useState<number>(durationMin || 15);
+  const [rangeMax, setRangeMax] = useState<number>(durationMax || 60);
 
   const handleLessThan = () => {
     onDurationChange(undefined, singleValue);
@@ -36,7 +35,9 @@ export function DurationFilterPopover({
   };
 
   const handleBetween = () => {
-    onDurationChange(rangeValues[0], rangeValues[1]);
+    const min = Math.min(rangeMin, rangeMax);
+    const max = Math.max(rangeMin, rangeMax);
+    onDurationChange(min, max);
     setIsOpen(false);
   };
 
@@ -91,27 +92,38 @@ export function DurationFilterPopover({
             </div>
           </div>
 
-          {/* Dual-value slider for range (between X and Y) */}
+          {/* Range mode: between X and Y min */}
           <div className="space-y-2 border-t pt-4">
-            <div className="text-xs text-muted-foreground">
-              Range: <span className="font-medium text-foreground">{rangeValues[0]}–{rangeValues[1]} min</span>
+            <div className="text-xs text-muted-foreground">Between (min &ndash; max)</div>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={1}
+                max={180}
+                value={rangeMin}
+                onChange={(e) => setRangeMin(Math.max(1, Number(e.target.value)))}
+                className="h-8 text-xs w-20"
+                placeholder="Min"
+              />
+              <span className="text-xs text-muted-foreground">to</span>
+              <Input
+                type="number"
+                min={1}
+                max={600}
+                value={rangeMax}
+                onChange={(e) => setRangeMax(Math.max(1, Number(e.target.value)))}
+                className="h-8 text-xs w-20"
+                placeholder="Max"
+              />
+              <span className="text-xs text-muted-foreground">min</span>
             </div>
-            <Slider
-              value={rangeValues}
-              onValueChange={(value) => setRangeValues(value as [number, number])}
-              max={180}
-              min={5}
-              step={5}
-              minStepsBetweenThumbs={1}
-              className="w-full"
-            />
             <Button
               variant="hollow"
               size="sm"
               className="w-full"
               onClick={handleBetween}
             >
-              Between {rangeValues[0]}–{rangeValues[1]} min
+              Between {Math.min(rangeMin, rangeMax)}–{Math.max(rangeMin, rangeMax)} min
             </Button>
           </div>
 

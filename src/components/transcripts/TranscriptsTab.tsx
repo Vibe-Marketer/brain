@@ -677,8 +677,8 @@ export function TranscriptsTab({
       }
 
       // Filter bar folder filter — handles named folders and "unorganized" (no folder assigned)
-      if (\!selectedFolderId && combinedFilters.folders && combinedFilters.folders.length > 0) {
-        const namedFolderIds = combinedFilters.folders.filter((id) => id \!== 'unorganized');
+      if (!selectedFolderId && combinedFilters.folders && combinedFilters.folders.length > 0) {
+        const namedFolderIds = combinedFilters.folders.filter((id) => id !== 'unorganized');
         const includeUnorganized = combinedFilters.folders.includes('unorganized');
 
         const allowedRecordingIds = new Set<string>();
@@ -723,7 +723,7 @@ export function TranscriptsTab({
               .eq('organization_id', orgId);
 
             (allRecs || []).forEach((r: { id: string; legacy_recording_id: number | null }) => {
-              if (r.legacy_recording_id === null || \!assignedLegacyIds.has(r.legacy_recording_id)) {
+              if (r.legacy_recording_id === null || !assignedLegacyIds.has(r.legacy_recording_id)) {
                 allowedRecordingIds.add(r.id);
               }
             });
