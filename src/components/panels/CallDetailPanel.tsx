@@ -40,13 +40,13 @@ import { queryKeys } from "@/lib/query-config";
 import { groupTranscriptsBySpeaker } from "@/lib/transcriptUtils";
 import { TranscriptSegmentDisplay, Speaker, Category } from "@/types";
 import { logger } from "@/lib/logger";
-import { getRecordingByLegacyId } from "@/services/recordings.service";
+import { getRecordingById, getRecordingByLegacyId } from "@/services/recordings.service";
 import { getRawCallData } from "@/services/raw-calls.service";
 import type { RecordingDetail } from "@/services/recordings.service";
 import type { FathomRawCall, YouTubeRawCall } from "@/types/raw-calls";
 
 interface CallDetailPanelProps {
-  recordingId: number;
+  recordingId: number | string;
 }
 
 export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
@@ -58,7 +58,15 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
     queryKey: queryKeys.calls.detail(recordingId),
     queryFn: async () => {
       if (!user?.id) return null;
-      return getRecordingByLegacyId(recordingId);
+      // UUID strings contain hyphens and are 36 chars; integers (or integer strings) use the legacy path
+      const isUuid =
+        typeof recordingId === 'string' &&
+        recordingId.length === 36 &&
+        recordingId.includes('-');
+      if (isUuid) {
+        return getRecordingById(recordingId);
+      }
+      return getRecordingByLegacyId(Number(recordingId));
     },
     enabled: !!user?.id && !!recordingId,
   });

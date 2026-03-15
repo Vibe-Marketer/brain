@@ -32,7 +32,7 @@ export type PanelType =
  * Each panel type has its own specific data shape
  */
 export type PanelData =
-  | { type: 'call-detail'; recordingId: number; title?: string }
+  | { type: 'call-detail'; recordingId: number | string; title?: string }
   | { type: 'folder-detail'; folderId: string }
   | { type: 'tag-detail'; tagId: string }
   | { type: 'user-detail'; userId: string; onUserUpdated?: () => void }
