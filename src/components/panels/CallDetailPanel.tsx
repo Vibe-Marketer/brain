@@ -421,7 +421,7 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
               className="gap-1"
             >
               <RiVidiconLine className="h-4 w-4" />
-              View
+              View in Fathom
             </Button>
             <Button
               variant="hollow"

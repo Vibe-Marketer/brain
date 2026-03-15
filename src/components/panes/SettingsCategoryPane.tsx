@@ -89,7 +89,7 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
   },
   {
     id: "mcp",
-    label: "MCP / AI Access",
+    label: "AI Integrations",
     description: "Connect AI tools to your calls",
     icon: RiRobot2Line,
   },

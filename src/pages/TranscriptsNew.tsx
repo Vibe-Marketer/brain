@@ -269,8 +269,6 @@ const TranscriptsNew = () => {
                 searchQuery={searchQuery}
                 selectedFolderId={activeFolderId}
                 onTotalCountChange={setTotalCount}
-                sidebarState="expanded"
-                onToggleSidebar={() => {}}
                 folders={allFolders as any}
                 folderAssignments={allFolderAssignments}
                 assignToFolder={assignToFolder}
