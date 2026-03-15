@@ -64,6 +64,7 @@
     "date-fns": "^3.6.0",
     "date-fns-tz": "^3.2.0",
     "docx": "^9.5.1",
+    "driver.js": "^1.4.0",
     "emoji-picker-react": "^4.16.1",
     "file-saver": "^2.0.5",
     "gray-matter": "^4.0.3",

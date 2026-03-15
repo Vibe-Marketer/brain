@@ -11,6 +11,7 @@
  * styling should add it themselves.
  */
 
+import React, { useEffect } from "react";
 import { TopBar } from "@/components/ui/top-bar";
 import { useLocation } from "react-router-dom";
 import { DebugPanel } from "@/components/debug-panel";
@@ -18,12 +19,22 @@ import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
+import { startTour } from "@/lib/tour";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const { role } = useUserRole();
   const { isFeatureEnabled } = useFeatureFlags(role);
   const { shouldShowOnboarding, loading: onboardingLoading, completeOnboarding } = useOnboarding();
+
+  // Register a global tour starter so OnboardingModal (or any other code) can
+  // call `window.__startCallVaultTour()` without importing the module directly.
+  useEffect(() => {
+    (window as any).__startCallVaultTour = startTour;
+    return () => {
+      delete (window as any).__startCallVaultTour;
+    };
+  }, []);
 
   const getPageLabel = () => {
     if (location.pathname === '/') return 'HOME';

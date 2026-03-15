@@ -27,11 +27,13 @@ import {
   RiLayoutColumnLine,
   RiShareLine,
   RiShareFill,
+  RiQuestionLine,
 } from '@remixicon/react';
 import type { RemixiconComponentType } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useFeatureFlags } from '@/hooks/useFeatureFlags';
 import { useUserRole } from '@/hooks/useUserRole';
+import { startTour } from '@/lib/tour';
 
 interface NavItem {
   id: string;
@@ -40,6 +42,7 @@ interface NavItem {
   iconActive: RemixiconComponentType;
   path: string;
   matchPaths?: string[];
+  dataTour?: string;
 }
 
 interface SidebarNavProps {
@@ -61,6 +64,7 @@ const navItems: NavItem[] = [
     iconActive: RiPhoneFill,
     path: '/',
     matchPaths: ['/', '/transcripts'],
+    dataTour: 'nav-all-calls',
   },
   {
     id: 'shared-with-me',
@@ -77,6 +81,7 @@ const navItems: NavItem[] = [
     iconActive: RiDownloadFill,
     path: '/import',
     matchPaths: ['/import'],
+    dataTour: 'nav-import',
   },
   {
     id: 'rules',
@@ -85,6 +90,7 @@ const navItems: NavItem[] = [
     iconActive: RiRouteFill,
     path: '/rules',
     matchPaths: ['/rules', '/sorting-tagging/rules'],
+    dataTour: 'nav-rules',
   },
   {
     id: 'settings',
@@ -93,6 +99,7 @@ const navItems: NavItem[] = [
     iconActive: RiSettings3Fill,
     path: '/settings',
     matchPaths: ['/settings'],
+    dataTour: 'nav-settings',
   },
 ];
 
@@ -139,6 +146,7 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
             <div key={item.id} className="flex flex-col items-center">
               <button
                 type="button"
+                data-tour={item.dataTour}
                 onClick={() => {
                   navigate(item.path);
                   if (item.id === 'settings' && onSettingsClick) {
@@ -247,6 +255,41 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
             )}
           </button>
         )}
+
+        {/* Tour help button */}
+        <button
+          type="button"
+          onClick={startTour}
+          title="Take the tour"
+          className={cn(
+            'w-full flex items-center gap-3 rounded-lg px-3 py-2',
+            'text-sm text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
+            'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+            isCollapsed && 'justify-center px-2 hover:bg-transparent',
+          )}
+          aria-label="Take the tour"
+        >
+          {isCollapsed ? (
+            <div className={cn(
+              'w-11 h-11 rounded-xl flex items-center justify-center',
+              'bg-gradient-to-br from-white to-gray-200',
+              'border border-gray-300/80',
+              'shadow-[inset_0_4px_6px_rgba(255,255,255,0.5),inset_0_-4px_6px_rgba(0,0,0,0.08),0_10px_20px_rgba(0,0,0,0.08)]',
+              'dark:from-gray-700 dark:to-gray-800 dark:border-border',
+              'dark:shadow-[inset_0_4px_6px_rgba(255,255,255,0.1),inset_0_-4px_6px_rgba(0,0,0,0.2),0_10px_20px_rgba(0,0,0,0.3)]',
+            )}>
+              <RiQuestionLine className="w-5 h-5 flex-shrink-0 text-foreground" aria-hidden="true" />
+            </div>
+          ) : (
+            <RiQuestionLine
+              className="w-4 h-4 flex-shrink-0 text-muted-foreground"
+              aria-hidden="true"
+            />
+          )}
+          {!isCollapsed && (
+            <span className="truncate text-xs">Take the tour</span>
+          )}
+        </button>
       </div>
     </div>
   );

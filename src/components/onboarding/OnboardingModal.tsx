@@ -2,9 +2,9 @@
  * OnboardingModal — First-run wizard for new CallVault users.
  *
  * 3-step flow:
- *   Step 1 — Welcome + connect a source
- *   Step 2 — Create your first workspace
- *   Step 3 — Invite your team (or go solo)
+ *   Step 0 — Welcome (value prop + feature bullets)
+ *   Step 1 — Connect your first source
+ *   Step 2 — You're all set (tips + CTA)
  *
  * Completion marks user_profiles.onboarding_completed = true via useOnboarding().
  *
@@ -13,27 +13,28 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { AnimatePresence, motion } from "motion/react";
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
+  RiRecordCircleLine,
+  RiSearchLine,
+  RiFolderLine,
+  RiBarChartLine,
+  RiRobot2Line,
+  RiVideoChatLine,
+  RiUpload2Line,
+  RiKeyboardLine,
+  RiFolderAddLine,
+  RiRuler2Line,
   RiArrowRightLine,
-  RiUploadCloud2Line,
-  RiVideoLine,
-  RiMicLine,
-  RiFolderOpenLine,
-  RiTeamLine,
-  RiUserLine,
   RiCheckLine,
 } from "@remixicon/react";
-import { CreateWorkspaceDialog } from "@/components/dialogs/CreateWorkspaceDialog";
-import { OrganizationInviteDialog } from "@/components/dialogs/OrganizationInviteDialog";
-import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { cn } from "@/lib/utils";
 
 interface OnboardingModalProps {
@@ -44,274 +45,335 @@ interface OnboardingModalProps {
 
 const TOTAL_STEPS = 3;
 
-function StepIndicator({ currentStep }: { currentStep: number }) {
+/* ─────────────────────────── Step dot indicator ─────────────────────────── */
+
+function StepDots({ currentStep }: { currentStep: number }) {
   return (
-    <div className="flex items-center gap-2 justify-center mb-6">
-      {Array.from({ length: TOTAL_STEPS }, (_, i) => {
-        const step = i + 1;
-        const isDone = step < currentStep;
-        const isActive = step === currentStep;
-        return (
-          <div key={step} className="flex items-center gap-2">
-            <div
-              className={cn(
-                "h-7 w-7 rounded-full flex items-center justify-center text-xs font-semibold transition-all",
-                isDone && "bg-vibe-orange text-white",
-                isActive && "bg-vibe-orange/20 text-vibe-orange border border-vibe-orange/50",
-                !isDone && !isActive && "bg-muted text-muted-foreground"
-              )}
-            >
-              {isDone ? <RiCheckLine className="h-3.5 w-3.5" /> : step}
-            </div>
-            {step < TOTAL_STEPS && (
-              <div
-                className={cn(
-                  "h-px w-8 transition-all",
-                  isDone ? "bg-vibe-orange" : "bg-border"
-                )}
-              />
-            )}
-          </div>
-        );
-      })}
+    <div className="flex items-center justify-center gap-2 pt-2 pb-1">
+      {Array.from({ length: TOTAL_STEPS }, (_, i) => (
+        <motion.div
+          key={i}
+          animate={{
+            width: i === currentStep ? 20 : 6,
+            backgroundColor:
+              i === currentStep
+                ? "hsl(var(--vibe-orange))"
+                : i < currentStep
+                  ? "hsl(var(--vibe-orange) / 0.4)"
+                  : "hsl(var(--muted-foreground) / 0.25)",
+          }}
+          transition={{ duration: 0.25, ease: "easeInOut" }}
+          className="h-1.5 rounded-full"
+        />
+      ))}
     </div>
   );
 }
 
-interface SourceCardProps {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-}
+/* ──────────────────────────── Animated checkmark ────────────────────────── */
 
-function SourceCard({ icon, label, onClick }: SourceCardProps) {
+function AnimatedCheck() {
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex flex-col items-center gap-3 p-4 rounded-xl border border-border",
-        "bg-card hover:bg-muted/50 hover:border-vibe-orange/50",
-        "transition-all duration-150 cursor-pointer group"
-      )}
-    >
-      <div className="h-10 w-10 rounded-full bg-vibe-orange/10 flex items-center justify-center group-hover:bg-vibe-orange/20 transition-colors">
-        {icon}
-      </div>
-      <span className="text-sm font-medium">{label}</span>
-    </button>
+    <div className="relative flex items-center justify-center">
+      {/* Glow ring */}
+      <motion.div
+        initial={{ scale: 0.6, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="absolute h-24 w-24 rounded-full bg-vibe-orange/10"
+      />
+      {/* Circle */}
+      <motion.div
+        initial={{ scale: 0.4, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.35, delay: 0.05, ease: [0.34, 1.56, 0.64, 1] }}
+        className="relative h-16 w-16 rounded-full bg-vibe-orange/15 flex items-center justify-center border-2 border-vibe-orange/40"
+      >
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.3, delay: 0.25, ease: [0.34, 1.56, 0.64, 1] }}
+        >
+          <RiCheckLine className="h-8 w-8 text-vibe-orange" />
+        </motion.div>
+      </motion.div>
+    </div>
   );
 }
 
+/* ─────────────────────────── Source card (Step 1) ───────────────────────── */
+
+interface SourceCardProps {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  actionLabel: string;
+  onAction: () => void;
+}
+
+function SourceCard({ icon, title, description, actionLabel, onAction }: SourceCardProps) {
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 p-3.5 rounded-xl border border-border",
+        "bg-card hover:bg-muted/40 hover:border-vibe-orange/40",
+        "transition-all duration-150 group"
+      )}
+    >
+      <div className="shrink-0 h-10 w-10 rounded-lg bg-vibe-orange/10 flex items-center justify-center group-hover:bg-vibe-orange/20 transition-colors">
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-foreground leading-tight">{title}</p>
+        <p className="text-xs text-muted-foreground mt-0.5 leading-snug">{description}</p>
+      </div>
+      <Button
+        variant="hollow"
+        size="sm"
+        onClick={onAction}
+        className="shrink-0 text-xs h-8 min-w-0 px-3"
+      >
+        {actionLabel}
+      </Button>
+    </div>
+  );
+}
+
+/* ─────────────────────────── Tip row (Step 2) ───────────────────────────── */
+
+interface TipRowProps {
+  icon: React.ReactNode;
+  children: React.ReactNode;
+}
+
+function TipRow({ icon, children }: TipRowProps) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="shrink-0 h-8 w-8 rounded-lg bg-vibe-orange/10 flex items-center justify-center mt-0.5">
+        {icon}
+      </div>
+      <p className="text-sm text-muted-foreground leading-snug pt-1.5">{children}</p>
+    </div>
+  );
+}
+
+/* ─────────────────────────── Main component ─────────────────────────────── */
+
 export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingModalProps) {
-  const [step, setStep] = useState(1);
-  const [createWorkspaceOpen, setCreateWorkspaceOpen] = useState(false);
-  const [inviteOpen, setInviteOpen] = useState(false);
-
+  const [step, setStep] = useState(0);
   const navigate = useNavigate();
-  const { activeOrganizationId, activeOrganization } = useOrganizationContext();
-
-  const handleSkip = () => {
-    if (step < TOTAL_STEPS) {
-      setStep((s) => s + 1);
-    } else {
-      handleFinish();
-    }
-  };
 
   const handleFinish = async () => {
     await onComplete();
   };
 
-  const handleSourceClick = (tab: string) => {
-    // Advance to step 2 first so the modal doesn't close, then navigate
-    setStep(2);
-    navigate(`/import?tab=${tab}`);
-  };
-
-  const handleWorkspaceCreated = () => {
-    setCreateWorkspaceOpen(false);
-    setStep(3);
-  };
-
-  const handleInviteClose = async () => {
-    setInviteOpen(false);
-    await handleFinish();
-  };
-
-  const handleSolo = async () => {
-    await handleFinish();
-  };
-
-  // Only block close on step 1; allow dismissal from step 2 onwards
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen && step === 1) {
-      // Treat close-on-step-1 as "skip" — advance to step 2
-      setStep(2);
-      return;
-    }
     if (!nextOpen) {
+      if (step === 0) {
+        // Block close on step 0 — user must engage
+        return;
+      }
+      // Steps 1-2: closing completes onboarding
       handleFinish();
     }
     onOpenChange?.(nextOpen);
   };
 
-  return (
-    <>
-      <Dialog open={open} onOpenChange={handleOpenChange}>
-        <DialogContent
-          className="sm:max-w-lg"
-          aria-describedby={`onboarding-description-step-${step}`}
-        >
-          <StepIndicator currentStep={step} />
+  /* ── Step 0: Welcome ── */
+  const stepWelcome = (
+    <motion.div
+      key="step-welcome"
+      initial={{ opacity: 0, x: 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -24 }}
+      transition={{ duration: 0.22, ease: "easeInOut" }}
+      className="flex flex-col items-center text-center"
+    >
+      {/* Hero icon */}
+      <div className="mt-2 mb-5 relative flex items-center justify-center">
+        <div className="absolute h-20 w-20 rounded-full bg-vibe-orange/10 blur-md" />
+        <div className="relative h-16 w-16 rounded-2xl bg-vibe-orange/15 border border-vibe-orange/30 flex items-center justify-center shadow-sm">
+          <RiRecordCircleLine className="h-8 w-8 text-vibe-orange" />
+        </div>
+      </div>
 
-          {/* ── Step 1: Welcome ── */}
-          {step === 1 && (
-            <>
-              <DialogHeader className="text-center items-center">
-                <DialogTitle className="text-2xl font-bold">
-                  Welcome to CallVault
-                </DialogTitle>
-                <DialogDescription id="onboarding-description-step-1" className="text-base mt-1">
-                  The universal call vault for your team — every recording from
-                  every tool in one place.
-                </DialogDescription>
-              </DialogHeader>
+      {/* Hidden accessible title/description for Radix */}
+      <DialogTitle className="text-2xl font-bold tracking-tight text-foreground">
+        Turn every meeting into searchable knowledge
+      </DialogTitle>
+      <DialogDescription className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-sm">
+        CallVault captures, organizes, and surfaces insights from your calls —
+        so nothing gets lost after the recording ends.
+      </DialogDescription>
 
-              <div className="mt-6 space-y-3">
-                <p className="text-sm font-medium text-center text-muted-foreground">
-                  Connect your first source to get started
-                </p>
-                <div className="grid grid-cols-3 gap-3">
-                  <SourceCard
-                    icon={<RiMicLine className="h-5 w-5 text-vibe-orange" />}
-                    label="Connect Fathom"
-                    onClick={() => handleSourceClick("fathom")}
-                  />
-                  <SourceCard
-                    icon={<RiVideoLine className="h-5 w-5 text-vibe-orange" />}
-                    label="Connect Zoom"
-                    onClick={() => handleSourceClick("zoom")}
-                  />
-                  <SourceCard
-                    icon={<RiUploadCloud2Line className="h-5 w-5 text-vibe-orange" />}
-                    label="Upload a file"
-                    onClick={() => handleSourceClick("upload")}
-                  />
-                </div>
-              </div>
+      {/* Feature bullets */}
+      <div className="mt-5 w-full space-y-2.5 text-left">
+        {[
+          {
+            icon: <RiSearchLine className="h-4 w-4 text-vibe-orange" />,
+            text: "Search everything across all your call transcripts",
+          },
+          {
+            icon: <RiFolderLine className="h-4 w-4 text-vibe-orange" />,
+            text: "Organize calls into workspaces, folders, and tags",
+          },
+          {
+            icon: <RiBarChartLine className="h-4 w-4 text-vibe-orange" />,
+            text: "See patterns across your team's conversations",
+          },
+        ].map(({ icon, text }, i) => (
+          <div key={i} className="flex items-center gap-3">
+            <div className="shrink-0 h-7 w-7 rounded-md bg-vibe-orange/10 flex items-center justify-center">
+              {icon}
+            </div>
+            <span className="text-sm text-foreground/80">{text}</span>
+          </div>
+        ))}
+      </div>
 
-              <div className="mt-6 flex justify-center">
-                <button
-                  onClick={handleSkip}
-                  className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
-                >
-                  Skip for now
-                </button>
-              </div>
-            </>
-          )}
+      {/* CTA */}
+      <Button
+        className="mt-6 w-full bg-gradient-to-b from-orange-400 to-orange-600 border border-orange-600/70 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_4px_rgba(255,136,0,0.3)] hover:from-orange-500 hover:to-orange-700 active:translate-y-px active:scale-[0.98] transition-all rounded-xl h-11 text-base font-semibold"
+        onClick={() => setStep(1)}
+      >
+        Get Started
+        <RiArrowRightLine className="h-4 w-4" />
+      </Button>
 
-          {/* ── Step 2: Create workspace ── */}
-          {step === 2 && (
-            <>
-              <DialogHeader className="text-center items-center">
-                <div className="h-12 w-12 rounded-full bg-vibe-orange/10 flex items-center justify-center mb-3">
-                  <RiFolderOpenLine className="h-6 w-6 text-vibe-orange" />
-                </div>
-                <DialogTitle className="text-2xl font-bold">
-                  Organize your calls
-                </DialogTitle>
-                <DialogDescription id="onboarding-description-step-2" className="text-base mt-1">
-                  CallVault uses <strong>Organizations</strong> to group your
-                  teams, <strong>Workspaces</strong> to separate projects or
-                  clients, and <strong>Folders</strong> to keep calls tidy
-                  inside a workspace.
-                </DialogDescription>
-              </DialogHeader>
+      {/* Skip footer */}
+      <button
+        onClick={handleFinish}
+        className="mt-3 text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"
+      >
+        Already set up? Skip to the app →
+      </button>
+    </motion.div>
+  );
 
-              <div className="mt-6 space-y-3">
-                <Button
-                  className="w-full"
-                  onClick={() => setCreateWorkspaceOpen(true)}
-                >
-                  Create a workspace
-                  <RiArrowRightLine className="ml-2 h-4 w-4" />
-                </Button>
-              </div>
+  /* ── Step 1: Connect your first source ── */
+  const stepConnect = (
+    <motion.div
+      key="step-connect"
+      initial={{ opacity: 0, x: 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -24 }}
+      transition={{ duration: 0.22, ease: "easeInOut" }}
+      className="flex flex-col"
+    >
+      <div className="text-center mb-5">
+        <DialogTitle className="text-xl font-bold tracking-tight text-foreground">
+          Connect your first source
+        </DialogTitle>
+        <DialogDescription className="mt-1.5 text-sm text-muted-foreground leading-relaxed">
+          CallVault syncs calls from your existing tools. Pick where your recordings live.
+        </DialogDescription>
+      </div>
 
-              <div className="mt-4 flex justify-center">
-                <button
-                  onClick={handleSkip}
-                  className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline transition-colors"
-                >
-                  Skip for now
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* ── Step 3: Invite team ── */}
-          {step === 3 && (
-            <>
-              <DialogHeader className="text-center items-center">
-                <div className="h-12 w-12 rounded-full bg-vibe-orange/10 flex items-center justify-center mb-3">
-                  <RiTeamLine className="h-6 w-6 text-vibe-orange" />
-                </div>
-                <DialogTitle className="text-2xl font-bold">
-                  Invite your team
-                </DialogTitle>
-                <DialogDescription id="onboarding-description-step-3" className="text-base mt-1">
-                  CallVault works best with your whole team. Invite teammates so
-                  everyone can access and collaborate on calls.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="mt-6 space-y-3">
-                <Button
-                  className="w-full"
-                  onClick={() => setInviteOpen(true)}
-                  disabled={!activeOrganizationId}
-                >
-                  <RiTeamLine className="mr-2 h-4 w-4" />
-                  Invite teammates
-                </Button>
-                <Button
-                  variant="hollow"
-                  className="w-full"
-                  onClick={handleSolo}
-                >
-                  <RiUserLine className="mr-2 h-4 w-4" />
-                  I'm flying solo
-                </Button>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Sub-dialogs — rendered outside the onboarding dialog to avoid nesting issues */}
-      <CreateWorkspaceDialog
-        open={createWorkspaceOpen}
-        onOpenChange={setCreateWorkspaceOpen}
-        orgId={activeOrganizationId || undefined}
-        onWorkspaceCreated={handleWorkspaceCreated}
-      />
-
-      {activeOrganizationId && activeOrganization && (
-        <OrganizationInviteDialog
-          open={inviteOpen}
-          onOpenChange={(isOpen) => {
-            if (!isOpen) {
-              handleInviteClose();
-            } else {
-              setInviteOpen(true);
-            }
-          }}
-          organizationId={activeOrganizationId}
-          organizationName={activeOrganization.name}
+      <div className="space-y-2.5">
+        <SourceCard
+          icon={<RiRobot2Line className="h-5 w-5 text-vibe-orange" />}
+          title="Fathom"
+          description="Auto-sync call recordings and AI transcripts"
+          actionLabel="Connect Fathom"
+          onAction={() => navigate("/settings?tab=integrations&wizard=fathom")}
         />
-      )}
-    </>
+        <SourceCard
+          icon={<RiVideoChatLine className="h-5 w-5 text-vibe-orange" />}
+          title="Zoom"
+          description="Import meetings directly from your Zoom account"
+          actionLabel="Connect Zoom"
+          onAction={() => navigate("/settings?tab=integrations")}
+        />
+        <SourceCard
+          icon={<RiUpload2Line className="h-5 w-5 text-vibe-orange" />}
+          title="Upload a recording"
+          description="Drop in an audio or video file and we'll transcribe it"
+          actionLabel="Upload file"
+          onAction={() => navigate("/import")}
+        />
+      </div>
+
+      <button
+        onClick={() => setStep(2)}
+        className="mt-5 text-xs text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline text-center"
+      >
+        I'll do this later →
+      </button>
+    </motion.div>
+  );
+
+  /* ── Step 2: You're ready ── */
+  const stepReady = (
+    <motion.div
+      key="step-ready"
+      initial={{ opacity: 0, x: 24 }}
+      animate={{ opacity: 1, x: 0 }}
+      exit={{ opacity: 0, x: -24 }}
+      transition={{ duration: 0.22, ease: "easeInOut" }}
+      className="flex flex-col items-center text-center"
+    >
+      <div className="mt-2 mb-5">
+        <AnimatedCheck />
+      </div>
+
+      <DialogTitle className="text-2xl font-bold tracking-tight text-foreground">
+        You're all set!
+      </DialogTitle>
+      <DialogDescription className="mt-2 text-sm text-muted-foreground leading-relaxed max-w-sm">
+        Your workspace is ready. Here's what you can do next:
+      </DialogDescription>
+
+      <div className="mt-5 w-full space-y-3 text-left">
+        <TipRow icon={<RiKeyboardLine className="h-4 w-4 text-vibe-orange" />}>
+          Press <kbd className="font-semibold text-foreground bg-muted px-1 py-0.5 rounded text-xs">⌘K</kbd> to search across all your calls
+        </TipRow>
+        <TipRow icon={<RiFolderAddLine className="h-4 w-4 text-vibe-orange" />}>
+          Create <strong className="text-foreground font-semibold">workspaces</strong> to organize calls by project or team
+        </TipRow>
+        <TipRow icon={<RiRuler2Line className="h-4 w-4 text-vibe-orange" />}>
+          Set up <strong className="text-foreground font-semibold">rules</strong> to auto-tag and sort calls as they come in
+        </TipRow>
+      </div>
+
+      <Button
+        className="mt-6 w-full bg-gradient-to-b from-orange-400 to-orange-600 border border-orange-600/70 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.2),0_1px_4px_rgba(255,136,0,0.3)] hover:from-orange-500 hover:to-orange-700 active:translate-y-px active:scale-[0.98] transition-all rounded-xl h-11 text-base font-semibold"
+        onClick={() => {
+          handleFinish();
+          (window as Window & { __startCallVaultTour?: () => void }).__startCallVaultTour?.();
+        }}
+      >
+        Take a quick tour →
+      </Button>
+
+      <Button
+        variant="ghost"
+        className="mt-2 w-full"
+        onClick={handleFinish}
+      >
+        Go to my calls
+      </Button>
+    </motion.div>
+  );
+
+  const steps = [stepWelcome, stepConnect, stepReady];
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent
+        className="sm:max-w-lg overflow-hidden"
+        aria-describedby={`onboarding-description-step-${step}`}
+      >
+        {/* Progress dots */}
+        <StepDots currentStep={step} />
+
+        {/* Step content with transitions */}
+        <div className="relative min-h-[340px]">
+          <AnimatePresence mode="wait">
+            {steps[step]}
+          </AnimatePresence>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

@@ -101,7 +101,7 @@ export function TopBar({
         {/* Organization Switcher - shows current organization/workspace context */}
         <OrganizationSwitcher />
         
-        {searchEnabled && <Button variant="hollow" size="icon" onClick={handleSearchClick} className="text-muted-foreground" aria-label="Search (Cmd+K)">
+        {searchEnabled && <Button variant="hollow" size="icon" onClick={handleSearchClick} className="text-muted-foreground" aria-label="Search (Cmd+K)" data-tour="topbar-search">
             <RiSearchLine className="w-4 h-4" />
           </Button>}
 
