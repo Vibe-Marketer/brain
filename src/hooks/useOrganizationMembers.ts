@@ -35,6 +35,7 @@ export function useOrganizationMembers(organizationId: string) {
     queryKey: queryKeys.organizations.members(organizationId),
     queryFn: () => getOrganizationMembers(organizationId),
     enabled: !!organizationId,
+    staleTime: 5 * 60 * 1000,
   })
 
   return {
@@ -54,6 +55,7 @@ export function useOrganizationInvitations(organizationId: string) {
     queryKey: queryKeys.organizations.invitations(organizationId),
     queryFn: () => getOrganizationInvitations(organizationId),
     enabled: !!organizationId,
+    staleTime: 5 * 60 * 1000,
   })
 
   return {

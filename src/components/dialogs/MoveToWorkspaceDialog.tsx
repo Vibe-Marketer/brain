@@ -93,7 +93,7 @@ export function MoveToWorkspaceDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RiExpandLeftRightLine className="h-5 w-5 text-vibe-orange" />
-            Move to Workspace
+            {keepInSource ? 'Copy to Workspace' : 'Move to Workspace'}
           </DialogTitle>
           <DialogDescription>
             Move {count} {label} to another workspace within this organization.

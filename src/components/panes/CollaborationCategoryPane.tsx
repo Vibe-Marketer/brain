@@ -21,6 +21,7 @@ import { useUserRole } from "@/hooks/useUserRole";
 import {
   RiTeamLine,
   RiGroupLine,
+  RiLockLine,
 } from "@remixicon/react";
 
 export type CollaborationCategory = "team";
@@ -172,6 +173,24 @@ export function CollaborationCategoryPane({
           </p>
         </div>
       </header>
+
+      {/* Empty state for users without the required role */}
+      {visibleCategories.length === 0 && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 px-6 py-10 text-center">
+          <div
+            className="w-10 h-10 rounded-full bg-muted flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <RiLockLine className="h-5 w-5 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-ink">Team Collaboration</p>
+            <p className="text-xs text-ink-muted mt-1 leading-relaxed">
+              Team collaboration features are available to workspace admins.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Category List */}
       <div

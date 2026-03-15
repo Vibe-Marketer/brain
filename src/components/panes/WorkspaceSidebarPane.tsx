@@ -14,6 +14,7 @@
 
 import * as React from 'react';
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFolders, useFolderAssignments, useDeleteFolder, useArchiveFolder } from '@/hooks/useFolders';
 import { useSetDefaultWorkspace } from '@/hooks/useWorkspaceMutations';
@@ -34,6 +35,14 @@ import { WorkspaceMemberPanel } from '@/components/panels/WorkspaceMemberPanel';
 import { OrganizationMemberPanel } from '@/components/panels/OrganizationMemberPanel';
 import { queryKeys } from '@/lib/query-config';
 import * as Collapsible from '@radix-ui/react-collapsible';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -95,69 +104,94 @@ function FolderListItem({
   depth?: number;
 }) {
   const FolderIcon = getIconComponent(folder.icon);
+  const [archiveDialogOpen, setArchiveDialogOpen] = React.useState(false);
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <button
-          type="button"
-          onClick={() => onSelect(folder.id)}
-          className={cn(
-            'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
-            'text-xs transition-all duration-200 text-left group',
-            'hover:bg-hover/50',
-            isActive
-              ? 'bg-vibe-orange/5 text-vibe-orange font-semibold font-display italic tracking-tight'
-              : 'text-muted-foreground hover:text-foreground',
-          )}
-          style={{ paddingLeft: `${2.25 + depth * 0.75}rem` }}
-        >
-          {isActive && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3 rounded-r-full bg-vibe-orange" aria-hidden="true" />
-          )}
-          {isActive ? (
-            <RiFolderOpenLine size={14} className="flex-shrink-0 text-vibe-orange" aria-hidden="true" />
-          ) : (
-            <RiFolder3Line size={14} className="flex-shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" aria-hidden="true" />
-          )}
-          <span className="truncate flex-1">{folder.name}</span>
-          {count > 0 && (
-            <Badge variant="secondary" className="text-[9px] h-4 px-1 tabular-nums bg-muted/40 text-muted-foreground/60">
-              {count}
-            </Badge>
-          )}
-        </button>
-      </ContextMenuTrigger>
-      <ContextMenuContent className="w-48">
-        <ContextMenuItem onClick={() => onEdit(folder)}>
-          <RiPencilLine className="h-4 w-4 mr-2" />
-          Rename Folder
-        </ContextMenuItem>
-        <ContextMenuItem onClick={() => {/* TODO: move folder logic */}}>
-          <RiShareForwardLine className="h-4 w-4 mr-2" />
-          Move to Workspace
-        </ContextMenuItem>
-        <ContextMenuSeparator />
-        <ContextMenuItem
-          onClick={() => onDelete(folder)}
-          className="text-destructive focus:text-destructive"
-        >
-          <RiDeleteBinLine className="h-4 w-4 mr-2" />
-          Delete Folder
-        </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => {
-             if (confirm(`Are you sure you want to archive folder '${folder.name}'?`)) {
-               onArchive?.(folder);
-             }
-          }}
-          className="text-muted-foreground"
-        >
-          <RiArchiveLine className="h-4 w-4 mr-2" />
-          Archive Folder
-        </ContextMenuItem>
-      </ContextMenuContent>
-    </ContextMenu>
+    <>
+      <ContextMenu>
+        <ContextMenuTrigger asChild>
+          <button
+            type="button"
+            onClick={() => onSelect(folder.id)}
+            className={cn(
+              'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
+              'text-xs transition-all duration-200 text-left group',
+              'hover:bg-hover/50',
+              isActive
+                ? 'bg-vibe-orange/5 text-vibe-orange font-semibold font-display italic tracking-tight'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+            style={{ paddingLeft: `${2.25 + depth * 0.75}rem` }}
+          >
+            {isActive && (
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-3 rounded-r-full bg-vibe-orange" aria-hidden="true" />
+            )}
+            {isActive ? (
+              <RiFolderOpenLine size={14} className="flex-shrink-0 text-vibe-orange" aria-hidden="true" />
+            ) : (
+              <RiFolder3Line size={14} className="flex-shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" aria-hidden="true" />
+            )}
+            <span className="truncate flex-1">{folder.name}</span>
+            {count > 0 && (
+              <Badge variant="secondary" className="text-[9px] h-4 px-1 tabular-nums bg-muted/40 text-muted-foreground/60">
+                {count}
+              </Badge>
+            )}
+          </button>
+        </ContextMenuTrigger>
+        <ContextMenuContent className="w-48">
+          <ContextMenuItem onClick={() => onEdit(folder)}>
+            <RiPencilLine className="h-4 w-4 mr-2" />
+            Rename Folder
+          </ContextMenuItem>
+          <ContextMenuItem disabled className="opacity-50 cursor-not-allowed" title="Coming soon">
+            <RiShareForwardLine className="h-4 w-4 mr-2" />
+            Move to Workspace
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem
+            onClick={() => onDelete(folder)}
+            className="text-destructive focus:text-destructive"
+          >
+            <RiDeleteBinLine className="h-4 w-4 mr-2" />
+            Delete Folder
+          </ContextMenuItem>
+          <ContextMenuItem
+            onClick={() => setArchiveDialogOpen(true)}
+            className="text-muted-foreground"
+          >
+            <RiArchiveLine className="h-4 w-4 mr-2" />
+            Archive Folder
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+
+      {/* Archive confirmation dialog */}
+      <AlertDialog open={archiveDialogOpen} onOpenChange={setArchiveDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Archive Folder</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to archive <strong>{folder.name}</strong>? The folder will be hidden from your workspace but can be restored later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="hollow" onClick={() => setArchiveDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="default"
+              onClick={() => {
+                onArchive?.(folder);
+                setArchiveDialogOpen(false);
+              }}
+            >
+              Archive Folder
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -190,6 +224,7 @@ function WorkspaceListItem({
   const { mutate: deleteFolder } = useDeleteFolder();
   const { mutate: archiveFolder } = useArchiveFolder();
   const { openPanel } = usePanelStore();
+  const [folderToConfirmDelete, setFolderToConfirmDelete] = React.useState<Folder | null>(null);
 
   const canManage = workspace.user_role === 'workspace_owner' || workspace.user_role === 'workspace_admin';
 
@@ -219,11 +254,7 @@ function WorkspaceListItem({
           isActive={activeFolderId === folder.id}
           onSelect={(id) => onFolderSelect(activeFolderId === id ? null : id)}
           onEdit={onFolderEdit}
-          onDelete={(f) => {
-             if (confirm(`Are you sure you want to delete folder '${f.name}'?`)) {
-               deleteFolder(f.id);
-             }
-          }}
+          onDelete={(f) => setFolderToConfirmDelete(f)}
           onArchive={(f) => archiveFolder({ folderId: f.id, workspaceId: workspace.id })}
           count={assignments[folder.id]?.length}
           depth={depth}
@@ -356,12 +387,44 @@ function WorkspaceListItem({
           )}
         </div>
       </Collapsible.Content>
+
+      {/* Delete folder confirmation dialog */}
+      <AlertDialog open={!!folderToConfirmDelete} onOpenChange={(open) => { if (!open) setFolderToConfirmDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <RiDeleteBinLine className="h-5 w-5" />
+              Delete Folder
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete <strong>{folderToConfirmDelete?.name}</strong>? This action cannot be undone and will remove all folder assignments.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="hollow" onClick={() => setFolderToConfirmDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (folderToConfirmDelete) {
+                  deleteFolder(folderToConfirmDelete.id);
+                  setFolderToConfirmDelete(null);
+                }
+              }}
+            >
+              Delete Folder
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Collapsible.Root>
   );
 }
 
 export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { openPanel } = usePanelStore();
   const { 
     activeOrgId, 
@@ -504,6 +567,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                 {personalTags.map((tag) => (
                   <button
                     key={tag.id}
+                    onClick={() => navigate('/sorting-tagging/tags')}
                     className={cn(
                       'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
                       'text-xs transition-all duration-200 text-left group px-3',
@@ -561,9 +625,11 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                  {workspaces.length === 0 && (
                     <div className="px-3 py-6 text-center border-2 border-dashed border-border/20 rounded-xl">
                       <p className="text-[10px] text-muted-foreground/60 italic">No workspaces found in this org.</p>
-                      <Button variant="ghost" size="sm" className="mt-2 text-[10px] h-7" onClick={() => setCreateWsOpen(true)}>
-                        Create One
-                      </Button>
+                      {canCreateWorkspace && (
+                        <Button variant="ghost" size="sm" className="mt-2 text-[10px] h-7" onClick={() => setCreateWsOpen(true)}>
+                          Create One
+                        </Button>
+                      )}
                     </div>
                  )}
                </div>

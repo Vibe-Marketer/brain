@@ -1,8 +1,7 @@
 /**
  * CreateWorkspaceDialog - Dialog for creating new workspaces
  *
- * Supports workspace name, type selection (team default),
- * and optional share link TTL setting.
+ * Workspace type is always "team" — additional types are not yet available.
  *
  * @pattern dialog-form
  * @brand-version v4.2
@@ -20,7 +19,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -30,7 +28,6 @@ import {
 } from '@/components/ui/select'
 import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { useCreateWorkspace } from '@/hooks/useWorkspaceMutations'
-import type { WorkspaceType } from '@/types/workspace'
 
 export interface CreateWorkspaceDialogProps {
   open: boolean
@@ -39,38 +36,6 @@ export interface CreateWorkspaceDialogProps {
   onWorkspaceCreated?: (workspaceId: string) => void
 }
 
-/** Type descriptions for the select menu */
-const WORKSPACE_TYPE_OPTIONS: Array<{
-  value: WorkspaceType
-  label: string
-  description: string
-  disabled?: boolean
-}> = [
-  {
-    value: 'team',
-    label: 'Team',
-    description: 'Shared workspace for your team',
-  },
-  {
-    value: 'client',
-    label: 'Client',
-    description: 'Client-facing recordings',
-    disabled: true,
-  },
-  {
-    value: 'coach',
-    label: 'Coach',
-    description: 'Coaching sessions and feedback',
-    disabled: true,
-  },
-  {
-    value: 'community',
-    label: 'Community',
-    description: 'Community-shared content',
-    disabled: true,
-  },
-]
-
 export function CreateWorkspaceDialog({
   open,
   onOpenChange,
@@ -78,10 +43,9 @@ export function CreateWorkspaceDialog({
   onWorkspaceCreated,
 }: CreateWorkspaceDialogProps) {
   const [name, setName] = useState('')
-  const [workspaceType, setWorkspaceType] = useState<WorkspaceType>('team')
   const [ttlDays, setTtlDays] = useState('7')
   const [selectedOrgId, setSelectedOrgId] = useState(orgId || '')
-  
+
   const { organizations, activeOrgId } = useOrganizationContext()
   const createWorkspace = useCreateWorkspace()
 
@@ -94,17 +58,17 @@ export function CreateWorkspaceDialog({
 
   useEffect(() => {
     if (!open) return
-    
+
     // Auto-select logic
     const businessDefault =
       businessOrganizations.find((org) => org.id === activeOrgId)?.id ||
       businessOrganizations[0]?.id ||
       ''
-      
+
     const fallbackOrg = showOrgSelect
       ? businessDefault
       : orgId || activeOrgId || businessDefault
-      
+
     setSelectedOrgId(fallbackOrg)
   }, [open, orgId, activeOrgId, businessOrganizations, showOrgSelect])
 
@@ -123,13 +87,12 @@ export function CreateWorkspaceDialog({
       {
         orgId: selectedOrgId,
         name: trimmedName,
-        workspaceType: workspaceType,
+        workspaceType: 'team',
         defaultShareLinkTtlDays: shareLinkTtl,
       },
       {
         onSuccess: (workspace) => {
           setName('')
-          setWorkspaceType('team')
           setTtlDays('7')
           onOpenChange(false)
           onWorkspaceCreated?.(workspace.id)
@@ -144,7 +107,6 @@ export function CreateWorkspaceDialog({
     selectedOrgId,
     shareLinkTtl,
     trimmedName,
-    workspaceType,
   ])
 
   const handleKeyDown = useCallback(
@@ -163,7 +125,7 @@ export function CreateWorkspaceDialog({
         <DialogHeader>
           <DialogTitle>Create New Workspace</DialogTitle>
           <DialogDescription id="create-workspace-description">
-            A workspace is a shared space inside an organization for one team, client, or community.
+            A workspace is a shared space inside an organization for your team.
           </DialogDescription>
         </DialogHeader>
 
@@ -187,42 +149,6 @@ export function CreateWorkspaceDialog({
                 Workspace name must be between 3 and 50 characters.
               </p>
             )}
-          </div>
-
-          {/* Workspace type */}
-          <div className="space-y-2">
-            <Label htmlFor="workspace-type">Workspace Type</Label>
-            <Select
-              value={workspaceType}
-              onValueChange={(v) => setWorkspaceType(v as WorkspaceType)}
-            >
-              <SelectTrigger id="workspace-type">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {WORKSPACE_TYPE_OPTIONS.map((opt) => (
-                  <SelectItem
-                    key={opt.value}
-                    value={opt.value}
-                    disabled={opt.disabled}
-                  >
-                    <div className="flex items-center justify-between w-full gap-3">
-                      <div className="flex flex-col">
-                        <span className="text-sm font-medium">{opt.label}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {opt.description}
-                        </span>
-                      </div>
-                      {opt.disabled && (
-                        <Badge variant="outline" className="text-2xs">
-                          Coming Soon
-                        </Badge>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           {/* Default share link TTL */}

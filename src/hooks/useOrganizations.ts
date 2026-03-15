@@ -18,6 +18,7 @@ export function useOrganizations() {
     queryKey: queryKeys.organizations.list(),
     queryFn: () => getOrganizations(user!.id),
     enabled: !!session && !!user,
+    staleTime: 5 * 60 * 1000,
   })
 }
 

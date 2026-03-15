@@ -22,7 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      async (event, session) => {
         logger.debug('[AuthContext] Auth state changed:', event + ' ' + (session ? 'Session valid' : 'No session'));
 
         // Handle specific auth events
@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setSession(session);
           setUser(session?.user ?? null);
           // Load user preferences after sign in
-          usePreferencesStore.getState().loadPreferences();
+          await usePreferencesStore.getState().loadPreferences();
         } else {
           // For other events (INITIAL_SESSION, etc.), update state
           setSession(session);
@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     );
 
     // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       if (error) {
         logger.error('[AuthContext] Error getting session:', error);
         setSession(null);
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         // Load user preferences if session exists
         if (session) {
-          usePreferencesStore.getState().loadPreferences();
+          await usePreferencesStore.getState().loadPreferences();
         }
       }
       setLoading(false);

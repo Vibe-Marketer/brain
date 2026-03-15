@@ -41,7 +41,7 @@ export default function Analytics() {
         navigate(`/analytics/${firstCategory.id}`, { replace: true });
       }
     }
-  }, [urlCategory, navigate, selectedCategory]);
+  }, [urlCategory, navigate]);
 
   // Sync URL when selectedCategory changes (for user interactions)
   useEffect(() => {

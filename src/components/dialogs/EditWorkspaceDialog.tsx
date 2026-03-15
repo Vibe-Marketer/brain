@@ -124,7 +124,7 @@ export function EditWorkspaceDialog({
 
             {/* Share link TTL */}
             <div className="space-y-2">
-              <Label htmlFor="edit-workspace-ttl">Default Share Link Expiry (days)</Label>
+              <Label htmlFor="edit-workspace-ttl">Default Share Link Expiration (days)</Label>
               <Input
                 id="edit-workspace-ttl"
                 type="number"

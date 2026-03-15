@@ -155,7 +155,7 @@ export function WorkspaceDetailPane({
 
   // Open members panel (4th pane)
   const handleOpenMembers = useCallback(() => {
-    openPanel('workspace-member', { type: 'workspace-member' as const, workspaceId: workspaceId || '' })
+    openPanel('workspace_members', { type: 'workspace_members', workspaceId: workspaceId || '', workspaceName: workspace?.name })
   }, [openPanel, workspaceId])
 
   // Edit workspace dialog state

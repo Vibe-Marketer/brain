@@ -5,8 +5,6 @@ import {
   RiVideoLine,
   RiYoutubeLine,
   RiUploadCloud2Line,
-  RiGlobalLine,
-  RiFireLine,
   RiDownloadCloud2Line,
 } from '@remixicon/react';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -47,74 +45,6 @@ async function connectZoom() {
   window.location.href = data.authUrl as string;
 }
 
-interface AddSourceDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-function AddSourceDialog({ open, onOpenChange }: AddSourceDialogProps) {
-  const comingSoon = [
-    { name: 'Grain', icon: <RiGlobalLine size={16} />, description: 'AI meeting recorder' },
-    { name: 'Fireflies', icon: <RiFireLine size={16} />, description: 'Meeting transcription' },
-  ];
-
-  return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in duration-200" />
-        <Dialog.Content
-          className={cn(
-            'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50',
-            'w-full max-w-sm',
-            'bg-background border border-border rounded-xl shadow-2xl',
-            'animate-in zoom-in-95 fade-in duration-200',
-            'focus:outline-none p-5',
-          )}
-        >
-          <Dialog.Title className="font-display font-extrabold text-base uppercase tracking-wide text-foreground mb-1">
-            Add Source
-          </Dialog.Title>
-          <Dialog.Description className="text-xs text-muted-foreground mb-5">
-            More connectors are coming soon.
-          </Dialog.Description>
-
-          <div className="space-y-2">
-            {comingSoon.map((source) => (
-              <div
-                key={source.name}
-                className="flex items-center gap-3 rounded-lg border border-border/40 bg-muted/30 px-3 py-2.5 opacity-60"
-              >
-                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-muted text-muted-foreground">
-                  {source.icon}
-                </div>
-                <div>
-                  <p className="text-xs font-medium text-foreground">{source.name}</p>
-                  <p className="text-[11px] text-muted-foreground">{source.description}</p>
-                </div>
-                <span className="ml-auto text-[11px] text-muted-foreground">Coming soon</span>
-              </div>
-            ))}
-          </div>
-
-          <Dialog.Close asChild>
-            <button
-              type="button"
-              className={cn(
-                'mt-5 w-full rounded-lg border border-border py-2',
-                'text-xs font-medium text-foreground',
-                'hover:bg-muted/60 transition-colors',
-                'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              )}
-            >
-              Close
-            </button>
-          </Dialog.Close>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
-  );
-}
-
 function deriveStatus(source: ImportSource | undefined): SourceStatus {
   if (!source) return 'disconnected';
   if (source.error_message) return 'error';
@@ -126,7 +56,6 @@ type ActiveTab = 'sources' | 'rules';
 
 export default function ImportPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('sources');
-  const [addSourceOpen, setAddSourceOpen] = useState(false);
   const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
 
   const { role } = useUserRole();
@@ -300,7 +229,7 @@ export default function ImportPage() {
                     ))}
                   </div>
                 ) : (
-                  <ImportSourceGrid onAddSource={() => setAddSourceOpen(true)}>
+                  <ImportSourceGrid>
                     <SourceCard
                       name="Fathom"
                       sourceApp="fathom"
@@ -383,9 +312,7 @@ export default function ImportPage() {
                       status="active"
                       callCount={counts['file-upload'] ?? 0}
                       isActive={true}
-                      onToggle={() => {
-                        toast.info('File upload is always available');
-                      }}
+                      alwaysAvailable={true}
                     />
                   </ImportSourceGrid>
                 )}
@@ -408,8 +335,6 @@ export default function ImportPage() {
           </Tabs>
         </div>
       </div>
-
-      <AddSourceDialog open={addSourceOpen} onOpenChange={setAddSourceOpen} />
 
       <Dialog.Root open={youtubeDialogOpen} onOpenChange={setYoutubeDialogOpen}>
         <Dialog.Portal>

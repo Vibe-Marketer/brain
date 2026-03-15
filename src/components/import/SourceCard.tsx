@@ -21,13 +21,15 @@ export interface SourceCardProps {
   lastSyncAt?: string | null;
   callCount: number;
   isActive: boolean;
-  onToggle: (active: boolean) => void;
+  onToggle?: (active: boolean) => void;
   onSync?: () => void;
   onConnect?: () => void;
   onDisconnect?: () => void;
   syncProgress?: { current: number; total: number };
   errorMessage?: string | null;
   disabled?: boolean;
+  /** When true, hides the active/inactive toggle and shows a static status badge instead. */
+  alwaysAvailable?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -79,6 +81,7 @@ export function SourceCard({
   syncProgress,
   errorMessage,
   disabled = false,
+  alwaysAvailable = false,
 }: SourceCardProps) {
   const [disconnectOpen, setDisconnectOpen] = useState(false);
   const isConnected = status !== 'disconnected';
@@ -160,8 +163,8 @@ export function SourceCard({
           </div>
         )}
 
-        {/* Active/inactive toggle — only for connected sources */}
-        {isConnected && (
+        {/* Active/inactive toggle — only for connected sources that aren't always-available */}
+        {isConnected && !alwaysAvailable && onToggle && (
           <div className="flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
               {isActive ? 'Background sync on' : 'Background sync off'}
@@ -186,6 +189,14 @@ export function SourceCard({
                 )}
               />
             </button>
+          </div>
+        )}
+
+        {/* Static "always available" badge — replaces toggle for sources that can't be disabled */}
+        {alwaysAvailable && (
+          <div className="flex items-center gap-1.5">
+            <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+            <span className="text-xs text-muted-foreground">Always available</span>
           </div>
         )}
 

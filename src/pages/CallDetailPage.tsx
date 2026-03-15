@@ -11,6 +11,7 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   RiArrowLeftLine,
   RiFileTextLine,
@@ -40,6 +41,7 @@ import { getRecordingById, getRecordingByLegacyId } from '@/services/recordings.
 import { getRawCallData } from '@/services/raw-calls.service';
 import { queryKeys } from '@/lib/query-config';
 import { CopyToOrganizationDialog } from '@/components/dialogs/CopyToOrganizationDialog';
+import { ShareCallDialog } from '@/components/sharing/ShareCallDialog';
 import type { YouTubeRawCall, FathomRawCall } from '@/types/raw-calls';
 
 
@@ -87,6 +89,7 @@ export const CallDetailPage: React.FC = () => {
   const { callId } = useParams<{ callId: string }>();
   const navigate = useNavigate();
   const [showCopyToOrgDialog, setShowCopyToOrgDialog] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
 
   // Try to parse callId as integer (legacy) or use as UUID
   const legacyId = callId ? parseInt(callId, 10) : NaN;
@@ -400,11 +403,11 @@ export const CallDetailPage: React.FC = () => {
               <RiArrowLeftLine className="w-4 h-4" />
               Back
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => setShowShareDialog(true)}>
               <RiShareLine className="w-4 h-4 mr-2" />
               Share
             </Button>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => toast.info('Export coming soon')}>
               <RiDownloadLine className="w-4 h-4 mr-2" />
               Export
             </Button>
@@ -505,6 +508,14 @@ export const CallDetailPage: React.FC = () => {
         open={showCopyToOrgDialog}
         onOpenChange={setShowCopyToOrgDialog}
         recordingIds={[call.id]}
+      />
+
+      {/* Share dialog */}
+      <ShareCallDialog
+        open={showShareDialog}
+        onOpenChange={setShowShareDialog}
+        callId={call.legacy_recording_id ?? call.id}
+        callTitle={call.title ?? undefined}
       />
     </AppShell>
   );

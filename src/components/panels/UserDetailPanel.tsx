@@ -136,19 +136,14 @@ export function UserDetailPanel({
     try {
       setUpdatingRole(true);
 
-      // Delete old role
-      await supabase
-        .from("user_roles")
-        .delete()
-        .eq("user_id", user.user_id);
-
-      // Insert new role
+      // Atomically upsert role — avoids the delete-then-insert window
+      // where the user would have no role if the insert failed.
       const { error } = await supabase
         .from("user_roles")
-        .insert({
-          user_id: user.user_id,
-          role: newRole,
-        });
+        .upsert(
+          { user_id: user.user_id, role: newRole },
+          { onConflict: "user_id" }
+        );
 
       if (error) throw error;
 
