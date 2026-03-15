@@ -25,6 +25,17 @@ export function FolderFilterPopover({
 }: FolderFilterPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // Staged selections — only committed on Apply (mirrors TagFilterPopover pattern)
+  const [stagedFolders, setStagedFolders] = useState<string[]>(selectedFolders);
+
+  // Sync staged state when popover opens so re-opening after a partial clear
+  // reflects the current committed filter state, not stale local state.
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setStagedFolders(selectedFolders);
+    }
+    setIsOpen(open);
+  };
 
   type FolderWithChildren = Folder & { children: FolderWithChildren[] };
 
@@ -87,32 +98,34 @@ export function FolderFilterPopover({
 
   const handleToggle = (folderId: string, checked: boolean) => {
     if (checked) {
-      onFoldersChange([...selectedFolders, folderId]);
+      setStagedFolders([...stagedFolders, folderId]);
     } else {
-      onFoldersChange(selectedFolders.filter((id) => id !== folderId));
+      setStagedFolders(stagedFolders.filter((id) => id !== folderId));
     }
   };
 
   const handleToggleUnorganized = (checked: boolean) => {
     if (checked) {
-      onFoldersChange([...selectedFolders, "unorganized"]);
+      setStagedFolders([...stagedFolders, "unorganized"]);
     } else {
-      onFoldersChange(selectedFolders.filter((id) => id !== "unorganized"));
+      setStagedFolders(stagedFolders.filter((id) => id !== "unorganized"));
     }
   };
 
   const handleClear = () => {
+    setStagedFolders([]);
     onFoldersChange([]);
     setIsOpen(false);
   };
 
   const handleApply = () => {
+    onFoldersChange(stagedFolders);
     setIsOpen(false);
   };
 
   // Render folder item with proper indentation
   const renderFolderItem = (folder: FolderWithChildren, depth = 0) => {
-    const isSelected = selectedFolders.includes(folder.id);
+    const isSelected = stagedFolders.includes(folder.id);
     const indentClass = depth === 0 ? "" : depth === 1 ? "ml-4" : "ml-8";
     const callCount = folderCounts[folder.id];
 
@@ -150,7 +163,7 @@ export function FolderFilterPopover({
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <FilterButton
           icon={<RiFolderLine className="h-3.5 w-3.5" />}
@@ -199,7 +212,7 @@ export function FolderFilterPopover({
               <div className="flex items-center gap-2 py-1">
                 <Checkbox
                   id="folder-unorganized"
-                  checked={selectedFolders.includes("unorganized")}
+                  checked={stagedFolders.includes("unorganized")}
                   onCheckedChange={(checked) => handleToggleUnorganized(!!checked)}
                 />
                 <label

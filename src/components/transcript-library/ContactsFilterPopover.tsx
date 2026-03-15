@@ -19,6 +19,17 @@ export function ContactsFilterPopover({
 }: ContactsFilterPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // Staged selections — only committed on Apply (mirrors TagFilterPopover pattern)
+  const [stagedParticipants, setStagedParticipants] = useState<string[]>(selectedParticipants);
+
+  // Sync staged state when popover opens so re-opening after a partial clear
+  // reflects the current committed filter state, not stale local state.
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setStagedParticipants(selectedParticipants);
+    }
+    setIsOpen(open);
+  };
 
   const filteredParticipants = allParticipants.filter(p => {
     const q = searchQuery.toLowerCase();
@@ -27,23 +38,25 @@ export function ContactsFilterPopover({
 
   const handleToggle = (email: string, checked: boolean) => {
     if (checked) {
-      onParticipantsChange([...selectedParticipants, email]);
+      setStagedParticipants([...stagedParticipants, email]);
     } else {
-      onParticipantsChange(selectedParticipants.filter((p) => p !== email));
+      setStagedParticipants(stagedParticipants.filter((p) => p !== email));
     }
   };
 
   const handleClear = () => {
+    setStagedParticipants([]);
     onParticipantsChange([]);
     setIsOpen(false);
   };
 
   const handleApply = () => {
+    onParticipantsChange(stagedParticipants);
     setIsOpen(false);
   };
 
   return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <FilterButton
           icon={<RiUserLine className="h-3.5 w-3.5" />}
@@ -72,7 +85,7 @@ export function ContactsFilterPopover({
                 <div key={participant.email} className="flex items-center gap-2 px-2 py-1 rounded-md hover:bg-muted/50 transition-colors">
                   <Checkbox
                     id={participant.email}
-                    checked={selectedParticipants.includes(participant.email)}
+                    checked={stagedParticipants.includes(participant.email)}
                     onCheckedChange={(checked) => handleToggle(participant.email, !!checked)}
                   />
                   <label htmlFor={participant.email} className="text-sm cursor-pointer flex-1 py-0.5">
