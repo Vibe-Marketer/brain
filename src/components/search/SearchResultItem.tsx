@@ -284,16 +284,25 @@ export const SearchResultItem: React.FC<SearchResultItemProps> = ({
 
         {/* Metadata Row */}
         <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-500">
-          <span className="truncate">{result.sourceCallTitle}</span>
           {result.timestamp && (
+            <span className="shrink-0">{formatTimestamp(result.timestamp)}</span>
+          )}
+          {result.metadata?.participants && result.metadata.participants.length > 0 && (
             <>
-              <span className="shrink-0">·</span>
-              <span className="shrink-0">{formatTimestamp(result.timestamp)}</span>
+              {result.timestamp && <span className="shrink-0">·</span>}
+              <span className="truncate">
+                {result.metadata.participants
+                  .slice(0, 3)
+                  .map((p) => p.name || p.email)
+                  .filter(Boolean)
+                  .join(', ')}
+                {result.metadata.participants.length > 3 && ` +${result.metadata.participants.length - 3}`}
+              </span>
             </>
           )}
-          {result.metadata?.speakerName && (
+          {!result.metadata?.participants && result.metadata?.speakerName && (
             <>
-              <span className="shrink-0">·</span>
+              {result.timestamp && <span className="shrink-0">·</span>}
               <span className="truncate">{result.metadata.speakerName}</span>
             </>
           )}

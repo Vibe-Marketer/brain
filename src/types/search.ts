@@ -28,6 +28,10 @@ export interface SearchResultMetadata {
   confidence?: number;
   /** Tags associated with the result */
   tags?: string[];
+  /** Participants on the call */
+  participants?: Array<{ name: string | null; email: string | null }>;
+  /** Duration in seconds */
+  durationSeconds?: number | null;
 }
 
 /**
