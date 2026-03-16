@@ -337,8 +337,9 @@ export async function getFailedImports(): Promise<FailedImport[]> {
 
   if (!data || data.length === 0) return []
 
-  // Get user once
-  const { data: { user } } = await supabase.auth.getUser()
+  // Get user once — use cached session to avoid N+1 /auth/v1/user requests
+  const { data: { session } } = await supabase.auth.getSession()
+  const user = session?.user
   if (!user) return []
 
   // Get all synced external_ids to filter out false-positives

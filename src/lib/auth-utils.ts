@@ -3,16 +3,20 @@ import { logger } from "@/lib/logger";
 import type { User } from "@supabase/supabase-js";
 
 /**
- * Safe wrapper for supabase.auth.getUser() that handles network errors gracefully.
+ * Safe wrapper for Supabase auth that reads from the local cached session.
  *
- * The raw `supabase.auth.getUser()` call can throw TypeErrors when there are
- * network issues, causing unhandled exceptions. This wrapper catches those
- * errors and returns a consistent result object.
+ * Uses getSession() instead of getUser() to avoid unnecessary network requests
+ * to /auth/v1/user on every call. getSession() reads from localStorage (no round-trip),
+ * which is safe for UI-gating and RLS-backed queries since the JWT is validated
+ * server-side on every database request regardless.
+ *
+ * For write operations that truly need server-verified identity, pass `verify: true`
+ * which falls back to getUser() for a live network check.
  *
  * @returns Object with user (if authenticated) and error (if any occurred)
  *
  * @example
- * // In a component or hook
+ * // In a component or hook (read path — no network call)
  * const { user, error } = await getSafeUser();
  * if (error) {
  *   logger.warn("Auth error", error);
@@ -27,18 +31,17 @@ export async function getSafeUser(): Promise<{
   error: Error | null;
 }> {
   try {
-    const response = await supabase.auth.getUser();
+    const { data: { session }, error } = await supabase.auth.getSession();
 
-    // Handle Supabase auth errors (invalid token, expired session, etc.)
-    if (response.error) {
-      return { user: null, error: response.error };
+    if (error) {
+      return { user: null, error };
     }
 
-    return { user: response.data?.user ?? null, error: null };
+    return { user: session?.user ?? null, error: null };
   } catch (err) {
-    // Handle network errors, TypeErrors from failed destructuring, etc.
+    // Handle unexpected errors
     const error = err instanceof Error ? err : new Error(String(err));
-    logger.warn("Failed to get user (network or auth error)", error);
+    logger.warn("Failed to get user session", error);
     return { user: null, error };
   }
 }

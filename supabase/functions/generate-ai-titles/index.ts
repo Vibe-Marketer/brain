@@ -520,7 +520,7 @@ ${cleanedTranscript}`;
 
         console.log(`Generated for ${recordingId}: "${aiTitle}"`);
 
-        // Update database with AI-generated title and timestamp
+        // Update fathom_raw_calls with AI-generated title and timestamp
         const { error: updateError } = await supabase
           .from('fathom_raw_calls')
           .update({
@@ -531,13 +531,26 @@ ${cleanedTranscript}`;
           .eq('user_id', userId);
 
         if (updateError) {
-          console.error(`Error updating title for ${recordingId}:`, updateError);
+          console.error(`Error updating fathom_raw_calls title for ${recordingId}:`, updateError);
           results.push({
             recordingId,
             success: false,
             error: updateError.message,
           });
         } else {
+          // Also update recordings.title so the UI reflects the AI title immediately.
+          // recordings.legacy_recording_id (bigint) matches fathom_raw_calls.recording_id.
+          // Non-blocking: a failure here doesn't fail the overall result.
+          const { error: recError } = await supabase
+            .from('recordings')
+            .update({ title: aiTitle })
+            .eq('owner_user_id', userId)
+            .eq('legacy_recording_id', recordingId);
+
+          if (recError) {
+            console.error(`Error updating recordings.title for legacy_recording_id ${recordingId} (non-blocking):`, recError);
+          }
+
           results.push({
             recordingId,
             success: true,
