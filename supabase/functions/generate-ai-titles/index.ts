@@ -400,7 +400,7 @@ Deno.serve(async (req) => {
     // Use OpenRouter for model access - Gemini 2.5 Flash for large context window
     const openrouter = createOpenRouterProvider(openrouterApiKey);
 
-    for (const recordingId of idsToProcess) {
+    const processRecording = async (recordingId: number) => {
       try {
         // Fetch call data including participant info
         const { data: call, error: callError } = await supabase
@@ -538,35 +538,10 @@ ${cleanedTranscript}`;
             error: updateError.message,
           });
         } else {
-          // Also update recordings.title so the UI reflects the AI title immediately.
-          // Prefer canonical_recording_id (UUID FK → recordings.id) over the fragile
-          // legacy_recording_id bigint join, which can miss rows in multi-bank scenarios.
-          if (call.canonical_recording_id) {
-            const { error: recError } = await supabase
-              .from('recordings')
-              .update({ title: aiTitle })
-              .eq('id', call.canonical_recording_id);
-
-            if (recError) {
-              console.error(`Error updating recordings.title for canonical_recording_id ${call.canonical_recording_id} (recording_id ${recordingId}):`, recError);
-            } else {
-              console.log(`Updated recordings.title via canonical_recording_id for ${recordingId}`);
-            }
-          } else {
-            // Fallback: join via legacy_recording_id for rows not yet backfilled
-            const { error: recError } = await supabase
-              .from('recordings')
-              .update({ title: aiTitle })
-              .eq('owner_user_id', userId)
-              .eq('legacy_recording_id', recordingId);
-
-            if (recError) {
-              console.error(`Error updating recordings.title via legacy_recording_id ${recordingId}:`, recError);
-            } else {
-              console.log(`Updated recordings.title via legacy_recording_id for ${recordingId}`);
-            }
-          }
-
+          // fathom_raw_calls.ai_generated_title is the source of truth for AI titles.
+          // The UI surfaces it via the get_workspace_recordings RPC (LEFT JOIN fathom_raw_calls)
+          // and displays it as the subtitle beneath the original call title.
+          // We do NOT overwrite recordings.title — that preserves the original call name.
           results.push({
             recordingId,
             success: true,
@@ -582,7 +557,10 @@ ${cleanedTranscript}`;
           error: error instanceof Error ? error.message : 'Unknown error',
         });
       }
-    }
+    };
+
+    // Process all recordings in parallel — independent LLM calls, no need to serialize
+    await Promise.all(idsToProcess.map(processRecording));
 
     const successCount = results.filter(r => r.success).length;
 

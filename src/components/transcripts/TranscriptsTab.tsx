@@ -438,6 +438,7 @@ export function TranscriptsTab({
           recording_end_time: row.recording_end_time,
           created_at: row.created_at,
           synced_at: row.synced_at,
+          ai_generated_title: row.ai_generated_title ?? null,
           workspace_entry: { id: row.entry_id, folder_id: row.entry_folder_id },
         }));
 

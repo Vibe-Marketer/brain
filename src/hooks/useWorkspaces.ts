@@ -29,6 +29,7 @@ export interface WorkspaceDetail extends Workspace {
 /** Recording with workspace-specific metadata from workspace_entries */
 export interface WorkspaceRecording extends Recording {
   workspace_entry: Pick<WorkspaceEntry, 'id' | 'local_tags' | 'scores' | 'notes' | 'folder_id'>
+  ai_generated_title?: string | null
 }
 
 /** Workspace member with user profile info */
@@ -406,6 +407,8 @@ export function mapRecordingToMeeting(recording: WorkspaceRecording): Meeting {
     synced_at: recording.synced_at || undefined,
     auto_tags: recording.global_tags || null,
     source_metadata: recording.source_metadata || null,
+    // AI-generated subtitle (Fathom calls only — stored in fathom_raw_calls, joined by RPC)
+    ai_generated_title: recording.ai_generated_title || null,
     // Source tracking
     source_platform: (recording.source_app as Meeting['source_platform']) || null,
     // Not applicable for workspace recordings
