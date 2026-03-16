@@ -206,12 +206,18 @@ export function BulkActionToolbarEnhanced({
     const loadingToast = toast.loading(`Generating AI titles for ${selectedCount} call${selectedCount > 1 ? 's' : ''}...`);
 
     try {
+      // Only Fathom-sourced calls have integer legacy_recording_ids — filter out
+      // Zoom/file-upload calls whose recording_id is a UUID (Number(uuid) = NaN).
       const recordingIds = selectedCalls
-        .filter(c => c?.recording_id != null)
+        .filter(c => {
+          if (c?.recording_id == null) return false;
+          const n = Number(c.recording_id);
+          return !isNaN(n) && n > 0;
+        })
         .map(c => Number(c.recording_id));
 
       if (recordingIds.length === 0) {
-        toast.error('Invalid selection: no valid recording IDs', { id: loadingToast });
+        toast.error('None of the selected calls have a Fathom recording ID. AI title generation requires calls synced from Fathom.', { id: loadingToast });
         return;
       }
 
@@ -262,11 +268,15 @@ export function BulkActionToolbarEnhanced({
 
     try {
       const recordingIds = selectedCalls
-        .filter(c => c?.recording_id != null)
+        .filter(c => {
+          if (c?.recording_id == null) return false;
+          const n = Number(c.recording_id);
+          return !isNaN(n) && n > 0;
+        })
         .map(c => Number(c.recording_id));
 
       if (recordingIds.length === 0) {
-        toast.error('Invalid selection: no valid recording IDs', { id: loadingToast });
+        toast.error('None of the selected calls have a Fathom recording ID. AI tagging requires calls synced from Fathom.', { id: loadingToast });
         return;
       }
 

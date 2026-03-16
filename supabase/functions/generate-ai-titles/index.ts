@@ -372,7 +372,14 @@ Deno.serve(async (req) => {
       console.log(`Found ${idsToProcess.length} calls needing AI titles`);
 
     } else if (recordingIds && recordingIds.length > 0) {
-      idsToProcess = recordingIds;
+      // Filter out NaN/null values that occur when UUID-based recordings are passed
+      idsToProcess = recordingIds.filter(id => id != null && !isNaN(id) && id > 0);
+      if (idsToProcess.length === 0) {
+        return new Response(
+          JSON.stringify({ error: 'No valid legacy recording IDs provided. This feature requires Fathom-sourced calls with integer recording IDs.' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     } else {
       return new Response(
         JSON.stringify({ error: 'Either recordingIds or auto_discover=true is required' }),
@@ -513,7 +520,7 @@ ${cleanedTranscript}`;
 
         console.log(`Generated for ${recordingId}: "${aiTitle}"`);
 
-        // Update database with AI-generated title and timestamp
+        // Update fathom_raw_calls with AI-generated title and timestamp
         const { error: updateError } = await supabase
           .from('fathom_raw_calls')
           .update({
@@ -524,13 +531,26 @@ ${cleanedTranscript}`;
           .eq('user_id', userId);
 
         if (updateError) {
-          console.error(`Error updating title for ${recordingId}:`, updateError);
+          console.error(`Error updating fathom_raw_calls title for ${recordingId}:`, updateError);
           results.push({
             recordingId,
             success: false,
             error: updateError.message,
           });
         } else {
+          // Also update recordings.title so the UI reflects the AI title immediately.
+          // recordings.legacy_recording_id (bigint) matches fathom_raw_calls.recording_id.
+          // Non-blocking: a failure here doesn't fail the overall result.
+          const { error: recError } = await supabase
+            .from('recordings')
+            .update({ title: aiTitle })
+            .eq('owner_user_id', userId)
+            .eq('legacy_recording_id', recordingId);
+
+          if (recError) {
+            console.error(`Error updating recordings.title for legacy_recording_id ${recordingId} (non-blocking):`, recError);
+          }
+
           results.push({
             recordingId,
             success: true,
