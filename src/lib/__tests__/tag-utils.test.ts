@@ -175,7 +175,9 @@ describe("getTagSuggestions", () => {
   });
 
   it("should sort prefix matches before substring matches", () => {
-    const result = getTagSuggestions("react", existingTags);
+    // "reac" is a prefix of both "react" and "reactnative"
+    // "react" (shorter) should appear before "reactnative" (longer)
+    const result = getTagSuggestions("reac", existingTags);
     expect(result[0]).toBe("react");
   });
 

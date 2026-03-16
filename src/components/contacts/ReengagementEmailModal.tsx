@@ -16,7 +16,6 @@ import {
   RiMagicLine,
   RiFileCopyLine,
   RiExternalLinkLine,
-  RiCloseLine,
   RiRefreshLine,
 } from "@remixicon/react";
 import { cn } from "@/lib/utils";

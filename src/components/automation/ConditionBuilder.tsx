@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import {
   RiAddLine,
   RiDeleteBinLine,
@@ -190,9 +190,9 @@ interface ConditionRowProps {
 
 function ConditionRow({
   condition,
-  index,
+  index: _index,
   isFirst,
-  isLast,
+  isLast: _isLast,
   logicOperator,
   onUpdate,
   onRemove,
@@ -489,7 +489,7 @@ interface ConditionBuilderProps {
 }
 
 export function ConditionBuilder({ conditions, onChange }: ConditionBuilderProps) {
-  const conditionList = conditions.conditions || [];
+  const conditionList = useMemo(() => conditions.conditions || [], [conditions.conditions]);
   const logicOperator = conditions.operator || "AND";
 
   const handleAddCondition = useCallback(() => {

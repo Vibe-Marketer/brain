@@ -16,6 +16,17 @@ import userEvent from '@testing-library/user-event';
 import * as React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+// Mock AuthContext — FoldersTab indirectly uses useAuth via imported hooks
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'test-user-id', email: 'test@example.com' },
+    session: { user: { id: 'test-user-id' } },
+    loading: false,
+    signOut: vi.fn(),
+  }),
+  AuthProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 // Mock useFolders hook
 const mockCreateFolder = vi.fn();
 const mockUpdateFolder = vi.fn();
@@ -24,13 +35,25 @@ const mockRefetch = vi.fn();
 
 vi.mock('@/hooks/useFolders', () => ({
   useFolders: vi.fn(() => ({
-    folders: [],
-    folderAssignments: {},
+    data: [],
     isLoading: false,
-    createFolder: mockCreateFolder,
-    updateFolder: mockUpdateFolder,
-    deleteFolder: mockDeleteFolder,
     refetch: mockRefetch,
+  })),
+  useFolderAssignments: vi.fn(() => ({
+    data: {},
+    isLoading: false,
+  })),
+  useDeleteFolder: vi.fn(() => ({
+    mutateAsync: mockDeleteFolder,
+    isPending: false,
+  })),
+  useRenameFolder: vi.fn(() => ({
+    mutateAsync: mockUpdateFolder,
+    isPending: false,
+  })),
+  useCreateFolder: vi.fn(() => ({
+    mutateAsync: mockCreateFolder,
+    isPending: false,
   })),
 }));
 
@@ -91,7 +114,8 @@ vi.mock('sonner', () => ({
 vi.mock('@/hooks/useOrganizationContext', () => ({
   useOrganizationContext: vi.fn(() => ({
     activeOrganizationId: 'test-organization-id',
-    activeWorkspaceId: null,
+    activeOrgId: 'test-organization-id',
+    activeWorkspaceId: 'test-workspace-id',
     isLoading: false,
     isInitialized: true,
     error: null,
@@ -110,11 +134,11 @@ vi.mock('@/hooks/useOrganizationContext', () => ({
 
 // Import after mocking
 import { FoldersTab } from '../FoldersTab';
-import { useFolders } from '@/hooks/useFolders';
+import { useFolders, useFolderAssignments } from '@/hooks/useFolders';
 import { usePanelStore } from '@/stores/panelStore';
 import { useKeyboardShortcut } from '@/hooks/useKeyboardShortcut';
 import { useListKeyboardNavigationWithState } from '@/hooks/useListKeyboardNavigation';
-import type { Folder } from '@/hooks/useFolders';
+import type { Folder } from '@/types/workspace';
 
 // Test data
 const createMockFolder = (overrides: Partial<Folder> = {}): Folder => ({
@@ -151,18 +175,10 @@ describe('FoldersTab Integration Tests', () => {
 
     // Reset useFolders mock to default state
     vi.mocked(useFolders).mockReturnValue({
-      folders: [],
-      folderAssignments: {},
-      isLoading: false,
-      createFolder: mockCreateFolder,
-      updateFolder: mockUpdateFolder,
-      deleteFolder: mockDeleteFolder,
-      refetch: mockRefetch,
-      assignToFolder: vi.fn(),
-      removeFromFolder: vi.fn(),
-      moveToFolder: vi.fn(),
-      getFoldersForCall: vi.fn(() => []),
-    });
+        data: [],
+        isLoading: false,
+        refetch: mockRefetch,
+      });
 
     // Reset panelStore mock
     vi.mocked(usePanelStore).mockReturnValue({
@@ -206,17 +222,9 @@ describe('FoldersTab Integration Tests', () => {
 
     it('should render loading skeleton when data is loading', () => {
       vi.mocked(useFolders).mockReturnValue({
-        folders: [],
-        folderAssignments: {},
+        data: [],
         isLoading: true,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -234,17 +242,13 @@ describe('FoldersTab Integration Tests', () => {
       ];
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: mockFolders,
-        folderAssignments: { '1': ['folder-1'], '2': ['folder-1', 'folder-2'] },
+        data: mockFolders,
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
+      });
+      vi.mocked(useFolderAssignments).mockReturnValue({
+        data: { '1': ['folder-1'], '2': ['folder-1', 'folder-2'] },
+        isLoading: false,
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -258,21 +262,17 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolders = [createMockFolder({ id: 'folder-1', name: 'Work' })];
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: mockFolders,
-        folderAssignments: {
+        data: mockFolders,
+        isLoading: false,
+        refetch: mockRefetch,
+      });
+      vi.mocked(useFolderAssignments).mockReturnValue({
+        data: {
           '1': ['folder-1'],
           '2': ['folder-1'],
           '3': ['folder-1'],
         },
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
-        refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -288,17 +288,9 @@ describe('FoldersTab Integration Tests', () => {
       ];
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: mockFolders,
-        folderAssignments: {},
+        data: mockFolders,
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -313,17 +305,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -343,17 +327,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       // Mock panel store to show folder is selected
@@ -383,17 +359,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -412,17 +380,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder.mockResolvedValue(undefined),
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -437,7 +397,7 @@ describe('FoldersTab Integration Tests', () => {
       await user.type(input, 'New Work Name{Enter}');
 
       await waitFor(() => {
-        expect(mockUpdateFolder).toHaveBeenCalledWith('folder-1', { name: 'New Work Name' });
+        expect(mockUpdateFolder).toHaveBeenCalledWith({ folderId: 'folder-1', name: 'New Work Name' });
       });
     });
 
@@ -446,17 +406,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -481,17 +433,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder.mockResolvedValue(undefined),
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -509,7 +453,7 @@ describe('FoldersTab Integration Tests', () => {
       fireEvent.blur(input);
 
       await waitFor(() => {
-        expect(mockUpdateFolder).toHaveBeenCalledWith('folder-1', { name: 'Blurred Name' });
+        expect(mockUpdateFolder).toHaveBeenCalledWith({ folderId: 'folder-1', name: 'Blurred Name' });
       });
     });
   });
@@ -520,17 +464,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -556,17 +492,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -580,17 +508,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -610,17 +530,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder.mockResolvedValue(undefined),
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -647,17 +559,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -695,17 +599,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       // Mock selected folder
@@ -735,17 +631,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       // Mock selected folder
@@ -807,17 +695,9 @@ describe('FoldersTab Integration Tests', () => {
       });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder.mockResolvedValue(undefined),
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -836,11 +716,11 @@ describe('FoldersTab Integration Tests', () => {
 
       await waitFor(() => {
         expect(mockCreateFolder).toHaveBeenCalledWith(
-          'Copy of Work',
-          undefined, // parent_id is null
-          '#FF0000',
-          '💼',
-          'Work stuff'
+          expect.objectContaining({
+            name: 'Copy of Work',
+            workspaceId: 'test-workspace-id',
+            organizationId: 'test-organization-id',
+          })
         );
       });
     });
@@ -852,17 +732,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder.mockResolvedValue(undefined),
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -891,17 +763,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -915,17 +779,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -938,17 +794,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -966,17 +814,9 @@ describe('FoldersTab Integration Tests', () => {
       ];
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: mockFolders,
-        folderAssignments: {},
+        data: mockFolders,
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -1002,17 +842,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });
@@ -1030,17 +862,9 @@ describe('FoldersTab Integration Tests', () => {
       const mockFolder = createMockFolder({ id: 'folder-1', name: 'Work' });
 
       vi.mocked(useFolders).mockReturnValue({
-        folders: [mockFolder],
-        folderAssignments: {},
+        data: [mockFolder],
         isLoading: false,
-        createFolder: mockCreateFolder,
-        updateFolder: mockUpdateFolder,
-        deleteFolder: mockDeleteFolder,
         refetch: mockRefetch,
-        assignToFolder: vi.fn(),
-        removeFromFolder: vi.fn(),
-        moveToFolder: vi.fn(),
-        getFoldersForCall: vi.fn(() => []),
       });
 
       render(<FoldersTab />, { wrapper: createWrapper() });

@@ -169,6 +169,7 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
                   // Collapsed: center the icon box
                   isCollapsed && 'justify-center',
                 )}
+                title={item.name}
                 aria-label={isCollapsed ? item.name : undefined}
                 aria-current={active ? 'page' : undefined}
               >

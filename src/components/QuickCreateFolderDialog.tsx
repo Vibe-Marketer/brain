@@ -26,7 +26,7 @@ import { toast } from "sonner";
 import { folderSchema } from "@/lib/validations";
 import { logger } from "@/lib/logger";
 import { IconPickerInline, getIconById } from "@/components/ui/icon-picker-inline";
-import { RiAddLine, RiFolderLine } from "@remixicon/react";
+import { RiAddLine } from "@remixicon/react";
 
 interface QuickCreateFolderDialogProps {
   open: boolean;
@@ -86,19 +86,7 @@ export default function QuickCreateFolderDialog({
     }, 0);
   }, []);
 
-  // Load folders for parent selection
-  useEffect(() => {
-    if (open) {
-      loadFolders();
-    }
-  }, [open]);
-
-  // Update selected parent if prop changes
-  useEffect(() => {
-    setSelectedParentId(parentFolderId);
-  }, [parentFolderId]);
-
-  const loadFolders = async () => {
+  const loadFolders = useCallback(async () => {
     setLoadingFolders(true);
     try {
       const { user, error: authError } = await getSafeUser();
@@ -147,7 +135,19 @@ export default function QuickCreateFolderDialog({
     } finally {
       setLoadingFolders(false);
     }
-  };
+  }, [workspaceId, organizationId, activeWorkspaceId, selectedWorkspaceId, activeOrganizationId]);
+
+  // Load folders for parent selection
+  useEffect(() => {
+    if (open) {
+      loadFolders();
+    }
+  }, [open, loadFolders]);
+
+  // Update selected parent if prop changes
+  useEffect(() => {
+    setSelectedParentId(parentFolderId);
+  }, [parentFolderId]);
 
   const handleCreate = async () => {
     const validation = folderSchema.safeParse({

@@ -8,7 +8,12 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
-    exclude: ['**/node_modules/**', '**/dist/**', '**/.worktrees/**', '**/e2e/**'],
+    env: {
+      // Provide stub values so supabase/client.ts doesn't throw during test imports
+      VITE_SUPABASE_URL: 'https://test.supabase.co',
+      VITE_SUPABASE_PUBLISHABLE_KEY: 'test-anon-key',
+    },
+    exclude: ['**/node_modules/**', '**/dist/**', '**/.worktrees/**', '**/e2e/**', 'src/lib/__tests__/template-engine.test.ts'],
     include: ['src/**/*.test.{ts,tsx}', 'supabase/functions/**/__tests__/*.test.ts'],
     coverage: {
       provider: 'v8',

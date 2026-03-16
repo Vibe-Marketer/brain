@@ -661,13 +661,12 @@ describe('Integration Test: Webhook Security Flow', () => {
 
 describe('Edge Cases', () => {
   describe('Malformed Input Handling', () => {
-    it('should handle null secret gracefully', () => {
+    it('should handle null secret gracefully', async () => {
       const timestamp = String(Math.floor(Date.now() / 1000));
 
-      // This should not throw, just return false
-      expect(() => {
-        verifySignature(null as unknown as string, 'payload', 'sig', timestamp);
-      }).toThrow(); // Or handle gracefully depending on implementation
+      // verifySignature catches crypto errors internally and returns false — must not throw
+      const result = await verifySignature(null as unknown as string, 'payload', 'sig', timestamp);
+      expect(result).toBe(false);
     });
 
     it('should handle empty payload', () => {

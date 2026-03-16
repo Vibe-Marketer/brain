@@ -91,15 +91,7 @@ export default function ManualTagDialog({
     }
   }, [targetRecordingIds, isBulkMode]);
 
-  useEffect(() => {
-    if (open && targetRecordingIds.length > 0) {
-      loadTags();
-      // Always load existing assignments to show what's currently assigned
-      loadExistingAssignments();
-    }
-  }, [open, targetRecordingIds.length, loadExistingAssignments]);
-
-  const loadTags = async () => {
+  const loadTags = useCallback(async () => {
     try {
       let query = supabase
         .from("call_tags")
@@ -117,7 +109,15 @@ export default function ManualTagDialog({
     } catch (error) {
       logger.error("Error loading tags", error);
     }
-  };
+  }, [activeOrganizationId]);
+
+  useEffect(() => {
+    if (open && targetRecordingIds.length > 0) {
+      loadTags();
+      // Always load existing assignments to show what's currently assigned
+      loadExistingAssignments();
+    }
+  }, [open, targetRecordingIds.length, loadTags, loadExistingAssignments]);
 
   const toggleTag = (tagId: string) => {
     const newSelected = new Set(selectedTags);
