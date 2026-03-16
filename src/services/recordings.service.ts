@@ -175,30 +175,25 @@ export async function getAvailableSources(
   workspaceId?: string | null
 ): Promise<string[]> {
   if (workspaceId) {
-    // Workspace-scoped: get recording IDs from workspace_entries first
-    const { data: entries, error: entriesError } = await supabase
-      .from('workspace_entries')
-      .select('recording_id')
-      .eq('workspace_id', workspaceId)
-
-    if (entriesError) {
-      throw new Error(`Failed to fetch workspace entries for sources: ${entriesError.message}`)
-    }
-
-    const recordingIds = (entries ?? []).map((e: { recording_id: string }) => e.recording_id)
-    if (recordingIds.length === 0) return []
-
+    // Workspace-scoped: JOIN workspace_entries → recordings server-side to avoid
+    // passing hundreds of UUIDs in a .in() URL (hits the 8KB PostgREST URL limit).
+    // The !inner join filters out workspace_entries with no matching recording.
+    // We filter null source_app values client-side (payload is tiny: just strings).
     const { data, error } = await supabase
-      .from('recordings')
-      .select('source_app')
-      .in('id', recordingIds)
-      .not('source_app', 'is', null)
+      .from('workspace_entries')
+      .select('recording:recordings!inner(source_app)')
+      .eq('workspace_id', workspaceId)
 
     if (error) {
       throw new Error(`Failed to fetch available sources for workspace: ${error.message}`)
     }
 
-    const unique = [...new Set((data ?? []).map((r: { source_app: string | null }) => r.source_app).filter(Boolean))] as string[]
+    type Row = { recording: { source_app: string | null } | null }
+    const unique = [...new Set(
+      (data ?? [])
+        .map((e: Row) => e.recording?.source_app)
+        .filter(Boolean)
+    )] as string[]
     return unique.sort()
   }
 
