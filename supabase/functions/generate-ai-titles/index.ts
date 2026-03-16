@@ -417,7 +417,7 @@ Deno.serve(async (req) => {
             success: false,
             error: 'Call not found or unauthorized',
           });
-          continue;
+          return;
         }
 
         // Skip if no transcript
@@ -428,7 +428,7 @@ Deno.serve(async (req) => {
             success: false,
             error: 'No transcript available',
           });
-          continue;
+          return;
         }
 
         // Clean and prepare the transcript
