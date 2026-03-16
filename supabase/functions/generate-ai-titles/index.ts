@@ -405,7 +405,7 @@ Deno.serve(async (req) => {
         // Fetch call data including participant info
         const { data: call, error: callError } = await supabase
           .from('fathom_raw_calls')
-          .select('recording_id, title, full_transcript, created_at, recorded_by_name, recorded_by_email, calendar_invitees')
+          .select('recording_id, canonical_recording_id, title, full_transcript, created_at, recorded_by_name, recorded_by_email, calendar_invitees')
           .eq('recording_id', recordingId)
           .eq('user_id', userId)
           .single();
@@ -539,16 +539,32 @@ ${cleanedTranscript}`;
           });
         } else {
           // Also update recordings.title so the UI reflects the AI title immediately.
-          // recordings.legacy_recording_id (bigint) matches fathom_raw_calls.recording_id.
-          // Non-blocking: a failure here doesn't fail the overall result.
-          const { error: recError } = await supabase
-            .from('recordings')
-            .update({ title: aiTitle })
-            .eq('owner_user_id', userId)
-            .eq('legacy_recording_id', recordingId);
+          // Prefer canonical_recording_id (UUID FK → recordings.id) over the fragile
+          // legacy_recording_id bigint join, which can miss rows in multi-bank scenarios.
+          if (call.canonical_recording_id) {
+            const { error: recError } = await supabase
+              .from('recordings')
+              .update({ title: aiTitle })
+              .eq('id', call.canonical_recording_id);
 
-          if (recError) {
-            console.error(`Error updating recordings.title for legacy_recording_id ${recordingId} (non-blocking):`, recError);
+            if (recError) {
+              console.error(`Error updating recordings.title for canonical_recording_id ${call.canonical_recording_id} (recording_id ${recordingId}):`, recError);
+            } else {
+              console.log(`Updated recordings.title via canonical_recording_id for ${recordingId}`);
+            }
+          } else {
+            // Fallback: join via legacy_recording_id for rows not yet backfilled
+            const { error: recError } = await supabase
+              .from('recordings')
+              .update({ title: aiTitle })
+              .eq('owner_user_id', userId)
+              .eq('legacy_recording_id', recordingId);
+
+            if (recError) {
+              console.error(`Error updating recordings.title via legacy_recording_id ${recordingId}:`, recError);
+            } else {
+              console.log(`Updated recordings.title via legacy_recording_id for ${recordingId}`);
+            }
           }
 
           results.push({
