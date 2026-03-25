@@ -31,8 +31,8 @@ export default defineConfig({
   // Fail the build on CI if you accidentally left test.only in the source code
   forbidOnly: !!process.env.CI,
 
-  // Retry on CI only
-  retries: process.env.CI ? 2 : 0,
+  // Retry failed tests (2 retries for stability)
+  retries: 2,
 
   // Opt out of parallel tests on CI
   workers: process.env.CI ? 1 : undefined,
@@ -50,6 +50,9 @@ export default defineConfig({
 
     // Take screenshot on failure
     screenshot: 'only-on-failure',
+
+    // Retain video on failure for debugging
+    video: 'retain-on-failure',
   },
 
   // Configure projects for major browsers
