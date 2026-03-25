@@ -159,7 +159,7 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
 
               // For unsynced meetings OR synced meetings with transcripts, show subtitle
               return (
-                <span className="text-[9px] md:text-2xs text-muted-foreground leading-tight hidden md:inline">
+                <span className="text-[9px] md:text-2xs text-muted-foreground leading-tight hidden md:inline truncate max-w-[200px] md:max-w-[300px] inline-block align-bottom">
                   {call.ai_generated_title || `ID: ${call.recording_id}`}
                 </span>
               );

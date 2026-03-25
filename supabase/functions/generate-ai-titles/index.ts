@@ -509,7 +509,7 @@ ${cleanedTranscript}`;
         }).catch((err) => console.error('Usage logging failed (non-blocking):', err));
 
         // Clean up the response - remove any quotes, markdown, or extra whitespace
-        const aiTitle = result.text
+        let aiTitle = result.text
           .trim()
           .replace(/^["'`]|["'`]$/g, '')  // Remove leading/trailing quotes and backticks
           .replace(/`/g, '')              // Remove any remaining backticks
@@ -517,6 +517,22 @@ ${cleanedTranscript}`;
           .replace(/\*/g, '')             // Remove markdown italic
           .replace(/\n/g, ' ')            // Remove newlines
           .trim();
+
+        // Guard: if the model returned chain-of-thought reasoning instead of just
+        // a title, the output will be absurdly long. Titles should be 3-7 words
+        // (~60 chars max). If over 100 chars, extract the last short segment or truncate.
+        const MAX_TITLE_LENGTH = 100;
+        if (aiTitle.length > MAX_TITLE_LENGTH) {
+          console.warn(`Title for ${recordingId} is ${aiTitle.length} chars — model likely returned reasoning. Attempting extraction.`);
+          const segments = aiTitle.split(/\s{2,}/).filter((s: string) => s.length > 0);
+          const lastSegment = segments[segments.length - 1]?.trim() || '';
+          if (lastSegment.length > 5 && lastSegment.length <= MAX_TITLE_LENGTH) {
+            aiTitle = lastSegment;
+          } else {
+            aiTitle = aiTitle.substring(0, MAX_TITLE_LENGTH).replace(/\s+\S*$/, '').trim();
+          }
+          console.log(`Extracted/truncated title for ${recordingId}: "${aiTitle}"`);
+        }
 
         console.log(`Generated for ${recordingId}: "${aiTitle}"`);
 
