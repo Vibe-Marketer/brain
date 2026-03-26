@@ -1,26 +1,17 @@
 project_id = "vltmrnjsubfzrgrtdqey"
 
 # ============================================================================
-# JWT VERIFICATION AUDIT (2026-03-08)
+# JWT VERIFICATION AUDIT (2026-03-26)
 #
 # verify_jwt = false means Supabase gateway does NOT enforce JWT.
 # Functions with verify_jwt = false MUST either:
 #   (a) perform manual JWT verification in their handler code, OR
 #   (b) be legitimately called without a user JWT (webhooks, cron workers)
 #
-# AUDIT RESULTS — all verify_jwt=false functions reviewed:
-#
-# MIGRATED to verify_jwt = true (had manual JWT check — now belt+suspenders):
-#   fetch-meetings, sync-meetings, zoom-fetch-meetings, zoom-sync-meetings,
-#   youtube-import, file-upload-transcribe
-#
-# LEGITIMATELY NO JWT (webhooks/workers — cannot have user JWT):
+# LEGITIMATELY NO JWT (webhooks — cannot have user JWT):
 #   webhook              — receives external Fathom webhook callbacks
 #   zoom-webhook         — receives external Zoom webhook callbacks
 #   polar-webhook        — receives external Polar payment webhook callbacks
-#   automation-webhook   — receives external webhook triggers
-#   process-embeddings   — worker invoked by pg_cron / self-invocation
-#   automation-scheduler — worker invoked by pg_cron
 # ============================================================================
 
 # --- User-initiated functions (verify_jwt = true) ---
@@ -44,31 +35,10 @@ verify_jwt = true
 [functions.file-upload-transcribe]
 verify_jwt = true
 
-[functions.save-fathom-key]
-verify_jwt = true
-
-[functions.test-fathom-connection]
-verify_jwt = true
-
-[functions.save-webhook-secret]
-verify_jwt = true
-
-[functions.get-config-status]
-verify_jwt = true
-
 [functions.fetch-single-meeting]
 verify_jwt = true
 
 [functions.save-host-email]
-verify_jwt = true
-
-[functions.create-fathom-webhook]
-verify_jwt = true
-
-[functions.resync-all-calls]
-verify_jwt = true
-
-[functions.delete-all-calls]
 verify_jwt = true
 
 [functions.fathom-oauth-url]
@@ -80,28 +50,10 @@ verify_jwt = true
 [functions.fathom-oauth-refresh]
 verify_jwt = true
 
-[functions.embed-chunks]
-verify_jwt = true
-
-[functions.chat-stream-v2]
-verify_jwt = true
-
 [functions.youtube-api]
 verify_jwt = true
 
-[functions.automation-engine]
-verify_jwt = true
-
-[functions.automation-sentiment]
-verify_jwt = true
-
 [functions.generate-content]
-verify_jwt = true
-
-[functions.extract-profits]
-verify_jwt = true
-
-[functions.automation-email]
 verify_jwt = true
 
 # --- Webhook receivers (no user JWT available) ---
@@ -116,20 +68,4 @@ verify_jwt = false
 
 [functions.polar-webhook]
 # Receives external Polar payment webhook callbacks — no user JWT available
-verify_jwt = false
-
-[functions.automation-webhook]
-# Receives external webhook triggers — no user JWT available
-verify_jwt = false
-
-# --- Worker functions (invoked by pg_cron / self-invocation) ---
-
-[functions.process-embeddings]
-# Worker function called by self-invocation and pg_cron
-# Needs to work without user JWT (uses service role)
-verify_jwt = false
-
-[functions.automation-scheduler]
-# Worker function called by pg_cron for scheduled rule execution
-# Needs to work without user JWT (uses service role)
 verify_jwt = false

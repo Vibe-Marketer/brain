@@ -478,61 +478,89 @@ ${cleanedTranscript}`;
           metadata: { recordingId, transcriptLength: cleanedTranscript.length },
         });
 
-        const startMs = Date.now();
-        let result;
-        try {
-          result = await generateText({
-            model: openrouter(AI_MODEL),
-            system: SYSTEM_PROMPT,
-            prompt: userPrompt,
-            temperature: AI_TEMPERATURE,
-          });
-          await trace?.end(result.text);
-        } catch (error) {
-          await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
-          throw error;
-        }
-        const latencyMs = Date.now() - startMs;
+        // Generate title with retry — if the model returns chain-of-thought
+        // reasoning instead of just a title, bump temperature and try again.
+        const MAX_TITLE_LENGTH = 100;
+        const MAX_ATTEMPTS = 2;
+        let aiTitle = '';
+        let totalLatencyMs = 0;
+        let totalInputTokens = 0;
+        let totalOutputTokens = 0;
 
-        // Track usage — fire-and-forget, does not block the main flow
-        // ai@5.x uses inputTokens/outputTokens (not promptTokens/completionTokens)
-        const inputTokens = result.usage?.inputTokens ?? estimateTokenCount(SYSTEM_PROMPT + userPrompt);
-        const outputTokens = result.usage?.outputTokens ?? estimateTokenCount(result.text);
+        for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+          const startMs = Date.now();
+          let result;
+          try {
+            result = await generateText({
+              model: openrouter(AI_MODEL),
+              system: SYSTEM_PROMPT,
+              prompt: attempt === 1
+                ? userPrompt
+                : userPrompt + '\n\nIMPORTANT: Return ONLY the title string. No reasoning, no steps, no explanation. Just the title.',
+              temperature: attempt === 1 ? AI_TEMPERATURE : 0.3,
+            });
+            await trace?.end(result.text);
+          } catch (error) {
+            await trace?.end(null, error instanceof Error ? error.message : 'Unknown error');
+            throw error;
+          }
+          const latencyMs = Date.now() - startMs;
+          totalLatencyMs += latencyMs;
+
+          const inputTokens = result.usage?.inputTokens ?? estimateTokenCount(SYSTEM_PROMPT + userPrompt);
+          const outputTokens = result.usage?.outputTokens ?? estimateTokenCount(result.text);
+          totalInputTokens += inputTokens;
+          totalOutputTokens += outputTokens;
+
+          // Clean up the response
+          aiTitle = result.text
+            .trim()
+            .replace(/^["'`]|["'`]$/g, '')
+            .replace(/`/g, '')
+            .replace(/\*\*/g, '')
+            .replace(/\*/g, '')
+            .replace(/\n/g, ' ')
+            .trim();
+
+          if (aiTitle.length <= MAX_TITLE_LENGTH) {
+            if (attempt > 1) console.log(`Retry succeeded for ${recordingId}: "${aiTitle}"`);
+            break;
+          }
+
+          if (attempt < MAX_ATTEMPTS) {
+            console.warn(`Title for ${recordingId} is ${aiTitle.length} chars on attempt ${attempt} — retrying with stronger instruction.`);
+          } else {
+            // Both attempts returned garbage — skip this recording entirely.
+            // The UI will show the recording ID fallback instead of truncated junk.
+            console.error(`Title for ${recordingId} still ${aiTitle.length} chars after ${MAX_ATTEMPTS} attempts — skipping (will show ID fallback).`);
+            logUsage(supabase, {
+              userId,
+              operationType: 'ai_naming',
+              model: AI_MODEL,
+              inputTokens: totalInputTokens,
+              outputTokens: totalOutputTokens,
+              recordingId,
+              latencyMs: totalLatencyMs,
+            }).catch((err) => console.error('Usage logging failed (non-blocking):', err));
+            results.push({
+              recordingId,
+              success: false,
+              error: 'Model returned reasoning instead of title after 2 attempts',
+            });
+            return;
+          }
+        }
+
+        // Track usage — fire-and-forget
         logUsage(supabase, {
           userId,
           operationType: 'ai_naming',
           model: AI_MODEL,
-          inputTokens,
-          outputTokens,
+          inputTokens: totalInputTokens,
+          outputTokens: totalOutputTokens,
           recordingId,
-          latencyMs,
+          latencyMs: totalLatencyMs,
         }).catch((err) => console.error('Usage logging failed (non-blocking):', err));
-
-        // Clean up the response - remove any quotes, markdown, or extra whitespace
-        let aiTitle = result.text
-          .trim()
-          .replace(/^["'`]|["'`]$/g, '')  // Remove leading/trailing quotes and backticks
-          .replace(/`/g, '')              // Remove any remaining backticks
-          .replace(/\*\*/g, '')           // Remove markdown bold
-          .replace(/\*/g, '')             // Remove markdown italic
-          .replace(/\n/g, ' ')            // Remove newlines
-          .trim();
-
-        // Guard: if the model returned chain-of-thought reasoning instead of just
-        // a title, the output will be absurdly long. Titles should be 3-7 words
-        // (~60 chars max). If over 100 chars, extract the last short segment or truncate.
-        const MAX_TITLE_LENGTH = 100;
-        if (aiTitle.length > MAX_TITLE_LENGTH) {
-          console.warn(`Title for ${recordingId} is ${aiTitle.length} chars — model likely returned reasoning. Attempting extraction.`);
-          const segments = aiTitle.split(/\s{2,}/).filter((s: string) => s.length > 0);
-          const lastSegment = segments[segments.length - 1]?.trim() || '';
-          if (lastSegment.length > 5 && lastSegment.length <= MAX_TITLE_LENGTH) {
-            aiTitle = lastSegment;
-          } else {
-            aiTitle = aiTitle.substring(0, MAX_TITLE_LENGTH).replace(/\s+\S*$/, '').trim();
-          }
-          console.log(`Extracted/truncated title for ${recordingId}: "${aiTitle}"`);
-        }
 
         console.log(`Generated for ${recordingId}: "${aiTitle}"`);
 
