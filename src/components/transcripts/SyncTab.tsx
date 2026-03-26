@@ -28,15 +28,15 @@ export function SyncTab() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedCategory] = useState<string>("all");
+  const selectedCategory = "all";
   const [tagAssignments, setTagAssignments] = useState<Record<string, string[]>>({});
-  const [searchQuery] = useState("");
-  const [participantFilter] = useState("");
+  const searchQuery = "";
+  const participantFilter = "";
   const [categorizeDialogOpen, setCategorizeDialogOpen] = useState(false);
   const [categorizingCallId, setCategorizingCallId] = useState<string | null>(null);
   const [bulkCategorizingIds, setBulkCategorizingIds] = useState<string[]>([]);
   const [createCategoryDialogOpen, setCreateCategoryDialogOpen] = useState(false);
-  const [perMeetingTags, setPerMeetingTags] = useState<Record<string, string>>({});
+  // perMeetingTags: placeholder for future per-meeting tag selection feature
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [hasFetchedResults, setHasFetchedResults] = useState(false);
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string>('');
@@ -53,7 +53,7 @@ export function SyncTab() {
   }, []);
 
   // Individual meeting sync and preview states
-  const [syncingMeetings] = useState<Set<string>>(new Set());
+  const syncingMeetings = new Set<string>();
   const [loadingUnsyncedMeeting, setLoadingUnsyncedMeeting] = useState<string | null>(null);
   const [viewingUnsyncedMeeting, setViewingUnsyncedMeeting] = useState<Meeting | null>(null);
   const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
@@ -455,7 +455,6 @@ export function SyncTab() {
 
         // Clear selections
         setSelectedMeetings(new Set());
-        setPerMeetingTags({});
 
         // Immediately check for the new sync job
         setTimeout(async () => {
@@ -522,7 +521,6 @@ export function SyncTab() {
   });
 
   // Suppress unused variable warnings for state that may be used later
-  void perMeetingTags;
   void selectedCallId;
   void filterLoading;
   void orgContextLoading; // Used for future loading state handling

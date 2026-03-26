@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { createOpenRouter } from 'https://esm.sh/@openrouter/ai-sdk-provider@1.2.8';
 import { generateText } from 'https://esm.sh/ai@5.0.102';
+import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { startTrace, flushLangfuse } from '../_shared/langfuse.ts';
 import { logUsage, estimateTokenCount } from '../_shared/usage-tracker.ts';
@@ -16,13 +17,13 @@ function createOpenRouterProvider(apiKey: string) {
   });
 }
 
-interface GenerateTitlesRequest {
-  recordingIds?: number[];
-  auto_discover?: boolean;  // Find all calls without AI titles
-  limit?: number;           // Max calls to process when auto_discover is true
-  user_id?: string;         // For internal service calls (bypasses JWT auth)
-  respectPreference?: boolean; // When true, skip if user has autoProcessingTitleGeneration=false
-}
+const generateTitlesSchema = z.object({
+  recordingIds: z.array(z.number().int().positive()).max(100).optional(),
+  auto_discover: z.boolean().optional(),
+  limit: z.number().int().min(1).max(50).optional().default(50),
+  user_id: z.string().uuid().optional(),
+  respectPreference: z.boolean().optional().default(false),
+});
 
 /**
  * Clean transcript to minimize token waste while preserving speaker attribution
@@ -267,9 +268,19 @@ Deno.serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse body first to check for internal service call
-    const body: GenerateTitlesRequest = await req.json();
-    const { recordingIds, auto_discover, limit = 50, user_id: internalUserId, respectPreference = false } = body;
+    // Parse and validate body
+    const rawBody = await req.json();
+    const validation = generateTitlesSchema.safeParse(rawBody);
+
+    if (!validation.success) {
+      const errorMessage = validation.error.errors[0]?.message || 'Invalid input';
+      return new Response(
+        JSON.stringify({ error: errorMessage }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const { recordingIds, auto_discover, limit, user_id: internalUserId, respectPreference } = validation.data;
 
     let userId: string;
 

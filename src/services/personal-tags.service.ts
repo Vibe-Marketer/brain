@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client'
 import { isTableMissing } from '@/lib/supabase-errors'
+import { untypedFrom } from '@/types/db-extensions'
 
 export interface PersonalTag {
   id: string
@@ -12,8 +13,7 @@ export interface PersonalTag {
 }
 
 export async function getPersonalTags(organizationId: string): Promise<PersonalTag[]> {
-  const { data, error } = await (supabase as any)
-    .from('personal_tags')
+  const { data, error } = await untypedFrom(supabase, 'personal_tags')
     .select('*')
     .eq('organization_id', organizationId)
     .order('name', { ascending: true })
@@ -32,8 +32,7 @@ export async function createPersonalTag(organizationId: string, name: string, co
 
   if (!userId) throw new Error('User not authenticated')
 
-  const { data, error } = await (supabase as any)
-    .from('personal_tags')
+  const { data, error } = await untypedFrom(supabase, 'personal_tags')
     .insert({
       organization_id: organizationId,
       user_id: userId,
@@ -52,8 +51,7 @@ export async function createPersonalTag(organizationId: string, name: string, co
 }
 
 export async function updatePersonalTag(tagId: string, updates: Partial<{ name: string, color: string | null }>): Promise<void> {
-  const { error } = await (supabase as any)
-    .from('personal_tags')
+  const { error } = await untypedFrom(supabase, 'personal_tags')
     .update(updates)
     .eq('id', tagId)
 
@@ -64,8 +62,7 @@ export async function updatePersonalTag(tagId: string, updates: Partial<{ name: 
 }
 
 export async function deletePersonalTag(tagId: string): Promise<void> {
-  const { error } = await (supabase as any)
-    .from('personal_tags')
+  const { error } = await untypedFrom(supabase, 'personal_tags')
     .delete()
     .eq('id', tagId)
 
@@ -76,8 +73,7 @@ export async function deletePersonalTag(tagId: string): Promise<void> {
 }
 
 export async function getPersonalTagAssignments(organizationId: string): Promise<Record<string, string[]>> {
-  const { data: tags, error: tagsError } = await (supabase as any)
-    .from('personal_tags')
+  const { data: tags, error: tagsError } = await untypedFrom(supabase, 'personal_tags')
     .select('id')
     .eq('organization_id', organizationId)
 
@@ -85,13 +81,12 @@ export async function getPersonalTagAssignments(organizationId: string): Promise
     if (isTableMissing(tagsError)) return {}
     throw new Error(`Failed to fetch tags for assignments: ${tagsError.message}`)
   }
-  
-  const tagIds = (tags ?? []).map((t) => t.id)
-  
+
+  const tagIds = (tags ?? []).map((t: { id: string }) => t.id)
+
   if (tagIds.length === 0) return {}
 
-  const { data, error } = await (supabase as any)
-    .from('personal_tag_recordings')
+  const { data, error } = await untypedFrom(supabase, 'personal_tag_recordings')
     .select('recording_id, tag_id')
     .in('tag_id', tagIds)
 
@@ -101,7 +96,7 @@ export async function getPersonalTagAssignments(organizationId: string): Promise
   }
 
   const assignments: Record<string, string[]> = {}
-  ;(data ?? []).forEach((row) => {
+  ;(data ?? []).forEach((row: { recording_id: string; tag_id: string }) => {
     const callId = String(row.recording_id)
     if (!assignments[callId]) {
       assignments[callId] = []
@@ -118,8 +113,7 @@ export async function assignTagToRecording(recordingId: string, tagId: string): 
 
   if (!userId) throw new Error('User not authenticated')
 
-  const { error } = await (supabase as any)
-    .from('personal_tag_recordings')
+  const { error } = await untypedFrom(supabase, 'personal_tag_recordings')
     .upsert({
       recording_id: recordingId,
       tag_id: tagId,
@@ -133,8 +127,7 @@ export async function assignTagToRecording(recordingId: string, tagId: string): 
 }
 
 export async function removeTagFromRecording(recordingId: string, tagId: string): Promise<void> {
-  const { error } = await (supabase as any)
-    .from('personal_tag_recordings')
+  const { error } = await untypedFrom(supabase, 'personal_tag_recordings')
     .delete()
     .eq('recording_id', recordingId)
     .eq('tag_id', tagId)

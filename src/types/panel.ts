@@ -1,8 +1,11 @@
 /**
  * Panel type definitions for the panelStore
- * 
+ *
  * Uses discriminated union pattern for type-safe panel data
  */
+
+import type { Meeting } from '@/types/meetings';
+import type { Tag } from '@/types/tags';
 
 /**
  * All possible panel types
@@ -40,8 +43,8 @@ export type PanelData =
   | { 
       type: 'bulk-actions';
       selectedIds: string[];
-      selectedCalls?: any[];
-      tags?: any[];
+      selectedCalls?: Meeting[];
+      tags?: Tag[];
       onClearSelection?: () => void;
       onDelete?: () => void;
       onTag?: (tagId: string) => void;

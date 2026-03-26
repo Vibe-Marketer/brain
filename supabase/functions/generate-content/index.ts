@@ -6,6 +6,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
@@ -14,18 +15,18 @@ const DEFAULT_MODEL = 'openai/gpt-4o-mini';
 type ContentType = 'email' | 'social-post' | 'blog-outline' | 'case-study';
 type Tone = 'professional' | 'casual' | 'friendly';
 
-interface ContentGeneratorRequest {
-  insights: Array<{
-    type: string;
-    content: string;
-    context?: string;
-  }>;
-  content_type: ContentType;
-  tone: Tone;
-  target_audience?: string;
-  additional_context?: string;
-  model?: string;
-}
+const contentGeneratorSchema = z.object({
+  insights: z.array(z.object({
+    type: z.string().min(1).max(100),
+    content: z.string().min(1).max(10000),
+    context: z.string().max(5000).optional(),
+  })).min(1, 'At least one insight is required').max(50),
+  content_type: z.enum(['email', 'social-post', 'blog-outline', 'case-study']),
+  tone: z.enum(['professional', 'casual', 'friendly']),
+  target_audience: z.string().max(500).optional(),
+  additional_context: z.string().max(5000).optional(),
+  model: z.string().max(100).optional().default(DEFAULT_MODEL),
+});
 
 function buildSystemPrompt(contentType: ContentType, tone: Tone, targetAudience?: string): string {
   const toneDescriptions = {
@@ -125,30 +126,26 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Parse request
-    const body: ContentGeneratorRequest = await req.json();
+    // Parse and validate request body with Zod
+    const rawBody = await req.json();
+    const validation = contentGeneratorSchema.safeParse(rawBody);
+
+    if (!validation.success) {
+      const errorMessage = validation.error.errors[0]?.message || 'Invalid input';
+      return new Response(
+        JSON.stringify({ error: errorMessage }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const {
       insights,
       content_type,
       tone,
       target_audience,
       additional_context,
-      model = DEFAULT_MODEL,
-    } = body;
-
-    if (!insights || insights.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'insights array is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!content_type) {
-      return new Response(
-        JSON.stringify({ error: 'content_type is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+      model,
+    } = validation.data;
 
     // Build user message with insights
     const insightsText = insights

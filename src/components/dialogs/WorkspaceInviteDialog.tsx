@@ -109,7 +109,7 @@ export function WorkspaceInviteDialog({
 
     setIsSubmitting(true)
     try {
-      const invite = await createInvitation(workspaceId, user.id, email, role as any)
+      const invite = await createInvitation(workspaceId, user.id, email, role)
       const link = `${window.location.origin}/join/workspace/${invite.token}`
 
       // Send invite email via edge function (non-blocking)
@@ -137,8 +137,8 @@ export function WorkspaceInviteDialog({
       }
 
       onOpenChange(false)
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to send invite')
+    } catch (err: unknown) {
+      if (err instanceof Error) { toast.error(err.message) } else { toast.error('Failed to send invite') }
     } finally {
       setIsSubmitting(false)
     }
@@ -157,7 +157,7 @@ export function WorkspaceInviteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)} className="py-4">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'link' | 'email')} className="py-4">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="link">Shareable Link</TabsTrigger>
             <TabsTrigger value="email">Email Invite</TabsTrigger>
@@ -221,7 +221,7 @@ export function WorkspaceInviteDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={(v: any) => setRole(v)}>
+                <Select value={role} onValueChange={(v) => setRole(v as 'member' | 'manager' | 'workspace_admin')}>
                   <SelectTrigger id="role focus:ring-vibe-orange">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>

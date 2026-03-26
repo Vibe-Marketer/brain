@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
+import { untypedFrom, untypedRpc } from '@/types/db-extensions'
 
 export interface OrganizationInvitation {
   id: string
@@ -20,8 +21,7 @@ export interface OrganizationInviteDetails {
 }
 
 export async function getOrganizationInvitations(organizationId: string): Promise<OrganizationInvitation[]> {
-  const { data, error } = await (supabase as any)
-    .from('organization_invitations')
+  const { data, error } = await untypedFrom(supabase, 'organization_invitations')
     .select('*')
     .eq('organization_id', organizationId)
     .eq('status', 'pending')
@@ -45,8 +45,7 @@ export async function createOrganizationInvitation(
   const expiresAt = new Date()
   expiresAt.setDate(expiresAt.getDate() + 7)
 
-  const { data, error } = await (supabase as any)
-    .from('organization_invitations')
+  const { data, error } = await untypedFrom(supabase, 'organization_invitations')
     .insert({
       organization_id: organizationId,
       invited_by: userData.user.id,
@@ -64,8 +63,7 @@ export async function createOrganizationInvitation(
 }
 
 export async function revokeOrganizationInvitation(invitationId: string): Promise<void> {
-  const { error } = await (supabase as any)
-    .from('organization_invitations')
+  const { error } = await untypedFrom(supabase, 'organization_invitations')
     .update({ status: 'revoked' })
     .eq('id', invitationId)
 
@@ -74,7 +72,7 @@ export async function revokeOrganizationInvitation(invitationId: string): Promis
 
 export async function getOrganizationInviteDetails(token: string): Promise<OrganizationInviteDetails> {
   // Use the SECURITY DEFINER RPC which bypasses RLS and has correct joins
-  const { data, error } = await (supabase as any).rpc('get_organization_invite_details', {
+  const { data, error } = await untypedRpc(supabase, 'get_organization_invite_details', {
     p_token: token,
   })
 
@@ -96,7 +94,7 @@ export async function acceptOrganizationInvite(token: string): Promise<void> {
   if (!userData.user) throw new Error('Not authenticated')
 
   // We should ideally use an RPC for this to ensure atomicity and proper membership creation
-  const { error } = await (supabase as any).rpc('accept_organization_invite', {
+  const { error } = await untypedRpc(supabase, 'accept_organization_invite', {
     p_token: token,
     p_user_id: userData.user.id,
   })

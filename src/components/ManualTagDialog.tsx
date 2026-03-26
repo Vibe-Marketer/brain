@@ -13,11 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-
-interface Tag {
-  id: string;
-  name: string;
-}
+import type { Tag } from "@/types/tags";
 
 interface ManualTagDialogProps {
   open: boolean;

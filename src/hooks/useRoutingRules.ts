@@ -35,7 +35,7 @@ export function useRoutingRules() {
         throw new Error(`Failed to fetch routing rules: ${error.message}`);
       }
 
-      return (data ?? []) as unknown as RoutingRule[];
+      return (data ?? []) as RoutingRule[];
     },
     enabled: !!user && !!activeOrgId,
   });
@@ -111,7 +111,7 @@ export function useCreateRule() {
           created_by: user.id,
           priority: nextPriority,
           ...input,
-          conditions: input.conditions as unknown as import('@/integrations/supabase/types').Json,
+          conditions: input.conditions as unknown as import('@/types/supabase').Json,
         })
         .select()
         .single();
@@ -120,7 +120,7 @@ export function useCreateRule() {
         throw new Error(`Failed to create routing rule: ${error.message}`);
       }
 
-      return data as unknown as RoutingRule;
+      return data as RoutingRule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -171,7 +171,7 @@ export function useUpdateRule() {
         throw new Error(`Failed to update routing rule: ${error.message}`);
       }
 
-      return data as unknown as RoutingRule;
+      return data as RoutingRule;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -234,7 +234,7 @@ export function useToggleRule() {
         throw new Error(`Failed to toggle routing rule: ${error.message}`);
       }
 
-      return data as unknown as RoutingRule;
+      return data as RoutingRule;
     },
     onMutate: async ({ id, enabled }) => {
       const queryKey = queryKeys.routingRules.list(activeOrgId ?? undefined);

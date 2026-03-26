@@ -20,7 +20,6 @@ import { useFolders, useFolderAssignments, useDeleteFolder, useArchiveFolder } f
 import { useSetDefaultWorkspace } from '@/hooks/useWorkspaceMutations';
 import { usePanelStore } from '@/stores/panelStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
-import { useOrgContext } from '@/hooks/useOrgContext';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
 import { usePersonalFolders, usePersonalFolderAssignments } from '@/hooks/usePersonalFolders';
 import { usePersonalTags } from '@/hooks/usePersonalTags';
@@ -429,12 +428,12 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const { 
     activeOrgId, 
     activeOrg, 
-    activeOrgRole, 
+    orgRole: activeOrgRole,
     activeWorkspaceId,
     activeFolderId,
-    switchWorkspace, 
-    switchFolder 
-  } = useOrgContext();
+    switchWorkspace,
+    switchFolder
+  } = useOrganizationContext();
   const { workspaces, isLoading, error } = useWorkspaces(activeOrgId);
   const { data: personalFolders = [], isLoading: personalFoldersLoading } = usePersonalFolders(activeOrgId);
   const { data: personalTags = [] } = usePersonalTags(activeOrgId);
@@ -684,7 +683,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       <EditWorkspaceDialog
         open={editWsOpen}
         onOpenChange={setEditWsOpen}
-        workspace={wsToEdit as any}
+        workspace={wsToEdit ? { ...wsToEdit, memberships: [] } : null}
         userRole={wsToEdit?.user_role || null}
         onDeleteRequest={() => {
           setWsToDelete(wsToEdit);
@@ -694,7 +693,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       <DeleteWorkspaceDialog
         open={deleteWsOpen}
         onOpenChange={setDeleteWsOpen}
-        workspace={wsToDelete as any}
+        workspace={wsToDelete ? { ...wsToDelete, memberships: [] } : null}
         recordingCount={null}
       />
     </div>

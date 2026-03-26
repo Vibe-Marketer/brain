@@ -88,6 +88,31 @@ export interface WorkspaceWithMembership extends Workspace {
 }
 
 /**
+ * WorkspaceInvitation - Email-based invitation to join a workspace
+ */
+export interface WorkspaceInvitation {
+  id: string
+  workspace_id: string
+  invited_by: string
+  email: string
+  role: 'member' | 'manager' | 'workspace_admin'
+  token: string
+  status: 'pending' | 'accepted' | 'revoked' | 'expired'
+  expires_at: string
+  created_at: string
+  accepted_at: string | null
+}
+
+/**
+ * WorkspaceWithMeta - Workspace with computed metadata for list views
+ * Returned by useWorkspaces hook with member count and current user's role
+ */
+export interface WorkspaceWithMeta extends Workspace {
+  member_count: number
+  user_role: WorkspaceRole | null
+}
+
+/**
  * Recording - Base call object (canonical recordings table)
  * Owned by an organization, can appear in multiple workspaces via WorkspaceEntry
  */

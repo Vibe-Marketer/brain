@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client'
 import { isTableMissing } from '@/lib/supabase-errors'
+import { untypedFrom } from '@/types/db-extensions'
 
 export interface PersonalFolder {
   id: string
@@ -27,8 +28,7 @@ export async function createPersonalFolder(organizationId: string, name: string)
 
   if (!userId) throw new Error('User not authenticated')
 
-  const { data, error } = await (supabase as any)
-    .from('personal_folders')
+  const { data, error } = await untypedFrom(supabase, 'personal_folders')
     .insert({
       organization_id: organizationId,
       user_id: userId,
@@ -46,8 +46,7 @@ export async function createPersonalFolder(organizationId: string, name: string)
 }
 
 export async function updatePersonalFolder(folderId: string, name: string): Promise<void> {
-  const { error } = await (supabase as any)
-    .from('personal_folders')
+  const { error } = await untypedFrom(supabase, 'personal_folders')
     .update({ name })
     .eq('id', folderId)
 
@@ -58,8 +57,7 @@ export async function updatePersonalFolder(folderId: string, name: string): Prom
 }
 
 export async function deletePersonalFolder(folderId: string): Promise<void> {
-  const { error } = await (supabase as any)
-    .from('personal_folders')
+  const { error } = await untypedFrom(supabase, 'personal_folders')
     .delete()
     .eq('id', folderId)
 
@@ -80,8 +78,7 @@ export async function assignCallToPersonalFolder(recordingId: string, folderId: 
 
   if (!userId) throw new Error('User not authenticated')
 
-  const { error } = await (supabase as any)
-    .from('personal_folder_recordings')
+  const { error } = await untypedFrom(supabase, 'personal_folder_recordings')
     .upsert({
       recording_id: recordingId,
       folder_id: folderId,
@@ -95,8 +92,7 @@ export async function assignCallToPersonalFolder(recordingId: string, folderId: 
 }
 
 export async function removeCallFromPersonalFolder(recordingId: string, folderId: string): Promise<void> {
-  const { error } = await (supabase as any)
-    .from('personal_folder_recordings')
+  const { error } = await untypedFrom(supabase, 'personal_folder_recordings')
     .delete()
     .eq('recording_id', recordingId)
     .eq('folder_id', folderId)

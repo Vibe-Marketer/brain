@@ -1,7 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { useTags, useTagCounts, useDeleteTag, useCreateTag } from "@/hooks/useTags";
 import {
   Table,
   TableBody,
@@ -34,18 +33,10 @@ import { RiPencilLine, RiFileCopyLine, RiDeleteBinLine, RiPriceTag3Line, RiLoade
 import { toast } from "sonner";
 import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { useListKeyboardNavigationWithState } from "@/hooks/useListKeyboardNavigation";
-
-interface Tag {
-  id: string;
-  name: string;
-  color: string | null;
-  description: string | null;
-  is_system: boolean | null;
-}
+import type { Tag } from "@/types/tags";
 
 export function TagsTab() {
   const { openPanel, panelData, panelType } = usePanelStore();
-  const queryClient = useQueryClient();
   const { activeOrgId } = useOrganizationContext();
   const [deleteConfirmTag, setDeleteConfirmTag] = useState<Tag | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -59,56 +50,20 @@ export function TagsTab() {
   };
 
   // Delete tag mutation
-  const deleteTagMutation = useMutation({
-    mutationFn: async (tagId: string) => {
-      const { error } = await supabase
-        .from("call_tags")
-        .delete()
-        .eq("id", tagId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["call-tags"] });
-      queryClient.invalidateQueries({ queryKey: ["tag-counts"] });
-      toast.success("Tag deleted successfully");
-    },
-    onError: () => {
-      toast.error("Failed to delete tag");
-    },
-  });
+  const deleteTagMutation = useDeleteTag();
 
   // Duplicate tag mutation
-  const duplicateTagMutation = useMutation({
-    mutationFn: async (tag: Tag) => {
-      const { data, error } = await supabase
-        .from("call_tags")
-        .insert({
-          name: `Copy of ${tag.name}`,
-          color: tag.color,
-          description: tag.description,
-          is_system: false, // Duplicated tags are always custom
-          ...(activeOrgId && { organization_id: activeOrgId }),
-        })
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["call-tags"] });
-      toast.success("Tag duplicated successfully");
-    },
-    onError: () => {
-      toast.error("Failed to duplicate tag");
-    },
-  });
+  const duplicateTagMutation = useCreateTag();
 
   const handleDeleteTag = async () => {
     if (!deleteConfirmTag) return;
     setIsDeleting(true);
     try {
       await deleteTagMutation.mutateAsync(deleteConfirmTag.id);
+      toast.success("Tag deleted successfully");
       setDeleteConfirmTag(null);
+    } catch {
+      toast.error("Failed to delete tag");
     } finally {
       setIsDeleting(false);
     }
@@ -117,49 +72,27 @@ export function TagsTab() {
   const handleDuplicateTag = async (tag: Tag) => {
     setDuplicatingTagId(tag.id);
     try {
-      await duplicateTagMutation.mutateAsync(tag);
+      await duplicateTagMutation.mutateAsync({
+        orgId: activeOrgId || '',
+        data: {
+          name: `Copy of ${tag.name}`,
+          color: tag.color || undefined,
+          description: tag.description || undefined,
+        },
+      });
+      toast.success("Tag duplicated successfully");
+    } catch {
+      toast.error("Failed to duplicate tag");
     } finally {
       setDuplicatingTagId(null);
     }
   };
 
   // Fetch tags scoped to active organization
-  const { data: tags, isLoading, error: tagsError } = useQuery({
-    queryKey: ["call-tags", activeOrgId],
-    queryFn: async () => {
-      let query: any = supabase
-        .from("call_tags")
-        .select("id, name, color, description, is_system")
-        .order("name");
-
-      if (activeOrgId) {
-        query = query.eq("organization_id", activeOrgId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Tag[];
-    },
-  });
+  const { data: tags, isLoading, error: tagsError } = useTags(activeOrgId);
 
   // Fetch tag usage counts
-  const { data: tagCounts } = useQuery({
-    queryKey: ["tag-counts"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("call_tag_assignments")
-        .select("tag_id");
-
-      if (error) throw error;
-
-      // Count by tag
-      const counts: Record<string, number> = {};
-      (data || []).forEach((assignment) => {
-        counts[assignment.tag_id] = (counts[assignment.tag_id] || 0) + 1;
-      });
-      return counts;
-    },
-  });
+  const { data: tagCounts } = useTagCounts(activeOrgId);
 
   // Get the currently selected tag object
   const selectedTag = useMemo(() => {

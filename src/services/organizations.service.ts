@@ -169,8 +169,7 @@ export async function updateOrganizationMemberRole(
   membershipId: string,
   newRole: OrganizationRole
 ): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('organization_memberships')
     .update({ role: newRole })
     .eq('id', membershipId)
@@ -186,8 +185,7 @@ export async function updateOrganizationMemberRole(
  * Cascading deletes handle workspace memberships via DB constraints.
  */
 export async function removeOrganizationMember(membershipId: string): Promise<void> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { error } = await (supabase as any)
+  const { error } = await supabase
     .from('organization_memberships')
     .delete()
     .eq('id', membershipId)

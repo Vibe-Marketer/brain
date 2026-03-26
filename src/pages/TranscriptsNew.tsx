@@ -19,7 +19,7 @@ import {
   useDeleteFolder,
   useCreateFolder,
 } from "@/hooks/useFolders";
-import { useOrgContext } from "@/hooks/useOrgContext";
+import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { usePersonalFolders, usePersonalFolderAssignments, useAssignCallToPersonalFolder } from "@/hooks/usePersonalFolders";
 import { usePersonalTags } from "@/hooks/usePersonalTags";
 import { useAuth } from "@/contexts/AuthContext";
@@ -116,7 +116,7 @@ const TranscriptsNew = () => {
     activeWorkspaceId, 
     activeFolderId, 
     switchFolder 
-  } = useOrgContext();
+  } = useOrganizationContext();
   const activeOrganizationId = activeOrgId; // alias for compatibility
   const { user } = useAuth();
   const { data: folders = [], isLoading: foldersLoading } = useFolders(activeWorkspaceId);

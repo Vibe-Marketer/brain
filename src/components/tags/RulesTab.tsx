@@ -4,6 +4,9 @@ import { useKeyboardShortcut } from "@/hooks/useKeyboardShortcut";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { toast } from "sonner";
+import { useTags, useTagRules } from "@/hooks/useTags";
+import type { TagRule as Rule, TagRuleConditions as RuleConditions } from "@/services/tags.service";
+import { queryKeys } from "@/lib/query-config";
 import {
   Table,
   TableBody,
@@ -46,36 +49,7 @@ import {
 import QuickCreateTagDialog from "@/components/QuickCreateTagDialog";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 
-interface RuleConditions {
-  title?: string;
-  contains?: string;
-  pattern?: string;
-  keywords?: string[];
-  search_chars?: number;
-  day_of_week?: number;
-  hour?: number;
-}
-
-interface Rule {
-  id: string;
-  name: string;
-  description: string | null;
-  rule_type: string;
-  conditions: RuleConditions;
-  tag_id: string | null;
-  folder_id: string | null;
-  priority: number;
-  is_active: boolean | null;
-  times_applied: number | null;
-  last_applied_at: string | null;
-  created_at: string | null;
-}
-
-interface Tag {
-  id: string;
-  name: string;
-  color: string | null;
-}
+import type { Tag } from "@/types/tags";
 
 interface Folder {
   id: string;
@@ -135,37 +109,10 @@ export function RulesTab() {
   useKeyboardShortcut(handleCreateShortcut, { key: 'n' });
 
   // Fetch rules
-  const { data: rules, isLoading: rulesLoading, error: rulesError } = useQuery({
-    queryKey: ["tag-rules"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tag_rules")
-        .select("*")
-        .order("priority");
-
-      if (error) throw error;
-      return data as Rule[];
-    },
-  });
+  const { data: rules, isLoading: rulesLoading, error: rulesError } = useTagRules(activeOrganizationId);
 
   // Fetch tags scoped to active organization/workspace
-  const { data: tags } = useQuery({
-    queryKey: ["call-tags", activeOrganizationId],
-    queryFn: async () => {
-      let query = supabase
-        .from("call_tags")
-        .select("id, name, color")
-        .order("name");
-
-      if (activeOrganizationId) {
-        query = query.eq("organization_id", activeOrganizationId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Tag[];
-    },
-  });
+  const { data: tags } = useTags(activeOrganizationId);
 
   // Fetch folders scoped to active organization/workspace
   const { data: folders } = useQuery({
@@ -197,7 +144,7 @@ export function RulesTab() {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.rules() });
     },
     onError: (error) => {
       toast.error(`Failed to update rule: ${error.message}`);
@@ -247,7 +194,7 @@ export function RulesTab() {
     },
     onSuccess: () => {
       toast.success(editingRule ? "Rule updated" : "Rule created");
-      queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.rules() });
       handleCloseDialog();
     },
     onError: (error) => {
@@ -267,7 +214,7 @@ export function RulesTab() {
     },
     onSuccess: () => {
       toast.success("Rule deleted");
-      queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.rules() });
       setDeleteConfirmOpen(false);
       setRuleToDelete(null);
     },
@@ -307,7 +254,7 @@ export function RulesTab() {
         message += ` (${folderCount} filed)`;
       }
       toast.success(message);
-      queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.rules() });
       queryClient.invalidateQueries({ queryKey: ["folder-assignments"] });
     },
     onError: (error) => {
@@ -887,7 +834,7 @@ export function RulesTab() {
           // Auto-select the newly created tag
           setFormData({ ...formData, tag_id: tagId });
           // Refresh tags list
-          queryClient.invalidateQueries({ queryKey: ["call-tags"] });
+          queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
         }}
       />
 

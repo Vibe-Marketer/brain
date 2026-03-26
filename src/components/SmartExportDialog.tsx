@@ -41,29 +41,15 @@ import {
   exportByTag,
 } from "@/lib/export-utils";
 import { exportAsLLMContext, estimateTokens } from "@/lib/export-utils-advanced";
+import type { ExportableCall } from "@/lib/export-utils";
 import { generateMetaSummary } from "@/lib/api-client";
 import { supabase } from "@/integrations/supabase/client";
 import { saveAs } from "file-saver";
 
-interface Call {
-  recording_id: number;
-  canonical_uuid?: string;
-  title?: string;
-  summary?: string;
-  full_transcript?: string;
-  calendar_invitees?: unknown[];
-  recorded_by_name?: string;
-  recorded_by_email?: string;
-  url?: string;
-  recording_start_time?: string;
-  recording_end_time?: string;
-  created_at: string;
-}
-
 interface SmartExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedCalls: Call[];
+  selectedCalls: ExportableCall[];
   // Optional: for folder/tag grouping
   folderAssignments?: Record<string, string[]>;
   folders?: Array<{ id: string; name: string; color: string }>;

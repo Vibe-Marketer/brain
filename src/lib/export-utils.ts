@@ -6,7 +6,7 @@ import type { Meeting } from '@/types/meetings';
  * Uses Pick to maintain type-safety with the canonical Meeting type.
  * recording_id is string | number (Meeting type) — export functions handle both.
  */
-type ExportableCall = Pick<Meeting,
+export type ExportableCall = Pick<Meeting,
   | 'recording_id'
   | 'title'
   | 'created_at'

@@ -1,3 +1,4 @@
+import React, { Suspense } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -20,14 +21,16 @@ import OrganizationJoin from "@/pages/OrganizationJoin";
 import WorkspaceJoin from "@/pages/WorkspaceJoin";
 import OAuthConsentPage from "@/pages/OAuthConsentPage";
 
-// Import existing pages
+// Static import for landing page (always needed immediately)
 import TranscriptsNew from "@/pages/TranscriptsNew";
-import SortingTagging from "@/pages/SortingTagging";
-import Settings from "@/pages/Settings";
-import Analytics from "@/pages/Analytics";
-import SharedWithMe from "@/pages/SharedWithMe";
 import ImportPage from "@/pages/ImportPage";
-import RoutingRulesPage from "@/pages/RoutingRulesPage";
+
+// Lazy-loaded route pages (code-split for faster initial load)
+const Analytics = React.lazy(() => import("@/pages/Analytics"));
+const Settings = React.lazy(() => import("@/pages/Settings"));
+const SortingTagging = React.lazy(() => import("@/pages/SortingTagging"));
+const SharedWithMe = React.lazy(() => import("@/pages/SharedWithMe"));
+const RoutingRulesPage = React.lazy(() => import("@/pages/RoutingRulesPage"));
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -101,7 +104,7 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <Settings />
+                          <Suspense fallback={<div />}><Settings /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }
@@ -111,7 +114,7 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <Settings />
+                          <Suspense fallback={<div />}><Settings /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }
@@ -121,7 +124,7 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <SortingTagging />
+                          <Suspense fallback={<div />}><SortingTagging /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }
@@ -131,7 +134,7 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <SortingTagging />
+                          <Suspense fallback={<div />}><SortingTagging /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }
@@ -141,7 +144,7 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <Analytics />
+                          <Suspense fallback={<div />}><Analytics /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }
@@ -151,7 +154,7 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <Analytics />
+                          <Suspense fallback={<div />}><Analytics /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }
@@ -162,7 +165,7 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <SharedWithMe />
+                          <Suspense fallback={<div />}><SharedWithMe /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }
@@ -259,7 +262,7 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <Layout>
-                          <RoutingRulesPage />
+                          <Suspense fallback={<div />}><RoutingRulesPage /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }

@@ -56,7 +56,6 @@ import { useSubscription } from "@/hooks/useSubscription";
 import { useMcpTokensList, useCreateMcpToken, useDeleteMcpToken } from "@/hooks/useMcpTokens";
 import { useOrganizations } from "@/hooks/useOrganizations";
 import { useWorkspaces } from "@/hooks/useWorkspaces";
-import { useOrgContext } from "@/hooks/useOrgContext";
 import { getMcpUrl, type McpToken, type McpTokenScope } from "@/services/mcp-tokens.service";
 import { UpgradeButton } from "@/components/billing/UpgradeButton";
 import { toast } from "sonner";

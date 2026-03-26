@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTag, useTagCountById } from "@/hooks/useTags";
+import { queryKeys } from "@/lib/query-config";
+import { updateTag as updateTagService, deleteTag as deleteTagService } from "@/services/tags.service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,16 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-
-interface Tag {
-  id: string;
-  name: string;
-  color: string | null;
-  description: string | null;
-  is_system: boolean | null;
-  created_at: string | null;
-  updated_at: string | null;
-}
+import type { Tag } from "@/types/tags";
 
 interface TagDetailPanelProps {
   tagId: string;
@@ -69,33 +62,10 @@ export function TagDetailPanel({
   const { closePanel, togglePin, isPinned } = usePanelStore();
 
   // Fetch the tag
-  const { data: tag, isLoading } = useQuery({
-    queryKey: ["call-tags", tagId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("call_tags")
-        .select("id, name, color, description, is_system, created_at, updated_at")
-        .eq("id", tagId)
-        .single();
-
-      if (error) throw error;
-      return data as Tag;
-    },
-  });
+  const { data: tag, isLoading } = useTag(tagId);
 
   // Fetch tag usage count
-  const { data: callCount = 0 } = useQuery({
-    queryKey: ["tag-count", tagId],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from("call_tag_assignments")
-        .select("*", { count: "exact", head: true })
-        .eq("tag_id", tagId);
-
-      if (error) throw error;
-      return count || 0;
-    },
-  });
+  const { data: callCount = 0 } = useTagCountById(tagId);
 
   // Form state
   const [name, setName] = useState("");
@@ -129,17 +99,11 @@ export function TagDetailPanel({
 
   // Update tag mutation
   const updateTagMutation = useMutation({
-    mutationFn: async (updates: Partial<Tag>) => {
-      const { error } = await supabase
-        .from("call_tags")
-        .update(updates)
-        .eq("id", tagId);
-
-      if (error) throw error;
-    },
+    mutationFn: (updates: Partial<{ name: string; color: string; description: string | null }>) =>
+      updateTagService(tagId, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["call-tags"] });
-      queryClient.invalidateQueries({ queryKey: ["call-tags", tagId] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.detail(tagId) });
       toast.success("Tag updated successfully");
       setHasChanges(false);
       onTagUpdated?.();
@@ -152,17 +116,10 @@ export function TagDetailPanel({
 
   // Delete tag mutation
   const deleteTagMutation = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase
-        .from("call_tags")
-        .delete()
-        .eq("id", tagId);
-
-      if (error) throw error;
-    },
+    mutationFn: () => deleteTagService(tagId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["call-tags"] });
-      queryClient.invalidateQueries({ queryKey: ["tag-counts"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.counts() });
       toast.success("Tag deleted successfully");
       closePanel();
       onTagDeleted?.();

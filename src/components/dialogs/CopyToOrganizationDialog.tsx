@@ -31,7 +31,7 @@ import {
 import { RiBuildingLine, RiErrorWarningLine, RiAddLine } from '@remixicon/react'
 import { useCopyToOrganization } from '@/hooks/useDataMovement'
 import { useOrganizations, useCreateOrganization } from '@/hooks/useOrganizations'
-import { useOrgContext } from '@/hooks/useOrgContext'
+import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface CopyToOrganizationDialogProps {
@@ -47,7 +47,7 @@ export function CopyToOrganizationDialog({
   recordingIds,
   onSuccess,
 }: CopyToOrganizationDialogProps) {
-  const { activeOrgId } = useOrgContext()
+  const { activeOrgId } = useOrganizationContext()
   const { data: organizations, isLoading } = useOrganizations()
   const [targetOrgId, setTargetOrgId] = useState<string>('')
   const [removeSource, setRemoveSource] = useState(false)

@@ -106,8 +106,8 @@ export default function WorkspaceJoin() {
           role: 'member',
           is_email_invite: false
         })
-      } catch (err: any) {
-        setError(err.message || 'Invitation not found')
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Invitation not found')
       } finally {
         setIsLoading(false)
       }
@@ -181,8 +181,8 @@ export default function WorkspaceJoin() {
 
       toast.success(`Joined ${inviteData.workspace_name}!`)
       navigate('/')
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to join workspace')
+    } catch (err: unknown) {
+      if (err instanceof Error) { toast.error(err.message) } else { toast.error('Failed to join workspace') }
     } finally {
       setIsJoining(false)
     }

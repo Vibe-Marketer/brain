@@ -74,6 +74,10 @@ export const queryKeys = {
   tags: {
     all: ['tags'] as const,
     list: (orgId?: string) => ['tags', 'list', orgId] as const,
+    detail: (tagId: string) => ['tags', 'detail', tagId] as const,
+    counts: (orgId?: string) => ['tags', 'counts', orgId] as const,
+    rules: (orgId?: string) => ['tags', 'rules', orgId] as const,
+    recurringTitles: (orgId?: string) => ['tags', 'recurring-titles', orgId] as const,
     assignments: (recordingIds: number | number[]) => ['tag-assignments', recordingIds] as const,
   },
 

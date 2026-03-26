@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 
 /**
@@ -57,7 +58,18 @@ interface GroupedResults {
 }
 
 // google_meet is excluded per FOUND-09: "Zero Google Meet references — removed from v2 entirely"
-const VALID_SOURCE_APPS = ['fathom', 'zoom', 'youtube', 'upload', 'other'];
+const VALID_SOURCE_APPS = ['fathom', 'zoom', 'youtube', 'upload', 'other'] as const;
+
+const globalSearchSchema = z.object({
+  query: z.string().max(500).default(''),
+  workspaceId: z.string().uuid().optional(),
+  dateStart: z.string().datetime({ offset: true }).optional(),
+  dateEnd: z.string().datetime({ offset: true }).optional(),
+  sourceApps: z.array(z.enum(VALID_SOURCE_APPS)).optional(),
+  tagIds: z.array(z.string().uuid()).optional(),
+  folderIds: z.array(z.string().uuid()).optional(),
+  limit: z.number().int().min(1).max(100).default(20),
+});
 
 Deno.serve(async (req) => {
   const origin = req.headers.get('Origin');
@@ -99,54 +111,20 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse and validate request body
-    const body = await req.json().catch(() => ({})) as Record<string, unknown>;
+    // Parse and validate request body with Zod
+    const rawBody = await req.json().catch(() => ({}));
+    const validation = globalSearchSchema.safeParse(rawBody);
 
-    const {
-      query = '',
-      workspaceId,
-      dateStart,
-      dateEnd,
-      sourceApps,
-      tagIds,
-      folderIds,
-      limit = 20,
-    } = body;
-
-    // Validate query
-    if (typeof query !== 'string') {
+    if (!validation.success) {
+      const errorMessage = validation.error.errors[0]?.message || 'Invalid input';
       return new Response(
-        JSON.stringify({ error: 'query must be a string' }),
+        JSON.stringify({ error: errorMessage }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
+    const { query, workspaceId, dateStart, dateEnd, sourceApps, tagIds, folderIds, limit } = validation.data;
     const trimmedQuery = query.trim();
-
-    // Validate limit
-    const parsedLimit = typeof limit === 'number' ? Math.min(Math.max(1, limit), 100) : 20;
-
-    // Validate sourceApps
-    let validSourceApps: string[] | null = null;
-    if (Array.isArray(sourceApps)) {
-      validSourceApps = (sourceApps as unknown[])
-        .filter((p): p is string => typeof p === 'string' && VALID_SOURCE_APPS.includes(p));
-      if (validSourceApps.length === 0) validSourceApps = null;
-    }
-
-    // Validate tagIds (UUID array)
-    let validTagIds: string[] | null = null;
-    if (Array.isArray(tagIds)) {
-      validTagIds = (tagIds as unknown[]).filter((id): id is string => typeof id === 'string' && id.length > 0);
-      if (validTagIds.length === 0) validTagIds = null;
-    }
-
-    // Validate folderIds (UUID array)
-    let validFolderIds: string[] | null = null;
-    if (Array.isArray(folderIds)) {
-      validFolderIds = (folderIds as unknown[]).filter((id): id is string => typeof id === 'string' && id.length > 0);
-      if (validFolderIds.length === 0) validFolderIds = null;
-    }
 
     const startTime = Date.now();
 
@@ -154,13 +132,13 @@ Deno.serve(async (req) => {
     const rpcParams: Record<string, unknown> = {
       query_text: trimmedQuery,
       filter_user_id: user.id,
-      filter_workspace_id: (typeof workspaceId === 'string' && workspaceId) ? workspaceId : null,
-      filter_date_start: (typeof dateStart === 'string' && dateStart) ? dateStart : null,
-      filter_date_end: (typeof dateEnd === 'string' && dateEnd) ? dateEnd : null,
-      filter_source_apps: validSourceApps,
-      filter_tag_ids: validTagIds,
-      filter_folder_ids: validFolderIds,
-      match_count: parsedLimit,
+      filter_workspace_id: workspaceId || null,
+      filter_date_start: dateStart || null,
+      filter_date_end: dateEnd || null,
+      filter_source_apps: sourceApps && sourceApps.length > 0 ? sourceApps : null,
+      filter_tag_ids: tagIds && tagIds.length > 0 ? tagIds : null,
+      filter_folder_ids: folderIds && folderIds.length > 0 ? folderIds : null,
+      match_count: limit,
     };
 
     // Call global_search RPC

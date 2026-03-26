@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
 import { toast } from "sonner";
+import { useTags, useTagRules, useRecurringTitles } from "@/hooks/useTags";
+import { queryKeys } from "@/lib/query-config";
 import {
   Table,
   TableBody,
@@ -35,29 +37,11 @@ import { RiAddLine, RiCheckLine, RiLoader2Line, RiFolderLine } from "@remixicon/
 import { format } from "date-fns";
 import { isEmojiIcon, getIconComponent } from "@/lib/folder-icons";
 
-interface Tag {
-  id: string;
-  name: string;
-  color: string | null;
-  description: string | null;
-}
-
 interface Folder {
   id: string;
   name: string;
   color: string;
   icon: string;
-}
-
-interface CallData {
-  title: string;
-  created_at: string;
-}
-
-interface TitleCountData {
-  count: number;
-  lastDate: string;
-  firstDate: string;
 }
 
 
@@ -71,64 +55,10 @@ export function RecurringTitlesTab() {
   const [ruleName, setRuleName] = useState("");
 
   // Fetch recurring titles
-  const { data: recurringTitles, isLoading: titlesLoading } = useQuery({
-    queryKey: ["recurring-titles"],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Not authenticated");
-
-      // Query the view directly - it's already filtered by user via RLS
-      const { data, error } = await supabase
-        .from("fathom_calls")
-        .select("title")
-        .eq("user_id", user.id)
-        .not("title", "is", null)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Group and count titles
-      const titleCounts = (data || []).reduce((acc: Record<string, TitleCountData>, call: CallData) => {
-        const title = call.title;
-        if (!acc[title]) {
-          acc[title] = { count: 0, lastDate: call.created_at, firstDate: call.created_at };
-        }
-        acc[title].count++;
-        return acc;
-      }, {});
-
-      // Convert to array and sort by count
-      return Object.entries(titleCounts)
-        .map(([title, data]) => ({
-          title,
-          occurrence_count: data.count,
-          last_occurrence: data.lastDate,
-          first_occurrence: data.firstDate,
-          current_tags: null as string[] | null,
-        }))
-        .sort((a, b) => b.occurrence_count - a.occurrence_count)
-        .slice(0, 50); // Top 50
-    },
-  });
+  const { data: recurringTitles, isLoading: titlesLoading } = useRecurringTitles(activeOrganizationId);
 
   // Fetch tags scoped to active organization/workspace
-  const { data: tags } = useQuery({
-    queryKey: ["call-tags", activeOrganizationId],
-    queryFn: async () => {
-      let query = supabase
-        .from("call_tags")
-        .select("id, name, color, description")
-        .order("name");
-
-      if (activeOrganizationId) {
-        query = query.eq("organization_id", activeOrganizationId);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Tag[];
-    },
-  });
+  const { data: tags } = useTags(activeOrganizationId);
 
   // Fetch folders scoped to active organization/workspace
   const { data: folders } = useQuery({
@@ -150,18 +80,7 @@ export function RecurringTitlesTab() {
   });
 
   // Fetch existing rules
-  const { data: existingRules } = useQuery({
-    queryKey: ["tag-rules"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("tag_rules")
-        .select("*")
-        .order("priority");
-
-      if (error) throw error;
-      return data;
-    },
-  });
+  const { data: existingRules } = useTagRules(activeOrganizationId);
 
   // Create rule mutation
   const createRuleMutation = useMutation({
@@ -184,7 +103,7 @@ export function RecurringTitlesTab() {
     },
     onSuccess: () => {
       toast.success("Rule created successfully");
-      queryClient.invalidateQueries({ queryKey: ["tag-rules"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tags.rules() });
       setCreateRuleDialogOpen(false);
       setSelectedTitle(null);
       setSelectedTagId("");

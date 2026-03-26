@@ -47,8 +47,8 @@ export default function OrganizationJoin() {
           // Note: organizations in context might not be up to date if they just joined 
           // and refreshed, but usually they are.
         }
-      } catch (err: any) {
-        setError(err.message || 'Invitation not found or has expired')
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Invitation not found or has expired')
       } finally {
         setIsLoading(false)
       }
@@ -75,8 +75,8 @@ export default function OrganizationJoin() {
       // We don't have the ID here yet in the details usually, 
       // but let's assume we can navigate to home and the context will fix it.
       navigate('/')
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to accept invitation')
+    } catch (err: unknown) {
+      if (err instanceof Error) { toast.error(err.message) } else { toast.error('Failed to accept invitation') }
     } finally {
       setIsAccepting(false)
     }

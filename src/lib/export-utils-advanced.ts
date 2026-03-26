@@ -1,4 +1,5 @@
 import { saveAs } from "file-saver";
+import type { ExportableCall } from "@/lib/export-utils";
 
 // Token estimation (rough approximation: ~4 chars per token)
 export function estimateTokens(text: string): number {
@@ -127,24 +128,7 @@ function _calculateDuration(start: string, end: string): string {
   return `${minutes} min`;
 }
 
-interface CalendarInvitee {
-  name?: string;
-  email?: string;
-}
-
-interface Call {
-  recording_id: number;
-  title: string;
-  created_at: string;
-  recording_start_time?: string;
-  recording_end_time?: string;
-  summary?: string;
-  full_transcript?: string;
-  url?: string;
-  calendar_invitees?: CalendarInvitee[];
-  recorded_by_name?: string;
-  recorded_by_email?: string;
-}
+// Uses ExportableCall from export-utils.ts (shared type based on Meeting)
 
 // Helper: Extract unique speakers from transcript
 function extractSpeakersFromTranscript(transcript: string): { name: string; email?: string }[] {
@@ -174,7 +158,7 @@ function stripUrlsFromSummary(summary: string, keepUrls: boolean): string {
 }
 
 // Export as LLM Context Bundle (chronological, optimized for AI analysis)
-export function exportAsLLMContext(calls: Call[], includeOptions?: { metadata?: boolean; transcripts?: boolean; summaries?: boolean; participants?: boolean }): void {
+export function exportAsLLMContext(calls: ExportableCall[], includeOptions?: { metadata?: boolean; transcripts?: boolean; summaries?: boolean; participants?: boolean }): void {
   // Sort chronologically
   const sortedCalls = [...calls].sort((a, b) => 
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -253,7 +237,7 @@ export function exportAsLLMContext(calls: Call[], includeOptions?: { metadata?: 
 }
 
 // Export as Chronological Narrative (human-readable, Fathom-style)
-export function exportAsNarrative(calls: Call[]): void {
+export function exportAsNarrative(calls: ExportableCall[]): void {
   const sortedCalls = [...calls].sort((a, b) => 
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
@@ -289,7 +273,7 @@ export function exportAsNarrative(calls: Call[]): void {
 }
 
 // Export as structured JSON for data analysis
-export function exportAsAnalysisPackage(calls: Call[]): void {
+export function exportAsAnalysisPackage(calls: ExportableCall[]): void {
   const sortedCalls = [...calls].sort((a, b) => 
     new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );

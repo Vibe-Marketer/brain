@@ -282,7 +282,7 @@ export function useWorkspaceDetail(workspaceId: string | null) {
         }) as WorkspaceRecording[]
     },
     enabled: !!user && !!workspaceId,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 1 * 60 * 1000, // 1 minute — paginated data should refresh more frequently
   })
 
   return {
@@ -308,39 +308,18 @@ export function useWorkspaceMembers(workspaceId: string | null) {
     queryFn: async (): Promise<WorkspaceMember[]> => {
       if (!user || !workspaceId) return []
 
-      // Fetch memberships for this workspace
+      // Fetch memberships with user profiles in a single JOIN query
       const { data: memberships, error: memberError } = await supabase
         .from('workspace_memberships')
-        .select('id, user_id, role, created_at')
+        .select(`id, user_id, role, created_at, user_profiles(user_id, email, display_name, avatar_url)`)
         .eq('workspace_id', workspaceId)
 
       if (memberError) throw memberError
       if (!memberships || memberships.length === 0) return []
 
-      // Fetch user profiles for each member
-      const userIds = memberships.map((m) => m.user_id)
-
-      // Batch-fetch profiles by user_id
-      const { data: profiles, error: profileError } = await supabase
-        .from('user_profiles')
-        .select('user_id, email, display_name, avatar_url')
-        .in('user_id', userIds)
-
-      // Build profile lookup keyed by user_id
-      const profileMap = new Map<string, { email: string | null; display_name: string | null; avatar_url: string | null }>()
-      if (!profileError && profiles) {
-        for (const p of profiles) {
-          profileMap.set(p.user_id, {
-            email: p.email || null,
-            display_name: p.display_name || null,
-            avatar_url: p.avatar_url || null,
-          })
-        }
-      }
-
-      // Transform and sort by role hierarchy
+      // Transform joined data and sort by role hierarchy
       const members: WorkspaceMember[] = memberships.map((m) => {
-        const profile = profileMap.get(m.user_id)
+        const profile = m.user_profiles as unknown as { user_id: string; email: string | null; display_name: string | null; avatar_url: string | null } | null
         return {
           id: m.id,
           user_id: m.user_id,

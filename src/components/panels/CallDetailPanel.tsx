@@ -35,15 +35,14 @@ import {
 import { toast } from "sonner";
 import { usePanelStore } from "@/stores/panelStore";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { queryKeys } from "@/lib/query-config";
 import { groupTranscriptsBySpeaker } from "@/lib/transcriptUtils";
-import { TranscriptSegmentDisplay, Speaker, Category } from "@/types";
-import { logger } from "@/lib/logger";
+import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { getRecordingById, getRecordingByLegacyId } from "@/services/recordings.service";
 import { getRawCallData } from "@/services/raw-calls.service";
 import type { RecordingDetail } from "@/services/recordings.service";
 import type { FathomRawCall, YouTubeRawCall } from "@/types/raw-calls";
+import type { Meeting } from "@/types";
 
 interface CallDetailPanelProps {
   recordingId: number | string;
@@ -87,160 +86,37 @@ export function CallDetailPanel({ recordingId }: CallDetailPanelProps) {
   const fathomRaw = call?.source_app === 'fathom' ? (rawData as FathomRawCall | null) : null;
   const youtubeRaw = call?.source_app === 'youtube' ? (rawData as YouTubeRawCall | null) : null;
 
-  // Fetch user settings for host email
-  const { data: userSettings } = useQuery({
-    queryKey: queryKeys.user.settings(user?.id ?? ''),
-    queryFn: async () => {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from("user_settings")
-        .select("host_email")
-        .eq("user_id", user.id)
-        .maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
+  // Build a Meeting-compatible object from RecordingDetail for useCallDetailQueries
+  const callAsMeeting: Meeting | null = useMemo(() => {
+    if (!call) return null;
+    return {
+      recording_id: call.legacy_recording_id ?? call.id,
+      canonical_uuid: call.id,
+      title: call.title ?? '',
+      created_at: call.created_at,
+      recording_start_time: call.recording_start_time,
+      recording_end_time: call.recording_end_time,
+      full_transcript: call.full_transcript,
+      summary: call.summary,
+      recorded_by_name: fathomRaw?.recorded_by_name ?? null,
+      recorded_by_email: fathomRaw?.recorded_by_email ?? null,
+      calendar_invitees: fathomRaw?.calendar_invitees ?? null,
+    };
+  }, [call, fathomRaw]);
+
+  // Delegate transcript, speaker, category, and settings queries to the shared hook
+  const {
+    userSettings,
+    transcripts,
+    callSpeakers,
+    callCategories,
+  } = useCallDetailQueries({
+    call: callAsMeeting,
+    userId: user?.id,
+    open: true,
   });
 
-  // Fetch transcripts for this call
-  const { data: transcripts, isLoading: isLoadingTranscripts } = useQuery({
-    queryKey: queryKeys.calls.transcripts(recordingId),
-    queryFn: async () => {
-      if (!call || !user?.id) return [];
-
-      // PRIMARY METHOD: Parse from canonical recordings.full_transcript
-      const transcript = call.full_transcript;
-
-      if (transcript) {
-        const segmentRegex = /\[(\d{2}:\d{2}:\d{2})\]\s+([^:]+):\s+([^\n]+)/g;
-        const segments: TranscriptSegmentDisplay[] = [];
-        let match;
-        let segmentIndex = 0;
-
-        while ((match = segmentRegex.exec(transcript)) !== null) {
-          segments.push({
-            id: `parsed-${segmentIndex}`,
-            recording_id: recordingId,
-            timestamp: match[1] || "",
-            speaker_name: (match[2] || "").trim(),
-            speaker_email: null,
-            text: (match[3] || "").trim(),
-            edited_text: null,
-            edited_speaker_name: null,
-            edited_speaker_email: null,
-            is_deleted: false,
-            created_at: new Date().toISOString(),
-            display_text: (match[3] || "").trim(),
-            display_speaker_name: (match[2] || "").trim(),
-            display_speaker_email: null,
-            has_edits: false,
-          });
-          segmentIndex++;
-        }
-
-        return segments;
-      }
-
-      // Fallback: fetch from fathom_transcripts (for Fathom-sourced calls)
-      if (call.source_app === 'fathom' && call.legacy_recording_id) {
-        const { data, error } = await supabase
-          .from("fathom_transcripts")
-          .select("*")
-          .eq("recording_id", call.legacy_recording_id)
-          .eq("user_id", user.id)
-          .order("timestamp")
-          .limit(1000);
-
-        if (error) throw error;
-
-        return (data || []).map((t): TranscriptSegmentDisplay => ({
-          ...t,
-          display_text: t.edited_text || t.text,
-          display_speaker_name: t.edited_speaker_name || t.speaker_name,
-          display_speaker_email: t.edited_speaker_email || t.speaker_email,
-          has_edits: !!(t.edited_text || t.edited_speaker_name),
-        }));
-      }
-
-      return [];
-    },
-    enabled: !!call && !!user?.id,
-  });
-
-  // Fetch speakers for this call (from fathom_transcripts for Fathom, or from parsed transcript)
-  const { data: callSpeakers } = useQuery({
-    queryKey: queryKeys.calls.speakers(recordingId),
-    queryFn: async () => {
-      if (!call || !user?.id) return [];
-
-      // For Fathom calls, query fathom_transcripts for speaker data
-      if (call.source_app === 'fathom' && call.legacy_recording_id) {
-        const { data, error } = await supabase
-          .from("fathom_transcripts")
-          .select("speaker_name, speaker_email")
-          .eq("recording_id", call.legacy_recording_id)
-          .eq("user_id", user.id);
-
-        if (error) throw error;
-
-        const speakerMap = new Map<string, string | null>();
-        data?.forEach((t) => {
-          if (!speakerMap.has(t.speaker_name)) {
-            speakerMap.set(t.speaker_name, t.speaker_email || null);
-          }
-        });
-
-        return Array.from(speakerMap.entries()).map(([name, email]) => ({
-          speaker_name: name,
-          speaker_email: email,
-        })) as Speaker[];
-      }
-
-      // For other sources, extract speakers from full_transcript
-      if (call.full_transcript) {
-        const speakerMap = new Map<string, null>();
-        const regex = /\[[\d:]+\]\s+([^:]+):/g;
-        let match;
-        while ((match = regex.exec(call.full_transcript)) !== null) {
-          const name = (match[1] || "").trim();
-          if (name && !speakerMap.has(name)) {
-            speakerMap.set(name, null);
-          }
-        }
-        return Array.from(speakerMap.keys()).map((name) => ({
-          speaker_name: name,
-          speaker_email: null,
-        })) as Speaker[];
-      }
-
-      return [];
-    },
-    enabled: !!call && !!user?.id,
-  });
-
-  // Fetch folders/categories for this call
-  const { data: callCategories } = useQuery({
-    queryKey: queryKeys.calls.categories(recordingId),
-    queryFn: async () => {
-      if (!call || !user?.id) return [];
-      const { data, error } = await supabase
-        .from("call_tag_assignments")
-        .select(`
-          tag_id,
-          call_tags (
-            id,
-            name,
-            color
-          )
-        `)
-        .eq("recording_id", recordingId)
-        .eq("user_id", user.id);
-      if (error) throw error;
-      return (data?.map((d) => d.call_tags).filter(Boolean) || []) as Category[];
-    },
-    enabled: !!call && !!user?.id,
-  });
+  const isLoadingTranscripts = !transcripts.length && !!call;
 
   // Calculate duration in minutes
   const duration = useMemo(() => {

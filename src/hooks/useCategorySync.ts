@@ -4,14 +4,9 @@ import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { getSafeUser, requireUser } from "@/lib/auth-utils";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import type { Tag, Category } from "@/types/tags";
 
-export interface Tag {
-  id: string;
-  name: string;
-}
-
-// Backward-compatible type alias
-export type Category = Tag;
+export type { Tag, Category };
 
 export function useTagSync() {
   const [tags, setTags] = useState<Tag[]>([]);

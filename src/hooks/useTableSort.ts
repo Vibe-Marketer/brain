@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 
 export type SortDirection = "asc" | "desc";
 
@@ -6,14 +6,16 @@ export function useTableSort<T>(data: T[], initialField: string = "date") {
   const [sortField, setSortField] = useState<string>(initialField);
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
-  const handleSort = (field: string) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortField(field);
+  const handleSort = useCallback((field: string) => {
+    setSortField((prevField) => {
+      if (prevField === field) {
+        setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
+        return prevField;
+      }
       setSortDirection("desc");
-    }
-  };
+      return field;
+    });
+  }, []);
 
   const sortedData = useMemo(() => {
     return [...data].sort((a: any, b: any) => {

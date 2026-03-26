@@ -20,6 +20,7 @@
  * - APP_URL                   : Application base URL (optional, for footer links)
  */
 
+import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -28,14 +29,23 @@ const RESEND_API_URL = 'https://api.resend.com/emails';
 const DEFAULT_FROM = 'CallVault AI <onboarding@resend.dev>';
 const PRODUCTION_FROM = 'CallVault AI <noreply@mail.callvaultai.com>';
 
-interface SendOrgInviteRequest {
-  inviteeEmail: string;
-  inviterName: string;
-  orgName: string;
-  inviteUrl: string;
-  role: string;
-  context?: 'organization' | 'workspace';
-}
+/** Allowed domains for invite URLs — prevents phishing via crafted inviteUrl */
+const ALLOWED_URL_PREFIXES = [
+  Deno.env.get('APP_URL') || 'https://app.callvaultai.com',
+  'https://callvault.vercel.app',
+];
+
+const sendOrgInviteSchema = z.object({
+  inviteeEmail: z.string().trim().email('Invalid email address').max(254),
+  inviterName: z.string().trim().min(1, 'inviterName is required').max(200),
+  orgName: z.string().trim().min(1, 'orgName is required').max(200),
+  inviteUrl: z.string().url('inviteUrl must be a valid URL').refine(
+    (url) => ALLOWED_URL_PREFIXES.some((prefix) => url.startsWith(prefix)),
+    { message: 'inviteUrl must start with an allowed application domain' }
+  ),
+  role: z.string().trim().min(1, 'role is required').max(100),
+  context: z.enum(['organization', 'workspace']).optional().default('organization'),
+});
 
 /** Format role slug into a human-readable label */
 function formatRole(role: string): string {
@@ -213,30 +223,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Parse and validate body
-    const body: SendOrgInviteRequest = await req.json();
+    // Parse and validate body with Zod
+    const rawBody = await req.json();
+    const validation = sendOrgInviteSchema.safeParse(rawBody);
 
-    const { inviteeEmail, inviterName, orgName, inviteUrl, role } = body;
-    const context = body.context ?? 'organization';
-
-    if (!inviteeEmail || !inviterName || !orgName || !inviteUrl || !role) {
+    if (!validation.success) {
+      const errorMessage = validation.error.errors[0]?.message || 'Invalid input';
       return new Response(
-        JSON.stringify({
-          success: false,
-          error: 'Missing required fields: inviteeEmail, inviterName, orgName, inviteUrl, role',
-          code: 'VALIDATION_ERROR',
-        }),
+        JSON.stringify({ success: false, error: errorMessage, code: 'VALIDATION_ERROR' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(inviteeEmail)) {
-      return new Response(
-        JSON.stringify({ success: false, error: `Invalid email address: ${inviteeEmail}`, code: 'VALIDATION_ERROR' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    const { inviteeEmail, inviterName, orgName, inviteUrl, role, context } = validation.data;
 
     // Build email content
     const subject = `${inviterName} invited you to join ${orgName} on CallVault AI`;

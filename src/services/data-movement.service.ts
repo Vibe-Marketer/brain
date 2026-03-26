@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client'
+import { untypedRpc } from '@/types/db-extensions'
 
 export interface MoveOptions {
   sourceWorkspaceId?: string | null
@@ -89,8 +90,7 @@ export async function copyRecordingsToOrganization(
 
   // Call RPC once per recording (current DB function is per-recording)
   for (const recordingId of recordingIds) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).rpc('copy_recording_to_org', {
+    const { error } = await untypedRpc(supabase, 'copy_recording_to_org', {
       p_recording_id: recordingId,
       p_target_org_id: targetOrgId,
       p_target_workspace_id: workspace.id,

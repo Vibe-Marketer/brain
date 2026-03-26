@@ -9,13 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-
-interface Tag {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-}
+import type { Tag } from "@/types/tags";
 
 interface TagManagementDialogProps {
   open: boolean;

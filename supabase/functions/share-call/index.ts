@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from 'https://esm.sh/zod@3.23.8';
 import { getCorsHeaders } from '../_shared/cors.ts';
 import { authenticateRequest } from '../_shared/auth.ts';
 
@@ -12,23 +13,21 @@ import { authenticateRequest } from '../_shared/auth.ts';
  * - GET /share-call?id=xxx - Get share link details (auth required)
  * - DELETE /share-call?id=xxx - Revoke a share link (auth required)
  * - GET /share-call/access-log?id=xxx - Get access log (auth required)
- * - POST /share-call/access-log - Log an access event (no auth — public share access)
+ * - POST /share-call/access-log - Log an access event (auth required)
  *
  * Security: user_id is derived from JWT for authenticated operations.
  * Token-based access (GET ?token=xxx) is intentionally unauthenticated — the
  * share token itself serves as the access credential.
  */
 
-interface ShareLinkInput {
-  call_recording_id: number;
-  recipient_email?: string;
-}
+const shareLinkCreateSchema = z.object({
+  call_recording_id: z.number().int().positive('call_recording_id must be a positive integer'),
+  recipient_email: z.string().email().max(254).optional(),
+});
 
-interface LogAccessInput {
-  share_link_id: string;
-  user_id: string;
-  ip_address?: string;
-}
+const accessLogSchema = z.object({
+  share_link_id: z.string().uuid('share_link_id must be a valid UUID'),
+});
 
 /**
  * Generates a cryptographically secure 32-character URL-safe token
@@ -105,15 +104,18 @@ async function handleCreateShareLink(
   if (authResult instanceof Response) return authResult;
   const { userId } = authResult;
 
-  const body = await req.json() as ShareLinkInput;
-  const { call_recording_id, recipient_email } = body;
+  const rawBody = await req.json();
+  const validation = shareLinkCreateSchema.safeParse(rawBody);
 
-  if (!call_recording_id) {
+  if (!validation.success) {
+    const errorMessage = validation.error.errors[0]?.message || 'Invalid input';
     return new Response(
-      JSON.stringify({ error: 'call_recording_id is required' }),
+      JSON.stringify({ error: errorMessage }),
       { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
+
+  const { call_recording_id, recipient_email } = validation.data;
 
   // Verify the user owns this call (legacy fathom_raw_calls check)
   const { data: call, error: callError } = await supabaseClient
@@ -466,7 +468,7 @@ async function handleRevokeShareLink(
 
 /**
  * GET /share-call/access-log?id=xxx - Get access log for a share link (auth required)
- * POST /share-call/access-log - Log an access event (no auth — public share access logging)
+ * POST /share-call/access-log - Log an access event (auth required — user_id from JWT)
  */
 async function handleAccessLog(
   req: Request,
@@ -474,17 +476,27 @@ async function handleAccessLog(
   url: URL,
   corsHeaders: Record<string, string>
 ): Promise<Response> {
-  // POST - Log access (no auth required — public share access logging)
+  // POST - Log access (auth required — user_id derived from JWT)
   if (req.method === 'POST') {
-    const body = await req.json() as LogAccessInput;
-    const { share_link_id, user_id, ip_address } = body;
+    const authResult = await authenticateRequest(req, supabaseClient, corsHeaders);
+    if (authResult instanceof Response) return authResult;
+    const { userId } = authResult;
 
-    if (!share_link_id || !user_id) {
+    const rawBody = await req.json();
+    const validation = accessLogSchema.safeParse(rawBody);
+
+    if (!validation.success) {
+      const errorMessage = validation.error.errors[0]?.message || 'Invalid input';
       return new Response(
-        JSON.stringify({ error: 'share_link_id and user_id are required' }),
+        JSON.stringify({ error: errorMessage }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const { share_link_id } = validation.data;
+
+    // Derive IP address from request headers instead of trusting the body
+    const ip_address = req.headers.get('x-forwarded-for') || req.headers.get('cf-connecting-ip') || 'unknown';
 
     // Verify share link exists and is active
     const { data: shareLink, error: linkError } = await supabaseClient
@@ -507,13 +519,13 @@ async function handleAccessLog(
       );
     }
 
-    // Log the access
+    // Log the access — user_id from JWT, IP from headers
     const { data: accessLog, error: insertError } = await supabaseClient
       .from('call_share_access_log')
       .insert({
         share_link_id,
-        accessed_by_user_id: user_id,
-        ip_address: ip_address || null,
+        accessed_by_user_id: userId,
+        ip_address,
       })
       .select()
       .single();

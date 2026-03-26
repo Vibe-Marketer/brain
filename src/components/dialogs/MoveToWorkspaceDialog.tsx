@@ -30,7 +30,7 @@ import {
 import { RiExpandLeftRightLine, RiInformationLine } from '@remixicon/react'
 import { useMoveToWorkspace } from '@/hooks/useDataMovement'
 import { useWorkspaces } from '@/hooks/useWorkspaces'
-import { useOrgContext } from '@/hooks/useOrgContext'
+import { useOrganizationContext } from '@/hooks/useOrganizationContext'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface MoveToWorkspaceDialogProps {
@@ -48,7 +48,7 @@ export function MoveToWorkspaceDialog({
   currentWorkspaceId,
   onSuccess,
 }: MoveToWorkspaceDialogProps) {
-  const { activeOrgId } = useOrgContext()
+  const { activeOrgId } = useOrganizationContext()
   const { workspaces, isLoading } = useWorkspaces(activeOrgId)
   const [targetWorkspaceId, setTargetWorkspaceId] = useState<string>('')
   const [keepInSource, setKeepInSource] = useState(false)

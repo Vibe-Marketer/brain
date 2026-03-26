@@ -39,13 +39,7 @@ import {
   urlParamsToFilters,
   escapeIlike,
 } from "@/lib/filter-utils";
-
-interface Tag {
-  id: string;
-  name: string;
-  description: string | null;
-  created_at: string;
-}
+import type { Tag } from "@/types/tags";
 
 interface DragHelpers {
   activeDragId: string | null;

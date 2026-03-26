@@ -32,29 +32,50 @@ const timezones = [
   { value: "Australia/Sydney", label: "Sydney (AEDT)" },
 ];
 
+/**
+ * Encapsulates the repeated "editable field" pattern:
+ * value, savedValue, isEditing, isSaving.
+ */
+function useEditableField(initialValue = "") {
+  const [value, setValue] = useState(initialValue);
+  const [savedValue, setSavedValue] = useState(initialValue);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const startEditing = () => {
+    setValue(savedValue);
+    setIsEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setIsEditing(false);
+    setValue("");
+  };
+
+  const markSaved = (val: string) => {
+    setSavedValue(val);
+    setIsEditing(false);
+  };
+
+  return {
+    value, setValue,
+    savedValue, setSavedValue,
+    isEditing, setIsEditing,
+    isSaving, setIsSaving,
+    startEditing, cancelEditing, markSaved,
+  };
+}
+
 export default function AccountTab() {
-  const [displayName, setDisplayName] = useState("");
-  const [savedDisplayName, setSavedDisplayName] = useState("");
-  const [editingProfile, setEditingProfile] = useState(false);
-  const [profileSaving, setProfileSaving] = useState(false);
+  const profile = useEditableField("");
+  const tz = useEditableField("America/New_York");
+  const host = useEditableField("");
   const [userEmail, setUserEmail] = useState("");
 
-  const [timezone, setTimezone] = useState("America/New_York");
-  const [savedTimezone, setSavedTimezone] = useState("America/New_York");
-  const [editingTimezone, setEditingTimezone] = useState(false);
-  const [timezoneSaving, setTimezoneSaving] = useState(false);
-
-  const [hostEmail, setHostEmail] = useState("");
-  const [savedHostEmail, setSavedHostEmail] = useState("");
-  const [editingHostEmail, setEditingHostEmail] = useState(false);
-  const [hostEmailSaving, setHostEmailSaving] = useState(false);
-
   const [showPasswordForm, setShowPasswordForm] = useState(false);
-  const [_currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [changingPassword, setChangingPassword] = useState(false);
-  const [_showCurrentPassword, _setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
 
   const { preferences, isLoading: prefsLoading, loadPreferences, updatePreference } = usePreferencesStore();
@@ -72,14 +93,14 @@ export default function AccountTab() {
       if (user) {
         setUserEmail(user.email || "");
 
-        const { data: profile } = await supabase
+        const { data: profileData } = await supabase
           .from("user_profiles")
           .select("display_name")
           .eq("user_id", user.id)
           .maybeSingle();
 
-        if (profile?.display_name) {
-          setSavedDisplayName(profile.display_name);
+        if (profileData?.display_name) {
+          profile.setSavedValue(profileData.display_name);
         }
 
         const { data: settings } = await supabase
@@ -89,7 +110,7 @@ export default function AccountTab() {
           .maybeSingle();
 
         if (settings?.host_email) {
-          setSavedHostEmail(settings.host_email);
+          host.setSavedValue(settings.host_email);
         }
       }
     } catch (error) {
@@ -99,67 +120,64 @@ export default function AccountTab() {
 
   const saveProfile = async () => {
     try {
-      setProfileSaving(true);
+      profile.setIsSaving(true);
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
       const { error } = await supabase
         .from("user_profiles")
-        .update({ display_name: displayName })
+        .update({ display_name: profile.value })
         .eq("user_id", user.id);
 
       if (error) throw error;
 
-      setSavedDisplayName(displayName);
-      setEditingProfile(false);
+      profile.markSaved(profile.value);
       toast.success("Profile updated successfully");
     } catch (error) {
       logger.error("Error saving profile", error);
       toast.error("Failed to update profile");
     } finally {
-      setProfileSaving(false);
+      profile.setIsSaving(false);
     }
   };
 
   const saveTimezone = async () => {
     try {
-      setTimezoneSaving(true);
+      tz.setIsSaving(true);
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
       // Save to user_settings table (future implementation)
-      setSavedTimezone(timezone);
-      setEditingTimezone(false);
+      tz.markSaved(tz.value);
       toast.success("Timezone updated successfully");
     } catch (error) {
       logger.error("Error saving timezone", error);
       toast.error("Failed to update timezone");
     } finally {
-      setTimezoneSaving(false);
+      tz.setIsSaving(false);
     }
   };
 
   const saveHostEmail = async () => {
     try {
-      setHostEmailSaving(true);
+      host.setIsSaving(true);
       const { user, error: authError } = await getSafeUser();
       if (authError || !user) return;
 
       const { error } = await supabase
         .from("user_settings")
-        .update({ host_email: hostEmail })
+        .update({ host_email: host.value })
         .eq("user_id", user.id);
 
       if (error) throw error;
 
-      setSavedHostEmail(hostEmail);
-      setEditingHostEmail(false);
+      host.markSaved(host.value);
       toast.success("Fathom email updated successfully");
     } catch (error) {
       logger.error("Error saving host email", error);
       toast.error("Failed to update Fathom email");
     } finally {
-      setHostEmailSaving(false);
+      host.setIsSaving(false);
     }
   };
 
@@ -184,7 +202,6 @@ export default function AccountTab() {
       if (error) throw error;
 
       setShowPasswordForm(false);
-      setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
       toast.success("Password updated successfully");
@@ -212,23 +229,20 @@ export default function AccountTab() {
         <div className="lg:col-span-2 space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             {/* Display Name */}
-            {savedDisplayName && !editingProfile ? (
+            {profile.savedValue && !profile.isEditing ? (
               <div className="space-y-2">
                 <Label htmlFor="display-name">Display Name</Label>
                 <div className="flex gap-2">
                   <Input
                     id="display-name"
-                    value={savedDisplayName}
+                    value={profile.savedValue}
                     readOnly
                     className="flex-1"
                   />
                   <Button
                     variant="hollow"
                     size="icon"
-                    onClick={() => {
-                      setDisplayName(savedDisplayName);
-                      setEditingProfile(true);
-                    }}
+                    onClick={profile.startEditing}
                   >
                     <RiEditLine className="h-4 w-4" />
                   </Button>
@@ -241,27 +255,24 @@ export default function AccountTab() {
                   <Input
                     id="display-name-edit"
                     placeholder="Enter your display name"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
+                    value={profile.value}
+                    onChange={(e) => profile.setValue(e.target.value)}
                     className="flex-1"
                   />
                   <Button
                     onClick={saveProfile}
-                    disabled={!displayName || profileSaving}
+                    disabled={!profile.value || profile.isSaving}
                     size="icon"
                   >
-                    {profileSaving ? (
+                    {profile.isSaving ? (
                       <RiLoader2Line className="h-4 w-4 animate-spin" />
                     ) : (
                       <RiCheckboxCircleLine className="h-4 w-4" />
                     )}
                   </Button>
-                  {editingProfile && (
+                  {profile.isEditing && (
                     <Button
-                      onClick={() => {
-                        setEditingProfile(false);
-                        setDisplayName("");
-                      }}
+                      onClick={profile.cancelEditing}
                       variant="hollow"
                       size="icon"
                     >
@@ -299,23 +310,20 @@ export default function AccountTab() {
         <div className="lg:col-span-2 space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             {/* Timezone */}
-            {savedTimezone && !editingTimezone ? (
+            {tz.savedValue && !tz.isEditing ? (
               <div className="space-y-2">
                 <Label htmlFor="timezone">Timezone</Label>
                 <div className="flex gap-2">
                   <Input
                     id="timezone"
-                    value={timezones.find(tz => tz.value === savedTimezone)?.label || savedTimezone}
+                    value={timezones.find(t => t.value === tz.savedValue)?.label || tz.savedValue}
                     readOnly
                     className="flex-1"
                   />
                   <Button
                     variant="hollow"
                     size="icon"
-                    onClick={() => {
-                      setTimezone(savedTimezone);
-                      setEditingTimezone(true);
-                    }}
+                    onClick={tz.startEditing}
                   >
                     <RiEditLine className="h-4 w-4" />
                   </Button>
@@ -325,32 +333,32 @@ export default function AccountTab() {
               <div className="space-y-2">
                 <Label htmlFor="timezone-edit">Timezone</Label>
                 <div className="flex gap-2">
-                  <Select value={timezone} onValueChange={setTimezone}>
+                  <Select value={tz.value} onValueChange={tz.setValue}>
                     <SelectTrigger className="flex-1">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {timezones.map((tz) => (
-                        <SelectItem key={tz.value} value={tz.value}>
-                          {tz.label}
+                      {timezones.map((t) => (
+                        <SelectItem key={t.value} value={t.value}>
+                          {t.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                   <Button
                     onClick={saveTimezone}
-                    disabled={timezoneSaving}
+                    disabled={tz.isSaving}
                     size="icon"
                   >
-                    {timezoneSaving ? (
+                    {tz.isSaving ? (
                       <RiLoader2Line className="h-4 w-4 animate-spin" />
                     ) : (
                       <RiCheckboxCircleLine className="h-4 w-4" />
                     )}
                   </Button>
-                  {editingTimezone && (
+                  {tz.isEditing && (
                     <Button
-                      onClick={() => setEditingTimezone(false)}
+                      onClick={tz.cancelEditing}
                       variant="hollow"
                       size="icon"
                     >
@@ -362,23 +370,20 @@ export default function AccountTab() {
             )}
 
             {/* Fathom Email */}
-            {savedHostEmail && !editingHostEmail ? (
+            {host.savedValue && !host.isEditing ? (
               <div className="space-y-2">
                 <Label htmlFor="fathom-email">Fathom Email</Label>
                 <div className="flex gap-2">
                   <Input
                     id="fathom-email"
-                    value={savedHostEmail}
+                    value={host.savedValue}
                     readOnly
                     className="flex-1"
                   />
                   <Button
                     variant="hollow"
                     size="icon"
-                    onClick={() => {
-                      setHostEmail(savedHostEmail);
-                      setEditingHostEmail(true);
-                    }}
+                    onClick={host.startEditing}
                   >
                     <RiEditLine className="h-4 w-4" />
                   </Button>
@@ -392,24 +397,24 @@ export default function AccountTab() {
                     id="fathom-email-edit"
                     type="email"
                     placeholder="your-fathom-email@example.com"
-                    value={hostEmail}
-                    onChange={(e) => setHostEmail(e.target.value)}
+                    value={host.value}
+                    onChange={(e) => host.setValue(e.target.value)}
                     className="flex-1"
                   />
                   <Button
                     onClick={saveHostEmail}
-                    disabled={!hostEmail || hostEmailSaving}
+                    disabled={!host.value || host.isSaving}
                     size="icon"
                   >
-                    {hostEmailSaving ? (
+                    {host.isSaving ? (
                       <RiLoader2Line className="h-4 w-4 animate-spin" />
                     ) : (
                       <RiCheckboxCircleLine className="h-4 w-4" />
                     )}
                   </Button>
-                  {editingHostEmail && (
+                  {host.isEditing && (
                     <Button
-                      onClick={() => setEditingHostEmail(false)}
+                      onClick={host.cancelEditing}
                       variant="hollow"
                       size="icon"
                     >
@@ -547,7 +552,6 @@ export default function AccountTab() {
                   variant="hollow"
                   onClick={() => {
                     setShowPasswordForm(false);
-                    setCurrentPassword("");
                     setNewPassword("");
                     setConfirmPassword("");
                   }}
