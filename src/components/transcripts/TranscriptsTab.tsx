@@ -27,7 +27,7 @@ import AssignFolderDialog from "@/components/AssignFolderDialog";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import { usePanelStore } from "@/stores/panelStore";
 import { queryKeys } from "@/lib/query-config";
-import { useWorkspaces, useWorkspaceRecordings, mapRecordingToMeeting } from "@/hooks/useWorkspaces";
+import { useWorkspaces, mapRecordingToMeeting } from "@/hooks/useWorkspaces";
 import { usePersonalTags, usePersonalTagAssignments } from "@/hooks/usePersonalTags";
 import { useAvailableSources } from "@/hooks/useAvailableSources";
 import { Folder } from "@/types/workspace";

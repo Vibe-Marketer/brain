@@ -11,26 +11,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client'
-import type { WorkspaceInvitation, WorkspaceInviteDetails } from '@/types/workspace'
-
-/**
- * Fetches all pending invitations for a workspace.
- * Returns invitations with status = 'pending' (not accepted, revoked, or expired).
- */
-export async function getInvitations(workspaceId: string): Promise<WorkspaceInvitation[]> {
-  const { data, error } = await supabase
-    .from('workspace_invitations')
-    .select('id, workspace_id, invited_by, email, role, token, status, expires_at, created_at, accepted_at')
-    .eq('workspace_id', workspaceId)
-    .eq('status', 'pending')
-    .order('created_at', { ascending: false })
-
-  if (error) {
-    throw new Error(`Failed to fetch invitations: ${error.message}`)
-  }
-
-  return (data ?? []) as WorkspaceInvitation[]
-}
+import type { WorkspaceInvitation } from '@/types/workspace'
 
 /**
  * Creates a new workspace invitation.
@@ -74,50 +55,6 @@ export async function revokeInvitation(invitationId: string): Promise<void> {
   if (error) {
     throw new Error(`Failed to revoke invitation: ${error.message}`)
   }
-}
-
-/**
- * Refreshes the expiry of a pending invitation by extending it 7 days from now.
- * Email re-send is a future concern — for now, just refresh the expiry window.
- */
-export async function resendInvitation(invitationId: string): Promise<void> {
-  const newExpiry = new Date()
-  newExpiry.setDate(newExpiry.getDate() + 7)
-
-  const { error } = await supabase
-    .from('workspace_invitations')
-    .update({ expires_at: newExpiry.toISOString() })
-    .eq('id', invitationId)
-
-  if (error) {
-    throw new Error(`Failed to resend invitation: ${error.message}`)
-  }
-}
-
-/**
- * Fetches invite details by token using the get_workspace_invite_details RPC.
- * Called from the join page to show context before the user accepts.
- * Returns workspace name, org name, inviter name, role, and expiry.
- */
-export async function getInviteDetails(token: string): Promise<WorkspaceInviteDetails> {
-  const { data, error } = await supabase.rpc('get_workspace_invite_details', { p_token: token })
-
-  if (error) {
-    throw new Error(`Failed to get invite details: ${error.message}`)
-  }
-
-  if (!data) {
-    throw new Error('Invitation not found or has expired')
-  }
-
-  // RPC returns an array; take the first row
-  const result = Array.isArray(data) ? data[0] : data
-
-  if (!result) {
-    throw new Error('Invitation not found or has expired')
-  }
-
-  return result as WorkspaceInviteDetails
 }
 
 /**

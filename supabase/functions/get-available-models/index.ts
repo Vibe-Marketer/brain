@@ -1,8 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getCorsHeaders } from '../_shared/cors.ts'
 
-console.log("Get Available Models Function Loaded (v3)");
-
 Deno.serve(async (req: Request) => {
   const origin = req.headers.get('Origin');
   const corsHeaders = getCorsHeaders(origin);
@@ -13,8 +11,6 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    console.log(`[Request] ${req.method} ${req.url}`);
-    
     // 1. Initialize Supabase Client
     const authHeader = req.headers.get('Authorization')
     const supabaseClient = createClient(

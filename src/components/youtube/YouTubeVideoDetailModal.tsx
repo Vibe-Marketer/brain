@@ -30,7 +30,7 @@ import {
   RiPlayLine,
 } from '@remixicon/react'
 import { getYouTubeMetadata } from '@/types/youtube'
-import { parseYouTubeDuration, formatCompactNumber, YOUTUBE_CATEGORIES } from '@/lib/youtube-utils'
+import { parseYouTubeDuration, YOUTUBE_CATEGORIES } from '@/lib/youtube-utils'
 import { parseYouTubeTranscript, isYouTubeTranscriptFormat } from '@/lib/transcriptUtils'
 import type { WorkspaceRecording } from '@/hooks/useWorkspaces'
 

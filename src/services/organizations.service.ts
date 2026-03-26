@@ -55,24 +55,6 @@ export async function getOrganizations(userId: string): Promise<OrganizationWith
 }
 
 /**
- * Fetches a single organization by ID.
- * Returns null if not found or not accessible to current user.
- */
-export async function getOrganizationById(orgId: string): Promise<Organization | null> {
-  const { data, error } = await supabase
-    .from('organizations')
-    .select('id, name, type, cross_org_default, created_at, updated_at')
-    .eq('id', orgId)
-    .maybeSingle()
-
-  if (error) {
-    throw new Error(`Failed to fetch organization ${orgId}: ${error.message}`)
-  }
-
-  return data
-}
-
-/**
  * Creates a new organization for the given user.
  * Inserts into organizations with type='business', then creates organization_membership as organization_owner.
  * Returns the newly created organization.

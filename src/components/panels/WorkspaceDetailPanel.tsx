@@ -11,8 +11,7 @@
  * @brand-version v4.2
  */
 
-import { useState, useCallback, useMemo } from 'react'
-import { cn } from '@/lib/utils'
+import { useState, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -32,7 +31,6 @@ import { usePanelStore } from '@/stores/panelStore'
 import { useWorkspaceDetail, useWorkspaces } from '@/hooks/useWorkspaces'
 import { useUpdateWorkspace, useSetDefaultWorkspace } from '@/hooks/useWorkspaceMutations'
 import { WorkspaceMemberPanel } from '@/components/panels/WorkspaceMemberPanel'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 export interface WorkspaceDetailPanelProps {
   workspaceId: string

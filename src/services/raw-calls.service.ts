@@ -15,7 +15,7 @@ import type { FathomRawCall, ZoomRawCall, YouTubeRawCall, UploadRawFile } from '
  * Fetches Fathom-specific raw data for a recording.
  * Joins via canonical_recording_id (UUID FK to recordings).
  */
-export async function getFathomRawCall(recordingId: string): Promise<FathomRawCall | null> {
+async function getFathomRawCall(recordingId: string): Promise<FathomRawCall | null> {
   const { data, error } = await supabase
     .from('fathom_calls')
     .select('*')
@@ -33,7 +33,7 @@ export async function getFathomRawCall(recordingId: string): Promise<FathomRawCa
 /**
  * Fetches Zoom-specific raw data for a recording.
  */
-export async function getZoomRawCall(recordingId: string): Promise<ZoomRawCall | null> {
+async function getZoomRawCall(recordingId: string): Promise<ZoomRawCall | null> {
   const { data, error } = await supabase
     .from('zoom_raw_calls')
     .select('*')
@@ -51,7 +51,7 @@ export async function getZoomRawCall(recordingId: string): Promise<ZoomRawCall |
 /**
  * Fetches YouTube-specific raw data for a recording.
  */
-export async function getYouTubeRawCall(recordingId: string): Promise<YouTubeRawCall | null> {
+async function getYouTubeRawCall(recordingId: string): Promise<YouTubeRawCall | null> {
   const { data, error } = await supabase
     .from('youtube_raw_calls')
     .select('*')
@@ -69,7 +69,7 @@ export async function getYouTubeRawCall(recordingId: string): Promise<YouTubeRaw
 /**
  * Fetches upload-specific raw data for a recording.
  */
-export async function getUploadRawFile(recordingId: string): Promise<UploadRawFile | null> {
+async function getUploadRawFile(recordingId: string): Promise<UploadRawFile | null> {
   const { data, error } = await supabase
     .from('upload_raw_files')
     .select('*')
