@@ -56,6 +56,14 @@ verify_jwt = true
 [functions.generate-content]
 verify_jwt = true
 
+[functions.generate-ai-titles]
+# User-initiated bulk AI title generation — requires authenticated session
+verify_jwt = true
+
+[functions.auto-tag-calls]
+# User-initiated bulk AI tagging — requires authenticated session
+verify_jwt = true
+
 # --- Webhook receivers (no user JWT available) ---
 
 [functions.webhook]

@@ -143,11 +143,22 @@ export function useMeetingsSync() {
   }, []);
 
   const loadTagAssignments = async (recordingIds: string[]) => {
+    // call_tag_assignments.recording_id is UUID (migration 20260310125000).
+    // Unsynced meetings only have numeric Fathom IDs — they have no UUID yet
+    // (they haven't been inserted into the recordings table). Skip the query
+    // to avoid a 400 "invalid input syntax for type uuid" DB error.
+    const numericIds = recordingIds.filter(id => /^\d+$/.test(id));
+    if (numericIds.length === recordingIds.length) {
+      // All IDs are numeric — no UUID-keyed assignments can exist yet
+      return;
+    }
+
+    const uuidIds = recordingIds.filter(id => !/^\d+$/.test(id));
     try {
       const { data } = await supabase
         .from('call_tag_assignments')
         .select('recording_id, tag_id')
-        .in('recording_id', recordingIds);
+        .in('recording_id', uuidIds);
 
       const assignments: Record<string, string> = {};
       (data || []).forEach(assignment => {
@@ -326,11 +337,25 @@ export function useMeetingsSync() {
       }
 
       if (tagId && tagId !== 'none') {
-        await supabase.from('call_tag_assignments').insert({
-          recording_id: meeting.recording_id,
-          tag_id: tagId,
-          auto_assigned: false
-        });
+        // call_tag_assignments.recording_id is UUID (migration 20260310125000).
+        // Look up the recordings.id (UUID) via legacy_recording_id to get the correct key.
+        const { data: recordingRow } = await supabase
+          .from('recordings')
+          .select('id')
+          .eq('legacy_recording_id', meeting.recording_id)
+          .maybeSingle();
+
+        const recordingUuid = recordingRow?.id;
+        if (recordingUuid) {
+          await supabase.from('call_tag_assignments').insert({
+            recording_id: recordingUuid,
+            tag_id: tagId,
+            user_id: user.id,
+            auto_assigned: false
+          });
+        } else {
+          logger.error(`No UUID found for recording ${meeting.recording_id} — tag assignment skipped`);
+        }
       }
 
       toast.success("Meeting synced successfully");

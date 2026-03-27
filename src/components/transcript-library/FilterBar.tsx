@@ -10,7 +10,7 @@ import { DurationFilterPopover } from "./DurationFilterPopover";
 import { SourceFilterPopover } from "./SourceFilterPopover";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { logger } from "@/lib/logger";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
@@ -54,55 +54,39 @@ export function FilterBar({
 }: FilterBarProps) {
   const isMobile = useIsMobile();
   const { activeOrganizationId } = useOrganizationContext();
-  const [allContacts, setAllContacts] = useState<Array<{ email: string; name: string | null }>>([]);
 
-  // Fetch all unique contacts from org-scoped call_participants table
-  useEffect(() => {
-    let isMounted = true;
+  // Fetch all unique contacts from org-scoped call_participants table (cached 5 min)
+  const { data: allContacts = [] } = useQuery({
+    queryKey: ["call-participants", activeOrganizationId],
+    queryFn: async () => {
+      if (!activeOrganizationId) return [];
 
-    const fetchContacts = async () => {
-      try {
-        if (!activeOrganizationId) return;
+      const { data, error: fetchError } = await supabase
+        .from("call_participants")
+        .select("email, name")
+        .eq("organization_id", activeOrganizationId)
+        .not("email", "is", null)
+        .order("email")
+        .limit(500);
 
-        const { data, error: fetchError } = await supabase
-          .from("call_participants")
-          .select("email, name")
-          .eq("organization_id", activeOrganizationId)
-          .not("email", "is", null)
-          .order("email");
-
-        if (fetchError) {
-          if (isMounted) {
-            logger.error("Error fetching contacts data", fetchError);
-          }
-          return;
-        }
-
-        if (isMounted && data) {
-          const contactsMap = new Map<string, string | null>();
-          data.forEach((row: { email?: string | null; name?: string | null }) => {
-            if (row.email && !contactsMap.has(row.email)) {
-              contactsMap.set(row.email, row.name ?? null);
-            }
-          });
-          setAllContacts(
-            Array.from(contactsMap.entries())
-              .map(([email, name]) => ({ email, name }))
-              .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email))
-          );
-        }
-      } catch (error) {
-        if (isMounted) {
-          logger.error("Error fetching contacts", error);
-        }
+      if (fetchError) {
+        logger.error("Error fetching contacts data", fetchError);
+        return [];
       }
-    };
-    fetchContacts();
 
-    return () => {
-      isMounted = false;
-    };
-  }, [activeOrganizationId]);
+      const contactsMap = new Map<string, string | null>();
+      (data ?? []).forEach((row: { email?: string | null; name?: string | null }) => {
+        if (row.email && !contactsMap.has(row.email)) {
+          contactsMap.set(row.email, row.name ?? null);
+        }
+      });
+      return Array.from(contactsMap.entries())
+        .map(([email, name]) => ({ email, name }))
+        .sort((a, b) => (a.name || a.email).localeCompare(b.name || b.email));
+    },
+    enabled: !!activeOrganizationId,
+    staleTime: 5 * 60 * 1000,
+  });
 
   const formatDateRange = (from?: Date, to?: Date) => {
     if (from && to) {
@@ -165,9 +149,9 @@ export function FilterBar({
           align="start"
           triggerClassName={cn(
             isMobile
-              ? "h-8 w-8 p-0 justify-center border border-border bg-cb-black dark:bg-white text-white dark:text-cb-black hover:bg-hover dark:hover:bg-hover"
-              : "h-8 gap-1.5 text-xs bg-cb-black dark:bg-white text-white dark:text-cb-black hover:bg-hover dark:hover:bg-hover",
-            (filters.dateFrom || filters.dateTo) && !isMobile && "ring-2 ring-cb-black ring-offset-2"
+              ? "h-8 w-8 p-0 justify-center border border-border bg-foreground text-background hover:bg-foreground/90"
+              : "h-8 gap-1.5 text-xs bg-foreground text-background hover:bg-foreground/90",
+            (filters.dateFrom || filters.dateTo) && !isMobile && "ring-2 ring-foreground ring-offset-2"
           )}
         />
 
@@ -227,7 +211,7 @@ export function FilterBar({
             variant="link"
             size="sm"
             onClick={handleClearAll}
-            className="h-8 text-xs text-ink-soft hover:text-ink dark:text-cb-text-dark-secondary dark:hover:text-white px-2"
+            className="h-8 text-xs text-muted-foreground hover:text-foreground px-2"
           >
             Clear all
           </Button>
