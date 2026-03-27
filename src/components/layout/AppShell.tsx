@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import { useBreakpointFlags } from '@/hooks/useBreakpoint';
 import { SidebarNav } from '@/components/ui/sidebar-nav';
 import { SidebarToggle } from './SidebarToggle';
+import { DetailPaneOutlet } from './DetailPaneOutlet';
 import { usePanelStore } from '@/stores/panelStore';
 
 /**
@@ -347,6 +348,10 @@ export function AppShell({
           {children}
         </div>
 
+        {/* PANE 4: Detail Panel Outlet */}
+        {showDetailPane && (
+          <DetailPaneOutlet isTablet={isTablet} />
+        )}
       </div>
       )}
 
