@@ -23,7 +23,6 @@ Each call has a full detail page with:
 - AI-generated summary
 - Full transcript
 - Insights extraction
-- PROFITS Framework analysis (Pain, Results, Obstacles, Fears, Identity, Triggers, Success)
 - Action items
 - YouTube calls show thumbnail, video metadata (views, likes, duration), and description
 
