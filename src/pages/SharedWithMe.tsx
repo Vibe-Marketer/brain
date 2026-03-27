@@ -15,7 +15,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { Spinner } from "@/components/ui/spinner";
 import { SharedWithMePane } from "@/components/panes/SharedWithMePane";
-import { usePanelStore } from "@/stores/panelStore";
 
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -367,7 +366,6 @@ function SharedCallsTable({
 const SharedWithMe = () => {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { openPanel } = usePanelStore();
 
   // State
   const [searchQuery, setSearchQuery] = useState("");
@@ -393,13 +391,9 @@ const SharedWithMe = () => {
     );
   }, [bySourceType, activeTab, searchQuery]);
 
-  // Handle call click
+  // Handle call click — navigate to full call detail page
   const handleCallClick = (call: SharedCallBase) => {
-    openPanel("call-detail", {
-      type: "call-detail",
-      recordingId: call.recording_id,
-      title: call.call_name,
-    });
+    navigate(`/call/${call.recording_id}`);
   };
 
   const handleOpenCallPage = (call: SharedCallBase) => {

@@ -26,10 +26,7 @@ import { cn } from '@/lib/utils';
 import { useBreakpointFlags } from '@/hooks/useBreakpoint';
 import { SidebarNav } from '@/components/ui/sidebar-nav';
 import { SidebarToggle } from './SidebarToggle';
-import { DetailPaneOutlet } from './DetailPaneOutlet';
 import { usePanelStore } from '@/stores/panelStore';
-import { MobileHeader } from './MobileHeader';
-import { MobileTabBar } from './MobileTabBar';
 
 /**
  * DEV-MODE CHECK: Detects if AppShell is incorrectly wrapped in Layout.tsx's card container.
@@ -179,14 +176,6 @@ export function AppShell({
 
   return (
     <>
-      {/* ── MOBILE HEADER (fixed top bar, mobile only) ── */}
-      {isMobile && (
-        <MobileHeader
-          onOpenNav={() => setShowMobileNav(true)}
-          onOpenSecondary={() => setShowMobileSecondary(true)}
-          showSecondaryToggle={!!secondaryPane}
-        />
-      )}
 
       {/* Mobile overlay backdrop */}
       {isMobile && (showMobileNav || showMobileSecondary) && (
@@ -358,15 +347,9 @@ export function AppShell({
           {children}
         </div>
 
-        {/* PANE 4: Detail Panel Outlet */}
-        {showDetailPane && (
-          <DetailPaneOutlet isTablet={isTablet} />
-        )}
       </div>
       )}
 
-      {/* ── MOBILE BOTTOM TAB BAR (fixed, mobile only) ── */}
-      {isMobile && <MobileTabBar />}
     </>
   );
 }

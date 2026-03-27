@@ -146,6 +146,7 @@ export function TranscriptsTab({
   const [pendingTagTranscripts, setPendingTagTranscripts] = useState<(number | string)[]>([]);
   const [deleteMode, setDeleteMode] = useState<DeleteMode>('permanent-delete');
   const [deleteSourceLabels, setDeleteSourceLabels] = useState<string[]>([]);
+  const [detailCall, setDetailCall] = useState<Meeting | null>(null);
 
   // Load host email
   useEffect(() => {
@@ -1281,11 +1282,7 @@ export function TranscriptsTab({
                       }
                     }}
                     onCallClick={(call) => {
-                      usePanelStore.getState().openPanel('call-detail', {
-                        type: 'call-detail',
-                        recordingId: call.recording_id,
-                        title: call.title,
-                      });
+                      setDetailCall(call);
                     }}
                     tags={tags}
                     tagAssignments={tagAssignments}
@@ -1314,7 +1311,12 @@ export function TranscriptsTab({
       </div>
 
       {/* Dialogs */}
-      {/* Call detail opens in Pane 4 via panelStore — see onCallClick handler above */}
+      <CallDetailDialog
+        call={detailCall}
+        open={!!detailCall}
+        onOpenChange={(open) => { if (!open) setDetailCall(null); }}
+        onDataChange={() => queryClient.invalidateQueries()}
+      />
 
       {taggingCallId && (
         <ManualTagDialog

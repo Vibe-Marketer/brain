@@ -18,7 +18,6 @@ import {
   RiPriceTag3Line, 
   RiMagicLine, 
   RiFolderLine, 
-  RiChatQuoteLine,
   RiDownloadLine,
   RiFileTextLine,
   RiExpandLeftRightLine,
@@ -170,36 +169,6 @@ export function BulkActionToolbarEnhanced({
 
   const handleShare = () => {
     toast.info("Share feature coming soon");
-  };
-
-  const handleChat = () => {
-    const recordingIds = selectedCalls
-      .filter(c => c?.recording_id != null)
-      .map(c => Number(c.recording_id));
-
-    if (recordingIds.length === 0) {
-      toast.error('No valid recordings selected');
-      return;
-    }
-
-    const initialContext = selectedCalls
-      .filter(c => c?.recording_id != null)
-      .map(c => ({
-        type: 'call' as const,
-        id: Number(c.recording_id),
-        title: c.title || `Call ${c.recording_id}`,
-        date: c.created_at
-      }));
-
-    navigate('/chat', {
-      state: {
-        newSession: true,
-        prefilter: {
-          recordingIds
-        },
-        initialContext
-      }
-    });
   };
 
   const handleGenerateAITitles = async () => {
@@ -380,15 +349,7 @@ export function BulkActionToolbarEnhanced({
 
         {/* Organization Section */}
         <ActionSection title="Organize">
-          <Button 
-            variant="outline" 
-            className="w-full justify-start"
-            onClick={handleChat}
-          >
-            <RiChatQuoteLine className="h-4 w-4 mr-2" />
-            Chat with Selected
-          </Button>
-          <Button 
+          <Button
             variant="outline" 
             className="w-full justify-start"
             onClick={onAssignFolder}
