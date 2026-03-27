@@ -2,6 +2,12 @@ import { useState, useMemo, useCallback } from "react";
 
 export type SortDirection = "asc" | "desc";
 
+/**
+ * Client-side sorting for the current page of data.
+ * Note: This sorts only the visible page, not the full dataset.
+ * Primary sort order comes from the server query (by date desc).
+ * This hook provides secondary column-header sorting as a convenience.
+ */
 export function useTableSort<T>(data: T[], initialField: string = "date") {
   const [sortField, setSortField] = useState<string>(initialField);
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");

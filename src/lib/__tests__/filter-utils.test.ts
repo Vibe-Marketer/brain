@@ -18,10 +18,10 @@ describe('parseSearchSyntax', () => {
   });
 
   it('should parse multiple filters', () => {
-    const result = parseSearchSyntax('participant:john date:today category:sales planning');
+    const result = parseSearchSyntax('participant:john date:today tag:sales planning');
     expect(result.filters.participant).toEqual(['john']);
     expect(result.filters.date).toBe('today');
-    expect(result.filters.category).toEqual(['sales']);
+    expect(result.filters.tag).toEqual(['sales']);
     expect(result.plainText).toBe('planning');
   });
 
@@ -36,9 +36,10 @@ describe('parseSearchSyntax', () => {
     expect(result3.filters.duration).toBe('30-60');
   });
 
-  it('should parse status filter', () => {
+  it('should treat status: as plain text (status filter removed)', () => {
     const result = parseSearchSyntax('status:synced status:unsynced');
-    expect(result.filters.status).toEqual(['synced', 'unsynced']);
+    expect(result.filters).not.toHaveProperty('status');
+    expect(result.plainText).toBe('status:synced status:unsynced');
   });
 
   it('should parse tag filter with tag: prefix', () => {
@@ -268,21 +269,17 @@ describe('URL Persistence', () => {
       dateFrom: new Date('2024-01-01'),
       dateTo: new Date('2024-01-31'),
       participants: ['john', 'jane'],
-      categories: ['sales'],
       durationMin: 30,
       durationMax: 60,
-      status: ['synced'],
     };
 
     const params = filtersToURLParams(filters);
-    
+
     expect(params.get('from')).toBeTruthy();
     expect(params.get('to')).toBeTruthy();
     expect(params.get('participants')).toBe('john,jane');
-    expect(params.get('categories')).toBe('sales');
     expect(params.get('durMin')).toBe('30');
     expect(params.get('durMax')).toBe('60');
-    expect(params.get('status')).toBe('synced');
   });
 
   it('should deserialize URL params to filters', () => {
@@ -290,20 +287,16 @@ describe('URL Persistence', () => {
     params.set('from', '2024-01-01T00:00:00.000Z');
     params.set('to', '2024-01-31T23:59:59.999Z');
     params.set('participants', 'john,jane');
-    params.set('categories', 'sales,marketing');
     params.set('durMin', '30');
     params.set('durMax', '60');
-    params.set('status', 'synced,unsynced');
 
     const filters = urlParamsToFilters(params);
-    
+
     expect(filters.dateFrom).toBeInstanceOf(Date);
     expect(filters.dateTo).toBeInstanceOf(Date);
     expect(filters.participants).toEqual(['john', 'jane']);
-    expect(filters.categories).toEqual(['sales', 'marketing']);
     expect(filters.durationMin).toBe(30);
     expect(filters.durationMax).toBe(60);
-    expect(filters.status).toEqual(['synced', 'unsynced']);
   });
 
   it('should handle round-trip conversion', () => {
@@ -385,9 +378,7 @@ describe('URL Persistence', () => {
     const original: Partial<FilterState> = {
       dateFrom: new Date('2024-01-15'),
       participants: ['john', 'jane'],
-      categories: ['sales'],
       durationMin: 30,
-      status: ['synced'],
       tags: ['important', 'urgent'],
       folders: ['clients', '2024'],
     };
@@ -397,9 +388,7 @@ describe('URL Persistence', () => {
 
     expect(restored.dateFrom?.toDateString()).toBe(original.dateFrom?.toDateString());
     expect(restored.participants).toEqual(original.participants);
-    expect(restored.categories).toEqual(original.categories);
     expect(restored.durationMin).toBe(original.durationMin);
-    expect(restored.status).toEqual(original.status);
     expect(restored.tags).toEqual(original.tags);
     expect(restored.folders).toEqual(original.folders);
   });

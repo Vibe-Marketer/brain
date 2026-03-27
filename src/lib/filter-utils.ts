@@ -20,10 +20,8 @@ export interface FilterState {
   dateFrom?: Date;
   dateTo?: Date;
   participants: string[];
-  categories: string[];
   durationMin?: number;
   durationMax?: number;
-  status: string[];
   tags?: string[];
   folders?: string[];
   sources?: string[];
@@ -34,9 +32,7 @@ export interface SearchSyntax {
   filters: {
     participant?: string[];
     date?: string;
-    category?: string[];
     duration?: string;
-    status?: string[];
     tag?: string[];
     folder?: string[];
     source?: string[];
@@ -47,9 +43,7 @@ export interface SearchSyntax {
  * Parse search query for syntax like:
  * - participant:john (shortcut: p:john)
  * - date:today | date:yesterday | date:week | date:2024-01-01 (shortcut: d:)
- * - category:sales (shortcut: cat: or c:)
  * - duration:>30 | duration:<15 | duration:30-60 (shortcut: dur:)
- * - status:synced | status:unsynced (shortcut: s:)
  * - tag:important | tag:followup (shortcut: t:important)
  * - folder:clients | folder:personal (shortcut: f:clients)
  */
@@ -79,20 +73,9 @@ export function parseSearchSyntax(query: string): SearchSyntax {
         case 'd':
           result.filters.date = value;
           break;
-        case 'category':
-        case 'cat':
-        case 'c':
-          if (!result.filters.category) result.filters.category = [];
-          result.filters.category.push(value);
-          break;
         case 'duration':
         case 'dur':
           result.filters.duration = value;
-          break;
-        case 'status':
-        case 's':
-          if (!result.filters.status) result.filters.status = [];
-          result.filters.status.push(value);
           break;
         case 'tag':
         case 't':
@@ -181,17 +164,11 @@ export function syntaxToFilters(syntax: SearchSyntax): Partial<FilterState> {
     }
   }
 
-  // Set participants, categories, status, tags directly
+  // Set participants, tags directly
   // Guard against empty arrays — an empty array is truthy in JS but should not override
   // panel filters. Only apply syntax filters when they have actual values.
   if (syntax.filters.participant && syntax.filters.participant.length > 0) {
     filters.participants = syntax.filters.participant;
-  }
-  if (syntax.filters.category && syntax.filters.category.length > 0) {
-    filters.categories = syntax.filters.category;
-  }
-  if (syntax.filters.status && syntax.filters.status.length > 0) {
-    filters.status = syntax.filters.status;
   }
   if (syntax.filters.tag && syntax.filters.tag.length > 0) {
     filters.tags = syntax.filters.tag;
@@ -221,17 +198,11 @@ export function filtersToURLParams(filters: Partial<FilterState>): URLSearchPara
   if (filters.participants && filters.participants.length > 0) {
     params.set('participants', filters.participants.join(','));
   }
-  if (filters.categories && filters.categories.length > 0) {
-    params.set('categories', filters.categories.join(','));
-  }
   if (filters.durationMin !== undefined) {
     params.set('durMin', filters.durationMin.toString());
   }
   if (filters.durationMax !== undefined) {
     params.set('durMax', filters.durationMax.toString());
-  }
-  if (filters.status && filters.status.length > 0) {
-    params.set('status', filters.status.join(','));
   }
   if (filters.tags && filters.tags.length > 0) {
     params.set('tags', filters.tags.join(','));
@@ -255,10 +226,8 @@ export function urlParamsToFilters(params: URLSearchParams): Partial<FilterState
   const from = params.get('from');
   const to = params.get('to');
   const participants = params.get('participants');
-  const categories = params.get('categories');
   const durMin = params.get('durMin');
   const durMax = params.get('durMax');
-  const status = params.get('status');
   const tags = params.get('tags');
   const folders = params.get('folders');
   const sources = params.get('sources');
@@ -266,10 +235,8 @@ export function urlParamsToFilters(params: URLSearchParams): Partial<FilterState
   if (from) filters.dateFrom = new Date(from);
   if (to) filters.dateTo = new Date(to);
   if (participants) filters.participants = participants.split(',');
-  if (categories) filters.categories = categories.split(',');
   if (durMin) filters.durationMin = parseInt(durMin);
   if (durMax) filters.durationMax = parseInt(durMax);
-  if (status) filters.status = status.split(',');
   if (tags) filters.tags = tags.split(',');
   if (folders) filters.folders = folders.split(',');
   if (sources) filters.sources = sources.split(',');

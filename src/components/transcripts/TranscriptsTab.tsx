@@ -221,7 +221,7 @@ export function TranscriptsTab({
 
     const currentTab = newParams.get("tab");
 
-    ["from", "to", "participants", "categories", "durMin", "durMax", "status", "tags", "folders", "sources"].forEach(key => {
+    ["from", "to", "participants", "durMin", "durMax", "status", "tags", "folders", "sources"].forEach(key => {
       newParams.delete(key);
     });
 
@@ -291,7 +291,6 @@ export function TranscriptsTab({
     const mergedTags = Array.from(new Set([...(filters.tags ?? []), ...resolvedSyntaxTagIds]));
     const mergedFolders = Array.from(new Set([...(filters.folders ?? []), ...resolvedSyntaxFolderIds]));
     const mergedSources = Array.from(new Set([...(filters.sources ?? []), ...(syntaxFilters.sources ?? [])]));
-    const mergedStatus = Array.from(new Set([...(filters.status ?? []), ...(syntaxFilters.status ?? [])]));
 
     return {
       // Scalar filters: syntax overrides panel when present
@@ -307,9 +306,6 @@ export function TranscriptsTab({
       tags: mergedTags.length > 0 ? mergedTags : undefined,
       folders: mergedFolders.length > 0 ? mergedFolders : undefined,
       sources: mergedSources.length > 0 ? mergedSources : undefined,
-      status: mergedStatus.length > 0 ? mergedStatus : undefined,
-      // Keep categories passthrough
-      categories: Array.from(new Set([...(filters.categories ?? []), ...(syntaxFilters.categories ?? [])])),
     };
   }, [syntax, filters, tags, folders]);
 
@@ -474,6 +470,11 @@ export function TranscriptsTab({
               (byEmail || []).forEach((p: { recording_id: string }) => matchingRecordingIds.add(p.recording_id));
             }
 
+            // Participant search is org-scoped (not workspace-scoped) for simplicity.
+            // Results are intersected with workspace recordings downstream, so the
+            // final result set is correctly workspace-scoped. The broader org query
+            // avoids a complex join but may fetch extra rows for large orgs.
+
             // ILIKE on name OR email for each syntax search term
             if (hasNameFilter) {
               for (const term of combinedFilters.participantSearchTerms!) {
@@ -534,18 +535,6 @@ export function TranscriptsTab({
             }
             return true;
           });
-        }
-
-        // Status filter — synced = has synced_at; unsynced = synced_at is null
-        if (combinedFilters.status && combinedFilters.status.length > 0) {
-          const wantsSynced = combinedFilters.status.includes('synced');
-          const wantsUnsynced = combinedFilters.status.includes('unsynced');
-          if (wantsSynced && !wantsUnsynced) {
-            mappedRecordings = mappedRecordings.filter((call: any) => !!call.synced_at);
-          } else if (wantsUnsynced && !wantsSynced) {
-            mappedRecordings = mappedRecordings.filter((call: any) => !call.synced_at);
-          }
-          // if both selected, no filter needed
         }
 
         // Filter bar folder filter — handles named folders and "unorganized" (no folder assigned)
@@ -734,7 +723,7 @@ export function TranscriptsTab({
       // Note: filtering on full_transcript/summary without selecting them is valid in PostgREST
       if (syntax.plainText) {
         const escaped = escapeIlike(syntax.plainText);
-        q = q.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%,full_transcript.ilike.%${escaped}%`);
+        q = q.or(`title.ilike.%${escaped}%,summary.ilike.%${escaped}%`);
       }
       if (combinedFilters.dateFrom) {
         q = q.gte('created_at', combinedFilters.dateFrom.toISOString());
@@ -791,18 +780,6 @@ export function TranscriptsTab({
           }
           q = q.in('id', matchingIds);
         }
-      }
-
-      // Status filter — synced = has synced_at; unsynced = synced_at is null
-      if (combinedFilters.status && combinedFilters.status.length > 0) {
-        const wantsSynced = combinedFilters.status.includes('synced');
-        const wantsUnsynced = combinedFilters.status.includes('unsynced');
-        if (wantsSynced && !wantsUnsynced) {
-          q = q.not('synced_at', 'is', null);
-        } else if (wantsUnsynced && !wantsSynced) {
-          q = q.is('synced_at', null);
-        }
-        // if both are selected, no filter needed (all rows)
       }
 
       // Tag filter — AND logic: recordings must carry ALL selected tags

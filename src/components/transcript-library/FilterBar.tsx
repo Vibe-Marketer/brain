@@ -220,7 +220,7 @@ export function FilterBar({
 
       {/* Active filter pills */}
       {hasActiveFilters && (
-        <div className="flex flex-wrap gap-1.5 w-full">
+        <div className="flex flex-wrap gap-1.5 w-full max-h-[120px] overflow-y-auto">
           {filters.tags && filters.tags.length > 0 && (
             <FilterPill
               label="Tags"
