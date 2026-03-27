@@ -17,7 +17,7 @@ interface DestinationPickerProps {
   value: RoutingDestination | null;
   onChange: (dest: RoutingDestination) => void;
   /** The organization that owns the routing rule (current active org). */
-  currentOrgId: string;
+  orgId: string;
   disabled?: boolean;
   className?: string;
 }
@@ -33,13 +33,13 @@ const selectClass = cn(
 export function DestinationPicker({
   value,
   onChange,
-  currentOrgId,
+  orgId,
   disabled = false,
   className,
 }: DestinationPickerProps) {
   // Determine the effective target org (null = same as current org)
   const targetOrgId = value?.targetOrganizationId ?? null;
-  const effectiveOrgId = targetOrgId ?? currentOrgId;
+  const effectiveOrgId = targetOrgId ?? orgId;
 
   const { data: allOrgs = [], isLoading: orgsLoading } = useOrganizations();
   const { workspaces = [], isLoading: workspacesLoading } = useWorkspaces(effectiveOrgId);
@@ -60,8 +60,8 @@ export function DestinationPicker({
   const showOrgSelector = allOrgs.length > 1;
 
   function handleOrgChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const selectedOrgId = e.target.value || currentOrgId;
-    const isCrossOrg = selectedOrgId !== currentOrgId;
+    const selectedOrgId = e.target.value || orgId;
+    const isCrossOrg = selectedOrgId !== orgId;
 
     // Reset workspace/folder selection when org changes
     setSelectedWorkspaceId(null);

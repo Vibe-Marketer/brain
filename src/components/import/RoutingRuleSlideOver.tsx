@@ -235,7 +235,7 @@ export function RoutingRuleSlideOver() {
                     <DestinationPicker
                       value={form.destination}
                       onChange={(d) => setForm(p => ({ ...p, destination: d }))}
-                      currentOrgId={activeOrgId}
+                      orgId={activeOrgId}
                     />
                   </div>
 

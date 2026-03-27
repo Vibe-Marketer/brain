@@ -98,6 +98,8 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
       logic_operator: form.logicOperator,
       target_workspace_id: form.destination.workspaceId,
       target_folder_id: form.destination.folderId,
+      target_organization_id: form.destination.targetOrganizationId ?? null,
+      delete_after_copy: false,
       enabled: true,
     };
 
