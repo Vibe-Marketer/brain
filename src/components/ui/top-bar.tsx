@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { RiSearchLine, RiSettings3Line, RiLogoutBoxRLine } from '@remixicon/react';
-import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ThemeSwitcher } from '@/components/ThemeSwitcher';
@@ -104,8 +103,6 @@ export function TopBar({
         {searchEnabled && <Button variant="hollow" size="icon" onClick={handleSearchClick} className="text-muted-foreground" aria-label="Search (Cmd+K)" data-tour="topbar-search">
             <RiSearchLine className="w-4 h-4" />
           </Button>}
-
-        <NotificationBell />
 
         <ThemeSwitcher />
 

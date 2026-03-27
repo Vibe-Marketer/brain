@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RiEyeLine, RiEyeOffLine, RiExternalLinkLine } from "@remixicon/react";
 import { IntegrationManager } from "@/components/shared/IntegrationManager";
-import SourcePriorityModal from "./SourcePriorityModal";
 import { logger } from "@/lib/logger";
 import { getFathomOAuthUrl } from "@/lib/api-client";
 import { toast } from "sonner";
@@ -18,7 +17,6 @@ export default function IntegrationsTab() {
   const { integrations, refreshIntegrations } = useIntegrationSync();
 
   // Source Priority Modal state (shown when 2nd integration connected)
-  const [showSourcePriorityModal, setShowSourcePriorityModal] = useState(false);
 
   // Edit credentials state (Fathom-specific settings feature)
   const [showEditCredentials, setShowEditCredentials] = useState(false);
@@ -74,31 +72,6 @@ export default function IntegrationsTab() {
   // Handle integration change - check for source priority modal
   const handleIntegrationChange = async () => {
     await refreshIntegrations();
-    await checkSourcePriorityModal();
-  };
-
-  const checkSourcePriorityModal = async () => {
-    try {
-      const { user, error: authError } = await getSafeUser();
-      if (authError || !user) return;
-
-      const { data: settings } = await supabase
-        .from("user_settings")
-        .select("dedup_platform_order")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      // Count currently connected integrations
-      const connectedCount = connectedPlatforms.length;
-
-      // Show modal if 2+ integrations and no preferences set
-      const hasNoPreferences = !settings?.dedup_platform_order || settings.dedup_platform_order.length === 0;
-      if (connectedCount >= 2 && hasNoPreferences) {
-        setShowSourcePriorityModal(true);
-      }
-    } catch (error) {
-      logger.error("Error checking source priority", error);
-    }
   };
 
   const handleSaveCredentials = async () => {
@@ -304,15 +277,6 @@ export default function IntegrationsTab() {
         </>
       )}
 
-      {/* Source Priority Modal */}
-      {showSourcePriorityModal && (
-        <SourcePriorityModal
-          open={showSourcePriorityModal}
-          onComplete={() => setShowSourcePriorityModal(false)}
-          onDismiss={() => setShowSourcePriorityModal(false)}
-          connectedPlatforms={connectedPlatforms}
-        />
-      )}
     </div>
   );
 }
