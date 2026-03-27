@@ -1,93 +1,104 @@
 # CallVault™
 
-**Every Call Becomes a Conversion Asset.**
+A call recording intelligence platform that imports, transcribes, organizes, and analyzes calls from multiple sources — with AI-powered summaries, tagging, content generation, and team sharing built in.
 
-CallVault is an AI-powered Meeting Intelligence System that automatically transforms your meetings—sales, coaching, demos, support—into actionable marketing content, CRM intelligence, client health insights, and ready-to-use follow-ups.
+## What CallVault Does
 
-## What is CallVault?
+CallVault pulls in call recordings and transcripts from connected sources, processes them with AI, and gives your team a searchable, organized library with smart automation on top.
 
-CallVault automatically turns all your meetings into actionable assets. It ingests call transcripts from Fathom (and soon Zoom and other platforms), intelligently classifies meetings, extracts key insights using the **PROFITS framework**, and generates:
+### Import Sources
 
-- ✅ Personalized follow-up emails
-- ✅ Social media posts (LinkedIn, Facebook, X)
-- ✅ Blog outlines and case studies
-- ✅ Client health scores and engagement alerts
-- ✅ Searchable quote library with sentiment analysis
+- **Fathom** — OAuth connection with background sync and webhook support
+- **Zoom** — OAuth connection with background sync and webhook support (beta)
+- **YouTube** — Import any video by URL; transcript is fetched and stored
+- **File Upload** — Drop an audio or video file directly for transcription
 
-### The PROFITS Framework
+### Core Features
 
-Every meeting is analyzed to extract the most valuable insights:
+**Transcript Library**
+The main dashboard shows all imported calls in one place — searchable, filterable, and sortable.
 
-- **P**ain: What struggles were mentioned?
-- **R**esults: What outcomes do they want?
-- **O**bstacles: What's blocking progress?
-- **F**ears: What concerns are holding them back?
-- **I**dentity: How do they describe themselves?
-- **T**riggers: What motivated them to act?
-- **S**uccess: What wins were celebrated?
+**Call Detail View**
+Each call has a full detail page with:
+- AI-generated summary
+- Full transcript
+- Insights extraction
+- PROFITS Framework analysis (Pain, Results, Obstacles, Fears, Identity, Triggers, Success)
+- Action items
+- YouTube calls show thumbnail, video metadata (views, likes, duration), and description
 
-## Key Features
+**AI Processing** (Supabase Edge Functions)
+- `summarize-call` — Generates call summaries
+- `generate-ai-titles` — Creates descriptive titles from transcript content
+- `auto-tag-calls` — Automatically tags calls based on content
+- `generate-content` — Generates social posts, blog outlines, and other content from calls
+- `generate-meta-summary` — Produces meta-level summaries across calls
+- `manager-notes` — Generates manager-level notes from call content
+- `split-recording` — Splits long recordings into segments
 
-### 🎯 Smart Meeting Classification
+**Sorting & Tagging**
+Organize your library with manual and automated tagging. Routing rules let you auto-assign calls to workspaces or categories based on configurable conditions.
 
-Automatically detects meeting types (sales, coaching, demo, community, support) using AI and contextual cues.
+**Analytics**
+Call-level and aggregate analytics across your library.
 
-### 💡 Intelligent Extraction
+**Sharing**
+- Share individual calls via a public token-based link (`/s/:token`)
+- View calls shared with you in a dedicated "Shared With Me" section
+- Copy calls to other organizations
 
-Identifies and scores key quotes, pain points, goals, objections, and success stories from every conversation.
+**Global Search**
+Full-text search across all calls and transcripts.
 
-### 📧 Automated Follow-Ups
+**Organizations & Workspaces**
+Multi-organization support with invite flows, role-based access (admin/team/member), and workspace management.
 
-Generates context-aware, personalized follow-up emails ready to send after every meeting.
+**Billing**
+Subscription management via Polar.sh (checkout, customer state, webhook processing).
 
-### 📱 Content Generation
+**MCP Server**
+A Model Context Protocol server endpoint is available for AI tool integrations.
 
-Creates social media posts, blog outlines, testimonials, and marketing content in your brand voice.
-
-### 📊 Client Intelligence
-
-Tracks sentiment, engagement levels, and health scores to alert you about at-risk clients or testimonial opportunities.
-
-### 🔍 Searchable Library
-
-All transcripts, quotes, and insights are organized, tagged, and searchable in one centralized dashboard.
+---
 
 ## Technology Stack
 
-- **Frontend**: Vite, React 18, TypeScript, React Router v6
-- **UI Framework**: shadcn-ui (Radix UI + Tailwind CSS)
-- **State Management**: React Query (@tanstack/react-query), React Context
-- **Backend**: Supabase (PostgreSQL Database, Auth, Edge Functions)
-- **Runtime**: Deno (for Edge Functions)
-- **AI/LLM**: Vercel AI SDK (for intelligent processing)
-- **Icons**: Remix Icon
-- **Charts**: Recharts, Tremor React
+| Layer | Tech |
+|---|---|
+| Frontend | React 18, TypeScript, Vite |
+| UI | shadcn/ui (Radix UI + Tailwind CSS) |
+| State | React Query (@tanstack/react-query), React Context |
+| Backend | Supabase (PostgreSQL, Auth, Edge Functions) |
+| Edge Functions | Deno runtime |
+| AI | Vercel AI SDK |
+| Billing | Polar.sh |
+| Icons | Remix Icon (`@remixicon/react`) |
+| Deployment | Vercel |
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Supabase account (for backend services)
-- Fathom API access (for meeting ingestion)
+- Supabase project
+- Fathom API credentials (for Fathom sync)
+- Zoom OAuth app credentials (for Zoom sync, beta)
 
 ### Installation
 
 ```bash
-# Clone the repository
 git clone <YOUR_GIT_URL>
 cd brain
-
-# Install dependencies
 npm install
+```
 
-# Set up environment variables
-# Copy .env.example to .env and fill in your values:
-# - VITE_SUPABASE_URL
-# - VITE_SUPABASE_PUBLISHABLE_KEY
+Copy `.env.example` to `.env` and fill in your values.
 
-# Start the development server (runs on http://localhost:8080)
+```bash
 npm run dev
+# Runs on http://localhost:8080
 ```
 
 ### Environment Variables
@@ -107,34 +118,21 @@ SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 SUPABASE_DB_URL=your_postgresql_connection_string
 ```
 
+---
+
 ## Development
 
 ### Available Commands
 
 ```bash
-# Start development server
-npm run dev
-
-# Build for production
-npm run build
-
-# Build for development
-npm run build:dev
-
-# Lint code
-npm run lint
-
-# Type checking
-npm run type-check
-
-# Preview production build
-npm run preview
-
-# Run tests
-npx vitest
-
-# Run tests in watch mode
-npx vitest --watch
+npm run dev          # Start dev server
+npm run build        # Production build
+npm run build:dev    # Dev build
+npm run lint         # Lint
+npm run type-check   # TypeScript check
+npm run preview      # Preview production build
+npx vitest           # Run tests
+npx vitest --watch   # Tests in watch mode
 ```
 
 ### Project Structure
@@ -142,82 +140,74 @@ npx vitest --watch
 ```
 brain/
 ├── src/
-│   ├── pages/              # Route components (TranscriptsNew, Settings, Login)
-│   ├── components/         # Reusable React components
-│   │   └── ui/            # shadcn-ui components
-│   ├── hooks/             # Custom React hooks (useMeetingsSync, useCallAnalytics)
-│   ├── contexts/          # React Context providers (ThemeContext, AuthContext)
-│   ├── lib/               # Utilities (api-client, fathom, logger)
-│   └── integrations/      # Supabase client configuration
+│   ├── pages/              # Route-level components
+│   ├── components/         # Reusable UI components
+│   │   └── ui/             # shadcn-ui primitives
+│   ├── hooks/              # Custom React hooks
+│   ├── contexts/           # AuthContext, ThemeContext
+│   ├── services/           # Data access layer
+│   ├── stores/             # Zustand/panel stores
+│   ├── lib/                # Utilities, query config
+│   └── integrations/       # Supabase client
 ├── supabase/
-│   ├── functions/         # Deno Edge Functions
-│   │   ├── fetch-meetings/
-│   │   ├── sync-meetings/
-│   │   ├── webhook/
-│   │   └── ...
-│   └── migrations/        # SQL migration files
+│   ├── functions/          # Deno Edge Functions
+│   └── migrations/         # SQL migrations
 ├── docs/
-│   ├── design/            # Brand guidelines & design principles
-│   ├── architecture/      # API naming conventions, diagrams
-│   ├── adr/              # Architecture Decision Records
-│   └── reference/         # Reference documentation
-└── CLAUDE.md             # Development guide for AI assistants
+│   ├── design/             # Brand guidelines
+│   ├── architecture/       # API conventions, diagrams
+│   ├── adr/                # Architecture Decision Records
+│   └── reference/          # Reference docs
+└── CLAUDE.md               # Dev guide for AI assistants
 ```
+
+---
 
 ## Architecture
 
-### API Communication Flow
+### Data Flow
 
 ```
-Frontend → API Client (src/lib/api-client.ts) → Edge Function → Supabase Database
+Frontend → Supabase Edge Function → Supabase Database
 ```
-
-The centralized API client provides:
-
-- Automatic retry logic with exponential backoff
-- Consistent error handling
-- Type-safe responses via `ApiResponse<T>`
 
 ### Authentication
 
-- Supabase Auth with email/password or OAuth (Fathom)
-- `AuthContext` manages authentication state
-- `ProtectedRoute` guards authenticated routes
-- Session persistence via browser `localStorage`
+- Supabase Auth (email/password + OAuth for Fathom and Zoom)
+- `AuthContext` manages session state
+- `ProtectedRoute` guards all authenticated routes
+- Session persisted via `localStorage`
 
 ### State Management
 
-- **React Query** for server state (1min stale time, 5min garbage collection)
-- Custom hooks encapsulate query logic
-- React Context for global UI state (theme, auth)
+- **React Query** for server state (5min stale time, 10min GC)
+- React Context for global UI state (auth, theme, panels)
+- Custom hooks encapsulate all query/mutation logic
 
 ### Webhook Processing
 
-The `webhook/` Edge Function:
+Fathom and Zoom webhooks are handled by dedicated Edge Functions:
+- Signature verification for security
+- Idempotency via `processed_webhooks` table
+- Async processing (early return pattern)
+- Upsert with `onConflict: 'recording_id'`
 
-- Verifies signatures for security
-- Checks idempotency via `processed_webhooks` table
-- Processes asynchronously (returns early)
-- Uses upsert pattern with `onConflict: 'recording_id'`
+---
 
 ## Design System
 
-### Brand Guidelines
-
-**Before any UI work, read**: `docs/design/brand-guidelines-v4.1.md`
+Read `docs/design/brand-guidelines-v4.1.md` before any UI work.
 
 Key rules:
+- **Vibe Green (#D9FC67)**: Tab underlines, indicators, focus states, progress bars only
+- **Buttons**: 4 variants — default (slate gradient), hollow (bordered), destructive (red), link (text-only)
+- **Typography**: Montserrat Extra Bold ALL CAPS for headings; Inter for body
+- **Icons**: Remix Icon exclusively, `-line` variants preferred
+- **Layout**: No card containers — white background + thin borders
 
-- **Vibe Green (#D9FC67)**: Only for tab underlines, indicators, focus states, progress bars
-- **4 Button Variants**: default (slate gradient), hollow (bordered), destructive (red), link (text-only)
-- **Typography**: Montserrat Extra Bold ALL CAPS for headings, Inter for body text
-- **Icons**: Remix Icon exclusively (`@remixicon/react`), `-line` variants preferred
-- **Layout**: 90% rule - no card containers, use white background + thin borders
-
-### API Naming Conventions
+### Naming Conventions
 
 | Pattern | Convention | Example |
-|---------|------------|----------|
+|---|---|---|
 | Edge Functions | kebab-case | `fetch-meetings/` |
 | Frontend functions | camelCase | `fetchMeetings()` |
 | React hooks | use + camelCase | `useMeetingsSync()` |
@@ -225,69 +215,46 @@ Key rules:
 | Database fields | snake_case | `recording_id` |
 | Query keys | kebab-case arrays | `["call-analytics", id]` |
 
-## Code Quality
+---
 
-### Available Review Commands
+## Code Quality
 
 When working with Claude:
 
-- `/code-review` - Comprehensive code review before PRs
-- `/security-review` - Security-focused analysis
-- `/design-review` - UI/UX validation with Playwright
+- `/code-review` — Full review before PRs
+- `/security-review` — Security-focused analysis
+- `/design-review` — UI/UX validation with Playwright
 
-### Recommended Workflow
-
-1. After completing code → `/code-review`
+**Recommended workflow:**
+1. Complete code → `/code-review`
 2. Before PR → `/security-review`
 3. UI changes → `/design-review`
 
-## Documentation
-
-- **CLAUDE.md**: Comprehensive development guide for AI assistants
-- **docs/design/**: Brand guidelines and design principles
-- **docs/architecture/**: API naming conventions, architecture diagrams
-- **docs/adr/**: Architecture Decision Records
-- **docs/reference/**: Reference documentation including "What is CallVault"
+---
 
 ## Contributing
 
-### Before Starting
-
 1. Read `CLAUDE.md` for development standards
 2. Review `docs/design/brand-guidelines-v4.1.md` for UI work
-3. Check `docs/architecture/api-naming-conventions.md` for naming standards
+3. Check `docs/architecture/api-naming-conventions.md` for naming
 
-### Development Workflow
+**Workflow:**
+1. Branch from `main`
+2. Follow brand and naming conventions
+3. Write tests for new features
+4. Run quality checks before PR
+5. Update docs as needed
 
-1. Create feature branch from `main`
-2. Follow brand guidelines and naming conventions
-3. Write tests for new functionality
-4. Run code quality checks before PR
-5. Update documentation as needed
+For significant technical decisions, create an ADR in `docs/adr/` using the template at `docs/adr/adr-template.md`.
 
-### Architecture Decision Records
-
-For significant technical decisions:
-
-1. Copy `docs/adr/adr-template.md`
-2. Fill in Context, Decision, Consequences
-3. Save as `docs/adr/adr-XXX-short-title.md`
-4. Update `docs/adr/README.md`
+---
 
 ## Deployment
 
-This project can be deployed via:
+- **Vercel** (recommended) — Connect repo for automatic deployments with edge function support
+- **Custom** — `npm run build` → serve `dist/`
 
-- **Vercel** (Recommended): Connect your Git repository for automatic deployments with edge functions
-- **Netlify**: Connect your Git repository for automatic deployments
-- **Custom**: Build with `npm run build` and serve the `dist/` directory
-
-## Support
-
-For detailed development guidance:
-
-- Check `CLAUDE.md` for comprehensive development standards
-- Review documentation in `docs/` directory
+---
 
 ## License
 
