@@ -75,12 +75,12 @@ export function RoutingRulesTab() {
   }
 
   async function handleBulkDryRun() {
-    const result = await bulkApply.mutateAsync({ dryRun: true });
+    const result = await bulkApply.mutateAsync({ organizationId: activeOrgId ?? undefined, dryRun: true });
     setBulkDryRunResult({ matched: result.matched, matches: result.matches });
   }
 
   async function handleBulkApply() {
-    await bulkApply.mutateAsync({ dryRun: false });
+    await bulkApply.mutateAsync({ organizationId: activeOrgId ?? undefined, dryRun: false });
     setBulkDryRunResult(null);
   }
 

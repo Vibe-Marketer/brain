@@ -216,7 +216,7 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={() => bulkApply.mutate({ ruleIds: [ruleId!], dryRun: false })}
+                  onClick={() => bulkApply.mutate({ organizationId: activeOrgId ?? undefined, dryRun: false })}
                   disabled={bulkApply.isPending || isSaving}
                   className={cn(
                     'rounded-lg px-3 py-1.5 text-xs font-semibold',

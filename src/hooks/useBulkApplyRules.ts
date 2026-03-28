@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 interface BulkApplyOptions {
+  organizationId?: string;
   dryRun?: boolean;
   ruleIds?: string[];
   limit?: number;
@@ -40,7 +41,7 @@ export function useBulkApplyRules() {
 
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
       const res = await fetch(
-        `${supabaseUrl}/functions/v1/bulk-apply-routing-rules`,
+        `${supabaseUrl}/functions/v1/apply-routing-rules`,
         {
           method: 'POST',
           headers: {
@@ -49,9 +50,8 @@ export function useBulkApplyRules() {
             apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
           },
           body: JSON.stringify({
-            dryRun: opts.dryRun ?? false,
-            ruleIds: opts.ruleIds,
-            limit: opts.limit ?? 1000,
+            organization_id: opts.organizationId,
+            dry_run: opts.dryRun ?? false,
           }),
         }
       );
