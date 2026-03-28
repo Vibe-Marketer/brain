@@ -7,10 +7,8 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
 interface BulkApplyOptions {
-  organizationId?: string;
+  organizationId: string;
   dryRun?: boolean;
-  ruleIds?: string[];
-  limit?: number;
 }
 
 interface BulkApplyResult {
@@ -40,7 +38,11 @@ export function useBulkApplyRules() {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        // FunctionsHttpError contains the response body with the actual error message
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        throw new Error(message === 'non-2xx' ? 'Routing rules apply failed — check function logs' : message);
+      }
       if (data?.error) throw new Error(data.error);
 
       return data as BulkApplyResult;

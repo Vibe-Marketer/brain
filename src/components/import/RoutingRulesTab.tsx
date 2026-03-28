@@ -3,6 +3,7 @@
  */
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { RiRouteLine, RiFlashlightLine, RiLoader2Line } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { useRoutingRules, useRoutingDefault, useReorderRules, useToggleRule, useBulkApplyRules } from '@/hooks/useRoutingRules';
@@ -75,12 +76,14 @@ export function RoutingRulesTab() {
   }
 
   async function handleBulkDryRun() {
-    const result = await bulkApply.mutateAsync({ organizationId: activeOrgId ?? undefined, dryRun: true });
+    if (!activeOrgId) { toast.error('No organization selected'); return; }
+    const result = await bulkApply.mutateAsync({ organizationId: activeOrgId, dryRun: true });
     setBulkDryRunResult({ matched: result.matched, matches: result.matches });
   }
 
   async function handleBulkApply() {
-    await bulkApply.mutateAsync({ organizationId: activeOrgId ?? undefined, dryRun: false });
+    if (!activeOrgId) { toast.error('No organization selected'); return; }
+    await bulkApply.mutateAsync({ organizationId: activeOrgId, dryRun: false });
     setBulkDryRunResult(null);
   }
 
