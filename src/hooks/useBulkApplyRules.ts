@@ -33,39 +33,17 @@ interface BulkApplyResult {
 export function useBulkApplyRules() {
   return useMutation<BulkApplyResult, Error, BulkApplyOptions>({
     mutationFn: async (opts: BulkApplyOptions) => {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData?.session?.access_token;
-      if (!accessToken) {
-        throw new Error('Not authenticated — please sign in and try again.');
-      }
+      const { data, error } = await supabase.functions.invoke('apply-routing-rules', {
+        body: {
+          organization_id: opts.organizationId,
+          dry_run: opts.dryRun ?? false,
+        },
+      });
 
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-      const res = await fetch(
-        `${supabaseUrl}/functions/v1/apply-routing-rules`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${accessToken}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string,
-          },
-          body: JSON.stringify({
-            organization_id: opts.organizationId,
-            dry_run: opts.dryRun ?? false,
-          }),
-        }
-      );
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      const payload = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        const msg = (payload as Record<string, string>)?.error ?? (payload as Record<string, string>)?.message ?? `HTTP ${res.status}`;
-        throw new Error(msg);
-      }
-
-      if ((payload as Record<string, string>)?.error) throw new Error((payload as Record<string, string>).error);
-
-      return payload as BulkApplyResult;
+      return data as BulkApplyResult;
     },
     onSuccess: (result) => {
       if (result.dryRun) {
