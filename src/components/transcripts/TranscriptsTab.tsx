@@ -354,7 +354,7 @@ export function TranscriptsTab({
       //   1. PostgREST embedded-resource ordering (only sorts nested rows, not parent rows)
       //   2. .in() URL length limits (~8KB) that break for workspaces with 200+ recordings
       if (activeWorkspaceId) {
-        // Folder pre-filter: resolve recording UUIDs from folder assignments if needed
+        // Folder pre-filter: resolve recording UUIDs from both folder sources
         let folderRecordingIds: string[] | null = null;
         if (selectedFolderId) {
           const { data: childFolders } = await supabase
@@ -364,30 +364,42 @@ export function TranscriptsTab({
 
           const folderIds = [selectedFolderId, ...(childFolders || []).map((f) => f.id)];
 
+          // Source 1: workspace_entries with folder_id (set by routing rules)
+          const { data: wsEntries } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .eq('workspace_id', activeWorkspaceId)
+            .in('folder_id', folderIds);
+
+          // Source 2: folder_assignments (legacy manual assignments)
           const { data: folderAssigns } = await supabase
             .from('folder_assignments')
             .select('call_recording_id')
             .in('folder_id', folderIds);
 
-          if (!folderAssigns || folderAssigns.length === 0) {
+          // Merge recording IDs from both sources
+          const idsFromWsEntries = (wsEntries || []).map((e) => e.recording_id);
+          const legacyIds = (folderAssigns || []).map((a) => a.call_recording_id);
+
+          // Resolve legacy IDs to UUIDs
+          let idsFromLegacy: string[] = [];
+          if (legacyIds.length > 0) {
+            const { data: recs } = await supabase
+              .from('recordings')
+              .select('id')
+              .in('legacy_recording_id', legacyIds);
+            idsFromLegacy = (recs || []).map((r) => r.id);
+          }
+
+          // Combine and deduplicate
+          const allIds = new Set([...idsFromWsEntries, ...idsFromLegacy]);
+          if (allIds.size === 0) {
             setTotalCount(0);
             onTotalCountChange?.(0);
             return [];
           }
 
-          const legacyIds = folderAssigns.map((a) => a.call_recording_id);
-          const { data: recs } = await supabase
-            .from('recordings')
-            .select('id')
-            .in('legacy_recording_id', legacyIds);
-
-          if (!recs || recs.length === 0) {
-            setTotalCount(0);
-            onTotalCountChange?.(0);
-            return [];
-          }
-
-          folderRecordingIds = recs.map((r) => r.id);
+          folderRecordingIds = Array.from(allIds);
         }
 
         // Ensure dateTo is inclusive by extending to end of the selected day (23:59:59.999)
@@ -638,26 +650,37 @@ export function TranscriptsTab({
             .eq('folder_id', selectedFolderId);
           recIds = (personalAssigns || []).map((a: any) => a.recording_id);
         } else {
-          // Legacy folder
+          // Workspace folder — check both workspace_entries and folder_assignments
           const { data: childFolders } = await supabase
             .from('folders')
             .select('id')
             .eq('parent_id', selectedFolderId);
           const folderIds = [selectedFolderId, ...(childFolders || []).map((f) => f.id)];
 
+          // Source 1: workspace_entries with folder_id (set by routing rules)
+          const { data: wsEntries } = await supabase
+            .from('workspace_entries')
+            .select('recording_id')
+            .in('folder_id', folderIds);
+          const idsFromWsEntries = (wsEntries || []).map((e) => e.recording_id);
+
+          // Source 2: folder_assignments (legacy manual assignments)
           const { data: folderAssigns } = await supabase
             .from('folder_assignments')
             .select('call_recording_id')
             .in('folder_id', folderIds);
 
+          let idsFromLegacy: string[] = [];
           if (folderAssigns && folderAssigns.length > 0) {
             const legacyIds = folderAssigns.map((a) => a.call_recording_id);
             const { data: recs } = await supabase
               .from('recordings')
               .select('id')
               .in('legacy_recording_id', legacyIds);
-            recIds = (recs || []).map((r) => r.id);
+            idsFromLegacy = (recs || []).map((r) => r.id);
           }
+
+          recIds = Array.from(new Set([...idsFromWsEntries, ...idsFromLegacy]));
         }
 
         if (recIds.length === 0) {
