@@ -54,8 +54,8 @@ interface TranscriptsTabProps {
   onSearchChange?: (query: string) => void;
   selectedFolderId: string | null;
   onTotalCountChange?: (count: number) => void;
-  sidebarState: 'expanded' | 'collapsed';
-  onToggleSidebar: () => void;
+  sidebarState?: 'expanded' | 'collapsed';
+  onToggleSidebar?: () => void;
   folders: Folder[];
   folderAssignments: Record<string, string[]>;
   assignToFolder: (recordingIds: number[], folderId: string) => void;
@@ -309,15 +309,16 @@ export function TranscriptsTab({
     };
   }, [syntax, filters, tags, folders]);
 
-  // Reset page to 1 and totalCount whenever search/filter/workspace context changes
+  // Reset page to 1 whenever search/filter/workspace context changes.
+  // Do NOT eagerly reset totalCount here — the query's queryFn will set the
+  // correct totalCount once the new data arrives.  Resetting it to 0 before
+  // the query resolves causes a "Showing 1 to 0 of 0" flash while rows from
+  // placeholderData are still visible.
   const prevFilterRef = useRef<string>("");
   useEffect(() => {
     const key = JSON.stringify({ searchQuery, combinedFilters, activeOrganizationId, activeWorkspaceId, selectedFolderId });
     if (prevFilterRef.current && prevFilterRef.current !== key) {
       setPage(1);
-      // Reset totalCount so stale counts from previous workspace don't flash
-      setTotalCount(0);
-      onTotalCountChange?.(0);
     }
     prevFilterRef.current = key;
   }, [searchQuery, combinedFilters, activeOrganizationId, activeWorkspaceId, selectedFolderId]);

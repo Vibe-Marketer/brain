@@ -28,7 +28,7 @@ export const PaginationControls = React.memo(({
   className,
 }: PaginationControlsProps) => {
   const totalPages = Math.ceil(totalCount / pageSize);
-  const startRecord = ((page - 1) * pageSize) + 1;
+  const startRecord = totalCount > 0 ? ((page - 1) * pageSize) + 1 : 0;
   const endRecord = Math.min(page * pageSize, totalCount);
   
   const canGoPrevious = page > 1;

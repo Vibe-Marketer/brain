@@ -111,11 +111,13 @@ const TranscriptsNew = () => {
   }, [activeTab]);
 
   // Folder hooks
-  const { 
-    activeOrgId, 
-    activeWorkspaceId, 
-    activeFolderId, 
-    switchFolder 
+  const {
+    activeOrgId,
+    activeWorkspaceId,
+    activeWorkspace,
+    activeFolderId,
+    switchFolder,
+    switchWorkspace
   } = useOrganizationContext();
   const activeOrganizationId = activeOrgId; // alias for compatibility
   const { user } = useAuth();
@@ -214,18 +216,28 @@ const TranscriptsNew = () => {
 
   const breadcrumbs = useMemo(() => {
     const items: BreadcrumbItem[] = [{ label: "Home", onClick: () => {
+      switchWorkspace(null);
       switchFolder(null);
       handleTabChange("transcripts");
     }}];
-    
+
     if (activeTab === "sync") {
       items.push({ label: "Import" });
-    } else if (selectedFolder) {
-      items.push({ label: selectedFolder.name });
+    } else {
+      // Show workspace name in breadcrumb when a workspace is selected
+      if (activeWorkspace) {
+        items.push({
+          label: activeWorkspace.name,
+          onClick: selectedFolder ? () => switchFolder(null) : undefined,
+        });
+      }
+      if (selectedFolder) {
+        items.push({ label: selectedFolder.name });
+      }
     }
-    
+
     return items;
-  }, [activeTab, selectedFolder]);
+  }, [activeTab, activeWorkspace, selectedFolder, switchWorkspace, switchFolder]);
 
   return (
     <DndContext
@@ -243,7 +255,7 @@ const TranscriptsNew = () => {
       >
         <div className="flex flex-col h-full overflow-hidden">
           <PageHeader 
-            title={activeTab === "sync" ? "Import Meetings" : (selectedFolder?.name || "Home")}
+            title={activeTab === "sync" ? "Import Meetings" : (selectedFolder?.name || activeWorkspace?.name || "Home")}
             subtitle={currentConfig.subtitle}
             icon={currentConfig.icon}
             breadcrumbs={breadcrumbs}
