@@ -303,11 +303,7 @@ Deno.serve(async (req) => {
               .neq('workspace_id', match.target_workspace_id);
 
             if (deleteError) {
-              console.error(
-                `[apply-routing-rules] Failed to remove old workspace_entries for ${match.recording_id}:`,
-                deleteError,
-              );
-              // Non-fatal: recording may appear in both workspaces temporarily
+              throw new Error(`Failed to remove old workspace_entries for ${match.recording_id}: ${deleteError.message}`);
             }
 
             // Stamp routing trace into source_metadata
