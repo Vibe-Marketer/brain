@@ -120,7 +120,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 15-01-PLAN.md — DB migration (5->4 roles) + update all TypeScript types and role constants
+- [x] 15-01-PLAN.md — DB migration (5->4 roles) + update all TypeScript types and role constants
 - [ ] 15-02-PLAN.md — Fix invite flows, join page, member removal confirmation, role change verification
 - [ ] 15-03-PLAN.md — Advanced settings panel in Pane 4 with danger zone + workspace creation type selection
 
@@ -180,7 +180,7 @@ Plans:
 | 12. Import Flows + Source Details | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 14. Onboarding E2E | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 15. Members & Roles | v2.0 | 0/3 | Not started | - |
+| 15. Members & Roles | v2.0 | 1/3 | In Progress|  |
 | 16. Filters & Sort | v2.0 | 0/TBD | Not started | - |
 | 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |
 | 18. MCPs | v2.0 | 0/TBD | Not started | - |

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: verifying
-stopped_at: Completed 14-02-PLAN.md
-last_updated: "2026-03-30T22:31:51.849Z"
+status: executing
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-03-30T23:00:37.978Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
   completed_phases: 4
-  total_plans: 10
-  completed_plans: 10
+  total_plans: 13
+  completed_plans: 11
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 14 — onboarding-e2e
+**Current focus:** Phase 15 — members-roles
 
 ## Current Position
 
-Phase: 15
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 15 (members-roles) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
@@ -59,6 +59,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 13-drag-to-folder-global-search P01 | 4 | 1 tasks | 2 files |
 | Phase 14 P01 | 131s | 2 tasks | 4 files |
 | Phase 14-onboarding-e2e P02 | 532s | 1 tasks | 8 files |
+| Phase 15 P01 | 8m | 2 tasks | 7 files |
 
 ## Accumulated Context
 
@@ -99,6 +100,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 14-onboarding-e2e]: Ghost OS MCP tools unavailable in parallel executor — Playwright used instead for equivalent E2E verification
 - [Phase 14-onboarding-e2e]: user_profiles uses user_id FK column (not id) for Supabase auth linkage
 - [Phase 14-onboarding-e2e]: HowItWorksContent Step 2 has 6 sub-cards — navigation requires Next×5 + Got it
+- [Phase 15]: contributor replaces manager in 4-role workspace model; guest upgraded to member in migration
+- [Phase 15]: ChangeRoleDialog owner self-demotion guard hides radio group when target user is current user and role is workspace_owner
 
 ### Known Facts (from codebase audit)
 
@@ -125,6 +128,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T22:18:43.692Z
-Stopped at: Completed 14-02-PLAN.md
+Last session: 2026-03-30T23:00:37.974Z
+Stopped at: Completed 15-01-PLAN.md
 Resume file: None

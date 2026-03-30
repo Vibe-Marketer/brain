@@ -54,10 +54,10 @@
 
 ### Members & Roles
 
-- [ ] **MEMBER-01**: Owner has full control (manage members, delete workspace, manage all calls)
-- [ ] **MEMBER-02**: Admin has owner-equivalent permissions, added by owner
-- [ ] **MEMBER-03**: Contributor can route/add calls to workspace; calls permanently copied to owner's account
-- [ ] **MEMBER-04**: Member has read/organize access; on removal, owner decides call retention
+- [x] **MEMBER-01**: Owner has full control (manage members, delete workspace, manage all calls)
+- [x] **MEMBER-02**: Admin has owner-equivalent permissions, added by owner
+- [x] **MEMBER-03**: Contributor can route/add calls to workspace; calls permanently copied to owner's account
+- [x] **MEMBER-04**: Member has read/organize access; on removal, owner decides call retention
 - [ ] **MEMBER-05**: Owner/Admin can invite via email with role selection
 - [ ] **MEMBER-06**: Invite generates shareable link (token-based)
 - [ ] **MEMBER-07**: Invited user can join via email link (new or existing account)
@@ -174,10 +174,10 @@ Key facts for planning — code state as of 2026-03-30:
 | ONBOARD-01 | Phase 14 | Complete |
 | ONBOARD-02 | Phase 14 | Complete |
 | ONBOARD-03 | Phase 14 | Complete |
-| MEMBER-01 | Phase 15 | Pending |
-| MEMBER-02 | Phase 15 | Pending |
-| MEMBER-03 | Phase 15 | Pending |
-| MEMBER-04 | Phase 15 | Pending |
+| MEMBER-01 | Phase 15 | Complete |
+| MEMBER-02 | Phase 15 | Complete |
+| MEMBER-03 | Phase 15 | Complete |
+| MEMBER-04 | Phase 15 | Complete |
 | MEMBER-05 | Phase 15 | Pending |
 | MEMBER-06 | Phase 15 | Pending |
 | MEMBER-07 | Phase 15 | Pending |
