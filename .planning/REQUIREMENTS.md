@@ -8,9 +8,9 @@
 
 ### Onboarding
 
-- [ ] **ONBOARD-01**: New user can sign up (email, Google, or magic link) and land in onboarding wizard
-- [ ] **ONBOARD-02**: Onboarding wizard guides user to connect at least one call source (Fathom, Zoom, or YouTube)
-- [ ] **ONBOARD-03**: After onboarding, user lands in default workspace with correct 4-pane layout
+- [x] **ONBOARD-01**: New user can sign up (email, Google, or magic link) and land in onboarding wizard
+- [x] **ONBOARD-02**: Onboarding wizard guides user to connect at least one call source (Fathom, Zoom, or YouTube)
+- [x] **ONBOARD-03**: After onboarding, user lands in default workspace with correct 4-pane layout
 
 ### Imports
 
@@ -171,9 +171,9 @@ Key facts for planning — code state as of 2026-03-30:
 | DND-02 | Phase 13 | Complete |
 | SEARCH-01 | Phase 13 | Complete |
 | SEARCH-02 | Phase 13 | Complete |
-| ONBOARD-01 | Phase 14 | Pending |
-| ONBOARD-02 | Phase 14 | Pending |
-| ONBOARD-03 | Phase 14 | Pending |
+| ONBOARD-01 | Phase 14 | Complete |
+| ONBOARD-02 | Phase 14 | Complete |
+| ONBOARD-03 | Phase 14 | Complete |
 | MEMBER-01 | Phase 15 | Pending |
 | MEMBER-02 | Phase 15 | Pending |
 | MEMBER-03 | Phase 15 | Pending |

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: verifying
-stopped_at: Completed 13-01-PLAN.md
-last_updated: "2026-03-30T21:54:47.423Z"
+status: executing
+stopped_at: Completed 14-01-PLAN.md
+last_updated: "2026-03-30T22:07:32.961Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
   completed_phases: 3
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 10
+  completed_plans: 9
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 13 — drag-to-folder-global-search
+**Current focus:** Phase 14 — onboarding-e2e
 
 ## Current Position
 
-Phase: 14
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 14 (onboarding-e2e) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
@@ -57,6 +57,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 12-import-flows-source-details P01 | 8 | 2 tasks | 2 files |
 | Phase 13 P02 | 2m | 2 tasks | 2 files |
 | Phase 13-drag-to-folder-global-search P01 | 4 | 1 tasks | 2 files |
+| Phase 14 P01 | 131s | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 13]: GlobalSearchModal mounted inside <header> in TopBar — globally available without AppShell changes
 - [Phase 13-drag-to-folder-global-search]: 13-01: Drag ID string parsing — useDraggable IDs are recording-N strings; handleDragEnd now parses numeric IDs before passing to assignToFolder(number[])
 - [Phase 13-drag-to-folder-global-search]: 13-01: DragOverlay placed inside DndContext after dialog elements — follows existing pattern from DndCallProvider
+- [Phase 14]: ProtectedRoute is now a pure auth guard — Layout.tsx owns all onboarding concerns
+- [Phase 14]: Connect source buttons use window.open(_blank) so OnboardingModal stays mounted during OAuth flow
+- [Phase 14]: Post-onboarding navigation in Layout via handleOnboardingComplete wrapper calling navigate('/')
 
 ### Known Facts (from codebase audit)
 
@@ -117,6 +121,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T21:51:54.755Z
-Stopped at: Completed 13-01-PLAN.md
+Last session: 2026-03-30T22:07:32.957Z
+Stopped at: Completed 14-01-PLAN.md
 Resume file: None

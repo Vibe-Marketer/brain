@@ -104,7 +104,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — Fix ProtectedRoute auth-only guard, OnboardingModal connect buttons, and post-completion navigation
+- [x] 14-01-PLAN.md — Fix ProtectedRoute auth-only guard, OnboardingModal connect buttons, and post-completion navigation
 - [ ] 14-02-PLAN.md — Visual E2E verification of complete onboarding flow via dev-browser
 
 ### Phase 15: Members & Roles
@@ -177,7 +177,7 @@ Plans:
 | 11. Org Segregation + 4-Pane Foundation | v2.0 | 4/4 | Complete    | 2026-03-30 |
 | 12. Import Flows + Source Details | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 14. Onboarding E2E | v2.0 | 0/2 | Planned | - |
+| 14. Onboarding E2E | v2.0 | 1/2 | In Progress|  |
 | 15. Members & Roles | v2.0 | 0/TBD | Not started | - |
 | 16. Filters & Sort | v2.0 | 0/TBD | Not started | - |
 | 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |
