@@ -1,5 +1,8 @@
 import { useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useOrgContextStore } from '@/stores/orgContextStore'
+import { usePanelStore } from '@/stores/panelStore'
+import { useSearchStore } from '@/stores/searchStore'
 import { useOrganizations } from '@/hooks/useOrganizations'
 import { useWorkspaces } from '@/hooks/useWorkspaces'
 import { isPersonalOrg } from '@/services/organizations.service'
@@ -22,6 +25,8 @@ import type { Organization } from '@/types/workspace'
  * activeWorkspaceId to null (clean slate per org).
  */
 export function useOrgContext() {
+  const navigate = useNavigate()
+
   const {
     activeOrgId,
     activeWorkspaceId,
@@ -59,13 +64,29 @@ export function useOrgContext() {
 
   /**
    * Switch to a different organization.
-   * LOCKED: resets workspace selection to null (clean slate per org).
+   * D-11/D-12: Resets ALL transient UI state for a clean-slate experience:
+   * - org context (workspace, folder) via setActiveOrg
+   * - Pane 4 (detail panel) via panelStore.closePanel
+   * - Search query via searchStore.resetSearch
+   * - Filter/sort state is URL-based — cleared by navigating to '/'
+   * Redirects to Calls page after switching.
    */
   const switchOrg = useCallback(
     (orgId: string) => {
+      // 1. Reset org context (also resets workspace + folder — locked behavior)
       setActiveOrg(orgId)
+      // 2. Close Pane 4 (force close even if pinned during org switch)
+      const panelStore = usePanelStore.getState()
+      if (panelStore.isPinned) {
+        usePanelStore.setState({ isPinned: false })
+      }
+      panelStore.closePanel()
+      // 3. Reset search state
+      useSearchStore.getState().resetSearch()
+      // 4. Navigate to Calls page — URL-based filters/sort cleared by navigation
+      navigate('/')
     },
-    [setActiveOrg]
+    [setActiveOrg, navigate]
   )
 
   /** Switch to a different workspace, or null for "All Calls" (org-wide view). */
