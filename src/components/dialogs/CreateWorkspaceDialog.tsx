@@ -1,7 +1,8 @@
 /**
  * CreateWorkspaceDialog - Dialog for creating new workspaces
  *
- * Workspace type is always "team" — additional types are not yet available.
+ * Supports Personal and Team workspace types. Personal creates a private
+ * workspace; Team enables member collaboration on shared calls.
  *
  * @pattern dialog-form
  * @brand-version v4.2
@@ -45,6 +46,7 @@ export function CreateWorkspaceDialog({
   const [name, setName] = useState('')
   const [ttlDays, setTtlDays] = useState('7')
   const [selectedOrgId, setSelectedOrgId] = useState(orgId || '')
+  const [workspaceType, setWorkspaceType] = useState<'personal' | 'team'>('team')
 
   const { organizations, activeOrgId } = useOrganizationContext()
   const createWorkspace = useCreateWorkspace()
@@ -87,13 +89,14 @@ export function CreateWorkspaceDialog({
       {
         orgId: selectedOrgId,
         name: trimmedName,
-        workspaceType: 'team',
+        workspaceType,
         defaultShareLinkTtlDays: shareLinkTtl,
       },
       {
         onSuccess: (workspace) => {
           setName('')
           setTtlDays('7')
+          setWorkspaceType('team')
           onOpenChange(false)
           onWorkspaceCreated?.(workspace.id)
         },
@@ -130,6 +133,23 @@ export function CreateWorkspaceDialog({
         </DialogHeader>
 
         <div className="space-y-4 py-4">
+          {/* Workspace type */}
+          <div className="space-y-2">
+            <Label htmlFor="workspace-type">Workspace Type</Label>
+            <Select
+              value={workspaceType}
+              onValueChange={(v) => setWorkspaceType(v as 'personal' | 'team')}
+            >
+              <SelectTrigger id="workspace-type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="personal">Personal — A private workspace for your own calls</SelectItem>
+                <SelectItem value="team">Team — Collaborate with team members on shared calls</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Workspace name */}
           <div className="space-y-2">
             <Label htmlFor="workspace-name">Workspace Name</Label>
