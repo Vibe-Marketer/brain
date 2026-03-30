@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { queryKeys } from '@/lib/query-config';
 import { useAuth } from '@/contexts/AuthContext';
+import { useOrgContext } from '@/hooks/useOrgContext';
 import {
   getImportSources,
   getImportCounts,
@@ -35,29 +36,32 @@ export function useImportSources() {
 }
 
 /**
- * Fetches call counts per source_app for the authenticated user.
+ * Fetches call counts per source_app for the current org.
+ * Scoped to activeOrgId so counts only reflect calls in the active org (ORG-01).
  */
 export function useImportCounts() {
   const { user } = useAuth();
+  const { activeOrgId } = useOrgContext();
 
   return useQuery<Record<string, number>>({
-    queryKey: queryKeys.imports.counts(),
-    queryFn: getImportCounts,
-    enabled: !!user,
+    queryKey: [...queryKeys.imports.counts(), activeOrgId],
+    queryFn: () => getImportCounts(activeOrgId!),
+    enabled: !!user && !!activeOrgId,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
 
 /**
- * Fetches failed imports from sync_jobs.
+ * Fetches failed imports from sync_jobs, scoped to the active org.
  */
 export function useFailedImports() {
   const { user } = useAuth();
+  const { activeOrgId } = useOrgContext();
 
   return useQuery<FailedImport[]>({
-    queryKey: queryKeys.imports.failed(),
-    queryFn: getFailedImports,
-    enabled: !!user,
+    queryKey: [...queryKeys.imports.failed(), activeOrgId],
+    queryFn: () => getFailedImports(activeOrgId!),
+    enabled: !!user && !!activeOrgId,
     refetchInterval: 30_000,
   });
 }

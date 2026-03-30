@@ -6,6 +6,12 @@
  * source-specific information (e.g., YouTube stats, Zoom participants).
  *
  * List views should ONLY query the canonical recordings table.
+ *
+ * Org scoping: raw call tables (fathom_calls, zoom_raw_calls, etc.) do not have
+ * organization_id columns. Org isolation is enforced indirectly — callers must
+ * only pass recordingIds that were fetched from org-scoped recordings queries.
+ * getRawCallData is always called with a recording that was already verified to
+ * belong to the active org (via getRecordingById/getRecordingByLegacyId with org filter).
  */
 
 import { supabase } from '@/integrations/supabase/client'
