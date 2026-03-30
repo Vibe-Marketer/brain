@@ -1,8 +1,28 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RiBankCardLine, RiCalendarLine } from "@remixicon/react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  RiBankCardLine,
+  RiCalendarLine,
+  RiErrorWarningLine,
+} from "@remixicon/react";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { useSubscription, type SubscriptionTier } from "@/hooks/useSubscription";
+import { useAiUsage } from "@/hooks/useAiUsage";
 import { PlanCards } from "@/components/billing/PlanCards";
 import { UpgradeButton } from "@/components/billing/UpgradeButton";
 
@@ -100,9 +120,41 @@ export default function BillingTab() {
     isTrialing,
     isLoading: subscriptionLoading,
     error: subscriptionError,
+    refetch,
   } = useSubscription();
 
+  const {
+    used: aiUsed,
+    limit: aiLimit,
+    percentUsed: aiPercentUsed,
+    isLoading: aiUsageLoading,
+  } = useAiUsage();
+
+  const [isCanceling, setIsCanceling] = useState(false);
+
   const plan = getPlanDetails(tier);
+
+  async function handleCancelSubscription() {
+    setIsCanceling(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Not authenticated");
+
+      const { error } = await supabase.functions.invoke("polar-cancel", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+
+      if (error) throw new Error(error.message);
+
+      toast.success("Subscription canceled. You'll keep access until the end of your billing period.");
+      refetch();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to cancel subscription";
+      toast.error(message);
+    } finally {
+      setIsCanceling(false);
+    }
+  }
 
   return (
     <div>
@@ -184,6 +236,55 @@ export default function BillingTab() {
                 </div>
               )}
 
+              {/* Cancel subscription section */}
+              {isPaid && (
+                <div className="pl-16">
+                  {status === 'canceled' ? (
+                    <p className="text-sm text-muted-foreground">
+                      Your subscription has been canceled.
+                      {periodEnd && (
+                        <> Access continues until {formatDate(periodEnd)}.</>
+                      )}
+                    </p>
+                  ) : (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <button
+                          className="text-sm text-muted-foreground hover:text-destructive transition-colors cursor-pointer underline-offset-4 hover:underline"
+                          disabled={isCanceling}
+                        >
+                          {isCanceling ? "Canceling..." : "Cancel subscription"}
+                        </button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Cancel subscription?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            {periodEnd ? (
+                              <>
+                                You'll keep access until {formatDate(periodEnd)}. After that,
+                                you'll be downgraded to the Free plan.
+                              </>
+                            ) : (
+                              "You'll be downgraded to the Free plan at the end of your billing period."
+                            )}
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Keep subscription</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={handleCancelSubscription}
+                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          >
+                            Cancel subscription
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
+              )}
+
               {/* Plan Features */}
               <div className="pl-16">
                 <h4 className="text-sm font-medium text-muted-foreground mb-3">
@@ -205,6 +306,56 @@ export default function BillingTab() {
                   <UpgradeButton productId="pro-monthly" className="mt-2">
                     Upgrade to Pro
                   </UpgradeButton>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* AI Usage Section */}
+      <Separator className="my-16" />
+      <div className="grid grid-cols-1 gap-x-10 gap-y-8 lg:grid-cols-3">
+        <div>
+          <h2 className="font-semibold text-gray-900 dark:text-gray-50">
+            AI Usage
+          </h2>
+          <p className="mt-1 text-sm text-gray-500 dark:text-gray-500">
+            Monthly AI actions for your plan
+          </p>
+        </div>
+        <div className="lg:col-span-2">
+          {aiUsageLoading ? (
+            <div className="space-y-3">
+              <Skeleton className="h-2 w-full rounded-full" />
+              <Skeleton className="h-4 w-48" />
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* Usage progress bar */}
+              <div className="relative h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-primary transition-all duration-300 ease-out"
+                  style={{ width: `${aiPercentUsed}%` }}
+                />
+              </div>
+
+              {/* Usage count */}
+              <p className="text-sm text-muted-foreground tabular-nums">
+                {aiUsed.toLocaleString()} / {aiLimit.toLocaleString()} actions used this month
+              </p>
+
+              {/* Warning states */}
+              {aiPercentUsed >= 100 && (
+                <div className="flex items-center gap-2 text-sm text-red-600 dark:text-red-400">
+                  <RiErrorWarningLine className="h-4 w-4 shrink-0" />
+                  Monthly limit reached — AI features are paused
+                </div>
+              )}
+              {aiPercentUsed >= 90 && aiPercentUsed < 100 && (
+                <div className="flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                  <RiErrorWarningLine className="h-4 w-4 shrink-0" />
+                  You're approaching your monthly limit
                 </div>
               )}
             </div>
