@@ -136,7 +136,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 16-01-PLAN.md — Fix SourceFilterPopover consistency; integration tests for filter stacking and pill removal
+- [x] 16-01-PLAN.md — Fix SourceFilterPopover consistency; integration tests for filter stacking and pill removal
 - [ ] 16-02-PLAN.md — Sort column tests and fixes; restore status: inline search syntax operator
 
 ### Phase 17: Payments & Billing
@@ -182,7 +182,7 @@ Plans:
 | 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 14. Onboarding E2E | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
-| 16. Filters & Sort | v2.0 | 0/2 | Not started | - |
+| 16. Filters & Sort | v2.0 | 1/2 | In Progress|  |
 | 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |
 | 18. MCPs | v2.0 | 0/TBD | Not started | - |
 

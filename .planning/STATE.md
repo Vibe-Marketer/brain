@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: verifying
-stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-03-30T23:08:05.447Z"
+status: executing
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-03-30T23:29:51.261Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
   completed_phases: 5
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 15
+  completed_plans: 14
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 15 — members-roles
+**Current focus:** Phase 16 — filters-sort
 
 ## Current Position
 
-Phase: 16
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 16 (filters-sort) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
@@ -62,6 +62,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 15 P01 | 8m | 2 tasks | 7 files |
 | Phase 15 P03 | 93s | 2 tasks | 2 files |
 | Phase 15-members-roles P02 | 5 | 2 tasks | 2 files |
+| Phase 16-filters-sort P01 | 4m | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -109,6 +110,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 15]: Default workspace shows cannot-delete message rather than disabled delete button — clearer UX signal
 - [Phase 15-members-roles]: AlertDialog for removal: title 'Remove [name]?' + 'Their calls will remain in the workspace.' matches CONTEXT.md spec
 - [Phase 15-members-roles]: WorkspaceJoin redirect to /login for unauthenticated users deemed sufficient (login page has sign-up flow)
+- [Phase 16-filters-sort]: SourceFilterPopover staged Apply/Clear: controlled Popover + stagedSources state matching all other 5 popovers
+- [Phase 16-filters-sort]: Filter integration tests at pure data layer (no React rendering) — tests filter spread/removal logic directly
 
 ### Known Facts (from codebase audit)
 
@@ -135,6 +138,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T23:04:14.609Z
-Stopped at: Completed 15-02-PLAN.md
+Last session: 2026-03-30T23:29:51.257Z
+Stopped at: Completed 16-01-PLAN.md
 Resume file: None

@@ -69,9 +69,9 @@
 
 ### Filters & Sort
 
-- [ ] **FILTER-01**: All filter popovers correctly apply and clear state
-- [ ] **FILTER-02**: Multiple filters stack with AND logic
-- [ ] **FILTER-03**: Individual filter removal via pill without affecting others
+- [x] **FILTER-01**: All filter popovers correctly apply and clear state
+- [x] **FILTER-02**: Multiple filters stack with AND logic
+- [x] **FILTER-03**: Individual filter removal via pill without affecting others
 - [ ] **FILTER-04**: All sort columns work correctly in both directions with indicators
 - [ ] **FILTER-05**: Inline search syntax operators work (participant:, tag:, folder:, source:, duration:, date:, status:)
 
@@ -186,9 +186,9 @@ Key facts for planning — code state as of 2026-03-30:
 | MEMBER-10 | Phase 15 | Complete |
 | MEMBER-11 | Phase 15 | Complete |
 | MEMBER-12 | Phase 15 | Complete |
-| FILTER-01 | Phase 16 | Pending |
-| FILTER-02 | Phase 16 | Pending |
-| FILTER-03 | Phase 16 | Pending |
+| FILTER-01 | Phase 16 | Complete |
+| FILTER-02 | Phase 16 | Complete |
+| FILTER-03 | Phase 16 | Complete |
 | FILTER-04 | Phase 16 | Pending |
 | FILTER-05 | Phase 16 | Pending |
 | PAY-01 | Phase 17 | Pending |
