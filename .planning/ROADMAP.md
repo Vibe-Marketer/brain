@@ -117,10 +117,12 @@ Plans:
   3. Owner/Admin can generate a shareable invite link; anyone with the link can join as a Member (or specified role)
   4. Owner/Admin can remove a member; when removing a Member the system prompts for call retention decision
   5. Owner/Admin can change a member's role after invite; workspace deletion works for non-default workspaces; advanced settings panel in Pane 4 is functional; workspace creation with type selection works
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 15 to break down)
+- [ ] 15-01-PLAN.md — DB migration (5->4 roles) + update all TypeScript types and role constants
+- [ ] 15-02-PLAN.md — Fix invite flows, join page, member removal confirmation, role change verification
+- [ ] 15-03-PLAN.md — Advanced settings panel in Pane 4 with danger zone + workspace creation type selection
 
 ### Phase 16: Filters & Sort
 **Goal**: All filter popovers stack with AND logic, individual pills remove cleanly, all sort columns work in both directions, and inline search syntax operators return only org-scoped results
@@ -178,7 +180,7 @@ Plans:
 | 12. Import Flows + Source Details | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 14. Onboarding E2E | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 15. Members & Roles | v2.0 | 0/TBD | Not started | - |
+| 15. Members & Roles | v2.0 | 0/3 | Not started | - |
 | 16. Filters & Sort | v2.0 | 0/TBD | Not started | - |
 | 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |
 | 18. MCPs | v2.0 | 0/TBD | Not started | - |
@@ -191,3 +193,4 @@ Plans:
 *Updated: 2026-03-30 — Phase 12 planned: 2 plans in 1 wave (parallel)*
 *Updated: 2026-03-30 — Phase 13 planned: 2 plans in 1 wave (parallel)*
 *Updated: 2026-03-30 — Phase 14 planned: 2 plans in 2 waves*
+*Updated: 2026-03-30 — Phase 15 planned: 3 plans in 2 waves*
