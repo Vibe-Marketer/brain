@@ -7,24 +7,21 @@ import {
   RiUploadCloud2Line,
   RiDownloadCloud2Line,
 } from '@remixicon/react';
-import * as Dialog from '@radix-ui/react-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { AppShell } from '@/components/layout/AppShell';
 import { SourceCard } from '@/components/import/SourceCard';
 import type { SourceStatus } from '@/components/import/SourceCard';
-import { ImportSourceGrid } from '@/components/import/ImportSourceGrid';
 import { FileUploadDropzone } from '@/components/import/FileUploadDropzone';
 import { FailedImportsSection } from '@/components/import/FailedImportsSection';
 import { RoutingRulesTab } from '@/components/import/RoutingRulesTab';
 import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
-import { useImportSources, useImportCounts, useToggleSource, useDisconnectSource } from '@/hooks/useImportSources';
+import { ImportSourcePane } from '@/components/panes/ImportSourcePane';
+import type { ImportSourceId } from '@/components/panes/ImportSourcePane';
+import { ImportOverviewDashboard } from '@/components/import/ImportOverviewDashboard';
+import { useImportSources, useImportCounts, useToggleSource, useDisconnectSource, useFailedImports } from '@/hooks/useImportSources';
 import { upsertImportSource } from '@/services/import-sources.service';
 import type { ImportSource } from '@/services/import-sources.service';
-import { cn } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { useFeatureFlags } from '@/hooks/useFeatureFlags';
-import { useUserRole } from '@/hooks/useUserRole';
 
 // OAuth URL edge functions
 async function connectFathom() {
@@ -52,18 +49,12 @@ function deriveStatus(source: ImportSource | undefined): SourceStatus {
   return 'active';
 }
 
-type ActiveTab = 'sources' | 'rules';
-
 export default function ImportPage() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('sources');
-  const [youtubeDialogOpen, setYoutubeDialogOpen] = useState(false);
-
-  const { role } = useUserRole();
-  const { isFeatureEnabled } = useFeatureFlags(role);
-  const showZoom = isFeatureEnabled('beta_zoom');
+  const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(null);
 
   const { data: sources = [], isLoading: sourcesLoading } = useImportSources();
   const { data: counts = {} } = useImportCounts();
+  const { data: failedImports = [] } = useFailedImports();
   const toggleSource = useToggleSource();
   const disconnectSource = useDisconnectSource();
 
@@ -106,12 +97,9 @@ export default function ImportPage() {
     void handleOAuthReturn();
   }, []);
 
-  // YouTube Import is handled natively by YouTubeImportForm component
-
   async function handleFathomSync() {
     const toastId = toast.loading('Fetching recent meetings from Fathom...');
     try {
-      // 1. Fetch recent meetings (last 90 days to keep it fast)
       const createdAfter = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
       const { data: fetchRes, error: fetchErr } = await supabase.functions.invoke('fetch-meetings', {
         body: { createdAfter }
@@ -130,12 +118,11 @@ export default function ImportPage() {
 
       toast.loading(`Syncing ${unsyncedIds.length} missing meetings...`, { id: toastId });
 
-      // 2. Start the sync job
       const { data, error } = await supabase.functions.invoke('sync-meetings', {
         body: { recordingIds: unsyncedIds }
       });
       if (error) throw error;
-      
+
       const jobId = (data as { jobId?: string } | null)?.jobId;
       if (jobId) {
         toast.success(`Started sync job for ${unsyncedIds.length} meetings. Background processing in progress.`, { id: toastId });
@@ -150,9 +137,8 @@ export default function ImportPage() {
   async function handleZoomSync() {
     const toastId = toast.loading('Fetching meetings from Zoom...');
     try {
-      // 1. Fetch recent meetings
       const { data: fetchRes, error: fetchErr } = await supabase.functions.invoke('zoom-fetch-meetings', {
-        body: {} // Pass empty body to prevent JSON parse errors
+        body: {}
       });
       if (fetchErr) throw fetchErr;
 
@@ -168,12 +154,11 @@ export default function ImportPage() {
 
       toast.loading(`Syncing ${unsyncedIds.length} missing meetings...`, { id: toastId });
 
-      // 2. Start the sync job
       const { data, error } = await supabase.functions.invoke('zoom-sync-meetings', {
         body: { recordingIds: unsyncedIds }
       });
       if (error) throw error;
-      
+
       const jobId = (data as { jobId?: string } | null)?.jobId;
       if (jobId) {
         toast.success(`Started sync job for ${unsyncedIds.length} meetings. Background processing in progress.`, { id: toastId });
@@ -185,202 +170,179 @@ export default function ImportPage() {
     }
   }
 
-
   const fathomRow = sourceByApp['fathom'];
   const zoomRow = sourceByApp['zoom'];
-  const youtubeRow = sourceByApp['youtube'];
 
-  return (
-    <AppShell>
-      <div className="flex flex-col h-full overflow-hidden">
-        <PageHeader
-          title="Import"
-          subtitle="Connect meeting sources and upload recordings"
-          icon={RiDownloadCloud2Line}
+  // Pane 3 content based on selected source
+  function renderPane3() {
+    if (!selectedSource) {
+      return (
+        <ImportOverviewDashboard
+          sources={sources}
+          counts={counts}
+          failedImports={failedImports}
+          onSelectSource={(id) => setSelectedSource(id as ImportSourceId)}
         />
+      );
+    }
 
-        <div className="flex-1 overflow-y-auto px-6 py-4">
-          <Tabs
-            value={activeTab}
-            onValueChange={(v) => setActiveTab(v as ActiveTab)}
-            className="flex flex-col h-full"
-          >
-            <TabsList className="mb-6">
-              <TabsTrigger value="sources">Connected Sources</TabsTrigger>
-              <TabsTrigger value="rules">Routing Rules</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="sources" className="space-y-10 focus-visible:ring-0">
-              <section className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h2 className="text-sm font-semibold text-foreground">Import Connectors</h2>
-                    <p className="text-xs text-muted-foreground">Automatic background sync from third-party tools</p>
-                  </div>
-                </div>
-
-                {sourcesLoading ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className="h-36 rounded-xl border border-border/40 bg-muted/30 animate-pulse"
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <ImportSourceGrid>
-                    <SourceCard
-                      name="Fathom"
-                      sourceApp="fathom"
-                      icon={<RiCloudLine size={18} />}
-                      status={deriveStatus(fathomRow)}
-                      accountEmail={fathomRow?.account_email ?? undefined}
-                      lastSyncAt={fathomRow?.last_sync_at}
-                      callCount={counts['fathom'] ?? 0}
-                      isActive={fathomRow?.is_active ?? false}
-                      errorMessage={fathomRow?.error_message}
-                      onToggle={(active) => {
-                        if (fathomRow) {
-                          toggleSource.mutate({ sourceId: fathomRow.id, isActive: active });
-                        }
-                      }}
-                      onConnect={connectFathom}
-                      onSync={fathomRow ? handleFathomSync : undefined}
-                      onDisconnect={
-                        fathomRow
-                          ? () => disconnectSource.mutate(fathomRow.id)
-                          : undefined
-                      }
-                    />
-
-                    {showZoom && (
-                      <SourceCard
-                        name="Zoom"
-                        sourceApp="zoom"
-                        icon={<RiVideoLine size={18} />}
-                        status={deriveStatus(zoomRow)}
-                        accountEmail={zoomRow?.account_email ?? undefined}
-                        lastSyncAt={zoomRow?.last_sync_at}
-                        callCount={counts['zoom'] ?? 0}
-                        isActive={zoomRow?.is_active ?? false}
-                        errorMessage={zoomRow?.error_message}
-                        onToggle={(active) => {
-                          if (zoomRow) {
-                            toggleSource.mutate({ sourceId: zoomRow.id, isActive: active });
-                          }
-                        }}
-                        onConnect={connectZoom}
-                        onSync={zoomRow ? handleZoomSync : undefined}
-                        onDisconnect={
-                          zoomRow
-                            ? () => disconnectSource.mutate(zoomRow.id)
-                            : undefined
-                        }
-                      />
-                    )}
-
-                    <SourceCard
-                      name="YouTube"
-                      sourceApp="youtube"
-                      icon={<RiYoutubeLine size={18} />}
-                      status={deriveStatus(youtubeRow)}
-                      accountEmail={youtubeRow?.account_email ?? undefined}
-                      lastSyncAt={youtubeRow?.last_sync_at}
-                      callCount={counts['youtube'] ?? 0}
-                      isActive={youtubeRow?.is_active ?? true}
-                      errorMessage={youtubeRow?.error_message}
-                      onToggle={async (active) => {
-                        if (youtubeRow) {
-                          toggleSource.mutate({ sourceId: youtubeRow.id, isActive: active });
-                        } else {
-                          try {
-                            await upsertImportSource({ source_app: 'youtube' });
-                          } catch {
-                            toast.error('Failed to update YouTube setting');
-                          }
-                        }
-                      }}
-                      onSync={() => setYoutubeDialogOpen(true)}
-                    />
-
-
-                    <SourceCard
-                      name="File Upload"
-                      sourceApp="file-upload"
-                      icon={<RiUploadCloud2Line size={18} />}
-                      status="active"
-                      callCount={counts['file-upload'] ?? 0}
-                      isActive={true}
-                      alwaysAvailable={true}
-                    />
-                  </ImportSourceGrid>
-                )}
-              </section>
-
-              <section className="space-y-4">
-                <div>
-                  <h2 className="text-sm font-semibold text-foreground">Direct Upload</h2>
-                  <p className="text-xs text-muted-foreground">Import audio or video files directly for transcription</p>
-                </div>
-                <FileUploadDropzone />
-              </section>
-
-              <FailedImportsSection />
-            </TabsContent>
-
-            <TabsContent value="rules" className="pb-10 focus-visible:ring-0">
-              <RoutingRulesTab />
-            </TabsContent>
-          </Tabs>
+    if (selectedSource === 'fathom') {
+      return (
+        <div className="flex flex-col h-full overflow-y-auto">
+          <PageHeader
+            title="Fathom"
+            subtitle={fathomRow ? `Connected as ${fathomRow.account_email ?? 'unknown'}` : 'Not connected'}
+            icon={RiCloudLine}
+          />
+          <div className="px-6 py-4">
+            <SourceCard
+              name="Fathom"
+              sourceApp="fathom"
+              icon={<RiCloudLine size={18} />}
+              status={deriveStatus(fathomRow)}
+              accountEmail={fathomRow?.account_email ?? undefined}
+              lastSyncAt={fathomRow?.last_sync_at}
+              callCount={counts['fathom'] ?? 0}
+              isActive={fathomRow?.is_active ?? false}
+              errorMessage={fathomRow?.error_message}
+              onToggle={(active) => {
+                if (fathomRow) {
+                  toggleSource.mutate({ sourceId: fathomRow.id, isActive: active });
+                }
+              }}
+              onConnect={connectFathom}
+              onSync={fathomRow ? handleFathomSync : undefined}
+              onDisconnect={
+                fathomRow
+                  ? () => disconnectSource.mutate(fathomRow.id)
+                  : undefined
+              }
+            />
+          </div>
         </div>
-      </div>
+      );
+    }
 
-      <Dialog.Root open={youtubeDialogOpen} onOpenChange={setYoutubeDialogOpen}>
-        <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-in fade-in duration-200" />
-          <Dialog.Content
-            className={cn(
-              'fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50',
-              'w-full max-w-xl', // Increased width for the complex form
-              'bg-background border border-border rounded-xl shadow-2xl p-6',
-              'animate-in zoom-in-95 fade-in duration-200',
-              'focus:outline-none',
-            )}
-          >
-            <div className="flex items-center justify-between mb-2">
-              <Dialog.Title className="font-display font-extrabold text-lg uppercase tracking-wide text-foreground">
-                Import from YouTube
-              </Dialog.Title>
-              <Dialog.Close asChild>
-                <button
-                  type="button"
-                  className="rounded-full p-2 hover:bg-muted/60 transition-colors focus:outline-none text-muted-foreground"
-                  aria-label="Close"
-                >
-                  <span className="sr-only">Close</span>
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </Dialog.Close>
-            </div>
-            <Dialog.Description className="text-sm text-muted-foreground mb-6">
-              Paste a YouTube video URL to import and transcribe.
-            </Dialog.Description>
-            
+    if (selectedSource === 'zoom') {
+      return (
+        <div className="flex flex-col h-full overflow-y-auto">
+          <PageHeader
+            title="Zoom"
+            subtitle={zoomRow ? `Connected as ${zoomRow.account_email ?? 'unknown'}` : 'Not connected'}
+            icon={RiVideoLine}
+          />
+          <div className="px-6 py-4">
+            <SourceCard
+              name="Zoom"
+              sourceApp="zoom"
+              icon={<RiVideoLine size={18} />}
+              status={deriveStatus(zoomRow)}
+              accountEmail={zoomRow?.account_email ?? undefined}
+              lastSyncAt={zoomRow?.last_sync_at}
+              callCount={counts['zoom'] ?? 0}
+              isActive={zoomRow?.is_active ?? false}
+              errorMessage={zoomRow?.error_message}
+              onToggle={(active) => {
+                if (zoomRow) {
+                  toggleSource.mutate({ sourceId: zoomRow.id, isActive: active });
+                }
+              }}
+              onConnect={connectZoom}
+              onSync={zoomRow ? handleZoomSync : undefined}
+              onDisconnect={
+                zoomRow
+                  ? () => disconnectSource.mutate(zoomRow.id)
+                  : undefined
+              }
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedSource === 'youtube') {
+      return (
+        <div className="flex flex-col h-full overflow-y-auto">
+          <PageHeader
+            title="YouTube"
+            subtitle="Import calls from YouTube URLs"
+            icon={RiYoutubeLine}
+          />
+          <div className="px-6 py-4 max-w-xl">
             <YouTubeImportForm
-              onSuccess={(id, title) => {
+              onSuccess={(_id, title) => {
                 toast.success(`Imported "${title}" successfully from YouTube`);
-                setYoutubeDialogOpen(false);
               }}
               onError={(err) => {
                 toast.error(`Import failed: ${err}`);
               }}
             />
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedSource === 'file-upload') {
+      return (
+        <div className="flex flex-col h-full overflow-y-auto">
+          <PageHeader
+            title="File Upload"
+            subtitle="Import audio or video files directly for transcription"
+            icon={RiUploadCloud2Line}
+          />
+          <div className="px-6 py-4">
+            <FileUploadDropzone />
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedSource === 'routing-rules') {
+      return (
+        <div className="flex flex-col h-full overflow-y-auto">
+          <PageHeader
+            title="Routing Rules"
+            subtitle="Auto-tag and sort calls as they are imported"
+            icon={RiDownloadCloud2Line}
+          />
+          <div className="px-6 py-4">
+            <RoutingRulesTab />
+          </div>
+        </div>
+      );
+    }
+
+    if (selectedSource === 'import-history') {
+      return (
+        <div className="flex flex-col h-full overflow-y-auto">
+          <PageHeader
+            title="Import History"
+            subtitle="Review recent imports and failed jobs"
+            icon={RiDownloadCloud2Line}
+          />
+          <div className="px-6 py-4">
+            <FailedImportsSection />
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  }
+
+  return (
+    <AppShell
+      secondaryPane={
+        <ImportSourcePane
+          selectedSource={selectedSource}
+          onSelectSource={setSelectedSource}
+          sources={sources}
+          sourcesLoading={sourcesLoading}
+        />
+      }
+      secondaryPaneTitle="Import Sources"
+    >
+      {renderPane3()}
     </AppShell>
   );
 }
