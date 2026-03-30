@@ -53,10 +53,13 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
   3. Connected accounts (Fathom, Zoom) remain available after org switch; imported data belongs to the org it was imported into
   4. All major pages (Calls, Import, Members, Settings) follow the Sidebar→List→Workspace→Detail pane hierarchy with no overlapping or drawer-overlay patterns
   5. Complex items (call detail, setup wizards) open as modals; simple config/preview appears in Pane 4
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 11 to break down)
+- [ ] 11-01-PLAN.md — Org segregation: audit and enforce org_id on all service-layer queries
+- [ ] 11-02-PLAN.md — Org switch: full state reset, fade transition, redirect to Calls
+- [ ] 11-03-PLAN.md — Import page: convert to 4-pane layout with Pane 2 source navigation
+- [ ] 11-04-PLAN.md — 4-pane audit: CallDetailPage modal pattern, Analytics layout, modal vs Pane 4 rules
 
 ### Phase 12: Import Flows + Source Details
 **Goal**: All four import sources are selectable in Pane 2 and show their detail UI in Pane 3, with connect/disconnect and failed-import retry working; call detail views show source-specific metadata
@@ -168,7 +171,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1-10. Sort/Filter Hardening | v1.1 | - | Absorbed into v2.0 | - |
-| 11. Org Segregation + 4-Pane Foundation | v2.0 | 0/TBD | Not started | - |
+| 11. Org Segregation + 4-Pane Foundation | v2.0 | 0/4 | Planned | - |
 | 12. Import Flows + Source Details | v2.0 | 0/TBD | Not started | - |
 | 13. Drag-to-Folder + Global Search | v2.0 | 0/TBD | Not started | - |
 | 14. Onboarding E2E | v2.0 | 0/TBD | Not started | - |
@@ -181,3 +184,4 @@ Plans:
 *Roadmap created: 2026-03-15 — v1.1 Sort/Filter Hardening*
 *Updated: 2026-03-30 — v2.0 Launch Readiness phases 11-17 added*
 *Updated: 2026-03-30 — v2.0 regenerated for 44 requirements: Phase 12 absorbs DETAIL-01; Phase 13 added for DND + SEARCH; Phase 18 renumbers from 17; FILTER renumbered 01-05*
+*Updated: 2026-03-30 — Phase 11 planned: 4 plans in 2 waves*
