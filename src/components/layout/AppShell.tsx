@@ -19,6 +19,23 @@
  * @brand-version v4.1
  */
 
+/**
+ * ## Modal vs Pane 4 Rules (Phase 11 Decision)
+ *
+ * **Pane 4 (showDetailPane):** Quick config, single-action views
+ * - Workspace settings, folder detail/rename, tag management
+ * - Member role/info, import source config, quick call preview (title + summary)
+ *
+ * **Modal overlay:** Complex, multi-section, focused-attention views
+ * - Full call detail + transcript (CallDetailDialog)
+ * - Onboarding wizard, first-time source setup
+ * - Bulk import selection, advanced org settings
+ *
+ * **Rule of thumb:** If it has scrollable content with multiple sections
+ * or requires focused user attention, use a modal. If it's a quick glance
+ * or single-action config, use Pane 4.
+ */
+
 import * as React from 'react';
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';

@@ -896,6 +896,27 @@ export function TranscriptsTab({
     return calls.filter(c => c && c.recording_id != null);
   }, [calls]);
 
+  // Deep-link handler: open CallDetailDialog when ?callId=<id> is present in the URL.
+  // This supports the redirect pattern from CallDetailPage (/call/:id → /?callId=:id).
+  // Runs once after calls data is loaded and only if a callId param is present.
+  useEffect(() => {
+    const urlCallId = searchParams.get("callId");
+    if (!urlCallId || validCalls.length === 0 || detailCall) return;
+
+    // Match by legacy integer recording_id or canonical UUID
+    const match = validCalls.find(
+      c => String(c.recording_id) === urlCallId || c.canonical_uuid === urlCallId
+    );
+
+    if (match) {
+      setDetailCall(match);
+      // Remove callId from URL params to keep URL clean after modal opens
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("callId");
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [validCalls, searchParams, detailCall, setSearchParams]);
+
   // Map recording_id → uuid for quick lookup (needed because selectedCalls uses recording_id)
   const idToUuid = useMemo(() => {
     const map = new Map<string, string>();
