@@ -40,8 +40,8 @@
 
 ### Drag-to-Folder
 
-- [ ] **DND-01**: User can drag a call from the transcript table and drop it onto a folder in the sidebar to assign it
-- [ ] **DND-02**: Drop target folder highlights with visual feedback during drag to indicate valid drop zone
+- [x] **DND-01**: User can drag a call from the transcript table and drop it onto a folder in the sidebar to assign it
+- [x] **DND-02**: Drop target folder highlights with visual feedback during drag to indicate valid drop zone
 
 ### Call Details
 
@@ -167,8 +167,8 @@ Key facts for planning — code state as of 2026-03-30:
 | IMPORT-07 | Phase 12 | Complete |
 | IMPORT-08 | Phase 12 | Complete |
 | DETAIL-01 | Phase 12 | Complete |
-| DND-01 | Phase 13 | Pending |
-| DND-02 | Phase 13 | Pending |
+| DND-01 | Phase 13 | Complete |
+| DND-02 | Phase 13 | Complete |
 | SEARCH-01 | Phase 13 | Complete |
 | SEARCH-02 | Phase 13 | Complete |
 | ONBOARD-01 | Phase 14 | Pending |

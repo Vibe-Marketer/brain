@@ -32,7 +32,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 - [x] **Phase 11: Org Segregation + 4-Pane Foundation** — Lock all data to org_id; codify 4-pane layout rules across all pages (completed 2026-03-30)
 - [x] **Phase 12: Import Flows + Source Details** — Wire orphaned import detail components into Pane 2/3; show source-specific call metadata in detail view (completed 2026-03-30)
-- [ ] **Phase 13: Drag-to-Folder + Global Search** — Reconnect severed DnD and global search features (all code exists, wiring only)
+- [x] **Phase 13: Drag-to-Folder + Global Search** — Reconnect severed DnD and global search features (all code exists, wiring only) (completed 2026-03-30)
 - [ ] **Phase 14: Onboarding E2E** — Verify sign-up through first import works end-to-end; fix any gaps in the wizard flow
 - [ ] **Phase 15: Members & Roles** — Align to 4 roles; invite via email + link; remove members; workspace deletion; advanced settings
 - [ ] **Phase 16: Filters & Sort** — Fix filter stacking, sort columns, inline search syntax (carried from v1.1)
@@ -90,7 +90,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 13-01-PLAN.md — Wire drag-to-folder: make TranscriptTableRow draggable, add DragOverlay to TranscriptsNew
+- [x] 13-01-PLAN.md — Wire drag-to-folder: make TranscriptTableRow draggable, add DragOverlay to TranscriptsNew
 - [x] 13-02-PLAN.md — Rebuild GlobalSearchModal with Cmd+K shortcut and search button wiring
 
 ### Phase 14: Onboarding E2E
@@ -175,7 +175,7 @@ Plans:
 | 1-10. Sort/Filter Hardening | v1.1 | - | Absorbed into v2.0 | - |
 | 11. Org Segregation + 4-Pane Foundation | v2.0 | 4/4 | Complete    | 2026-03-30 |
 | 12. Import Flows + Source Details | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 13. Drag-to-Folder + Global Search | v2.0 | 1/2 | In Progress|  |
+| 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete   | 2026-03-30 |
 | 14. Onboarding E2E | v2.0 | 0/TBD | Not started | - |
 | 15. Members & Roles | v2.0 | 0/TBD | Not started | - |
 | 16. Filters & Sort | v2.0 | 0/TBD | Not started | - |

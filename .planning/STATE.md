@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: executing
-stopped_at: Completed 13-02-PLAN.md
-last_updated: "2026-03-30T21:51:07.295Z"
+status: verifying
+stopped_at: Completed 13-01-PLAN.md
+last_updated: "2026-03-30T21:51:54.759Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 8
-  completed_plans: 7
+  completed_plans: 8
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 13 (drag-to-folder-global-search) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
@@ -56,6 +56,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 12 P02 | 8 | 2 tasks | 4 files |
 | Phase 12-import-flows-source-details P01 | 8 | 2 tasks | 2 files |
 | Phase 13 P02 | 2m | 2 tasks | 2 files |
+| Phase 13-drag-to-folder-global-search P01 | 4 | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -88,6 +89,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 12-01]: YouTube deriveSourceStatus returns 'connected' unconditionally — no OAuth, always available
 - [Phase 13]: Cmd+K registered in GlobalSearchModal via useSearchShortcut, not in top-bar — modal owns its own shortcut
 - [Phase 13]: GlobalSearchModal mounted inside <header> in TopBar — globally available without AppShell changes
+- [Phase 13-drag-to-folder-global-search]: 13-01: Drag ID string parsing — useDraggable IDs are recording-N strings; handleDragEnd now parses numeric IDs before passing to assignToFolder(number[])
+- [Phase 13-drag-to-folder-global-search]: 13-01: DragOverlay placed inside DndContext after dialog elements — follows existing pattern from DndCallProvider
 
 ### Known Facts (from codebase audit)
 
@@ -114,6 +117,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T21:51:07.291Z
-Stopped at: Completed 13-02-PLAN.md
+Last session: 2026-03-30T21:51:54.755Z
+Stopped at: Completed 13-01-PLAN.md
 Resume file: None
