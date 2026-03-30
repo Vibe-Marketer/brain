@@ -1,27 +1,27 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import * as AlertDialog from '@radix-ui/react-alert-dialog';
 import {
-  RiCloudLine,
-  RiVideoLine,
   RiYoutubeLine,
   RiUploadCloud2Line,
   RiDownloadCloud2Line,
 } from '@remixicon/react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppShell } from '@/components/layout/AppShell';
-import { SourceCard } from '@/components/import/SourceCard';
-import type { SourceStatus } from '@/components/import/SourceCard';
 import { FileUploadDropzone } from '@/components/import/FileUploadDropzone';
 import { FailedImportsSection } from '@/components/import/FailedImportsSection';
 import { RoutingRulesTab } from '@/components/import/RoutingRulesTab';
 import { YouTubeImportForm } from '@/components/import/YouTubeImportForm';
+import { FathomImportDetail } from '@/components/import/FathomImportDetail';
+import { ZoomImportDetail } from '@/components/import/ZoomImportDetail';
 import { ImportSourcePane } from '@/components/panes/ImportSourcePane';
 import type { ImportSourceId } from '@/components/panes/ImportSourcePane';
 import { ImportOverviewDashboard } from '@/components/import/ImportOverviewDashboard';
-import { useImportSources, useImportCounts, useToggleSource, useDisconnectSource, useFailedImports } from '@/hooks/useImportSources';
+import { useImportSources, useImportCounts, useDisconnectSource, useFailedImports } from '@/hooks/useImportSources';
 import { upsertImportSource } from '@/services/import-sources.service';
 import type { ImportSource } from '@/services/import-sources.service';
 import { PageHeader } from '@/components/ui/page-header';
+import { Button } from '@/components/ui/button';
 
 // OAuth URL edge functions
 async function connectFathom() {
@@ -42,20 +42,13 @@ async function connectZoom() {
   window.location.href = data.authUrl as string;
 }
 
-function deriveStatus(source: ImportSource | undefined): SourceStatus {
-  if (!source) return 'disconnected';
-  if (source.error_message) return 'error';
-  if (!source.is_active) return 'paused';
-  return 'active';
-}
-
 export default function ImportPage() {
   const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(null);
+  const [disconnectTarget, setDisconnectTarget] = useState<ImportSource | null>(null);
 
   const { data: sources = [], isLoading: sourcesLoading } = useImportSources();
   const { data: counts = {} } = useImportCounts();
   const { data: failedImports = [] } = useFailedImports();
-  const toggleSource = useToggleSource();
   const disconnectSource = useDisconnectSource();
 
   const sourceByApp = Object.fromEntries(sources.map((s) => [s.source_app, s]));
@@ -97,79 +90,6 @@ export default function ImportPage() {
     void handleOAuthReturn();
   }, []);
 
-  async function handleFathomSync() {
-    const toastId = toast.loading('Fetching recent meetings from Fathom...');
-    try {
-      const createdAfter = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
-      const { data: fetchRes, error: fetchErr } = await supabase.functions.invoke('fetch-meetings', {
-        body: { createdAfter }
-      });
-      if (fetchErr) throw fetchErr;
-
-      const meetings = fetchRes?.meetings || [];
-      const unsyncedIds = meetings
-        .filter((m: { synced: boolean }) => !m.synced)
-        .map((m: { recording_id: number | string }) => String(m.recording_id));
-
-      if (unsyncedIds.length === 0) {
-        toast.success('All recent Fathom meetings are already synced.', { id: toastId });
-        return;
-      }
-
-      toast.loading(`Syncing ${unsyncedIds.length} missing meetings...`, { id: toastId });
-
-      const { data, error } = await supabase.functions.invoke('sync-meetings', {
-        body: { recordingIds: unsyncedIds }
-      });
-      if (error) throw error;
-
-      const jobId = (data as { jobId?: string } | null)?.jobId;
-      if (jobId) {
-        toast.success(`Started sync job for ${unsyncedIds.length} meetings. Background processing in progress.`, { id: toastId });
-      } else {
-        toast.success(`Fathom sync complete — ${unsyncedIds.length} new calls imported`, { id: toastId });
-      }
-    } catch (err) {
-      toast.error(`Sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`, { id: toastId });
-    }
-  }
-
-  async function handleZoomSync() {
-    const toastId = toast.loading('Fetching meetings from Zoom...');
-    try {
-      const { data: fetchRes, error: fetchErr } = await supabase.functions.invoke('zoom-fetch-meetings', {
-        body: {}
-      });
-      if (fetchErr) throw fetchErr;
-
-      const meetings = fetchRes?.meetings || [];
-      const unsyncedIds = meetings
-        .filter((m: { synced: boolean }) => !m.synced)
-        .map((m: { recording_id: string }) => m.recording_id);
-
-      if (unsyncedIds.length === 0) {
-        toast.success('All recent Zoom meetings are already synced.', { id: toastId });
-        return;
-      }
-
-      toast.loading(`Syncing ${unsyncedIds.length} missing meetings...`, { id: toastId });
-
-      const { data, error } = await supabase.functions.invoke('zoom-sync-meetings', {
-        body: { recordingIds: unsyncedIds }
-      });
-      if (error) throw error;
-
-      const jobId = (data as { jobId?: string } | null)?.jobId;
-      if (jobId) {
-        toast.success(`Started sync job for ${unsyncedIds.length} meetings. Background processing in progress.`, { id: toastId });
-      } else {
-        toast.success(`Zoom sync complete — ${unsyncedIds.length} new calls imported`, { id: toastId });
-      }
-    } catch (err) {
-      toast.error(`Sync failed: ${err instanceof Error ? err.message : 'Unknown error'}`, { id: toastId });
-    }
-  }
-
   const fathomRow = sourceByApp['fathom'];
   const zoomRow = sourceByApp['zoom'];
 
@@ -188,75 +108,23 @@ export default function ImportPage() {
 
     if (selectedSource === 'fathom') {
       return (
-        <div className="flex flex-col h-full overflow-y-auto">
-          <PageHeader
-            title="Fathom"
-            subtitle={fathomRow ? `Connected as ${fathomRow.account_email ?? 'unknown'}` : 'Not connected'}
-            icon={RiCloudLine}
-          />
-          <div className="px-6 py-4">
-            <SourceCard
-              name="Fathom"
-              sourceApp="fathom"
-              icon={<RiCloudLine size={18} />}
-              status={deriveStatus(fathomRow)}
-              accountEmail={fathomRow?.account_email ?? undefined}
-              lastSyncAt={fathomRow?.last_sync_at}
-              callCount={counts['fathom'] ?? 0}
-              isActive={fathomRow?.is_active ?? false}
-              errorMessage={fathomRow?.error_message}
-              onToggle={(active) => {
-                if (fathomRow) {
-                  toggleSource.mutate({ sourceId: fathomRow.id, isActive: active });
-                }
-              }}
-              onConnect={connectFathom}
-              onSync={fathomRow ? handleFathomSync : undefined}
-              onDisconnect={
-                fathomRow
-                  ? () => disconnectSource.mutate(fathomRow.id)
-                  : undefined
-              }
-            />
-          </div>
-        </div>
+        <FathomImportDetail
+          isConnected={!!(fathomRow && fathomRow.is_active)}
+          accountEmail={fathomRow?.account_email ?? undefined}
+          onConnect={connectFathom}
+          onDisconnect={fathomRow ? () => setDisconnectTarget(fathomRow) : undefined}
+        />
       );
     }
 
     if (selectedSource === 'zoom') {
       return (
-        <div className="flex flex-col h-full overflow-y-auto">
-          <PageHeader
-            title="Zoom"
-            subtitle={zoomRow ? `Connected as ${zoomRow.account_email ?? 'unknown'}` : 'Not connected'}
-            icon={RiVideoLine}
-          />
-          <div className="px-6 py-4">
-            <SourceCard
-              name="Zoom"
-              sourceApp="zoom"
-              icon={<RiVideoLine size={18} />}
-              status={deriveStatus(zoomRow)}
-              accountEmail={zoomRow?.account_email ?? undefined}
-              lastSyncAt={zoomRow?.last_sync_at}
-              callCount={counts['zoom'] ?? 0}
-              isActive={zoomRow?.is_active ?? false}
-              errorMessage={zoomRow?.error_message}
-              onToggle={(active) => {
-                if (zoomRow) {
-                  toggleSource.mutate({ sourceId: zoomRow.id, isActive: active });
-                }
-              }}
-              onConnect={connectZoom}
-              onSync={zoomRow ? handleZoomSync : undefined}
-              onDisconnect={
-                zoomRow
-                  ? () => disconnectSource.mutate(zoomRow.id)
-                  : undefined
-              }
-            />
-          </div>
-        </div>
+        <ZoomImportDetail
+          isConnected={!!(zoomRow && zoomRow.is_active)}
+          accountEmail={zoomRow?.account_email ?? undefined}
+          onConnect={connectZoom}
+          onDisconnect={zoomRow ? () => setDisconnectTarget(zoomRow) : undefined}
+        />
       );
     }
 
@@ -331,18 +199,49 @@ export default function ImportPage() {
   }
 
   return (
-    <AppShell
-      secondaryPane={
-        <ImportSourcePane
-          selectedSource={selectedSource}
-          onSelectSource={setSelectedSource}
-          sources={sources}
-          sourcesLoading={sourcesLoading}
-        />
-      }
-      secondaryPaneTitle="Import Sources"
-    >
-      {renderPane3()}
-    </AppShell>
+    <>
+      <AppShell
+        secondaryPane={
+          <ImportSourcePane
+            selectedSource={selectedSource}
+            onSelectSource={setSelectedSource}
+            sources={sources}
+            sourcesLoading={sourcesLoading}
+          />
+        }
+        secondaryPaneTitle="Import Sources"
+      >
+        {renderPane3()}
+      </AppShell>
+
+      <AlertDialog.Root open={!!disconnectTarget} onOpenChange={(open) => !open && setDisconnectTarget(null)}>
+        <AlertDialog.Portal>
+          <AlertDialog.Overlay className="fixed inset-0 bg-black/50 z-50" />
+          <AlertDialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md rounded-xl bg-card p-6 shadow-lg border border-border">
+            <AlertDialog.Title className="text-lg font-semibold text-foreground">
+              Disconnect {disconnectTarget?.source_app === 'fathom' ? 'Fathom' : 'Zoom'}?
+            </AlertDialog.Title>
+            <AlertDialog.Description className="text-sm text-muted-foreground mt-2">
+              Your imported calls will remain in CallVault. You can reconnect at any time.
+            </AlertDialog.Description>
+            <div className="flex justify-end gap-3 mt-6">
+              <AlertDialog.Cancel asChild>
+                <Button variant="hollow">Cancel</Button>
+              </AlertDialog.Cancel>
+              <AlertDialog.Action asChild>
+                <Button variant="destructive" onClick={() => {
+                  if (disconnectTarget) {
+                    disconnectSource.mutate(disconnectTarget.id);
+                    setDisconnectTarget(null);
+                  }
+                }}>
+                  Disconnect
+                </Button>
+              </AlertDialog.Action>
+            </div>
+          </AlertDialog.Content>
+        </AlertDialog.Portal>
+      </AlertDialog.Root>
+    </>
   );
 }
