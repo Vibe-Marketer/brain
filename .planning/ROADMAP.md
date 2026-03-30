@@ -91,7 +91,7 @@ Plans:
 
 Plans:
 - [ ] 13-01-PLAN.md — Wire drag-to-folder: make TranscriptTableRow draggable, add DragOverlay to TranscriptsNew
-- [ ] 13-02-PLAN.md — Rebuild GlobalSearchModal with Cmd+K shortcut and search button wiring
+- [x] 13-02-PLAN.md — Rebuild GlobalSearchModal with Cmd+K shortcut and search button wiring
 
 ### Phase 14: Onboarding E2E
 **Goal**: A brand-new user can sign up, complete the onboarding wizard, connect at least one call source, and land in a correctly-rendered default workspace — entirely without assistance
@@ -175,7 +175,7 @@ Plans:
 | 1-10. Sort/Filter Hardening | v1.1 | - | Absorbed into v2.0 | - |
 | 11. Org Segregation + 4-Pane Foundation | v2.0 | 4/4 | Complete    | 2026-03-30 |
 | 12. Import Flows + Source Details | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 13. Drag-to-Folder + Global Search | v2.0 | 0/2 | Planned | - |
+| 13. Drag-to-Folder + Global Search | v2.0 | 1/2 | In Progress|  |
 | 14. Onboarding E2E | v2.0 | 0/TBD | Not started | - |
 | 15. Members & Roles | v2.0 | 0/TBD | Not started | - |
 | 16. Filters & Sort | v2.0 | 0/TBD | Not started | - |

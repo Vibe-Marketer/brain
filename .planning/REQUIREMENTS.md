@@ -49,8 +49,8 @@
 
 ### Global Search
 
-- [ ] **SEARCH-01**: Global search modal opens via keyboard shortcut (Cmd+K) and/or nav trigger — UI must be rebuilt (deleted in commit 2ae0e175)
-- [ ] **SEARCH-02**: Global search modal returns only current-org results with debounced search across titles, transcripts, and summaries
+- [x] **SEARCH-01**: Global search modal opens via keyboard shortcut (Cmd+K) and/or nav trigger — UI must be rebuilt (deleted in commit 2ae0e175)
+- [x] **SEARCH-02**: Global search modal returns only current-org results with debounced search across titles, transcripts, and summaries
 
 ### Members & Roles
 
@@ -169,8 +169,8 @@ Key facts for planning — code state as of 2026-03-30:
 | DETAIL-01 | Phase 12 | Complete |
 | DND-01 | Phase 13 | Pending |
 | DND-02 | Phase 13 | Pending |
-| SEARCH-01 | Phase 13 | Pending |
-| SEARCH-02 | Phase 13 | Pending |
+| SEARCH-01 | Phase 13 | Complete |
+| SEARCH-02 | Phase 13 | Complete |
 | ONBOARD-01 | Phase 14 | Pending |
 | ONBOARD-02 | Phase 14 | Pending |
 | ONBOARD-03 | Phase 14 | Pending |

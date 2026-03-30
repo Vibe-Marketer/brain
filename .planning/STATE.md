@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: verifying
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-03-30T21:38:22.558Z"
+status: executing
+stopped_at: Completed 13-02-PLAN.md
+last_updated: "2026-03-30T21:51:07.295Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
   completed_phases: 2
-  total_plans: 6
-  completed_plans: 6
+  total_plans: 8
+  completed_plans: 7
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 12 — import-flows-source-details
+**Current focus:** Phase 13 — drag-to-folder-global-search
 
 ## Current Position
 
-Phase: 13
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 13 (drag-to-folder-global-search) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 11 P04 | 22s | 1 tasks | 3 files |
 | Phase 12 P02 | 8 | 2 tasks | 4 files |
 | Phase 12-import-flows-source-details P01 | 8 | 2 tasks | 2 files |
+| Phase 13 P02 | 2m | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -85,6 +86,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 12-01]: FathomImportDetail/ZoomImportDetail own their connected/disconnected UI states — ImportPage passes isConnected+onConnect+onDisconnect props only
 - [Phase 12-01]: Disconnect flows through AlertDialog confirmation before mutating — one dialog at ImportPage root level serves both Fathom and Zoom
 - [Phase 12-01]: YouTube deriveSourceStatus returns 'connected' unconditionally — no OAuth, always available
+- [Phase 13]: Cmd+K registered in GlobalSearchModal via useSearchShortcut, not in top-bar — modal owns its own shortcut
+- [Phase 13]: GlobalSearchModal mounted inside <header> in TopBar — globally available without AppShell changes
 
 ### Known Facts (from codebase audit)
 
@@ -111,6 +114,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T21:34:58.849Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-03-30T21:51:07.291Z
+Stopped at: Completed 13-02-PLAN.md
 Resume file: None
