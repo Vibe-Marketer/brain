@@ -38,6 +38,20 @@
 - [ ] **ORG-04**: User can switch between organizations they belong to
 - [ ] **ORG-05**: Connected accounts shared across orgs; imported data is org-scoped
 
+### Drag-to-Folder
+
+- [ ] **DND-01**: User can drag a call from the transcript table and drop it onto a folder in the sidebar to assign it
+- [ ] **DND-02**: Drop target folder highlights with visual feedback during drag to indicate valid drop zone
+
+### Call Details
+
+- [ ] **DETAIL-01**: Call detail view shows source-specific metadata (Zoom: meeting ID + participants; Fathom: call data; YouTube: video stats; Upload: file info)
+
+### Global Search
+
+- [ ] **SEARCH-01**: Global search modal opens via keyboard shortcut (Cmd+K) and/or nav trigger — UI must be rebuilt (deleted in commit 2ae0e175)
+- [ ] **SEARCH-02**: Global search modal returns only current-org results with debounced search across titles, transcripts, and summaries
+
 ### Members & Roles
 
 - [ ] **MEMBER-01**: Owner has full control (manage members, delete workspace, manage all calls)
@@ -53,14 +67,13 @@
 - [ ] **MEMBER-11**: Advanced settings panel in Pane 4 is functional
 - [ ] **MEMBER-12**: Workspace creation with type selection works
 
-### Filters, Sort & Search
+### Filters & Sort
 
 - [ ] **FILTER-01**: All filter popovers correctly apply and clear state
 - [ ] **FILTER-02**: Multiple filters stack with AND logic
 - [ ] **FILTER-03**: Individual filter removal via pill without affecting others
 - [ ] **FILTER-04**: All sort columns work correctly in both directions with indicators
-- [ ] **FILTER-05**: Search bar and global search modal return org-scoped results
-- [ ] **FILTER-06**: Inline search syntax operators work (participant:, tag:, folder:, source:, duration:, date:, status:)
+- [ ] **FILTER-05**: Inline search syntax operators work (participant:, tag:, folder:, source:, duration:, date:, status:)
 
 ### Payments & Billing
 
@@ -89,6 +102,16 @@
 - **CHAT-04**: Chat uses AI credits from user's tier allowance
 - **CHAT-05**: User can add/remove transcripts from active chat
 
+### YouTube Workspace UI
+
+- **YT-01**: YouTube workspace type renders YouTubeVideoList instead of TranscriptTable
+- **YT-02**: YouTube video detail modal fully functional (chat section removed, needs TODO resolution)
+
+### Notifications
+
+- **NOTIF-01**: Notification bell in app header with unread count badge
+- **NOTIF-02**: Notification panel with list, mark-as-read, and delete actions
+
 ### Ideas
 
 - **IDEA-01**: Import from other users as a source (like Fathom/Zoom import but for shared calls)
@@ -106,14 +129,35 @@
 | Payment history / invoices UI | Handled by Polar dashboard |
 | Refund handling | Handled by Polar dashboard |
 | Workspace types beyond personal/team | Schema exists, defer UI |
+| YouTube workspace type UI | Post-launch (components 90% built, need integration point) |
+| Notification bell + panel | Post-launch (hook + backend complete, UI deleted) |
+
+## Implementation Context (from whats-next.md audit)
+
+Key facts for planning — code state as of 2026-03-30:
+
+| Feature | Existing Code | What's Needed |
+|---------|--------------|---------------|
+| Drag-to-Folder | DndCallProvider.tsx, FolderDropZone.tsx, useFolderAssignment.ts — ALL complete | 4 wiring points: wrap TranscriptTable, DraggableCallRow, FolderSidebar items |
+| Fathom Import Detail | FathomImportDetail.tsx (265+ lines) — complete but orphaned | Wire into Pane 3 when Fathom selected in Pane 2 |
+| Zoom Import Detail | ZoomImportDetail.tsx (280+ lines) — complete but orphaned | Wire into Pane 3 when Zoom selected in Pane 2; remove beta_zoom flag |
+| Global Search Modal | useGlobalSearch.ts hook — complete | Rebuild modal UI (~200 lines) + Cmd+K shortcut; hook handles all data |
+| Raw Call Details | raw-calls.service.ts — full per-source dispatcher | Build UI section in call detail view; per-source rendering (Zoom/Fathom/YouTube/Upload) |
+| Commit 2ae0e175 | Mar 26 aggressive cleanup | Deleted GlobalSearchModal, NotificationBell, NotificationPanel, WorkspaceDetailPane (485 lines) |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ONBOARD-01 | Phase 13 | Pending |
-| ONBOARD-02 | Phase 13 | Pending |
-| ONBOARD-03 | Phase 13 | Pending |
+| ORG-01 | Phase 11 | Pending |
+| ORG-02 | Phase 11 | Pending |
+| ORG-03 | Phase 11 | Pending |
+| ORG-04 | Phase 11 | Pending |
+| ORG-05 | Phase 11 | Pending |
+| PANE-01 | Phase 11 | Pending |
+| PANE-02 | Phase 11 | Pending |
+| PANE-03 | Phase 11 | Pending |
+| PANE-04 | Phase 11 | Pending |
 | IMPORT-01 | Phase 12 | Pending |
 | IMPORT-02 | Phase 12 | Pending |
 | IMPORT-03 | Phase 12 | Pending |
@@ -122,50 +166,49 @@
 | IMPORT-06 | Phase 12 | Pending |
 | IMPORT-07 | Phase 12 | Pending |
 | IMPORT-08 | Phase 12 | Pending |
-| PANE-01 | Phase 11 | Pending |
-| PANE-02 | Phase 11 | Pending |
-| PANE-03 | Phase 11 | Pending |
-| PANE-04 | Phase 11 | Pending |
-| ORG-01 | Phase 11 | Pending |
-| ORG-02 | Phase 11 | Pending |
-| ORG-03 | Phase 11 | Pending |
-| ORG-04 | Phase 11 | Pending |
-| ORG-05 | Phase 11 | Pending |
-| MEMBER-01 | Phase 14 | Pending |
-| MEMBER-02 | Phase 14 | Pending |
-| MEMBER-03 | Phase 14 | Pending |
-| MEMBER-04 | Phase 14 | Pending |
-| MEMBER-05 | Phase 14 | Pending |
-| MEMBER-06 | Phase 14 | Pending |
-| MEMBER-07 | Phase 14 | Pending |
-| MEMBER-08 | Phase 14 | Pending |
-| MEMBER-09 | Phase 14 | Pending |
-| MEMBER-10 | Phase 14 | Pending |
-| MEMBER-11 | Phase 14 | Pending |
-| MEMBER-12 | Phase 14 | Pending |
-| FILTER-01 | Phase 15 | Pending |
-| FILTER-02 | Phase 15 | Pending |
-| FILTER-03 | Phase 15 | Pending |
-| FILTER-04 | Phase 15 | Pending |
-| FILTER-05 | Phase 15 | Pending |
-| FILTER-06 | Phase 15 | Pending |
-| PAY-01 | Phase 16 | Pending |
-| PAY-02 | Phase 16 | Pending |
-| PAY-03 | Phase 16 | Pending |
-| PAY-04 | Phase 16 | Pending |
-| PAY-05 | Phase 16 | Pending |
-| PAY-06 | Phase 16 | Pending |
-| PAY-07 | Phase 16 | Pending |
-| MCP-01 | Phase 17 | Pending |
-| MCP-02 | Phase 17 | Pending |
-| MCP-03 | Phase 17 | Pending |
-| MCP-04 | Phase 17 | Pending |
+| DETAIL-01 | Phase 12 | Pending |
+| DND-01 | Phase 13 | Pending |
+| DND-02 | Phase 13 | Pending |
+| SEARCH-01 | Phase 13 | Pending |
+| SEARCH-02 | Phase 13 | Pending |
+| ONBOARD-01 | Phase 14 | Pending |
+| ONBOARD-02 | Phase 14 | Pending |
+| ONBOARD-03 | Phase 14 | Pending |
+| MEMBER-01 | Phase 15 | Pending |
+| MEMBER-02 | Phase 15 | Pending |
+| MEMBER-03 | Phase 15 | Pending |
+| MEMBER-04 | Phase 15 | Pending |
+| MEMBER-05 | Phase 15 | Pending |
+| MEMBER-06 | Phase 15 | Pending |
+| MEMBER-07 | Phase 15 | Pending |
+| MEMBER-08 | Phase 15 | Pending |
+| MEMBER-09 | Phase 15 | Pending |
+| MEMBER-10 | Phase 15 | Pending |
+| MEMBER-11 | Phase 15 | Pending |
+| MEMBER-12 | Phase 15 | Pending |
+| FILTER-01 | Phase 16 | Pending |
+| FILTER-02 | Phase 16 | Pending |
+| FILTER-03 | Phase 16 | Pending |
+| FILTER-04 | Phase 16 | Pending |
+| FILTER-05 | Phase 16 | Pending |
+| PAY-01 | Phase 17 | Pending |
+| PAY-02 | Phase 17 | Pending |
+| PAY-03 | Phase 17 | Pending |
+| PAY-04 | Phase 17 | Pending |
+| PAY-05 | Phase 17 | Pending |
+| PAY-06 | Phase 17 | Pending |
+| PAY-07 | Phase 17 | Pending |
+| MCP-01 | Phase 18 | Pending |
+| MCP-02 | Phase 18 | Pending |
+| MCP-03 | Phase 18 | Pending |
+| MCP-04 | Phase 18 | Pending |
 
 **Coverage:**
-- v2.0 requirements: 39 total
-- Mapped to phases: 39
+- v2.0 requirements: 53 total (ONBOARD×3 + IMPORT×8 + PANE×4 + ORG×5 + DND×2 + DETAIL×1 + SEARCH×2 + MEMBER×12 + FILTER×5 + PAY×7 + MCP×4)
+- Mapped to phases: 53
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 — Traceability populated after roadmap creation*
+*Last updated: 2026-03-30 — Added DND, DETAIL, SEARCH requirements; split FILTER-05 into SEARCH category; deferred YouTube Workspace UI + Notifications*
+*Updated: 2026-03-30 — Traceability populated; coverage corrected to 53 (actual count); all requirements mapped to phases 11-18*
