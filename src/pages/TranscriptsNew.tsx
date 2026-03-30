@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { RiSearchLine, RiFileTextLine, RiPlayCircleLine } from "@remixicon/react";
 import type { RemixiconComponentType } from "@remixicon/react";
-import { DndContext, DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragEndEvent, DragOverlay } from "@dnd-kit/core";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -203,7 +203,17 @@ const TranscriptsNew = () => {
 
     if (over?.data?.current?.type === "folder-zone" && dragHelpers.draggedItems.length > 0) {
       const folderId = over.data.current.folderId;
-      assignToFolder(dragHelpers.draggedItems, folderId);
+      // Parse numeric recording IDs from drag item IDs (format: "recording-123" or raw numbers)
+      const numericIds = dragHelpers.draggedItems.reduce<number[]>((acc, item) => {
+        const str = String(item);
+        const raw = str.startsWith("recording-") ? str.replace("recording-", "") : str;
+        const id = parseInt(raw, 10);
+        if (!isNaN(id)) acc.push(id);
+        return acc;
+      }, []);
+      if (numericIds.length > 0) {
+        assignToFolder(numericIds, folderId);
+      }
     }
 
     dragHelpers.handleDragEnd(event);
@@ -338,6 +348,20 @@ const TranscriptsNew = () => {
           defaultSettings={allTranscriptsDefaults}
         />
       )}
+
+      {/* Drag overlay: floating preview card that follows the cursor during drag */}
+      <DragOverlay>
+        {dragHelpers.activeDragId ? (
+          <div className="flex items-center gap-2 px-3 py-2 bg-card border border-border rounded-lg shadow-lg opacity-90 pointer-events-none">
+            <div className="w-4 h-4 rounded bg-vibe-orange/20 flex-shrink-0" />
+            <span className="text-sm text-foreground truncate max-w-[200px]">
+              {dragHelpers.draggedItems.length > 1
+                ? `Moving ${dragHelpers.draggedItems.length} calls...`
+                : 'Moving call...'}
+            </span>
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 };

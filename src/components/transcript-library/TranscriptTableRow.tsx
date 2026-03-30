@@ -13,9 +13,11 @@ import {
   RiBuildingLine,
   RiExpandLeftRightLine,
 } from "@remixicon/react";
+import { useDraggable } from "@dnd-kit/core";
 import { FathomIcon, ZoomIcon, YouTubeIcon, UploadIcon } from "./SourcePlatformIcons";
 import { RoutingTraceBadge } from "@/components/import/RoutingTraceBadge";
 import { getSourceLabel } from "@/lib/source-labels";
+import { cn } from "@/lib/utils";
 import { TableCell, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +36,7 @@ import {
 import { CopyToOrganizationDialog } from "@/components/dialogs/CopyToOrganizationDialog";
 import { MoveToWorkspaceDialog } from "@/components/dialogs/MoveToWorkspaceDialog";
 import { useOrgContext } from "@/hooks/useOrgContext";
+import { useBreakpointFlags } from "@/hooks/useBreakpoint";
 import type { Meeting } from "@/types";
 import type { SharingStatus, AccessLevel } from "@/types/sharing";
 import type { Folder } from "@/types/workspace";
@@ -83,6 +86,14 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
   const [showCopyToOrgDialog, setShowCopyToOrgDialog] = useState(false);
   const [showMoveToWsDialog, setShowMoveToWsDialog] = useState(false);
 
+  // Drag-to-folder support (desktop only)
+  const { isMobileOrTablet } = useBreakpointFlags();
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `recording-${call.recording_id}`,
+    data: { recordingId: call.recording_id },
+    disabled: isMobileOrTablet,
+  });
+
   // Derive a stable string recording ID for dialogs
   const recordingIdStr = call.canonical_uuid || String(call.recording_id);
 
@@ -114,7 +125,13 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
     : "Not recorded";
 
   return (
-    <TableRow key={call.recording_id} className="group h-7 md:h-8">
+    <TableRow
+      key={call.recording_id}
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
+      className={cn("group h-7 md:h-8", isDragging && "opacity-50")}
+    >
       <TableCell className="align-middle py-0">
         <Checkbox checked={isSelected} onCheckedChange={() => onSelectCall(call.recording_id)} />
       </TableCell>
