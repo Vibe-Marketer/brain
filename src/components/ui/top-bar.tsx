@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { RiSearchLine, RiSettings3Line, RiLogoutBoxRLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,8 @@ import { ThemeSwitcher } from '@/components/ThemeSwitcher';
 import { useAuth } from '@/contexts/AuthContext';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useNavigate } from 'react-router-dom';
-import { dispatchFocusInlineSearch } from '@/stores/searchStore';
+import { useSearchStore } from '@/stores/searchStore';
+import { GlobalSearchModal } from '@/components/search/GlobalSearchModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,30 +30,16 @@ export function TopBar({
 }: TopBarProps) {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const openModal = useSearchStore((s) => s.openModal);
 
-  // Handle search click - use custom handler if provided, otherwise focus inline search
+  // Handle search click - use custom handler if provided, otherwise open global search modal
   const handleSearchClick = () => {
     if (onSearchClick) {
       onSearchClick();
     } else {
-      // Focus the inline search on the current page
-      dispatchFocusInlineSearch();
+      openModal();
     }
   };
-
-  // Handle Cmd/Ctrl+K keyboard shortcut to focus inline search
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        // Focus inline search on the current page
-        dispatchFocusInlineSearch();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   const getInitials = (email?: string) => {
     if (!email) return 'U';
@@ -127,5 +114,8 @@ export function TopBar({
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* Global search modal — mounted here so it's available on every page */}
+      <GlobalSearchModal />
     </header>;
 }
