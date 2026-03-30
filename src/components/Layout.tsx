@@ -13,7 +13,7 @@
 
 import React, { useEffect } from "react";
 import { TopBar } from "@/components/ui/top-bar";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { DebugPanel } from "@/components/debug-panel";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -23,9 +23,15 @@ import { startTour } from "@/lib/tour";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const { role } = useUserRole();
   const { isFeatureEnabled } = useFeatureFlags(role);
   const { shouldShowOnboarding, loading: onboardingLoading, completeOnboarding } = useOnboarding();
+
+  const handleOnboardingComplete = async () => {
+    await completeOnboarding();
+    navigate('/');
+  };
 
   // Register a global tour starter so OnboardingModal (or any other code) can
   // call `window.__startCallVaultTour()` without importing the module directly.
@@ -59,7 +65,7 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       {!onboardingLoading && shouldShowOnboarding && (
         <OnboardingModal
           open={shouldShowOnboarding}
-          onComplete={completeOnboarding}
+          onComplete={handleOnboardingComplete}
         />
       )}
     </div>

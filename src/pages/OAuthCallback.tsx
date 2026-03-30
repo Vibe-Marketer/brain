@@ -3,8 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { RiLoader4Line, RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
-import { completeFathomOAuth } from "@/lib/api-client";
-import { completeZoomOAuth } from "@/lib/zoom-api-client";
+import { completeFathomOAuth, completeZoomOAuth } from "@/lib/api-client";
 
 type CallbackState = "loading" | "success" | "error";
 

@@ -13,7 +13,6 @@
  */
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import {
   Dialog,
@@ -163,7 +162,6 @@ function TipRow({ icon, children }: TipRowProps) {
 
 export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingModalProps) {
   const [step, setStep] = useState(0);
-  const navigate = useNavigate();
 
   const handleFinish = async () => {
     await onComplete();
@@ -277,21 +275,21 @@ export function OnboardingModal({ open, onComplete, onOpenChange }: OnboardingMo
           title="Fathom"
           description="Auto-sync call recordings and AI transcripts"
           actionLabel="Connect Fathom"
-          onAction={() => navigate("/settings?tab=integrations&wizard=fathom")}
+          onAction={() => window.open("/settings?tab=integrations&wizard=fathom", "_blank")}
         />
         <SourceCard
           icon={<RiVideoChatLine className="h-5 w-5 text-vibe-orange" />}
           title="Zoom"
           description="Import meetings directly from your Zoom account"
           actionLabel="Connect Zoom"
-          onAction={() => navigate("/settings?tab=integrations")}
+          onAction={() => window.open("/settings?tab=integrations", "_blank")}
         />
         <SourceCard
           icon={<RiUpload2Line className="h-5 w-5 text-vibe-orange" />}
           title="Upload a recording"
           description="Drop in an audio or video file and we'll transcribe it"
           actionLabel="Upload file"
-          onAction={() => navigate("/import")}
+          onAction={() => window.open("/import", "_blank")}
         />
       </div>
 
