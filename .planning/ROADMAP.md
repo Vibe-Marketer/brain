@@ -101,10 +101,11 @@ Plans:
   1. New user can sign up via email/password, Google OAuth, or magic link and is redirected into the onboarding wizard
   2. Onboarding wizard prompts the user to connect at least one call source and provides working connect flows for Fathom, Zoom, and YouTube
   3. After completing onboarding, user lands in their default workspace with the correct 4-pane layout and can immediately navigate to Calls, Import, or Members
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 14 to break down)
+- [ ] 14-01-PLAN.md — Fix ProtectedRoute auth-only guard, OnboardingModal connect buttons, and post-completion navigation
+- [ ] 14-02-PLAN.md — Visual E2E verification of complete onboarding flow via dev-browser
 
 ### Phase 15: Members & Roles
 **Goal**: Workspace membership is fully functional — 4-role system enforced, invite via email and shareable link works, members can be removed, workspaces can be deleted, and advanced settings are functional
@@ -176,7 +177,7 @@ Plans:
 | 11. Org Segregation + 4-Pane Foundation | v2.0 | 4/4 | Complete    | 2026-03-30 |
 | 12. Import Flows + Source Details | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 14. Onboarding E2E | v2.0 | 0/TBD | Not started | - |
+| 14. Onboarding E2E | v2.0 | 0/2 | Planned | - |
 | 15. Members & Roles | v2.0 | 0/TBD | Not started | - |
 | 16. Filters & Sort | v2.0 | 0/TBD | Not started | - |
 | 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |
@@ -189,3 +190,4 @@ Plans:
 *Updated: 2026-03-30 — Phase 11 planned: 4 plans in 2 waves*
 *Updated: 2026-03-30 — Phase 12 planned: 2 plans in 1 wave (parallel)*
 *Updated: 2026-03-30 — Phase 13 planned: 2 plans in 1 wave (parallel)*
+*Updated: 2026-03-30 — Phase 14 planned: 2 plans in 2 waves*
