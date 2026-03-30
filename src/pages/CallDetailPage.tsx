@@ -38,6 +38,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { WorkspaceBadgeList } from '@/components/workspace/WorkspaceBadgeList';
 import { parseYouTubeDuration, formatCompactNumber } from '@/lib/youtube-utils';
 import { getRecordingById, getRecordingByLegacyId } from '@/services/recordings.service';
+import { useOrgContext } from '@/hooks/useOrgContext';
 import { getRawCallData } from '@/services/raw-calls.service';
 import { queryKeys } from '@/lib/query-config';
 import { CopyToOrganizationDialog } from '@/components/dialogs/CopyToOrganizationDialog';
@@ -90,23 +91,24 @@ export const CallDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [showCopyToOrgDialog, setShowCopyToOrgDialog] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
+  const { activeOrgId } = useOrgContext();
 
   // Try to parse callId as integer (legacy) or use as UUID
   const legacyId = callId ? parseInt(callId, 10) : NaN;
   const isLegacyId = !isNaN(legacyId);
 
-  // Fetch canonical recording from recordings table
+  // Fetch canonical recording from recordings table — org-scoped for defense-in-depth (ORG-01)
   const { data: call, isLoading: callLoading } = useQuery({
     queryKey: queryKeys.calls.detail(callId || ''),
     queryFn: async () => {
-      if (!callId) return null;
+      if (!callId || !activeOrgId) return null;
       // Try legacy ID first (most existing URLs use integer IDs), then UUID
       if (isLegacyId) {
-        return getRecordingByLegacyId(legacyId);
+        return getRecordingByLegacyId(legacyId, activeOrgId);
       }
-      return getRecordingById(callId);
+      return getRecordingById(callId, activeOrgId);
     },
-    enabled: !!callId,
+    enabled: !!callId && !!activeOrgId,
   });
 
   // Fetch source-specific raw data based on source_app

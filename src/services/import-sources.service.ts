@@ -42,6 +42,7 @@ export interface FailedImport {
 // ---------------------------------------------------------------------------
 
 export async function getImportSources(): Promise<ImportSource[]> {
+  // import_sources are user-scoped, NOT org-scoped — connected accounts shared across orgs (ORG-05)
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
   if (!user) return []
@@ -127,23 +128,32 @@ export async function getImportSources(): Promise<ImportSource[]> {
 }
 
 /**
- * Returns a mapping of source_app -> call count for the current user.
- * Counts from the recordings table only (single source of truth).
+ * Returns a mapping of source_app -> call count for the current org.
+ * Counts from the recordings table scoped to both user and organization.
+ * organizationId is required to ensure counts reflect only the current org (ORG-01).
  */
-export async function getImportCounts(): Promise<Record<string, number>> {
+export async function getImportCounts(organizationId: string): Promise<Record<string, number>> {
   const { data: { session } } = await supabase.auth.getSession()
   const user = session?.user
 
-  if (!user) return {}
+  if (!user || !organizationId) return {}
 
-  const { data: rpcData, error: rpcError } = await supabase.rpc('get_import_counts', {
-    p_user_id: user.id,
-  })
+  // Direct query instead of RPC so we can filter by both user and org.
+  // The legacy get_import_counts RPC only accepts p_user_id and would return
+  // counts across all orgs — not suitable for multi-org users.
+  const { data, error } = await supabase
+    .from('recordings')
+    .select('source_app')
+    .eq('owner_user_id', user.id)
+    .eq('organization_id', organizationId)
+    .not('source_app', 'is', null)
 
   const counts: Record<string, number> = {}
-  if (!rpcError && Array.isArray(rpcData)) {
-    for (const row of rpcData as { source_app: string; call_count: number }[]) {
-      counts[row.source_app] = (counts[row.source_app] || 0) + Number(row.call_count)
+  if (!error && Array.isArray(data)) {
+    for (const row of data as { source_app: string | null }[]) {
+      if (row.source_app) {
+        counts[row.source_app] = (counts[row.source_app] || 0) + 1
+      }
     }
   }
 
@@ -320,9 +330,12 @@ export async function retryFailedImport(
 
 /**
  * Fetches failed imports from sync_jobs where failed_ids array is non-empty.
- * Joins with import_sources to get the source_app name.
+ * organizationId scopes the "already synced" check so we only show failures
+ * relevant to the current org — not false-positives from other orgs (ORG-01).
+ * Note: sync_jobs table has no organization_id column, so we scope indirectly
+ * by filtering the synced recordings check to the current org.
  */
-export async function getFailedImports(): Promise<FailedImport[]> {
+export async function getFailedImports(organizationId: string): Promise<FailedImport[]> {
   const { data, error } = await supabase
     .from('sync_jobs')
     .select('id, failed_ids, error, type')
@@ -342,12 +355,14 @@ export async function getFailedImports(): Promise<FailedImport[]> {
   const user = session?.user
   if (!user) return []
 
-  // Get all synced external_ids to filter out false-positives
+  // Get all synced external_ids scoped to current org to filter out false-positives.
+  // Without org scoping, a call synced in org A would suppress the failure in org B.
   // Check BOTH source_metadata.external_id and legacy_recording_id
   const { data: syncedRecs } = await supabase
     .from('recordings')
     .select('source_metadata, legacy_recording_id')
     .eq('owner_user_id', user.id)
+    .eq('organization_id', organizationId)
 
   const syncedIds = new Set<string>()
   if (syncedRecs) {

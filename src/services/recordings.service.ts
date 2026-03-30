@@ -27,13 +27,16 @@ const RECORDING_DETAIL_COLUMNS =
 
 /**
  * Fetches a single recording by UUID.
+ * organizationId is required for defense-in-depth — prevents users from fetching
+ * recordings from other orgs by guessing UUIDs (ORG-01).
  * Returns null if the recording does not exist or is not accessible to the current user.
  */
-export async function getRecordingById(id: string): Promise<RecordingDetail | null> {
+export async function getRecordingById(id: string, organizationId: string): Promise<RecordingDetail | null> {
   const { data, error } = await supabase
     .from('recordings')
     .select(RECORDING_DETAIL_COLUMNS)
     .eq('id', id)
+    .eq('organization_id', organizationId)
     .maybeSingle()
 
   if (error) {
@@ -46,12 +49,14 @@ export async function getRecordingById(id: string): Promise<RecordingDetail | nu
 /**
  * Fetches a single recording by legacy_recording_id (integer from fathom_calls).
  * Used for backward-compatible URL routing where call detail pages use the legacy integer ID.
+ * organizationId is required for defense-in-depth (ORG-01).
  */
-export async function getRecordingByLegacyId(legacyId: number): Promise<RecordingDetail | null> {
+export async function getRecordingByLegacyId(legacyId: number, organizationId: string): Promise<RecordingDetail | null> {
   const { data, error } = await supabase
     .from('recordings')
     .select(RECORDING_DETAIL_COLUMNS)
     .eq('legacy_recording_id', legacyId)
+    .eq('organization_id', organizationId)
     .maybeSingle()
 
   if (error) {
