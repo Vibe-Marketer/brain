@@ -33,7 +33,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [x] **Phase 11: Org Segregation + 4-Pane Foundation** — Lock all data to org_id; codify 4-pane layout rules across all pages (completed 2026-03-30)
 - [x] **Phase 12: Import Flows + Source Details** — Wire orphaned import detail components into Pane 2/3; show source-specific call metadata in detail view (completed 2026-03-30)
 - [x] **Phase 13: Drag-to-Folder + Global Search** — Reconnect severed DnD and global search features (all code exists, wiring only) (completed 2026-03-30)
-- [ ] **Phase 14: Onboarding E2E** — Verify sign-up through first import works end-to-end; fix any gaps in the wizard flow
+- [x] **Phase 14: Onboarding E2E** — Verify sign-up through first import works end-to-end; fix any gaps in the wizard flow (completed 2026-03-30)
 - [ ] **Phase 15: Members & Roles** — Align to 4 roles; invite via email + link; remove members; workspace deletion; advanced settings
 - [ ] **Phase 16: Filters & Sort** — Fix filter stacking, sort columns, inline search syntax (carried from v1.1)
 - [ ] **Phase 17: Payments & Billing** — Add cancel button and usage display; verify Polar checkout + webhooks E2E
@@ -105,7 +105,7 @@ Plans:
 
 Plans:
 - [x] 14-01-PLAN.md — Fix ProtectedRoute auth-only guard, OnboardingModal connect buttons, and post-completion navigation
-- [ ] 14-02-PLAN.md — Visual E2E verification of complete onboarding flow via dev-browser
+- [x] 14-02-PLAN.md — Visual E2E verification of complete onboarding flow via dev-browser
 
 ### Phase 15: Members & Roles
 **Goal**: Workspace membership is fully functional — 4-role system enforced, invite via email and shareable link works, members can be removed, workspaces can be deleted, and advanced settings are functional
@@ -177,7 +177,7 @@ Plans:
 | 11. Org Segregation + 4-Pane Foundation | v2.0 | 4/4 | Complete    | 2026-03-30 |
 | 12. Import Flows + Source Details | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 14. Onboarding E2E | v2.0 | 1/2 | In Progress|  |
+| 14. Onboarding E2E | v2.0 | 2/2 | Complete   | 2026-03-30 |
 | 15. Members & Roles | v2.0 | 0/TBD | Not started | - |
 | 16. Filters & Sort | v2.0 | 0/TBD | Not started | - |
 | 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |

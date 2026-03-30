@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: executing
-stopped_at: Completed 14-01-PLAN.md
-last_updated: "2026-03-30T22:07:32.961Z"
+status: verifying
+stopped_at: Completed 14-02-PLAN.md
+last_updated: "2026-03-30T22:18:43.696Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 3
+  completed_phases: 4
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 14 (onboarding-e2e) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
@@ -58,6 +58,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 13 P02 | 2m | 2 tasks | 2 files |
 | Phase 13-drag-to-folder-global-search P01 | 4 | 1 tasks | 2 files |
 | Phase 14 P01 | 131s | 2 tasks | 4 files |
+| Phase 14-onboarding-e2e P02 | 532s | 1 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 14]: ProtectedRoute is now a pure auth guard — Layout.tsx owns all onboarding concerns
 - [Phase 14]: Connect source buttons use window.open(_blank) so OnboardingModal stays mounted during OAuth flow
 - [Phase 14]: Post-onboarding navigation in Layout via handleOnboardingComplete wrapper calling navigate('/')
+- [Phase 14-onboarding-e2e]: Ghost OS MCP tools unavailable in parallel executor — Playwright used instead for equivalent E2E verification
+- [Phase 14-onboarding-e2e]: user_profiles uses user_id FK column (not id) for Supabase auth linkage
+- [Phase 14-onboarding-e2e]: HowItWorksContent Step 2 has 6 sub-cards — navigation requires Next×5 + Got it
 
 ### Known Facts (from codebase audit)
 
@@ -121,6 +125,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T22:07:32.957Z
-Stopped at: Completed 14-01-PLAN.md
+Last session: 2026-03-30T22:18:43.692Z
+Stopped at: Completed 14-02-PLAN.md
 Resume file: None
