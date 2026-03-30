@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: verifying
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-03-30T23:34:56.923Z"
+status: executing
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-03-30T23:47:23.388Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
   completed_phases: 6
-  total_plans: 15
-  completed_plans: 15
+  total_plans: 18
+  completed_plans: 16
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 16 — filters-sort
+**Current focus:** Phase 17 — payments-billing
 
 ## Current Position
 
-Phase: 17
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 17 (payments-billing) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
@@ -64,6 +64,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 15-members-roles P02 | 5 | 2 tasks | 2 files |
 | Phase 16-filters-sort P01 | 4m | 2 tasks | 3 files |
 | Phase 16-filters-sort P02 | 181s | 2 tasks | 4 files |
+| Phase 17 P01 | 231s | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -115,6 +116,7 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 16-filters-sort]: Filter integration tests at pure data layer (no React rendering) — tests filter spread/removal logic directly
 - [Phase 16-filters-sort]: status filter applied client-side in workspace path only — recordings-table rows are always synced:true so ALL CALLS PATH deferred
 - [Phase 16-filters-sort]: status: operator has no short alias — unambiguous and matches plan spec
+- [Phase 17]: Cancel button is link-style text not red button — avoids alarming paid users; polar-cancel retains subscription_id and period_end so access continues until billing end
 
 ### Known Facts (from codebase audit)
 
@@ -141,6 +143,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T23:32:03.698Z
-Stopped at: Completed 16-02-PLAN.md
+Last session: 2026-03-30T23:47:23.325Z
+Stopped at: Completed 17-01-PLAN.md
 Resume file: None

@@ -77,12 +77,12 @@
 
 ### Payments & Billing
 
-- [ ] **PAY-01**: Free/Pro/Team plans display correctly with pricing
+- [x] **PAY-01**: Free/Pro/Team plans display correctly with pricing
 - [ ] **PAY-02**: User can upgrade from Free to Pro or Team via Polar checkout
 - [ ] **PAY-03**: 14-day Pro trial works for new signups
-- [ ] **PAY-04**: User can cancel subscription from billing settings
+- [x] **PAY-04**: User can cancel subscription from billing settings
 - [ ] **PAY-05**: AI usage limits enforced per tier (Free: 25, Pro: 1000, Team: 5000/month)
-- [ ] **PAY-06**: User can see current AI usage/credit count in billing settings
+- [x] **PAY-06**: User can see current AI usage/credit count in billing settings
 - [ ] **PAY-07**: Polar webhooks process subscription events correctly
 
 ### MCP
@@ -191,12 +191,12 @@ Key facts for planning — code state as of 2026-03-30:
 | FILTER-03 | Phase 16 | Complete |
 | FILTER-04 | Phase 16 | Complete |
 | FILTER-05 | Phase 16 | Complete |
-| PAY-01 | Phase 17 | Pending |
+| PAY-01 | Phase 17 | Complete |
 | PAY-02 | Phase 17 | Pending |
 | PAY-03 | Phase 17 | Pending |
-| PAY-04 | Phase 17 | Pending |
+| PAY-04 | Phase 17 | Complete |
 | PAY-05 | Phase 17 | Pending |
-| PAY-06 | Phase 17 | Pending |
+| PAY-06 | Phase 17 | Complete |
 | PAY-07 | Phase 17 | Pending |
 | MCP-01 | Phase 18 | Pending |
 | MCP-02 | Phase 18 | Pending |

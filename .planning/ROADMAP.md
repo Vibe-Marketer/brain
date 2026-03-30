@@ -152,7 +152,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 17-01-PLAN.md — Cancel button + AI usage display in BillingTab; create useAiUsage hook and polar-cancel edge function
+- [x] 17-01-PLAN.md — Cancel button + AI usage display in BillingTab; create useAiUsage hook and polar-cancel edge function
 - [ ] 17-02-PLAN.md — AI usage enforcement: track-ai-usage edge function + useAiGate hook; verify checkout and trial flows
 - [ ] 17-03-PLAN.md — Deploy edge functions and verify Polar webhook handler processes all subscription events
 
@@ -185,7 +185,7 @@ Plans:
 | 14. Onboarding E2E | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
 | 16. Filters & Sort | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 17. Payments & Billing | v2.0 | 0/3 | Not started | - |
+| 17. Payments & Billing | v2.0 | 1/3 | In Progress|  |
 | 18. MCPs | v2.0 | 0/TBD | Not started | - |
 
 ---
