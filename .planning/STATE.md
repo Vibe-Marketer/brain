@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: executing
-stopped_at: Completed 15-03-PLAN.md
-last_updated: "2026-03-30T23:03:42.889Z"
+status: verifying
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-03-30T23:04:14.613Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 15 (members-roles) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
@@ -61,6 +61,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 14-onboarding-e2e P02 | 532s | 1 tasks | 8 files |
 | Phase 15 P01 | 8m | 2 tasks | 7 files |
 | Phase 15 P03 | 93s | 2 tasks | 2 files |
+| Phase 15-members-roles P02 | 5 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -106,6 +107,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 15]: Advanced settings collapsible uses useState toggle — same pattern as SourceInfoSection, not Radix Collapsible
 - [Phase 15]: Danger Zone hidden (not disabled) for non-owners — consistent with hide-what-you-cant-do philosophy from CONTEXT.md
 - [Phase 15]: Default workspace shows cannot-delete message rather than disabled delete button — clearer UX signal
+- [Phase 15-members-roles]: AlertDialog for removal: title 'Remove [name]?' + 'Their calls will remain in the workspace.' matches CONTEXT.md spec
+- [Phase 15-members-roles]: WorkspaceJoin redirect to /login for unauthenticated users deemed sufficient (login page has sign-up flow)
 
 ### Known Facts (from codebase audit)
 
@@ -132,6 +135,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T23:03:42.884Z
-Stopped at: Completed 15-03-PLAN.md
+Last session: 2026-03-30T23:04:14.609Z
+Stopped at: Completed 15-02-PLAN.md
 Resume file: None
