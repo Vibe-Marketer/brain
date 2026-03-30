@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
 status: verifying
-stopped_at: "Completed 11-04-PLAN.md (checkpoint:human-verify pending)"
-last_updated: "2026-03-30T21:12:35.699Z"
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-03-30T21:34:50.721Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
+  completed_phases: 2
+  total_plans: 6
+  completed_plans: 6
   percent: 0
 ---
 
@@ -21,12 +21,12 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 11 — org-segregation-4-pane
+**Current focus:** Phase 12 — import-flows-source-details
 
 ## Current Position
 
-Phase: 12
-Plan: Not started
+Phase: 12 (import-flows-source-details) — EXECUTING
+Plan: 2 of 2
 Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
@@ -53,6 +53,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 11 P01 | 5 | 3 tasks | 9 files |
 | Phase 11 P03 | 3m | 2 tasks | 3 files |
 | Phase 11 P04 | 22s | 1 tasks | 3 files |
+| Phase 12 P02 | 8 | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 11]: YouTube import inline in Pane 3 (no Dialog) — more natural in 4-pane layout
 - [Phase 11]: CallDetailPage replaced with redirect to /?callId=<id> — modal pattern via CallDetailDialog (D-07)
 - [Phase 11]: Modal vs Pane 4 rules documented in AppShell.tsx JSDoc (D-08/D-09/D-10)
+- [Phase 12]: useRawCallData inline query key ['raw-call-data', recordingId, sourceApp] — rawCalls factory has per-source keys, unified dispatcher key is cleaner inline
+- [Phase 12]: SourceInfoSection uses useState toggle not Radix Collapsible — simpler for single collapsible section
 
 ### Known Facts (from codebase audit)
 
@@ -104,6 +107,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T21:07:42.073Z
-Stopped at: Completed 11-04-PLAN.md (checkpoint:human-verify pending)
+Last session: 2026-03-30T21:34:47.484Z
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None

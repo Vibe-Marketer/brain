@@ -45,7 +45,7 @@
 
 ### Call Details
 
-- [ ] **DETAIL-01**: Call detail view shows source-specific metadata (Zoom: meeting ID + participants; Fathom: call data; YouTube: video stats; Upload: file info)
+- [x] **DETAIL-01**: Call detail view shows source-specific metadata (Zoom: meeting ID + participants; Fathom: call data; YouTube: video stats; Upload: file info)
 
 ### Global Search
 
@@ -166,7 +166,7 @@ Key facts for planning — code state as of 2026-03-30:
 | IMPORT-06 | Phase 12 | Pending |
 | IMPORT-07 | Phase 12 | Pending |
 | IMPORT-08 | Phase 12 | Pending |
-| DETAIL-01 | Phase 12 | Pending |
+| DETAIL-01 | Phase 12 | Complete |
 | DND-01 | Phase 13 | Pending |
 | DND-02 | Phase 13 | Pending |
 | SEARCH-01 | Phase 13 | Pending |
