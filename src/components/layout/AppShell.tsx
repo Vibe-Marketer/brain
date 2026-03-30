@@ -28,6 +28,7 @@ import { SidebarNav } from '@/components/ui/sidebar-nav';
 import { SidebarToggle } from './SidebarToggle';
 import { DetailPaneOutlet } from './DetailPaneOutlet';
 import { usePanelStore } from '@/stores/panelStore';
+import { useOrgContextStore } from '@/stores/orgContextStore';
 
 /**
  * DEV-MODE CHECK: Detects if AppShell is incorrectly wrapped in Layout.tsx's card container.
@@ -134,6 +135,20 @@ export function AppShell({
   useEffect(() => {
     clearHistory();
   }, [location.pathname, clearHistory]);
+
+  // Org switch fade transition (D-11): brief 250ms opacity fade on content panes
+  const activeOrgId = useOrgContextStore((s) => s.activeOrgId);
+  const prevOrgRef = useRef(activeOrgId);
+  const [isSwitching, setIsSwitching] = useState(false);
+
+  useEffect(() => {
+    if (prevOrgRef.current && prevOrgRef.current !== activeOrgId) {
+      setIsSwitching(true);
+      const timer = setTimeout(() => setIsSwitching(false), 250);
+      return () => clearTimeout(timer);
+    }
+    prevOrgRef.current = activeOrgId;
+  }, [activeOrgId]);
 
   // Responsive breakpoints
   const { isMobile, isTablet } = useBreakpointFlags();
@@ -316,42 +331,50 @@ export function AppShell({
           </nav>
         )}
 
-        {/* PANE 2: Secondary Panel */}
-        {secondaryPane && (
+        {/* PANES 2/3/4: Content area — fades during org switch (D-11, 250ms) */}
+        <div className={cn(
+          "flex flex-1 gap-3 min-w-0 transition-opacity duration-250",
+          isSwitching && "opacity-0"
+        )}>
+
+          {/* PANE 2: Secondary Panel */}
+          {secondaryPane && (
+            <div
+              className={cn(
+                // Base styles
+                "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm",
+                "flex flex-col h-full z-10 overflow-hidden",
+                // Transitions - 500ms for premium feel
+                "transition-all duration-500 ease-in-out",
+                // Visibility states
+                isSecondaryOpen
+                  ? "w-[280px] opacity-100 ml-0"
+                  : "w-0 opacity-0 -ml-3 border-0"
+              )}
+            >
+              {secondaryPane}
+            </div>
+          )}
+
+          {/* PANE 3: Main Content */}
           <div
             className={cn(
               // Base styles
-              "flex-shrink-0 bg-card rounded-2xl border border-border shadow-sm",
-              "flex flex-col h-full z-10 overflow-hidden",
-              // Transitions - 500ms for premium feel
-              "transition-all duration-500 ease-in-out",
-              // Visibility states
-              isSecondaryOpen
-                ? "w-[280px] opacity-100 ml-0"
-                : "w-0 opacity-0 -ml-3 border-0"
+              "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm",
+              "flex flex-col h-full relative z-0 overflow-hidden",
+              // Transitions
+              "transition-all duration-500"
             )}
           >
-            {secondaryPane}
+            {children}
           </div>
-        )}
 
-        {/* PANE 3: Main Content */}
-        <div
-          className={cn(
-            // Base styles
-            "flex-1 min-w-0 bg-card rounded-2xl border border-border shadow-sm",
-            "flex flex-col h-full relative z-0 overflow-hidden",
-            // Transitions
-            "transition-all duration-500"
+          {/* PANE 4: Detail Panel Outlet */}
+          {showDetailPane && (
+            <DetailPaneOutlet isTablet={isTablet} />
           )}
-        >
-          {children}
-        </div>
 
-        {/* PANE 4: Detail Panel Outlet */}
-        {showDetailPane && (
-          <DetailPaneOutlet isTablet={isTablet} />
-        )}
+        </div>
       </div>
       )}
 
