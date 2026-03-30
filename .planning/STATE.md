@@ -1,3 +1,19 @@
+---
+gsd_state_version: 1.0
+milestone: v1.1
+milestone_name: Sort/Filter Hardening
+status: executing
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-03-30T23:47:58.754Z"
+last_activity: 2026-03-30
+progress:
+  total_phases: 6
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
+---
+
 # Project State
 
 ## Project Reference
@@ -10,15 +26,16 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 1 of 6 (Org Scoping)
-Plan: 0 of 4 in current phase
-Status: Ready to plan
-Last activity: 2026-03-15 — Roadmap created, v1.1 Sort/Filter Hardening initialized
+Plan: 1 of 4 in current phase
+Status: Ready to execute
+Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 0
 - Average duration: —
 - Total execution time: —
@@ -32,6 +49,7 @@ Progress: [░░░░░░░░░░] 0%
 **Recent Trend:** —
 
 *Updated after each plan completion*
+| Phase 17 P02 | 235s | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -39,6 +57,8 @@ Progress: [░░░░░░░░░░] 0%
 
 - [Pre-GSD]: Fix in-place vs rebuild — fix existing architecture (rebuild too slow)
 - [Pre-GSD]: URL param persistence kept — working feature, just needs org scoping
+- [Phase 17]: track-ai-usage uses service-role client for both profile lookup and ai_usage insert — avoids RLS complexity for cross-table operations
+- [Phase 17]: useAiGate fails open on tracking errors — never blocks user due to monitoring failure
 
 ### Known Facts (from codebase audit)
 
@@ -60,6 +80,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-15
-Stopped at: Roadmap created — ready to plan Phase 1
+Last session: 2026-03-30T23:47:58.739Z
+Stopped at: Completed 17-02-PLAN.md
 Resume file: None
