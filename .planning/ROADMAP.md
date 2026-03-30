@@ -149,10 +149,12 @@ Plans:
   3. New signups automatically receive a 14-day Pro trial; user can cancel their subscription from billing settings without leaving the app
   4. Current AI usage and credit count are visible in billing settings; AI features are blocked or degraded when tier limits are reached
   5. Polar webhooks process subscription events correctly (new subscription, cancellation, renewal) — verified via test event replay
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 17 to break down)
+- [ ] 17-01-PLAN.md — Cancel button + AI usage display in BillingTab; create useAiUsage hook and polar-cancel edge function
+- [ ] 17-02-PLAN.md — AI usage enforcement: track-ai-usage edge function + useAiGate hook; verify checkout and trial flows
+- [ ] 17-03-PLAN.md — Deploy edge functions and verify Polar webhook handler processes all subscription events
 
 ### Phase 18: MCPs
 **Goal**: Each organization can issue one MCP server that is strictly scoped to org data, capable of reading calls and searching, with a working OAuth consent flow
@@ -183,7 +185,7 @@ Plans:
 | 14. Onboarding E2E | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
 | 16. Filters & Sort | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |
+| 17. Payments & Billing | v2.0 | 0/3 | Not started | - |
 | 18. MCPs | v2.0 | 0/TBD | Not started | - |
 
 ---
@@ -196,3 +198,4 @@ Plans:
 *Updated: 2026-03-30 — Phase 14 planned: 2 plans in 2 waves*
 *Updated: 2026-03-30 — Phase 15 planned: 3 plans in 2 waves*
 *Updated: 2026-03-30 — Phase 16 planned: 2 plans in 1 wave (parallel)*
+*Updated: 2026-03-30 — Phase 17 planned: 3 plans in 2 waves*
