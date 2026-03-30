@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
 import { Meeting, Category, Speaker } from "@/types";
+import { SourceInfoSection } from "@/components/call-detail/SourceInfoSection";
+import type { RawCallData } from "@/types/raw-calls";
 
 interface CallOverviewTabProps {
   call: Meeting;
@@ -15,6 +17,9 @@ interface CallOverviewTabProps {
   isEditing: boolean;
   editedSummary: string;
   setEditedSummary: Dispatch<SetStateAction<string>>;
+  sourceApp?: string | null;
+  rawCallData?: RawCallData | null;
+  rawCallLoading?: boolean;
 }
 
 export function CallOverviewTab({
@@ -25,6 +30,9 @@ export function CallOverviewTab({
   isEditing,
   editedSummary,
   setEditedSummary,
+  sourceApp,
+  rawCallData,
+  rawCallLoading,
 }: CallOverviewTabProps) {
   return (
     <TabsContent value="overview" className="flex-1 overflow-hidden">
@@ -36,11 +44,11 @@ export function CallOverviewTab({
               {/* Left Column - Date & Duration */}
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium uppercase text-ink-muted">DATE</Label>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">DATE</Label>
                   <p className="text-sm font-medium">{new Date(call.created_at).toLocaleDateString()}</p>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium uppercase text-ink-muted">DURATION</Label>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">DURATION</Label>
                   <p className="text-sm font-medium">{duration ? `${duration} minutes` : "Not available"}</p>
                 </div>
               </div>
@@ -49,7 +57,7 @@ export function CallOverviewTab({
               <div className="space-y-4">
                 {call.share_url && (
                   <div className="space-y-1">
-                    <Label className="text-xs font-medium uppercase text-ink-muted">FATHOM SHARE LINK</Label>
+                    <Label className="text-xs font-medium uppercase text-muted-foreground/60">FATHOM SHARE LINK</Label>
                     <a
                       href={call.share_url}
                       target="_blank"
@@ -61,24 +69,24 @@ export function CallOverviewTab({
                   </div>
                 )}
                 <div className="space-y-1">
-                  <Label className="text-xs font-medium uppercase text-ink-muted">RECORDING ID</Label>
+                  <Label className="text-xs font-medium uppercase text-muted-foreground/60">RECORDING ID</Label>
                   <p className="text-sm font-mono">{call.recording_id}</p>
                 </div>
               </div>
 
               {/* Second Row - Invitees & Participants */}
               <div className="space-y-1">
-                <Label className="text-xs font-medium uppercase text-ink-muted">NUMBER OF INVITEES</Label>
+                <Label className="text-xs font-medium uppercase text-muted-foreground/60">NUMBER OF INVITEES</Label>
                 <p className="text-sm font-medium">{call.calendar_invitees?.length || 0} invited</p>
               </div>
               <div className="space-y-1">
-                <Label className="text-xs font-medium uppercase text-ink-muted">PARTICIPANTS (SPEAKERS)</Label>
+                <Label className="text-xs font-medium uppercase text-muted-foreground/60">PARTICIPANTS (SPEAKERS)</Label>
                 <p className="text-sm font-medium">{callSpeakers?.length || 0} spoke</p>
               </div>
 
               {/* Bottom Row - Categories & Folders */}
               <div className="space-y-2">
-                <Label className="text-xs font-medium uppercase text-ink-muted">FOLDERS</Label>
+                <Label className="text-xs font-medium uppercase text-muted-foreground/60">FOLDERS</Label>
                 <div className="flex flex-wrap gap-2">
                   {callCategories && callCategories.length > 0 ? (
                     callCategories.map((category) => (
@@ -114,12 +122,18 @@ export function CallOverviewTab({
                   {call.summary ? (
                     <ReactMarkdown>{call.summary}</ReactMarkdown>
                   ) : (
-                    <p className="text-ink-muted text-center py-8">No summary available</p>
+                    <p className="text-muted-foreground/60 text-center py-8">No summary available</p>
                   )}
                 </div>
               </div>
             )}
           </div>
+
+          <SourceInfoSection
+            sourceApp={sourceApp}
+            rawData={rawCallData}
+            isLoading={rawCallLoading ?? false}
+          />
         </div>
       </ScrollArea>
     </TabsContent>

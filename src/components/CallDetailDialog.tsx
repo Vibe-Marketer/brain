@@ -15,6 +15,7 @@ import { SplitConfirmDialog } from "@/components/transcript-library/SplitConfirm
 import { useTranscriptExport } from "@/hooks/useTranscriptExport";
 import { useCallDetailQueries } from "@/hooks/useCallDetailQueries";
 import { useCallDetailMutations } from "@/hooks/useCallDetailMutations";
+import { useRawCallData } from "@/hooks/useRawCallData";
 import { RiCheckboxCircleLine, RiRefreshLine } from "@remixicon/react";
 import { CallStatsFooter } from "@/components/call-detail/CallStatsFooter";
 import { CallInviteesTab } from "@/components/call-detail/CallInviteesTab";
@@ -143,6 +144,12 @@ export function CallDetailDialog({
     userId: user?.id,
     open,
   });
+
+  const recordingIdStr = call?.recording_id != null ? String(call.recording_id) : undefined;
+  const { data: rawCallData, isLoading: rawCallLoading } = useRawCallData(
+    recordingIdStr,
+    call?.source_platform,
+  );
 
   const {
     updateCall: updateCallMutation,
@@ -426,6 +433,9 @@ export function CallDetailDialog({
             isEditing={isEditing}
             editedSummary={editedSummary}
             setEditedSummary={setEditedSummary}
+            sourceApp={call.source_platform}
+            rawCallData={rawCallData}
+            rawCallLoading={rawCallLoading}
           />
 
           <CallTranscriptTab
