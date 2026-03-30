@@ -29,6 +29,16 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import {
   RiCloseLine,
   RiGroupLine,
   RiUserAddLine,
@@ -99,6 +109,8 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
   // Dialog state
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false)
   const [changeRoleTarget, setChangeRoleTarget] = useState<WorkspaceMember | null>(null)
+  const [removeTarget, setRemoveTarget] = useState<WorkspaceMember | null>(null)
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
 
   const handleClose = useCallback(() => {
@@ -152,28 +164,40 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
     [changeRoleTarget, currentUserRole, changeRole, adminCount]
   )
 
-  // Handle member removal
+  // Handle member removal — opens AlertDialog
   const handleRemoveWorkspaceMember = useCallback(
     (member: WorkspaceMember) => {
       if (!currentUserRole) return
-      if (!confirm(`Remove ${member.display_name || member.email || 'this member'} from this workspace?`)) return
-      removeMember.mutate({
-        membershipId: member.id,
-        targetRole: member.role,
-        currentUserRole,
-      })
+      setRemoveTarget(member)
     },
-    [removeMember, currentUserRole]
+    [currentUserRole]
   )
 
-  // Handle leave workspace
+  // Confirmed member removal
+  const handleConfirmRemove = useCallback(() => {
+    if (!removeTarget || !currentUserRole) return
+    removeMember.mutate({
+      membershipId: removeTarget.id,
+      targetRole: removeTarget.role,
+      currentUserRole,
+    })
+    setRemoveTarget(null)
+  }, [removeTarget, removeMember, currentUserRole])
+
+  // Handle leave workspace — opens AlertDialog
   const handleLeaveWorkspace = useCallback(() => {
     if (!currentUserMembership || !currentUserRole) return
-    if (!confirm('Are you sure you want to leave this workspace?')) return
+    setLeaveConfirmOpen(true)
+  }, [currentUserMembership, currentUserRole])
+
+  // Confirmed leave workspace
+  const handleConfirmLeave = useCallback(() => {
+    if (!currentUserMembership || !currentUserRole) return
     leaveWorkspace.mutate({
       membershipId: currentUserMembership.id,
       userRole: currentUserRole,
     })
+    setLeaveConfirmOpen(false)
   }, [currentUserMembership, currentUserRole, leaveWorkspace])
 
   return (
@@ -408,6 +432,50 @@ export function WorkspaceMemberPanel({ workspaceId, workspaceName }: WorkspaceMe
           isLoading={changeRole.isPending}
         />
       )}
+
+      {/* Remove Member Confirmation */}
+      <AlertDialog open={!!removeTarget} onOpenChange={(open) => !open && setRemoveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Remove {removeTarget?.display_name || removeTarget?.email}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Their calls will remain in the workspace.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmRemove}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Leave Workspace Confirmation */}
+      <AlertDialog open={leaveConfirmOpen} onOpenChange={setLeaveConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Leave this workspace?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You will lose access to all calls in this workspace. You can only rejoin if re-invited.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmLeave}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Leave Workspace
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
