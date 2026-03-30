@@ -227,8 +227,8 @@ export function WorkspaceInviteDialog({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="member">Member (Read and organize access)</SelectItem>
-                    <SelectItem value="contributor">Contributor (Can add calls)</SelectItem>
-                    <SelectItem value="workspace_admin">Admin (Can manage members)</SelectItem>
+                    <SelectItem value="contributor">Contributor (Can add and route calls)</SelectItem>
+                    <SelectItem value="workspace_admin">Admin (Can manage members and settings)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
