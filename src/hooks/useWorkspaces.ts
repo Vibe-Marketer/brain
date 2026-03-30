@@ -47,9 +47,8 @@ export interface WorkspaceMember {
 const ROLE_ORDER: Record<WorkspaceRole, number> = {
   workspace_owner: 0,
   workspace_admin: 1,
-  manager: 2,
+  contributor: 2,
   member: 3,
-  guest: 4,
 }
 
 /**

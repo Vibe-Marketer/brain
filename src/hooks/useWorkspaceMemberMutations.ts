@@ -24,17 +24,15 @@ import type { WorkspaceRole } from '@/types/workspace'
 const ROLE_POWER: Record<WorkspaceRole, number> = {
   workspace_owner: 0,
   workspace_admin: 1,
-  manager: 2,
+  contributor: 2,
   member: 3,
-  guest: 4,
 }
 
 const ROLE_LABELS: Record<WorkspaceRole, string> = {
   workspace_owner: 'Owner',
   workspace_admin: 'Admin',
-  manager: 'Manager',
+  contributor: 'Contributor',
   member: 'Member',
-  guest: 'Guest',
 }
 
 /**

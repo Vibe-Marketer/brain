@@ -51,18 +51,16 @@ import type { WorkspaceRole } from '@/types/workspace'
 const ROLE_BADGE_STYLES: Record<WorkspaceRole, { bg: string; text: string; border: string }> = {
   workspace_owner: { bg: 'bg-vibe-orange/10', text: 'text-vibe-orange', border: 'border-vibe-orange/20' },
   workspace_admin: { bg: 'bg-blue-500/10', text: 'text-blue-500', border: 'border-blue-500/20' },
-  manager: { bg: 'bg-emerald-500/10', text: 'text-emerald-500', border: 'border-emerald-500/20' },
+  contributor: { bg: 'bg-emerald-500/10', text: 'text-emerald-500', border: 'border-emerald-500/20' },
   member: { bg: 'bg-muted/50', text: 'text-muted-foreground', border: 'border-border/50' },
-  guest: { bg: 'bg-muted/30', text: 'text-muted-foreground/80', border: 'border-border/30' },
 }
 
 /** Human-readable role labels */
 const ROLE_LABELS: Record<WorkspaceRole, string> = {
   workspace_owner: 'Owner',
   workspace_admin: 'Admin',
-  manager: 'Manager',
+  contributor: 'Contributor',
   member: 'Member',
-  guest: 'Guest',
 }
 
 export interface WorkspaceMemberPanelProps {

@@ -13,7 +13,7 @@ export type OrganizationRole = 'organization_owner' | 'organization_admin' | 'or
 
 // Workspace types - personal + team fully implemented, youtube for video intelligence, others schema only
 export type WorkspaceType = 'personal' | 'team' | 'coach' | 'community' | 'client' | 'youtube'
-export type WorkspaceRole = 'workspace_owner' | 'workspace_admin' | 'manager' | 'member' | 'guest'
+export type WorkspaceRole = 'workspace_owner' | 'workspace_admin' | 'contributor' | 'member'
 
 // Folder visibility within workspaces
 export type FolderVisibility = 'all_members' | 'managers_only' | 'owner_only'
@@ -95,7 +95,7 @@ export interface WorkspaceInvitation {
   workspace_id: string
   invited_by: string
   email: string
-  role: 'member' | 'manager' | 'workspace_admin'
+  role: 'member' | 'contributor' | 'workspace_admin'
   token: string
   status: 'pending' | 'accepted' | 'revoked' | 'expired'
   expires_at: string

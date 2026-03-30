@@ -59,7 +59,7 @@ export function WorkspaceInviteDialog({
   
   // Email State
   const [email, setEmail] = useState('')
-  const [role, setRole] = useState<'member' | 'manager' | 'workspace_admin'>('member')
+  const [role, setRole] = useState<'member' | 'contributor' | 'workspace_admin'>('member')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const generateInvite = useGenerateWorkspaceInvite(workspaceId)
@@ -221,14 +221,14 @@ export function WorkspaceInviteDialog({
 
               <div className="space-y-2">
                 <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={(v) => setRole(v as 'member' | 'manager' | 'workspace_admin')}>
+                <Select value={role} onValueChange={(v) => setRole(v as 'member' | 'contributor' | 'workspace_admin')}>
                   <SelectTrigger id="role focus:ring-vibe-orange">
                     <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="member">Member (Can view/add calls)</SelectItem>
-                    <SelectItem value="manager">Manager (Can manage folders)</SelectItem>
-                    <SelectItem value="workspace_admin">Workspace Admin (Can manage members)</SelectItem>
+                    <SelectItem value="member">Member (Read and organize access)</SelectItem>
+                    <SelectItem value="contributor">Contributor (Can add calls)</SelectItem>
+                    <SelectItem value="workspace_admin">Admin (Can manage members)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

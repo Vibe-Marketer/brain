@@ -25,7 +25,6 @@ import {
   RiUserLine,
   RiGroupLine,
   RiVipCrownLine,
-  RiEyeLine,
 } from '@remixicon/react'
 import type { WorkspaceRole } from '@/types/workspace'
 
@@ -35,12 +34,16 @@ interface ChangeRoleDialogProps {
   memberName: string
   currentRole: WorkspaceRole
   currentUserRole: WorkspaceRole
+  /** user_id of the member being edited — used for owner self-demotion guard */
+  targetUserId?: string
+  /** user_id of the currently authenticated user */
+  currentUserId?: string
   isLastAdmin?: boolean
   onConfirm: (newRole: WorkspaceRole) => void
   isLoading?: boolean
 }
 
-/** All workspace roles in hierarchy order */
+/** All workspace roles in hierarchy order (4-role v2.0 model) */
 const WORKSPACE_ROLES: Array<{
   value: WorkspaceRole
   label: string
@@ -63,34 +66,26 @@ const WORKSPACE_ROLES: Array<{
     power: 1,
   },
   {
-    value: 'manager',
-    label: 'Manager',
-    description: 'Can view all recordings and manage team members below them.',
+    value: 'contributor',
+    label: 'Contributor',
+    description: 'Can add and route calls to workspace. Calls permanently copied to owner\'s account.',
     icon: RiGroupLine,
     power: 2,
   },
   {
     value: 'member',
     label: 'Member',
-    description: 'Can view and interact with workspace recordings.',
+    description: 'Read and organize access only. On removal, owner decides call retention.',
     icon: RiUserLine,
     power: 3,
-  },
-  {
-    value: 'guest',
-    label: 'Guest',
-    description: 'Limited access. Can view shared recordings only.',
-    icon: RiEyeLine,
-    power: 4,
   },
 ]
 
 const ROLE_POWER: Record<WorkspaceRole, number> = {
   workspace_owner: 0,
   workspace_admin: 1,
-  manager: 2,
+  contributor: 2,
   member: 3,
-  guest: 4,
 }
 
 export function ChangeRoleDialog({
@@ -99,6 +94,8 @@ export function ChangeRoleDialog({
   memberName,
   currentRole,
   currentUserRole,
+  targetUserId,
+  currentUserId,
   isLastAdmin = false,
   onConfirm,
   isLoading = false,
@@ -115,6 +112,15 @@ export function ChangeRoleDialog({
   const hasChanged = selectedRole !== currentRole
   const currentRoleLabel = WORKSPACE_ROLES.find((role) => role.value === currentRole)?.label || currentRole
 
+  // Owner self-demotion guard: when the target is the current user AND their role is
+  // workspace_owner, hide the role selector entirely — owner role is permanent until
+  // explicit ownership transfer (deferred feature).
+  const isOwnerSelf =
+    currentRole === 'workspace_owner' &&
+    targetUserId !== undefined &&
+    currentUserId !== undefined &&
+    targetUserId === currentUserId
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-sm">
@@ -126,72 +132,80 @@ export function ChangeRoleDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-2 py-2">
-          {WORKSPACE_ROLES.map((role) => {
-            const Icon = role.icon
-            // Disable roles higher than current user's role
-            const isDisabled = role.power < currentUserPower
-            // workspace_owner transfer is not supported via this dialog
-            const isOwnerTransfer = role.value === 'workspace_owner' && currentRole !== 'workspace_owner'
-            const isLastAdminDemotion = currentRole === 'workspace_admin' && isLastAdmin && role.value !== 'workspace_admin'
-            const disabled = isDisabled || isOwnerTransfer || isLastAdminDemotion || isLoading
-            const isSelected = selectedRole === role.value
-            const isCurrent = currentRole === role.value
+        {isOwnerSelf ? (
+          <div className="py-4 px-3 rounded-lg bg-muted/40 border border-border text-sm text-muted-foreground">
+            Owner role cannot be changed. To transfer ownership, contact support.
+          </div>
+        ) : (
+          <div className="space-y-2 py-2">
+            {WORKSPACE_ROLES.map((role) => {
+              const Icon = role.icon
+              // Disable roles higher than current user's role
+              const isDisabled = role.power < currentUserPower
+              // workspace_owner transfer is not supported via this dialog
+              const isOwnerTransfer = role.value === 'workspace_owner' && currentRole !== 'workspace_owner'
+              const isLastAdminDemotion = currentRole === 'workspace_admin' && isLastAdmin && role.value !== 'workspace_admin'
+              const disabled = isDisabled || isOwnerTransfer || isLastAdminDemotion || isLoading
+              const isSelected = selectedRole === role.value
+              const isCurrent = currentRole === role.value
 
-            return (
-              <label
-                key={role.value}
-                className={cn(
-                  'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
-                  isSelected && !disabled
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:bg-muted/50',
-                  disabled && 'opacity-50 cursor-not-allowed'
-                )}
-              >
-                <input
-                  type="radio"
-                  name="workspace-role"
-                  value={role.value}
-                  checked={isSelected}
-                  onChange={() => !disabled && setSelectedRole(role.value)}
-                  disabled={disabled}
-                  className="sr-only"
-                />
-                <Icon
+              return (
+                <label
+                  key={role.value}
                   className={cn(
-                    'h-4 w-4 mt-0.5 flex-shrink-0',
-                    isSelected ? 'text-primary' : 'text-muted-foreground'
+                    'flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors',
+                    isSelected && !disabled
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:bg-muted/50',
+                    disabled && 'opacity-50 cursor-not-allowed'
                   )}
-                />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <Label className={cn(
-                      'text-sm font-medium',
-                      disabled && 'text-muted-foreground'
-                    )}>
-                      {role.label}
-                    </Label>
-                    {isCurrent && (
-                      <span className="text-2xs px-1.5 py-0 rounded-full bg-muted text-muted-foreground uppercase tracking-wider">
-                        Current
-                      </span>
+                >
+                  <input
+                    type="radio"
+                    name="workspace-role"
+                    value={role.value}
+                    checked={isSelected}
+                    onChange={() => !disabled && setSelectedRole(role.value)}
+                    disabled={disabled}
+                    className="sr-only"
+                  />
+                  <Icon
+                    className={cn(
+                      'h-4 w-4 mt-0.5 flex-shrink-0',
+                      isSelected ? 'text-primary' : 'text-muted-foreground'
                     )}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Label className={cn(
+                        'text-sm font-medium',
+                        disabled && 'text-muted-foreground'
+                      )}>
+                        {role.label}
+                      </Label>
+                      {isCurrent && (
+                        <span className="text-2xs px-1.5 py-0 rounded-full bg-muted text-muted-foreground uppercase tracking-wider">
+                          Current
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{role.description}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{role.description}</p>
-                </div>
-              </label>
-            )
-          })}
-        </div>
+                </label>
+              )
+            })}
+          </div>
+        )}
 
         <DialogFooter>
           <Button variant="hollow" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleConfirm} disabled={!hasChanged || isLoading}>
-            {isLoading ? 'Saving...' : 'Save Changes'}
-          </Button>
+          {!isOwnerSelf && (
+            <Button onClick={handleConfirm} disabled={!hasChanged || isLoading}>
+              {isLoading ? 'Saving...' : 'Save Changes'}
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>
