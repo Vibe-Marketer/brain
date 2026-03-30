@@ -23,7 +23,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { YouTubeVideoStats } from '@/components/youtube/YouTubeVideoStats'
-import { YouTubeChatSection } from '@/components/youtube/YouTubeChatSection'
+// TODO: YouTubeChatSection was deleted — restore when AI chat is wired back in
 import {
   RiTimeLine,
   RiCalendarLine,
@@ -253,13 +253,7 @@ export function YouTubeVideoDetailModal({
               )}
             </section>
 
-            {/* ─────── 4. Chat ─────── */}
-            <YouTubeChatSection
-              workspaceId={workspaceId}
-              recordingId={recording.legacy_recording_id ?? null}
-              videoTitle={recording.title || 'Untitled video'}
-              onClose={() => handleOpenChange(false)}
-            />
+            {/* ─────── 4. Chat (removed — restore when AI chat is wired back in) ─────── */}
           </div>
         </ScrollArea>
       </DialogContent>
