@@ -87,10 +87,11 @@ Plans:
   2. The target folder highlights visually during an active drag to indicate it is a valid drop zone
   3. Cmd+K (and/or a nav trigger) opens the global search modal; the modal is functional with debounced search input
   4. Global search modal returns only results from the current org — calls, transcripts, and summaries — with no cross-org leakage
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 13 to break down)
+- [ ] 13-01-PLAN.md — Wire drag-to-folder: make TranscriptTableRow draggable, add DragOverlay to TranscriptsNew
+- [ ] 13-02-PLAN.md — Rebuild GlobalSearchModal with Cmd+K shortcut and search button wiring
 
 ### Phase 14: Onboarding E2E
 **Goal**: A brand-new user can sign up, complete the onboarding wizard, connect at least one call source, and land in a correctly-rendered default workspace — entirely without assistance
@@ -174,7 +175,7 @@ Plans:
 | 1-10. Sort/Filter Hardening | v1.1 | - | Absorbed into v2.0 | - |
 | 11. Org Segregation + 4-Pane Foundation | v2.0 | 4/4 | Complete    | 2026-03-30 |
 | 12. Import Flows + Source Details | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 13. Drag-to-Folder + Global Search | v2.0 | 0/TBD | Not started | - |
+| 13. Drag-to-Folder + Global Search | v2.0 | 0/2 | Planned | - |
 | 14. Onboarding E2E | v2.0 | 0/TBD | Not started | - |
 | 15. Members & Roles | v2.0 | 0/TBD | Not started | - |
 | 16. Filters & Sort | v2.0 | 0/TBD | Not started | - |
@@ -187,3 +188,4 @@ Plans:
 *Updated: 2026-03-30 — v2.0 regenerated for 44 requirements: Phase 12 absorbs DETAIL-01; Phase 13 added for DND + SEARCH; Phase 18 renumbers from 17; FILTER renumbered 01-05*
 *Updated: 2026-03-30 — Phase 11 planned: 4 plans in 2 waves*
 *Updated: 2026-03-30 — Phase 12 planned: 2 plans in 1 wave (parallel)*
+*Updated: 2026-03-30 — Phase 13 planned: 2 plans in 1 wave (parallel)*
