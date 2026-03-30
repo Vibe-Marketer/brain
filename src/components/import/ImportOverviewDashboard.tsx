@@ -16,6 +16,7 @@ import {
   RiUploadCloud2Line,
   RiAlertLine,
 } from '@remixicon/react';
+import { Button } from '@/components/ui/button';
 import type { ImportSource, FailedImport } from '@/services/import-sources.service';
 
 interface SourceDef {
@@ -42,7 +43,7 @@ function deriveSourceStatus(
   sources: ImportSource[],
   sourceApp: string,
 ): 'connected' | 'error' | 'setup-needed' {
-  if (sourceApp === 'file-upload') return 'connected';
+  if (sourceApp === 'file-upload' || sourceApp === 'youtube') return 'connected';
   const row = sources.find((s) => s.source_app === sourceApp);
   if (!row) return 'setup-needed';
   if (row.error_message) return 'error';
@@ -75,9 +76,14 @@ export function ImportOverviewDashboard({
               {failedImports.length} failed import
               {failedImports.length !== 1 ? 's' : ''} need attention
             </p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Select a source from the sidebar to review and retry failed imports.
-            </p>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 px-0 h-auto font-medium mt-0.5"
+              onClick={() => onSelectSource('import-history')}
+            >
+              Review &amp; retry failed imports →
+            </Button>
           </div>
         </div>
       )}
