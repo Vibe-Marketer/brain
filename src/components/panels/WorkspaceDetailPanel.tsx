@@ -5,32 +5,36 @@
  * - Workspace name editing (inline or input)
  * - Is Default toggle
  * - Member list with invitations
- * - Workspace settings (share link TTL, etc)
+ * - Advanced settings: workspace info, danger zone (Owner-only)
  *
  * @pattern detail-panel
  * @brand-version v4.2
  */
 
 import { useState, useCallback } from 'react'
+import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { 
-  RiSafeLine, 
-  RiCloseLine, 
-  RiGroupLine, 
+import {
+  RiSafeLine,
+  RiCloseLine,
+  RiGroupLine,
   RiSettings3Line,
   RiCheckLine,
   RiPencilLine,
-  RiArrowRightSLine 
+  RiAlertLine,
+  RiChevronDownLine,
+  RiChevronRightLine,
 } from '@remixicon/react'
 import { usePanelStore } from '@/stores/panelStore'
-import { useWorkspaceDetail, useWorkspaces } from '@/hooks/useWorkspaces'
+import { useWorkspaceDetail } from '@/hooks/useWorkspaces'
 import { useUpdateWorkspace, useSetDefaultWorkspace } from '@/hooks/useWorkspaceMutations'
 import { WorkspaceMemberPanel } from '@/components/panels/WorkspaceMemberPanel'
+import { DeleteWorkspaceDialog } from '@/components/dialogs/DeleteWorkspaceDialog'
 
 export interface WorkspaceDetailPanelProps {
   workspaceId: string
@@ -45,6 +49,8 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
   // Track local edits
   const [isEditingName, setIsEditingName] = useState(false)
   const [editedName, setEditedName] = useState('')
+  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   
   const handleEditName = useCallback(() => {
     if (workspace) {
@@ -188,25 +194,87 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
              </div>
           </section>
           
-          {/* Advanced Settings Link (to Settings tab) */}
-          <div className="pt-2">
-            <Button
-              variant="outline"
-              className="w-full justify-between h-10 px-4 rounded-xl text-xs font-bold group"
-              onClick={() => {
-                // Navigate to Settings? Or open Settings panel?
-                // For now just keep it as a placeholder for "Workspace Settings"
-              }}
+          {/* Advanced Settings Section */}
+          <section className="space-y-3">
+            <button
+              type="button"
+              className="w-full flex items-center justify-between text-left focus:outline-none"
+              onClick={() => setAdvancedOpen((v) => !v)}
+              aria-expanded={advancedOpen}
             >
-              <div className="flex items-center gap-2">
-                <RiSettings3Line className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                <RiSettings3Line className="h-3 w-3" />
                 Advanced Settings
+              </h4>
+              {advancedOpen
+                ? <RiChevronDownLine className="h-3.5 w-3.5 text-muted-foreground" />
+                : <RiChevronRightLine className="h-3.5 w-3.5 text-muted-foreground" />
+              }
+            </button>
+
+            {advancedOpen && (
+              <div className="space-y-4">
+                {/* Workspace Info subsection */}
+                <div className="border border-border/40 rounded-2xl p-4 space-y-3 bg-card/20">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                    Workspace Info
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Type</span>
+                      <Badge variant="secondary" className="text-[10px] capitalize">
+                        {workspace.workspace_type}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">Created</span>
+                      <span className="text-xs text-foreground tabular-nums">
+                        {format(new Date(workspace.created_at), 'MMM d, yyyy')}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Danger Zone — Owner-only, hidden for non-owners */}
+                {workspace.user_role === 'workspace_owner' && (
+                  <div className="bg-destructive/5 border border-destructive/20 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <RiAlertLine className="h-4 w-4 text-destructive flex-shrink-0" />
+                      <p className="text-[10px] font-black uppercase tracking-widest text-destructive">
+                        Danger Zone
+                      </p>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Deleting this workspace is permanent and cannot be undone.
+                    </p>
+                    {workspace.is_default ? (
+                      <p className="text-xs text-muted-foreground italic">
+                        Default workspaces cannot be deleted.
+                      </p>
+                    ) : (
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        className="w-full"
+                        onClick={() => setDeleteDialogOpen(true)}
+                      >
+                        Delete Workspace
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
-              <RiArrowRightSLine className="h-4 w-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
-            </Button>
-          </div>
+            )}
+          </section>
         </div>
       </ScrollArea>
+
+      {/* Delete Workspace Dialog */}
+      <DeleteWorkspaceDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        workspace={workspace}
+      />
     </div>
   )
 }
