@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { RiVideoLine } from "@remixicon/react";
+import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FilterButton } from "./FilterButton";
@@ -25,12 +27,35 @@ export function SourceFilterPopover({
   onSourcesChange,
   availableSources,
 }: SourceFilterPopoverProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  // Staged selections — only committed on Apply (mirrors TagFilterPopover pattern)
+  const [stagedSources, setStagedSources] = useState<string[]>(selectedSources);
+
+  // Sync staged state when popover opens
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      setStagedSources(selectedSources);
+    }
+    setIsOpen(open);
+  };
+
   const handleSourceToggle = (source: string, checked: boolean) => {
     if (checked) {
-      onSourcesChange([...selectedSources, source]);
+      setStagedSources([...stagedSources, source]);
     } else {
-      onSourcesChange(selectedSources.filter((s) => s !== source));
+      setStagedSources(stagedSources.filter((s) => s !== source));
     }
+  };
+
+  const handleApply = () => {
+    onSourcesChange(stagedSources);
+    setIsOpen(false);
+  };
+
+  const handleClear = () => {
+    setStagedSources([]);
+    onSourcesChange([]);
+    setIsOpen(false);
   };
 
   // If no available sources, don't render the filter at all
@@ -39,7 +64,7 @@ export function SourceFilterPopover({
   }
 
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <FilterButton
           icon={<RiVideoLine className="h-3.5 w-3.5" />}
@@ -52,14 +77,14 @@ export function SourceFilterPopover({
         <div className="p-4 pb-3">
           <div className="text-sm font-medium">Filter by Source</div>
         </div>
-        <div className="px-4 pb-4 space-y-3">
+        <div className="px-4 pb-3 space-y-3">
           {availableSources.map((source) => {
             const Icon = SOURCE_ICONS[source] ?? UploadIcon;
             return (
               <div key={source} className="flex items-center gap-2">
                 <Checkbox
                   id={`source-filter-${source}`}
-                  checked={selectedSources.includes(source)}
+                  checked={stagedSources.includes(source)}
                   onCheckedChange={(checked) => handleSourceToggle(source, !!checked)}
                 />
                 <label
@@ -72,6 +97,14 @@ export function SourceFilterPopover({
               </div>
             );
           })}
+        </div>
+        <div className="border-t p-3 flex justify-end gap-2">
+          <Button variant="hollow" size="sm" onClick={handleClear}>
+            Clear
+          </Button>
+          <Button size="sm" onClick={handleApply}>
+            Apply
+          </Button>
         </div>
       </PopoverContent>
     </Popover>

@@ -102,7 +102,7 @@ export function ContactsFilterPopover({
               ))
             )}
           </div>
-          <div className="flex justify-end gap-2 pt-2 border-t">
+          <div className="flex justify-end gap-2 border-t p-3">
             <Button variant="hollow" size="sm" onClick={handleClear}>
               Clear
             </Button>
