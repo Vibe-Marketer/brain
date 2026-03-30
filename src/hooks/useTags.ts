@@ -40,6 +40,7 @@ export function useTagCounts(orgId?: string) {
   return useQuery({
     queryKey: queryKeys.tags.counts(orgId),
     queryFn: () => getTagCounts(orgId),
+    enabled: !!orgId,
   })
 }
 
@@ -96,6 +97,7 @@ export function useTagRules(orgId?: string) {
   return useQuery({
     queryKey: queryKeys.tags.rules(orgId),
     queryFn: () => getTagRules(orgId),
+    enabled: !!orgId,
   })
 }
 

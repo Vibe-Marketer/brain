@@ -77,13 +77,22 @@ export async function deleteTag(tagId: string): Promise<void> {
 // ---------------------------------------------------------------------------
 
 export async function getTagCounts(orgId?: string): Promise<Record<string, number>> {
-  // orgId is accepted for cache-key scoping but the query fetches all
-  // assignments visible to the current user (RLS-filtered).
-  void orgId
+  // Filter by org: call_tag_assignments has no organization_id, but call_tags does.
+  // Strategy: fetch tag IDs for the org first (from getTags), then filter assignments
+  // to only count tags belonging to this org. This is the safest approach since
+  // call_tag_assignments links via tag_id FK to call_tags (ORG-02).
+  if (!orgId) return {}
+
+  // Get org-scoped tag IDs to filter assignments
+  const orgTags = await getTags(orgId)
+  const orgTagIds = orgTags.map((t) => t.id)
+
+  if (orgTagIds.length === 0) return {}
 
   const { data, error } = await supabase
     .from('call_tag_assignments')
     .select('tag_id')
+    .in('tag_id', orgTagIds)
 
   if (error) throw new Error(`Failed to fetch tag counts: ${error.message}`)
 
@@ -134,11 +143,28 @@ export interface TagRule {
 }
 
 export async function getTagRules(orgId?: string): Promise<TagRule[]> {
-  void orgId
+  // tag_rules has no organization_id column — filter by org via tag_id FK.
+  // Fetch tag IDs for the org, then only return rules that reference those tags.
+  // Rules with null tag_id (folder-only rules) are user-scoped via RLS (ORG-02).
+  if (!orgId) {
+    // Fallback: return all rules visible via RLS (safe for single-org users)
+    const { data, error } = await supabase
+      .from('tag_rules')
+      .select('*')
+      .order('priority')
+    if (error) throw new Error(`Failed to fetch tag rules: ${error.message}`)
+    return data as TagRule[]
+  }
 
+  // Get org-scoped tag IDs
+  const orgTags = await getTags(orgId)
+  const orgTagIds = orgTags.map((t) => t.id)
+
+  // Fetch rules that either reference an org tag, or have no tag_id (folder-only rules)
   const { data, error } = await supabase
     .from('tag_rules')
     .select('*')
+    .or(orgTagIds.length > 0 ? `tag_id.in.(${orgTagIds.join(',')}),tag_id.is.null` : 'tag_id.is.null')
     .order('priority')
 
   if (error) throw new Error(`Failed to fetch tag rules: ${error.message}`)

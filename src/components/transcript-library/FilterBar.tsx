@@ -1,3 +1,11 @@
+// ORG-02 Audit: All filter popover data is org-scoped
+// - Tags: useTags(orgId) → getTags(orgId) → .eq('organization_id', orgId) ✓
+// - Tag counts: useTagCounts(orgId) → getTagCounts(orgId) → filters by org tag IDs ✓
+// - Tag rules: useTagRules(orgId) → getTagRules(orgId) → filters by org tag IDs ✓
+// - Folders: useFolders(orgId) → getFolders(orgId) → .eq('organization_id', orgId) ✓
+// - Contacts: inline query in FilterBar → .eq('organization_id', activeOrganizationId) ✓
+// - Sources: useAvailableSources(orgId) → getAvailableSources(orgId) → .eq('organization_id', orgId) ✓
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useIsMobile } from "@/hooks/use-mobile";
