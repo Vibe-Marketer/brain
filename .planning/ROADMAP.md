@@ -51,7 +51,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
   1. A user in Org A sees zero calls, folders, tags, or contacts from Org B in any view, filter popover, or search result
   2. User can switch between organizations they belong to and the entire UI re-scopes to the selected org
   3. Connected accounts (Fathom, Zoom) remain available after org switch; imported data belongs to the org it was imported into
-  4. All major pages (Calls, Import, Members, Settings) follow the Sidebar→List→Workspace→Detail pane hierarchy with no overlapping or drawer-overlay patterns
+  4. All major pages (Calls, Import, Members, Settings) follow the Sidebar->List->Workspace->Detail pane hierarchy with no overlapping or drawer-overlay patterns
   5. Complex items (call detail, setup wizards) open as modals; simple config/preview appears in Pane 4
 **Plans**: 4 plans
 
@@ -72,10 +72,11 @@ Plans:
   4. YouTube URL import and file upload dropzone both work and deliver imported calls to the library
   5. User can connect or disconnect each source from the import page; failed imports show with a retry option
   6. Call detail view shows source-specific metadata — Zoom meeting ID and participants, Fathom call data, YouTube video stats, or Upload file info — depending on the call's source
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 12 to break down)
+- [ ] 12-01-PLAN.md — Wire Fathom/Zoom import detail UIs into Pane 3; add connect/disconnect header bars; surface failed imports in overview
+- [ ] 12-02-PLAN.md — Add Source Info section to call detail modal with per-source metadata rendering
 
 ### Phase 13: Drag-to-Folder + Global Search
 **Goal**: Users can drag calls into folders from the transcript table and open a working global search modal — both features existed in v1 and have all code assets; this phase is pure wiring
@@ -165,14 +166,14 @@ Plans:
 
 ## Progress
 
-**Execution Order:** 11 → 12 → 13 → 14 → 15 → 16 → 17 → 18
+**Execution Order:** 11 -> 12 -> 13 -> 14 -> 15 -> 16 -> 17 -> 18
 (Note: Phases 13, 15, 16, 17, 18 all depend on Phase 11 and can run in parallel after Phase 11 completes. Phase 14 requires Phase 12.)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1-10. Sort/Filter Hardening | v1.1 | - | Absorbed into v2.0 | - |
 | 11. Org Segregation + 4-Pane Foundation | v2.0 | 4/4 | Complete    | 2026-03-30 |
-| 12. Import Flows + Source Details | v2.0 | 0/TBD | Not started | - |
+| 12. Import Flows + Source Details | v2.0 | 0/2 | Planned | - |
 | 13. Drag-to-Folder + Global Search | v2.0 | 0/TBD | Not started | - |
 | 14. Onboarding E2E | v2.0 | 0/TBD | Not started | - |
 | 15. Members & Roles | v2.0 | 0/TBD | Not started | - |
@@ -185,3 +186,4 @@ Plans:
 *Updated: 2026-03-30 — v2.0 Launch Readiness phases 11-17 added*
 *Updated: 2026-03-30 — v2.0 regenerated for 44 requirements: Phase 12 absorbs DETAIL-01; Phase 13 added for DND + SEARCH; Phase 18 renumbers from 17; FILTER renumbered 01-05*
 *Updated: 2026-03-30 — Phase 11 planned: 4 plans in 2 waves*
+*Updated: 2026-03-30 — Phase 12 planned: 2 plans in 1 wave (parallel)*
