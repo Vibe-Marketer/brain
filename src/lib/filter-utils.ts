@@ -25,6 +25,7 @@ export interface FilterState {
   tags?: string[];
   folders?: string[];
   sources?: string[];
+  status?: string[];
 }
 
 export interface SearchSyntax {
@@ -36,6 +37,7 @@ export interface SearchSyntax {
     tag?: string[];
     folder?: string[];
     source?: string[];
+    status?: string[];
   };
 }
 
@@ -91,6 +93,10 @@ export function parseSearchSyntax(query: string): SearchSyntax {
         case 'src':
           if (!result.filters.source) result.filters.source = [];
           result.filters.source.push(value);
+          break;
+        case 'status':
+          if (!result.filters.status) result.filters.status = [];
+          result.filters.status.push(value);
           break;
         default:
           plainTextParts.push(part);
@@ -179,6 +185,9 @@ export function syntaxToFilters(syntax: SearchSyntax): Partial<FilterState> {
   if (syntax.filters.source && syntax.filters.source.length > 0) {
     filters.sources = syntax.filters.source;
   }
+  if (syntax.filters.status && syntax.filters.status.length > 0) {
+    filters.status = syntax.filters.status;
+  }
 
   return filters;
 }
@@ -213,6 +222,9 @@ export function filtersToURLParams(filters: Partial<FilterState>): URLSearchPara
   if (filters.sources && filters.sources.length > 0) {
     params.set('sources', filters.sources.join(','));
   }
+  if (filters.status && filters.status.length > 0) {
+    params.set('status', filters.status.join(','));
+  }
 
   return params;
 }
@@ -240,6 +252,9 @@ export function urlParamsToFilters(params: URLSearchParams): Partial<FilterState
   if (tags) filters.tags = tags.split(',');
   if (folders) filters.folders = folders.split(',');
   if (sources) filters.sources = sources.split(',');
+
+  const status = params.get('status');
+  if (status) filters.status = status.split(',');
 
   return filters;
 }

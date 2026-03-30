@@ -306,6 +306,8 @@ export function TranscriptsTab({
       tags: mergedTags.length > 0 ? mergedTags : undefined,
       folders: mergedFolders.length > 0 ? mergedFolders : undefined,
       sources: mergedSources.length > 0 ? mergedSources : undefined,
+      // Status filter: from inline search syntax only (status:synced / status:unsynced)
+      status: syntax.filters.status && syntax.filters.status.length > 0 ? syntax.filters.status : undefined,
     };
   }, [syntax, filters, tags, folders]);
 
@@ -481,6 +483,20 @@ export function TranscriptsTab({
             if (durationMinutes === null) return true;
             if (combinedFilters.durationMin !== undefined && durationMinutes < combinedFilters.durationMin) return false;
             if (combinedFilters.durationMax !== undefined && durationMinutes > combinedFilters.durationMax) return false;
+            return true;
+          });
+        }
+
+        // Status filter — client-side filter by synced field
+        // 'synced' means meeting.synced === true
+        // 'unsynced' means meeting.synced === false or null/undefined
+        if (combinedFilters.status && combinedFilters.status.length > 0) {
+          const statusSet = new Set(combinedFilters.status);
+          mappedRecordings = mappedRecordings.filter((call: any) => {
+            const isSynced = call.synced === true;
+            if (statusSet.has('synced') && statusSet.has('unsynced')) return true; // both = no filter
+            if (statusSet.has('synced')) return isSynced;
+            if (statusSet.has('unsynced')) return !isSynced;
             return true;
           });
         }
@@ -784,6 +800,10 @@ export function TranscriptsTab({
       if (combinedFilters.sources && combinedFilters.sources.length > 0) {
         q = q.in('source_app', combinedFilters.sources);
       }
+
+      // Status filter — filter by synced field
+      // Note: 'synced' is not a DB column in recordings — it comes from source_metadata or synced_at presence.
+      // We do this client-side after the query returns results.
 
       // Participant filter — two passes: exact email (panel) and ILIKE name/email (syntax)
       if (activeOrganizationId) {

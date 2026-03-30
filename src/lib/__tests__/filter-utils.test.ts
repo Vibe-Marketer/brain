@@ -36,10 +36,28 @@ describe('parseSearchSyntax', () => {
     expect(result3.filters.duration).toBe('30-60');
   });
 
-  it('should treat status: as plain text (status filter removed)', () => {
+  it('should parse status:synced as a filter (not plain text)', () => {
+    const result = parseSearchSyntax('status:synced');
+    expect(result.filters.status).toEqual(['synced']);
+    expect(result.plainText).toBe('');
+  });
+
+  it('should parse status:unsynced as a filter', () => {
+    const result = parseSearchSyntax('status:unsynced');
+    expect(result.filters.status).toEqual(['unsynced']);
+    expect(result.plainText).toBe('');
+  });
+
+  it('should parse status: filter alongside plain text', () => {
+    const result = parseSearchSyntax('status:synced meeting notes');
+    expect(result.filters.status).toEqual(['synced']);
+    expect(result.plainText).toBe('meeting notes');
+  });
+
+  it('should parse multiple status: values', () => {
     const result = parseSearchSyntax('status:synced status:unsynced');
-    expect(result.filters).not.toHaveProperty('status');
-    expect(result.plainText).toBe('status:synced status:unsynced');
+    expect(result.filters.status).toEqual(['synced', 'unsynced']);
+    expect(result.plainText).toBe('');
   });
 
   it('should parse tag filter with tag: prefix', () => {
@@ -93,6 +111,42 @@ describe('parseSearchSyntax', () => {
     expect(result.filters.date).toBe('today');
     expect(result.filters.tag).toEqual(['important']);
     expect(result.plainText).toBe('meeting');
+  });
+});
+
+describe('syntaxToFilters - Status Filter', () => {
+  it('should convert status:synced to FilterState.status', () => {
+    const syntax = parseSearchSyntax('status:synced');
+    const filters = syntaxToFilters(syntax);
+    expect(filters.status).toEqual(['synced']);
+  });
+
+  it('should convert status:unsynced to FilterState.status', () => {
+    const syntax = parseSearchSyntax('status:unsynced');
+    const filters = syntaxToFilters(syntax);
+    expect(filters.status).toEqual(['unsynced']);
+  });
+});
+
+describe('URL Persistence - Status Filter', () => {
+  it('should serialize status filter to URL params', () => {
+    const filters: Partial<FilterState> = { status: ['synced'] };
+    const params = filtersToURLParams(filters);
+    expect(params.get('status')).toBe('synced');
+  });
+
+  it('should deserialize status from URL params', () => {
+    const params = new URLSearchParams();
+    params.set('status', 'synced,unsynced');
+    const filters = urlParamsToFilters(params);
+    expect(filters.status).toEqual(['synced', 'unsynced']);
+  });
+
+  it('should handle status round-trip', () => {
+    const original: Partial<FilterState> = { status: ['synced'] };
+    const params = filtersToURLParams(original);
+    const restored = urlParamsToFilters(params);
+    expect(restored.status).toEqual(original.status);
   });
 });
 
