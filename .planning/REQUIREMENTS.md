@@ -1,213 +1,123 @@
-# Requirements: Callvault — Sort & Filter Fix
+# Requirements: CallVault — Launch Readiness
 
-**Milestone:** v1.1 — Sort/Filter Hardening
-**Defined:** 2026-03-15
-**Core Value:** Every user can instantly find any call by any combination of filters — all results strictly scoped to their organization.
+**Milestone:** v2.0 — Launch Readiness
+**Defined:** 2026-03-30
+**Core Value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
 
----
+## v2.0 Requirements
 
-## v1.1 Requirements
+### Onboarding
 
-### Org Scoping (Critical)
+- [ ] **ONBOARD-01**: New user can sign up (email, Google, or magic link) and land in onboarding wizard
+- [ ] **ONBOARD-02**: Onboarding wizard guides user to connect at least one call source (Fathom, Zoom, or YouTube)
+- [ ] **ONBOARD-03**: After onboarding, user lands in default workspace with correct 4-pane layout
 
-- [ ] **SCOPE-01**: All filter popover queries include org_id so results only show data from the current organization
-- [ ] **SCOPE-02**: Global search modal results are scoped to current org_id only
-- [ ] **SCOPE-03**: Inline search syntax filters (participant:, tag:, folder:, source:, duration:, date:, status:) apply only within current org
-- [ ] **SCOPE-04**: Contact/participant autocomplete in ContactsFilterPopover only shows people from the current org's calls
+### Imports
 
-### Participant / Contact Filter
+- [ ] **IMPORT-01**: Import page lists sources (Fathom, Zoom, YouTube, Upload) in Pane 2 as selectable items
+- [ ] **IMPORT-02**: Selecting Fathom in Pane 2 shows search/select/import detail UI in Pane 3
+- [ ] **IMPORT-03**: Selecting Zoom in Pane 2 shows search/select/import detail UI in Pane 3
+- [ ] **IMPORT-04**: Selecting YouTube in Pane 2 shows URL import form in Pane 3
+- [ ] **IMPORT-05**: Selecting Upload in Pane 2 shows file upload dropzone in Pane 3
+- [ ] **IMPORT-06**: Zoom import enabled for all users (no feature flag)
+- [ ] **IMPORT-07**: User can connect/disconnect each source from the import page
+- [ ] **IMPORT-08**: Failed imports visible with retry capability
 
-- [ ] **CONTACT-01**: User can filter calls by participant name (attendee, speaker, or invitee)
-- [ ] **CONTACT-02**: User can filter calls by participant email address
-- [ ] **CONTACT-03**: ContactsFilterPopover search matches on both name AND email simultaneously
-- [ ] **CONTACT-04**: Inline search syntax `participant:email@example.com` and `p:John` both resolve correctly
-- [ ] **CONTACT-05**: Participant filter shows the correct count of matching calls
+### 4-Pane Architecture
 
-### Filter Stacking
+- [ ] **PANE-01**: All major pages follow Sidebar→List→Workspace→Detail hierarchy
+- [ ] **PANE-02**: Import page uses Pane 2 for source list selection
+- [ ] **PANE-03**: Complex/dynamic items (call detail, setup wizards) open as modals
+- [ ] **PANE-04**: Pane 4 shows simple config/detail; complex items escalate to modal
 
-- [ ] **STACK-01**: Applying a Tags filter then a Contacts filter returns calls matching BOTH criteria (AND logic)
-- [ ] **STACK-02**: Applying Source + Duration filters returns only calls from that source within that duration range
-- [ ] **STACK-03**: Applying Folder + Tags + Contacts simultaneously returns correct intersection
-- [ ] **STACK-04**: Date range + any other filter stacks correctly
-- [ ] **STACK-05**: All 6 filter types (Tags, Folders, Contacts, Duration, Source, Date) can be active simultaneously
+### Org Segregation
 
-### Individual Filter Removal
+- [ ] **ORG-01**: All database queries filter by current org_id (no cross-org data leakage)
+- [ ] **ORG-02**: Filter popovers (Tags, Folders, Contacts, Duration, Source, Date) only show org-scoped data
+- [ ] **ORG-03**: Search (global modal + inline syntax) returns only current org results
+- [ ] **ORG-04**: User can switch between organizations they belong to
+- [ ] **ORG-05**: Connected accounts shared across orgs; imported data is org-scoped
 
-- [ ] **REMOVE-01**: Clicking X on a filter pill removes only that filter, all others remain active
-- [ ] **REMOVE-02**: "Clear all" button removes all filters simultaneously
-- [ ] **REMOVE-03**: Reopening a filter popover after partial clear shows correct current state
-- [ ] **REMOVE-04**: URL params update correctly when a single filter is removed
+### Members & Roles
 
-### Tags Filter
+- [ ] **MEMBER-01**: Owner has full control (manage members, delete workspace, manage all calls)
+- [ ] **MEMBER-02**: Admin has owner-equivalent permissions, added by owner
+- [ ] **MEMBER-03**: Contributor can route/add calls to workspace; calls permanently copied to owner's account
+- [ ] **MEMBER-04**: Member has read/organize access; on removal, owner decides call retention
+- [ ] **MEMBER-05**: Owner/Admin can invite via email with role selection
+- [ ] **MEMBER-06**: Invite generates shareable link (token-based)
+- [ ] **MEMBER-07**: Invited user can join via email link (new or existing account)
+- [ ] **MEMBER-08**: Owner/Admin can remove members from workspace
+- [ ] **MEMBER-09**: Owner/Admin can change member roles after initial invite
+- [ ] **MEMBER-10**: Non-default workspaces can be deleted
+- [ ] **MEMBER-11**: Advanced settings panel in Pane 4 is functional
+- [ ] **MEMBER-12**: Workspace creation with type selection works
 
-- [ ] **TAG-01**: TagFilterPopover correctly fetches and displays tags for current org only
-- [ ] **TAG-02**: Selecting one or more tags filters the transcript list to calls with ALL selected tags
-- [ ] **TAG-03**: Tag filter search within popover works (by name/description)
-- [ ] **TAG-04**: Tag filter Apply button applies without closing the page context
-- [ ] **TAG-05**: Tag filter Clear button resets tag selection only
+### Filters, Sort & Search
 
-### Folder Filter
+- [ ] **FILTER-01**: All filter popovers correctly apply and clear state
+- [ ] **FILTER-02**: Multiple filters stack with AND logic
+- [ ] **FILTER-03**: Individual filter removal via pill without affecting others
+- [ ] **FILTER-04**: All sort columns work correctly in both directions with indicators
+- [ ] **FILTER-05**: Search bar and global search modal return org-scoped results
+- [ ] **FILTER-06**: Inline search syntax operators work (participant:, tag:, folder:, source:, duration:, date:, status:)
 
-- [ ] **FOLDER-01**: FolderFilterPopover shows only folders belonging to current org
-- [ ] **FOLDER-02**: Selecting a parent folder includes calls in child folders
-- [ ] **FOLDER-03**: "Unorganized" option filters to calls not assigned to any folder
-- [ ] **FOLDER-04**: Folder filter displays correct call count per folder
-- [ ] **FOLDER-05**: Folder filter search by name works correctly
+### Payments & Billing
 
-### Duration Filter
+- [ ] **PAY-01**: Free/Pro/Team plans display correctly with pricing
+- [ ] **PAY-02**: User can upgrade from Free to Pro or Team via Polar checkout
+- [ ] **PAY-03**: 14-day Pro trial works for new signups
+- [ ] **PAY-04**: User can cancel subscription from billing settings
+- [ ] **PAY-05**: AI usage limits enforced per tier (Free: 25, Pro: 1000, Team: 5000/month)
+- [ ] **PAY-06**: User can see current AI usage/credit count in billing settings
+- [ ] **PAY-07**: Polar webhooks process subscription events correctly
 
-- [ ] **DUR-01**: "Less than X minutes" mode correctly filters calls shorter than threshold
-- [ ] **DUR-02**: "More than X minutes" mode correctly filters calls longer than threshold
-- [ ] **DUR-03**: Custom range slider (min/max) returns only calls within that range
-- [ ] **DUR-04**: Duration filter Clear resets to no duration constraint
+### MCP
 
-### Source Filter
+- [ ] **MCP-01**: Each organization can have one MCP server issued
+- [ ] **MCP-02**: MCP server scoped to organization data only
+- [ ] **MCP-03**: MCP can read calls, search, and perform core operations within org scope
+- [ ] **MCP-04**: MCP OAuth consent flow works end-to-end
 
-- [ ] **SRC-01**: SourceFilterPopover only shows sources that exist in the current org's calls
-- [ ] **SRC-02**: Selecting Fathom shows only Fathom-sourced calls
-- [ ] **SRC-03**: Selecting multiple sources returns calls from ANY of the selected sources (OR logic)
-- [ ] **SRC-04**: Source filter pill shows selected source names correctly
+## Future Requirements (Post-Launch)
 
-### Date Range Filter
+### AI Chat
 
-- [ ] **DATE-01**: Setting dateFrom filters to calls on or after that date
-- [ ] **DATE-02**: Setting dateTo filters to calls on or before that date
-- [ ] **DATE-03**: Setting both dateFrom and dateTo returns calls within the range (inclusive)
-- [ ] **DATE-04**: Inline `date:today`, `date:this week`, `date:this month` presets work correctly
+- **CHAT-01**: User can open a simple chat interface
+- **CHAT-02**: User can attach 1-3 call transcripts to the chat
+- **CHAT-03**: User can converse about attached calls
+- **CHAT-04**: Chat uses AI credits from user's tier allowance
+- **CHAT-05**: User can add/remove transcripts from active chat
 
-### Sorting
+### Ideas
 
-- [ ] **SORT-01**: Clicking Title column sorts calls alphabetically (asc/desc toggles correctly)
-- [ ] **SORT-02**: Clicking Date column sorts by recording date (asc/desc toggles correctly)
-- [ ] **SORT-03**: Clicking Duration column sorts by call length (asc/desc toggles correctly)
-- [ ] **SORT-04**: Clicking Participants column sorts by participant count (asc/desc toggles correctly)
-- [ ] **SORT-05**: Clicking Source column sorts by source platform alphabetically (asc/desc)
-- [ ] **SORT-06**: Sorting works correctly when filters are also active (sorted filtered results)
-- [ ] **SORT-07**: Active sort column shows direction indicator (up/down arrow) correctly
-
-### Search
-
-- [ ] **SEARCH-01**: Main search bar returns only calls from current org
-- [ ] **SEARCH-02**: Global search modal returns only calls from current org
-- [ ] **SEARCH-03**: Search results respect active filters (search within filtered set)
-- [ ] **SEARCH-04**: Inline `participant:name` syntax filters correctly by participant
-- [ ] **SEARCH-05**: Inline `tag:name` syntax filters correctly by tag
-- [ ] **SEARCH-06**: Inline `folder:name` syntax filters correctly by folder
-- [ ] **SEARCH-07**: Inline `source:platform` syntax filters correctly by source
-- [ ] **SEARCH-08**: Inline `duration:>30` and `duration:<60` syntax works correctly
-- [ ] **SEARCH-09**: Inline `date:today`, `date:this week`, `date:this month` work correctly
-- [ ] **SEARCH-10**: Inline `status:synced` and `status:unsynced` work correctly
-
-### E2E Test Coverage
-
-- [ ] **TEST-01**: Playwright test covers each filter in isolation (all 6 filter types)
-- [ ] **TEST-02**: Playwright test covers filter stacking (at least 3-filter combination)
-- [ ] **TEST-03**: Playwright test covers individual filter removal
-- [ ] **TEST-04**: Playwright test covers all 5 sort columns
-- [ ] **TEST-05**: Playwright test covers sort + filter combination
-- [ ] **TEST-06**: Playwright test covers org isolation (no cross-org data leaks)
-- [ ] **TEST-07**: Playwright test covers inline search syntax (key variants)
-
----
-
-## v2 Requirements (Deferred)
-
-### Advanced Search
-- **SRCH-ADV-01**: Saved searches / search presets
-- **SRCH-ADV-02**: Boolean search operators (AND/OR/NOT) in search bar
-- **SRCH-ADV-03**: Search history autocomplete
-
-### Analytics Filters
-- **ANLYT-01**: Analytics filter bar time range scoped per org
-- **ANLYT-02**: Analytics chart visibility settings persisted per user
-
----
+- **IDEA-01**: Import from other users as a source (like Fathom/Zoom import but for shared calls)
+- **IDEA-02**: Ownership transfer for workspaces
 
 ## Out of Scope
 
 | Feature | Reason |
 |---------|--------|
-| Cross-org admin search | Would intentionally break org isolation — separate admin feature |
-| Fuzzy/semantic search improvements | Separate AI feature track |
-| Mobile-optimized filter UI | Future milestone |
-| Filter presets / saved views | v2 feature |
-
----
+| Real-time collaboration | Future milestone |
+| Mobile native app | Future milestone |
+| Cross-org admin view | Breaks org isolation intentionally |
+| Advanced AI features beyond simple chat | Post-launch |
+| Stripe integration | Using Polar — Stripe keys are legacy |
+| Payment history / invoices UI | Handled by Polar dashboard |
+| Refund handling | Handled by Polar dashboard |
+| Workspace types beyond personal/team | Schema exists, defer UI |
 
 ## Traceability
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SCOPE-01 | Phase 1 | Pending |
-| SCOPE-02 | Phase 1 | Pending |
-| SCOPE-03 | Phase 1 | Pending |
-| SCOPE-04 | Phase 1 | Pending |
-| TAG-01 | Phase 2 | Pending |
-| TAG-02 | Phase 2 | Pending |
-| TAG-03 | Phase 2 | Pending |
-| TAG-04 | Phase 2 | Pending |
-| TAG-05 | Phase 2 | Pending |
-| FOLDER-01 | Phase 2 | Pending |
-| FOLDER-02 | Phase 2 | Pending |
-| FOLDER-03 | Phase 2 | Pending |
-| FOLDER-04 | Phase 2 | Pending |
-| FOLDER-05 | Phase 2 | Pending |
-| CONTACT-01 | Phase 2 | Pending |
-| CONTACT-02 | Phase 2 | Pending |
-| CONTACT-03 | Phase 2 | Pending |
-| CONTACT-04 | Phase 2 | Pending |
-| CONTACT-05 | Phase 2 | Pending |
-| DUR-01 | Phase 2 | Pending |
-| DUR-02 | Phase 2 | Pending |
-| DUR-03 | Phase 2 | Pending |
-| DUR-04 | Phase 2 | Pending |
-| SRC-01 | Phase 2 | Pending |
-| SRC-02 | Phase 2 | Pending |
-| SRC-03 | Phase 2 | Pending |
-| SRC-04 | Phase 2 | Pending |
-| DATE-01 | Phase 2 | Pending |
-| DATE-02 | Phase 2 | Pending |
-| DATE-03 | Phase 2 | Pending |
-| DATE-04 | Phase 2 | Pending |
-| STACK-01 | Phase 3 | Pending |
-| STACK-02 | Phase 3 | Pending |
-| STACK-03 | Phase 3 | Pending |
-| STACK-04 | Phase 3 | Pending |
-| STACK-05 | Phase 3 | Pending |
-| REMOVE-01 | Phase 3 | Pending |
-| REMOVE-02 | Phase 3 | Pending |
-| REMOVE-03 | Phase 3 | Pending |
-| REMOVE-04 | Phase 3 | Pending |
-| SORT-01 | Phase 4 | Pending |
-| SORT-02 | Phase 4 | Pending |
-| SORT-03 | Phase 4 | Pending |
-| SORT-04 | Phase 4 | Pending |
-| SORT-05 | Phase 4 | Pending |
-| SORT-06 | Phase 4 | Pending |
-| SORT-07 | Phase 4 | Pending |
-| SEARCH-01 | Phase 5 | Pending |
-| SEARCH-02 | Phase 5 | Pending |
-| SEARCH-03 | Phase 5 | Pending |
-| SEARCH-04 | Phase 5 | Pending |
-| SEARCH-05 | Phase 5 | Pending |
-| SEARCH-06 | Phase 5 | Pending |
-| SEARCH-07 | Phase 5 | Pending |
-| SEARCH-08 | Phase 5 | Pending |
-| SEARCH-09 | Phase 5 | Pending |
-| SEARCH-10 | Phase 5 | Pending |
-| TEST-01 | Phase 6 | Pending |
-| TEST-02 | Phase 6 | Pending |
-| TEST-03 | Phase 6 | Pending |
-| TEST-04 | Phase 6 | Pending |
-| TEST-05 | Phase 6 | Pending |
-| TEST-06 | Phase 6 | Pending |
-| TEST-07 | Phase 6 | Pending |
+| *(populated by roadmapper)* | | |
 
 **Coverage:**
-- v1.1 requirements: 57 total
-- Mapped to phases: 57
-- Unmapped: 0 ✓
+- v2.0 requirements: 39 total
+- Mapped to phases: 0
+- Unmapped: 39
 
 ---
-*Requirements defined: 2026-03-15*
-*Last updated: 2026-03-15 — traceability updated with per-requirement phase mapping*
+*Requirements defined: 2026-03-30*
+*Last updated: 2026-03-30 after milestone v2.0 definition*
