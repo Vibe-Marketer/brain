@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
 status: executing
-stopped_at: Completed 15-01-PLAN.md
-last_updated: "2026-03-30T23:00:37.978Z"
+stopped_at: Completed 15-03-PLAN.md
+last_updated: "2026-03-30T23:03:42.889Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 13
-  completed_plans: 11
+  completed_plans: 13
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 15 (members-roles) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-03-30
 
@@ -60,6 +60,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 14 P01 | 131s | 2 tasks | 4 files |
 | Phase 14-onboarding-e2e P02 | 532s | 1 tasks | 8 files |
 | Phase 15 P01 | 8m | 2 tasks | 7 files |
+| Phase 15 P03 | 93s | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -102,6 +103,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 14-onboarding-e2e]: HowItWorksContent Step 2 has 6 sub-cards — navigation requires Next×5 + Got it
 - [Phase 15]: contributor replaces manager in 4-role workspace model; guest upgraded to member in migration
 - [Phase 15]: ChangeRoleDialog owner self-demotion guard hides radio group when target user is current user and role is workspace_owner
+- [Phase 15]: Advanced settings collapsible uses useState toggle — same pattern as SourceInfoSection, not Radix Collapsible
+- [Phase 15]: Danger Zone hidden (not disabled) for non-owners — consistent with hide-what-you-cant-do philosophy from CONTEXT.md
+- [Phase 15]: Default workspace shows cannot-delete message rather than disabled delete button — clearer UX signal
 
 ### Known Facts (from codebase audit)
 
@@ -128,6 +132,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T23:00:37.974Z
-Stopped at: Completed 15-01-PLAN.md
+Last session: 2026-03-30T23:03:42.884Z
+Stopped at: Completed 15-03-PLAN.md
 Resume file: None

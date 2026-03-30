@@ -63,9 +63,9 @@
 - [ ] **MEMBER-07**: Invited user can join via email link (new or existing account)
 - [ ] **MEMBER-08**: Owner/Admin can remove members from workspace
 - [ ] **MEMBER-09**: Owner/Admin can change member roles after initial invite
-- [ ] **MEMBER-10**: Non-default workspaces can be deleted
-- [ ] **MEMBER-11**: Advanced settings panel in Pane 4 is functional
-- [ ] **MEMBER-12**: Workspace creation with type selection works
+- [x] **MEMBER-10**: Non-default workspaces can be deleted
+- [x] **MEMBER-11**: Advanced settings panel in Pane 4 is functional
+- [x] **MEMBER-12**: Workspace creation with type selection works
 
 ### Filters & Sort
 
@@ -183,9 +183,9 @@ Key facts for planning — code state as of 2026-03-30:
 | MEMBER-07 | Phase 15 | Pending |
 | MEMBER-08 | Phase 15 | Pending |
 | MEMBER-09 | Phase 15 | Pending |
-| MEMBER-10 | Phase 15 | Pending |
-| MEMBER-11 | Phase 15 | Pending |
-| MEMBER-12 | Phase 15 | Pending |
+| MEMBER-10 | Phase 15 | Complete |
+| MEMBER-11 | Phase 15 | Complete |
+| MEMBER-12 | Phase 15 | Complete |
 | FILTER-01 | Phase 16 | Pending |
 | FILTER-02 | Phase 16 | Pending |
 | FILTER-03 | Phase 16 | Pending |

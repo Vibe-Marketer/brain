@@ -34,7 +34,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [x] **Phase 12: Import Flows + Source Details** — Wire orphaned import detail components into Pane 2/3; show source-specific call metadata in detail view (completed 2026-03-30)
 - [x] **Phase 13: Drag-to-Folder + Global Search** — Reconnect severed DnD and global search features (all code exists, wiring only) (completed 2026-03-30)
 - [x] **Phase 14: Onboarding E2E** — Verify sign-up through first import works end-to-end; fix any gaps in the wizard flow (completed 2026-03-30)
-- [ ] **Phase 15: Members & Roles** — Align to 4 roles; invite via email + link; remove members; workspace deletion; advanced settings
+- [x] **Phase 15: Members & Roles** — Align to 4 roles; invite via email + link; remove members; workspace deletion; advanced settings (completed 2026-03-30)
 - [ ] **Phase 16: Filters & Sort** — Fix filter stacking, sort columns, inline search syntax (carried from v1.1)
 - [ ] **Phase 17: Payments & Billing** — Add cancel button and usage display; verify Polar checkout + webhooks E2E
 - [ ] **Phase 18: MCPs** — Verify MCP OAuth consent flow E2E; ensure org-scoped capabilities functional
@@ -121,8 +121,8 @@ Plans:
 
 Plans:
 - [x] 15-01-PLAN.md — DB migration (5->4 roles) + update all TypeScript types and role constants
-- [ ] 15-02-PLAN.md — Fix invite flows, join page, member removal confirmation, role change verification
-- [ ] 15-03-PLAN.md — Advanced settings panel in Pane 4 with danger zone + workspace creation type selection
+- [x] 15-02-PLAN.md — Fix invite flows, join page, member removal confirmation, role change verification
+- [x] 15-03-PLAN.md — Advanced settings panel in Pane 4 with danger zone + workspace creation type selection
 
 ### Phase 16: Filters & Sort
 **Goal**: All filter popovers stack with AND logic, individual pills remove cleanly, all sort columns work in both directions, and inline search syntax operators return only org-scoped results
@@ -180,7 +180,7 @@ Plans:
 | 12. Import Flows + Source Details | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 14. Onboarding E2E | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 15. Members & Roles | v2.0 | 1/3 | In Progress|  |
+| 15. Members & Roles | v2.0 | 3/3 | Complete   | 2026-03-30 |
 | 16. Filters & Sort | v2.0 | 0/TBD | Not started | - |
 | 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |
 | 18. MCPs | v2.0 | 0/TBD | Not started | - |
