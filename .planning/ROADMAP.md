@@ -36,7 +36,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [x] **Phase 14: Onboarding E2E** — Verify sign-up through first import works end-to-end; fix any gaps in the wizard flow (completed 2026-03-30)
 - [x] **Phase 15: Members & Roles** — Align to 4 roles; invite via email + link; remove members; workspace deletion; advanced settings (completed 2026-03-30)
 - [x] **Phase 16: Filters & Sort** — Fix filter stacking, sort columns, inline search syntax (carried from v1.1) (completed 2026-03-30)
-- [ ] **Phase 17: Payments & Billing** — Add cancel button and usage display; verify Polar checkout + webhooks E2E
+- [x] **Phase 17: Payments & Billing** — Add cancel button and usage display; verify Polar checkout + webhooks E2E (completed 2026-03-30)
 - [ ] **Phase 18: MCPs** — Verify MCP OAuth consent flow E2E; ensure org-scoped capabilities functional
 
 ---
@@ -153,8 +153,8 @@ Plans:
 
 Plans:
 - [x] 17-01-PLAN.md — Cancel button + AI usage display in BillingTab; create useAiUsage hook and polar-cancel edge function
-- [ ] 17-02-PLAN.md — AI usage enforcement: track-ai-usage edge function + useAiGate hook; verify checkout and trial flows
-- [ ] 17-03-PLAN.md — Deploy edge functions and verify Polar webhook handler processes all subscription events
+- [x] 17-02-PLAN.md — AI usage enforcement: track-ai-usage edge function + useAiGate hook; verify checkout and trial flows
+- [x] 17-03-PLAN.md — Deploy edge functions and verify Polar webhook handler processes all subscription events
 
 ### Phase 18: MCPs
 **Goal**: Each organization can issue one MCP server that is strictly scoped to org data, capable of reading calls and searching, with a working OAuth consent flow
@@ -185,7 +185,7 @@ Plans:
 | 14. Onboarding E2E | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
 | 16. Filters & Sort | v2.0 | 2/2 | Complete    | 2026-03-30 |
-| 17. Payments & Billing | v2.0 | 1/3 | In Progress|  |
+| 17. Payments & Billing | v2.0 | 3/3 | Complete   | 2026-03-30 |
 | 18. MCPs | v2.0 | 0/TBD | Not started | - |
 
 ---

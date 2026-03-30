@@ -83,7 +83,7 @@
 - [x] **PAY-04**: User can cancel subscription from billing settings
 - [ ] **PAY-05**: AI usage limits enforced per tier (Free: 25, Pro: 1000, Team: 5000/month)
 - [x] **PAY-06**: User can see current AI usage/credit count in billing settings
-- [ ] **PAY-07**: Polar webhooks process subscription events correctly
+- [x] **PAY-07**: Polar webhooks process subscription events correctly
 
 ### MCP
 
@@ -197,7 +197,7 @@ Key facts for planning — code state as of 2026-03-30:
 | PAY-04 | Phase 17 | Complete |
 | PAY-05 | Phase 17 | Pending |
 | PAY-06 | Phase 17 | Complete |
-| PAY-07 | Phase 17 | Pending |
+| PAY-07 | Phase 17 | Complete |
 | MCP-01 | Phase 18 | Pending |
 | MCP-02 | Phase 18 | Pending |
 | MCP-03 | Phase 18 | Pending |
