@@ -35,7 +35,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [x] **Phase 13: Drag-to-Folder + Global Search** — Reconnect severed DnD and global search features (all code exists, wiring only) (completed 2026-03-30)
 - [x] **Phase 14: Onboarding E2E** — Verify sign-up through first import works end-to-end; fix any gaps in the wizard flow (completed 2026-03-30)
 - [x] **Phase 15: Members & Roles** — Align to 4 roles; invite via email + link; remove members; workspace deletion; advanced settings (completed 2026-03-30)
-- [ ] **Phase 16: Filters & Sort** — Fix filter stacking, sort columns, inline search syntax (carried from v1.1)
+- [x] **Phase 16: Filters & Sort** — Fix filter stacking, sort columns, inline search syntax (carried from v1.1) (completed 2026-03-30)
 - [ ] **Phase 17: Payments & Billing** — Add cancel button and usage display; verify Polar checkout + webhooks E2E
 - [ ] **Phase 18: MCPs** — Verify MCP OAuth consent flow E2E; ensure org-scoped capabilities functional
 
@@ -137,7 +137,7 @@ Plans:
 
 Plans:
 - [x] 16-01-PLAN.md — Fix SourceFilterPopover consistency; integration tests for filter stacking and pill removal
-- [ ] 16-02-PLAN.md — Sort column tests and fixes; restore status: inline search syntax operator
+- [x] 16-02-PLAN.md — Sort column tests and fixes; restore status: inline search syntax operator
 
 ### Phase 17: Payments & Billing
 **Goal**: All three plan tiers display correctly, users can upgrade and cancel, trial works for new signups, AI usage is visible and enforced, and Polar webhooks process subscription events reliably
@@ -182,7 +182,7 @@ Plans:
 | 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 14. Onboarding E2E | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
-| 16. Filters & Sort | v2.0 | 1/2 | In Progress|  |
+| 16. Filters & Sort | v2.0 | 2/2 | Complete   | 2026-03-30 |
 | 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |
 | 18. MCPs | v2.0 | 0/TBD | Not started | - |
 

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: executing
-stopped_at: Completed 16-01-PLAN.md
-last_updated: "2026-03-30T23:29:51.261Z"
+status: verifying
+stopped_at: Completed 16-02-PLAN.md
+last_updated: "2026-03-30T23:32:07.940Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 15
-  completed_plans: 14
+  completed_plans: 15
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 16 (filters-sort) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
@@ -63,6 +63,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 15 P03 | 93s | 2 tasks | 2 files |
 | Phase 15-members-roles P02 | 5 | 2 tasks | 2 files |
 | Phase 16-filters-sort P01 | 4m | 2 tasks | 3 files |
+| Phase 16-filters-sort P02 | 181s | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -112,6 +113,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 15-members-roles]: WorkspaceJoin redirect to /login for unauthenticated users deemed sufficient (login page has sign-up flow)
 - [Phase 16-filters-sort]: SourceFilterPopover staged Apply/Clear: controlled Popover + stagedSources state matching all other 5 popovers
 - [Phase 16-filters-sort]: Filter integration tests at pure data layer (no React rendering) — tests filter spread/removal logic directly
+- [Phase 16-filters-sort]: status filter applied client-side in workspace path only — recordings-table rows are always synced:true so ALL CALLS PATH deferred
+- [Phase 16-filters-sort]: status: operator has no short alias — unambiguous and matches plan spec
 
 ### Known Facts (from codebase audit)
 
@@ -138,6 +141,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T23:29:51.257Z
-Stopped at: Completed 16-01-PLAN.md
+Last session: 2026-03-30T23:32:03.698Z
+Stopped at: Completed 16-02-PLAN.md
 Resume file: None
