@@ -30,7 +30,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 **Milestone Goal:** Get CallVault actually shippable — fix what's broken, get every core flow working end-to-end. New user can sign up, connect call sources, and be productively using CallVault within minutes, with every piece of data strictly scoped to their organization.
 
-- [ ] **Phase 11: Org Segregation + 4-Pane Foundation** — Lock all data to org_id; codify 4-pane layout rules across all pages
+- [x] **Phase 11: Org Segregation + 4-Pane Foundation** — Lock all data to org_id; codify 4-pane layout rules across all pages (completed 2026-03-30)
 - [ ] **Phase 12: Import Flows + Source Details** — Wire orphaned import detail components into Pane 2/3; show source-specific call metadata in detail view
 - [ ] **Phase 13: Drag-to-Folder + Global Search** — Reconnect severed DnD and global search features (all code exists, wiring only)
 - [ ] **Phase 14: Onboarding E2E** — Verify sign-up through first import works end-to-end; fix any gaps in the wizard flow
@@ -58,8 +58,8 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 Plans:
 - [x] 11-01-PLAN.md — Org segregation: audit and enforce org_id on all service-layer queries
 - [x] 11-02-PLAN.md — Org switch: full state reset, fade transition, redirect to Calls
-- [ ] 11-03-PLAN.md — Import page: convert to 4-pane layout with Pane 2 source navigation
-- [ ] 11-04-PLAN.md — 4-pane audit: CallDetailPage modal pattern, Analytics layout, modal vs Pane 4 rules
+- [x] 11-03-PLAN.md — Import page: convert to 4-pane layout with Pane 2 source navigation
+- [x] 11-04-PLAN.md — 4-pane audit: CallDetailPage modal pattern, Analytics layout, modal vs Pane 4 rules
 
 ### Phase 12: Import Flows + Source Details
 **Goal**: All four import sources are selectable in Pane 2 and show their detail UI in Pane 3, with connect/disconnect and failed-import retry working; call detail views show source-specific metadata
@@ -171,7 +171,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1-10. Sort/Filter Hardening | v1.1 | - | Absorbed into v2.0 | - |
-| 11. Org Segregation + 4-Pane Foundation | v2.0 | 2/4 | In Progress|  |
+| 11. Org Segregation + 4-Pane Foundation | v2.0 | 4/4 | Complete   | 2026-03-30 |
 | 12. Import Flows + Source Details | v2.0 | 0/TBD | Not started | - |
 | 13. Drag-to-Folder + Global Search | v2.0 | 0/TBD | Not started | - |
 | 14. Onboarding E2E | v2.0 | 0/TBD | Not started | - |

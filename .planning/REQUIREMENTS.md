@@ -25,10 +25,10 @@
 
 ### 4-Pane Architecture
 
-- [ ] **PANE-01**: All major pages follow Sidebar→List→Workspace→Detail hierarchy
-- [ ] **PANE-02**: Import page uses Pane 2 for source list selection
-- [ ] **PANE-03**: Complex/dynamic items (call detail, setup wizards) open as modals
-- [ ] **PANE-04**: Pane 4 shows simple config/detail; complex items escalate to modal
+- [x] **PANE-01**: All major pages follow Sidebar→List→Workspace→Detail hierarchy
+- [x] **PANE-02**: Import page uses Pane 2 for source list selection
+- [x] **PANE-03**: Complex/dynamic items (call detail, setup wizards) open as modals
+- [x] **PANE-04**: Pane 4 shows simple config/detail; complex items escalate to modal
 
 ### Org Segregation
 
@@ -154,10 +154,10 @@ Key facts for planning — code state as of 2026-03-30:
 | ORG-03 | Phase 11 | Complete |
 | ORG-04 | Phase 11 | Complete |
 | ORG-05 | Phase 11 | Complete |
-| PANE-01 | Phase 11 | Pending |
-| PANE-02 | Phase 11 | Pending |
-| PANE-03 | Phase 11 | Pending |
-| PANE-04 | Phase 11 | Pending |
+| PANE-01 | Phase 11 | Complete |
+| PANE-02 | Phase 11 | Complete |
+| PANE-03 | Phase 11 | Complete |
+| PANE-04 | Phase 11 | Complete |
 | IMPORT-01 | Phase 12 | Pending |
 | IMPORT-02 | Phase 12 | Pending |
 | IMPORT-03 | Phase 12 | Pending |

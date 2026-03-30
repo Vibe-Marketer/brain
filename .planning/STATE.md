@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: executing
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-03-30T21:02:10.753Z"
+status: verifying
+stopped_at: "Completed 11-04-PLAN.md (checkpoint:human-verify pending)"
+last_updated: "2026-03-30T21:07:42.077Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 4
-  completed_plans: 2
+  completed_plans: 4
   percent: 0
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 11 (org-segregation-4-pane) — EXECUTING
-Plan: 3 of 4
-Status: Ready to execute
+Plan: 4 of 4
+Status: Phase complete — ready for verification
 Last activity: 2026-03-30
 
 Progress: [░░░░░░░░░░] 0%
@@ -51,6 +51,8 @@ Progress: [░░░░░░░░░░] 0%
 *Updated after each plan completion*
 | Phase 11 P02 | 8m | 2 tasks | 2 files |
 | Phase 11 P01 | 5 | 3 tasks | 9 files |
+| Phase 11 P03 | 3m | 2 tasks | 3 files |
+| Phase 11 P04 | 22s | 1 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -72,6 +74,10 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 11]: getImportCounts switched from RPC to direct query — RPC only accepted user_id, not org-scoped
 - [Phase 11]: Tag count/rule org filtering via tag ID subset — call_tag_assignments and tag_rules have no organization_id column
 - [Phase 11]: Defense-in-depth pattern: explicit org_id filter on recording detail fetches even with RLS coverage
+- [Phase 11]: Zoom shown unconditionally on Import page — removed showZoom/beta_zoom flag per Plan 11-03
+- [Phase 11]: YouTube import inline in Pane 3 (no Dialog) — more natural in 4-pane layout
+- [Phase 11]: CallDetailPage replaced with redirect to /?callId=<id> — modal pattern via CallDetailDialog (D-07)
+- [Phase 11]: Modal vs Pane 4 rules documented in AppShell.tsx JSDoc (D-08/D-09/D-10)
 
 ### Known Facts (from codebase audit)
 
@@ -98,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T21:02:10.751Z
-Stopped at: Completed 11-01-PLAN.md
+Last session: 2026-03-30T21:07:42.073Z
+Stopped at: Completed 11-04-PLAN.md (checkpoint:human-verify pending)
 Resume file: None
