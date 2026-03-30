@@ -14,14 +14,14 @@
 
 ### Imports
 
-- [ ] **IMPORT-01**: Import page lists sources (Fathom, Zoom, YouTube, Upload) in Pane 2 as selectable items
-- [ ] **IMPORT-02**: Selecting Fathom in Pane 2 shows search/select/import detail UI in Pane 3
-- [ ] **IMPORT-03**: Selecting Zoom in Pane 2 shows search/select/import detail UI in Pane 3
-- [ ] **IMPORT-04**: Selecting YouTube in Pane 2 shows URL import form in Pane 3
-- [ ] **IMPORT-05**: Selecting Upload in Pane 2 shows file upload dropzone in Pane 3
-- [ ] **IMPORT-06**: Zoom import enabled for all users (no feature flag)
-- [ ] **IMPORT-07**: User can connect/disconnect each source from the import page
-- [ ] **IMPORT-08**: Failed imports visible with retry capability
+- [x] **IMPORT-01**: Import page lists sources (Fathom, Zoom, YouTube, Upload) in Pane 2 as selectable items
+- [x] **IMPORT-02**: Selecting Fathom in Pane 2 shows search/select/import detail UI in Pane 3
+- [x] **IMPORT-03**: Selecting Zoom in Pane 2 shows search/select/import detail UI in Pane 3
+- [x] **IMPORT-04**: Selecting YouTube in Pane 2 shows URL import form in Pane 3
+- [x] **IMPORT-05**: Selecting Upload in Pane 2 shows file upload dropzone in Pane 3
+- [x] **IMPORT-06**: Zoom import enabled for all users (no feature flag)
+- [x] **IMPORT-07**: User can connect/disconnect each source from the import page
+- [x] **IMPORT-08**: Failed imports visible with retry capability
 
 ### 4-Pane Architecture
 
@@ -158,14 +158,14 @@ Key facts for planning — code state as of 2026-03-30:
 | PANE-02 | Phase 11 | Complete |
 | PANE-03 | Phase 11 | Complete |
 | PANE-04 | Phase 11 | Complete |
-| IMPORT-01 | Phase 12 | Pending |
-| IMPORT-02 | Phase 12 | Pending |
-| IMPORT-03 | Phase 12 | Pending |
-| IMPORT-04 | Phase 12 | Pending |
-| IMPORT-05 | Phase 12 | Pending |
-| IMPORT-06 | Phase 12 | Pending |
-| IMPORT-07 | Phase 12 | Pending |
-| IMPORT-08 | Phase 12 | Pending |
+| IMPORT-01 | Phase 12 | Complete |
+| IMPORT-02 | Phase 12 | Complete |
+| IMPORT-03 | Phase 12 | Complete |
+| IMPORT-04 | Phase 12 | Complete |
+| IMPORT-05 | Phase 12 | Complete |
+| IMPORT-06 | Phase 12 | Complete |
+| IMPORT-07 | Phase 12 | Complete |
+| IMPORT-08 | Phase 12 | Complete |
 | DETAIL-01 | Phase 12 | Complete |
 | DND-01 | Phase 13 | Pending |
 | DND-02 | Phase 13 | Pending |

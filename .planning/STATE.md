@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
 status: verifying
-stopped_at: Completed 12-02-PLAN.md
-last_updated: "2026-03-30T21:34:50.721Z"
+stopped_at: Completed 12-01-PLAN.md
+last_updated: "2026-03-30T21:34:58.852Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
@@ -54,6 +54,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 11 P03 | 3m | 2 tasks | 3 files |
 | Phase 11 P04 | 22s | 1 tasks | 3 files |
 | Phase 12 P02 | 8 | 2 tasks | 4 files |
+| Phase 12-import-flows-source-details P01 | 8 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 11]: Modal vs Pane 4 rules documented in AppShell.tsx JSDoc (D-08/D-09/D-10)
 - [Phase 12]: useRawCallData inline query key ['raw-call-data', recordingId, sourceApp] — rawCalls factory has per-source keys, unified dispatcher key is cleaner inline
 - [Phase 12]: SourceInfoSection uses useState toggle not Radix Collapsible — simpler for single collapsible section
+- [Phase 12-01]: FathomImportDetail/ZoomImportDetail own their connected/disconnected UI states — ImportPage passes isConnected+onConnect+onDisconnect props only
+- [Phase 12-01]: Disconnect flows through AlertDialog confirmation before mutating — one dialog at ImportPage root level serves both Fathom and Zoom
+- [Phase 12-01]: YouTube deriveSourceStatus returns 'connected' unconditionally — no OAuth, always available
 
 ### Known Facts (from codebase audit)
 
@@ -107,6 +111,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T21:34:47.484Z
-Stopped at: Completed 12-02-PLAN.md
+Last session: 2026-03-30T21:34:58.849Z
+Stopped at: Completed 12-01-PLAN.md
 Resume file: None
