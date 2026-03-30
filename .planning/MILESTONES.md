@@ -29,5 +29,12 @@
 - Sort columns partially functional
 - Filter popovers inconsistently apply / clear
 
+## v1.1 — Sort/Filter Hardening (ABSORBED)
+
+**Status:** Absorbed into v2.0
+**Phases:** 1-10 defined, 0% executed
+
+Defined 2026-03-15 with 6 core phases + 4 stub phases. Never started. All filter/sort requirements carried forward as FILTER-01 through FILTER-06 in v2.0. Stub phases (Drag-to-Folder, YouTube Workspace UI, Global Search/Notifications, Raw Call Details) absorbed into v2.0 scope as needed.
+
 ---
-*Last updated: 2026-03-15 — GSD initialized*
+*Last updated: 2026-03-30 — v1.1 absorbed into v2.0 Launch Readiness*
