@@ -414,10 +414,12 @@ export function TranscriptsTab({
         }
 
         // Call RPC — single server-side JOIN + ORDER + pagination
+        // When folder is selected, fetch ALL workspace recordings (no pagination)
+        // so we can filter by folder client-side, then paginate the filtered result.
         const rpcParams: Record<string, unknown> = {
           p_workspace_id: activeWorkspaceId,
-          p_limit: pageSize,
-          p_offset: offset,
+          p_limit: folderRecordingIds ? 10000 : pageSize,
+          p_offset: folderRecordingIds ? 0 : offset,
           p_search: syntax.plainText || null,
           p_date_from: combinedFilters.dateFrom?.toISOString() ?? null,
           p_date_to: rpcDateTo,
@@ -428,16 +430,22 @@ export function TranscriptsTab({
 
         if (rpcError) throw rpcError;
 
-        // Apply folder filter client-side (folder_recording_ids were resolved above)
+        // Apply folder filter client-side, then paginate the filtered result
         let filteredRows = (rows || []) as any[];
         if (folderRecordingIds) {
           const folderSet = new Set(folderRecordingIds);
           filteredRows = filteredRows.filter((r: any) => folderSet.has(r.id));
+          // Set total count from filtered results, then paginate
+          const folderTotalCount = filteredRows.length;
+          setTotalCount(folderTotalCount);
+          onTotalCountChange?.(folderTotalCount);
+          // Apply client-side pagination to folder-filtered results
+          filteredRows = filteredRows.slice(offset, offset + pageSize);
+        } else {
+          const totalCount = filteredRows.length > 0 ? Number(filteredRows[0].total_count) : 0;
+          setTotalCount(totalCount);
+          onTotalCountChange?.(totalCount);
         }
-
-        const totalCount = filteredRows.length > 0 ? Number(filteredRows[0].total_count) : 0;
-        setTotalCount(totalCount);
-        onTotalCountChange?.(totalCount);
 
         let mappedRecordings = filteredRows.map((row: any) => mapRecordingToMeeting({
           id: row.id,
