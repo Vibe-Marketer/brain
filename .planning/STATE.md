@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
 status: executing
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-03-30T20:57:21.772Z"
+stopped_at: Completed 11-01-PLAN.md
+last_updated: "2026-03-30T21:02:10.753Z"
 last_activity: 2026-03-30
 progress:
   total_phases: 8
   completed_phases: 0
   total_plans: 4
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 ## Current Position
 
 Phase: 11 (org-segregation-4-pane) — EXECUTING
-Plan: 2 of 4
+Plan: 3 of 4
 Status: Ready to execute
 Last activity: 2026-03-30
 
@@ -50,6 +50,7 @@ Progress: [░░░░░░░░░░] 0%
 
 *Updated after each plan completion*
 | Phase 11 P02 | 8m | 2 tasks | 2 files |
+| Phase 11 P01 | 5 | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,9 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 11]: Force-unpinned Pane 4 on org switch — pin state should not survive an org context change
 - [Phase 11]: CSS transition-opacity (not motion/react springs) for org switch fade — utility transition not UI animation
 - [Phase 11]: Filter/sort reset via navigation to '/' — state is URL-based, navigation naturally clears it
+- [Phase 11]: getImportCounts switched from RPC to direct query — RPC only accepted user_id, not org-scoped
+- [Phase 11]: Tag count/rule org filtering via tag ID subset — call_tag_assignments and tag_rules have no organization_id column
+- [Phase 11]: Defense-in-depth pattern: explicit org_id filter on recording detail fetches even with RLS coverage
 
 ### Known Facts (from codebase audit)
 
@@ -94,6 +98,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-30T20:57:21.769Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-03-30T21:02:10.751Z
+Stopped at: Completed 11-01-PLAN.md
 Resume file: None
