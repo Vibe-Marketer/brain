@@ -182,7 +182,7 @@ Plans:
 | 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 14. Onboarding E2E | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
-| 16. Filters & Sort | v2.0 | 2/2 | Complete   | 2026-03-30 |
+| 16. Filters & Sort | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |
 | 18. MCPs | v2.0 | 0/TBD | Not started | - |
 
