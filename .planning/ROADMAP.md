@@ -3,7 +3,8 @@
 ## Milestones
 
 - ✅ **v1.0 Foundation** - Pre-GSD (shipped before planning init)
-- 🚧 **v1.1 Sort/Filter Hardening** - Phases 1-6 (in progress)
+- ✅ **v1.1 Sort/Filter Hardening** - Phases 1-10 (absorbed into v2.0)
+- 🚧 **v2.0 Launch Readiness** - Phases 11-17 (in progress)
 
 ## Phases
 
@@ -14,142 +15,150 @@ Transcript library, filter bar, sorting, global search, URL persistence, folder/
 
 </details>
 
+<details>
+<summary>✅ v1.1 Sort/Filter Hardening - ABSORBED INTO v2.0</summary>
+
+Phases 1-10 defined for filter/sort hardening. Milestone absorbed into v2.0 Launch Readiness — all filter/sort requirements carried forward as FILTER-01 through FILTER-06 in v2.0.
+
+Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Search/Notifications, Raw Call Details) — never planned, absorbed into v2.0 scope as needed.
+
+</details>
+
 ---
 
-### 🚧 v1.1 Sort/Filter Hardening (In Progress)
+### 🚧 v2.0 Launch Readiness (In Progress)
 
-**Milestone Goal:** Every filter, sort, and search in the transcript library works correctly, stacks with other filters, removes independently, and is strictly scoped to the current organization — with Playwright tests covering every scenario.
+**Milestone Goal:** Get CallVault actually shippable — fix what's broken, get every core flow working end-to-end. New user can sign up, connect call sources, and be productively using CallVault within minutes, with every piece of data strictly scoped to their organization.
 
-- [ ] **Phase 1: Org Scoping** — Audit all queries and lock every filter, popover, and search to current org_id
-- [ ] **Phase 2: Individual Filter Fixes** — Fix each filter popover (Tags, Folders, Contacts, Duration, Source, Date) in isolation
-- [ ] **Phase 3: Filter Stacking & Removal** — Fix FilterBar state so filters stack with AND logic and remove individually
-- [ ] **Phase 4: Sort Column Fixes** — Fix all 7 sort behaviors including direction indicators and sort-under-filters
-- [ ] **Phase 5: Search Fixes** — Fix main search bar, global modal, and all inline syntax operators, all org-scoped
-- [ ] **Phase 6: E2E Test Suite** — Write/update Playwright tests covering isolation, all filters, stacking, removal, sort, and search
+- [ ] **Phase 11: Org Segregation + 4-Pane Foundation** — Lock all data to org_id; codify 4-pane layout rules across all pages
+- [ ] **Phase 12: Import Flows** — Wire orphaned import detail components into Pane 2/3 layout; all four sources functional
+- [ ] **Phase 13: Onboarding E2E** — Verify sign-up through first import works end-to-end; fix any gaps in the wizard flow
+- [ ] **Phase 14: Members & Roles** — Align to 4 roles; invite via email + link; remove members; workspace deletion; advanced settings
+- [ ] **Phase 15: Filters, Sort & Search** — Fix filter stacking, sort columns, search org-scoping (carried from v1.1)
+- [ ] **Phase 16: Payments & Billing** — Add cancel button and usage display; verify Polar checkout + webhooks E2E
+- [ ] **Phase 17: MCPs** — Verify MCP OAuth consent flow E2E; ensure org-scoped capabilities functional
 
 ---
 
 ## Phase Details
 
-### Phase 1: Org Scoping
-**Goal**: Every query that powers filters, popovers, autocomplete, and search is scoped to the current org_id — no cross-org data can ever appear
-**Depends on**: Nothing (first phase)
-**Requirements**: SCOPE-01, SCOPE-02, SCOPE-03, SCOPE-04
+### Phase 11: Org Segregation + 4-Pane Foundation
+**Goal**: Every data query is locked to the current org_id and the 4-pane layout hierarchy is enforced consistently across all major pages
+**Depends on**: Nothing (first phase of v2.0)
+**Requirements**: ORG-01, ORG-02, ORG-03, ORG-04, ORG-05, PANE-01, PANE-02, PANE-03, PANE-04
 **Success Criteria** (what must be TRUE):
-  1. A user logged into Org A sees zero tags, folders, contacts, or transcripts from Org B in any filter popover or search result
-  2. TagFilterPopover, FolderFilterPopover, ContactsFilterPopover, DurationFilterPopover, and SourceFilterPopover all pass org_id to their Supabase queries
-  3. Global search modal returns only records whose org_id matches the current session
-  4. All inline search syntax operators (participant:, tag:, folder:, source:, duration:, date:, status:) resolve only within current org
-  5. ContactsFilterPopover autocomplete candidates are drawn exclusively from the current org's call participants
+  1. A user in Org A sees zero calls, folders, tags, or contacts from Org B in any view, filter popover, or search result
+  2. User can switch between organizations they belong to and the entire UI re-scopes to the selected org
+  3. Connected accounts (Fathom, Zoom) remain available after org switch; imported data belongs to the org it was imported into
+  4. All major pages (Calls, Import, Members, Settings) follow the Sidebar→List→Workspace→Detail pane hierarchy with no overlapping or drawer-overlay patterns
+  5. Complex items (call detail, setup wizards) open as modals; simple config/preview appears in Pane 4
 **Plans**: TBD
 
 Plans:
-- [ ] 01-01: Audit filter-utils.ts, FilterBar.tsx, and all popover components — catalog every Supabase query missing org_id
-- [ ] 01-02: Patch org_id into all popover queries (TAG, FOLDER, DUR, SRC) using useOrgContext
-- [ ] 01-03: Patch org_id into ContactsFilterPopover autocomplete query and GlobalSearchModal queries
-- [ ] 01-04: Patch inline search syntax parser (parseSearchSyntax) to inject org_id into all operator resolutions
+- [ ] TBD (run /gsd:plan-phase 11 to break down)
 
-### Phase 2: Individual Filter Fixes
-**Goal**: Each filter popover correctly fetches org-scoped data, applies its filter to the transcript list, and clears its own state without touching others
-**Depends on**: Phase 1
-**Requirements**: TAG-01, TAG-02, TAG-03, TAG-04, TAG-05, FOLDER-01, FOLDER-02, FOLDER-03, FOLDER-04, FOLDER-05, CONTACT-01, CONTACT-02, CONTACT-03, CONTACT-04, CONTACT-05, DUR-01, DUR-02, DUR-03, DUR-04, SRC-01, SRC-02, SRC-03, SRC-04, DATE-01, DATE-02, DATE-03, DATE-04
+### Phase 12: Import Flows
+**Goal**: All four import sources (Fathom, Zoom, YouTube, Upload) are selectable in Pane 2 and show their detail UI in Pane 3, with connect/disconnect and failed-import retry working
+**Depends on**: Phase 11
+**Requirements**: IMPORT-01, IMPORT-02, IMPORT-03, IMPORT-04, IMPORT-05, IMPORT-06, IMPORT-07, IMPORT-08
 **Success Criteria** (what must be TRUE):
-  1. Selecting one or more tags in TagFilterPopover and clicking Apply filters the transcript list to calls carrying all selected tags, and Clear resets only the tag selection
-  2. Selecting a folder (including parent folders that cascade to children) in FolderFilterPopover filters the list correctly; "Unorganized" shows only unassigned calls with correct count
-  3. Typing a participant name or email in ContactsFilterPopover and applying returns only calls where that person appears as attendee, speaker, or invitee — both name and email match work
-  4. Selecting a duration mode (less than / more than / range) in DurationFilterPopover and applying returns only calls matching that length constraint
-  5. Selecting one or more sources in SourceFilterPopover returns calls from any selected source (OR logic); selecting a date range returns only calls within that window (inclusive)
+  1. Import page shows Fathom, Zoom, YouTube, and Upload as selectable items in Pane 2; selecting one loads its detail UI in Pane 3 without a full page reload
+  2. Fathom: user can search recordings, select multiple, and trigger import — imported calls appear in the transcript library scoped to current org
+  3. Zoom: user can search and import Zoom recordings; feature flag removed so all users can access Zoom import
+  4. YouTube URL import and file upload dropzone both work and deliver imported calls to the library
+  5. User can connect or disconnect each source from the import page; failed imports show with a retry option
 **Plans**: TBD
 
 Plans:
-- [ ] 02-01: Fix TagFilterPopover — org-scoped fetch, apply/clear state, call-count display
-- [ ] 02-02: Fix FolderFilterPopover — org-scoped fetch, parent-cascade logic, Unorganized option, call counts
-- [ ] 02-03: Fix ContactsFilterPopover — name+email search, all role types (attendee/speaker/invitee), inline syntax operators (participant:, p:)
-- [ ] 02-04: Fix DurationFilterPopover — all three modes (less than / more than / custom range), clear
-- [ ] 02-05: Fix SourceFilterPopover + Date range — org-scoped source list, OR logic, date inclusive bounds, inline date presets
+- [ ] TBD (run /gsd:plan-phase 12 to break down)
 
-### Phase 3: Filter Stacking & Removal
-**Goal**: Multiple filters can be active simultaneously with AND logic, and any single filter can be removed via its pill without disturbing the others
-**Depends on**: Phase 2
-**Requirements**: STACK-01, STACK-02, STACK-03, STACK-04, STACK-05, REMOVE-01, REMOVE-02, REMOVE-03, REMOVE-04
+### Phase 13: Onboarding E2E
+**Goal**: A brand-new user can sign up, complete the onboarding wizard, connect at least one call source, and land in a correctly-rendered default workspace — entirely without assistance
+**Depends on**: Phase 12
+**Requirements**: ONBOARD-01, ONBOARD-02, ONBOARD-03
 **Success Criteria** (what must be TRUE):
-  1. Applying a Tags filter and then a Contacts filter returns only calls that satisfy both — the transcript list is the intersection
-  2. All 6 filter types (Tags, Folders, Contacts, Duration, Source, Date) can be active at the same time and the list reflects their combined AND constraint
-  3. Clicking the X on a single filter pill removes only that filter; all other active filters remain applied and the list updates correctly
-  4. Clicking "Clear all" removes every filter simultaneously and the list resets to unfiltered
-  5. URL params reflect the exact set of active filters at all times — removing one filter updates the URL without touching params for the others; reopening a popover after partial clear shows the correct remaining state
+  1. New user can sign up via email/password, Google OAuth, or magic link and is redirected into the onboarding wizard
+  2. Onboarding wizard prompts the user to connect at least one call source and provides working connect flows for Fathom, Zoom, and YouTube
+  3. After completing onboarding, user lands in their default workspace with the correct 4-pane layout and can immediately navigate to Calls, Import, or Members
 **Plans**: TBD
 
 Plans:
-- [ ] 03-01: Audit FilterBar state management — identify where combining filters clobbers state; fix to merge filter objects instead of replacing
-- [ ] 03-02: Implement per-filter pill removal that updates only the targeted filter key in URL params and FilterBar state
-- [ ] 03-03: Verify "Clear all" path, popover re-open state consistency, and URL round-trip correctness
+- [ ] TBD (run /gsd:plan-phase 13 to break down)
 
-### Phase 4: Sort Column Fixes
-**Goal**: All five sort columns toggle correctly between ascending and descending, display direction indicators, and produce accurate results even when filters are active
-**Depends on**: Phase 3
-**Requirements**: SORT-01, SORT-02, SORT-03, SORT-04, SORT-05, SORT-06, SORT-07
+### Phase 14: Members & Roles
+**Goal**: Workspace membership is fully functional — 4-role system enforced, invite via email and shareable link works, members can be removed, workspaces can be deleted, and advanced settings are functional
+**Depends on**: Phase 11
+**Requirements**: MEMBER-01, MEMBER-02, MEMBER-03, MEMBER-04, MEMBER-05, MEMBER-06, MEMBER-07, MEMBER-08, MEMBER-09, MEMBER-10, MEMBER-11, MEMBER-12
 **Success Criteria** (what must be TRUE):
-  1. Clicking the Title column header sorts the visible transcript list alphabetically (A-Z on first click, Z-A on second), and an up/down arrow appears next to the column label
-  2. Clicking Date, Duration, Participants, and Source column headers each sort correctly in both directions with the direction indicator updating accordingly
-  3. When one or more filters are active, sorting is applied to the filtered result set — the sorted order does not reset or expand the filter
-  4. Only one sort column is active at a time; clicking a new column clears the previous sort indicator
+  1. Workspace shows four roles (Owner, Admin, Contributor, Member) with correct permission boundaries — Owner and Admin can manage all members; Contributor can add calls; Member has read/organize only
+  2. Owner/Admin can invite a new member by email with role selection; invitee receives an email with a working join link
+  3. Owner/Admin can generate a shareable invite link; anyone with the link can join as a Member (or specified role)
+  4. Owner/Admin can remove a member; when removing a Member the system prompts for call retention decision
+  5. Owner/Admin can change a member's role after invite; workspace deletion works for non-default workspaces; advanced settings panel in Pane 4 is functional
 **Plans**: TBD
 
 Plans:
-- [ ] 04-01: Audit useTableSort hook and TranscriptTable sort wiring — identify broken columns and incorrect sort comparators
-- [ ] 04-02: Fix all 5 sort columns with correct comparators, asc/desc toggle, and direction indicator rendering; verify sort-under-active-filters
+- [ ] TBD (run /gsd:plan-phase 14 to break down)
 
-### Phase 5: Search Fixes
-**Goal**: Main search bar, global modal, and all inline syntax operators return only org-scoped results and respect any active filters
-**Depends on**: Phase 1
-**Requirements**: SEARCH-01, SEARCH-02, SEARCH-03, SEARCH-04, SEARCH-05, SEARCH-06, SEARCH-07, SEARCH-08, SEARCH-09, SEARCH-10
+### Phase 15: Filters, Sort & Search
+**Goal**: All filter popovers stack with AND logic, individual pills remove cleanly, all sort columns work in both directions, and search returns only org-scoped results
+**Depends on**: Phase 11
+**Requirements**: FILTER-01, FILTER-02, FILTER-03, FILTER-04, FILTER-05, FILTER-06
 **Success Criteria** (what must be TRUE):
-  1. Typing in the main search bar returns only transcripts from the current org — zero results from other orgs appear regardless of query
-  2. The global search modal (keyboard shortcut / nav trigger) returns only current-org transcripts
-  3. Results from search respect any active filter pills — searching within an already-filtered set narrows further rather than resetting filters
-  4. Inline operators participant:name and p:name correctly filter by participant; tag:name, folder:name, source:platform, duration:>30, duration:<60 all resolve correctly within current org
-  5. Inline date presets (date:today, date:this week, date:this month) and status operators (status:synced, status:unsynced) return correct results
+  1. Each filter popover (Tags, Folders, Contacts, Duration, Source, Date) applies and clears its own state without affecting other active filters
+  2. Multiple filters active simultaneously produce an AND-narrowed result set; removing any single pill leaves the others intact
+  3. All five sort columns (Title, Date, Duration, Participants, Source) toggle asc/desc with a visible direction indicator; sort applies to the currently-filtered result set
+  4. Main search bar, global search modal, and all inline syntax operators (participant:, tag:, folder:, source:, duration:, date:, status:) return only current-org results
 **Plans**: TBD
 
 Plans:
-- [ ] 05-01: Fix main search bar query to include org_id and respect active filter state
-- [ ] 05-02: Fix GlobalSearchModal to scope all queries to current org
-- [ ] 05-03: Fix parseSearchSyntax inline operators — verify all 8 operator types produce correct org-scoped results
+- [ ] TBD (run /gsd:plan-phase 15 to break down)
 
-### Phase 6: E2E Test Suite
-**Goal**: Playwright tests provide automated verification of every fixed scenario — org isolation, each filter type, stacking, removal, sort, and search
-**Depends on**: Phases 1-5
-**Requirements**: TEST-01, TEST-02, TEST-03, TEST-04, TEST-05, TEST-06, TEST-07
+### Phase 16: Payments & Billing
+**Goal**: All three plan tiers display correctly, users can upgrade and cancel, trial works for new signups, AI usage is visible and enforced, and Polar webhooks process subscription events reliably
+**Depends on**: Phase 11
+**Requirements**: PAY-01, PAY-02, PAY-03, PAY-04, PAY-05, PAY-06, PAY-07
 **Success Criteria** (what must be TRUE):
-  1. Running the Playwright suite produces a passing result for each of the 6 filter types exercised in isolation (tags, folders, contacts, duration, source, date)
-  2. A test covering at least a 3-filter combination (e.g., Tags + Contacts + Date) passes and confirms AND logic produces the correct intersection
-  3. A test covering individual filter pill removal passes — confirms only the targeted filter clears, others remain
-  4. Tests for all 5 sort columns pass, including one test that sorts while a filter is active
-  5. A test covering org isolation passes — a fixture user from Org A cannot see any data from Org B in any filter popover or search result
+  1. Billing settings page shows Free, Pro, and Team plans with correct pricing; user's current plan is clearly indicated
+  2. User can upgrade from Free to Pro or Team via Polar checkout and the plan change reflects immediately after webhook processing
+  3. New signups automatically receive a 14-day Pro trial; user can cancel their subscription from billing settings without leaving the app
+  4. Current AI usage and credit count are visible in billing settings; AI features are blocked or degraded when tier limits are reached
 **Plans**: TBD
 
 Plans:
-- [ ] 06-01: Write filter isolation tests for all 6 filter types
-- [ ] 06-02: Write filter stacking test (3+ filters) and individual removal test
-- [ ] 06-03: Write sort column tests including sort-under-filter scenario
-- [ ] 06-04: Write org isolation test and inline search syntax tests for key operators
+- [ ] TBD (run /gsd:plan-phase 16 to break down)
+
+### Phase 17: MCPs
+**Goal**: Each organization can issue one MCP server that is strictly scoped to org data, capable of reading calls and searching, with a working OAuth consent flow
+**Depends on**: Phase 11
+**Requirements**: MCP-01, MCP-02, MCP-03, MCP-04
+**Success Criteria** (what must be TRUE):
+  1. Organization settings page allows issuing one MCP server per org; attempting to create a second is blocked
+  2. MCP OAuth consent page loads, displays correct org-scoped permissions, and completing consent grants a working token
+  3. An MCP client authenticated with the org token can read calls, search transcripts, and perform core operations — and cannot access data from any other org
+**Plans**: TBD
+
+Plans:
+- [ ] TBD (run /gsd:plan-phase 17 to break down)
 
 ---
 
 ## Progress
 
-**Execution Order:** 1 → 2 → 3 → 4 → 5 → 6
-(Note: Phase 5 depends on Phase 1 but can begin after Phase 1 completes, parallel with Phases 2-4 if desired.)
+**Execution Order:** 11 → 12 → 13 → 14 → 15 → 16 → 17
+(Note: Phases 14 and 15 both depend on Phase 11 and can run in parallel after Phase 11 completes.)
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
-| 1. Org Scoping | v1.1 | 0/4 | Not started | - |
-| 2. Individual Filter Fixes | v1.1 | 0/5 | Not started | - |
-| 3. Filter Stacking & Removal | v1.1 | 0/3 | Not started | - |
-| 4. Sort Column Fixes | v1.1 | 0/2 | Not started | - |
-| 5. Search Fixes | v1.1 | 0/3 | Not started | - |
-| 6. E2E Test Suite | v1.1 | 0/4 | Not started | - |
+| 1-10. Sort/Filter Hardening | v1.1 | - | Absorbed into v2.0 | - |
+| 11. Org Segregation + 4-Pane Foundation | v2.0 | 0/TBD | Not started | - |
+| 12. Import Flows | v2.0 | 0/TBD | Not started | - |
+| 13. Onboarding E2E | v2.0 | 0/TBD | Not started | - |
+| 14. Members & Roles | v2.0 | 0/TBD | Not started | - |
+| 15. Filters, Sort & Search | v2.0 | 0/TBD | Not started | - |
+| 16. Payments & Billing | v2.0 | 0/TBD | Not started | - |
+| 17. MCPs | v2.0 | 0/TBD | Not started | - |
 
 ---
 *Roadmap created: 2026-03-15 — v1.1 Sort/Filter Hardening*
+*Updated: 2026-03-30 — v2.0 Launch Readiness phases 11-17 added*

@@ -111,13 +111,61 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| *(populated by roadmapper)* | | |
+| ONBOARD-01 | Phase 13 | Pending |
+| ONBOARD-02 | Phase 13 | Pending |
+| ONBOARD-03 | Phase 13 | Pending |
+| IMPORT-01 | Phase 12 | Pending |
+| IMPORT-02 | Phase 12 | Pending |
+| IMPORT-03 | Phase 12 | Pending |
+| IMPORT-04 | Phase 12 | Pending |
+| IMPORT-05 | Phase 12 | Pending |
+| IMPORT-06 | Phase 12 | Pending |
+| IMPORT-07 | Phase 12 | Pending |
+| IMPORT-08 | Phase 12 | Pending |
+| PANE-01 | Phase 11 | Pending |
+| PANE-02 | Phase 11 | Pending |
+| PANE-03 | Phase 11 | Pending |
+| PANE-04 | Phase 11 | Pending |
+| ORG-01 | Phase 11 | Pending |
+| ORG-02 | Phase 11 | Pending |
+| ORG-03 | Phase 11 | Pending |
+| ORG-04 | Phase 11 | Pending |
+| ORG-05 | Phase 11 | Pending |
+| MEMBER-01 | Phase 14 | Pending |
+| MEMBER-02 | Phase 14 | Pending |
+| MEMBER-03 | Phase 14 | Pending |
+| MEMBER-04 | Phase 14 | Pending |
+| MEMBER-05 | Phase 14 | Pending |
+| MEMBER-06 | Phase 14 | Pending |
+| MEMBER-07 | Phase 14 | Pending |
+| MEMBER-08 | Phase 14 | Pending |
+| MEMBER-09 | Phase 14 | Pending |
+| MEMBER-10 | Phase 14 | Pending |
+| MEMBER-11 | Phase 14 | Pending |
+| MEMBER-12 | Phase 14 | Pending |
+| FILTER-01 | Phase 15 | Pending |
+| FILTER-02 | Phase 15 | Pending |
+| FILTER-03 | Phase 15 | Pending |
+| FILTER-04 | Phase 15 | Pending |
+| FILTER-05 | Phase 15 | Pending |
+| FILTER-06 | Phase 15 | Pending |
+| PAY-01 | Phase 16 | Pending |
+| PAY-02 | Phase 16 | Pending |
+| PAY-03 | Phase 16 | Pending |
+| PAY-04 | Phase 16 | Pending |
+| PAY-05 | Phase 16 | Pending |
+| PAY-06 | Phase 16 | Pending |
+| PAY-07 | Phase 16 | Pending |
+| MCP-01 | Phase 17 | Pending |
+| MCP-02 | Phase 17 | Pending |
+| MCP-03 | Phase 17 | Pending |
+| MCP-04 | Phase 17 | Pending |
 
 **Coverage:**
 - v2.0 requirements: 39 total
-- Mapped to phases: 0
-- Unmapped: 39
+- Mapped to phases: 39
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-03-30*
-*Last updated: 2026-03-30 after milestone v2.0 definition*
+*Last updated: 2026-03-30 — Traceability populated after roadmap creation*
