@@ -34,8 +34,8 @@
 
 - [ ] **ORG-01**: All database queries filter by current org_id (no cross-org data leakage)
 - [ ] **ORG-02**: Filter popovers (Tags, Folders, Contacts, Duration, Source, Date) only show org-scoped data
-- [ ] **ORG-03**: Search (global modal + inline syntax) returns only current org results
-- [ ] **ORG-04**: User can switch between organizations they belong to
+- [x] **ORG-03**: Search (global modal + inline syntax) returns only current org results
+- [x] **ORG-04**: User can switch between organizations they belong to
 - [ ] **ORG-05**: Connected accounts shared across orgs; imported data is org-scoped
 
 ### Drag-to-Folder
@@ -151,8 +151,8 @@ Key facts for planning — code state as of 2026-03-30:
 |-------------|-------|--------|
 | ORG-01 | Phase 11 | Pending |
 | ORG-02 | Phase 11 | Pending |
-| ORG-03 | Phase 11 | Pending |
-| ORG-04 | Phase 11 | Pending |
+| ORG-03 | Phase 11 | Complete |
+| ORG-04 | Phase 11 | Complete |
 | ORG-05 | Phase 11 | Pending |
 | PANE-01 | Phase 11 | Pending |
 | PANE-02 | Phase 11 | Pending |

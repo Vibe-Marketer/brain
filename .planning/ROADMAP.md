@@ -57,7 +57,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 
 Plans:
 - [ ] 11-01-PLAN.md — Org segregation: audit and enforce org_id on all service-layer queries
-- [ ] 11-02-PLAN.md — Org switch: full state reset, fade transition, redirect to Calls
+- [x] 11-02-PLAN.md — Org switch: full state reset, fade transition, redirect to Calls
 - [ ] 11-03-PLAN.md — Import page: convert to 4-pane layout with Pane 2 source navigation
 - [ ] 11-04-PLAN.md — 4-pane audit: CallDetailPage modal pattern, Analytics layout, modal vs Pane 4 rules
 
@@ -171,7 +171,7 @@ Plans:
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
 | 1-10. Sort/Filter Hardening | v1.1 | - | Absorbed into v2.0 | - |
-| 11. Org Segregation + 4-Pane Foundation | v2.0 | 0/4 | Planned | - |
+| 11. Org Segregation + 4-Pane Foundation | v2.0 | 1/4 | In Progress|  |
 | 12. Import Flows + Source Details | v2.0 | 0/TBD | Not started | - |
 | 13. Drag-to-Folder + Global Search | v2.0 | 0/TBD | Not started | - |
 | 14. Onboarding E2E | v2.0 | 0/TBD | Not started | - |
