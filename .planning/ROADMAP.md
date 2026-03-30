@@ -133,10 +133,11 @@ Plans:
   2. Multiple filters active simultaneously produce an AND-narrowed result set; removing any single pill leaves the others intact
   3. All five sort columns (Title, Date, Duration, Participants, Source) toggle asc/desc with a visible direction indicator; sort applies to the currently-filtered result set
   4. Inline search syntax operators (participant:, tag:, folder:, source:, duration:, date:, status:) parse correctly and return only current-org results
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 16 to break down)
+- [ ] 16-01-PLAN.md — Fix SourceFilterPopover consistency; integration tests for filter stacking and pill removal
+- [ ] 16-02-PLAN.md — Sort column tests and fixes; restore status: inline search syntax operator
 
 ### Phase 17: Payments & Billing
 **Goal**: All three plan tiers display correctly, users can upgrade and cancel, trial works for new signups, AI usage is visible and enforced, and Polar webhooks process subscription events reliably
@@ -181,7 +182,7 @@ Plans:
 | 13. Drag-to-Folder + Global Search | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 14. Onboarding E2E | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
-| 16. Filters & Sort | v2.0 | 0/TBD | Not started | - |
+| 16. Filters & Sort | v2.0 | 0/2 | Not started | - |
 | 17. Payments & Billing | v2.0 | 0/TBD | Not started | - |
 | 18. MCPs | v2.0 | 0/TBD | Not started | - |
 
@@ -194,3 +195,4 @@ Plans:
 *Updated: 2026-03-30 — Phase 13 planned: 2 plans in 1 wave (parallel)*
 *Updated: 2026-03-30 — Phase 14 planned: 2 plans in 2 waves*
 *Updated: 2026-03-30 — Phase 15 planned: 3 plans in 2 waves*
+*Updated: 2026-03-30 — Phase 16 planned: 2 plans in 1 wave (parallel)*
