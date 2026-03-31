@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: verifying
-stopped_at: Completed 17-04-PLAN.md
-last_updated: "2026-03-31T00:30:18.668Z"
+status: executing
+stopped_at: "Completed 18-mcps-02-PLAN.md — checkpoint:human-verify pending"
+last_updated: "2026-03-31T00:39:09.199Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 8
   completed_phases: 7
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 21
+  completed_plans: 20
   percent: 0
 ---
 
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-03-30)
 
 **Core value:** A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
-**Current focus:** Phase 17 — payments-billing
+**Current focus:** Phase 18 — mcps
 
 ## Current Position
 
-Phase: 18
-Plan: Not started
-Status: Phase complete — ready for verification
+Phase: 18 (mcps) — EXECUTING
+Plan: 2 of 2
+Status: Ready to execute
 Last activity: 2026-03-31
 
 Progress: [░░░░░░░░░░] 0%
@@ -67,6 +67,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 17 P01 | 231s | 2 tasks | 4 files |
 | Phase 17 P03 | 73s | 1 tasks | 0 files |
 | Phase 17-payments-billing P04 | 4min | 2 tasks | 2 files |
+| Phase 18-mcps P02 | 5 | 1 tasks | 0 files |
 
 ## Accumulated Context
 
@@ -121,6 +122,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 17]: Cancel button is link-style text not red button — avoids alarming paid users; polar-cancel retains subscription_id and period_end so access continues until billing end
 - [Phase 17]: Deployment-only plan: all three functions passed code review without modifications — polar-cancel, track-ai-usage, polar-webhook all deployed ACTIVE
 - [Phase 17-payments-billing]: useAiGate trackAction pattern is the established pattern for all AI consumers — call before edge function, return early on !allowed
+- [Phase 18-mcps]: OAuth consent page code is complete and correct — no code changes required
+- [Phase 18-mcps]: Full E2E testing blocked on Supabase OAuth 2.1 provider dashboard configuration (not yet set up)
 
 ### Known Facts (from codebase audit)
 
@@ -147,6 +150,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T00:26:56.871Z
-Stopped at: Completed 17-04-PLAN.md
+Last session: 2026-03-31T00:39:09.195Z
+Stopped at: Completed 18-mcps-02-PLAN.md — checkpoint:human-verify pending
 Resume file: None

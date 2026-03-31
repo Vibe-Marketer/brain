@@ -168,7 +168,7 @@ Plans:
 
 Plans:
 - [ ] 18-01-PLAN.md — Enforce one MCP token per org; verify MCP server org-scoping and tool functionality
-- [ ] 18-02-PLAN.md — Verify OAuth consent flow E2E with visual verification and infrastructure check
+- [x] 18-02-PLAN.md — Verify OAuth consent flow E2E with visual verification and infrastructure check
 
 ---
 
@@ -187,7 +187,7 @@ Plans:
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
 | 16. Filters & Sort | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 17. Payments & Billing | v2.0 | 4/4 | Complete    | 2026-03-31 |
-| 18. MCPs | v2.0 | 0/2 | Not started | - |
+| 18. MCPs | v2.0 | 1/2 | In Progress|  |
 
 ---
 *Roadmap created: 2026-03-15 — v1.1 Sort/Filter Hardening*
