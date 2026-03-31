@@ -43,6 +43,7 @@ import {
 import { exportAsLLMContext, estimateTokens } from "@/lib/export-utils-advanced";
 import type { ExportableCall } from "@/lib/export-utils";
 import { generateMetaSummary } from "@/lib/api-client";
+import { useAiGate } from "@/hooks/useAiGate";
 import { supabase } from "@/integrations/supabase/client";
 import { saveAs } from "file-saver";
 
@@ -80,6 +81,7 @@ export default function SmartExportDialog({
   const [generateAiSummary, setGenerateAiSummary] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [isGeneratingAiSummary, setIsGeneratingAiSummary] = useState(false);
+  const { trackAction } = useAiGate();
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -211,6 +213,13 @@ export default function SmartExportDialog({
       if (generateAiSummary) {
         setIsGeneratingAiSummary(true);
         toast.loading("Generating AI meta-summary...", { id: loadingToast });
+
+        // Gate: check AI usage limit before generating summary
+        const gate = await trackAction('smart_import');
+        if (!gate.allowed) {
+          setIsGeneratingAiSummary(false);
+          return;
+        }
 
         const recordingIds = selectedCalls.map((c) => c.recording_id);
         const { data, error } = await generateMetaSummary({
