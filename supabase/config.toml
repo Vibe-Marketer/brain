@@ -1,12 +1,18 @@
 project_id = "vltmrnjsubfzrgrtdqey"
 
 # ============================================================================
-# JWT VERIFICATION AUDIT (2026-03-26)
+# JWT VERIFICATION (2026-03-30)
 #
-# verify_jwt = false means Supabase gateway does NOT enforce JWT.
-# Functions with verify_jwt = false MUST either:
-#   (a) perform manual JWT verification in their handler code, OR
-#   (b) be legitimately called without a user JWT (webhooks, cron workers)
+# All user-initiated functions use verify_jwt = false at the gateway level.
+# Auth is enforced in function code via supabase.auth.getUser(token).
+#
+# Reason: Supabase now issues ES256 asymmetric JWTs. The gateway's built-in
+# verify_jwt = true check rejects these with HTTP 401 "Invalid JWT" before
+# the function code even runs. Function-level auth via getUser() handles
+# all JWT formats correctly through the auth API.
+#
+# Security: All user functions call supabase.auth.getUser(token) and return
+# 401 if the user is invalid — equivalent protection, no gateway dependency.
 #
 # LEGITIMATELY NO JWT (webhooks — cannot have user JWT):
 #   webhook              — receives external Fathom webhook callbacks
@@ -14,55 +20,52 @@ project_id = "vltmrnjsubfzrgrtdqey"
 #   polar-webhook        — receives external Polar payment webhook callbacks
 # ============================================================================
 
-# --- User-initiated functions (verify_jwt = true) ---
-# These all perform manual JWT checks in code as well (defense in depth)
+# --- User-initiated functions (auth enforced in function code) ---
 
 [functions.fetch-meetings]
-verify_jwt = true
+verify_jwt = false
 
 [functions.sync-meetings]
-verify_jwt = true
+verify_jwt = false
 
 [functions.zoom-fetch-meetings]
-verify_jwt = true
+verify_jwt = false
 
 [functions.zoom-sync-meetings]
-verify_jwt = true
+verify_jwt = false
 
 [functions.youtube-import]
-verify_jwt = true
+verify_jwt = false
 
 [functions.file-upload-transcribe]
-verify_jwt = true
+verify_jwt = false
 
 [functions.fetch-single-meeting]
-verify_jwt = true
+verify_jwt = false
 
 [functions.save-host-email]
-verify_jwt = true
+verify_jwt = false
 
 [functions.fathom-oauth-url]
-verify_jwt = true
+verify_jwt = false
 
 [functions.fathom-oauth-callback]
-verify_jwt = true
+verify_jwt = false
 
 [functions.fathom-oauth-refresh]
-verify_jwt = true
+verify_jwt = false
 
 [functions.youtube-api]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-content]
-verify_jwt = true
+verify_jwt = false
 
 [functions.generate-ai-titles]
-# User-initiated bulk AI title generation — requires authenticated session
-verify_jwt = true
+verify_jwt = false
 
 [functions.auto-tag-calls]
-# User-initiated bulk AI tagging — requires authenticated session
-verify_jwt = true
+verify_jwt = false
 
 # --- Webhook receivers (no user JWT available) ---
 
