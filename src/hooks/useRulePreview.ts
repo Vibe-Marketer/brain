@@ -36,25 +36,35 @@ function usePreviewCalls() {
   return useQuery<PreviewCall[]>({
     queryKey: queryKeys.routingRules.preview(activeOrgId ?? undefined),
     queryFn: async () => {
-      let q = supabase
-        .from('recordings')
-        .select('id, title, source_app, duration, recording_start_time, source_metadata, global_tags')
-        .order('recording_start_time', { ascending: false });
+      // Paginate to overcome PostgREST's default 1000-row limit
+      const allRows: PreviewCall[] = [];
+      const batchSize = 1000;
+      let offset = 0;
+      let hasMore = true;
 
-      // Scope to organization when available, fall back to user
-      if (activeOrgId) {
-        q = q.eq('organization_id', activeOrgId);
-      } else {
-        q = q.eq('owner_user_id', user!.id);
+      while (hasMore) {
+        let q = supabase
+          .from('recordings')
+          .select('id, title, source_app, duration, recording_start_time, source_metadata, global_tags')
+          .order('recording_start_time', { ascending: false })
+          .range(offset, offset + batchSize - 1);
+
+        if (activeOrgId) {
+          q = q.eq('organization_id', activeOrgId);
+        } else {
+          q = q.eq('owner_user_id', user!.id);
+        }
+
+        const { data, error } = await q;
+        if (error) throw new Error(`Failed to fetch preview recordings: ${error.message}`);
+
+        const rows = (data ?? []) as PreviewCall[];
+        allRows.push(...rows);
+        hasMore = rows.length === batchSize;
+        offset += batchSize;
       }
 
-      const { data, error } = await q;
-
-      if (error) {
-        throw new Error(`Failed to fetch preview recordings: ${error.message}`);
-      }
-
-      return (data ?? []) as PreviewCall[];
+      return allRows;
     },
     enabled: !!user && !!activeOrgId,
     staleTime: 5 * 60 * 1000,

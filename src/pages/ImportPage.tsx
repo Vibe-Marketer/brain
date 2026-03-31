@@ -211,6 +211,7 @@ export default function ImportPage() {
             />
           ),
           secondaryPaneTitle: "Import Sources",
+          showDetailPane: true,
         }}
       >
         {renderPane3()}
