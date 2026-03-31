@@ -207,7 +207,7 @@ export const TranscriptTable = React.memo(({
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
+              <TableRow className="hover:bg-transparent border-b border-border">
                 <TableHead className="w-8 md:w-12 h-10 md:h-12">
                   <TooltipProvider>
                     <Tooltip>

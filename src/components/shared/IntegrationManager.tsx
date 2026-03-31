@@ -86,7 +86,7 @@ export function IntegrationManager({
 
     if (showCard) {
       return (
-        <Card className="border-border dark:border-cb-border-dark">
+        <Card className="border-border">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-display font-extrabold uppercase tracking-wide">
               Connect Integration
@@ -106,7 +106,7 @@ export function IntegrationManager({
   const listContent = (
     <>
       {isLoading ? (
-        <div className={isCompact ? "py-3 text-center text-ink-muted text-sm" : "py-6 text-center text-ink-muted"}>
+        <div className={isCompact ? "py-3 text-center text-muted-foreground text-sm" : "py-6 text-center text-muted-foreground"}>
           Loading integrations...
         </div>
       ) : (
@@ -135,7 +135,7 @@ export function IntegrationManager({
           {/* Empty state */}
           {filteredIntegrations.length === 0 && (
             <div className="py-4 text-center">
-              <p className="text-ink-muted text-sm mb-3">
+              <p className="text-muted-foreground text-sm mb-3">
                 No integrations configured yet.
               </p>
               <AddIntegrationButton
@@ -155,7 +155,7 @@ export function IntegrationManager({
     return (
       <section>
         <div className="flex items-center justify-between pb-2 border-b border-border">
-          <h3 className="text-sm font-medium text-ink-soft uppercase tracking-wide">
+          <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wide">
             {title}
           </h3>
           <AddIntegrationButton
@@ -173,7 +173,7 @@ export function IntegrationManager({
   // Full variant - optionally in a card
   if (showCard) {
     return (
-      <Card className="border-border dark:border-cb-border-dark">
+      <Card className="border-border">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-display font-extrabold uppercase tracking-wide flex items-center justify-between">
             <span>{title}</span>

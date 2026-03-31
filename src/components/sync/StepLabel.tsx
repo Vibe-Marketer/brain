@@ -20,7 +20,7 @@ export function StepLabel({ step, label, className }: StepLabelProps) {
       <div className="flex items-center justify-center w-6 h-6 rounded-full bg-vibe-orange text-white text-xs font-bold">
         {step}
       </div>
-      <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft dark:text-ink-muted">
+      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground dark:text-muted-foreground">
         {label}
       </span>
     </div>

@@ -205,12 +205,12 @@ export function TagDetailPanel({
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-ink">Tag Not Found</h3>
+          <h3 className="font-semibold text-foreground">Tag Not Found</h3>
           <Button variant="ghost" size="sm" onClick={closePanel}>
             <RiCloseLine className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-sm text-ink-muted">
+        <p className="text-sm text-muted-foreground">
           The selected tag could not be found. It may have been deleted.
         </p>
       </div>
@@ -238,7 +238,7 @@ export function TagDetailPanel({
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold text-ink truncate" id="tag-panel-title">{tag.name}</h3>
+              <h3 className="font-semibold text-foreground truncate" id="tag-panel-title">{tag.name}</h3>
               {tag.is_system && (
                 <Badge variant="secondary" className="flex-shrink-0">
                   <RiLockLine className="h-3 w-3 mr-1" aria-hidden="true" />
@@ -247,7 +247,7 @@ export function TagDetailPanel({
               )}
             </div>
             {tag.description && (
-              <p className="text-xs text-ink-muted truncate">{tag.description}</p>
+              <p className="text-xs text-muted-foreground truncate">{tag.description}</p>
             )}
           </div>
         </div>
@@ -260,7 +260,7 @@ export function TagDetailPanel({
             aria-pressed={isPinned}
           >
             {isPinned ? (
-              <RiPushpinFill className="h-4 w-4 text-ink" aria-hidden="true" />
+              <RiPushpinFill className="h-4 w-4 text-foreground" aria-hidden="true" />
             ) : (
               <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
             )}
@@ -281,20 +281,20 @@ export function TagDetailPanel({
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3" role="group" aria-label="Tag statistics">
           <div className="bg-cb-card rounded-lg p-3 border border-border" aria-label={`${callCount} calls with this tag`}>
-            <div className="flex items-center gap-2 text-ink-muted mb-1">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <RiPhoneLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Calls</span>
             </div>
-            <div className="text-2xl font-semibold text-ink tabular-nums" aria-hidden="true">
+            <div className="text-2xl font-semibold text-foreground tabular-nums" aria-hidden="true">
               {callCount}
             </div>
           </div>
           <div className="bg-cb-card rounded-lg p-3 border border-border" aria-label={`Created on ${formatDate(tag.created_at)}`}>
-            <div className="flex items-center gap-2 text-ink-muted mb-1">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <RiCalendarLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Created</span>
             </div>
-            <div className="text-sm font-medium text-ink" aria-hidden="true">
+            <div className="text-sm font-medium text-foreground" aria-hidden="true">
               {formatDate(tag.created_at)}
             </div>
           </div>
@@ -325,7 +325,7 @@ export function TagDetailPanel({
         {/* Edit Form - only for non-system tags */}
         {isEditable && (
           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); handleSave(); }} aria-label="Edit tag form">
-            <h4 className="text-xs font-semibold text-ink-soft uppercase tracking-wide" id="edit-tag-heading">
+            <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide" id="edit-tag-heading">
               Edit Tag
             </h4>
 
@@ -373,7 +373,7 @@ export function TagDetailPanel({
                     aria-label={`Color ${colorOption}`}
                     className={`w-8 h-8 rounded-md border-2 transition-all ${
                       color === colorOption
-                        ? "border-cb-ink scale-110 ring-2 ring-offset-2 ring-cb-ink/20"
+                        ? "border-foreground scale-110 ring-2 ring-offset-2 ring-foreground/20"
                         : "border-transparent hover:scale-105"
                     }`}
                     style={{ backgroundColor: colorOption }}
@@ -387,10 +387,10 @@ export function TagDetailPanel({
 
         {/* Metadata */}
         <div className="space-y-2 pt-4 border-t border-border">
-          <h4 className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Details
           </h4>
-          <div className="text-sm text-ink-muted space-y-1">
+          <div className="text-sm text-muted-foreground space-y-1">
             <p>Created: {formatDate(tag.created_at)}</p>
             <p>Updated: {formatDate(tag.updated_at)}</p>
             <p>Type: {tag.is_system ? "System" : "Custom"}</p>

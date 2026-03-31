@@ -46,16 +46,16 @@ function StatCard({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="relative py-2 px-4 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
+    <div className="relative py-2 px-4 bg-white dark:bg-card border border-border rounded-lg">
       {/* Vibe orange wedge accent - trapezoid shape per brand guidelines */}
       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange cv-vertical-marker" />
       <div className="flex items-center justify-between mb-1">
-        <div className="text-xs font-medium text-cb-gray-dark dark:text-cb-gray-light">
+        <div className="text-xs font-medium text-muted-foreground">
           {label}
         </div>
-        <Icon className="h-4 w-4 text-ink-muted" />
+        <Icon className="h-4 w-4 text-muted-foreground" />
       </div>
-      <div className="font-display text-2xl font-extrabold text-cb-black dark:text-cb-white">
+      <div className="font-display text-2xl font-extrabold text-foreground">
         {value}
       </div>
     </div>
@@ -65,12 +65,12 @@ function StatCard({
 // Placeholder chart component
 function ChartPlaceholder({ title }: { title: string }) {
   return (
-    <div className="bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg p-6">
-      <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
+    <div className="bg-white dark:bg-card border border-border rounded-lg p-6">
+      <h4 className="font-display text-sm font-bold text-muted-foreground mb-4">
         {title}
       </h4>
-      <div className="h-48 flex items-center justify-center bg-gray dark:bg-cb-panel-dark rounded-md">
-        <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+      <div className="h-48 flex items-center justify-center bg-gray rounded-md">
+        <p className="text-sm text-muted-foreground">
           Chart coming soon
         </p>
       </div>
@@ -104,7 +104,7 @@ export function ContentTab({ isLoading = false }: ContentTabProps) {
 
       {/* KPI Row */}
       <div className="px-2">
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white mb-6">
+        <h3 className="font-display text-lg font-bold text-foreground mb-6">
           Content Metrics
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
@@ -140,7 +140,7 @@ export function ContentTab({ isLoading = false }: ContentTabProps) {
 
       {/* Charts Section */}
       <div className="px-2">
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white mb-6">
+        <h3 className="font-display text-lg font-bold text-foreground mb-6">
           Content Trends
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -153,18 +153,18 @@ export function ContentTab({ isLoading = false }: ContentTabProps) {
 
       {/* Clips Table */}
       <div className="px-2 pb-8">
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white mb-6">
+        <h3 className="font-display text-lg font-bold text-foreground mb-6">
           Clips Library
         </h3>
 
         {analytics.clips.length === 0 ? (
           // Empty state
-          <div className="flex flex-col items-center justify-center py-16 bg-gray dark:bg-cb-panel-dark rounded-lg">
-            <RiFilmLine className="h-12 w-12 text-ink-muted mb-4" />
-            <p className="text-lg font-medium text-cb-black dark:text-cb-white mb-2">
+          <div className="flex flex-col items-center justify-center py-16 bg-gray rounded-lg">
+            <RiFilmLine className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-lg font-medium text-foreground mb-2">
               No clips created yet
             </p>
-            <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light text-center max-w-md">
+            <p className="text-sm text-muted-foreground text-center max-w-md">
               Create your first clip from a call transcript.
             </p>
           </div>
@@ -208,7 +208,7 @@ export function ContentTab({ isLoading = false }: ContentTabProps) {
                       {clip.tags.map((tag, index) => (
                         <span
                           key={index}
-                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray dark:bg-cb-panel-dark text-cb-gray-dark dark:text-cb-gray-light"
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs bg-gray text-muted-foreground"
                         >
                           {tag}
                         </span>
@@ -230,7 +230,7 @@ export function ContentTab({ isLoading = false }: ContentTabProps) {
                     {clip.winningHook ? (
                       <RiTrophyLine className="h-4 w-4 text-vibe-orange" />
                     ) : (
-                      <span className="text-cb-gray-dark dark:text-cb-gray-light">
+                      <span className="text-muted-foreground">
                         -
                       </span>
                     )}

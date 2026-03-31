@@ -27,11 +27,11 @@ export function DonutChartCard({
   if (!data || data.length === 0) {
     return (
       <div className="p-6 bg-white dark:bg-card">
-        <h3 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
+        <h3 className="font-display text-sm font-bold text-muted-foreground mb-4">
           {title}
         </h3>
         <div className="h-[200px] flex items-center justify-center">
-          <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">No data yet</p>
+          <p className="text-sm text-muted-foreground">No data yet</p>
         </div>
       </div>
     );
@@ -39,7 +39,7 @@ export function DonutChartCard({
 
   return (
     <div className="p-6 bg-white dark:bg-card">
-      <h3 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
+      <h3 className="font-display text-sm font-bold text-muted-foreground mb-4">
         {title}
       </h3>
       <div className="bg-white dark:bg-card">

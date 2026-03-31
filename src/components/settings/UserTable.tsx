@@ -97,7 +97,7 @@ export const UserTable = React.memo(({
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
+            <TableRow className="hover:bg-transparent border-b border-border">
               <TableHead className="min-w-[200px] h-10 md:h-12 whitespace-nowrap text-xs md:text-sm">
                 <SortButton field="display_name">USER</SortButton>
               </TableHead>
@@ -121,7 +121,7 @@ export const UserTable = React.memo(({
             {sortedUsers.map((user) => (
               <TableRow
                 key={user.user_id}
-                className="group h-10 md:h-12 hover:bg-gray dark:hover:bg-cb-panel-dark"
+                className="group h-10 md:h-12 hover:bg-gray"
               >
                 <TableCell className="py-0.5">
                   <div className="flex flex-col">

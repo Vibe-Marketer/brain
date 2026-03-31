@@ -18,7 +18,7 @@ export function DurationTab() {
   if (error) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-cb-gray-dark dark:text-cb-gray-light">
+        <p className="text-muted-foreground">
           Failed to load duration analytics. Please try again.
         </p>
       </div>
@@ -28,11 +28,11 @@ export function DurationTab() {
   if (!analytics || analytics.totalCalls === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <RiTimeLine className="w-12 h-12 text-cb-gray-dark dark:text-cb-gray-light" />
-        <p className="text-lg text-cb-gray-dark dark:text-cb-gray-light">
+        <RiTimeLine className="w-12 h-12 text-muted-foreground" />
+        <p className="text-lg text-muted-foreground">
           No call data available yet
         </p>
-        <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+        <p className="text-sm text-muted-foreground">
           Sync your calls to see duration analytics
         </p>
       </div>
@@ -51,7 +51,7 @@ export function DurationTab() {
 
       {/* KPI Row: Average and Median Duration */}
       <div className="bg-white dark:bg-card px-2 pb-2">
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white mb-6">
+        <h3 className="font-display text-lg font-bold text-foreground mb-6">
           Duration Metrics
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -72,7 +72,7 @@ export function DurationTab() {
 
       {/* Duration Distribution Section */}
       <div className="bg-white dark:bg-card px-6 pb-6">
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white mb-6">
+        <h3 className="font-display text-lg font-bold text-foreground mb-6">
           Duration Distribution
         </h3>
 
@@ -82,24 +82,24 @@ export function DurationTab() {
             analytics.durationBreakdown.map((bucket) => (
               <div
                 key={bucket.name}
-                className="relative py-4 px-4 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg"
+                className="relative py-4 px-4 bg-white dark:bg-card border border-border rounded-lg"
               >
                 {/* Vibe orange wedge accent */}
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange cv-vertical-marker" />
-                <div className="text-xs font-medium text-cb-gray-dark dark:text-cb-gray-light mb-1">
+                <div className="text-xs font-medium text-muted-foreground mb-1">
                   {bucket.name}
                 </div>
-                <div className="font-display text-2xl font-extrabold text-cb-black dark:text-cb-white tabular-nums">
+                <div className="font-display text-2xl font-extrabold text-foreground tabular-nums">
                   {bucket.value}
                 </div>
-                <div className="text-xs text-cb-gray-dark dark:text-cb-gray-light">
+                <div className="text-xs text-muted-foreground">
                   calls
                 </div>
               </div>
             ))
           ) : (
             <div className="col-span-4 text-center py-8">
-              <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+              <p className="text-sm text-muted-foreground">
                 No duration data available
               </p>
             </div>
@@ -122,30 +122,30 @@ export function DurationTab() {
 
       {/* Tables Section - Placeholders */}
       <div className="bg-white dark:bg-card px-6 pb-6">
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white mb-6">
+        <h3 className="font-display text-lg font-bold text-foreground mb-6">
           Duration Breakdown Tables
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Duration by Call Type/Category Placeholder */}
-          <div className="border border-border dark:border-cb-border-dark rounded-lg p-6">
-            <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
+          <div className="border border-border rounded-lg p-6">
+            <h4 className="font-display text-sm font-bold text-muted-foreground mb-4">
               Duration by Call Type/Category
             </h4>
             <div className="flex items-center justify-center py-8">
-              <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+              <p className="text-sm text-muted-foreground">
                 Coming soon
               </p>
             </div>
           </div>
 
           {/* Duration by Tag Placeholder */}
-          <div className="border border-border dark:border-cb-border-dark rounded-lg p-6">
-            <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
+          <div className="border border-border rounded-lg p-6">
+            <h4 className="font-display text-sm font-bold text-muted-foreground mb-4">
               Duration by Tag
             </h4>
             <div className="flex items-center justify-center py-8">
-              <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+              <p className="text-sm text-muted-foreground">
                 Coming soon
               </p>
             </div>

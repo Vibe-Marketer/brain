@@ -107,11 +107,11 @@ export default function EditAllTranscriptsDialog({
             <div className="flex items-center gap-2 p-3 rounded-md border border-border bg-cb-card">
               {IconComponent ? (
                 <IconComponent
-                  className="h-5 w-5 text-ink-muted"
+                  className="h-5 w-5 text-muted-foreground"
                 />
               ) : (
                 <RemixIcon.RiFileTextLine
-                  className="h-5 w-5 text-ink-muted"
+                  className="h-5 w-5 text-muted-foreground"
                 />
               )}
               <span className="font-medium">

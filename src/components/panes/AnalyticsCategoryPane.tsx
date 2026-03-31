@@ -176,12 +176,12 @@ export function AnalyticsCategoryPane({
         </div>
         <div className="min-w-0">
           <h2
-            className="text-sm font-bold text-ink uppercase tracking-wide"
+            className="text-sm font-bold text-foreground uppercase tracking-wide"
             id="analytics-category-title"
           >
             Analytics
           </h2>
-          <p className="text-xs text-ink-muted">{ANALYTICS_CATEGORIES.length} {ANALYTICS_CATEGORIES.length === 1 ? 'category' : 'categories'}</p>
+          <p className="text-xs text-muted-foreground">{ANALYTICS_CATEGORIES.length} {ANALYTICS_CATEGORIES.length === 1 ? 'category' : 'categories'}</p>
         </div>
       </header>
 
@@ -211,10 +211,10 @@ export function AnalyticsCategoryPane({
                 className={cn(
                   "relative w-full flex items-start gap-3 px-3 py-3 rounded-lg",
                   "text-left transition-all duration-150 ease-in-out",
-                  "hover:bg-hover/70",
+                  "hover:bg-muted/70",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
-                    "bg-hover",
+                    "bg-muted",
                     "border-l-0 pl-4", // Offset for the active indicator
                     "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
@@ -235,7 +235,7 @@ export function AnalyticsCategoryPane({
                   <IconComponent
                     className={cn(
                       "h-4 w-4 transition-colors duration-500 ease-in-out",
-                      isActive ? "text-vibe-orange" : "text-ink-muted"
+                      isActive ? "text-vibe-orange" : "text-muted-foreground"
                     )}
                   />
                 </div>
@@ -246,12 +246,12 @@ export function AnalyticsCategoryPane({
                     className={cn(
                       "block text-sm font-medium truncate",
                       "transition-colors duration-500 ease-in-out",
-                      isActive ? "text-vibe-orange" : "text-ink"
+                      isActive ? "text-vibe-orange" : "text-foreground"
                     )}
                   >
                     {category.label}
                   </span>
-                  <span className="block text-xs text-ink-muted truncate">
+                  <span className="block text-xs text-muted-foreground truncate">
                     {category.description}
                   </span>
                 </div>

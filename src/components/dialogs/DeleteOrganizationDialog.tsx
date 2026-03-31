@@ -106,7 +106,7 @@ export function DeleteOrganizationDialog({
           <div className="space-y-3">
             <Label className="text-sm font-medium">What should happen to recordings in this organization?</Label>
             <div className="space-y-2">
-              <label className="flex items-start gap-3 rounded-md border border-border p-3 cursor-pointer hover:bg-hover transition-colors">
+              <label className="flex items-start gap-3 rounded-md border border-border p-3 cursor-pointer hover:bg-muted transition-colors">
                 <input
                   type="radio"
                   name="data-handling"
@@ -122,7 +122,7 @@ export function DeleteOrganizationDialog({
                   </p>
                 </div>
               </label>
-              <label className="flex items-start gap-3 rounded-md border border-border p-3 cursor-pointer hover:bg-hover transition-colors">
+              <label className="flex items-start gap-3 rounded-md border border-border p-3 cursor-pointer hover:bg-muted transition-colors">
                 <input
                   type="radio"
                   name="data-handling"

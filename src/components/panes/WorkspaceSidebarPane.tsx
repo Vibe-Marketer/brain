@@ -115,7 +115,7 @@ function FolderListItem({
             className={cn(
               'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
               'text-xs transition-all duration-200 text-left group',
-              'hover:bg-hover/50',
+              'hover:bg-muted/50',
               isActive
                 ? 'bg-vibe-orange/5 text-vibe-orange font-semibold font-display italic tracking-tight'
                 : 'text-muted-foreground hover:text-foreground',
@@ -286,9 +286,9 @@ function WorkspaceListItem({
             className={cn(
               'relative w-full flex items-start gap-3 px-3 py-2.5 rounded-lg cursor-pointer',
               'text-left transition-all duration-300 ease-in-out',
-              'hover:bg-hover/70 group',
+              'hover:bg-muted/70 group',
               isActive && [
-                'bg-hover border border-border/60 shadow-sm',
+                'bg-muted border border-border/60 shadow-sm',
                 'border-l-0 pl-4',
                 "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[60%] before:rounded-full before:bg-vibe-orange",
               ]
@@ -516,7 +516,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                 }}
                 className={cn(
                   'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300',
-                  isHomeActive ? 'bg-hover border border-border shadow-sm' : 'hover:bg-hover/50 text-muted-foreground hover:text-foreground'
+                  isHomeActive ? 'bg-muted border border-border shadow-sm' : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
                 )}
               >
                 <div className={cn(
@@ -547,7 +547,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                     className={cn(
                       'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
                       'text-xs transition-all duration-200 text-left group px-3',
-                      'hover:bg-hover/50',
+                      'hover:bg-muted/50',
                       activeFolderId === folder.id
                         ? 'bg-vibe-orange/5 text-vibe-orange font-semibold font-display italic tracking-tight'
                         : 'text-muted-foreground hover:text-foreground',
@@ -570,7 +570,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                     className={cn(
                       'relative w-full flex items-center gap-2 rounded-md pr-2 py-1.5',
                       'text-xs transition-all duration-200 text-left group px-3',
-                      'hover:bg-hover/50 text-muted-foreground hover:text-foreground',
+                      'hover:bg-muted/50 text-muted-foreground hover:text-foreground',
                     )}
                   >
                     <RiPriceTag3Line size={14} className="flex-shrink-0 text-muted-foreground" style={{ color: tag.color || undefined }} />
@@ -642,7 +642,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
         {canCreateWorkspace && (
           <button
             onClick={() => setCreateWsOpen(true)}
-            className="w-full h-10 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground hover:bg-hover hover:text-foreground transition-all group"
+            className="w-full h-10 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all group"
           >
             <RiAddLine size={16} className="group-hover:text-vibe-orange" />
             <span>New Workspace</span>
@@ -650,7 +650,7 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
         )}
         <button
           onClick={() => setCreateOrgOpen(true)}
-          className="w-full h-10 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground hover:bg-hover hover:text-foreground transition-all group"
+          className="w-full h-10 flex items-center gap-3 px-4 rounded-xl text-xs font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all group"
         >
           <RiBuildingLine size={16} className="group-hover:text-vibe-orange" />
           <span>New Organization</span>

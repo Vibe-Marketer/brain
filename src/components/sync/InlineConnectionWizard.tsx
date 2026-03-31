@@ -335,7 +335,7 @@ export function InlineConnectionWizard({
 
 
       {/* Help text */}
-      <p className="text-xs text-ink-muted text-center">
+      <p className="text-xs text-muted-foreground text-center">
         {isConnecting
           ? "Please wait..."
           : "You'll authorize via OAuth, then return here."}

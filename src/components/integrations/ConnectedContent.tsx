@@ -53,7 +53,7 @@ export function ConnectedContent({
         {/* Connected account email */}
         {email && (
           <div className="flex items-center justify-between py-2 border-b border-border">
-            <span className="text-sm text-ink-muted">Connected as</span>
+            <span className="text-sm text-muted-foreground">Connected as</span>
             <span className="text-sm font-medium">{email}</span>
           </div>
         )}
@@ -61,7 +61,7 @@ export function ConnectedContent({
         {/* Last synced */}
         {lastSyncAt && (
           <div className="flex items-center justify-between py-2 border-b border-border">
-            <span className="text-sm text-ink-muted flex items-center gap-1">
+            <span className="text-sm text-muted-foreground flex items-center gap-1">
               <RiTimeLine className="h-4 w-4" />
               Last synced
             </span>

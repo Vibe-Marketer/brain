@@ -124,24 +124,24 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                 <h3 className="font-display text-sm font-extrabold uppercase mb-3">METADATA</h3>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <Label className="text-xs font-medium uppercase text-ink-muted">DATABASE NAME</Label>
+                    <Label className="text-xs font-medium uppercase text-muted-foreground">DATABASE NAME</Label>
                     <p className="font-medium">{call.title}</p>
                   </div>
                   <div>
-                    <Label className="text-xs font-medium uppercase text-ink-muted">RECORDING ID</Label>
+                    <Label className="text-xs font-medium uppercase text-muted-foreground">RECORDING ID</Label>
                     <p className="font-mono text-xs">{call.recording_id}</p>
                   </div>
                   <div>
-                    <Label className="text-xs font-medium uppercase text-ink-muted">DATE</Label>
+                    <Label className="text-xs font-medium uppercase text-muted-foreground">DATE</Label>
                     <p>{new Date(call.created_at).toLocaleString()}</p>
                   </div>
                   <div>
-                    <Label className="text-xs font-medium uppercase text-ink-muted">DURATION</Label>
+                    <Label className="text-xs font-medium uppercase text-muted-foreground">DURATION</Label>
                     <p className="opacity-50">{duration ? `${duration} minutes` : "Not available"}</p>
                   </div>
                   {call.share_url && (
                     <div className="col-span-2">
-                      <Label className="text-xs font-medium uppercase text-ink-muted">FATHOM SHARE LINK</Label>
+                      <Label className="text-xs font-medium uppercase text-muted-foreground">FATHOM SHARE LINK</Label>
                       <a
                         href={call.share_url}
                         target="_blank"
@@ -230,7 +230,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="font-display text-sm font-extrabold uppercase">FULL TRANSCRIPT</h3>
                   <div className="flex items-center gap-2">
-                    <Label htmlFor="view-raw-toggle" className="text-xs font-medium uppercase cursor-pointer text-ink-muted">
+                    <Label htmlFor="view-raw-toggle" className="text-xs font-medium uppercase cursor-pointer text-muted-foreground">
                       VIEW RAW
                     </Label>
                     <Switch
@@ -255,10 +255,10 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                             <div className="space-y-1">
                               {transcripts.map((segment, idx) => (
                                 <div key={segment.id || idx} className="flex gap-3 py-2 border-b border-border/30 last:border-0">
-                                  <span className="shrink-0 w-11 text-right text-[11px] font-mono text-ink-muted mt-[3px] select-none">
+                                  <span className="shrink-0 w-11 text-right text-[11px] font-mono text-muted-foreground mt-[3px] select-none">
                                     {segment.timestamp}
                                   </span>
-                                  <p className="flex-1 text-[15px] leading-[22px] text-ink">
+                                  <p className="flex-1 text-[15px] leading-[22px] text-foreground">
                                     {segment.display_text}
                                   </p>
                                 </div>
@@ -309,11 +309,11 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                             >
                               <div className={`max-w-[70%] ${isHost ? 'items-end' : 'items-start'} flex flex-col gap-2`}>
                                 <div className="flex items-center gap-2 px-3">
-                                  <span className={`text-xs font-medium ${isHost ? 'text-right' : 'text-left'} text-ink-muted`}>
+                                  <span className={`text-xs font-medium ${isHost ? 'text-right' : 'text-left'} text-muted-foreground`}>
                                     {group.speaker || "Unknown"}
                                   </span>
                                   {group.messages[0].timestamp && (
-                                    <span className="text-[11px] text-ink-muted">
+                                    <span className="text-[11px] text-muted-foreground">
                                       {group.messages[0].timestamp}
                                     </span>
                                   )}
@@ -327,7 +327,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                                         className={`relative rounded-[18px] px-4 py-2 ${
                                           isHost
                                             ? 'bg-[#007AFF] dark:bg-[#0A84FF] text-white rounded-br-[4px]'
-                                            : 'bg-hover dark:bg-cb-panel-dark text-ink rounded-bl-[4px]'
+                                            : 'bg-muted text-foreground rounded-bl-[4px]'
                                         }`}
                                       >
                                       {editingSegmentId === message.id ? (
@@ -381,7 +381,7 @@ export const CallTranscriptTab = memo(function CallTranscriptTab({
                       })()
                     ) : (
                       <div className="p-8 text-center">
-                        <p className="text-ink-muted">No conversation available</p>
+                        <p className="text-muted-foreground">No conversation available</p>
                       </div>
                     )}
                   </div>

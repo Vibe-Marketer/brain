@@ -4,7 +4,7 @@
  * Navigation rail for the AppShell sidebar.
  * Matches the 2nd pane design pattern exactly:
  * - Icon in w-8 h-8 rounded-md bordered box
- * - Active state: bg-hover (muted) background, NOT orange tint
+ * - Active state: bg-muted (muted) background, NOT orange tint
  * - Left pill via before: pseudo at left-1, h-[65%], bg-vibe-orange
  * - pl-4 offset on active to clear the pill
  * - Right chevron fades in on active
@@ -160,7 +160,7 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
                   'text-left transition-all duration-150 ease-in-out',
                   'hover:bg-muted/70',
                   'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
-                  // Active — bg-hover (muted), NOT orange tint. Pill via before:
+                  // Active — bg-muted (muted), NOT orange tint. Pill via before:
                   active && [
                     'bg-muted',
                     isCollapsed ? 'pl-3' : 'pl-4', // offset for pill when expanded

@@ -77,7 +77,7 @@ export function CompactIntegrationButton({
             {/* Connected: info icon top-right */}
             {connected && (
               <div className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-white dark:bg-card border border-border flex items-center justify-center shadow-sm">
-                <RiInformationLine className="h-2.5 w-2.5 text-ink-muted" />
+                <RiInformationLine className="h-2.5 w-2.5 text-muted-foreground" />
               </div>
             )}
           </button>
@@ -88,15 +88,15 @@ export function CompactIntegrationButton({
               {name} {connected ? "- Connected" : "- Not Connected"}
             </p>
             {connected && email && (
-              <p className="text-ink-muted truncate">{email}</p>
+              <p className="text-muted-foreground truncate">{email}</p>
             )}
             {connected && lastSyncAt && (
-              <p className="text-ink-muted">
+              <p className="text-muted-foreground">
                 Last synced:{" "}
                 {formatDistanceToNow(new Date(lastSyncAt), { addSuffix: true })}
               </p>
             )}
-            {!connected && <p className="text-ink-muted">Click to connect</p>}
+            {!connected && <p className="text-muted-foreground">Click to connect</p>}
           </div>
         </TooltipContent>
       </Tooltip>

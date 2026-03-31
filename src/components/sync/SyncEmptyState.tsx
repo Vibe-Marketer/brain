@@ -23,13 +23,13 @@ export function SyncEmptyState({
   if (!hasConnectedIntegrations) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-        <div className="w-16 h-16 rounded-full bg-cb-gray-light/50 dark:bg-cb-gray-dark/50 flex items-center justify-center mb-4">
-          <RiVideoOnLine className="h-8 w-8 text-ink-muted" />
+        <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+          <RiVideoOnLine className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold text-ink dark:text-white mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           No sources connected
         </h3>
-        <p className="text-sm text-ink-muted max-w-sm">
+        <p className="text-sm text-muted-foreground max-w-sm">
           Connect a meeting source above to start importing your calls into CallVault.
         </p>
       </div>
@@ -39,13 +39,13 @@ export function SyncEmptyState({
   if (!hasDateRange) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-        <div className="w-16 h-16 rounded-full bg-cb-gray-light/50 dark:bg-cb-gray-dark/50 flex items-center justify-center mb-4">
-          <RiCalendarLine className="h-8 w-8 text-ink-muted" />
+        <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+          <RiCalendarLine className="h-8 w-8 text-muted-foreground" />
         </div>
-        <h3 className="text-lg font-semibold text-ink dark:text-white mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           Choose a date range
         </h3>
-        <p className="text-sm text-ink-muted max-w-sm">
+        <p className="text-sm text-muted-foreground max-w-sm">
           Select a date range above to search for meetings in your connected sources.
         </p>
       </div>
@@ -55,13 +55,13 @@ export function SyncEmptyState({
   // Has integrations and date range - ready to fetch
   return (
     <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
-      <div className="w-16 h-16 rounded-full bg-cb-gray-light/50 dark:bg-cb-gray-dark/50 flex items-center justify-center mb-4">
-        <RiRefreshLine className="h-8 w-8 text-ink-muted" />
+      <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+        <RiRefreshLine className="h-8 w-8 text-muted-foreground" />
       </div>
-      <h3 className="text-lg font-semibold text-ink dark:text-white mb-2">
+      <h3 className="text-lg font-semibold text-foreground mb-2">
         Ready to fetch
       </h3>
-      <p className="text-sm text-ink-muted max-w-sm">
+      <p className="text-sm text-muted-foreground max-w-sm">
         Click <span className="font-medium">Fetch calls</span> to search for meetings in your selected date range.
       </p>
     </div>

@@ -1325,7 +1325,7 @@ export function TranscriptsTab({
             />
           ) : (
             <>
-              <div className="border-cb-gray-light dark:border-cb-gray-dark h-full">
+              <div className="border-border h-full">
                 <TranscriptTable
                   calls={validCalls}
                     tableMode={isHomeView ? 'home' : 'workspace'}

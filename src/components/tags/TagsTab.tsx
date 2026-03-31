@@ -138,7 +138,7 @@ export function TagsTab() {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
+              <TableRow className="hover:bg-transparent border-b border-border">
                 <TableHead className="font-medium text-xs uppercase tracking-wider w-12">
                   Color
                 </TableHead>
@@ -199,7 +199,7 @@ export function TagsTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-ink-muted">
+      <p className="text-sm text-muted-foreground">
         These are the system-wide tags that classify calls by type. Tags control which AI prompts
         and analysis run on each call.
       </p>
@@ -207,7 +207,7 @@ export function TagsTab() {
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
+            <TableRow className="hover:bg-transparent border-b border-border">
               <TableHead className="font-medium text-xs uppercase tracking-wider w-12">
                 Color
               </TableHead>
@@ -252,10 +252,10 @@ export function TagsTab() {
                       ref={getRowRef(tag.id) as React.Ref<HTMLTableRowElement>}
                       className={`cursor-pointer transition-colors ${
                         isSelected
-                          ? "bg-hover dark:bg-cb-hover-dark"
+                          ? "bg-muted"
                           : isFocused
-                          ? "bg-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
-                          : "hover:bg-hover/50 dark:hover:bg-cb-hover-dark/50"
+                          ? "bg-muted/30 ring-1 ring-inset ring-vibe-orange/50"
+                          : "hover:bg-muted/50"
                       }`}
                       onClick={() => {
                         handleRowClick(tag);
@@ -269,7 +269,7 @@ export function TagsTab() {
                         />
                       </TableCell>
                       <TableCell className="font-medium">{tag.name}</TableCell>
-                      <TableCell className="text-ink-muted">
+                      <TableCell className="text-muted-foreground">
                         {tag.description || "-"}
                       </TableCell>
                       <TableCell>

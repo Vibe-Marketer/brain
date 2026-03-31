@@ -349,7 +349,7 @@ describe('FoldersTab Integration Tests', () => {
       render(<FoldersTab />, { wrapper: createWrapper() });
 
       const folderRow = screen.getByText('Work').closest('tr');
-      expect(folderRow).toHaveClass('bg-hover', { exact: false });
+      expect(folderRow).toHaveClass('bg-muted', { exact: false });
     });
   });
 

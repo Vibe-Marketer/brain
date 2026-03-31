@@ -36,8 +36,8 @@ export function SharedWithMePane({
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <header className="px-4 py-3 border-b border-border bg-card/50">
-        <h2 className="text-sm font-bold text-ink uppercase tracking-wide">Sources</h2>
-        <p className="text-xs text-ink-muted mt-0.5">Filter how calls were shared</p>
+        <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">Sources</h2>
+        <p className="text-xs text-muted-foreground mt-0.5">Filter how calls were shared</p>
       </header>
 
       <div className="p-3 border-b border-border">
@@ -63,7 +63,7 @@ export function SharedWithMePane({
               onClick={() => onTabChange(filter.id)}
               className={cn(
                 "w-full flex items-center justify-between rounded-lg px-3 py-2.5 text-left transition-colors",
-                isActive ? "bg-hover border border-border" : "hover:bg-hover/70 border border-transparent"
+                isActive ? "bg-muted border border-border" : "hover:bg-muted/70 border border-transparent"
               )}
             >
               <span className="flex items-center gap-2 min-w-0">

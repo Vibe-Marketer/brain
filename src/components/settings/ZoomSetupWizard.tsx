@@ -107,7 +107,7 @@ export default function ZoomSetupWizard({ open, onComplete: _onComplete, onDismi
           </div>
 
           {currentStepData.stepNumber && (
-            <div className="w-full bg-muted/50 h-3 rounded-full overflow-hidden border border-border dark:border-cb-border-dark">
+            <div className="w-full bg-muted/50 h-3 rounded-full overflow-hidden border border-border">
               <div
                 className="h-full transition-all duration-300 rounded-full bg-vibe-orange"
                 style={{ width: `${progress}%` }}
@@ -163,7 +163,7 @@ function ZoomWelcomeStep() {
         />
       </div>
 
-      <div className="p-4 rounded-lg bg-muted/50 border border-border dark:border-cb-border-dark">
+      <div className="p-4 rounded-lg bg-muted/50 border border-border">
         <div className="flex items-start gap-3">
           <RiVideoLine className="h-5 w-5 text-muted-foreground mt-0.5 shrink-0" />
           <div className="text-sm text-muted-foreground">
@@ -198,7 +198,7 @@ function ZoomOAuthStep({ oauthConnecting, onOAuthConnect }: ZoomOAuthStepProps) 
         You'll be redirected to Zoom to sign in and approve the connection.
       </p>
 
-      <div className="p-4 rounded-lg bg-muted/50 border border-border dark:border-cb-border-dark">
+      <div className="p-4 rounded-lg bg-muted/50 border border-border">
         <p className="text-sm font-medium mb-2">CallVault™ will have access to:</p>
         <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
           <li>View your cloud recordings</li>

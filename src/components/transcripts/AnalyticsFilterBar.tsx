@@ -64,14 +64,14 @@ export function AnalyticsFilterBar({ filters, onFiltersChange }: AnalyticsFilter
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <div className="mt-2 text-xs text-cb-gray-dark dark:text-cb-gray-light">
+          <div className="mt-2 text-xs text-muted-foreground">
             {timeRangeLabels[filters.timeRange]}
           </div>
         </div>
 
         {/* Chart Visibility Toggles */}
         <div className="flex-1 min-w-0">
-          <Label className="text-sm font-medium text-cb-gray-dark dark:text-cb-gray-light mb-2 block">
+          <Label className="text-sm font-medium text-muted-foreground mb-2 block">
             Visible Charts
           </Label>
           <div className="flex flex-wrap gap-x-6 gap-y-3">

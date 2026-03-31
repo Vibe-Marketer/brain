@@ -54,10 +54,10 @@ export function SyncedTranscriptsSection({
     <div className="space-y-4 mt-8">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-display text-2xl font-bold text-cb-black dark:text-cb-white uppercase tracking-wide">
+          <h2 className="font-display text-2xl font-bold text-foreground uppercase tracking-wide">
             Synced Transcripts
           </h2>
-          <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {dateRange?.from || dateRange?.to
               ? `${existingTotalCount} meetings synced for this date range`
               : `${existingTotalCount} total transcripts`}

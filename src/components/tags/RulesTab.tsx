@@ -513,7 +513,7 @@ export function RulesTab() {
       </div>
 
       {/* Rules table */}
-      <div className="border border-border dark:border-cb-border-dark rounded-sm overflow-hidden">
+      <div className="border border-border rounded-sm overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow className="bg-cb-white dark:bg-card hover:bg-cb-white dark:hover:bg-card">
@@ -574,7 +574,7 @@ export function RulesTab() {
                     <div>
                       <div className="font-medium">{rule.name}</div>
                       {rule.description && (
-                        <div className="text-sm text-ink-muted">{rule.description}</div>
+                        <div className="text-sm text-muted-foreground">{rule.description}</div>
                       )}
                     </div>
                   </TableCell>
@@ -593,7 +593,7 @@ export function RulesTab() {
                         {getTagName(rule.tag_id)}
                       </div>
                     ) : (
-                      <span className="text-ink-muted">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
@@ -606,7 +606,7 @@ export function RulesTab() {
                         {getFolderName(rule.folder_id)}
                       </div>
                     ) : (
-                      <span className="text-ink-muted">—</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell className="text-right tabular-nums">

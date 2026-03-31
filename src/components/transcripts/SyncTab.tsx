@@ -578,7 +578,7 @@ export function SyncTab() {
               <Button
                 variant="ghost"
                 onClick={handleClearFilters}
-                className="h-9 px-3 text-ink-muted"
+                className="h-9 px-3 text-muted-foreground"
               >
                 Clear filters
               </Button>

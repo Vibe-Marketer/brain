@@ -273,7 +273,7 @@ export function SettingsDetailPane({
         title={meta.label}
         subtitle={
           <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-1 text-[10px] font-bold text-ink-muted uppercase tracking-widest opacity-70">
+            <div className="flex items-center gap-1 text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-70">
               <span>Settings</span>
               <span className="text-[8px] opacity-40">/</span>
               <span>{meta.label}</span>

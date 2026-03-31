@@ -99,7 +99,7 @@ export function ReengagementEmailModal({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <RiMailLine className="h-5 w-5 text-cb-ink-muted" />
+            <RiMailLine className="h-5 w-5 text-muted-foreground" />
             Send check-in to {contactName}
           </DialogTitle>
           <DialogDescription>
@@ -123,7 +123,7 @@ export function ReengagementEmailModal({
               placeholder="Describe the email you want to generate..."
               className="min-h-[120px] text-sm"
             />
-            <p className="text-xs text-cb-ink-muted">
+            <p className="text-xs text-muted-foreground">
               Use {"{{contact_name}}"} and {"{{contact_email}}"} as placeholders.
             </p>
           </div>

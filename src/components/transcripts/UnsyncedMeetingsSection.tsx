@@ -44,10 +44,10 @@ export function UnsyncedMeetingsSection({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-display text-2xl font-bold text-cb-black dark:text-cb-white uppercase tracking-wide">
+          <h2 className="font-display text-2xl font-bold text-foreground uppercase tracking-wide">
             Unsynced Meetings
           </h2>
-          <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             {meetings.length} meeting{meetings.length !== 1 ? 's' : ''} found
             {someSelected && (
               <span className="ml-1">

@@ -125,10 +125,10 @@ export function ImportSourcePane({
           className={cn(
             'relative w-full flex items-start gap-3 px-3 py-3 rounded-lg',
             'text-left transition-all duration-150 ease-in-out',
-            'hover:bg-hover/70',
+            'hover:bg-muted/70',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
             isActive && [
-              'bg-hover',
+              'bg-muted',
               'border-l-0 pl-4',
               "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
             ]
@@ -148,7 +148,7 @@ export function ImportSourcePane({
             <IconComponent
               className={cn(
                 'h-4 w-4 transition-colors duration-500 ease-in-out',
-                isActive ? 'text-ink dark:text-white' : 'text-ink-muted'
+                isActive ? 'text-foreground' : 'text-muted-foreground'
               )}
             />
           </div>
@@ -159,12 +159,12 @@ export function ImportSourcePane({
               className={cn(
                 'block text-sm font-medium truncate',
                 'transition-colors duration-500 ease-in-out',
-                isActive ? 'text-ink dark:text-white' : 'text-ink'
+                isActive ? 'text-foreground' : 'text-foreground'
               )}
             >
               {item.label}
             </span>
-            <span className="block text-xs text-ink-muted truncate">
+            <span className="block text-xs text-muted-foreground truncate">
               {item.description}
             </span>
           </div>
@@ -187,7 +187,7 @@ export function ImportSourcePane({
             )}
             aria-hidden="true"
           >
-            <svg className="h-4 w-4 text-ink-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
             </svg>
           </div>
@@ -215,17 +215,17 @@ export function ImportSourcePane({
           <RiDownloadCloud2Line className="h-5 w-5" />
         </div>
         <div className="min-w-0">
-          <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+          <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">
             Import
           </h2>
-          <p className="text-xs text-ink-muted">Connect &amp; sync sources</p>
+          <p className="text-xs text-muted-foreground">Connect &amp; sync sources</p>
         </div>
       </header>
 
       {/* Source list */}
       <div className="flex-1 overflow-y-auto py-2 px-2" role="list">
         {/* Connectors */}
-        <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted/60">
+        <p className="px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
           Connectors
         </p>
         {connectorSources.map(renderItem)}
@@ -234,7 +234,7 @@ export function ImportSourcePane({
         <div className="mx-2 my-2 border-t border-border/50" />
 
         {/* Manual */}
-        <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-ink-muted/60">
+        <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
           Manual
         </p>
         {manualSources.map(renderItem)}

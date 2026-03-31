@@ -24,7 +24,7 @@ export function ParticipationTab() {
   if (error) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-cb-gray-dark dark:text-cb-gray-light">
+        <p className="text-muted-foreground">
           Failed to load participation data. Please try again.
         </p>
       </div>
@@ -35,10 +35,10 @@ export function ParticipationTab() {
   if (!analytics || analytics.totalCalls === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <p className="text-lg text-cb-gray-dark dark:text-cb-gray-light">
+        <p className="text-lg text-muted-foreground">
           No participation data available yet
         </p>
-        <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+        <p className="text-sm text-muted-foreground">
           Sync your calls to see participation analytics
         </p>
       </div>
@@ -68,7 +68,7 @@ export function ParticipationTab() {
 
       {/* Time Range Selector */}
       <div className="flex items-center gap-2 px-6 mb-8">
-        <span className="text-sm font-medium text-cb-gray-dark dark:text-cb-gray-light mr-2">
+        <span className="text-sm font-medium text-muted-foreground mr-2">
           Time Range:
         </span>
         {(["7d", "30d", "3m", "6m", "1y", "all"] as TimeRange[]).map((range) => (
@@ -77,8 +77,8 @@ export function ParticipationTab() {
             onClick={() => setTimeRange(range)}
             className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
               timeRange === range
-                ? "bg-cb-black dark:bg-cb-white text-white dark:text-cb-black font-medium"
-                : "text-cb-gray-dark dark:text-cb-gray-light hover:bg-hover dark:hover:bg-cb-hover-dark"
+                ? "bg-foreground text-white dark:text-cb-black font-medium"
+                : "text-muted-foreground hover:bg-muted"
             }`}
           >
             {range === "all" ? "All Time" : range}
@@ -90,7 +90,7 @@ export function ParticipationTab() {
 
       {/* KPIs Section */}
       <div className="px-6 pb-6">
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white mb-6">
+        <h3 className="font-display text-lg font-bold text-foreground mb-6">
           PARTICIPATION KPIS
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -111,7 +111,7 @@ export function ParticipationTab() {
 
       {/* Participation Metrics Section */}
       <div className="px-6 pb-6">
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white mb-6">
+        <h3 className="font-display text-lg font-bold text-foreground mb-6">
           PARTICIPATION METRICS
         </h3>
         {analytics.inviteesVsParticipants.length > 0 ? (
@@ -119,21 +119,21 @@ export function ParticipationTab() {
             {analytics.inviteesVsParticipants.map((item) => (
               <div
                 key={item.name}
-                className="relative py-4 px-6 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg"
+                className="relative py-4 px-6 bg-white dark:bg-card border border-border rounded-lg"
               >
                 {/* Vibe orange wedge accent */}
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange cv-vertical-marker" />
-                <div className="text-xs font-medium text-cb-gray-dark dark:text-cb-gray-light mb-1">
+                <div className="text-xs font-medium text-muted-foreground mb-1">
                   {item.name}
                 </div>
-                <div className="font-display text-3xl font-extrabold text-cb-black dark:text-cb-white">
+                <div className="font-display text-3xl font-extrabold text-foreground">
                   {item.value}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+          <p className="text-sm text-muted-foreground">
             No participation data available for this period.
           </p>
         )}
@@ -143,21 +143,21 @@ export function ParticipationTab() {
 
       {/* Charts Section */}
       <div className="px-6 pb-6">
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white mb-6">
+        <h3 className="font-display text-lg font-bold text-foreground mb-6">
           PARTICIPATION CHARTS
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Attendees over time - Placeholder */}
-          <div className="p-6 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
-            <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
+          <div className="p-6 bg-white dark:bg-card border border-border rounded-lg">
+            <h4 className="font-display text-sm font-bold text-muted-foreground mb-4">
               Attendees Over Time
             </h4>
-            <div className="flex flex-col items-center justify-center h-[200px] bg-hover dark:bg-cb-hover-dark rounded-lg">
-              <RiLineChartLine className="w-12 h-12 text-ink-muted mb-2" />
-              <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+            <div className="flex flex-col items-center justify-center h-[200px] bg-muted rounded-lg">
+              <RiLineChartLine className="w-12 h-12 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">
                 Trend chart placeholder
               </p>
-              <p className="text-xs text-cb-gray-dark dark:text-cb-gray-light mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Coming soon
               </p>
             </div>
@@ -171,16 +171,16 @@ export function ParticipationTab() {
               colors={["slate", "green"]}
             />
           ) : (
-            <div className="p-6 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
-              <h4 className="font-display text-sm font-bold text-cb-gray-dark dark:text-cb-gray-light mb-4">
+            <div className="p-6 bg-white dark:bg-card border border-border rounded-lg">
+              <h4 className="font-display text-sm font-bold text-muted-foreground mb-4">
                 Solo vs Multi-Speaker Calls
               </h4>
-              <div className="flex flex-col items-center justify-center h-[200px] bg-hover dark:bg-cb-hover-dark rounded-lg">
-                <RiPieChartLine className="w-12 h-12 text-ink-muted mb-2" />
-                <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+              <div className="flex flex-col items-center justify-center h-[200px] bg-muted rounded-lg">
+                <RiPieChartLine className="w-12 h-12 text-muted-foreground mb-2" />
+                <p className="text-sm text-muted-foreground">
                   Pie chart placeholder
                 </p>
-                <p className="text-xs text-cb-gray-dark dark:text-cb-gray-light mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Coming soon
                 </p>
               </div>
@@ -194,7 +194,7 @@ export function ParticipationTab() {
         <>
           <Separator className="my-8" />
           <div className="px-6 pb-6">
-            <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white mb-6">
+            <h3 className="font-display text-lg font-bold text-foreground mb-6">
               INVITEES VS PARTICIPANTS
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-0 bg-white dark:bg-card">

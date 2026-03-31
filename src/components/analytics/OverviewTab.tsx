@@ -8,14 +8,14 @@ interface StatBoxProps {
 
 function StatBox({ label, value }: StatBoxProps) {
   return (
-    <div className="relative py-2 px-4 bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg">
+    <div className="relative py-2 px-4 bg-white dark:bg-card border border-border rounded-lg">
       {/* Vibe orange wedge accent - trapezoid shape */}
       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-vibe-orange cv-vertical-marker" />
 
-      <div className="text-xs font-medium text-cb-gray-dark dark:text-cb-gray-light mb-1">
+      <div className="text-xs font-medium text-muted-foreground mb-1">
         {label}
       </div>
-      <div className="font-display text-2xl font-extrabold text-cb-black dark:text-cb-white">
+      <div className="font-display text-2xl font-extrabold text-foreground">
         {value}
       </div>
     </div>
@@ -49,7 +49,7 @@ export function OverviewTab() {
   if (error) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-cb-gray-dark dark:text-cb-gray-light">
+        <p className="text-muted-foreground">
           Failed to load analytics. Please try again.
         </p>
       </div>
@@ -59,7 +59,7 @@ export function OverviewTab() {
   if (!analytics || analytics.totalCalls === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <p className="text-lg text-cb-gray-dark dark:text-cb-gray-light">
+        <p className="text-lg text-muted-foreground">
           No call data available yet. Sync your calls to see analytics.
         </p>
       </div>
@@ -70,7 +70,7 @@ export function OverviewTab() {
     <div className="space-y-8">
       {/* Section Header */}
       <div>
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white uppercase tracking-wide">
+        <h3 className="font-display text-lg font-bold text-foreground uppercase tracking-wide">
           Key Metrics
         </h3>
       </div>
@@ -95,7 +95,7 @@ export function OverviewTab() {
 
       {/* Charts Section Header */}
       <div>
-        <h3 className="font-display text-lg font-bold text-cb-black dark:text-cb-white uppercase tracking-wide">
+        <h3 className="font-display text-lg font-bold text-foreground uppercase tracking-wide">
           Trends
         </h3>
       </div>
@@ -103,24 +103,24 @@ export function OverviewTab() {
       {/* Charts Section - Placeholders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Calls per day/week placeholder */}
-        <div className="bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg p-6">
-          <h4 className="font-display text-sm font-semibold text-cb-black dark:text-cb-white uppercase tracking-wide mb-4">
+        <div className="bg-white dark:bg-card border border-border rounded-lg p-6">
+          <h4 className="font-display text-sm font-semibold text-foreground uppercase tracking-wide mb-4">
             Calls Per Day/Week
           </h4>
-          <div className="flex items-center justify-center h-48 bg-hover dark:bg-cb-hover-dark rounded">
-            <p className="text-cb-gray-dark dark:text-cb-gray-light text-sm">
+          <div className="flex items-center justify-center h-48 bg-muted rounded">
+            <p className="text-muted-foreground text-sm">
               Line chart coming soon
             </p>
           </div>
         </div>
 
         {/* Minutes per day/week placeholder */}
-        <div className="bg-white dark:bg-card border border-border dark:border-cb-border-dark rounded-lg p-6">
-          <h4 className="font-display text-sm font-semibold text-cb-black dark:text-cb-white uppercase tracking-wide mb-4">
+        <div className="bg-white dark:bg-card border border-border rounded-lg p-6">
+          <h4 className="font-display text-sm font-semibold text-foreground uppercase tracking-wide mb-4">
             Minutes Per Day/Week
           </h4>
-          <div className="flex items-center justify-center h-48 bg-hover dark:bg-cb-hover-dark rounded">
-            <p className="text-cb-gray-dark dark:text-cb-gray-light text-sm">
+          <div className="flex items-center justify-center h-48 bg-muted rounded">
+            <p className="text-muted-foreground text-sm">
               Bar chart coming soon
             </p>
           </div>

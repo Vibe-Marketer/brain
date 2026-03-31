@@ -93,7 +93,7 @@ export function TagsTab() {
   if (error) {
     return (
       <div className="flex items-center justify-center py-20">
-        <p className="text-cb-gray-dark dark:text-cb-gray-light">
+        <p className="text-muted-foreground">
           Failed to load analytics. Please try again.
         </p>
       </div>
@@ -103,10 +103,10 @@ export function TagsTab() {
   if (!analytics || sortedData.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
-        <p className="text-lg text-cb-gray-dark dark:text-cb-gray-light">
+        <p className="text-lg text-muted-foreground">
           No tag data available yet
         </p>
-        <p className="text-sm text-cb-gray-dark dark:text-cb-gray-light">
+        <p className="text-sm text-muted-foreground">
           Tag your calls to see analytics here
         </p>
       </div>
@@ -117,9 +117,9 @@ export function TagsTab() {
     <div className="bg-white dark:bg-card">
       <Table>
         <TableHeader>
-          <TableRow className="bg-white dark:bg-[#202020] border-b border-cb-gray-dark/30 dark:border-cb-gray-light/30">
+          <TableRow className="bg-white dark:bg-[#202020] border-b border-border/30">
             <TableHead
-              className={`text-xs font-medium uppercase text-cb-gray-dark dark:text-cb-gray-light cursor-pointer select-none py-2.5 px-4 ${
+              className={`text-xs font-medium uppercase text-muted-foreground cursor-pointer select-none py-2.5 px-4 ${
                 sortColumn === "name" ? "border-b-[3px] border-vibe-orange" : ""
               }`}
               onClick={() => handleSort("name")}
@@ -128,7 +128,7 @@ export function TagsTab() {
               <SortIcon column="name" />
             </TableHead>
             <TableHead
-              className={`text-xs font-medium uppercase text-cb-gray-dark dark:text-cb-gray-light cursor-pointer select-none py-2.5 px-4 text-right ${
+              className={`text-xs font-medium uppercase text-muted-foreground cursor-pointer select-none py-2.5 px-4 text-right ${
                 sortColumn === "calls" ? "border-b-[3px] border-vibe-orange" : ""
               }`}
               onClick={() => handleSort("calls")}
@@ -137,7 +137,7 @@ export function TagsTab() {
               <SortIcon column="calls" />
             </TableHead>
             <TableHead
-              className={`text-xs font-medium uppercase text-cb-gray-dark dark:text-cb-gray-light cursor-pointer select-none py-2.5 px-4 text-right ${
+              className={`text-xs font-medium uppercase text-muted-foreground cursor-pointer select-none py-2.5 px-4 text-right ${
                 sortColumn === "totalMinutes" ? "border-b-[3px] border-vibe-orange" : ""
               }`}
               onClick={() => handleSort("totalMinutes")}
@@ -146,7 +146,7 @@ export function TagsTab() {
               <SortIcon column="totalMinutes" />
             </TableHead>
             <TableHead
-              className={`text-xs font-medium uppercase text-cb-gray-dark dark:text-cb-gray-light cursor-pointer select-none py-2.5 px-4 text-right ${
+              className={`text-xs font-medium uppercase text-muted-foreground cursor-pointer select-none py-2.5 px-4 text-right ${
                 sortColumn === "avgDuration" ? "border-b-[3px] border-vibe-orange" : ""
               }`}
               onClick={() => handleSort("avgDuration")}
@@ -160,18 +160,18 @@ export function TagsTab() {
           {sortedData.map((tag) => (
             <TableRow
               key={tag.name}
-              className="h-[30px] border-b border-cb-gray-dark/30 dark:border-cb-gray-light/30 hover:bg-gray dark:hover:bg-cb-panel-dark"
+              className="h-[30px] border-b border-border/30 hover:bg-gray"
             >
-              <TableCell className="py-2 px-4 font-medium text-sm text-cb-black dark:text-cb-white">
+              <TableCell className="py-2 px-4 font-medium text-sm text-foreground">
                 {tag.name}
               </TableCell>
-              <TableCell className="py-2 px-4 text-right tabular-nums text-sm text-cb-black dark:text-cb-white">
+              <TableCell className="py-2 px-4 text-right tabular-nums text-sm text-foreground">
                 {tag.calls.toLocaleString()}
               </TableCell>
-              <TableCell className="py-2 px-4 text-right tabular-nums text-sm text-cb-black dark:text-cb-white">
+              <TableCell className="py-2 px-4 text-right tabular-nums text-sm text-foreground">
                 {tag.totalMinutes.toLocaleString()}
               </TableCell>
-              <TableCell className="py-2 px-4 text-right tabular-nums text-sm text-cb-black dark:text-cb-white">
+              <TableCell className="py-2 px-4 text-right tabular-nums text-sm text-foreground">
                 {tag.avgDuration} min
               </TableCell>
             </TableRow>

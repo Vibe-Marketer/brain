@@ -184,12 +184,12 @@ export function UserDetailPanel({
     return (
       <div className="p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="font-semibold text-ink">User Not Found</h3>
+          <h3 className="font-semibold text-foreground">User Not Found</h3>
           <Button variant="ghost" size="sm" onClick={closePanel}>
             <RiCloseLine className="h-4 w-4" />
           </Button>
         </div>
-        <p className="text-sm text-ink-muted">
+        <p className="text-sm text-muted-foreground">
           The selected user could not be found. They may have been deleted.
         </p>
       </div>
@@ -212,10 +212,10 @@ export function UserDetailPanel({
             <RiUserLine className="h-5 w-5 text-vibe-orange" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <h3 className="font-semibold text-ink truncate" id="user-panel-title">
+            <h3 className="font-semibold text-foreground truncate" id="user-panel-title">
               {user.display_name || "No Name"}
             </h3>
-            <p className="text-xs text-ink-muted truncate">{user.email}</p>
+            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
           </div>
         </div>
         <div className="flex items-center gap-1 flex-shrink-0" role="toolbar" aria-label="Panel actions">
@@ -227,7 +227,7 @@ export function UserDetailPanel({
             aria-pressed={isPinned}
           >
             {isPinned ? (
-              <RiPushpinFill className="h-4 w-4 text-ink" aria-hidden="true" />
+              <RiPushpinFill className="h-4 w-4 text-foreground" aria-hidden="true" />
             ) : (
               <RiPushpinLine className="h-4 w-4" aria-hidden="true" />
             )}
@@ -248,7 +248,7 @@ export function UserDetailPanel({
         {/* Status and Joined Stats */}
         <div className="grid grid-cols-2 gap-3" role="group" aria-label="User statistics">
           <div className="bg-cb-card rounded-lg p-3 border border-border">
-            <div className="flex items-center gap-2 text-ink-muted mb-1">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
               {user.onboarding_completed ? (
                 <RiCheckboxCircleLine className="h-4 w-4 text-success" />
               ) : (
@@ -264,11 +264,11 @@ export function UserDetailPanel({
             </Badge>
           </div>
           <div className="bg-cb-card rounded-lg p-3 border border-border">
-            <div className="flex items-center gap-2 text-ink-muted mb-1">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
               <RiCalendarLine className="h-4 w-4" aria-hidden="true" />
               <span className="text-xs">Joined</span>
             </div>
-            <div className="text-xs font-medium text-ink">
+            <div className="text-xs font-medium text-foreground">
               {new Date(user.created_at).toLocaleDateString("en-US", {
                 year: "numeric",
                 month: "short",
@@ -280,27 +280,27 @@ export function UserDetailPanel({
 
         {/* User Information */}
         <div className="space-y-4">
-          <h4 className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             User Information
           </h4>
 
           {/* Display Name */}
           <div className="space-y-1">
-            <span className="text-xs text-ink-muted">Display Name</span>
-            <div className="text-sm text-ink">
-              {user.display_name || <span className="text-ink-muted italic">Not set</span>}
+            <span className="text-xs text-muted-foreground">Display Name</span>
+            <div className="text-sm text-foreground">
+              {user.display_name || <span className="text-muted-foreground italic">Not set</span>}
             </div>
           </div>
 
           {/* Email */}
           <div className="space-y-1">
-            <span className="text-xs text-ink-muted">Email</span>
-            <div className="text-sm text-ink">{user.email}</div>
+            <span className="text-xs text-muted-foreground">Email</span>
+            <div className="text-sm text-foreground">{user.email}</div>
           </div>
 
           {/* Role */}
           <div className="space-y-2">
-            <span className="text-xs text-ink-muted">Role</span>
+            <span className="text-xs text-muted-foreground">Role</span>
             {isAdmin && !updatingRole ? (
               <Select
                 value={user.role}
@@ -330,8 +330,8 @@ export function UserDetailPanel({
 
           {/* Onboarding Status */}
           <div className="space-y-1">
-            <span className="text-xs text-ink-muted">Onboarding Status</span>
-            <div className="text-sm text-ink">
+            <span className="text-xs text-muted-foreground">Onboarding Status</span>
+            <div className="text-sm text-foreground">
               {user.onboarding_completed ? "Completed" : "Not completed"}
             </div>
           </div>
@@ -339,10 +339,10 @@ export function UserDetailPanel({
 
         {/* Metadata */}
         <div className="space-y-2 pt-4 border-t border-border">
-          <h4 className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Account Details
           </h4>
-          <div className="text-sm text-ink-muted space-y-1">
+          <div className="text-sm text-muted-foreground space-y-1">
             <p>Created: {formatDate(user.created_at)}</p>
             <p>Last Login: {formatDate(user.last_login_at)}</p>
           </div>
@@ -350,10 +350,10 @@ export function UserDetailPanel({
 
         {/* Role Descriptions */}
         <div className="space-y-2 pt-4 border-t border-border">
-          <h4 className="text-xs font-semibold text-ink-soft uppercase tracking-wide">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
             Role Information
           </h4>
-          <div className="space-y-3 text-xs text-ink-muted">
+          <div className="space-y-3 text-xs text-muted-foreground">
             <div className="flex items-start gap-2">
               <Badge variant="outline" className="shrink-0 text-xs">FREE</Badge>
               <p>Individual users with access to core features</p>

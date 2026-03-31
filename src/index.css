@@ -345,10 +345,10 @@ CallVault Brand System v4.2
   /* Hollow button - white bg with border */
   .btn-hollow {
     @apply btn-base;
-    @apply border border-cb-border dark:border-cb-border-dark;
+    @apply border border-border;
     @apply bg-white dark:bg-card;
-    @apply text-cb-ink dark:text-white;
-    @apply hover:bg-cb-hover dark:hover:bg-cb-panel-dark;
+    @apply text-foreground;
+    @apply hover:bg-muted;
   }
 
   /* Ghost button - transparent, no border */

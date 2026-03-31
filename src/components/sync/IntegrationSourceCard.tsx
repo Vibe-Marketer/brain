@@ -99,7 +99,7 @@ export function IntegrationSourceCard({
         </div>
 
         {/* Platform name */}
-        <span className="text-xs font-medium text-ink dark:text-white leading-tight">
+        <span className="text-xs font-medium text-foreground leading-tight">
           {name}
         </span>
 
@@ -121,7 +121,7 @@ export function IntegrationSourceCard({
         <div className="flex items-center gap-1.5">
           <span className={cn(
             "text-2xs font-medium uppercase transition-colors",
-            !localEnabled ? "text-ink-muted" : "text-ink-muted/40"
+            !localEnabled ? "text-muted-foreground" : "text-muted-foreground/40"
           )}>
             off
           </span>
@@ -133,7 +133,7 @@ export function IntegrationSourceCard({
           />
           <span className={cn(
             "text-2xs font-medium uppercase transition-colors",
-            localEnabled ? "text-success" : "text-ink-muted/40"
+            localEnabled ? "text-success" : "text-muted-foreground/40"
           )}>
             on
           </span>

@@ -178,12 +178,12 @@ export function SortingCategoryPane({
         </div>
         <div className="min-w-0">
           <h2
-            className="text-sm font-bold text-ink uppercase tracking-wide"
+            className="text-sm font-bold text-foreground uppercase tracking-wide"
             id="sorting-category-title"
           >
             Sorting & Tagging
           </h2>
-          <p className="text-xs text-ink-muted">
+          <p className="text-xs text-muted-foreground">
             {SORTING_CATEGORIES_BASE.length} categories
           </p>
         </div>
@@ -220,10 +220,10 @@ export function SortingCategoryPane({
                 className={cn(
                   "relative w-full flex items-start gap-3 px-3 py-3 rounded-lg",
                   "text-left transition-all duration-150 ease-in-out",
-                  "hover:bg-hover/70",
+                  "hover:bg-muted/70",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
-                    "bg-hover",
+                    "bg-muted",
                     "border-l-0 pl-4", // Offset for the active indicator
                     "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
@@ -244,7 +244,7 @@ export function SortingCategoryPane({
                   <IconComponent
                     className={cn(
                       "h-4 w-4 transition-colors duration-500 ease-in-out",
-                      isActive ? "text-vibe-orange" : "text-ink-muted"
+                      isActive ? "text-vibe-orange" : "text-muted-foreground"
                     )}
                   />
                 </div>
@@ -256,7 +256,7 @@ export function SortingCategoryPane({
                       className={cn(
                         "block text-sm font-medium truncate",
                         "transition-colors duration-500 ease-in-out",
-                        isActive ? "text-vibe-orange" : "text-ink"
+                        isActive ? "text-vibe-orange" : "text-foreground"
                       )}
                     >
                       {category.label}
@@ -265,7 +265,7 @@ export function SortingCategoryPane({
                       <span
                         className={cn(
                           "flex-shrink-0 text-xs tabular-nums",
-                          isActive ? "text-vibe-orange/70" : "text-ink-muted"
+                          isActive ? "text-vibe-orange/70" : "text-muted-foreground"
                         )}
                         aria-hidden="true"
                       >
@@ -273,7 +273,7 @@ export function SortingCategoryPane({
                       </span>
                     )}
                   </div>
-                  <span className="block text-xs text-ink-muted truncate">
+                  <span className="block text-xs text-muted-foreground truncate">
                     {category.description}
                   </span>
                 </div>
@@ -313,14 +313,14 @@ export function SortingCategoryPane({
       <div className="flex-shrink-0 border-t border-border bg-cb-card/30 px-4 py-3">
         <div className="flex items-start gap-2">
           <RiLightbulbLine
-            className="h-4 w-4 text-ink-muted flex-shrink-0 mt-0.5"
+            className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5"
             aria-hidden="true"
           />
           <div className="min-w-0">
-            <p className="text-xs font-medium text-ink-muted uppercase tracking-wide mb-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">
               Quick Tip
             </p>
-            <p className="text-xs text-ink-muted leading-relaxed">
+            <p className="text-xs text-muted-foreground leading-relaxed">
               {currentTip}
             </p>
           </div>

@@ -19,6 +19,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   RiCloseLine,
   RiUserLine,
   RiMailLine,
@@ -69,6 +79,7 @@ export function ContactCard({
   const [notes, setNotes] = React.useState(contact.notes || "");
   const [isNotesChanged, setIsNotesChanged] = React.useState(false);
   const [showEmailModal, setShowEmailModal] = React.useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
 
   // Reset notes when contact changes
   React.useEffect(() => {
@@ -95,11 +106,14 @@ export function ContactCard({
     onUpdate(contact.id, { track_health: checked });
   };
 
-  const handleDelete = async () => {
-    if (window.confirm(`Delete contact "${contact.name || contact.email}"? This cannot be undone.`)) {
-      await onDelete(contact.id);
-      onClose();
-    }
+  const handleDelete = () => {
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    await onDelete(contact.id);
+    setDeleteConfirmOpen(false);
+    onClose();
   };
 
   const currentTypeConfig = CONTACT_TYPES.find((t) => t.value === contact.contact_type);
@@ -119,11 +133,11 @@ export function ContactCard({
             <RiUserLine className="h-5 w-5 text-muted-foreground" />
           </div>
           <div className="min-w-0">
-            <h2 className="text-sm font-bold text-ink truncate">
+            <h2 className="text-sm font-bold text-foreground truncate">
               {contact.name || contact.email}
             </h2>
             {contact.name && (
-              <p className="text-xs text-ink-muted truncate">{contact.email}</p>
+              <p className="text-xs text-muted-foreground truncate">{contact.email}</p>
             )}
           </div>
         </div>
@@ -166,7 +180,7 @@ export function ContactCard({
             {/* Call count */}
             <div className="flex items-center gap-2 text-sm">
               <RiPhoneLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-              <span className="text-ink">
+              <span className="text-foreground">
                 {contact.call_count} call{contact.call_count !== 1 ? "s" : ""}
               </span>
             </div>
@@ -175,7 +189,7 @@ export function ContactCard({
             {contact.last_seen_at && (
               <div className="flex items-center gap-2 text-sm">
                 <RiCalendarLine className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-ink">
+                <span className="text-foreground">
                   Last seen {formatDistanceToNow(new Date(contact.last_seen_at), { addSuffix: true })}
                 </span>
               </div>
@@ -320,6 +334,29 @@ export function ContactCard({
         onOpenChange={setShowEmailModal}
         contact={contact}
       />
+
+      {/* Delete Contact Confirmation */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Delete {contact.name || contact.email}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              This cannot be undone. The contact and all associated data will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

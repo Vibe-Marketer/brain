@@ -97,7 +97,7 @@ export function AddIntegrationButton({
                 <RiCheckboxCircleLine className="h-4 w-4 text-success" />
               )}
               {isDisabled && (
-                <span className="flex items-center gap-1 text-xs text-ink-muted">
+                <span className="flex items-center gap-1 text-xs text-muted-foreground">
                   <RiTimeLine className="h-3 w-3" />
                   Soon
                 </span>

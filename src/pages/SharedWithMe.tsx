@@ -445,10 +445,10 @@ const SharedWithMe = () => {
               <RiShareLine className="h-4 w-4 text-vibe-orange" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-sm font-bold text-ink uppercase tracking-wide">
+              <h2 className="text-sm font-bold text-foreground uppercase tracking-wide">
                 SHARED WITH ME
               </h2>
-              <p className="text-xs text-ink-muted">
+              <p className="text-xs text-muted-foreground">
                 {counts.all} call{counts.all !== 1 ? "s" : ""} shared with you
               </p>
             </div>

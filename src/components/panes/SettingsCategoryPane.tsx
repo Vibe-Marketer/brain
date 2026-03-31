@@ -220,12 +220,12 @@ export function SettingsCategoryPane({
         </div>
         <div className="min-w-0">
           <h2
-            className="text-sm font-bold text-ink uppercase tracking-wide"
+            className="text-sm font-bold text-foreground uppercase tracking-wide"
             id="settings-category-title"
           >
             Settings
           </h2>
-          <p className="text-xs text-ink-muted">
+          <p className="text-xs text-muted-foreground">
             {visibleCategories.length} categories
           </p>
         </div>
@@ -261,10 +261,10 @@ export function SettingsCategoryPane({
                 className={cn(
                   "relative w-full flex items-start gap-3 px-3 py-3 rounded-lg",
                   "text-left transition-all duration-150 ease-in-out",
-                  "hover:bg-hover/70",
+                  "hover:bg-muted/70",
                   "focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2",
                   isActive && [
-                    "bg-hover",
+                    "bg-muted",
                     "border-l-0 pl-4", // Offset for the active indicator
                     "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
                   ]
@@ -286,8 +286,8 @@ export function SettingsCategoryPane({
                     className={cn(
                       "h-4 w-4 transition-colors duration-500 ease-in-out",
                       isActive
-                        ? "text-ink dark:text-white"
-                        : "text-ink-muted"
+                        ? "text-foreground"
+                        : "text-muted-foreground"
                     )}
                   />
                 </div>
@@ -298,12 +298,12 @@ export function SettingsCategoryPane({
                     className={cn(
                       "block text-sm font-medium truncate",
                       "transition-colors duration-500 ease-in-out",
-                      isActive ? "text-ink dark:text-white" : "text-ink"
+                      isActive ? "text-foreground" : "text-foreground"
                     )}
                   >
                     {category.label}
                   </span>
-                  <span className="block text-xs text-ink-muted truncate">
+                  <span className="block text-xs text-muted-foreground truncate">
                     {category.description}
                   </span>
                 </div>
@@ -320,7 +320,7 @@ export function SettingsCategoryPane({
                   aria-hidden="true"
                 >
                   <svg
-                    className="h-4 w-4 text-ink-muted"
+                    className="h-4 w-4 text-muted-foreground"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"

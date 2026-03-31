@@ -166,10 +166,10 @@ function AnalyticsPlaceholder({ category }: { category: AnalyticsCategory }) {
       >
         <meta.icon className="h-8 w-8 text-vibe-orange" />
       </div>
-      <h3 className="text-lg font-semibold text-ink mb-2">
+      <h3 className="text-lg font-semibold text-foreground mb-2">
         {meta.label} Analytics
       </h3>
-      <p className="text-sm text-ink-muted max-w-sm">
+      <p className="text-sm text-muted-foreground max-w-sm">
         Analytics content for {category} coming soon
       </p>
     </div>

@@ -226,7 +226,7 @@ export function ContactsTable({ className }: ContactsTableProps) {
         {filteredContacts.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-12 text-center">
             <RiUserLine className="h-12 w-12 text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-semibold text-ink">
+            <h3 className="text-lg font-semibold text-foreground">
               {searchQuery ? "No contacts found" : "No contacts yet"}
             </h3>
             <p className="text-sm text-muted-foreground mt-1 max-w-sm">

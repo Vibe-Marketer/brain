@@ -70,9 +70,9 @@ export function AddToWorkspaceMenu({
   // Get icon for workspace type
   const getWorkspaceIcon = (workspace: WorkspaceWithMembership) => {
     if (workspace.workspace_type === 'personal') {
-      return <RiLockLine className="h-4 w-4 text-cb-ink-muted" />
+      return <RiLockLine className="h-4 w-4 text-muted-foreground" />
     }
-    return <RiTeamLine className="h-4 w-4 text-cb-ink-muted" />
+    return <RiTeamLine className="h-4 w-4 text-muted-foreground" />
   }
 
   // Check if this is the personal workspace (cannot be removed)
@@ -87,7 +87,7 @@ export function AddToWorkspaceMenu({
             <PopoverTrigger asChild>
               {compact ? (
                 <button
-                  className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-hover dark:hover:bg-cb-panel-dark transition-colors"
+                  className="h-5 w-5 md:h-6 md:w-6 p-0 inline-flex items-center justify-center rounded-md hover:bg-muted transition-colors"
                   title="Add to workspace"
                 >
                   <RiSafeLine className="h-3 w-3 md:h-3.5 md:w-3.5" />

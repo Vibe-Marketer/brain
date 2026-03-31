@@ -293,10 +293,10 @@ export function FoldersTab() {
             ref={getRowRef(folder.id) as React.Ref<HTMLTableRowElement>}
             className={`cursor-pointer transition-colors ${
               isSelected
-                ? "bg-hover dark:bg-cb-hover-dark"
+                ? "bg-muted"
                 : isFocused
-                ? "bg-hover/30 dark:bg-cb-hover-dark/30 ring-1 ring-inset ring-vibe-orange/50"
-                : "hover:bg-hover/50 dark:hover:bg-cb-hover-dark/50"
+                ? "bg-muted/30 ring-1 ring-inset ring-vibe-orange/50"
+                : "hover:bg-muted/50"
             }`}
             style={isVirtualized ? { height: ROW_HEIGHT } : undefined}
             onClick={() => {
@@ -332,7 +332,7 @@ export function FoldersTab() {
                     </span>
                   )}
                   {!isEditing && folder.description && (
-                    <span className="text-ink-muted text-xs">- {folder.description}</span>
+                    <span className="text-muted-foreground text-xs">- {folder.description}</span>
                   )}
                 </div>
               </TableCell>
@@ -403,7 +403,7 @@ export function FoldersTab() {
         <div>
           <Table>
             <TableHeader>
-              <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
+              <TableRow className="hover:bg-transparent border-b border-border">
                 <TableHead>Name</TableHead>
                 <TableHead className="w-24 text-right">Calls</TableHead>
                 <TableHead className="w-24 text-right">Actions</TableHead>
@@ -435,7 +435,7 @@ export function FoldersTab() {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-ink-muted">
+      <p className="text-sm text-muted-foreground">
         Folders organize your calls for easy browsing. Folder assignment has no effect on AI analysis - only tags control that.
       </p>
 
@@ -447,7 +447,7 @@ export function FoldersTab() {
       <div>
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-b border-cb-gray-light dark:border-cb-gray-dark">
+            <TableRow className="hover:bg-transparent border-b border-border">
               <TableHead>Name</TableHead>
               <TableHead className="w-24 text-right">Calls</TableHead>
               <TableHead className="w-24 text-right">Actions</TableHead>

@@ -271,7 +271,7 @@ const TranscriptsNew = () => {
             breadcrumbs={breadcrumbs}
             actions={(
               <div className="relative w-64 flex-shrink-0 hidden md:block">
-                <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-muted" />
+                <RiSearchLine className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   ref={searchInputRef}
                   placeholder="Search transcripts... (⌘K)"
