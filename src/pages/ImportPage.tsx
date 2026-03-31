@@ -201,15 +201,17 @@ export default function ImportPage() {
   return (
     <>
       <AppShell
-        secondaryPane={
-          <ImportSourcePane
-            selectedSource={selectedSource}
-            onSelectSource={setSelectedSource}
-            sources={sources}
-            sourcesLoading={sourcesLoading}
-          />
-        }
-        secondaryPaneTitle="Import Sources"
+        config={{
+          secondaryPane: (
+            <ImportSourcePane
+              selectedSource={selectedSource}
+              onSelectSource={setSelectedSource}
+              sources={sources}
+              sourcesLoading={sourcesLoading}
+            />
+          ),
+          secondaryPaneTitle: "Import Sources",
+        }}
       >
         {renderPane3()}
       </AppShell>
