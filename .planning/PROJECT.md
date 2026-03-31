@@ -8,18 +8,22 @@ Callvault is a private transcript library and intelligence platform for sales te
 
 A new user can sign up, connect their call sources, and be productively using CallVault within minutes — with every piece of data strictly scoped to their organization.
 
-## Current Milestone: v2.0 Launch Readiness
+## Current State: v2.0 Shipped
 
-**Goal:** Get CallVault actually shippable — fix what's broken, get every core flow working end-to-end, no new complexity.
+**v2.0 Launch Readiness** completed 2026-03-30. 8 phases, 21 plans, 51/53 requirements satisfied.
 
-**Target features (priority order):**
-1. Onboarding works end-to-end — new user sign up, connect Fathom/Zoom/YouTube
-2. Imports functional — Fathom search/select/import (restore broken UI), Zoom, YouTube, uploads
-3. 4-pane architecture rules codified — Sidebar→List→Workspace→Detail hierarchy enforced consistently
-4. Org segregation — GoHighLevel-style subaccounts, complete data isolation per org
-5. Workspace member management — email invites + shareable link, 4 roles (Owner/Admin/Contributor/Member), workspace deletion, advanced settings
-6. MCPs — one per org, full org-scoped capabilities
-7. Minimal AI chat — attach 1-3 transcripts, simple chat, uses credits
+**What shipped:**
+- Org segregation with complete data isolation per org
+- 4-pane layout enforced across all pages
+- All 4 import sources functional (Fathom, Zoom, YouTube, Upload)
+- Drag-to-folder and global search (Cmd+K)
+- Onboarding wizard E2E working
+- 4-role workspace membership (Owner/Admin/Contributor/Member)
+- Email + shareable link invites
+- Polar billing with cancel, AI usage display, and tier enforcement
+- MCP server per org with OAuth consent
+
+**Known tech debt:** PAY-05 partial (2 AI features ungated), MCP-04 operational config, 13 human verification items deferred.
 
 ## Requirements
 
