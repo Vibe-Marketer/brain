@@ -415,13 +415,24 @@ export function TranscriptsTab({
           rpcDateTo = dateTo.toISOString();
         }
 
-        // Call RPC — single server-side JOIN + ORDER + pagination
-        // When folder is selected, fetch ALL workspace recordings (no pagination)
-        // so we can filter by folder client-side, then paginate the filtered result.
+        // Call RPC — single server-side JOIN + ORDER + pagination.
+        // When client-side filters are active (participants, tags, duration, status,
+        // folders), we must fetch ALL workspace recordings so the filters can
+        // evaluate every record. Otherwise, filtering only the current server page
+        // silently drops matches that happen to be on other pages.
+        const hasClientSideFilters = !!(
+          folderRecordingIds ||
+          (combinedFilters.participants && combinedFilters.participants.length > 0) ||
+          (combinedFilters.participantSearchTerms && combinedFilters.participantSearchTerms.length > 0) ||
+          (combinedFilters.tags && combinedFilters.tags.length > 0) ||
+          (combinedFilters.durationMin !== undefined || combinedFilters.durationMax !== undefined) ||
+          (combinedFilters.status && combinedFilters.status.length > 0)
+        );
+
         const rpcParams: Record<string, unknown> = {
           p_workspace_id: activeWorkspaceId,
-          p_limit: folderRecordingIds ? 10000 : pageSize,
-          p_offset: folderRecordingIds ? 0 : offset,
+          p_limit: hasClientSideFilters ? 10000 : pageSize,
+          p_offset: hasClientSideFilters ? 0 : offset,
           p_search: syntax.plainText || null,
           p_date_from: combinedFilters.dateFrom?.toISOString() ?? null,
           p_date_to: rpcDateTo,
@@ -432,18 +443,15 @@ export function TranscriptsTab({
 
         if (rpcError) throw rpcError;
 
-        // Apply folder filter client-side, then paginate the filtered result
+        // Apply folder filter client-side
         let filteredRows = (rows || []) as any[];
         if (folderRecordingIds) {
           const folderSet = new Set(folderRecordingIds);
           filteredRows = filteredRows.filter((r: any) => folderSet.has(r.id));
-          // Set total count from filtered results, then paginate
-          const folderTotalCount = filteredRows.length;
-          setTotalCount(folderTotalCount);
-          onTotalCountChange?.(folderTotalCount);
-          // Apply client-side pagination to folder-filtered results
-          filteredRows = filteredRows.slice(offset, offset + pageSize);
-        } else {
+        }
+
+        // When server-side pagination was used (no client-side filters), use RPC total_count
+        if (!hasClientSideFilters) {
           const totalCount = filteredRows.length > 0 ? Number(filteredRows[0].total_count) : 0;
           setTotalCount(totalCount);
           onTotalCountChange?.(totalCount);
@@ -637,6 +645,14 @@ export function TranscriptsTab({
           mappedRecordings = mappedRecordings.filter((call: any) =>
             allowedRecordingIds.has(call.canonical_uuid)
           );
+        }
+
+        // When client-side filters were active, we fetched all records.
+        // Now set the correct total count and paginate the filtered results.
+        if (hasClientSideFilters) {
+          setTotalCount(mappedRecordings.length);
+          onTotalCountChange?.(mappedRecordings.length);
+          mappedRecordings = mappedRecordings.slice(offset, offset + pageSize);
         }
 
         return mappedRecordings;
