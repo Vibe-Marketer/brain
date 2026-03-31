@@ -87,9 +87,9 @@
 
 ### MCP
 
-- [ ] **MCP-01**: Each organization can have one MCP server issued
-- [ ] **MCP-02**: MCP server scoped to organization data only
-- [ ] **MCP-03**: MCP can read calls, search, and perform core operations within org scope
+- [x] **MCP-01**: Each organization can have one MCP server issued
+- [x] **MCP-02**: MCP server scoped to organization data only
+- [x] **MCP-03**: MCP can read calls, search, and perform core operations within org scope
 - [x] **MCP-04**: MCP OAuth consent flow works end-to-end
 
 ## Future Requirements (Post-Launch)
@@ -198,9 +198,9 @@ Key facts for planning — code state as of 2026-03-30:
 | PAY-05 | Phase 17 | Complete |
 | PAY-06 | Phase 17 | Complete |
 | PAY-07 | Phase 17 | Complete |
-| MCP-01 | Phase 18 | Pending |
-| MCP-02 | Phase 18 | Pending |
-| MCP-03 | Phase 18 | Pending |
+| MCP-01 | Phase 18 | Complete |
+| MCP-02 | Phase 18 | Complete |
+| MCP-03 | Phase 18 | Complete |
 | MCP-04 | Phase 18 | Complete |
 
 **Coverage:**

@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: Launch Readiness
-status: executing
-stopped_at: "Completed 18-mcps-02-PLAN.md — checkpoint:human-verify pending"
-last_updated: "2026-03-31T00:39:09.199Z"
+status: verifying
+stopped_at: Completed 18-01-PLAN.md
+last_updated: "2026-03-31T00:39:56.681Z"
 last_activity: 2026-03-31
 progress:
   total_phases: 8
-  completed_phases: 7
+  completed_phases: 8
   total_plans: 21
-  completed_plans: 20
+  completed_plans: 21
   percent: 0
 ---
 
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-03-30)
 
 Phase: 18 (mcps) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-03-31
 
 Progress: [░░░░░░░░░░] 0%
@@ -68,6 +68,7 @@ Progress: [░░░░░░░░░░] 0%
 | Phase 17 P03 | 73s | 1 tasks | 0 files |
 | Phase 17-payments-billing P04 | 4min | 2 tasks | 2 files |
 | Phase 18-mcps P02 | 5 | 1 tasks | 0 files |
+| Phase 18-mcps P01 | 115s | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -124,6 +125,8 @@ Progress: [░░░░░░░░░░] 0%
 - [Phase 17-payments-billing]: useAiGate trackAction pattern is the established pattern for all AI consumers — call before edge function, return early on !allowed
 - [Phase 18-mcps]: OAuth consent page code is complete and correct — no code changes required
 - [Phase 18-mcps]: Full E2E testing blocked on Supabase OAuth 2.1 provider dashboard configuration (not yet set up)
+- [Phase 18-mcps]: [18-01] One MCP token per org enforced at service layer and UI — defense-in-depth without DB constraints
+- [Phase 18-mcps]: [18-01] MCP server curl tests require Supabase anon JWT for gateway pass-through — function-level auth then checks mcp_tokens table
 
 ### Known Facts (from codebase audit)
 
@@ -150,6 +153,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-31T00:39:09.195Z
-Stopped at: Completed 18-mcps-02-PLAN.md — checkpoint:human-verify pending
+Last session: 2026-03-31T00:39:56.678Z
+Stopped at: Completed 18-01-PLAN.md
 Resume file: None

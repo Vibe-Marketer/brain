@@ -37,7 +37,7 @@ Phases 7-10 were stub phases (Drag-to-Folder, YouTube Workspace UI, Global Searc
 - [x] **Phase 15: Members & Roles** — Align to 4 roles; invite via email + link; remove members; workspace deletion; advanced settings (completed 2026-03-30)
 - [x] **Phase 16: Filters & Sort** — Fix filter stacking, sort columns, inline search syntax (carried from v1.1) (completed 2026-03-30)
 - [x] **Phase 17: Payments & Billing** — Add cancel button and usage display; verify Polar checkout + webhooks E2E (completed 2026-03-30)
-- [ ] **Phase 18: MCPs** — Verify MCP OAuth consent flow E2E; ensure org-scoped capabilities functional
+- [x] **Phase 18: MCPs** — Verify MCP OAuth consent flow E2E; ensure org-scoped capabilities functional (completed 2026-03-31)
 
 ---
 
@@ -167,7 +167,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 18-01-PLAN.md — Enforce one MCP token per org; verify MCP server org-scoping and tool functionality
+- [x] 18-01-PLAN.md — Enforce one MCP token per org; verify MCP server org-scoping and tool functionality
 - [x] 18-02-PLAN.md — Verify OAuth consent flow E2E with visual verification and infrastructure check
 
 ---
@@ -187,7 +187,7 @@ Plans:
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
 | 16. Filters & Sort | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 17. Payments & Billing | v2.0 | 4/4 | Complete    | 2026-03-31 |
-| 18. MCPs | v2.0 | 1/2 | In Progress|  |
+| 18. MCPs | v2.0 | 2/2 | Complete   | 2026-03-31 |
 
 ---
 *Roadmap created: 2026-03-15 — v1.1 Sort/Filter Hardening*
