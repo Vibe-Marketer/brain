@@ -187,7 +187,7 @@ Plans:
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
 | 16. Filters & Sort | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 17. Payments & Billing | v2.0 | 4/4 | Complete    | 2026-03-31 |
-| 18. MCPs | v2.0 | 2/2 | Complete   | 2026-03-31 |
+| 18. MCPs | v2.0 | 2/2 | Complete    | 2026-03-31 |
 
 ---
 *Roadmap created: 2026-03-15 — v1.1 Sort/Filter Hardening*
