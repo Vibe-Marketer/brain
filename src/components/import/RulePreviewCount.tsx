@@ -42,9 +42,9 @@ export function RulePreviewCount({
     <div className="space-y-2">
       <div className="rounded-lg border border-border/50 bg-muted/30 px-3 py-2.5">
         <p className="text-sm text-foreground">
-          This rule would match{' '}
+          This rule matches{' '}
           <span className="font-semibold text-brand-600">{matchingCount}</span>{' '}
-          of your last {totalChecked} calls
+          of {totalChecked} calls in this organization
         </p>
 
         {matchingCount > 0 && (
@@ -108,7 +108,7 @@ export function RulePreviewCount({
         <div className="flex items-start gap-2 rounded-lg border border-amber-400/30 bg-amber-50 dark:bg-amber-950/20 px-3 py-2.5">
           <RiAlertLine className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
           <p className="text-xs text-amber-700 dark:text-amber-400">
-            This rule didn&apos;t match any of your last {totalChecked} calls. It may match future imports.
+            This rule didn&apos;t match any of the {totalChecked} calls in this organization. It may match future imports.
           </p>
         </div>
       )}

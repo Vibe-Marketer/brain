@@ -26,7 +26,7 @@ interface PreviewCall {
 }
 
 // ---------------------------------------------------------------------------
-// Internal: fetch last 20 recordings for preview
+// Internal: fetch all org recordings for preview
 // ---------------------------------------------------------------------------
 
 function usePreviewCalls() {
@@ -36,12 +36,19 @@ function usePreviewCalls() {
   return useQuery<PreviewCall[]>({
     queryKey: queryKeys.routingRules.preview(activeOrgId ?? undefined),
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from('recordings')
         .select('id, title, source_app, duration, recording_start_time, source_metadata, global_tags')
-        .eq('owner_user_id', user!.id)
-        .order('recording_start_time', { ascending: false })
-        .limit(20);
+        .order('recording_start_time', { ascending: false });
+
+      // Scope to organization when available, fall back to user
+      if (activeOrgId) {
+        q = q.eq('organization_id', activeOrgId);
+      } else {
+        q = q.eq('owner_user_id', user!.id);
+      }
+
+      const { data, error } = await q;
 
       if (error) {
         throw new Error(`Failed to fetch preview recordings: ${error.message}`);
@@ -50,7 +57,7 @@ function usePreviewCalls() {
       return (data ?? []) as PreviewCall[];
     },
     enabled: !!user && !!activeOrgId,
-    staleTime: 5 * 60 * 1000, // 5 minutes — preview data rarely changes
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -157,7 +164,7 @@ interface RulePreviewResult {
 }
 
 /**
- * Evaluates routing conditions client-side against the user's last 20 recordings.
+ * Evaluates routing conditions client-side against all recordings in the org.
  */
 export function useRulePreview(
   conditions: RoutingCondition[],
