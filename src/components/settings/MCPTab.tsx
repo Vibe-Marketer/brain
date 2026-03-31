@@ -194,9 +194,10 @@ interface NewTokenDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onCreated: (token: McpToken) => void;
+  existingTokens: McpToken[];
 }
 
-function NewTokenDialog({ open, onOpenChange, onCreated }: NewTokenDialogProps) {
+function NewTokenDialog({ open, onOpenChange, onCreated, existingTokens }: NewTokenDialogProps) {
   const [name, setName] = useState("My MCP Token");
   const [scope, setScope] = useState<McpTokenScope>("workspace");
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
@@ -206,6 +207,11 @@ function NewTokenDialog({ open, onOpenChange, onCreated }: NewTokenDialogProps) 
   const { workspaces, isLoading: wsLoading } = useWorkspaces(selectedOrgId || null);
 
   const createToken = useCreateMcpToken({ onSuccess: onCreated });
+
+  // One MCP token per org enforcement
+  const hasOrgToken = selectedOrgId
+    ? existingTokens.some((t) => t.org_id === selectedOrgId)
+    : false;
 
   // Auto-select first org
   if (!selectedOrgId && orgs.length > 0) {
@@ -333,13 +339,20 @@ function NewTokenDialog({ open, onOpenChange, onCreated }: NewTokenDialogProps) 
           )}
         </div>
 
+        {hasOrgToken && (
+          <div className="flex items-start gap-2 px-1 pb-1 text-xs text-amber-700 dark:text-amber-400">
+            <RiAlertLine className="h-3.5 w-3.5 flex-shrink-0 mt-0.5" />
+            This organization already has an MCP token. Delete the existing one first.
+          </div>
+        )}
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={createToken.isPending || !selectedOrgId || (scope === "workspace" && !selectedWorkspaceId)}
+            disabled={createToken.isPending || !selectedOrgId || (scope === "workspace" && !selectedWorkspaceId) || hasOrgToken}
           >
             {createToken.isPending ? "Creating..." : "Create Token"}
           </Button>
@@ -615,6 +628,7 @@ export default function MCPTab() {
         open={showNewDialog}
         onOpenChange={setShowNewDialog}
         onCreated={handleTokenCreated}
+        existingTokens={tokens}
       />
 
       <TokenRevealDialog
