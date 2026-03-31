@@ -81,7 +81,7 @@
 - [ ] **PAY-02**: User can upgrade from Free to Pro or Team via Polar checkout
 - [ ] **PAY-03**: 14-day Pro trial works for new signups
 - [x] **PAY-04**: User can cancel subscription from billing settings
-- [ ] **PAY-05**: AI usage limits enforced per tier (Free: 25, Pro: 1000, Team: 5000/month)
+- [x] **PAY-05**: AI usage limits enforced per tier (Free: 25, Pro: 1000, Team: 5000/month)
 - [x] **PAY-06**: User can see current AI usage/credit count in billing settings
 - [x] **PAY-07**: Polar webhooks process subscription events correctly
 
@@ -195,7 +195,7 @@ Key facts for planning — code state as of 2026-03-30:
 | PAY-02 | Phase 17 | Pending |
 | PAY-03 | Phase 17 | Pending |
 | PAY-04 | Phase 17 | Complete |
-| PAY-05 | Phase 17 | Pending |
+| PAY-05 | Phase 17 | Complete |
 | PAY-06 | Phase 17 | Complete |
 | PAY-07 | Phase 17 | Complete |
 | MCP-01 | Phase 18 | Pending |
