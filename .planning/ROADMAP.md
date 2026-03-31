@@ -164,10 +164,11 @@ Plans:
   1. Organization settings page allows issuing one MCP server per org; attempting to create a second is blocked
   2. MCP OAuth consent page loads, displays correct org-scoped permissions, and completing consent grants a working token
   3. An MCP client authenticated with the org token can read calls, search transcripts, and perform core operations — and cannot access data from any other org
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] TBD (run /gsd:plan-phase 18 to break down)
+- [ ] 18-01-PLAN.md — Enforce one MCP token per org; verify MCP server org-scoping and tool functionality
+- [ ] 18-02-PLAN.md — Verify OAuth consent flow E2E with visual verification and infrastructure check
 
 ---
 
@@ -186,7 +187,7 @@ Plans:
 | 15. Members & Roles | v2.0 | 3/3 | Complete    | 2026-03-30 |
 | 16. Filters & Sort | v2.0 | 2/2 | Complete    | 2026-03-30 |
 | 17. Payments & Billing | v2.0 | 4/4 | Complete    | 2026-03-31 |
-| 18. MCPs | v2.0 | 0/TBD | Not started | - |
+| 18. MCPs | v2.0 | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-03-15 — v1.1 Sort/Filter Hardening*
@@ -199,3 +200,4 @@ Plans:
 *Updated: 2026-03-30 — Phase 15 planned: 3 plans in 2 waves*
 *Updated: 2026-03-30 — Phase 16 planned: 2 plans in 1 wave (parallel)*
 *Updated: 2026-03-30 — Phase 17 planned: 3 plans in 2 waves*
+*Updated: 2026-03-30 — Phase 18 planned: 2 plans in 1 wave (parallel)*
