@@ -8,6 +8,7 @@ export interface MoveOptions {
 
 export interface CopyOptions {
   removeSource?: boolean
+  onProgress?: (current: number, total: number) => void
 }
 
 /**
@@ -61,7 +62,7 @@ export async function copyRecordingsToOrganization(
   targetOrgId: string,
   options: CopyOptions = {}
 ): Promise<void> {
-  const { removeSource = false } = options
+  const { removeSource = false, onProgress } = options
 
   // Verify current user has membership in the target organization
   const { data: { user } } = await supabase.auth.getUser()
@@ -89,13 +90,15 @@ export async function copyRecordingsToOrganization(
   if (!workspace) throw new Error('Target organization has no HOME workspace')
 
   // Call RPC once per recording (current DB function is per-recording)
-  for (const recordingId of recordingIds) {
+  const total = recordingIds.length
+  for (let i = 0; i < total; i++) {
     const { error } = await untypedRpc(supabase, 'copy_recording_to_org', {
-      p_recording_id: recordingId,
+      p_recording_id: recordingIds[i],
       p_target_org_id: targetOrgId,
       p_target_workspace_id: workspace.id,
       p_delete_original: removeSource,
     })
-    if (error) throw new Error(`Failed to copy recording: ${error.message}`)
+    if (error) throw new Error(`Failed to copy recording ${i + 1} of ${total}: ${error.message}`)
+    onProgress?.(i + 1, total)
   }
 }

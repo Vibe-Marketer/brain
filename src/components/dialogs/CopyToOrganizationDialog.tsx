@@ -53,6 +53,7 @@ export function CopyToOrganizationDialog({
   const [removeSource, setRemoveSource] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newOrgName, setNewOrgName] = useState('')
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(null)
 
   const copyToOrg = useCopyToOrganization()
   const createOrg = useCreateOrganization()
@@ -66,6 +67,7 @@ export function CopyToOrganizationDialog({
       setRemoveSource(false)
       setShowCreateForm(false)
       setNewOrgName('')
+      setProgress(null)
     }
   }, [open])
 
@@ -96,16 +98,24 @@ export function CopyToOrganizationDialog({
   const handleCopy = () => {
     if (!targetOrgId) return
 
+    setProgress({ current: 0, total: recordingIds.length })
+
     copyToOrg.mutate(
       {
         recordingIds,
         targetOrgId,
-        options: { removeSource },
+        options: {
+          removeSource,
+          onProgress: (current, total) => setProgress({ current, total }),
+        },
       },
       {
         onSuccess: () => {
           onSuccess?.()
           onOpenChange(false)
+        },
+        onError: () => {
+          setProgress(null)
         },
       }
     )
@@ -227,8 +237,23 @@ export function CopyToOrganizationDialog({
           </div>
         </div>
 
+        {progress && copyToOrg.isPending && (
+          <div className="px-0 pb-2 space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{removeSource ? 'Moving' : 'Copying'} calls…</span>
+              <span className="tabular-nums">{progress.current} / {progress.total}</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+              <div
+                className="h-full rounded-full bg-vibe-orange transition-all duration-300"
+                style={{ width: progress.total > 0 ? `${Math.round((progress.current / progress.total) * 100)}%` : '0%' }}
+              />
+            </div>
+          </div>
+        )}
+
         <DialogFooter>
-          <Button variant="hollow" onClick={() => onOpenChange(false)}>
+          <Button variant="hollow" onClick={() => onOpenChange(false)} disabled={copyToOrg.isPending}>
             Cancel
           </Button>
           <Button
@@ -236,7 +261,9 @@ export function CopyToOrganizationDialog({
             disabled={!targetOrgId || copyToOrg.isPending || showCreateForm}
             className="bg-vibe-orange hover:bg-vibe-orange/90"
           >
-            {copyToOrg.isPending ? 'Copying...' : `Copy ${label}`}
+            {copyToOrg.isPending
+              ? `${removeSource ? 'Moving' : 'Copying'}…`
+              : `${removeSource ? 'Move' : 'Copy'} ${count} ${label}`}
           </Button>
         </DialogFooter>
       </DialogContent>

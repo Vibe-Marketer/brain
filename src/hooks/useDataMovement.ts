@@ -90,7 +90,7 @@ export function useCopyToOrganization() {
     }: {
       recordingIds: string[]
       targetOrgId: string
-      options?: CopyOptions
+      options?: CopyOptions & { onProgress?: (current: number, total: number) => void }
     }) => copyRecordingsToOrganization(recordingIds, targetOrgId, options),
 
     onSuccess: (_data, { recordingIds, options }) => {
