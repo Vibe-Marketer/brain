@@ -3,7 +3,6 @@ import { RiArrowLeftSLine, RiArrowRightSLine } from "@remixicon/react";
 import { DayPicker } from "react-day-picker";
 
 import { cn } from "@/lib/utils";
-import { buttonVariants } from "@/components/ui/button";
 
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
@@ -36,10 +35,7 @@ function Calendar({ className, classNames, showOutsideDays = true, startMonth, e
         weekday: "text-muted-foreground w-9 font-normal text-[0.8rem] text-center",
         week: "flex justify-center mt-2",
         day: "h-9 w-9 text-center text-sm p-0 relative focus-within:relative focus-within:z-20",
-        day_button: cn(
-          buttonVariants({ variant: "hollow" }),
-          "h-9 w-9 p-0 font-normal rounded-full aria-selected:opacity-100"
-        ),
+        day_button: "h-9 w-9 p-0 font-normal rounded-full cursor-pointer hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-vibe-orange aria-selected:opacity-100",
         // Selected dates: gray fill with circular shape
         selected: "bg-neutral-600 text-white hover:bg-neutral-700 dark:bg-neutral-400 dark:text-neutral-900 dark:hover:bg-neutral-300 rounded-full",
         range_start: "bg-neutral-600 text-white hover:bg-neutral-700 dark:bg-neutral-400 dark:text-neutral-900 rounded-full",
