@@ -28,7 +28,7 @@ import {
   RiPencilLine,
   RiAlertLine,
   RiArrowDownSLine,
-  RiChevronRightLine,
+  RiArrowRightSLine,
 } from '@remixicon/react'
 import { usePanelStore } from '@/stores/panelStore'
 import { useWorkspaceDetail } from '@/hooks/useWorkspaces'
@@ -208,7 +208,7 @@ export function WorkspaceDetailPanel({ workspaceId }: WorkspaceDetailPanelProps)
               </h4>
               {advancedOpen
                 ? <RiArrowDownSLine className="h-3.5 w-3.5 text-muted-foreground" />
-                : <RiChevronRightLine className="h-3.5 w-3.5 text-muted-foreground" />
+                : <RiArrowRightSLine className="h-3.5 w-3.5 text-muted-foreground" />
               }
             </button>
 
