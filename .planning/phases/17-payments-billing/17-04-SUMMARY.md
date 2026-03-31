@@ -92,6 +92,14 @@ None - no external service configuration required.
 - Phase 17 payments-billing is complete
 - Phase 18 MCP OAuth is ready to proceed
 
+## Self-Check: PASSED
+
+- FOUND: src/components/transcript-library/BulkActionToolbarEnhanced.tsx
+- FOUND: src/components/SmartExportDialog.tsx
+- FOUND: .planning/phases/17-payments-billing/17-04-SUMMARY.md
+- FOUND commit: eb90811f (Task 1)
+- FOUND commit: cbec0c1d (Task 2)
+
 ---
 *Phase: 17-payments-billing*
 *Completed: 2026-03-31*
