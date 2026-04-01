@@ -4,6 +4,8 @@ import { RiLoader4Line, RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 import { completeFathomOAuth, completeZoomOAuth } from "@/lib/api-client";
+import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
 
 type CallbackState = "loading" | "success" | "error";
 
@@ -70,10 +72,29 @@ export default function OAuthCallback() {
         setMessage(`Successfully connected to ${provider}!`);
         toast.success(`Successfully connected to ${provider}!`);
 
-        // Redirect to Import page after a brief delay with source info for auto-sync
+        // Check if onboarding is incomplete — if so, route to setup wizard
         const sourceParam = isZoomCallback ? 'zoom' : 'fathom';
+        let redirectTo = `/import?source=${sourceParam}&connected=true`;
+
+        try {
+          const { user } = await getSafeUser();
+          if (user) {
+            const { data: profile } = await supabase
+              .from("user_profiles")
+              .select("onboarding_completed")
+              .eq("user_id", user.id)
+              .maybeSingle();
+
+            if (!profile?.onboarding_completed) {
+              redirectTo = `/setup?source=${sourceParam}&connected=true`;
+            }
+          }
+        } catch {
+          // If profile check fails, default to import page
+        }
+
         setTimeout(() => {
-          navigate(`/import?source=${sourceParam}&connected=true`, { replace: true });
+          navigate(redirectTo, { replace: true });
         }, 1500);
 
       } catch (error) {

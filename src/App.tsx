@@ -20,6 +20,7 @@ import { SharedCallView } from "@/pages/SharedCallView";
 import OrganizationJoin from "@/pages/OrganizationJoin";
 import WorkspaceJoin from "@/pages/WorkspaceJoin";
 import OAuthConsentPage from "@/pages/OAuthConsentPage";
+import SetupWizard from "@/pages/SetupWizard";
 
 // Static import for landing page (always needed immediately)
 import TranscriptsNew from "@/pages/TranscriptsNew";
@@ -77,6 +78,16 @@ function App() {
 
                   {/* OAuth consent page - public route, handles its own auth check internally */}
                   <Route path="/oauth/consent" element={<OAuthConsentPage />} />
+
+                  {/* Setup wizard — full-page onboarding, auth-protected but no Layout */}
+                  <Route
+                    path="/setup"
+                    element={
+                      <ProtectedRoute>
+                        <SetupWizard />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* Main app routes */}
                   <Route

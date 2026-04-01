@@ -9,17 +9,25 @@
  * All pages now use AppShell for the 3-pane architecture.
  * The legacy card wrapper has been removed - pages that need card
  * styling should add it themselves.
+ *
+ * Onboarding:
+ * - New (non-invited) users who haven't completed onboarding are
+ *   redirected to /setup (full-page wizard).
+ * - Invited users (those with workspace memberships beyond their
+ *   personal org) see a dismissible banner instead.
  */
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { TopBar } from "@/components/ui/top-bar";
 import { useLocation, useNavigate } from "react-router-dom";
 import { DebugPanel } from "@/components/debug-panel";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { OnboardingModal } from "@/components/onboarding/OnboardingModal";
 import { startTour } from "@/lib/tour";
+import { supabase } from "@/integrations/supabase/client";
+import { getSafeUser } from "@/lib/auth-utils";
+import { RiCloseLine, RiDownloadCloud2Line } from "@remixicon/react";
 
 function LayoutContent({ children }: { children: React.ReactNode }) {
   const location = useLocation();
@@ -28,10 +36,59 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
   const { isFeatureEnabled } = useFeatureFlags(role);
   const { shouldShowOnboarding, loading: onboardingLoading, completeOnboarding } = useOnboarding();
 
-  const handleOnboardingComplete = async () => {
-    await completeOnboarding();
-    navigate('/');
-  };
+  const [isInvitedUser, setIsInvitedUser] = useState<boolean | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+
+  // Check if the user was invited (has workspace memberships beyond their personal org)
+  useEffect(() => {
+    if (onboardingLoading || !shouldShowOnboarding) {
+      setIsInvitedUser(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    const checkInvitedStatus = async () => {
+      try {
+        const { user, error: authError } = await getSafeUser();
+        if (authError || !user || cancelled) {
+          setIsInvitedUser(false);
+          return;
+        }
+
+        // Count organization memberships for this user
+        const { data: memberships, error } = await supabase
+          .from("organization_memberships")
+          .select("id, organization_id")
+          .eq("user_id", user.id);
+
+        if (error || cancelled) {
+          setIsInvitedUser(false);
+          return;
+        }
+
+        // If user has more than 1 org membership, they were likely invited
+        // (everyone gets a personal org on signup, so >1 means invited to another)
+        const invited = (memberships?.length ?? 0) > 1;
+        if (!cancelled) {
+          setIsInvitedUser(invited);
+        }
+      } catch {
+        if (!cancelled) setIsInvitedUser(false);
+      }
+    };
+
+    checkInvitedStatus();
+    return () => { cancelled = true; };
+  }, [onboardingLoading, shouldShowOnboarding]);
+
+  // Redirect non-invited users to the setup wizard
+  useEffect(() => {
+    if (onboardingLoading || isInvitedUser === null) return;
+    if (shouldShowOnboarding && !isInvitedUser) {
+      navigate("/setup", { replace: true });
+    }
+  }, [shouldShowOnboarding, isInvitedUser, onboardingLoading, navigate]);
 
   // Register a global tour starter so OnboardingModal (or any other code) can
   // call `window.__startCallVaultTour()` without importing the module directly.
@@ -50,6 +107,18 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
     return 'HOME';
   };
 
+  const handleDismissBanner = async () => {
+    setBannerDismissed(true);
+    await completeOnboarding();
+  };
+
+  // Show a dismissible banner for invited users who haven't completed onboarding
+  const showBanner =
+    !onboardingLoading &&
+    shouldShowOnboarding &&
+    isInvitedUser === true &&
+    !bannerDismissed;
+
   return (
     <div
       className="min-h-screen w-full relative"
@@ -58,16 +127,36 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
       }}
     >
       <TopBar pageLabel={getPageLabel()} />
-      <main className="fixed inset-2.5 top-[52px]">
+
+      {showBanner && (
+        <div className="fixed top-[52px] left-2.5 right-2.5 z-30 bg-vibe-orange/10 border border-vibe-orange/20 rounded-lg px-4 py-2.5 flex items-center gap-3">
+          <RiDownloadCloud2Line className="h-4 w-4 text-vibe-orange shrink-0" />
+          <p className="text-sm text-foreground flex-1">
+            <span className="font-medium">Connect a call recorder</span>{" "}
+            <span className="text-muted-foreground">
+              to start importing your meetings.{" "}
+              <button
+                onClick={() => navigate("/import")}
+                className="text-vibe-orange hover:underline underline-offset-2 font-medium"
+              >
+                Go to Import
+              </button>
+            </span>
+          </p>
+          <button
+            onClick={handleDismissBanner}
+            className="shrink-0 h-6 w-6 rounded-md hover:bg-muted flex items-center justify-center transition-colors"
+            aria-label="Dismiss"
+          >
+            <RiCloseLine className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
+      )}
+
+      <main className={`fixed inset-2.5 top-[52px] ${showBanner ? "!top-[100px]" : ""}`}>
         {children}
       </main>
       {isFeatureEnabled('debug_panel') && <DebugPanel />}
-      {!onboardingLoading && shouldShowOnboarding && (
-        <OnboardingModal
-          open={shouldShowOnboarding}
-          onComplete={handleOnboardingComplete}
-        />
-      )}
     </div>
   );
 }
