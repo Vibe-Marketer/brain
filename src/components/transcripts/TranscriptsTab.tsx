@@ -85,7 +85,7 @@ export function TranscriptsTab({
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Organization context for filtering calls by active workspace
-  const { activeOrganizationId, activeWorkspaceId, activeWorkspace, isPersonalOrganization, isLoading: _orgContextLoading, isInitialized } = useOrganizationContext();
+  const { activeOrganizationId, activeWorkspaceId, activeWorkspace, isPersonalOrganization, isSharedView, isLoading: _orgContextLoading, isInitialized } = useOrganizationContext();
 
   // Dynamic source filter options scoped to current org/workspace
   const { data: availableSources } = useAvailableSources(activeOrganizationId, activeWorkspaceId);
@@ -110,7 +110,8 @@ export function TranscriptsTab({
 
   // Determine if we're in the Home (all calls) view vs a specific workspace
   // The personal/default workspace IS the home view — show all calls, with source column
-  const isHomeView = !activeWorkspaceId;
+  // Shared view is a separate virtual workspace, not home view
+  const isHomeView = !activeWorkspaceId && !isSharedView;
 
   // Column visibility — derived from current view, resets on workspace switch
   const homeColumns = { date: true, duration: true, source: true, participants: true, tags: true, workspaces: true, sharedWith: true };
@@ -132,7 +133,7 @@ export function TranscriptsTab({
     setFilters({});
     setSelectedCalls([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeWorkspaceId]);
+  }, [activeWorkspaceId, isSharedView]);
 
   // Dialog state
   const [tagManagementOpen, setTagManagementOpen] = useState(false);
@@ -327,7 +328,7 @@ export function TranscriptsTab({
 
   // Fetch calls with filters
   const { data: calls = [], isLoading: callsLoading, isFetching, isPlaceholderData } = useQuery({
-    queryKey: ["tag-calls", searchQuery, JSON.stringify(combinedFilters), page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, activeWorkspace?.workspace_type, selectedFolderId],
+    queryKey: ["tag-calls", searchQuery, JSON.stringify(combinedFilters), page, pageSize, activeOrganizationId, activeWorkspaceId, isPersonalOrganization, activeWorkspace?.workspace_type, selectedFolderId, isSharedView],
     enabled: isInitialized,
     staleTime: 2 * 60 * 1000, // 2 minutes — don't refetch on every window focus
     gcTime: 5 * 60 * 1000,    // keep in cache for 5 minutes
@@ -350,6 +351,53 @@ export function TranscriptsTab({
       if (!user) throw new Error("Not authenticated");
 
       const offset = (page - 1) * pageSize;
+
+      // SHARED WITH ME — virtual workspace that shows all calls shared with the user.
+      // Uses the same RPC as the dedicated SharedWithMe page.
+      if (isSharedView) {
+        const { data: sharedRows, error: sharedError } = await supabase.rpc("get_calls_shared_with_me_v2", {
+          p_include_expired: false,
+        });
+        if (sharedError) throw sharedError;
+
+        const rows = (sharedRows || []) as Array<{
+          recording_id: number;
+          call_name: string;
+          recording_start_time: string;
+          duration: string | null;
+          source_label: string;
+        }>;
+
+        // Client-side search filter
+        let filtered = rows;
+        if (searchQuery?.trim()) {
+          const q = searchQuery.toLowerCase();
+          filtered = filtered.filter((r) => r.call_name?.toLowerCase().includes(q));
+        }
+
+        const total = filtered.length;
+        setTotalCount(total);
+        onTotalCountChange?.(total);
+
+        // Client-side pagination
+        const paged = filtered.slice(offset, offset + pageSize);
+
+        // Map to Meeting shape for TranscriptTable compatibility
+        return paged.map((row) => ({
+          id: row.recording_id,
+          title: row.call_name || "Untitled Call",
+          summary: null,
+          tags: [] as string[],
+          recording_start_time: row.recording_start_time,
+          recording_end_time: null,
+          created_at: row.recording_start_time,
+          synced: false,
+          source: "Shared",
+          sourceLabel: row.source_label || "Direct Link",
+          duration: row.duration,
+          canonical_uuid: null,
+        })) as Meeting[];
+      }
 
       // WORKSPACE FILTERING — RPC approach.
       // Uses get_workspace_recordings() DB function which does the JOIN + ORDER + pagination

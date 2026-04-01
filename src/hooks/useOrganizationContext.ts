@@ -23,6 +23,7 @@ export function useOrganizationContext(): {
   organizations: OrganizationWithMembership[]
   workspaces: WorkspaceWithMembership[]
   activeFolderId: string | null
+  isSharedView: boolean
   isLoading: boolean
   isInitialized: boolean
   error: null
@@ -30,6 +31,7 @@ export function useOrganizationContext(): {
   switchWorkspace: (workspaceId: string | null) => void
   switchFolder: (folderId: string | null) => void
   switchToFolder: (workspaceId: string, folderId: string | null) => void
+  setSharedView: (isShared: boolean) => void
   reset: () => void
   isPersonalOrganization: boolean
   isPersonalOrg: boolean
@@ -42,6 +44,7 @@ export function useOrganizationContext(): {
     activeOrgId,
     activeWorkspaceId,
     activeFolderId,
+    isSharedView,
     organizations,
     isLoading: orgsLoading,
     isInitialized,
@@ -49,6 +52,7 @@ export function useOrganizationContext(): {
     switchWorkspace,
     switchFolder,
     switchToFolder,
+    setSharedView,
     reset,
     isPersonalOrg,
   } = useOrgContext()
@@ -99,6 +103,7 @@ export function useOrganizationContext(): {
     activeOrgId,
     activeWorkspaceId,
     activeFolderId,
+    isSharedView,
     activeOrganization,
     activeWorkspace: activeWorkspaceData,
     personalWorkspace: personalWorkspaceData,
@@ -115,6 +120,7 @@ export function useOrganizationContext(): {
     switchWorkspace: switchWorkspaceInternal,
     switchFolder,
     switchToFolder,
+    setSharedView,
     reset,
 
     // Helpers

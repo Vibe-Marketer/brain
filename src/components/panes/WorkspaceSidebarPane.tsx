@@ -73,6 +73,7 @@ import {
   RiShareForwardLine,
   RiArchiveLine,
   RiPriceTag3Line,
+  RiShareLine,
 } from '@remixicon/react';
 import type { WorkspaceWithMeta, WorkspaceRole } from '@/types/workspace';
 import type { Folder } from '@/types/workspace';
@@ -428,15 +429,17 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { openPanel } = usePanelStore();
-  const { 
-    activeOrgId, 
-    activeOrg, 
+  const {
+    activeOrgId,
+    activeOrg,
     orgRole: activeOrgRole,
     activeWorkspaceId,
     activeFolderId,
+    isSharedView,
     switchWorkspace,
     switchFolder,
-    switchToFolder
+    switchToFolder,
+    setSharedView,
   } = useOrganizationContext();
   const { workspaces, isLoading, error } = useWorkspaces(activeOrgId);
   const { data: personalFolders = [], isLoading: personalFoldersLoading } = usePersonalFolders(activeOrgId);
@@ -460,23 +463,25 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
   const [deleteWsOpen, setDeleteWsOpen] = React.useState(false);
   const [wsToDelete, setWsToDelete] = React.useState<WorkspaceWithMeta | null>(null);
 
-  // Home (Home) item
-  const isHomeActive = activeWorkspaceId === null && activeFolderId === null;
+  // Home (Home) item — not active when in shared view
+  const isHomeActive = activeWorkspaceId === null && activeFolderId === null && !isSharedView;
 
   const handleHomeClick = useCallback(() => {
+    setSharedView(false);
     switchWorkspace(null);
     if (location.pathname !== '/') {
       navigate('/');
     }
-  }, [switchWorkspace, location.pathname, navigate]);
+  }, [setSharedView, switchWorkspace, location.pathname, navigate]);
 
   /** Navigate to calls page when selecting a workspace from a non-calls page */
   const handleWorkspaceSelect = useCallback((workspaceId: string) => {
+    setSharedView(false);
     switchWorkspace(workspaceId);
     if (location.pathname !== '/') {
       navigate('/');
     }
-  }, [switchWorkspace, location.pathname, navigate]);
+  }, [setSharedView, switchWorkspace, location.pathname, navigate]);
 
   /** Navigate to calls page when selecting a folder from a non-calls page */
   const handleFolderSelect = useCallback((workspaceId: string, folderId: string | null) => {
@@ -485,6 +490,14 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
       navigate('/');
     }
   }, [switchToFolder, location.pathname, navigate]);
+
+  /** Enter "Shared With Me" virtual workspace view */
+  const handleSharedWithMeClick = useCallback(() => {
+    setSharedView(true);
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+  }, [setSharedView, location.pathname, navigate]);
 
   return (
     <div className={cn('h-full flex flex-col bg-card border-r border-border', className)}>
@@ -660,6 +673,27 @@ export function WorkspaceSidebarPane({ className }: WorkspaceSidebarPaneProps) {
                  )}
                </div>
              )}
+           </div>
+
+           {/* Section: Shared With Me */}
+           <div className="pt-2 mt-1 border-t border-border/40">
+              <button
+                onClick={handleSharedWithMeClick}
+                className={cn(
+                  'w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-300',
+                  isSharedView ? 'bg-muted border border-border shadow-sm' : 'hover:bg-muted/50 text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <div className={cn(
+                  'w-7 h-7 rounded-lg flex items-center justify-center border transition-all',
+                  isSharedView ? 'border-vibe-orange/20 bg-vibe-orange/10' : 'bg-card border-border'
+                )}>
+                  <RiShareLine size={14} className={isSharedView ? 'text-vibe-orange' : 'text-muted-foreground'} />
+                </div>
+                <span className={cn('text-xs font-bold uppercase tracking-tight', isSharedView && 'font-display italic text-foreground')}>
+                  Shared With Me
+                </span>
+              </button>
            </div>
         </div>
       </ScrollArea>

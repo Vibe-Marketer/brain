@@ -31,11 +31,13 @@ export function useOrgContext() {
     activeOrgId,
     activeWorkspaceId,
     activeFolderId,
+    isSharedView,
     isInitialized,
     setActiveOrg,
     setActiveWorkspace,
     setActiveFolder,
     setActiveWorkspaceAndFolder,
+    setSharedView,
     initialize,
     reset,
   } = useOrgContextStore()
@@ -123,6 +125,7 @@ export function useOrgContext() {
     activeOrgId,
     activeWorkspaceId,
     activeFolderId,
+    isSharedView,
     isInitialized,
 
     // Derived data
@@ -138,6 +141,7 @@ export function useOrgContext() {
     switchWorkspace,
     switchFolder,
     switchToFolder,
+    setSharedView,
     reset,
 
     // Helpers

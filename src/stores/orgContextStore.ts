@@ -16,6 +16,7 @@ interface OrgContextState {
   activeOrgId: string | null
   activeWorkspaceId: string | null
   activeFolderId: string | null
+  isSharedView: boolean
   isInitialized: boolean
 
   // Actions
@@ -23,6 +24,7 @@ interface OrgContextState {
   setActiveWorkspace: (workspaceId: string | null) => void
   setActiveFolder: (folderId: string | null) => void
   setActiveWorkspaceAndFolder: (workspaceId: string, folderId: string | null) => void
+  setSharedView: (isShared: boolean) => void
   initialize: (orgId: string, workspaceId?: string) => void
   reset: () => void
 }
@@ -77,6 +79,7 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
   activeOrgId: persisted.activeOrgId,
   activeWorkspaceId: persisted.activeWorkspaceId,
   activeFolderId: null,
+  isSharedView: false,
   isInitialized: false,
 
   /**
@@ -84,18 +87,19 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
    * LOCKED: resets activeWorkspaceId and activeFolderId to null (clean slate).
    */
   setActiveOrg: (orgId: string) => {
-    set({ activeOrgId: orgId, activeWorkspaceId: null, activeFolderId: null })
+    set({ activeOrgId: orgId, activeWorkspaceId: null, activeFolderId: null, isSharedView: false })
     persistContext(orgId, null)
   },
 
   /**
    * Switch to a different workspace within the current organization.
    * Resets activeFolderId to null (folder context is workspace-specific).
+   * Also clears isSharedView since we're entering a real workspace.
    */
   setActiveWorkspace: (workspaceId: string | null) => {
     set((state) => {
       persistContext(state.activeOrgId, workspaceId)
-      return { activeWorkspaceId: workspaceId, activeFolderId: null }
+      return { activeWorkspaceId: workspaceId, activeFolderId: null, isSharedView: false }
     })
   },
 
@@ -112,7 +116,22 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
   setActiveWorkspaceAndFolder: (workspaceId: string, folderId: string | null) => {
     set((state) => {
       persistContext(state.activeOrgId, workspaceId)
-      return { activeWorkspaceId: workspaceId, activeFolderId: folderId }
+      return { activeWorkspaceId: workspaceId, activeFolderId: folderId, isSharedView: false }
+    })
+  },
+
+  /**
+   * Enter or exit the "Shared With Me" virtual workspace view.
+   * When entering, clears activeWorkspaceId and activeFolderId so
+   * TranscriptsTab knows to query shared calls instead of workspace recordings.
+   */
+  setSharedView: (isShared: boolean) => {
+    set((state) => {
+      if (isShared) {
+        persistContext(state.activeOrgId, null)
+        return { isSharedView: true, activeWorkspaceId: null, activeFolderId: null }
+      }
+      return { isSharedView: false }
     })
   },
 
@@ -130,7 +149,7 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
 
   /** Reset for logout — clears all context and localStorage. */
   reset: () => {
-    set({ activeOrgId: null, activeWorkspaceId: null, activeFolderId: null, isInitialized: false })
+    set({ activeOrgId: null, activeWorkspaceId: null, activeFolderId: null, isSharedView: false, isInitialized: false })
     if (typeof window !== 'undefined') {
       localStorage.removeItem(ORG_CONTEXT_STORAGE_KEY)
       localStorage.setItem(ORG_CONTEXT_UPDATED_KEY, Date.now().toString())
