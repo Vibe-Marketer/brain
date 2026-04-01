@@ -20,7 +20,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RiAddLine, RiDeleteBinLine, RiFolderLine, RiPencilLine, RiFileCopyLine, RiLoader4Line } from "@remixicon/react";
-import { getIconComponent } from "@/lib/folder-icons";
 import QuickCreateFolderDialog from "@/components/QuickCreateFolderDialog";
 import {
   AlertDialog,
@@ -281,7 +280,6 @@ export function FoldersTab() {
   // Folder row renderer - uses depthMap for indentation (no recursion for virtualization)
   const renderFolderRow = (folder: Folder): React.ReactNode => {
     const depth = depthMap[folder.id] || 0;
-    const FolderIcon = getIconComponent(folder.icon);
     const isSelected = selectedFolderId === folder.id;
     const isFocused = focusedId === folder.id;
     const isEditing = editingFolderId === folder.id;
@@ -306,11 +304,7 @@ export function FoldersTab() {
           >
             <TableCell style={{ paddingLeft: `${depth * 24 + 16}px` }}>
                 <div className="flex items-center gap-2">
-                  {FolderIcon ? (
-                    <FolderIcon className="h-4 w-4" style={{ color: folder.color }} />
-                  ) : (
-                    <RiFolderLine className="h-4 w-4" style={{ color: folder.color }} />
-                  )}
+                  <RiFolderLine className="h-4 w-4" />
                   {isEditing ? (
                     <Input
                       ref={editInputRef}

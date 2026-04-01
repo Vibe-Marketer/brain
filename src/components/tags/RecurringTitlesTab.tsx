@@ -35,7 +35,6 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RiAddLine, RiCheckLine, RiLoader2Line, RiFolderLine } from "@remixicon/react";
 import { format } from "date-fns";
-import { isEmojiIcon, getIconComponent } from "@/lib/folder-icons";
 
 interface Folder {
   id: string;
@@ -292,18 +291,10 @@ export function RecurringTitlesTab() {
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
                   {folders?.map((folder) => {
-                    const FolderIcon = getIconComponent(folder.icon);
-                    const isEmoji = isEmojiIcon(folder.icon);
                     return (
                       <SelectItem key={folder.id} value={folder.id}>
                         <div className="flex items-center gap-2">
-                          {isEmoji ? (
-                            <span className="text-sm">{folder.icon}</span>
-                          ) : FolderIcon ? (
-                            <FolderIcon className="h-4 w-4" style={{ color: folder.color }} />
-                          ) : (
-                            <RiFolderLine className="h-4 w-4" style={{ color: folder.color }} />
-                          )}
+                          <RiFolderLine className="h-4 w-4" />
                           {folder.name}
                         </div>
                       </SelectItem>

@@ -1,12 +1,11 @@
 import { useState } from "react";
 import {
-  RiFolderOpenLine,
+  RiFolderLine,
   RiAddLine,
   RiPencilLine,
   RiDeleteBinLine,
   RiAlertLine,
 } from "@remixicon/react";
-import { getIconComponent } from "@/lib/folder-icons";
 import {
   Dialog,
   DialogContent,
@@ -77,29 +76,15 @@ export function FolderManagementDialog({
     const transcriptCount = transcriptCounts[folder.id];
     const indentClass = depth > 0 ? `ml-${depth * 6}` : "";
 
-    // Compute folder icon component
-    const FolderIcon = getIconComponent(folder.icon) ?? RiFolderOpenLine;
-
     return (
       <div key={folder.id}>
         <div
           className={`group flex items-start gap-3 p-4 rounded-lg border bg-card hover:bg-accent/50 transition-colors ${indentClass}`}
         >
-          {/* Color indicator */}
-          {folder.color && (
-            <div
-              className="w-1 h-14 rounded flex-shrink-0"
-              style={{ backgroundColor: folder.color }}
-            />
-          )}
-
           {/* Folder icon */}
-          {FolderIcon && (
-            <FolderIcon
-              className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0"
-              style={folder.color ? { color: folder.color } : undefined}
-            />
-          )}
+          <RiFolderLine
+            className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0"
+          />
 
           {/* Folder info */}
           <div className="flex-1 min-w-0">
