@@ -129,11 +129,16 @@ export const TranscriptTableRow = React.memo(function TranscriptTableRow({
       key={call.recording_id}
       ref={setNodeRef}
       {...attributes}
-      {...listeners}
       className={cn("group h-7 md:h-8", isDragging && "opacity-50")}
     >
       <TableCell className="align-middle py-0">
-        <Checkbox checked={isSelected} onCheckedChange={() => onSelectCall(call.recording_id)} />
+        <div className="flex items-center gap-1">
+          {/* Drag handle — only this element triggers drag, not the whole row */}
+          <span {...listeners} className="cursor-grab active:cursor-grabbing touch-none text-muted-foreground/40 hover:text-muted-foreground hidden md:inline-flex">
+            ⠿
+          </span>
+          <Checkbox checked={isSelected} onCheckedChange={() => onSelectCall(call.recording_id)} />
+        </div>
       </TableCell>
       <TableCell className="py-0 whitespace-nowrap">
         <div className="space-y-0">
