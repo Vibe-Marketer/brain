@@ -34,7 +34,7 @@ import { createInvitation } from '@/services/invitations.service'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+// Tabs removed — both sections shown inline
 import { useContactSuggestions } from '@/hooks/useContactSuggestions'
 import { ContactSuggestions } from '@/components/contacts/ContactSuggestions'
 
@@ -161,106 +161,100 @@ export function WorkspaceInviteDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'link' | 'email')} className="py-4">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="link">Shareable Link</TabsTrigger>
-            <TabsTrigger value="email">Email Invite</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="link" className="pt-4 space-y-6">
+        <div className="py-4 space-y-6">
+          {/* Shareable Link Section */}
+          <div className="space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+              Shareable Link
+            </p>
             {!inviteUrl ? (
-              <div className="flex flex-col items-center justify-center py-6 px-4 text-center border-2 border-dashed border-border rounded-xl bg-muted/20">
-                <RiLinkM className="h-10 w-10 text-muted-foreground/40 mb-3" />
-                <h4 className="text-sm font-semibold mb-1">Generate an invite link</h4>
-                <p className="text-xs text-muted-foreground mb-4 max-w-[240px]">
-                  Anyone with the link will be able to join as a member.
-                </p>
+              <div className="flex items-center justify-between p-4 border border-dashed border-border rounded-xl bg-muted/20">
+                <div className="flex items-center gap-3">
+                  <RiLinkM className="h-5 w-5 text-muted-foreground/40" />
+                  <div>
+                    <p className="text-sm font-medium">Generate an invite link</p>
+                    <p className="text-xs text-muted-foreground">Anyone with the link can join as a member</p>
+                  </div>
+                </div>
                 <Button size="sm" onClick={handleGenerate} disabled={generateInvite.isPending}>
                   {generateInvite.isPending ? 'Generating...' : 'Create Link'}
                 </Button>
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label>Share Link</Label>
-                  <div className="flex gap-2">
-                    <Input readOnly value={inviteUrl} className="font-mono text-xs bg-muted/50" />
-                    <Button variant="outline" size="icon" onClick={handleCopy}>
-                      {isCopied ? <RiCheckLine className="h-4 w-4 text-success-text" /> : <RiFileCopyLine className="h-4 w-4" />}
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between p-3 rounded-lg bg-info-bg/10 border border-info-border/20">
-                  <div className="flex items-center gap-2 text-xs text-info-text">
-                    <RiTimeLine className="h-3.5 w-3.5" />
-                    <span>Expires in {expiresInDays} days</span>
-                  </div>
-                  <Button variant="ghost" size="sm" className="h-7 text-[10px] uppercase font-bold text-muted-foreground" onClick={handleRegenerate}>
-                    <RiRefreshLine className="h-3 w-3 mr-1" />
-                    Regenerate
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input readOnly value={inviteUrl} className="font-mono text-xs bg-muted/50" />
+                  <Button variant="hollow" size="icon" onClick={handleCopy}>
+                    {isCopied ? <RiCheckLine className="h-4 w-4 text-emerald-500" /> : <RiFileCopyLine className="h-4 w-4" />}
+                  </Button>
+                  <Button variant="ghost" size="icon" onClick={handleRegenerate} title="Regenerate link">
+                    <RiRefreshLine className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
             )}
-          </TabsContent>
+          </div>
 
-          <TabsContent value="email" className="pt-4 space-y-4">
-            <form onSubmit={handleSendEmailInvite} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <div className="relative">
-                  <RiMailLine className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="teammate@example.com"
-                    className="pl-9"
-                    autoComplete="off"
-                    value={email}
-                    onChange={(e) => {
-                      setEmail(e.target.value)
-                      setShowSuggestions(true)
+          {/* Divider */}
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border/50" /></div>
+            <div className="relative flex justify-center"><span className="bg-card px-3 text-xs text-muted-foreground">or invite by email</span></div>
+          </div>
+
+          {/* Email Invite Section */}
+          <form onSubmit={handleSendEmailInvite} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <div className="relative">
+                <RiMailLine className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="teammate@example.com"
+                  className="pl-9"
+                  autoComplete="off"
+                  value={email}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    setShowSuggestions(true)
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setShowSuggestions(false)}
+                  required
+                />
+                {showSuggestions && (
+                  <ContactSuggestions
+                    query={email}
+                    suggestions={contactSuggestions}
+                    onSelect={(selectedEmail) => {
+                      setEmail(selectedEmail)
+                      setShowSuggestions(false)
                     }}
-                    onFocus={() => setShowSuggestions(true)}
-                    onBlur={() => setShowSuggestions(false)}
-                    required
                   />
-                  {showSuggestions && (
-                    <ContactSuggestions
-                      query={email}
-                      suggestions={contactSuggestions}
-                      onSelect={(selectedEmail) => {
-                        setEmail(selectedEmail)
-                        setShowSuggestions(false)
-                      }}
-                    />
-                  )}
-                </div>
+                )}
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select value={role} onValueChange={(v) => setRole(v as 'member' | 'contributor' | 'workspace_admin')}>
-                  <SelectTrigger id="role focus:ring-vibe-orange">
-                    <SelectValue placeholder="Select a role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member">Member (Read and organize access)</SelectItem>
-                    <SelectItem value="contributor">Contributor (Can add and route calls)</SelectItem>
-                    <SelectItem value="workspace_admin">Admin (Can manage members and settings)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select value={role} onValueChange={(v) => setRole(v as 'member' | 'contributor' | 'workspace_admin')}>
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">Member (Read and organize)</SelectItem>
+                  <SelectItem value="contributor">Contributor (Add and route calls)</SelectItem>
+                  <SelectItem value="workspace_admin">Admin (Manage members and settings)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="pt-2">
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? 'Creating...' : 'Invite Person'}
-                </Button>
-              </div>
-            </form>
-          </TabsContent>
-        </Tabs>
+            <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <RiUserAddLine className="h-4 w-4 mr-2" />
+              {isSubmitting ? 'Sending...' : 'Send Invite'}
+            </Button>
+          </form>
+        </div>
 
         <DialogFooter className="border-t border-border/40 pt-4 mt-2">
           <div className="flex-1 flex items-center gap-2 text-[10px] text-muted-foreground">
