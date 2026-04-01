@@ -62,7 +62,8 @@
         "integrations/fathom",
         "integrations/zoom",
         "integrations/youtube",
-        "integrations/upload"
+        "integrations/upload",
+        "integrations/mcp-server"
       ]
     },
     {
@@ -70,6 +71,8 @@
       "pages": [
         "transcripts/search",
         "transcripts/ai-summaries",
+        "transcripts/ai-content",
+        "transcripts/analytics",
         "transcripts/export",
         "transcripts/sharing"
       ]
@@ -94,6 +97,7 @@
       "pages": [
         "settings/account-settings",
         "settings/organization-settings",
+        "settings/plans-billing",
         "settings/security"
       ]
     },

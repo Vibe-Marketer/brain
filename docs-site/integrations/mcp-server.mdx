@@ -1,0 +1,72 @@
+---
+title: "MCP server"
+description: "Connect AI tools and agents to your CallVault data using the Model Context Protocol server."
+icon: "robot"
+---
+
+CallVault includes a Model Context Protocol (MCP) server that lets external AI tools — like Claude, ChatGPT, or custom agents — access your call data programmatically. This means you can ask an AI assistant to search your calls, pull transcripts, or summarize meeting context without leaving your AI tool of choice.
+
+<Note>
+  MCP server access is available on **Pro** and **Team** plans. See [Plans and billing](/settings/plans-billing) for details.
+</Note>
+
+## What is MCP?
+
+The Model Context Protocol is an open standard for connecting AI tools to external data sources. When you enable CallVault's MCP server, any MCP-compatible AI client can query your call library using natural language or structured tool calls.
+
+## Available tools
+
+The MCP server exposes five tools that AI clients can call:
+
+| Tool | What it does |
+|---|---|
+| **Search calls** | Full-text search across your call library. Returns titles, dates, relevance scores, and summaries for matching calls. |
+| **List calls** | Paginated list of calls in a workspace, with metadata like title, date, and duration. |
+| **Get transcript** | Retrieves the full transcript text for a specific call. |
+| **Get recording context** | Returns rich metadata for a call — date, duration, source, AI summary, speakers, tags, and auto-tags. |
+| **List workspaces** | Lists workspaces visible to the token, so the AI tool knows what data it can access. |
+
+## Setting up MCP access
+
+<Steps>
+  <Step title="Generate an MCP token">
+    Go to **Settings → Integrations → MCP** and click **Generate token**. Choose whether the token should be scoped to a single workspace or your entire organization.
+  </Step>
+  <Step title="Copy the token">
+    Copy the generated bearer token. You'll need this to configure your AI client.
+  </Step>
+  <Step title="Configure your AI client">
+    In your MCP-compatible AI tool, add CallVault as a data source using the server URL and your bearer token. The exact steps depend on which AI tool you're using — refer to that tool's documentation for how to add an MCP server.
+  </Step>
+</Steps>
+
+## Token scoping
+
+MCP tokens can be scoped at two levels:
+
+- **Workspace-scoped** — the AI tool can only access calls in a specific workspace
+- **Organization-scoped** — the AI tool can access calls across all workspaces in the organization
+
+Use workspace-scoped tokens when you want to limit what an AI tool can see. Use organization-scoped tokens for broad access.
+
+## Example usage
+
+Once connected, you can interact with your call data through your AI tool. For example:
+
+- "Search my calls for discussions about pricing changes"
+- "Get the transcript from yesterday's demo call"
+- "List all calls in the Sales workspace from this week"
+- "Summarize the key points from the call with Acme Corp"
+
+The AI tool uses CallVault's MCP server to retrieve the data and respond with relevant information from your call library.
+
+## Security
+
+- MCP tokens authenticate independently from your CallVault login — they don't use your session credentials
+- Each token tracks when it was last used
+- You can revoke any token at any time from **Settings → Integrations → MCP**
+- Tokens only provide read access — they cannot modify, delete, or share your calls
+
+<Warning>
+  Treat MCP tokens like API keys. Don't share them publicly or commit them to version control. Anyone with the token can read the call data it's scoped to.
+</Warning>
