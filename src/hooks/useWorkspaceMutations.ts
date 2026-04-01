@@ -304,22 +304,12 @@ export function useDeleteWorkspace() {
 
   return useMutation({
     mutationFn: async (input: DeleteWorkspaceInput) => {
-      if (
-        input.transferRecordingsToWorkspaceId &&
-        input.transferRecordingsToWorkspaceId !== input.workspaceId
-      ) {
-        const { error: transferError } = await supabase
-          .from('workspace_entries')
-          .update({ workspace_id: input.transferRecordingsToWorkspaceId })
-          .eq('workspace_id', input.workspaceId)
-
-        if (transferError) throw transferError
-      }
-
-      const { error } = await supabase
-        .from('workspaces')
-        .delete()
-        .eq('id', input.workspaceId)
+      // Use server-side RPC that safely bypasses the last-owner trigger
+      // when deleting the entire workspace (not just removing a member)
+      const { error } = await supabase.rpc('delete_workspace', {
+        p_workspace_id: input.workspaceId,
+        p_transfer_to_workspace_id: input.transferRecordingsToWorkspaceId ?? null,
+      })
 
       if (error) throw error
       return { workspaceId: input.workspaceId }

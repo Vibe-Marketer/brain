@@ -4051,6 +4051,13 @@ export type Database = {
           workspace_id: string
         }[]
       }
+      delete_workspace: {
+        Args: {
+          p_workspace_id: string
+          p_transfer_to_workspace_id?: string | null
+        }
+        Returns: undefined
+      }
       ensure_personal_organization: {
         Args: { p_user_id: string }
         Returns: string
