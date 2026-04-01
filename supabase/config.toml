@@ -67,6 +67,57 @@ verify_jwt = false
 [functions.auto-tag-calls]
 verify_jwt = false
 
+[functions.apply-routing-rules]
+verify_jwt = false
+
+[functions.generate-meta-summary]
+verify_jwt = false
+
+[functions.global-search]
+verify_jwt = false
+
+[functions.manager-notes]
+verify_jwt = false
+
+[functions.mcp-server]
+verify_jwt = false
+
+[functions.polar-cancel]
+verify_jwt = false
+
+[functions.polar-checkout]
+verify_jwt = false
+
+[functions.polar-create-customer]
+verify_jwt = false
+
+[functions.polar-customer-state]
+verify_jwt = false
+
+[functions.send-org-invite]
+verify_jwt = false
+
+[functions.share-call]
+verify_jwt = false
+
+[functions.split-recording]
+verify_jwt = false
+
+[functions.summarize-call]
+verify_jwt = false
+
+[functions.track-ai-usage]
+verify_jwt = false
+
+[functions.zoom-oauth-callback]
+verify_jwt = false
+
+[functions.zoom-oauth-refresh]
+verify_jwt = false
+
+[functions.zoom-oauth-url]
+verify_jwt = false
+
 # --- Webhook receivers (no user JWT available) ---
 
 [functions.webhook]
