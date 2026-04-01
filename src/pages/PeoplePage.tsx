@@ -25,6 +25,7 @@ import { useWorkspaces } from '@/hooks/useWorkspaces';
 export default function PeoplePage() {
   const [selectedCategory, setSelectedCategory] = useState<PeopleCategoryId | null>('contacts');
   const [selectedWorkspaceId, setSelectedWorkspaceId] = useState<string | null>(null);
+  const [selectedContactFolderId, setSelectedContactFolderId] = useState<string | null>(null);
   const { closePanel } = usePanelStore();
   const { activeOrgId } = useOrganizationContext();
   const { workspaces } = useWorkspaces(activeOrgId);
@@ -93,6 +94,8 @@ export default function PeoplePage() {
             onSelectCategory={setSelectedCategory}
             selectedWorkspaceId={selectedWorkspaceId}
             onSelectWorkspace={setSelectedWorkspaceId}
+            selectedContactFolderId={selectedContactFolderId}
+            onSelectContactFolder={setSelectedContactFolderId}
           />
         ),
         secondaryPaneTitle: "People",

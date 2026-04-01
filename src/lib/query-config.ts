@@ -104,6 +104,12 @@ export const queryKeys = {
     hierarchy: (teamId: string) => ['teams', 'hierarchy', teamId] as const,
   },
 
+  // Contact Folders
+  contactFolders: {
+    all: ['contact-folders'] as const,
+    list: (orgId?: string) => ['contact-folders', 'list', orgId] as const,
+  },
+
   // Contacts
   contacts: {
     all: ['contacts'] as const,
