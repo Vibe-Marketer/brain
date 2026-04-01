@@ -189,11 +189,21 @@ export async function insertRecording(
   }
 
   // -------------------------------------------------------------------------
-  // Create workspace_entry in personal workspace (non-blocking)
+  // Create workspace_entry (non-blocking)
+  //
+  // The DB trigger auto_home_workspace_entry always creates an entry in the
+  // org's HOME workspace on recording INSERT. When the caller specified an
+  // explicit workspace_id (user chose where to import), we:
+  //   1. Create the entry in the chosen workspace
+  //   2. Remove the auto-created HOME entry so the call isn't duplicated
+  // When no workspace_id is specified, the HOME entry from the trigger is
+  // the only entry and we leave it in place.
   // -------------------------------------------------------------------------
   try {
     // Use provided workspace_id or resolve personal workspace for this organization
     let workspaceId = record.workspace_id;
+    const explicitWorkspace = !!record.workspace_id;
+
     if (!workspaceId) {
       const { data: workspace, error: workspaceError } = await supabase
         .from('workspaces')
@@ -226,6 +236,30 @@ export async function insertRecording(
 
       if (entryError) {
         console.error('[connector-pipeline] Failed to create workspace_entry (non-blocking):', entryError);
+      }
+
+      // If an explicit workspace was chosen, remove the duplicate HOME entry
+      // that the auto_home_workspace_entry trigger created — the call should
+      // only appear in the workspace the user selected (and in All Calls).
+      if (explicitWorkspace) {
+        const { data: homeWs } = await supabase
+          .from('workspaces')
+          .select('id')
+          .eq('organization_id', organizationId)
+          .eq('is_home', true)
+          .maybeSingle();
+
+        if (homeWs && homeWs.id !== workspaceId) {
+          const { error: removeErr } = await supabase
+            .from('workspace_entries')
+            .delete()
+            .eq('workspace_id', homeWs.id)
+            .eq('recording_id', newRecording.id);
+
+          if (removeErr) {
+            console.error('[connector-pipeline] Failed to remove duplicate HOME entry (non-blocking):', removeErr);
+          }
+        }
       }
     } else {
       console.warn(`[connector-pipeline] No personal workspace found for organization ${organizationId} — workspace_entry not created`);

@@ -240,7 +240,7 @@ export function YouTubeImportForm({ onSuccess, onError, className }: YouTubeImpo
 
         {/* Workspace selector */}
         <WorkspaceSelector
-          integration="fathom"
+          integration="youtube"
           value={selectedWorkspaceId}
           onWorkspaceChange={setSelectedWorkspaceId}
           disabled={isImporting}
