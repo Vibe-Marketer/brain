@@ -4,22 +4,24 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { z } from 'zod';
 import { getErrorToastMessage } from '@/lib/user-friendly-errors';
+import { RiGoogleFill, RiMailLine, RiLockLine } from '@remixicon/react';
 
 const authSchema = z.object({
   email: z.string().email('Invalid email address').max(255),
   password: z.string().min(6, 'Password must be at least 6 characters').max(72)
 });
 
+type AuthMode = 'signin' | 'signup';
+
 export default function Login() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [mode, setMode] = useState<AuthMode>('signin');
   const [magicLinkSent, setMagicLinkSent] = useState(false);
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -44,12 +46,10 @@ export default function Login() {
       if (error) throw error;
 
       if (user) {
-        // If session exists, user is automatically logged in (email confirmation disabled)
         if (session) {
           toast.success('Account created successfully!');
           navigate('/');
         } else {
-          // Email confirmation required
           toast.success('Account created! Please check your email to confirm your account.');
           setEmail('');
           setPassword('');
@@ -133,215 +133,191 @@ export default function Login() {
       });
 
       if (error) throw error;
-      // On success, the OAuth redirect will navigate away; loading stays true
-      // until the redirect fires. If the redirect doesn't fire, the finally
-      // block below clears loading after a short safety delay.
     } catch (error: unknown) {
       toast.error(getErrorToastMessage(error));
     } finally {
-      // Always clear loading. On a successful redirect this runs just before
-      // the page navigates away, which is harmless.
       setLoading(false);
     }
   };
 
+  const handleSubmit = mode === 'signin' ? handleSignIn : handleSignUp;
+
+  const switchMode = () => {
+    setMode(mode === 'signin' ? 'signup' : 'signin');
+    setMagicLinkSent(false);
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-4">
-          <div className="flex justify-center">
-            <img src="/cv-play-button.svg" alt="CallVault™" className="h-16 w-auto" />
+      <div className="w-full max-w-sm">
+        {/* Card */}
+        <div className="rounded-2xl border border-border bg-card shadow-lg px-8 py-10">
+          {/* Logo & Header */}
+          <div className="flex flex-col items-center mb-8">
+            <img
+              src="/cv-play-button.svg"
+              alt="CallVault"
+              className="h-12 w-auto mb-4"
+            />
+            <h1 className="text-xl font-semibold text-foreground">
+              {mode === 'signin' ? 'Welcome back' : 'Create your account'}
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              {mode === 'signin'
+                ? 'Sign in to your CallVault account'
+                : 'Get started with CallVault'}
+            </p>
           </div>
-          <CardTitle className="text-2xl font-bold text-center">Welcome to CallVault™</CardTitle>
-          <CardDescription className="text-center">Sign in to access your customer intelligence</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList>
-              <TabsTrigger value="signin">Sign In</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4">
-                <Button
-                  type="button"
-                  variant="hollow"
-                  className="w-full"
-                  onClick={handleGoogleSignIn}
+
+          {/* Google OAuth */}
+          <Button
+            type="button"
+            variant="hollow"
+            className="w-full h-10 text-sm font-medium"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+          >
+            <RiGoogleFill className="mr-2 h-4 w-4" />
+            Continue with Google
+          </Button>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs">
+              <span className="bg-card px-3 text-muted-foreground">
+                or continue with email
+              </span>
+            </div>
+          </div>
+
+          {/* Email/Password Form */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm font-medium">
+                Email
+              </Label>
+              <div className="relative">
+                <RiMailLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                   disabled={loading}
-                >
-                  <svg aria-hidden="true" className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                    <path
-                      fill="currentColor"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    />
-                  </svg>
-                  Continue with Google
-                </Button>
+                  className="pl-9"
+                />
+              </div>
+            </div>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
-                  </div>
-                </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-sm font-medium">
+                Password
+              </Label>
+              <div className="relative">
+                <RiLockLine className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  disabled={loading}
+                  className="pl-9"
+                />
+              </div>
+              {mode === 'signup' && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Minimum 6 characters
+                </p>
+              )}
+            </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="signin-email">Email</Label>
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signin-password">Password</Label>
-                  <Input
-                    id="signin-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Signing in...' : 'Sign In'}
-                </Button>
+            <Button
+              type="submit"
+              className="w-full h-10 text-sm font-medium bg-foreground text-background hover:bg-foreground/90"
+              disabled={loading}
+            >
+              {loading
+                ? (mode === 'signin' ? 'Signing in...' : 'Creating account...')
+                : (mode === 'signin' ? 'Sign in' : 'Create account')}
+            </Button>
+          </form>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or</span>
-                  </div>
+          {/* Magic Link (sign in only) */}
+          {mode === 'signin' && (
+            <>
+              <div className="relative my-4">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-border" />
                 </div>
+                <div className="relative flex justify-center text-xs">
+                  <span className="bg-card px-3 text-muted-foreground">or</span>
+                </div>
+              </div>
 
-                {magicLinkSent ? (
-                  <div className="text-center space-y-2 rounded-md border border-border p-4">
-                    <p className="text-sm font-medium">Check your email</p>
-                    <p className="text-xs text-muted-foreground">
-                      We sent a magic link to <strong>{email}</strong>
-                    </p>
-                    <Button
-                      type="button"
-                      variant="link"
-                      className="text-xs"
-                      onClick={() => setMagicLinkSent(false)}
-                      disabled={loading}
-                    >
-                      Didn't receive it? Try again
-                    </Button>
-                  </div>
-                ) : (
-                  <Button
+              {magicLinkSent ? (
+                <div className="text-center space-y-2 rounded-lg border border-border p-4">
+                  <p className="text-sm font-medium">Check your email</p>
+                  <p className="text-xs text-muted-foreground">
+                    We sent a magic link to <strong>{email}</strong>
+                  </p>
+                  <button
                     type="button"
-                    variant="hollow"
-                    className="w-full"
-                    onClick={handleMagicLink}
+                    className="text-xs text-muted-foreground hover:text-foreground underline"
+                    onClick={() => setMagicLinkSent(false)}
                     disabled={loading}
                   >
-                    {loading ? 'Sending...' : 'Send me a Magic Link'}
-                  </Button>
-                )}
-              </form>
-            </TabsContent>
-
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
+                    Didn't receive it? Try again
+                  </button>
+                </div>
+              ) : (
                 <Button
                   type="button"
                   variant="hollow"
-                  className="w-full"
-                  onClick={handleGoogleSignIn}
+                  className="w-full h-10 text-sm font-medium"
+                  onClick={handleMagicLink}
                   disabled={loading}
                 >
-                  <svg aria-hidden="true" className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                    <path
-                      fill="currentColor"
-                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                    />
-                    <path
-                      fill="currentColor"
-                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                    />
-                  </svg>
-                  Continue with Google
+                  {loading ? 'Sending...' : 'Send me a magic link'}
                 </Button>
+              )}
+            </>
+          )}
+        </div>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or continue with email</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="you@example.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Password</Label>
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    disabled={loading}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Minimum 6 characters
-                  </p>
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? 'Creating account...' : 'Create Account'}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+        {/* Mode switcher - outside the card */}
+        <p className="text-center text-sm text-muted-foreground mt-6">
+          {mode === 'signin' ? (
+            <>
+              Don't have an account?{' '}
+              <button
+                type="button"
+                onClick={switchMode}
+                className="text-foreground font-medium hover:underline"
+              >
+                Sign up
+              </button>
+            </>
+          ) : (
+            <>
+              Already have an account?{' '}
+              <button
+                type="button"
+                onClick={switchMode}
+                className="text-foreground font-medium hover:underline"
+              >
+                Sign in
+              </button>
+            </>
+          )}
+        </p>
+      </div>
     </div>
   );
 }
