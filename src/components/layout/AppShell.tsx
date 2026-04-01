@@ -244,10 +244,7 @@ export function AppShell({
           <SidebarNav
             isCollapsed={false}
             className="w-full flex-1"
-
-            onLibraryToggle={handleLibraryToggle}
             onSettingsClick={onSettingsClick}
-
           />
         </nav>
       )}
@@ -340,10 +337,7 @@ export function AppShell({
             <SidebarNav
               isCollapsed={!isSidebarExpanded}
               className="w-full flex-1 relative z-10"
-  
-              onLibraryToggle={handleLibraryToggle}
               onSettingsClick={onSettingsClick}
-  
             />
           </nav>
         )}

@@ -44,9 +44,9 @@ function LayoutContent({ children }: { children: React.ReactNode }) {
 
   const getPageLabel = () => {
     if (location.pathname === '/') return 'HOME';
+    if (location.pathname.startsWith('/people')) return 'PEOPLE';
     if (location.pathname.startsWith('/sorting-tagging')) return 'SORTING & TAGGING';
     if (location.pathname.startsWith('/settings')) return 'SETTINGS';
-    if (location.pathname === '/shared-with-me') return 'SHARED WITH ME';
     return 'HOME';
   };
 

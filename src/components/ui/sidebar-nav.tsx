@@ -25,9 +25,8 @@ import {
   RiSettings3Fill,
   RiRouteLine,
   RiRouteFill,
-  RiLayoutColumnLine,
-  RiShareLine,
-  RiShareFill,
+  RiGroupLine,
+  RiGroupFill,
   RiQuestionLine,
   RiInformationLine,
 } from '@remixicon/react';
@@ -52,14 +51,13 @@ interface NavItem {
 interface SidebarNavProps {
   isCollapsed?: boolean;
   className?: string;
-  onLibraryToggle?: () => void;
   onSettingsClick?: () => void;
 }
 
 const navItems: NavItem[] = [
   {
     id: 'home',
-    name: 'All Calls',
+    name: 'Calls',
     description: 'Your call library',
     icon: RiPhoneLine,
     iconActive: RiPhoneFill,
@@ -68,13 +66,14 @@ const navItems: NavItem[] = [
     dataTour: 'nav-all-calls',
   },
   {
-    id: 'shared-with-me',
-    name: 'Shared With Me',
-    description: 'Calls others shared',
-    icon: RiShareLine,
-    iconActive: RiShareFill,
-    path: '/shared-with-me',
-    matchPaths: ['/shared-with-me'],
+    id: 'people',
+    name: 'People',
+    description: 'Contacts & team',
+    icon: RiGroupLine,
+    iconActive: RiGroupFill,
+    path: '/people',
+    matchPaths: ['/people'],
+    dataTour: 'nav-people',
   },
   {
     id: 'import',
@@ -96,19 +95,20 @@ const navItems: NavItem[] = [
     matchPaths: ['/rules', '/sorting-tagging/rules'],
     dataTour: 'nav-rules',
   },
-  {
-    id: 'settings',
-    name: 'Settings',
-    description: 'Account and preferences',
-    icon: RiSettings3Line,
-    iconActive: RiSettings3Fill,
-    path: '/settings',
-    matchPaths: ['/settings'],
-    dataTour: 'nav-settings',
-  },
 ];
 
-export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettingsClick }: SidebarNavProps) {
+const settingsItem: NavItem = {
+  id: 'settings',
+  name: 'Settings',
+  description: 'Account and preferences',
+  icon: RiSettings3Line,
+  iconActive: RiSettings3Fill,
+  path: '/settings',
+  matchPaths: ['/settings'],
+  dataTour: 'nav-settings',
+};
+
+export function SidebarNav({ isCollapsed, className, onSettingsClick }: SidebarNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { role } = useUserRole();
@@ -133,7 +133,7 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
   }, [location.pathname]);
 
   return (
-    <div className={cn('flex-shrink-0', className)}>
+    <div className={cn('flex-shrink-0 flex flex-col h-full', className)}>
       <nav
         className="flex flex-col gap-0.5 py-2 px-2"
         role="navigation"
@@ -237,34 +237,8 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
         })}
       </nav>
 
-      {/* Bottom utility buttons */}
-      <div className="mt-2 flex flex-col gap-0.5 pt-2 border-t border-border/40 px-2">
-        {onLibraryToggle && (
-          <button
-            type="button"
-            onClick={onLibraryToggle}
-            className={cn(
-              'relative w-full flex items-center gap-3 px-3 py-2.5 rounded-lg',
-              'text-muted-foreground hover:bg-muted/70 transition-colors duration-150',
-              'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-              isCollapsed && 'justify-center',
-            )}
-            aria-label={isCollapsed ? 'Toggle Workspace Panel' : undefined}
-          >
-            <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 bg-card border border-border" aria-hidden="true">
-              <RiLayoutColumnLine className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <span
-              className={cn(
-                'text-xs font-medium transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap',
-                isCollapsed ? 'w-0 opacity-0' : 'opacity-100',
-              )}
-            >
-              Workspace Panel
-            </span>
-          </button>
-        )}
-
+      {/* Bottom section — pinned to bottom */}
+      <div className="mt-auto flex flex-col gap-0.5 pt-2 border-t border-border/40 px-2">
         <button
           type="button"
           onClick={startTour}
@@ -312,6 +286,91 @@ export function SidebarNav({ isCollapsed, className, onLibraryToggle, onSettings
             How it works
           </span>
         </button>
+
+        {/* Settings — always last */}
+        {(() => {
+          const active = isActive(settingsItem);
+          const Icon = active ? settingsItem.iconActive : settingsItem.icon;
+          return (
+            <button
+              type="button"
+              data-tour={settingsItem.dataTour}
+              onClick={() => {
+                navigate(settingsItem.path);
+                if (onSettingsClick) onSettingsClick();
+              }}
+              className={cn(
+                'relative w-full flex items-center gap-3 px-3 py-3 rounded-lg',
+                'text-left transition-all duration-150 ease-in-out',
+                'hover:bg-muted/70',
+                'focus:outline-none focus-visible:ring-2 focus-visible:ring-vibe-orange focus-visible:ring-offset-2',
+                active && [
+                  'bg-muted',
+                  isCollapsed ? 'pl-3' : 'pl-4',
+                  "before:content-[''] before:absolute before:left-1 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-[65%] before:rounded-full before:bg-vibe-orange",
+                ],
+                isCollapsed && 'justify-center',
+              )}
+              title={settingsItem.name}
+              aria-label={isCollapsed ? settingsItem.name : undefined}
+              aria-current={active ? 'page' : undefined}
+            >
+              <div
+                className={cn(
+                  'w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0',
+                  'bg-card border border-border',
+                  'transition-all duration-300 ease-in-out',
+                  active && 'bg-muted border-border',
+                )}
+                aria-hidden="true"
+              >
+                <Icon
+                  className={cn(
+                    'h-4 w-4 transition-colors duration-300 ease-in-out',
+                    active ? 'text-vibe-orange' : 'text-muted-foreground',
+                  )}
+                />
+              </div>
+              <div
+                className={cn(
+                  'flex-1 min-w-0 transition-all duration-300 ease-in-out overflow-hidden',
+                  isCollapsed ? 'w-0 opacity-0' : 'opacity-100',
+                )}
+              >
+                <span
+                  className={cn(
+                    'block text-sm font-medium truncate transition-colors duration-300',
+                    active ? 'text-foreground' : 'text-foreground',
+                  )}
+                >
+                  {settingsItem.name}
+                </span>
+                <span className="block text-xs text-muted-foreground truncate">
+                  {settingsItem.description}
+                </span>
+              </div>
+              {!isCollapsed && (
+                <div
+                  className={cn(
+                    'flex-shrink-0 transition-all duration-300 ease-in-out',
+                    active ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-1',
+                  )}
+                  aria-hidden="true"
+                >
+                  <svg
+                    className="h-4 w-4 text-muted-foreground"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              )}
+            </button>
+          );
+        })()}
       </div>
 
       <HowItWorksModal
