@@ -275,9 +275,31 @@ export async function uploadFile(file: File): Promise<{ recordingId: string }> {
 
 /**
  * Disconnects an import source by deleting its row.
+ * For legacy sources (tokens in user_settings), clears the tokens instead.
  * Per locked decision: imported calls are kept; only future syncs stop.
  */
 export async function disconnectImportSource(sourceId: string): Promise<void> {
+  // Legacy sources have synthetic IDs — clear tokens from user_settings
+  if (sourceId === 'legacy-zoom' || sourceId === 'legacy-fathom') {
+    const { data: { session } } = await supabase.auth.getSession()
+    const user = session?.user
+    if (!user) throw new Error('Not authenticated')
+
+    const updates = sourceId === 'legacy-zoom'
+      ? { zoom_oauth_access_token: null, zoom_oauth_refresh_token: null, zoom_oauth_token_expires: null, zoom_oauth_state: null }
+      : { oauth_access_token: null, oauth_refresh_token: null, oauth_token_expires: null, fathom_api_key: null }
+
+    const { error } = await supabase
+      .from('user_settings')
+      .update(updates)
+      .eq('user_id', user.id)
+
+    if (error) {
+      throw new Error(`Failed to disconnect source: ${error.message}`)
+    }
+    return
+  }
+
   const { error } = await supabase
     .from('import_sources')
     .delete()
