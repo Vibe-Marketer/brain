@@ -31,6 +31,7 @@ const Settings = React.lazy(() => import("@/pages/Settings"));
 const SortingTagging = React.lazy(() => import("@/pages/SortingTagging"));
 const SharedWithMe = React.lazy(() => import("@/pages/SharedWithMe"));
 const RoutingRulesPage = React.lazy(() => import("@/pages/RoutingRulesPage"));
+const PeoplePage = React.lazy(() => import("@/pages/PeoplePage"));
 
 // Optimized QueryClient configuration with smart caching
 const queryClient = new QueryClient({
@@ -166,6 +167,18 @@ function App() {
                       <ProtectedRoute>
                         <Layout>
                           <Suspense fallback={<div />}><SharedWithMe /></Suspense>
+                        </Layout>
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* People page */}
+                  <Route
+                    path="/people"
+                    element={
+                      <ProtectedRoute>
+                        <Layout>
+                          <Suspense fallback={<div />}><PeoplePage /></Suspense>
                         </Layout>
                       </ProtectedRoute>
                     }
