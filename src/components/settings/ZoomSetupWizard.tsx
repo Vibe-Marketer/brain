@@ -35,7 +35,7 @@ export default function ZoomSetupWizard({ open, onComplete: _onComplete, onDismi
       setOauthConnecting(true);
       const response = await callEdgeFunction<{ authUrl: string }>("zoom-oauth-url", undefined, { retry: false });
       if (response.data?.authUrl) {
-        window.location.href = response.data.authUrl;
+        window.open(response.data.authUrl, '_blank', 'noopener,noreferrer');
       } else if (response.error) {
         throw new Error(response.error);
       } else {

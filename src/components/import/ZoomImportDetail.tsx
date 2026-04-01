@@ -118,7 +118,7 @@ export function ZoomImportDetail({
       setOauthConnecting(true);
       const response = await getZoomOAuthUrl();
       if (response.data?.authUrl) {
-        window.location.href = response.data.authUrl;
+        window.open(response.data.authUrl, '_blank', 'noopener,noreferrer');
       } else if (response.error) {
         throw new Error(response.error);
       } else {

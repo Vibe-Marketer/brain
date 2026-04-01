@@ -195,7 +195,7 @@ export function FathomImportDetail({
       setOauthConnecting(true);
       const response = await getFathomOAuthUrl();
       if (response.data?.authUrl) {
-        window.location.href = response.data.authUrl;
+        window.open(response.data.authUrl, '_blank', 'noopener,noreferrer');
       } else if (response.error) {
         throw new Error(response.error);
       } else {

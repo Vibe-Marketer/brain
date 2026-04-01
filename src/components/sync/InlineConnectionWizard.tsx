@@ -139,7 +139,7 @@ export function InlineConnectionWizard({
         // Store a flag to indicate we're completing OAuth and should refresh
         sessionStorage.setItem("pendingOAuthPlatform", platform);
         // Redirect to OAuth provider
-        window.location.href = response.data.authUrl;
+        window.open(response.data.authUrl, '_blank', 'noopener,noreferrer');
       } else if (response.error) {
         throw new Error(response.error);
       } else {
