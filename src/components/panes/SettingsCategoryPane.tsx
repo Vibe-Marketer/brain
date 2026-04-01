@@ -20,23 +20,15 @@ import { cn } from "@/lib/utils";
 import { useUserRole } from "@/hooks/useUserRole";
 import {
   RiUserLine,
-  RiTeamLine,
   RiWalletLine,
-  RiPlugLine,
   RiShieldLine,
   RiSettings3Line,
-  RiContactsLine,
-  RiBuildingLine,
   RiRobot2Line,
 } from "@remixicon/react";
 
 export type SettingsCategory =
   | "account"
-  | "contacts"
-  | "organizations"
-  | "users"
   | "billing"
-  | "integrations"
   | "mcp"
   | "admin";
 
@@ -57,35 +49,10 @@ export const SETTINGS_CATEGORIES: CategoryItem[] = [
     icon: RiUserLine,
   },
   {
-    id: "contacts",
-    label: "Contacts",
-    description: "Track call attendees",
-    icon: RiContactsLine,
-  },
-  {
-    id: "organizations",
-    label: "Workspaces",
-    description: "Manage organization workspaces",
-    icon: RiBuildingLine,
-  },
-  {
-    id: "users",
-    label: "People",
-    description: "Your team and workspace members",
-    icon: RiTeamLine,
-    requiredRoles: ["TEAM", "ADMIN"],
-  },
-  {
     id: "billing",
     label: "Billing",
     description: "Plans and payments",
     icon: RiWalletLine,
-  },
-  {
-    id: "integrations",
-    label: "Integrations",
-    description: "Connected services",
-    icon: RiPlugLine,
   },
   {
     id: "mcp",

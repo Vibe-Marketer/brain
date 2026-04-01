@@ -28,15 +28,9 @@ import {
   RiPushpinLine,
   RiPushpinFill,
   RiUserLine,
-  RiTeamLine,
   RiWalletLine,
-  RiPlugLine,
   RiRobot2Line,
   RiShieldLine,
-  RiArrowLeftLine,
-  RiBuilding4Line,
-  RiContactsLine,
-  RiBuildingLine,
 } from "@remixicon/react";
 
 import type { SettingsCategory } from "./SettingsCategoryPane";
@@ -45,16 +39,10 @@ import type { SettingsCategory } from "./SettingsCategoryPane";
 const TRANSITION_DURATION = 250;
 
 // Lazy load settings tab components
-// Note: TeamTab has moved to CollaborationPage
+// Note: Contacts, Users, Organizations, and Integrations tabs have moved to People/Import pages
 const AccountTab = React.lazy(() => import("@/components/settings/AccountTab"));
-const UsersTab = React.lazy(() => import("@/components/settings/UsersTab"));
 const BillingTab = React.lazy(() => import("@/components/settings/BillingTab"));
-const IntegrationsTab = React.lazy(
-  () => import("@/components/settings/IntegrationsTab")
-);
 const AdminTab = React.lazy(() => import("@/components/settings/AdminTab"));
-const ContactsTab = React.lazy(() => import("@/components/settings/ContactsTab"));
-const OrganizationsTab = React.lazy(() => import("@/components/settings/OrganizationsTab"));
 const MCPTab = React.lazy(() => import("@/components/settings/MCPTab"));
 
 /** Category metadata for display */
@@ -71,25 +59,10 @@ const CATEGORY_META: Record<
     description: "Profile and preferences",
     icon: RiUserLine,
   },
-  contacts: {
-    label: "Contacts",
-    description: "Track call attendees",
-    icon: RiContactsLine,
-  },
-  users: {
-    label: "People",
-    description: "Your team and workspace members",
-    icon: RiTeamLine,
-  },
   billing: {
     label: "Billing",
     description: "Plans and payments",
     icon: RiWalletLine,
-  },
-  integrations: {
-    label: "Integrations",
-    description: "Connected services",
-    icon: RiPlugLine,
   },
   admin: {
     label: "Admin",
@@ -100,11 +73,6 @@ const CATEGORY_META: Record<
     label: "MCP / AI Access",
     description: "Connect AI tools to your calls",
     icon: RiRobot2Line,
-  },
-  organizations: {
-    label: "Workspaces",
-    description: "Manage organization workspaces",
-    icon: RiBuildingLine,
   },
 };
 
@@ -230,18 +198,10 @@ export function SettingsDetailPane({
     switch (category) {
       case "account":
         return <AccountTab />;
-      case "contacts":
-        return <ContactsTab />;
-      case "users":
-        return <UsersTab />;
       case "billing":
         return <BillingTab />;
-      case "integrations":
-        return <IntegrationsTab />;
       case "admin":
         return <AdminTab />;
-      case "organizations":
-        return <OrganizationsTab />;
       case "mcp":
         return <MCPTab />;
       default:
