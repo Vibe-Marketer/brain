@@ -49,11 +49,8 @@ function generateInviteToken(): string {
 /**
  * Calculates invite expiration date (7 days from now)
  */
-function getInviteExpiration(): string {
-  const date = new Date()
-  date.setDate(date.getDate() + 7)
-  return date.toISOString()
-}
+// Shareable workspace links are permanent (no expiry).
+// Email-based invitations have their own expiry in the workspace_invitations table.
 
 /**
  * useGenerateWorkspaceInvite - Generate or retrieve existing valid invite link
@@ -103,15 +100,14 @@ export function useGenerateWorkspaceInvite(workspaceId: string) {
         }
       }
 
-      // Generate new token and store on workspaces table
+      // Generate new permanent token and store on workspaces table
       const inviteToken = generateInviteToken()
-      const inviteExpiresAt = getInviteExpiration()
 
       const { error: updateError } = await supabase
         .from('workspaces')
         .update({
           invite_token: inviteToken,
-          invite_expires_at: inviteExpiresAt,
+          invite_expires_at: null, // permanent link
         })
         .eq('id', workspaceId)
 
@@ -127,7 +123,7 @@ export function useGenerateWorkspaceInvite(workspaceId: string) {
       }
 
       const inviteUrl = `${window.location.origin}/join/workspace/${inviteToken}`
-      return { invite_token: inviteToken, invite_url: inviteUrl, invite_expires_at: inviteExpiresAt }
+      return { invite_token: inviteToken, invite_url: inviteUrl, invite_expires_at: null }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.workspaces.detail(workspaceId) })
