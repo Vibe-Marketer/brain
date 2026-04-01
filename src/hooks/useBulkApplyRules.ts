@@ -12,19 +12,20 @@ interface BulkApplyOptions {
 }
 
 interface BulkApplyResult {
-  processed: number;
+  // Field names match the edge function response exactly
+  total_evaluated: number;
   matched: number;
-  assigned: number;
+  moved: number;
   skipped: number;
-  dryRun: boolean;
-  details: Array<{
-    recordingId: string;
+  dry_run: boolean;
+  matches: Array<{
+    recording_id: string;
     title: string;
-    matchedRuleId: string;
-    matchedRuleName: string;
-    workspaceId: string;
-    folderId: string | null;
-    action: 'assigned' | 'skipped';
+    rule_id: string;
+    rule_name: string;
+    target_workspace_id: string;
+    target_workspace_name: string | null;
+    target_folder_id: string | null;
   }>;
 }
 
@@ -48,24 +49,23 @@ export function useBulkApplyRules() {
       return data as BulkApplyResult;
     },
     onSuccess: (result) => {
-      if (result.dryRun) {
+      if (result.dry_run) {
         if (result.matched === 0) {
-          toast.info('Dry run complete — no existing calls match current rules');
+          toast.info('No existing calls match current rules');
         } else {
+          const ruleNames = new Set(result.matches.map(d => d.rule_name));
           toast.success(
-            `Dry run: ${result.matched} call${result.matched !== 1 ? 's' : ''} would be routed across ${new Set(result.details.map(d => d.matchedRuleName)).size} rule${result.matched !== 1 ? 's' : ''}`
+            `${result.matched} call${result.matched !== 1 ? 's' : ''} would be routed by ${ruleNames.size} rule${ruleNames.size !== 1 ? 's' : ''}`
           );
         }
       } else {
-        if (result.assigned === 0) {
-          toast.info(result.skipped > 0
-            ? `${result.skipped} call${result.skipped !== 1 ? 's' : ''} already assigned — nothing new to route`
+        if (result.moved === 0) {
+          toast.info(result.matched > 0
+            ? `${result.matched} calls matched but could not be moved`
             : 'No existing calls matched the current rules'
           );
         } else {
-          toast.success(
-            `Bulk applied: ${result.assigned} call${result.assigned !== 1 ? 's' : ''} routed${result.skipped > 0 ? `, ${result.skipped} already assigned` : ''}`
-          );
+          toast.success(`Moved ${result.moved} call${result.moved !== 1 ? 's' : ''} to their target workspaces`);
         }
       }
     },

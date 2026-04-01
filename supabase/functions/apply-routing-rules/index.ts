@@ -141,7 +141,9 @@ Deno.serve(async (req) => {
       workspaceNameMap[ws.id] = ws.name;
     }
 
-    // Fetch unrouted recordings in pages to avoid memory/timeout issues
+    // Fetch ALL recordings in the org (no routing trace filter — rules can be re-applied).
+    // Previously, recordings stamped with routed_by_rule_id were permanently skipped,
+    // which broke re-ordering and re-applying rules.
     const matches: MatchResult[] = [];
     let totalEvaluated = 0;
     let offset = 0;
@@ -152,7 +154,6 @@ Deno.serve(async (req) => {
         .from('recordings')
         .select('id, title, source_app, duration, recording_start_time, source_metadata, global_tags')
         .eq('organization_id', organizationId)
-        .filter("source_metadata->>'routed_by_rule_id'", 'is', 'null')
         .order('recording_start_time', { ascending: false })
         .range(offset, offset + PAGE_SIZE - 1);
 
