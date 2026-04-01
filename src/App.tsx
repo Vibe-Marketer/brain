@@ -28,8 +28,7 @@ import ImportPage from "@/pages/ImportPage";
 // Lazy-loaded route pages (code-split for faster initial load)
 const Analytics = React.lazy(() => import("@/pages/Analytics"));
 const Settings = React.lazy(() => import("@/pages/Settings"));
-const SortingTagging = React.lazy(() => import("@/pages/SortingTagging"));
-const SharedWithMe = React.lazy(() => import("@/pages/SharedWithMe"));
+// SortingTagging and SharedWithMe removed — routes now redirect
 const RoutingRulesPage = React.lazy(() => import("@/pages/RoutingRulesPage"));
 const PeoplePage = React.lazy(() => import("@/pages/PeoplePage"));
 
@@ -120,26 +119,13 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-                  <Route
-                    path="/sorting-tagging"
-                    element={
-                      <ProtectedRoute>
-                        <Layout>
-                          <Suspense fallback={<div />}><SortingTagging /></Suspense>
-                        </Layout>
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/sorting-tagging/:category"
-                    element={
-                      <ProtectedRoute>
-                        <Layout>
-                          <Suspense fallback={<div />}><SortingTagging /></Suspense>
-                        </Layout>
-                      </ProtectedRoute>
-                    }
-                  />
+                  {/* Sorting & Tagging redirects — page removed, functionality lives in /rules and workspace navigator */}
+                  <Route path="/sorting-tagging" element={<Navigate to="/rules" replace />} />
+                  <Route path="/sorting-tagging/rules" element={<Navigate to="/rules" replace />} />
+                  <Route path="/sorting-tagging/recurring" element={<Navigate to="/rules" replace />} />
+                  <Route path="/sorting-tagging/folders" element={<Navigate to="/" replace />} />
+                  <Route path="/sorting-tagging/tags" element={<Navigate to="/" replace />} />
+                  <Route path="/sorting-tagging/:category" element={<Navigate to="/rules" replace />} />
                   <Route
                     path="/analytics"
                     element={
@@ -160,17 +146,8 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-                  {/* Shared with me page */}
-                  <Route
-                    path="/shared-with-me"
-                    element={
-                      <ProtectedRoute>
-                        <Layout>
-                          <Suspense fallback={<div />}><SharedWithMe /></Suspense>
-                        </Layout>
-                      </ProtectedRoute>
-                    }
-                  />
+                  {/* Shared with me — sidebar entry removed, redirect to home */}
+                  <Route path="/shared-with-me" element={<Navigate to="/" replace />} />
 
                   {/* People page */}
                   <Route
@@ -211,7 +188,7 @@ function App() {
                   />
                   <Route
                     path="/team"
-                    element={<Navigate to="/workspaces" replace />}
+                    element={<Navigate to="/" replace />}
                   />
                   <Route
                     path="/banks"
@@ -242,19 +219,19 @@ function App() {
                   {/* Automation Rules routes */}
                   <Route
                     path="/automation-rules"
-                    element={<Navigate to="/sorting-tagging/rules" replace />}
+                    element={<Navigate to="/rules" replace />}
                   />
                   <Route
                     path="/automation-rules/new"
-                    element={<Navigate to="/sorting-tagging/rules" replace />}
+                    element={<Navigate to="/rules" replace />}
                   />
                   <Route
                     path="/automation-rules/:id"
-                    element={<Navigate to="/sorting-tagging/rules" replace />}
+                    element={<Navigate to="/rules" replace />}
                   />
                   <Route
                     path="/automation-rules/:id/history"
-                    element={<Navigate to="/sorting-tagging/rules" replace />}
+                    element={<Navigate to="/rules" replace />}
                   />
 
                   {/* Manual Import route */}
