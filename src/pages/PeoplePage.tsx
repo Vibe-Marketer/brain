@@ -17,6 +17,7 @@ import type { PeopleCategoryId } from '@/components/panes/PeopleCategoryPane';
 import { PageHeader } from '@/components/ui/page-header';
 import { ContactsTable } from '@/components/contacts/ContactsTable';
 import { MembersContent } from '@/components/people/MembersContent';
+import { MembersOverviewDashboard } from '@/components/people/MembersOverviewDashboard';
 import { PendingInvitesContent } from '@/components/people/PendingInvitesContent';
 import { usePanelStore } from '@/stores/panelStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
@@ -70,6 +71,13 @@ export default function PeoplePage() {
     }
 
     if (selectedCategory === 'members') {
+      if (!selectedWorkspaceId) {
+        return (
+          <MembersOverviewDashboard
+            onSelectWorkspace={setSelectedWorkspaceId}
+          />
+        );
+      }
       return (
         <MembersContent
           workspaceId={selectedWorkspaceId}

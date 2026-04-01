@@ -10,6 +10,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { OrganizationSwitcher } from '@/components/header/OrganizationSwitcher';
 import {
   RiCloudLine,
   RiVideoLine,
@@ -18,6 +19,7 @@ import {
   RiRouteLine,
   RiHistoryLine,
   RiAddLine,
+  RiDownloadLine,
 } from '@remixicon/react';
 import type { ImportSource } from '@/services/import-sources.service';
 
@@ -67,21 +69,38 @@ export function ImportSourcePane({
   sourcesLoading,
 }: ImportSourcePaneProps) {
   return (
-    <div className="h-full overflow-y-auto p-3 flex flex-col">
-      {/* Pane heading with add button */}
-      <div className="flex items-center justify-between mb-3 px-1">
-        <p className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground">
-          Import Sources
-        </p>
-        <button
-          type="button"
-          className="flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors duration-150"
-          aria-label="Add integration"
-        >
-          <RiAddLine size={15} />
-        </button>
-      </div>
+    <div className="h-full flex flex-col">
+      {/* Header with Switcher — matches WorkspaceSidebarPane pattern */}
+      <header className="px-4 py-4 space-y-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-cb-border/40 flex items-center justify-center">
+              <RiDownloadLine className="h-4.5 w-4.5 text-vibe-orange" />
+            </div>
+            <div>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground leading-none">Imports</h2>
+              <p className="text-[9px] text-muted-foreground/60 uppercase">Source Manager</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="flex items-center justify-center w-6 h-6 rounded-md text-muted-foreground hover:bg-muted/60 hover:text-foreground transition-colors duration-150"
+            aria-label="Add integration"
+          >
+            <RiAddLine size={15} />
+          </button>
+        </div>
 
+        <div className="p-2 border border-border rounded-xl bg-card">
+          <div className="flex items-center gap-1 mb-2 px-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-success-bg shadow-[0_0_8px_rgba(var(--success-bg),0.5)]" />
+            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Organization</span>
+          </div>
+          <OrganizationSwitcher />
+        </div>
+      </header>
+
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col">
       {/* Primary sources list */}
       <div className="flex flex-col gap-0.5">
         {sourcesLoading
@@ -189,6 +208,7 @@ export function ImportSourcePane({
             </button>
           );
         })}
+      </div>
       </div>
     </div>
   );

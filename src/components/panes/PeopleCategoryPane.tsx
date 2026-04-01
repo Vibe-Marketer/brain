@@ -84,16 +84,31 @@ export function PeopleCategoryPane({
   const [newFolderName, setNewFolderName] = React.useState('');
 
   return (
-    <div className="h-full overflow-y-auto p-3 flex flex-col">
-      {/* Org switcher */}
-      <div className="mb-3">
-        <OrganizationSwitcher />
-      </div>
+    <div className="h-full flex flex-col">
+      {/* Header with Switcher — matches WorkspaceSidebarPane pattern */}
+      <header className="px-4 py-4 space-y-4 border-b border-border">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-cb-border/40 flex items-center justify-center">
+              <RiContactsLine className="h-4.5 w-4.5 text-vibe-orange" />
+            </div>
+            <div>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground leading-none">People</h2>
+              <p className="text-[9px] text-muted-foreground/60 uppercase">Contact Manager</p>
+            </div>
+          </div>
+        </div>
 
-      {/* Pane heading */}
-      <p className="font-montserrat font-extrabold uppercase tracking-wide text-sm text-foreground mb-3 px-1">
-        People
-      </p>
+        <div className="p-2 border border-border rounded-xl bg-card">
+          <div className="flex items-center gap-1 mb-2 px-1">
+            <div className="w-1.5 h-1.5 rounded-full bg-success-bg shadow-[0_0_8px_rgba(var(--success-bg),0.5)]" />
+            <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/80">Organization</span>
+          </div>
+          <OrganizationSwitcher />
+        </div>
+      </header>
+
+      <div className="flex-1 overflow-y-auto p-3 flex flex-col">
 
       {/* Category list */}
       <div className="flex flex-col gap-0.5">
@@ -301,6 +316,7 @@ export function PeopleCategoryPane({
         onOpenChange={setCreateWsOpen}
         orgId={activeOrgId}
       />
+      </div>
     </div>
   );
 }
