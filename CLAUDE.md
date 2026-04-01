@@ -53,7 +53,7 @@ Everything lives in **one repo**: `/Users/Naegele/dev/brain`
 
 **Package manager:** `npm` (not pnpm, not bun)
 
-**Production:** https://callvault.vercel.app (auto-deploys from pushes to main)
+**Production:** https://app.callvaultai.com (auto-deploys from pushes to main)
 
 **The `callvault/` repo is ABANDONED. Do NOT read from, reference, or work inside `/Users/Naegele/dev/callvault/`.**
 
@@ -136,7 +136,7 @@ This is the locked-in pattern for all data access in v2.
 
 - Test credentials in `.env.local` (CALLVAULTAI_LOGIN, CALLVAULTAI_LOGIN_PASSWORD)
 - V1 production (visual source of truth): https://app.callvaultai.com
-- Production: https://callvault.vercel.app (use this when localhost has OAuth issues)
+- Production: https://app.callvaultai.com (use this when localhost has OAuth issues)
 - After UI changes: screenshot with dev-browser, don't ask user to check
 
 ---

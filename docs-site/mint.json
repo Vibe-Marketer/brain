@@ -2,8 +2,8 @@
   "$schema": "https://mintlify.com/schema.json",
   "name": "CallVault",
   "logo": {
-    "light": "/logo/callvault-light.svg",
-    "dark": "/logo/callvault-dark.svg"
+    "light": "/logo/callvault-light.png",
+    "dark": "/logo/callvault-dark.png"
   },
   "favicon": "/favicon.ico",
   "colors": {

@@ -1,8 +1,9 @@
 // Default allowed origins — used when ALLOWED_ORIGINS env var is not set.
 // Includes production domains and common local dev ports.
 const DEFAULT_ORIGINS = [
-  'https://callvault.vercel.app',
   'https://app.callvaultai.com',
+  'https://test.callvaultai.com',
+  'https://brain-sable-kappa.vercel.app',
   'http://localhost:3001',
   'http://localhost:8080',
   'http://localhost:5173',

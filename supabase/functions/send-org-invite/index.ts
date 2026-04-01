@@ -32,7 +32,8 @@ const PRODUCTION_FROM = 'CallVault AI <noreply@mail.callvaultai.com>';
 /** Allowed domains for invite URLs — prevents phishing via crafted inviteUrl */
 const ALLOWED_URL_PREFIXES = [
   Deno.env.get('APP_URL') || 'https://app.callvaultai.com',
-  'https://callvault.vercel.app',
+  'https://test.callvaultai.com',
+  'https://brain-sable-kappa.vercel.app',
 ];
 
 const sendOrgInviteSchema = z.object({
