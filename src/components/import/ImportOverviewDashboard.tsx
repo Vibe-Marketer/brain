@@ -15,6 +15,7 @@ import {
   RiYoutubeLine,
   RiUploadCloud2Line,
   RiAlertLine,
+  RiCloseLine,
 } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import type { ImportSource, FailedImport } from '@/services/import-sources.service';
@@ -57,6 +58,8 @@ export function ImportOverviewDashboard({
   failedImports,
   onSelectSource,
 }: ImportOverviewDashboardProps) {
+  const [alertDismissed, setAlertDismissed] = React.useState(false);
+
   return (
     <div className="flex flex-col h-full overflow-y-auto px-6 py-6 space-y-8">
       {/* Page header */}
@@ -68,10 +71,10 @@ export function ImportOverviewDashboard({
       </div>
 
       {/* Failed imports alert */}
-      {failedImports.length > 0 && (
+      {failedImports.length > 0 && !alertDismissed && (
         <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-4 py-3">
           <RiAlertLine size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
-          <div>
+          <div className="flex-1">
             <p className="text-sm font-medium text-foreground">
               {failedImports.length} failed import
               {failedImports.length !== 1 ? 's' : ''} need attention
@@ -85,6 +88,14 @@ export function ImportOverviewDashboard({
               Review &amp; retry failed imports →
             </Button>
           </div>
+          <button
+            type="button"
+            onClick={() => setAlertDismissed(true)}
+            className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-amber-500/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            aria-label="Dismiss failed imports alert"
+          >
+            <RiCloseLine size={16} aria-hidden="true" />
+          </button>
         </div>
       )}
 

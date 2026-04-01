@@ -27,12 +27,6 @@ const DEFAULT_CONDITION: RoutingCondition = {
   value: '',
 };
 
-const FIRST_RULE_SUGGESTION: RoutingCondition = {
-  field: 'source',
-  operator: 'equals',
-  value: 'fathom',
-};
-
 interface RuleFormState {
   name: string;
   conditions: RoutingCondition[];
@@ -60,10 +54,9 @@ export function RoutingRulePanel({ ruleId }: { ruleId: string | null }) {
 
   const initializeForm = useCallback(() => {
     if (ruleId === null) {
-      const isFirstRule = allRules.length === 0;
       setForm({
         name: '',
-        conditions: [isFirstRule ? FIRST_RULE_SUGGESTION : DEFAULT_CONDITION],
+        conditions: [DEFAULT_CONDITION],
         logicOperator: 'AND',
         destination: null,
       });
