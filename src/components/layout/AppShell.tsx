@@ -146,12 +146,12 @@ export function AppShell({
     onSettingsClick,
   } = config;
 
-  // Clear panel history on route changes
+  // Close detail panel on route changes (unless pinned)
   const location = useLocation();
-  const { clearHistory } = usePanelStore();
+  const { closePanel } = usePanelStore();
   useEffect(() => {
-    clearHistory();
-  }, [location.pathname, clearHistory]);
+    closePanel();
+  }, [location.pathname, closePanel]);
 
   // Org switch fade transition (D-11): brief 250ms opacity fade on content panes
   const activeOrgId = useOrgContextStore((s) => s.activeOrgId);

@@ -77,6 +77,11 @@ export default function Settings() {
   const { isPanelOpen, panelType, panelData, openPanel, closePanel } = usePanelStore();
   const showRightPanel = isPanelOpen && panelType === 'setting-help';
 
+  // Close Pane 4 when switching settings category tabs (unless pinned)
+  useEffect(() => {
+    closePanel();
+  }, [selectedCategory, closePanel]);
+
   // Helper function to open help panel for a specific topic
   const openHelpPanel = (topic: SettingHelpTopic) => {
     openPanel('setting-help', { type: 'setting-help', topic });

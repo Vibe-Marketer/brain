@@ -8,6 +8,7 @@ import {
 } from '@remixicon/react';
 import { supabase } from '@/integrations/supabase/client';
 import { AppShell } from '@/components/layout/AppShell';
+import { usePanelStore } from '@/stores/panelStore';
 import { FileUploadDropzone } from '@/components/import/FileUploadDropzone';
 import { FailedImportsSection } from '@/components/import/FailedImportsSection';
 import { RoutingRulesTab } from '@/components/import/RoutingRulesTab';
@@ -45,6 +46,12 @@ async function connectZoom() {
 export default function ImportPage() {
   const [selectedSource, setSelectedSource] = useState<ImportSourceId | null>(null);
   const [disconnectTarget, setDisconnectTarget] = useState<ImportSource | null>(null);
+  const { closePanel } = usePanelStore();
+
+  // Close Pane 4 when switching import source tabs (unless pinned)
+  useEffect(() => {
+    closePanel();
+  }, [selectedSource, closePanel]);
 
   const { data: sources = [], isLoading: sourcesLoading } = useImportSources();
   const { data: counts = {} } = useImportCounts();
