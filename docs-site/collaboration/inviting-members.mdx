@@ -1,5 +1,5 @@
 ---
-title: "Inviting Members"
+title: "Inviting members"
 description: "Invite teammates to your organization and give them access to the workspaces they need."
 icon: "user-plus"
 ---
@@ -36,6 +36,43 @@ Repeat for each workspace they need access to.
 <Tip>
   Use [Teams](/collaboration/teams) to manage workspace access for groups of people at once — instead of adding and removing individuals one by one.
 </Tip>
+
+## Invite methods
+
+When you open the invite dialog for a workspace, you have two ways to invite someone: a shareable link or an email invitation.
+
+### Shareable invite link
+
+A shareable link lets anyone with the URL join the workspace as a member. This is useful when you want to invite a group of people quickly — post the link in a Slack channel, email thread, or meeting chat.
+
+1. Open the workspace invite dialog
+2. Click **Create Link**
+3. Copy the generated link and share it
+
+Below the link, you'll see the link's status:
+
+- **No expiration** — the link stays valid until you rotate it
+- **Expires [date]** — the link will stop working after the displayed date
+
+#### Rotating an invite link
+
+If a link has been shared too broadly or you want to revoke access for anyone who hasn't used it yet, you can rotate it. Rotating generates a new link and immediately invalidates the old one — anyone who clicks the old link will see an error.
+
+To rotate a link, click **Rotate Link** below the invite URL in the invite dialog.
+
+<Warning>
+  Rotating a link is irreversible. The previous link stops working immediately. Members who already joined through the old link are not affected.
+</Warning>
+
+### Email invitation
+
+To send a direct invitation to a specific person:
+
+1. Enter their email address in the invite dialog
+2. Choose their role: **Member**, **Contributor**, or **Admin**
+3. Click **Send Invite**
+
+The person will receive an email with a link to join the workspace.
 
 ## Pending invitations
 
