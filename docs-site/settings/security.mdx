@@ -46,9 +46,13 @@ Share links provide time-limited, read-only access to individual calls for peopl
 
 ## Authentication
 
-- Passwords are hashed using industry-standard algorithms (never stored in plaintext)
-- Google SSO is available for organizations that prefer centralized identity management
-- Sessions expire after a period of inactivity
+CallVault supports three ways to sign in:
+
+- **Google SSO** — sign in with your Google account. Available for organizations that prefer centralized identity management.
+- **Email and password** — sign in with your email and a password you set during registration. Passwords are hashed using industry-standard algorithms and never stored in plaintext.
+- **Magic link** — enter your email on the sign-in screen and click "Send me a magic link." You'll receive a one-time login link in your inbox — no password required. Magic links expire after a single use.
+
+All sessions expire after a period of inactivity. You can add a password to your account at any time from [Account Settings](/settings/account-settings), even if you originally signed up with Google.
 
 ## Organizational data separation
 
