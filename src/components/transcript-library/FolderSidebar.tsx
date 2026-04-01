@@ -113,8 +113,6 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
     },
   });
 
-  // Get the appropriate icon for this folder
-  const FolderIcon = getIconComponent(folder.icon);
 
   // Folder row content (shared between context menu and regular view)
   const folderRowContent = (
@@ -164,22 +162,14 @@ const DroppableFolderItem = React.memo(function DroppableFolderItem({
         <div className="w-6 flex-shrink-0" />
       )}
 
-      {/* Folder Icon - use custom icon or emoji if set */}
-      {/* Emojis and custom icons don't change on selection; default folder uses fill variant when selected */}
-      {FolderIcon ? (
-        <FolderIcon
-          className="h-4 w-4 flex-shrink-0 mr-2"
-          style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
-        />
-      ) : isSelected ? (
+      {/* Folder Icon */}
+      {isSelected ? (
         <RiFolderFill
-          className="h-4 w-4 flex-shrink-0 mr-2"
-          style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
+          className="h-4 w-4 flex-shrink-0 mr-2 text-muted-foreground"
         />
       ) : (
         <RiFolderLine
-          className="h-4 w-4 flex-shrink-0 mr-2"
-          style={{ color: isOver ? '#FF8800' : (folder.color || '#6B7280') }}
+          className="h-4 w-4 flex-shrink-0 mr-2 text-muted-foreground"
         />
       )}
 
@@ -528,7 +518,6 @@ export function FolderSidebar({
           <div className="flex-1 w-full overflow-y-auto">
             <div className="flex flex-col items-center gap-0.5 px-1">
               {filteredRootFolders.map((folder) => {
-                const FolderIcon = getIconComponent(folder.icon);
                 const isSelected = selectedFolderId === folder.id;
                 const isHidden = hiddenFolders?.has(folder.id) ?? false;
 
@@ -544,22 +533,10 @@ export function FolderSidebar({
                     )}
                     title={isHidden ? `${folder.name} (hidden)` : folder.name}
                   >
-                    {/* Custom icons don't change on selection; default folder uses fill variant when selected */}
-                    {FolderIcon ? (
-                      <FolderIcon
-                        className="h-4 w-4"
-                        style={{ color: folder.color || '#6B7280' }}
-                      />
-                    ) : isSelected ? (
-                      <RiFolderFill
-                        className="h-4 w-4"
-                        style={{ color: folder.color || '#6B7280' }}
-                      />
+                    {isSelected ? (
+                      <RiFolderFill className="h-4 w-4 text-muted-foreground" />
                     ) : (
-                      <RiFolderLine
-                        className="h-4 w-4"
-                        style={{ color: folder.color || '#6B7280' }}
-                      />
+                      <RiFolderLine className="h-4 w-4 text-muted-foreground" />
                     )}
                     {/* Hidden indicator dot */}
                     {isHidden && (
