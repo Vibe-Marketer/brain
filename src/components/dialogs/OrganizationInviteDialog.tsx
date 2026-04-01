@@ -29,6 +29,8 @@ import { toast } from 'sonner'
 import { createOrganizationInvitation, getShareableLink } from '@/services/organization-invitations.service'
 import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
+import { useContactSuggestions } from '@/hooks/useContactSuggestions'
+import { ContactSuggestions } from '@/components/contacts/ContactSuggestions'
 
 interface OrganizationInviteDialogProps {
   open: boolean
@@ -49,6 +51,8 @@ export function OrganizationInviteDialog({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [inviteUrl, setInviteUrl] = useState<string | null>(null)
   const [isCopied, setIsCopied] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const contactSuggestions = useContactSuggestions()
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,10 +135,26 @@ export function OrganizationInviteDialog({
                   type="email"
                   placeholder="name@company.com"
                   className="pl-9"
+                  autoComplete="off"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    setShowSuggestions(true)
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setShowSuggestions(false)}
                   required
                 />
+                {showSuggestions && (
+                  <ContactSuggestions
+                    query={email}
+                    suggestions={contactSuggestions}
+                    onSelect={(selectedEmail) => {
+                      setEmail(selectedEmail)
+                      setShowSuggestions(false)
+                    }}
+                  />
+                )}
               </div>
             </div>
 

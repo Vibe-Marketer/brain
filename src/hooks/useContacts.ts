@@ -125,6 +125,73 @@ export function useContacts(orgId?: string | null) {
   });
 
   // ============================================================================
+  // HELPERS
+  // ============================================================================
+
+  /**
+   * Legacy import path: reads from fathom_calls.calendar_invitees
+   * Used as fallback when call_participants has no data for this org.
+   */
+  async function importFromLegacyCalls(
+    calls: Array<{ recording_id: number; calendar_invitees: unknown; recording_start_time: string | null }>,
+    userId: string,
+    activeOrgId: string,
+  ) {
+    let totalImported = 0;
+    let totalSkipped = 0;
+
+    const attendeeMap = new Map<string, {
+      email: string;
+      name: string | null;
+      lastSeenAt: string | null;
+      lastRecordingId: number;
+    }>();
+
+    for (const call of calls) {
+      const invitees = call.calendar_invitees as CalendarInvitee[];
+      if (!invitees) continue;
+      for (const invitee of invitees) {
+        if (!invitee.email) continue;
+        const email = normalizeEmail(invitee.email);
+        const existing = attendeeMap.get(email);
+        const callTime = call.recording_start_time;
+        if (!existing) {
+          attendeeMap.set(email, { email, name: invitee.name || null, lastSeenAt: callTime, lastRecordingId: call.recording_id });
+        } else if (callTime && (!existing.lastSeenAt || new Date(callTime) > new Date(existing.lastSeenAt))) {
+          existing.lastSeenAt = callTime;
+          existing.lastRecordingId = call.recording_id;
+          if (invitee.name && !existing.name) existing.name = invitee.name;
+        }
+      }
+    }
+
+    const { data: existingContacts } = await supabase
+      .from("contacts")
+      .select("id, email")
+      .eq("user_id", userId)
+      .eq("org_id", activeOrgId);
+
+    const existingEmailMap = new Map<string, string>();
+    (existingContacts || []).forEach(c => existingEmailMap.set(c.email, c.id));
+
+    for (const [email, attendee] of attendeeMap) {
+      if (existingEmailMap.has(email)) {
+        totalSkipped++;
+      } else {
+        const { error } = await supabase
+          .from("contacts")
+          .insert({ user_id: userId, org_id: activeOrgId, email, name: attendee.name, last_seen_at: attendee.lastSeenAt })
+          .select("id")
+          .single();
+        if (error) { logger.warn("Failed to insert contact", { email, error }); continue; }
+        totalImported++;
+      }
+    }
+
+    return { totalImported, totalSkipped, totalCalls: calls.length };
+  }
+
+  // ============================================================================
   // MUTATIONS
   // ============================================================================
 
@@ -430,70 +497,80 @@ export function useContacts(orgId?: string | null) {
   });
 
   /**
-   * Import all contacts from all calls into the active org
+   * Import all contacts from all calls into the active org.
+   * Pulls from call_participants (canonical source) which includes
+   * calendar invitees, hosts, and speakers -- not just calendar_invitees.
    */
   const importAllContactsMutation = useMutation({
     mutationFn: async () => {
       if (!orgId) throw new Error("No active organization selected");
       const user = await requireUser();
 
-      // Get all calls with attendees
-      const { data: calls, error: callsError } = await supabase
-        .from("fathom_calls")
-        .select("recording_id, calendar_invitees, recording_start_time")
-        .eq("user_id", user.id)
-        .not("calendar_invitees", "is", null);
+      // Pull from call_participants (canonical source: invitees + hosts + speakers)
+      const { data: participants, error: participantsError } = await supabase
+        .from("call_participants")
+        .select("email, name, recording_id")
+        .eq("organization_id", orgId!)
+        .not("email", "is", null);
 
-      if (callsError) throw callsError;
-      if (!calls || calls.length === 0) {
-        return { totalImported: 0, totalSkipped: 0, totalCalls: 0 };
+      if (participantsError) throw participantsError;
+      if (!participants || participants.length === 0) {
+        // Fallback: try legacy fathom_calls for orgs that haven't been migrated
+        const { data: calls, error: callsError } = await supabase
+          .from("fathom_calls")
+          .select("recording_id, calendar_invitees, recording_start_time")
+          .eq("user_id", user.id)
+          .not("calendar_invitees", "is", null);
+
+        if (callsError) throw callsError;
+        if (!calls || calls.length === 0) {
+          return { totalImported: 0, totalSkipped: 0, totalCalls: 0 };
+        }
+
+        // Legacy path: import from fathom_calls calendar_invitees
+        return await importFromLegacyCalls(calls, user.id, orgId!);
       }
 
-      let totalImported = 0;
-      let totalSkipped = 0;
-      const processedEmails = new Set<string>();
-      const contactIdMap = new Map<string, string>(); // email -> contact_id
+      // Get recording timestamps for last_seen_at
+      const recordingIds = [...new Set(participants.map(p => p.recording_id))];
+      const { data: recordings } = await supabase
+        .from("recordings")
+        .select("id, recording_start_time")
+        .in("id", recordingIds);
 
-      // First pass: collect all unique attendees and their most recent appearance
+      const recordingTimeMap = new Map<string, string | null>();
+      (recordings || []).forEach(r => {
+        recordingTimeMap.set(r.id, r.recording_start_time);
+      });
+
+      // Collect unique people by email
       const attendeeMap = new Map<string, {
         email: string;
         name: string | null;
         lastSeenAt: string | null;
-        lastRecordingId: number;
-        appearances: Array<{ recordingId: number; appearedAt: string | null }>;
+        recordingIds: string[];
       }>();
 
-      for (const call of calls) {
-        const invitees = call.calendar_invitees as CalendarInvitee[];
-        if (!invitees) continue;
+      for (const p of participants) {
+        if (!p.email) continue;
+        const email = normalizeEmail(p.email);
+        const callTime = recordingTimeMap.get(p.recording_id) ?? null;
 
-        for (const invitee of invitees) {
-          if (!invitee.email) continue;
-          const email = normalizeEmail(invitee.email);
-
-          const existing = attendeeMap.get(email);
-          const callTime = call.recording_start_time;
-
-          if (!existing) {
-            attendeeMap.set(email, {
-              email,
-              name: invitee.name || null,
-              lastSeenAt: callTime,
-              lastRecordingId: call.recording_id,
-              appearances: [{ recordingId: call.recording_id, appearedAt: callTime }],
-            });
-          } else {
-            // Add this appearance
-            existing.appearances.push({ recordingId: call.recording_id, appearedAt: callTime });
-            
-            // Update last seen if more recent
-            if (callTime && (!existing.lastSeenAt || new Date(callTime) > new Date(existing.lastSeenAt))) {
-              existing.lastSeenAt = callTime;
-              existing.lastRecordingId = call.recording_id;
-              if (invitee.name && !existing.name) {
-                existing.name = invitee.name;
-              }
-            }
+        const existing = attendeeMap.get(email);
+        if (!existing) {
+          attendeeMap.set(email, {
+            email,
+            name: p.name || null,
+            lastSeenAt: callTime,
+            recordingIds: [p.recording_id],
+          });
+        } else {
+          existing.recordingIds.push(p.recording_id);
+          if (callTime && (!existing.lastSeenAt || new Date(callTime) > new Date(existing.lastSeenAt))) {
+            existing.lastSeenAt = callTime;
+          }
+          if (p.name && !existing.name) {
+            existing.name = p.name;
           }
         }
       }
@@ -510,24 +587,25 @@ export function useContacts(orgId?: string | null) {
         existingEmailMap.set(c.email, c.id);
       });
 
-      // Process attendees
+      let totalImported = 0;
+      let totalSkipped = 0;
+      const contactIdMap = new Map<string, string>();
+
       for (const [email, attendee] of attendeeMap) {
         if (existingEmailMap.has(email)) {
-          // Update existing contact
           const contactId = existingEmailMap.get(email)!;
           contactIdMap.set(email, contactId);
-          
+
           await supabase
             .from("contacts")
             .update({
               last_seen_at: attendee.lastSeenAt,
-              last_call_recording_id: attendee.lastRecordingId,
+              name: attendee.name || undefined,
             })
             .eq("id", contactId);
-          
+
           totalSkipped++;
         } else {
-          // Create new contact in the active org
           const { data: newContact, error } = await supabase
             .from("contacts")
             .insert({
@@ -536,7 +614,6 @@ export function useContacts(orgId?: string | null) {
               email,
               name: attendee.name,
               last_seen_at: attendee.lastSeenAt,
-              last_call_recording_id: attendee.lastRecordingId,
             })
             .select("id")
             .single();
@@ -545,32 +622,13 @@ export function useContacts(orgId?: string | null) {
             logger.warn("Failed to insert contact", { email, error });
             continue;
           }
-          
+
           contactIdMap.set(email, newContact.id);
           totalImported++;
         }
-
-        // Add all appearances
-        const contactId = contactIdMap.get(email);
-        if (contactId) {
-          const appearances = attendee.appearances.map(a => ({
-            contact_id: contactId,
-            recording_id: a.recordingId,
-            user_id: user.id,
-            org_id: orgId!,
-            appeared_at: a.appearedAt,
-          }));
-
-          // Batch upsert appearances
-          await supabase
-            .from("contact_call_appearances")
-            .upsert(appearances, {
-              onConflict: "contact_id,recording_id,user_id",
-            });
-        }
       }
 
-      return { totalImported, totalSkipped, totalCalls: calls.length };
+      return { totalImported, totalSkipped, totalCalls: recordingIds.length };
     },
     onSuccess: ({ totalImported, totalSkipped, totalCalls }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.contacts.list(orgId ?? undefined) });

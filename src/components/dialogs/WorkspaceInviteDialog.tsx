@@ -35,6 +35,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { supabase } from '@/integrations/supabase/client'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useContactSuggestions } from '@/hooks/useContactSuggestions'
+import { ContactSuggestions } from '@/components/contacts/ContactSuggestions'
 
 interface WorkspaceInviteDialogProps {
   open: boolean
@@ -51,16 +53,18 @@ export function WorkspaceInviteDialog({
 }: WorkspaceInviteDialogProps) {
   const { user } = useAuth()
   const [activeTab, setActiveTab] = useState<'link' | 'email'>('link')
-  
+
   // Link State
   const [inviteUrl, setInviteUrl] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [isCopied, setIsCopied] = useState(false)
-  
+
   // Email State
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<'member' | 'contributor' | 'workspace_admin'>('member')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const contactSuggestions = useContactSuggestions()
 
   const generateInvite = useGenerateWorkspaceInvite(workspaceId)
 
@@ -212,10 +216,26 @@ export function WorkspaceInviteDialog({
                     type="email"
                     placeholder="teammate@example.com"
                     className="pl-9"
+                    autoComplete="off"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => {
+                      setEmail(e.target.value)
+                      setShowSuggestions(true)
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setShowSuggestions(false)}
                     required
                   />
+                  {showSuggestions && (
+                    <ContactSuggestions
+                      query={email}
+                      suggestions={contactSuggestions}
+                      onSelect={(selectedEmail) => {
+                        setEmail(selectedEmail)
+                        setShowSuggestions(false)
+                      }}
+                    />
+                  )}
                 </div>
               </div>
 
