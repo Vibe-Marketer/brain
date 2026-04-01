@@ -181,12 +181,12 @@ export function DateRangePicker({
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
-          variant="hollow"
+          variant="default"
           size="sm"
           disabled={disabled}
           className={cn(
             "justify-start text-left font-normal",
-            !hasSelection && "text-muted-foreground",
+            !hasSelection && "text-white/70",
             triggerClassName
           )}
         >
