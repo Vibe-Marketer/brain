@@ -181,14 +181,21 @@ export function WorkspaceInviteDialog({
                 </Button>
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex gap-2">
                   <Input readOnly value={inviteUrl} className="font-mono text-xs bg-muted/50" />
                   <Button variant="hollow" size="icon" onClick={handleCopy}>
                     {isCopied ? <RiCheckLine className="h-4 w-4 text-emerald-500" /> : <RiFileCopyLine className="h-4 w-4" />}
                   </Button>
-                  <Button variant="ghost" size="icon" onClick={handleRegenerate} title="Regenerate link">
-                    <RiRefreshLine className="h-4 w-4" />
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <RiTimeLine className="h-3.5 w-3.5" />
+                    {expiresAt ? `Expires ${new Date(expiresAt).toLocaleDateString()}` : 'No expiration'}
+                  </span>
+                  <Button variant="ghost" size="sm" className="h-6 text-[10px] uppercase font-bold text-muted-foreground gap-1" onClick={handleRegenerate}>
+                    <RiRefreshLine className="h-3 w-3" />
+                    Rotate Link
                   </Button>
                 </div>
               </div>
