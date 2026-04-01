@@ -28,6 +28,7 @@ import { OrganizationMemberPanel } from '@/components/panels/OrganizationMemberP
 import { AutomationRulePanel } from '@/components/panels/AutomationRulePanel';
 import { RoutingRulePanel } from '@/components/panels/RoutingRulePanel';
 import { WorkspaceDetailPanel } from '@/components/panels/WorkspaceDetailPanel';
+import { ContactDetailPanel } from '@/components/panels/ContactDetailPanel';
 import { BulkActionToolbarEnhanced } from '@/components/transcript-library/BulkActionToolbarEnhanced';
 
 export interface DetailPaneOutletProps {
@@ -84,6 +85,11 @@ export function DetailPaneOutlet({
             userId={panelData.userId}
             onUserUpdated={panelData.onUserUpdated}
           />
+        ) : null;
+
+      case 'contact-detail':
+        return panelData?.type === 'contact-detail' ? (
+          <ContactDetailPanel contactId={panelData.contactId} />
         ) : null;
 
       case 'workspace-detail':
@@ -154,6 +160,8 @@ export function DetailPaneOutlet({
         return 'User detail panel';
       case 'call-detail':
         return 'Call detail panel';
+      case 'contact-detail':
+        return 'Contact detail panel';
       case 'workspace_members':
         return 'Workspace member panel';
       case 'organization_members':

@@ -13,6 +13,7 @@ import type { Tag } from '@/types/tags';
 export type PanelType =
   | 'workspace-detail'
   | 'call-detail'
+  | 'contact-detail'
   | 'insight-detail'
   | 'filter-tool'
   | 'ai-assistant'
@@ -36,6 +37,7 @@ export type PanelType =
  */
 export type PanelData =
   | { type: 'call-detail'; recordingId: number | string; title?: string }
+  | { type: 'contact-detail'; contactId: string }
   | { type: 'folder-detail'; folderId: string }
   | { type: 'tag-detail'; tagId: string }
   | { type: 'user-detail'; userId: string; onUserUpdated?: () => void }

@@ -10,14 +10,14 @@
 import { useState, useEffect } from 'react';
 import {
   RiContactsLine,
-  RiGroupLine,
-  RiMailSendLine,
-  RiSafeLine,
 } from '@remixicon/react';
 import { AppShell } from '@/components/layout/AppShell';
 import { PeopleCategoryPane } from '@/components/panes/PeopleCategoryPane';
 import type { PeopleCategoryId } from '@/components/panes/PeopleCategoryPane';
 import { PageHeader } from '@/components/ui/page-header';
+import { ContactsTable } from '@/components/contacts/ContactsTable';
+import { MembersContent } from '@/components/people/MembersContent';
+import { PendingInvitesContent } from '@/components/people/PendingInvitesContent';
 import { usePanelStore } from '@/stores/panelStore';
 import { useOrganizationContext } from '@/hooks/useOrganizationContext';
 import { useWorkspaces } from '@/hooks/useWorkspaces';
@@ -55,62 +55,30 @@ export default function PeoplePage() {
 
     if (selectedCategory === 'contacts') {
       return (
-        <div className="flex flex-col h-full overflow-y-auto">
+        <div className="flex flex-col h-full">
           <PageHeader
             title="Contacts"
             subtitle="Manage your contacts"
             icon={RiContactsLine}
           />
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-            Contacts table coming soon
+          <div className="flex-1 min-h-0">
+            <ContactsTable />
           </div>
         </div>
       );
     }
 
     if (selectedCategory === 'members') {
-      if (selectedWorkspaceId && selectedWorkspace) {
-        return (
-          <div className="flex flex-col h-full overflow-y-auto">
-            <PageHeader
-              title={`Members`}
-              subtitle={`${selectedWorkspace.name}`}
-              icon={RiSafeLine}
-            />
-            <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-              Members of {selectedWorkspace.name} coming soon
-            </div>
-          </div>
-        );
-      }
-
       return (
-        <div className="flex flex-col h-full overflow-y-auto">
-          <PageHeader
-            title="Members"
-            subtitle="Manage your team"
-            icon={RiGroupLine}
-          />
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-            Select a workspace to view members
-          </div>
-        </div>
+        <MembersContent
+          workspaceId={selectedWorkspaceId}
+          workspaceName={selectedWorkspace?.name}
+        />
       );
     }
 
     if (selectedCategory === 'pending-invites') {
-      return (
-        <div className="flex flex-col h-full overflow-y-auto">
-          <PageHeader
-            title="Pending Invites"
-            subtitle="Manage your invitations"
-            icon={RiMailSendLine}
-          />
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-            Pending invites coming soon
-          </div>
-        </div>
-      );
+      return <PendingInvitesContent />;
     }
 
     return null;

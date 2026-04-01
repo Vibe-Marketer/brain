@@ -28,8 +28,9 @@ import {
 } from "@remixicon/react";
 import { useContacts, type ContactWithCallCount, type ContactType } from "@/hooks/useContacts";
 import { useOrganizationContext } from "@/hooks/useOrganizationContext";
+import { usePanelStore } from "@/stores/panelStore";
 import { TrackingToggle } from "./TrackingToggle";
-import { ContactCard } from "./ContactCard";
+import { PaginationControls } from "@/components/ui/pagination-controls";
 import { formatDistanceToNow } from "date-fns";
 
 type SortField = "name" | "email" | "last_seen_at" | "call_count" | "contact_type";
@@ -50,17 +51,14 @@ interface ContactsTableProps {
 export function ContactsTable({ className }: ContactsTableProps) {
   // Derive the active org from context so contacts re-fetch automatically on org switch
   const { activeOrgId } = useOrganizationContext();
+  const { openPanel, panelData } = usePanelStore();
 
   const {
     contacts,
     settings,
     isLoading,
     isImporting,
-    isUpdating,
-    isDeleting,
     updateSettings,
-    updateContact,
-    deleteContact,
     importAllContacts,
   } = useContacts(activeOrgId);
 
@@ -68,7 +66,11 @@ export function ContactsTable({ className }: ContactsTableProps) {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [sortField, setSortField] = React.useState<SortField>("last_seen_at");
   const [sortDirection, setSortDirection] = React.useState<SortDirection>("desc");
-  const [selectedContact, setSelectedContact] = React.useState<ContactWithCallCount | null>(null);
+  const [page, setPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(50);
+
+  // Derive selected contact ID from panel store
+  const selectedContactId = panelData?.type === 'contact-detail' ? panelData.contactId : null;
 
   // Filter and sort contacts
   const filteredContacts = React.useMemo(() => {
@@ -121,6 +123,11 @@ export function ContactsTable({ className }: ContactsTableProps) {
     return result;
   }, [contacts, searchQuery, sortField, sortDirection]);
 
+  // Reset page when search changes
+  React.useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -134,19 +141,8 @@ export function ContactsTable({ className }: ContactsTableProps) {
     await updateSettings({ track_all_contacts: enabled });
   };
 
-  const handleContactUpdate = async (id: string, updates: Parameters<typeof updateContact>[1]) => {
-    await updateContact(id, updates);
-    // Update selected contact in UI
-    if (selectedContact?.id === id) {
-      setSelectedContact((prev) => prev ? { ...prev, ...updates } : null);
-    }
-  };
-
-  const handleContactDelete = async (id: string) => {
-    await deleteContact(id);
-    if (selectedContact?.id === id) {
-      setSelectedContact(null);
-    }
+  const handleRowClick = (contact: ContactWithCallCount) => {
+    openPanel('contact-detail', { type: 'contact-detail', contactId: contact.id });
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -172,10 +168,23 @@ export function ContactsTable({ className }: ContactsTableProps) {
     );
   }
 
+  // Paginate filtered contacts
+  const totalCount = filteredContacts.length;
+  const paginatedContacts = React.useMemo(() => {
+    const start = (page - 1) * pageSize;
+    return filteredContacts.slice(start, start + pageSize);
+  }, [filteredContacts, page, pageSize]);
+
+  const handlePageChange = (newPage: number) => setPage(newPage);
+  const handlePageSizeChange = (newSize: number) => {
+    setPageSize(newSize);
+    setPage(1);
+  };
+
   return (
-    <div className={cn("flex h-full", className)}>
+    <div className={cn("flex flex-col h-full", className)}>
       {/* Main Content */}
-      <div className={cn("flex-1 space-y-4 transition-all duration-300", selectedContact && "pr-4")}>
+      <div className="flex-1 space-y-4 overflow-y-auto px-4 pb-2">
         {/* Tracking Toggle */}
         <TrackingToggle
           isEnabled={settings?.track_all_contacts ?? true}
@@ -214,12 +223,6 @@ export function ContactsTable({ className }: ContactsTableProps) {
               </>
             )}
           </Button>
-        </div>
-
-        {/* Stats */}
-        <div className="text-sm text-muted-foreground">
-          {filteredContacts.length} contact{filteredContacts.length !== 1 ? "s" : ""}
-          {searchQuery && ` matching "${searchQuery}"`}
         </div>
 
         {/* Table */}
@@ -295,6 +298,16 @@ export function ContactsTable({ className }: ContactsTableProps) {
                       <SortIcon field="call_count" />
                     </div>
                   </TableHead>
+                  <TableHead className="text-center">
+                    <div className="flex items-center justify-center">
+                      Invited
+                    </div>
+                  </TableHead>
+                  <TableHead className="text-center">
+                    <div className="flex items-center justify-center">
+                      Attended
+                    </div>
+                  </TableHead>
                   <TableHead
                     className="cursor-pointer hover:bg-muted/50"
                     onClick={() => handleSort("last_seen_at")}
@@ -308,14 +321,14 @@ export function ContactsTable({ className }: ContactsTableProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredContacts.map((contact) => (
+                {paginatedContacts.map((contact) => (
                   <TableRow
                     key={contact.id}
                     className={cn(
                       "cursor-pointer hover:bg-muted/50",
-                      selectedContact?.id === contact.id && "bg-muted"
+                      selectedContactId === contact.id && "bg-muted"
                     )}
-                    onClick={() => setSelectedContact(contact)}
+                    onClick={() => handleRowClick(contact)}
                   >
                     <TableCell className="font-medium">
                       {contact.name || (
@@ -334,16 +347,22 @@ export function ContactsTable({ className }: ContactsTableProps) {
                           {contact.contact_type}
                         </Badge>
                       ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
+                        <span className="text-muted-foreground text-sm">--</span>
                       )}
                     </TableCell>
                     <TableCell className="tabular-nums">
                       {contact.call_count}
                     </TableCell>
+                    <TableCell className="tabular-nums text-center text-muted-foreground">
+                      {contact.invited_count}
+                    </TableCell>
+                    <TableCell className="tabular-nums text-center text-muted-foreground">
+                      {contact.attended_count}
+                    </TableCell>
                     <TableCell className="text-muted-foreground">
                       {contact.last_seen_at
                         ? formatDistanceToNow(new Date(contact.last_seen_at), { addSuffix: true })
-                        : "—"}
+                        : "--"}
                     </TableCell>
                     <TableCell>
                       {contact.track_health && (
@@ -358,16 +377,15 @@ export function ContactsTable({ className }: ContactsTableProps) {
         )}
       </div>
 
-      {/* Detail Panel */}
-      {selectedContact && (
-        <div className="w-[360px] flex-shrink-0 border-l border-border animate-in slide-in-from-right-4 duration-300">
-          <ContactCard
-            contact={selectedContact}
-            onUpdate={handleContactUpdate}
-            onDelete={handleContactDelete}
-            onClose={() => setSelectedContact(null)}
-            isUpdating={isUpdating}
-            isDeleting={isDeleting}
+      {/* Pagination Footer */}
+      {totalCount > 0 && (
+        <div className="flex-shrink-0">
+          <PaginationControls
+            page={page}
+            pageSize={pageSize}
+            totalCount={totalCount}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
           />
         </div>
       )}

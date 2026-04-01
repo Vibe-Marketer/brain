@@ -74,10 +74,14 @@ export interface UserContactSettings {
 }
 
 /**
- * Contact with computed call count (for display)
+ * Contact with computed call count and participation stats (for display)
  */
 export interface ContactWithCallCount extends Contact {
   call_count: number;
+  /** Number of calls this contact was invited to (calendar_invitees) */
+  invited_count: number;
+  /** Number of calls this contact actually spoke on or hosted */
+  attended_count: number;
 }
 
 /**

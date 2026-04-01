@@ -68,26 +68,107 @@ export function useContacts(orgId?: string | null) {
 
       if (contactsError) throw contactsError;
 
-      // Get call counts for each contact in this org
-      const { data: appearanceCounts, error: countsError } = await supabase
+      // Get call counts and appearance timestamps for each contact in this org
+      const { data: appearanceRows, error: countsError } = await supabase
         .from("contact_call_appearances")
-        .select("contact_id")
+        .select("contact_id, appeared_at")
         .eq("user_id", user.id)
         .eq("org_id", orgId!);
 
       if (countsError) throw countsError;
 
-      // Count appearances per contact
+      // Count appearances and track max appeared_at per contact
       const countMap: Record<string, number> = {};
-      (appearanceCounts || []).forEach(({ contact_id }) => {
+      const appearanceLastSeenMap: Record<string, string> = {};
+      (appearanceRows || []).forEach(({ contact_id, appeared_at }) => {
         countMap[contact_id] = (countMap[contact_id] || 0) + 1;
+        if (appeared_at) {
+          if (!appearanceLastSeenMap[contact_id] || appeared_at > appearanceLastSeenMap[contact_id]) {
+            appearanceLastSeenMap[contact_id] = appeared_at;
+          }
+        }
       });
 
-      // Merge counts into contacts
-      const contactsWithCounts: ContactWithCallCount[] = (contactsData || []).map((contact) => ({
-        ...contact,
-        call_count: countMap[contact.id] || 0,
-      }));
+      // Collect all contact emails for participant stats lookup
+      const contactEmails = (contactsData || [])
+        .map(c => c.email)
+        .filter(Boolean);
+
+      // Query call_participants for invited/attended counts and accurate last_seen_at
+      // participant_type: 'attendee' = invited, 'speaker'/'host' = attended
+      let participantStats: Record<string, { invited: number; attended: number; lastCallAt: string | null }> = {};
+
+      if (contactEmails.length > 0) {
+        const { data: participants } = await supabase
+          .from("call_participants")
+          .select("email, participant_type, recording_id")
+          .eq("organization_id", orgId!)
+          .in("email", contactEmails);
+
+        if (participants && participants.length > 0) {
+          // Get recording timestamps for accurate last_seen_at
+          const recordingIds = [...new Set(participants.map(p => p.recording_id))];
+          const { data: recordings } = await supabase
+            .from("recordings")
+            .select("id, recording_start_time")
+            .in("id", recordingIds);
+
+          const recordingTimeMap = new Map<string, string | null>();
+          (recordings || []).forEach(r => {
+            recordingTimeMap.set(r.id, r.recording_start_time);
+          });
+
+          // Build stats per email
+          for (const p of participants) {
+            if (!p.email) continue;
+            const email = p.email.toLowerCase();
+            if (!participantStats[email]) {
+              participantStats[email] = { invited: 0, attended: 0, lastCallAt: null };
+            }
+            const stats = participantStats[email];
+
+            // Count by type
+            if (p.participant_type === 'attendee') {
+              stats.invited++;
+            }
+            if (p.participant_type === 'speaker' || p.participant_type === 'host') {
+              stats.attended++;
+            }
+
+            // Track most recent call time
+            const callTime = recordingTimeMap.get(p.recording_id) ?? null;
+            if (callTime && (!stats.lastCallAt || new Date(callTime) > new Date(stats.lastCallAt))) {
+              stats.lastCallAt = callTime;
+            }
+          }
+        }
+      }
+
+      // Merge counts and participant stats into contacts
+      const contactsWithCounts: ContactWithCallCount[] = (contactsData || []).map((contact) => {
+        const stats = participantStats[contact.email.toLowerCase()];
+
+        // Pick the most recent date from all available sources:
+        // 1. call_participants joined with recordings (most authoritative)
+        // 2. contact_call_appearances.appeared_at (populated during import)
+        // 3. contacts.last_seen_at (stored value, may be stale)
+        const candidates: string[] = [];
+        if (stats?.lastCallAt) candidates.push(stats.lastCallAt);
+        if (appearanceLastSeenMap[contact.id]) candidates.push(appearanceLastSeenMap[contact.id]);
+        if (contact.last_seen_at) candidates.push(contact.last_seen_at);
+
+        const accurateLastSeen = candidates.length > 0
+          ? candidates.reduce((latest, curr) => curr > latest ? curr : latest)
+          : null;
+
+        return {
+          ...contact,
+          last_seen_at: accurateLastSeen,
+          call_count: countMap[contact.id] || 0,
+          invited_count: stats?.invited ?? 0,
+          attended_count: stats?.attended ?? 0,
+        };
+      });
 
       return contactsWithCounts;
     },
