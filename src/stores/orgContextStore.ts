@@ -22,6 +22,7 @@ interface OrgContextState {
   setActiveOrg: (orgId: string) => void
   setActiveWorkspace: (workspaceId: string | null) => void
   setActiveFolder: (folderId: string | null) => void
+  setActiveWorkspaceAndFolder: (workspaceId: string, folderId: string | null) => void
   initialize: (orgId: string, workspaceId?: string) => void
   reset: () => void
 }
@@ -101,6 +102,18 @@ export const useOrgContextStore = create<OrgContextState>()((set) => ({
   /** Set or clear the active folder within the current workspace. */
   setActiveFolder: (folderId: string | null) => {
     set({ activeFolderId: folderId })
+  },
+
+  /**
+   * Set workspace and folder atomically — used when clicking a folder in the sidebar.
+   * Unlike calling setActiveWorkspace + setActiveFolder sequentially,
+   * this does NOT clear activeFolderId (setActiveWorkspace resets it to null).
+   */
+  setActiveWorkspaceAndFolder: (workspaceId: string, folderId: string | null) => {
+    set((state) => {
+      persistContext(state.activeOrgId, workspaceId)
+      return { activeWorkspaceId: workspaceId, activeFolderId: folderId }
+    })
   },
 
   /**

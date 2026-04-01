@@ -35,6 +35,7 @@ export function useOrgContext() {
     setActiveOrg,
     setActiveWorkspace,
     setActiveFolder,
+    setActiveWorkspaceAndFolder,
     initialize,
     reset,
   } = useOrgContextStore()
@@ -105,6 +106,18 @@ export function useOrgContext() {
     [setActiveFolder]
   )
 
+  /**
+   * Switch to a folder within a specific workspace — sets both atomically.
+   * Ensures activeWorkspaceId is set alongside the folder so queries that
+   * depend on both (e.g. get_workspace_recordings) have the workspace context.
+   */
+  const switchToFolder = useCallback(
+    (workspaceId: string, folderId: string | null) => {
+      setActiveWorkspaceAndFolder(workspaceId, folderId)
+    },
+    [setActiveWorkspaceAndFolder]
+  )
+
   return {
     // Store state
     activeOrgId,
@@ -124,6 +137,7 @@ export function useOrgContext() {
     switchOrg,
     switchWorkspace,
     switchFolder,
+    switchToFolder,
     reset,
 
     // Helpers

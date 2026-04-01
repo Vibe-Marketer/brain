@@ -29,6 +29,7 @@ export function useOrganizationContext(): {
   switchOrganization: (orgId: string) => void
   switchWorkspace: (workspaceId: string | null) => void
   switchFolder: (folderId: string | null) => void
+  switchToFolder: (workspaceId: string, folderId: string | null) => void
   reset: () => void
   isPersonalOrganization: boolean
   isPersonalOrg: boolean
@@ -47,6 +48,7 @@ export function useOrganizationContext(): {
     switchOrg,
     switchWorkspace,
     switchFolder,
+    switchToFolder,
     reset,
     isPersonalOrg,
   } = useOrgContext()
@@ -112,6 +114,7 @@ export function useOrganizationContext(): {
     switchOrganization: switchOrganizationInternal,
     switchWorkspace: switchWorkspaceInternal,
     switchFolder,
+    switchToFolder,
     reset,
 
     // Helpers
